@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { useAnonViewerId } from "./useAnonViewerId";
 import type { Poll, PollTally } from "@/lib/polls/types";
 
@@ -37,7 +38,8 @@ export function LivePollCard({ communityId }: { communityId: string | null }) {
     };
   }, [communityId]);
 
-  if (!poll) return null;
+  // Draft picks are polls too, but LiveDraftCard shows those with the team.
+  if (!poll || poll.kind === "draft") return null;
   const myVote = voted[poll.id] ?? null;
   const total = tally?.total ?? 0;
 
@@ -52,6 +54,7 @@ export function LivePollCard({ communityId }: { communityId: string | null }) {
     });
     setVoting(false);
     if (res.ok) {
+      track(EVENTS.pollVoted);
       const d = await res.json().catch(() => null);
       if (d?.tally) setTally(d.tally as PollTally);
     }

@@ -133,7 +133,7 @@ export async function sendPolicyUpdateBlast({
   if (daysOut < 30) {
     throw new Error(
       `Policy-update blast requires at least 30 days notice (got ${daysOut} days). ` +
-        "If this is a security update, bug fix, or court-ordered change, send manually instead — those are exempt per the policy."
+        "If this is a security update, bug fix, or court-ordered change, send manually instead, since those are exempt under the policy."
     );
   }
 

@@ -19,10 +19,17 @@
  * resets avatar_source if needed, and removes the auth identity.
  */
 
+import { describeAuthError } from "@/lib/auth/errors";
+import { reportAuthError } from "@/lib/auth/report";
+import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
+import { rememberAttempt } from "@/lib/auth/oauth";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { Alert, Badge, Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface ConnectionRoles {
   signIn: boolean;
@@ -72,6 +79,7 @@ function rolesSummary(c: Connection): string {
 
 export function ConnectionsCard() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [data, setData] = useState<ConnectionsViewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyProvider, setBusyProvider] = useState<string | null>(null);
@@ -108,6 +116,7 @@ export function ConnectionsCard() {
     // streamer integration, so it starts its own server flow rather than
     // linkIdentity.
     if (provider === "youtube") {
+      track(EVENTS.accountLinked, { provider });
       window.location.href = "/api/youtube/auth/start";
       return;
     }
@@ -131,12 +140,15 @@ export function ConnectionsCard() {
       // to work. Use the `?redirect=` param the existing callback already
       // honors so the user lands on Profile after the link completes.
       const redirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent("/account?tab=profile")}`;
+      rememberAttempt(provider as "twitch" | "discord", "connections");
       const { data: linkRes, error: linkErr } = await supabase.auth.linkIdentity({
         provider,
         options: { redirectTo },
       });
       if (linkErr) {
-        setError(linkErr.message || `Couldn't start ${PROVIDER_LABELS[provider]} link.`);
+        const friendly = describeAuthError({ code: linkErr.code, message: linkErr.message, provider });
+        reportAuthError(friendly, { provider, surface: "connections:start", detail: linkErr.message });
+        setError(friendly.message);
         setBusyProvider(null);
         return;
       }
@@ -145,6 +157,7 @@ export function ConnectionsCard() {
       // bouncing the user to prod despite localhost env vars.
       if (linkRes?.url) {
         console.log("[ConnectionsCard] linkIdentity URL:", linkRes.url, "redirectTo sent:", redirectTo);
+        track(EVENTS.accountLinked, { provider });
         window.location.assign(linkRes.url);
       }
     } catch (err) {
@@ -155,11 +168,10 @@ export function ConnectionsCard() {
   };
 
   const handleDisconnect = async (provider: ProviderId) => {
-    const confirmMsg =
-      provider === "youtube"
-        ? "Disconnect YouTube? This revokes GameShuffle's access to your channel and stops chat integration."
-        : `Disconnect ${PROVIDER_LABELS[provider]}? This removes it as a sign-in method and tears down any active integration.`;
-    if (!confirm(confirmMsg)) {
+    const ok = await confirm(provider === "youtube"
+      ? { title: "Disconnect YouTube?", body: "GameShuffle loses access to your channel and stops reading your chat.", confirmLabel: "Disconnect" }
+      : { title: `Disconnect ${PROVIDER_LABELS[provider]}?`, body: "You can’t sign in with it any more, and anything it powers stops.", confirmLabel: "Disconnect" });
+    if (!ok) {
       return;
     }
     setBusyProvider(provider);
@@ -180,6 +192,7 @@ export function ConnectionsCard() {
         setError(body.message || body.error || "Disconnect failed.");
         toast.error(body.message || body.error || "Couldn't disconnect. Try again.");
       } else {
+        track(EVENTS.accountUnlinked, { provider });
         toast.success(`${provider.charAt(0).toUpperCase()}${provider.slice(1)} disconnected`);
         // Notify the rest of the app — navbar, avatar picker, etc — that
         // connection state changed so they can re-fetch.
@@ -198,7 +211,7 @@ export function ConnectionsCard() {
     return (
       <div className="account-card">
         <h2>Connections</h2>
-        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }
@@ -218,6 +231,9 @@ export function ConnectionsCard() {
       <p style={{ marginBottom: "var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
         Link external accounts to use them for sign-in, profile display, and (with a Pro plan) streamer integrations.
       </p>
+
+      {/* Why a connect round trip failed (the callback sends linking failures back here). */}
+      <AuthErrorNotice surface="connections" />
 
       {error && (
         <div style={{ marginBottom: "var(--spacing-12)" }}>

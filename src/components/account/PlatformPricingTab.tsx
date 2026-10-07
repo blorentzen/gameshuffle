@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Card, Input, Modal } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { Lever, PricingPlan, PricingPrice } from "@/lib/pricing/catalog";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Payload {
   plans: PricingPlan[];
@@ -101,7 +102,7 @@ export function PlatformPricingTab() {
   }, [data]);
 
   if (error) return <div className="account-card"><Alert variant="error">{error}</Alert></div>;
-  if (!data) return <div className="account-card"><p className="account-tab__empty">Loading…</p></div>;
+  if (!data) return <div className="account-card"><LoadingLines label="Loading" /></div>;
 
   return (
     <div className="account-card">

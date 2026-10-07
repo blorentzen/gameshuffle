@@ -15,6 +15,7 @@ import { formatEventTime } from "@/lib/time/format";
 import { EventCard } from "@/components/events/EventCard";
 import { artCategoryFor } from "@/components/events/EventHeaderArt";
 import { MYSTUFF_SECTIONS, sectionForTournamentStatus } from "@/lib/account/statusSections";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /** Human-friendly tournament/participant status label (no raw snake_case). */
 function statusLabel(s: string): string {
@@ -141,7 +142,7 @@ export function TournamentsTab() {
   if (loading) {
     return (
       <div className="account-card">
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

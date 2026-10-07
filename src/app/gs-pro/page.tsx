@@ -28,6 +28,8 @@ import {
 import type { IconName } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
+import { PaidPlansWaitlist } from "@/components/billing/PaidPlansWaitlist";
+import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
@@ -43,6 +45,7 @@ import {
   OverlayShot,
   TokenShot,
   MarketShot,
+  GamesShot,
 } from "@/components/marketing/ProFeatureShots";
 
 /** The Pro platform layer — every one shipped. `detail` is the
@@ -146,19 +149,74 @@ const PRO_FEATURES: {
     accent: "#4f46e5",
   },
   {
-    icon: "sparkles",
-    title: "Anthems & brand theming",
+    icon: "palette",
+    title: "Brand theming",
     description:
-      "Walk-up anthems for your regulars, plus brand theming that reskins your overlay, /live page, and public profile in your channel's colors.",
+      "Reskin your overlay, /live page, and public profile in your channel's colors.",
     detail:
-      "The personal touches that make your channel feel like a place, not a preset. Regulars notice.",
+      "The personal touch that makes your channel feel like a place, not a preset. Regulars notice.",
     accent: "#16a34a",
+  },
+  {
+    icon: "list",
+    title: "Chat rolls for every game",
+    description:
+      "!gs-shuffle gives each viewer a pick from the game you're streaming, !gs setup rolls the tracks, stage, board or map, and !gs battle rolls the whole lobby at once.",
+    detail:
+      "Mario Kart, Smash, Mario Party, Splatoon, Kirby Air Riders, Overwatch, Marvel Rivals and more, with official art on your overlay.",
+    accent: "#2563eb",
+  },
+  {
+    icon: "chart-pie",
+    title: "Live polls",
+    description:
+      "One poll across Twitch chat, Discord, your /live page and the overlay, with a single live tally.",
+    detail:
+      "Ask once and every corner of your community answers in the same place.",
+    accent: "#0d9488",
+  },
+  {
+    icon: "border-all",
+    title: "Stream Bingo",
+    description:
+      "Viewers grab a bingo card on your /live page, you call numbers from chat or the dashboard, and claims are checked for you.",
+    detail:
+      "Pay winners in Arcade Tokens or your own prize. The card shows on your overlay too.",
+    accent: "#ea580c",
+  },
+  {
+    icon: "users",
+    title: "Chat Draft",
+    description:
+      "Chat drafts your team one pick at a time, or captains pick players into teams for a community night.",
+    detail:
+      "Every pick is a quick vote, so the whole chat has a hand in your lineup.",
+    accent: "#7c3aed",
+  },
+  {
+    icon: "message-circle",
+    title: "Who Said It? and Chat Brain",
+    description:
+      "Turn your !quote pool into a guessing game, and ask chat your own survey questions to see what the crowd really thinks.",
+    detail:
+      "GameShuffle Originals built for chat, ready whenever there's a lull.",
+    accent: "#db2777",
+  },
+  {
+    icon: "sparkles",
+    title: "AI tools",
+    description:
+      "Make wheel slices, bingo squares, tier lists and party game packs from a theme, and get recap posts written from what happened on stream.",
+    detail:
+      "AI drafts, you approve. Every AI tool draws from one monthly allowance.",
+    accent: "#4f46e5",
   },
 ];
 
 /** Features that lead as full spotlight rows (representations above), so they're
  *  excluded from the "everything else" carousel to avoid duplication. */
 const MARQUEE_TITLES = new Set([
+  "Chat rolls for every game",
   "Sessions across every platform",
   "Twitch integration",
   "Discord unified sessions",
@@ -181,6 +239,14 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
     a: <>Twitch and Discord today, tied into one session: an OBS overlay for your stream, chat commands + channel points on Twitch, and the bot on Discord. More platforms can plug into the same session model over time.</>,
   },
   {
+    q: "Which games work with chat rolls?",
+    a: <>Every game GameShuffle has a randomizer for: Mario Kart 8 Deluxe, Mario Kart World and Mario Kart 64, Smash Ultimate, every Mario Party, Splatoon 3, Kirby Air Riders, Overwatch, Marvel Rivals, GoldenEye 007, Perfect Dark and Pokémon Stadium. The bot follows your Twitch category, so it rolls for whatever you&apos;re playing.</>,
+  },
+  {
+    q: "What do the AI tools do?",
+    a: <>They draft things for you to edit and approve: wheel slices, bingo squares, tier lists and party game packs from a theme, plus recap posts of your stream. AI never decides a random result (the randomizers still roll), and everything AI writes is labeled. Pro includes a monthly allowance across every AI tool.</>,
+  },
+  {
     q: "What happens after the trial ends?",
     a: <>You&apos;ll automatically convert to your selected plan (monthly or annual, at the price shown above) using the card you provided at signup. We&apos;ll email you 3 days before the trial ends as a reminder.</>,
   },
@@ -194,7 +260,7 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
   },
   {
     q: "What happens if my payment fails?",
-    a: <>We&apos;ll automatically retry the charge over the next two weeks. If it still doesn&apos;t go through, your account drops to Free and we&apos;ll email you. Your account data and connections are preserved. You can resubscribe anytime to restore Pro access.</>,
+    a: <>We&apos;ll automatically retry the charge over the next two weeks. If it still doesn&apos;t go through, your account drops to Free and we&apos;ll email you. Your account data is kept; Twitch disconnects while you&apos;re on Free, and you can reconnect it when you resubscribe.</>,
   },
   {
     q: "Can I switch between monthly and annual?",
@@ -228,13 +294,13 @@ export default function GsProPage() {
 
   const pricing = usePublicPricing();
   const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
-  const proAddon = pricing.plans.pro_addon ?? { monthly: 5, annual: 50 };
   const { user } = useAuth();
+  const availability = usePaidAvailability();
 
   return (
     <main className="pricing-page-main" style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       {/* Hero / pitch — premium dark, animated, full-bleed */}
-      <section className="pro-hero">
+      <section className="pro-hero pro-hero--sales">
         <MarketingHeroField category="stream" />
         <Container>
           <div className="pro-hero__content">
@@ -248,7 +314,7 @@ export default function GsProPage() {
             <p className="pro-hero__sub">
               {proCtx
                 ? proCtx.lede
-                : "Pro adds the platform layer on top of the free tools: cross-platform sessions, an OBS overlay, stream tools on screen, live tournament control, and an Arcade Token economy your chat plays for. One session, every platform."}
+                : "Pro adds the platform layer on top of the free tools: chat rolls for every game you stream, an OBS overlay, live polls, Stream Bingo, Chat Draft, AI tools and an Arcade Token economy your chat plays for. One session across Twitch and Discord."}
             </p>
             <div className="pro-hero__ctas">
               <Link href={user ? "/account?tab=plans" : "/signup?intent=trial"}>
@@ -285,14 +351,23 @@ export default function GsProPage() {
           <Reveal>
             <ProSpotlight
               reverse
+              eyebrow="Every game you stream"
+              title="Your chat rolls along with you"
+              body="Viewers type !gs-shuffle and get a pick from the game you're playing: Mario Kart, Smash, Mario Party, Splatoon, Kirby Air Riders, Overwatch, Marvel Rivals and more, with official art on your overlay. !gs setup rolls the tracks, stage, board or map, and !gs battle rolls the whole lobby at once."
+              media={<GamesShot />}
+            />
+          </Reveal>
+          <Reveal>
+            <ProSpotlight
               eyebrow="On-stream tools"
               title="Every tool, live on your overlay"
-              body="Overlay wheels, an on-screen 8-ball, community bingo, and tier lists composite straight into OBS. Your chat spins, rolls, and votes from chat and channel points, and it all plays out live on stream."
+              body="Wheels, polls, Stream Bingo, chat drafts, timers, an 8-ball and tier lists composite straight into OBS. Your chat spins, rolls and votes from chat and channel points, and it all plays out live on stream."
               media={<OverlayShot />}
             />
           </Reveal>
           <Reveal>
             <ProSpotlight
+              reverse
               eyebrow="Token economy"
               title="An economy your whole chat plays"
               body="Arcade Tokens are a closed-loop currency your community earns just by showing up and spends across the platform. No real money, no wallet, no cash-out, just a reason for regulars to keep coming back and playing along."
@@ -301,7 +376,6 @@ export default function GsProPage() {
           </Reveal>
           <Reveal>
             <ProSpotlight
-              reverse
               eyebrow="Prediction markets"
               title="Your chat calls the outcome"
               body="Open a market on anything: who wins the race, whether they nail the shortcut. Chat buys in with tokens, the odds move live, and the pot pays out when it resolves. The most fun way to watch a run."
@@ -380,12 +454,13 @@ export default function GsProPage() {
             <div className="pricing-card__included">
               <p className="pricing-card__included-title">What&rsquo;s included</p>
               <ul className="pricing-card__list">
-                <li>All game randomizers (MK8DX + Mario Kart World)</li>
-                <li>10 free stream &amp; party tools (wheel, dice, tier lists, bingo, 8-ball…)</li>
-                <li>Competitive lounge scoring + tournaments &amp; championships</li>
+                <li>Every randomizer: Mario Kart, Smash, Mario Party, Splatoon, Kirby Air Riders, Overwatch, Marvel Rivals, GoldenEye, Pokémon and more</li>
+                <li>The Daily and the Weekly, with streaks on your profile</li>
+                <li>Game night tools, live nights on everyone&apos;s phones and the GameShuffle Originals</li>
+                <li>Tournaments &amp; championships, plus competitive lounge scoring</li>
+                <li>AI setup, the night planner and the tournament helper, a few times a day</li>
                 <li>TCG Companion + card collection</li>
-                <li>Public profile, follows &amp; messaging (Comms Center)</li>
-                <li>Discord bot + save &amp; share setups</li>
+                <li>Public profile, follows &amp; messaging, and the Discord bot</li>
               </ul>
             </div>
           </Card>
@@ -403,7 +478,9 @@ export default function GsProPage() {
                 Run real sessions. Stream with confidence. Coordinate everything.
               </p>
               {user ? (
-                <ProUpgradeCtaButtons hasUsedTrial={false} />
+                <ProUpgradeCtaButtons hasUsedTrial={false} from="gs-pro" />
+              ) : availability && !availability.paidPlans.available ? (
+                <PaidPlansWaitlist product="pro" />
               ) : (
                 <Link href="/signup?intent=trial">
                   <Button variant="primary" fullWidth>Start 14-day trial</Button>
@@ -415,12 +492,12 @@ export default function GsProPage() {
               <ul className="pricing-card__list">
                 <li><strong>Everything in Free, plus:</strong></li>
                 <li>Sessions across Twitch + Discord with an OBS overlay, run from the Hub</li>
-                <li>Stream tools live on your overlay (wheels, 8-ball, bingo, tier lists)</li>
-                <li>Live tournament control: advance races to your overlay + chat</li>
-                <li>Picks &amp; Bans modules + channel-point rewards</li>
+                <li>Chat rolls, match rolls and viewer battles for every game you stream</li>
+                <li>Live polls, Stream Bingo, Chat Draft and Who Said It?</li>
+                <li>Stream tools on your overlay (wheels, timers, 8-ball, tier lists) + channel point rewards</li>
+                <li>Live tournament control and picks &amp; bans</li>
                 <li>Arcade Token economy: prediction markets, awards, bounties, leaderboards</li>
-                <li>Walk-up anthems + brand theming for your channel</li>
-                <li>Priority support</li>
+                <li>AI tools with a monthly allowance, and brand theming for your channel</li>
               </ul>
             </div>
           </Card>
@@ -435,7 +512,7 @@ export default function GsProPage() {
             <h2 className="beta-section__title" style={{ marginBottom: "var(--spacing-12)" }}>Circuit 256 includes GameShuffle Pro</h2>
             <p style={{ margin: "0 auto var(--spacing-20)", maxWidth: "44rem", lineHeight: "var(--line-height-relaxed)" }}>
               If you also organize bigger events, <strong>GameShuffle Circuit</strong> raises your field to 64 or
-              256 players. Circuit 256 bundles Pro at no extra cost, and Circuit 64 can add Pro for {usd(proAddon.monthly)}/mo.
+              256 players, and Circuit 256 bundles Pro at no extra cost.
             </p>
             <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
               <Button variant="secondary" size="large">Explore GameShuffle Circuit</Button>
@@ -446,8 +523,12 @@ export default function GsProPage() {
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="pricing-page__section-title">Common questions</h2>
+          {/* Open by default: CDS Accordion only mounts an item once it's opened,
+              so collapsed answers would be missing from the HTML (and from search). */}
           <Accordion
             variant="bordered"
+            allowMultiple
+            defaultOpenIds={FAQ_ITEMS.map((_, i) => String(i))}
             items={FAQ_ITEMS.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
           />
         </section>

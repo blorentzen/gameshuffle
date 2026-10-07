@@ -18,6 +18,10 @@ html.gs-overlay-route body {
   overflow: hidden;
 }
 
+/* Type on every overlay piece uses the pixel-named tokens (--font-size-16 is
+   16px). The site root is 10px, so a bare 1rem draws at 10px on a 1080p
+   stream; most pieces were first written as if 1rem were 16px. The chat and
+   viewer-count pieces were written for the 10px root and keep their sizes. */
 .gs-overlay {
   position: fixed;
   inset: 0;
@@ -69,17 +73,19 @@ html.gs-overlay-route body {
   align-items: baseline;
   gap: 0.6rem;
   margin-bottom: 1rem;
-  font-size: 1.1rem;
+  /* Type uses the pixel-named tokens: the site's root is 10px, so the old
+     1.1rem / 0.9rem sizes drew the card's text at 11px and 9px. */
+  font-size: var(--font-size-18, 18px);
 }
 
 .gs-overlay__dice {
-  font-size: 1.4rem;
+  font-size: var(--font-size-24, 24px);
 }
 
 .gs-overlay__name {
   font-weight: 700;
   color: color-mix(in srgb, var(--brand-primary) 55%, white);
-  font-size: 1.25rem;
+  font-size: var(--font-size-20, 20px);
 }
 
 .gs-overlay__verb {
@@ -122,11 +128,46 @@ html.gs-overlay-route body {
 }
 
 .gs-overlay__slot-name {
-  font-size: 0.9rem;
+  font-size: var(--font-size-16, 16px);
   font-weight: 600;
   color: #fff;
   max-width: 130px;
   line-height: 1.25;
+}
+
+/* Second line under a part: a costume, a role, a weapon's sub and special, a level. */
+.gs-overlay__slot-detail {
+  font-size: var(--font-size-14, 14px);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 130px;
+  line-height: 1.25;
+  margin-top: 0.15rem;
+}
+
+/* Viewer battle: one smaller tile per player in even rows (up to 12; --battle-cols per row). */
+.gs-overlay__card--battle .gs-overlay__slots {
+  flex-wrap: wrap;
+  row-gap: 1.4rem;
+  max-width: calc(var(--battle-cols, 6) * 104px + (var(--battle-cols, 6) - 1) * 1rem);
+  margin: 0 auto;
+}
+
+.gs-overlay__card--battle .gs-overlay__slot {
+  width: 104px;
+}
+
+.gs-overlay__card--battle .gs-overlay__slot-img {
+  width: 88px;
+  height: 88px;
+}
+
+/* The player's name is the line that matters on a battle card. */
+.gs-overlay__card--battle .gs-overlay__slot-detail {
+  color: color-mix(in srgb, var(--brand-primary) 45%, white);
+  font-weight: 600;
+  max-width: 104px;
+  overflow-wrap: anywhere;
 }
 
 /* Picks/bans banner — sits in the corner so it doesn't overlap the
@@ -152,7 +193,7 @@ html.gs-overlay-route body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1rem;
+  font-size: var(--font-size-16, 16px);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -160,18 +201,18 @@ html.gs-overlay-route body {
 }
 
 .gs-overlay-picks-bans__icon {
-  font-size: 1.25rem;
+  font-size: var(--font-size-20, 20px);
 }
 
 .gs-overlay-picks-bans__url {
-  font-size: 0.95rem;
+  font-size: var(--font-size-14, 14px);
   color: rgba(255, 255, 255, 0.92);
   margin-top: 4px;
   font-weight: 500;
 }
 
 .gs-overlay-picks-bans__counts {
-  font-size: 0.85rem;
+  font-size: var(--font-size-13, 13px);
   color: rgba(255, 255, 255, 0.78);
   margin-top: 6px;
 }
@@ -210,28 +251,28 @@ html.gs-overlay-route body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9rem;
+  font-size: var(--font-size-14, 14px);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--brand-accent, var(--brand-primary)) 55%, white);
 }
 .gs-overlay-events__icon {
-  font-size: 1.1rem;
+  font-size: var(--font-size-18, 18px);
 }
 .gs-overlay-events__row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  font-size: 0.95rem;
+  font-size: var(--font-size-16, 16px);
   color: rgba(255, 255, 255, 0.92);
 }
 .gs-overlay-events__label {
   font-weight: 500;
 }
 .gs-overlay-events__meta {
-  font-size: 0.8rem;
+  font-size: var(--font-size-13, 13px);
   color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
 }
@@ -284,7 +325,7 @@ html.gs-overlay-route body {
   border: 2px solid color-mix(in srgb, var(--brand-primary) 70%, transparent);
   color: #fff;
   font-weight: 800;
-  font-size: 1.8rem;
+  font-size: var(--font-size-28, 28px);
   letter-spacing: 0.01em;
   padding: 0.6rem 1.6rem;
   border-radius: 14px;
@@ -322,7 +363,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-dice__total {
   font-family: var(--font-display, sans-serif);
-  font-size: 2rem;
+  font-size: var(--font-size-32, 32px);
   font-weight: 800;
   color: #fff;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8);
@@ -402,7 +443,7 @@ html.gs-overlay-route body {
   align-items: center;
   justify-content: center;
   font-family: var(--font-display, sans-serif);
-  font-size: 3.2rem;
+  font-size: var(--font-size-48, 48px);
   font-weight: 800;
   color: #7a5a10;
   backface-visibility: hidden;
@@ -428,7 +469,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-coin__result {
   font-family: var(--font-display, sans-serif);
-  font-size: 2rem;
+  font-size: var(--font-size-32, 32px);
   font-weight: 800;
   color: #fff;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8);
@@ -454,7 +495,7 @@ html.gs-overlay-route body {
 .gs-overlay-oracle--no { --oracle-accent: #e0453f; }
 .gs-overlay-oracle--maybe { --oracle-accent: #e0a02b; }
 .gs-overlay-oracle__title {
-  font-size: 0.95rem;
+  font-size: var(--font-size-14, 14px);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -462,7 +503,7 @@ html.gs-overlay-route body {
   margin-bottom: 8px;
 }
 .gs-overlay-oracle__prompt {
-  font-size: 1rem;
+  font-size: var(--font-size-16, 16px);
   color: rgba(255, 255, 255, 0.75);
   font-style: italic;
   margin-bottom: 10px;
@@ -470,7 +511,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-oracle__answer {
   font-family: var(--font-display, sans-serif);
-  font-size: 1.9rem;
+  font-size: var(--font-size-28, 28px);
   font-weight: 800;
   line-height: 1.2;
 }
@@ -495,7 +536,7 @@ html.gs-overlay-route body {
   animation: gs-oracle-pop 0.42s cubic-bezier(0.2, 0.8, 0.25, 1);
 }
 .gs-overlay-namepick__title {
-  font-size: 0.95rem;
+  font-size: var(--font-size-14, 14px);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -504,20 +545,20 @@ html.gs-overlay-route body {
 }
 .gs-overlay-namepick__spinning {
   font-family: var(--font-display, sans-serif);
-  font-size: 1.9rem;
+  font-size: var(--font-size-28, 28px);
   font-weight: 800;
   color: rgba(255, 255, 255, 0.8);
   min-height: 2.3rem;
 }
 .gs-overlay-namepick__label {
-  font-size: 1rem;
+  font-size: var(--font-size-16, 16px);
   font-weight: 700;
   color: color-mix(in srgb, #2fae5f 55%, white);
   margin-bottom: 6px;
 }
 .gs-overlay-namepick__winner {
   font-family: var(--font-display, sans-serif);
-  font-size: 2.1rem;
+  font-size: var(--font-size-32, 32px);
   font-weight: 800;
   line-height: 1.15;
 }
@@ -540,7 +581,7 @@ html.gs-overlay-route body {
   animation: gs-oracle-pop 0.4s cubic-bezier(0.2, 0.8, 0.25, 1);
 }
 .gs-overlay-timer__label {
-  font-size: 0.9rem;
+  font-size: var(--font-size-14, 14px);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -549,7 +590,7 @@ html.gs-overlay-route body {
 .gs-overlay-timer__clock {
   font-family: var(--font-display, sans-serif);
   font-variant-numeric: tabular-nums;
-  font-size: 3rem;
+  font-size: var(--font-size-48, 48px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.02em;
@@ -606,7 +647,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-bingo__cell-text {
   font-family: var(--font-display, sans-serif);
-  font-size: 0.62rem;
+  font-size: var(--font-size-13, 13px);
   font-weight: 700;
   line-height: 1.05;
   text-align: center;
@@ -615,6 +656,9 @@ html.gs-overlay-route body {
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Long words ("uncontrollably") hyphenate instead of running out of the cell. */
+  hyphens: auto;
+  overflow-wrap: anywhere;
 }
 .gs-overlay-bingo__cell.is-marked {
   background: var(--bingo-accent, #7c3aed);
@@ -634,7 +678,7 @@ html.gs-overlay-route body {
   background: linear-gradient(135deg, var(--bingo-accent, #7c3aed), color-mix(in srgb, var(--bingo-accent, #7c3aed) 50%, #ff5ea8));
   color: #fff;
   font-family: var(--font-display, sans-serif);
-  font-size: 1.3rem;
+  font-size: var(--font-size-20, 20px);
   font-weight: 800;
   letter-spacing: 0.08em;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
@@ -666,7 +710,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-tierlist__title {
   font-family: var(--font-display, sans-serif);
-  font-size: 1.05rem;
+  font-size: var(--font-size-16, 16px);
   font-weight: 800;
   color: #fff;
   text-align: center;
@@ -686,7 +730,7 @@ html.gs-overlay-route body {
   justify-content: center;
   border-radius: 8px;
   font-family: var(--font-display, sans-serif);
-  font-size: 1.3rem;
+  font-size: var(--font-size-20, 20px);
   font-weight: 800;
   color: #1a1a1a;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
@@ -710,7 +754,7 @@ html.gs-overlay-route body {
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #fff;
-  font-size: 0.72rem;
+  font-size: var(--font-size-12, 12px);
   font-weight: 700;
   line-height: 1.2;
   max-width: 100%;
@@ -999,3 +1043,132 @@ html.gs-overlay-route body {
 @media (prefers-reduced-motion: reduce) {
   .viewers-ov__dot { animation: none; }
 }
+
+/* ---------- Party nights: Chance card / mission card ---------- */
+.gs-overlay-partycard {
+  --party-accent: #e0a02b;
+  width: min(80vw, 440px);
+  padding: 18px 22px;
+  border-radius: 18px;
+  background: rgba(15, 22, 33, 0.93);
+  border: 2px solid color-mix(in srgb, var(--party-accent) 55%, transparent);
+  border-top: 6px solid var(--party-accent);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  color: #fff;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: gs-oracle-pop 0.42s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.gs-overlay-partycard--help { --party-accent: #2fae5f; }
+.gs-overlay-partycard--crutch { --party-accent: #e0a02b; }
+.gs-overlay-partycard--mission { --party-accent: #4d8ef0; }
+.gs-overlay-partycard--rule { --party-accent: #9b7cf0; }
+.gs-overlay-partycard__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-13, 13px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--party-accent) 45%, white);
+}
+.gs-overlay-partycard__player { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 700; color: #fff; }
+.gs-overlay-partycard__worth { padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--party-accent) 35%, transparent); color: #fff; letter-spacing: 0; }
+.gs-overlay-partycard__title { margin-top: 8px; font-family: var(--font-display, sans-serif); font-size: var(--font-size-24, 24px); font-weight: 800; line-height: 1.15; }
+.gs-overlay-partycard__text { margin-top: 6px; font-size: var(--font-size-16, 16px); line-height: 1.35; color: rgba(255, 255, 255, 0.88); }
+
+/* Stream Bingo (NumberBingoOverlay). OBS canvas, so px like the poll piece. */
+.gs-numbingo {
+  position: fixed;
+  width: 440px;
+  max-width: 90vw;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(16, 23, 40, 0.86);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gs-numbingo__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+.gs-numbingo__eyebrow { font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.gs-numbingo__players { opacity: 0.75; }
+.gs-numbingo__last {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  animation: gs-numbingo-pop 420ms ease-out;
+}
+.gs-numbingo__winner {
+  font-size: 28px;
+  font-weight: 800;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--brand-primary, #2766ec);
+  color: var(--brand-on, #fff);
+  animation: gs-numbingo-pop 520ms ease-out;
+}
+.gs-numbingo__board { display: flex; flex-direction: column; gap: 3px; }
+.gs-numbingo__row { display: grid; grid-template-columns: 20px repeat(15, 1fr); gap: 3px; align-items: center; }
+.gs-numbingo__letter { font-weight: 800; font-size: 13px; text-align: center; }
+.gs-numbingo__n {
+  font-size: 11px;
+  text-align: center;
+  padding: 3px 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+.gs-numbingo__n.is-called { background: var(--brand-primary, #2766ec); color: var(--brand-on, #fff); font-weight: 700; }
+.gs-numbingo__n.is-last { outline: 2px solid #fff; outline-offset: -1px; }
+.gs-numbingo__prize { font-size: 14px; opacity: 0.9; }
+@keyframes gs-numbingo-pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .gs-numbingo__last, .gs-numbingo__winner { animation: none; } }
+
+/* Chat draft (DraftOverlay). OBS canvas, so px like the poll piece. */
+.gs-draft { position: fixed; width: 420px; max-width: 90vw; padding: 14px 16px; border-radius: 14px; background: rgba(16, 23, 40, 0.88); color: #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; gap: 10px; }
+.gs-draft__head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.gs-draft__count { opacity: 0.75; font-variant-numeric: tabular-nums; }
+.gs-draft__slots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.gs-draft__slot { display: grid; gap: 1px; padding: 6px 8px; border-radius: 8px; border: 1px dashed rgba(255, 255, 255, 0.22); min-height: 42px; }
+.gs-draft__slot.is-filled { border-style: solid; border-color: transparent; background: rgba(255, 255, 255, 0.1); }
+.gs-draft__slot.is-now { border-color: var(--brand-primary, #7b8cff); }
+.gs-draft__slot-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
+.gs-draft__slot-pick { font-size: 15px; font-weight: 700; }
+.gs-draft__slot-detail { font-size: 11px; opacity: 0.75; }
+.gs-draft__q { font-size: 15px; font-weight: 700; display: flex; justify-content: space-between; gap: 8px; }
+.gs-draft__secs { font-variant-numeric: tabular-nums; opacity: 0.85; }
+.gs-draft__opts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.gs-draft__opt { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); overflow: hidden; font-size: 14px; }
+.gs-draft__fill { position: absolute; inset: 0 auto 0 0; background: var(--brand-primary, #2766ec); opacity: 0.55; transition: width 320ms ease; }
+.gs-draft__num, .gs-draft__label, .gs-draft__pct { position: relative; }
+.gs-draft__num { font-weight: 800; width: 1.2em; }
+.gs-draft__label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gs-draft__label small { opacity: 0.7; font-size: 11px; }
+.gs-draft__pct { font-variant-numeric: tabular-nums; font-weight: 700; }
+.gs-draft__hint { font-size: 12px; opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) { .gs-draft__fill { transition: none; } }
+/* Captain drafts */
+.gs-draft .cap-team--0 { --team: #ff6b6f; }
+.gs-draft .cap-team--1 { --team: #5aa6ff; }
+.gs-draft .cap-team--2 { --team: #4fcf8d; }
+.gs-draft .cap-team--3 { --team: #ffc24d; }
+.gs-draft--cap { width: 480px; }
+.gs-draft__teams { display: flex; gap: 6px; align-items: stretch; }
+.gs-draft__team-wrap { flex: 1; min-width: 0; display: flex; align-items: stretch; gap: 6px; }
+.gs-draft__vs { align-self: center; font-size: 12px; font-weight: 800; opacity: 0.6; text-transform: uppercase; }
+.gs-draft__team { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 8px; border-top: 3px solid var(--team); background: rgba(255, 255, 255, 0.08); }
+.gs-draft__team.is-picking { box-shadow: 0 0 0 2px var(--team); }
+.gs-draft__team-name { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--team); margin-bottom: 2px; }
+.gs-draft__team ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; font-size: 14px; }
+.gs-draft__team li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gs-draft__team li.is-captain { font-weight: 800; }
+.gs-draft__clock { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; padding: 6px 10px; border-radius: 8px; border-left: 3px solid var(--team); background: rgba(255, 255, 255, 0.08); font-size: 14px; }
+.gs-draft__clock .gs-draft__secs { margin-left: auto; font-weight: 800; }
+.gs-draft__pool { display: flex; flex-wrap: wrap; gap: 4px; }
+.gs-draft__pool span { padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); font-size: 12px; }

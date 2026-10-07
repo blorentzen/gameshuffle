@@ -46,7 +46,12 @@ export default function Page() {
 
       <h2>Set up the event</h2>
       <ol>
-        <li><strong>Game</strong>: Mario Kart 8 Deluxe or Mario Kart World.</li>
+        <li><strong>Game</strong>: Mario Kart 8 Deluxe, Mario Kart World, Mario Party Jamboree, Mario Party Superstars, or <strong>Other game</strong> with any name. Mario Kart adds track and build settings; every game gets the brackets, points and Heat &rarr; Mains formats.</li>
+        <li>
+          <strong>Not sure how to run it?</strong> <strong>Draft it with AI</strong> asks roughly how many players and how
+          long you have, then suggests a format and drafts the description, rules and an announcement. Use any part with its
+          own button and edit it from there. See <a href="/help/apps/ai-tools">AI tools</a>.
+        </li>
         <li><strong>Title and description</strong>: what players see at the top of the page.</li>
         <li>
           <strong>Format</strong>: how winners are decided. See

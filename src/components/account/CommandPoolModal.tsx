@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, Modal, Switch } from "@empac/cascadeds";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface CommunityEntry {
   id: string;
@@ -320,7 +321,7 @@ export function CommandPoolModal({
           <span className="cmd-pool__count">({platform.length})</span>
         </h4>
         {loading ? (
-          <p className="cmd-pool__empty">Loading…</p>
+          <LoadingLines label="Loading" />
         ) : platform.length === 0 ? (
           <p className="cmd-pool__empty">
             No platform responses. This pool is entirely yours to fill.

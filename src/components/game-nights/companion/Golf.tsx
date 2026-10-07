@@ -1,9 +1,14 @@
 "use client";
 
-import { Button, IconButton } from "@empac/cascadeds";
+import { useRef } from "react";
+import {Button } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconX } from "@tabler/icons-react";
 
 /**
  * Golf (card game) scorecard — low score wins. Add a hole each round and enter
@@ -17,13 +22,18 @@ const INITIAL: GState = { holes: [] };
 export function Golf() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<GState>("gs-bgn-golf", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "golf" }); } };
   const holes: Record<string, number>[] = (state.holes ?? []).map((h) => (h && !Array.isArray(h) && typeof h === "object" ? h : {}));
 
   const addHole = () => setState(() => ({ holes: [...holes, {}] }));
   const removeHole = (r: number) => setState(() => ({ holes: holes.filter((_, i) => i !== r) }));
-  const setCell = (r: number, id: string, v: number) =>
+  const setCell = (r: number, id: string, v: number) => {
+    markUsed();
     setState(() => ({ holes: holes.map((row, ri) => (ri === r ? { ...row, [id]: v } : row)) }));
-  const reset = () => { if (window.confirm("Clear the golf card?")) setState({ holes: [] }); };
+  };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Clear the golf card?", confirmLabel: "Clear card" })) setState({ holes: [] }); };
 
   const totals = players.map((pl) => holes.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));
   const played = holes.length > 0 && players.length > 0;
@@ -59,7 +69,7 @@ export function Golf() {
                 <tr key={r}>
                   <td className="bgn-sheet__rowlabel">
                     <span className="bgn-sheet__roundnum">{r + 1}</span>
-                    <IconButton variant="tertiary" size="small" className="bgn-sheet__x" aria-label={`Remove hole ${r + 1}`} onClick={() => removeHole(r)}>×</IconButton>
+                    <IconAction label={`Remove hole ${r + 1}`} icon={IconX} onClick={() => removeHole(r)} />
                   </td>
                   {players.map((pl) => (
                     <td key={pl.id}>

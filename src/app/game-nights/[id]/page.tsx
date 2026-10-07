@@ -7,12 +7,13 @@ import { getNight, getRsvps } from "@/lib/game-nights/store";
 import { getNightAccess, hasAnyAccessDetail } from "@/lib/game-nights/lobby";
 import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { nightKindLabel } from "@/lib/game-nights/types";
+import { WaitlistCard } from "@/components/events/WaitlistCard";
 import { RsvpControl } from "@/components/game-nights/RsvpControl";
 import { NightMap } from "@/components/game-nights/NightMap";
 import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
 import { getEventThemeVars } from "@/lib/theme/owner-theme";
 import { LiveNightAttendees, type LiveAttendee } from "@/components/game-nights/LiveNightAttendees";
-import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
+import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import type { RsvpStatus } from "@/lib/game-nights/types";
 import { EventShell, EventPanelHead } from "@/components/events/EventShell";
 import { EventCustomizeEditor } from "@/components/owner/EventCustomizeEditor";
@@ -25,6 +26,9 @@ import { listMoreFromOrganizer } from "@/lib/events/more";
 import { getBaseUrl } from "@/lib/env";
 import { boardGameLengthLabel as lengthLabel } from "@/data/board-games";
 import { gameArtFallback } from "@/data/game-night-visuals";
+import { partyModuleOf } from "@/lib/game-nights/modules";
+import { liveNightForEvent } from "@/lib/game-nights/module-server";
+import { nightGame } from "@/lib/nights/games";
 
 interface AttendeeRow {
   id: string;
@@ -57,6 +61,8 @@ function fmtWhen(iso: string | null, tz: string | null): string {
 export default async function NightPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const night = await getNight(id);
+  const partyMod = night ? partyModuleOf(night.modules) : null;
+  const partyLive = partyMod ? await liveNightForEvent(id).catch(() => null) : null;
   if (!night) notFound();
 
   const supabase = await createClient();
@@ -77,14 +83,14 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   const svc = createServiceClient();
   const { data: host } = await svc
     .from("users")
-    .select("id, username, display_name, subscription_tier, role, circuit_tier, circuit_status, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar")
+    .select("id, username, display_name, is_public, subscription_tier, role, circuit_tier, circuit_status, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar")
     .eq("id", night.host_id)
     .maybeSingle();
 
   // Real-time attendee updates are a paid, live-environment feature → gated on
   // the host's tier (GS Pro / staff). Free hosts get the static snapshot.
   const liveEnabled = effectiveTier({
-    tier: (host?.subscription_tier as SubscriptionTier | null) ?? "free",
+    tier: normalizeTier(host?.subscription_tier),
     role: (host?.role as string | null) ?? null,
     circuitTier: (host?.circuit_tier as string | null) ?? null,
     circuitStatus: (host?.circuit_status as string | null) ?? null,
@@ -187,7 +193,8 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       presentedBy={presentingCommunity ? { slug: presentingCommunity.slug, name: presentingCommunity.display_name || presentingCommunity.slug } : null}
       organizer={{
         userId: night.host_id,
-        username: host?.username ?? null,
+        // Named either way; linked to their profile only when it's public (a private /u page won't load).
+        username: host?.is_public ? (host.username ?? null) : null,
         displayName: host?.display_name || host?.username || "a GameShuffle member",
         avatar: host ? { id: host.id as string, avatar_source: host.avatar_source, avatar_seed: host.avatar_seed, avatar_options: host.avatar_options, discord_avatar: host.discord_avatar, twitch_avatar: host.twitch_avatar } : null,
         followState,
@@ -243,7 +250,11 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
               </Link>
             </>
           ) : (
-            <RsvpControl nightId={night.id} initial={myRsvp} signedIn={!!user} />
+            <>
+              {/* Waitlist: full (join it), in line (#3), an offer to claim, or standby. Nothing otherwise. */}
+              <WaitlistCard type="game-night" eventId={night.id} signedIn={!!user} className="waitlist-card--inline" />
+              <RsvpControl nightId={night.id} initial={myRsvp} signedIn={!!user} />
+            </>
           )}
         </div>
         </>
@@ -263,6 +274,21 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
           <p className="bgn-detail__desc" style={{ margin: 0 }}>{night.description}</p>
         </div>
       )}
+
+            {partyMod && (
+              <div className="comp-card night-party">
+                <h2 className="bgn-event-h2">Mario Party tonight</h2>
+                <p className="bgn-detail__desc" style={{ margin: 0 }}>
+                  {partyMod.games.map((g) => nightGame(g)?.label ?? g).join(", then ")}, with Chance cards, missions and one live scoreboard
+                  that everyone follows on their phone. Everyone who&apos;s going gets a seat; guests can join by code on the night.
+                </p>
+                {partyLive ? (
+                  <Link href={`/party/${partyLive.code}`}><Button variant="primary">Join the live night</Button></Link>
+                ) : (
+                  <p className="bgn-credit" style={{ margin: 0 }}>The host starts it on the night. The join button shows up here.</p>
+                )}
+              </div>
+            )}
 
             {night.games.length > 0 && (
               <div className="comp-card">

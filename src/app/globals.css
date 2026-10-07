@@ -524,6 +524,15 @@ ul {
      - other routes → a plain solid brand bar
      - past the hero → hide on scroll-down, reveal on scroll-up
    ============================================================ */
+/* How much room the nav takes right now (SiteNavbar sets it on scroll): 64px
+   while it shows, 0 while it's hidden. Every sticky bar, sidebar and section
+   picker sits at `top: calc(var(--gs-nav-offset) + gap)` with this transition,
+   so it slides down with the nav instead of riding under it. */
+:root {
+  --gs-nav-offset: 64px;
+  --gs-nav-slide: top 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), max-height 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
 .gs-nav-shell .empac-navbar {
   top: 0;
   left: 0;
@@ -877,7 +886,8 @@ ul {
      pills into it so the bar + menu read as one cohesive frosted sheet. CDS sets
      aria-expanded on the toggle, so we can key off it with :has(). */
   .gs-nav-shell .empac-navbar:has(.empac-navbar__mobile-toggle[aria-expanded="true"]) {
-    background: rgba(15, 19, 32, 0.94) !important;
+    /* Opaque (bar and menu): at 94% the hero text behind showed through the links. */
+    background: #0f1320 !important;
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     backdrop-filter: blur(24px) saturate(180%);
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
@@ -913,7 +923,7 @@ ul {
     overflow-y: auto;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    background: rgba(15, 19, 32, 0.94) !important;
+    background: #0f1320 !important;
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     backdrop-filter: blur(24px) saturate(180%);
     border-top: 1px solid rgba(255, 255, 255, 0.12);
@@ -1056,6 +1066,12 @@ ul {
   .video-hero__content {
     padding: 1.25rem !important;
   }
+  /* Full heroes: the content can be taller than the hero's min height, and it
+     sits under the floating nav (64px), so clear the nav on top and the 92px
+     curve at the bottom instead of centring into both. */
+  .video-hero:not([data-height="short"]) .video-hero__content {
+    padding: calc(64px + 2rem) 1.6rem 7.2rem !important;
+  }
 
   .video-hero:not([data-height="short"]) {
     /* The previous 25vh floor made mobile heroes SHORTER than their
@@ -1175,7 +1191,7 @@ ul {
 .save-config-modal {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: 1050; /* above the site nav (1000), below CDS overlays */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2153,8 +2169,9 @@ ul {
     flex-direction: column;
     gap: var(--spacing-16);
     position: sticky;
-    top: var(--spacing-24);
-    max-height: calc(100vh - var(--spacing-24) * 2);
+    top: calc(var(--gs-nav-offset) + var(--spacing-16));
+    max-height: calc(100vh - var(--gs-nav-offset) - var(--spacing-16) * 2);
+    transition: var(--gs-nav-slide);
     overflow-y: auto;
     overscroll-behavior: contain;
     /* Room for the scrollbar so cards do not sit under it. */
@@ -2898,3 +2915,122 @@ ul {
   padding: var(--spacing-8);
   background-clip: content-box;
 }
+
+/* ── Phones: card rows swipe (ResponsiveCarousel) instead of stacking ── */
+/* Never wider than its section: the carousel track is wider than the screen by
+   design, so clip it here and let the section around it shrink. */
+.responsive-carousel { width: 100%; max-width: 100%; min-width: 0; overflow: hidden; margin: 0 0 var(--spacing-8, 8px); }
+:where(section, div):has(> .responsive-carousel) { min-width: 0; max-width: 100%; }
+.responsive-carousel .empac-carousel__slide { display: flex; }
+.responsive-carousel .empac-carousel__slide > * { width: 100%; }
+.home-all-link { display: inline-block; margin-top: var(--spacing-20, 20px); }
+.randomizer-index__group { margin: 0 0 var(--spacing-48, 48px); }
+/* Same size as the homepage's section headings (fluid H2). */
+.randomizer-index__heading { font-size: var(--font-size-fluid-h2); font-weight: var(--font-weight-bold, 700); line-height: var(--line-height-tight, 1.15); margin: 0 0 var(--spacing-32, 32px); text-wrap: balance; }
+.randomizer-index__heading:not(:first-child) { margin-top: var(--spacing-56, 56px); }
+
+/* Headers on phones: less padding and a smaller lead so the page starts sooner. */
+@media (max-width: 640px) {
+  .browse-hero__inner { padding: calc(64px + var(--spacing-24, 2.4rem)) 0 var(--spacing-64, 6.4rem); }
+  .browse-hero__sub { font-size: var(--font-size-16); margin-bottom: var(--spacing-20, 2rem); }
+}
+/* Grid page columns size to their widest child unless told otherwise; on a
+   320px phone that pushed Chat Brain sideways. Let the column shrink. */
+.empac-container.chat-brain, .cb-section { grid-template-columns: minmax(0, 1fr); }
+/* CDS carousels never exceed their column. */
+.empac-carousel { max-width: 100%; min-width: 0; }
+@media (max-width: 640px) {
+  /* Overlay arrows sit inside the carousel's edges on phones, not past them. */
+  .empac-carousel--arrows-overlay .empac-carousel__arrow { width: 36px; height: 36px; }
+  .empac-carousel--arrows-overlay .empac-carousel__arrow--prev { left: 6px; }
+  .empac-carousel--arrows-overlay .empac-carousel__arrow--next { right: 6px; }
+}
+@media (max-width: 640px) {
+  /* Long carousels: dots wrap rather than push the bottom arrows off the screen. */
+  .empac-carousel__nav { flex-wrap: wrap; max-width: 100%; }
+  .empac-carousel__dots { flex-wrap: wrap; max-width: 100%; justify-content: center; }
+}
+/* Chat Brain's launch panel and the cookie banner text must shrink with the phone. */
+.chat-brain__launch, .chat-brain__launch > *, .cb-launch__head > * { min-width: 0; }
+.cookie-banner__text { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.cookie-banner__actions { flex-wrap: wrap; justify-content: center; }
+
+/* Carousel slides inherit centred text from tool pages; cards read left-aligned everywhere else. */
+.responsive-carousel .empac-carousel__slide { text-align: left; }
+.randomizer-index { padding-block: var(--spacing-48, 48px) var(--spacing-64, 64px); }
+.randomizer-index__group, .randomizer-index__heading { text-align: left; }
+/* Phones: the four pillar doors as a compact 2x2 (icon, name, one line); the
+   menu already carries their links. */
+@media (max-width: 640px) {
+  .pillars .pillars__links { display: none; }
+  .pillars .pillars__door { padding: var(--spacing-16, 16px); gap: 4px; }
+  .pillars .pillars__intent { font-size: var(--font-size-13, 1.3rem); line-height: 1.4; }
+}
+
+/* AI content packs (AiPackModal): theme field + Generate, a checklist of drafts. */
+.ai-pack { display: grid; gap: var(--spacing-16); }
+.ai-pack__ask { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: center; }
+.ai-pack__ask .empac-input-wrapper, .ai-pack__ask > :first-child { flex: 1 1 24rem; min-width: 0; }
+.ai-pack__hint, .ai-pack__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.ai-pack__note { font-size: var(--font-size-12); }
+.ai-pack__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-8) var(--spacing-16); max-height: 42vh; overflow-y: auto; }
+.ai-pack__footer { display: flex; align-items: center; gap: var(--spacing-8); justify-content: flex-end; flex-wrap: wrap; }
+.ai-pack__allowance { margin-right: auto; font-size: var(--font-size-12); color: var(--text-secondary); }
+.ai-pack > .empac-button { justify-self: start; }
+.ai-recap__block { display: grid; gap: var(--spacing-8); }
+.ai-recap__block > .empac-button { justify-self: start; }
+/* Plain-language setup on randomizers (AiSetupBar). */
+.ai-setup { display: grid; gap: var(--spacing-6, 6px); }
+.ai-setup__row { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: center; }
+.ai-setup__row > :first-child { flex: 1 1 22rem; min-width: 0; }
+.ai-setup__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.ai-setup__note.is-error { color: var(--text-error, #b42318); }
+.ai-setup__pitch { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.ai-gate__body { margin: 0; font-size: var(--font-size-16); line-height: 1.5; color: var(--text-primary); }
+.ai-gate__footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); }
+/* Night Planner: the suggested lineup. */
+.night-planner__plan { display: grid; gap: var(--spacing-12); margin-top: var(--spacing-8); }
+.night-planner__step.empac-card { display: flex; align-items: center; gap: var(--spacing-10, 10px); text-align: start; }
+.night-planner__num { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; border-radius: 50%; background: var(--bg-secondary); font-weight: 700; font-size: var(--font-size-14); flex: none; }
+.night-planner__body { display: grid; gap: 2px; flex: 1; min-width: 0; font-size: var(--font-size-14); }
+/* Tournament create: Draft it with AI. */
+.ai-tourney.empac-card { display: grid; gap: var(--spacing-12); text-align: start; }
+.ai-tourney__title { display: flex; align-items: center; gap: var(--spacing-6, 6px); margin: 0 0 2px; font-size: var(--font-size-16); }
+.ai-tourney__ask { display: grid; grid-template-columns: minmax(0, 9rem) minmax(0, 18rem) minmax(0, 1fr) auto; gap: var(--spacing-8); align-items: center; }
+@media (max-width: 48em) { .ai-tourney__ask { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .ai-tourney__ask > :nth-child(3) { grid-column: 1 / -1; } }
+.ai-tourney__draft { display: grid; gap: var(--spacing-16); }
+.ai-tourney__part { display: grid; gap: var(--spacing-8); }
+.ai-tourney__part > .empac-button { justify-self: start; }
+.ai-tourney__part p { margin: 0; font-size: var(--font-size-14); }
+
+/* ConfirmProvider: the one line under a confirm dialog's question. */
+.confirm-dialog__body { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: var(--line-height-relaxed, 1.5); }
+/* A confirm with no extra line: drop CDS Modal's empty body so the question
+   sits right above the buttons (CDS gap: Modal always renders its body). */
+.empac-modal__body:empty { display: none; }
+
+/* IconAction / RowActions: a list row's icon buttons with tooltips. */
+.icon-action { display: inline-flex; }
+.row-actions { display: inline-flex; align-items: center; gap: var(--spacing-4, 4px); flex: none; }
+
+/* LoadingLines: skeleton rows while a card or tab loads. */
+.loading-lines { display: grid; gap: var(--spacing-10, 10px); padding-block: var(--spacing-4, 4px); width: 100%; max-width: 56rem; }
+
+/* /discord/join and /discord/joined: signing up from the Discord Activity. One rail: heading, reasons, button, small print. */
+.discord-join { max-width: 48rem; margin: 0 auto; display: flex; flex-direction: column; gap: var(--spacing-20); }
+.discord-join__heading { font-family: var(--gs-font-display, inherit); font-size: var(--font-size-32); line-height: 1.15; margin: 0; text-wrap: balance; }
+.discord-join__points { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--spacing-12); font-size: var(--font-size-16); }
+.discord-join__points li { display: flex; gap: var(--spacing-10, 10px); align-items: flex-start; }
+.discord-join__points svg { flex: 0 0 auto; margin-top: 0.3rem; color: var(--color-success-600, #158a50); }
+.discord-join__action { display: grid; gap: var(--spacing-12); margin-top: var(--spacing-4); }
+.discord-join__foot { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.discord-join__fine { margin: calc(var(--spacing-8) * -1) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+.discord-join__title { font-family: var(--gs-font-display, inherit); font-size: var(--font-size-20); margin: 0; }
+.discord-join__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.55; }
+.discord-join__btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-8); }
+.discord-join__btn img { filter: brightness(0) invert(1); }
+.discord-join__consent { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); line-height: 1.5; }
+.discord-joined { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-16); text-align: center; }
+.discord-joined .auth-page__title { margin-bottom: 0; }
+.discord-joined__icon { color: var(--color-success-600, #158a50); }
+.discord-joined__actions { display: grid; gap: var(--spacing-8); width: 100%; }

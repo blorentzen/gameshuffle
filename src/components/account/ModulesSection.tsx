@@ -18,6 +18,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { Alert, Badge, Button, Switch } from "@empac/cascadeds";
 import { ModuleConfigModal } from "./ModuleConfigModal";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface PicksOrBansState {
   status?: "collecting" | "locked" | "completed";
@@ -46,6 +48,7 @@ interface ModulesPayload {
 
 export function ModulesSection() {
   const [data, setData] = useState<ModulesPayload | null>(null);
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [busyModule, setBusyModule] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -116,7 +119,7 @@ export function ModulesSection() {
   };
 
   const handleResetState = async (moduleId: string) => {
-    if (!confirm(`Reset all ${moduleId} for this session? This clears every participant's selections.`)) return;
+    if (!(await confirm({ title: `Reset all ${moduleId} for this session?`, body: "This clears every participant’s selections.", confirmLabel: "Reset" }))) return;
     const initial =
       moduleId === "picks"
         ? { status: "collecting", picks_by_participant: {}, timer_started_at: null, locked_at: null }
@@ -129,7 +132,7 @@ export function ModulesSection() {
     return (
       <div className="account-card">
         <h2>Modules</h2>
-        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

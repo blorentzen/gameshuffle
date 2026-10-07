@@ -7,6 +7,8 @@ interface VideoHeroProps {
   videoWebm?: string;
   videoPoster?: string;
   backgroundImage?: string;
+  /** CSS background-position for the image (default "center"). */
+  backgroundPosition?: string;
   overlayOpacity?: number;
   height?: "full" | "large" | "medium" | "short";
   /** Blend the bottom edge into the page: a soft spotlight glow, a fade, and a
@@ -23,6 +25,7 @@ export function VideoHero({
   videoWebm,
   videoPoster,
   backgroundImage,
+  backgroundPosition = "center",
   overlayOpacity = 0.5,
   height = "large",
   blend = false,
@@ -50,7 +53,7 @@ export function VideoHero({
         ...(backgroundImage && {
           backgroundImage: `url(${backgroundImage})`,
           backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundPosition,
         }),
       }}
     >

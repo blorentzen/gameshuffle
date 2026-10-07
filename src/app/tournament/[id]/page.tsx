@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { Alert, Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
+import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import { EventShell, EventPanelHead } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
 import { canHoldTicket, type AttendeeStatus } from "@/lib/events/ticketEligibility";
@@ -29,9 +29,14 @@ import { accentCssVars } from "@/lib/profile/accents";
 import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
+import { PartyTournamentPanel } from "@/components/tournament/PartyTournamentPanel";
+import { SmashTournamentPanel } from "@/components/tournament/SmashTournamentPanel";
+import { isSmashGame } from "@/lib/smash/tournament";
+import { bonusTotals, isPartyGame, type MissionBonus } from "@/lib/party/tournament";
 import { FlightsView } from "@/components/tournament/FlightsView";
 import type { FlightsState } from "@/lib/tournaments/flights";
 import { GuestJoinCard } from "./GuestJoinCard";
+import { WaitlistCard } from "@/components/events/WaitlistCard";
 import { SelfCheckIn } from "@/components/tournament/SelfCheckIn";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -45,6 +50,8 @@ import { RandomizerNowRacing } from "@/components/tournament/RandomizerNowRacing
 import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
 import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { IconFlagCheck, IconTrophy } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
+import { GameCover } from "@/components/games/GameCover";
 
 interface Tournament {
   id: string;
@@ -141,10 +148,19 @@ export default function TournamentPage() {
         .maybeSingle();
       setPresentingCommunity((c as { slug: string; display_name: string | null } | null) ?? null);
     }
-    // Host indicator — who's running it (links to their public profile).
+    // Host (named even when their profile is private; linked only when it's public) and co-organizers,
+    // both from the server: the users table only lets a browser read public rows.
+    fetch(`/api/tournament/${tournamentId}/organizers`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.host) {
+          setHost(j.host as { display_name: string | null; username: string | null } & UserAvatarUser);
+          setOrganizerAccent((j.host as { profile_accent?: string | null }).profile_accent ?? null);
+        }
+        if (Array.isArray(j.organizers)) setCoHosts(j.organizers.map((o: { userId: string; displayName: string; username: string | null }) => ({ userId: o.userId, displayName: o.displayName, username: o.username })));
+      })
+      .catch(() => {});
     if (tRes.data?.organizer_id) {
-      const { data: h } = await supabase.from("users").select("id, display_name, username, profile_accent, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar").eq("id", tRes.data.organizer_id).maybeSingle();
-      setHost((h as ({ display_name: string | null; username: string | null } & UserAvatarUser) | null) ?? null);
       fetch(`/api/events/tournament/${tournamentId}/tiers`)
         .then((r) => (r.ok ? r.json() : null))
         .then((j: { tiers?: { amountCents: number }[] } | null) => {
@@ -157,13 +173,7 @@ export default function TournamentPage() {
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => { if (Array.isArray(j?.events)) setMoreFrom(j.events as MoreEvent[]); })
         .catch(() => {});
-      setOrganizerAccent((h as { profile_accent?: string | null } | null)?.profile_accent ?? null);
     }
-    // Co-organizers who help run it (public read).
-    fetch(`/api/tournament/${tournamentId}/organizers`)
-      .then((r) => r.json())
-      .then((j) => { if (Array.isArray(j.organizers)) setCoHosts(j.organizers.map((o: { userId: string; displayName: string; username: string | null }) => ({ userId: o.userId, displayName: o.displayName, username: o.username }))); })
-      .catch(() => {});
     if (pRes.data) setParticipants(pRes.data as unknown as Participant[]);
     if (rRes.data) setResults(rRes.data as { participant_id: string; placement: number | null; points: number | null }[]);
     if (raceRes.data) setRaces(raceRes.data as TournamentRace[]);
@@ -184,66 +194,13 @@ export default function TournamentPage() {
     return () => { supabase.removeChannel(channel); };
   }, [tournamentId, loadData]);
 
-  // Claiming a guest entry (spec F, phase 0). This used to POST the claim the
-  // moment any signed-in user loaded the page with ?claim=, so a forwarded or
-  // pasted link silently handed the entry, paid ticket included, to whoever
-  // opened it. Now the token is pulled out of the address bar on arrival (signed
-  // in or not), kept in sessionStorage for this tab, and the viewer is asked to
-  // confirm. The server also refuses unless their verified email matches.
-  type PendingClaim = { token: string; displayName: string; maskedEmail: string; canClaim: boolean; reason: string | null };
-  const [pendingClaim, setPendingClaim] = useState<PendingClaim | null>(null);
-  const [claimNote, setClaimNote] = useState<string | null>(null);
-  const [claiming, setClaiming] = useState(false);
-  const claimKey = `gs-claim:${tournamentId}`;
+  // Old claim links (emailed before /claim existed) land here as ?claim=<token>.
+  // Forward them to the dedicated claim page straight away, so the credential
+  // leaves this public URL, and claiming happens in one place (spec F).
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const fromUrl = url.searchParams.get("claim");
-    if (fromUrl) {
-      try { sessionStorage.setItem(claimKey, fromUrl); } catch { /* private mode: keep it in memory only */ }
-      url.searchParams.delete("claim");
-      window.history.replaceState({}, "", url.toString());
-    }
-    let token = fromUrl;
-    if (!token) { try { token = sessionStorage.getItem(claimKey); } catch { token = null; } }
-    if (!token) return;
-    let cancelled = false;
-    fetch(`/api/tournament/${tournamentId}/claim?token=${encodeURIComponent(token)}`)
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled) return;
-        if (!j.ok) { try { sessionStorage.removeItem(claimKey); } catch {} setClaimNote("That claim link isn't valid for this tournament."); return; }
-        if (j.claimed) {
-          try { sessionStorage.removeItem(claimKey); } catch {}
-          if (!j.mine) setClaimNote("This entry has already been linked to an account. If that wasn't you, ask the organizer.");
-          return;
-        }
-        setPendingClaim({ token: token!, displayName: j.displayName, maskedEmail: j.maskedEmail, canClaim: !!j.canClaim, reason: j.reason ?? null });
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [user, tournamentId, claimKey]);
-
-  const confirmClaim = async () => {
-    if (!pendingClaim) return;
-    setClaiming(true);
-    const res = await fetch(`/api/tournament/${tournamentId}/claim`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: pendingClaim.token }),
-    }).catch(() => null);
-    const j = res ? await res.json().catch(() => ({})) : {};
-    setClaiming(false);
-    if (res?.ok) {
-      try { sessionStorage.removeItem(claimKey); } catch {}
-      setPendingClaim(null);
-      pushToast({ id: "claim", variant: "success", title: "Entry linked", message: `${pendingClaim.displayName} is now on your account.` });
-      loadData();
-    } else {
-      pushToast({ id: "claim", variant: "error", title: "Couldn't link that entry", message: j.error === "already_claimed" ? "It was linked to another account." : "Please try again." });
-    }
-  };
-  const dismissClaim = () => {
-    try { sessionStorage.removeItem(claimKey); } catch {}
-    setPendingClaim(null);
-  };
+    const token = new URLSearchParams(window.location.search).get("claim");
+    if (token) window.location.replace(`/claim/${encodeURIComponent(token)}`);
+  }, []);
 
   // The viewer's crew communities + current rep for this tournament (rep picker).
   useEffect(() => {
@@ -324,7 +281,7 @@ export default function TournamentPage() {
     });
   }, [tournament, participants]);
 
-  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
+  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><LoadingLines label="Loading" /></div></Container></main>;
   if (!tournament) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Tournament not found.</p></div></Container></main>;
 
   // Per-game data so character/item art + build tags resolve for MK8DX + MKW.
@@ -338,76 +295,42 @@ export default function TournamentPage() {
   // Organizers + co-organizers always see lobby details (to verify + share).
   const canSeePrivate = canManage || isAccepted || (myParticipation && tournament.acceptance_mode === "auto");
   const seated = participants.filter((p) => p.status !== "waitlisted" && p.status !== "dropped");
-  const isFull = tournament.max_participants ? seated.length >= tournament.max_participants : false;
+  // Full for a newcomer: no seat left, or people already waiting (they go first).
+  const lineExists = participants.some((p) => p.status === "waitlisted" || p.status === "offered");
+  const isFull = (tournament.max_participants ? seated.length >= tournament.max_participants : false) || lineExists;
 
-  const handleJoin = async (opts: { waitlist?: boolean } = {}) => {
+  /* Joining goes through the server, which decides seat / waitlist / tickets
+     (the same answer the database guard enforces) and files contact handles in
+     the private table. The waitlist itself is WaitlistCard's job. */
+  const handleJoin = async () => {
     if (!user) return;
     setJoining(true);
-    // Pull display name, friend code, and discord from user profile
-    const { data: profile } = await supabase
-      .from("users")
-      .select("display_name, gamertags, gamertag_visibility")
-      .eq("id", user.id)
-      .single();
-    const gamertags = (profile?.gamertags as { nso?: string; discord?: string }) || {};
-    // A tournament roster is a shared-with-participants context, so only copy the
-    // player's friend code / Discord if their gamertag visibility permits it here.
-    // `streamer_only` / `private` withhold them (there's no host-only surface on
-    // the public tournament page); `public` / `session_participants` share.
-    const vis = (profile?.gamertag_visibility as string) ?? "session_participants";
-    const shareTags = vis === "public" || vis === "session_participants";
-    const status = opts.waitlist ? "waitlisted" : tournament.acceptance_mode === "auto" ? "confirmed" : "registered";
-    const row = {
-      tournament_id: tournamentId,
-      user_id: user.id,
-      display_name: profile?.display_name || user.user_metadata?.display_name || "Player",
-      status,
-    };
-    // waitlisted_at arrives with events-attendees-m1; retry without it pre-migration.
-    let inserted: { id: string } | null = null;
-    let { data: ins, error } = await supabase
-      .from("tournament_participants")
-      .insert(opts.waitlist ? { ...row, waitlisted_at: new Date().toISOString() } : row)
-      .select("id").maybeSingle();
-    if (error && opts.waitlist) {
-      ({ data: ins, error } = await supabase.from("tournament_participants").insert(row).select("id").maybeSingle());
-    }
-    inserted = (ins as { id: string } | null) ?? null;
-
-    /* Contact handles go to the private table through the server, never onto
-       the participant row: that row is world-readable, which is how 633 friend
-       codes ended up public. Best effort, because failing to record a friend
-       code must not fail the join. */
-    if (!error && inserted && shareTags && (gamertags.nso || gamertags.discord)) {
-      void fetch(`/api/tournament/${tournamentId}/contact`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ participantId: inserted.id, friendCode: gamertags.nso || null, discord: gamertags.discord || null }),
-      }).catch(() => {});
-    }
+    const r = await fetch(`/api/tournament/${tournamentId}/quick-join`, { method: "POST" });
+    const j = (await r.json().catch(() => null)) as { ok?: boolean; status?: string; error?: string; canWaitlist?: boolean } | null;
     setJoining(false);
-    if (error) {
+    if (!j?.ok) {
       pushToast({
         id: "join",
         variant: "error",
         title: "Couldn't join",
-        message: error.message.includes("duplicate")
-          ? "You're already signed up for this tournament."
+        message: j?.error === "full" ? "It just filled up. Join the waitlist and you'll be offered the next spot."
+          : j?.error === "paid" ? "This tournament sells tickets. Get one to save your spot."
+          : j?.error === "verification_required" ? "Verify your email to join this tournament."
           : "Something went wrong. Please try again.",
       });
+      void loadData();
       return;
     }
-    trackEvent(opts.waitlist ? "Tournament Waitlisted" : "Tournament Joined");
+    trackEvent("Tournament Joined");
     pushToast({
       id: "join",
       variant: "success",
-      title: opts.waitlist ? "You're on the waitlist" : tournament.acceptance_mode === "auto" ? "You're in!" : "Request sent 🏁",
-      message: opts.waitlist
-        ? "If a spot opens you'll be moved in automatically and notified."
-        : tournament.acceptance_mode === "auto"
-          ? "You're signed up for this tournament."
-          : "Your request to join was sent. You'll get lobby details once the organizer accepts you.",
+      title: tournament.acceptance_mode === "auto" ? "You're in!" : "Request sent 🏁",
+      message: tournament.acceptance_mode === "auto"
+        ? "You're signed up for this tournament."
+        : "Your request to join was sent. You'll get lobby details once the organizer accepts you.",
     });
+    void loadData();
   };
 
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
@@ -438,8 +361,10 @@ export default function TournamentPage() {
     participants.filter((p) => p.status !== "dropped").map((p) => ({ id: p.id, display_name: p.display_name, team: p.team })),
     races,
     scoringTable,
+    bonusTotals(tournament.settings?.missionBonus as MissionBonus[] | undefined),
   )
-    .filter((s) => s.racesPlayed > 0)
+    // Bonus-only rows join once games are on this board (flight events keep their own standings).
+    .filter((s) => s.racesPlayed > 0 || (races.length > 0 && s.bonus > 0))
     .map((s, i) => ({ participant_id: s.participantId, placement: i + 1, points: s.points, name: s.name }));
 
   const standings = finalizedStandings.length > 0 ? finalizedStandings : liveStandings;
@@ -589,33 +514,14 @@ export default function TournamentPage() {
               blocks you from joining. Draft, in progress and ended are simply
               where things stand, so they get no bar — a bar on every state
               makes the bar mean nothing. */}
-          {tournament.status !== "open" || (isFull && !myParticipation) ? (
-            <div className={`comp-card${
-              tournament.status === "cancelled" ? " comp-card--alert"
-              : isFull && !myParticipation ? " comp-card--attention"
-              : ""
-            }`}>
+          {tournament.status !== "open" ? (
+            <div className={`comp-card${tournament.status === "cancelled" ? " comp-card--alert" : ""}`}>
               {tournament.status === "draft" && (
                 <>
                   <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, marginBottom: "0.35rem" }}>Registration isn&rsquo;t open yet</p>
                   <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
                     {canManage ? "Move this tournament to “Open for Registration” from Manage to let players sign up." : "Check back soon, or follow the host to hear when sign-ups open."}
                   </p>
-                </>
-              )}
-              {tournament.status === "open" && isFull && !myParticipation && (
-                <>
-                  <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, marginBottom: "0.35rem" }}>This tournament is full</p>
-                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", marginBottom: user ? "0.75rem" : 0 }}>
-                    All {tournament.max_participants} spots are taken. Join the waitlist and you&rsquo;ll be moved in automatically if a spot opens.
-                  </p>
-                  {user ? (
-                    <Button variant="secondary" size="small" onClick={() => void handleJoin({ waitlist: true })} disabled={joining}>
-                      {joining ? "Joining…" : "Join waitlist"}
-                    </Button>
-                  ) : (
-                    <a href={`/login?redirect=/tournament/${tournamentId}`} style={{ fontSize: "var(--font-size-12)", fontWeight: 600 }}>Sign in to join the waitlist</a>
-                  )}
                 </>
               )}
               {tournament.status === "in_progress" && (
@@ -633,13 +539,12 @@ export default function TournamentPage() {
             </div>
           ) : null}
 
-          {/* Join / Already Joined */}
-          {user && myParticipation && myParticipation.status === "waitlisted" && (
-            <div className="comp-card comp-card--attention">
-              <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--warning-ink)" }}>You&apos;re on the waitlist. If a spot opens you&apos;ll be moved in automatically and notified.</p>
-            </div>
+          {/* Waitlist: full (join it), in line (#3), an offer to claim, or standby. Renders nothing otherwise. */}
+          {user && tournament.status === "open" && (
+            <WaitlistCard type="tournament" eventId={tournamentId} signedIn onChanged={() => void loadData()} />
           )}
-          {user && myParticipation && myParticipation.status !== "waitlisted" && (
+          {/* Join / Already Joined */}
+          {user && myParticipation && myParticipation.status !== "waitlisted" && myParticipation.status !== "offered" && myParticipation.status !== "dropped" && (
             <div className="comp-card">
               <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--text-secondary)" }}>You&apos;re signed up for this tournament!</p>
             </div>
@@ -720,7 +625,7 @@ export default function TournamentPage() {
                 </p>
               </div>
             ) : (
-              <GuestJoinCard tournamentId={tournamentId} acceptanceMode={tournament.acceptance_mode} />
+              <GuestJoinCard tournamentId={tournamentId} acceptanceMode={tournament.acceptance_mode} full={isFull} />
             )
           )}
 
@@ -776,7 +681,10 @@ export default function TournamentPage() {
           <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status.replace("_", " ")}</span>
           <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
           {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
-          <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{gameLabel}</span>
+          <span className="event-game-badge">
+            <span className="event-game-badge__cover"><GameCover slug={tournament.game_slug} name={gameLabel} /></span>
+            {gameLabel}
+          </span>
         </>
       }
       breadcrumb={[{ label: "Tournaments", href: "/tournament" }, { label: tournament.title }]}
@@ -811,45 +719,7 @@ export default function TournamentPage() {
         capacity: tournament.max_participants ?? null,
         closesLabel: tournament.status === "open" ? (tournament.acceptance_mode === "auto" ? "Join instantly" : "Approval required") : null,
       }}
-      action={pendingClaim || claimNote ? (
-        <>
-          {pendingClaim && (
-            <Alert variant={pendingClaim.canClaim ? "info" : "warning"} title={pendingClaim.canClaim ? "Is this your entry?" : "Claim this entry"}>
-              {pendingClaim.canClaim ? (
-                <>
-                  <p style={{ margin: "0 0 var(--spacing-12)" }}>
-                    <strong>{pendingClaim.displayName}</strong> was saved as a guest under {pendingClaim.maskedEmail}. Link it to your account to keep the results.
-                  </p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-8)" }}>
-                    <Button variant="primary" size="small" onClick={confirmClaim} disabled={claiming}>{claiming ? "Linking…" : "Link it"}</Button>
-                    <Button variant="ghost" size="small" onClick={dismissClaim}>Not me</Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p style={{ margin: "0 0 var(--spacing-12)" }}>
-                    {pendingClaim.reason === "signed_out"
-                      ? <><strong>{pendingClaim.displayName}</strong> was saved as a guest. Sign in or create a free account with {pendingClaim.maskedEmail} to keep the results.</>
-                      : pendingClaim.reason === "email_unverified"
-                        ? <>Confirm your email address first, then come back to link <strong>{pendingClaim.displayName}</strong>.</>
-                        : <><strong>{pendingClaim.displayName}</strong> was saved under {pendingClaim.maskedEmail}. Sign in with that address to link it.</>}
-                  </p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-8)" }}>
-                    {pendingClaim.reason === "signed_out" && (
-                      <Link href={`/login?redirect=${encodeURIComponent(`/tournament/${tournamentId}`)}`} style={{ textDecoration: "none" }}>
-                        <Button variant="primary" size="small">Sign in</Button>
-                      </Link>
-                    )}
-                    <Button variant="ghost" size="small" onClick={dismissClaim}>Dismiss</Button>
-                  </div>
-                </>
-              )}
-            </Alert>
-          )}
-          {!pendingClaim && claimNote && <Alert variant="warning" onClose={() => setClaimNote(null)}>{claimNote}</Alert>}
-          {showActionRail ? actionPanel : null}
-        </>
-      ) : (showActionRail ? actionPanel : undefined)}
+      action={showActionRail ? actionPanel : undefined}
       moreFromOrganizer={moreFrom}
       schema={{ status: tournament.status === "cancelled" ? "cancelled" : tournament.status === "complete" ? "ended" : "scheduled", registrationOpen: tournament.status === "open" && !isFull, price: lowestTicketPrice }}
       style={brandStyle}
@@ -963,6 +833,16 @@ export default function TournamentPage() {
                 readOnly
               />
             </div>
+          )}
+
+          {/* Mario Party: this round's shared roll + mission points (read-only) */}
+          {isPartyGame(tournament.game_slug) && tournament.status !== "draft" && (
+            <PartyTournamentPanel gameSlug={tournament.game_slug} settings={tournament.settings} participants={participants} readOnly />
+          )}
+
+          {/* Smash: rules, live sets, rounds and crew battles (read-only) */}
+          {isSmashGame(tournament.game_slug) && tournament.status !== "draft" && (
+            <SmashTournamentPanel settings={tournament.settings} participants={participants} format={tournament.format ?? ""} bracket={tournament.bracket} readOnly />
           )}
 
           {/* Flights board (read-only) */}
@@ -1259,7 +1139,7 @@ export default function TournamentPage() {
                         return (
                           <div
                             key={c.name}
-                            title={bannedC ? `${c.name} — banned` : c.name}
+                            title={bannedC ? `${c.name} (banned)` : c.name}
                             style={{
                               display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: 60, padding: "0.35rem 0.25rem",
                               borderRadius: "0.4rem",

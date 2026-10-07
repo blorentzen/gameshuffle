@@ -12,6 +12,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconUserMinus } from "@tabler/icons-react";
 
 export function CommunityMemberAdmin({
   communityId,
@@ -27,6 +30,7 @@ export function CommunityMemberAdmin({
   /** Only the owner may grant/revoke the admin role. */
   canGrantAdmin?: boolean;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -42,7 +46,7 @@ export function CommunityMemberAdmin({
   };
 
   const remove = async () => {
-    if (!window.confirm(`Remove ${name} from the community?`)) return;
+    if (!(await confirm({ title: `Remove ${name} from the community?`, confirmLabel: "Remove" }))) return;
     setBusy(true);
     const res = await fetch(`/api/communities/${communityId}/members?userId=${encodeURIComponent(userId)}`, { method: "DELETE" }).catch(() => null);
     setBusy(false);
@@ -64,7 +68,7 @@ export function CommunityMemberAdmin({
           <Button variant="ghost" size="small" disabled={busy} onClick={() => setRole("admin", `${name} is now an admin.`)}>Make admin</Button>
         )
       )}
-      <Button variant="ghost" size="small" disabled={busy} onClick={remove}>Remove</Button>
+      <IconAction label={`Remove ${name} from the community`} icon={IconUserMinus} variant="danger" disabled={busy} onClick={remove} />
     </div>
   );
 }

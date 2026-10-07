@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { Card, Button, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 export interface RaffleView {
   id: string;
@@ -46,6 +47,7 @@ export function CommunityRaffle({
   /** Recent past winners (social proof). */
   history?: RaffleWinView[];
 }) {
+  const confirm = useConfirm();
   const toast = useToast();
   const [raffle, setRaffle] = useState<RaffleView | null>(initialRaffle);
   const [balance, setBalance] = useState(initialBalance);
@@ -116,7 +118,7 @@ export function CommunityRaffle({
   };
 
   const draw = async () => {
-    if (!raffle || !window.confirm("Draw a winner now? This closes the raffle.")) return;
+    if (!raffle || !(await confirm({ title: "Draw a winner now?", body: "This closes the raffle.", confirmLabel: "Draw a winner", danger: false }))) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/raffles/${raffle.id}/draw`, { method: "POST" });

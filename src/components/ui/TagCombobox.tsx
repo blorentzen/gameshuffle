@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Combobox } from "@empac/cascadeds";
+import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 
 /**
  * A CDS Combobox for the "search, pick, and it joins a list" pattern — favorite
@@ -33,6 +33,7 @@ export function TagCombobox({
   allowCreate = false,
   createLabel,
   disabled = false,
+  label,
 }: {
   options: { value: string; label: string }[];
   /** Called once per committed selection, already trimmed and non-empty. */
@@ -43,12 +44,15 @@ export function TagCombobox({
   allowCreate?: boolean;
   createLabel?: string;
   disabled?: boolean;
+  /** The field's accessible name; defaults to the placeholder. */
+  label?: string;
 }) {
   const [nonce, setNonce] = useState(0);
 
   return (
-    <Combobox
+    <LabeledCombobox
       key={nonce}
+      label={label ?? placeholder ?? "Search"}
       value=""
       onChange={(v) => {
         const picked = v.trim();

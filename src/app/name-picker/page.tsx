@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
+import { FreeToolShell } from "@/components/tools/FreeToolShell";
 import { NamePickerTool } from "@/components/tools/NamePickerTool";
+import { IconUserSearch } from "@tabler/icons-react";
 
 export const metadata: Metadata = {
   title: "Random Name Picker: pick a winner, free",
@@ -15,16 +15,9 @@ export const metadata: Metadata = {
 export default function NamePickerPage() {
   return (
     <main>
-      <Container className="tool-page">
-        <h1 className="tool-page__title">Random Name Picker</h1>
-        <p className="tool-page__lead">
-          Paste your entries and draw random winners, for giveaways, raffles, and shout-outs.
-        </p>
+      <FreeToolShell icon={IconUserSearch} name="Random Name Picker" lede="Paste your entries and draw random winners, for giveaways, raffles, and shout-outs.">
         <NamePickerTool />
-        <p className="tool-page__lead">
-          More free tools on the <Link href="/tools">tools hub</Link>.
-        </p>
-      </Container>
+      </FreeToolShell>
       <ProToolCta />
     </main>
   );

@@ -36,6 +36,8 @@ import {
   type ShuffleContext,
 } from "./shuffle";
 import { handleSpinCommand } from "./spin";
+import { handleBattleCommand } from "./battle";
+import { handleSetupCommand } from "./setup";
 import { handleDiceCommand } from "./dice";
 import { handleCoinCommand } from "./coin";
 import {
@@ -46,6 +48,7 @@ import {
 import { handleEnterCommand, handleDrawCommand } from "./namePicker";
 import { handleTimerCommand } from "./timer";
 import { handleBingoCommand } from "./bingo";
+import { handleStreamBingo, STREAM_BINGO_SUBCOMMANDS } from "./streamBingo";
 import { handleTierCommand } from "./tierList";
 import { handleTournamentRaceCommand } from "./tournamentRace";
 import { handleCrewsCommand } from "./crews";
@@ -126,6 +129,7 @@ function asShuffleCtx(cmd: CmdContext): ShuffleContext {
     isModerator: cmd.isModerator,
     botTwitchId: cmd.botTwitchId,
     overlayToken: cmd.overlayToken ?? null,
+    args: cmd.args,
   };
 }
 
@@ -289,7 +293,7 @@ registerCommand({
 
     let message: string;
     if (share && share.visible) {
-      message = `🎮 ${share.displayName}'s GameShuffle profile: ${profileUrl(share.username)} — follow + find players you match with.`;
+      message = `🎮 ${share.displayName}'s GameShuffle profile: ${profileUrl(share.username)}. Follow and find players you match with.`;
     } else if (share && !share.visible) {
       message = `${cmd.senderDisplayName}, your GameShuffle profile is set to private. Make it public in your account settings to share it.`;
     } else {
@@ -320,12 +324,58 @@ registerCommand({
   minAuthority: "viewer",
   vipOnly: false,
   help: {
-    summary: "Roll a fresh kart loadout.",
-    usage: "!gs shuffle",
-    detail: "Rolls the caller's own combo. Broadcaster shuffles instantly; viewers may be cooldown-gated.",
+    summary: "Roll your pick for the game on stream.",
+    usage: "!gs shuffle [role]",
+    detail: "Rolls the caller's own pick for the current game: a kart combo, fighter, character, hero, weapon kit or rider and machine. Overwatch and Marvel Rivals take a role (!gs shuffle tank). Broadcaster shuffles instantly; viewers may be cooldown-gated.",
   },
   handler: async (cmd) => {
     await handleShuffleCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Viewer battle: rolls everyone in the lobby at once (mods + host).
+registerCommand({
+  name: "gs.battle",
+  trigger: ["gs", "battle"],
+  aliases: [["gs-battle"]],
+  actor: "crew",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Roll everyone in the lobby at once for a viewer battle (mods + host).",
+    usage: "!gs battle",
+    detail: "Gives every lobby member a pick for the current game, all different where the game allows, and posts the lineup. Smash adds one stage from the competitive list. The overlay shows everyone on one card.",
+  },
+  handler: async (cmd) => {
+    await handleBattleCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Match roll: tracks, a stage, a board, a map for the game on stream (mods + host).
+registerCommand({
+  name: "gs.setup",
+  trigger: ["gs", "setup"],
+  aliases: [["gs-setup"]],
+  actor: "crew",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Roll the match for the game on stream: tracks, a stage, a board or a map (mods + host).",
+    usage: "!gs setup [option]",
+    detail: "Rolls what everyone plays on: Mario Kart tracks (!gs setup 8 for eight races, rally or battle), a Smash stage and rules (party for party rules), a Mario Party board and turns, an Overwatch or Marvel Rivals map (add a mode: push, control), a Splatoon battle (3 or 5 for a set, salmon for Salmon Run), a Kirby course (top or city), the whole GoldenEye or Perfect Dark match, or a Pokémon Stadium cup. Posts it to chat and shows it on the overlay.",
+  },
+  handler: async (cmd) => {
+    await handleSetupCommand(asShuffleCtx(cmd));
     return { ok: true };
   },
 });
@@ -585,12 +635,14 @@ registerCommand({
   vipOnly: false,
   cooldownSeconds: 1,
   help: {
-    summary: "Run a shared community bingo board on the overlay.",
-    usage: "!gs-bingo new · mark <n> · clear",
+    summary: "Run Stream Bingo (numbers) or a shared bingo board on the overlay.",
+    usage: "!bingo start [pattern] [tokens] [prize] · call · auto <secs> · end  ·  board: new · mark <n> · clear",
     detail:
-      "Shared stream-bingo card. `new [3-5]` starts a board, `mark <n>` toggles square n (1-indexed), `clear` removes it. A completed line celebrates on the overlay. Broadcaster + mods (Pro).",
+      "Stream Bingo: `start` opens a number game (patterns: line, corners, x, frame, blackout, or series), viewers take cards on your live page, `call` calls a number, `auto 60` calls on a timer, `end` stops it. The first real bingo wins the tokens and your prize. Board: `new [3-5]` starts a shared event board, `mark <n>` toggles a square, `clear` removes it. Broadcaster + mods (Pro).",
   },
   handler: async (cmd) => {
+    const sub = (cmd.args ?? "").trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+    if (STREAM_BINGO_SUBCOMMANDS.has(sub)) return handleStreamBingo(cmd);
     await handleBingoCommand(asShuffleCtx(cmd), cmd.args ?? "");
     return { ok: true };
   },
@@ -668,7 +720,7 @@ registerCommand({
     summary: "Show the crew standings for the live tournament.",
     usage: "!crews",
     detail:
-      "Posts the current per-crew (community) standings for the in-progress tournament — the same roll-up shown on the stream overlay. Anyone in chat can use it.",
+      "Posts the current per-crew (community) standings for the in-progress tournament, the same roll-up shown on the stream overlay. Anyone in chat can use it.",
   },
   handler: async (cmd) => handleCrewsCommand(cmd),
 });
@@ -986,6 +1038,8 @@ registerCommand({
     usage: "!gs pick <option>",
   },
   handler: async (cmd) => {
+    // A running captain draft owns !pick; otherwise it's the picks/bans ballot.
+    if (await tryCaptainPick(cmd)) return { ok: true };
     const session = await loadActiveSession(cmd.userId);
     if (!session) return { ok: false, reason: "no_session" };
     await handlePickCommand(picksCtxFor(cmd, session), cmd.args);
@@ -1850,3 +1904,8 @@ import "./eventCommands";
 import "./consentCommands";
 import "./engagementCommand";
 import "./polls";
+import "./chatbrain";
+import "./whosaid";
+import "./draft";
+import { tryCaptainPick } from "./draft";
+import "./party";

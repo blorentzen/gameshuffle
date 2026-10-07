@@ -60,7 +60,7 @@ export function AnthemPlayer({ payload }: { payload: AnthemEventPayload }) {
         <div className="gs-anthem__viewer">🎵 {payload.viewerName} is here</div>
         <div className="gs-anthem__title">
           {payload.title}
-          {payload.artist ? ` — ${payload.artist}` : ""}
+          {payload.artist ? ` · ${payload.artist}` : ""}
         </div>
         {payload.attribution ? <div className="gs-anthem__attr">{payload.attribution}</div> : null}
       </div>

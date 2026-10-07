@@ -40,6 +40,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     items: [
       { id: "profile", label: "Profile", iconName: "user" },
       { id: "theme", label: "Brand & Theme", iconName: "palette" },
+      { id: "notifications", label: "Notifications", iconName: "bell" },
       { id: "plans", label: "Plans", iconName: "credit-card" },
       { id: "security", label: "Security", iconName: "lock" },
     ],
@@ -51,6 +52,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     iconName: "box",
     items: [
       { id: "setups", label: "Setups & Games", iconName: "folder" },
+      { id: "my-games", label: "My Games", iconName: "filter" },
       { id: "game-nights", label: "Game Nights", iconName: "calendar" },
       { id: "board-games", label: "Board Games", iconName: "layout-grid" },
       { id: "tournaments", label: "Tournaments", iconName: "award" },
@@ -86,6 +88,8 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     items: [
       { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
       { id: "polls", label: "Polls", iconName: "chart-bar" },
+      { id: "bingo", label: "Stream Bingo", iconName: "border-all" },
+      { id: "draft", label: "Chat Draft", iconName: "list" },
       { id: "community", label: "Chat Modules", iconName: "sparkles" },
       { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
       { id: "engagement", label: "Engagement", iconName: "trending-up" },
@@ -102,6 +106,12 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-health", label: "Health", iconName: "activity" },
       { id: "platform-growth", label: "Growth", iconName: "chart-line" },
       { id: "platform-events", label: "Events", iconName: "sparkles" },
+      { id: "platform-decks", label: "Decks", iconName: "layers" },
+      { id: "platform-originals", label: "Originals", iconName: "sparkles" },
+      { id: "platform-ai", label: "AI usage", iconName: "bolt" },
+      { id: "platform-games", label: "Game catalog", iconName: "photo" },
+      { id: "platform-weekly", label: "Weekly Challenge", iconName: "calendar" },
+      { id: "platform-chat-brain", label: "Chat Brain", iconName: "message-circle" },
       { id: "platform-variables", label: "Variables", iconName: "code" },
       { id: "platform-default-commands", label: "Commands", iconName: "message-circle" },
       { id: "platform-compliance", label: "Compliance", iconName: "shield" },

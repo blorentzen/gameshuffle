@@ -38,6 +38,7 @@
 
 import "server-only";
 import { sendChatMessage } from "@/lib/twitch/client";
+import { parseSpeaker } from "@/lib/originals/whoSaid";
 import { resolveQotdForCommunity, QOTD_TRIGGER } from "@/lib/qotd";
 import { createServiceClient } from "@/lib/supabase/admin";
 import {
@@ -488,7 +489,7 @@ async function handleAdd(
   const nextOrder =
     (((tail as { sort_order: number } | null)?.sort_order ?? 0) as number) +
     1;
-  const { error } = await admin.from("gs_default_command_responses").insert({
+  const row = {
     command_id: cmd.id,
     community_id: econ.community.id,
     added_by_identity_id: econ.caller.id,
@@ -496,7 +497,14 @@ async function handleAdd(
     weight: 100,
     sort_order: nextOrder,
     enabled: true,
-  });
+  };
+  // `!quote add <text> - Name` records who said it, for Who Said It? (whosaid-m1).
+  const speaker = cmd.trigger === "quote" ? parseSpeaker(trimmed) : null;
+  let { error } = await admin.from("gs_default_command_responses").insert(speaker ? { ...row, said_by: speaker.saidBy } : row);
+  // Before whosaid-m1 is applied the column doesn't exist: save the quote anyway.
+  if (error && speaker && (error.code === "42703" || error.code === "PGRST204")) {
+    ({ error } = await admin.from("gs_default_command_responses").insert(row));
+  }
   if (error) {
     console.error("[defaultCommands] add failed:", error.message);
     await postChat(

@@ -55,7 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         text:
           `${hostName} invited you to play in "${t.title}".\n\n` +
           `Join here: ${link}\n\n` +
-          `Create a free GameShuffle account when you join to lock in your spot, track your placements across every event you enter, and get a heads-up when ${hostName} runs the next one. It takes a few seconds — or continue with Discord or Twitch in one click.\n\n` +
+          `Create a free GameShuffle account when you join to lock in your spot, track your placements across every event you enter, and get a heads-up when ${hostName} runs the next one. It takes a few seconds, or continue with Discord or Twitch in one click.\n\n` +
           `See you on the grid!`,
       });
       sent++;

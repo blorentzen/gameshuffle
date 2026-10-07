@@ -10,13 +10,13 @@
  * — at which point this component switches from hardcoded classes
  * to consuming a `CoinFaceConfig` from props.
  *
- * Structure (per face): a colored top half + a white bottom half,
- * a black equator band, and a center circle "button". The element
- * fills its parent (the modal or the center-band button takes care
- * of sizing).
+ * The face is our Poké Ball drawing (`PokeBall`, shared with the Pokémon
+ * randomizers' empty slots). The element fills its parent (the modal or
+ * the center-band button takes care of sizing).
  */
 
 import type { CoinFlipEntry } from "@/lib/companion/types";
+import { PokeBall } from "@/components/pokemon/PokeBall";
 
 interface Props {
   side: CoinFlipEntry["side"];
@@ -28,10 +28,7 @@ export function CoinFace({ side }: Props) {
       className={`companion-coin-face companion-coin-face--${side}`}
       aria-hidden="true"
     >
-      <div className="companion-coin-face__top" />
-      <div className="companion-coin-face__bottom" />
-      <div className="companion-coin-face__band" />
-      <div className="companion-coin-face__button" />
+      <PokeBall variant={side === "b" ? "great" : "poke"} className="companion-coin-face__ball" />
     </div>
   );
 }

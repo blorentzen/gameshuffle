@@ -109,9 +109,10 @@
      immediately as the layout's grid item, not just the inner container. */
   .legal-page-v2__toc {
     position: sticky;
-    top: 7rem; /* clears 50px navbar + 20px breathing room */
+    top: calc(var(--gs-nav-offset) + var(--spacing-16)); /* follows the site nav */
     align-self: start;
-    max-height: calc(100vh - 9rem);
+    max-height: calc(100vh - var(--gs-nav-offset) - var(--spacing-32));
+    transition: var(--gs-nav-slide);
     overflow-y: auto;
     padding-right: var(--spacing-8);
   }
@@ -536,8 +537,8 @@
   }
 }
 
-/* Beta Banner */
-.beta-banner {
+/* New Banner (just-launched tools) */
+.new-banner {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -548,19 +549,19 @@
   margin-bottom: 1.5rem;
 }
 
-/* The Beta badge is a CDS <Badge variant="info"> — keep it from
+/* The New badge is a CDS <Badge variant="info"> — keep it from
    squishing next to the banner text. */
-.beta-banner > .empac-badge {
+.new-banner > .empac-badge {
   flex-shrink: 0;
 }
 
-.beta-banner__text {
+.new-banner__text {
   font-size: var(--font-size-12);
   color: var(--primary-ink-700);
   line-height: 1.4;
 }
 
-.beta-banner__link {
+.new-banner__link {
   color: var(--primary-ink-500);
   font-weight: 600;
   text-decoration: underline;

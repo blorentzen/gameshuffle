@@ -36,6 +36,8 @@ interface QuoteRow {
   sort_order: number;
   community_id: string | null;
   added_by_identity_id: string | null;
+  /** Who said it (whosaid-m1); absent before that migration. */
+  said_by?: string | null;
 }
 
 interface IdentityRow {
@@ -61,6 +63,7 @@ async function fetchPool(
     response: string;
     isPlatform: boolean;
     addedBy: string | null;
+    saidBy: string | null;
   }>;
   platformCount: number;
   communityCount: number;
@@ -80,14 +83,18 @@ async function fetchPool(
   // Platform-default (community_id IS NULL) PLUS this community's
   // contributions. Engine merges both at chat fire time; the page
   // mirrors that scope.
-  const { data: poolRows } = await admin
+  const poolQuery = (cols: string) => admin
     .from("gs_default_command_responses")
-    .select("id, response, sort_order, community_id, added_by_identity_id")
+    .select(cols)
     .eq("command_id", cmd.id)
     .eq("enabled", true)
     .or(`community_id.is.null,community_id.eq.${community.id}`)
     .order("community_id", { ascending: true, nullsFirst: true })
     .order("sort_order", { ascending: true });
+  const base = "id, response, sort_order, community_id, added_by_identity_id";
+  // Speakers need whosaid-m1; before it's applied, load the pool without them.
+  const first = await poolQuery(`${base}, said_by`);
+  const poolRows = first.error ? (await poolQuery(base)).data : first.data;
   const pool = (poolRows as QuoteRow[] | null) ?? [];
 
   const identityIds = pool
@@ -117,6 +124,7 @@ async function fetchPool(
       addedBy: r.added_by_identity_id
         ? identityByid.get(r.added_by_identity_id) ?? null
         : null,
+      saidBy: r.said_by ?? null,
     };
   });
   return { quotes, platformCount, communityCount };
@@ -138,6 +146,8 @@ export async function generateMetadata({
   const name = community.display_name || community.slug;
   return {
     title: `${name}'s Quotes`,
+    // A chat's quote pool is thin content for search; follow, don't index.
+    robots: { index: false, follow: true },
     description: `Random quote pool for ${name}'s chat. Fires from \`!quote\` in stream.`,
     openGraph: {
       title: `${name}'s Quotes | GameShuffle`,
@@ -271,6 +281,7 @@ export default async function CommunityQuotesPage({
                           letterSpacing: "0.04em",
                         }}
                       >
+                        {q.saidBy ? `Said by ${q.saidBy} · ` : ""}
                         {q.isPlatform
                           ? "Platform starter"
                           : q.addedBy

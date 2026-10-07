@@ -1,6 +1,7 @@
 "use client";
 
-import { Button, Input } from "@empac/cascadeds";
+import { Input } from "@empac/cascadeds";
+import { CardActions } from "./CardActions";
 import { KartSlot } from "./KartSlot";
 import { SaveKartBuild } from "./SaveKartBuild";
 import type { Player, GameData } from "@/data/types";
@@ -8,6 +9,7 @@ import type { Player, GameData } from "@/data/types";
 interface PlayerCardProps {
   player: Player;
   gameSlug?: string;
+  hasVehicle?: boolean;
   hasWheels?: boolean;
   hasGlider?: boolean;
   /** Full game data — supplies the part pools for the roulette reel animation. */
@@ -18,11 +20,14 @@ interface PlayerCardProps {
   onRemove: () => void;
   onNameChange: (name: string) => void;
   canRemove: boolean;
+  /** 0-based seat, for button labels when no name is typed ("Player 2"). */
+  seat?: number;
 }
 
 export function PlayerCard({
   player,
   gameSlug = "mario-kart-8",
+  hasVehicle = true,
   hasWheels = true,
   hasGlider = true,
   gameData,
@@ -31,30 +36,26 @@ export function PlayerCard({
   onRemove,
   onNameChange,
   canRemove,
+  seat,
 }: PlayerCardProps) {
+  const who = player.name.trim() || (seat !== undefined ? `Player ${seat + 1}` : "this player");
   return (
     <div className="player-card">
       <div className="player-card__header">
         <div className="player-card__name">
           <Input
             type="text"
-            placeholder="Player Name"
+            floatingLabel="Player name"
+            placeholder="Type a name"
             value={player.name}
             onChange={(e) => onNameChange(e.target.value)}
           />
         </div>
-        <div className="player-card__actions">
-          <Button variant="primary" size="small" onClick={onRefresh}>
-            Refresh Kart
-          </Button>
-          {canRemove && (
-            <Button variant="danger" size="small" onClick={onRemove}>
-              Remove Player
-            </Button>
-          )}
-        </div>
+        <CardActions
+          refreshLabel={`${hasVehicle ? "New kart combo" : "New character"} for ${who}`} onRefresh={onRefresh}
+          removeLabel={`Remove ${who}`} onRemove={canRemove ? onRemove : undefined} />
       </div>
-      <ul className="player-card__slots">
+      <ul className={`player-card__slots${hasVehicle || hasWheels || hasGlider ? "" : " player-card__slots--single"}`}>
         <KartSlot
           label="Character"
           name={player.combo?.character.name ?? null}
@@ -62,13 +63,15 @@ export function PlayerCard({
           pool={gameData?.characters}
           animate={animate}
         />
-        <KartSlot
-          label="Vehicle"
-          name={player.combo?.vehicle.name ?? null}
-          imageSrc={player.combo?.vehicle.img ?? null}
-          pool={gameData?.vehicles}
-          animate={animate}
-        />
+        {hasVehicle && (
+          <KartSlot
+            label="Vehicle"
+            name={player.combo?.vehicle.name ?? null}
+            imageSrc={player.combo?.vehicle.img ?? null}
+            pool={gameData?.vehicles}
+            animate={animate}
+          />
+        )}
         {hasWheels && (
           <KartSlot
             label="Wheels"

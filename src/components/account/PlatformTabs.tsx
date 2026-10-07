@@ -27,6 +27,12 @@ import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
 import { PlatformModerationTab } from "@/components/account/PlatformModerationTab";
 import { PlatformShopTab } from "@/components/account/PlatformShopTab";
 import { PlatformGuidesTab } from "@/components/account/PlatformGuidesTab";
+import { PlatformDecksTab } from "@/components/account/PlatformDecksTab";
+import { PlatformWeeklyTab } from "@/components/account/PlatformWeeklyTab";
+import { PlatformChatBrainTab } from "@/components/account/PlatformChatBrainTab";
+import { PlatformOriginalsTab } from "@/components/account/PlatformOriginalsTab";
+import { PlatformAiTab } from "@/components/account/PlatformAiTab";
+import { PlatformGamesTab } from "@/components/account/PlatformGamesTab";
 
 export function PlatformTabs() {
   return (
@@ -45,6 +51,12 @@ function PlatformTabsContent() {
       {activeTab === "platform-health" && <PlatformHealthTab />}
       {activeTab === "platform-growth" && <PlatformGrowthTab />}
       {activeTab === "platform-events" && <PlatformEventsTab />}
+      {activeTab === "platform-decks" && <PlatformDecksTab />}
+      {activeTab === "platform-originals" && <PlatformOriginalsTab />}
+      {activeTab === "platform-ai" && <PlatformAiTab />}
+      {activeTab === "platform-games" && <PlatformGamesTab />}
+      {activeTab === "platform-weekly" && <PlatformWeeklyTab />}
+      {activeTab === "platform-chat-brain" && <PlatformChatBrainTab />}
       {activeTab === "platform-variables" && <PlatformVariablesTab />}
       {activeTab === "platform-default-commands" && <PlatformDefaultCommandsTab />}
       {activeTab === "platform-compliance" && <PlatformComplianceTab />}

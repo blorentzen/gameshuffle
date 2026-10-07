@@ -2,7 +2,7 @@ export type NightLength = "quick" | "moderate" | "long";
 export type NightVisibility = "public" | "unlisted";
 export type NightStatus = "draft" | "scheduled" | "ended" | "cancelled";
 export type NightLevel = "casual" | "intermediate" | "advanced";
-export type RsvpStatus = "going" | "maybe" | "declined" | "waitlisted";
+export type RsvpStatus = "going" | "maybe" | "declined" | "waitlisted" | "offered";
 
 /** What kind of games a night is built around. Drives discovery filters, the
  *  games picker's catalog, and the card badge. Stored on `board_game_nights.kind`
@@ -57,6 +57,8 @@ export interface GameNight {
   /** Per-night brand theme, overriding the host's. NULL / 'default' / absent
    *  all inherit. Absent until game-night-brand-theme-m1.sql is applied. */
   brand_theme?: string | null;
+  /** Modules the host added (see lib/game-nights/modules). Absent until game-night-modules-m1. */
+  modules?: unknown;
   created_at: string;
   updated_at: string;
 }

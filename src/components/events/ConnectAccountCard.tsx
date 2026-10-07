@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { ConnectAccount } from "@/lib/events/tickets";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /**
  * The organizer's Stripe payout account: status, onboarding, and the link into
@@ -55,7 +56,7 @@ export function ConnectAccountCard({ onStatus, intro }: { onStatus?: (a: Connect
     } finally { setBusy(null); }
   };
 
-  if (account === undefined) return <p className="attendees__empty">Loading…</p>;
+  if (account === undefined) return <LoadingLines label="Loading" />;
 
   if (!account) {
     return (

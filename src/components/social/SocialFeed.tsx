@@ -12,6 +12,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { PostCard } from "@/components/social/PostCard";
 import { PostComposer } from "@/components/social/PostComposer";
 import type { FeedPost } from "@/lib/social/feed";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type Scope = "for_you" | "following" | "communities";
 
@@ -55,7 +56,7 @@ function FeedList({
     [],
   );
 
-  if (posts === null) return <p className="feed__msg">Loading…</p>;
+  if (posts === null) return <LoadingLines label="Loading" />;
   if (posts.length === 0) {
     return (
       <p className="feed__msg">

@@ -20,6 +20,9 @@ import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
 import { COMMUNITY_SUBTYPES, communityPresentation } from "@/data/community-sections";
 import { listNightsForCommunity } from "@/lib/game-nights/store";
 import { getLeaderboard } from "@/lib/economy/leaderboards";
+import { hostSeason, hostSeasonGames } from "@/lib/seasons/store";
+import { seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { SeasonBoard, type SeasonBoardRow } from "@/components/seasons/SeasonBoard";
 import { getOpenMarketsForCommunity } from "@/lib/communities/markets";
 import { getAccountBalance } from "@/lib/economy/accountWallet";
 import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
@@ -39,7 +42,7 @@ import { CommunityMemberAdmin } from "@/components/communities/CommunityMemberAd
 import { CommunityMarkets } from "@/components/communities/CommunityMarkets";
 import { CommunityRaffle } from "@/components/communities/CommunityRaffle";
 import { getOpenRaffle, getRaffleSummary, listRaffleHistory } from "@/lib/economy/raffles";
-import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
+import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { resolveNameColor } from "@/data/arcade-items";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { COMMUNITY_LINK_LABEL } from "@/data/community-links";
@@ -61,8 +64,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!community) return { title: "Community not found" };
   const name = community.displayName || `@${community.slug}`;
   return {
-    title: `${name} — Community`,
-    description: `Join the ${name} community on GameShuffle — leaderboards, live sessions, and tournaments.`,
+    title: `${name} community`,
+    description: `Join the ${name} community on GameShuffle: leaderboards, live sessions and tournaments.`,
     alternates: { canonical: `https://www.gameshuffle.co/c/${community.slug}` },
   };
 }
@@ -105,7 +108,7 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
   if (raffleRow && community.ownerUserId) {
     const { data: owner } = await supabase.from("users").select("subscription_tier, role, circuit_tier, circuit_status").eq("id", community.ownerUserId).maybeSingle();
     raffleLive = effectiveTier({
-      tier: (owner?.subscription_tier as SubscriptionTier | null) ?? "free",
+      tier: normalizeTier(owner?.subscription_tier),
       role: (owner?.role as string | null) ?? null,
       circuitTier: (owner?.circuit_tier as string | null) ?? null,
       circuitStatus: (owner?.circuit_status as string | null) ?? null,
@@ -114,6 +117,16 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
 
   const name = community.displayName || `@${community.slug}`;
   const isOwner = !!user && user.id === community.ownerUserId;
+  // Season: this month's live-night points at the owner's nights, overall and per game.
+  const season = currentSeasonKey();
+  const seasonBoards: Record<string, SeasonBoardRow[]> = {};
+  if (isChannel && community.ownerUserId) {
+    const ownerId = community.ownerUserId;
+    const games = await hostSeasonGames(ownerId, season);
+    const [all, ...perGame] = await Promise.all([hostSeason(ownerId, season), ...games.map((g) => hostSeason(ownerId, season, g))]);
+    seasonBoards.all = all;
+    games.forEach((g, i) => { seasonBoards[g] = perGame[i]; });
+  }
 
   // Crew personalization context: the viewer's tiers + whether they can manage
   // (community owner/mod; captains are handled per-game inside the component).
@@ -341,6 +354,13 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
           </div>
         )}
       </Card>
+{/* Season — live-night points this month, channel communities only */}
+      {isChannel && !customization.hiddenSections.includes("leaderboard") && (seasonBoards.all?.length ?? 0) > 0 && (
+      <Card padding="large" style={{ order: orderOf("leaderboard") }}>
+        <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-8)" }}>Season</h2>
+        <SeasonBoard seasonKey={season} boards={seasonBoards} emptyHint="No season points yet. Play a live night to get on the board." />
+      </Card>
+      )}
 {/* Leaderboard — economy, channel communities only */}
       {isChannel && !customization.hiddenSections.includes("leaderboard") && (
       <Card padding="large" style={{ order: orderOf("leaderboard") }}>

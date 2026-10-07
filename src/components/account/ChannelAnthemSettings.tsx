@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, Checkbox, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   ANTHEM_MAX_DURATION_MS,
   ANTHEM_MIN_DURATION_MS,
@@ -124,7 +125,7 @@ export function ChannelAnthemSettings() {
       </p>
 
       {loading ? (
-        <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <>
           <Switch

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ACTIVITY_PATH, isActivityHost, isActivityPath } from "@/lib/activity/hosts";
 
 const PROTECTED_ROUTES = ["/account", "/twitch", "/messages", "/comms"];
 
@@ -51,6 +52,22 @@ export async function middleware(request: NextRequest) {
   // reach the client.
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(PATHNAME_HEADER, request.nextUrl.pathname);
+
+  // The Discord Activity host serves one page at "/" (Discord always loads the
+  // root of its URL mapping). No sign-in, no redirects to /login: inside
+  // Discord's frame a redirect would break the connection to the client. Any
+  // other page on that host belongs on the main site.
+  if (isActivityHost(request.headers.get("host"))) {
+    requestHeaders.set(PATHNAME_HEADER, ACTIVITY_PATH);
+    const path = request.nextUrl.pathname;
+    if (path === "/") {
+      const url = request.nextUrl.clone();
+      url.pathname = ACTIVITY_PATH;
+      return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+    }
+    if (isActivityPath(path)) return NextResponse.next({ request: { headers: requestHeaders } });
+    return NextResponse.redirect(new URL(`${path}${request.nextUrl.search}`, process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co"));
+  }
 
   let supabaseResponse = NextResponse.next({
     request: { headers: requestHeaders },

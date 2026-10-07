@@ -13,7 +13,7 @@
  * (which react to something the streamer just did), this posts on a
  * schedule — so it defaults OFF and is never enabled implicitly.
  *
- * Idempotence: the (community, UTC day) slot is CLAIMED in
+ * Idempotence: the (community, local day) slot is CLAIMED in
  * `gs_qotd_discord_posts` before posting, so a retry or overlapping run
  * can't double-post. A failed post releases its claim so the next run can
  * retry the same day.

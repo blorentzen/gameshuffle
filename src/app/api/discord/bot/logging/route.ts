@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { isProUser } from "@/lib/subscription-server";
 
 export const runtime = "nodejs";
 
@@ -46,6 +47,8 @@ export async function PATCH(request: Request) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+  // GS Pro, checked here: the Discord Bot tab only greys the card out.
+  if (!(await isProUser(user.id))) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
 
   let body: { channel_id?: string | null; events?: LogEvents };
   try {

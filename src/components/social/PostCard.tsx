@@ -18,6 +18,7 @@ import { ShareRegisterButton } from "@/components/social/ShareRegisterButton";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { FeedPost, FeedComment, RsvpStatus } from "@/lib/social/feed";
 import { IconTrophy, IconDeviceGamepad2, IconCalendarEvent, IconClock } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 function formatWhen(startAt: string | null | undefined): string {
   if (!startAt) return "Open · hosting now";
@@ -447,7 +448,7 @@ export function PostCard({
       {!readOnly && showComments && (
         <div className="post-card__comments">
           {comments === null ? (
-            <p className="post-card__comments-msg">Loading comments…</p>
+            <LoadingLines label="Loading comments" />
           ) : comments.length === 0 ? (
             <p className="post-card__comments-msg">No comments yet. Be the first.</p>
           ) : (

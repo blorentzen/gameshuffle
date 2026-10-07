@@ -45,7 +45,7 @@ export async function handleGsRemind(interaction: Record<string, unknown>): Prom
   const data = interaction.data as { options?: Option[] };
   const opt = (n: string) => String(data.options?.find((o) => o.name === n)?.value ?? "").trim();
   const secs = parseDuration(opt("in"));
-  if (!secs) return ephemeralMessage("Use a duration like `10m`, `2h`, or `1d` (30s–30d).");
+  if (!secs) return ephemeralMessage("Use a duration like `10m`, `2h`, or `1d` (30s to 30d).");
   const message = opt("message");
   if (!message) return ephemeralMessage("What should I remind you about?");
 
@@ -61,6 +61,6 @@ export async function handleGsRemind(interaction: Record<string, unknown>): Prom
     message: message.slice(0, 1500),
     remind_at: new Date(Date.now() + secs * 1000).toISOString(),
   });
-  if (error) return ephemeralMessage("Couldn't set that reminder — try again.");
+  if (error) return ephemeralMessage("Couldn't set that reminder. Try again.");
   return ephemeralMessage(`⏰ I'll remind you here in ${humanize(secs)}.`);
 }

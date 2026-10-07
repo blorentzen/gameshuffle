@@ -138,7 +138,7 @@ export function sanitizeCustomCss(input: unknown): SanitizeResult {
   try {
     root = postcss.parse(src);
   } catch {
-    return { css: "", warnings: ["Couldn't parse that CSS — nothing was saved."] };
+    return { css: "", warnings: ["Couldn't read that CSS, so nothing was saved."] };
   }
 
   const walkContainer = (container: postcss.Container, inKeyframes: boolean) => {

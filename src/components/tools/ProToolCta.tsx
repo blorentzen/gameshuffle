@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button, Stack } from "@empac/cascadeds";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 /**
  * Closing GS Pro module for the free-tool pages — the shared "pretty" curved
@@ -46,13 +47,14 @@ export function ProToolCta() {
           <AuthAwareCTA
             variant="primary"
             size="large"
+            trackFrom="tool-band"
             overrides={{
               anon: { label: "Create your account", href: "/signup" },
               free: { label: "Upgrade to Pro", href: "/gs-pro" },
               pro: { label: "Open your hub", href: "/hub" },
             }}
           />
-          <Link href="/gs-pro" style={{ textDecoration: "none" }}>
+          <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "tool-band-explore" })}>
             <Button variant="secondary" size="large">Explore GS Pro</Button>
           </Link>
         </Stack>

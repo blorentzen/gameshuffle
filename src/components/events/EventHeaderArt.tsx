@@ -35,6 +35,9 @@ import {
   IconCards, IconStack2, IconDiamond, IconSparkles, IconStar,
   IconBroadcast, IconDeviceTv, IconMicrophone, IconMessageCircle,
   IconRotate, IconClock, IconListNumbers, IconWand, IconFlag,
+  IconQuestionMark, IconHelpCircle, IconMushroom, IconConfetti,
+  IconBrain, IconMessages, IconChartBar, IconUsersGroup, IconBulb,
+  IconCalendarEvent, IconSteeringWheel, IconShield, IconSword, IconHeart, IconTarget, IconFlame, IconCalendarWeek, IconAward, IconUsers, IconHeartHandshake, IconHome,
 } from "@tabler/icons-react";
 
 /**
@@ -81,6 +84,25 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
     glyphs: [IconTrophy, IconMedal, IconFlag, IconTournament, IconCrown] },
   tools: { feature: IconWand, ramp: ["#1b2a6b", "#2766ec"],
     glyphs: [IconRotate, IconDice5, IconClock, IconListNumbers, IconWand] },
+  /* Nothing picked yet: question marks among dice and stars, like a ? block. */
+  mystery: { feature: IconQuestionMark, ramp: ["#2a2466", "#6d4ee6"],
+    glyphs: [IconQuestionMark, IconDice5, IconHelpCircle, IconStar, IconMushroom] },
+  minigame: { feature: IconConfetti, ramp: ["#1b2a6b", "#2766ec"],
+    glyphs: [IconStar, IconConfetti, IconTrophy, IconDice5, IconMushroom] },
+  /* Chat Brain: the crowd (people, chat) and what it adds up to (a ranked bar chart). */
+  brain: { feature: IconBrain, ramp: ["#1b2a6b", "#4b5cf5"],
+    glyphs: [IconBrain, IconMessages, IconChartBar, IconUsersGroup, IconBulb] },
+  originals: { feature: IconSparkles, ramp: ["#1b2a6b", "#2766ec"],
+    glyphs: [IconPuzzle, IconCalendarWeek, IconBrain, IconTrophy, IconSparkles] },
+  heroes: { feature: IconSword, ramp: ["#14275a", "#2f6fd6"],
+    glyphs: [IconShield, IconSword, IconHeart, IconStar, IconTarget] },
+  /* The Originals share the violet band; their glyphs say which game it is. */
+  daily: { feature: IconCalendarEvent, ramp: ["#1b2a6b", "#4b5cf5"],
+    glyphs: [IconCalendarEvent, IconHelpCircle, IconSteeringWheel, IconFlame, IconStar] },
+  weekly: { feature: IconTrophy, ramp: ["#1b2a6b", "#4b5cf5"],
+    glyphs: [IconTrophy, IconCalendarWeek, IconListNumbers, IconAward, IconUsersGroup] },
+  community: { feature: IconUsers, ramp: ["#0d3b46", "#0ea5e9"],
+    glyphs: [IconUsers, IconMessages, IconHeartHandshake, IconHome, IconMessageCircle] },
 };
 
 

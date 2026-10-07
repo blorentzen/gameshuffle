@@ -26,6 +26,7 @@ import {
   streamerEngagementLeaderboard,
   type SnapshotRow,
 } from "@/lib/economy/policy/snapshot";
+import { gsMonthStart } from "@/lib/time/gsClock";
 
 export const metadata: Metadata = {
   title: "Economy: Monetary Policy",
@@ -54,9 +55,8 @@ async function loadCommunities(): Promise<CommunityRow[]> {
     display_name: string | null;
   }> | null) ?? []) as Array<{ id: string; slug: string; display_name: string | null }>;
 
-  // Current month's allowance period as ISO date (first of month UTC).
-  const now = new Date();
-  const periodMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}-01`;
+  // Current month's allowance period as ISO date (first of the Pacific month).
+  const periodMonth = gsMonthStart();
 
   const enriched: CommunityRow[] = [];
   for (const c of communities) {

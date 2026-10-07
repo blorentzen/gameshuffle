@@ -15,6 +15,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, Modal, Select, Textarea } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type VariableCategory = "caller" | "stream" | "profile" | "event" | "pool";
 
@@ -40,6 +42,7 @@ interface VariableRow {
 }
 
 export function PlatformVariablesTab() {
+  const confirm = useConfirm();
   const [vars, setVars] = useState<VariableRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editing, setEditing] = useState<VariableRow | "new" | null>(null);
@@ -74,9 +77,7 @@ export function PlatformVariablesTab() {
 
   const handleDelete = async (row: VariableRow) => {
     if (
-      !confirm(
-        `Delete {${row.name}}? Events that reference it will render the token literally in chat.`,
-      )
+      !(await confirm({ title: `Delete {${row.name}}?`, body: "Events that use it will show the token as plain text in chat.", confirmLabel: "Delete variable" }))
     ) {
       return;
     }
@@ -143,7 +144,7 @@ export function PlatformVariablesTab() {
       </div>
 
       {vars === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : vars.length === 0 ? (
         <p className="account-tab__empty">
           No variables in the catalog yet.

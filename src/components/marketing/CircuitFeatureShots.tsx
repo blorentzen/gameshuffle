@@ -61,7 +61,7 @@ export function StandingsShot() {
           </div>
         ))}
       </div>
-      <p style={{ fontSize: 11, color: "#8a90a3", marginTop: 12 }}>A tie for 2nd — both officially 2nd, same medal.</p>
+      <p style={{ fontSize: 11, color: "#8a90a3", marginTop: 12 }}>A tie for 2nd: both officially 2nd, same medal.</p>
     </div>
   );
 }

@@ -36,11 +36,11 @@ export default function Page() {
         Chat</strong> &rsaquo; <strong>Chat Modules</strong>:
       </p>
       <ul>
-        <li><strong>Prediction markets</strong> — viewers bet tokens on outcomes.</li>
-        <li><strong>Awards</strong> — hand out tokens at your discretion.</li>
-        <li><strong>Bounties</strong> — put tokens on a specific outcome.</li>
-        <li><strong>Leaderboards</strong> — rank your community by tokens.</li>
-        <li><strong>Chaos / events</strong> — token-fueled chat events.</li>
+        <li><strong>Prediction markets</strong>: viewers bet tokens on outcomes.</li>
+        <li><strong>Awards</strong>: hand out tokens at your discretion.</li>
+        <li><strong>Bounties</strong>: put tokens on a specific outcome.</li>
+        <li><strong>Leaderboards</strong>: rank your community by tokens.</li>
+        <li><strong>Chaos / events</strong>: token-fueled chat events.</li>
       </ul>
       <p>
         Some features are gated for compliance by region before your toggle applies; where betting
@@ -51,25 +51,25 @@ export default function Page() {
       <h2>Prediction markets</h2>
       <p>Open a market, let chat bet, then lock and resolve it:</p>
       <ul>
-        <li><code>!gs market open [1|3|5]</code> — open a market with 1, 3, or 5 outcomes (host).</li>
-        <li><code>!bet &lt;option&gt; &lt;amount&gt;</code> — viewers place a bet.</li>
-        <li><code>!gs market lock</code> — stop new bets (host).</li>
-        <li><code>!gs resolve &lt;value&gt;</code> — settle the market and pay out winners (host).</li>
-        <li><code>!gs market close</code> — cancel and refund (host).</li>
+        <li><code>!gs market open [1|3|5]</code>: open a market with 1, 3, or 5 outcomes (host).</li>
+        <li><code>!bet &lt;option&gt; &lt;amount&gt;</code>: viewers place a bet.</li>
+        <li><code>!gs market lock</code>: stop new bets (host).</li>
+        <li><code>!gs resolve &lt;value&gt;</code>: settle the market and pay out winners (host).</li>
+        <li><code>!gs market close</code>: cancel and refund (host).</li>
       </ul>
 
       <h2>Awards &amp; bounties</h2>
       <ul>
-        <li><code>!gs award @user &lt;amount&gt;</code> — a discretionary token award (host).</li>
-        <li><code>!gs bounty &lt;amount&gt; &lt;description&gt;</code> — open a bounty tied to an outcome (host).</li>
-        <li><code>!gs bounty award @user</code> — pay it out, or <code>!gs bounty cancel</code> to release it.</li>
+        <li><code>!gs award @user &lt;amount&gt;</code>: a discretionary token award (host).</li>
+        <li><code>!gs bounty &lt;amount&gt; &lt;description&gt;</code>: open a bounty tied to an outcome (host).</li>
+        <li><code>!gs bounty award @user</code>: pay it out, or <code>!gs bounty cancel</code> to release it.</li>
       </ul>
 
       <h2>What viewers can do</h2>
       <ul>
-        <li><code>!tokens</code> — check a balance.</li>
-        <li><code>!give @user &lt;amount&gt;</code> — send tokens to another viewer.</li>
-        <li><code>!leaderboard</code> — see the top holders in your community.</li>
+        <li><code>!tokens</code>: check a balance.</li>
+        <li><code>!give @user &lt;amount&gt;</code>: send tokens to another viewer.</li>
+        <li><code>!leaderboard</code>: see the top holders in your community.</li>
       </ul>
       <p>
         Viewers also see a live token balance and open markets on your <code>/live</code> page. A

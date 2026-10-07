@@ -47,11 +47,14 @@ import { OwnerBar } from "@/components/owner/OwnerBar";
 import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
+import { LiveBingoCard } from "./LiveBingoCard";
+import { LiveDraftCard } from "./LiveDraftCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
 import { LiveTournamentRace } from "./LiveTournamentRace";
 import type { RecapHighlight } from "@/lib/sessions/recap";
 import { UserAvatar, type UserAvatarUser } from "@/components/UserAvatar";
+import { GameCover } from "@/components/games/GameCover";
 
 /** Map a `RaceGame` enum back to the kebab slug stored in
  *  `gs_sessions.config.game` / `configured_games`. */
@@ -138,6 +141,8 @@ export interface UpcomingProps {
   lobbyOpensAt: string | null;
   /** Friendly game name ("Mario Kart 8 Deluxe") or null if unset/other. */
   gameLabel: string | null;
+  /** For the game's cover on the card. */
+  gameSlug?: string | null;
 }
 
 interface LiveStreamViewProps {
@@ -195,6 +200,9 @@ export function LiveStreamView({
         <div className="live-page">
           <StreamerHeader streamer={streamer} />
           <LiveTournamentRace ownerUserId={streamer.userId} />
+          {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
+          <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
+          <LiveDraftCard communityId={initialLeaderboard.communityId} />
           {upcoming && (
             <UpcomingLobbyCard streamerName={streamerName} upcoming={upcoming} />
           )}
@@ -700,6 +708,8 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
         </div>
 
         <LivePollCard communityId={initialLeaderboard.communityId} />
+        <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
+        <LiveDraftCard communityId={initialLeaderboard.communityId} />
 
         {actionStatus && (
           <div
@@ -930,7 +940,10 @@ function UpcomingLobbyCard({
         {upcoming.sessionName?.trim() || `${streamerName}’s game night`}
       </h2>
       {upcoming.gameLabel && (
-        <p className="live-page__upcoming-game">{upcoming.gameLabel}</p>
+        <p className="live-page__upcoming-game">
+          <span className="live-page__upcoming-cover"><GameCover slug={upcoming.gameSlug} name={upcoming.gameLabel} blank={false} /></span>
+          {upcoming.gameLabel}
+        </p>
       )}
       <div className="live-page__upcoming-countdown">
         {!mounted ? (

@@ -40,6 +40,12 @@ export default function Page() {
         <strong> Wheels</strong>: name a wheel, add entries, and choose its theme and fill style. The
         look is snapshotted onto each spin, so the overlay always matches what you designed.
       </p>
+      <p>
+        Not sure what to put on it? <strong>Start from a preset</strong> loads one of the ready-made challenge wheels, and
+        <strong> Make one with AI</strong> drafts slices from a theme you type (like &quot;Mario Kart rage night,
+        punishments&quot;). Either way the wheel opens in the editor so you can change anything before you save. See
+        <a href="/help/apps/ai-tools"> AI tools</a>.
+      </p>
 
       <h3>Spinning it</h3>
       <ul>
@@ -56,16 +62,16 @@ export default function Page() {
       <h3>Letting chat build the wheel</h3>
       <p>You can let viewers contribute entries (set per wheel):</p>
       <ul>
-        <li><code>!wheel add &lt;option&gt;</code> — add an option</li>
-        <li><code>!wheel remove &lt;option&gt;</code> — remove an option</li>
-        <li><code>!wheel list</code> — show the current options</li>
-        <li><code>!wheel clear</code> — clear viewer entries (mods and host)</li>
+        <li><code>!wheel add &lt;option&gt;</code>: add an option</li>
+        <li><code>!wheel remove &lt;option&gt;</code>: remove an option</li>
+        <li><code>!wheel list</code>: show the current options</li>
+        <li><code>!wheel clear</code>: clear viewer entries (mods and host)</li>
       </ul>
 
       <h3>Placing it on your overlay</h3>
       <p>
         The wheel is a positionable piece under <strong>Apps</strong> in the
-        <a href="/help/streaming/obs-overlay"> Overlay Layout</a> editor. By default it&apos;s
+        <a href="/help/streaming/obs-overlay"> Overlay Layout</a>{" "}editor. By default it&apos;s
         centered; move or resize it per format, or hide it when you&apos;re not using it.
       </p>
 

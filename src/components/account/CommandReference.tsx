@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { Accordion } from "@empac/cascadeds";
 import type { CommandReferenceEntry } from "@/lib/twitch/commands/reference";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 // Economy-forward order — surfacing the token/market/event commands is the
 // whole point of this reference.
@@ -93,7 +94,7 @@ export function CommandReference() {
       </p>
 
       {!loaded ? (
-        <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <Accordion variant="bordered" defaultOpenIds={["tokens"]} items={items} />
       )}

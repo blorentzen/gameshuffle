@@ -362,7 +362,7 @@ export async function awardEarning(args: {
 
 /**
  * Daily faucet for identities below the bust floor. Idempotent per
- * UTC day — re-running on the same day grants zero. Returns the
+ * Pacific day (gs-pacific-time-m1.sql) — re-running on the same day grants zero. Returns the
  * count of identities granted so the cron run can log it. Driven by
  * a Vercel cron or Supabase scheduled function configured separately.
  */

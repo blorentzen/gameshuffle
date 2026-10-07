@@ -40,7 +40,7 @@ export default async function TopicPage({ params }: { params: Promise<{ tag: str
           {posts.length === 0 ? (
             <Card padding="large">
               <p style={{ margin: 0, color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>
-                Nothing tagged <strong>{label}</strong> yet. Be the first — add it as a topic on a post.
+                Nothing tagged <strong>{label}</strong> yet. Be the first: add it as a topic on a post.
               </p>
             </Card>
           ) : (

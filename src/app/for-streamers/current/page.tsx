@@ -10,6 +10,8 @@ import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { PlatformShot, OverlayShot, TokenShot, MarketShot } from "@/components/marketing/ProFeatureShots";
 import { STREAMER_TOOLKIT } from "@/data/streamer-toolkit";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 /** The page ground — an off-white so the sections read as one surface. The
  *  curved dark bands must fill their curve mask with THIS color (not the default
@@ -23,7 +25,6 @@ export const metadata: Metadata = {
   openGraph: {
     title: "GameShuffle for current streamers",
     url: "https://www.gameshuffle.co/for-streamers/current",
-    images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: { canonical: "https://www.gameshuffle.co/for-streamers/current" },
 };
@@ -39,6 +40,7 @@ export default function CurrentStreamersPage() {
       />
 
       <section className="marketing-hero">
+        <MarketingHeroField category="stream" />
         <Container>
           <p className="marketing-eyebrow">For current streamers</p>
           <h1 className="marketing-hero__title">Turn your viewers into players</h1>
@@ -48,7 +50,7 @@ export default function CurrentStreamersPage() {
             polls, and an overlay that reacts on screen, all synced across Twitch and Discord.
           </p>
           <div className="strm-hero__cta">
-            <Link href="/gs-pro" style={{ textDecoration: "none" }}>
+            <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "for-streamers" })}>
               <Button variant="primary" size="large">Explore GameShuffle Pro</Button>
             </Link>
             <Link href="/beta" style={{ textDecoration: "none" }}>
@@ -134,7 +136,7 @@ export default function CurrentStreamersPage() {
             ))}
           </AutoplayCarousel>
           <div style={{ textAlign: "center", marginTop: "var(--spacing-32)" }}>
-            <Link href="/gs-pro" style={{ textDecoration: "none" }}>
+            <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "for-streamers" })}>
               <Button variant="primary" size="large">See it all on Pro</Button>
             </Link>
           </div>
@@ -150,7 +152,7 @@ export default function CurrentStreamersPage() {
           on for you with a real 30-day run.
         </p>
         <div className="strm-finalcta">
-          <Link href="/gs-pro" style={{ textDecoration: "none" }}>
+          <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "for-streamers" })}>
             <Button variant="primary" size="large">Explore GameShuffle Pro</Button>
           </Link>
           <Link href="/beta" style={{ textDecoration: "none" }}>

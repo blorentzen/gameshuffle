@@ -23,6 +23,7 @@ import {
   type CompanionSavedState,
 } from "@/lib/companion/saveStates";
 import { formatByKey } from "@/lib/companion/gameSettings";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface SavedConfig {
   id: string;
@@ -117,7 +118,7 @@ export function SetupsTab() {
   if (loading) {
     return (
       <div className="account-card">
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }
@@ -146,6 +147,11 @@ export function SetupsTab() {
         (
           [
             "game-night-setup",
+            "party-setup",
+            "smash-setup",
+            "splatoon-setup",
+            "kirby-setup",
+            "stadium-setup",
             "kart-build",
             "item-set",
             "track-list",

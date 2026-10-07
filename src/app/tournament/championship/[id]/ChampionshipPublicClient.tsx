@@ -11,6 +11,8 @@ import { listMembers, computeSeason, type Championship, type ChampionshipMember 
 import { heatMainsChampion, heatMainsStage, type HeatMains } from "@/lib/tournaments/heatMains";
 import { resolvePointsConfig } from "@/lib/tournaments/championship";
 import { SeasonTable } from "@/components/tournament/HeatMainsView";
+import { GameCover } from "@/components/games/GameCover";
+import { getGameName } from "@/data/game-registry";
 
 interface EventRow {
   id: string; title: string; status: string; event_number: number | null;
@@ -34,9 +36,10 @@ export function ChampionshipPublicClient() {
     if (!c) { setLoading(false); return; }
     setChamp(c as Championship);
     setMembers(await listMembers(supabase, championshipId));
-    const { data: o } = await supabase
-      .from("users").select("username, display_name").eq("id", (c as Championship).owner_id).maybeSingle();
-    if (o) setOwner({ username: (o.username as string | null) ?? null, displayName: (o.display_name as string | null) ?? "" });
+    // From the server: the users table only lets a browser read public profiles,
+    // so a private owner came back empty. Named either way, linked only when public.
+    const o = await fetch(`/api/championship/${championshipId}/owner`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (o?.owner) setOwner({ username: o.owner.username ?? null, displayName: o.owner.displayName ?? "" });
     const { data: evs } = await supabase
       .from("tournaments")
       .select("id, title, status, event_number, date_time, heat_mains, tournament_participants(id, user_id)")
@@ -106,6 +109,12 @@ export function ChampionshipPublicClient() {
             {champ.status === "complete" ? "Season complete" : "Season running"}
           </span>
           <span className="bg-badge bg-badge--kind">Championship series</span>
+          {champ.game_slug && (
+            <span className="event-game-badge">
+              <span className="event-game-badge__cover"><GameCover slug={champ.game_slug} name={getGameName(champ.game_slug)} /></span>
+              {getGameName(champ.game_slug)}
+            </span>
+          )}
         </>
       }
       organizer={{

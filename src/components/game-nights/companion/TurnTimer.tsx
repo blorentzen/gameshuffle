@@ -5,6 +5,7 @@ import { Button, Input, Radio, RadioGroup } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Turn timer / chess clock — tap the player whose turn it is and their clock
@@ -31,6 +32,8 @@ export function TurnTimer() {
   const [active, setActive] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const lastRef = useRef(0);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "turn-timer" }); } };
 
   const bankMs = cfg.bankSec * 1000;
   const perTurnMs = cfg.perTurnSec * 1000;
@@ -59,6 +62,7 @@ export function TurnTimer() {
 
   const passTo = (id: string) => {
     if (cfg.mode === "down" && cfg.bankSec > 0 && accOf(id) >= bankMs) return; // out of time
+    markUsed();
     setActive(id);
     setTurnElapsed(0);
     setRunning(true);

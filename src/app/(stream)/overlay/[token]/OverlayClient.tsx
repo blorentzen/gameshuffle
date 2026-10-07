@@ -16,15 +16,19 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import Image from "next/image";
-import { getImagePath } from "@/lib/images";
+import { RollSlotArt } from "@/components/twitch/RollSlotArt";
+import { rollKind, rollSlots, rollTitle, type RollSlot } from "@/lib/twitch/chatRoll";
 import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
 import { PollOverlay, type PollOverlayPayload } from "@/components/overlay/PollOverlay";
+import { NumberBingoOverlay, type NumberBingoOverlayPayload } from "@/components/overlay/NumberBingoOverlay";
+import { DraftOverlay } from "@/components/overlay/DraftOverlay";
+import type { StreamDraftView } from "@/lib/drafts/store";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay, type ViewerCountView } from "@/components/overlay/ViewerCountOverlay";
 import { AnthemPlayer, type AnthemEventPayload } from "@/components/overlay/AnthemPlayer";
 import { DiceOverlay, type DiceOverlayPayload } from "@/components/overlay/DiceOverlay";
 import { CoinOverlay, type CoinOverlayPayload } from "@/components/overlay/CoinOverlay";
+import { PartyCardOverlay, type PartyCardOverlayPayload } from "@/components/overlay/PartyCardOverlay";
 import { OracleOverlay, type OracleOverlayPayload } from "@/components/overlay/OracleOverlay";
 import { NamePickerOverlay, type NamePickerOverlayPayload } from "@/components/overlay/NamePickerOverlay";
 import { TimerOverlay, type TimerOverlayPayload } from "@/components/overlay/TimerOverlay";
@@ -35,7 +39,7 @@ import { CrewStandingsOverlay, type CrewStandingsOverlayPayload } from "@/compon
 import { placementStyle, resolveFormat, isPlacementEnabled, type OverlayFormat, type LayoutProfile } from "@/lib/overlay/format";
 import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
-import { IconBolt, IconChecklist, IconDice5, IconTargetArrow } from "@tabler/icons-react";
+import { IconBolt, IconChecklist, IconDice5, IconListDetails, IconSwords, IconTargetArrow } from "@tabler/icons-react";
 
 const ACTIVE_POLL_MS = 2000;
 // Idle floor bounds the worst case: how long the FIRST tool fired after a lull
@@ -49,22 +53,12 @@ const SHOW_DURATION_MS = 8000;
 // Wheel: ~5s ease-out spin + ~3.5s result hold before it clears.
 const WHEEL_TOTAL_MS = 8500;
 
-interface ComboImage {
-  name: string;
-  img: string;
-}
-
-interface ComboPayload {
-  character?: ComboImage;
-  vehicle?: ComboImage;
-  wheels?: ComboImage;
-  glider?: ComboImage;
-}
 
 interface ShufflePayload {
   id: string;
   displayName: string;
-  combo: ComboPayload | null;
+  /** A chat roll for any game (or an older bare Mario Kart combo); read with rollSlots. */
+  combo: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -113,6 +107,8 @@ interface ApiResponse {
   overlayEvents?: OverlayEventPayload[];
   layouts?: Partial<Record<OverlayFormat, LayoutProfile>>;
   poll?: PollOverlayPayload | null;
+  bingo?: NumberBingoOverlayPayload | null;
+  draft?: StreamDraftView | null;
   viewers?: ViewerCountView | null;
 }
 
@@ -144,6 +140,14 @@ function renderToolEvent(
           key={key}
           payload={ev.payload as unknown as CoinOverlayPayload}
           style={placementStyle(format, "coin", layout)}
+        />
+      );
+    case "party_card":
+      return (
+        <PartyCardOverlay
+          key={key}
+          payload={ev.payload as unknown as PartyCardOverlayPayload}
+          style={placementStyle(format, "party_card", layout)}
         />
       );
     case "oracle":
@@ -235,6 +239,8 @@ export function OverlayClient({
   const [events, setEvents] = useState<EventsOverlayPayload | null>(null);
   const [activeWheel, setActiveWheel] = useState<WheelSpinPayload | null>(null);
   const [poll, setPoll] = useState<PollOverlayPayload | null>(null);
+  const [bingo, setBingo] = useState<NumberBingoOverlayPayload | null>(null);
+  const [draft, setDraft] = useState<StreamDraftView | null>(null);
   const [viewers, setViewers] = useState<ViewerCountView | null>(null);
   const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
   const [format, setFormat] = useState<OverlayFormat>("landscape");
@@ -395,6 +401,8 @@ export function OverlayClient({
         setPicksBans(data.picksBans ?? null);
         setEvents(data.events ?? null);
         setPoll(data.poll ?? null);
+        setBingo(data.bingo ?? null);
+        setDraft(data.draft ?? null);
         setViewers(data.viewers ?? null);
         if (data.layouts) setLayouts(data.layouts);
         if (processToolEvents(data.overlayEvents, false) > 0) activity = true;
@@ -436,6 +444,8 @@ export function OverlayClient({
       setPicksBans(data.picksBans ?? null);
       setEvents(data.events ?? null);
       setPoll(data.poll ?? null);
+        setBingo(data.bingo ?? null);
+        setDraft(data.draft ?? null);
       setViewers(data.viewers ?? null);
       if (data.layouts) setLayouts(data.layouts);
       processToolEvents(data.overlayEvents, true);
@@ -463,20 +473,19 @@ export function OverlayClient({
   //   - the shuffle card animation (existing)
   //   - the picks/bans status banner (new)
   // Either or both may be visible. Empty fragment when neither is active.
-  if (!active && !picksBans && !activeWheel && !events && !poll && toolEvents.length === 0) return null;
+  if (!active && !picksBans && !activeWheel && !events && !poll && !bingo && !draft && toolEvents.length === 0) return null;
 
-  const slots: ComboImage[] = active
-    ? [
-        active.combo?.character,
-        active.combo?.vehicle,
-        active.combo?.wheels,
-        active.combo?.glider,
-      ].filter((s): s is ComboImage => !!s && !!s.img && s.name !== "N/A")
-    : [];
+  const slots: RollSlot[] = active ? rollSlots(active.combo) : [];
+  // A viewer battle: one tile per player under a heading, in place of "{name} drew".
+  const title = active ? rollTitle(active.combo) : null;
+  const isSetup = active ? rollKind(active.combo) === "setup" : false;
+  // Even rows of at most six (eight players: 4 + 4, not 7 + 1).
+  const battleCols = Math.ceil(slots.length / Math.ceil(slots.length / 6));
 
-  // The combo card is positionable per game via the Overlay Layout editor
-  // (randomizer_mk8dx / randomizer_mkw). MK8DX draws 4 parts, MK World 2, so
-  // the valid-slot count tells the games apart. Defaults to center (identical
+  // The combo card is positionable via the Overlay Layout editor
+  // (randomizer_mk8dx / randomizer_mkw). Cards with 3+ parts (MK8DX, a
+  // Stadium team) use the wide placement; 1-2 parts (MK World, a fighter, a
+  // rider and machine) the compact one. Defaults to center (identical
   // to the pre-layout centered card) via GENERIC_PLACEMENT when untouched.
   const comboId = slots.length > 2 ? "randomizer_mk8dx" : "randomizer_mkw";
 
@@ -493,8 +502,17 @@ export function OverlayClient({
         />
       )}
 
-      {poll && isPlacementEnabled(format, "poll", layouts[format]) && (
+      {/* A draft pick is a poll: the draft piece shows it, so the poll piece steps aside. */}
+      {poll && poll.id !== draft?.current?.pollId && isPlacementEnabled(format, "poll", layouts[format]) && (
         <PollOverlay poll={poll} style={placementStyle(format, "poll", layouts[format])} />
+      )}
+
+      {draft && isPlacementEnabled(format, "chat_draft", layouts[format]) && (
+        <DraftOverlay draft={draft} style={placementStyle(format, "chat_draft", layouts[format])} />
+      )}
+
+      {bingo && isPlacementEnabled(format, "number_bingo", layouts[format]) && (
+        <NumberBingoOverlay bingo={bingo} style={placementStyle(format, "number_bingo", layouts[format])} />
       )}
 
       {/* Chat timeline — self-gates on the streamer's enable flag + polls its
@@ -576,25 +594,30 @@ export function OverlayClient({
           // so it's untouched.
           style={{ ...placementStyle(format, comboId, layouts[format]), right: "auto", bottom: "auto" }}
         >
-          <div className="gs-overlay__card">
+          <div className={`gs-overlay__card${title ? " gs-overlay__card--battle" : ""}`}>
             <div className="gs-overlay__header">
-              <IconDice5 size={18} stroke={1.9} className="gs-overlay__dice" aria-hidden />
-              <span className="gs-overlay__name">{active.displayName}</span>
-              <span className="gs-overlay__verb">drew</span>
+              {title ? (
+                <>
+                  {isSetup
+                    ? <IconListDetails size={18} stroke={1.9} className="gs-overlay__dice" aria-hidden />
+                    : <IconSwords size={18} stroke={1.9} className="gs-overlay__dice" aria-hidden />}
+                  <span className="gs-overlay__name">{title}</span>
+                </>
+              ) : (
+                <>
+                  <IconDice5 size={18} stroke={1.9} className="gs-overlay__dice" aria-hidden />
+                  <span className="gs-overlay__name">{active.displayName}</span>
+                  <span className="gs-overlay__verb">drew</span>
+                </>
+              )}
             </div>
-            <div className="gs-overlay__slots">
+            <div className="gs-overlay__slots" style={title ? ({ "--battle-cols": battleCols } as CSSProperties) : undefined}>
               {slots.map((slot, i) => (
                 <div key={i} className="gs-overlay__slot">
-                  <div className="gs-overlay__slot-img">
-                    <Image
-                      src={getImagePath(slot.img)}
-                      alt={slot.name}
-                      width={120}
-                      height={120}
-                      unoptimized
-                    />
-                  </div>
-                  <div className="gs-overlay__slot-name">{slot.name}</div>
+                  <RollSlotArt slot={slot} className="gs-overlay__slot-img" glyphSize={64} />
+                  {/* A name-only tile already shows the name. */}
+                  {slot.kind !== "text" && <div className="gs-overlay__slot-name">{slot.name}</div>}
+                  {slot.detail && <div className="gs-overlay__slot-detail">{slot.detail}</div>}
                 </div>
               ))}
             </div>

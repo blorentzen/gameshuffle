@@ -1,0 +1,36 @@
+import { Suspense } from "react";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { PartyRandomizer } from "@/components/party/PartyRandomizer";
+import { PartyReference, partyItemLists } from "@/components/party/PartyReference";
+import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
+import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
+import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
+import { MARIO_PARTY } from "@/data/party/mario-party-1";
+import { N64_PARTY_PUBLIC } from "@/lib/games-visibility";
+import { GAME_ART } from "@/data/game-art";
+
+const landing = RANDOMIZER_LANDINGS["mario-party"];
+const headings = {
+  boards: `All ${MARIO_PARTY.boards.length} Mario Party boards`,
+  minigames: `All ${MARIO_PARTY.minigames.length} Mario Party minigames`,
+  roster: "The character roster",
+};
+
+export const metadata: Metadata = randomizerMetadata("mario-party");
+
+/** /randomizers/mario-party: Mario Party (N64, on Switch Online) on the shared party randomizer. Marked New: no board art yet. */
+export default function MarioPartyRandomizerPage() {
+  if (!N64_PARTY_PUBLIC && process.env.NODE_ENV === "production") notFound();
+  return (
+    <>
+      <Suspense>
+        <PartyRandomizer game={MARIO_PARTY} hero={{ title: landing.h1, lead: landing.lead, isNew: true, image: GAME_ART["mario-party"].hero.src, imagePosition: GAME_ART["mario-party"].hero.focus }} />
+      </Suspense>
+      <RandomizerLanding landing={landing} itemLists={partyItemLists(MARIO_PARTY, headings)}>
+        <PartyReference game={MARIO_PARTY} headings={headings} />
+      </RandomizerLanding>
+      <RandomizerNudge gameName={MARIO_PARTY.label} saves="your party setups" />
+    </>
+  );
+}

@@ -8,7 +8,34 @@ import { handleGsPoll, handlePollVote, POLL_VOTE_PREFIX } from "./commands/polls
 import { handleGsTag } from "./commands/tags";
 import { handleGsRemind } from "./commands/remind";
 import { handleGsProfile } from "./commands/profile";
+import {
+  BRAIN_ANSWER_PREFIX,
+  BRAIN_MODAL_PREFIX,
+  BRAIN_NEXT_PREFIX,
+  BRAIN_PLAY,
+  handleBrainAnswerButton,
+  handleBrainPlay,
+  handleBrainModalSubmit,
+  handleBrainNext,
+  handleGsBrain,
+} from "./commands/chatbrain";
+import {
+  WEEKLY_LAST,
+  WEEKLY_LOCK_PREFIX,
+  WEEKLY_MODAL_PREFIX,
+  WEEKLY_PLAY,
+  WEEKLY_TIER_PREFIX,
+  handleGsWeekly,
+  handleWeeklyLast,
+  handleWeeklyLock,
+  handleWeeklyModalSubmit,
+  handleWeeklyPlay,
+  handleWeeklyTierPick,
+} from "./commands/weekly";
 import { ephemeralMessage } from "./respond";
+import { ACTIVITY_PLAY_PREFIX } from "@/lib/activity/channelCard";
+import { handleGsDaily, launchActivity, type ActivityTab } from "./activityLaunch";
+import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 
 // Discord Interaction Types
 const INTERACTION_TYPE = {
@@ -16,6 +43,7 @@ const INTERACTION_TYPE = {
   APPLICATION_COMMAND: 2,
   MESSAGE_COMPONENT: 3,
   AUTOCOMPLETE: 4,
+  MODAL_SUBMIT: 5,
 } as const;
 
 export function handleInteraction(interaction: Record<string, unknown>): Response | Promise<Response> {
@@ -43,6 +71,12 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleGsRemind(interaction);
       case "gs-profile":
         return handleGsProfile(interaction);
+      case "gs-brain":
+        return handleGsBrain(interaction);
+      case "gs-weekly":
+        return handleGsWeekly(interaction);
+      case "gs-daily":
+        return handleGsDaily(interaction);
       default:
         return ephemeralMessage(`Unknown command: \`${data.name}\``);
     }
@@ -62,6 +96,27 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     if (customId.startsWith(POLL_VOTE_PREFIX)) {
       return handlePollVote(interaction);
     }
+
+    // Chat Brain: "brainnext:{category}" checked before "brain:{promptId}".
+    if (customId === BRAIN_PLAY) return handleBrainPlay(interaction);
+    if (customId.startsWith(BRAIN_NEXT_PREFIX)) {
+      return handleBrainNext(interaction);
+    }
+    if (customId.startsWith(BRAIN_ANSWER_PREFIX)) {
+      return handleBrainAnswerButton(interaction);
+    }
+
+    // "Play" on the Activity's results card and morning summary: open the Activity on that game.
+    if (customId.startsWith(ACTIVITY_PLAY_PREFIX)) {
+      const tab = customId.slice(ACTIVITY_PLAY_PREFIX.length);
+      return launchActivity(interactionUser.id, (["daily", "weekly", "brain"].includes(tab) ? tab : "daily") as ActivityTab);
+    }
+
+    // Weekly Challenge: "weeklyts:" (lock in) checked before "weeklyt:" (a tier pick).
+    if (customId === WEEKLY_PLAY) return handleWeeklyPlay(interaction);
+    if (customId === WEEKLY_LAST) return handleWeeklyLast(interaction);
+    if (customId.startsWith(WEEKLY_LOCK_PREFIX)) return handleWeeklyLock(interaction);
+    if (customId.startsWith(WEEKLY_TIER_PREFIX)) return handleWeeklyTierPick(interaction);
 
     // Re-roll all: "ra:{sessionId}"
     if (customId.startsWith("ra:")) {
@@ -86,17 +141,29 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     return ephemeralMessage("Unknown interaction.");
   }
 
-  // Autocomplete
+  // Modal submits (forms opened by a button)
+  if (type === INTERACTION_TYPE.MODAL_SUBMIT) {
+    const customId = (interaction.data as { custom_id: string }).custom_id;
+    if (customId.startsWith(BRAIN_MODAL_PREFIX)) {
+      return handleBrainModalSubmit(interaction);
+    }
+    if (customId.startsWith(WEEKLY_MODAL_PREFIX)) {
+      return handleWeeklyModalSubmit(interaction);
+    }
+    return ephemeralMessage("Unknown form.");
+  }
+
+  // Autocomplete: /gs-randomize's game, from every game with chat rolls,
+  // narrowed by what's typed so far (Discord shows at most 25).
   if (type === INTERACTION_TYPE.AUTOCOMPLETE) {
-    return Response.json({
-      type: 8,
-      data: {
-        choices: [
-          { name: "Mario Kart 8 Deluxe", value: "mario-kart-8-deluxe" },
-          { name: "Mario Kart World", value: "mario-kart-world" },
-        ],
-      },
-    });
+    const focused = ((interaction.data as { options?: { name: string; value: string; focused?: boolean }[] }).options ?? [])
+      .find((o) => o.focused)?.value?.toString().trim().toLowerCase() ?? "";
+    const choices = Object.values(CHAT_GAMES)
+      .filter((g) => getChatGame(g.slug))
+      .filter((g) => !focused || g.title.toLowerCase().includes(focused) || g.slug.includes(focused))
+      .slice(0, 25)
+      .map((g) => ({ name: g.title, value: g.slug }));
+    return Response.json({ type: 8, data: { choices } });
   }
 
   return ephemeralMessage("Unhandled interaction type.");

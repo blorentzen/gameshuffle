@@ -5,10 +5,12 @@
  * specs/gs-tournament-randomizers.md.
  */
 
+import { applyToKartData, type GameCollection } from "@/lib/collection/core";
 import type { GameData, KartCombo, SelectedTrack, Character } from "@/data/types";
 import { randomizeKartCombo, randomizeTrackList, getRandomNumber } from "@/lib/randomizer";
 import mk8dxData from "@/data/mk8dx-data.json";
 import mkworldData from "@/data/mkworld-data.json";
+import { drawPick, rosterIsUnique } from "@/lib/tournaments/rosters";
 
 export type RandomizerCadence = "pre_all" | "reveal_live" | "per_race";
 
@@ -18,6 +20,8 @@ export interface RandomizerDimensions {
   /** With `combo`: roll a different combo for each participant instead of one shared. */
   comboPerPlayer?: boolean;
   items?: { count: number };
+  /** Random-character format: a pick from the game's roster for every player each round. */
+  roster?: { noRepeat: boolean };
 }
 
 /** A participant, for per-player combo generation. */
@@ -28,6 +32,8 @@ export interface TournamentRandomizerConfig {
   dimensions: RandomizerDimensions;
   cadence: RandomizerCadence;
   rounds: number;
+  /** Only roll what the organizer owns (their My Games collection). */
+  hostCollection?: boolean;
 }
 
 /** Build rules a directive must honor (derived from tournaments.settings). */
@@ -38,6 +44,8 @@ export interface RandomizerRestrictions {
   bannedCharacters?: string[];
   allowedCharacters?: string[];
   itemPool?: string[]; // item names to draw from; empty = all items
+  /** The organizer's collection, when the event only uses what they own. */
+  collection?: GameCollection | null;
 }
 
 export interface RoundDirective {
@@ -49,6 +57,8 @@ export interface RoundDirective {
   /** Per-player combos (comboPerPlayer) — one per participant. */
   playerCombos?: { id: string; name: string; combo: KartCombo }[];
   items?: string[];
+  /** Per-player roster picks (random-character format). */
+  playerPicks?: { id: string; name: string; pick: string; detail?: string }[];
 }
 
 export interface GeneratedRound {
@@ -114,9 +124,25 @@ export function generateRoundDirective(
   restrictions: RandomizerRestrictions,
   perRace = false,
   players?: RandomizerPlayer[],
+  /** Each player's picks in other rounds, for the roster's no-repeat rule. */
+  usedPicks?: Record<string, string[]>,
 ): RoundDirective {
-  const data = gameData(slug);
-  if (!data) return {};
+  // Games with a roster but no kart data (Smash, Mario Party, Splatoon, Kirby).
+  const rosterPicks = (): RoundDirective["playerPicks"] => {
+    const unique = rosterIsUnique(slug);
+    const taken: string[] = [];
+    return (players ?? []).map((p) => {
+      const r = drawPick(slug, { used: usedPicks?.[p.id], noRepeat: dimensions.roster?.noRepeat, allowed: restrictions.allowedCharacters, banned: restrictions.bannedCharacters, taken: unique ? taken : undefined });
+      if (r) taken.push(r.pick);
+      return r ? { id: p.id, name: p.name, pick: r.pick, ...(r.detail ? { detail: r.detail } : {}) } : null;
+    }).filter((x): x is NonNullable<typeof x> => !!x);
+  };
+  const raw = gameData(slug);
+  if (!raw) {
+    const picks = dimensions.roster && players?.length ? rosterPicks() : [];
+    return picks?.length ? { playerPicks: picks } : {};
+  }
+  const data = applyToKartData(raw, restrictions.collection ?? null);
   const directive: RoundDirective = {};
 
   if (dimensions.tracks && (data.cups?.length ?? 0) > 0) {
@@ -153,7 +179,22 @@ export function generateRoundDirective(
     directive.items = picked;
   }
 
+  if (dimensions.roster && players?.length) {
+    const picks = rosterPicks();
+    if (picks?.length) directive.playerPicks = picks;
+  }
+
   return directive;
+}
+
+/** Each player's roster picks across `rounds`, skipping round `except`. */
+export function picksByPlayer(rounds: GeneratedRound[], except?: number): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const r of rounds) {
+    if (r.n === except) continue;
+    for (const p of r.directive.playerPicks ?? []) (out[p.id] ??= []).push(p.pick);
+  }
+  return out;
 }
 
 /** Generate every round's directive up front (pre_all) or seed the list. */
@@ -165,12 +206,17 @@ export function generateRounds(
 ): GeneratedRound[] {
   const n = Math.max(1, Math.min(config.rounds, 64));
   const perRace = config.cadence === "per_race";
-  return Array.from({ length: n }, (_, i) => ({
-    n: i + 1,
-    revealed: false,
-    rerolls: 0,
-    directive: generateRoundDirective(slug, config.dimensions, restrictions, perRace, players),
-  }));
+  const rounds: GeneratedRound[] = [];
+  for (let i = 0; i < n; i++) {
+    rounds.push({
+      n: i + 1,
+      revealed: false,
+      rerolls: 0,
+      // Earlier rounds' picks feed the no-repeat rule.
+      directive: generateRoundDirective(slug, config.dimensions, restrictions, perRace, players, picksByPlayer(rounds)),
+    });
+  }
+  return rounds;
 }
 
 /** Number of races in a round's directive (tracks drive it; else 1). */

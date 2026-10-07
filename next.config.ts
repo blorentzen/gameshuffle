@@ -33,13 +33,25 @@ const globalCsp = [...baseCspDirectives, "frame-ancestors 'self'"].join("; ");
 // Overlay CSP — allow embedding anywhere (OBS browser source)
 const overlayCsp = [...baseCspDirectives, "frame-ancestors *"].join("; ");
 
-// Discord Activity CSP — allow embedding inside Discord's iframe
+// Discord Activity CSP — allow embedding inside Discord's iframe. The page is
+// served from <app id>.discordsays.com (Discord's proxy) inside discord.com.
 const activityCsp = [
   ...baseCspDirectives,
-  "frame-ancestors https://discord.com https://*.discord.com",
+  "frame-ancestors https://discord.com https://*.discord.com https://*.discordsays.com",
 ].join("; ");
 
+// Hosts that serve the Discord Activity (src/lib/activity/hosts.ts): the
+// production app's and the dev app's (activity-dev, on the dev branch).
+// Matched against the request's host, anchored. In development a cloudflared
+// tunnel to the dev server counts too.
+const ACTIVITY_HOSTS = process.env.NODE_ENV === "development"
+  ? "(?:activity(?:-dev)?\\.gameshuffle\\.co|.+\\.trycloudflare\\.com)"
+  : "activity(?:-dev)?\\.gameshuffle\\.co";
+
 const nextConfig: NextConfig = {
+  // Testing the Discord Activity locally: Discord's proxy (<app id>.discordsays.com)
+  // reaches the dev server through a cloudflared tunnel. Development only.
+  allowedDevOrigins: ["*.trycloudflare.com", "*.discordsays.com"],
   images: {
     remotePatterns: [
       {
@@ -129,16 +141,6 @@ const nextConfig: NextConfig = {
         ],
       },
 
-      // ─── Discord Activity route ───────────────────────────────────────
-      // Runs inside Discord's iframe — must allow Discord as frame ancestor
-      {
-        source: "/discord/activity/:path*",
-        headers: [
-          { key: "X-Frame-Options", value: "ALLOWALL" },
-          { key: "Content-Security-Policy", value: activityCsp },
-        ],
-      },
-
       // ─── Global security headers ──────────────────────────────────────
       // Applied to all routes — tighten defaults across the board
       {
@@ -146,10 +148,6 @@ const nextConfig: NextConfig = {
         headers: [
           // Prevent MIME type sniffing
           { key: "X-Content-Type-Options", value: "nosniff" },
-
-          // Prevent clickjacking on standard pages
-          // NOTE: overridden above for overlay and activity routes
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
 
           // Control referrer information sent to external sites
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -162,11 +160,41 @@ const nextConfig: NextConfig = {
 
           // DNS prefetching — on for performance
           { key: "X-DNS-Prefetch-Control", value: "on" },
+        ],
+      },
 
-          // Content Security Policy (overridden for overlay/activity routes above)
+      // Clickjacking protection + CSP for every host except the Discord
+      // Activity's. Later rules win in Next.js, so the overlay rules above
+      // never got past these; the Activity host is left out here instead.
+      {
+        source: "/:path*",
+        missing: [{ type: "host", value: ACTIVITY_HOSTS }],
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Content-Security-Policy", value: globalCsp },
         ],
       },
+
+      // ─── Discord Activity host ────────────────────────────────────────
+      // Framed by Discord: no X-Frame-Options, frame-ancestors limited to
+      // Discord, and kept out of search.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: ACTIVITY_HOSTS }],
+        headers: [
+          { key: "Content-Security-Policy", value: activityCsp },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      // Art on our CDN, served from our own origin. The Discord Activity can
+      // only load files through Discord's proxy, which reaches this origin and
+      // nothing else, so the Activity points CDN art here (artSrc in
+      // OriginalsHost). Under /images/ so the middleware leaves it alone.
+      { source: "/images/cdn/:path*", destination: "https://cdn.empac.co/gameshuffle/images/:path*" },
     ];
   },
   async redirects() {
@@ -181,11 +209,16 @@ const nextConfig: NextConfig = {
         destination: "/gs-pro",
         permanent: true,
       },
-      // NOTE: `/mario-kart-8-deluxe-randomizer` and
-      // `/mario-kart-world-randomizer` used to redirect to the tool routes.
-      // They are now dedicated marketing landing pages (the SEO surface)
-      // that deep-link into the clean tools at `/randomizers/[slug]`.
-      // Keep the short-slug redirect, which doesn't collide with a page.
+      // One URL per randomizer. The flat marketing pages split rankings with
+      // the tools, so their copy moved under the tool and they 308 there.
+      // Point any future redirect straight at `/randomizers/*` (no chains).
+      ...[
+        ["/mario-kart-8-deluxe-randomizer", "/randomizers/mario-kart-8-deluxe"],
+        ["/mario-kart-world-randomizer", "/randomizers/mario-kart-world"],
+        ["/mario-party-jamboree-randomizer", "/randomizers/super-mario-party-jamboree"],
+        ["/mario-party-superstars-randomizer", "/randomizers/mario-party-superstars"],
+        ["/super-smash-bros-ultimate-randomizer", "/randomizers/super-smash-bros-ultimate"],
+      ].map(([source, destination]) => ({ source, destination, permanent: true })),
       {
         source: "/randomizers/mario-kart-8",
         destination: "/randomizers/mario-kart-8-deluxe",

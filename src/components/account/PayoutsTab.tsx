@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Alert, AreaChart, Card, DonutChart, Select, StatCard } from "@empac/cascadeds";
 import { ConnectAccountCard } from "@/components/events/ConnectAccountCard";
+import { PaidEntryNotice } from "@/components/billing/PaidEntryNotice";
+import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 import type { OrganizerAnalytics } from "@/lib/events/analytics";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /**
  * "Payouts": the organizer's money in one place. Stripe account state, what is
@@ -27,6 +30,7 @@ function day(iso: string): string {
 }
 
 export function PayoutsTab() {
+  const availability = usePaidAvailability();
   const [days, setDays] = useState(30);
   const [data, setData] = useState<{ detailed: boolean; analytics: OrganizerAnalytics } | null>(null);
   const [loadedDays, setLoadedDays] = useState<number | null>(null);
@@ -35,7 +39,7 @@ export function PayoutsTab() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/connect/analytics?days=${days}`, { cache: "no-store" })
+    fetch(`/api/connect/analytics?days=${days}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (!cancelled) setData(j); })
       .catch(() => {})
@@ -47,6 +51,16 @@ export function PayoutsTab() {
   const detailed = !!data?.detailed;
   const sold = (a?.totals.tickets ?? 0) > 0;
   const series = a?.series ?? [];
+
+  // Paid entry off and nothing ever sold: just say so.
+  if (availability && !availability.paidEntry && !sold && !a?.payouts?.recent.length) {
+    return (
+      <div className="account-card">
+        <h2 className="account-card__title">Payouts</h2>
+        <PaidEntryNotice />
+      </div>
+    );
+  }
 
   return (
     <div className="account-card">
@@ -91,7 +105,7 @@ export function PayoutsTab() {
         </Card>
       )}
 
-      {loading && !a && <p className="attendees__empty">Loading…</p>}
+      {loading && !a && <LoadingLines label="Loading" />}
 
       {a && !sold && !loading && (
         <p className="account-card__hint" style={{ marginTop: "var(--spacing-12)" }}>

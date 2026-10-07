@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button, IconButton, Icon, Input, Select } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { WEEKDAYS, resolveStreamSchedule, type ScheduleSlot } from "@/lib/schedule/streamSchedule";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 // A short curated tz list + the viewer's detected zone.
 const COMMON_TZ = [
@@ -67,7 +68,7 @@ export function StreamScheduleEditor() {
 
   const tzOptions = Array.from(new Set([detected, ...COMMON_TZ])).map((t) => ({ value: t, label: t.replace(/_/g, " ") }));
 
-  if (loading) return <div className="account-card"><p style={{ color: "var(--text-secondary)" }}>Loading schedule…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading schedule" /></div>;
 
   return (
     <div className="account-card">

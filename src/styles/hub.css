@@ -668,7 +668,8 @@
  * this offset, the save bar slides under the navbar on scroll. */
 .hub-detail__save-bar {
   position: sticky;
-  top: 5rem;
+  top: calc(var(--gs-nav-offset) + var(--spacing-8));
+  transition: var(--gs-nav-slide);
   z-index: 10;
   display: flex;
   align-items: center;

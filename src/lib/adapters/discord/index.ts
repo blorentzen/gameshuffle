@@ -22,6 +22,8 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import { getGameName } from "@/data/game-registry";
+import { boxArt, catalogForApp } from "@/data/game-catalog";
+import { SITE_URL } from "@/lib/seo";
 import type {
   AdapterCapability,
   AdapterResult,
@@ -33,7 +35,7 @@ import type {
 } from "../types";
 import type { GsSession } from "@/lib/sessions/types";
 import type { RecapPayload } from "@/lib/sessions/service";
-import { createThreadFromMessage, editEmbed, postEmbed } from "./adapter";
+import { createThreadFromMessage, editEmbed, postComponentsMessage, postEmbed, type DiscordEmbed } from "./adapter";
 import {
   announcementEmbed,
   qotdEmbed,
@@ -44,6 +46,12 @@ import {
   streamLiveEmbed,
   streamUpdateEmbed,
 } from "./embeds";
+
+/** Absolute URL of a game's box art for Discord embeds, or null when the catalog has none. */
+function gameCoverUrl(gameSlug: string | null | undefined): string | null {
+  const art = boxArt(catalogForApp(gameSlug));
+  return art ? `${SITE_URL}${art}` : null;
+}
 
 const SUPPORTED_CAPABILITIES: ReadonlySet<AdapterCapability> = new Set([
   "announce",
@@ -205,10 +213,12 @@ export async function postAnnouncementToCategory(args: {
   title: string;
   body: string;
   url?: string | null;
+  /** Opt-in posts: only send if this category has its own route (no fallback to the default channel). */
+  requireRoute?: boolean;
 }): Promise<{ ok: true } | { ok: false; reason: string }> {
   const routing = await resolveRouting(null, args.ownerUserId);
   if (!routing) return { ok: false, reason: "no_routing" };
-  const channelId = channelFor(routing, args.category);
+  const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
   if (!channelId) return { ok: false, reason: "no_channel" };
   const result = await postEmbed({
     channelId,
@@ -221,6 +231,25 @@ export async function postAnnouncementToCategory(args: {
       postedAt: new Date().toISOString(),
     }),
   });
+  return result.ok ? { ok: true } : { ok: false, reason: result.error };
+}
+
+/**
+ * Post an embed with buttons to the channel routed for a category (the daily
+ * Chat Brain question). Same routing rules as postAnnouncementToCategory.
+ */
+export async function postComponentsToCategory(args: {
+  ownerUserId: string;
+  category: string;
+  requireRoute?: boolean;
+  embed: DiscordEmbed;
+  components: unknown[];
+}): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const routing = await resolveRouting(null, args.ownerUserId);
+  if (!routing) return { ok: false, reason: "no_routing" };
+  const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
+  if (!channelId) return { ok: false, reason: "no_channel" };
+  const result = await postComponentsMessage({ channelId, embeds: [args.embed], components: args.components });
   return result.ok ? { ok: true } : { ok: false, reason: result.error };
 }
 
@@ -345,6 +374,7 @@ export class DiscordAdapter implements PlatformAdapter {
         gameName,
         liveUrl: routing.liveUrl,
         avatarUrl: routing.avatarUrl,
+        coverUrl: gameCoverUrl(gameSlug),
         startedAt: session.activated_at ?? new Date().toISOString(),
       }),
       content: ping.content,
@@ -421,6 +451,7 @@ export class DiscordAdapter implements PlatformAdapter {
           : null,
         liveUrl: routing.liveUrl,
         avatarUrl: routing.avatarUrl,
+        coverUrl: gameCoverUrl(payload.nextGame),
         startedAt: session.activated_at ?? new Date().toISOString(),
       }),
     });

@@ -33,8 +33,8 @@
 
 
 
-/* Beta Badge */
-.beta-badge {
+/* New Badge */
+.new-badge {
   display: inline-block;
   padding: 0.15rem 0.5rem;
   background: rgba(255, 255, 255, 0.2);
@@ -1247,7 +1247,8 @@
 
 .tournament-layout__aside {
   position: sticky;
-  top: var(--spacing-48);
+  top: calc(var(--gs-nav-offset) + var(--spacing-16));
+  transition: var(--gs-nav-slide);
   display: flex;
   flex-direction: column;
   /* Same guard `__main` already has: a grid item defaults to min-width:auto,
@@ -1458,6 +1459,12 @@
 /* Circuit personalization: an authored accent tints the eyebrow + live cues. */
 .tourney-display__eyebrow { color: var(--tourney-accent, inherit); }
 .tourney-display__subtitle { font-size: clamp(1.6rem, 2vw, 2.25rem); opacity: 0.85; margin: 0.8rem 0 0; max-width: 83rem; }
+/* The game's box art beside the title. */
+.tourney-display__head--cover { display: flex; align-items: center; gap: clamp(1.6rem, 2.4vw, 3.2rem); }
+.tourney-display__head-text { min-width: 0; }
+.tourney-display__cover { flex: 0 0 auto; width: clamp(8rem, 9vw, 15rem); border-radius: 1rem; overflow: hidden; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); }
+.tourney-display__cover img { display: block; width: 100%; height: auto; }
+.tourney-display__game { text-transform: none; }
 
 /* Upcoming randomized rounds */
 .tourney-display__rounds { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.95rem; }
@@ -2375,8 +2382,8 @@
   text-transform: uppercase;
   color: var(--primary-ink-600, var(--primary-600));
 }
-/* .beta-badge is built for dark heroes (white on translucent). */
-.lg-head .beta-badge {
+/* .new-badge is built for dark heroes (white on translucent). */
+.lg-head .new-badge {
   background: color-mix(in srgb, var(--primary-500) 12%, var(--surface-default));
   border-color: color-mix(in srgb, var(--primary-500) 30%, transparent);
   color: var(--primary-ink-700, var(--primary-700));
@@ -2674,3 +2681,89 @@
   color: var(--text-secondary);
 }
 .lg-panel .lounge-team-picker { margin-top: var(--spacing-12); }
+
+/* Guest claim status on the manage page roster (spec F). */
+.claim-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  margin-left: var(--spacing-8);
+  padding: 1px var(--spacing-8);
+  border-radius: 999px;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  background: color-mix(in srgb, var(--text-primary) 6%, var(--surface-default));
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+.claim-state--claimed {
+  background: color-mix(in srgb, var(--success-500) 14%, var(--surface-default));
+  color: var(--success-ink);
+}
+.claim-state--expired,
+.claim-state--revoked {
+  background: color-mix(in srgb, var(--warning-500) 16%, var(--surface-default));
+  color: var(--warning-ink);
+}
+
+/* /claim/[token] (spec F). */
+.claim-page {
+  min-height: 70vh;
+  padding: var(--spacing-56) 0 var(--spacing-80);
+  background: color-mix(in srgb, var(--text-primary) 4%, var(--surface-default));
+}
+.claim-page__card {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: var(--spacing-32);
+  background: var(--surface-default, #fff);
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: var(--radius-16, 1.6rem);
+}
+.claim-page__eyebrow {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-ink-600, var(--primary-600));
+}
+.claim-page__title {
+  margin: 0 0 var(--spacing-4);
+  font-family: var(--font-display, inherit);
+  font-size: var(--font-size-fluid-h3, var(--font-size-24));
+  font-weight: var(--font-weight-bold);
+  text-wrap: balance;
+}
+.claim-page__when {
+  margin: 0 0 var(--spacing-20);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.claim-page .empac-alert { margin-top: var(--spacing-8); }
+.claim-flow__p { margin: 0 0 var(--spacing-12); }
+.claim-flow__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.claim-flow__row--end { align-items: flex-end; }
+.claim-offers { display: grid; gap: var(--spacing-12); margin: 0 0 var(--spacing-16); }
+@media (max-width: 560px) { .claim-page__card { padding: var(--spacing-20); } }
+
+/* Organizer-issued claim link (spec F, phase 2). */
+.manual-claim { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.manual-claim__lede { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.manual-claim__qr {
+  align-self: center;
+  width: 220px;
+  padding: var(--spacing-8);
+  background: #fff; /* QR codes need a light quiet zone in either theme */
+  border-radius: var(--radius-8, 0.8rem);
+  line-height: 0;
+}
+.manual-claim__qr svg { width: 100%; height: auto; }
+.manual-claim__row { display: flex; gap: var(--spacing-8); }
+
+/* Random-character rounds: one pick per player. */
+.tr-round__picks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: var(--spacing-8); }
+.tr-round__picks li { display: grid; gap: 0.2rem; padding: var(--spacing-8) var(--spacing-12); border: 1px solid var(--border-subtle, var(--border-default)); border-radius: var(--radius-8, 8px); }
+.tr-round__picks .tr-round__player-name { margin-bottom: 0; color: var(--text-secondary); font-weight: 600; }
+.tr-round__picks strong { font-size: var(--font-size-16); }
+.tr-round__pick-detail { font-size: var(--font-size-12); color: var(--text-secondary); }

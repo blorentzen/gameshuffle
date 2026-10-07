@@ -9,6 +9,11 @@
 import { useState } from "react";
 import { Button, Modal } from "@empac/cascadeds";
 import { getImagePath } from "@/lib/images";
+import { describePartySetup } from "@/data/party";
+import { describeSmashSetup } from "@/data/smash";
+import { describeSplatoonSetup } from "@/data/splatoon";
+import { describeKirbySetup } from "@/data/kirby";
+import { describeStadiumSetup } from "@/data/pokemon/stadium-setup";
 
 type ImgItem = { img?: string; name?: string };
 
@@ -88,6 +93,41 @@ function ConfigVisual({ cfg }: { cfg: Record<string, unknown> }) {
           </div>
         )}
       </div>
+    );
+  }
+  if (type === "party-setup") {
+    return (
+      <ul className="cfg-list">
+        {describePartySetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "stadium-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeStadiumSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "kirby-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeKirbySetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "splatoon-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeSplatoonSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "smash-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeSmashSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
     );
   }
   if (type === "player-preset") {

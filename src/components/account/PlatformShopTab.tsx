@@ -28,6 +28,8 @@ import { CardImage } from "@/components/tcg/CardImage";
 import { CardGridSkeleton } from "@/components/tcg/CardGridSkeleton";
 import type { FeaturedShopCard } from "@/lib/shop/featuredCards";
 import type { TcgCard } from "@/lib/scrydex/types";
+import { LoadingLines } from "@/components/loading/LoadingLines";
+import { gsDay, gsDayStart } from "@/lib/time/gsClock";
 
 /**
  * Platform Shop admin tab (staff/admin). Manage the storefront's featured
@@ -40,10 +42,10 @@ import type { TcgCard } from "@/lib/scrydex/types";
 const DEBOUNCE_MS = 400;
 const MIN_CHARS = 3;
 
-/** ISO timestamp → YYYY-MM-DD for a native date input. */
+/** ISO timestamp → its Pacific YYYY-MM-DD for a native date input. */
 function toDateInput(iso: string | null): string {
   if (!iso) return "";
-  return new Date(iso).toISOString().slice(0, 10);
+  return gsDay(new Date(iso));
 }
 
 function PickerCard({
@@ -506,7 +508,7 @@ export function PlatformShopTab() {
           Featured (available){available.length ? ` (${available.length})` : ""}
         </h3>
         {loading ? (
-          <p className="platform-shop__muted">Loading…</p>
+          <LoadingLines label="Loading" />
         ) : available.length === 0 ? (
           <p className="platform-shop__muted">No available featured cards yet.</p>
         ) : (
@@ -583,7 +585,7 @@ export function PlatformShopTab() {
                     onChange={(e) =>
                       patch(row.id, {
                         soldAt: e.target.value
-                          ? new Date(e.target.value).toISOString()
+                          ? gsDayStart(e.target.value).toISOString()
                           : null,
                       })
                     }

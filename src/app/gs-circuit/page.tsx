@@ -6,18 +6,19 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
-import { OverlayShot } from "@/components/marketing/ProFeatureShots";
+import { GamesShot, OverlayShot } from "@/components/marketing/ProFeatureShots";
 import { BracketShot, StandingsShot } from "@/components/marketing/CircuitFeatureShots";
 import { CircuitPricing } from "@/components/marketing/CircuitPricing";
+import { FeatureCard } from "@/components/marketing/FeatureCard";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "GameShuffle Circuit: run bigger tournaments",
   description:
-    "GameShuffle Circuit is the organizer plan for bigger events. Every format is free for one full lobby (12 on MK8DX, 24 on MK World). Circuit 64 and Circuit 256 raise the field and unlock championship series, co-organizers, custom page branding, and custom seeding. Circuit Events covers in-person and commercial fields. Free during preview.",
+    "GameShuffle Circuit is the organizer plan for bigger events. Every format is free for one full lobby, for Mario Kart and random-character rounds in Smash, Mario Party, Splatoon, Kirby, Street Fighter 6 and Tekken 8. Circuit 64 and Circuit 256 raise the field and add live randomized rounds, text reminders, championship series, co-organizers, custom branding and seeding. Free during preview.",
   openGraph: {
     title: "GameShuffle Circuit",
     url: "https://www.gameshuffle.co/gs-circuit",
-    images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: { canonical: "https://www.gameshuffle.co/gs-circuit" },
 };
@@ -32,6 +33,10 @@ const COMPARE: { label: string; free: string | boolean; c64: string | boolean; c
   { label: "Team modes (2v2 … 6v6)", free: true, c64: true, c256: true },
   { label: "Multi-flight points + custom lobby rules", free: true, c64: true, c256: true },
   { label: "Live scoring, public join page, picks & bans", free: true, c64: true, c256: true },
+  { label: "Random-character rounds (Smash, Mario Party, Splatoon, Kirby, Street Fighter 6, Tekken 8)", free: true, c64: true, c256: true },
+  { label: "AI tournament helper (format, rules, announcement)", free: true, c64: true, c256: true },
+  { label: "Live randomized rounds (revealed to everyone at once)", free: "Set up", c64: true, c256: true },
+  { label: "Text reminders to entrants (US numbers)", free: false, c64: "500 a month", c256: "2,000 a month" },
   { label: "Championship series (seasons + standings)", free: false, c64: true, c256: true },
   { label: "Co-organizers (share edit access)", free: false, c64: true, c256: true },
   { label: "Custom page branding (header + theme)", free: false, c64: true, c256: true },
@@ -41,7 +46,7 @@ const COMPARE: { label: string; free: string | boolean; c64: string | boolean; c
 
 function Cell({ v }: { v: string | boolean }) {
   if (v === true) return <span style={{ color: "#16a34a", fontWeight: 800 }}>✓</span>;
-  if (v === false) return <span style={{ color: "var(--text-tertiary)" }}>—</span>;
+  if (v === false) return <span style={{ color: "var(--text-tertiary)" }}>No</span>;
   return <span style={{ fontWeight: 700 }}>{v}</span>;
 }
 
@@ -54,15 +59,17 @@ export default function GsCircuitPage() {
         appUrl="/gs-circuit"
         breadcrumb={{ label: "GameShuffle Circuit", path: "/gs-circuit" }}
         faq={[
-          { q: "How much does GameShuffle Circuit cost?", a: "It's free during preview — nothing is charged today. The prices shown are planned for launch and may change. When paid tiers go live, you'll get advance notice." },
-          { q: "What's free?", a: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, and picks & bans — for one full lobby of your game (12 on MK8DX, 24 on MK World)." },
-          { q: "What does GameShuffle Circuit add?", a: "A bigger field (Circuit 64 or Circuit 256) plus four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
+          { q: "How much does GameShuffle Circuit cost?", a: "It's free during preview, so nothing is charged today. The prices shown are planned for launch and may change. When paid tiers go live, you'll get advance notice." },
+          { q: "What's free?", a: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, picks & bans, random-character rounds for fighting and party games, and the AI tournament helper, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
+          { q: "Which games can I run?", a: "Mario Kart 8 Deluxe, Mario Kart World and Mario Kart 64 with track and build rules, plus random-character rounds for Smash Ultimate, Mario Party, Splatoon 3, Kirby Air Riders, Street Fighter 6 and Tekken 8: every confirmed player gets a pick each round, with no repeats if you want." },
+          { q: "What does GameShuffle Circuit add?", a: "A bigger field (Circuit 64 or Circuit 256), live randomized rounds, text reminders to entrants, and four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
           { q: "Is it the same as GameShuffle Pro?", a: "No. GameShuffle Pro is for streamers (Twitch/Discord integration, overlay, chat commands, token economy). GameShuffle Circuit is for organizers running bigger tournaments. They're separate plans." },
         ]}
       />
 
       {/* Hero — premium dark, matching the GS Pro hero scale */}
-      <section className="pro-hero">
+      <section className="pro-hero pro-hero--sales pro-hero--cyan">
+        <MarketingHeroField category="compete" />
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">GameShuffle Circuit · free during preview</p>
@@ -91,7 +98,7 @@ export default function GsCircuitPage() {
           <div style={{ border: "1px solid var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 8%, var(--surface-default))", borderRadius: "1rem", padding: "1.25rem 1.5rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap", justifyContent: "center", textAlign: "center" }}>
             <span style={{ fontSize: "var(--font-size-24)" }}>✨</span>
             <p style={{ margin: 0, fontSize: "var(--font-size-16)", fontWeight: 600 }}>
-              GameShuffle Circuit is <strong>free during preview</strong> — run events as big as you like right now.
+              GameShuffle Circuit is <strong>free during preview</strong>, so run events as big as you like right now.
               The prices below are planned for launch, and you&rsquo;ll get notice before anything changes.
             </p>
           </div>
@@ -104,7 +111,7 @@ export default function GsCircuitPage() {
               <ProSpotlight
                 eyebrow="Any size"
                 title="From a 12-player night to a 256-player open"
-                body="Big fields run in flights: split the field each round, race, and re-seed from the standings — group the leaders together or spread them across flights. Points accumulate all the way to a champion, no spreadsheet required."
+                body="Big fields run in flights: split the field each round, race, and re-seed from the standings to group the leaders together or spread them across flights. Points accumulate all the way to a champion, no spreadsheet required."
                 media={<StandingsShot />}
               />
             </Reveal>
@@ -112,13 +119,22 @@ export default function GsCircuitPage() {
               <ProSpotlight
                 reverse
                 eyebrow="Your format"
-                title="Brackets, points, Heat → Mains — your call"
+                title="Brackets, points or Heat → Mains: your call"
                 body="Single or double elimination, free-for-all points, or the sprint-car Heat-to-Mains ladder. Run eliminations with a tap to say who moves on, and record points or placements just as fast."
                 media={<BracketShot />}
               />
             </Reveal>
             <Reveal>
               <ProSpotlight
+                eyebrow="Every game we roll"
+                title="Not just Mario Kart"
+                body="Run Mario Kart with track and build rules, or random-character rounds for Smash, Mario Party, Splatoon, Kirby Air Riders, Street Fighter 6 and Tekken 8. Each round deals every confirmed player a pick, with no repeats if you want, and text reminders bring them back for check-in."
+                media={<GamesShot />}
+              />
+            </Reveal>
+            <Reveal>
+              <ProSpotlight
+                reverse
                 eyebrow="On screen"
                 title="Put the competition on the broadcast"
                 body="Streaming the event? Live scoring, the current match, and picks and bans composite straight onto the OBS overlay through GameShuffle Pro, so viewers follow every result in real time. Circuit 256 bundles Pro, so it's already included at that tier."
@@ -133,7 +149,7 @@ export default function GsCircuitPage() {
         <section className="beta-section" style={{ marginTop: "var(--spacing-64)" }}>
           <div className="beta-section__head">
             <p className="marketing-eyebrow">Free vs Circuit</p>
-            <h2 className="pricing-page__section-title">Every format is free — pay for scale</h2>
+            <h2 className="pricing-page__section-title">Every format is free. Pay for scale.</h2>
             <p className="beta-section__sub">Player count is the meter that sets the tier. The paid value is a real multi-lobby event plus four organizer features.</p>
           </div>
           <div style={{ overflowX: "auto", maxWidth: 880, margin: "0 auto" }}>
@@ -160,6 +176,26 @@ export default function GsCircuitPage() {
           </div>
         </section>
 
+        {/* In the works: the business side, held back on purpose (specs/monetization-launch-plan.md) */}
+        <section className="beta-section" style={{ marginTop: "var(--spacing-64)" }}>
+          <div className="beta-section__head">
+            <p className="marketing-eyebrow">In the works</p>
+            <h2 className="pricing-page__section-title">What&rsquo;s coming for organizers and venues</h2>
+            <p className="beta-section__sub">The tournament side is ready today. The money side is built but switched off while we get the tax and organizer details right, and we&rsquo;d rather shape it with organizers than guess.</p>
+          </div>
+          <div className="circuit-works">
+            <FeatureCard variant="full" icon="currency-dollar" availability="In the works" title="Paid entry"
+              description="Sell entries to your tournament or game night, with payouts straight to your bank through Stripe. For now, every event is free to enter." />
+            <FeatureCard variant="full" icon="calendar" availability="In the works" title="Circuit Events"
+              description="A pass for larger in-person or commercial events: custom branding, more capacity, and help with setup on the day." />
+            <FeatureCard variant="full" icon="building" availability="In the works" title="Venue partners"
+              description="Run game nights or tournaments at a bar, game store, LAN center or convention? We're looking for a few venues to build this with." />
+          </div>
+          <p className="circuit-works__cta">
+            Interested in any of these? <Link href="/contact-us">Tell us about your events</Link>.
+          </p>
+        </section>
+
       </Container>
 
       {/* Pricing — dark module, matching the GS Pro pricing band */}
@@ -167,7 +203,7 @@ export default function GsCircuitPage() {
         <p className="marketing-eyebrow" style={{ color: "var(--primary-300)", textAlign: "center" }}>Pick your scale</p>
         <h2 className="pricing-page__section-title pro-band__title" style={{ marginBottom: "var(--spacing-8)" }}>Plans by field size</h2>
         <p style={{ textAlign: "center", color: "var(--gray-300, #c2c8d2)", maxWidth: "40rem", margin: "0 auto var(--spacing-24)", lineHeight: "var(--line-height-relaxed)" }}>
-          Player count sets the tier — pick the one that fits your largest event. Free during preview.
+          Player count sets the tier: pick the one that fits your largest event. Free during preview.
         </p>
         <CircuitPricing />
       </DarkBand>
@@ -176,14 +212,18 @@ export default function GsCircuitPage() {
         {/* FAQ — matching the GS Pro treatment (bordered accordion) */}
         <section className="pricing-page__faq">
           <h2 className="pricing-page__section-title">Common questions</h2>
+          {/* Open by default: CDS Accordion only mounts an item once it's opened,
+              so collapsed answers would be missing from the HTML (and from search). */}
           <Accordion
             variant="bordered"
+            allowMultiple
+            defaultOpenIds={["cost", "free", "adds", "bundle", "vs-pro"]}
             items={[
-              { id: "cost", title: "How much does GameShuffle Circuit cost?", content: "It's free during preview — nothing is charged today. The prices shown are planned for launch and may change. You'll get advance notice before paid tiers go live." },
-              { id: "free", title: "What's free?", content: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, and picks & bans — for one full lobby of your game (12 on MK8DX, 24 on MK World)." },
+              { id: "cost", title: "How much does GameShuffle Circuit cost?", content: "It's free during preview, so nothing is charged today. The prices shown are planned for launch and may change. You'll get advance notice before paid tiers go live." },
+              { id: "free", title: "What's free?", content: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, and picks & bans, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
               { id: "adds", title: "What does Circuit add?", content: "A bigger field (Circuit 64 or Circuit 256) plus four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
-              { id: "bundle", title: "Does Circuit 256 really include GameShuffle Pro?", content: "Yes. Circuit 256 bundles a GameShuffle Pro subscription, so if you also stream your events you get the OBS overlay, Twitch and Discord integration, chat commands, and the token economy at no extra cost. On Circuit 64 you can add Pro for $5/mo (or $50/yr) alongside your plan." },
-              { id: "vs-pro", title: "Is it the same as GameShuffle Pro?", content: "No. GameShuffle Pro is for streamers (Twitch/Discord integration, overlay, chat commands, token economy). GameShuffle Circuit is for organizers running bigger tournaments. They're separate plans — Circuit 256 bundles Pro." },
+              { id: "bundle", title: "Does Circuit 256 really include GameShuffle Pro?", content: "Yes. Circuit 256 bundles a GameShuffle Pro subscription, so if you also stream your events you get the OBS overlay, Twitch and Discord integration, chat commands, and the token economy at no extra cost." },
+              { id: "vs-pro", title: "Is it the same as GameShuffle Pro?", content: "No. GameShuffle Pro is for streamers (Twitch/Discord integration, overlay, chat commands, token economy). GameShuffle Circuit is for organizers running bigger tournaments. They're separate plans, and Circuit 256 includes Pro." },
             ]}
           />
         </section>

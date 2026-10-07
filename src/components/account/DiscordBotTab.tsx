@@ -10,10 +10,14 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Button, Select, Input, Textarea, Switch, Modal } from "@empac/cascadeds";
+import { Button, Chip, Input, Modal, Select, Switch, Textarea } from "@empac/cascadeds";
+import { IconAction, RowActions } from "@/components/actions/IconAction";
+import { IconPencil, IconTrash, IconX } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EmojiPicker, type GuildEmoji } from "@/components/account/EmojiPicker";
 import { ROUTE_CATEGORIES } from "@/lib/discord/routeCategories";
+import { EVENTS, tagged } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Channel {
   id: string;
@@ -534,7 +538,7 @@ export function DiscordBotTab() {
     await reloadQotd();
   }
 
-  if (loading) return <div className="account-card"><p>Loading…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading" /></div>;
 
   const canEdit = isPro && installed;
 
@@ -573,7 +577,7 @@ export function DiscordBotTab() {
           <span>
             The sections below are GS Pro. On Free, the bot posts to your single default channel.
           </span>
-          <Link href="/gs-pro?from=discord-bot"><Button variant="primary" size="small">See GS Pro</Button></Link>
+          <Link href="/gs-pro?from=discord-bot" className={tagged(EVENTS.upgradeClicked, { from: "discord-bot" })}><Button variant="primary" size="small">See GS Pro</Button></Link>
         </div>
       )}
 
@@ -765,10 +769,10 @@ export function DiscordBotTab() {
                   <span>
                     <span className="dbot-tag">Reactions</span> {m.title ? <strong>{m.title}</strong> : `#${channelName(m.channelId)}`} · {m.mappings.length} role{m.mappings.length === 1 ? "" : "s"}
                   </span>
-                  <span className="dbot-menu-actions">
-                    <Button variant="ghost" size="small" onClick={() => startEditRr(m)}>Edit</Button>
-                    <Button variant="ghost" size="small" onClick={() => void deleteReactionMessage(m.messageId)}>Delete</Button>
-                  </span>
+                  <RowActions>
+                    <IconAction label={`Edit ${m.title || `the #${channelName(m.channelId)} reaction roles`}`} icon={IconPencil} onClick={() => startEditRr(m)} />
+                    <IconAction label={`Delete ${m.title || `the #${channelName(m.channelId)} reaction roles`}`} icon={IconTrash} variant="danger" onClick={() => void deleteReactionMessage(m.messageId)} />
+                  </RowActions>
                 </li>
               ))}
               {roleMenus.map((m) => (
@@ -776,7 +780,9 @@ export function DiscordBotTab() {
                   <span>
                     <span className="dbot-tag">{m.type === "select" ? "Dropdown" : "Buttons"}</span> <strong>{m.title}</strong> · #{channelName(m.channel_id)} · {m.options.length} role{m.options.length === 1 ? "" : "s"}
                   </span>
-                  <Button variant="ghost" size="small" onClick={() => void deleteMenu(m.id)}>Delete</Button>
+                  <RowActions>
+                    <IconAction label={`Delete the ${m.title} menu`} icon={IconTrash} variant="danger" onClick={() => void deleteMenu(m.id)} />
+                  </RowActions>
                 </li>
               ))}
             </ul>
@@ -832,7 +838,7 @@ export function DiscordBotTab() {
                       {m.roleName}
                       {sarStyle === "reactions" && !m.emoji && <span className="dbot-req"> · emoji required</span>}
                     </span>
-                    <Button variant="ghost" size="small" onClick={() => setSarMappings((prev) => prev.filter((_, idx) => idx !== i))}>Remove</Button>
+                    <IconAction label={`Remove ${m.roleName}`} icon={IconX} onClick={() => setSarMappings((prev) => prev.filter((_, idx) => idx !== i))} />
                   </div>
                 ))}
               </div>
@@ -878,7 +884,7 @@ export function DiscordBotTab() {
                       label={mm.roleName}
                     />
                     <span className="dbot-rm-label">{mm.roleName}</span>
-                    <Button variant="ghost" size="small" onClick={() => setEditingRr({ ...editingRr, mappings: editingRr.mappings.filter((_, idx) => idx !== i) })}>Remove</Button>
+                    <IconAction label={`Remove ${mm.roleName}`} icon={IconX} onClick={() => setEditingRr({ ...editingRr, mappings: editingRr.mappings.filter((_, idx) => idx !== i) })} />
                   </div>
                 ))}
               </div>
@@ -908,10 +914,7 @@ export function DiscordBotTab() {
             {autoroleIds.length > 0 && (
               <div className="dbot-autoroles">
                 {autoroleIds.map((id) => (
-                  <span key={id} className="dbot-chip">
-                    {guildRoles.find((r) => r.id === id)?.name ?? "role"}
-                    <button type="button" onClick={() => setAutoroleIds((prev) => prev.filter((x) => x !== id))} aria-label="Remove">✕</button>
-                  </span>
+                  <Chip key={id} size="small" label={guildRoles.find((r) => r.id === id)?.name ?? "role"} removable onRemove={() => setAutoroleIds((prev) => prev.filter((x) => x !== id))} />
                 ))}
               </div>
             )}
@@ -984,15 +987,15 @@ export function DiscordBotTab() {
         <div className="account-card">
           <h3 className="account-card__title">Server logging</h3>
           <p className="dbot-muted">
-            Keep a record of what happens in your server — message edits and deletes, members joining and
-            leaving, and role changes — posted to a channel you choose. Pick a channel below and choose
+            Keep a record of what happens in your server (message edits and deletes, members joining and
+            leaving, and role changes), posted to a channel you choose. Pick a channel below and choose
             which events to log.
           </p>
           <div className="dbot-rm-form">
             <Select
               floatingLabel="Log channel"
               options={[
-                { value: "", label: "Off — don't log" },
+                { value: "", label: "Off, don't log" },
                 ...channels.map((c) => ({ value: c.id, label: `#${c.name}` })),
               ]}
               value={logChannelId}
@@ -1054,13 +1057,13 @@ export function DiscordBotTab() {
               <p className="dbot-subhead">Today&apos;s question</p>
               {qotd.today.paused ? (
                 <p className="dbot-muted">
-                  You&apos;ve used all your questions — nothing will post until you add more below or allow repeats.
+                  You&apos;ve used all your questions, so nothing will post until you add more below or allow repeats.
                 </p>
               ) : qotd.today.question ? (
                 <p className="dbot-qotd-preview">&ldquo;{qotd.today.question}&rdquo;</p>
               ) : (
                 <p className="dbot-muted">
-                  No questions yet. Add your first below — GameShuffle&apos;s default questions are included too.
+                  No questions yet. Add your first below. GameShuffle&apos;s default questions are included too.
                 </p>
               )}
               {qotd.today.total > 0 && (
@@ -1091,10 +1094,10 @@ export function DiscordBotTab() {
                       ) : (
                         <>
                           <span>{q.response}</span>
-                          <span className="dbot-menu-actions">
-                            <Button variant="ghost" size="small" onClick={() => setEditingQ({ id: q.id, text: q.response })}>Edit</Button>
-                            <Button variant="ghost" size="small" onClick={() => void removeQuestion(q.id)} disabled={qotdBusy}>Remove</Button>
-                          </span>
+                          <RowActions>
+                            <IconAction label="Edit this question" icon={IconPencil} onClick={() => setEditingQ({ id: q.id, text: q.response })} />
+                            <IconAction label="Remove this question" icon={IconTrash} variant="danger" onClick={() => void removeQuestion(q.id)} disabled={qotdBusy} />
+                          </RowActions>
                         </>
                       )}
                     </li>

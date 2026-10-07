@@ -11,6 +11,7 @@
  * POST { action: "drop" | "keep", participantIds }
  */
 
+import { fillOpenSeats } from "@/lib/events/waitlist";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -39,7 +40,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .eq("tournament_id", id)
     .is("checked_in_at", null)
     // A withdrawal is not a no-show and must not appear in a drop list.
-    .not("status", "in", '("dropped","waitlisted")')
+    .not("status", "in", '("dropped","waitlisted","offered")')
     .order("joined_at");
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
@@ -84,6 +85,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     .eq("tournament_id", id)
     .in("id", participantIds);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // No-show seats go to the waitlist (at this point that's standby: people checked in at the venue first).
+  await fillOpenSeats("tournament", id).catch(() => null);
 
   /* Seeding goes stale when the field changes, per the seeding spec. That
      column does not exist yet; when it does, this is where it gets set. */

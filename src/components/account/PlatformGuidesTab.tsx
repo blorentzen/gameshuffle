@@ -16,6 +16,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, Input, Select, Switch, Textarea } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { GUIDE_CLUSTERS } from "@/lib/guides/manifest";
+import { IconAction, RowActions } from "@/components/actions/IconAction";
+import { IconPencil, IconTrash } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Row {
   id: string; slug: string; title: string; description: string; cluster: string;
@@ -96,7 +99,7 @@ export function PlatformGuidesTab() {
     await load();
   };
 
-  if (state === "loading") return <div className="account-card"><p>Loading guides…</p></div>;
+  if (state === "loading") return <div className="account-card"><LoadingLines label="Loading guides" /></div>;
 
   if (state === "not_migrated") {
     return (
@@ -232,8 +235,10 @@ export function PlatformGuidesTab() {
                 <span style={{ fontSize: "var(--font-size-12)", padding: "0.15rem 0.5rem", borderRadius: 999, background: r.published ? "color-mix(in srgb, #16a34a 16%, transparent)" : "var(--surface-muted, rgba(0,0,0,0.05))", color: r.published ? "#15803d" : "var(--text-tertiary)" }}>
                   {r.published ? "Live" : "Draft"}
                 </span>
-                <Button variant="secondary" size="small" onClick={() => edit(r)}>Edit</Button>
-                <Button variant="ghost" size="small" onClick={() => remove(r)}>Delete</Button>
+                <RowActions>
+                  <IconAction label="Edit this guide" icon={IconPencil} onClick={() => edit(r)} />
+                  <IconAction label="Delete this guide" icon={IconTrash} variant="danger" onClick={() => remove(r)} />
+                </RowActions>
               </div>
             ))}
           </div>

@@ -16,6 +16,7 @@ import { getCatalogCards } from "@/lib/scrydex/catalog";
 import { MARQUEE_BY_DECK } from "@/data/tcg-featured";
 import { DeckCardFan } from "@/components/tcg/DeckCardFan";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
+import { DeckViewTracker } from "@/components/tcg/DeckViewTracker";
 import type { TcgCard } from "@/lib/scrydex/types";
 import { TCG_HUB_LIVE } from "@/data/tcg-hub";
 import { TCG_SHOP_URL } from "@/data/shop";
@@ -135,6 +136,7 @@ export default async function Page({
 
   return (
     <main>
+      <DeckViewTracker deck={fm.slug} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

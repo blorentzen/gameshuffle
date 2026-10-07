@@ -26,7 +26,7 @@ export async function handleCrewsCommand(ctx: CmdContext): Promise<CmdResult> {
   const resolved = await resolveCrewStandings(t.id);
   if (!resolved || resolved.crews.length < 2) {
     if (ctx.isBroadcaster) {
-      await send("🏁 No crews are set for this tournament yet — assign them from Manage to track crew standings.");
+      await send("🏁 No crews are set for this tournament yet. Assign them from Manage to track crew standings.");
     }
     return { ok: true };
   }

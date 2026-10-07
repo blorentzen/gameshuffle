@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/seo";
 import { Container, Button, Icon } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
-import { VideoHero } from "@/components/layout/VideoHero";
+import { BrowseHero } from "@/components/events/BrowseHero";
+import { HeroShowcase } from "@/components/home/HeroShowcase";
 import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
+import { EVENTS, tagged } from "@/lib/analytics/events";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
+import { GAME_ART } from "@/data/game-art";
+import { HomePlayToday } from "@/components/originals/HomePlayToday";
 import { PillarDoors } from "@/components/marketing/PillarDoors";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
@@ -24,9 +30,10 @@ const FREE_TOOLS: { icon: IconName; label: string; href: string }[] = [
 ];
 
 export const metadata: Metadata = {
-  title: "GameShuffle: the game-night platform for players and streamers",
+  // Absolute: the brand already leads, so skip the " | GameShuffle" suffix.
+  title: { absolute: "GameShuffle: Mario Kart & Mario Party Randomizers" },
   description:
-    "Free Mario Kart randomizers, live competitive scoring, tournaments, and stream tools to shuffle up any game night. GameShuffle Pro adds an Arcade Token economy your whole chat plays alongside you.",
+    "Free Mario Kart and Mario Party randomizers, live scoring, tournaments and stream tools for any game night. GameShuffle Pro turns your whole chat into players.",
   openGraph: {
     title: "Shuffle up your game night",
     url: "https://www.gameshuffle.co/",
@@ -37,40 +44,59 @@ export const metadata: Metadata = {
   },
 };
 
+/** Who publishes the site, and the site itself. Homepage only. */
+const SITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "GameShuffle",
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon.png`,
+      email: "support@gameshuffle.co",
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: "GameShuffle",
+      url: SITE_URL,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
+};
+
+/** The homepage's six randomizers, the games people look for most; every other one is on /randomizers. */
+const TOP_RANDOMIZERS = [
+  { title: "Mario Kart 8 Deluxe Randomizer", description: "Randomize your kart picks in Mario Kart 8 Deluxe for up to 12 players, plus randomize the tracks your family and friends select.", image: "/images/fg/mk8dx-kart-selection-screen.jpg", imageAlt: "Mario Kart 8 Deluxe selection screen", href: "/randomizers/mario-kart-8-deluxe" },
+  { title: "Mario Kart World Randomizer", description: "Randomize characters, karts, tracks, knockout rallies, and items for Mario Kart World with up to 24 players.", image: "/images/bg/mkw-main-image.jpg", imageAlt: "Mario Kart World", href: "/randomizers/mario-kart-world" },
+  { title: "Mario Party Superstars Randomizer", description: "Roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imageAlt: "Mario throwing a Dice Block on a Mario Party Superstars board", href: "/randomizers/mario-party-superstars" },
+  { title: "Mario Party Jamboree Randomizer", description: "Roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif", imageAlt: "Super Mario Party Jamboree board", href: "/randomizers/super-mario-party-jamboree" },
+  { title: "Super Smash Bros. Ultimate Randomizer", description: "Give up to 8 players a fighter and costume, then roll the stage, the rules, Custom Smash and Squad Strike squads.", image: GAME_ART["super-smash-bros-ultimate"].hero.src, imageAlt: GAME_ART["super-smash-bros-ultimate"].hero.alt, href: "/randomizers/super-smash-bros-ultimate" },
+  { title: "Marvel Rivals Randomizer", description: "Hero roulette for your whole team, with role limits, no repeats, Team-Up teams and a random map.", image: GAME_ART["marvel-rivals"].hero.src, imageAlt: GAME_ART["marvel-rivals"].hero.alt, href: "/randomizers/marvel-rivals", isNew: true },
+];
+
 export default async function HomePage() {
   // Featured shop cards for the homepage TCG module (read-only, 0 Scrydex
   // credits; FPO fallback inside the component if none configured).
   const shopCards = await getPublicFeaturedShopCards();
   return (
     <>
-      <VideoHero
-        videoSrc="/video/gameshuffle-homepage-vid.mp4"
-        videoWebm="/video/gameshuffle-homepage-vid.webm"
-        videoPoster="/video/gameshuffle-homepage-thumb.jpg"
-        overlayOpacity={0.5}
-        height="medium"
-        blend
-      >
-        <Container>
-          <div style={{ maxWidth: "600px" }}>
-            <h1
-              style={{
-                fontSize: "clamp(2.7rem, 5vw, 6.4rem)",
-                fontWeight: 700,
-                marginBottom: "1rem",
-                lineHeight: 1.1,
-              }}
-            >
-              Shuffle up your game&nbsp;night.
-            </h1>
-            <p style={{ fontSize: "clamp(1.6rem, 2vw, 2rem)", lineHeight: 1.6 }}>
-              Free randomizers, live competition, and tournaments for any game night,
-              from family on the couch to friends across Discord. Streaming? A Pro layer
-              turns your whole chat into players.
-            </p>
-          </div>
-        </Container>
-      </VideoHero>
+      <script
+        type="application/ld+json"
+        // Static, server-rendered, not user-generated.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_JSON_LD) }}
+      />
+      <BrowseHero
+        eyebrow="Free for everyone · no account needed"
+        title={"Shuffle up your game\u00a0night."}
+        sub="Free randomizers, live competition, and tournaments for any game night, from family on the couch to friends across Discord. Streaming? A Pro layer turns your whole chat into players."
+        accent="blue"
+        field="mixed"
+        primary={{ href: "#apps", label: "Find something to play" }}
+        secondary={{ href: "/daily", label: "Play today's Daily" }}
+        aside={<HeroShowcase />}
+      />
 
       <main>
         <Container>
@@ -90,35 +116,40 @@ export default async function HomePage() {
             >
               What are we playing today?
             </h2>
-            <div className="app-card-grid">
-              <AppCard
-                title="MK8DX Kart and Track Randomizer"
-                description="Randomize your kart picks in Mario Kart 8 Deluxe for up to 12 players, plus randomize the tracks your family and friends select."
-                imageSrc="/images/fg/mk8dx-kart-selection-screen.jpg"
-                imageAlt="Mario Kart 8 Deluxe selection screen"
-                href="/randomizers/mario-kart-8-deluxe"
-                ctaLabel="Open randomizer"
-                learnMoreHref="/mario-kart-8-deluxe-randomizer"
-              />
-              <AppCard
-                title="Mario Kart World Randomizer"
-                description="Randomize characters, karts, tracks, knockout rallies, and items for Mario Kart World with up to 24 players."
-                imageSrc="/images/bg/mkw-main-image.jpg"
-                imageAlt="Mario Kart World"
-                href="/randomizers/mario-kart-world"
-                ctaLabel="Open randomizer"
-                learnMoreHref="/mario-kart-world-randomizer"
-              />
-              <AppCard
-                title="TCG Companion"
-                description="A digital game-night kit for Pokémon TCG: damage, conditions, prizes, coin flips, and dice without breaking up the table."
-                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
-                imageAlt="Pokémon TCG cards spread on a table"
-                href="/tcg-companion"
-                ctaLabel="Open TCG Companion"
-                learnMoreHref="/pokemon-tcg-companion"
-              />
-            </div>
+            <ResponsiveCarousel className="app-card-grid" label="Top randomizers">
+              {TOP_RANDOMIZERS.map((r) => (
+                <AppCard
+                  key={r.href}
+                  title={r.title}
+                  description={r.description}
+                  imageSrc={r.image}
+                  imageAlt={r.imageAlt}
+                  href={r.href}
+                  ctaLabel="Open randomizer"
+                  isNew={r.isNew}
+                  linkTitle
+                  linkClassName={tagged(EVENTS.randomizerCardClicked, { to: r.href.split("/").pop() ?? r.href, from: "home" })}
+                />
+              ))}
+            </ResponsiveCarousel>
+            <Link href="/randomizers" className="home-all-link">
+              <Button variant="secondary">Check out all randomizers →</Button>
+            </Link>
+          </section>
+
+          {/* Daily + weekly games: reasons to come back between game nights. */}
+          <section style={{ margin: "0 0 3rem" }}>
+            <h2
+              style={{
+                fontSize: "var(--font-size-fluid-h2)",
+                fontWeight: "var(--font-weight-bold)",
+                margin: "0 0 var(--spacing-24)",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              Come back tomorrow
+            </h2>
+            <HomePlayToday />
           </section>
 
           {/* Free tools — moved up (Phase 3): three consecutive blocks of free
@@ -139,7 +170,7 @@ export default async function HomePage() {
               8-ball: 10 free tools, no account needed. On Pro, they go live on
               your overlay.
             </p>
-            <div className="home-tiles">
+            <ResponsiveCarousel className="home-tiles" perSlide={2} label="Free tools">
               {FREE_TOOLS.map((t) => (
                 <a key={t.href} href={t.href} className="home-tile gs-hover-gradient">
                   <span className="home-tile__icon" aria-hidden="true">
@@ -148,7 +179,7 @@ export default async function HomePage() {
                   <span className="home-tile__label">{t.label}</span>
                 </a>
               ))}
-            </div>
+            </ResponsiveCarousel>
             <a href="/tools">
               <Button variant="primary">Browse all free tools →</Button>
             </a>
@@ -167,7 +198,7 @@ export default async function HomePage() {
             >
               More from GameShuffle
             </h2>
-            <div className="app-card-grid">
+            <ResponsiveCarousel className="app-card-grid" label="More from GameShuffle">
               <AppCard
                 title="MK8DX Competitive Hub"
                 description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
@@ -176,7 +207,6 @@ export default async function HomePage() {
                 href="/competitive/mario-kart-8-deluxe"
                 ctaLabel="Open the hub"
                 learnMoreHref="/competitive-mario-kart"
-                beta
               />
               <AppCard
                 title="Browse & Create Tournaments"
@@ -187,7 +217,7 @@ export default async function HomePage() {
                 ctaLabel="Start a tournament"
                 learnMoreHref="/mario-kart-tournaments"
               />
-            </div>
+            </ResponsiveCarousel>
           </section>
 
           {/* Game nights — off-screen game nights, hosted like sessions.
@@ -225,6 +255,43 @@ export default async function HomePage() {
         <ProPitchBand />
 
         <Container>
+          {/* Pokémon: the TCG Companion and the run challenge sit with the
+              featured cards rather than in the randomizer row up top. */}
+          <section style={{ margin: "var(--spacing-56) 0 var(--spacing-24)" }}>
+            <h2
+              style={{
+                fontSize: "var(--font-size-fluid-h3)",
+                fontWeight: "var(--font-weight-bold)",
+                margin: "0 0 var(--spacing-32)",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              For Pokémon trainers
+            </h2>
+            <ResponsiveCarousel className="app-card-grid" label="For Pokémon trainers">
+              <AppCard
+                title="TCG Companion"
+                description="A digital game-night kit for Pokémon TCG: damage, conditions, prizes, coin flips, and dice without breaking up the table."
+                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
+                imageAlt="Pokémon TCG cards spread on a table"
+                href="/tcg-companion"
+                ctaLabel="Open TCG Companion"
+                learnMoreHref="/pokemon-tcg-companion"
+              />
+              <AppCard
+                title="Fire Red & Leaf Green Run Challenge"
+                description="A new way through Kanto: a random starter, Pokémon to catch before every gym, and a level cap and team size for each leader."
+                imageSrc={GAME_ART["pokemon-firered-leafgreen"].hero.src}
+                imageAlt={GAME_ART["pokemon-firered-leafgreen"].hero.alt}
+                href="/randomizers/pokemon-firered-leafgreen"
+                ctaLabel="Start a run"
+                isNew
+                linkTitle
+                linkClassName={tagged(EVENTS.randomizerCardClicked, { to: "pokemon-firered-leafgreen", from: "home" })}
+              />
+            </ResponsiveCarousel>
+          </section>
+
           {/* Featured Pokémon cards — moved down (Phase 3): the two-hop TCG
               funnel shouldn't carry the heaviest treatment up top. */}
           <FeaturedShopCards

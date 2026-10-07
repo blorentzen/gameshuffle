@@ -33,6 +33,7 @@ import {
 import { DEFAULT_TIERS, DEFAULT_BINGO_PROMPTS } from "@/lib/modules/registry";
 import { DiceOverlay } from "@/components/overlay/DiceOverlay";
 import { CoinOverlay } from "@/components/overlay/CoinOverlay";
+import { PartyCardOverlay } from "@/components/overlay/PartyCardOverlay";
 import { OracleOverlay } from "@/components/overlay/OracleOverlay";
 import { NamePickerOverlay } from "@/components/overlay/NamePickerOverlay";
 import { TimerOverlay } from "@/components/overlay/TimerOverlay";
@@ -42,12 +43,15 @@ import { TournamentRaceOverlay } from "@/components/overlay/TournamentRaceOverla
 import { CrewStandingsOverlay } from "@/components/overlay/CrewStandingsOverlay";
 import { ComboOverlay } from "@/components/overlay/ComboOverlay";
 import { WheelOverlay } from "@/components/overlay/WheelOverlay";
+import { NumberBingoOverlay } from "@/components/overlay/NumberBingoOverlay";
+import { DraftOverlay } from "@/components/overlay/DraftOverlay";
 import { PollOverlay } from "@/components/overlay/PollOverlay";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
-import { IconBallBowling, IconCar, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
+import { IconBallBowling, IconCar, IconCards, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type OverlayElement = {
   id: string;
@@ -61,11 +65,14 @@ const TOOLS: OverlayElement[] = [
   { id: "dice", label: "Dice", icon: IconDice5 },
   { id: "coin", label: "Coin", icon: IconCoin },
   { id: "oracle", label: "Oracle", icon: IconBallBowling },
+  { id: "party_card", label: "Party cards", icon: IconCards },
   { id: "name_picker", label: "Raffle", icon: IconTicket },
   { id: "timer", label: "Timer", icon: IconStopwatch },
   { id: "bingo", label: "Bingo", icon: IconGridDots },
   { id: "tierlist", label: "Tier List", icon: IconChartBar },
   { id: "poll", label: "Poll", icon: IconChecklist },
+  { id: "number_bingo", label: "Number Bingo", icon: IconGridDots },
+  { id: "chat_draft", label: "Chat Draft", icon: IconChecklist },
 ];
 
 /** Apps — the larger game surfaces on the overlay. More (overlay wheel, the
@@ -168,6 +175,12 @@ export function OverlayLayoutTab() {
     return {
       dice: { values: [4, 2], dieColor: "#eef1f6", pipColor: "#1b2740" },
       coin: { result: "heads" as const, headsColor: "#e6b23c", tailsColor: "#d9a94f" },
+      party_card: {
+        kind: "crutch" as const,
+        title: "Mushroom diet",
+        text: "Ana can only buy Mushrooms for the next 3 turns.",
+        player: "Ana",
+      },
       oracle: {
         kind: "eightball" as const,
         title: "Magic 8-Ball",
@@ -267,6 +280,33 @@ export function OverlayLayoutTab() {
           { id: "3", label: "Baby Park" },
         ],
         tally: { total: 42, byOption: { "1": 22, "2": 13, "3": 7 } },
+      },
+      chat_draft: {
+        id: "sample", poolId: "pokemon:sv", title: "Pokémon team (Scarlet and Violet)", status: "open" as const, mode: "vote" as const, captains: null,
+        slots: [1, 2, 3, 4, 5, 6].map((n) => ({ key: `pick-${n}`, label: `Pick ${n}` })),
+        picks: [
+          { slot: "pick-1", id: "garchomp", label: "Garchomp", detail: "Dragon / Ground" },
+          { slot: "pick-2", id: "corviknight", label: "Corviknight", detail: "Flying / Steel" },
+        ],
+        current: {
+          pollId: "sample", question: "Pick 3 of 6: who joins the team?", total: 37, closesAt: null,
+          options: [
+            { id: "1", label: "Gardevoir", detail: "Psychic / Fairy", votes: 16 },
+            { id: "2", label: "Toxapex", detail: "Poison / Water", votes: 9 },
+            { id: "3", label: "Arcanine", detail: "Fire", votes: 8 },
+            { id: "4", label: "Tinkaton", detail: "Fairy / Steel", votes: 4 },
+          ],
+        },
+      },
+      number_bingo: {
+        status: "open" as const,
+        patternLabel: "Four corners",
+        called: [7, 22, 34, 41, 49, 58, 63, 70, 12],
+        last: 12,
+        prizeTokens: 500,
+        prizeText: "Picks the next track",
+        winnerName: null,
+        players: 38,
       },
     };
   }, []);
@@ -369,7 +409,7 @@ export function OverlayLayoutTab() {
   };
 
   if (hidden) return null;
-  if (loading) return <p style={{ color: "var(--text-secondary)" }}>Loading…</p>;
+  if (loading) return <LoadingLines label="Loading" />;
 
   const fmt = FORMATS.find((f) => f.id === format)!;
   const stageW = Math.max(280, Math.min(containerW - 4, fmt.cap));
@@ -397,6 +437,8 @@ export function OverlayLayoutTab() {
         return <CoinOverlay payload={samples.coin} style={style} />;
       case "oracle":
         return <OracleOverlay payload={samples.oracle} style={style} />;
+      case "party_card":
+        return <PartyCardOverlay payload={samples.party_card} style={style} />;
       case "name_picker":
         return <NamePickerOverlay payload={samples.name_picker} style={style} />;
       case "timer":
@@ -417,6 +459,10 @@ export function OverlayLayoutTab() {
         return <WheelOverlay spin={samples.wheel} style={style} />;
       case "poll":
         return <PollOverlay poll={samples.poll} style={style} />;
+      case "number_bingo":
+        return <NumberBingoOverlay bingo={samples.number_bingo} style={style} />;
+      case "chat_draft":
+        return <DraftOverlay draft={samples.chat_draft} style={style} />;
       case "chat":
         return <ChatTimelineOverlay sample style={style} />;
       case "viewers":

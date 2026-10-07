@@ -482,6 +482,15 @@
 .browse-hero--gold { --browse-hero-accent: rgba(250, 190, 35, 0.3); }
 /* Cyan for the competitive half — cooler, closer to a screen than a table. */
 .browse-hero--cyan { --browse-hero-accent: rgba(34, 197, 232, 0.32); }
+/* Violet for the Originals (Chat Brain): the accent ramp, a game rather than an event. */
+.browse-hero--violet { --browse-hero-accent: rgba(201, 73, 233, 0.3); }
+/* Blue for tools and randomizers: the brand itself, no pillar tint. */
+.browse-hero--blue { --browse-hero-accent: rgba(96, 140, 255, 0.34); }
+/* Hero shooters: Overwatch orange, Marvel Rivals red, matching their randomizer cards. */
+.browse-hero--orange { --browse-hero-accent: rgba(240, 138, 28, 0.32); }
+.browse-hero--red { --browse-hero-accent: rgba(212, 48, 61, 0.34); }
+/* In-page anchors land below the floating nav. */
+#play, #answer, #updates { scroll-margin-top: 96px; }
 /* The glyph field sits above the aurora blobs but under the copy. It is the
    same component the cards below use, which is the point: the band and the
    things in it are made of the same material. */
@@ -525,6 +534,28 @@
   /* Top pad clears the floating nav (~64px); bottom pad clears the curve. */
   padding: calc(64px + var(--spacing-56, 5.6rem)) 0 var(--spacing-96, 9.6rem);
   max-width: 60rem;
+}
+/* Split hero (the homepage): copy left, a showcase beside it. The split owns
+   the vertical padding so both columns centre on the same line; under 960px
+   the showcase stacks below the copy, left-aligned with it. */
+.browse-hero__split {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 46rem);
+  align-items: center;
+  gap: var(--spacing-56);
+  padding: calc(64px + var(--spacing-40)) 0 var(--spacing-96);
+}
+.browse-hero__split .browse-hero__inner { padding: 0; }
+.browse-hero__aside { position: relative; min-width: 0; }
+@media (max-width: 960px) {
+  .browse-hero__split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-40);
+    padding-top: calc(64px + var(--spacing-32));
+  }
+  .browse-hero__aside { width: 100%; max-width: 46rem; }
 }
 .browse-hero .marketing-eyebrow {
   /* Match the other dark heroes (randomizer, TCG) — brand indigo, not the accent. */

@@ -20,6 +20,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Input } from "@empac/cascadeds";
 import { IconCoin } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface ConfigRow {
   key: string;
@@ -132,6 +133,14 @@ const LEVERS: LeverMeta[] = [
     label: "Default monthly allowance",
     helper:
       "Default monthly mint-on-award ceiling per paying streamer. Tier-specific overrides snapshot at billing period start. Never exposed to streamers (per Spec 05 §5).",
+    unit: "tokens",
+    category: "streamer",
+  },
+  {
+    key: "party_mission_tokens_per_point",
+    label: "Party mission payout",
+    helper:
+      "Tokens per mission point when a streamer confirms a mission in a live Mario Party night (missions are worth 1 to 3 points). Paid through the award path, so it draws on the streamer's monthly allowance.",
     unit: "tokens",
     category: "streamer",
   },
@@ -322,7 +331,7 @@ export function PlatformEconomyTab() {
       )}
 
       {config === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <div
           style={{

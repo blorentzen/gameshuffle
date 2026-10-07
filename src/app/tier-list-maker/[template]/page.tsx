@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import type { Metadata } from "next";
-import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
+import { FreeToolShell } from "@/components/tools/FreeToolShell";
 import { TierListTool } from "@/components/tools/TierListTool";
 import { TierTemplatePicker } from "@/components/tools/TierTemplatePicker";
 import { TIER_TEMPLATES, getTierTemplate } from "@/data/tier-templates";
+import { IconListNumbers } from "@tabler/icons-react";
 
 export function generateStaticParams() {
   return TIER_TEMPLATES.map((t) => ({ template: t.slug }));
@@ -38,19 +38,14 @@ export default async function TierTemplatePage({
 
   return (
     <main>
-      <Container className="tool-page">
-        <h1 className="tool-page__title">{t.title} Tier List</h1>
-        <p className="tool-page__lead">{t.description} Drag them into S-D tiers, or edit the tiers to taste.</p>
+      <FreeToolShell icon={IconListNumbers} eyebrow="Tier list" name={`${t.title} Tier List`} lede={<>{t.description} Drag them into S-D tiers, or edit the tiers to taste.</>} crumbs={[{ label: "Tier List Maker", href: "/tier-list-maker" }, { label: t.title }]}>
         <TierListTool
           storageKey={`gs-tierlist-${t.slug}`}
           seedItems={t.items}
           defaultTitle={`${t.title} Tier List`}
         />
         <TierTemplatePicker currentSlug={t.slug} />
-        <p className="tool-page__lead">
-          More free tools on the <Link href="/tools">tools hub</Link>.
-        </p>
-      </Container>
+      </FreeToolShell>
       <ProToolCta />
     </main>
   );

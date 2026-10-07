@@ -17,6 +17,10 @@
  */
 
 import { GS_DEFAULT_SLUG } from "@/lib/games/artwork";
+import { CHAT_GAME_CATEGORIES } from "@/lib/twitch/chatGameCategories";
+
+/** Every game `!gs-shuffle` rolls for (client-safe list; the rolls themselves are in chatGames.ts). */
+const CHAT_ROLL_GAMES = CHAT_GAME_CATEGORIES.map((c) => c.slug);
 
 export type CommandCategory = "viewer" | "broadcaster" | "mod";
 
@@ -60,15 +64,15 @@ export const ALL_COMMANDS: CommandSpec[] = [
   },
   {
     name: "!gs-shuffle",
-    description: "Roll your own kart combo.",
+    description: "Roll your own pick for the game on stream.",
     category: "viewer",
-    availability: ["mario-kart-8-deluxe", "mario-kart-world"],
+    availability: CHAT_ROLL_GAMES,
   },
   {
     name: "!gs-mycombo",
-    description: "Recall the combo you last rolled.",
+    description: "Recall the pick you last rolled.",
     category: "viewer",
-    availability: ["mario-kart-8-deluxe", "mario-kart-world"],
+    availability: CHAT_ROLL_GAMES,
   },
   {
     name: "!gs-help",

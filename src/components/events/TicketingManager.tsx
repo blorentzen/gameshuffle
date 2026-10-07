@@ -1,5 +1,6 @@
 "use client";
 
+import { EVENTS, tagged } from "@/lib/analytics/events";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Input, Modal, Select, Switch } from "@empac/cascadeds";
@@ -8,6 +9,8 @@ import type { EventType } from "@/lib/events/calendar";
 import type { EventTicketing, PromoCode, TicketOrder, TicketTier } from "@/lib/events/tickets";
 import type { ConnectAccount } from "@/lib/events/tickets";
 import { ConnectAccountCard } from "@/components/events/ConnectAccountCard";
+import { PaidEntryNotice } from "@/components/billing/PaidEntryNotice";
+import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 
 /**
  * Organizer-side ticketing: payout status, ticket tiers, refund policy, and the
@@ -39,6 +42,7 @@ const fromLocalInput = (v: string): string | null => (v ? new Date(v).toISOStrin
 
 export function TicketingManager({ type, eventId }: { type: EventType; eventId: string }) {
   const toast = useToast();
+  const availability = usePaidAvailability();
   const [account, setAccount] = useState<ConnectAccount | null | undefined>(undefined);
   const [tiers, setTiers] = useState<TicketTier[]>([]);
   const [ticketing, setTicketing] = useState<EventTicketing | null>(null);
@@ -156,6 +160,17 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
 
   const ready = !!account && (account.transfersEnabled || account.chargesEnabled);
 
+  // Paid entry off: a notice instead of tiers and payouts, unless this event already
+  // has orders (then the full manager stays, so they can still be refunded).
+  if (availability && !availability.paidEntry && orders.length === 0) {
+    return (
+      <div className="ticketing">
+        <h2 className="event-shell__h2">Tickets &amp; payouts</h2>
+        <PaidEntryNotice />
+      </div>
+    );
+  }
+
   return (
     <div className="ticketing">
       <h2 className="event-shell__h2">Tickets &amp; payouts</h2>
@@ -169,7 +184,7 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
         <Button size="small" variant="secondary" onClick={() => setEdit(emptyTier())} disabled={!ready}>Add ticket</Button>
       </div>
       {tiers.length === 0 ? (
-        <p className="attendees__empty">No tickets — this event is free. Add a ticket type to start charging.</p>
+        <p className="attendees__empty">No tickets yet, so this event is free. Add a ticket type to start charging.</p>
       ) : (
         <div style={{ display: "grid", gap: "var(--spacing-8)", marginTop: "var(--spacing-8)" }}>
           {tiers.map((t) => (
@@ -350,7 +365,7 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
       </Modal>
 
       <p style={{ marginTop: "var(--spacing-12)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-        GameShuffle&apos;s platform fee depends on your plan — Circuit lowers or waives it. <Link href="/gs-pro?from=ticketing">See plans</Link>.
+        GameShuffle&apos;s platform fee depends on your plan. Circuit lowers or waives it. <Link href="/gs-circuit?from=ticketing" className={tagged(EVENTS.upgradeClicked, { from: "ticketing" })}>See Circuit</Link>.
       </p>
     </div>
   );

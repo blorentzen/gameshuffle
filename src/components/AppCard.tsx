@@ -5,13 +5,17 @@ import { Button } from "@empac/cascadeds";
 interface AppCardProps {
   title: string;
   description: string;
-  imageSrc: string;
-  imageAlt: string;
+  imageSrc?: string;
+  imageAlt?: string;
+  /** Art to show instead of a photo (e.g. the generated EventHeaderArt field).
+   *  Decorative, so it needs no alt text. */
+  media?: React.ReactNode;
   href?: string;
   /** Optional marketing "Learn more" page for this app. */
   learnMoreHref?: string;
   comingSoon?: boolean;
-  beta?: boolean;
+  /** Just launched: a "New" badge on the image. */
+  isNew?: boolean;
   /** Override the primary CTA label (defaults to "Check it out"). */
   ctaLabel?: string;
   /** External `href` — opens in a new tab with rel="noopener". */
@@ -23,6 +27,11 @@ interface AppCardProps {
   secondaryLabel?: string;
   /** External `secondaryHref` — opens in a new tab. */
   secondaryExternal?: boolean;
+  /** Make the title itself a link to `href`, so the link text names the tool
+   *  (e.g. "Mario Kart 8 Deluxe Randomizer") rather than only "Open randomizer". */
+  linkTitle?: boolean;
+  /** Extra classes for the card's `href` links (title + primary CTA), e.g. analytics tags. */
+  linkClassName?: string;
 }
 
 export function AppCard({
@@ -33,27 +42,34 @@ export function AppCard({
   href,
   learnMoreHref,
   comingSoon = false,
-  beta = false,
+  isNew = false,
   ctaLabel,
   external = false,
   secondaryHref,
   secondaryLabel,
   secondaryExternal = false,
+  linkTitle = false,
+  media,
+  linkClassName,
 }: AppCardProps) {
   return (
     <Card variant="elevated" padding="none">
       <div style={{ position: "relative" }}>
-        <img
-          src={imageSrc}
-          alt={imageAlt}
-          style={{
-            width: "100%",
-            aspectRatio: "16/9",
-            objectFit: "cover",
-            display: "block",
-          }}
-        />
-        {beta && (
+        {media ? (
+          <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", overflow: "hidden" }}>{media}</div>
+        ) : (
+          <img
+            src={imageSrc}
+            alt={imageAlt ?? ""}
+            style={{
+              width: "100%",
+              aspectRatio: "16/9",
+              objectFit: "cover",
+              display: "block",
+            }}
+          />
+        )}
+        {isNew && (
           <span
             style={{
               position: "absolute",
@@ -64,14 +80,18 @@ export function AppCard({
             }}
           >
             <Badge variant="info" size="small">
-              Beta
+              New
             </Badge>
           </span>
         )}
       </div>
       <CardContent>
         <h2 style={{ fontSize: "var(--font-size-20)", marginBottom: "0.5rem" }}>
-          {title}
+          {linkTitle && href && !external ? (
+            <Link href={href} className={linkClassName ? `app-card__title-link ${linkClassName}` : "app-card__title-link"}>{title}</Link>
+          ) : (
+            title
+          )}
         </h2>
         <p style={{ fontWeight: 500 }}>{description}</p>
         {href ? (
@@ -86,6 +106,7 @@ export function AppCard({
           >
             <a
               href={href}
+              className={linkClassName}
               {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             >
               <Button variant="primary">{ctaLabel ?? "Check it out"}</Button>

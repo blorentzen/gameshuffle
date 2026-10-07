@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button, Checkbox, Select } from "@empac/cascadeds";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Werewolf / Mafia moderator — deal secret roles by passing the phone, then run
@@ -37,6 +38,8 @@ export function Werewolf() {
   const [round, setRound] = useState(1);
   const [dayNight, setDayNight] = useState<"night" | "day">("night");
   const [alive, setAlive] = useState<boolean[]>([]);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "werewolf" }); } };
 
   const special = werewolves + (seer ? 1 : 0) + (doctor ? 1 : 0);
   const villagers = players.length - special;
@@ -55,6 +58,7 @@ export function Werewolf() {
     setRevealIdx(0);
     setShowing(false);
     setPhase("deal");
+    markUsed();
   };
 
   const nextReveal = () => {
@@ -124,7 +128,7 @@ export function Werewolf() {
           {showing ? (
             <>
               <span className={`bgn-wolf__role bgn-wolf__role--${role.toLowerCase()}`}>{role}</span>
-              <Button variant="primary" onClick={nextReveal}>{revealIdx + 1 >= players.length ? "Done — start the game" : "Hide & pass on"}</Button>
+              <Button variant="primary" onClick={nextReveal}>{revealIdx + 1 >= players.length ? "Start the game" : "Hide & pass on"}</Button>
             </>
           ) : (
             <Button variant="primary" size="large" onClick={() => setShowing(true)}>Reveal my role</Button>
@@ -145,7 +149,7 @@ export function Werewolf() {
           <Button variant="ghost" size="small" onClick={() => setPhase("setup")}>New game</Button>
         </div>
       </div>
-      <p className="bgn-tools__hint">Moderator view — roles are visible to you only. Tap a player to mark them out.</p>
+      <p className="bgn-tools__hint">Moderator view: only you can see the roles. Tap a player to mark them out.</p>
       <div className="bgn-wolf__roster">
         {players.map((name, i) => (
           <button

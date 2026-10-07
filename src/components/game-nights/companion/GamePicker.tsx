@@ -7,6 +7,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { STARTER_BOARD_GAMES } from "@/data/board-game-catalog";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Random game picker — settle what to play. Draws from your pool, or from the
@@ -71,6 +72,7 @@ export function GamePicker() {
 
   const pick = () => {
     if (pool.length === 0 || rolling) return;
+    track(EVENTS.toolUsed, { tool: "game-picker" });
     setRolling(true);
     let ticks = 0;
     const spin = () => {
@@ -108,7 +110,7 @@ export function GamePicker() {
         </div>
       )}
       <p className="bgn-tools__hint" style={{ marginTop: "var(--spacing-12)" }}>
-        {games.length > 0 ? `Picking from your ${games.length} game${games.length === 1 ? "" : "s"}.` : "No games added yet — picking from popular titles."}
+        {games.length > 0 ? `Picking from your ${games.length} game${games.length === 1 ? "" : "s"}.` : "No games added yet, so it picks from popular titles."}
       </p>
 
       {/* Collection: signed-in members save/load; signed-out get a nudge. */}

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FOUNDING_BRAIN_ANSWERS } from "@/lib/chatbrain/rules";
 import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { OwnerBar } from "@/components/owner/OwnerBar";
@@ -11,9 +12,14 @@ import type { Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, socialHref, type Socials } from "@/data/socials-types";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { gameArt } from "@/data/favorite-games";
+import { GameCover } from "@/components/games/GameCover";
 import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { getGameArtwork } from "@/lib/games/artwork";
 import { getProfileEnrichment, type TournamentLite } from "@/lib/profile/enrichment";
+import { userSeason } from "@/lib/seasons/store";
+import { rivalsFor } from "@/lib/party/rivals";
+import { seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { SeasonPanel } from "@/components/seasons/SeasonPanel";
 import { effectiveTier, isStaffRole, type SubscriptionTier } from "@/lib/subscription";
 import { getFollowCounts, getFollowState } from "@/lib/social/follows";
 import { getTopFriends } from "@/lib/social/topFriends";
@@ -84,6 +90,9 @@ export async function generateMetadata({
   const displayName = user.display_name || user.username;
   return {
     title: `${displayName}'s Profile`,
+    // Profiles are thin, user-generated pages: keep them out of the index but
+    // let crawlers follow through to the tournaments and pages they link.
+    robots: { index: false, follow: true },
     description: `View ${displayName}'s GameShuffle profile: tournaments, saved configurations, and competitive stats.`,
     openGraph: {
       title: `${displayName} | GameShuffle`,
@@ -285,7 +294,12 @@ export default async function PublicProfilePage({
     .limit(10);
 
   // Wallet, communities, configs count, tournaments (service-client reads).
-  const enrichment = await getProfileEnrichment(profile.id as string);
+  const season = currentSeasonKey();
+  const [enrichment, seasonData, rivals] = await Promise.all([
+    getProfileEnrichment(profile.id as string),
+    userSeason(profile.id as string, season).catch(() => null),
+    rivalsFor(profile.id as string).catch(() => []),
+  ]);
   let authorPosts = COMMUNITY_PUBLICLY_ENABLED
     ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")
     : [];
@@ -301,7 +315,7 @@ export default async function PublicProfilePage({
     }
   }
 
-  // Featured card — spotlight one of the profile's showcased cards.
+  // Favorite TCG card: spotlight one of the profile's showcased cards.
   const featuredCard = featuredCardId
     ? enrichment.showcaseCards.find((c) => c.id === featuredCardId) ?? null
     : null;
@@ -324,6 +338,7 @@ export default async function PublicProfilePage({
   if (enrichment.configCount)
     stats.push({ num: formatCompact(enrichment.configCount), label: "Configs" });
   if (tournamentTotal) stats.push({ num: formatCompact(tournamentTotal), label: "Tournaments" });
+  if (enrichment.dailyStreak) stats.push({ num: formatCompact(enrichment.dailyStreak), label: "Daily streak" });
 
   // Identity badges: Staff / GS Pro + a streamer "Watch live" link.
   const role = (profile.role as string | null) ?? null;
@@ -346,6 +361,16 @@ export default async function PublicProfilePage({
     }
   }
 
+  // Weekly Challenge: a top-10 week (the count shows once there's more than one).
+  if (enrichment.weeklyTopTen) {
+    badges.push({ key: "weekly", label: enrichment.weeklyTopTen > 1 ? `Weekly top 10 ×${enrichment.weeklyTopTen}` : "Weekly top 10", href: "/weekly" });
+  }
+
+  // Chat Brain: answered enough questions while the game was being built.
+  if (enrichment.brainAnswers >= FOUNDING_BRAIN_ANSWERS) {
+    badges.push({ key: "brain", label: "Founding Brain", href: "/chat-brain" });
+  }
+
   // Owned Arcade cosmetics (badges) — the token-sink payoff, shown by the name.
   const cosmeticBadges = (await getInventory(profile.id as string).catch(() => []))
     .map((id) => ARCADE_ITEM_BY_ID[id])
@@ -366,16 +391,11 @@ export default async function PublicProfilePage({
     </div>
   );
 
-  const featuredArt = featuredGame ? gameArt(featuredGame) : null;
   const featuredWidget = featuredGame && (
     <div className="pcard profile-featured">
       <h3 className="pcard__title">Featured game</h3>
       <div className="profile-featured__body">
-        {featuredArt ? (
-          <img src={featuredArt} alt="" className="profile-featured__art" />
-        ) : (
-          <div className="profile-featured__art profile-featured__art--blank" />
-        )}
+        <GameCover name={featuredGame} className="profile-featured__art" />
         <span className="profile-featured__name">{featuredGame}</span>
       </div>
     </div>
@@ -383,7 +403,7 @@ export default async function PublicProfilePage({
 
   const featuredCardWidget = featuredCard && (
     <div className="pcard profile-featured">
-      <h3 className="pcard__title">Featured card</h3>
+      <h3 className="pcard__title">Favorite TCG card</h3>
       <div className="profile-featured-card">
         <CardImage images={featuredCard.images} name={featuredCard.name} size="medium" />
         <span className="profile-featured-card__name">{featuredCard.name}</span>
@@ -394,17 +414,14 @@ export default async function PublicProfilePage({
   const favGamesWidget = favoriteGames.length > 0 && (
     <div className="pcard">
       <h3 className="pcard__title">Favorite games</h3>
-      <div className="game-card-grid game-card-grid--compact">
-        {favoriteGames.map((g) => {
-          const art = gameArt(g);
-          return (
-            <div key={g} className="game-card">
-              {art ? <img src={art} alt="" className="game-card__art" /> : <div className="game-card__art game-card__art--blank" />}
-              <span className="game-card__name">{g}</span>
-            </div>
-          );
-        })}
-      </div>
+      <ol className="game-shelf">
+        {favoriteGames.map((g) => (
+          <li key={g} className="game-shelf__item" title={g}>
+            <GameCover name={g} />
+            <span className="game-shelf__name">{g}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 
@@ -634,6 +651,9 @@ export default async function PublicProfilePage({
   tabs.push({ id: "about", label: "About", content: aboutPanel });
   if (enrichment.showcaseCards.length > 0) tabs.push({ id: "cards", label: "Cards", content: cardsPanel });
   if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
+  if (seasonData && (seasonData.points > 0 || rivals.length > 0 || seasonData.rosters.some((r) => r.won.length))) {
+    tabs.push({ id: "season", label: "Season", content: <SeasonPanel seasonKey={season} season={seasonData} rivals={rivals} /> });
+  }
 
   return (
     <main className={`profile-page${customBg ? " profile-page--custom-bg gs-skinned" : ""}`} style={pageStyle}>

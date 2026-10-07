@@ -125,8 +125,12 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
           <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-24)", lineHeight: "var(--line-height-tight)" }}>
             {c.faqHeading}
           </h2>
+          {/* Open by default: CDS Accordion only mounts an item once it's opened,
+              so collapsed answers would be missing from the HTML (and from search). */}
           <Accordion
             variant="bordered"
+            allowMultiple
+            defaultOpenIds={c.faq.map((_, i) => String(i))}
             items={c.faq.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
           />
         </section>

@@ -3,6 +3,8 @@ import type { IconName } from "@empac/cascadeds";
 /**
  * Content for the per-app marketing landing pages (the SEO/GEO surface).
  * Each entry drives one keyword-targeted page via <AppMarketingPage>.
+ * Game randomizers are not here: their landing copy lives under the tool on
+ * its own URL (src/data/randomizer-landings.ts).
  * Tools stay clean at their own routes; these pages deep-link into them.
  *
  * Copy is written answer-first and scannable for GEO (AI answer engines),
@@ -43,8 +45,8 @@ export interface AppMarketingContent {
   metaDescription: string;
   breadcrumbLabel: string;
   eyebrow: string;
-  /** Status badge in the hero — green "Live" or blue "Beta". */
-  status: "live" | "beta";
+  /** Maturity: live, or just launched ("New"). */
+  status: "live" | "new";
   h1: string;
   heroSubhead: string;
   heroImage: string;
@@ -79,92 +81,14 @@ const PRO_CROSS_SELL: AppCrossSell = {
 };
 
 export const MARKETING_APPS: Record<string, AppMarketingContent> = {
-  "mario-kart-8-deluxe-randomizer": {
-    path: "/mario-kart-8-deluxe-randomizer",
-    metaTitle: "Mario Kart 8 Deluxe Randomizer: Karts, Tracks & Items",
-    metaDescription:
-      "Free Mario Kart 8 Deluxe randomizer. Generate random character, vehicle, wheels, and glider combos for up to 12 players, shuffle tracks and items, and run wild game nights. No account required.",
-    breadcrumbLabel: "Mario Kart 8 Deluxe Randomizer",
-    eyebrow: "Mario Kart 8 Deluxe",
-    status: "live",
-    h1: "Mario Kart 8 Deluxe Randomizer",
-    heroSubhead:
-      "Randomize kart combos, tracks, and items for Mario Kart 8 Deluxe, for up to 12 players. Free, instant, and no account required.",
-    heroImage: "/images/fg/mk8dx-kart-selection-screen.jpg",
-    heroImageAlt: "Mario Kart 8 Deluxe character and kart selection screen",
-    toolHref: "/randomizers/mario-kart-8-deluxe",
-    toolCtaLabel: "Launch the randomizer",
-    overview:
-      "The GameShuffle Mario Kart 8 Deluxe randomizer builds random four-part kart combos (character, vehicle, wheels, and glider) for everyone at the table, then shuffles the tracks and items for your race. It supports up to 12 players, a tour-only track filter, drift-type filters, and race counts up to 48. Open it in any browser, hit randomize, and play.",
-    featuresHeading: "What you can do",
-    features: [
-      { icon: "layout-grid", title: "Full four-part kart combos", description: "A random character, vehicle, wheels, and glider for every player, up to 12 at once." },
-      { icon: "flag", title: "Track shuffler", description: "Randomize the courses for your races, with optional cup icons and a tour-only filter." },
-      { icon: "sparkles", title: "Item randomizer", description: "Shuffle item sets to spice up house rules and keep races unpredictable." },
-      { icon: "bolt", title: "Drift & weight filters", description: "Constrain combos by drift type and build rules for fairer or wackier races." },
-      { icon: "bookmark", title: "Save your setups", description: "Save kart builds, item sets, and full game-night setups to reuse later." },
-      { icon: "share", title: "Share & deep-link", description: "Share a config link, or open combos straight from the GameShuffle Discord bot." },
-    ],
-    crossSell: PRO_CROSS_SELL,
-    ctaBackground: "/images/bg/MK8DX_Background_Music.jpg",
-    faqHeading: "Frequently asked questions",
-    faq: [
-      { q: "Is the Mario Kart 8 Deluxe randomizer free?", a: "Yes. The randomizer is completely free and runs in your browser with no account required." },
-      { q: "How many players does it support?", a: "Up to 12 players per round, each getting their own random character, vehicle, wheels, and glider combo." },
-      { q: "Can I randomize tracks and items too?", a: "Yes. You can shuffle tracks (with a tour-only filter and optional cup icons) and randomize item sets alongside the kart combos." },
-      { q: "Can I re-roll just one player's combo?", a: "Yes. You can re-roll any individual slot without re-rolling everyone else." },
-      { q: "Does it work on mobile?", a: "Yes. The randomizer runs in any modern mobile or desktop browser." },
-    ],
-    schemaName: "Mario Kart 8 Deluxe Randomizer",
-  },
-
-  "mario-kart-world-randomizer": {
-    path: "/mario-kart-world-randomizer",
-    metaTitle: "Mario Kart World Randomizer: Characters, Karts & Tracks",
-    metaDescription:
-      "Free Mario Kart World randomizer. Generate random characters, karts, tracks, items, and knockout rallies for up to 24 players. No account required.",
-    breadcrumbLabel: "Mario Kart World Randomizer",
-    eyebrow: "Mario Kart World",
-    status: "live",
-    h1: "Mario Kart World Randomizer",
-    heroSubhead:
-      "Randomize characters, karts, tracks, items, and knockout rallies for Mario Kart World, for up to 24 players. Free and instant.",
-    heroImage: "/images/bg/mkw-main-image.jpg",
-    heroImageAlt: "Mario Kart World",
-    toolHref: "/randomizers/mario-kart-world",
-    toolCtaLabel: "Launch the randomizer",
-    overview:
-      "The GameShuffle Mario Kart World randomizer creates random character-and-kart pairings for up to 24 players, then shuffles tracks, items, and knockout rallies. It supports vehicle-type filters (Kart, Bike, and ATV), overworld map icons for tracks, and race counts of 4, 6, 8, 12, 16, or 32. Open it, randomize, and race.",
-    featuresHeading: "What you can do",
-    features: [
-      { icon: "layout-grid", title: "Character & kart combos", description: "Random character-and-vehicle pairings for up to 24 players per round." },
-      { icon: "bolt", title: "Vehicle-type filter", description: "Limit the pool to Karts, Bikes, or ATVs to match your house rules." },
-      { icon: "compass", title: "Track shuffler with overworld icons", description: "Randomize courses, shown with Mario Kart World's overworld map icons." },
-      { icon: "award", title: "Knockout rally support", description: "Shuffle setups for knockout rally formats, not just standard races." },
-      { icon: "sparkles", title: "Item randomizer", description: "Mix up item rules to keep every race unpredictable." },
-      { icon: "bookmark", title: "Save & share", description: "Save your setups and share a config link with the lobby." },
-    ],
-    crossSell: PRO_CROSS_SELL,
-    ctaBackground: "/images/bg/mkw-randomizer-image.jpg",
-    faqHeading: "Frequently asked questions",
-    faq: [
-      { q: "Is the Mario Kart World randomizer free?", a: "Yes. It is completely free and runs in your browser with no account required." },
-      { q: "How many players does it support?", a: "Up to 24 players per round, each getting a random character and kart." },
-      { q: "Does it support knockout rallies?", a: "Yes. The randomizer supports knockout rally formats in addition to standard races." },
-      { q: "Can I filter by vehicle type?", a: "Yes. You can limit combos to Karts, Bikes, or ATVs." },
-      { q: "What race counts are available?", a: "You can choose 4, 6, 8, 12, 16, or 32 races." },
-    ],
-    schemaName: "Mario Kart World Randomizer",
-  },
-
   "competitive-mario-kart": {
     path: "/competitive-mario-kart",
     metaTitle: "Competitive Mario Kart: Live Lounge Scoring",
     metaDescription:
       "Run competitive Mario Kart 8 Deluxe game nights with live lounge scoring: normalized placements, FFA and team modes, per-player entry, and real-time results everyone can follow.",
     breadcrumbLabel: "Competitive Mario Kart",
-    eyebrow: "Competitive · Beta",
-    status: "beta",
+    eyebrow: "Competitive · New",
+    status: "new",
     h1: "Competitive Mario Kart Lounge Scoring",
     heroSubhead:
       "Live lounge scoring for competitive Mario Kart 8 Deluxe: normalized placements, team modes, and real-time results everyone can follow.",
@@ -321,8 +245,8 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     metaDescription:
       "A free digital companion for the Pokémon Trading Card Game: track damage, conditions, and prizes, and flip coins or roll dice without breaking up the table. Magic, Lorcana, One Piece and more coming.",
     breadcrumbLabel: "Pokémon TCG Companion",
-    eyebrow: "TCG Companion · Beta",
-    status: "beta",
+    eyebrow: "TCG Companion · New",
+    status: "new",
     h1: "Pokémon TCG Companion",
     heroSubhead:
       "A digital game-night kit for the Pokémon Trading Card Game: damage counters, conditions, prizes, coin flips, and dice, all in one place.",

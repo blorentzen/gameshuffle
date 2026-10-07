@@ -19,6 +19,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatEventPrice } from "@/lib/events/price";
 import { EventHeaderArt, type ArtCategory } from "./EventHeaderArt";
+import { GameChipIcon } from "@/components/games/GameCover";
 
 export interface EventCardProps {
   href: string;
@@ -32,6 +33,8 @@ export interface EventCardProps {
   when?: string | null;
   /** Secondary line: game, place, organizer — already joined. */
   meta?: string | null;
+  /** A game's name, shown as a small cover before the meta line when the catalog knows it. */
+  game?: string | null;
   /** Lowest ticket price in cents; null renders "Free". */
   priceFromCents?: number | null;
   /** Top-right of the artwork: "12 / 16 players", "3 games". */
@@ -55,7 +58,7 @@ export interface EventCardProps {
 }
 
 export function EventCard({
-  href, title, seed, cover, artCategory, when, meta,
+  href, title, seed, cover, artCategory, when, meta, game,
   priceFromCents, countLabel, isLive, highlight, badges, whenSuffix, showPrice = true,
 }: EventCardProps) {
   const price = formatEventPrice(priceFromCents);
@@ -82,7 +85,7 @@ export function EventCard({
           <span className="bgn-card__when">{when}{whenSuffix}</span>
         )}
         <span className="bgn-card__title">{title}</span>
-        {meta && <span className="bgn-card__place">{meta}</span>}
+        {meta && <span className="bgn-card__place">{game && <GameChipIcon name={game} />}{meta}</span>}
         {badges && <span className="bgn-card__tags">{badges}</span>}
       </span>
     </Link>

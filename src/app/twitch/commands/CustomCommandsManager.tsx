@@ -15,6 +15,7 @@ import { useState, useTransition } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { CustomCommandRow } from "@/lib/twitch/commands/customCommands";
 import type { ActorTier } from "@/lib/twitch/commands/registry";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import {
   createCustomCommandAction,
   deleteCustomCommandAction,
@@ -41,6 +42,7 @@ export function CustomCommandsManager({
 }: Props) {
   const [rows, setRows] = useState<CustomCommandRow[]>(initialRows);
   const [error, setError] = useState<string | null>(null);
+  const confirm = useConfirm();
   const [pending, startTransition] = useTransition();
   const [modalRow, setModalRow] = useState<CustomCommandRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -164,8 +166,8 @@ export function CustomCommandsManager({
     });
   };
 
-  const handleDelete = (id: string) => {
-    if (typeof window !== "undefined" && !window.confirm("Delete this command?")) {
+  const handleDelete = async (id: string) => {
+    if (!(await confirm({ title: "Delete this command?", confirmLabel: "Delete command" }))) {
       return;
     }
     setError(null);

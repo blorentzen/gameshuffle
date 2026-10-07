@@ -26,6 +26,7 @@ import {
   Select,
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /** Operational role only (the `users.role` column). Subscription
  *  tier is on a different column and surfaces as read-only context
@@ -283,7 +284,7 @@ export function PlatformStaffTab() {
       )}
 
       {data === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <>
           {/* ── Current staff & admins ─────────────────────────── */}

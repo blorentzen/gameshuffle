@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button, Input } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Cribbage scoreboard — a digital peg board. Race to 121; the skunk line sits at
@@ -22,20 +24,25 @@ const INITIAL: CState = { scores: {} };
 export function Cribbage() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<CState>("gs-bgn-cribbage", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "cribbage" }); } };
   const [add, setAdd] = useState<Record<string, string>>({});
   const scores = state.scores ?? {};
   const scoreOf = (id: string) => scores[id] ?? 0;
 
   const winner = players.find((p) => scoreOf(p.id) >= TARGET) ?? null;
 
-  const patch = (id: string, delta: number) =>
+  const patch = (id: string, delta: number) => {
+    markUsed();
     setState((s) => ({ scores: { ...(s.scores ?? {}), [id]: Math.max(0, scoreOf(id) + delta) } }));
+  };
   const commitAdd = (id: string) => {
     const n = Number(add[id]);
     if (Number.isFinite(n) && n !== 0) patch(id, n);
     setAdd((a) => ({ ...a, [id]: "" }));
   };
-  const reset = () => { if (window.confirm("Reset the cribbage board?")) setState({ scores: {} }); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Reset the cribbage board?", confirmLabel: "Reset board" })) setState({ scores: {} }); };
 
   const skunkNote = (id: string): string | null => {
     if (!winner || winner.id === id) return null;

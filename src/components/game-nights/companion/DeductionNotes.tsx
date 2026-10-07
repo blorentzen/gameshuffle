@@ -1,10 +1,14 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import { Button, IconButton, Input } from "@empac/cascadeds";
+import { Fragment, useState, useRef } from "react";
+import {Button, Input } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconX } from "@tabler/icons-react";
 
 /**
  * Clue-style deduction notepad — the little pad from the box, digital. Tap a
@@ -53,6 +57,8 @@ const uid = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.r
 export function DeductionNotes() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<DState>("gs-bgn-deduction", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "deduction" }); } };
   const [editing, setEditing] = useState(false);
   // Migrate any pre-upgrade save that lacks sections.
   const sections = state.sections ?? DEFAULT_SECTIONS;
@@ -66,12 +72,14 @@ export function DeductionNotes() {
     return (row && !Array.isArray(row) ? row[id] : undefined) ?? "";
   };
 
-  const cycle = (itemId: string, id: string) =>
+  const cycle = (itemId: string, id: string) => {
+    markUsed();
     setState((s) => {
       const prev = s.marks?.[itemId];
       const row = prev && !Array.isArray(prev) ? prev : {};
       return { ...s, marks: { ...(s.marks ?? {}), [itemId]: { ...row, [id]: NEXT[row[id] ?? ""] } } };
     });
+  };
 
   const renameSection = (sid: string, title: string) =>
     setState((s) => ({ ...s, sections: (s.sections ?? DEFAULT_SECTIONS).map((sec) => (sec.id === sid ? { ...sec, title } : sec)) }));
@@ -116,8 +124,9 @@ export function DeductionNotes() {
       };
     });
 
-  const reset = () => { if (window.confirm("Reset to the classic Clue board and clear marks?")) setState({ sections: DEFAULT_SECTIONS, marks: {} }); };
-  const clearMarks = () => { if (window.confirm("Clear the marks but keep the board?")) setState((s) => ({ ...s, marks: {} })); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Reset to the classic Clue board?", body: "Your marks are cleared too.", confirmLabel: "Reset board" })) setState({ sections: DEFAULT_SECTIONS, marks: {} }); };
+  const clearMarks = async () => { if (await confirm({ title: "Clear your marks?", body: "The board stays as it is.", confirmLabel: "Clear marks" })) setState((s) => ({ ...s, marks: {} })); };
 
   if (players.length === 0) return <RosterEmpty />;
 
@@ -154,7 +163,7 @@ export function DeductionNotes() {
                     {editing ? (
                       <div className="bgn-deduction__sectionedit">
                         <input className="bgn-deduction__titleinput" value={section.title} onChange={(e) => renameSection(section.id, e.target.value)} aria-label="Section name" />
-                        <IconButton variant="tertiary" size="small" className="bgn-sheet__x" aria-label={`Remove ${section.title} section`} onClick={() => removeSection(section.id)}>×</IconButton>
+                        <IconAction label={`Remove ${section.title} section`} icon={IconX} onClick={() => removeSection(section.id)} />
                       </div>
                     ) : section.title}
                   </td>
@@ -165,7 +174,7 @@ export function DeductionNotes() {
                       {editing ? (
                         <div className="bgn-deduction__itemedit">
                           <input className="bgn-deduction__iteminput" value={item.label} onChange={(e) => renameItem(section.id, item.id, e.target.value)} aria-label="Card name" />
-                          <IconButton variant="tertiary" size="small" className="bgn-sheet__x" aria-label={`Remove ${item.label}`} onClick={() => removeItem(section.id, item.id)}>×</IconButton>
+                          <IconAction label={`Remove ${item.label}`} icon={IconX} onClick={() => removeItem(section.id, item.id)} />
                         </div>
                       ) : item.label}
                     </td>

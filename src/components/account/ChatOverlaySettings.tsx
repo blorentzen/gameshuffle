@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { Button, Select, Checkbox, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Settings {
   theme: string;
@@ -93,7 +94,7 @@ export function ChatOverlaySettings() {
     }
   }
 
-  if (loading) return <p className="account-card__hint">Loading chat overlay settings…</p>;
+  if (loading) return <LoadingLines label="Loading chat overlay settings" />;
 
   return (
     <div className="account-card">

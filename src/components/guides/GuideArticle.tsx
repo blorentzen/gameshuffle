@@ -8,6 +8,8 @@
  */
 
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { GUIDES_PUBLIC } from "@/lib/games-visibility";
 import { Breadcrumb, Container } from "@empac/cascadeds";
 import { clusterFor, findGuide, type GuideMeta } from "@/lib/guides/manifest";
 import { guidesInClusterAsync } from "@/lib/guides/store";
@@ -28,6 +30,7 @@ export async function GuideArticle({
   guide?: GuideMeta;
   children: React.ReactNode;
 }) {
+  if (!GUIDES_PUBLIC && process.env.NODE_ENV === "production") notFound();
   const guide = passed ?? findGuide(slug)!;
   const cluster = clusterFor(guide.cluster);
   // Siblings give the reader somewhere to go and spread authority across the

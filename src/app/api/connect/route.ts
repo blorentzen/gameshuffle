@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: "unknown_action" }, { status: 400 });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "failed" }, { status: 500 });
+    const msg = e instanceof Error ? e.message : "failed";
+    return NextResponse.json({ error: msg }, { status: msg === "paid_entry_paused" ? 409 : 500 });
   }
 }

@@ -29,6 +29,7 @@ import { Alert, Button, Card, Modal, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { VariableAutocomplete } from "./VariableAutocomplete";
 import { useNotifyAccordionResize } from "./useNotifyAccordionResize";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   AUTHORITY_LABEL,
   type ChatAuthority,
@@ -270,7 +271,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
     return (
       <div ref={sectionRef} className="account-tab__section">
         <h3 className="account-tab__section-title">Platform events</h3>
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

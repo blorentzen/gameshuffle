@@ -31,6 +31,7 @@ export interface DiscordEmbed {
   footer?: { text: string };
   timestamp?: string;
   thumbnail?: { url: string };
+  author?: { name: string; icon_url?: string };
 }
 
 export type DiscordAdapterResult =
@@ -416,7 +417,7 @@ export async function syncKeywordAutoMod(
   keywords: string[],
 ): Promise<string | null> {
   return upsertAutoModRule(guildId, ruleId, {
-    name: "GameShuffle — Blocked words",
+    name: "GameShuffle: Blocked words",
     event_type: 1, // MESSAGE_SEND
     trigger_type: 1, // KEYWORD
     trigger_metadata: { keyword_filter: keywords.slice(0, 1000) },
@@ -433,7 +434,7 @@ export async function syncPresetAutoMod(
   presets: number[],
 ): Promise<string | null> {
   return upsertAutoModRule(guildId, ruleId, {
-    name: "GameShuffle — Word filters",
+    name: "GameShuffle: Word filters",
     event_type: 1,
     trigger_type: 4, // KEYWORD_PRESET
     trigger_metadata: { presets },

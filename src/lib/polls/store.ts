@@ -32,6 +32,8 @@ interface PollRow {
   closes_at: string | null;
   closed_at: string | null;
   created_at: string;
+  kind?: string | null;
+  answer_option_id?: string | null;
 }
 
 function mapPoll(r: PollRow): Poll {
@@ -49,6 +51,8 @@ function mapPoll(r: PollRow): Poll {
     closesAt: r.closes_at,
     closedAt: r.closed_at,
     createdAt: r.created_at,
+    kind: r.kind === "whosaid" || r.kind === "draft" ? r.kind : "poll",
+    answerOptionId: r.answer_option_id ?? null,
   };
 }
 
@@ -72,6 +76,9 @@ export interface CreatePollInput {
   closesAt?: string | null;
   /** Create + open in one step (the chat `!poll` path). */
   open?: boolean;
+  /** A Who Said It? round and its right answer (needs whosaid-m1). */
+  kind?: "whosaid" | "draft";
+  answerOptionId?: string;
 }
 
 export type PollResult = Poll | { error: string };
@@ -110,6 +117,8 @@ export async function createPoll(input: CreatePollInput): Promise<PollResult> {
       created_by: input.createdBy ?? null,
       opened_at: nowOpen ? new Date().toISOString() : null,
       closes_at: input.closesAt ?? null,
+      // Only sent for Who Said It?, so ordinary polls work before whosaid-m1 is applied.
+      ...(input.kind ? { kind: input.kind, answer_option_id: input.answerOptionId ?? null } : {}),
     })
     .select("*")
     .single();
@@ -148,7 +157,11 @@ export async function closePoll(pollId: string): Promise<PollResult> {
     .select("*")
     .maybeSingle();
   if (error) return { error: error.message };
-  if (data) return mapPoll(data as PollRow);
+  if (data) {
+    // A party night may be waiting on this poll to deal a Chance card.
+    void import("@/lib/party/stream").then((m) => m.resolvePartyVote(pollId)).catch(() => {});
+    return mapPoll(data as PollRow);
+  }
 
   // Already closed (or missing) — return the current row if it exists.
   const { data: cur } = await admin.from("gs_polls").select("*").eq("id", pollId).maybeSingle();
@@ -261,7 +274,18 @@ export async function sweepDuePolls(now: number = Date.now()): Promise<number> {
     .not("closes_at", "is", null)
     .lte("closes_at", iso)
     .select("id");
-  return ((data as { id: string }[] | null) ?? []).length;
+  const closed = (data as { id: string }[] | null) ?? [];
+  if (closed.length) {
+    const { resolvePartyVote } = await import("@/lib/party/stream");
+    await Promise.all(closed.map((p) => resolvePartyVote(p.id).catch(() => {})));
+    // A chat draft's pick closing on its timer moves the draft on.
+    const { advanceDraftForPoll } = await import("@/lib/drafts/store");
+    await Promise.all(closed.map((p) => advanceDraftForPoll(p.id).catch(() => {})));
+  }
+  // Captain drafts don't use polls: run their pick timers here too, in case nobody has the overlay or /live open.
+  const { sweepCaptainTimers } = await import("@/lib/drafts/store");
+  await sweepCaptainTimers().catch(() => {});
+  return closed.length;
 }
 
 export async function tally(pollId: string): Promise<PollTally> {

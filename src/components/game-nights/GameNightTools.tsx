@@ -68,7 +68,7 @@ export function GameNightTools() {
         <h2>Players</h2>
         {players.length === 0 && (
           <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>
-            Add everyone at the table to get started.
+            Add everyone at the table to get started (paste names with commas between them to add several).
           </p>
         )}
         <div className="bgn-roster__add">
@@ -76,7 +76,7 @@ export function GameNightTools() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addPlayers(input); } }}
-            placeholder="Add a player — or paste a comma-separated list"
+            placeholder="Add a player"
             aria-label="Add a player"
           />
           <Button variant="secondary" onClick={() => addPlayers(input)} disabled={!input.trim()}>Add</Button>

@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { mergeIdentityAcrossSurfaces } from "@/lib/identity/merge";
 import { ensureUsername } from "@/lib/social/usernameAssign";
 import { NextResponse } from "next/server";
+import { offerGuestClaims } from "@/lib/tournaments/claims";
+import { describeAuthError } from "@/lib/auth/errors";
+import { reportAuthError } from "@/lib/auth/report";
 
 /**
  * Allowlist for the `?redirect=` param. Phase B introduced live-view
@@ -23,6 +26,15 @@ const ALLOWED_REDIRECT_PREFIXES = [
   "/randomizers/",
   "/competitive/",
   "/tournament",
+  "/claim",
+  "/party",
+  // Mod invites send people back to their invite after signing in; without
+  // this they were dropped on /account instead.
+  "/mod/invite/",
+  // Signing up from the Discord Activity: its join page (signing in first to
+  // connect Discord) and the "head back to Discord" page it ends on.
+  "/discord/join",
+  "/discord/joined",
 ];
 
 function safeRedirect(raw: string | null): string {
@@ -41,41 +53,81 @@ function safeRedirect(raw: string | null): string {
   return "/account";
 }
 
+/**
+ * Where a failed sign-in lands, with the reason attached (`?auth_error=`) for
+ * AuthErrorNotice. Connecting an account from /account goes back there;
+ * everything else goes to /login, keeping the original destination.
+ */
+function failureUrl(origin: string, redirect: string, code: string, explicit: boolean): string {
+  // Only an explicit /account destination (the Connect button) goes back there;
+  // the default would bounce a signed-out person to /login and lose the reason.
+  if (explicit && redirect.startsWith("/account")) {
+    const u = new URL(redirect, origin);
+    u.searchParams.set("auth_error", code);
+    return u.toString();
+  }
+  const u = new URL("/login", origin);
+  u.searchParams.set("auth_error", code);
+  if (redirect !== "/account") u.searchParams.set("redirect", redirect);
+  return u.toString();
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const redirect = safeRedirect(searchParams.get("redirect"));
+  const explicitRedirect = searchParams.has("redirect");
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      // Sync OAuth profile data to public.users
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await syncProfileFromOAuth(supabase, user);
-
-        // Per gs-connections-architecture.md §5 — OAuth-only signups must
-        // set a password before landing on the rest of the app. If this
-        // user has no `email` provider on app_metadata.providers, route
-        // them through /signup/set-password and forward the original
-        // `redirect` as `return_to` so they land where they intended
-        // after completing the step.
-        const providers = Array.isArray(user.app_metadata?.providers)
-          ? (user.app_metadata.providers as string[])
-          : [];
-        const hasPassword = providers.length === 0 || providers.includes("email");
-        if (!hasPassword) {
-          const setPasswordUrl = new URL("/signup/set-password", request.url);
-          setPasswordUrl.searchParams.set("return_to", redirect);
-          return NextResponse.redirect(setPasswordUrl);
-        }
-      }
-      return NextResponse.redirect(`${origin}${redirect}`);
-    }
+  // Supabase sends provider and flow failures back here as error params
+  // instead of a code. Keep the reason: log it, report it, show it.
+  if (!code) {
+    const friendly = describeAuthError({
+      code: searchParams.get("error_code"),
+      error: searchParams.get("error"),
+      message: searchParams.get("error_description"),
+    });
+    console.error("[auth/callback] sign-in failed:", friendly.code, searchParams.get("error_description") ?? searchParams.get("error") ?? "(no code, no error)");
+    reportAuthError(friendly, { surface: "callback", detail: searchParams.get("error_description") });
+    return NextResponse.redirect(failureUrl(origin, redirect, friendly.code, explicitRedirect));
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth`);
+  const supabase = await createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    const friendly = describeAuthError({ code: error.code, message: error.message });
+    console.error("[auth/callback] code exchange failed:", friendly.code, error.message);
+    reportAuthError(friendly, { surface: "callback:exchange", detail: error.message });
+    return NextResponse.redirect(failureUrl(origin, redirect, friendly.code, explicitRedirect));
+  }
+  // Sync OAuth profile data to public.users
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await syncProfileFromOAuth(supabase, user);
+
+    // Guest entries saved under this (verified) address get offered, never
+    // linked silently (spec F). Skipped when the user is already on their
+    // way to a claim link, which offers the same entry itself.
+    if (user.email && user.email_confirmed_at && !redirect.startsWith("/claim")) {
+      await offerGuestClaims(user.id, user.email).catch((err) => console.error("[auth/callback] claim offer failed:", err));
+    }
+
+    // Per gs-connections-architecture.md §5 — OAuth-only signups must
+    // set a password before landing on the rest of the app. If this
+    // user has no `email` provider on app_metadata.providers, route
+    // them through /signup/set-password and forward the original
+    // `redirect` as `return_to` so they land where they intended
+    // after completing the step.
+    const providers = Array.isArray(user.app_metadata?.providers)
+      ? (user.app_metadata.providers as string[])
+      : [];
+    const hasPassword = providers.length === 0 || providers.includes("email");
+    if (!hasPassword) {
+      const setPasswordUrl = new URL("/signup/set-password", request.url);
+      setPasswordUrl.searchParams.set("return_to", redirect);
+      return NextResponse.redirect(setPasswordUrl);
+    }
+  }
+  return NextResponse.redirect(`${origin}${redirect}`);
 }
 
 async function syncProfileFromOAuth(supabase: any, user: any) {

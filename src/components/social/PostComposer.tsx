@@ -268,7 +268,7 @@ export function PostComposer({
               label: "New event",
               content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-12)", paddingTop: "var(--spacing-8)" }}>
-                  <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>Rally people for a game night — pick a game and time, and viewers can RSVP.</p>
+                  <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>Rally people for a game night: pick a game and time, and viewers can RSVP.</p>
                   <Select floatingLabel="Game" options={GAME_OPTIONS} value={evGame} onChange={(v) => setEvGame(v as string)} fullWidth />
                   {evGame === OTHER_GAME && (
                     <Input floatingLabel="Game name" value={evGameOther} onChange={(e) => setEvGameOther(e.target.value)} placeholder="Type the game" />

@@ -15,11 +15,13 @@
  * Validation mirrors signup + the Security tab's "Change password" form.
  */
 
+import { describeAuthError } from "@/lib/auth/errors";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 export default function SetPasswordPage() {
   return (
@@ -33,7 +35,10 @@ function SetPasswordContent() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get("return_to") || "/account?tab=profile";
+  // A path on this site only: anything absolute or protocol-relative would send
+  // a freshly signed-up person to another website.
+  const rawReturn = searchParams.get("return_to");
+  const returnTo = rawReturn && rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : "/account?tab=profile";
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -83,7 +88,7 @@ function SetPasswordContent() {
     const supabase = createClient();
     const { error: updateErr } = await supabase.auth.updateUser({ password });
     if (updateErr) {
-      setError(updateErr.message || "Couldn't set password. Try again.");
+      setError(describeAuthError({ code: updateErr.code, message: updateErr.message }).message);
       setSubmitting(false);
       return;
     }
@@ -97,7 +102,7 @@ function SetPasswordContent() {
     return (
       <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
         <Container>
-          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Loading…</p>
+          <LoadingLines label="Loading" />
         </Container>
       </main>
     );

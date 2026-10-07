@@ -9,7 +9,9 @@ import { CADENCES } from "@/lib/game-nights/seriesSchedule";
 import { GamesBroughtInput } from "./GamesBroughtInput";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { useToast } from "@/components/toast/ToastProvider";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { NIGHT_KINDS, type GameNight, type NightGame, type NightKind } from "@/lib/game-nights/types";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /** ISO → a `datetime-local` value in the viewer's local time. */
 function toLocalInput(iso: string): string {
@@ -29,6 +31,7 @@ export function NightForm({
   nightId?: string;
   initial?: GameNight;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const toast = useToast();
   const editing = !!nightId;
@@ -225,13 +228,17 @@ export function NightForm({
           body: JSON.stringify(payload),
         },
       );
-      const data = (await res.json().catch(() => null)) as { id?: string; error?: string } | null;
+      const data = (await res.json().catch(() => null)) as { id?: string; seriesId?: string | null; error?: string } | null;
       if (!res.ok) {
         setError(data?.error || "Couldn't save the night. Try again.");
         setSaving(false);
         return;
       }
       const savedId = editing ? nightId! : data?.id;
+      if (!editing) {
+        track(EVENTS.gameNightCreated, { kind });
+        if (data?.seriesId) track(EVENTS.seriesCreated, { cadence: repeat });
+      }
 
       // Apply the cover to the (now-existing) night. The cover route is guarded
       // (migration_pending / R2), so a cover hiccup never blocks the save.
@@ -255,7 +262,7 @@ export function NightForm({
   }
 
   async function remove() {
-    if (!nightId || !window.confirm("Delete this night? This can't be undone.")) return;
+    if (!nightId || !(await confirm({ title: "Delete this night?", body: "This can’t be undone.", confirmLabel: "Delete night" }))) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/game-nights/${nightId}`, { method: "DELETE" });
@@ -353,8 +360,8 @@ export function NightForm({
               value={visibility}
               onChange={(v) => setVisibility((typeof v === "string" ? v : v[0] ?? "public") as "public" | "unlisted")}
               options={[
-                { value: "public", label: "Public — listed for anyone to find" },
-                { value: "unlisted", label: "Unlisted — only people with the link" },
+                { value: "public", label: "Public: listed for anyone to find" },
+                { value: "unlisted", label: "Unlisted: only people with the link" },
               ]}
             />
           </div>
@@ -365,7 +372,7 @@ export function NightForm({
               {locType === "online" ? "How people join" : "Getting in"}
             </label>
             <p className="bgn-lobby-edit__note">
-              Only people who RSVP “going” can see this — not the public page, not “maybe”.
+              Only people who RSVP “going” can see this. It isn’t on the public page or shown to “maybe”.
             </p>
             {locType === "online" ? (
               <Input
@@ -388,7 +395,7 @@ export function NightForm({
               onChange={(e) => setArrivalNote(e.target.value)}
               placeholder={
                 locType === "online"
-                  ? "Anything else they need — which channel, when you'll be on."
+                  ? "Anything else they need, like which channel and when you'll be on."
                   : "Which buzzer, where to park, the dog is friendly."
               }
               rows={2}
@@ -428,7 +435,7 @@ export function NightForm({
             <TagCombobox
               options={BOARD_GAME_GENRE_SUGGESTIONS.filter((g) => !genres.includes(g)).map((g) => ({ value: g, label: g }))}
               onAdd={addGenre}
-              placeholder="Add a type — or type your own…"
+              placeholder="Add a type or type your own…"
               size="medium"
               allowCreate
               createLabel="Add"
@@ -480,7 +487,7 @@ export function NightForm({
               </Button>
             </span>
             <span style={{ fontSize: "var(--font-size-14)", color: saveState === "error" ? "var(--error-600, #c11a10)" : "var(--text-tertiary)" }}>
-              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "All changes saved" : saveState === "error" ? "Couldn't save — check your connection" : "Changes save automatically"}
+              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "All changes saved" : saveState === "error" ? "Couldn't save. Check your connection." : "Changes save automatically"}
             </span>
           </>
         ) : (

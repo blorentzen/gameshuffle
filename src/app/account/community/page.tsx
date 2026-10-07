@@ -16,6 +16,8 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChatCommandsTab } from "@/components/account/ChatCommandsTab";
 import { PollsTab } from "@/components/account/PollsTab";
+import { StreamBingoTab } from "@/components/account/StreamBingoTab";
+import { ChatDraftTab } from "@/components/account/ChatDraftTab";
 import { CommunityTab } from "@/components/account/CommunityTab";
 import { GameModulesTab } from "@/components/account/GameModulesTab";
 import { EngagementTab } from "@/components/account/EngagementTab";
@@ -48,6 +50,8 @@ function CommunityContent() {
     <>
       {activeTab === "chat-commands" && <ChatCommandsTab />}
       {activeTab === "polls" && <PollsTab />}
+      {activeTab === "bingo" && <StreamBingoTab />}
+      {activeTab === "draft" && <ChatDraftTab />}
       {activeTab === "community" && <CommunityTab />}
       {activeTab === "game-modules" && <GameModulesTab />}
       {activeTab === "engagement" && <EngagementTab />}

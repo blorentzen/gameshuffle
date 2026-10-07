@@ -6,9 +6,9 @@ import type { Metadata } from "next";
  * `ProUpgradeCtaButtons`), and client components can't export metadata.
  */
 export const metadata: Metadata = {
-  title: "GameShuffle Pro: sessions, Twitch & Discord integration, and a token economy",
+  title: "GameShuffle Pro: chat rolls, stream tools and a token economy for streamers",
   description:
-    "GameShuffle Pro runs your whole game night: cross-platform sessions tying Twitch and Discord together, OBS overlay, chat commands, channel-point rewards, Picks & Bans modules, and a token economy with prediction markets. $9/mo or $99/yr, 14-day free trial.",
+    "GameShuffle Pro runs your stream's game night: chat rolls and match rolls for every game, an OBS overlay, live polls, Stream Bingo, Chat Draft, AI tools, channel-point rewards and a token economy with prediction markets, across Twitch and Discord. $9/mo or $99/yr, 14-day free trial.",
   openGraph: {
     title: "GameShuffle Pro",
     url: "https://www.gameshuffle.co/gs-pro",

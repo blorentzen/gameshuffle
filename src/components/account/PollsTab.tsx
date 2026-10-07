@@ -12,6 +12,10 @@ import Link from "next/link";
 import { Button, Input, Select, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { MAX_POLL_OPTIONS, MIN_POLL_OPTIONS, type Poll, type PollTally } from "@/lib/polls/types";
+import { EVENTS, tagged } from "@/lib/analytics/events";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconX } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 export function PollsTab() {
   const toast = useToast();
@@ -104,7 +108,7 @@ export function PollsTab() {
     } else toast.error("Couldn't update the poll.");
   }
 
-  if (loading) return <div className="account-card"><p>Loading…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading" /></div>;
 
   if (!isPro) {
     return (
@@ -118,7 +122,7 @@ export function PollsTab() {
           <p className="dbot-muted">
             Run live polls your viewers vote on from chat, Discord, and your stream. Creating polls is a GS Pro feature.
           </p>
-          <Link href="/gs-pro?from=polls"><Button variant="primary" size="small">See GS Pro</Button></Link>
+          <Link href="/gs-pro?from=polls" className={tagged(EVENTS.upgradeClicked, { from: "polls" })}><Button variant="primary" size="small">See GS Pro</Button></Link>
         </div>
       </div>
     );
@@ -158,7 +162,7 @@ export function PollsTab() {
                     fullWidth
                   />
                   {options.length > MIN_POLL_OPTIONS && (
-                    <Button variant="ghost" size="small" onClick={() => removeOption(i)}>Remove</Button>
+                    <IconAction label={`Remove option ${i + 1}`} icon={IconX} onClick={() => removeOption(i)} />
                   )}
                 </div>
               ))}
@@ -174,7 +178,7 @@ export function PollsTab() {
                 <Select
                   floatingLabel="Auto-close"
                   options={[
-                    { value: "0", label: "Off — I'll close it myself" },
+                    { value: "0", label: "Off, I'll close it myself" },
                     { value: "1", label: "After 1 minute" },
                     { value: "2", label: "After 2 minutes" },
                     { value: "5", label: "After 5 minutes" },

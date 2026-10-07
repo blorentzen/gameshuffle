@@ -9,8 +9,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 export function BlockProfileButton({ targetUserId }: { targetUserId: string }) {
+  const confirm = useConfirm();
   const { user } = useAuth();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -18,7 +20,7 @@ export function BlockProfileButton({ targetUserId }: { targetUserId: string }) {
   if (!user || user.id === targetUserId) return null;
 
   async function block() {
-    if (!window.confirm("Block this account? You won't see each other's profiles.")) {
+    if (!(await confirm({ title: "Block this account?", body: "You won’t see each other’s profiles.", confirmLabel: "Block" }))) {
       return;
     }
     setBusy(true);

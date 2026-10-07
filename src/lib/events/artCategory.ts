@@ -13,7 +13,24 @@
  */
 export type ArtCategory =
   | "compete" | "board" | "video" | "tcg" | "mixed"
-  | "stream" | "tools" | "series";
+  | "stream" | "tools" | "series"
+  /* Not an event: something that hasn't been decided yet (an unrolled board). */
+  | "mystery"
+  /* A Mario Party minigame card: party glyphs, recoloured per category by CSS. */
+  | "minigame"
+  /* Chat Brain: brains, chat bubbles and the bar chart of a survey board. */
+  | "brain"
+  /* Hero shooters (Overwatch, Marvel Rivals): the hero roulette's role glyphs. */
+  | "heroes"
+  /* The Daily Shuffle: a calendar day, a guess, the racing wheel, a streak flame. */
+  | "daily"
+  /* The Weekly Challenge: trophies, a week on the calendar, a ranked list. */
+  | "weekly"
+  /* Communities: people, conversations, a home base. */
+  | "community"
+  /* GameShuffle Originals together (the Discord Activity): the Daily's puzzle,
+     the Weekly's calendar, Chat Brain's brain, a trophy and sparkles. */
+  | "originals";
 
 /** Map an event onto its art family. */
 export function artCategoryFor(type: "tournament" | "game-night", kind?: string | null): ArtCategory {

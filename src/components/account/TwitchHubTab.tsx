@@ -31,6 +31,9 @@ import {
 import { IconCheck } from "@tabler/icons-react";
 import { hasAllCurrentScopes, missingScopes } from "@/lib/twitch/scopes";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface TwitchConnection {
   id: string;
@@ -99,6 +102,8 @@ function StepBadge({ n, done, disabled }: { n: number; done: boolean; disabled?:
 
 export function TwitchHubTab() {
   const { user } = useAuth();
+  const toast = useToast();
+  const confirm = useConfirm();
   const searchParams = useSearchParams();
   const [userTier, setUserTier] = useState<SubscriptionTier>("free");
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -208,7 +213,7 @@ export function TwitchHubTab() {
   if (!user || loading) {
     return (
       <div className="account-card">
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }
@@ -240,8 +245,9 @@ export function TwitchHubTab() {
       <ul style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", lineHeight: "var(--line-height-relaxed)", marginBottom: "var(--spacing-20)", paddingLeft: "var(--spacing-20)", display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
         <li>
           <strong>Viewer lobby in your chat.</strong> Viewers type <code>!gs-join</code> to
-          enter the shuffle and <code>!gs-shuffle</code> to roll their own Mario Kart combo.
-          Up to 24 viewers per session (MKW) / 12 (MK8DX).
+          enter the shuffle and <code>!gs-shuffle</code> to roll their own pick: a kart combo,
+          fighter, hero, weapon kit and more, for whichever supported game you&apos;re streaming.
+          The lobby holds as many viewers as that game&apos;s online room.
         </li>
         <li>
           <strong>Channel point redemptions.</strong> Optional &ldquo;Reroll the
@@ -275,8 +281,8 @@ export function TwitchHubTab() {
       <>
         <p style={{ color: "var(--text-secondary)", marginBottom: "var(--spacing-24)", fontSize: "var(--font-size-14)" }}>
           {isTwitchLinked && linkedTwitchName
-            ? `Welcome, ${linkedTwitchName}. Set up the streamer integration to turn your stream into a chat-driven Mario Kart randomizer party.`
-            : "Turn your stream into a chat-driven Mario Kart randomizer party. Two steps to get there."}
+            ? `Welcome, ${linkedTwitchName}. Set up the streamer integration to turn your stream into a chat-driven randomizer party.`
+            : "Turn your stream into a chat-driven randomizer party. Two steps to get there."}
         </p>
         {connectError && (
           <div style={{ marginBottom: "var(--spacing-16)" }}>
@@ -333,7 +339,7 @@ export function TwitchHubTab() {
                   </Alert>
                 </div>
               )}
-              <ProUpgradeCtaButtons hasUsedTrial={userHasUsedTrial} onError={setUpgradeError} />
+              <ProUpgradeCtaButtons hasUsedTrial={userHasUsedTrial} onError={setUpgradeError} from="twitch-hub" />
               <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-16)", marginBottom: 0 }}>
                 {userHasUsedTrial
                   ? "Your card is charged immediately. Cancel anytime from the billing portal."
@@ -457,7 +463,7 @@ export function TwitchHubTab() {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("Disconnect your Twitch account from GameShuffle? Active EventSub subscriptions and session data will be removed.")) {
+    if (!(await confirm({ title: "Disconnect Twitch from GameShuffle?", body: "Your chat commands, overlay events and session data from Twitch stop until you connect again.", confirmLabel: "Disconnect" }))) {
       return;
     }
     setDisconnecting(true);
@@ -465,13 +471,13 @@ export function TwitchHubTab() {
       const res = await fetch("/api/twitch/disconnect", { method: "POST" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        alert(body.error ? `Disconnect failed: ${body.error}` : "Disconnect failed.");
+        toast.error(body.error ? `Couldn’t disconnect Twitch: ${body.error}` : "Couldn’t disconnect Twitch. Try again.");
         setDisconnecting(false);
         return;
       }
       window.location.reload();
     } catch (err) {
-      alert("Disconnect failed.");
+      toast.error("Couldn’t disconnect Twitch. Check your connection and try again.");
       console.error(err);
       setDisconnecting(false);
     }
@@ -502,8 +508,8 @@ export function TwitchHubTab() {
       {!hasAllCurrentScopes(connection.scopes) && !reauthDismissed && (
         <div style={{ marginBottom: "var(--spacing-16)" }}>
           <Alert variant="info">
-            New permissions available. Reconnecting Twitch is optional — it
-            just unlocks the latest features:
+            New permissions available. Reconnecting Twitch is optional.
+            It unlocks the latest features:
             <ul
               style={{
                 margin: "var(--spacing-8) 0 var(--spacing-8) var(--spacing-20)",

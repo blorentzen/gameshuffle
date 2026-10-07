@@ -12,6 +12,7 @@ import { FriendTile } from "@/components/social/FriendTile";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { formatCompact } from "@/lib/format/number";
 import type { Connection } from "@/lib/social/topFriends";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 function ConnectionRow({ user }: { user: Connection }) {
   const { user: me } = useAuth();
@@ -117,7 +118,7 @@ export function FollowStats({
           secondaryAction={{ label: "Close", onClick: () => setOpen(null) }}
         >
           {loading ? (
-            <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+            <LoadingLines label="Loading" />
           ) : users.length === 0 ? (
             <p style={{ color: "var(--text-secondary)" }}>No {open} yet.</p>
           ) : (

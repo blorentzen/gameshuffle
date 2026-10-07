@@ -10,15 +10,15 @@ import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { PlatformShot, OverlayShot } from "@/components/marketing/ProFeatureShots";
 import { CarouselItem } from "@empac/cascadeds";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "For organizers: run your events on GameShuffle",
   description:
-    "Running tournaments, leagues, or community game nights? GameShuffle gives organizers brackets, points, and Heat-to-Mains ladders, championship seasons, live scoring, build rules and picks/bans, automatic player profiles, and public pages to join, all announced across Discord and Twitch. Free to run.",
+    "Running tournaments, leagues, or community game nights? GameShuffle gives organizers brackets, points, and Heat-to-Mains ladders for Mario Kart, random-character rounds for Smash, Mario Party, Splatoon, Kirby and fighting games, championship seasons, live scoring, text reminders, and public pages to join, all announced across Discord and Twitch. Free to run.",
   openGraph: {
     title: "GameShuffle for organizers",
     url: "https://www.gameshuffle.co/for-organizers",
-    images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: { canonical: "https://www.gameshuffle.co/for-organizers" },
 };
@@ -92,6 +92,24 @@ const TOOLKIT: {
     accent: "#2563eb",
   },
   {
+    icon: "users",
+    title: "Every game we roll",
+    description:
+      "Mario Kart with track and build rules, or random-character rounds for Smash, Mario Party, Splatoon, Kirby Air Riders, Street Fighter 6 and Tekken 8.",
+    href: "/tournament/create",
+    cta: "Create a tournament →",
+    accent: "#ea580c",
+  },
+  {
+    icon: "bolt",
+    title: "Text reminders",
+    description:
+      "Check-in and start-time texts to entrants who opt in, so your field actually shows up (Circuit plans, US numbers).",
+    href: "/gs-circuit",
+    cta: "See Circuit →",
+    accent: "#0d9488",
+  },
+  {
     iconSrc: "/images/icons/discord.svg",
     title: "Announce it everywhere",
     description:
@@ -136,7 +154,8 @@ export default function ForOrganizersPage() {
       />
 
       {/* Hero */}
-      <section className="marketing-hero">
+      <section className="marketing-hero marketing-hero--cyan">
+        <MarketingHeroField category="compete" />
         <Container>
           <p className="marketing-eyebrow">For Organizers</p>
           <h1 className="marketing-hero__title">Run your events on GameShuffle</h1>

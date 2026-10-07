@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
 import { publishedGuidesAsync } from "@/lib/guides/store";
+import { GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 import { createPublicClient } from "@/lib/supabase/public";
 import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
+import { COMPANION_TOOLS } from "@/lib/game-nights/companion/tools";
 import { MARKETING_APP_PATHS } from "@/data/marketing-apps";
 import { SITE_URL } from "@/lib/seo";
 import { getDeckSlugs } from "@/lib/decks";
@@ -12,8 +14,29 @@ import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
 import { publicDestinations } from "@/lib/nav/pillars";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import LASTMOD from "@/data/sitemap-lastmod.json";
 
 export const revalidate = 3600; // regenerate every hour
+
+/**
+ * Public pages deliberately left out: /beta (a sign-up gate), /features (a
+ * redirect). Profiles, quote pools and tournament instances are left out too,
+ * as thin or short-lived pages; those pages carry their own robots rules.
+ */
+const UNLISTED = new Set(["/beta", "/features"]);
+/** Tool pages marked noindex (prototypes), kept out of the tool list below. */
+const NOINDEX_TOOLS = new Set(["shuffle-dice"]);
+
+/**
+ * When a page's content last changed, from src/data/sitemap-lastmod.json
+ * (git history, refreshed by `npm run sitemap:lastmod`). Unknown paths get no
+ * lastmod rather than a made-up one.
+ */
+function lm(path: string): Date | undefined {
+  const d = (LASTMOD as Record<string, string>)[path];
+  return d ? new Date(`${d}T00:00:00Z`) : undefined;
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Competitive hubs are per game now; list whichever games have a config.
@@ -21,236 +44,340 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .then((games) => games.map((g) => g.gameSlug))
     .catch(() => ["mario-kart-8-deluxe"]);
   const baseUrl = SITE_URL;
-  const now = new Date();
 
   // --- Static routes ---
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
-      lastModified: now,
+      lastModified: lm("/"),
       changeFrequency: "weekly",
       priority: 1.0,
     },
     {
       url: `${baseUrl}/apps`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/beta`,
-      lastModified: now,
+      lastModified: lm("/apps"),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/for-streamers`,
-      lastModified: now,
+      lastModified: lm("/for-streamers"),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/for-streamers/current`,
-      lastModified: now,
+      lastModified: lm("/for-streamers/current"),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/for-streamers/aspiring`,
-      lastModified: now,
+      lastModified: lm("/for-streamers/aspiring"),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/for-organizers`,
-      lastModified: now,
+      lastModified: lm("/for-organizers"),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/gs-circuit`,
-      lastModified: now,
+      lastModified: lm("/gs-circuit"),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/tools`,
-      lastModified: now,
+      lastModified: lm("/tools"),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/daily`,
+      lastModified: lm("/daily"),
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/weekly`,
+      lastModified: lm("/weekly"),
       changeFrequency: "weekly",
       priority: 0.7,
     },
     {
       url: `${baseUrl}/wheel-spinner`,
-      lastModified: now,
+      lastModified: lm("/wheel-spinner"),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/dice-roller`,
-      lastModified: now,
+      lastModified: lm("/dice-roller"),
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${baseUrl}/coin-flip`,
-      lastModified: now,
+      lastModified: lm("/coin-flip"),
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${baseUrl}/name-picker`,
-      lastModified: now,
+      lastModified: lm("/name-picker"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${baseUrl}/stream-timer`,
-      lastModified: now,
+      lastModified: lm("/stream-timer"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${baseUrl}/tier-list-maker`,
-      lastModified: now,
+      lastModified: lm("/tier-list-maker"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
     ...TIER_TEMPLATES.map((t) => ({
       url: `${baseUrl}/tier-list-maker/${t.slug}`,
-      lastModified: now,
+      lastModified: lm("/tier-list-maker/[template]"),
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
     {
       url: `${baseUrl}/bingo-card-generator`,
-      lastModified: now,
+      lastModified: lm("/bingo-card-generator"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
     ...BINGO_TEMPLATES.map((t) => ({
       url: `${baseUrl}/bingo-card-generator/${t.slug}`,
-      lastModified: now,
+      lastModified: lm("/bingo-card-generator/[template]"),
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
     {
       url: `${baseUrl}/magic-8-ball`,
-      lastModified: now,
+      lastModified: lm("/magic-8-ball"),
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${baseUrl}/yes-no`,
-      lastModified: now,
+      lastModified: lm("/yes-no"),
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${baseUrl}/truth-or-dare`,
-      lastModified: now,
+      lastModified: lm("/truth-or-dare"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
     ...TRUTH_OR_DARE_SETS.map((s) => ({
       url: `${baseUrl}/truth-or-dare/${s.slug}`,
-      lastModified: now,
+      lastModified: lm("/truth-or-dare/[set]"),
       changeFrequency: "monthly" as const,
       priority: 0.6,
     })),
     {
+      url: `${baseUrl}/randomizers`,
+      lastModified: lm("/randomizers"),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/randomizers/mario-kart-8-deluxe`,
-      lastModified: now,
+      lastModified: lm("/randomizers/mario-kart-8-deluxe"),
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
       url: `${baseUrl}/randomizers/mario-kart-world`,
-      lastModified: now,
+      lastModified: lm("/randomizers/mario-kart-world"),
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/randomizers/super-mario-party-jamboree`,
+      lastModified: lm("/randomizers/super-mario-party-jamboree"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/randomizers/mario-party-superstars`,
+      lastModified: lm("/randomizers/mario-party-superstars"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    ...(SMASH_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/super-smash-bros-ultimate`,
+      lastModified: lm("/randomizers/super-smash-bros-ultimate"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(SPLATOON_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/splatoon-3`,
+      lastModified: lm("/randomizers/splatoon-3"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(STADIUM_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/pokemon-stadium`,
+      lastModified: lm("/randomizers/pokemon-stadium"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(N64_PARTY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-party`,
+      lastModified: lm("/randomizers/mario-party"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(N64_PARTY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-party-2`,
+      lastModified: lm("/randomizers/mario-party-2"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(N64_PARTY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-party-3`,
+      lastModified: lm("/randomizers/mario-party-3"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(FRLG_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/pokemon-firered-leafgreen`,
+      lastModified: lm("/randomizers/pokemon-firered-leafgreen"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(MK64_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-kart-64`,
+      lastModified: lm("/randomizers/mario-kart-64"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(PERFECT_DARK_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/perfect-dark`,
+      lastModified: lm("/randomizers/perfect-dark"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(OVERWATCH_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/overwatch`,
+      lastModified: lm("/randomizers/overwatch"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(MARVEL_RIVALS_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/marvel-rivals`,
+      lastModified: lm("/randomizers/marvel-rivals"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(GOLDENEYE_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/goldeneye-007`,
+      lastModified: lm("/randomizers/goldeneye-007"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(KIRBY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/kirby-air-riders`,
+      lastModified: lm("/randomizers/kirby-air-riders"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
     ...COMPETITIVE_GAME_SLUGS.map((slug) => ({
       url: `${baseUrl}/competitive/${slug}`,
-      lastModified: now,
+      lastModified: lm("/competitive/[game]"),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
     {
       url: `${baseUrl}/tournament`,
-      lastModified: now,
+      lastModified: lm("/tournament"),
       changeFrequency: "daily",
       priority: 0.8,
     },
     {
       url: `${baseUrl}/gs-pro`,
-      lastModified: now,
+      lastModified: lm("/gs-pro"),
       changeFrequency: "weekly",
       priority: 0.9,
     },
-    {
-      url: `${baseUrl}/features`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
     // Per-app marketing landing pages (the keyword-targeted SEO surface).
-    ...MARKETING_APP_PATHS.map((path) => ({
+    ...MARKETING_APP_PATHS.filter((path) => SMASH_PUBLIC || !path.includes("smash")).map((path) => ({
       url: `${baseUrl}${path}`,
-      lastModified: now,
+      lastModified: lm(path),
       changeFrequency: "weekly" as const,
       priority: 0.9,
     })),
     {
       url: `${baseUrl}/contact-us`,
-      lastModified: now,
+      lastModified: lm("/contact-us"),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${baseUrl}/terms`,
-      lastModified: now,
+      lastModified: lm("/terms"),
       changeFrequency: "yearly",
       priority: 0.2,
     },
     {
       url: `${baseUrl}/privacy`,
-      lastModified: now,
+      lastModified: lm("/privacy"),
       changeFrequency: "yearly",
       priority: 0.2,
     },
     {
       url: `${baseUrl}/sms`,
-      lastModified: now,
+      lastModified: lm("/sms"),
       changeFrequency: "yearly" as const,
       priority: 0.3,
     },
     {
       url: `${baseUrl}/accessibility`,
-      lastModified: now,
+      lastModified: lm("/accessibility"),
       changeFrequency: "yearly",
       priority: 0.2,
     },
     {
       url: `${baseUrl}/legal/tcg-attribution`,
-      lastModified: now,
+      lastModified: lm("/legal/tcg-attribution"),
       changeFrequency: "yearly",
       priority: 0.2,
     },
     {
       url: `${baseUrl}/help`,
-      lastModified: now,
+      lastModified: lm("/help"),
       changeFrequency: "weekly",
       priority: 0.7,
     },
     {
       url: `${baseUrl}/help/contact`,
-      lastModified: now,
+      lastModified: lm("/help/contact"),
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    // Free game-night tools: the hub plus every registered tool (the tool pages
+    // were missing from the sitemap entirely until 2026-09-29).
+    { url: `${baseUrl}/game-nights/tools`, lastModified: lm("/game-nights/tools"), changeFrequency: "monthly", priority: 0.6 },
+    ...COMPANION_TOOLS.filter((t) => !NOINDEX_TOOLS.has(t.id)).map((t) => ({
+      url: `${baseUrl}${t.href}`,
+      lastModified: lm(t.href),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
     ...HELP_ARTICLES.map((a) => ({
       url: `${baseUrl}${a.href}`,
-      lastModified: now,
+      lastModified: lm("/help"),
       changeFrequency: "monthly" as const,
       priority: 0.5,
     })),
@@ -263,42 +390,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // only ever see a redirect.
   const known = new Set(staticRoutes.map((r) => String(r.url)));
   for (const href of publicDestinations()) {
+    if (UNLISTED.has(href)) continue;
     const url = `${baseUrl}${href === "/" ? "" : href}`;
     if (known.has(url)) continue;
-    staticRoutes.push({ url, lastModified: now, changeFrequency: "weekly", priority: 0.6 });
+    staticRoutes.push({ url, lastModified: lm(href), changeFrequency: "weekly", priority: 0.6 });
     known.add(url);
   }
 
   // --- Guides: the SEO cluster. Manifest-driven, and `published` gates it, so
   //     an unfinished guide never appears here or in routing. ---
-  for (const g of await publishedGuidesAsync()) {
+  for (const g of GUIDES_PUBLIC ? await publishedGuidesAsync() : []) {
     const url = `${baseUrl}/guides/${g.slug}`;
     if (known.has(url)) continue;
-    staticRoutes.push({ url, lastModified: now, changeFrequency: "monthly", priority: 0.7 });
+    staticRoutes.push({ url, lastModified: g.updatedAt ? new Date(g.updatedAt) : lm("/guides/[slug]"), changeFrequency: "monthly", priority: 0.7 });
     known.add(url);
-  }
-
-  // --- Dynamic routes: public tournaments ---
-  let tournamentRoutes: MetadataRoute.Sitemap = [];
-  try {
-    const supabase = createPublicClient();
-    const { data: tournaments } = await supabase
-      .from("tournaments")
-      .select("id, updated_at, status")
-      .neq("status", "cancelled")
-      .order("updated_at", { ascending: false })
-      .limit(1000);
-
-    if (tournaments) {
-      tournamentRoutes = tournaments.map((t) => ({
-        url: `${baseUrl}/tournament/${t.id}`,
-        lastModified: new Date(t.updated_at),
-        changeFrequency: (t.status === "in_progress" ? "hourly" : "weekly") as "hourly" | "weekly",
-        priority: t.status === "in_progress" ? 0.7 : 0.5,
-      }));
-    }
-  } catch (err) {
-    console.error("Sitemap: failed to fetch tournaments", err);
   }
 
   // --- Dynamic routes: public championship season pages ---
@@ -324,63 +429,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch championships", err);
   }
 
-  // --- Dynamic routes: public user profiles ---
-  let profileRoutes: MetadataRoute.Sitemap = [];
-  try {
-    const supabase = createPublicClient();
-    const { data: users } = await supabase
-      .from("users")
-      .select("username, updated_at, moderation_status")
-      .eq("is_public", true)
-      .not("username", "is", null)
-      .order("updated_at", { ascending: false })
-      .limit(5000);
-
-    if (users) {
-      profileRoutes = users
-        // Only index public profiles in good standing — private/404 and
-        // suspended/banned profiles must not be advertised to crawlers.
-        .filter(
-          (u) =>
-            u.moderation_status !== "suspended" && u.moderation_status !== "banned",
-        )
-        .map((u) => ({
-          url: `${baseUrl}/u/${u.username}`,
-          lastModified: new Date(u.updated_at),
-          changeFrequency: "weekly" as const,
-          priority: 0.4,
-        }));
-    }
-  } catch (err) {
-    console.error("Sitemap: failed to fetch user profiles", err);
-  }
-
-  // --- Dynamic routes: public community quote pages ---
-  // Each Twitch-connected community has a publicly-visible quote
-  // pool at /quotes/{slug}. Listing them here lets crawlers discover
-  // the pages without us having to push individual sitemaps per
-  // streamer.
-  let quoteRoutes: MetadataRoute.Sitemap = [];
-  try {
-    const supabase = createPublicClient();
-    const { data: communities } = await supabase
-      .from("gs_communities")
-      .select("slug, created_at")
-      .not("slug", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(5000);
-    if (communities) {
-      quoteRoutes = communities.map((c) => ({
-        url: `${baseUrl}/quotes/${c.slug}`,
-        lastModified: new Date(c.created_at),
-        changeFrequency: "weekly" as const,
-        priority: 0.3,
-      }));
-    }
-  } catch (err) {
-    console.error("Sitemap: failed to fetch communities", err);
-  }
-
   // --- Pokémon TCG deck cluster (hub + every deck detail) ---
   // Emitted only once the TCG surface is live — the deck pages funnel to
   // /pokemon-tcg, which is noindex/FPO until TCG_HUB_LIVE flips. Slugs are
@@ -391,25 +439,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     deckRoutes = [
       {
         url: `${baseUrl}/pokemon-tcg`,
-        lastModified: now,
+        lastModified: lm("/pokemon-tcg"),
         changeFrequency: "weekly" as const,
         priority: 0.8,
       },
       {
         url: `${baseUrl}/pokemon-tcg/decks`,
-        lastModified: now,
+        lastModified: lm("/pokemon-tcg/decks"),
         changeFrequency: "weekly" as const,
         priority: 0.6,
       },
       ...slugs.map((slug) => ({
         url: `${baseUrl}/pokemon-tcg/decks/${slug}`,
-        lastModified: now,
+        lastModified: lm("/pokemon-tcg/decks/[deck]"),
         changeFrequency: "monthly" as const,
         priority: 0.6,
       })),
       ...getBattleBoxSlugs().map((slug) => ({
         url: `${baseUrl}/pokemon-tcg/decks/battle-box/${slug}`,
-        lastModified: now,
+        lastModified: lm("/pokemon-tcg/decks/battle-box/[slug]"),
         changeFrequency: "monthly" as const,
         priority: 0.6,
       })),
@@ -428,10 +476,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .order("published_at", { ascending: false })
       .limit(2000);
     ideaRoutes = [
-      { url: `${baseUrl}/ideas`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
+      { url: `${baseUrl}/ideas`, lastModified: lm("/ideas"), changeFrequency: "daily", priority: 0.6 },
       ...((ideas ?? []) as { id: string; published_at: string | null }[]).map((i) => ({
         url: `${baseUrl}/ideas/${i.id}`,
-        lastModified: i.published_at ? new Date(i.published_at) : now,
+        lastModified: i.published_at ? new Date(i.published_at) : undefined,
         changeFrequency: "weekly" as const,
         priority: 0.4,
       })),
@@ -442,10 +490,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticRoutes,
-    ...tournamentRoutes,
     ...championshipRoutes,
-    ...profileRoutes,
-    ...quoteRoutes,
     ...deckRoutes,
     ...ideaRoutes,
   ];

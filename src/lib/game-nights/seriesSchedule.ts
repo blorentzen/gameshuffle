@@ -2,10 +2,12 @@
  * Pure recurrence math for game night series. No deps + no server-only, so
  * the create form (preview) and the server generator share one implementation.
  * Week-based cadences add a fixed number of weeks from the anchor; "monthly"
- * repeats the anchor's Nth weekday-of-month (e.g. the 2nd Saturday). All math is
- * done on the stored instant (UTC getters) so a materialized night keeps the
- * anchor's time-of-day.
+ * repeats the anchor's Nth weekday-of-month (e.g. the 2nd Saturday). All math
+ * runs in the series' timezone on the local date and wall-clock time, so a
+ * night keeps its local start time through daylight saving changes.
  */
+
+import { GS_TIME_ZONE, gsAddDays, gsWeekday, zonedInstant, zonedParts } from "@/lib/time/gsClock";
 
 export type Cadence = "weekly" | "biweekly" | "every_3_weeks" | "every_4_weeks" | "monthly";
 
@@ -28,47 +30,51 @@ const WEEKS: Partial<Record<Cadence, number>> = {
   every_4_weeks: 4,
 };
 
-const DAY_MS = 86_400_000;
-
-/** The Nth weekday-of-month for (year, month), at the given time, or null if it
- *  doesn't exist that month (e.g. a 5th Saturday). Month is 0-based. */
-function nthWeekday(
-  year: number, month: number, weekday: number, ordinal: number, hour: number, minute: number,
-): Date | null {
-  const first = new Date(Date.UTC(year, month, 1));
-  const firstWd = first.getUTCDay();
-  const day = 1 + ((weekday - firstWd + 7) % 7) + ordinal * 7;
-  const d = new Date(Date.UTC(year, month, day, hour, minute));
-  return d.getUTCMonth() === month ? d : null;
+/**
+ * The Nth weekday-of-month for a month, as a local day string, or null if it
+ * doesn't exist that month (e.g. a 5th Saturday). Month is 1-based.
+ */
+function nthWeekday(year: number, month: number, weekday: number, ordinal: number): string | null {
+  const first = `${year}-${String(month).padStart(2, "0")}-01`;
+  const offset = (weekday - gsWeekday(first) + 7) % 7 + ordinal * 7;
+  const day = gsAddDays(first, offset);
+  return Number(day.slice(5, 7)) === month ? day : null;
 }
 
 /**
  * The first occurrence strictly after `after`. If the anchor itself is still in
  * the future it's returned as-is. Returns null only for an unknown cadence.
+ *
+ * Steps happen in the series' own timezone (`tz`): the local date moves and the
+ * local start time stays, so a 7pm weekly night is still 7pm after daylight
+ * saving changes, and "the 2nd Friday" means the host's Friday, not UTC's.
  */
-export function nextOccurrence(anchor: Date, cadence: Cadence, after: Date): Date | null {
+export function nextOccurrence(anchor: Date, cadence: Cadence, after: Date, tz: string = GS_TIME_ZONE): Date | null {
   if (anchor.getTime() > after.getTime()) return anchor;
+  const local = zonedParts(anchor, tz);
 
   const weeks = WEEKS[cadence];
   if (weeks) {
-    const step = weeks * 7 * DAY_MS;
-    const diff = after.getTime() - anchor.getTime();
-    const steps = Math.floor(diff / step) + 1; // smallest step landing strictly after
-    return new Date(anchor.getTime() + steps * step);
+    const at = (k: number) => zonedInstant(gsAddDays(local.day, k * weeks * 7), local.hour, local.minute, tz);
+    // Estimate from elapsed time, then settle: an hour of daylight saving can move the boundary by one step.
+    let k = Math.max(1, Math.floor((after.getTime() - anchor.getTime()) / (weeks * 7 * 86_400_000)) + 1);
+    while (at(k).getTime() <= after.getTime()) k++;
+    while (k > 1 && at(k - 1).getTime() > after.getTime()) k--;
+    return at(k);
   }
 
   if (cadence === "monthly") {
-    const weekday = anchor.getUTCDay();
-    const ordinal = Math.floor((anchor.getUTCDate() - 1) / 7); // 0-based Nth
-    const hour = anchor.getUTCHours();
-    const minute = anchor.getUTCMinutes();
-    let y = anchor.getUTCFullYear();
-    let m = anchor.getUTCMonth();
+    const weekday = gsWeekday(local.day);
+    const ordinal = Math.floor((Number(local.day.slice(8, 10)) - 1) / 7); // 0-based Nth
+    let y = Number(local.day.slice(0, 4));
+    let m = Number(local.day.slice(5, 7));
     for (let i = 0; i < 48; i++) {
       m += 1;
-      if (m > 11) { m = 0; y += 1; }
-      const d = nthWeekday(y, m, weekday, ordinal, hour, minute);
-      if (d && d.getTime() > after.getTime()) return d;
+      if (m > 12) { m = 1; y += 1; }
+      const day = nthWeekday(y, m, weekday, ordinal);
+      if (!day) continue;
+      const d = zonedInstant(day, local.hour, local.minute, tz);
+      if (d.getTime() > after.getTime()) return d;
     }
     return null;
   }

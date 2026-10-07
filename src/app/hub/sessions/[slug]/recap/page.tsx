@@ -19,6 +19,7 @@ import { getSessionBySlug } from "@/lib/sessions/service";
 import { listSessionEvents, listActiveParticipants } from "@/lib/sessions/queries";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import { formatDuration } from "@/lib/time/relative";
+import { rollKind, rollSlots, rollTitle } from "@/lib/twitch/chatRoll";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -197,15 +198,11 @@ export default async function RecapPage({ params }: PageProps) {
                   (p.twitch_display_name as string) ??
                   (p.display_name as string) ??
                   "viewer";
-                const combo = p.combo as
-                  | { character?: { name: string }; vehicle?: { name: string }; wheels?: { name: string }; glider?: { name: string } }
-                  | undefined;
-                const parts = [
-                  combo?.character?.name,
-                  combo?.vehicle?.name,
-                  combo?.wheels?.name,
-                  combo?.glider?.name,
-                ].filter((s): s is string => !!s && s !== "N/A");
+                // A viewer battle lists each player with their pick; a match setup lists what it rolled.
+                const kind = rollKind(p.combo);
+                const battle = kind ? rollTitle(p.combo) : null;
+                const parts = rollSlots(p.combo).map((slot) =>
+                  kind === "battle" && slot.detail ? `${slot.detail}: ${slot.name}` : kind === "setup" && slot.detail ? `${slot.name} (${slot.detail})` : slot.name);
                 return (
                   <li key={event.id} className="recap-page__shuffle-entry">
                     <span className="recap-page__shuffle-time">
@@ -214,7 +211,7 @@ export default async function RecapPage({ params }: PageProps) {
                         minute: "2-digit",
                       })}
                     </span>
-                    <span className="recap-page__shuffle-actor">{name}</span>
+                    <span className="recap-page__shuffle-actor">{battle ?? name}</span>
                     <span className="recap-page__shuffle-combo">
                       {parts.join(" · ") || "-"}
                     </span>
@@ -373,14 +370,5 @@ function describePlatform(
 function formatComboParts(
   combo: Record<string, unknown> | null | undefined
 ): string {
-  if (!combo) return "";
-  const c = combo as {
-    character?: { name?: string };
-    vehicle?: { name?: string };
-    wheels?: { name?: string };
-    glider?: { name?: string };
-  };
-  return [c.character?.name, c.vehicle?.name, c.wheels?.name, c.glider?.name]
-    .filter((s): s is string => !!s && s !== "N/A")
-    .join(" / ");
+  return rollSlots(combo).map((slot) => (slot.detail ? `${slot.name} (${slot.detail})` : slot.name)).join(" / ");
 }

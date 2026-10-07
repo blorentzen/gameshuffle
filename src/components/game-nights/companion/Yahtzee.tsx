@@ -1,9 +1,12 @@
 "use client";
 
+import { useRef } from "react";
 import { Button, IconButton } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 type Cat = { id: string; label: string; hint?: string; fixed?: number };
 
@@ -38,24 +41,33 @@ const sumCats = (s: Scores, cats: Cat[]) => cats.reduce((t, c) => t + (s[c.id] ?
 export function Yahtzee() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<YState>("gs-bgn-yahtzee", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "dice-scorecard" }); } };
   const scores = state.scores ?? {};
   const scoreOf = (id: string): Scores => scores[id] ?? {};
 
-  const setCell = (id: string, catId: string, v: number | null) =>
+  const setCell = (id: string, catId: string, v: number | null) => {
+    markUsed();
     setState((s) => ({ ...s, scores: { ...(s.scores ?? {}), [id]: { ...scoreOf(id), [catId]: v } } }));
+  };
   // Fixed categories cycle: blank -> scored (fixed) -> scratched (0) -> blank.
-  const cycleFixed = (id: string, cat: Cat) =>
+  const cycleFixed = (id: string, cat: Cat) => {
+    markUsed();
     setState((s) => {
       const cur = scoreOf(id)[cat.id];
       const next = cur == null ? cat.fixed! : cur > 0 ? 0 : null;
       return { ...s, scores: { ...(s.scores ?? {}), [id]: { ...scoreOf(id), [cat.id]: next } } };
     });
-  const bumpBonus = (id: string, delta: number) =>
+  };
+  const bumpBonus = (id: string, delta: number) => {
+    markUsed();
     setState((s) => ({
       ...s,
       scores: { ...(s.scores ?? {}), [id]: { ...scoreOf(id), [BONUS_KEY]: Math.max(0, (scoreOf(id)[BONUS_KEY] ?? 0) + delta) } },
     }));
-  const reset = () => { if (window.confirm("Clear the scorecard?")) setState(INITIAL); };
+  };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Clear the scorecard?", confirmLabel: "Clear scorecard" })) setState(INITIAL); };
 
   const derived = players.map((pl) => {
     const sc = scoreOf(pl.id);

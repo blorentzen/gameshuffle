@@ -22,6 +22,9 @@ import {
   Switch,
 } from "@empac/cascadeds";
 import { WheelStylePicker } from "@/components/wheel/WheelStylePicker";
+import { WHEEL_PRESETS, wheelPreset } from "@/data/wheel-presets";
+import { AiPackModal } from "@/components/ai/AiPackModal";
+import { IconSparkles } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import {
   DEFAULT_FILL_STYLE,
@@ -37,6 +40,8 @@ import type {
   WheelContribution,
   WheelSegment,
 } from "@/lib/wheels/types";
+import { EVENTS, tagged } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface DraftSegment {
   label: string;
@@ -123,6 +128,7 @@ export function WheelsTab() {
   const [loading, setLoading] = useState(true);
   const [proRequired, setProRequired] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // New wheels default to the streamer's brand palette (their chosen brand
@@ -225,7 +231,7 @@ export function WheelsTab() {
         <h2 className="account-tab__heading">Wheels</h2>
         <Alert variant="info">
           The overlay wheel spinner is a GameShuffle Pro feature.{" "}
-          <Link href="/gs-pro?from=wheels">Upgrade to Pro</Link> to build wheels and spin
+          <Link href="/gs-pro?from=wheels" className={tagged(EVENTS.upgradeClicked, { from: "wheels" })}>Upgrade to Pro</Link> to build wheels and spin
           them live on your overlay. No separate browser source required.
         </Alert>
       </div>
@@ -241,17 +247,37 @@ export function WheelsTab() {
         wheel is what <code>!spin</code> uses.
       </p>
 
-      <div style={{ margin: "var(--spacing-16) 0" }}>
+      <div style={{ margin: "var(--spacing-16) 0", display: "flex", flexWrap: "wrap", gap: "var(--spacing-12)", alignItems: "center" }}>
         <Button
           variant="primary"
           onClick={() => setDraft({ ...EMPTY_DRAFT, themeId: brandWheelTheme })}
         >
           New wheel
         </Button>
+        {/* Start from a ready-made challenge wheel; it opens in the editor to tweak before saving. */}
+        <Select
+          size="small"
+          placeholder="Start from a preset"
+          aria-label="Start from a preset"
+          value=""
+          options={WHEEL_PRESETS.map((p) => ({ value: p.id, label: `${p.name}: ${p.blurb.toLowerCase()}` }))}
+          onChange={(v) => {
+            const p = wheelPreset(String(v));
+            if (!p) return;
+            const taken = new Set(wheels.map((w) => w.name.toLowerCase()));
+            setDraft({
+              ...EMPTY_DRAFT,
+              themeId: brandWheelTheme,
+              name: taken.has(p.name.toLowerCase()) ? `${p.name} 2` : p.name,
+              segments: p.segments.map((label) => ({ label, weight: "" })),
+            });
+          }}
+        />
+        <Button variant="secondary" size="small" iconBefore={IconSparkles} onClick={() => setAiOpen(true)}>Make one with AI</Button>
       </div>
 
       {loading ? (
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : wheels.length === 0 ? (
         <p style={{ color: "var(--text-secondary)" }}>
           No wheels yet. Create one to get started.
@@ -292,6 +318,24 @@ export function WheelsTab() {
           ))}
         </div>
       )}
+
+      <AiPackModal
+        kind="wheel"
+        isOpen={aiOpen}
+        onClose={() => setAiOpen(false)}
+        applyLabel="Open in the editor"
+        onApply={(items, theme) => {
+          const taken = new Set(wheels.map((w) => w.name.toLowerCase()));
+          const base = theme.length > 40 ? `${theme.slice(0, 39).trim()}…` : theme;
+          const name = base.charAt(0).toUpperCase() + base.slice(1);
+          setDraft({
+            ...EMPTY_DRAFT,
+            themeId: brandWheelTheme,
+            name: taken.has(name.toLowerCase()) ? `${name} 2` : name,
+            segments: items.map((label) => ({ label, weight: "" })),
+          });
+        }}
+      />
 
       {draft ? (
         <Modal

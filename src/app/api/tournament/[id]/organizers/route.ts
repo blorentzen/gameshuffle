@@ -1,5 +1,5 @@
 /**
- * GET    /api/tournament/[id]/organizers  → list co-organizers (public)
+ * GET    /api/tournament/[id]/organizers  → the host and co-organizers (public)
  * POST   /api/tournament/[id]/organizers  → add one by GS username (owner only)
  * DELETE /api/tournament/[id]/organizers?userId=... → remove one (owner only)
  *
@@ -17,7 +17,29 @@ import { tournamentHasFeature } from "@/lib/tournaments/circuit-resolve";
 export const runtime = "nodejs";
 
 type OrganizerRow = { user_id: string; added_at: string };
-type UserRow = { id: string; display_name: string | null; username: string | null; avatar_url: string | null };
+type UserRow = { id: string; display_name: string | null; username: string | null; avatar_url: string | null; is_public: boolean | null };
+
+/** A private profile's handle stays out, so the page names them without linking to a /u page that won't load. */
+const publicHandle = (u: { username: string | null; is_public: boolean | null } | undefined) => (u?.is_public ? u.username : null);
+
+const HOST_COLS = "id, display_name, username, is_public, profile_accent, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar";
+
+/**
+ * Whoever runs the tournament, read with the service client: someone hosting a
+ * public event is named on it even when their profile is private (the users
+ * table only lets others read public rows, so a browser read came back empty
+ * and the page said "by the organizer").
+ */
+async function loadHost(id: string) {
+  const admin = createServiceClient();
+  const { data: t } = await admin.from("tournaments").select("organizer_id").eq("id", id).maybeSingle();
+  const organizerId = (t as { organizer_id: string | null } | null)?.organizer_id;
+  if (!organizerId) return null;
+  const { data: u } = await admin.from("users").select(HOST_COLS).eq("id", organizerId).maybeSingle();
+  if (!u) return null;
+  const { is_public, ...rest } = u as unknown as { username: string | null; is_public: boolean | null } & Record<string, unknown>;
+  return { ...rest, username: is_public ? rest.username : null };
+}
 
 async function loadRoster(id: string) {
   const admin = createServiceClient();
@@ -30,7 +52,7 @@ async function loadRoster(id: string) {
   if (ids.length === 0) return [];
   const { data: users } = await admin
     .from("users")
-    .select("id, display_name, username, avatar_url")
+    .select("id, display_name, username, avatar_url, is_public")
     .in("id", ids);
   const byId = new Map((users ?? []).map((u) => [(u as UserRow).id, u as UserRow]));
   return (rows ?? []).map((r) => {
@@ -38,7 +60,7 @@ async function loadRoster(id: string) {
     return {
       userId: (r as OrganizerRow).user_id,
       displayName: u?.display_name ?? "Member",
-      username: u?.username ?? null,
+      username: publicHandle(u) ?? null,
       avatarUrl: u?.avatar_url ?? null,
       addedAt: (r as OrganizerRow).added_at,
     };
@@ -64,7 +86,8 @@ async function requireOwner(id: string) {
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return NextResponse.json({ organizers: await loadRoster(id) });
+  const [host, organizers] = await Promise.all([loadHost(id), loadRoster(id)]);
+  return NextResponse.json({ host, organizers });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

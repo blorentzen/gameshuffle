@@ -52,13 +52,25 @@ async function main() {
     const svc = await client.messaging.v1.services(msSid).fetch().catch((e: Error) => { bad(`cannot fetch messaging service: ${e.message}`); return null; });
     if (svc) {
       ok(`"${svc.friendlyName}"`);
-      svc.inboundRequestUrl === WANT_INBOUND ? ok(`inbound webhook → ${WANT_INBOUND}`) : bad(`inbound webhook is "${svc.inboundRequestUrl || "unset"}", expected ${WANT_INBOUND}`);
       svc.statusCallback === WANT_STATUS ? ok(`status callback → ${WANT_STATUS}`) : bad(`status callback is "${svc.statusCallback || "unset"}", expected ${WANT_STATUS}`);
-      if (svc.useInboundWebhookOnNumber) warn("useInboundWebhookOnNumber is on: the NUMBER's webhook wins over the service's");
 
       const nums = await client.messaging.v1.services(msSid).phoneNumbers.list({ limit: 50 }).catch(() => []);
       senders = nums.map((n) => n.phoneNumber);
       senders.length ? ok(`senders: ${senders.join(", ")}`) : bad("no phone numbers attached to the messaging service");
+
+      // Inbound texts (STOP/START/HELP) reach us one of two ways: the service's
+      // own webhook, or "Defer to sender's webhook" with each number's SMS
+      // webhook pointing at the route. Either is fine; check whichever is in use.
+      if (svc.useInboundWebhookOnNumber) {
+        for (const phoneNumber of senders) {
+          const [num] = await client.incomingPhoneNumbers.list({ phoneNumber, limit: 1 }).catch(() => []);
+          num?.smsUrl === WANT_INBOUND
+            ? ok(`inbound webhook (on ${phoneNumber}) → ${WANT_INBOUND}`)
+            : bad(`service defers to the number's webhook, but ${phoneNumber} has "${num?.smsUrl || "unset"}", expected ${WANT_INBOUND}`);
+        }
+      } else {
+        svc.inboundRequestUrl === WANT_INBOUND ? ok(`inbound webhook → ${WANT_INBOUND}`) : bad(`inbound webhook is "${svc.inboundRequestUrl || "unset"}", expected ${WANT_INBOUND}`);
+      }
     }
   }
 

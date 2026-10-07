@@ -28,7 +28,7 @@ const FEATURE_LABEL: Record<(typeof CIRCUIT_PAID_FEATURES)[number], string> = {
 const CARD_TIERS = CIRCUIT_TIERS.filter((t) => t.id !== "circuit_events");
 
 function capLine(t: CircuitTier): string {
-  if (t.playerCap === "lobby") return "One full lobby (12 on MK8DX, 24 on MK World), every format.";
+  if (t.playerCap === "lobby") return "One full lobby (12 on MK8DX, 24 on MK World, 8 on Mario Party), every format.";
   if (t.playerCap === "override") return "A per-tournament pass sized to your in-person or commercial event.";
   return `Multi-lobby events up to ${t.playerCap} players.`;
 }
@@ -128,7 +128,7 @@ export function CircuitPricing() {
                   <ul className="pricing-card__list">
                     {t.id === "circuit_256" && (
                       <li>
-                        <strong>GameShuffle Pro included</strong> — overlays, chat commands, and
+                        <strong>GameShuffle Pro included</strong>: overlays, chat commands, and
                         channel-point rewards (${PRO_INCLUDED_ANNUAL_VALUE}/yr value)
                       </li>
                     )}
@@ -165,7 +165,7 @@ export function CircuitPricing() {
       </div>
 
       <p style={{ textAlign: "center", fontSize: "var(--font-size-14)", color: "var(--gray-400, #9aa3b2)", marginTop: "var(--spacing-16)" }}>
-        Planned pricing, subject to change. Nothing is charged during preview — every tier is free right now.
+        Planned pricing, subject to change. Nothing is charged during preview, and every tier is free right now.
       </p>
     </>
   );

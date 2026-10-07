@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Button } from "@empac/cascadeds";
+import { Button, Chip } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl, uploadToolImage } from "./fields";
@@ -150,19 +150,17 @@ export function TierListConfigCard({ onSaved, live }: { onSaved?: () => void; li
         {cfg.items.length > 0 && (
           <div className="stream-tools__chips">
             {cfg.items.map((item, i) => (
-              <span key={`${item}-${i}`} className="stream-tools__chip">
-                {isImageUrl(item) ? (
+              <Chip
+                key={`${item}-${i}`}
+                size="small"
+                label={isImageUrl(item) ? "Image" : item}
+                icon={isImageUrl(item) ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item}
-                    alt=""
-                    style={{ width: 22, height: 22, borderRadius: 4, objectFit: "cover", verticalAlign: "middle" }}
-                  />
-                ) : (
-                  item
-                )}
-                <button type="button" aria-label={`Remove ${isImageUrl(item) ? "image" : item}`} onClick={() => removeItem(i)}>×</button>
-              </span>
+                  <img src={item} alt="" style={{ width: 22, height: 22, borderRadius: 4, objectFit: "cover", verticalAlign: "middle" }} />
+                ) : undefined}
+                removable
+                onRemove={() => removeItem(i)}
+              />
             ))}
           </div>
         )}

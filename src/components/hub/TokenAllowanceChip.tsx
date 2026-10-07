@@ -129,7 +129,7 @@ export function TokenAllowanceChip({
             <ul>
               <li>
                 <strong>Monthly ceiling.</strong> You get{" "}
-                {formatTokens(ceiling)}<TokenIcon size={14} /> per UTC month. The pill in
+                {formatTokens(ceiling)}<TokenIcon size={14} /> per month (Pacific time). The pill in
                 the top-right shows how much is left.
               </li>
               <li>

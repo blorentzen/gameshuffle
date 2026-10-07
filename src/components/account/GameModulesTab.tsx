@@ -33,6 +33,7 @@ import type {
 } from "@/lib/modules/types";
 import { GameArtwork } from "@/components/hub/GameArtwork";
 import { useToast } from "@/components/toast/ToastProvider";
+import { DeckEditor } from "@/components/party/DeckEditor";
 
 interface GameDef {
   slug: string;
@@ -132,6 +133,19 @@ export function GameModulesTab() {
           </button>
         ))}
       </div>
+
+      <section className="game-modules__deck">
+        <h3 className="account-tab__heading">Mario Party cards</h3>
+        <DeckEditor
+          scope="me"
+          intro={
+            <p className="account-tab__intro">
+              Write your own house rules, Chance cards and missions. They&apos;re dealt in your party nights and live
+              nights, and your mods can edit them too from your mod page.
+            </p>
+          }
+        />
+      </section>
 
       {editingGame && (
         <GameDefaultsModal

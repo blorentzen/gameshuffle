@@ -15,6 +15,10 @@ import { groupChampion, computeGroupPlacements, type GroupBracket } from "@/lib/
 import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
 import { PlaceMedal } from "./PlaceMedal";
 import { IconFlagCheck, IconUserCheck } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
+import { GameCover } from "@/components/games/GameCover";
+import { getGameName } from "@/data/game-registry";
+import { boxArt, findGame } from "@/data/game-catalog";
 
 /**
  * In-person / stream display for a tournament — a chrome-free big-screen board:
@@ -68,7 +72,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
   }, [tournamentId, live, load, supabase]);
 
   if (loading || !tournament) {
-    return <main className="tourney-display"><div className="tourney-display__inner"><p style={{ opacity: 0.7 }}>Loading…</p></div></main>;
+    return <main className="tourney-display"><div className="tourney-display__inner"><LoadingLines label="Loading" /></div></main>;
   }
 
   const s = tournament.settings ?? {};
@@ -140,6 +144,8 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
   // Circuit personalization hook: an optional display accent + subtitle authored
   // on the tournament (settings.display). Additive — absent on free tournaments.
   const display = (s.display ?? {}) as { accent?: string; subtitle?: string };
+  const gameLabel = (s.game_label as string | undefined) || getGameName(tournament.game_slug);
+  const hasCover = !!boxArt(findGame(tournament.game_slug, gameLabel));
   const accentStyle = live && display.accent
     ? ({ ["--tourney-accent" as string]: display.accent } as React.CSSProperties)
     : undefined;
@@ -147,14 +153,18 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
   return (
     <main className="tourney-display" style={accentStyle}>
       <div className="tourney-display__inner">
-        <header className="tourney-display__head">
-          <p className="tourney-display__eyebrow"><IconFlagCheck size="1em" stroke={2} aria-hidden /> Tournament{live ? <span className="bgn-live-dot"> ● Live</span> : null}</p>
-          <h1 className="tourney-display__title">{tournament.title}</h1>
-          <p className="tourney-display__status">
-            {tournament.status.replace(/_/g, " ")}
-            {activeParticipants.length > 0 ? <> · {activeParticipants.length} {activeParticipants.length === 1 ? "entry" : "entries"}</> : null}
-          </p>
-          {live && display.subtitle ? <p className="tourney-display__subtitle">{display.subtitle}</p> : null}
+        <header className={`tourney-display__head${hasCover ? " tourney-display__head--cover" : ""}`}>
+          {hasCover && <span className="tourney-display__cover"><GameCover slug={tournament.game_slug} name={gameLabel} blank={false} /></span>}
+          <div className="tourney-display__head-text">
+            <p className="tourney-display__eyebrow"><IconFlagCheck size="1em" stroke={2} aria-hidden /> Tournament{live ? <span className="bgn-live-dot"> ● Live</span> : null}</p>
+            <h1 className="tourney-display__title">{tournament.title}</h1>
+            <p className="tourney-display__status">
+              {gameLabel ? <span className="tourney-display__game">{gameLabel} · </span> : null}
+              {tournament.status.replace(/_/g, " ")}
+              {activeParticipants.length > 0 ? <> · {activeParticipants.length} {activeParticipants.length === 1 ? "entry" : "entries"}</> : null}
+            </p>
+            {live && display.subtitle ? <p className="tourney-display__subtitle">{display.subtitle}</p> : null}
+          </div>
         </header>
 
         {/* Now racing — bracket + heat/mains (the current match/heat/main). */}

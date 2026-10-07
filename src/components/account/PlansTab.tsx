@@ -16,7 +16,7 @@
  * which return a URL for the browser to follow to Stripe's hosted pages.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Alert, Button, Card } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -27,9 +27,12 @@ import { BillingManager } from "./BillingManager";
 import { circuitTier as getCircuitTier, type CircuitTierId } from "@/lib/tournaments/circuit";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
-import { PRO_HIGHLIGHTS, CIRCUIT_HIGHLIGHTS, FREE_VS_PRO } from "@/lib/plans/highlights";
+import { PRO_HIGHLIGHTS, CIRCUIT_HIGHLIGHTS, FREE_HIGHLIGHTS, FREE_VS_PRO } from "@/lib/plans/highlights";
+import { useAiAccess } from "@/components/ai/useAiAccess";
 import { HighlightGroups, LimitsTable } from "./plans/PlanHighlights";
 import { CircuitTierLadder } from "./plans/CircuitTierLadder";
+import { EVENTS, track } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface SubscriptionRow {
   status: string;
@@ -77,6 +80,7 @@ export function PlansTab() {
   const [userRow, setUserRow] = useState<UserBillingRow | null>(null);
   const [portalWorking, setPortalWorking] = useState(false);
   const pricing = usePublicPricing();
+  const { info: aiInfo } = useAiAccess("setup");
   const [annual, setAnnual] = useState(false);
   const [busyTier, setBusyTier] = useState<string | null>(null);
   // Organizer billing is still in preview. The ladder must say so rather than
@@ -101,6 +105,16 @@ export function PlansTab() {
     }
     return null;
   });
+  // Close the checkout funnel once, on the return from Stripe.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current) return;
+    checkoutTracked.current = true;
+    const checkout = searchParams.get("checkout") || searchParams.get("circuit_checkout");
+    const product = searchParams.get("circuit_checkout") ? "circuit" : "pro";
+    if (checkout === "success") track(EVENTS.checkoutCompleted, { product });
+    else if (checkout === "canceled") track(EVENTS.checkoutCanceled, { product });
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;
@@ -146,7 +160,7 @@ export function PlansTab() {
   if (!user || billingStatus === "loading") {
     return (
       <div className="account-card">
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }
@@ -165,6 +179,7 @@ export function PlansTab() {
         setPortalWorking(false);
         return;
       }
+      track(EVENTS.portalOpened);
       window.location.assign(body.url);
     } catch (err) {
       console.error(err);
@@ -178,6 +193,7 @@ export function PlansTab() {
 
   const subscribeCircuit = async (tier: "circuit_64" | "circuit_256") => {
     setBusyTier(tier);
+    track(EVENTS.upgradeClicked, { from: "plans-circuit" });
     try {
       const res = await fetch("/api/stripe/circuit/checkout", {
         method: "POST",
@@ -190,6 +206,7 @@ export function PlansTab() {
         setBusyTier(null);
         return;
       }
+      track(EVENTS.checkoutStarted, { plan: `${tier}-${annual ? "annual" : "monthly"}` });
       window.location.assign(body.url);
     } catch {
       setFlashMessage({ kind: "error", text: "Couldn't start checkout (network error)." });
@@ -198,6 +215,11 @@ export function PlansTab() {
   };
 
   const onError = (msg: string) => setFlashMessage({ kind: "error", text: msg });
+  // The AI limits are pricing levers, so the table quotes what's live today.
+  const aiLimits = aiInfo?.limits;
+  const limitRows = aiLimits
+    ? [...FREE_VS_PRO, { label: "AI uses", free: `${aiLimits.freePerDay} a day (setup, planner, tournament helper)`, pro: `${aiLimits.proPer30d} every 30 days, every AI tool` }]
+    : FREE_VS_PRO;
   const pro = describeProPlan(billingStatus, subscription);
   const circuit = describeCircuitPlan(userRow);
   const proPrice = pricing.plans.pro ?? { monthly: 9, annual: 99 };
@@ -217,10 +239,21 @@ export function PlansTab() {
         </Alert>
       )}
 
+      {/* What a free account already has: plenty shipped free, worth knowing before the upsell. */}
+      {pro.free && (
+        <PlanCard
+          name="Your free account"
+          subtitle="Everything here is yours without paying."
+          status={{ label: "Current plan", tone: "active" }}
+        >
+          <HighlightGroups groups={FREE_HIGHLIGHTS} />
+        </PlanCard>
+      )}
+
       {/* GameShuffle Pro */}
       <PlanCard
         name="GameShuffle Pro"
-        subtitle="For streamers — turn your game night into an interactive show."
+        subtitle="For streamers: turn your game night into an interactive show."
         status={pro.status}
         rows={pro.rows}
         alert={pro.alert}
@@ -233,7 +266,7 @@ export function PlansTab() {
               <span className="plan-price__per">/month</span>
               {proPrice.annual != null && (
                 <span className="plan-price__alt">
-                  or {usd(proPrice.annual)}/year{proSave ? ` — save about ${proSave}%` : ""}
+                  or {usd(proPrice.annual)}/year{proSave ? ` (save about ${proSave}%)` : ""}
                 </span>
               )}
             </p>
@@ -244,7 +277,7 @@ export function PlansTab() {
             <HighlightGroups groups={PRO_HIGHLIGHTS} />
 
             <h4 className="plan-section-heading">Where the free plan stops</h4>
-            <LimitsTable rows={FREE_VS_PRO} currentIsFree />
+            <LimitsTable rows={limitRows} currentIsFree />
           </>
         ) : (
           <>
@@ -263,7 +296,7 @@ export function PlansTab() {
       {/* GameShuffle Circuit */}
       <PlanCard
         name="GameShuffle Circuit"
-        subtitle="For organizers — run bigger tournaments at any scale."
+        subtitle="For organizers: run bigger tournaments at any scale."
         status={circuit.status}
         learnMore={{ href: "/gs-circuit", label: "Learn more about GameShuffle Circuit" }}
       >
@@ -319,9 +352,9 @@ function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | nu
     case "pro_ending":
       return { status: { label: "Canceling", tone: "warn" }, rows: sub?.current_period_end ? [{ label: "Access through", value: formatDate(sub.current_period_end) }] : [], reactivate: true };
     case "pro_past_due":
-      return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues during Stripe's retry window — update your card to avoid interruption." };
+      return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues while Stripe retries the payment. Update your card to keep it going." };
     default:
-      return { status: { label: "Free", tone: "muted" }, rows: [], free: true };
+      return { status: { label: "Not subscribed", tone: "muted" }, rows: [], free: true };
   }
 }
 

@@ -6,10 +6,11 @@ import { listOnlineFollowing } from "@/lib/social/follows";
 import { listFeed } from "@/lib/social/feed";
 import { listDiscoverCommunities, listHubTournaments } from "@/lib/communities/discover";
 import { CommunityHubShell } from "@/components/social/CommunityHubShell";
+import { BrowseHero } from "@/components/events/BrowseHero";
 
 export const metadata: Metadata = {
   title: "Community Hub",
-  description: "The GameShuffle community feed — posts, live and upcoming tournaments, communities to join, and the players online right now.",
+  description: "The GameShuffle community feed: posts, live and upcoming tournaments, communities to join, and the players online right now.",
   alternates: { canonical: "https://www.gameshuffle.co/communities" },
 };
 
@@ -27,17 +28,15 @@ export default async function CommunitiesPage() {
 
   return (
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", paddingBottom: "var(--spacing-64)" }}>
+      <BrowseHero
+        eyebrow="Community Hub · New"
+        title="Find your people"
+        sub="Communities, posts and players from across GameShuffle. Join a crew, follow the players you race with, and keep game night going between game nights."
+        accent="blue"
+        field="community"
+        primary={user ? { href: "/communities/new", label: "Create a community" } : { href: "/signup?redirect=/communities", label: "Join free" }}
+      />
       <Container>
-        <section style={{ padding: "var(--spacing-32) 0 var(--spacing-24)", display: "flex", alignItems: "center", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
-          <h1 style={{ fontSize: "var(--font-size-32)", fontWeight: 800, margin: 0, lineHeight: 1.1 }}>Community Hub</h1>
-          <span className="hub__beta">Beta</span>
-          {user && (
-            <Link href="/communities/new" style={{ textDecoration: "none", marginLeft: "auto" }}>
-              <Button variant="primary" size="small">Create a community</Button>
-            </Link>
-          )}
-        </section>
-
         {!user && (
           <div className="hub-cta">
             <div className="hub-cta__copy">

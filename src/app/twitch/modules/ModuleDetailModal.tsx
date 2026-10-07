@@ -17,6 +17,7 @@
 import { useEffect, useState } from "react";
 import { Modal } from "@empac/cascadeds";
 import type { ModuleCatalogRow } from "@/lib/economy/modules/registry";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   MODULE_DETAILS,
   type CommandActor,
@@ -49,7 +50,7 @@ export function ModuleDetailModal({ isOpen, module, onClose }: Props) {
   if (!module) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="Module details">
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       </Modal>
     );
   }
@@ -207,7 +208,7 @@ function RestrictedRegionsList() {
     return (
       <section className="module-detail__section">
         <h3>Restricted regions</h3>
-        <p className="module-detail__list">Loading…</p>
+        <LoadingLines label="Loading" />
       </section>
     );
   }

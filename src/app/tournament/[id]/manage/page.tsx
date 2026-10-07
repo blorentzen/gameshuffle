@@ -9,6 +9,10 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getTournamentGameData, getGameLobbySize } from "@/lib/tournaments/gameData";
+import { PartyTournamentPanel } from "@/components/tournament/PartyTournamentPanel";
+import { SmashTournamentPanel } from "@/components/tournament/SmashTournamentPanel";
+import { isSmashGame } from "@/lib/smash/tournament";
+import { bonusTotals, isPartyGame, type MissionBonus } from "@/lib/party/tournament";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { computeCrewStandings } from "@/lib/tournaments/crewStandings";
 import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, computeBracketPlacements, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
@@ -36,6 +40,8 @@ import { AttendeeTable } from "@/components/events/AttendeeTable";
 import { TicketingManager } from "@/components/events/TicketingManager";
 import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { IconTrophy, IconSparkles, IconScale, IconDice5 } from "@tabler/icons-react";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
 function toDatetimeLocal(iso: string): string {
@@ -104,6 +110,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function ManageTournamentPage() {
+  const confirm = useConfirm();
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
@@ -308,12 +315,27 @@ export default function ManageTournamentPage() {
     return () => { cancelled = true; };
   }, [tournamentId]);
 
+  /* Guest claim status per entry (spec F): unclaimed, claimed by whom, expired,
+     or unlinked, plus Unlink for a mistaken claim. Declared up here with the
+     other hooks, above the early returns. */
+  type ClaimInfo = { participantId: string; state: "open" | "claimed" | "expired" | "revoked" | "unlinked"; claimedByName: string | null };
+  const [claimInfo, setClaimInfo] = useState<Record<string, ClaimInfo>>({});
+  const loadClaims = useCallback(async () => {
+    if (!tournamentId) return;
+    const r = await fetch(`/api/tournament/${tournamentId}/claims`, { cache: "no-store" }).catch(() => null);
+    if (!r?.ok) return;
+    const j = (await r.json().catch(() => ({ claims: [] }))) as { claims: ClaimInfo[] };
+    setClaimInfo(Object.fromEntries((j.claims ?? []).map((c) => [c.participantId, c])));
+  }, [tournamentId]);
+  useEffect(() => { void Promise.resolve().then(loadClaims); }, [loadClaims]);
+  const [manualLink, setManualLink] = useState<{ name: string; url: string; svg: string; expiresAt: string } | null>(null);
+
   /* Entry-policy guard rail state. Declared with the other hooks: everything
      below the early returns runs conditionally, and a hook there changes the
      hook count between renders. */
   const [policyBlock, setPolicyBlock] = useState<string[] | null>(null);
 
-  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
+  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><LoadingLines label="Loading" /></div></Container></main>;
   const myRole = resolveOrganizerRole({
     userId: user?.id,
     organizerId: tournament?.organizer_id,
@@ -331,10 +353,13 @@ export default function ManageTournamentPage() {
     Array.isArray(tournament.scoring_table) && tournament.scoring_table.length
       ? tournament.scoring_table
       : DEFAULT_SCORING_TABLE;
+  // Mario Party: mission bonus points add to Points standings (and flights).
+  const partyBonus = bonusTotals(tournament.settings?.missionBonus as MissionBonus[] | undefined);
   const liveStandings = computeStandings(
     participants.filter((p) => p.status !== "dropped"),
     races,
     scoringTable,
+    partyBonus,
   );
 
   // Crew (community) standings — roll the run's results up per represented crew.
@@ -364,6 +389,11 @@ export default function ManageTournamentPage() {
     // them. It dedupes per entrant per race, so pinging on every save is safe.
     if ("bracket" in updates || "heat_mains" in updates || "group_bracket" in updates || updates.status === "in_progress") {
       void fetch(`/api/tournament/${tournamentId}/youre-up`, { method: "POST" }).catch(() => {});
+    }
+    // Finishing the event: unclaimed guests get "your results are saved" with
+    // a fresh claim link (spec F). The server dedupes to once a day per guest.
+    if (updates.status === "complete") {
+      void fetch(`/api/tournament/${tournamentId}/results-claims`, { method: "POST" }).catch(() => {});
     }
   };
 
@@ -441,7 +471,7 @@ export default function ManageTournamentPage() {
   };
 
   const cancelTournament = async () => {
-    if (!window.confirm("Cancel this tournament? Everyone signed up will be emailed and notified.")) return;
+    if (!(await confirm({ title: "Cancel this tournament?", body: "Everyone signed up gets an email and a notification.", confirmLabel: "Cancel tournament", cancelLabel: "Keep it" }))) return;
     setScheduleBusy(true);
     const res = await fetch(`/api/tournament/${tournamentId}/schedule-change`, {
       method: "POST",
@@ -476,7 +506,7 @@ export default function ManageTournamentPage() {
     }
   };
 
-  // A freed seat promotes the longest-waiting attendee (server decides; best effort).
+  // A freed seat is offered to the next person on the waitlist (server decides; best effort).
   const promoteWaitlist = () =>
     fetch(`/api/events/tournament/${tournamentId}/attendees/promote`, { method: "POST" })
       .then((r) => (r.ok ? r.json() : null))
@@ -528,7 +558,8 @@ export default function ManageTournamentPage() {
     // Respect the entry cap — the same limit the public join enforces.
     const cap = tournament?.max_participants ?? null;
     if (cap) {
-      const current = participants.filter((p) => p.status !== "dropped").length;
+      // Seats only: people on the waitlist aren't taking one (an offer is holding one).
+      const current = participants.filter((p) => ["registered", "confirmed", "checked_in", "offered"].includes(p.status)).length;
       if (current >= cap) {
         toast.error(`This tournament is capped at ${cap} ${cap === 1 ? "entry" : "entries"}. Raise the max in Settings to add more.`, { title: "Roster full" });
         return;
@@ -862,8 +893,8 @@ export default function ManageTournamentPage() {
     setFinalizing(true);
     try {
       const map: Record<string, { placement: number | null; points: number | null }> = {};
-      const pts = new Map(flightStandings(fl).map((s) => [s.participantId, s.points]));
-      for (const { participantId, placement } of computeFlightPlacements(fl)) {
+      const pts = new Map(flightStandings(fl, partyBonus).map((s) => [s.participantId, s.points]));
+      for (const { participantId, placement } of computeFlightPlacements(fl, partyBonus)) {
         const points = pts.get(participantId) ?? null;
         await supabase.from("tournament_results").upsert(
           { tournament_id: tournamentId, participant_id: participantId, placement, points, team: participants.find((p) => p.id === participantId)?.team ?? null },
@@ -973,6 +1004,30 @@ export default function ManageTournamentPage() {
     }
     setPolicyBlock(null);
     await updateTournament({ entry_policy: next } as Partial<Tournament>);
+  };
+
+  // A 72-hour claim link + QR for a guest, usually one who left no contact.
+  const issueManualLink = async (participantId: string, name: string) => {
+    const r = await fetch(`/api/tournament/${tournamentId}/claims`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "issue_manual", participantId }),
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    if (r?.ok) { setManualLink({ name, url: j.url, svg: j.svg, expiresAt: j.expiresAt }); void loadClaims(); }
+    else toast.error(j.error === "unavailable" ? "Claim links for guests with no contact need a database update first." : "Couldn't create a claim link.");
+  };
+  const copyManualLink = async () => {
+    if (!manualLink) return;
+    try { await navigator.clipboard.writeText(manualLink.url); toast.success("Claim link copied"); }
+    catch { toast.error("Couldn't copy. Select the link and copy it instead."); }
+  };
+
+  const unlinkClaim = async (participantId: string, name: string) => {
+    if (!(await confirm({ title: `Unlink ${name} from the account that claimed it?`, body: "The entry goes back to being a guest.", confirmLabel: "Unlink" }))) return;
+    const r = await fetch(`/api/tournament/${tournamentId}/claims`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "unlink", participantId }),
+    }).catch(() => null);
+    if (r?.ok) { toast.success(`${name} is a guest entry again`); await Promise.all([loadClaims(), loadData()]); }
+    else toast.error("Couldn't unlink that entry.");
   };
 
   const changeLobbyRule = async (patch: { lobbySize?: number; advance?: number }) => {
@@ -1323,7 +1378,7 @@ export default function ManageTournamentPage() {
                     <Button variant="primary" size="small" loading={inviteBusy} disabled={!inviteEmails.trim()} onClick={sendEmailInvites}>Send invites</Button>
                   </div>
                   <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
-                    For players who aren&rsquo;t on GameShuffle yet — they&rsquo;ll get an email with a link to join.
+                    For players who aren&rsquo;t on GameShuffle yet. They&rsquo;ll get an email with a link to join.
                   </p>
                 </div>
               )}
@@ -1433,6 +1488,21 @@ export default function ManageTournamentPage() {
                       <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", display: "inline-flex", alignItems: "center" }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
                       {contacts[p.id]?.discord && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{contacts[p.id]!.discord}</span>}
                       {contacts[p.id]?.friendCode && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {contacts[p.id]!.friendCode}</span>}
+                      {claimInfo[p.id] && (
+                        <span className={`claim-state claim-state--${claimInfo[p.id].state}`}>
+                          {claimInfo[p.id].state === "open" && "Guest · not claimed yet"}
+                          {claimInfo[p.id].state === "expired" && "Guest · claim link expired"}
+                          {claimInfo[p.id].state === "revoked" && "Guest · link withdrawn"}
+                          {claimInfo[p.id].state === "unlinked" && "Guest · unlinked"}
+                          {claimInfo[p.id].state === "claimed" && <>Claimed by {claimInfo[p.id].claimedByName ?? "an account"}</>}
+                        </span>
+                      )}
+                      {claimInfo[p.id]?.state === "claimed" && (
+                        <Button variant="ghost" size="small" onClick={() => unlinkClaim(p.id, p.display_name)}>Unlink</Button>
+                      )}
+                      {!p.user_id && p.status !== "dropped" && claimInfo[p.id]?.state !== "open" && (
+                        <Button variant="ghost" size="small" onClick={() => issueManualLink(p.id, p.display_name)}>Claim link</Button>
+                      )}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
                       {crewIds.length > 0 && p.status !== "dropped" && (
@@ -1741,7 +1811,7 @@ export default function ManageTournamentPage() {
                       <Button variant={useFlights ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, useFlights: true }, flights: null })}>Multiple flights</Button>
                     </div>
                     <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
-                      {useFlights ? "For big fields — split into flights each round, re-seeded from the standings." : "Everyone scores into one running standings."}
+                      {useFlights ? "For big fields: split into flights each round, re-seeded from the standings." : "Everyone scores into one running standings."}
                     </p>
                   </div>
                   {useFlights && (
@@ -1790,7 +1860,7 @@ export default function ManageTournamentPage() {
                     </div>
                     <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                       {tournament.settings?.tieBreak === "runoff"
-                        ? "Tied players share a place until you break it — run a runoff race among them, or edit points."
+                        ? "Tied players share a place until you break it with a runoff race or by editing points."
                         : "Tied players officially share the placement (both 2nd, same medal)."}
                     </p>
                   </div>
@@ -1857,7 +1927,7 @@ export default function ManageTournamentPage() {
                       </div>
                       <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                         {tournament.settings?.lobbyReporting === "placement"
-                          ? "Tap every player in finishing order in each lobby — best when you're tracking points or full standings."
+                          ? "Tap every player in finishing order in each lobby. Best when you're tracking points or full standings."
                           : "Just tap who moves on; the final lobby is tapped in order for the podium."}
                       </p>
                     </div>
@@ -1868,6 +1938,22 @@ export default function ManageTournamentPage() {
           )}
 
           {/* Pending registrations modal */}
+          <Modal isOpen={!!manualLink} onClose={() => setManualLink(null)} title={manualLink ? `Claim link for ${manualLink.name}` : "Claim link"} size="small">
+            {manualLink && (
+              <div className="manual-claim">
+                <p className="manual-claim__lede">
+                  Give this to {manualLink.name} in person, or let them scan it. It works once, for 72 hours, and you&apos;ll see who claimed it.
+                </p>
+                {/* SVG generated server-side by the qrcode library, from our own URL. */}
+                <div className="manual-claim__qr" aria-label={`QR code for ${manualLink.name}'s claim link`} role="img" dangerouslySetInnerHTML={{ __html: manualLink.svg }} />
+                <Input value={manualLink.url} readOnly aria-label="Claim link" onFocus={(e) => e.currentTarget.select()} />
+                <div className="manual-claim__row">
+                  <Button variant="primary" size="small" onClick={copyManualLink}>Copy link</Button>
+                  <Button variant="ghost" size="small" onClick={() => setManualLink(null)}>Done</Button>
+                </div>
+              </div>
+            )}
+          </Modal>
           <Modal isOpen={showPending} onClose={() => setShowPending(false)} title="Pending registrations" size="small">
             {participants.filter((p) => p.status === "registered").length === 0 ? (
               <p style={{ color: "var(--text-tertiary)" }}>No pending registrations right now.</p>
@@ -1879,6 +1965,21 @@ export default function ManageTournamentPage() {
                       {p.display_name}{p.users?.email_verified && <VerifiedBadge />}
                       {contacts[p.id]?.discord && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{contacts[p.id]!.discord}</span>}
                       {contacts[p.id]?.friendCode && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {contacts[p.id]!.friendCode}</span>}
+                      {claimInfo[p.id] && (
+                        <span className={`claim-state claim-state--${claimInfo[p.id].state}`}>
+                          {claimInfo[p.id].state === "open" && "Guest · not claimed yet"}
+                          {claimInfo[p.id].state === "expired" && "Guest · claim link expired"}
+                          {claimInfo[p.id].state === "revoked" && "Guest · link withdrawn"}
+                          {claimInfo[p.id].state === "unlinked" && "Guest · unlinked"}
+                          {claimInfo[p.id].state === "claimed" && <>Claimed by {claimInfo[p.id].claimedByName ?? "an account"}</>}
+                        </span>
+                      )}
+                      {claimInfo[p.id]?.state === "claimed" && (
+                        <Button variant="ghost" size="small" onClick={() => unlinkClaim(p.id, p.display_name)}>Unlink</Button>
+                      )}
+                      {!p.user_id && p.status !== "dropped" && claimInfo[p.id]?.state !== "open" && (
+                        <Button variant="ghost" size="small" onClick={() => issueManualLink(p.id, p.display_name)}>Claim link</Button>
+                      )}
                     </span>
                     <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
                       <Button variant="primary" size="small" onClick={() => updateParticipant(p.id, { status: "confirmed" })}>Accept</Button>
@@ -2485,6 +2586,28 @@ export default function ManageTournamentPage() {
             </div>
           )}
 
+          {/* Mario Party: shared round rolls + mission bonus points (any standard format) */}
+          {showDashboard && isPartyGame(tournament.game_slug) && (
+            <PartyTournamentPanel
+              gameSlug={tournament.game_slug}
+              settings={tournament.settings}
+              participants={participants}
+              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
+            />
+          )}
+
+          {/* Smash: rules, best-of sets with striking, round rolls, crew battles, mission points */}
+          {showDashboard && isSmashGame(tournament.game_slug) && (
+            <SmashTournamentPanel
+              settings={tournament.settings}
+              participants={participants}
+              format={tournament.format ?? ""}
+              bracket={tournament.bracket}
+              onReport={reportMatchWinner}
+              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
+            />
+          )}
+
           {/* Group Knockout — lobby ladder (seed → report lobbies → finalize) */}
           {showDashboard && isGroupFormat && tournament.status !== "draft" && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
@@ -2603,18 +2726,18 @@ export default function ManageTournamentPage() {
                   {/* Cumulative standings — tie-aware (shared placement + medal),
                       with editable points to match the game / break a tie. */}
                   {(() => {
-                    const standings = flightStandings(fl).filter((s) => s.racesPlayed > 0 || s.overridden);
+                    const standings = flightStandings(fl, partyBonus).filter((s) => s.racesPlayed > 0 || s.overridden || (partyBonus[s.participantId] ?? 0) > 0);
                     if (!standings.length) return null;
                     const placeMap = new Map(
                       placementsWithTies(standings.map((s) => ({ participantId: s.participantId, points: s.points }))).map((p) => [p.participantId, p.placement]),
                     );
-                    const ties = flightTies(fl);
+                    const ties = flightTies(fl, partyBonus);
                     return (
                       <div style={{ marginBottom: "1.25rem" }}>
                         <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Overall standings</span>
                         {ties.length > 0 && (
                           <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginBottom: "0.5rem" }}>
-                            <IconScale size={15} stroke={1.9} aria-hidden /> {ties.length === 1 ? "A tie" : `${ties.length} ties`} on points — tied players share a placement. Break it by editing points{tournament.settings?.tieBreak === "runoff" ? " or running a runoff race (an extra race among the tied players)" : ""}.
+                            <IconScale size={15} stroke={1.9} aria-hidden /> {ties.length === 1 ? "A tie" : `${ties.length} ties`} on points, so tied players share a placement. Break it by editing points{tournament.settings?.tieBreak === "runoff" ? " or running a runoff race (an extra race among the tied players)" : ""}.
                           </p>
                         )}
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
@@ -2631,7 +2754,7 @@ export default function ManageTournamentPage() {
                                   defaultValue={s.points}
                                   onBlur={(e) => { const v = e.target.value.trim(); overrideFlightPoints(s.participantId, v === "" ? null : Number(v)); }}
                                   onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                                  title={s.overridden ? "Manual override — clear to use the scored points" : "Scored points — edit to override"}
+                                  title={s.overridden ? "Manual override. Clear it to use the scored points." : "Scored points. Edit to override."}
                                   style={{ width: 60, height: 30, textAlign: "center", borderRadius: 6, border: `1px solid ${s.overridden ? "var(--warning-500, var(--primary-500))" : "var(--border-default)"}`, background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 4px", boxSizing: "border-box", fontWeight: 700 }}
                                 />
                                 <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>pts</span>

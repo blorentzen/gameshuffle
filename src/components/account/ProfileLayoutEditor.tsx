@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button, IconButton, Icon, Switch } from "@empac/cascadeds";
 import { SortableList, moveWithin } from "@/components/ui/SortableList";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   DEFAULT_PROFILE_LAYOUT,
   PROFILE_SECTION_LABELS,
@@ -69,7 +70,7 @@ export function ProfileLayoutEditor() {
   };
 
   if (loading) {
-    return <div className="account-card"><p style={{ color: "var(--text-secondary)" }}>Loading layout…</p></div>;
+    return <div className="account-card"><LoadingLines label="Loading layout" /></div>;
   }
 
   return (

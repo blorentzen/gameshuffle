@@ -10,32 +10,64 @@ interface OnboardingResult {
   playerCount: number;
   raceCount: number;
   selectedTabs: string[];
+  /** The answer to `choice` (e.g. which Switch version), when asked. */
+  choice?: string;
+  /** True when a signed-in player's saved profile answered for them (no prompt shown). */
+  auto?: boolean;
 }
 
+/**
+ * First-visit setup shared by every randomizer: pick what to randomize and how
+ * many are playing, then "Let's go" (guided) or "Skip, let me choose" (DIY).
+ * Defaults are the Mario Kart flow; other games pass their own tabs, counter
+ * and an optional first question.
+ */
 interface OnboardingPromptProps {
   gameSlug: string;
   maxPlayers: number;
   availableTabs: { id: string; label: string }[];
   onComplete: (result: OnboardingResult) => void;
+  title?: string;
+  tabsLabel?: string;
+  /** Tabs that reveal the player counter (Mario Kart: karts). */
+  playersFor?: string[];
+  minPlayers?: number;
+  defaultPlayers?: number;
+  playersHint?: string;
+  /** A second counter tied to one tab (Mario Kart: how many races). Null hides it. */
+  countStep?: { forTab: string; label: string; options: number[] } | null;
+  /** A single-choice question shown first (e.g. Switch or Switch 2 Edition). */
+  choice?: { label: string; options: { value: string; label: string }[]; value: string };
+  defaultTabs?: string[];
 }
 
 const STORAGE_KEY = "gs_onboarding_dismissed";
+
+const MK_RACES = { forTab: "races", label: "How many races?", options: [4, 6, 8, 12, 16, 24, 32, 48] };
 
 export function OnboardingPrompt({
   gameSlug,
   maxPlayers,
   availableTabs,
   onComplete,
+  title = "Let's set up your game night",
+  tabsLabel = "What do you want to randomize?",
+  playersFor = ["karts"],
+  minPlayers = 1,
+  defaultPlayers = 4,
+  playersHint,
+  countStep = MK_RACES,
+  choice,
+  defaultTabs = ["karts"],
 }: OnboardingPromptProps) {
   const { user, loading: authLoading } = useAuth();
   const [visible, setVisible] = useState(false);
-  const [playerCount, setPlayerCount] = useState(4);
-  const RACE_OPTIONS = [4, 6, 8, 12, 16, 24, 32, 48];
+  const [playerCount, setPlayerCount] = useState(Math.min(maxPlayers, defaultPlayers));
+  const RACE_OPTIONS = countStep?.options ?? [4];
   const [raceIndex, setRaceIndex] = useState(0);
   const raceCount = RACE_OPTIONS[raceIndex];
-  const [selectedTabs, setSelectedTabs] = useState<Set<string>>(
-    new Set(["karts"])
-  );
+  const [selectedTabs, setSelectedTabs] = useState<Set<string>>(new Set(defaultTabs));
+  const [choiceValue, setChoiceValue] = useState(choice?.value ?? "");
   const [playerAnim, setPlayerAnim] = useState<"up" | "down" | null>(null);
   const [raceAnim, setRaceAnim] = useState<"up" | "down" | null>(null);
   const playerAnimTimeout = useRef<NodeJS.Timeout>(undefined);
@@ -79,9 +111,10 @@ export function OnboardingPrompt({
           if (profile?.playerCount) {
             // Already has profile data, auto-complete
             onComplete({
-              playerCount: Number(profile.playerCount),
+              playerCount: Math.min(maxPlayers, Math.max(minPlayers, Number(profile.playerCount))),
               raceCount: 4,
-              selectedTabs: ["karts"],
+              selectedTabs: defaultTabs,
+              auto: true,
             });
           } else {
             setVisible(true);
@@ -90,7 +123,7 @@ export function OnboardingPrompt({
     } else {
       setVisible(true);
     }
-  }, [authLoading, user, gameSlug, onComplete]);
+  }, [authLoading, user, gameSlug, onComplete]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleTab = (id: string) => {
     const next = new Set(selectedTabs);
@@ -116,6 +149,7 @@ export function OnboardingPrompt({
       playerCount,
       raceCount,
       selectedTabs: Array.from(selectedTabs),
+      ...(choice ? { choice: choiceValue } : {}),
     });
   };
 
@@ -172,11 +206,24 @@ export function OnboardingPrompt({
         >
           <IconX size={18} stroke={2} aria-hidden />
         </button>
-        <h2 className="onboarding-card__title" id="onboarding-title">Let&apos;s set up your game night</h2>
+        <h2 className="onboarding-card__title" id="onboarding-title">{title}</h2>
+
+        {choice && (
+          <div className="onboarding-card__section">
+            <label className="onboarding-card__label">{choice.label}</label>
+            <div className="onboarding-card__tabs">
+              {choice.options.map((o) => (
+                <Button key={o.value} variant={choiceValue === o.value ? "primary" : "secondary"} size="small" onClick={() => setChoiceValue(o.value)}>
+                  {o.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="onboarding-card__section">
           <label className="onboarding-card__label">
-            What do you want to randomize?
+            {tabsLabel}
           </label>
           <div className="onboarding-card__tabs">
             {availableTabs.map((tab) => (
@@ -192,14 +239,15 @@ export function OnboardingPrompt({
           </div>
         </div>
 
-        {selectedTabs.has("karts") && (
+        {playersFor.some((t) => selectedTabs.has(t)) && (
           <div className="onboarding-card__section onboarding-card__section--reveal">
             <label className="onboarding-card__label">How many players?</label>
+            {playersHint && <p className="onboarding-card__hint">{playersHint}</p>}
             <div className="onboarding-card__player-picker">
               <button
                 className="onboarding-card__adjust"
                 onClick={() => {
-                  if (playerCount > 1) {
+                  if (playerCount > minPlayers) {
                     setPlayerCount(playerCount - 1);
                     triggerAnim(setPlayerAnim, playerAnimTimeout, "down");
                   }
@@ -225,9 +273,9 @@ export function OnboardingPrompt({
           </div>
         )}
 
-        {selectedTabs.has("races") && (
+        {countStep && selectedTabs.has(countStep.forTab) && (
           <div className="onboarding-card__section onboarding-card__section--reveal">
-            <label className="onboarding-card__label">How many races?</label>
+            <label className="onboarding-card__label">{countStep.label}</label>
             <div className="onboarding-card__player-picker">
               <button
                 className="onboarding-card__adjust"

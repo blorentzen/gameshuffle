@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Container } from "@empac/cascadeds";
 import { WheelSpinner } from "@/components/wheel/WheelSpinner";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { ProToolCta } from "@/components/tools/ProToolCta";
+import { IconChartPie } from "@tabler/icons-react";
+import { FreeToolShell } from "@/components/tools/FreeToolShell";
 
 export const metadata: Metadata = {
   title: "Free Wheel Spinner: Random Picker Wheel",
@@ -37,25 +38,15 @@ export default function WheelSpinnerPage() {
         }}
       />
 
-      <Container>
-        {/* Header */}
-        <section style={{ textAlign: "center", margin: "var(--spacing-48) 0 var(--spacing-32)", maxWidth: "52rem", marginInline: "auto" }}>
-          <h1 style={{ fontSize: "var(--font-size-fluid-h2)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)", lineHeight: "var(--line-height-tight)" }}>
-            Free Wheel Spinner
-          </h1>
-          <p style={{ fontSize: "var(--font-size-18)", color: "var(--text-secondary)", lineHeight: "var(--line-height-relaxed)" }}>
-            Add your options, give it a spin, and let the wheel pick a random winner.
-            Free, instant, and no account required.
-          </p>
-        </section>
-
+      <FreeToolShell icon={IconChartPie} name="Free Wheel Spinner" crumbs={[{ label: "Wheel Spinner" }]}
+        lede="Add your options, give it a spin, and let the wheel pick a random winner. Free, instant, and no account required.">
         {/* The tool */}
-        <section style={{ margin: "0 0 var(--spacing-64)" }}>
+        <section style={{ width: "100%" }}>
           <WheelSpinner />
         </section>
 
         {/* How it works */}
-        <section style={{ margin: "var(--spacing-80) 0" }}>
+        <section style={{ margin: "var(--spacing-48) 0 0" }}>
           <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-16)", lineHeight: "var(--line-height-tight)" }}>
             How to use the wheel spinner
           </h2>
@@ -83,8 +74,7 @@ export default function WheelSpinnerPage() {
             </li>
           </ol>
         </section>
-
-      </Container>
+      </FreeToolShell>
 
       <ProToolCta />
     </main>

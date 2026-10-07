@@ -14,6 +14,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { checkInWindow } from "@/lib/events/checkInWindow";
+import { fillOpenSeats } from "@/lib/events/waitlist";
 
 export const runtime = "nodejs";
 
@@ -72,6 +73,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         kind: "withdrew", reason, note: note?.trim()?.slice(0, 500) || null,
       }).then(undefined, () => {});
     }
+    // Their seat goes to the next person on the waitlist.
+    await fillOpenSeats("tournament", id).catch(() => null);
     return NextResponse.json({ ok: true, status: "withdrew" });
   }
 
@@ -85,6 +88,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       : w.phase === "closed" ? "Check-in has closed."
       : "Check-in is not being used for this tournament.";
     return NextResponse.json({ error: why, phase: w.phase }, { status: 409 });
+  }
+
+  /* On the waitlist and here in person: that's standby. They stay waitlisted,
+     but people checked in at the venue are seated first when a spot opens in
+     the last stretch (no-shows at check-in close included). */
+  if (me.status === "waitlisted" || me.status === "offered") {
+    const { error: sbErr } = await svc.from("tournament_participants")
+      .update({ checked_in_at: new Date().toISOString() }).eq("id", me.id);
+    if (sbErr) return NextResponse.json({ error: sbErr.message }, { status: 400 });
+    await fillOpenSeats("tournament", id).catch(() => null);
+    const { data: now } = await svc.from("tournament_participants").select("status").eq("id", me.id).maybeSingle();
+    return NextResponse.json({ ok: true, status: now?.status === "waitlisted" ? "standby" : now?.status ?? "standby" });
   }
 
   /* Recorded as self-asserted. This does NOT make them present for reliability

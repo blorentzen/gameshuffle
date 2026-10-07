@@ -12,6 +12,7 @@ import { loadCompetitiveConfig } from "@/lib/competitive/config";
 import { getImagePath } from "@/lib/images";
 import mk8dxData from "@/data/mk8dx-data.json";
 import { hasVariants, getVariants, hasColorVariant, TEAM_COLORS } from "@/data/mk8dx-variants";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 // --- Types ---
 
@@ -469,7 +470,7 @@ export default function LoungeScoringPage() {
   };
 
   // --- Render ---
-  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading session...</p></div></Container></main>;
+  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><LoadingLines label="Loading session" /></div></Container></main>;
   if (!session) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Session not found.</p></div></Container></main>;
 
   const allPlacementsSet = players.length > 0 && players.every((p) => currentRace[p.id]);
@@ -511,7 +512,7 @@ export default function LoungeScoringPage() {
         <header className="lg-head">
           <div className="lg-head__main">
             <p className="lg-head__eyebrow">
-              {gameName ?? "Mario Kart"} · {modeLabel} lounge <span className="beta-badge">Beta</span>
+              {gameName ?? "Mario Kart"} · {modeLabel} lounge <span className="new-badge">New</span>
             </p>
             <h1 className="lg-head__title">{headTitle}</h1>
             <div className="lg-head__meta">

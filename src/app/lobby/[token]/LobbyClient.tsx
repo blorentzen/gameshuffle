@@ -15,26 +15,15 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
-import { getImagePath } from "@/lib/images";
+import { RollSlotArt } from "@/components/twitch/RollSlotArt";
+import { rollSlots } from "@/lib/twitch/chatRoll";
 import "@/styles/twitch-lobby.css";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 const ACTIVE_POLL_MS = 10000;
 const IDLE_POLL_MS = 60000;
-
-interface ComboSlot {
-  name: string;
-  img: string;
-}
-
-interface ComboPayload {
-  character?: ComboSlot;
-  vehicle?: ComboSlot;
-  wheels?: ComboSlot;
-  glider?: ComboSlot;
-}
 
 interface ParticipantPayload {
   twitchUserId: string;
@@ -42,7 +31,8 @@ interface ParticipantPayload {
   displayName: string;
   joinedAt: string;
   isBroadcaster: boolean;
-  combo: ComboPayload | null;
+  /** A chat roll for any game (or an older bare Mario Kart combo); read with rollSlots. */
+  combo: Record<string, unknown> | null;
   comboAt: string | null;
 }
 
@@ -51,8 +41,6 @@ interface SessionPayload {
   randomizerSlug: string | null;
   gameTitle: string | null;
   lobbyCap: number | null;
-  hasWheels: boolean;
-  hasGlider: boolean;
   status: "active" | "test";
   startedAt: string;
 }
@@ -160,7 +148,7 @@ export function LobbyClient({ token }: { token: string }) {
     return (
       <Container>
         <div className="lobby-page">
-          <p className="lobby-loading">Loading lobby…</p>
+          <LoadingLines label="Loading lobby" />
         </div>
       </Container>
     );
@@ -238,8 +226,8 @@ export function LobbyClient({ token }: { token: string }) {
 
         {!session.randomizerSlug && (
           <div className="lobby-warning">
-            Streamer is on a category GameShuffle doesn&rsquo;t support yet.
-            Commands will resume when they switch back to a Mario Kart category.
+            Streamer is on a game GameShuffle doesn&rsquo;t have a randomizer for yet.
+            Rolls resume when they switch to one it supports.
           </div>
         )}
 
@@ -255,24 +243,15 @@ export function LobbyClient({ token }: { token: string }) {
                   {p.displayName}
                   {p.isBroadcaster && <span className="lobby-pill lobby-pill--broadcaster">Streamer</span>}
                 </div>
-                {p.combo ? (
+                {rollSlots(p.combo).length ? (
                   <div className="lobby-card__combo">
-                    {[p.combo.character, p.combo.vehicle, p.combo.wheels, p.combo.glider]
-                      .filter((s): s is ComboSlot => !!s && !!s.img && s.name !== "N/A")
-                      .map((slot, idx) => (
-                        <div key={idx} className="lobby-slot">
-                          <div className="lobby-slot__img">
-                            <Image
-                              src={getImagePath(slot.img)}
-                              alt={slot.name}
-                              width={72}
-                              height={72}
-                              unoptimized
-                            />
-                          </div>
-                          <div className="lobby-slot__name">{slot.name}</div>
-                        </div>
-                      ))}
+                    {rollSlots(p.combo).map((slot, idx) => (
+                      <div key={idx} className="lobby-slot">
+                        <RollSlotArt slot={slot} className="lobby-slot__img" glyphSize={36} compact />
+                        <div className="lobby-slot__name">{slot.name}</div>
+                        {slot.detail && <div className="lobby-slot__detail">{slot.detail}</div>}
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="lobby-card__pending">
@@ -286,7 +265,7 @@ export function LobbyClient({ token }: { token: string }) {
 
         <footer className="lobby-footer">
           <p>
-            <Link href="/">GameShuffle</Link>: chat command-driven Mario Kart randomizers for streamers.
+            <Link href="/">GameShuffle</Link>: chat-command randomizers for streamers and their viewers.
           </p>
         </footer>
       </div>

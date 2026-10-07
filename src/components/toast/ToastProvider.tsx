@@ -13,6 +13,12 @@
  *
  * The CDS `Toast` owns its own 5s timer + hover-pause + exit animation and calls
  * `onClose(id)` when done, so the provider just adds/removes from the array.
+ *
+ * Except on touch screens: CDS starts no timer there (there's no hover to
+ * pause on), so on phones a toast stayed until tapped. The provider keeps its
+ * own timer for those devices (same detection as CDS): 5s for a confirmation,
+ * longer for a warning or error, longest when there's a button to press.
+ * CDS gap to raise upstream: an auto-dismiss that works on touch.
  */
 
 import {
@@ -22,6 +28,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { ToastContainer, type ToastProps } from "@empac/cascadeds";
@@ -43,18 +50,45 @@ export interface ToastApi {
 
 const ToastContext = createContext<ToastApi | null>(null);
 
+/** How long a toast stays on a touch screen, by kind (desktop uses CDS's 5s + hover pause). */
+function touchDuration(t: ToastInput): number {
+  if (t.action || t.secondaryAction) return 10_000;
+  if (t.variant === "error") return 8_000;
+  if (t.variant === "warning") return 7_000;
+  return 5_000;
+}
+
+/** CDS's own test: it runs no timer on these. */
+function isTouch(): boolean {
+  return typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+}
+
+// True only after hydration. CDS ToastContainer branches on `typeof window`
+// (null on the server, a portal in the browser), which made every page's first
+// render mismatch. Pending an upstream fix in CascadeDS, it mounts client-side only.
+const noopSubscribe = () => () => {};
+function useHydrated(): boolean {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
+  const hydrated = useHydrated();
   const idRef = useRef(0);
 
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
   const dismiss = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    const t = timers.current.get(id);
+    if (t) { clearTimeout(t); timers.current.delete(id); }
+    setToasts((prev) => prev.filter((x) => x.id !== id));
   }, []);
 
   const toast = useCallback(
     (input: ToastInput): string => {
       const id = `toast-${++idRef.current}`;
       setToasts((prev) => [...prev, { ...input, id, onClose: dismiss }]);
+      if (isTouch()) timers.current.set(id, setTimeout(() => dismiss(id), touchDuration(input)));
       return id;
     },
     [dismiss],
@@ -75,7 +109,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <ToastContainer toasts={toasts} />
+      {hydrated && <ToastContainer toasts={toasts} />}
     </ToastContext.Provider>
   );
 }

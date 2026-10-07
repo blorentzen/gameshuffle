@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Cover-image uploader for a game night (host only). Uploads to R2 via
@@ -19,6 +20,7 @@ const ERR: Record<string, string> = {
 };
 
 export function CoverUploader({ nightId, initialUrl }: { nightId: string; initialUrl?: string | null }) {
+  const confirm = useConfirm();
   const toast = useToast();
   const [url, setUrl] = useState<string | null>(initialUrl ?? null);
   const [busy, setBusy] = useState(false);
@@ -50,7 +52,7 @@ export function CoverUploader({ nightId, initialUrl }: { nightId: string; initia
   };
 
   const remove = async () => {
-    if (!window.confirm("Remove the cover image?")) return;
+    if (!(await confirm({ title: "Remove the cover image?", confirmLabel: "Remove cover" }))) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/game-nights/${nightId}/cover`, { method: "DELETE" });

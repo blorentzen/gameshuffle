@@ -13,9 +13,10 @@ import {
   Stack,
   Textarea,
 } from "@empac/cascadeds";
-import { VideoHero } from "@/components/layout/VideoHero";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { CONTACT_TOPIC_LABELS } from "@/lib/email/contact";
+import { BrowseHero } from "@/components/events/BrowseHero";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -127,6 +128,7 @@ export default function ContactPage() {
         setSubmitting(false);
         return;
       }
+      track(EVENTS.contactSent, { topic });
       setSuccess(true);
     } catch (err) {
       console.error(err);
@@ -138,24 +140,13 @@ export default function ContactPage() {
 
   return (
     <>
-      <VideoHero
-        backgroundImage="/images/bg/MK8DX_Background_Music.jpg"
-        overlayOpacity={0.8}
-        height="medium"
-        blend
-        className="contact-video-hero"
-      >
-        <Container>
-          <div className="contact-hero">
-            <p className="marketing-eyebrow">Contact</p>
-            <h1 className="contact-hero__title">Get in touch</h1>
-            <p className="contact-hero__subline">
-              Have a feature idea, found a bug, or need help with your account?
-              Send us a note and we&apos;ll get back to you within 1 to 2 business days.
-            </p>
-          </div>
-        </Container>
-      </VideoHero>
+      <BrowseHero
+        eyebrow="Contact"
+        title="Get in touch"
+        sub="Have a feature idea, found a bug, or need help with your account? Send us a note and we'll get back to you within 1 to 2 business days."
+        accent="blue"
+        field="mixed"
+      />
 
       <main className="contact-page-main">
         <Container>

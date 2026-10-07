@@ -1,3 +1,5 @@
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
+
 /**
  * Games shown on marketing pages (GS Pro, Features). Two groups:
  *   - `available`   — games/modes GameShuffle supports today (live tools)
@@ -20,7 +22,7 @@ export interface MarketingGame {
   href?: string;
 }
 
-export const AVAILABLE_GAMES: MarketingGame[] = [
+const ALL_AVAILABLE: MarketingGame[] = [
   {
     name: "Mario Kart 8 Deluxe",
     blurb:
@@ -40,6 +42,32 @@ export const AVAILABLE_GAMES: MarketingGame[] = [
     href: "/randomizers/mario-kart-world",
   },
   {
+    name: "Super Mario Party Jamboree",
+    blurb:
+      "Roll the board, rules and turns, give everyone a character, and spin minigames. Switch and Switch 2 Edition.",
+    modes: ["Board & rules randomizer", "Character randomizer", "Minigame randomizer"],
+    image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif",
+    imageAlt: "Super Mario Party Jamboree board",
+    href: "/randomizers/super-mario-party-jamboree",
+  },
+  {
+    name: "Mario Party Superstars",
+    blurb:
+      "The five classic boards and 100 minigames from past Mario Party games, with the same board, character and minigame randomizer.",
+    modes: ["Board & rules randomizer", "Character randomizer", "Minigame randomizer"],
+    image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg",
+    imageAlt: "Mario throwing a Dice Block on a Mario Party Superstars board",
+    href: "/randomizers/mario-party-superstars",
+  },
+  {
+    name: "Super Smash Bros. Ultimate",
+    blurb: "Fighters, stages and rules for couch nights, plus Squad Strike squads.",
+    modes: ["Fighter randomizer", "Stage & rules randomizer", "Squad Strike"],
+    image: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg",
+    imageAlt: "Super Smash Bros. Ultimate cast artwork",
+    href: "/randomizers/super-smash-bros-ultimate",
+  },
+  {
     name: "Pokémon TCG",
     blurb:
       "A digital game-night kit for the Pokémon Trading Card Game: damage, conditions, prizes, coin flips, and dice.",
@@ -50,19 +78,16 @@ export const AVAILABLE_GAMES: MarketingGame[] = [
   },
 ];
 
+// Smash is built but hidden until launch (see games-visibility): it stays "in development" until then.
+export const AVAILABLE_GAMES: MarketingGame[] = ALL_AVAILABLE.filter((g) => SMASH_PUBLIC || g.name !== "Super Smash Bros. Ultimate");
+
 export const IN_DEVELOPMENT_GAMES: MarketingGame[] = [
-  {
+  ...(SMASH_PUBLIC ? [] : [{
     name: "Super Smash Bros. Ultimate",
     blurb: "Character, stage, and rules randomization for couch and stream brackets.",
     image: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg",
     imageAlt: "Super Smash Bros. Ultimate cast artwork",
-  },
-  {
-    name: "Mario Party",
-    blurb: "Board, minigame, and house-rule shuffling for party-game nights.",
-    image: "https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg",
-    imageAlt: "Mario Party full cast artwork",
-  },
+  }]),
   {
     name: "Jackbox",
     blurb: "Pick-a-pack and game randomization for Jackbox party nights with your chat or couch.",

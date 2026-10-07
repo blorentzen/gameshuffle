@@ -36,8 +36,10 @@ export default function Page() {
 
       <h2>Slash commands</h2>
       <ul>
-        <li><code>/gs-randomize</code>: kart randomizer for MK8DX and Mario Kart World, with user tagging and per-player re-rolls. <strong>Free for everyone.</strong></li>
+        <li><code>/gs-randomize</code>: rolls for any game GameShuffle has a randomizer for (start typing the game name), with user tagging and per-player re-rolls. Mario Party keeps characters different; Overwatch and Marvel Rivals take a <code>role</code>. <strong>Free for everyone.</strong></li>
         <li><code>/gs-result</code>: post a competitive lounge result. <strong>GameShuffle Pro.</strong></li>
+        <li><code>/gs-brain</code>: answer a Chat Brain survey question with one tap and a one-line form. Anyone gets a question just for them; members with Manage Server post one for the whole channel. Route the <strong>Chat Brain</strong> category to get a new question every day. <strong>Free for everyone.</strong></li>
+        <li><code>/gs-weekly</code>: play the <a href="/help/apps/weekly-challenge">Weekly Challenge</a> without leaving Discord. Plays count on the GameShuffle account you sign in to with Discord. Members with Manage Server post the card for the whole channel. <strong>Free for everyone.</strong></li>
         <li><code>/gs-poll</code>: open or close a <a href="/help/streaming/polls">live poll</a> for your community, with button voting. <strong>GameShuffle Pro, Manage Server permission.</strong></li>
       </ul>
       <p>Slash commands can take a few minutes to appear after the bot joins.</p>

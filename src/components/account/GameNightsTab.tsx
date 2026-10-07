@@ -20,6 +20,7 @@ import { EventCard } from "@/components/events/EventCard";
 import { artCategoryFor } from "@/components/events/EventHeaderArt";
 import type { GameNight } from "@/lib/game-nights/types";
 import { MYSTUFF_SECTIONS, sectionForNightStatus } from "@/lib/account/statusSections";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Entry { night: GameNight; role: "host" | "attend" }
 
@@ -68,7 +69,7 @@ export function GameNightsTab() {
   }, []);
 
   if (loading) {
-    return <div className="account-card"><p style={{ color: "var(--text-tertiary)" }}>Loading your game nights…</p></div>;
+    return <div className="account-card"><LoadingLines label="Loading your game nights" /></div>;
   }
 
   const entries: Entry[] = [

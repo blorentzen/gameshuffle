@@ -241,8 +241,16 @@ export function clearFlightRace(state: FlightsState, flightId: string, raceIdx: 
 
 /** Cumulative standings across every reported round, with manual point
  *  overrides applied (they win over the derived totals). */
-export function flightStandings(state: FlightsState): FlightStanding[] {
-  return standingsFrom(state.rounds, state.rounds.length - 1, state.rules, state.overrides);
+export function flightStandings(state: FlightsState, bonus: Record<string, number> = {}): FlightStanding[] {
+  const rows = standingsFrom(state.rounds, state.rounds.length - 1, state.rules, state.overrides);
+  if (!Object.keys(bonus).length) return rows;
+  // Bonus points (Mario Party missions) add on top, except where the organizer
+  // has set a manual total, which still wins. Stable re-sort keeps tiebreaks.
+  return rows
+    .map((r) => (r.overridden ? r : { ...r, points: r.points + (bonus[r.participantId] ?? 0) }))
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => b.r.points - a.r.points || a.i - b.i)
+    .map(({ r }) => r);
 }
 
 /** Set (or clear, with null) a player's manual points override. */
@@ -279,15 +287,15 @@ export function isFlightsComplete(state: FlightsState): boolean {
 
 /** Final placements from the cumulative standings, tie-aware — players level on
  *  points share a placement (1, 2, 2, 4). */
-export function computeFlightPlacements(state: FlightsState): { participantId: string; placement: number }[] {
-  return placementsWithTies(flightStandings(state).map((s) => ({ participantId: s.participantId, points: s.points })));
+export function computeFlightPlacements(state: FlightsState, bonus: Record<string, number> = {}): { participantId: string; placement: number }[] {
+  return placementsWithTies(flightStandings(state, bonus).map((s) => ({ participantId: s.participantId, points: s.points })));
 }
 
 /** Groups of 2+ players tied on final points (for the runoff / share-placement
  *  decision). Each group is the tied participant ids. */
-export function flightTies(state: FlightsState): string[][] {
+export function flightTies(state: FlightsState, bonus: Record<string, number> = {}): string[][] {
   const byPoints = new Map<number, string[]>();
-  for (const s of flightStandings(state)) {
+  for (const s of flightStandings(state, bonus)) {
     if (s.racesPlayed === 0 && !s.overridden) continue;
     const g = byPoints.get(s.points) ?? [];
     g.push(s.participantId);
