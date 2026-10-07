@@ -17,16 +17,23 @@ export function TierTemplatePicker({ currentSlug }: { currentSlug?: string }) {
         >
           Blank
         </Link>
-        {TIER_TEMPLATES.map((t) => (
-          <Link
-            key={t.slug}
-            href={`/tier-list-maker/${t.slug}`}
-            className={`tier-templates__link${currentSlug === t.slug ? " is-active" : ""}`}
-          >
-            {t.title}
-          </Link>
-        ))}
       </div>
+      {[...new Set(TIER_TEMPLATES.map((t) => t.group))].map((group) => (
+        <div key={group} className="tier-templates__group">
+          <h3 className="tier-templates__group-head">{group}</h3>
+          <div className="tier-templates__grid">
+            {TIER_TEMPLATES.filter((t) => t.group === group).map((t) => (
+              <Link
+                key={t.slug}
+                href={`/tier-list-maker/${t.slug}`}
+                className={`tier-templates__link${currentSlug === t.slug ? " is-active" : ""}`}
+              >
+                {t.title}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ))}
     </section>
   );
 }

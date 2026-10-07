@@ -536,6 +536,74 @@
 .tier-row__zone.is-over {
   background: color-mix(in srgb, var(--primary-500) 12%, transparent);
 }
+/* An item is picked up: every row is a place to put it. */
+.tier-row__zone.is-target {
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--primary-500) 35%, transparent);
+}
+.tier-row__empty {
+  align-self: center;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.tier-tool__hint {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.tier-pool__label {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+.tier-pool__label span {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-normal, 400);
+}
+/* The Move to bar for a picked-up item: sticks to the bottom on long boards. */
+.tier-move {
+  position: sticky;
+  bottom: var(--spacing-8);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8) var(--spacing-12);
+  padding: var(--spacing-10, 10px) var(--spacing-12);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-12, 12px);
+  background: var(--background-elevated);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+}
+.tier-move__what {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  min-width: 0;
+  font-size: var(--font-size-14);
+}
+.tier-move__what img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-6, 6px);
+  object-fit: cover;
+}
+.tier-move__to {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+  flex: 1 1 auto;
+}
+.tier-move__tier.empac-button {
+  min-width: 4rem;
+  color: #1b2230;
+  font-weight: 800;
+}
+.tier-move__end {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+}
 .tier-item {
   display: inline-flex;
   align-items: center;
@@ -546,8 +614,20 @@
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
   cursor: grab;
-  touch-action: none;
+  /* Not "none": a finger must still scroll the page across a full pool. Touch drags start on press-and-hold. */
+  touch-action: manipulation;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.tier-item:focus-visible {
+  outline: 3px solid var(--primary-500);
+  outline-offset: 2px;
+}
+.tier-item.is-selected {
+  outline: 3px solid var(--primary-500);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary-500) 25%, transparent);
 }
 /* Image items: a fixed thumbnail, no padding/chrome. */
 .tier-item--image {
@@ -607,6 +687,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-8);
+}
+.tier-templates__group {
+  margin-top: var(--spacing-16);
+}
+.tier-templates__group-head {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
 }
 .tier-templates__link {
   display: inline-flex;
