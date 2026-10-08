@@ -52,6 +52,8 @@ export const EVENTS = {
   gameNightCreated: "Game Night Created",
   rsvp: "RSVP",
   seriesCreated: "Series Created",
+  /** The share menu on a tournament, game night or season page. {type, via: link|discord|x|facebook|native} */
+  eventShared: "Event Shared",
 
   // Forms and accounts
   betaApplied: "Beta Applied",

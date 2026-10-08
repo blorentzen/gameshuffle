@@ -102,7 +102,10 @@ export async function POST(req: NextRequest) {
         const game = typeof meta?.game === "string" ? meta.game : null;
         const startAt = typeof meta?.startAt === "string" ? meta.startAt : null;
         const capacity = typeof meta?.capacity === "number" ? meta.capacity : null;
-        const whenStr = startAt ? new Date(startAt).toLocaleString() : "Hosting now";
+        /* Discord draws <t:unix:F> in each reader's own timezone. Formatting
+           here would use the server's (UTC on Vercel), which is wrong for everyone. */
+        const unix = startAt ? Math.floor(new Date(startAt).getTime() / 1000) : NaN;
+        const whenStr = Number.isFinite(unix) ? `<t:${unix}:F> (<t:${unix}:R>)` : "Hosting now";
         const base = getBaseUrl();
 
         await postAnnouncementToCategory({

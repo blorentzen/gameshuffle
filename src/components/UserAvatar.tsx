@@ -96,13 +96,14 @@ export function UserAvatar({ user, size = 40, alt = "", className, style }: User
     );
   }
 
-  // DiceBear fallback (also handles legacy 'initials' source values)
+  // DiceBear fallback (also handles legacy 'initials' source values). With no
+  // alt it's decorative, like <img alt="">: hidden from screen readers rather
+  // than an image with no name.
   return (
     <span
       className={className}
       style={baseStyle}
-      role="img"
-      aria-label={alt}
+      {...(alt ? { role: "img", "aria-label": alt } : { "aria-hidden": true })}
       dangerouslySetInnerHTML={{ __html: dicebearSvg }}
     />
   );

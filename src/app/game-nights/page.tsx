@@ -12,6 +12,7 @@ import type { ViewerPrefs } from "@/lib/game-nights/match";
 export const metadata: Metadata = {
   title: "Game nights",
   description: "Find game nights near you, or host your own. Set the games, the vibe, and who it's for.",
+  alternates: { canonical: "/game-nights" },
 };
 
 export default async function GameNightsPage() {

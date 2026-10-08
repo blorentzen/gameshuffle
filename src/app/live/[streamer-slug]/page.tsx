@@ -16,7 +16,7 @@
  */
 
 import type { Metadata } from "next";
-import { getBaseUrl } from "@/lib/env";
+import { shareMeta } from "@/lib/og/meta";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -345,22 +345,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     streamer.twitch_channel ??
     streamer.twitch_username ??
     slug;
-  const base = getBaseUrl();
+  // The title template adds "| GameShuffle", so the title doesn't say it again.
+  const title = `${name}: Live`;
+  const description = `Play along with ${name}'s stream on GameShuffle: join the lobby, vote in polls and follow every roll live.`;
   return {
-    title: `${name}: Live on GameShuffle`,
-    description: `Watch ${name}'s live GameShuffle session. Track + item randomization, picks/bans, real-time updates.`,
-    alternates: { canonical: `${base}/live/${slug}` },
-    openGraph: {
-      type: "website",
-      url: `${base}/live/${slug}`,
-      title: `${name}: Live on GameShuffle`,
-      description: `Watch ${name}'s live session: track + item randomization, real-time.`,
-      siteName: "GameShuffle",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${name}: Live on GameShuffle`,
-    },
+    title,
+    description,
+    ...shareMeta({ title, description, path: `/live/${slug.toLowerCase()}` }),
   };
 }
 

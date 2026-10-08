@@ -153,13 +153,15 @@
    rendered as unstyled text wherever a tournament carried them. */
 .lounge-status--waiting,
 .lounge-status--open {
-  background: color-mix(in srgb, var(--warning-500) 18%, var(--surface-default));
+  /* 14%, not 18%: on a tinted page (event pages mix the surface) 18% left the
+     ink at 4.47:1, just under AA. */
+  background: color-mix(in srgb, var(--warning-500) 14%, var(--surface-default));
   color: var(--warning-ink);
 }
 
 .lounge-status--in_progress,
 .lounge-status--live {
-  background: color-mix(in srgb, var(--success-500) 18%, var(--surface-default));
+  background: color-mix(in srgb, var(--success-500) 14%, var(--surface-default));
   color: var(--success-ink);
 }
 
@@ -618,8 +620,10 @@
 
 .lounge-mode-badge {
   padding: 0.2rem 0.6rem;
-  background: var(--primary-100);
-  color: var(--primary-ink-500);
+  /* Same recipe as the status pills: a tint that flips with the theme and the
+     700 ink, which clears AA (the fixed --primary-100 with the 500 ink didn't). */
+  background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
+  color: var(--primary-ink-700);
   border-radius: 0.25rem;
   font-size: var(--font-size-12);
   font-weight: 700;
@@ -1943,6 +1947,12 @@
 
    Both axes deliberately: a big bracket is wide AND tall, and capping one just
    moves the problem to the other. */
+.bkt:focus-visible,
+.bracket-frame:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+}
+
 .bracket-frame {
   max-height: min(72vh, 760px);
   overflow: auto;

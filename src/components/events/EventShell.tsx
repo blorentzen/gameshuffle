@@ -13,6 +13,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { googleCalendarUrl, icsPath, type EventType } from "@/lib/events/calendar";
 import { buildEventJsonLd } from "@/lib/events/jsonld";
 import { OrganizerCard, type OrganizerInfo } from "./OrganizerCard";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * The shared event page shell (Eventbrite's page shape, our content):
@@ -103,6 +104,11 @@ export interface EventShellProps {
   calendarDescription?: string | null;
   /** Absolute page URL for share + calendar. */
   pageUrl: string;
+  /**
+   * "link" for an unlisted event: copying and direct shares only, no public
+   * posts to X or Facebook. Defaults to "public".
+   */
+  shareScope?: "public" | "link";
   /** Existing "Share to feed" control (GS-specific), rendered next to the share menu. */
   shareToFeed?: ReactNode;
   /** Good-to-know chips: duration, players, level, what to bring… */
@@ -217,24 +223,63 @@ export function EventShell(p: EventShellProps) {
   const [copied, setCopied] = useState(false);
   const [slot, setSlot] = useState(p.slots?.[0]?.id ?? "");
 
+  /* Every shared link says where it was shared (?src=share-x and so on). The
+     site already records ?src= visits (leadSource), so the share menu shows up
+     in analytics as a source with no extra plumbing. */
+  const shareUrl = useCallback((src: string) => {
+    try {
+      const u = new URL(p.pageUrl);
+      u.searchParams.set("src", src);
+      return u.toString();
+    } catch {
+      return p.pageUrl;
+    }
+  }, [p.pageUrl]);
+  const shared = useCallback((via: string) => track(EVENTS.eventShared, { type: p.type, via }), [p.type]);
+
   const copyLink = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(p.pageUrl);
+      await navigator.clipboard.writeText(shareUrl("share-link"));
       setCopied(true);
       toast.success("Link copied");
+      shared("link");
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       toast.error("Couldn't copy the link");
     }
-  }, [p.pageUrl, toast]);
+  }, [shareUrl, shared, toast]);
+
+  /* Discord renders <t:unix:F> in each reader's own timezone, so a post for a
+     7pm Pacific night reads 10pm to someone in New York. The link below it
+     unfurls into the event's share card. */
+  const startsAt = p.when?.startsAt ?? null;
+  const whenLabel = p.when?.label ?? null;
+  const copyForDiscord = useCallback(async () => {
+    const unix = startsAt ? Math.floor(new Date(startsAt).getTime() / 1000) : null;
+    const text = [
+      `**${p.title.replace(/([*_~`|])/g, "\\$1")}**`,
+      unix && Number.isFinite(unix) ? `<t:${unix}:F> (<t:${unix}:R>)` : whenLabel,
+      shareUrl("share-discord"),
+    ].filter(Boolean).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied. Discord shows the time in each person's own timezone.");
+      shared("discord");
+    } catch {
+      toast.error("Couldn't copy that");
+    }
+  }, [p.title, startsAt, whenLabel, shareUrl, shared, toast]);
 
   const nativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
   const shareText = [p.title, p.when?.label].filter(Boolean).join(" · ");
   const shareItems = [
     { label: copied ? "Copied!" : "Copy link", onClick: () => void copyLink() },
-    { label: "Share on X", onClick: () => window.open(`https://twitter.com/intent/tweet?${new URLSearchParams({ text: shareText, url: p.pageUrl })}`, "_blank", "noopener") },
-    { label: "Share on Facebook", onClick: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(p.pageUrl)}`, "_blank", "noopener") },
-    ...(nativeShare ? [{ label: "More…", onClick: () => void navigator.share({ title: p.title, text: shareText, url: p.pageUrl }).catch(() => {}) }] : []),
+    { label: "Copy for Discord", onClick: () => void copyForDiscord() },
+    ...(p.shareScope === "link" ? [] : [
+      { label: "Share on X", onClick: () => { shared("x"); window.open(`https://twitter.com/intent/tweet?${new URLSearchParams({ text: shareText, url: shareUrl("share-x") })}`, "_blank", "noopener"); } },
+      { label: "Share on Facebook", onClick: () => { shared("facebook"); window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl("share-facebook"))}`, "_blank", "noopener"); } },
+    ]),
+    ...(nativeShare ? [{ label: "More…", onClick: () => void navigator.share({ title: p.title, text: shareText, url: shareUrl("share-native") }).then(() => shared("native")).catch(() => {}) }] : []),
   ];
 
   const gcal = googleCalendarUrl({

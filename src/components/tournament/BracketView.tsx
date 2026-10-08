@@ -21,6 +21,9 @@ import { roundLabel, lbRoundLabel, type Bracket, type BracketGroup, type Bracket
  */
 const SCROLL_ABOVE_SEEDS = 16;
 
+/** Names for the scrollable sections, so a double-elimination page has two distinct regions. */
+const GROUP_LABEL: Partial<Record<BracketGroup, string>> = { wb: "Winners bracket", lb: "Losers bracket" };
+
 export function BracketView({
   bracket,
   nameOf,
@@ -40,7 +43,12 @@ export function BracketView({
     // Inside the pannable frame the FRAME owns both axes; a scroller within a
     // scroller traps the wheel and shows two sets of bars.
     return (
-      <div className="bkt" style={{ overflowX: pannable ? "visible" : "auto" }}>
+      <div
+        className="bkt"
+        style={{ overflowX: pannable ? "visible" : "auto" }}
+        // When the rounds scroll sideways on their own, keyboard users need to reach them (WCAG 2.1.1).
+        {...(pannable ? {} : { tabIndex: 0, role: "region", "aria-label": (bracket.kind === "double_elim" && GROUP_LABEL[group]) || "Bracket" })}
+      >
         {rounds.map((matches, r) => (
           <div className="bkt__round" key={r}>
             <div className="bkt__label">{labeler(r)}</div>
@@ -65,7 +73,8 @@ export function BracketView({
   /** Both axes: a big bracket is wide AND tall, and capping only one of them
    *  just moves the problem. */
   const frame = (inner: React.ReactNode) =>
-    pannable ? <div className="bracket-frame">{inner}</div> : <>{inner}</>;
+    // Focusable so keyboard users can scroll it with the arrow keys (WCAG 2.1.1).
+    pannable ? <div className="bracket-frame" tabIndex={0} role="region" aria-label="Bracket">{inner}</div> : <>{inner}</>;
 
   if (bracket.kind !== "double_elim") {
     return frame(columnsFor("wb", bracket.rounds, (r) => roundLabel(r, bracket.rounds)));

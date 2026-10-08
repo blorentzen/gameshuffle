@@ -372,6 +372,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    // The game nights hub (browse + host). Individual nights stay out, like tournaments.
+    { url: `${baseUrl}/game-nights`, lastModified: lm("/game-nights"), changeFrequency: "daily", priority: 0.8 },
     // Free game-night tools: the hub plus every registered tool (the tool pages
     // were missing from the sitemap entirely until 2026-09-29).
     { url: `${baseUrl}/game-nights/tools`, lastModified: lm("/game-nights/tools"), changeFrequency: "monthly", priority: 0.6 },
