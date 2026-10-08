@@ -90,6 +90,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "polls", label: "Polls", iconName: "chart-bar" },
       { id: "bingo", label: "Stream Bingo", iconName: "border-all" },
       { id: "draft", label: "Chat Draft", iconName: "list" },
+      { id: "chat-brain", label: "Chat Brain", iconName: "bulb" },
       { id: "community", label: "Chat Modules", iconName: "sparkles" },
       { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
       { id: "engagement", label: "Engagement", iconName: "trending-up" },

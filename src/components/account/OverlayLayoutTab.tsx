@@ -45,12 +45,13 @@ import { ComboOverlay } from "@/components/overlay/ComboOverlay";
 import { WheelOverlay } from "@/components/overlay/WheelOverlay";
 import { NumberBingoOverlay } from "@/components/overlay/NumberBingoOverlay";
 import { DraftOverlay } from "@/components/overlay/DraftOverlay";
+import { ChatBrainOverlay } from "@/components/overlay/ChatBrainOverlay";
 import { PollOverlay } from "@/components/overlay/PollOverlay";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
-import { IconBallBowling, IconCar, IconCards, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
+import { IconBallBowling, IconBrain, IconCar, IconCards, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type OverlayElement = {
@@ -73,6 +74,7 @@ const TOOLS: OverlayElement[] = [
   { id: "poll", label: "Poll", icon: IconChecklist },
   { id: "number_bingo", label: "Number Bingo", icon: IconGridDots },
   { id: "chat_draft", label: "Chat Draft", icon: IconChecklist },
+  { id: "chat_brain", label: "Chat Brain", icon: IconBrain },
 ];
 
 /** Apps — the larger game surfaces on the overlay. More (overlay wheel, the
@@ -298,6 +300,24 @@ export function OverlayLayoutTab() {
           ],
         },
       },
+      chat_brain: {
+        id: "sample", status: "playing" as const, boardIndex: 0, boardCount: 3,
+        question: "Name something people bring to a game night",
+        slots: [
+          { rank: 1, label: "Snacks", points: 38, found: true },
+          { rank: 2, label: null, points: null, found: false },
+          { rank: 3, label: "Drinks", points: 17, found: true },
+          { rank: 4, label: null, points: null, found: false },
+          { rank: 5, label: null, points: null, found: false },
+          { rank: 6, label: null, points: null, found: false },
+        ],
+        strikes: 1, score: 55, seconds: 30, phase: "guessing" as const,
+        window: { opensAt: new Date(0).toISOString(), closesAt: new Date(8.64e15).toISOString(), guesses: 41 },
+        last: null,
+        leaning: [{ label: "Board games", share: 0.46 }, { label: "Cards", share: 0.21 }],
+        playalong: [{ name: "Sam", points: 55 }, { name: "Riley", points: 38 }, { name: "Jo", points: 17 }],
+        canOverrule: false, familySafe: true,
+      },
       number_bingo: {
         status: "open" as const,
         patternLabel: "Four corners",
@@ -463,6 +483,8 @@ export function OverlayLayoutTab() {
         return <NumberBingoOverlay bingo={samples.number_bingo} style={style} />;
       case "chat_draft":
         return <DraftOverlay draft={samples.chat_draft} style={style} />;
+      case "chat_brain":
+        return <ChatBrainOverlay game={samples.chat_brain} style={style} />;
       case "chat":
         return <ChatTimelineOverlay sample style={style} />;
       case "viewers":

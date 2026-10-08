@@ -2780,3 +2780,16 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .live-page__upcoming-game { display: inline-flex; align-items: center; gap: var(--spacing-10, 10px); }
 .live-page__upcoming-cover { width: 4.4rem; flex-shrink: 0; }
 .live-page__upcoming-cover:empty { display: none; }
+
+/* Chat Brain tab (Community & Chat): the board while a stream game runs. */
+.cb-stream__q { font-size: var(--font-size-18); font-weight: 700; margin: 0 0 var(--spacing-12); }
+.cb-stream__board { list-style: none; margin: 0 0 var(--spacing-12); padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: var(--spacing-8); }
+.cb-stream__board li { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-8); padding: var(--spacing-8) var(--spacing-12); border: 1px dashed var(--border-default); border-radius: var(--radius-8, 8px); font-size: var(--font-size-14); color: var(--text-tertiary); }
+.cb-stream__board li.is-found { border-style: solid; color: var(--text-primary); background: color-mix(in srgb, var(--brand-primary, var(--bg-primary)) 10%, transparent); }
+.cb-stream__board li.is-revealed { border-style: solid; color: var(--text-secondary); }
+.cb-stream__rank { font-weight: 800; }
+.cb-stream__label { font-weight: 600; overflow-wrap: anywhere; }
+.cb-stream__pts { font-weight: 800; font-variant-numeric: tabular-nums; }
+.cb-stream__meta { font-size: var(--font-size-14); margin: 0 0 var(--spacing-8); }
+.cb-stream__overrule { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin-top: var(--spacing-12); }
+.cb-stream__time { max-width: 32rem; margin-top: var(--spacing-12); }

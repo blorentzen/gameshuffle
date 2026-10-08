@@ -35,6 +35,7 @@ import { getLayoutProfiles } from "@/lib/overlay/layouts";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { getOpenPollForCommunity, tally as pollTally } from "@/lib/polls/store";
 import { getCurrentDraft, tickDraft, viewOf as draftView, type StreamDraftView } from "@/lib/drafts/store";
+import { gameView as brainGameView, getShowableGame as getBrainGame, tickGame as tickBrainGame, type StreamGameView } from "@/lib/chatbrain/streamGame";
 import { getCurrentGame as getBingoGame, tickAuto as tickBingo, viewOf as bingoView, type StreamBingoView } from "@/lib/bingo/stream";
 import { getViewerCountsForOwner } from "@/lib/streams/viewers";
 
@@ -180,6 +181,16 @@ export async function GET(
     if (!(err instanceof Error && err.name === "DraftsNotReady")) console.error("[overlay/latest] draft fetch failed:", err);
   }
 
+  // Chat Brain: the community's game on stream (also closes a guess whose time is up).
+  let brain: StreamGameView | null = null;
+  try {
+    const communityId = await resolveCommunityIdForOwner(ownerUserId);
+    const g = communityId ? await getBrainGame(communityId) : null;
+    if (g) brain = await brainGameView(await tickBrainGame(g));
+  } catch (err) {
+    console.error("[overlay/latest] chat brain fetch failed:", err);
+  }
+
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
   const sessionParam = url.searchParams.get("session");
@@ -234,6 +245,7 @@ export async function GET(
       poll,
       bingo,
       draft,
+      brain,
       viewers,
     });
   }
@@ -392,6 +404,7 @@ export async function GET(
     poll,
     bingo,
     draft,
+    brain,
     viewers,
   });
 }
