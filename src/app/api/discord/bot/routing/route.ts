@@ -160,6 +160,10 @@ export async function DELETE() {
       discord_guild_name: null,
       discord_channel_id: null,
       discord_notify_role_id: null,
+      // Ids from the server being removed. Kept, the next server the bot
+      // joined would send its logs to this server's log channel.
+      discord_log_channel_id: null,
+      discord_pro_role_id: null,
     })
     .eq("id", user.id);
   if (error) {
@@ -168,5 +172,7 @@ export async function DELETE() {
       { status: 500 },
     );
   }
+  const { error: routesErr } = await admin.from("discord_channel_routes").delete().eq("user_id", user.id);
+  if (routesErr) console.error("[discord-bot-routing] clearing channel routes failed:", routesErr);
   return NextResponse.json({ ok: true });
 }

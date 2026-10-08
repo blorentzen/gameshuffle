@@ -102,6 +102,12 @@ const subOn = (flags: EventFlags | null, key: EventKey) =>
 const pingOn = (flags: EventFlags | null, key: EventKey) =>
   flags?.[key] === true;
 
+/** Plain-language versions of the install callback's failure codes. */
+const INSTALL_ERRORS: Record<string, string> = {
+  server_already_linked: "That server is already connected to another GameShuffle account. Whoever connected it can remove the bot from their Discord settings on GameShuffle, then you can add it here.",
+  access_denied: "Install cancelled. Nothing changed.",
+};
+
 export function DiscordBotRoutingCard() {
   const confirm = useConfirm();
   const [routing, setRouting] = useState<RoutingState | null>(null);
@@ -178,11 +184,14 @@ export function DiscordBotRoutingCard() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("discord_installed") === "1") {
+    const installed = params.get("discord_installed");
+    if (installed === "1") {
       setSuccess("GameShuffle bot installed. Pick a channel below.");
+    } else if (installed === "switched") {
+      setSuccess("GameShuffle bot moved to your new server. Channels and roles from the old server were cleared, so pick them again below.");
     }
     const err = params.get("discord_install_error");
-    if (err) setError(`Install failed: ${err.replace(/_/g, " ")}`);
+    if (err) setError(INSTALL_ERRORS[err] ?? `Install failed: ${err.replace(/_/g, " ")}`);
   }, []);
 
   const patchRouting = async (
@@ -284,7 +293,7 @@ export function DiscordBotRoutingCard() {
 
   const removeBot = async () => {
     if (
-      !(await confirm({ title: "Stop GameShuffle posting to your Discord?", body: "You’ll also need to remove the bot from your server in Discord.", confirmLabel: "Stop posting" }))
+      !(await confirm({ title: "Stop GameShuffle posting to your Discord?", body: "This clears your channel, role and log picks for that server. You’ll also need to remove the bot from your server in Discord.", confirmLabel: "Stop posting" }))
     ) {
       return;
     }
