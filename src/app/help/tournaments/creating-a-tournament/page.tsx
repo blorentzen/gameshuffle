@@ -93,13 +93,21 @@ export default function Page() {
       </ul>
       <p>
         Set a <strong>max participants</strong> cap if you want to limit the field. You can raise it
-        later from Settings. Share the tournament link anywhere, or use
-        <strong> Invite</strong> on the manage page to notify your followers.
+        later from Settings. Use <strong> Invite</strong> on the manage page to notify your followers.
+      </p>
+
+      <h2>Sharing it</h2>
+      <p>
+        The <strong>Share</strong> button on the tournament page copies the link or posts it to X or Facebook. Wherever you
+        paste it, the preview shows the tournament&apos;s own card: its name, date, game art (or your banner) and how many spots
+        are filled. <strong>Copy for Discord</strong> copies the name, the start time and the link, and Discord shows the time in
+        each reader&apos;s own timezone.
       </p>
 
       <h2>Running it</h2>
       <p>
-        Move the tournament from <strong>Draft</strong> to <strong>Open for Registration</strong> to
+        A new tournament starts as a <strong>Draft</strong>: only you and your co-organizers can see it, and a draft nobody has
+        joined can be deleted from the manage page. Move it to <strong>Open for Registration</strong> to
         take sign-ups, then to <strong>In Progress</strong> when you start. On the manage page you
         enter results as you go (per-race finishing order, or final placements), and standings
         update live. Hit <strong>Finalize standings</strong> to lock in the official results, then
@@ -110,6 +118,13 @@ export default function Page() {
         show a live race card on your overlay, and even run it as a
         <a href="/help/tournaments/multi-crew-tournaments"> multi-crew battle</a>.
       </p>
+
+      <h2>When it&apos;s over, or never happens</h2>
+      <ul>
+        <li><strong>Archive</strong> (on the manage page) takes a tournament off browse, your profile and every list. The page still works for anyone with the link, with an &ldquo;Archived&rdquo; note, and you can unarchive it any time. Cancelled tournaments leave the lists the same way.</li>
+        <li>If an open tournament&apos;s date passes by two days and it never started, it leaves browse on its own and you get one notification to finish or cancel it. On a free account it also stops counting as your one active tournament.</li>
+        <li>In <strong>My Stuff</strong> &rsaquo; <strong>Tournaments</strong>, archived and cancelled tournaments sit in a collapsed <strong>Archived</strong> section at the bottom, under Draft, Registration, In Progress and Complete.</li>
+      </ul>
 
       <h2>Bring a co-organizer (Circuit)</h2>
       <p>

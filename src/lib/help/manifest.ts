@@ -234,7 +234,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "daily-shuffle",
     title: "The Daily Shuffle",
-    description: "Guess today's character in six tries, rotating through Mario Kart and Mario Party: the schedule, hints, sharing and streaks.",
+    description: "Guess today's character in six tries, rotating through Mario Kart, Mario Party and Smash: the schedule, hints, sharing, streaks and playing in Discord.",
     href: "/help/apps/daily-shuffle",
     category: "apps",
     keywords: ["daily", "daily shuffle", "puzzle", "guess", "streak", "wordle", "mario party", "mario kart world"],
@@ -242,20 +242,20 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "weekly-challenge",
     title: "The Weekly Challenge",
-    description: "A new challenge every Monday: rank the Tier War like the crowd, finish the game-night mission, climb the leaderboard.",
+    description: "A new challenge every Monday: answer the survey and guess the crowd (or rank the Tier War), finish the game-night mission, climb the leaderboard.",
     href: "/help/apps/weekly-challenge",
     category: "apps",
-    keywords: ["weekly", "weekly challenge", "tier war", "tier list", "leaderboard", "badge", "mission", "agenda"],
+    keywords: ["weekly", "weekly challenge", "survey", "chat brain", "guesses", "tier war", "tier list", "leaderboard", "badge", "mission", "agenda"],
   },
 
   // Tournaments
   {
     id: "creating-a-tournament",
     title: "Creating a Tournament",
-    description: "Set up a tournament from start to finish: format, tracks, rules, and sign-ups.",
+    description: "Set up a tournament from start to finish: format, tracks, rules, sign-ups, sharing, and archiving when it's over.",
     href: "/help/tournaments/creating-a-tournament",
     category: "tournaments",
-    keywords: ["tournament", "create", "bracket", "organize", "host", "sign up", "registration", "championship"],
+    keywords: ["tournament", "create", "bracket", "organize", "host", "sign up", "registration", "championship", "draft", "archive", "share"],
   },
   {
     id: "tournament-formats",
@@ -368,10 +368,10 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "discord-bot",
     title: "The Discord Bot",
-    description: "Route posts, announcements, self-assign roles, AutoMod, QOTD, and slash commands.",
+    description: "Add the bot, play the Daily inside Discord, route posts, announcements, self-assign roles, AutoMod, QOTD, and slash commands.",
     href: "/help/community/discord-bot",
     category: "community",
-    keywords: ["discord", "bot", "qotd", "automod", "announcements", "roles", "routing", "/gs-randomize", "/gs-poll", "slash commands"],
+    keywords: ["discord", "bot", "activity", "/gs-daily", "app launcher", "qotd", "automod", "announcements", "roles", "routing", "/gs-randomize", "/gs-poll", "slash commands"],
   },
 
   // Pro

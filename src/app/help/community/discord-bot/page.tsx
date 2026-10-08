@@ -27,15 +27,34 @@ export default function Page() {
       <h2>Getting the bot in your server</h2>
       <ol>
         <li>
-          <a href="/help/getting-started/connecting-discord">Connect Discord</a> from
-          <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong> &rsaquo;
-          <strong> Integrations</strong> and add the bot to a server where you have Manage Server.
+          Press <strong>Add to Discord</strong> on <a href="/discord">gameshuffle.co/discord</a>, or go to
+          <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong> &rsaquo; <strong> Integrations</strong>, and add the
+          bot to a server where you have Manage Server. You&apos;ll be asked to sign in or make a free account first.
         </li>
         <li>Open the <strong>Discord Bot</strong> tab to configure it.</li>
       </ol>
+      <p>
+        A server can be connected to one GameShuffle account at a time. If someone else already connected it, they need to
+        remove the bot from their Discord settings on GameShuffle before you can add it. Moving the bot to a different server
+        clears the channels and roles you picked for the old one, so you pick them again for the new server.
+      </p>
+
+      <h2>Play inside Discord</h2>
+      <p>
+        GameShuffle also runs inside Discord as an Activity: the <a href="/help/apps/daily-shuffle">Daily Shuffle</a>, the
+        {" "}<a href="/help/apps/weekly-challenge">Weekly Challenge</a> and Chat Brain, in one window everyone in the call or
+        channel can open. Start it from the App Launcher (the rocket in the message bar), with <code>/gs-daily</code>, or with a
+        {" "}<strong>Play</strong> button on one of the bot&apos;s posts.
+      </p>
+      <ul>
+        <li>The Daily needs no account. Players who link Discord to a GameShuffle account keep one streak across Discord and the site.</li>
+        <li>The Weekly counts on a GameShuffle account, so the Activity offers to make one (free, with Discord) the first time.</li>
+        <li>With the bot in the server, the channel gets one Daily card a day with everyone&apos;s rows and scores, and a ranking at 9am Pacific.</li>
+      </ul>
 
       <h2>Slash commands</h2>
       <ul>
+        <li><code>/gs-daily</code>: opens today&apos;s Daily Shuffle right in the channel. Works in servers, group chats and DMs. <strong>Free for everyone.</strong></li>
         <li><code>/gs-randomize</code>: rolls for any game GameShuffle has a randomizer for (start typing the game name), with user tagging and per-player re-rolls. Mario Party keeps characters different; Overwatch and Marvel Rivals take a <code>role</code>. <strong>Free for everyone.</strong></li>
         <li><code>/gs-result</code>: post a competitive lounge result. <strong>GameShuffle Pro.</strong></li>
         <li><code>/gs-brain</code>: answer a Chat Brain survey question with one tap and a one-line form. Anyone gets a question just for them; members with Manage Server post one for the whole channel. Route the <strong>Chat Brain</strong> category to get a new question every day. <strong>Free for everyone.</strong></li>
@@ -43,6 +62,10 @@ export default function Page() {
         <li><code>/gs-poll</code>: open or close a <a href="/help/streaming/polls">live poll</a> for your community, with button voting. <strong>GameShuffle Pro, Manage Server permission.</strong></li>
       </ul>
       <p>Slash commands can take a few minutes to appear after the bot joins.</p>
+      <p>
+        Chat Brain and Weekly posts from the bot keep count of who has answered: as members of your server answer (from the
+        post&apos;s buttons, the Weekly form or the Activity in that server), the post updates with how many have answered there and their names.
+      </p>
 
       <h2>What the bot can do</h2>
       <p>

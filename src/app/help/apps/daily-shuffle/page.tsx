@@ -52,6 +52,19 @@ export default function Page() {
       <h2>Sharing and streaks</h2>
       <p>When you&apos;re done, <strong>Copy my result</strong> gives you a spoiler-free grid to share. Your streak counts every day you solve, whatever the game. Signed in, your results are saved to your account, so your streak follows you to any device and shows on your profile. Signed out, your streak and stats stay in the browser you play on.</p>
 
+      <h2>Play in Discord</h2>
+      <p>
+        The Daily also runs inside Discord as an Activity, so a whole server can play together. Start it from the App Launcher
+        (the rocket in the message bar), with <code>/gs-daily</code>, or with the <strong>Play the Daily</strong> button on the
+        day&apos;s card. You don&apos;t need a GameShuffle account to play there.
+      </p>
+      <ul>
+        <li>When the GameShuffle bot is in the server, the channel gets one card for the day showing everyone&apos;s rows as colored squares (no answers), and each player&apos;s score once they finish.</li>
+        <li>At 9am Pacific the bot posts yesterday&apos;s ranking for that channel and how many days in a row the channel has solved it.</li>
+        <li>If your Discord is linked to your GameShuffle account, your Discord games count toward the same streak and stats. It&apos;s still one result per day: if you play on both, the one on the site counts.</li>
+      </ul>
+      <p>More about the bot and the Activity: <Link href="/help/community/discord-bot">the Discord Bot</Link>.</p>
+
       <h2>Still need help?</h2>
       <p>Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a>.</p>
     </HelpArticle>
