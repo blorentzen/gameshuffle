@@ -23,6 +23,7 @@ import {
   upsertSubscriptionFromStripe,
 } from "@/lib/stripe/subscriptions";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { intervalForPrice, periodEndOf, subscriptionIdOf } from "@/lib/stripe/payload";
 import {
   sendTrialStartedEmail,
   sendTrialEndingEmail,
@@ -55,13 +56,6 @@ async function getContactForUser(userId: string): Promise<{ email: string; name:
     console.warn("[stripe-webhook] getContactForUser failed:", err);
     return null;
   }
-}
-
-function intervalForPriceId(priceId: string | null | undefined): "monthly" | "annual" | undefined {
-  if (!priceId) return undefined;
-  if (priceId === process.env.STRIPE_PRICE_ID_MONTHLY) return "monthly";
-  if (priceId === process.env.STRIPE_PRICE_ID_ANNUAL) return "annual";
-  return undefined;
 }
 
 function formatAmount(cents: number | null | undefined): string | undefined {
@@ -202,10 +196,8 @@ export async function POST(request: Request) {
         // Circuit has no trial and its own lifecycle; skip the Pro-worded emails.
         const proEmails = result.product === "pro";
 
-        const periodEnd = (sub as Stripe.Subscription & { current_period_end?: number })
-          .current_period_end;
+        const periodEnd = periodEndOf(sub);
         const item = sub.items?.data?.[0];
-        const priceId = (item?.price?.id as string | null) ?? null;
         const amountCents = (item?.price?.unit_amount as number | null) ?? null;
 
         // Trial → active = trial converted into a paid subscription.
@@ -216,7 +208,7 @@ export async function POST(request: Request) {
               to: contact.email,
               name: contact.name,
               amount: formatAmount(amountCents),
-              interval: intervalForPriceId(priceId),
+              interval: intervalForPrice(item?.price),
               nextRenewalAt: periodEnd ? new Date(periodEnd * 1000) : undefined,
             }).catch((err) => console.error("[stripe-webhook] trial-converted email failed:", err));
           }
@@ -280,14 +272,13 @@ export async function POST(request: Request) {
           const contact = await getContactForUser(userId);
           if (contact) {
             const item = sub.items?.data?.[0];
-            const priceId = (item?.price?.id as string | null) ?? null;
             const amountCents = (item?.price?.unit_amount as number | null) ?? null;
             await sendTrialEndingEmail({
               to: contact.email,
               name: contact.name,
               trialEndsAt: new Date(sub.trial_end * 1000),
               amount: formatAmount(amountCents),
-              interval: intervalForPriceId(priceId),
+              interval: intervalForPrice(item?.price),
             }).catch((err) => console.error("[stripe-webhook] trial-ending email failed:", err));
           }
         }
@@ -296,14 +287,9 @@ export async function POST(request: Request) {
 
       case "invoice.paid":
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice & {
-          subscription?: string | Stripe.Subscription | null;
-        };
-        if (invoice.subscription) {
-          const subscriptionId =
-            typeof invoice.subscription === "string"
-              ? invoice.subscription
-              : invoice.subscription.id;
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = subscriptionIdOf(invoice);
+        if (subscriptionId) {
           const sub = await stripe.subscriptions.retrieve(subscriptionId);
           const result = await syncFromSubscription(sub);
 

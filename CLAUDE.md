@@ -438,6 +438,7 @@ written and must not be scaled.
 - Checkout entry: `/api/stripe/checkout` (creates Stripe Checkout session)
 - Customer Portal: `/api/stripe/portal` (subscription management, ToS Section 6 commits to this path)
 - Webhook handler: `/api/stripe/webhook` — signature-verified, handles `checkout.session.completed`, `customer.subscription.*`, `invoice.payment_*`, `trial_will_end`
+- **Webhook payloads follow the account's default API version (`2026-04-22.dahlia`), not the SDK pin.** Since 2025-03-31 an invoice's subscription is at `invoice.parent.subscription_details.subscription` and a subscription's period end is on its items; read them through `src/lib/stripe/payload.ts` (`subscriptionIdOf`, `periodEndOf`, `intervalForPrice`). Reading the old top-level fields silently skipped the payment-failed and cancelled emails until 2026-10-08.
 - Subscription state mirroring: `src/lib/stripe/subscriptions.ts` keeps `public.users` in sync with Stripe
 - Billing email templates: `src/lib/email/billing.ts` (trial reminders, payment receipts, cancellation confirmations)
 - Account email templates: `src/lib/email/account.ts` (deletion confirmations, etc.)
