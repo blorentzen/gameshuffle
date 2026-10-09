@@ -147,7 +147,7 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
     ],
     surfaces: [
       "/live/<slug> Leaderboard tab (three sub-tabs: Combined / Player / Crowd)",
-      "/staff/economy (admin: includes Streamer Leaderboard ranked by engagement counts)",
+      "Platform admin ▸ Token economy ▸ Streamers (staff: the busiest chats, ranked by engagement counts)",
     ],
     config: [
       { name: "Default top-N", default: "10" },

@@ -120,7 +120,11 @@ function StatCard({
   );
 }
 
-export function PlatformEconomySnapshotTab() {
+/**
+ * Token economy ▸ Overview (`part="overview"`: supply, flows, distribution) and
+ * ▸ History (`part="history"`: the daily snapshots). Same data, one fetch each.
+ */
+export function PlatformEconomySnapshotTab({ part = "overview" }: { part?: "overview" | "history" }) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -166,14 +170,11 @@ export function PlatformEconomySnapshotTab() {
         }}
       >
         <div>
-          <h2 className="account-tab__heading">Economy snapshot</h2>
+          <h2 className="account-tab__heading">{part === "history" ? "Daily history" : "Token economy"}</h2>
           <p className="account-tab__intro" style={{ marginTop: 0 }}>
-            Live ecosystem-wide view of the token economy. Hero
-            stats are computed at request time. They include any
-            movement since the most recent daily snapshot was
-            persisted. The history table below pulls from{" "}
-            <code>gs_economy_snapshots</code>, populated by the
-            daily cron.
+            {part === "history"
+              ? "One row per day: how many tokens existed, how many were earned, awarded and burned, and how evenly they were spread."
+              : "How many tokens exist right now, where new ones came from, how many were burned, and how evenly they're spread. Counted live, including anything since today's daily snapshot."}
           </p>
         </div>
         <Button
@@ -199,6 +200,7 @@ export function PlatformEconomySnapshotTab() {
         <LoadingLines label="Loading" />
       ) : (
         <>
+          {part === "overview" && <>
           {/* ── Hero stats ─────────────────────────────────────── */}
           <section style={{ marginBottom: "var(--spacing-32)" }}>
             <div
@@ -319,8 +321,9 @@ export function PlatformEconomySnapshotTab() {
             </div>
           </section>
 
+          </>}
           {/* ── History table ────────────────────────────────── */}
-          <section>
+          {part === "history" && <section>
             <h3
               style={{
                 fontSize: "var(--font-size-14)",
@@ -522,7 +525,7 @@ export function PlatformEconomySnapshotTab() {
                 </div>
               </Card>
             )}
-          </section>
+          </section>}
 
           <p
             style={{

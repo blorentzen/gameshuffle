@@ -2918,10 +2918,21 @@ ul {
 
 /* ── CDS bug: the warning Badge is --warning-700 on --warning-100 (about
    2.7:1), under WCAG's 4.5:1 for its 12px text, wherever it appears. A darker
-   amber keeps the look and clears 4.5:1. Dark mode keeps CDS's own colours.
+   amber keeps the look and clears 4.5:1. In dark mode it's --warning-300 on
+   our --warning-900 (3.1:1); white text on the same amber is 5.4:1.
    Upstream fix belongs in CascadeDS; local override until then. ── */
 html:not(.dark) .empac-badge--warning {
   color: #6f4400;
+}
+html.dark .empac-badge--warning {
+  color: #ffffff;
+}
+
+/* ── CDS bug: the active Tab label is --primary-600 in every theme, about
+   2.6:1 on dark surfaces. --brand-ink is the site's contrast-safe brand text
+   colour and turns lighter in dark mode. Upstream fix belongs in CascadeDS. ── */
+html.dark .empac-tabs__tab--active .empac-tabs__tab-label {
+  color: var(--brand-ink);
 }
 
 /* ── Phones: card rows swipe (ResponsiveCarousel) instead of stacking ── */

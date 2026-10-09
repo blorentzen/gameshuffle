@@ -195,10 +195,10 @@ export function PlatformOriginalsTab() {
               <div key={wk.label} className="account-card">
                 <span className="home-play__eyebrow">{wk.label} · week {wk.number}</span>
                 <h4 className="originals-admin__answer">{wk.title}</h4>
-                <p className="dbot-muted">
+                <div className="dbot-muted">
                   <Badge variant={wk.kind === "survey" ? "info" : "default"} size="small">{wk.kind === "survey" ? "Survey" : "Tier War"}</Badge>{" "}
                   {wk.players} {wk.players === 1 ? "player" : "players"}{wk.swapped ? " · picked by staff" : " · picked automatically"}
-                </p>
+                </div>
               </div>
             ))}
             <div className="account-card">

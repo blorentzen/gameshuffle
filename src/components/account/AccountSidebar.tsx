@@ -28,7 +28,7 @@ import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Icon, Menu } from "@empac/cascadeds";
 import { isStaffRole } from "@/lib/subscription";
-import { ACCOUNT_SECTIONS } from "@/lib/account/nav";
+import { ACCOUNT_SECTIONS, itemTabIds } from "@/lib/account/nav";
 
 // CDS has no Discord glyph, so brand-discord renders the logo inline with
 // fill:currentColor, matching the other Tabler icons + adapting to theme.
@@ -61,8 +61,13 @@ export function AccountSidebar({ role }: { role: string | null }) {
     sections.find((s) => s.route === pathname) ?? sections[0];
   const activeTab = searchParams.get("tab") ?? current.defaultTab;
 
-  const activeLabel =
-    current.items.find((i) => i.id === activeTab)?.label ?? current.label;
+  // A view (Platform Admin) is active for any of its tabs.
+  const activeItem = current.items.find((i) => itemTabIds(i).includes(activeTab))
+    ?? current.items.find((i) => itemTabIds(i).includes(current.defaultTab));
+  const activeSub = activeItem?.tabs?.find((t) => t.id === activeTab);
+  const activeLabel = activeItem
+    ? activeItem.tabs && activeItem.tabs.length > 1 && activeSub ? `${activeItem.label} · ${activeSub.label}` : activeItem.label
+    : current.label;
 
   const go = (href: string) => {
     router.push(href);
@@ -71,16 +76,19 @@ export function AccountSidebar({ role }: { role: string | null }) {
 
   // The current section, fully expanded (its tabs). Items with an `href` are
   // link-outs (e.g. My Cards → the TCG Hub) rather than in-section tabs.
-  const currentSection = {
-    label: current.label,
-    items: current.items.map((item) => ({
-      label: item.label,
-      icon: <TabIcon name={item.iconName} />,
-      active: !!item.id && activeTab === item.id,
-      onClick: () =>
-        go(item.href ?? `${current.route}?tab=${item.id}`),
-    })),
-  };
+  // Items with a `group` (Platform Admin) render as one labelled Menu section
+  // per group, in the order the groups first appear.
+  const toMenuItem = (item: (typeof current.items)[number]) => ({
+    label: item.label,
+    icon: <TabIcon name={item.iconName} />,
+    active: item === activeItem,
+    onClick: () =>
+      go(item.href ?? `${current.route}?tab=${item.id}`),
+  });
+  const groups = [...new Set(current.items.map((i) => i.group).filter((g): g is string => !!g))];
+  const currentSections = groups.length
+    ? groups.map((g) => ({ label: g, items: current.items.filter((i) => i.group === g).map(toMenuItem) }))
+    : [{ label: current.label, items: current.items.map(toMenuItem) }];
 
   // The other sections, collapsed to single link-outs (jump to their default
   // tab). Skipped entirely if there are none (e.g. a non-staff session with
@@ -97,8 +105,8 @@ export function AccountSidebar({ role }: { role: string | null }) {
   };
 
   const menuSections = otherSections.length
-    ? [currentSection, switcherSection]
-    : [currentSection];
+    ? [...currentSections, switcherSection]
+    : currentSections;
 
   return (
     <>

@@ -28,7 +28,6 @@ import {
   Textarea,
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
-import { PlatformFlags } from "@/components/account/PlatformFlags";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
@@ -105,7 +104,7 @@ export function PlatformComplianceTab() {
   }, []);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
   const filtered =
@@ -136,9 +135,6 @@ export function PlatformComplianceTab() {
 
   return (
     <>
-      <div style={{ marginBottom: "var(--spacing-24)" }}>
-        <PlatformFlags />
-      </div>
       <div className="account-card">
       <h2 className="account-tab__heading">Compliance rules</h2>
       <p className="account-tab__intro">

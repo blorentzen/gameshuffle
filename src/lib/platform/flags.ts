@@ -13,6 +13,7 @@ export interface PlatformFlag {
   enabled: boolean;
   description: string | null;
   updated_at: string;
+  updated_by?: string | null;
 }
 
 const CACHE_TTL_MS = 30_000;
@@ -64,7 +65,7 @@ export async function listPlatformFlags(): Promise<PlatformFlag[]> {
   const admin = createServiceClient();
   const { data } = await admin
     .from("gs_platform_flags")
-    .select("key, enabled, description, updated_at")
+    .select("key, enabled, description, updated_at, updated_by")
     .order("key");
   return (data as PlatformFlag[] | null) ?? [];
 }
