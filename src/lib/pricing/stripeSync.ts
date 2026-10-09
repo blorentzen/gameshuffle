@@ -170,6 +170,8 @@ export async function reconcile(actorId: string | null): Promise<ReconcileResult
   const known = new Map(c.prices.filter((p) => p.active).map((p) => [p.lookupKey, p]));
   const seen = new Set<string>();
   for await (const price of stripe.prices.list({ active: true, limit: 100, expand: ["data.product"] })) {
+    // Shop prices are seeded from src/data/store/shop-seed.json, not the pricing levers.
+    if (price.metadata?.gs_kind === "shop") continue;
     const key = price.lookup_key;
     const row = key ? known.get(key) : undefined;
     if (!row) {

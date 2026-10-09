@@ -1,0 +1,249 @@
+{
+  "_about": "Source of truth for the GameShuffle shop (curated packs; TCGplayer stays the place for singles). This tracked copy is the one the app and scripts/seed-shop.ts read; docs/specs/shop/ is gitignored. The seed script creates Stripe Products and Prices (test mode) and shop_products rows from this file. Postage and dates are config, not code, maintained by Britton. Weights are estimates until a packed unit is weighed; update them here.",
+  "version": 2,
+  "currency": "usd",
+  "products": [
+    {
+      "sku": "thirty-set",
+      "kind": "bundle",
+      "name": "Anniversary Thirty Set",
+      "price_cents": 5999,
+      "max_per_order": 2,
+      "ship_weight_oz": 4,
+      "sort_order": 10,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "All 30 Pikachu from Pokémon TCG 30th Celebration plus Pikachu ex 053 and 054. 32 cards, sleeved, in number order, with an artist checklist.",
+      "blurb": "All 30 Pikachu from 30th Celebration plus Pikachu ex 053 and 054, sleeved and in order.",
+      "contents": [
+        "30th Celebration Pikachu 01 to 30, one of each, each by a different artist",
+        "Pikachu ex 053/128 and 054/128",
+        "Every card in a penny sleeve, in number order, in 2 sealed team bags",
+        "Artist checklist card with the set number"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "spark-spook-5",
+      "kind": "bundle",
+      "name": "Spark & Spook 5-Pack",
+      "price_cents": 2599,
+      "max_per_order": 5,
+      "ship_weight_oz": 5,
+      "sort_order": 20,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "Five Spark & Spook Halloween packs of real Pokémon TCG cards, plus one premium hit.",
+      "blurb": "Five Halloween treat packs, each with 3 foils including a Pikachu, plus one premium hit.",
+      "contents": [
+        "5 Spark & Spook packs (10 cards each)",
+        "In every pack: 1 x 30th Celebration Pikachu foil, 1 x 30th Celebration foil, 1 x reverse holo or rare, 7 Dark, Ghost and Team Rocket cards",
+        "Plus 1 premium hit: an ex card or a patterned reverse holo"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "thirty-hunt-3",
+      "kind": "bundle",
+      "name": "Thirty Hunt 3-Pack",
+      "price_cents": 2199,
+      "max_per_order": 5,
+      "ship_weight_oz": 4,
+      "sort_order": 30,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "Three Thirty Hunt collect-all-30 packs of real Pokémon TCG cards, plus one premium hit.",
+      "blurb": "Three collect-all-30 packs, each with 4 hits including a Pikachu, plus one premium hit.",
+      "contents": [
+        "3 Thirty Hunt packs (14 cards each)",
+        "In every pack: 1 x 30th Celebration Pikachu foil, 2 x 30th Celebration foils, 1 x reverse holo or rare, 10 cards from recent sets, Collect all 30 checklist",
+        "Plus 1 premium hit: an ex card or a patterned reverse holo"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "ready-deck",
+      "kind": "bundle",
+      "name": "Ready-to-Play Deck",
+      "price_cents": 2299,
+      "max_per_order": 5,
+      "ship_weight_oz": 5,
+      "sort_order": 40,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "A 60-card playable Pokémon TCG deck in a deck box, with a Pikachu and an ex card inside.",
+      "blurb": "A 60-card deck you can play tonight, with a Pikachu and an ex inside.",
+      "contents": [
+        "60 cards: about 20 Pokémon of one type, 30 Trainers, 10 basic Energy",
+        "1 x 30th Celebration Pikachu foil",
+        "1 x ex card matched to the deck's type",
+        "Deck box, deck list and a how-to-start card"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "set-builder-100",
+      "kind": "bundle",
+      "name": "Set Builder 100",
+      "price_cents": 1999,
+      "max_per_order": 3,
+      "ship_weight_oz": 7.5,
+      "sort_order": 50,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "100 different Pokémon TCG Ascended Heroes cards in number order, with a checklist.",
+      "blurb": "100 different Ascended Heroes cards in number order, with a checklist.",
+      "contents": [
+        "100 unique Ascended Heroes commons and uncommons, no duplicates",
+        "Sorted in number order in a card box",
+        "Checklist of every number included"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "lights-out-10",
+      "kind": "bundle",
+      "name": "Lights Out 10-Pack",
+      "price_cents": 1899,
+      "max_per_order": 5,
+      "ship_weight_oz": 7,
+      "sort_order": 60,
+      "active": false,
+      "inactive_after": "2026-10-25T23:59:59-07:00",
+      "stock_available": 0,
+      "stripe_description": "Ten Halloween treat bags of real Pokémon TCG cards, 10 cards each with 1 hit.",
+      "blurb": "Ten Halloween treat bags of 10 cards, each with a hit. Made for trick-or-treaters.",
+      "contents": [
+        "10 sealed treat bags",
+        "In every bag: 9 Dark, Ghost and Team Rocket cards and 1 reverse holo or rare"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "thirty-hunt-1",
+      "kind": "single",
+      "name": "Thirty Hunt",
+      "price_cents": 799,
+      "max_per_order": 4,
+      "ship_weight_oz": 1.3,
+      "sort_order": 70,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "One Thirty Hunt pack: 14 real Pokémon TCG cards with a 30th Celebration Pikachu and 3 more hits.",
+      "blurb": "14 cards with 4 hits including a Pikachu, plus a Collect all 30 checklist.",
+      "contents": [
+        "1 x 30th Celebration Pikachu foil",
+        "2 x 30th Celebration foils",
+        "1 x reverse holo or rare",
+        "10 cards from recent sets",
+        "Collect all 30 checklist"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "spark-spook-1",
+      "kind": "single",
+      "name": "Spark & Spook",
+      "price_cents": 599,
+      "max_per_order": 4,
+      "ship_weight_oz": 0.9,
+      "sort_order": 80,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "One Spark & Spook Halloween pack: 10 real Pokémon TCG cards with 3 foils including a 30th Celebration Pikachu.",
+      "blurb": "10 spooky cards with 3 foils including a Pikachu.",
+      "contents": [
+        "1 x 30th Celebration Pikachu foil",
+        "1 x 30th Celebration foil",
+        "1 x reverse holo or rare",
+        "7 Dark, Ghost and Team Rocket cards"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    }
+  ],
+  "checkout": {
+    "session_minutes": 30,
+    "hold_sweep_minutes": 45,
+    "allowed_countries": [
+      "US"
+    ],
+    "blocked_states": [
+      "AA",
+      "AE",
+      "AP"
+    ],
+    "shipping_rate_display_name": "Free shipping",
+    "shipping_estimate_business_days": {
+      "min": 3,
+      "max": 7
+    },
+    "automatic_tax": true,
+    "allow_promotion_codes": true
+  },
+  "shipping": {
+    "_rule": "Any bundle, or more than flat_max_singles singles -> parcel. Exactly 1 single -> letter. 2 to flat_max_singles singles -> flat.",
+    "flat_max_singles": 4,
+    "ship_within_business_days": 2,
+    "timezone": "America/Los_Angeles",
+    "packaging_oz": {
+      "letter": 0.5,
+      "flat": 0.7,
+      "parcel": 1.0
+    },
+    "postage_cents": {
+      "_source": "USPS retail prices effective July 12, 2026. Confirm values marked confirm in Phase 0.",
+      "letter_first_oz": 82,
+      "letter_additional_oz": 29,
+      "letter_max_oz": 3.5,
+      "nonmachinable_surcharge": 49,
+      "nonmachinable_surcharge_confirm": true,
+      "flat_first_oz": 169,
+      "flat_additional_oz": 29,
+      "flat_additional_oz_confirm": true,
+      "flat_max_oz": 13
+    },
+    "parcel_carrier": "Rollo (USPS Ground Advantage)",
+    "reship_after_days": 14
+  },
+  "holiday": {
+    "banner_start": "2026-12-01T00:00:00-08:00",
+    "cutoff_lower48": "2026-12-13T23:59:59-08:00",
+    "cutoff_ak_hi": "2026-12-12T23:59:59-08:00",
+    "banner_end": "2026-12-26T00:00:00-08:00",
+    "_usps_recommended": "Ground Advantage and First-Class Mail by Thu Dec 17 (lower 48), Wed Dec 16 (Alaska and Hawaii)"
+  },
+  "nexus_monitor": {
+    "warn_orders": 150,
+    "warn_revenue_cents": 7500000,
+    "windows": [
+      "rolling_12_months",
+      "calendar_year"
+    ]
+  },
+  "utm": {
+    "source": "gameshuffle",
+    "medium": "site",
+    "campaign": "holiday-drop",
+    "placements": [
+      "nav",
+      "home-band",
+      "tcg",
+      "game-nights",
+      "email",
+      "discord"
+    ]
+  },
+  "contact": {
+    "_confirm": "Britton to confirm the shop's support email and the return address for envelopes.",
+    "support_email": "support@gameshuffle.co",
+    "return_address": null
+  }
+}
