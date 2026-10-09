@@ -255,6 +255,14 @@ export default function AppsPage() {
               learnMoreHref="/pokemon-tcg-companion"
             />
             <AppCard
+              title="Trivia Nights"
+              description="Host a pub-style quiz from a template: teams answer on their phones, the TV shows the questions, and scoring is done for you. Free to host."
+              media={<EventHeaderArt category="mystery" seed="apps-trivia" motion="hover" />}
+              href="/trivia"
+              ctaLabel="Host or join"
+              isNew
+            />
+            <AppCard
               title="Game Nights"
               description="Find or host in-person game nights, then run the table with digital score sheets, timers, and companion tools for Yahtzee, Clue, cribbage, and more."
               media={<EventHeaderArt category="board" seed="apps-game-nights" motion="hover" />}
@@ -266,7 +274,7 @@ export default function AppsPage() {
           </ResponsiveCarousel>
           <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
             Looking for wheel spinners, dice, tier lists &amp; more?{" "}
-            <Link href="/tools" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the free tools →</Link>
+            <Link href="/tools" style={{ color: "var(--brand-ink)", fontWeight: 600 }}>Browse the free tools →</Link>
           </p>
         </section>
 

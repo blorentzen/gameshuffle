@@ -76,6 +76,7 @@ const HERO_ROUTES = new Set([
   "/daily",
   "/weekly",
   "/chat-brain",
+  "/trivia",
 ]);
 
 /** Detail routes that lead with a full-bleed hero but cannot be listed in

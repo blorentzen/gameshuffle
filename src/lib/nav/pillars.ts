@@ -180,6 +180,7 @@ export const PILLARS: Pillar[] = [
         items: [
           { label: "Community hub", href: "/communities", blurb: "Every community on GameShuffle." },
           { label: "Game nights", href: "/game-nights", blurb: "Board, video and TCG nights near you or online." },
+          { label: "Trivia nights", href: "/trivia", blurb: "Host a pub-style quiz: teams on their phones, questions on the TV. New." },
           { label: "GameShuffle for Discord", href: "/discord", blurb: "The Daily, the Weekly and Chat Brain with your server." },
         ],
       },

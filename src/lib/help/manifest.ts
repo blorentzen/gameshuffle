@@ -240,6 +240,14 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     keywords: ["daily", "daily shuffle", "puzzle", "guess", "streak", "wordle", "mario party", "mario kart world"],
   },
   {
+    id: "trivia-nights",
+    title: "Trivia Nights",
+    description: "Host a pub-style quiz: pick a template, fill it from the question pack, run it from your phone while teams play on theirs and the TV shows the rest.",
+    href: "/help/apps/trivia-nights",
+    category: "apps",
+    keywords: ["trivia", "quiz", "pub quiz", "trivia night", "host", "teams", "picture round", "confidence round", "final wager", "joker", "question pack", "answer line"],
+  },
+  {
     id: "weekly-challenge",
     title: "The Weekly Challenge",
     description: "A new challenge every Monday: answer the survey and guess the crowd (or rank the Tier War), finish the game-night mission, climb the leaderboard.",
@@ -371,7 +379,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     description: "Add the bot, play the Daily inside Discord, route posts, announcements, self-assign roles, AutoMod, QOTD, and slash commands.",
     href: "/help/community/discord-bot",
     category: "community",
-    keywords: ["discord", "bot", "activity", "/gs-daily", "app launcher", "qotd", "automod", "announcements", "roles", "routing", "/gs-randomize", "/gs-poll", "slash commands"],
+    keywords: ["discord", "bot", "servers", "multiple servers", "main server", "activity", "/gs-daily", "app launcher", "qotd", "automod", "announcements", "roles", "routing", "/gs-randomize", "/gs-poll", "slash commands"],
   },
 
   // Pro

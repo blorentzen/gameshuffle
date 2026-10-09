@@ -55,6 +55,18 @@ export const EVENTS = {
   /** The share menu on a tournament, game night or season page. {type, via: link|discord|x|facebook|native} */
   eventShared: "Event Shared",
 
+  // Trivia Nights
+  /** A host started a night from a template. {template} */
+  triviaNightCreated: "Trivia Night Created",
+  /** A host opened the room (teams can join). {questions} */
+  triviaRoomOpened: "Trivia Room Opened",
+  /** A team joined from a phone. */
+  triviaTeamJoined: "Trivia Team Joined",
+  /** Claude drafted questions in the studio. {count} */
+  triviaQuestionsDrafted: "Trivia Questions Drafted",
+  /** The host filled rounds from the GameShuffle pack. {added, scope: all|round} */
+  triviaPackFilled: "Trivia Pack Filled",
+
   // Forms and accounts
   betaApplied: "Beta Applied",
   contactSent: "Contact Sent",
