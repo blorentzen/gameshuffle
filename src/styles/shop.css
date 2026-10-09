@@ -1,0 +1,93 @@
+/* GameShuffle Shop (/shop, /shop/policies). Marketing pages: always light. */
+
+.shop-page__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-32);
+  padding-block: var(--spacing-8) var(--spacing-64);
+}
+.shop-section { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.shop-h2 {
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0;
+  text-wrap: balance;
+}
+.shop-section__line { margin: calc(-1 * var(--spacing-8)) 0 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+
+.shop-grid {
+  display: grid;
+  gap: var(--spacing-20);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr));
+}
+
+/* Product card: CDS Card, padding none; the media is the card's first child so
+   CDS rounds only its top corners. */
+.shop-card.empac-card { display: flex; flex-direction: column; height: 100%; background: var(--surface-default); }
+.shop-card .empac-card__media { aspect-ratio: 4 / 3; flex: none; }
+/* Pack photos are portrait (shot from the header-card side): show them whole. */
+.shop-card .empac-card__media img { object-fit: contain; }
+.shop-card__media .image-coming-soon { aspect-ratio: auto; min-height: 0; height: 100%; }
+.shop-card__body.empac-card__content { gap: var(--spacing-8); }
+.shop-card__name { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
+.shop-card__price { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; }
+.shop-card__ship { font-size: var(--font-size-14); font-weight: 400; color: var(--text-secondary); }
+.shop-card__blurb { font-size: var(--font-size-16); line-height: var(--line-height-relaxed); }
+.shop-card__body .empac-badge { align-self: flex-start; }
+.shop-card__actions.empac-card__footer { flex-wrap: wrap; margin-top: auto; }
+.empac-card--padding-none .shop-card__actions.empac-card__footer { padding-top: 0; }
+.shop-card__actions .empac-button { flex: 1 1 12rem; }
+
+/* Sticky cart button: slides with the site nav. */
+.shop-toolbar {
+  position: sticky;
+  top: calc(var(--gs-nav-offset) + var(--spacing-8));
+  transition: var(--gs-nav-slide);
+  z-index: 20;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+.shop-toolbar .empac-button { pointer-events: auto; box-shadow: var(--shadow-md, 0 4px 14px rgba(0, 0, 0, 0.12)); }
+
+/* Quantity stepper */
+.shop-qty { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+.shop-qty__value { min-width: 2.4rem; text-align: center; font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; }
+
+/* Cart drawer */
+.shop-cart { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.shop-cart__lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.shop-cart__line { display: flex; flex-direction: column; gap: var(--spacing-8); padding-block: var(--spacing-12); border-bottom: 1px solid var(--border-default); }
+.shop-cart__line-head { display: flex; justify-content: space-between; gap: var(--spacing-12); font-size: var(--font-size-16); }
+.shop-cart__line-price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.shop-cart__line-controls { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); }
+.shop-cart__totals { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-6, 6px); font-size: var(--font-size-16); }
+.shop-cart__totals div { display: flex; justify-content: space-between; }
+.shop-cart__totals dt { color: var(--text-secondary); }
+.shop-cart__totals dd { margin: 0; font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; }
+.shop-cart__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.shop-cart__empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-12); }
+.shop-cart__empty p { margin: 0; }
+
+/* Details modal */
+.shop-details { display: grid; gap: var(--spacing-20); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .shop-details { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); align-items: start; } }
+.shop-details__media { aspect-ratio: 4 / 3; border-radius: var(--radius-md, 8px); overflow: hidden; background: var(--surface-secondary, color-mix(in srgb, var(--text-primary) 5%, var(--surface-default))); }
+.shop-details__media img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.shop-details__media .image-coming-soon { aspect-ratio: auto; min-height: 0; height: 100%; }
+.shop-details__info { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.shop-details__info .empac-badge { align-self: flex-start; }
+.shop-details__price { margin: 0; font-size: var(--font-size-20); font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; }
+.shop-details__text { margin: 0; font-size: var(--font-size-16); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.shop-details__h { margin: 0 0 var(--spacing-6, 6px); font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.shop-details__list { margin: 0; padding-left: var(--spacing-20); list-style: disc; display: flex; flex-direction: column; gap: var(--spacing-4); font-size: var(--font-size-16); line-height: var(--line-height-relaxed); }
+.shop-details__footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--spacing-12); width: 100%; }
+
+/* Shipping block, singles path, disclaimer */
+.shop-shipping { background: var(--surface-default); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); padding: var(--spacing-20); gap: var(--spacing-12); }
+.shop-shipping ul { margin: 0; padding-left: var(--spacing-20); display: flex; flex-direction: column; gap: var(--spacing-6, 6px); font-size: var(--font-size-16); line-height: var(--line-height-relaxed); }
+.shop-shipping p { margin: 0; }
+.shop-singles-path { margin: 0; font-size: var(--font-size-16); }
+.shop-disclaimer { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: var(--line-height-relaxed); max-width: 64ch; }
+.shop-closed p { margin: 0; color: var(--text-secondary); }
