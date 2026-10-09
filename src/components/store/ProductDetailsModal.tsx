@@ -9,6 +9,7 @@ import { useState } from "react";
 import { Badge, Button, Modal } from "@empac/cascadeds";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
 import { shopCopy } from "@/lib/store/copy";
+import { isFinalSale } from "@/lib/store/config";
 import type { ShopProduct } from "@/lib/store/products";
 import { QuantityStepper, lineLimit, useShopCart } from "./ShopCart";
 
@@ -53,9 +54,7 @@ export function ProductDetailsModal({ product, isOpen, onClose }: { product: Sho
           )}
         </div>
         <div className="shop-details__info">
-          <p className="shop-details__price">
-            {copy.card.price(product.priceCents)} <span className="shop-card__ship">· {copy.card.freeShipping}</span>
-          </p>
+          <p className="shop-details__price">{copy.card.price(product.priceCents)}</p>
           {soldOut ? <Badge variant="default" size="small">{copy.card.soldOut}</Badge>
             : product.available <= 5 ? <Badge variant="warning" size="small">{copy.card.lowStock(product.available)}</Badge> : null}
           {(product.description ?? product.blurb) && <p className="shop-details__text">{product.description ?? product.blurb}</p>}
@@ -67,8 +66,14 @@ export function ProductDetailsModal({ product, isOpen, onClose }: { product: Sho
           )}
           <section>
             <h3 className="shop-details__h">{copy.details.shipsHeading}</h3>
-            <p className="shop-details__text">{product.kind === "bundle" ? copy.details.shipsParcel : copy.details.shipsSingle}</p>
+            <p className="shop-details__text">{copy.details.ships}</p>
           </section>
+          {isFinalSale(product.category) && (
+            <section>
+              <h3 className="shop-details__h">{copy.details.finalSaleHeading}</h3>
+              <p className="shop-details__text">{copy.details.finalSale}</p>
+            </section>
+          )}
         </div>
       </div>
     </Modal>

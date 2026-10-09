@@ -1,8 +1,10 @@
 /**
  * Every word a buyer sees in the shop, verbatim from docs/specs/shop/shop-copy.md
  * (Britton's copy). Dates come from the config so they live in one place.
- * Client-safe. Lines marked NEW aren't in the copy doc yet (the singles path,
- * decided 2026-10-08, and the closed-shop state); Britton to confirm.
+ * Client-safe. Lines marked NEW aren't in the copy doc yet; CHANGED lines follow
+ * Britton's 2026-10-09 shipping rule (every order tracked by USPS Ground
+ * Advantage, $4.99 under $25, free from $25), which replaced "free shipping
+ * on everything" and untracked single packs. Britton to confirm both.
  */
 
 import { SHOP, type ShopConfig } from "./config";
@@ -23,12 +25,15 @@ export function shopCopy(config: ShopConfig = SHOP) {
   const cutoff = shopDate(config.holiday.cutoff_lower48, { weekday: true });
   const cutoffAkHi = shopDate(config.holiday.cutoff_ak_hi, { weekday: true });
   const support = config.contact.support_email;
+  const rate = config.shipping.rate;
+  const threshold = formatPrice(rate.free_threshold_cents).replace(/\.00$/, "");
+  const standard = formatPrice(rate.standard_cents);
   return {
     nav: "Shop",
     hero: {
       eyebrow: "HOLIDAY DROP",
       title: "Packs for game night, gifts and stockings",
-      lead: "Real Pokémon TCG cards, sorted and packed by hand by the GameShuffle team. Free shipping anywhere in the US. When a pack sells out, it's gone.",
+      lead: `Real Pokémon TCG cards, sorted and packed by hand by the GameShuffle team. Free shipping on orders of ${threshold} or more. When a pack sells out, it's gone.`, // CHANGED
     },
     sections: {
       bundles: "Bundles",
@@ -36,9 +41,7 @@ export function shopCopy(config: ShopConfig = SHOP) {
       singlesLine: "Add one to any order, or buy them on their own.",
     },
     card: {
-      priceLine: (cents: number) => `${formatPrice(cents)} · Free shipping`,
       price: (cents: number) => formatPrice(cents),
-      freeShipping: "Free shipping",
       addToCart: "Add to cart", // Britton, 2026-10-09
       viewDetails: "View details", // Britton, 2026-10-09
       buy: "Buy now",
@@ -48,10 +51,10 @@ export function shopCopy(config: ShopConfig = SHOP) {
     },
     shipping: {
       heading: "Shipping",
-      lines: [
+      lines: [ // CHANGED
         "Ships from Washington State within 2 business days.",
-        "Free shipping to all 50 states and DC.",
-        "Bundles ship tracked by USPS Ground Advantage. Single packs ship by First-Class Mail without tracking.",
+        "Every order ships tracked by USPS Ground Advantage, to all 50 states and DC.",
+        `Free shipping on orders of ${threshold} or more. Orders under ${threshold} ship for ${standard}.`,
       ],
       christmas: `Order by ${cutoff} for Christmas delivery. Alaska and Hawaii: order by ${cutoffAkHi}.`,
       policiesLink: "Shipping, returns and card condition",
@@ -59,9 +62,10 @@ export function shopCopy(config: ShopConfig = SHOP) {
     details: { // NEW
       inside: "What's inside",
       shipsHeading: "How it ships",
-      shipsParcel: "Ships free and tracked by USPS Ground Advantage within 2 business days.",
-      shipsSingle: "Ships free by First-Class Mail within 2 business days. 5 or more single packs ship tracked.",
+      ships: `Ships tracked by USPS Ground Advantage within 2 business days. Free shipping on orders of ${threshold} or more; ${standard} under ${threshold}.`, // CHANGED
       quantity: "Quantity",
+      finalSaleHeading: "Final sale", // NEW
+      finalSale: "Pokémon card products are final sale. We can't take returns because of which Pikachu or hit is in the pack. If it arrives damaged or is missing something this listing guarantees, we'll make it right.", // NEW
     },
     cart: { // NEW
       open: (n: number) => (n > 0 ? `Cart (${n})` : "Cart"),
@@ -71,9 +75,16 @@ export function shopCopy(config: ShopConfig = SHOP) {
       added: (name: string) => `Added ${name} to your cart`,
       subtotal: "Subtotal",
       shipping: "Shipping",
-      shippingValue: "Free",
+      shippingValue: (cents: number) => (cents === 0 ? "Free" : formatPrice(cents)),
+      toFree: (cents: number) => `Add ${formatPrice(cents)} more for free shipping.`,
+      freeReached: "Your order ships free.",
+      suggest: "Add a single pack",
+      suggestAdd: (name: string) => `Add ${name}`,
+      add: "Add",
       tax: "Sales tax for Washington addresses is added at checkout.",
       checkout: "Check out",
+      checkoutNote: "Ships from Washington State within 2 business days, tracked by USPS Ground Advantage. Pokémon card products are final sale.", // CHANGED (Stripe custom text)
+      finalSale: "Pokémon card products are final sale.", // NEW
       remove: "Remove",
       less: (name: string) => `One less ${name}`,
       more: (name: string) => `One more ${name}`,

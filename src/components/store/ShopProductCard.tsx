@@ -40,9 +40,7 @@ export function ShopProductCard({ product }: { product: ShopProduct }) {
       </div>
       <CardContent className="shop-card__body">
         <CardTitle className="shop-card__name">{product.name}</CardTitle>
-        <p className="shop-card__price">
-          {copy.card.price(product.priceCents)} <span className="shop-card__ship">· {copy.card.freeShipping}</span>
-        </p>
+        <p className="shop-card__price">{copy.card.price(product.priceCents)}</p>
         {product.blurb && <CardDescription className="shop-card__blurb">{product.blurb}</CardDescription>}
         {soldOut ? <Badge variant="default" size="small">{copy.card.soldOut}</Badge>
           : low ? <Badge variant="warning" size="small">{copy.card.lowStock(product.available)}</Badge> : null}

@@ -10,6 +10,8 @@
  *   customer.subscription.deleted  → final cancellation; downgrade to Free
  *   invoice.paid                   → renewal; resync to pick up new period
  *   invoice.payment_failed         → status transitions to past_due
+ *   checkout.session.* / charge.refunded with metadata gs_kind "shop" → the
+ *                                    GameShuffle Shop (src/lib/store/orders.ts)
  *
  * Signature verified against STRIPE_WEBHOOK_SECRET. Delivery is
  * at-least-once; all handlers are idempotent.
@@ -24,6 +26,7 @@ import {
 } from "@/lib/stripe/subscriptions";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { intervalForPrice, periodEndOf, subscriptionIdOf } from "@/lib/stripe/payload";
+import { fulfilShopSession, markShopRefund, releaseShopHolds } from "@/lib/store/orders";
 import {
   sendTrialStartedEmail,
   sendTrialEndingEmail,
@@ -142,6 +145,12 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+        // GameShuffle Shop order: handled first, and nothing below (tickets,
+        // subscriptions, the US-only backstop) ever sees it. Idempotent.
+        if (session.metadata?.gs_kind === "shop") {
+          if (!event.account) await fulfilShopSession(session.id);
+          break;
+        }
         const userId =
           (session.client_reference_id as string | null) ??
           (session.metadata?.gs_user_id as string | undefined) ??
@@ -362,13 +371,37 @@ export async function POST(request: Request) {
       }
 
       // A held seat whose Checkout expired goes back on sale.
+      // Delayed payment methods (a bank payment through Link) settle after
+      // checkout. Shop only; nothing else uses them.
+      case "checkout.session.async_payment_succeeded": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.gs_kind === "shop" && !event.account) await fulfilShopSession(session.id);
+        break;
+      }
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.gs_kind === "shop") await releaseShopHolds(session.id);
+        break;
+      }
+
       case "checkout.session.expired": {
         const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.gs_kind === "shop") {
+          await releaseShopHolds(session.id);
+          break;
+        }
         const orderId = session.metadata?.gs_order_id;
         if (orderId) {
           const { createServiceClient } = await import("@/lib/supabase/admin");
           await createServiceClient().from("gs_ticket_orders").update({ status: "expired", updated_at: new Date().toISOString() }).eq("id", orderId).eq("status", "held");
         }
+        break;
+      }
+
+      // A full refund on a shop order (from the Dashboard or admin) marks it
+      // refunded. Anything that isn't a shop order is ignored.
+      case "charge.refunded": {
+        if (!event.account) await markShopRefund(event.data.object as Stripe.Charge);
         break;
       }
 

@@ -178,7 +178,13 @@
     "blocked_states": [
       "AA",
       "AE",
-      "AP"
+      "AP",
+      "AS",
+      "GU",
+      "MP",
+      "PR",
+      "VI",
+      "UM"
     ],
     "shipping_rate_display_name": "Free shipping",
     "shipping_estimate_business_days": {
@@ -186,10 +192,20 @@
       "max": 7
     },
     "automatic_tax": true,
-    "allow_promotion_codes": true
+    "allow_promotion_codes": true,
+    "hold_grace_minutes": 10,
+    "_blocked_states": "Stripe's US address form lists the Armed Forces codes and the territories as states; orders to them are refunded (50 states and DC only)."
   },
   "shipping": {
-    "_rule": "Any bundle, or more than flat_max_singles singles -> parcel. Exactly 1 single -> letter. 2 to flat_max_singles singles -> flat.",
+    "_rule": "Every order ships tracked by USPS Ground Advantage (Britton, 2026-10-09): $4.99 under $25, free at $25 and up (subtotal before tax). stamped_mail false switches off the letter and flat methods below; set it true to bring them back (1 single = letter, 2 to flat_max_singles = flat).",
+    "stamped_mail": false,
+    "rate": {
+      "free_threshold_cents": 2500,
+      "standard_cents": 499,
+      "standard_label": "USPS Ground Advantage",
+      "free_label": "Free shipping",
+      "tax_code": "txcd_92010001"
+    },
     "flat_max_singles": 4,
     "ship_within_business_days": 2,
     "timezone": "America/Los_Angeles",
@@ -211,7 +227,14 @@
       "flat_max_oz": 13
     },
     "parcel_carrier": "Rollo (USPS Ground Advantage)",
-    "reship_after_days": 14
+    "reship_after_days": 14,
+    "no_ship_days": [
+      "2026-11-11",
+      "2026-11-26",
+      "2026-12-25",
+      "2027-01-01"
+    ],
+    "_no_ship_days": "USPS holidays (and any day Britton won't ship) inside the shop window; the ship-by date skips them and weekends."
   },
   "holiday": {
     "banner_start": "2026-12-01T00:00:00-08:00",
@@ -244,6 +267,13 @@
   "contact": {
     "_confirm": "Britton to confirm the shop's support email and the return address for envelopes.",
     "support_email": "support@gameshuffle.co",
-    "return_address": null
+    "return_address": null,
+    "alert_email": "support@gameshuffle.co"
+  },
+  "returns": {
+    "_rule": "Britton, 2026-10-09: Pokémon card products are final sale; no returns because of which Pikachu or hit is in a pack. Damage in transit and missing guaranteed contents are still made right.",
+    "final_sale_categories": [
+      "tcg"
+    ]
   }
 }

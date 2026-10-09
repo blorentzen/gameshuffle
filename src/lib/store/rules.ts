@@ -2,9 +2,10 @@
  * Shop rules, pure and client-safe. Every number comes from the config
  * (src/data/store/shop-seed.json), so prices, weights and postage change there.
  *
- *   shipMethodFor   any bundle, or more singles than fit a large envelope,
- *                   ships as a tracked parcel; 1 single goes as a letter;
- *                   2 up to the flat limit go as a large envelope
+ *   shippingCents   $4.99 under the free-shipping threshold, free from it
+ *   shipMethodFor   every order is a tracked parcel (USPS Ground Advantage)
+ *                   while stamped_mail is off; with it on, 1 single goes as a
+ *                   letter and 2 up to the flat limit as a large envelope
  *   shipWeightOz    contents plus the packaging for that method
  *   postageCents    stamps for a letter or large envelope (parcels are
  *                   labelled in Rollo, so null)
@@ -23,8 +24,20 @@ function lookup(catalog: Map<string, CatalogEntry> | undefined, sku: string, con
   return { kind: p.kind, ship_weight_oz: p.ship_weight_oz };
 }
 
+/** What shipping costs for an order with this subtotal (before tax). */
+export function shippingCents(subtotalCents: number, config: ShopConfig = SHOP): number {
+  const r = config.shipping.rate;
+  return subtotalCents >= r.free_threshold_cents ? 0 : r.standard_cents;
+}
+
+/** How far an order is from free shipping (0 once it's there). */
+export function toFreeShippingCents(subtotalCents: number, config: ShopConfig = SHOP): number {
+  return Math.max(0, config.shipping.rate.free_threshold_cents - subtotalCents);
+}
+
 export function shipMethodFor(lines: CartLine[], opts: { catalog?: Map<string, CatalogEntry>; config?: ShopConfig } = {}): ShipMethod {
   const config = opts.config ?? SHOP;
+  if (!config.shipping.stamped_mail) return "parcel";
   let singles = 0;
   for (const l of lines) {
     if (l.quantity < 1) continue;
@@ -68,6 +81,26 @@ export function missesChristmas(shipState: string | null | undefined, now: Date 
   if (t < Date.parse(h.banner_start) || t >= Date.parse(h.banner_end)) return false;
   const cutoff = shipState === "AK" || shipState === "HI" ? h.cutoff_ak_hi : h.cutoff_lower48;
   return t > Date.parse(cutoff);
+}
+
+/**
+ * The day an order ships by: ship_within_business_days after the order's
+ * Pacific date, skipping weekends and no_ship_days. YYYY-MM-DD.
+ */
+export function shipByDay(orderedAt: Date, config: ShopConfig = SHOP): string {
+  const tz = config.shipping.timezone;
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(orderedAt);
+  const skip = new Set(config.shipping.no_ship_days);
+  // Walk calendar days at UTC noon so DST never shifts the date.
+  const d = new Date(`${day}T12:00:00Z`);
+  let left = config.shipping.ship_within_business_days;
+  while (left > 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const iso = d.toISOString().slice(0, 10);
+    const wd = d.getUTCDay();
+    if (wd !== 0 && wd !== 6 && !skip.has(iso)) left -= 1;
+  }
+  return d.toISOString().slice(0, 10);
 }
 
 /** The order number buyers see. */

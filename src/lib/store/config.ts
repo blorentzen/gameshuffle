@@ -44,8 +44,12 @@ export interface ShopConfig {
     shipping_estimate_business_days: { min: number; max: number };
     automatic_tax: boolean;
     allow_promotion_codes: boolean;
+    hold_grace_minutes: number;
   };
   shipping: {
+    stamped_mail: boolean;
+    rate: { free_threshold_cents: number; standard_cents: number; standard_label: string; free_label: string; tax_code: string };
+    no_ship_days: string[];
     flat_max_singles: number;
     ship_within_business_days: number;
     timezone: string;
@@ -65,7 +69,8 @@ export interface ShopConfig {
   holiday: { banner_start: string; cutoff_lower48: string; cutoff_ak_hi: string; banner_end: string };
   nexus_monitor: { warn_orders: number; warn_revenue_cents: number; windows: string[] };
   utm: { source: string; medium: string; campaign: string; placements: string[] };
-  contact: { support_email: string; return_address: string | null };
+  contact: { support_email: string; alert_email: string; return_address: string | null };
+  returns: { final_sale_categories: string[] };
 }
 
 export const SHOP: ShopConfig = seed as ShopConfig;
@@ -77,6 +82,9 @@ export const stripeLookupKey = (sku: string) => `shop_${sku}`;
 export const SHOP_METADATA_KIND = "shop";
 /** Stripe Tax code for sealed packs and accessories: general tangible goods. */
 export const SHOP_TAX_CODE = "txcd_99999999";
+
+/** Pokémon card products are final sale (no returns over which pull is in a pack). */
+export const isFinalSale = (category: string, config: ShopConfig = SHOP) => config.returns.final_sale_categories.includes(category);
 
 /** Whether a product can be sold right now: switched on and not past its end date. */
 export function isOnSale(p: { active: boolean; inactive_after?: string | null }, now: Date = new Date()): boolean {

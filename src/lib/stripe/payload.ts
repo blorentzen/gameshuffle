@@ -39,3 +39,17 @@ export function subscriptionIdOf(invoice: Stripe.Invoice): string | null {
   if (!ref) return null;
   return typeof ref === "string" ? ref : ref.id;
 }
+
+export interface ShippingAddress { name: string | null; line1: string | null; line2: string | null; city: string | null; state: string | null; postal: string | null; country: string | null }
+
+/** Where a Checkout Session ships: collected_information.shipping_details since 2025-03-31. */
+export function shippingOf(session: Stripe.Checkout.Session): ShippingAddress | null {
+  const legacy = (session as Stripe.Checkout.Session & { shipping_details?: { name?: string | null; address?: Stripe.Address | null } | null }).shipping_details;
+  const s = session.collected_information?.shipping_details ?? legacy ?? null;
+  if (!s) return null;
+  const a = s.address;
+  return {
+    name: s.name ?? null, line1: a?.line1 ?? null, line2: a?.line2 ?? null, city: a?.city ?? null,
+    state: a?.state ? a.state.toUpperCase() : null, postal: a?.postal_code ?? null, country: a?.country ?? null,
+  };
+}

@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { SHOP, isOnSale, stripeLookupKey, stripeProductId } from "../src/lib/store/config";
-import { holidayState, missesChristmas, orderCode, postageCents, shipMethodFor, shipWeightOz } from "../src/lib/store/rules";
+import { holidayState, missesChristmas, orderCode, postageCents, shipByDay, shipMethodFor, shipWeightOz, shippingCents, toFreeShippingCents } from "../src/lib/store/rules";
 import { shopDate } from "../src/lib/store/copy";
 
 let passed = 0;
@@ -29,14 +29,38 @@ test("the seed fits the table constraints", () => {
   assert.ok(SHOP.products.some((p) => p.kind === "single"), "singles exist for add-ons");
 });
 
-test("ship method follows the table: 1 single letter, 2 to 4 flat, 5+ or any bundle parcel", () => {
-  assert.equal(shipMethodFor([{ sku: "spark-spook-1", quantity: 1 }]), "letter");
-  assert.equal(shipMethodFor([{ sku: "spark-spook-1", quantity: 1 }, { sku: "thirty-hunt-1", quantity: 1 }]), "flat");
-  assert.equal(shipMethodFor([{ sku: "thirty-hunt-1", quantity: 4 }]), "flat");
-  assert.equal(shipMethodFor([{ sku: "thirty-hunt-1", quantity: 4 }, { sku: "spark-spook-1", quantity: 1 }]), "parcel");
+test("every order ships Ground Advantage while stamped mail is off", () => {
+  assert.equal(SHOP.shipping.stamped_mail, false);
+  assert.equal(shipMethodFor([{ sku: "spark-spook-1", quantity: 1 }]), "parcel");
+  assert.equal(shipMethodFor([{ sku: "thirty-hunt-1", quantity: 4 }]), "parcel");
   assert.equal(shipMethodFor([{ sku: "ready-deck", quantity: 1 }]), "parcel");
-  assert.equal(shipMethodFor([{ sku: "ready-deck", quantity: 1 }, { sku: "spark-spook-1", quantity: 1 }]), "parcel");
-  assert.equal(shipMethodFor([{ sku: "ready-deck", quantity: 0 }, { sku: "spark-spook-1", quantity: 1 }]), "letter", "zero-quantity lines don't count");
+});
+
+test("with stamped mail on: 1 single letter, 2 to 4 flat, 5+ or any bundle parcel", () => {
+  const config = { ...SHOP, shipping: { ...SHOP.shipping, stamped_mail: true } };
+  assert.equal(shipMethodFor([{ sku: "spark-spook-1", quantity: 1 }], { config }), "letter");
+  assert.equal(shipMethodFor([{ sku: "spark-spook-1", quantity: 1 }, { sku: "thirty-hunt-1", quantity: 1 }], { config }), "flat");
+  assert.equal(shipMethodFor([{ sku: "thirty-hunt-1", quantity: 4 }], { config }), "flat");
+  assert.equal(shipMethodFor([{ sku: "thirty-hunt-1", quantity: 4 }, { sku: "spark-spook-1", quantity: 1 }], { config }), "parcel");
+  assert.equal(shipMethodFor([{ sku: "ready-deck", quantity: 1 }, { sku: "spark-spook-1", quantity: 1 }], { config }), "parcel");
+  assert.equal(shipMethodFor([{ sku: "ready-deck", quantity: 0 }, { sku: "spark-spook-1", quantity: 1 }], { config }), "letter", "zero-quantity lines don't count");
+});
+
+test("shipping: $4.99 under $25, free from $25", () => {
+  assert.equal(shippingCents(799), 499);
+  assert.equal(shippingCents(2499), 499);
+  assert.equal(shippingCents(2500), 0);
+  assert.equal(shippingCents(5999), 0);
+  assert.equal(toFreeShippingCents(1999), 501);
+  assert.equal(toFreeShippingCents(2599), 0);
+});
+
+test("ship-by date: 2 business days, Pacific, skipping weekends and no-ship days", () => {
+  assert.equal(shipByDay(new Date("2026-11-02T10:00:00-08:00")), "2026-11-04", "Monday -> Wednesday");
+  assert.equal(shipByDay(new Date("2026-11-09T10:00:00-08:00")), "2026-11-12", "Monday -> Thursday (Veterans Day skipped)");
+  assert.equal(shipByDay(new Date("2026-11-13T10:00:00-08:00")), "2026-11-17", "Friday -> Tuesday");
+  assert.equal(shipByDay(new Date("2026-11-24T23:30:00-08:00")), "2026-11-27", "Tuesday night -> Friday (Thanksgiving skipped)");
+  assert.equal(shipByDay(new Date("2026-11-03T07:30:00Z")), "2026-11-04", "11:30pm Monday Pacific (7:30am UTC Tuesday) counts as Monday");
 });
 
 test("weight adds the method's packaging", () => {

@@ -13,9 +13,26 @@ import { Button, Drawer, IconButton } from "@empac/cascadeds";
 import { IconMinus, IconPlus, IconShoppingCart } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { formatPrice, shopCopy } from "@/lib/store/copy";
+import { shippingCents, toFreeShippingCents } from "@/lib/store/rules";
+import { isFinalSale } from "@/lib/store/config";
 import type { ShopProduct } from "@/lib/store/products";
 
 const STORAGE_KEY = "gs-shop-cart";
+const UTM_KEY = "gs-shop-utm";
+const UTM_FIELDS = ["source", "medium", "campaign", "content"] as const;
+
+/** Keep the visit's utm_* tags (from an entry link) for the checkout, so the order records where it came from. */
+function rememberUtm() {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    const utm: Record<string, string> = {};
+    for (const k of UTM_FIELDS) { const v = q.get(`utm_${k}`); if (v) utm[k] = v.slice(0, 60); }
+    if (Object.keys(utm).length) window.sessionStorage.setItem(UTM_KEY, JSON.stringify(utm));
+  } catch { /* storage off: the order just won't carry tags */ }
+}
+function storedUtm(): Record<string, string> | undefined {
+  try { const raw = window.sessionStorage.getItem(UTM_KEY); return raw ? JSON.parse(raw) : undefined; } catch { return undefined; }
+}
 
 export interface CartLine { sku: string; quantity: number }
 
@@ -28,6 +45,7 @@ interface CartApi {
   remove: (sku: string) => void;
   count: number;
   subtotalCents: number;
+  products: ShopProduct[];
   isOpen: boolean;
   open: () => void;
   close: () => void;
@@ -66,6 +84,7 @@ export function ShopCartProvider({ products, children }: { products: ShopProduct
 
   // Load after mount so the server render and the first browser render match.
   useEffect(() => {
+    rememberUtm();
     void Promise.resolve().then(() => { setLines(clamp(readStored())); setLoaded(true); });
   }, [clamp]);
   useEffect(() => {
@@ -96,11 +115,12 @@ export function ShopCartProvider({ products, children }: { products: ShopProduct
       remove: (sku) => setLines((cur) => cur.filter((l) => l.sku !== sku)),
       count: lines.reduce((n, l) => n + l.quantity, 0),
       subtotalCents: lines.reduce((n, l) => n + (bySku.get(l.sku)?.priceCents ?? 0) * l.quantity, 0),
+      products,
       isOpen,
       open: () => setOpen(true),
       close: () => setOpen(false),
     };
-  }, [lines, bySku, isOpen]);
+  }, [lines, bySku, isOpen, products]);
 
   return (
     <CartContext.Provider value={api}>
@@ -150,13 +170,18 @@ function CartDrawer() {
       const res = await fetch("/api/shop/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart.lines, source: window.location.pathname }),
+        body: JSON.stringify({ items: cart.lines, source: window.location.pathname, utm: storedUtm() }),
       });
       const d = await res.json().catch(() => null);
       if (d?.ok && typeof d.url === "string") { window.location.assign(d.url); return; }
-      if (d?.error === "sold_out") toast.error(copy.errors.soldOut);
-      else if (d?.error === "not_enough" && typeof d.available === "number") toast.error(copy.errors.notEnough(d.available));
-      else toast.error(copy.errors.checkoutFailed);
+      // Stock moved since the page loaded: fix that line so the next try works.
+      if ((d?.error === "sold_out" || d?.error === "unavailable") && typeof d.sku === "string") {
+        cart.remove(d.sku);
+        toast.error(copy.errors.soldOut);
+      } else if (d?.error === "not_enough" && typeof d.sku === "string" && typeof d.available === "number") {
+        cart.setQuantity(d.sku, d.available);
+        toast.error(copy.errors.notEnough(d.available));
+      } else toast.error(copy.errors.checkoutFailed);
     } catch {
       toast.error(copy.errors.checkoutFailed);
     }
@@ -192,14 +217,43 @@ function CartDrawer() {
               );
             })}
           </ul>
+          <FreeShippingNudge />
           <dl className="shop-cart__totals">
             <div><dt>{copy.cart.subtotal}</dt><dd>{formatPrice(cart.subtotalCents)}</dd></div>
-            <div><dt>{copy.cart.shipping}</dt><dd>{copy.cart.shippingValue}</dd></div>
+            <div><dt>{copy.cart.shipping}</dt><dd>{copy.cart.shippingValue(shippingCents(cart.subtotalCents))}</dd></div>
           </dl>
           <p className="shop-cart__note">{copy.cart.tax}</p>
+          {cart.lines.some((l) => { const p = cart.product(l.sku); return p ? isFinalSale(p.category) : false; }) && <p className="shop-cart__note">{copy.cart.finalSale}</p>}
           <Button variant="primary" fullWidth loading={busy} disabled={busy} onClick={() => void checkout()}>{copy.cart.checkout}</Button>
         </div>
       )}
     </Drawer>
+  );
+}
+
+/** How far the cart is from free shipping, with single packs that would get it there. */
+function FreeShippingNudge() {
+  const cart = useShopCart();
+  const copy = shopCopy();
+  const short = toFreeShippingCents(cart.subtotalCents);
+  if (short === 0) return <p className="shop-cart__free is-reached">{copy.cart.freeReached}</p>;
+  const ideas = cart.products
+    .filter((p) => p.kind === "single" && lineLimit(p) > (cart.lines.find((l) => l.sku === p.sku)?.quantity ?? 0))
+    .slice(0, 2);
+  return (
+    <div className="shop-cart__free">
+      <p>{copy.cart.toFree(short)}</p>
+      {ideas.length > 0 && (
+        <div className="shop-cart__ideas">
+          <span className="shop-cart__ideas-h">{copy.cart.suggest}</span>
+          {ideas.map((p) => (
+            <div key={p.sku} className="shop-cart__idea">
+              <span>{p.name} <span className="shop-cart__idea-price">{formatPrice(p.priceCents)}</span></span>
+              <Button variant="secondary" size="small" onClick={() => cart.add(p.sku, 1)} aria-label={copy.cart.suggestAdd(p.name)}>{copy.cart.add}</Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

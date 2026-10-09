@@ -41,7 +41,8 @@ function previewFromSeed(): ShopProduct[] {
 
 const PAGE_BG = "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))";
 
-export default async function ShopPage() {
+export default async function ShopPage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {
+  const { checkout } = await searchParams;
   const [open, staff] = await Promise.all([getPlatformFlag("shop_open", false), isStaffRequest()]);
   if (!open && !staff) notFound();
 
@@ -77,6 +78,7 @@ export default async function ShopPage() {
             </Alert>
           )}
           {staff && notReady && <Alert variant="warning" title="Not set up yet">Showing the seed file with sample stock. Run supabase/shop-m1.sql, then scripts/seed-shop.ts.</Alert>}
+          {checkout === "canceled" && <Alert variant="info">{copy.errors.canceled}</Alert>}
           {holiday !== "none" && (
             <Alert variant={holiday === "before_cutoff" ? "info" : "warning"}>
               {holiday === "before_cutoff" ? copy.banner.before : copy.banner.after}
