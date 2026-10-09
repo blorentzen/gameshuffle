@@ -151,7 +151,7 @@ export function GamesShowcase({
         }}
       >
         Want a game or mode we don&apos;t have yet?{" "}
-        <Link href="/contact-us" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>
+        <Link href="/contact-us" style={{ color: "var(--brand-ink)", fontWeight: 600 }}>
           Suggest a game or mode →
         </Link>
       </p>

@@ -174,7 +174,10 @@ export default async function RootLayout({
   const isFollowingSystem = themable && cookieTheme === undefined;
 
   return (
-    <html lang="en" data-theme={dataTheme} className={htmlClassName}>
+    // The inline script below adds `dark` before React hydrates when the OS
+    // prefers dark ("match system"), so the class can differ from the server's
+    // on purpose. This only silences <html>'s own attributes.
+    <html lang="en" data-theme={dataTheme} className={htmlClassName} suppressHydrationWarning>
       <head>
         {/* Pre-paint theme sync for "match system" users. Runs before
             paint and adds `dark` class if the OS prefers dark — CDS
