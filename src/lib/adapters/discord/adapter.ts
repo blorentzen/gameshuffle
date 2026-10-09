@@ -463,3 +463,9 @@ export async function deleteAutoModRule(guildId: string, ruleId: string): Promis
   const r = await request("DELETE", `/guilds/${guildId}/auto-moderation/rules/${ruleId}`);
   return r.ok;
 }
+
+/** Take the bot out of a server (account deletion; the bot leaves rather than lingering unowned). */
+export async function leaveGuild(guildId: string): Promise<boolean> {
+  const r = await request("DELETE", `/users/@me/guilds/${guildId}`);
+  return r.ok;
+}

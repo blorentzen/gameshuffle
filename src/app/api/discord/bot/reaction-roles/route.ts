@@ -9,7 +9,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { isProUser } from "@/lib/subscription-server";
+import { botServer, proRequired } from "@/lib/discord/botServer";
 import {
   listTextChannels,
   listGuildRoles,
@@ -22,27 +22,14 @@ import {
 
 export const runtime = "nodejs";
 
-async function requireProInstalled(userId: string) {
-  const admin = createServiceClient();
-  const { data } = await admin
-    .from("users")
-    .select("discord_guild_id, subscription_tier, role")
-    .eq("id", userId)
-    .maybeSingle();
-  const p = data as { discord_guild_id: string | null; subscription_tier: string | null; role: string | null } | null;
-  const isPro = await isProUser(userId, admin);
-  return { isPro, guildId: p?.discord_guild_id ?? null };
-}
-
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+export async function GET(request: Request) {
+  const ctx = await botServer(request, { allowRemoved: true });
+  if (!ctx.ok) return ctx.response.status === 404 ? NextResponse.json({ ok: true, messages: [] }) : ctx.response;
 
   const { data } = await createServiceClient()
     .from("discord_reaction_roles")
     .select("channel_id, message_id, emoji, role_id, title, created_at")
-    .eq("user_id", user.id)
+    .eq("guild_id", ctx.guild.guildId)
     .order("created_at", { ascending: false });
   const rows = (data ?? []) as Array<{ channel_id: string; message_id: string; emoji: string; role_id: string; title: string | null }>;
 
@@ -56,13 +43,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
-  const { isPro, guildId } = await requireProInstalled(user.id);
-  if (!isPro) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
-  if (!guildId) return NextResponse.json({ ok: false, error: "bot_not_installed" }, { status: 404 });
+  const ctx = await botServer(request);
+  if (!ctx.ok) return ctx.response;
+  const denied = proRequired(ctx);
+  if (denied) return denied;
+  const guildId = ctx.guild.guildId;
+  const user = { id: ctx.userId };
 
   let body: unknown;
   try {
@@ -145,13 +131,11 @@ export async function POST(request: Request) {
 /** Edit a posted reaction-role message: update its embed, reconcile reactions,
  *  and rewrite the mappings. */
 export async function PATCH(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
-  const { isPro, guildId } = await requireProInstalled(user.id);
-  if (!isPro) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
-  if (!guildId) return NextResponse.json({ ok: false, error: "bot_not_installed" }, { status: 404 });
+  const ctx = await botServer(request, { allowRemoved: true });
+  if (!ctx.ok) return ctx.response;
+  const denied = proRequired(ctx);
+  if (denied) return denied;
+  const user = { id: ctx.userId };
 
   let body: unknown;
   try {
@@ -171,12 +155,14 @@ export async function PATCH(request: Request) {
   const admin = createServiceClient();
   const { data: current } = await admin
     .from("discord_reaction_roles")
-    .select("channel_id, emoji")
+    .select("channel_id, guild_id, emoji")
     .eq("message_id", messageId)
     .eq("user_id", user.id);
-  const currentRows = (current ?? []) as Array<{ channel_id: string; emoji: string }>;
+  const currentRows = (current ?? []) as Array<{ channel_id: string; guild_id: string; emoji: string }>;
   if (currentRows.length === 0) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   const channelId = currentRows[0].channel_id;
+  // The message's own server, whichever one the tab has picked.
+  const guildId = currentRows[0].guild_id;
 
   const rolesRes = await listGuildRoles(guildId);
   if (!rolesRes.ok) return NextResponse.json({ ok: false, error: "guild_lookup_failed" }, { status: 502 });

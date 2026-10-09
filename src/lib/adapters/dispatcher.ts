@@ -54,7 +54,7 @@ interface MinimalSessionRow {
  * Inspect a session's `platforms` JSONB AND the owner's user row to
  * figure out which adapters to attach. Twitch is opted-in via
  * `platforms.streaming.type === 'twitch'`. Discord is opted-in via the
- * streamer's `users.discord_guild_id` — Discord attachment is a per-
+ * streamer's connected servers (`discord_guilds`) — Discord attachment is a per-
  * user configuration, not per-session, since most streamers post to
  * the same community Discord across every stream.
  */
@@ -112,10 +112,14 @@ async function fetchSessionRow(sessionId: string): Promise<MinimalSessionRow | n
   // session select simple + RLS scope intact. Cached for the duration
   // of dispatch (called once per dispatchLifecycleEvent).
   const ownerUserId = (session as { owner_user_id: string }).owner_user_id;
-  const { data: profile } = await admin
-    .from("users")
-    .select("discord_guild_id")
-    .eq("id", ownerUserId)
+  // Any connected server (discord_guilds) attaches the Discord adapter; it
+  // works out which servers post.
+  const { data: server } = await admin
+    .from("discord_guilds")
+    .select("guild_id")
+    .eq("owner_user_id", ownerUserId)
+    .is("removed_at", null)
+    .limit(1)
     .maybeSingle();
   // Does the owner have a connected YouTube channel? Guarded — a missing
   // youtube_connections table (pre-migration) reads as "no".
@@ -132,9 +136,7 @@ async function fetchSessionRow(sessionId: string): Promise<MinimalSessionRow | n
     platforms:
       ((session as { platforms: Record<string, unknown> | null }).platforms) ??
       null,
-    ownerDiscordGuildId:
-      (profile as { discord_guild_id: string | null } | null)?.discord_guild_id ??
-      null,
+    ownerDiscordGuildId: (server as { guild_id: string } | null)?.guild_id ?? null,
     ownerHasYouTube,
   };
 }
@@ -167,7 +169,7 @@ export async function getAdapterForSession(
  * live).
  *
  * Discord resolution: per-streamer Discord guild on the owner's
- * `users.discord_guild_id` column — exists independently of any
+ * connected server (`discord_guilds`) — exists independently of any
  * session, so we can construct a DiscordAdapter with a synthetic
  * session id placeholder. The adapter's actual chat-post path only
  * uses the owner's auth + guild routing, not the session row.
@@ -183,15 +185,14 @@ export async function getAdapterForOwner(
   if (platform === "discord") {
     if (isDiscordIntegrationDisabled()) return null;
     const admin = createServiceClient();
-    const { data: profile } = await admin
-      .from("users")
-      .select("discord_guild_id")
-      .eq("id", ownerUserId)
+    const { data: server } = await admin
+      .from("discord_guilds")
+      .select("guild_id")
+      .eq("owner_user_id", ownerUserId)
+      .is("removed_at", null)
+      .limit(1)
       .maybeSingle();
-    const guildId =
-      (profile as { discord_guild_id: string | null } | null)
-        ?.discord_guild_id ?? null;
-    if (!guildId) return null;
+    if (!server) return null;
     // Pass `ownerUserId` as a synthetic session id placeholder — the
     // Discord adapter's `postAnnouncement` path keys off the owner +
     // guild and doesn't require a real session lookup for account-

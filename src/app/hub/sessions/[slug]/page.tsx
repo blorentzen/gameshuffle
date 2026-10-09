@@ -146,11 +146,12 @@ export default async function SessionDetailPage({
     { data: profile },
     { data: connectionRow },
     { data: raceRow },
+    { data: discordServer },
   ] = await Promise.all([
     admin
       .from("users")
       .select(
-        "username, twitch_username, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, discord_guild_id, socials"
+        "username, twitch_username, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, socials"
       )
       .eq("id", session.owner_user_id)
       .maybeSingle(),
@@ -166,6 +167,13 @@ export default async function SessionDetailPage({
       .select("config, enabled")
       .eq("session_id", session.id)
       .eq("module_id", "race_randomizer")
+      .maybeSingle(),
+    admin
+      .from("discord_guilds")
+      .select("guild_id")
+      .eq("owner_user_id", session.owner_user_id)
+      .is("removed_at", null)
+      .limit(1)
       .maybeSingle(),
   ]);
 
@@ -391,7 +399,7 @@ export default async function SessionDetailPage({
       ? profileSocials.discord_invite.trim()
       : null;
   const discordShareAvailable = !!(
-    profile?.discord_guild_id && discordInviteUrl
+    discordServer && discordInviteUrl
   );
 
   const modulesContent = (

@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { isProUser } from "@/lib/subscription-server";
 import { listGuildMembers, addGuildMemberRole, removeGuildMemberRole } from "@/lib/adapters/discord/adapter";
 
 export const runtime = "nodejs";
@@ -29,17 +30,22 @@ export async function GET(request: Request) {
   }
 
   const admin = createServiceClient();
-  const { data: streamers } = await admin
-    .from("users")
-    .select("discord_guild_id, discord_pro_role_id")
-    .not("discord_pro_role_id", "is", null)
-    .not("discord_guild_id", "is", null);
+  // Every connected server with a Pro role set (discord_guilds). A Pro tool,
+  // so a lapsed owner's servers stop syncing (their role stays as it was).
+  const { data: servers } = await admin
+    .from("discord_guilds")
+    .select("guild_id, owner_user_id, pro_role_id")
+    .not("pro_role_id", "is", null)
+    .is("removed_at", null);
+  const ownerPro = new Map<string, boolean>();
 
   let added = 0;
   let removed = 0;
-  for (const s of (streamers ?? []) as Array<{ discord_guild_id: string; discord_pro_role_id: string }>) {
-    const guildId = s.discord_guild_id;
-    const proRoleId = s.discord_pro_role_id;
+  for (const s of (servers ?? []) as Array<{ guild_id: string; owner_user_id: string; pro_role_id: string }>) {
+    if (!ownerPro.has(s.owner_user_id)) ownerPro.set(s.owner_user_id, await isProUser(s.owner_user_id));
+    if (!ownerPro.get(s.owner_user_id)) continue;
+    const guildId = s.guild_id;
+    const proRoleId = s.pro_role_id;
 
     const membersRes = await listGuildMembers(guildId);
     if (!membersRes.ok) continue;

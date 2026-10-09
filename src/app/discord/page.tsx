@@ -66,6 +66,7 @@ const FREE = [
   "Go-live posts to one channel",
 ];
 const PRO = [
+  "The bot in up to 5 servers, each with its own setup",
   "Live polls across Discord, Twitch and your overlay",
   "Posts routed to the channel each one belongs in",
   "Role menus and roles for new members",
@@ -77,7 +78,7 @@ const PRO = [
 const FAQ = [
   {
     q: "Is the GameShuffle Discord bot free?",
-    a: "Yes. Adding the bot to one server, the Daily, the Weekly, Chat Brain, the results card in your channel, /gs-randomize and the table tools are free. GS Pro adds server tools: live polls, channel routing, role menus, roles for new members, AutoMod, server logging, Question of the Day, reminders and tags.",
+    a: "Yes. Adding the bot to one server, the Daily, the Weekly, Chat Brain, the results card in your channel, /gs-randomize and the table tools are free. GS Pro runs the bot in up to 5 servers and adds server tools: live polls, channel routing, role menus, roles for new members, AutoMod, server logging, Question of the Day, reminders and tags.",
   },
   {
     q: "Do players need a GameShuffle account?",

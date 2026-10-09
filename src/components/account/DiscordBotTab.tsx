@@ -14,6 +14,7 @@ import { Button, Chip, Input, Modal, Select, Switch, Textarea } from "@empac/cas
 import { IconAction, RowActions } from "@/components/actions/IconAction";
 import { IconPencil, IconTrash, IconX } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { EmojiPicker, type GuildEmoji } from "@/components/account/EmojiPicker";
 import { ROUTE_CATEGORIES } from "@/lib/discord/routeCategories";
 import { EVENTS, tagged } from "@/lib/analytics/events";
@@ -60,9 +61,21 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
   label: `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`,
 }));
 
+interface ServerSummary { guildId: string; name: string | null; isMain: boolean; removed: boolean; active: boolean }
+
 export function DiscordBotTab() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
+  // The server the tab is showing (?guild=, else the main one). Every bot API call carries it.
+  const [guildId, setGuildId] = useState<string | null>(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("guild") : null));
+  const [servers, setServers] = useState<ServerSummary[]>([]);
+  const [serverLimit, setServerLimit] = useState(1);
+  const [current, setCurrent] = useState<{ guildId: string | null; isMain: boolean; removed: boolean; active: boolean } | null>(null);
+  const withGuild = useCallback(
+    (url: string) => (guildId ? `${url}${url.includes("?") ? "&" : "?"}guild=${encodeURIComponent(guildId)}` : url),
+    [guildId],
+  );
   const [isPro, setIsPro] = useState(false);
   const [guildName, setGuildName] = useState<string | null>(null);
   const [installed, setInstalled] = useState(false);
@@ -140,19 +153,19 @@ export function DiscordBotTab() {
   useEffect(() => {
     (async () => {
       const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes, routingRes, schedRes, qotdRes, logRes] = await Promise.all([
-        fetch("/api/discord/bot/routes", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/channels", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/role-menus", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/roles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/emojis", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/reaction-roles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/autoroles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/pro-role", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/automod", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/routing", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/scheduled", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/qotd", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/logging", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/routes"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/channels"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/role-menus"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/roles"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/emojis"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/reaction-roles"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/autoroles"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/pro-role"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/automod"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/routing"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/scheduled"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/qotd"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/logging"), { cache: "no-store" }).then((r) => r.json()).catch(() => null),
       ]);
       if (routesRes?.ok) {
         setIsPro(!!routesRes.isPro);
@@ -175,6 +188,9 @@ export function DiscordBotTab() {
       if (routingRes?.ok) {
         setEventSubs((routingRes.routing?.eventSubscriptions as Record<string, boolean>) ?? {});
         setQotdHour((routingRes.routing?.qotdHour as number | null) ?? null);
+        setServers((routingRes.servers as ServerSummary[]) ?? []);
+        setServerLimit((routingRes.limit as number) ?? 1);
+        setCurrent(routingRes.routing ? { guildId: routingRes.routing.guildId, isMain: !!routingRes.routing.isMain, removed: !!routingRes.routing.removed, active: !!routingRes.routing.active } : null);
       }
       if (schedRes?.ok) setScheduledPosts((schedRes.posts as Array<{ id: string; title: string; fireAt: string }>) ?? []);
       if (qotdRes?.ok && qotdRes.hasCommunity) setQotd(qotdRes as QotdMgmt);
@@ -184,7 +200,42 @@ export function DiscordBotTab() {
       }
       setLoading(false);
     })();
-  }, []);
+  }, [withGuild]);
+
+  /** Show another server: reload everything for it and keep it in the URL. */
+  const switchServer = (id: string) => {
+    if (id === (current?.guildId ?? null)) return;
+    setLoading(true);
+    setDirty(false);
+    setGuildId(id);
+    const url = new URL(window.location.href);
+    url.searchParams.set("guild", id);
+    window.history.replaceState(null, "", url.toString());
+  };
+
+  const makeMain = async () => {
+    const res = await fetch(withGuild("/api/discord/bot/routing"), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ make_main: true }) }).then((r) => r.json()).catch(() => null);
+    if (res?.ok) {
+      setServers((list) => list.map((g) => ({ ...g, isMain: g.guildId === current?.guildId })));
+      setCurrent((c) => (c ? { ...c, isMain: true, active: !c.removed } : c));
+      toast.success("This is your main server now.");
+    } else toast.error("Couldn't change the main server.");
+  };
+
+  const forgetServer = async () => {
+    if (!current?.guildId) return;
+    const name = servers.find((g) => g.guildId === current.guildId)?.name ?? "this server";
+    if (!(await confirm({ title: `Forget ${name}?`, body: "Its channels, routes, roles and AutoMod settings on GameShuffle are removed, and it frees a server slot. Remove the bot in Discord too if it's still there.", confirmLabel: "Forget server" }))) return;
+    const res = await fetch(withGuild("/api/discord/bot/routing"), { method: "DELETE" }).then((r) => r.json()).catch(() => null);
+    if (!res?.ok) { toast.error("Couldn't forget that server."); return; }
+    toast.success("Server forgotten.");
+    const next = servers.find((g) => g.guildId !== current.guildId);
+    setLoading(true);
+    setGuildId(next?.guildId ?? null);
+    const url = new URL(window.location.href);
+    if (next) url.searchParams.set("guild", next.guildId); else url.searchParams.delete("guild");
+    window.history.replaceState(null, "", url.toString());
+  };
 
   const channelName = useCallback(
     (id: string | null) => (id ? channels.find((c) => c.id === id)?.name ?? "channel" : null),
@@ -208,7 +259,7 @@ export function DiscordBotTab() {
     setSaving(true);
     const payload: Record<string, string | null> = {};
     for (const c of ROUTE_CATEGORIES) payload[c.key] = routes[c.key] ?? null;
-    const res = await fetch("/api/discord/bot/routes", {
+    const res = await fetch(withGuild("/api/discord/bot/routes"), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ routes: payload }),
@@ -239,7 +290,7 @@ export function DiscordBotTab() {
         .filter((f) => f.offset && f.body.trim())
         .map((f) => ({ offsetMinutes: Number(f.offset), body: f.body })),
     };
-    const res = await fetch("/api/discord/bot/announce", {
+    const res = await fetch(withGuild("/api/discord/bot/announce"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -253,7 +304,7 @@ export function DiscordBotTab() {
       setAnnUrl("");
       setAnnWhen("");
       setFollowUps([]);
-      const s = await fetch("/api/discord/bot/scheduled").then((r) => r.json()).catch(() => null);
+      const s = await fetch(withGuild("/api/discord/bot/scheduled")).then((r) => r.json()).catch(() => null);
       if (s?.ok) setScheduledPosts(s.posts as Array<{ id: string; title: string; fireAt: string }>);
     } else {
       const err = d?.error;
@@ -277,7 +328,7 @@ export function DiscordBotTab() {
     setSarPosting(true);
     const res =
       sarStyle === "reactions"
-        ? await fetch("/api/discord/bot/reaction-roles", {
+        ? await fetch(withGuild("/api/discord/bot/reaction-roles"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -287,7 +338,7 @@ export function DiscordBotTab() {
               mappings: sarMappings.map((m) => ({ emoji: m.emoji, roleId: m.roleId })),
             }),
           })
-        : await fetch("/api/discord/bot/role-menus", {
+        : await fetch(withGuild("/api/discord/bot/role-menus"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -307,8 +358,8 @@ export function DiscordBotTab() {
       setSarMappings([]);
       setSarModalOpen(false);
       const [rr, rm] = await Promise.all([
-        fetch("/api/discord/bot/reaction-roles").then((r) => r.json()).catch(() => null),
-        fetch("/api/discord/bot/role-menus").then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/reaction-roles")).then((r) => r.json()).catch(() => null),
+        fetch(withGuild("/api/discord/bot/role-menus")).then((r) => r.json()).catch(() => null),
       ]);
       if (rr?.ok) setReactionMessages(rr.messages as ReactionMessage[]);
       if (rm?.ok) setRoleMenus(rm.menus as RoleMenu[]);
@@ -317,11 +368,11 @@ export function DiscordBotTab() {
     }
   }
   async function deleteMenu(id: string) {
-    await fetch(`/api/discord/bot/role-menus?id=${id}`, { method: "DELETE" });
+    await fetch(withGuild(`/api/discord/bot/role-menus?id=${id}`), { method: "DELETE" });
     setRoleMenus((prev) => prev.filter((m) => m.id !== id));
   }
   async function deleteReactionMessage(messageId: string) {
-    await fetch(`/api/discord/bot/reaction-roles?messageId=${messageId}`, { method: "DELETE" });
+    await fetch(withGuild(`/api/discord/bot/reaction-roles?messageId=${messageId}`), { method: "DELETE" });
     setReactionMessages((prev) => prev.filter((m) => m.messageId !== messageId));
   }
   function startEditRr(m: ReactionMessage) {
@@ -340,7 +391,7 @@ export function DiscordBotTab() {
     if (!editingRr || editSaving) return;
     if (!editingRr.title.trim() || editingRr.mappings.length === 0 || editingRr.mappings.some((m) => !m.emoji)) return;
     setEditSaving(true);
-    const res = await fetch("/api/discord/bot/reaction-roles", {
+    const res = await fetch(withGuild("/api/discord/bot/reaction-roles"), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -353,7 +404,7 @@ export function DiscordBotTab() {
     if (res.ok) {
       toast.success("Reaction roles updated.");
       setEditingRr(null);
-      const d = await fetch("/api/discord/bot/reaction-roles").then((r) => r.json()).catch(() => null);
+      const d = await fetch(withGuild("/api/discord/bot/reaction-roles")).then((r) => r.json()).catch(() => null);
       if (d?.ok) setReactionMessages(d.messages as ReactionMessage[]);
     } else {
       toast.error("Could not update. Check the bot's permissions.");
@@ -362,7 +413,7 @@ export function DiscordBotTab() {
 
   async function saveAutoroles(ids: string[]) {
     setAutoroleSaving(true);
-    const res = await fetch("/api/discord/bot/autoroles", {
+    const res = await fetch(withGuild("/api/discord/bot/autoroles"), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ roleIds: ids }),
@@ -374,7 +425,7 @@ export function DiscordBotTab() {
 
   async function saveProRole(roleId: string) {
     setProRoleSaving(true);
-    const res = await fetch("/api/discord/bot/pro-role", {
+    const res = await fetch(withGuild("/api/discord/bot/pro-role"), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ roleId: roleId || null }),
@@ -390,7 +441,7 @@ export function DiscordBotTab() {
   async function saveAutomod() {
     setAutomodSaving(true);
     const keywords = automodKeywords.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
-    const res = await fetch("/api/discord/bot/automod", {
+    const res = await fetch(withGuild("/api/discord/bot/automod"), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ keywords, presets: automodPresets }),
@@ -411,7 +462,7 @@ export function DiscordBotTab() {
   const logOn = (key: string) => logEvents[key] !== false;
   async function saveLogging(patch: { channel_id?: string | null; events?: Record<string, boolean> }) {
     setLogSaving(true);
-    const res = await fetch("/api/discord/bot/logging", {
+    const res = await fetch(withGuild("/api/discord/bot/logging"), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
@@ -433,7 +484,7 @@ export function DiscordBotTab() {
   async function saveQotd(enabled: boolean) {
     setQotdSaving(true);
     const next = { ...eventSubs, qotd: enabled };
-    const res = await fetch("/api/discord/bot/routing", {
+    const res = await fetch(withGuild("/api/discord/bot/routing"), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ event_subscriptions: next }),
@@ -448,7 +499,7 @@ export function DiscordBotTab() {
   }
   async function saveQotdHour(hour: number) {
     setQotdHour(hour);
-    const res = await fetch("/api/discord/bot/routing", {
+    const res = await fetch(withGuild("/api/discord/bot/routing"), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ qotd_hour: hour }),
@@ -459,7 +510,7 @@ export function DiscordBotTab() {
   async function postQotdNow() {
     if (qotdPosting) return;
     setQotdPosting(true);
-    const res = await fetch("/api/discord/bot/qotd-now", { method: "POST" });
+    const res = await fetch(withGuild("/api/discord/bot/qotd-now"), { method: "POST" });
     setQotdPosting(false);
     const d = await res.json().catch(() => null);
     if (res.ok) toast.success("Question of the Day posted to Discord.");
@@ -468,12 +519,12 @@ export function DiscordBotTab() {
     else toast.error("Could not post right now.");
   }
   async function cancelScheduled(id: string) {
-    await fetch(`/api/discord/bot/scheduled?id=${id}`, { method: "DELETE" });
+    await fetch(withGuild(`/api/discord/bot/scheduled?id=${id}`), { method: "DELETE" });
     setScheduledPosts((prev) => prev.filter((p) => p.id !== id));
   }
 
   async function reloadQotd() {
-    const d = await fetch("/api/discord/bot/qotd", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+    const d = await fetch(withGuild("/api/discord/bot/qotd"), { cache: "no-store" }).then((r) => r.json()).catch(() => null);
     if (d?.ok && d.hasCommunity) setQotd(d as QotdMgmt);
   }
   async function addQuestion() {
@@ -530,7 +581,7 @@ export function DiscordBotTab() {
           }
         : q,
     );
-    await fetch("/api/discord/bot/qotd", {
+    await fetch(withGuild("/api/discord/bot/qotd"), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
@@ -550,18 +601,52 @@ export function DiscordBotTab() {
         to the right channel, and more as we roll out the suite.
       </p>
 
-      {/* Install status */}
+      {/* Servers: pick which one the settings below are for. */}
       <div className="account-card">
-        <h3 className="account-card__title">Connection</h3>
+        <h3 className="account-card__title">Servers</h3>
         {installed ? (
-          <p>
-            Connected to <strong>{guildName ?? "your server"}</strong>.{" "}
-            {defaultChannelId ? (
-              <>Default channel: <strong>#{channelName(defaultChannelId)}</strong>.</>
+          <>
+            <div className="dbot-servers">
+              {servers.length > 1 ? (
+                <Select floatingLabel="Server" value={current?.guildId ?? ""} onChange={(v) => switchServer(String(v))}
+                  options={servers.map((g) => ({ value: g.guildId, label: `${g.name ?? "Server"}${g.isMain ? " (main)" : ""}${g.removed ? " (bot removed)" : !g.active ? " (paused)" : ""}` }))} />
+              ) : (
+                <p className="dbot-servers__one">Connected to <strong>{guildName ?? "your server"}</strong>.</p>
+              )}
+              <div className="dbot-servers__actions">
+                <span className="dbot-muted">{servers.filter((g) => !g.removed).length} of {serverLimit} server{serverLimit === 1 ? "" : "s"}</span>
+                {servers.filter((g) => !g.removed).length < serverLimit ? (
+                  <a href="/api/discord/bot/install/start"><Button variant="secondary" size="small">Add another server</Button></a>
+                ) : !isPro ? (
+                  <Link href="/gs-pro?from=discord-servers" className={tagged(EVENTS.upgradeClicked, { from: "discord-servers" })}><Button variant="secondary" size="small">Up to 5 servers with GS Pro</Button></Link>
+                ) : null}
+                {servers.length > 1 && current && !current.isMain && !current.removed && <Button variant="ghost" size="small" onClick={() => void makeMain()}>Make this the main server</Button>}
+              </div>
+            </div>
+            {current?.removed ? (
+              <div className="dbot-servers__note">
+                <p>The bot was removed from this server in Discord. Add it back to pick up where you left off, or forget it to free the slot.</p>
+                <div className="dbot-servers__actions">
+                  <a href="/api/discord/bot/install/start"><Button variant="primary" size="small">Add the bot back</Button></a>
+                  <Button variant="ghost" size="small" onClick={() => void forgetServer()}>Forget this server</Button>
+                </div>
+              </div>
+            ) : current && !current.active ? (
+              <p className="dbot-servers__note">Paused: without GS Pro the bot runs in your main server only. This server&apos;s settings are kept and it comes back with GS Pro.</p>
             ) : (
-              <>No default channel set yet. Pick one on the Integrations tab.</>
+              <p>
+                {defaultChannelId ? (
+                  <>Default channel: <strong>#{channelName(defaultChannelId)}</strong>.</>
+                ) : (
+                  <>No default channel set yet. Pick one on the <Link href={`/account/streamer?tab=integrations${current?.guildId ? `&guild=${current.guildId}` : ""}`}>Integrations tab</Link>.</>
+                )}
+                {servers.length > 1 && current?.isMain ? " This is your main server: it keeps working even without GS Pro." : ""}
+              </p>
             )}
-          </p>
+            {servers.length > 1 && !current?.removed && (
+              <p className="dbot-muted">Everything below is for this server. Going live, recaps, Question of the Day, Chat Brain and the Weekly post in every server that has a channel set for them.</p>
+            )}
+          </>
         ) : (
           <p>
             The GameShuffle bot isn&apos;t connected yet.{" "}

@@ -2,49 +2,32 @@
  * GET / PUT /api/discord/bot/autoroles
  *
  * Roles auto-assigned to every new member on join (GS Pro). The gateway worker
- * applies them on GuildMemberAdd. PUT replaces the full set for the guild.
+ * applies them on GuildMemberAdd. PUT replaces the set for one server (?guild=).
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { isProUser } from "@/lib/subscription-server";
+import { botServer, proRequired } from "@/lib/discord/botServer";
 import { listGuildRoles } from "@/lib/adapters/discord/adapter";
 
 export const runtime = "nodejs";
 
-async function requireProInstalled(userId: string) {
-  const admin = createServiceClient();
-  const { data } = await admin
-    .from("users")
-    .select("discord_guild_id, subscription_tier, role")
-    .eq("id", userId)
-    .maybeSingle();
-  const p = data as { discord_guild_id: string | null; subscription_tier: string | null; role: string | null } | null;
-  const isPro = await isProUser(userId, admin);
-  return { isPro, guildId: p?.discord_guild_id ?? null };
-}
-
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
+export async function GET(request: Request) {
+  const ctx = await botServer(request, { allowRemoved: true });
+  if (!ctx.ok) return ctx.response.status === 404 ? NextResponse.json({ ok: true, roleIds: [] }) : ctx.response;
   const { data } = await createServiceClient()
     .from("discord_autoroles")
     .select("role_id")
-    .eq("user_id", user.id);
+    .eq("guild_id", ctx.guild.guildId);
   return NextResponse.json({ ok: true, roleIds: ((data ?? []) as Array<{ role_id: string }>).map((r) => r.role_id) });
 }
 
 export async function PUT(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
-  const { isPro, guildId } = await requireProInstalled(user.id);
-  if (!isPro) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
-  if (!guildId) return NextResponse.json({ ok: false, error: "bot_not_installed" }, { status: 404 });
+  const ctx = await botServer(request);
+  if (!ctx.ok) return ctx.response;
+  const denied = proRequired(ctx);
+  if (denied) return denied;
+  const guildId = ctx.guild.guildId;
 
   let body: unknown;
   try {
@@ -60,11 +43,14 @@ export async function PUT(request: Request) {
   const roleIds = [...new Set(rawIds.filter((id): id is string => typeof id === "string" && validRoles.has(id)))].slice(0, 10);
 
   const admin = createServiceClient();
-  await admin.from("discord_autoroles").delete().eq("user_id", user.id);
+  // This server's set only (other servers keep theirs).
+  const { error: clearErr } = await admin.from("discord_autoroles").delete().eq("guild_id", guildId);
+  if (clearErr) return NextResponse.json({ ok: false, error: "save_failed" }, { status: 500 });
   if (roleIds.length) {
-    await admin.from("discord_autoroles").insert(
-      roleIds.map((role_id) => ({ user_id: user.id, guild_id: guildId, role_id })),
+    const { error } = await admin.from("discord_autoroles").insert(
+      roleIds.map((role_id) => ({ user_id: ctx.userId, guild_id: guildId, role_id })),
     );
+    if (error) return NextResponse.json({ ok: false, error: "save_failed" }, { status: 500 });
   }
   return NextResponse.json({ ok: true });
 }

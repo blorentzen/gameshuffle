@@ -10,7 +10,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { isProUser } from "@/lib/subscription-server";
+import { botServer, proRequired } from "@/lib/discord/botServer";
 import {
   listTextChannels,
   listGuildRoles,
@@ -21,28 +21,15 @@ import { buildRoleMenuComponents } from "@/lib/discord/commands/roleMenu";
 
 export const runtime = "nodejs";
 
-async function requireProInstalled(userId: string) {
-  const admin = createServiceClient();
-  const { data } = await admin
-    .from("users")
-    .select("discord_guild_id, subscription_tier, role")
-    .eq("id", userId)
-    .maybeSingle();
-  const p = data as { discord_guild_id: string | null; subscription_tier: string | null; role: string | null } | null;
-  const isPro = await isProUser(userId, admin);
-  return { isPro, guildId: p?.discord_guild_id ?? null };
-}
-
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+export async function GET(request: Request) {
+  const ctx = await botServer(request, { allowRemoved: true });
+  if (!ctx.ok) return ctx.response.status === 404 ? NextResponse.json({ ok: true, menus: [] }) : ctx.response;
 
   const admin = createServiceClient();
   const { data: menus } = await admin
     .from("discord_role_menus")
     .select("id, channel_id, title, message_id, type, created_at")
-    .eq("user_id", user.id)
+    .eq("guild_id", ctx.guild.guildId)
     .order("created_at", { ascending: false });
   const menuList = (menus ?? []) as Array<{ id: string; channel_id: string; title: string; message_id: string | null; created_at: string }>;
 
@@ -65,13 +52,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
-  const { isPro, guildId } = await requireProInstalled(user.id);
-  if (!isPro) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
-  if (!guildId) return NextResponse.json({ ok: false, error: "bot_not_installed" }, { status: 404 });
+  const ctx = await botServer(request);
+  if (!ctx.ok) return ctx.response;
+  const denied = proRequired(ctx);
+  if (denied) return denied;
+  const guildId = ctx.guild.guildId;
+  const user = { id: ctx.userId };
 
   let body: unknown;
   try {

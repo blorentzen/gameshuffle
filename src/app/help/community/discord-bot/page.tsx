@@ -35,9 +35,20 @@ export default function Page() {
       </ol>
       <p>
         A server can be connected to one GameShuffle account at a time. If someone else already connected it, they need to
-        remove the bot from their Discord settings on GameShuffle before you can add it. Moving the bot to a different server
-        clears the channels and roles you picked for the old one, so you pick them again for the new server.
+        forget it in their Discord settings on GameShuffle before you can add it.
       </p>
+
+      <h2>More than one server</h2>
+      <p>
+        A free account runs the bot in one server; GS Pro runs it in up to five. Add another with <strong>Add another server</strong>
+        on the Discord Bot tab, then pick a server at the top of the tab: channels, roles, AutoMod, logging and the Question of the
+        Day hour are set per server. Tags, your question list and polls are shared across them.
+      </p>
+      <ul>
+        <li>Going live, recaps, Question of the Day, Chat Brain and the Weekly post in every server that has a channel set for them.</li>
+        <li>Your first server is your <strong>main server</strong> (you can change it). If GS Pro ends, the main server keeps working and the others pause: nothing posts there, their settings are kept, and they come back with GS Pro.</li>
+        <li>If the bot is removed from a server in Discord, the tab says so. Add it back to pick up where you left off, or forget the server to free the slot.</li>
+      </ul>
 
       <h2>Play inside Discord</h2>
       <p>
@@ -84,8 +95,8 @@ export default function Page() {
 
       <h2>Free vs Pro</h2>
       <p>
-        Free accounts can connect the bot and post to one default channel. Everything above, routing,
-        announcements, roles, AutoMod, logging, and QOTD, is a GameShuffle Pro feature. On a free
+        Free accounts can connect the bot in one server and post to one default channel. More servers (up to five), routing,
+        announcements, roles, AutoMod, logging and QOTD are GameShuffle Pro features. On a free
         account those cards appear locked with a GS Pro label.
       </p>
 

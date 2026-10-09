@@ -1,15 +1,16 @@
 /**
- * GET / PATCH /api/discord/bot/logging
+ * GET / PATCH /api/discord/bot/logging?guild=<id>
  *
- * The streamer's server-logging config (Pro). GET returns the log channel +
- * per-event toggles; PATCH saves them. The gateway worker reads these and posts
- * message deletes/edits, joins/leaves, and role changes to the channel.
+ * One server's logging config (GS Pro). GET returns the log channel and the
+ * per-event toggles; PATCH saves them. The gateway worker reads these and
+ * posts message deletes/edits, joins/leaves and role changes to the channel.
+ * The channel must be one of that server's: logs never leave the server.
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { isProUser } from "@/lib/subscription-server";
+import { listTextChannels } from "@/lib/adapters/discord/adapter";
+import { botServer, proRequired } from "@/lib/discord/botServer";
+import { updateGuild, type GuildSettings } from "@/lib/discord/guilds";
 
 export const runtime = "nodejs";
 
@@ -21,34 +22,18 @@ interface LogEvents {
   role_change?: boolean;
 }
 
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
-  const { data } = await createServiceClient()
-    .from("users")
-    .select("discord_log_channel_id, discord_log_events")
-    .eq("id", user.id)
-    .maybeSingle();
-  const row = data as { discord_log_channel_id: string | null; discord_log_events: LogEvents | null } | null;
-  return NextResponse.json({
-    ok: true,
-    channelId: row?.discord_log_channel_id ?? null,
-    events: row?.discord_log_events ?? null,
-  });
+export async function GET(request: Request) {
+  const ctx = await botServer(request, { allowRemoved: true });
+  if (!ctx.ok) return ctx.response.status === 404 ? NextResponse.json({ ok: true, channelId: null, events: null }) : ctx.response;
+  return NextResponse.json({ ok: true, channelId: ctx.guild.logChannelId, events: ctx.guild.logEvents });
 }
 
 export async function PATCH(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+  const ctx = await botServer(request);
+  if (!ctx.ok) return ctx.response;
   // GS Pro, checked here: the Discord Bot tab only greys the card out.
-  if (!(await isProUser(user.id))) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
+  const denied = proRequired(ctx);
+  if (denied) return denied;
 
   let body: { channel_id?: string | null; events?: LogEvents };
   try {
@@ -57,12 +42,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
 
-  const updates: Record<string, unknown> = {};
-  if (body.channel_id !== undefined) updates.discord_log_channel_id = body.channel_id;
-  if (body.events !== undefined) updates.discord_log_events = body.events;
-  if (Object.keys(updates).length === 0) return NextResponse.json({ ok: true });
+  const patch: GuildSettings = {};
+  if (body.channel_id !== undefined) {
+    if (body.channel_id) {
+      const channels = await listTextChannels(ctx.guild.guildId);
+      if (!channels.ok) return NextResponse.json({ ok: false, error: "channel_lookup_failed" }, { status: 502 });
+      if (!channels.channels.some((c) => c.id === body.channel_id)) return NextResponse.json({ ok: false, error: "invalid_channel" }, { status: 400 });
+    }
+    patch.logChannelId = body.channel_id || null;
+  }
+  if (body.events !== undefined) patch.logEvents = body.events as Record<string, boolean>;
+  if (Object.keys(patch).length === 0) return NextResponse.json({ ok: true });
 
-  const { error } = await createServiceClient().from("users").update(updates).eq("id", user.id);
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  if (!(await updateGuild(ctx.userId, ctx.guild.guildId, patch))) return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

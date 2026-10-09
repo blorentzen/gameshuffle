@@ -1,17 +1,16 @@
 /**
  * POST /api/discord/bot/announce
  *
- * Post or schedule a Discord announcement (GS Pro). Routes to the streamer's
- * `announcements` channel (or default). Body:
+ * Post or schedule a Discord announcement (GS Pro) in one server (?guild=,
+ * else the main one). Routes to that server's `announcements` channel (or its
+ * default). Body:
  *   { title, body, url?, mode: "now" | "schedule", fireAt?,
  *     followUps?: [{ offsetMinutes, body }] }
  * Follow-ups are scheduled relative to the base send time.
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { isProUser } from "@/lib/subscription-server";
+import { botServer, proRequired } from "@/lib/discord/botServer";
 import { postAnnouncementToCategory } from "@/lib/adapters/discord";
 import { scheduleDiscordPost } from "@/lib/discord/scheduled";
 
@@ -20,20 +19,13 @@ export const runtime = "nodejs";
 const CATEGORY = "announcements";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
-  const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("users")
-    .select("discord_guild_id, subscription_tier, role")
-    .eq("id", user.id)
-    .maybeSingle();
-  const p = profile as { discord_guild_id: string | null; subscription_tier: string | null; role: string | null } | null;
-  const isPro = await isProUser(user.id, admin);
-  if (!isPro) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
-  if (!p?.discord_guild_id) return NextResponse.json({ ok: false, error: "bot_not_installed" }, { status: 404 });
+  // One server: the one picked on the Discord Bot tab (?guild=), else the main one.
+  const ctx = await botServer(request);
+  if (!ctx.ok) return ctx.response;
+  const denied = proRequired(ctx);
+  if (denied) return denied;
+  const user = { id: ctx.userId };
+  const guildId = ctx.guild.guildId;
 
   let body: unknown;
   try {
@@ -63,13 +55,13 @@ export async function POST(request: Request) {
 
   // Main post: fire now if "now" and due, else schedule.
   if (mode === "now") {
-    const res = await postAnnouncementToCategory({ ownerUserId: user.id, category: CATEGORY, title, body: text, url });
+    const res = await postAnnouncementToCategory({ ownerUserId: user.id, category: CATEGORY, title, body: text, url, guildId });
     if (!res.ok) {
       // no_channel / no_routing → tell the streamer to configure routing.
       return NextResponse.json({ ok: false, error: res.reason }, { status: 400 });
     }
   } else {
-    await scheduleDiscordPost({ userId: user.id, category: CATEGORY, content, fireAt: new Date(baseMs).toISOString() });
+    await scheduleDiscordPost({ userId: user.id, category: CATEGORY, content, fireAt: new Date(baseMs).toISOString(), guildId });
   }
 
   // Follow-ups (always scheduled, relative to base).
@@ -81,7 +73,7 @@ export async function POST(request: Request) {
     const fbody = typeof fu.body === "string" ? fu.body.trim().slice(0, 4000) : "";
     if (offset === null || offset <= 0 || !fbody) continue;
     const fireAt = new Date(baseMs + offset * 60_000).toISOString();
-    const id = await scheduleDiscordPost({ userId: user.id, category: CATEGORY, content: { title, body: fbody, url }, fireAt });
+    const id = await scheduleDiscordPost({ userId: user.id, category: CATEGORY, content: { title, body: fbody, url }, fireAt, guildId });
     if (id) scheduled += 1;
   }
 

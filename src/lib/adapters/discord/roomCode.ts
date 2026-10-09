@@ -12,6 +12,7 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { activeGuilds } from "@/lib/discord/guilds";
 import { getGameName } from "@/data/game-registry";
 import { boxArt, catalogForApp } from "@/data/game-catalog";
 import { SITE_URL } from "@/lib/seo";
@@ -24,52 +25,37 @@ interface PushArgs {
   roomCode: string;
 }
 
-/** Look up the streamer's Discord routing + post the room-code embed.
- *  Returns true when Discord accepted the post, false on any failure
- *  (no routing, no channel, API error, missing access). */
+/** Post the room-code embed to the default channel of every server that
+ *  posts (all connected servers with GS Pro, the main one without). Returns
+ *  true when at least one server accepted it. */
 export async function pushRoomCodeUpdateToDiscord(
   args: PushArgs,
 ): Promise<boolean> {
-  const admin = createServiceClient();
-  const { data: profile } = await admin
+  const servers = (await activeGuilds(args.ownerUserId)).filter((g) => g.defaultChannelId);
+  if (servers.length === 0) return false;
+  const { data: profile } = await createServiceClient()
     .from("users")
-    .select(
-      "display_name, username, twitch_username, discord_guild_id, discord_channel_id",
-    )
+    .select("display_name, username, twitch_username")
     .eq("id", args.ownerUserId)
     .maybeSingle();
-  const row = profile as
-    | {
-        display_name: string | null;
-        username: string | null;
-        twitch_username: string | null;
-        discord_guild_id: string | null;
-        discord_channel_id: string | null;
-      }
-    | null;
-  if (!row?.discord_guild_id || !row.discord_channel_id) return false;
+  const row = profile as { display_name: string | null; username: string | null; twitch_username: string | null } | null;
 
-  const streamerName =
-    row.display_name ?? row.username ?? row.twitch_username ?? "Streamer";
+  const streamerName = row?.display_name ?? row?.username ?? row?.twitch_username ?? "Streamer";
   const gameName = getGameName(args.gameSlug);
   const cover = boxArt(catalogForApp(args.gameSlug));
-
-  const result = await postEmbed({
-    channelId: row.discord_channel_id,
-    embed: roomCodeEmbed({
-      streamerName,
-      gameName,
-      roomCode: args.roomCode,
-      changedAt: new Date().toISOString(),
-      coverUrl: cover ? `${SITE_URL}${cover}` : null,
-    }),
+  const embed = roomCodeEmbed({
+    streamerName,
+    gameName,
+    roomCode: args.roomCode,
+    changedAt: new Date().toISOString(),
+    coverUrl: cover ? `${SITE_URL}${cover}` : null,
   });
-  if (!result.ok) {
-    console.warn(
-      `[discord/roomCode] post failed for owner ${args.ownerUserId}:`,
-      result.error,
-    );
-    return false;
+
+  let posted = false;
+  for (const server of servers) {
+    const result = await postEmbed({ channelId: server.defaultChannelId!, embed });
+    if (result.ok) posted = true;
+    else console.warn(`[discord/roomCode] post failed for owner ${args.ownerUserId} in ${server.guildId}:`, result.error);
   }
-  return true;
+  return posted;
 }
