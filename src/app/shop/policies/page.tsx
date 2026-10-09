@@ -13,7 +13,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LegalPage, type LegalSection } from "@/components/legal/LegalPage";
 import { SHOP } from "@/lib/store/config";
-import { formatPrice, shopDate } from "@/lib/store/copy";
+import { TCG_CONDITION_GUIDE_URL, formatPrice, shopDate } from "@/lib/store/copy";
 import { getPlatformFlag } from "@/lib/platform/flags";
 import { isStaffRequest } from "@/lib/auth/raw";
 
@@ -67,20 +67,25 @@ export default async function ShopPoliciesPage() {
       title: "Returns and final sale",
       content: (
         <>
-          <p>Pokémon card products are final sale. Every pack and set has a guaranteed part (each listing says exactly what) and the luck of the pack, so we can&apos;t take returns or exchanges because of which Pikachu or hit you got.</p>
-          <p>If something arrives damaged, or an order is missing something its listing guarantees, email us and we&apos;ll make it right (see below).</p>
+          <p>Pokémon card products are final sale. Every pack and set has a guaranteed part (each listing says exactly what) and the luck of the pack, so we can&apos;t take returns or exchanges because of which cards you got.</p>
+          <p>If something arrives damaged, or an order is missing something its listing guarantees, email us and choose a replacement or a refund (see below).</p>
         </>
       ),
     },
     {
+      id: "hits",
+      title: "What counts as a hit",
+      content: <p>When a listing says hit, it means an ex card or rarer. Holo and reverse holo cards are listed as holos, not hits. A pack only has a hit when its listing says so.</p>,
+    },
+    {
       id: "damaged-in-transit",
       title: "Damaged in transit",
-      content: <p>If something arrives damaged, email a photo within 7 days and we&apos;ll replace it or refund it.</p>,
+      content: <p>If something arrives damaged, email us and tell us which you&apos;d like: a replacement or a refund. A photo helps us improve our packing, but you don&apos;t need one to get it sorted.</p>,
     },
     {
       id: "card-condition",
       title: "Card condition",
-      content: <p>Every card is a real Pokémon TCG card, sorted and checked by hand. Cards in packs are near mint: no creases, bends or heavy wear. Each listing says exactly what&apos;s guaranteed in the pack. Beyond that, what you get is the luck of the pack, and there&apos;s no guaranteed value.</p>,
+      content: <p>Every card is a real Pokémon TCG card, sorted and checked by hand. We aim to send every card in Near Mint condition. Some may arrive Lightly Played, as <a href={TCG_CONDITION_GUIDE_URL} target="_blank" rel="noopener noreferrer">TCGplayer&apos;s card condition guidelines</a> describe it. Each listing says exactly what&apos;s guaranteed in the pack. Beyond that, what you get is the luck of the pack, and there&apos;s no guaranteed value.</p>,
     },
     {
       id: "sales-tax",

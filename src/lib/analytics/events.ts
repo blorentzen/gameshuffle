@@ -24,6 +24,10 @@ export const EVENTS = {
   brainShareCopied: "Brain Share Copied",
   brainUpdatesSignup: "Brain Updates Signup",
 
+  // Shop
+  /** "Notify me" on the shop's Coming soon page. {signedIn} */
+  shopUpdatesJoined: "Shop Updates Joined",
+
   // Discord
   /** "Add to Discord" on /discord. {from: hero|steps|band} */
   discordAddClicked: "Discord Add Clicked",

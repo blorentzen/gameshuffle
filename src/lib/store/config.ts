@@ -71,7 +71,11 @@ export interface ShopConfig {
   utm: { source: string; medium: string; campaign: string; placements: string[] };
   contact: { support_email: string; alert_email: string; return_address: string | null };
   returns: { final_sale_categories: string[] };
+  digital_lists: { lists: DigitalList[] };
 }
+
+/** A digital checklist or deck list that comes with some products (never printed). Hidden until it has a url. */
+export interface DigitalList { id: string; title: string; url: string | null; skus: string[] }
 
 export const SHOP: ShopConfig = seed as ShopConfig;
 
@@ -85,6 +89,14 @@ export const SHOP_TAX_CODE = "txcd_99999999";
 
 /** Pokémon card products are final sale (no returns over which pull is in a pack). */
 export const isFinalSale = (category: string, config: ShopConfig = SHOP) => config.returns.final_sale_categories.includes(category);
+
+/** The digital lists for these SKUs that are ready to link (a url set), once each, in config order. */
+export function digitalListsFor(skus: string[], config: ShopConfig = SHOP): { id: string; title: string; url: string }[] {
+  const want = new Set(skus);
+  return config.digital_lists.lists
+    .filter((l): l is DigitalList & { url: string } => !!l.url && l.skus.some((s) => want.has(s)))
+    .map((l) => ({ id: l.id, title: l.title, url: l.url }));
+}
 
 /** Whether a product can be sold right now: switched on and not past its end date. */
 export function isOnSale(p: { active: boolean; inactive_after?: string | null }, now: Date = new Date()): boolean {

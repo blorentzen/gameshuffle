@@ -3697,3 +3697,70 @@ html.dark .gs-platform-icon {
 .dbot-servers__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
 .dbot-servers__note { padding: var(--spacing-12); border-radius: var(--radius-8, 8px); background: color-mix(in srgb, var(--warning-500) 10%, var(--surface-default)); border: 1px solid color-mix(in srgb, var(--warning-500) 30%, var(--border-default)); margin: 0 0 var(--spacing-12); display: flex; flex-direction: column; gap: var(--spacing-8); }
 .dbot-servers__note p { margin: 0; }
+
+/* Platform ▸ Shop orders */
+.shop-admin__panel { display: flex; flex-direction: column; gap: var(--spacing-16); padding-top: var(--spacing-16); }
+.shop-admin__open { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font: inherit; font-weight: var(--font-weight-semibold); color: var(--brand-ink); text-decoration: underline; text-underline-offset: 2px; }
+.shop-admin__order { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.shop-admin__order-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.shop-admin__cols { display: grid; gap: var(--spacing-20); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .shop-admin__cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.shop-admin__h { margin: 0 0 var(--spacing-8); font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.shop-admin__address { font-style: normal; font-size: var(--font-size-16); line-height: var(--line-height-relaxed); }
+.shop-admin__items { list-style: none; margin: 0 0 var(--spacing-12); padding: 0; display: flex; flex-direction: column; gap: var(--spacing-4); }
+.shop-admin__items li { display: flex; justify-content: space-between; gap: var(--spacing-12); font-variant-numeric: tabular-nums; }
+.shop-admin__action { display: flex; flex-direction: column; gap: var(--spacing-8); padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); }
+.shop-admin__action p { margin: 0; }
+.shop-admin__row { display: flex; gap: var(--spacing-12); align-items: flex-end; }
+.shop-admin__row > :first-child { flex: 1; min-width: 0; }
+.shop-admin__row--wrap { flex-wrap: wrap; align-items: center; }
+.shop-admin__row--wrap > :first-child { flex: 0 1 auto; }
+.shop-admin__form { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.shop-admin__grid { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }
+@media (max-width: 560px) { .shop-admin__row { flex-direction: column; align-items: stretch; } }
+
+/* My Stuff ▸ Shop Orders */
+.shop-orders-list { display: grid; gap: var(--spacing-8); margin-top: var(--spacing-12); }
+.shop-orders-list__row { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
+.shop-orders-list__main { min-width: 0; }
+.shop-orders-list__code { font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.shop-orders-list__meta { margin: var(--spacing-2) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.shop-orders-list__side { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
+.shop-admin__totals { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-4); font-size: var(--font-size-14); }
+.shop-admin__totals div { display: flex; justify-content: space-between; gap: var(--spacing-12); }
+.shop-admin__totals dt { color: var(--text-secondary); }
+.shop-admin__totals dd { margin: 0; font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.shop-admin__totals div:last-child { padding-top: var(--spacing-4); border-top: 1px solid var(--border-default); }
+
+/* Platform ▸ Shop orders ▸ Refund */
+.shop-refund { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.shop-refund__lines { display: flex; flex-direction: column; gap: var(--spacing-10, 10px); }
+.shop-refund__line { display: grid; grid-template-columns: minmax(0, 1fr) 8rem 7rem; gap: var(--spacing-12); align-items: center; }
+.shop-refund__name { display: flex; flex-direction: column; min-width: 0; }
+.shop-refund__amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); }
+.shop-refund__footer { display: flex; flex-wrap: wrap; gap: var(--spacing-8); justify-content: flex-end; width: 100%; }
+@media (max-width: 480px) { .shop-refund__line { grid-template-columns: minmax(0, 1fr) 7rem; } .shop-refund__amt { grid-column: 1 / -1; text-align: left; } }
+
+/* Platform admin ▸ Switches */
+.switches { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.switches__group { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.switches__h { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.switches__list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-md, 8px); }
+.switches__row { display: flex; gap: var(--spacing-16); align-items: center; justify-content: space-between; padding: var(--spacing-14, 14px) var(--spacing-16); }
+.switches__row + .switches__row { border-top: 1px solid var(--border-default); }
+.switches__text { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
+.switches__name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-weight: var(--font-weight-semibold); font-size: var(--font-size-16); }
+.switches__desc { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: var(--line-height-relaxed); }
+.switches__meta { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+.switches__key { font-family: var(--font-family-mono, ui-monospace, monospace); font-size: var(--font-size-12); }
+.switches__code { margin: 0; font-size: var(--font-size-13, 1.3rem); color: var(--text-tertiary); }
+
+/* Platform admin: a view's tabs across the top, its screen below */
+.platform-view { display: flex; flex-direction: column; min-width: 0; }
+.platform-view__body { padding-top: var(--spacing-16); display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+
+/* Token economy ▸ Streamers / History panels */
+.token-panel { display: flex; flex-direction: column; gap: var(--spacing-20); }
+.token-panel__section { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.token-panel__h { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); }
+.token-panel__intro { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }

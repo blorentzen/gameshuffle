@@ -10,6 +10,8 @@ import { Button, Container } from "@empac/cascadeds";
 import { fulfilShopSession } from "@/lib/store/orders";
 import { formatPrice, shopCopy } from "@/lib/store/copy";
 import { ClearShopCart } from "@/components/store/ClearShopCart";
+import { ShopAccountPrompt } from "@/components/store/ShopAccountPrompt";
+import { createClient } from "@/lib/supabase/server";
 import "@/styles/shop.css";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +25,8 @@ export default async function ShopThanksPage({ searchParams }: { searchParams: P
   const result = sessionId ? await fulfilShopSession(sessionId).catch((err) => { console.error("[shop/thanks]", err); failure = err instanceof Error ? err.message : String(err); return null; }) : null;
   if (result && !result.ok) failure = result.reason;
   const order = result?.ok ? result.order : null;
+  // Checkout passes the signed-in account through (client_reference_id), so a signed-in buyer's order is already theirs.
+  const signedIn = order ? !!(await (await createClient()).auth.getUser()).data.user : false;
 
   return (
     <main className="shop-page shop-thanks">
@@ -67,6 +71,7 @@ export default async function ShopThanksPage({ searchParams }: { searchParams: P
                 </dl>
                 {order.shipName && <p className="shop-cart__note">Shipping to {[order.shipName, order.shipCity, order.shipState].filter(Boolean).join(", ")}</p>}
               </section>
+              <ShopAccountPrompt member={signedIn} />
             </>
           )}
           <div className="shop-thanks__actions">

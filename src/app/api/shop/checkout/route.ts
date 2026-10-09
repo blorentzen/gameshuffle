@@ -110,6 +110,8 @@ export async function POST(request: Request) {
       mode: "payment",
       line_items: lines.map((l) => ({ price: l.price, quantity: l.quantity })),
       shipping_address_collection: { allowed_countries: SHOP.checkout.allowed_countries as ["US"] },
+      // Phone for order lookup by text (Britton, 2026-10-09); Stripe makes it required.
+      phone_number_collection: { enabled: true },
       shipping_options: [{
         shipping_rate_data: {
           type: "fixed_amount",

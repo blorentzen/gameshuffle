@@ -105,3 +105,34 @@ export function shipByDay(orderedAt: Date, config: ShopConfig = SHOP): string {
 
 /** The order number buyers see. */
 export const orderCode = (orderNumber: number | string) => `GS-${orderNumber}`;
+
+// ─── refunds ────────────────────────────────────────────────────────────────
+
+/** What an order can still give back, per line, from Stripe's own totals (tax included). */
+export interface RefundQuote {
+  amountTotal: number;
+  amountRefunded: number;
+  lines: { sku: string; name: string; quantity: number; refundedQuantity: number; lineTotal: number }[];
+  shipping: { total: number; refunded: boolean };
+}
+
+/** A line's share of its total for `units` units, rounded so all units together add up to the line total exactly. */
+const lineShare = (lineTotal: number, quantity: number, units: number) => Math.round((lineTotal * units) / quantity);
+
+/**
+ * Cents to refund for these units (and the shipping charge), tax included.
+ * Each line is prorated from what's already refunded, so refunding a line one
+ * unit at a time adds up to exactly the line's total. Capped at what's left.
+ */
+export function refundCents(quote: RefundQuote, items: { sku: string; quantity: number }[], shipping: boolean): number {
+  let cents = 0;
+  for (const want of items) {
+    const line = quote.lines.find((l) => l.sku === want.sku);
+    if (!line || want.quantity < 1) continue;
+    const units = Math.min(want.quantity, line.quantity - line.refundedQuantity);
+    if (units < 1) continue;
+    cents += lineShare(line.lineTotal, line.quantity, line.refundedQuantity + units) - lineShare(line.lineTotal, line.quantity, line.refundedQuantity);
+  }
+  if (shipping && !quote.shipping.refunded) cents += quote.shipping.total;
+  return Math.min(cents, Math.max(quote.amountTotal - quote.amountRefunded, 0));
+}

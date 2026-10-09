@@ -13,10 +13,12 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { shippingOf } from "@/lib/stripe/payload";
-import { SHOP, SHOP_METADATA_KIND, type ShipMethod } from "./config";
+import { SHOP, SHOP_METADATA_KIND, digitalListsFor, type ShipMethod } from "./config";
 import { missesChristmas, orderCode, shipByDay, shipMethodFor, shipWeightOz, type CartLine } from "./rules";
 import { shopDate } from "./copy";
-import { sendShopCantShip, sendShopNewOrderAlert, sendShopOrderReceived, type ShopEmailItem } from "@/lib/email/shop";
+import { sendShopCantShip, sendShopNewOrderAlert, sendShopOrderReceived, sendShopRefunded, type ShopEmailItem } from "@/lib/email/shop";
+import { getBaseUrl } from "@/lib/env";
+import { orderLinkToken } from "./access";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -118,7 +120,8 @@ export async function fulfilShopSession(sessionId: string): Promise<FulfilResult
     checkout_session_id: session.id,
     payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null,
     livemode: session.livemode,
-    email: session.customer_details?.email ?? null,
+    email: session.customer_details?.email?.trim().toLowerCase() ?? null,
+    phone: session.customer_details?.phone ?? null,
     user_id: userId,
     ship_name: ship?.name ?? session.customer_details?.name ?? null,
     ship_line1: ship?.line1 ?? null, ship_line2: ship?.line2 ?? null, ship_city: ship?.city ?? null,
@@ -151,7 +154,7 @@ export async function fulfilShopSession(sessionId: string): Promise<FulfilResult
   return summary ? { ok: true, created: true, order: summary } : { ok: false, reason: "not_found" };
 }
 
-async function sendOrderEmails(orderId: string, orderNumber: number, order: { email: string | null; ship_name: string | null; ship_city: string | null; ship_state: string | null; amount_total: number; ship_method: ShipMethod; after_cutoff: boolean }, items: { sku: string; quantity: number; unit_amount: number }[], bySku: Map<string, Record<string, unknown>>, shortfall: { sku: string; missing: number }[] | null, orderedAt: Date) {
+async function sendOrderEmails(orderId: string, orderNumber: number, order: { email: string | null; user_id?: string | null; ship_name: string | null; ship_city: string | null; ship_state: string | null; amount_total: number; ship_method: ShipMethod; after_cutoff: boolean }, items: { sku: string; quantity: number; unit_amount: number }[], bySku: Map<string, Record<string, unknown>>, shortfall: { sku: string; missing: number }[] | null, orderedAt: Date) {
   const svc = createServiceClient();
   // Claim the send so a second delivery of the same event can't email twice.
   const { data: claimed } = await svc.from("shop_orders").update({ confirmation_sent_at: new Date().toISOString() }).eq("id", orderId).is("confirmation_sent_at", null).select("id");
@@ -163,7 +166,11 @@ async function sendOrderEmails(orderId: string, orderNumber: number, order: { em
   const code = orderCode(orderNumber);
   const shipBy = shopDate(`${shipByDay(orderedAt)}T12:00:00-08:00`, { weekday: true });
   if (order.email) {
-    await sendShopOrderReceived({ to: order.email, orderCode: code, items: emailItems, shipBy, afterCutoff: order.after_cutoff, name: order.ship_name, city: order.ship_city, state: order.ship_state })
+    const viewUrl = `${getBaseUrl()}/shop/orders/view?t=${encodeURIComponent(orderLinkToken(orderId))}`;
+    await sendShopOrderReceived({
+      to: order.email, orderCode: code, items: emailItems, shipBy, afterCutoff: order.after_cutoff, name: order.ship_name, city: order.ship_city, state: order.ship_state, viewUrl,
+      digitalLists: digitalListsFor(items.map((i) => i.sku)), account: { member: !!order.user_id },
+    })
       .catch((e) => console.error("[shop] order email failed:", e));
   }
   await sendShopNewOrderAlert({ orderCode: code, items: emailItems, totalCents: order.amount_total, shipMethodLabel: METHOD_LABEL[order.ship_method], name: order.ship_name, city: order.ship_city, state: order.ship_state, shortfall })
@@ -203,11 +210,57 @@ export async function sweepShopHolds(): Promise<number> {
 }
 
 /** charge.refunded: a full refund on a shop order marks it refunded (restocking is a manual call in admin). */
+/**
+ * charge.refunded (full or partial, including refunds made in the Stripe
+ * Dashboard): bring the order up to Stripe's refunded total. Refunds from the
+ * admin are recorded before Stripe is asked (shop_claim_refund), so for those
+ * the totals already match and nothing happens here.
+ */
 export async function markShopRefund(charge: Stripe.Charge): Promise<boolean> {
   const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
-  if (!pi || !charge.refunded) return false;
-  const { data } = await createServiceClient().from("shop_orders")
-    .update({ status: "refunded", refunded_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq("payment_intent_id", pi).in("status", ["paid", "shipped"]).select("id");
-  return (data?.length ?? 0) > 0;
+  if (!pi || !(charge.amount_refunded > 0)) return false;
+  const svc = createServiceClient();
+  const { data: o } = await svc.from("shop_orders").select(`${REFUNDED_COLUMNS}, amount_refunded, status`).eq("payment_intent_id", pi).maybeSingle();
+  if (!o || !["paid", "shipped"].includes(o.status as string)) return false;
+  const before = o.amount_refunded as number;
+  const target = Math.min(charge.amount_refunded, o.amount_total as number);
+  if (target <= before) return false;
+  const full = target >= (o.amount_total as number);
+  const now = new Date().toISOString();
+  const { data: won } = await svc.from("shop_orders")
+    .update({ amount_refunded: target, updated_at: now, ...(full ? { status: "refunded", refunded_at: now, shipping_refunded: true } : {}) })
+    .eq("id", o.id).eq("amount_refunded", before).in("status", ["paid", "shipped"]).select("id");
+  if (!won?.length) return false;
+  if (full) {
+    const { data: items } = await svc.from("shop_order_items").select("sku, quantity").eq("order_id", o.id);
+    for (const i of items ?? []) await svc.from("shop_order_items").update({ refunded_quantity: i.quantity }).eq("order_id", o.id).eq("sku", i.sku);
+  }
+  await notifyRefunded(o as unknown as RefundedRow, { amount: target - before, full, source: "stripe" }, null);
+  return true;
+}
+
+export const REFUNDED_COLUMNS = "id, order_number, email, ship_name, amount_total";
+export type RefundedRow = { id: string; order_number: number; email: string | null; ship_name: string | null; amount_total: number };
+export interface RefundInfo {
+  amount: number; full: boolean; source: "staff" | "stripe";
+  items?: { sku: string; name: string; quantity: number }[]; shipping?: boolean; reason?: string | null; reasonLabel?: string | null;
+}
+
+/**
+ * A refund just went through: its timeline entry (the buyer sees it) and the
+ * refund email. Only the path that recorded the refund calls this (the admin
+ * after its claim, or the webhook when Stripe got there first), so each refund
+ * is announced once.
+ */
+export async function notifyRefunded(row: RefundedRow, info: RefundInfo, actor: string | null): Promise<void> {
+  await createServiceClient().from("shop_order_events").insert({
+    order_id: row.id, kind: "refunded", visible: true, actor_user_id: actor,
+    detail: { amount: info.amount, full: info.full, source: info.source, items: info.items ?? [], shipping: !!info.shipping, reason: info.reason ?? null },
+  });
+  if (!row.email) return;
+  const viewUrl = `${getBaseUrl()}/shop/orders/view?t=${encodeURIComponent(orderLinkToken(row.id))}`;
+  await sendShopRefunded({
+    to: row.email, orderCode: orderCode(row.order_number), amountCents: info.amount, name: row.ship_name, viewUrl,
+    full: info.full, items: info.items?.map((i) => ({ name: i.name, quantity: i.quantity })), shipping: info.shipping, reason: info.reasonLabel ?? null,
+  }).catch((e) => console.error("[shop] refund email failed:", e));
 }

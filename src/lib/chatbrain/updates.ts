@@ -13,7 +13,7 @@ import "server-only";
 import { isProduction } from "@/lib/env";
 import { isMailerLiteConfigured, upsertSubscriber } from "@/lib/marketing/mailerlite";
 
-export const ML_CHAT_BRAIN_GROUP: string | null = null;
+export const ML_CHAT_BRAIN_GROUP: string | null = "200869372023014581"; // "Chat Brain Launch"
 
 export function updatesConfigured(): boolean {
   if (!isProduction) return true;

@@ -21,6 +21,9 @@ export function shopDate(iso: string, opts: { weekday?: boolean } = {}): string 
 
 export const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
+/** TCGplayer's public card condition guide (Near Mint, Lightly Played...), the standard our cards follow. */
+export const TCG_CONDITION_GUIDE_URL = "https://help.tcgplayer.com/hc/en-us/articles/221430307-Card-Conditioning-Overview";
+
 export function shopCopy(config: ShopConfig = SHOP) {
   const cutoff = shopDate(config.holiday.cutoff_lower48, { weekday: true });
   const cutoffAkHi = shopDate(config.holiday.cutoff_ak_hi, { weekday: true });
@@ -65,7 +68,10 @@ export function shopCopy(config: ShopConfig = SHOP) {
       ships: `Ships tracked by USPS Ground Advantage within 2 business days. Free shipping on orders of ${threshold} or more; ${standard} under ${threshold}.`, // CHANGED
       quantity: "Quantity",
       finalSaleHeading: "Final sale", // NEW
-      finalSale: "Pokémon card products are final sale. We can't take returns because of which Pikachu or hit is in the pack. If it arrives damaged or is missing something this listing guarantees, we'll make it right.", // NEW
+      finalSale: "Pokémon card products are final sale. We can't take returns because of which cards are in the pack. If it arrives damaged or is missing something this listing guarantees, you choose a replacement or a refund.", // NEW (Britton, 2026-10-09: options for damage, no gatekeeping)
+      conditionHeading: "Card condition", // NEW
+      // NEW (Britton, 2026-10-09): Near Mint aim, Lightly Played possible, linked to TCGplayer's guide.
+      condition: { before: "We aim to send every card in Near Mint condition. Some may arrive Lightly Played, as ", link: "TCGplayer's card condition guidelines", after: " describe it.", href: TCG_CONDITION_GUIDE_URL },
     },
     cart: { // NEW
       open: (n: number) => (n > 0 ? `Cart (${n})` : "Cart"),
@@ -98,6 +104,20 @@ export function shopCopy(config: ShopConfig = SHOP) {
     closed: { // NEW
       title: "The shop is closed right now",
       body: "Check back soon for the next drop.",
+    },
+    soon: { // NEW (Britton, 2026-10-09: everything Coming soon until launch, with an email signup)
+      eyebrow: "COMING SOON",
+      lead: "Real Pokémon TCG cards, sorted and packed by hand by the GameShuffle team. The packs and sets aren't on sale yet. Get an email the day they go live.",
+      badge: "Coming soon",
+      notify: "Notify me",
+      panelTitle: "Get an email when the packs go live",
+      panelBody: "We'll email you when the packs and sets go on sale. Unsubscribe anytime.",
+      emailLabel: "Email address",
+      signedInButton: "Email me when they go live",
+      joined: "You're on the list. We'll email you when the packs go live.",
+      later: "Check back soon. The packs and sets are on their way.",
+      badEmail: "Check that email address and try again.",
+      failed: "Couldn't add you just now. Try again.",
     },
     disclaimer: "Real Pokémon TCG cards, packed by hand. GameShuffle is not affiliated with or endorsed by The Pokémon Company or Nintendo. No guaranteed value.",
     banner: {

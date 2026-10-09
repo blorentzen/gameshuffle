@@ -125,7 +125,8 @@ export function ShopCartProvider({ products, children }: { products: ShopProduct
   return (
     <CartContext.Provider value={api}>
       {children}
-      <CartDrawer />
+      {/* After mount only: the CDS Drawer renders differently on the server and broke hydration. */}
+      {loaded && <CartDrawer />}
     </CartContext.Provider>
   );
 }

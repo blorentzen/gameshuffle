@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { SHOP, isOnSale, stripeLookupKey, stripeProductId } from "../src/lib/store/config";
-import { holidayState, missesChristmas, orderCode, postageCents, shipByDay, shipMethodFor, shipWeightOz, shippingCents, toFreeShippingCents } from "../src/lib/store/rules";
+import { holidayState, missesChristmas, orderCode, postageCents, refundCents, shipByDay, shipMethodFor, shipWeightOz, shippingCents, toFreeShippingCents } from "../src/lib/store/rules";
 import { shopDate } from "../src/lib/store/copy";
 
 let passed = 0;
@@ -99,4 +99,22 @@ test("Christmas banner and cutoffs come from the config, Pacific time", () => {
   assert.equal(shopDate("2026-12-12T23:59:59-08:00", { weekday: true }), "Saturday, Dec 12");
 });
 
+test("refunds prorate each line and add up exactly", () => {
+  const quote = {
+    amountTotal: 3000, amountRefunded: 0,
+    lines: [{ sku: "a", name: "A", quantity: 3, refundedQuantity: 0, lineTotal: 2000 }, { sku: "b", name: "B", quantity: 1, refundedQuantity: 0, lineTotal: 453 }],
+    shipping: { total: 547, refunded: false },
+  };
+  const step = (refunded: number, done: number) => ({ ...quote, amountRefunded: refunded, lines: [{ ...quote.lines[0], refundedQuantity: done }, quote.lines[1]] });
+  const one = refundCents(quote, [{ sku: "a", quantity: 1 }], false);
+  const two = refundCents(step(one, 1), [{ sku: "a", quantity: 1 }], false);
+  const three = refundCents(step(one + two, 2), [{ sku: "a", quantity: 1 }], false);
+  assert.equal(one + two + three, 2000, "one unit at a time adds up to the line total");
+  assert.equal(refundCents(quote, [{ sku: "a", quantity: 3 }, { sku: "b", quantity: 1 }], true), 3000, "whole order");
+  assert.equal(refundCents({ ...quote, shipping: { total: 547, refunded: true } }, [], true), 0, "shipping only once");
+  assert.equal(refundCents({ ...quote, amountRefunded: 2900 }, [{ sku: "a", quantity: 3 }], false), 100, "capped at what's left");
+  assert.equal(refundCents(quote, [{ sku: "b", quantity: 5 }], false), 453, "no more than sold");
+});
+
 console.log(`\n${passed} passed`);
+

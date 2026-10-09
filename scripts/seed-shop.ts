@@ -1,9 +1,12 @@
 /**
- * Sync the shop catalog from src/data/store/shop-seed.json into Stripe (test
- * mode only) and shop_products. Safe to re-run: a second run changes nothing.
+ * First import of the shop catalog from src/data/store/shop-seed.json into
+ * Stripe (test mode only) and shop_products. Since 2026-10-09 the catalog is
+ * managed in Platform ▸ Shop orders ▸ Products, so by default this only ADDS
+ * products that aren't there yet and leaves existing ones alone; --overwrite
+ * pushes the seed's catalog fields over admin edits. Safe to re-run.
  *
  *   NODE_PATH=<server-only stub> DOTENV_CONFIG_PATH=.env.local \
- *     npx tsx -r dotenv/config scripts/seed-shop.ts [--skip-db] [--wa-tax] [--dry-run]
+ *     npx tsx -r dotenv/config scripts/seed-shop.ts [--overwrite] [--skip-db] [--wa-tax] [--dry-run]
  *
  *   Stripe   one Product per SKU with a fixed id (gs_shop_<sku>), the general
  *            tangible goods tax code and metadata { sku, kind, category,
@@ -24,70 +27,30 @@
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { SHOP, SHOP_METADATA_KIND, SHOP_TAX_CODE, stripeLookupKey, stripeProductId, type SeedProduct } from "@/lib/store/config";
+import { SHOP, stripeLookupKey, type SeedProduct } from "@/lib/store/config";
+import { syncStripePrice, syncStripeProduct } from "@/lib/store/catalog";
 
 const args = new Set(process.argv.slice(2));
 const DRY = args.has("--dry-run");
 const SKIP_DB = args.has("--skip-db");
 const WA_TAX = args.has("--wa-tax");
+const OVERWRITE = args.has("--overwrite");
 
 type Change = "created" | "updated" | "unchanged";
 const tally: Record<string, Change[]> = { product: [], price: [], row: [] };
 
-function sameMetadata(a: Stripe.Metadata | null | undefined, b: Record<string, string>): boolean {
-  const ka = Object.keys(a ?? {}).sort();
-  const kb = Object.keys(b).sort();
-  return ka.length === kb.length && kb.every((k, i) => ka[i] === k && (a ?? {})[k] === b[k]);
+async function syncProduct(_stripe: Stripe, p: SeedProduct): Promise<string> {
+  const r = await syncStripeProduct({ sku: p.sku, kind: p.kind, category: p.category, name: p.name, description: p.stripe_description }, { dryRun: DRY });
+  tally.product.push(r.change);
+  if (r.change !== "unchanged") console.log(`  product ${r.id}: ${r.change}`);
+  return r.id;
 }
 
-async function syncProduct(stripe: Stripe, p: SeedProduct): Promise<string> {
-  const id = stripeProductId(p.sku);
-  const metadata = { sku: p.sku, kind: p.kind, category: p.category, gs_kind: SHOP_METADATA_KIND };
-  const want = { name: p.name, description: p.stripe_description, tax_code: SHOP_TAX_CODE, metadata, active: true };
-  let existing: Stripe.Product | null = null;
-  try {
-    existing = await stripe.products.retrieve(id);
-  } catch (err) {
-    if ((err as { code?: string }).code !== "resource_missing") throw err;
-  }
-  if (!existing) {
-    if (!DRY) await stripe.products.create({ id, ...want });
-    tally.product.push("created");
-    console.log(`  product ${id}: created`);
-    return id;
-  }
-  const taxCode = typeof existing.tax_code === "string" ? existing.tax_code : existing.tax_code?.id ?? null;
-  const differs = existing.name !== want.name || existing.description !== want.description || taxCode !== want.tax_code || !existing.active || !sameMetadata(existing.metadata, metadata);
-  if (differs) {
-    if (!DRY) await stripe.products.update(id, want);
-    tally.product.push("updated");
-    console.log(`  product ${id}: updated`);
-  } else tally.product.push("unchanged");
-  return id;
-}
-
-async function syncPrice(stripe: Stripe, p: SeedProduct, productId: string): Promise<string> {
-  const lookupKey = stripeLookupKey(p.sku);
-  const found = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
-  const current = found.data[0] ?? null;
-  const currentProduct = current ? (typeof current.product === "string" ? current.product : current.product.id) : null;
-  if (current && current.unit_amount === p.price_cents && current.currency === SHOP.currency && current.tax_behavior === "exclusive" && currentProduct === productId && current.type === "one_time") {
-    tally.price.push("unchanged");
-    return current.id;
-  }
-  let priceId = current?.id ?? "(dry run)";
-  if (!DRY) {
-    const created = await stripe.prices.create({
-      product: productId, unit_amount: p.price_cents, currency: SHOP.currency, tax_behavior: "exclusive",
-      lookup_key: lookupKey, transfer_lookup_key: true, metadata: { sku: p.sku, gs_kind: SHOP_METADATA_KIND },
-    });
-    priceId = created.id;
-    if (current) await stripe.prices.update(current.id, { active: false });
-    await stripe.products.update(productId, { default_price: priceId });
-  }
-  tally.price.push(current ? "updated" : "created");
-  console.log(`  price ${lookupKey}: ${current ? `replaced (${current.unit_amount} -> ${p.price_cents})` : `created (${p.price_cents})`}`);
-  return priceId;
+async function syncPrice(_stripe: Stripe, p: SeedProduct, productId: string): Promise<string> {
+  const r = await syncStripePrice(p.sku, p.price_cents, productId, { dryRun: DRY });
+  tally.price.push(r.change);
+  if (r.change !== "unchanged") console.log(`  price ${stripeLookupKey(p.sku)}: ${r.change}${r.previous !== null ? ` (${r.previous} -> ${p.price_cents})` : ` (${p.price_cents})`}`);
+  return r.id;
 }
 
 async function syncRows(rows: { p: SeedProduct; productId: string; priceId: string }[]) {
@@ -148,8 +111,16 @@ async function ensureWaRegistration(stripe: Stripe) {
   }
   const stripe = getStripe();
   console.log(`Shop seed v${SHOP.version}: ${SHOP.products.length} products${DRY ? " (dry run)" : ""}`);
+  // Products already in the table belong to admin unless --overwrite.
+  let existing = new Set<string>();
+  if (!SKIP_DB) {
+    const { data, error } = await createServiceClient().from("shop_products").select("sku");
+    if (error) throw new Error(`shop_products: ${error.message} (has supabase/shop-m1.sql been run?)`);
+    existing = new Set((data ?? []).map((r) => r.sku as string));
+  }
   const rows: { p: SeedProduct; productId: string; priceId: string }[] = [];
   for (const p of SHOP.products) {
+    if (existing.has(p.sku) && !OVERWRITE) { tally.product.push("unchanged"); tally.price.push("unchanged"); tally.row.push("unchanged"); continue; }
     const productId = await syncProduct(stripe, p);
     const priceId = await syncPrice(stripe, p, productId);
     rows.push({ p, productId, priceId });

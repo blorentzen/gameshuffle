@@ -43,14 +43,15 @@ type Row = {
 export async function listShopProducts(opts: { onlyOnSale?: boolean } = {}): Promise<ShopProduct[]> {
   const svc = createServiceClient();
   const [{ data, error }, avail] = await Promise.all([
-    svc.from("shop_products").select("sku, kind, category, name, blurb, description, contents, price_cents, stripe_price_id, active, inactive_after, stock_available, max_per_order, ship_weight_oz, image_url, sort_order").order("sort_order"),
+    svc.from("shop_products").select("*").order("sort_order"),
     svc.rpc("shop_availability"),
   ]);
   if (notReady(error) || notReady(avail.error)) throw new ShopNotReady();
   if (error) throw new Error(`shop products: ${error.message}`);
   const bySku = new Map(((avail.data ?? []) as { sku: string; held: number; available: number }[]).map((a) => [a.sku, a]));
   const now = new Date();
-  return ((data ?? []) as Row[])
+  return ((data ?? []) as (Row & { archived_at?: string | null })[])
+    .filter((r) => !r.archived_at)
     .map((r) => {
       const a = bySku.get(r.sku);
       return {

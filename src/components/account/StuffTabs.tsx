@@ -17,6 +17,7 @@ import { BoardGamesManager } from "@/components/account/BoardGamesManager";
 import { GameNightsTab } from "@/components/account/GameNightsTab";
 import { TicketsTab } from "@/components/account/TicketsTab";
 import { PayoutsTab } from "@/components/account/PayoutsTab";
+import { ShopOrdersTab } from "@/components/account/ShopOrdersTab";
 import { MyGamesPanel } from "@/components/collection/CollectionEditor";
 import { COLLECTION_GAMES } from "@/lib/collection/catalog";
 
@@ -52,6 +53,8 @@ function StuffTabsContent({ isPro, unlimitedCards }: { isPro: boolean; unlimited
   if (tab === "tickets") return <TicketsTab />;
 
   if (tab === "payouts") return <PayoutsTab />;
+
+  if (tab === "orders") return <ShopOrdersTab />;
 
   if (tab === "my-cards") {
     return (

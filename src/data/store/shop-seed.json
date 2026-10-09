@@ -13,13 +13,13 @@
       "sort_order": 10,
       "active": true,
       "stock_available": 0,
-      "stripe_description": "All 30 Pikachu from Pokémon TCG 30th Celebration plus Pikachu ex 053 and 054. 32 cards, sleeved, in number order, with an artist checklist.",
+      "stripe_description": "All 30 Pikachu from Pokémon TCG 30th Celebration plus Pikachu ex 053 and 054. 32 cards, sleeved, in number order, with a digital artist checklist.",
       "blurb": "All 30 Pikachu from 30th Celebration plus Pikachu ex 053 and 054, sleeved and in order.",
       "contents": [
         "30th Celebration Pikachu 01 to 30, one of each, each by a different artist",
         "Pikachu ex 053/128 and 054/128",
         "Every card in a penny sleeve, in number order, in 2 sealed team bags",
-        "Artist checklist card with the set number"
+        "Digital artist checklist with the set number"
       ],
       "image_url": null,
       "category": "tcg"
@@ -34,12 +34,11 @@
       "sort_order": 20,
       "active": true,
       "stock_available": 0,
-      "stripe_description": "Five Spark & Spook Halloween packs of real Pokémon TCG cards, plus one premium hit.",
-      "blurb": "Five Halloween treat packs, each with 3 foils including a Pikachu, plus one premium hit.",
+      "stripe_description": "Five Spark & Spook Halloween packs of real Pokémon TCG cards, each with a 30th Celebration Pikachu, 3 holo or reverse holo cards and an Energy card.",
+      "blurb": "Five Halloween treat packs, each with a 30th Celebration Pikachu and 3 holo or reverse holo cards.",
       "contents": [
         "5 Spark & Spook packs (10 cards each)",
-        "In every pack: 1 x 30th Celebration Pikachu foil, 1 x 30th Celebration foil, 1 x reverse holo or rare, 7 Dark, Ghost and Team Rocket cards",
-        "Plus 1 premium hit: an ex card or a patterned reverse holo"
+        "In every pack: 1 x 30th Celebration Pikachu, 3 x holo or reverse holo cards, 1 x Energy card, 5 regular non-holo Dark, Ghost and Team Rocket cards"
       ],
       "image_url": null,
       "category": "tcg"
@@ -54,12 +53,11 @@
       "sort_order": 30,
       "active": true,
       "stock_available": 0,
-      "stripe_description": "Three Thirty Hunt collect-all-30 packs of real Pokémon TCG cards, plus one premium hit.",
-      "blurb": "Three collect-all-30 packs, each with 4 hits including a Pikachu, plus one premium hit.",
+      "stripe_description": "Three Thirty Hunt collect-all-30 packs of real Pokémon TCG cards, each with a 30th Celebration Pikachu, 3 holo or reverse holo cards and an Energy card.",
+      "blurb": "Three collect-all-30 packs, each with a 30th Celebration Pikachu and 3 holo or reverse holo cards.",
       "contents": [
         "3 Thirty Hunt packs (14 cards each)",
-        "In every pack: 1 x 30th Celebration Pikachu foil, 2 x 30th Celebration foils, 1 x reverse holo or rare, 10 cards from recent sets, Collect all 30 checklist",
-        "Plus 1 premium hit: an ex card or a patterned reverse holo"
+        "In every pack: 1 x 30th Celebration Pikachu, 3 x holo or reverse holo cards, 1 x Energy card, 9 regular non-holo cards, digital Collect all 30 checklist"
       ],
       "image_url": null,
       "category": "tcg"
@@ -78,9 +76,9 @@
       "blurb": "A 60-card deck you can play tonight, with a Pikachu and an ex inside.",
       "contents": [
         "60 cards: about 20 Pokémon of one type, 30 Trainers, 10 basic Energy",
-        "1 x 30th Celebration Pikachu foil",
+        "1 x 30th Celebration Pikachu",
         "1 x ex card matched to the deck's type",
-        "Deck box, deck list and a how-to-start card"
+        "Deck box, how-to-start card and a digital deck list"
       ],
       "image_url": null,
       "category": "tcg"
@@ -95,12 +93,12 @@
       "sort_order": 50,
       "active": true,
       "stock_available": 0,
-      "stripe_description": "100 different Pokémon TCG Ascended Heroes cards in number order, with a checklist.",
-      "blurb": "100 different Ascended Heroes cards in number order, with a checklist.",
+      "stripe_description": "100 different Pokémon TCG Ascended Heroes cards in number order, with a digital checklist.",
+      "blurb": "100 different Ascended Heroes cards in number order, with a digital checklist.",
       "contents": [
         "100 unique Ascended Heroes commons and uncommons, no duplicates",
         "Sorted in number order in a card box",
-        "Checklist of every number included"
+        "Digital checklist of every number included"
       ],
       "image_url": null,
       "category": "tcg"
@@ -113,11 +111,10 @@
       "max_per_order": 5,
       "ship_weight_oz": 7,
       "sort_order": 60,
-      "active": false,
-      "inactive_after": "2026-10-25T23:59:59-07:00",
+      "active": true,
       "stock_available": 0,
-      "stripe_description": "Ten Halloween treat bags of real Pokémon TCG cards, 10 cards each with 1 hit.",
-      "blurb": "Ten Halloween treat bags of 10 cards, each with a hit. Made for trick-or-treaters.",
+      "stripe_description": "Ten Halloween treat bags of real Pokémon TCG cards, 10 cards each with a reverse holo or rare.",
+      "blurb": "Ten Halloween treat bags of 10 cards, each with a reverse holo or rare. Made for trick-or-treaters.",
       "contents": [
         "10 sealed treat bags",
         "In every bag: 9 Dark, Ghost and Team Rocket cards and 1 reverse holo or rare"
@@ -135,14 +132,14 @@
       "sort_order": 70,
       "active": true,
       "stock_available": 0,
-      "stripe_description": "One Thirty Hunt pack: 14 real Pokémon TCG cards with a 30th Celebration Pikachu and 3 more hits.",
-      "blurb": "14 cards with 4 hits including a Pikachu, plus a Collect all 30 checklist.",
+      "stripe_description": "One Thirty Hunt pack: 14 real Pokémon TCG cards with a 30th Celebration Pikachu, 3 holo or reverse holo cards and an Energy card.",
+      "blurb": "14 cards with a 30th Celebration Pikachu and 3 holo or reverse holo cards, plus a digital Collect all 30 checklist.",
       "contents": [
-        "1 x 30th Celebration Pikachu foil",
-        "2 x 30th Celebration foils",
-        "1 x reverse holo or rare",
-        "10 cards from recent sets",
-        "Collect all 30 checklist"
+        "1 x 30th Celebration Pikachu",
+        "3 x holo or reverse holo cards",
+        "1 x Energy card",
+        "9 regular non-holo cards from the sets we stock",
+        "Digital Collect all 30 checklist"
       ],
       "image_url": null,
       "category": "tcg"
@@ -157,13 +154,13 @@
       "sort_order": 80,
       "active": true,
       "stock_available": 0,
-      "stripe_description": "One Spark & Spook Halloween pack: 10 real Pokémon TCG cards with 3 foils including a 30th Celebration Pikachu.",
-      "blurb": "10 spooky cards with 3 foils including a Pikachu.",
+      "stripe_description": "One Spark & Spook Halloween pack: 10 real Pokémon TCG cards with a 30th Celebration Pikachu, 3 holo or reverse holo cards and an Energy card.",
+      "blurb": "10 spooky cards with a 30th Celebration Pikachu and 3 holo or reverse holo cards.",
       "contents": [
-        "1 x 30th Celebration Pikachu foil",
-        "1 x 30th Celebration foil",
-        "1 x reverse holo or rare",
-        "7 Dark, Ghost and Team Rocket cards"
+        "1 x 30th Celebration Pikachu",
+        "3 x holo or reverse holo cards",
+        "1 x Energy card",
+        "5 regular non-holo Dark, Ghost and Team Rocket cards"
       ],
       "image_url": null,
       "category": "tcg"
@@ -270,8 +267,17 @@
     "return_address": null,
     "alert_email": "support@gameshuffle.co"
   },
+  "digital_lists": {
+    "_rule": "Britton, 2026-10-09: every checklist and deck list is digital, not printed. Each list shows in the order email and on the order page once it has a url; null keeps it hidden.",
+    "lists": [
+      { "id": "collect-all-30", "title": "Collect all 30 checklist", "url": null, "skus": ["thirty-hunt-1", "thirty-hunt-3"] },
+      { "id": "thirty-set-artists", "title": "Artist checklist", "url": null, "skus": ["thirty-set"] },
+      { "id": "set-builder-checklist", "title": "Set Builder checklist", "url": null, "skus": ["set-builder-100"] },
+      { "id": "deck-list", "title": "Deck list", "url": null, "skus": ["ready-deck"] }
+    ]
+  },
   "returns": {
-    "_rule": "Britton, 2026-10-09: Pokémon card products are final sale; no returns because of which Pikachu or hit is in a pack. Damage in transit and missing guaranteed contents are still made right.",
+    "_rule": "Britton, 2026-10-09: Pokémon card products are final sale; no returns because of which Pikachu or hit is in a pack. Damage in transit and missing guaranteed contents: the buyer chooses a replacement or a refund, no photo or deadline required (same as our TCGplayer sales). Cards aim for Near Mint; some may be Lightly Played per TCGplayer's condition guidelines.",
     "final_sale_categories": [
       "tcg"
     ]
