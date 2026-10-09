@@ -66,6 +66,38 @@ export async function listOrders(filter: OrderFilter, q: string): Promise<AdminO
   }));
 }
 
+/** The numbers across the top of Shop ▸ Orders. Canceled orders (never
+ * shipped, refunded in full at checkout) don't count as sales. */
+export interface OrdersSummary {
+  toShip: number;
+  oldestShipBy: string | null;
+  orders30d: number;
+  orders7d: number;
+  sales30d: number;
+  refunded30d: number;
+}
+
+export async function ordersSummary(): Promise<OrdersSummary> {
+  const svc = createServiceClient();
+  const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const since7 = Date.now() - 7 * 86_400_000;
+  const [{ count: toShip }, { data: oldest }, { data: recent }] = await Promise.all([
+    svc.from("shop_orders").select("id", { count: "exact", head: true }).eq("status", "paid").abortSignal(new AbortController().signal),
+    svc.from("shop_orders").select("created_at").eq("status", "paid").order("created_at", { ascending: true }).limit(1).abortSignal(new AbortController().signal),
+    svc.from("shop_orders").select("created_at, status, amount_total, amount_refunded").gte("created_at", since30).neq("status", "canceled").limit(5000).abortSignal(new AbortController().signal),
+  ]);
+  const rows = (recent ?? []) as { created_at: string; amount_total: number; amount_refunded: number | null }[];
+  const first = (oldest ?? [])[0] as { created_at: string } | undefined;
+  return {
+    toShip: toShip ?? 0,
+    oldestShipBy: first ? shopDate(`${shipByDay(new Date(first.created_at))}T12:00:00-08:00`, { weekday: true }) : null,
+    orders30d: rows.length,
+    orders7d: rows.filter((r) => Date.parse(r.created_at) >= since7).length,
+    sales30d: rows.reduce((n, r) => n + r.amount_total - (r.amount_refunded ?? 0), 0),
+    refunded30d: rows.reduce((n, r) => n + (r.amount_refunded ?? 0), 0),
+  };
+}
+
 export interface AdminOrderDetail extends AdminOrderRow {
   phone: string | null; address: { line1: string | null; line2: string | null; city: string | null; postal: string | null };
   items: { sku: string; name: string; quantity: number; unitAmount: number; refundedQuantity: number; restockedQuantity: number }[];

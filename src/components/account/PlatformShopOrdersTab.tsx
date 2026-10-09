@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Platform ▸ Shop orders (staff): run the GameShuffle Shop.
+ * Platform admin ▸ Shop ▸ Orders and Products (staff): run the GameShuffle Shop.
  *   Orders    to ship (oldest first) / shipped / refunded and canceled / all,
  *             search by order number, email or name. An order opens with the
  *             full address, items, totals and timeline: mark shipped (the
@@ -13,15 +13,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert, Badge, Button, Checkbox, Input, Modal, Select, Switch, Textarea, Timeline,
+  Alert, Badge, Button, Checkbox, Input, Modal, Select, StatCard, Switch, Textarea, Timeline,
   Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow,
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { formatPrice } from "@/lib/store/copy";
-import type { AdminOrderDetail, AdminOrderRow, AdminRefundQuote, OrderFilter, RefundReason } from "@/lib/store/manage";
+import type { AdminOrderDetail, AdminOrderRow, AdminRefundQuote, OrderFilter, OrdersSummary, RefundReason } from "@/lib/store/manage";
 import { refundCents } from "@/lib/store/rules";
+import { AdminHeader, AdminRowMenu, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
+import { IconCash, IconPackage, IconPlus, IconReceipt, IconReceiptRefund, IconRefresh } from "@tabler/icons-react";
 import type { AdminProduct, ProductInput } from "@/lib/store/catalog";
 
 const STATUS: Record<AdminOrderRow["status"], { label: string; variant: "warning" | "success" | "default" | "info" }> = {
@@ -33,7 +35,7 @@ const STATUS: Record<AdminOrderRow["status"], { label: string; variant: "warning
 const ERRORS: Record<string, string> = {
   bad_tracking: "That doesn't look like a tracking number.", not_shippable: "Only unshipped orders can be marked shipped.",
   not_refundable: "This order can't be refunded.", already_restocked: "Already back in stock.", never_taken: "This order never took stock.",
-  empty_note: "Write the note first.", no_email: "This order has no email.", live_locked: "Live mode is locked: turn on the shop_live_catalog flag first.",
+  empty_note: "Write the note first.", no_email: "This order has no email.", live_locked: "Live mode is locked. An admin can turn on \"Edit products in Stripe live mode\" on the Switches screen.",
   bad_sku: "SKU: lowercase letters, numbers and dashes.", sku_taken: "That SKU is taken.", bad_price: "Price must be $0.50 to $1,000.",
   bad_name: "Add a name.", missing_fields: "Add a name and a price.", bad_max: "Max per order is 1 to 20.", bad_weight: "Weight must be above 0.",
   bad_stock: "Stock must be a whole number, 0 or more.", bad_image: "Image link must start with https:// or /images/.",
@@ -57,24 +59,12 @@ const when = (iso: string) => new Date(iso).toLocaleString("en-US", { timeZone: 
 
 /** Shop ▸ Orders. */
 export function PlatformShopOrdersTab() {
-  return (
-    <div className="account-card shop-admin">
-      <h2 className="account-tab__heading">Orders</h2>
-      <p className="account-tab__intro">Orders to ship come first, oldest at the top. Open one to mark it shipped, refund it or add a note.</p>
-      <OrdersPanel />
-    </div>
-  );
+  return <OrdersPanel />;
 }
 
 /** Shop ▸ Products. */
 export function PlatformShopProductsTab() {
-  return (
-    <div className="account-card shop-admin">
-      <h2 className="account-tab__heading">Products</h2>
-      <p className="account-tab__intro">What the shop sells. Changes go to Stripe too; a price change makes a new Stripe price.</p>
-      <ProductsPanel />
-    </div>
-  );
+  return <ProductsPanel />;
 }
 
 // ─── orders ─────────────────────────────────────────────────────────────────
@@ -83,23 +73,41 @@ function OrdersPanel() {
   const [filter, setFilter] = useState<OrderFilter>("to_ship");
   const [q, setQ] = useState("");
   const [orders, setOrders] = useState<AdminOrderRow[] | null>(null);
+  const [summary, setSummary] = useState<OrdersSummary | null>(null);
+  const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const d = await fetch(`/api/admin/shop/orders?filter=${filter}&q=${encodeURIComponent(q)}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+    setBusy(true);
+    const d = await fetch(`/api/admin/shop/orders?filter=${filter}&q=${encodeURIComponent(q)}&summary=1`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+    setBusy(false);
     setOrders(d?.ok ? d.orders : []);
+    if (d?.summary) setSummary(d.summary);
   }, [filter, q]);
   useEffect(() => { const t = setTimeout(() => void load(), q ? 300 : 0); return () => clearTimeout(t); }, [load, q]);
 
   return (
-    <div className="shop-admin__panel">
+    <div className="account-card admin-screen shop-admin">
+      <AdminHeader
+        title="Orders"
+        intro="Orders to ship come first, oldest at the top. Open one to mark it shipped, refund it or add a note."
+        actions={<Button variant="secondary" size="small" iconBefore={IconRefresh} loading={busy} disabled={busy} onClick={() => void load()}>Refresh</Button>}
+      />
+      {summary && (
+        <AdminStats label="Orders at a glance">
+          <StatCard label="To ship" value={String(summary.toShip)} source={summary.oldestShipBy ? `Oldest ships by ${summary.oldestShipBy}` : "Nothing waiting"} icon={<IconPackage size={20} />} variant={summary.toShip > 0 ? "accent" : "default"} />
+          <StatCard label="Orders, 30 days" value={String(summary.orders30d)} source={`${summary.orders7d} this week`} icon={<IconReceipt size={20} />} />
+          <StatCard label="Sales, 30 days" value={formatPrice(summary.sales30d)} source="After refunds, with shipping and tax" icon={<IconCash size={20} />} />
+          <StatCard label="Refunded, 30 days" value={formatPrice(summary.refunded30d)} icon={<IconReceiptRefund size={20} />} />
+        </AdminStats>
+      )}
       <div className="admin-filters">
         <Input fullWidth floatingLabel="Search all orders: number, email or name" value={q} onChange={(e) => setQ(e.target.value)} />
         <Select floatingLabel="Show" value={filter} onChange={(v) => setFilter(String(v) as OrderFilter)}
           options={[{ value: "to_ship", label: "To ship" }, { value: "shipped", label: "Shipped" }, { value: "closed", label: "Refunded and canceled" }, { value: "all", label: "All orders" }]} />
       </div>
       {orders === null ? <LoadingLines label="Loading" /> : (
-        <div className="admin-table">
+        <AdminTable label="Orders">
           <Table variant="striped" hoverable dense>
             <TableHeader>
               <TableRow>
@@ -109,7 +117,7 @@ function OrdersPanel() {
             </TableHeader>
             <TableBody>
               {orders.length === 0 ? (
-                <TableRow><TableCell><TableEmpty title={filter === "to_ship" && !q ? "Nothing to ship. Nice." : q ? "No orders match that search" : "No orders here"} /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={6}><TableEmpty title={filter === "to_ship" && !q ? "Nothing to ship" : q ? "No orders match that search" : "No orders here"} description={filter === "to_ship" && !q ? "New orders show here, oldest first." : undefined} /></TableCell></TableRow>
               ) : orders.map((o) => (
                 <TableRow key={o.id}>
                   <TableCell>
@@ -128,7 +136,7 @@ function OrdersPanel() {
               ))}
             </TableBody>
           </Table>
-        </div>
+        </AdminTable>
       )}
       {open && <OrderModal id={open} onClose={() => setOpen(null)} onChanged={() => void load()} />}
     </div>
@@ -379,15 +387,20 @@ function ProductsPanel() {
   };
 
   const shown = (products ?? []).filter((p) => showArchived || !p.archived);
+  const archive = async (p: AdminProduct) => {
+    if (await confirm({ title: `Archive ${p.name}?`, body: "It comes off the shop for good (orders keep it) and its Stripe product is archived. You can restore it later.", confirmLabel: "Archive" })) void patch({ sku: p.sku, action: "archive" }, "Product archived");
+  };
   return (
-    <div className="shop-admin__panel">
+    <div className="account-card admin-screen shop-admin">
+      <AdminHeader
+        title="Products"
+        intro="What the shop sells. Changes go to Stripe too; a price change makes a new Stripe price."
+        actions={<Button variant="primary" size="small" iconBefore={IconPlus} onClick={() => setEditing("new")}>Add product</Button>}
+      />
       {live && <Alert variant="warning" title="Live mode">Changes here create and change real Stripe products and prices.</Alert>}
-      <div className="shop-admin__row shop-admin__row--wrap">
-        <Button variant="primary" onClick={() => setEditing("new")}>Add product</Button>
-        <Switch label="Show archived" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
-      </div>
+      <Switch label="Show archived products" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
       {products === null ? <LoadingLines label="Loading" /> : (
-        <div className="admin-table">
+        <AdminTable label="Products">
           <Table variant="striped" hoverable dense>
             <TableHeader>
               <TableRow>
@@ -396,7 +409,7 @@ function ProductsPanel() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {shown.length === 0 ? <TableRow><TableCell><TableEmpty title="No products yet" /></TableCell></TableRow> : shown.map((p) => (
+              {shown.length === 0 ? <TableRow><TableCell colSpan={7}><TableEmpty title="No products yet" description="Add the first one with Add product." /></TableCell></TableRow> : shown.map((p) => (
                 <TableRow key={p.sku}>
                   <TableCell>
                     <button type="button" className="admin-table__link shop-admin__open" onClick={() => setEditing(p)}>{p.name}</button>
@@ -412,15 +425,21 @@ function ProductsPanel() {
                       : <Badge variant="default" size="small">Hidden</Badge>}
                   </TableCell>
                   <TableCell align="right">
-                    {p.archived
-                      ? <Button variant="ghost" size="small" onClick={() => void patch({ sku: p.sku, action: "restore" }, "Product restored")}>Restore</Button>
-                      : <Button variant="ghost" size="small" onClick={async () => { if (await confirm({ title: `Archive ${p.name}?`, body: "It comes off the shop for good (orders keep it) and its Stripe product is archived. You can restore it later.", confirmLabel: "Archive" })) void patch({ sku: p.sku, action: "archive" }, "Product archived"); }}>Archive</Button>}
+                    <span className="admin-row-actions">
+                      <Button variant="ghost" size="small" onClick={() => setEditing(p)} aria-label={`Edit ${p.name}`}>Edit</Button>
+                      <AdminRowMenu
+                        label={`More for ${p.name}`}
+                        items={p.archived
+                          ? [{ label: "Restore", onClick: () => void patch({ sku: p.sku, action: "restore" }, "Product restored") }]
+                          : [{ label: "Archive", onClick: () => void archive(p) }]}
+                      />
+                    </span>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </div>
+        </AdminTable>
       )}
       {editing && <ProductModal product={editing === "new" ? null : editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void load(); }} />}
     </div>

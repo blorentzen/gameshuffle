@@ -1,29 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Badge,
-  Button,
-  Carousel,
-  CarouselItem,
-  Input,
-} from "@empac/cascadeds";
+import { Badge, Button, Checkbox, Drawer, EmptyState, IconButton, Input } from "@empac/cascadeds";
+import { IconArrowDown, IconArrowUp, IconCards, IconPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { SortableList, moveWithin } from "@/components/ui/SortableList";
+import { AdminHeader, AdminRowMenu, AdminSection } from "@/components/account/admin/AdminKit";
 import { CardImage } from "@/components/tcg/CardImage";
 import { CardGridSkeleton } from "@/components/tcg/CardGridSkeleton";
 import type { FeaturedShopCard } from "@/lib/shop/featuredCards";
@@ -32,14 +15,18 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import { gsDay, gsDayStart } from "@/lib/time/gsClock";
 
 /**
- * Platform Shop admin tab (staff/admin). Manage the storefront's featured
- * high-value cards + the "Recently Sold" surface:
- *   - browse/search the catalog (visual picker) → pick a card
- *   - add its TCGplayer link (optionally as an already-sold backfill w/ date)
- *   - reorder, mark sold (with an editable sold date), remove
+ * Platform admin ▸ Shop ▸ Featured cards (staff/admin): the single cards we
+ * sell on TCGplayer, shown on the public TCG page, plus its "Recently sold"
+ * strip.
+ *   - Add a card (drawer): browse or search the catalog, pick one, add its
+ *     TCGplayer link (or add it as a past sale with a date)
+ *   - reorder (drag or arrows), mark sold / available, edit the sold date,
+ *     show first, remove (confirmed)
  */
 
 const DEBOUNCE_MS = 400;
+/** Recently sold can run to dozens; the latest few are what staff adjust. */
+const SOLD_SHOWN = 10;
 const MIN_CHARS = 3;
 
 /** ISO timestamp → its Pacific YYYY-MM-DD for a native date input. */
@@ -72,7 +59,7 @@ function PickerCard({
   );
 }
 
-function PickerCarousel({
+function PickerGrid({
   cards,
   onPick,
 }: {
@@ -80,91 +67,11 @@ function PickerCarousel({
   onPick: (c: TcgCard) => void;
 }) {
   return (
-    <div className="platform-shop__picker">
-      <Carousel
-        slidesToShow={{ mobile: 2, tablet: 3, desktop: 4 }}
-        gap={16}
-        showArrows
-        arrowPosition="bottom"
-      >
-        {cards.map((c) => (
-          <CarouselItem key={c.id}>
-            <PickerCard card={c} onPick={onPick} />
-          </CarouselItem>
-        ))}
-      </Carousel>
+    <div className="platform-shop__grid">
+      {cards.map((c) => (
+        <PickerCard key={c.id} card={c} onPick={onPick} />
+      ))}
     </div>
-  );
-}
-
-/** A draggable Featured (available) row. Only the grip handle initiates a drag,
- *  so the row's link + action buttons stay clickable. */
-function SortableAvailableRow({
-  row,
-  onSold,
-  onRemove,
-  onToggleFeatured,
-}: {
-  row: FeaturedShopCard;
-  onSold: (row: FeaturedShopCard) => void;
-  onRemove: (id: string, name: string) => void;
-  onToggleFeatured: (row: FeaturedShopCard) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: row.id });
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
-    zIndex: isDragging ? 1 : undefined,
-  };
-  const name = row.label ?? row.card?.name ?? row.card_id;
-
-  return (
-    <li ref={setNodeRef} style={style} className="platform-shop__row">
-      <button
-        type="button"
-        className="platform-shop__drag"
-        aria-label="Drag to reorder"
-        {...attributes}
-        {...listeners}
-      >
-        ⠿
-      </button>
-      <div className="platform-shop__row-card">
-        <CardImage images={row.card?.images} name={name} size="small" />
-      </div>
-      <div className="platform-shop__row-info">
-        <strong>{name}</strong>
-        <a
-          href={row.product_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="platform-shop__muted platform-shop__url"
-        >
-          {row.product_url}
-        </a>
-      </div>
-      <div className="platform-shop__row-actions">
-        <label
-          className="platform-shop__feature"
-          title="Show this card first in the storefront carousel"
-        >
-          <input type="checkbox" checked={row.is_featured} onChange={() => onToggleFeatured(row)} />
-          ⭐ Featured
-        </label>
-        <Button variant="secondary" size="small" onClick={() => onSold(row)}>
-          Mark sold
-        </Button>
-        <button
-          type="button"
-          className="platform-shop__link-btn platform-shop__remove"
-          onClick={() => onRemove(row.id, name)}
-        >
-          Remove
-        </button>
-      </div>
-    </li>
   );
 }
 
@@ -174,6 +81,9 @@ export function PlatformShopTab() {
 
   // Global toast for add / sold / available / remove feedback.
   const toast = useToast();
+  const confirm = useConfirm();
+  const [adding, setAdding] = useState(false);
+  const [allSold, setAllSold] = useState(false);
 
   // Add flow
   const [query, setQuery] = useState("");
@@ -285,7 +195,8 @@ export function PlatformShopTab() {
       return;
     }
     resetAddForm();
-    toast.success(`Added ${name}.`);
+    setAdding(false);
+    toast.success(`Added ${name}`);
     load();
   };
 
@@ -306,9 +217,11 @@ export function PlatformShopTab() {
   };
 
   const remove = async (id: string, name: string) => {
+    const ok = await confirm({ title: `Remove ${name}?`, body: "It comes off the public TCG page. The TCGplayer listing isn't touched.", confirmLabel: "Remove" });
+    if (!ok) return;
     const res = await fetch(`/api/admin/shop-cards/${id}`, { method: "DELETE" });
     if (res.ok) {
-      toast.success(`Removed ${name}.`);
+      toast.success(`Removed ${name}`);
       load();
     } else {
       toast.error("Couldn't remove that card.");
@@ -322,18 +235,18 @@ export function PlatformShopTab() {
   // edits stay silent — they give their own visual feedback).
   const markSold = async (row: FeaturedShopCard) => {
     if (await patch(row.id, { isSold: true }))
-      toast.success(`Marked ${rowName(row)} sold.`);
+      toast.success(`Marked ${rowName(row)} sold`);
     else toast.error("Couldn't update that card.");
   };
   const markAvailable = async (row: FeaturedShopCard) => {
     if (await patch(row.id, { isSold: false }))
-      toast.success(`Marked ${rowName(row)} available.`);
+      toast.success(`Marked ${rowName(row)} for sale`);
     else toast.error("Couldn't update that card.");
   };
   const toggleFeatured = async (row: FeaturedShopCard) => {
     const next = !row.is_featured;
     if (await patch(row.id, { isFeatured: next }))
-      toast.success(next ? `Featured ${rowName(row)}.` : `Unfeatured ${rowName(row)}.`);
+      toast.success(next ? `${rowName(row)} shows first` : `${rowName(row)} no longer shows first`);
     else toast.error("Couldn't update that card.");
   };
 
@@ -345,10 +258,6 @@ export function PlatformShopTab() {
       const tb = b.sold_at ? Date.parse(b.sold_at) : 0;
       return tb - ta;
     });
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  );
 
   const persistOrder = async (ids: string[]) => {
     const res = await fetch("/api/admin/shop-cards/reorder", {
@@ -362,16 +271,10 @@ export function PlatformShopTab() {
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = available.findIndex((c) => c.id === active.id);
-    const newIndex = available.findIndex((c) => c.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    const reordered = arrayMove(available, oldIndex, newIndex);
-    // Optimistic: available in new order, sold rows untouched.
-    setCards([...reordered, ...cards.filter((c) => c.is_sold)]);
-    persistOrder(reordered.map((c) => c.id));
+  // Drag and the arrow buttons both land here, so the order is saved one way.
+  const reorder = (next: FeaturedShopCard[]) => {
+    setCards([...next, ...cards.filter((c) => c.is_sold)]);
+    persistOrder(next.map((c) => c.id));
   };
 
   const isSearching = query.trim().length >= MIN_CHARS;
@@ -385,238 +288,165 @@ export function PlatformShopTab() {
       />
     </div>
   );
+  const rowLink = (row: FeaturedShopCard) => (
+    <a href={row.product_url} target="_blank" rel="noopener noreferrer" className="platform-shop__url">
+      View on TCGplayer<span className="sr-only"> (opens in a new tab)</span>
+    </a>
+  );
 
   return (
-    <div className="platform-shop">
-      <h2 className="account-tab__heading">Featured Shop Cards</h2>
-      <p className="platform-shop__intro">
-        The high-value cards showcased on the public GameShuffle TCG page. Browse
-        or search the catalog to pull a card&rsquo;s art, add its TCGplayer link,
-        and mark cards sold (with a date) as they go. Sold cards move to the
-        public &ldquo;Recently Sold&rdquo; strip.
-      </p>
+    <div className="account-card admin-screen platform-shop">
+      <AdminHeader
+        title="Featured cards"
+        intro="Single cards we sell on TCGplayer, shown on the public TCG page. Mark one sold when it goes and it moves to the Recently sold strip."
+        actions={<Button variant="primary" size="small" iconBefore={IconPlus} onClick={() => setAdding(true)}>Add a card</Button>}
+      />
 
-      {/* Add flow */}
-      <section className="platform-shop__add">
-        <h3 className="platform-shop__heading">Add a card</h3>
-        {picked ? (
-          <div className="platform-shop__picked">
-            <div className="platform-shop__picked-card">
-              <CardImage images={picked.images} name={picked.name} size="small" />
-              <div>
-                <strong>{picked.name}</strong>
-                <div className="platform-shop__muted">
-                  {picked.rarity ?? ""} · {picked.id}
-                </div>
-                <button
-                  type="button"
-                  className="platform-shop__link-btn"
-                  onClick={() => setPicked(null)}
-                >
-                  Change card
-                </button>
-              </div>
-            </div>
-            <div className="platform-shop__fields">
-              <Input
-                fullWidth
-                placeholder="TCGplayer product URL (required)"
-                value={productUrl}
-                onChange={(e) => setProductUrl(e.target.value)}
-              />
-              <Input
-                fullWidth
-                placeholder="Display label (optional, e.g. Umbreon: Master Ball Pattern)"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-              />
-              <Input
-                fullWidth
-                placeholder="Variant name (optional)"
-                value={variantName}
-                onChange={(e) => setVariantName(e.target.value)}
-              />
-              <label className="platform-shop__checkbox">
-                <input
-                  type="checkbox"
-                  checked={addAsSold}
-                  onChange={(e) => setAddAsSold(e.target.checked)}
-                />
-                Add as already sold (backfill a past sale)
-              </label>
-              {addAsSold ? (
-                <label className="platform-shop__date-field">
-                  Sold date
-                  <Input
-                    type="date"
-                    value={addSoldDate}
-                    onChange={(e) => setAddSoldDate(e.target.value)}
-                  />
-                </label>
-              ) : null}
-              <Button
-                variant="primary"
-                onClick={add}
-                disabled={!productUrl.trim()}
-              >
-                {addAsSold ? "Add to recently sold" : "Add to featured"}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <Input
-              type="search"
-              fullWidth
-              placeholder="Search cards by name (e.g. Charizard, Umbreon)…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {isSearching ? (
-              searching ? (
-                <CardGridSkeleton count={4} />
-              ) : results.length > 0 ? (
-                <PickerCarousel cards={results} onPick={setPicked} />
-              ) : (
-                <p className="platform-shop__muted platform-shop__picker-note">
-                  No cards found for &ldquo;{query.trim()}&rdquo;. Try a
-                  different name.
-                </p>
-              )
-            ) : browseLoading ? (
-              <CardGridSkeleton count={4} />
-            ) : browse.length > 0 ? (
-              <>
-                <p className="platform-shop__muted platform-shop__picker-note">
-                  Recent cards in the catalog. Or search above for a specific
-                  card.
-                </p>
-                <PickerCarousel cards={browse} onPick={setPicked} />
-              </>
-            ) : (
-              <p className="platform-shop__muted platform-shop__picker-note">
-                Search for a card by name to get started.
-              </p>
-            )}
-          </>
-        )}
-      </section>
-
-      {/* Available (featured) */}
-      <section className="platform-shop__list-section">
-        <h3 className="platform-shop__heading">
-          Featured (available){available.length ? ` (${available.length})` : ""}
-        </h3>
+      <AdminSection
+        title={`For sale${available.length ? ` (${available.length})` : ""}`}
+        intro={available.length > 1 ? "Drag a card by its handle, or use the arrows. This is the order on the public page." : undefined}
+      >
         {loading ? (
           <LoadingLines label="Loading" />
         ) : available.length === 0 ? (
-          <p className="platform-shop__muted">No available featured cards yet.</p>
+          <EmptyState
+            variant="bordered"
+            icon={<IconCards size={28} />}
+            title="No cards for sale on the page"
+            description="Add a card with its TCGplayer link and it shows on the public TCG page."
+            action={<Button variant="secondary" size="small" iconBefore={IconPlus} onClick={() => setAdding(true)}>Add a card</Button>}
+          />
         ) : (
-          <>
-            <p className="platform-shop__muted platform-shop__reorder-hint">
-              Drag the <span aria-hidden="true">⠿</span> handle to reorder. The
-              order here is the order shown on the public page.
-            </p>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={available.map((c) => c.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <ul className="platform-shop__list">
-                  {available.map((row) => (
-                    <SortableAvailableRow
-                      key={row.id}
-                      row={row}
-                      onSold={markSold}
-                      onRemove={remove}
-                      onToggleFeatured={toggleFeatured}
-                    />
-                  ))}
-                </ul>
-              </SortableContext>
-            </DndContext>
-          </>
+          <SortableList
+            items={available}
+            getId={(c) => c.id}
+            onReorder={reorder}
+            handleLabel={(c) => `Reorder ${rowName(c)}`}
+            className="platform-shop__list"
+          >
+            {(row, handle, i) => (
+              <div className="platform-shop__row">
+                {handle}
+                {rowCard(row)}
+                <div className="platform-shop__row-info">
+                  <div className="platform-shop__row-title">
+                    <strong>{rowName(row)}</strong>
+                    {row.is_featured && <Badge variant="info" size="small">Shows first</Badge>}
+                  </div>
+                  {rowLink(row)}
+                </div>
+                <div className="platform-shop__row-actions">
+                  <Button variant="secondary" size="small" onClick={() => markSold(row)}>Mark sold</Button>
+                  <IconButton variant="tertiary" size="small" aria-label={`Move ${rowName(row)} up`} disabled={i === 0} onClick={() => reorder(moveWithin(available, i, -1))}><IconArrowUp size={16} aria-hidden /></IconButton>
+                  <IconButton variant="tertiary" size="small" aria-label={`Move ${rowName(row)} down`} disabled={i === available.length - 1} onClick={() => reorder(moveWithin(available, i, 1))}><IconArrowDown size={16} aria-hidden /></IconButton>
+                  <AdminRowMenu
+                    label={`More for ${rowName(row)}`}
+                    items={[
+                      { label: row.is_featured ? "Stop showing first" : "Show first in the carousel", onClick: () => void toggleFeatured(row) },
+                      { type: "divider" },
+                      { label: "Remove from the page", danger: true, onClick: () => void remove(row.id, rowName(row)) },
+                    ]}
+                  />
+                </div>
+              </div>
+            )}
+          </SortableList>
         )}
-      </section>
+      </AdminSection>
 
-      {/* Recently sold */}
-      <section className="platform-shop__list-section">
-        <h3 className="platform-shop__heading">
-          Recently sold{sold.length ? ` (${sold.length})` : ""}
-        </h3>
-        {!loading && sold.length === 0 ? (
-          <p className="platform-shop__muted">
-            No sold cards yet. Mark a featured card sold, or add a past sale
-            above.
-          </p>
+      <AdminSection title={`Recently sold${sold.length ? ` (${sold.length})` : ""}`} intro={sold.length ? "Newest sale first. Change a date if it was entered wrong." : undefined}>
+        {loading ? null : sold.length === 0 ? (
+          <EmptyState variant="bordered" icon={<IconCards size={28} />} title="No sales yet" description="Mark a card sold, or add a past sale with Add a card." />
         ) : (
           <ul className="platform-shop__list">
-            {sold.map((row) => (
+            {(allSold ? sold : sold.slice(0, SOLD_SHOWN)).map((row) => (
               <li key={row.id} className="platform-shop__row is-sold">
                 {rowCard(row)}
                 <div className="platform-shop__row-info">
                   <div className="platform-shop__row-title">
-                    <strong>{row.label ?? row.card?.name ?? row.card_id}</strong>
-                    <Badge variant="error" size="small">
-                      Sold
-                    </Badge>
+                    <strong>{rowName(row)}</strong>
+                    {row.is_featured && <Badge variant="info" size="small">Shows first</Badge>}
                   </div>
-                  <a
-                    href={row.product_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="platform-shop__muted platform-shop__url"
-                  >
-                    {row.product_url}
-                  </a>
+                  {rowLink(row)}
                 </div>
                 <div className="platform-shop__row-actions">
-                  <Input
-                    type="date"
-                    size="small"
-                    aria-label="Sold date"
-                    title="Sold date"
-                    className="platform-shop__date-input"
-                    value={toDateInput(row.sold_at)}
-                    onChange={(e) =>
-                      patch(row.id, {
-                        soldAt: e.target.value
-                          ? gsDayStart(e.target.value).toISOString()
-                          : null,
-                      })
-                    }
+                  <div className="platform-shop__date">
+                    <Input
+                      type="date"
+                      size="small"
+                      fullWidth
+                      floatingLabel="Sold on"
+                      value={toDateInput(row.sold_at)}
+                      onChange={(e) => patch(row.id, { soldAt: e.target.value ? gsDayStart(e.target.value).toISOString() : null })}
+                    />
+                  </div>
+                  <Button variant="secondary" size="small" onClick={() => markAvailable(row)}>Mark for sale</Button>
+                  <AdminRowMenu
+                    label={`More for ${rowName(row)}`}
+                    items={[
+                      { label: row.is_featured ? "Stop showing first" : "Show first in Recently sold", onClick: () => void toggleFeatured(row) },
+                      { type: "divider" },
+                      { label: "Remove from the page", danger: true, onClick: () => void remove(row.id, rowName(row)) },
+                    ]}
                   />
-                  <label
-                    className="platform-shop__feature"
-                    title="Show this sale first in Recently Sold"
-                  >
-                    <input type="checkbox" checked={row.is_featured} onChange={() => toggleFeatured(row)} />
-                    ⭐ Featured
-                  </label>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => markAvailable(row)}
-                  >
-                    Mark available
-                  </Button>
-                  <button
-                    type="button"
-                    className="platform-shop__link-btn platform-shop__remove"
-                    onClick={() => remove(row.id, rowName(row))}
-                  >
-                    Remove
-                  </button>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </section>
+        {sold.length > SOLD_SHOWN && (
+          <div>
+            <Button variant="ghost" size="small" onClick={() => setAllSold((v) => !v)}>{allSold ? "Show the latest 10" : `Show all ${sold.length}`}</Button>
+          </div>
+        )}
+      </AdminSection>
+
+      <Drawer
+        open={adding}
+        onClose={() => { setAdding(false); resetAddForm(); }}
+        title="Add a card"
+        subtitle={picked ? "Add its TCGplayer link." : "Pick the card from the catalog."}
+        size="standard"
+      >
+        <div className="platform-shop__drawer">
+          {picked ? (
+            <form className="platform-shop__fields" onSubmit={(e) => { e.preventDefault(); void add(); }}>
+              <div className="platform-shop__picked-card">
+                <CardImage images={picked.images} name={picked.name} size="small" />
+                <div>
+                  <strong>{picked.name}</strong>
+                  <div className="platform-shop__muted">{picked.rarity ?? ""}{picked.rarity ? " · " : ""}{picked.id}</div>
+                  <Button type="button" variant="ghost" size="small" onClick={() => setPicked(null)}>Choose another card</Button>
+                </div>
+              </div>
+              <Input fullWidth required type="url" floatingLabel="TCGplayer product link" value={productUrl} onChange={(e) => setProductUrl(e.target.value)} />
+              <Input fullWidth floatingLabel="Name on the page (optional)" placeholder="Umbreon, Master Ball Pattern" value={label} onChange={(e) => setLabel(e.target.value)} />
+              <Input fullWidth floatingLabel="Variant (optional)" value={variantName} onChange={(e) => setVariantName(e.target.value)} />
+              <Checkbox label="Already sold (adding a past sale)" checked={addAsSold} onChange={(e) => setAddAsSold(e.target.checked)} />
+              {addAsSold && <Input type="date" floatingLabel="Sold on" value={addSoldDate} onChange={(e) => setAddSoldDate(e.target.value)} />}
+              <Button type="submit" variant="primary" disabled={!productUrl.trim()}>{addAsSold ? "Add to Recently sold" : "Add to the page"}</Button>
+            </form>
+          ) : (
+            <>
+              <Input type="search" fullWidth floatingLabel="Search cards by name" placeholder="Charizard, Umbreon" value={query} onChange={(e) => setQuery(e.target.value)} />
+              {isSearching ? (
+                searching ? <CardGridSkeleton count={4} />
+                  : results.length > 0 ? <PickerGrid cards={results} onPick={setPicked} />
+                  : <p className="platform-shop__muted">No cards found for &ldquo;{query.trim()}&rdquo;. Try another name.</p>
+              ) : browseLoading ? (
+                <CardGridSkeleton count={4} />
+              ) : browse.length > 0 ? (
+                <>
+                  <p className="platform-shop__muted">Recently added to the catalog:</p>
+                  <PickerGrid cards={browse} onPick={setPicked} />
+                </>
+              ) : (
+                <p className="platform-shop__muted">Search for a card by name to get started.</p>
+              )}
+            </>
+          )}
+        </div>
+      </Drawer>
     </div>
   );
 }

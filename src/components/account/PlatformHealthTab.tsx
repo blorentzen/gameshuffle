@@ -1,28 +1,27 @@
 "use client";
 
 /**
- * PlatformHealthTab — all-up real-time staff dashboard.
+ * Platform admin ▸ Overview ▸ Health: what's happening on GameShuffle right
+ * now. Live counts, who's been on the site, chat viewers, 30-day trends and
+ * the hero roster check. Token numbers live in Token economy; this screen
+ * keeps one line pointing there.
  *
- * Distinct from the Economy Snapshot tab (which is token-flow
- * focused). This is the platform-wide ops view: live counters,
- * audience metrics, throughput, and growth dials.
- *
- * Auto-refreshes every 30 seconds so staff can leave the tab open
- * during a high-traffic stream and watch numbers move. Manual
- * Refresh button for on-demand pulls between the cadence.
+ * Refreshes every 30 seconds while the tab is visible, so staff can leave it
+ * open during a busy stream.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Button, Card, AreaChart, BarChart, LineChart } from "@empac/cascadeds";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, AreaChart, BarChart, Button, StatCard } from "@empac/cascadeds";
+import {
+  IconBroadcast, IconCoins, IconFlag, IconMessages, IconRefresh, IconTrophy, IconUserCheck, IconUserPlus, IconUsersGroup,
+} from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { HeroRosterCard } from "@/components/account/HeroRosterCard";
+import { AdminHeader, AdminSection, AdminStats, AdminUpdated } from "@/components/account/admin/AdminKit";
 
 interface HealthPayload {
-  rightNow: {
-    activeSessions: number;
-    activeStreams: number;
-    activeTournaments: number;
-  };
+  rightNow: { activeSessions: number; activeStreams: number; activeTournaments: number };
   audience: {
     totalAccounts: number;
     totalIdentities: number;
@@ -33,367 +32,146 @@ interface HealthPayload {
     wau: number;
     mau: number;
   };
-  throughput: {
-    tokenEventsLastHour: number;
-    tokenVolumeLastHour: number;
-    engagementSignalsLastHour: number;
-  };
-  growth: {
-    signupsToday: number;
-    signupsThisWeek: number;
-    signupsThisMonth: number;
-  };
+  people?: { onlineNow: number; seenToday: number; seenWeek: number; seenMonth: number };
+  throughput: { tokenEventsLastHour: number; tokenVolumeLastHour: number; engagementSignalsLastHour: number };
+  growth: { signupsToday: number; signupsThisWeek: number; signupsThisMonth: number };
   /** 30 zero-filled daily buckets, oldest first. */
   series?: { day: string; signups: number; tournaments: number; nights: number; tokenEvents: number }[];
   fetchedAt: string;
 }
 
 const AUTO_REFRESH_MS = 30_000;
-const numberFormat = new Intl.NumberFormat("en-US");
-const fmt = (n: number | null | undefined) =>
-  n === null || n === undefined ? "-" : numberFormat.format(n);
-
-function StatCard({
-  label,
-  value,
-  helper,
-  emphasis,
-}: {
-  label: string;
-  value: string;
-  helper?: string;
-  emphasis?: boolean;
-}) {
-  return (
-    <Card variant="outlined" padding="medium">
-      <p
-        style={{
-          margin: 0,
-          fontSize: "var(--font-size-12)",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-          color: "var(--text-tertiary)",
-          fontWeight: "var(--font-weight-semibold)",
-        }}
-      >
-        {label}
-      </p>
-      <p
-        style={{
-          margin: "var(--spacing-8) 0 0",
-          fontSize: emphasis
-            ? "var(--font-size-32)"
-            : "var(--font-size-24)",
-          fontWeight: "var(--font-weight-bold)",
-          color: "var(--text-primary)",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {value}
-      </p>
-      {helper && (
-        <p
-          style={{
-            margin: "var(--spacing-4) 0 0",
-            fontSize: "var(--font-size-12)",
-            color: "var(--text-secondary)",
-            lineHeight: "var(--line-height-relaxed)",
-          }}
-        >
-          {helper}
-        </p>
-      )}
-    </Card>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section style={{ marginBottom: "var(--spacing-32)" }}>
-      <h3
-        style={{
-          fontSize: "var(--font-size-14)",
-          fontWeight: "var(--font-weight-semibold)",
-          color: "var(--text-secondary)",
-          margin: "0 0 var(--spacing-12)",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-        }}
-      >
-        {title}
-      </h3>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "var(--spacing-12)",
-        }}
-      >
-        {children}
-      </div>
-    </section>
-  );
-}
+const fmt = (n: number | null | undefined) => (n == null ? "-" : n.toLocaleString("en-US"));
+const ICON = 20;
 
 export function PlatformHealthTab() {
   const [data, setData] = useState<HealthPayload | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
-    setLoadError(null);
     setRefreshing(true);
     try {
-      const res = await fetch("/api/admin/platform-health", {
-        cache: "no-store",
-      });
-      if (res.status === 403) {
-        setLoadError("Forbidden. Staff only.");
-        return;
-      }
+      const res = await fetch("/api/admin/platform-health", { cache: "no-store" });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body.ok) {
-        setLoadError(body.error || `Load failed (${res.status}).`);
-        return;
-      }
+      if (res.status === 403) { setLoadError("This screen is for staff only."); return; }
+      if (!res.ok || !body.ok) { setLoadError("Couldn't load the numbers. Try Refresh in a moment."); return; }
+      setLoadError(null);
       setData(body as HealthPayload);
     } catch {
-      setLoadError("Network error while loading.");
+      setLoadError("Couldn't reach the server. Check your connection and try Refresh.");
     } finally {
       setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    void load();
-    timerRef.current = setInterval(() => {
-      void load();
-    }, AUTO_REFRESH_MS);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    void Promise.resolve().then(load);
+    // Skip the timed pull while the tab is in the background.
+    const timer = setInterval(() => { if (!document.hidden) void load(); }, AUTO_REFRESH_MS);
+    return () => clearInterval(timer);
   }, [load]);
 
-  return (
-    <div className="account-card">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: "var(--spacing-16)",
-          flexWrap: "wrap",
-          marginBottom: "var(--spacing-32)",
-        }}
-      >
-        <div>
-          <h2 className="account-tab__heading">Platform health</h2>
-          <p className="account-tab__intro" style={{ marginTop: 0 }}>
-            All-up real-time view of platform activity. Auto-refreshes
-            every 30 seconds. Leave it open during a high-traffic
-            stream and watch the dials move. Manual Refresh is
-            available between auto-pulls.
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          size="small"
-          onClick={() => void load()}
-          loading={refreshing}
-          disabled={refreshing}
-        >
-          Refresh
-        </Button>
-      </div>
+  const p = data?.people;
+  const series = data?.series ?? [];
+  const anySignups = series.some((d) => d.signups > 0);
+  const anyEvents = series.some((d) => d.tournaments + d.nights > 0);
 
-      {loadError && (
-        <div style={{ marginBottom: "var(--spacing-16)" }}>
-          <Alert variant="error" onClose={() => setLoadError(null)}>
-            {loadError}
-          </Alert>
-        </div>
-      )}
+  return (
+    <div className="account-card admin-screen">
+      <AdminHeader
+        title="Health"
+        intro="What's happening on GameShuffle right now. Refreshes every 30 seconds while this tab is open."
+        actions={<Button variant="secondary" size="small" iconBefore={IconRefresh} loading={refreshing} disabled={refreshing} onClick={() => void load()}>Refresh</Button>}
+      />
+
+      {loadError && <Alert variant="error" onClose={() => setLoadError(null)}>{loadError}</Alert>}
 
       {data === null ? (
-        <LoadingLines label="Loading" />
+        !loadError && <LoadingLines label="Loading" />
       ) : (
         <>
-          <Section title="Right now">
-            <StatCard
-              label="Active sessions"
-              value={fmt(data.rightNow.activeSessions)}
-              helper="Lounge sessions in any phase except complete."
-              emphasis
-            />
-            <StatCard
-              label="Live streams"
-              value={fmt(data.rightNow.activeStreams)}
-              helper="gs_streams in `open` or `ending` state."
-              emphasis
-            />
-            <StatCard
-              label="Active tournaments"
-              value={fmt(data.rightNow.activeTournaments)}
-              helper="Tournaments not yet completed / cancelled / archived."
-              emphasis
-            />
-          </Section>
+          <AdminSection title="Right now">
+            <AdminStats label="Right now">
+              <StatCard label="Online now" value={p ? fmt(p.onlineNow) : "-"} source="Signed in, seen in the last 5 minutes" icon={<IconUserCheck size={ICON} />} variant="accent" />
+              <StatCard label="Live streams" value={fmt(data.rightNow.activeStreams)} source="Streamers with a session open" icon={<IconBroadcast size={ICON} />} />
+              <StatCard label="Tournaments" value={fmt(data.rightNow.activeTournaments)} source="Taking entries or under way" icon={<IconTrophy size={ICON} />} />
+              <StatCard label="Lounge races" value={fmt(data.rightNow.activeSessions)} source="Mario Kart lounge rooms not finished" icon={<IconFlag size={ICON} />} />
+            </AdminStats>
+          </AdminSection>
 
-          <Section title="Audience">
-            <StatCard
-              label="DAU"
-              value={fmt(data.audience.dau)}
-              helper="Distinct identities with token activity in the last 24h."
-            />
-            <StatCard
-              label="WAU"
-              value={fmt(data.audience.wau)}
-              helper="Distinct identities. Last 7 days."
-            />
-            <StatCard
-              label="MAU"
-              value={fmt(data.audience.mau)}
-              helper="Distinct identities. Last 30 days."
-            />
-            <StatCard
-              label="Total accounts"
-              value={fmt(data.audience.totalAccounts)}
-              helper="Signed-up GameShuffle users (auth.users)."
-            />
-            <StatCard
-              label="Total identities"
-              value={fmt(data.audience.totalIdentities)}
-              helper="Every per-platform identity row (Twitch, Discord, …)."
-            />
-            <StatCard
-              label="Twitch identities"
-              value={fmt(data.audience.twitchIdentities)}
-              helper="Subset of total identities on the twitch platform."
-            />
-            <StatCard
-              label="Discord identities"
-              value={fmt(data.audience.discordIdentities)}
-              helper="Subset of total identities on discord."
-            />
-            <StatCard
-              label="Communities"
-              value={fmt(data.audience.totalCommunities)}
-              helper="Streamer communities with an active gs_communities row."
-            />
-          </Section>
+          <AdminSection title="People" intro="Accounts, and how many of them have used the site lately.">
+            <AdminStats label="People">
+              <StatCard
+                label="Accounts"
+                value={fmt(data.audience.totalAccounts)}
+                source={`${fmt(data.growth.signupsToday)} new today · ${fmt(data.growth.signupsThisMonth)} in 30 days`}
+                icon={<IconUserPlus size={ICON} />}
+              />
+              <StatCard label="Seen today" value={p ? fmt(p.seenToday) : "-"} source="Since midnight Pacific" icon={<IconUserCheck size={ICON} />} />
+              <StatCard label="Seen this week" value={p ? fmt(p.seenWeek) : "-"} source="Last 7 days" icon={<IconUserCheck size={ICON} />} />
+              <StatCard label="Seen this month" value={p ? fmt(p.seenMonth) : "-"} source="Last 30 days" icon={<IconUserCheck size={ICON} />} />
+            </AdminStats>
+          </AdminSection>
 
-          <Section title="Throughput (last hour)">
-            <StatCard
-              label="Token events / hr"
-              value={fmt(data.throughput.tokenEventsLastHour)}
-              helper="Count of token_events rows written in the last hour."
-            />
-            <StatCard
-              label="Token volume / hr"
-              value={fmt(data.throughput.tokenVolumeLastHour)}
-              helper="Sum of |amount| across last-hour token_events. Currency exchanging hands."
-            />
-            <StatCard
-              label="Engagement signals / hr"
-              value={fmt(data.throughput.engagementSignalsLastHour)}
-              helper="gs_engagement_signals rows in the last hour."
-            />
-          </Section>
-
-          <Section title="Growth">
-            <StatCard
-              label="Signups today"
-              value={fmt(data.growth.signupsToday)}
-              helper="New accounts since midnight Pacific."
-            />
-            <StatCard
-              label="This week"
-              value={fmt(data.growth.signupsThisWeek)}
-              helper="Last 7 days rolling."
-            />
-            <StatCard
-              label="This month"
-              value={fmt(data.growth.signupsThisMonth)}
-              helper="Last 30 days rolling."
-            />
-          </Section>
+          <AdminSection title="Chat viewers" intro="Viewers who joined in on a streamer's chat (joined a lobby, earned, bet or spent tokens), on Twitch or Discord. Most don't have an account.">
+            <AdminStats label="Chat viewers">
+              <StatCard label="Active today" value={fmt(data.audience.dau)} source="Last 24 hours" icon={<IconMessages size={ICON} />} />
+              <StatCard label="Active this week" value={fmt(data.audience.wau)} source="Last 7 days" icon={<IconMessages size={ICON} />} />
+              <StatCard label="Active this month" value={fmt(data.audience.mau)} source={`${fmt(data.audience.totalIdentities)} known: ${fmt(data.audience.twitchIdentities)} Twitch, ${fmt(data.audience.discordIdentities)} Discord`} icon={<IconMessages size={ICON} />} />
+              <StatCard label="Communities" value={fmt(data.audience.totalCommunities)} source="Each streamer's chat community" icon={<IconUsersGroup size={ICON} />} />
+            </AdminStats>
+          </AdminSection>
 
           {/* Counters answer "how many"; only a series answers "which way is it
               going". Built from the real created_at columns, so there is no
               metrics table to backfill or keep in sync. */}
-          {data.series && data.series.length > 0 && (
-            <>
-              <h3 className="admin-chart__heading">Signups · last 30 days</h3>
-              <div className="admin-chart">
-                <AreaChart
-                  data={data.series}
-                  xAxisKey="day"
-                  height={200}
-                  showGrid
-                  showTooltip
-                  fillOpacity={0.22}
-                  series={[{ dataKey: "signups", name: "Signups", color: "var(--primary-500)" }]}
-                />
+          {series.length > 0 && (
+            <AdminSection title="Last 30 days">
+              <div className="admin-charts">
+                <div className="admin-chart">
+                  <h3 className="admin-chart__title">Signups</h3>
+                  {anySignups
+                    ? <AreaChart data={series} xAxisKey="day" height={200} showGrid showTooltip fillOpacity={0.22} series={[{ dataKey: "signups", name: "Signups", color: "var(--primary-500)" }]} />
+                    : <p className="admin-chart__empty">No signups in the last 30 days.</p>}
+                </div>
+                <div className="admin-chart">
+                  <h3 className="admin-chart__title">Tournaments and game nights created</h3>
+                  {anyEvents ? <BarChart
+                    data={series}
+                    xAxisKey="day"
+                    height={200}
+                    showXAxis
+                    showYAxis
+                    showGrid
+                    showTooltip
+                    showLegend
+                    stacked
+                    series={[
+                      { dataKey: "tournaments", name: "Tournaments", color: "var(--primary-500)" },
+                      { dataKey: "nights", name: "Game nights", color: "var(--accent-500)" },
+                    ]}
+                  /> : <p className="admin-chart__empty">No tournaments or game nights created in the last 30 days.</p>}
+                </div>
               </div>
-
-              <h3 className="admin-chart__heading">Events created · last 30 days</h3>
-              <div className="admin-chart">
-                <BarChart
-                  data={data.series}
-                  xAxisKey="day"
-                  height={200}
-                  showGrid
-                  showTooltip
-                  showLegend
-                  stacked
-                  series={[
-                    { dataKey: "tournaments", name: "Tournaments", color: "var(--primary-500)" },
-                    { dataKey: "nights", name: "Game nights", color: "var(--accent-500)" },
-                  ]}
-                />
-              </div>
-
-              <h3 className="admin-chart__heading">Economy activity · last 30 days</h3>
-              <div className="admin-chart">
-                <LineChart
-                  data={data.series}
-                  xAxisKey="day"
-                  height={180}
-                  showGrid
-                  showTooltip
-                  showDots={false}
-                  series={[{ dataKey: "tokenEvents", name: "Token events", color: "var(--success-500)" }]}
-                />
-              </div>
-            </>
+            </AdminSection>
           )}
 
-          <p
-            style={{
-              marginTop: "var(--spacing-16)",
-              fontSize: "var(--font-size-12)",
-              color: "var(--text-tertiary)",
-              textAlign: "right",
-            }}
-          >
-            Fetched{" "}
-            {new Date(data.fetchedAt).toLocaleString(undefined, {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-            {" · "}
-            auto-refresh every {AUTO_REFRESH_MS / 1000}s
+          <p className="admin-pointer">
+            <IconCoins size={18} aria-hidden />
+            <span className="admin-pointer__text">
+              Tokens in the last hour: <strong>{fmt(data.throughput.tokenEventsLastHour)}</strong> {data.throughput.tokenEventsLastHour === 1 ? "event" : "events"}, <strong>{fmt(data.throughput.tokenVolumeLastHour)}</strong> moved.
+            </span>
+            <Link href="/account/platform?tab=platform-snapshot">Open Token economy</Link>
           </p>
+
+          <AdminSection title="Checks">
+            <HeroRosterCard />
+          </AdminSection>
+
+          <AdminUpdated at={data.fetchedAt} every="30 seconds" />
         </>
       )}
-      <HeroRosterCard />
     </div>
   );
 }

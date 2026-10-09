@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Platform ▸ Trivia (staff): the GameShuffle question pack hosts fill their
+ * Platform admin ▸ Originals ▸ Trivia (staff): the GameShuffle question pack hosts fill their
  * nights from. Questions arrive as drafts (the starter pack in
  * src/data/originals/trivia-pack.ts) and reach hosts only once approved, so
  * every answer is checked against its source first. Fix a wording or an
@@ -9,7 +9,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Input, Modal, Select, Tabs, Textarea } from "@empac/cascadeds";
+import { Alert, Button, EmptyState, Input, Modal, Select, StatCard, Tabs, Textarea } from "@empac/cascadeds";
+import { IconArchive, IconBulb, IconChecklist, IconCircleCheck, IconLibraryPlus } from "@tabler/icons-react";
+import { AdminHeader, AdminRowMenu, AdminStats } from "@/components/account/admin/AdminKit";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
@@ -25,6 +27,8 @@ const LANES: { id: Status; label: string }[] = [
   { id: "approved", label: "Approved" },
   { id: "retired", label: "Retired" },
 ];
+/** The pack runs to hundreds of questions; show them a page at a time. */
+const PAGE = 25;
 const splitList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 
 export function PlatformTriviaTab() {
@@ -35,6 +39,7 @@ export function PlatformTriviaTab() {
   const [cat, setCat] = useState("all");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<LibraryQuestion | null>(null);
+  const [limit, setLimit] = useState(PAGE);
   const firstLoad = useRef(true);
 
   const load = useCallback(async () => {
@@ -86,23 +91,36 @@ export function PlatformTriviaTab() {
     if (ok) await setStatus(shown.map((q) => q.id), "approved", `Approved ${shown.length}`);
   };
 
-  if (!data) return <div className="account-card"><LoadingLines label="Loading" /></div>;
-  if (!data.ready) return <Alert variant="warning">Trivia needs supabase/trivia-m1.sql on this database.</Alert>;
+  const header = (
+    <AdminHeader
+      title="Trivia"
+      intro="The GameShuffle question pack hosts fill their nights from. Hosts only see approved questions, so check each answer against its source first, and retire anything wrong or out of date."
+      actions={data?.ready ? (
+        <Button variant="secondary" size="small" iconBefore={IconLibraryPlus} disabled={busy || data.bank.missing === 0} onClick={() => void importBank()}>
+          {data.bank.missing === 0 ? "Starter pack added" : `Add the starter pack (${data.bank.missing} new)`}
+        </Button>
+      ) : undefined}
+    />
+  );
+  if (!data) return <div className="account-card admin-screen">{header}<LoadingLines label="Loading" /></div>;
+  if (!data.ready) return <div className="account-card admin-screen">{header}<Alert variant="warning" title="Not set up yet">Trivia&apos;s tables aren&apos;t on this database yet.</Alert></div>;
 
   const list = (
     <div className="trivia-admin">
       <div className="trivia-admin__bar">
         {cats.length > 1 && (
-          <Select floatingLabel="Category" value={activeCat} onChange={(v) => setCat(String(v))}
+          <Select floatingLabel="Category" value={activeCat} onChange={(v) => { setCat(String(v)); setLimit(PAGE); }}
             options={[{ value: "all", label: `Every category (${inLane.length})` }, ...cats.map((c) => ({ value: c, label: `${c} (${inLane.filter((q) => q.category === c).length})` }))]} />
         )}
         {lane === "draft" && shown.length > 0 && <Button variant="secondary" disabled={busy} onClick={() => void approveShown()}>Approve all {shown.length} shown</Button>}
       </div>
       {shown.length === 0 ? (
-        <p className="dbot-muted">{lane === "draft" ? "Nothing to check." : lane === "approved" ? "No approved questions yet: hosts see an empty pack." : "Nothing retired."}</p>
+        <EmptyState variant="bordered" icon={<IconBulb size={28} />}
+          title={lane === "draft" ? "Nothing to check" : lane === "approved" ? "No approved questions yet" : "Nothing retired"}
+          description={lane === "draft" ? "New questions land here as drafts: the starter pack, or ones hosts write." : lane === "approved" ? "Hosts see an empty pack until you approve some." : undefined} />
       ) : (
         <ul className="trivia-library">
-          {shown.map((q) => (
+          {shown.slice(0, limit).map((q) => (
             <li key={q.id} className={`trivia-lib-q${q.status === "draft" ? " is-draft" : ""}`}>
               <div className="trivia-lib-q__head">
                 <span className="trivia-muted">{q.category} · {q.difficulty}{q.kind !== "text" ? ` · ${q.kind}` : ""}</span>
@@ -116,36 +134,39 @@ export function PlatformTriviaTab() {
               <AnswerLine q={q} />
               <div className="trivia-row">
                 {q.status === "draft" && <Button variant="primary" size="small" disabled={busy} onClick={() => void setStatus([q.id], "approved", "Approved")}>Approve</Button>}
-                {q.status !== "retired" && <Button variant="secondary" size="small" disabled={busy} onClick={() => setEditing(q)}>Edit</Button>}
-                {q.status === "approved" && <Button variant="ghost" size="small" disabled={busy} onClick={() => void setStatus([q.id], "draft", "Moved back to check")}>Back to check</Button>}
-                {q.status !== "retired" && <Button variant="ghost" size="small" disabled={busy} onClick={() => void setStatus([q.id], "retired", "Retired")}>Retire</Button>}
+                {q.status !== "retired" && <Button variant="ghost" size="small" disabled={busy} onClick={() => setEditing(q)}>Edit</Button>}
                 {q.status === "retired" && <Button variant="secondary" size="small" disabled={busy} onClick={() => void setStatus([q.id], "draft", "Back in the queue")}>Put back to check</Button>}
+                {q.status !== "retired" && (
+                  <AdminRowMenu
+                    label={`More for: ${q.prompt.slice(0, 60)}`}
+                    items={[
+                      ...(q.status === "approved" ? [{ label: "Move back to check", onClick: () => void setStatus([q.id], "draft", "Moved back to check") }] : []),
+                      { label: "Retire", onClick: () => void setStatus([q.id], "retired", "Retired") },
+                    ]}
+                  />
+                )}
               </div>
             </li>
           ))}
         </ul>
       )}
+      {shown.length > limit && (
+        <div><Button variant="ghost" size="small" onClick={() => setLimit((n) => n + PAGE)}>Show {Math.min(PAGE, shown.length - limit)} more of {shown.length}</Button></div>
+      )}
     </div>
   );
 
   return (
-    <div className="trivia-admin__wrap">
-      <div className="account-card">
-        <h3 className="account-card__title">GameShuffle trivia pack</h3>
-        <p className="dbot-muted">
-          Hosts fill their nights from approved questions here (one tap fills a whole night). {data.counts.approved} approved, {data.counts.draft} to check, {data.counts.retired} retired.
-          Check each answer against its source before approving, and retire anything wrong or out of date.
-        </p>
-        <div className="trivia-row">
-          <Button variant="primary" disabled={busy || data.bank.missing === 0} onClick={() => void importBank()}>
-            {data.bank.missing === 0 ? "Starter pack added" : `Add the starter pack (${data.bank.missing} new)`}
-          </Button>
-        </div>
-        <p className="dbot-muted">The starter pack is {data.bank.total} questions across general knowledge, geography, science, history, games, film and TV, music, sports, food and words, plus picture rounds of game characters and Overwatch heroes. Adding skips any already here.</p>
-      </div>
+    <div className="account-card admin-screen trivia-admin__wrap">
+      {header}
+      <AdminStats label="The trivia pack" columns={3}>
+        <StatCard label="Approved" value={String(data.counts.approved)} source="What hosts can use" icon={<IconCircleCheck size={20} />} variant="accent" />
+        <StatCard label="To check" value={String(data.counts.draft)} source={data.bank.missing ? `${data.bank.missing} starter questions not added` : "Starter pack all added"} icon={<IconChecklist size={20} />} />
+        <StatCard label="Retired" value={String(data.counts.retired)} icon={<IconArchive size={20} />} />
+      </AdminStats>
 
-      <Tabs variant="underline" activeTab={lane} onChange={(id) => setLane(id as Status)}
-        tabs={LANES.map((l) => ({ id: l.id, label: `${l.label} (${data.counts[l.id]})`, content: lane === l.id ? list : null }))} />
+      <Tabs variant="underline" activeTab={lane} onChange={(id) => { setLane(id as Status); setLimit(PAGE); }}
+        tabs={LANES.map((l) => ({ id: l.id, label: l.label, badge: data.counts[l.id] || undefined, content: lane === l.id ? list : null }))} />
 
       {editing && <EditQuestion q={editing} busy={busy} onClose={() => setEditing(null)}
         onSave={async (question) => { const j = await post({ action: "update", id: editing.id, question }); if (j) { toast.success("Saved"); setEditing(null); } }} />}

@@ -133,6 +133,10 @@ export async function GET() {
     signupsTodayRes,
     signupsWeekRes,
     signupsMonthRes,
+    onlineNowRes,
+    seenTodayRes,
+    seenWeekRes,
+    seenMonthRes,
   ] = await Promise.all([
     admin
       .from("lounge_sessions")
@@ -194,6 +198,24 @@ export async function GET() {
       .from("users")
       .select("*", { count: "exact", head: true })
       .gte("created_at", last30dIso),
+    // Accounts seen on the site (the signed-in heartbeat writes last_seen_at
+    // every few minutes). "Online" matches the profile dot: seen < 5 min.
+    admin
+      .from("users")
+      .select("*", { count: "exact", head: true })
+      .gte("last_seen_at", new Date(now - 5 * 60 * 1000).toISOString()),
+    admin
+      .from("users")
+      .select("*", { count: "exact", head: true })
+      .gte("last_seen_at", todayStartIso),
+    admin
+      .from("users")
+      .select("*", { count: "exact", head: true })
+      .gte("last_seen_at", last7dIso),
+    admin
+      .from("users")
+      .select("*", { count: "exact", head: true })
+      .gte("last_seen_at", last30dIso),
   ]);
 
   // ── Throughput: count + traded volume in the last hour. The
@@ -258,6 +280,12 @@ export async function GET() {
       tokenEventsLastHour,
       tokenVolumeLastHour,
       engagementSignalsLastHour: engagementLastHourRes.count ?? 0,
+    },
+    people: {
+      onlineNow: onlineNowRes.count ?? 0,
+      seenToday: seenTodayRes.count ?? 0,
+      seenWeek: seenWeekRes.count ?? 0,
+      seenMonth: seenMonthRes.count ?? 0,
     },
     growth: {
       signupsToday: signupsTodayRes.count ?? 0,

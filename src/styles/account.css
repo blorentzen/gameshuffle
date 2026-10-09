@@ -2159,63 +2159,12 @@ html.dark .gs-platform-icon {
 }
 
 
-/* ── Platform Shop tab (featured shop cards admin) ─────────────────────── */
-.platform-shop__intro {
-  color: var(--text-secondary);
-  margin: 0 0 var(--spacing-24);
-  max-width: 46rem;
-  line-height: var(--line-height-relaxed);
-}
-.platform-shop__heading {
-  font-size: var(--font-size-18);
-  font-weight: var(--font-weight-semibold);
-  margin: 0 0 var(--spacing-12);
-}
-.platform-shop__add,
-.platform-shop__list-section {
-  margin-bottom: var(--spacing-40);
-}
-.platform-shop__muted {
-  color: var(--text-tertiary);
-  font-size: var(--font-size-14);
-}
-.platform-shop__link-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--brand-ink, var(--text-primary));
-  font-size: var(--font-size-14);
-  text-decoration: underline;
-}
-.platform-shop__remove:hover {
-  color: var(--color-error, #c0392b);
-}
-.platform-shop__url {
-  color: inherit;
-  display: inline-block;
-  max-width: 32rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-decoration: none;
-}
-/* Add flow — visual card picker (browse + search results) */
-.platform-shop__picker-note {
-  margin: var(--spacing-16) 0 var(--spacing-12);
-}
-.platform-shop__picker {
-  margin-top: var(--spacing-8);
-}
-/* Equal-height cards: stretch the carousel item's child to fill (the CDS item
-   is a block, so the card wouldn't fill on its own). */
-.platform-shop__picker .empac-carousel__item {
-  display: flex;
-  flex-direction: column;
-}
-.platform-shop__picker .empac-carousel__item > * {
-  flex: 1;
-}
+/* ── Platform admin ▸ Shop ▸ Featured cards ──────────────────────────────── */
+.platform-shop__muted { margin: 0; color: var(--text-tertiary); font-size: var(--font-size-14); }
+.platform-shop__url { font-size: var(--font-size-14); color: var(--brand-ink, var(--text-primary)); }
+/* Add-a-card drawer: search, a grid of catalog cards, then the link form. */
+.platform-shop__drawer { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.platform-shop__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: var(--spacing-12); }
 .platform-shop__pick {
   display: flex;
   flex-direction: column;
@@ -2226,153 +2175,39 @@ html.dark .gs-platform-icon {
   background: var(--background-elevated);
   cursor: pointer;
   text-align: center;
-  transition:
-    transform 0.12s ease,
-    border-color 0.12s ease,
-    box-shadow 0.12s ease;
+  font: inherit;
+  color: inherit;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
-.platform-shop__pick:hover {
-  transform: translateY(-2px);
-  border-color: var(--brand-ink, var(--border-default));
-  box-shadow: var(--shadow-elevated, 0 4px 14px rgba(0, 0, 0, 0.12));
-}
-.platform-shop__pick-name {
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-  line-height: var(--line-height-tight);
-}
-.platform-shop__picked {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-24);
-  padding: var(--spacing-16);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md, 0.5rem);
-  background: var(--background-secondary);
-}
-.platform-shop__picked-card {
-  display: flex;
-  gap: var(--spacing-12);
-  width: 18rem;
-}
-.platform-shop__picked-card > :first-child {
-  width: 6rem;
-  flex-shrink: 0;
-}
-.platform-shop__fields {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-8);
-  flex: 1;
-  min-width: 16rem;
-}
-/* Current list */
-.platform-shop__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
-}
+.platform-shop__pick:hover { transform: translateY(-2px); border-color: var(--brand-ink, var(--border-default)); box-shadow: var(--shadow-elevated, 0 4px 14px rgba(0, 0, 0, 0.12)); }
+.platform-shop__pick:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .platform-shop__pick, .platform-shop__pick:hover { transition: none; transform: none; } }
+.platform-shop__pick-name { font-size: var(--font-size-14); font-weight: var(--font-weight-medium); color: var(--text-primary); line-height: var(--line-height-tight); }
+.platform-shop__picked-card { display: flex; gap: var(--spacing-12); align-items: flex-start; }
+.platform-shop__picked-card > :first-child { width: 6rem; flex-shrink: 0; }
+.platform-shop__fields { display: flex; flex-direction: column; gap: var(--spacing-12); }
+/* The lists */
+.platform-shop__list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
 .platform-shop__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-16);
+  gap: var(--spacing-12) var(--spacing-16);
   padding: var(--spacing-12);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md, 0.5rem);
   background: var(--background-elevated);
 }
-/* Sold rows read as sold via a muted surface + a grayed thumbnail — NOT a
-   blanket opacity that would wash out the (still-usable) controls. */
-.platform-shop__row.is-sold {
-  background: var(--background-secondary);
-}
-.platform-shop__row.is-sold .platform-shop__row-card {
-  filter: grayscale(1);
-  opacity: 0.7;
-}
-/* Drag handle for reordering featured (available) cards. */
-.platform-shop__drag {
-  flex-shrink: 0;
-  appearance: none;
-  border: 0;
-  background: none;
-  padding: var(--spacing-4);
-  font-size: var(--font-size-20);
-  line-height: 1;
-  color: var(--text-tertiary);
-  cursor: grab;
-  touch-action: none;
-}
-.platform-shop__drag:hover {
-  color: var(--text-secondary);
-}
-.platform-shop__drag:active {
-  cursor: grabbing;
-}
-.platform-shop__reorder-hint {
-  margin-bottom: var(--spacing-8);
-}
-.platform-shop__row-card {
-  width: 3.5rem;
-  flex-shrink: 0;
-}
-.platform-shop__row-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  flex: 1;
-  min-width: 0;
-}
-/* Name + status badge on one line so the badge hugs its text (a Badge in the
-   flex-column row-info would otherwise stretch full width). */
-.platform-shop__row-title {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  flex-wrap: wrap;
-}
-.platform-shop__row-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  flex-wrap: wrap;
-}
-/* Featured toggle — a compact starred checkbox in the row actions. */
-.platform-shop__feature {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-}
-/* Sold-date input sized to sit inline with the action buttons (bare input —
-   the row's "Sold" badge already labels the status). */
-.platform-shop__date-input {
-  width: 14rem;
-}
-
-/* Platform Shop — add-as-sold controls */
-.platform-shop__checkbox {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  font-size: var(--font-size-14);
-  color: var(--text-secondary);
-}
-.platform-shop__date-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-}
+/* Sold rows read as sold through a muted surface and a grey thumbnail, not a
+   blanket opacity that would wash out the controls. */
+.platform-shop__row.is-sold { background: var(--background-secondary); }
+.platform-shop__row.is-sold .platform-shop__row-card { filter: grayscale(1); opacity: 0.7; }
+.platform-shop__row-card { width: 3.5rem; flex-shrink: 0; }
+.platform-shop__row-info { display: flex; flex-direction: column; gap: var(--spacing-4); flex: 1 1 14rem; min-width: 0; }
+.platform-shop__row-title { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
+.platform-shop__row-actions { display: flex; align-items: center; gap: var(--spacing-6); flex: 0 0 auto; }
+@media (max-width: 640px) { .platform-shop__row-actions { flex: 1 1 100%; flex-wrap: wrap; } }
+.platform-shop__date { flex: 0 0 16rem; width: 16rem; min-width: 0; }
 
 /* My Cards tab (account My Stuff section) — attribution footer under the
    collection manager. */
@@ -3764,3 +3599,89 @@ html.dark .gs-platform-icon {
 .token-panel__section { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
 .token-panel__h { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); }
 .token-panel__intro { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* ── Platform admin kit (src/components/account/admin/AdminKit.tsx) ───────
+   One header, one stat grid, one section style for every admin screen. */
+.admin-screen { display: flex; flex-direction: column; gap: var(--spacing-28); min-width: 0; }
+.admin-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--spacing-12) var(--spacing-16); }
+.admin-head__text { flex: 1 1 28rem; min-width: 0; }
+.admin-head .admin-head__title { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); color: var(--text-primary); }
+.admin-head__intro { margin: var(--spacing-6) 0 0; max-width: 68ch; font-size: var(--font-size-16); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-head__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+
+/* Stats: 2 across until the screen is wide enough for 4 (or 3). Sized by the
+   screen's own width, not the window's, since the sidebar takes a share. */
+.admin-stats-wrap { container-type: inline-size; min-width: 0; }
+.admin-stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-12); }
+.admin-stats-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+@container (min-width: 640px) {
+  .admin-stats-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .admin-stats-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-stats-grid > :last-child:nth-child(odd) { grid-column: auto; }
+}
+/* Cards in a row line up: the number sits right under the label and the
+   small print is pinned to the bottom, so a two-line note doesn't lift its
+   number out of line with the neighbours. */
+.admin-stats-grid .empac-stat-card { display: flex; flex-direction: column; min-width: 0; }
+.admin-stats-grid .empac-stat-card__content { flex: 1; flex-direction: column; align-items: stretch; }
+.admin-stats-grid .empac-stat-card__main { flex: 1; }
+.admin-stats-grid .empac-stat-card__source { margin-top: auto; padding-top: var(--spacing-4); }
+.admin-stats-grid .empac-stat-card__label { text-wrap: balance; }
+.admin-stats-grid .empac-stat-card__icon { flex: 0 0 auto; }
+/* Two across on a phone: drop the (decorative) icons so labels get the width
+   and don't wrap unevenly across a row. */
+@container (max-width: 420px) {
+  .admin-stats-grid .empac-stat-card { padding: var(--spacing-12) var(--spacing-14); }
+  .admin-stats-grid .empac-stat-card__icon { display: none; }
+  .admin-stats-grid .empac-stat-card__header { margin-bottom: var(--spacing-4); }
+  .admin-stats-grid .empac-stat-card__value { font-size: var(--font-size-28); }
+}
+
+.admin-section { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.admin-section__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); }
+.admin-section .admin-section__title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-section__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.admin-section__intro { margin: calc(-1 * var(--spacing-4)) 0 0; max-width: 68ch; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); gap: var(--spacing-12); }
+.admin-charts .admin-chart { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.admin-chart__title { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+.admin-updated { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+/* A one-line pointer to another view ("Tokens in the last hour… Token economy"). */
+.admin-pointer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-primary); font-size: var(--font-size-14); color: var(--text-secondary); }
+.admin-pointer svg { flex: 0 0 auto; color: var(--text-tertiary); }
+.admin-pointer__text { flex: 1 1 20rem; min-width: 0; }
+.admin-pointer__text strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.admin-pointer a { font-weight: var(--font-weight-semibold); color: var(--brand-ink, var(--text-primary)); white-space: nowrap; }
+.admin-table:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; }
+.admin-table .empac-table { min-width: 100%; }
+.admin-num { font-variant-numeric: tabular-nums; }
+.admin-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); gap: var(--spacing-28) var(--spacing-16); align-items: start; min-width: 0; }
+.admin-chart__empty { margin: 0; min-height: 12rem; display: grid; place-items: center; text-align: center; padding: var(--spacing-16); font-size: var(--font-size-14); color: var(--text-tertiary); }
+/* Phones: a wide admin table keeps its first column in place while the rest
+   scrolls sideways, so each row stays readable (legibility over fit). */
+@media (max-width: 640px) {
+  .admin-table .empac-table__head:first-child,
+  .admin-table .empac-table__cell:first-child { position: sticky; left: 0; z-index: 1; max-width: 45vw; background-color: var(--background-elevated); box-shadow: 1px 0 0 var(--border-default); }
+  .admin-table .empac-table__head:first-child { background-color: var(--background-secondary); }
+  .admin-table .empac-table--striped .empac-table__row:nth-child(even) .empac-table__cell:first-child { background-color: var(--background-secondary); }
+}
+/* CDS Table brings its own scroll box; the admin wrapper is the (focusable)
+   scroller instead, so drop the inner one and its second border. */
+.admin-table .empac-table-container { overflow: visible; border: 0; border-radius: 0; }
+.admin-row-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--spacing-4); white-space: nowrap; }
+.admin-section__icon { width: 36px; height: 36px; flex: 0 0 auto; border-radius: 10px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+.admin-section__icon--accent { background: linear-gradient(135deg, #7c3aed, #c949e9); }
+.admin-section__head:has(.admin-section__icon) .admin-section__title { flex: 1; min-width: 0; }
+.admin-panel { display: flex; flex-direction: column; gap: var(--spacing-10); min-width: 0; padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-primary); }
+.admin-panel .admin-panel__title { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-panel p { margin: 0; }
+.originals-admin__weeks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--spacing-12); align-items: stretch; }
+.originals-admin .admin-panel.originals-admin__today { flex-direction: row; align-items: center; gap: var(--spacing-16); }
+.originals-admin .originals-admin__answer { margin: 2px 0 4px; font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); }
+/* Counts on admin tabs are just counts, not alerts: neutral, not CDS's red. */
+.platform-view .empac-tabs__tab-badge { background: var(--background-tertiary, var(--background-secondary)); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.platform-view .empac-tabs__tab--active .empac-tabs__tab-badge { background: color-mix(in srgb, var(--primary-500) 14%, var(--background-elevated)); color: var(--brand-ink, var(--primary-600)); }
+/* CDS Progress only names its bar through `label`, which it also prints over
+   the bar. Where the number is already written beside it, keep the name and
+   hide the print. (Known CDS gap; raise upstream.) */
+.admin-progress-quiet .empac-progress__label { display: none; }

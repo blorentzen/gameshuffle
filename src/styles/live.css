@@ -2793,3 +2793,6 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .cb-stream__meta { font-size: var(--font-size-14); margin: 0 0 var(--spacing-8); }
 .cb-stream__overrule { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin-top: var(--spacing-12); }
 .cb-stream__time { max-width: 32rem; margin-top: var(--spacing-12); }
+.brain-admin__tools { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
+.brain-admin__actions { align-items: center; }
+.originals-admin__bars li { min-height: 2.4rem; }

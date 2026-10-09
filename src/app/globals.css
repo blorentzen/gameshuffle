@@ -3053,3 +3053,16 @@ html.dark .empac-tabs__tab--active .empac-tabs__tab-label {
 .discord-joined .auth-page__title { margin-bottom: 0; }
 .discord-joined__icon { color: var(--color-success-600, #158a50); }
 .discord-joined__actions { display: grid; gap: var(--spacing-8); width: 100%; }
+
+/* CDS floating labels sit inside an empty field, but a date or time field
+   always shows its own "mm/dd/yyyy" text, so the two overlapped (Chat Brain's
+   Opens field, the shop's Sold on). Float the label from the start for those
+   types. Raise upstream with CascadeDS. */
+.empac-input:is([type="date"], [type="datetime-local"], [type="time"], [type="month"]) ~ .empac-input__floating-label {
+  top: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  background-color: var(--background-elevated);
+  padding: 0 var(--spacing-4);
+}
