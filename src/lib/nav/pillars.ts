@@ -202,8 +202,8 @@ export const PILLARS: Pillar[] = [
       {
         heading: "Your channel",
         items: [
-          { label: "Stream hub", href: "/hub", blurb: "Sessions, modules and fan-out.", audience: "streamer" },
-          { label: "Twitch integration", href: "/twitch", blurb: "Chat bot, channel points and EventSub health.", audience: "streamer" },
+          { label: "Stream hub", href: "/hub", blurb: "Plan, run and look back on your streams.", audience: "streamer" },
+          { label: "Stream settings", href: "/account/streaming", blurb: "Connections, chat bot, overlay and channel points.", audience: "streamer" },
         ],
       },
       {

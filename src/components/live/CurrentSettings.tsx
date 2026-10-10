@@ -101,8 +101,8 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
   );
 
   return (
-    <aside className="current-settings" aria-label="Current session settings">
-      <h3 className="current-settings__title">{session.name}</h3>
+    <aside className="current-settings" aria-label="This stream's settings">
+      <h2 className="current-settings__title">{session.name}</h2>
 
       <section className="current-settings__section">
         <p className="current-settings__label">Now playing</p>
@@ -111,8 +111,8 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
 
       {configuredGames.length > 1 && (
         <section className="current-settings__section">
-          <p className="current-settings__label">All games this session</p>
-          <div className="current-settings__scroller">
+          <p className="current-settings__label">All games this stream</p>
+          <div className="current-settings__scroller" role="region" aria-label="All games this stream" tabIndex={0}>
             <ul className="current-settings__game-chips">
               {configuredGames.map((slug) => (
                 <li key={slug}>
@@ -133,7 +133,7 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
           )}
         </p>
         {races.length > 0 ? (
-          <div className="current-settings__scroller">
+          <div className="current-settings__scroller" role="region" aria-label="Races this round" tabIndex={0}>
             <ul className="current-settings__race-tiles">
               {races.map((race) => (
                 <li key={race.key}>
@@ -159,7 +159,7 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
           )}
         </p>
         {currentItems.items.length > 0 ? (
-          <div className="current-settings__scroller">
+          <div className="current-settings__scroller" role="region" aria-label="Current items" tabIndex={0}>
             <ul className="current-settings__item-tiles">
               {currentItems.items.map((item) => (
                 <li key={item.id}>
@@ -193,7 +193,7 @@ function ActiveGameRow({
         <div className="current-settings__active-game-img">
           <Image
             src={art.artworkUrl}
-            alt={art.name}
+            alt=""
             width={48}
             height={48}
             unoptimized
@@ -236,7 +236,7 @@ function RaceTileItem({ race }: { race: RaceTile }) {
       {race.image ? (
         <Image
           src={getImagePath(race.image)}
-          alt={race.name}
+          alt=""
           width={104}
           height={58}
           unoptimized
@@ -255,7 +255,7 @@ function ItemTileItem({ item }: { item: Item }) {
       {item.image ? (
         <Image
           src={getImagePath(item.image)}
-          alt={item.name}
+          alt=""
           width={40}
           height={40}
           unoptimized

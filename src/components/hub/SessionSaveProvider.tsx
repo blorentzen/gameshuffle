@@ -360,6 +360,9 @@ function SaveBar({
   statusKind: "ok" | "error" | null;
   onSave: () => void;
 }) {
+  // Only there when it matters: unsaved edits, or the result of a save
+  // (it used to sit above every tab saying "All changes saved").
+  if (!anyDirty && !statusMessage) return null;
   return (
     <div className="hub-detail__save-bar">
       <div className="hub-detail__save-bar-status">

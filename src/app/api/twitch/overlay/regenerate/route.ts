@@ -5,8 +5,8 @@
  * invalidating the previous one immediately. Used when the URL leaks
  * (e.g. streamer accidentally shows their OBS sources panel on stream).
  *
- * The old /overlay/[old-token] and /lobby/[old-token] URLs return 404
- * the moment this endpoint returns. Streamer must update their OBS
+ * The old /overlay/[old-token] URL returns 404 the moment this endpoint
+ * returns. Streamer must update their OBS
  * browser source to the new URL.
  */
 

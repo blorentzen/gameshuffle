@@ -10,7 +10,8 @@
  */
 
 import { useEffect, useState, useTransition } from "react";
-import { Button } from "@empac/cascadeds";
+import { Button, Select } from "@empac/cascadeds";
+import { Lever } from "./live/Lever";
 import {
   getTierListAction,
   newTierListAction,
@@ -81,70 +82,36 @@ export function TierListControl() {
   const rankedCount = list?.items.filter((it) => it.tier !== null).length ?? 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-        <Button variant="primary" loading={pending} onClick={create}>
-          {list ? "New list from pool" : "Start list"}
-        </Button>
-        {list && (
-          <>
-            <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
-              {rankedCount}/{list.items.length} placed
-            </span>
-            <Button variant="ghost" onClick={clear} disabled={pending}>
-              Clear
-            </Button>
-          </>
-        )}
-      </div>
-
+    <Lever
+      label="Tier list"
+      hint={list ? `${rankedCount} of ${list.items.length} placed` : undefined}
+      actions={
+        <>
+          <Button variant="secondary" size="small" className="hub-lever__main" loading={pending} onClick={create}>{list ? "New list" : "Start a list"}</Button>
+          {list && <Button variant="ghost" size="small" onClick={clear} disabled={pending}>Clear</Button>}
+        </>
+      }
+    >
       {list && list.items.length === 0 && (
-        <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-          Your item pool is empty. Add items in <strong>Setup</strong>, save, then start a list.
-        </p>
+        <p className="hub-lever__note">Your item pool is empty. Add items in Streaming ▸ Overlay ▸ Tool looks, then start a list.</p>
       )}
-
       {list && list.items.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <ul className="hub-lever__tiers">
           {list.items.map((it) => (
-            <div
-              key={it.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--spacing-8)",
-                padding: "4px 8px",
-                borderRadius: 8,
-                border: "1px solid var(--border-default)",
-                background: "var(--surface-default)",
-              }}
-            >
-              <span style={{ flex: "1 1 auto", minWidth: 0, fontSize: "var(--font-size-14)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {it.text}
-              </span>
-              <select
-                value={it.tier ?? ""}
-                onChange={(e) => place(it.id, e.target.value || null)}
-                disabled={pending}
+            <li key={it.id} className="hub-lever__tier-row">
+              <span className="hub-lever__tier-text">{it.text}</span>
+              <Select
+                size="small"
                 aria-label={`Tier for ${it.text}`}
-                style={{
-                  height: 30,
-                  borderRadius: 6,
-                  border: "1px solid var(--border-default)",
-                  padding: "0 6px",
-                  background: "var(--surface-default)",
-                  color: "var(--text-primary)",
-                }}
-              >
-                <option value="">-</option>
-                {list.tiers.map((t) => (
-                  <option key={t.key} value={t.key}>{t.label}</option>
-                ))}
-              </select>
-            </div>
+                disabled={pending}
+                value={it.tier ?? "none"}
+                onChange={(v) => place(it.id, v === "none" ? null : String(v))}
+                options={[{ value: "none", label: "Not placed" }, ...list.tiers.map((t) => ({ value: t.key, label: t.label }))]}
+              />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </div>
+    </Lever>
   );
 }

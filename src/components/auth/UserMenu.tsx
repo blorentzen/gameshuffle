@@ -43,7 +43,7 @@ function buildMenuSections(args: {
   if (args.hasStreamerIntegration) {
     sections.push({
       label: "Activity",
-      items: [{ label: "Stream Hub", onClick: go("/hub") }],
+      items: [{ label: "Stream hub", onClick: go("/hub") }],
     });
   }
 

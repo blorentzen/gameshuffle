@@ -30,6 +30,8 @@ interface Props {
   /** When true, selected tiles can be dragged to reorder + show their
    *  position badge. Default false — most surfaces just need selection. */
   reorderable?: boolean;
+  /** Show the built-in hint line. Off where the form writes its own. */
+  hint?: boolean;
 }
 
 export function GameMultiSelect({
@@ -37,6 +39,7 @@ export function GameMultiSelect({
   onChange,
   disabled = false,
   reorderable = false,
+  hint = true,
 }: Props) {
   // Catalog excludes GS_DEFAULT — that's the queue fallback, not a
   // "configurable game" the streamer picks. The Modules tab carousel
@@ -68,7 +71,7 @@ export function GameMultiSelect({
     <div
       className={`game-multi-select${disabled ? " game-multi-select--disabled" : ""}`}
       role="group"
-      aria-label="Games for this session"
+      aria-label="Games for this stream"
     >
       <div className="game-multi-select__grid">
         {allSlugs.map((slug) => {
@@ -152,21 +155,14 @@ export function GameMultiSelect({
           );
         })}
       </div>
-      <p className="game-multi-select__hint">
-        {reorderable ? (
-          <>
-            Click to toggle. Drag a selected tile to set play order. Index 1
-            is the default active game when a test session activates without a
-            Twitch category.
-          </>
-        ) : (
-          <>
-            Click each game you plan to host. You can adjust play order on
-            the Settings tab once the session is created.
-          </>
-        )}
-        {value.length === 0 && " No games selected → queue-only session."}
-      </p>
+      {hint && (
+        <p className="game-multi-select__hint">
+          {reorderable
+            ? "Tap a game to add or remove it. Drag the picked ones into play order; the first is where the stream starts."
+            : "Tap each game you plan to play. You can set the order on the next page."}
+          {value.length === 0 && " With none picked, it's a viewer queue only."}
+        </p>
+      )}
       {/* Reference the constant so static analyzers see it as used; the
           value is the authoritative key for the queue-fallback artwork. */}
       <span hidden>{GS_DEFAULT_SLUG}</span>

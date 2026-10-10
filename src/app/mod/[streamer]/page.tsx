@@ -1,12 +1,11 @@
 /**
  * /mod/[streamer] — the mod's operational view of a streamer's surfaces.
  *
- * M.4 ships the live operational panel: active-participant list with
- * kick, real-time activity feed, plus stubbed sections for the
- * downstream features (code-request approval queue, prequeue
- * management, room-code release). Each stub explains what it'll
- * become so a streamer previewing the surface sees exactly what
- * their mods will get.
+ * Laid out like the streamer's control room (2026-10-10): a banner saying
+ * whose stream it is and what a mod can do, the session header, the lobby
+ * with Kick and the activity feed, then the streamer's decks. The
+ * "Coming soon" boxes for unbuilt features are gone; add a panel when a
+ * mod tool actually ships (code requests, pre-stream queue, room code).
  *
  * Auth: caller must be signed in AND either (a) the streamer
  * themselves (implicit-mod self-access) OR (b) hold an `active` row
@@ -24,6 +23,8 @@ import { listActiveParticipants, listSessionEvents } from "@/lib/sessions/querie
 import { RealtimeActivityFeed } from "@/components/hub/RealtimeActivityFeed";
 import { ModParticipantsPanel } from "./ModParticipantsPanel";
 import { DeckEditor } from "@/components/party/DeckEditor";
+import { GameCover } from "@/components/games/GameCover";
+import { getGameName } from "@/data/game-registry";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +74,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
 
   if (!streamer) {
     return (
-      <Container>
+      <Container as="main">
         <ModShell>
           <h1 style={{ marginTop: 0 }}>Streamer not found</h1>
           <Alert variant="error">
@@ -101,7 +102,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
 
   if (!canAccess) {
     return (
-      <Container>
+      <Container as="main">
         <ModShell>
           <h1 style={{ marginTop: 0 }}>You&rsquo;re not modding for this streamer</h1>
           <Alert variant="warning">
@@ -128,192 +129,73 @@ export default async function ModView({ params, searchParams }: PageProps) {
       ])
     : [[], []];
 
+  const game = session ? session.active_game ?? session.configured_games?.[0] ?? null : null;
+  const inLobby = participants.filter((p) => !p.is_broadcaster).length;
+
   return (
-    <Container>
-      <ModShell>
+    <Container as="main">
+      <div className="hub-detail hub-session mod-view">
         {justClaimed && (
-          <div style={{ marginBottom: "var(--spacing-20)" }}>
-            <Alert variant="success">
-              You&rsquo;re in. {streamerName} now sees you as an active mod
-              for their streams.
-            </Alert>
-          </div>
+          <Alert variant="success">
+            You&rsquo;re in. {streamerName} now sees you as an active mod for their streams.
+          </Alert>
         )}
 
-        {isStreamerSelf && (
-          <div style={{ marginBottom: "var(--spacing-20)" }}>
-            <Alert variant="info">
-              <strong>You&rsquo;re viewing as the streamer.</strong>{" "}This is
-              the same surface your active mods see, useful for previewing
-              what they have access to, plus you can operate any of these
-              tools yourself when you&rsquo;re live.
-            </Alert>
-          </div>
-        )}
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--spacing-12)",
-            marginBottom: "var(--spacing-16)",
-            flexWrap: "wrap",
-          }}
-        >
-          <h1 style={{ margin: 0 }}>Mod view: {streamerName}</h1>
-          <Badge variant={isStreamerSelf ? "default" : "success"} size="small">
-            {isStreamerSelf ? "Streamer" : "Active"}
-          </Badge>
-          {session ? (
-            <Badge variant="success" size="small">
-              ● Live session
-            </Badge>
-          ) : (
-            <Badge variant="default" size="small">
-              No active session
-            </Badge>
-          )}
+        <div className="mod-view__banner">
+          <Alert variant="info" title={isStreamerSelf ? "This is what your mods see" : `You're a mod for ${streamerName}`}>
+            {isStreamerSelf
+              ? "They can manage the lobby and edit your decks. Rolls, picks and bans, predictions and the stream itself stay with you, in the Stream hub."
+              : `You can manage the lobby and edit ${streamerName}'s decks. ${streamerName} runs rolls, picks and bans, predictions and the stream itself.`}
+          </Alert>
         </div>
 
-        {!session ? (
-          <>
-            <Alert variant="info">
-              {streamerName}{" "}doesn&rsquo;t have an active session right now.
-              When they go live, this view fills in with the moderation
-              tools below. Keep this tab open and it&rsquo;ll light up.
-            </Alert>
-            <div
-              style={{
-                marginTop: "var(--spacing-16)",
-                padding: "var(--spacing-12) var(--spacing-16)",
-                background: "var(--background-secondary)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "var(--radius-md, 0.5rem)",
-                color: "var(--text-tertiary)",
-                fontSize: "var(--font-size-12)",
-                lineHeight: "var(--line-height-relaxed)",
-              }}
-            >
-              Tools you&rsquo;ll have access to once a session is live:
-              kick active participants · read the activity feed
-              <span style={{ opacity: 0.7 }}>
-                {" "}
-                · approve code requests · kick prequeue spots · release
-                room code <em>(rolling out as features ship)</em>
-              </span>
+        <header className="hub-session__head">
+          <span className="hub-session__cover">{game && <GameCover slug={game} name={getGameName(game)} />}</span>
+          <div className="hub-session__titles">
+            <h1 className="hub-detail__title">{session ? session.name : `${streamerName}'s streams`}</h1>
+            <p className="hub-session__status">
+              {session ? (
+                <>
+                  <Badge variant="success" size="small">Live</Badge>
+                  <span>{[game ? `Playing ${getGameName(game)}` : null, `${inLobby} in the lobby`].filter(Boolean).join(" · ")}</span>
+                </>
+              ) : (
+                <>
+                  <Badge variant="default" size="small">Not live</Badge>
+                  <span>Keep this tab open; it fills in when {streamerName} goes live.</span>
+                </>
+              )}
+            </p>
+          </div>
+          <div className="hub-detail__header-actions">
+            <a href={`/live/${slug}`} target="_blank" rel="noopener noreferrer"><Button variant="secondary">{streamerName}&rsquo;s live page ↗</Button></a>
+            {isStreamerSelf && <a href="/account/streaming?tab=mods"><Button variant="secondary">Manage mods</Button></a>}
+          </div>
+        </header>
+
+        {session && (
+          <div className="hub-control">
+            <div className="hub-control__main">
+              <section className="hub-panel" aria-labelledby="mod-lobby">
+                <h2 id="mod-lobby" className="hub-panel__title">Lobby <span className="hub-page__group-count">{inLobby}</span></h2>
+                <ModParticipantsPanel streamerSlug={slug} sessionId={session.id} initialParticipants={participants} />
+              </section>
             </div>
-          </>
-        ) : (
-          <>
-            <Section title="Active participants">
-              <ModParticipantsPanel
-                streamerSlug={slug}
-                sessionId={session.id}
-                initialParticipants={participants}
-              />
-            </Section>
-
-            <Section
-              title="Activity feed"
-              hint="Read-only stream of what's happening this session: joins, shuffles, picks/bans, adapter events. Realtime."
-            >
-              <RealtimeActivityFeed
-                sessionId={session.id}
-                initialEvents={events.map((row) => ({ ...row }))}
-                limit={25}
-              />
-            </Section>
-
-            {/* Forward-looking stubs are scoped to the live-session
-                branch so an inactive view stays quiet. They sit below
-                the operational panels under a "rolling out" header so
-                streamers can preview what their mods will eventually
-                get without the stubs visually competing with the
-                actually-functional tools above. */}
-            <div
-              style={{
-                marginTop: "var(--spacing-32)",
-                paddingTop: "var(--spacing-16)",
-                borderTop: "1px dashed var(--border-subtle)",
-              }}
-            >
-              <p
-                style={{
-                  margin: "0 0 var(--spacing-12)",
-                  fontSize: "var(--font-size-12)",
-                  fontWeight: "var(--font-weight-semibold)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                Rolling out (preview)
-              </p>
-
-              <Section
-                title="Code requests"
-                hint="Pending room-code + friend-code requests in approval mode."
-                stub
-              >
-                <p style={{ margin: 0 }}>
-                  Once the lobby-code-sharing feature ships, viewers who
-                  request the room code (or your friend code) in approval
-                  mode will land here for one-tap Approve / Deny.
-                </p>
-              </Section>
-
-              <Section
-                title="Pre-stream queue"
-                hint="Discord pre-queue management for the streamer's next session."
-                stub
-              >
-                <p style={{ margin: 0 }}>
-                  Once the Discord prequeue feature ships, viewers who
-                  clicked &ldquo;I&rsquo;m in&rdquo; on the announcement
-                  embed will be listed here with per-row kick +
-                  clear-no-shows controls.
-                </p>
-              </Section>
-
-              <Section
-                title="Room code release"
-                hint="Manually release the room code when the streamer's sharing mode is set to approval + mod-release."
-                stub
-              >
-                <p style={{ margin: 0 }}>
-                  Once the lobby-code-sharing feature ships, this button
-                  appears here when {streamerName}{" "}has the &ldquo;Allow
-                  mods to release room codes&rdquo; setting on and the
-                  current room code is in approval mode.
-                </p>
-              </Section>
-            </div>
-          </>
+            <aside className="hub-control__side">
+              <section className="hub-panel" aria-labelledby="mod-activity">
+                <h2 id="mod-activity" className="hub-panel__title">Activity</h2>
+                <RealtimeActivityFeed sessionId={session.id} initialEvents={events.map((row) => ({ ...row }))} limit={12} />
+              </section>
+            </aside>
+          </div>
         )}
 
-        <section style={{ marginTop: "var(--spacing-32)" }}>
-          <h2>{streamerName}&rsquo;s Mario Party cards</h2>
+        <section className="hub-panel" aria-labelledby="mod-decks">
+          <h2 id="mod-decks" className="hub-panel__title">{streamerName}&rsquo;s decks</h2>
+          <p className="hub-panel__empty">Chance cards, missions and house rules for {streamerName}&rsquo;s game nights and live nights.</p>
           <DeckEditor scope={streamer.id} />
         </section>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--spacing-8)",
-            flexWrap: "wrap",
-            marginTop: "var(--spacing-24)",
-          }}
-        >
-          <a href={`/live/${slug}`} style={{ textDecoration: "none" }}>
-            <Button variant="primary">
-              View {streamerName}&rsquo;s live page →
-            </Button>
-          </a>
-          <a href="/account/streaming?tab=mods" style={{ textDecoration: "none" }}>
-            <Button variant="secondary">Manage your mod accounts</Button>
-          </a>
-        </div>
-      </ModShell>
+      </div>
     </Container>
   );
 }
@@ -322,7 +204,7 @@ function ModShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        maxWidth: "56rem",
+        maxWidth: "640px",
         margin: "var(--spacing-48) auto",
         padding: "var(--spacing-24)",
         background: "var(--background-elevated)",
@@ -332,69 +214,5 @@ function ModShell({ children }: { children: React.ReactNode }) {
     >
       {children}
     </div>
-  );
-}
-
-function Section({
-  title,
-  hint,
-  stub,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  /** When true, renders dimmed with a "Coming soon" pill so the
-   *  user knows the section is a placeholder rather than empty state. */
-  stub?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      style={{
-        marginTop: "var(--spacing-24)",
-        padding: "var(--spacing-16) var(--spacing-20)",
-        background: "var(--background-secondary)",
-        border: "1px solid var(--border-default)",
-        borderRadius: "var(--radius-md, 0.5rem)",
-        opacity: stub ? 0.7 : 1,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--spacing-8)",
-          marginBottom: hint ? "var(--spacing-4)" : "var(--spacing-12)",
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: "var(--font-size-18)" }}>{title}</h2>
-        {stub && (
-          <Badge variant="default" size="small">
-            Coming soon
-          </Badge>
-        )}
-      </div>
-      {hint && (
-        <p
-          style={{
-            margin: "0 0 var(--spacing-12)",
-            fontSize: "var(--font-size-12)",
-            color: "var(--text-tertiary)",
-            lineHeight: "var(--line-height-snug)",
-          }}
-        >
-          {hint}
-        </p>
-      )}
-      <div
-        style={{
-          fontSize: "var(--font-size-14)",
-          color: "var(--text-secondary)",
-          lineHeight: "var(--line-height-relaxed)",
-        }}
-      >
-        {children}
-      </div>
-    </section>
   );
 }

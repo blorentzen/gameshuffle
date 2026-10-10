@@ -220,6 +220,9 @@ export interface CreateDraftSessionResult {
   error?: string;
   /** When ok, the slug of the new draft so the client can navigate to it. */
   slug?: string;
+  /** When refused because a draft already exists (one per streamer, a DB
+   *  unique index), that draft, so the modal can offer to open it. */
+  draft?: { slug: string; name: string };
 }
 
 export async function createDraftSessionAction(
@@ -246,14 +249,16 @@ export async function createDraftSessionAction(
   // this is a friendly inline error.
   const { data: existingDraft } = await admin
     .from("gs_sessions")
-    .select("slug")
+    .select("slug, name")
     .eq("owner_user_id", auth.userId)
     .eq("status", "draft")
     .maybeSingle();
   if (existingDraft) {
+    const draft = existingDraft as { slug: string; name: string };
     return {
       ok: false,
-      error: `You already have a draft in progress. Finish or cancel "${(existingDraft as { slug: string }).slug}" first.`,
+      error: `You already have a stream you haven't scheduled or started: "${draft.name}". Open it to finish it, or cancel it from its page to start a new one.`,
+      draft,
     };
   }
 
@@ -294,7 +299,7 @@ export async function createDraftSessionAction(
     if (code === "23505") {
       return {
         ok: false,
-        error: "You already have a draft in progress. Refresh the Hub to find it.",
+        error: "You already have a stream you haven't scheduled or started. It's under Coming up in the Stream hub.",
       };
     }
     console.error("[hub/sessions/new] createDraftSession failed:", err);
@@ -324,14 +329,14 @@ export async function createSessionAction(
   const admin = createServiceClient();
   const { data: existingDraft } = await admin
     .from("gs_sessions")
-    .select("slug")
+    .select("slug, name")
     .eq("owner_user_id", auth.userId)
     .eq("status", "draft")
     .maybeSingle();
   if (existingDraft) {
     return {
       ok: false,
-      error: `You already have a draft session in progress. Continue it at /hub/sessions/${(existingDraft as { slug: string }).slug} or activate/cancel it before starting a new one.`,
+      error: `You already have a stream you haven't scheduled or started: "${(existingDraft as { name: string }).name}". Open it from Coming up in the Stream hub, or cancel it to start a new one.`,
     };
   }
 
@@ -382,7 +387,7 @@ export async function createSessionAction(
       return {
         ok: false,
         error:
-          "You already have a draft session in progress. Refresh the Hub to find it.",
+          "You already have a stream you haven't scheduled or started. It's under Coming up in the Stream hub.",
       };
     }
     console.error("[hub/sessions/new] createSession failed:", err);

@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import Link from "next/link";
 import { Accordion, Button, Checkbox, IconButton, RangeSlider, Select } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { BrandThemeBar } from "@/components/account/BrandThemeBar";
 import {
@@ -534,7 +535,7 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
           description: "Your overlay links, and where the safe area keeps pieces clear of your webcam and chat.",
           content: (
             <>
-              <OverlayLinks token={overlayToken} activeFormat={format} />
+              <OverlayLinks token={overlayToken} activeFormat={format} onRegenerated={setOverlayToken} />
         <p
           style={{
             fontSize: "var(--font-size-12)",
@@ -845,11 +846,34 @@ function anchorToOffset(format: OverlayFormat, toolId: string, layout?: LayoutPr
 function OverlayLinks({
   token,
   activeFormat,
+  onRegenerated,
 }: {
   token: string | null;
   activeFormat: OverlayFormat;
+  /** A new link was made (the old one stops working). */
+  onRegenerated: (token: string) => void;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
+  const [regenerating, setRegenerating] = useState(false);
+  // Moved here from the hub's "Stream info" window (2026-10-10), beside the links it replaces.
+  const regenerate = async () => {
+    if (!(await confirm({
+      title: "Make a new overlay link?",
+      body: "The links you have now stop working right away, so you'll need to paste the new one into OBS or Streamlabs.",
+      confirmLabel: "Make a new link",
+    }))) return;
+    setRegenerating(true);
+    const res = await fetch("/api/twitch/overlay/regenerate", { method: "POST" }).catch(() => null);
+    const body = res ? await res.json().catch(() => ({})) : {};
+    setRegenerating(false);
+    if (!res?.ok || !body.overlayToken) {
+      toast.error("Couldn't make a new link. Try again.");
+      return;
+    }
+    onRegenerated(body.overlayToken as string);
+    toast.success("New link ready. Paste it into OBS or Streamlabs.");
+  };
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   const card: CSSProperties = {
@@ -959,6 +983,14 @@ function OverlayLinks({
         Use the 16:9 link for a normal stream and the 9:16 link for a vertical / TikTok layout. Each
         uses the arrangement you saved for that aspect ratio.
       </p>
+      <div style={{ marginTop: "var(--spacing-12)", display: "flex", alignItems: "center", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
+        <Button variant="ghost" size="small" onClick={() => void regenerate()} disabled={regenerating}>
+          {regenerating ? "Making a new link…" : "Make a new link"}
+        </Button>
+        <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+          If a link got out (say, shown on stream), make a new one; the old links stop working.
+        </span>
+      </div>
     </div>
   );
 }

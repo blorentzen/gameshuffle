@@ -1,16 +1,11 @@
 "use client";
 
 /**
- * Twitch Hub — embedded as a tab under /account. Accessed via
- * /account?tab=twitch-hub. The UserMenu dropdown links here after the
- * user has linked Twitch (via sign-in or account settings).
- *
- * Phase 4A scope: this tab is now strictly for **integration setup**.
- * Live operations (active session, recent shuffles, test-session control,
- * detected-category indicator) moved to /hub. The C.2 deferred decision
- * keeps Connection Status, Bot Check, Overlay Setup, Public Lobby toggle,
- * Feature Modules, and Channel Points config here until Phase 4B has a
- * dedicated configuration destination.
+ * Streaming ▸ Setup ▸ Twitch (/account/streaming?tab=integrations; the old
+ * twitch-hub id aliases here). Channel setup only: connection status, the
+ * bot check, the channel points reward and whether the lobby shows on the
+ * live page (moved here from the hub's session tabs, 2026-10-10). Anything
+ * about a stream itself runs from the Stream hub.
  *
  * Four states:
  *   - Not connected + free tier     → features list + Start-trial / Go-Pro CTAs
@@ -19,6 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { ChannelPointsSettings, LiveLobbySetting } from "@/components/account/ChannelPointsSettings";
 import { useSearchParams } from "next/navigation";
 import { Alert, Badge, Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -113,6 +109,8 @@ export function TwitchHubTab() {
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
+  // Bumped after a change that the server writes (the channel points reward), to reload the connection.
+  const [reloadKey, setReloadKey] = useState(0);
   const [connection, setConnection] = useState<TwitchConnection | null>(null);
   const [subs, setSubs] = useState<EventSubSubRow[]>([]);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -178,7 +176,7 @@ export function TwitchHubTab() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, reloadKey]);
 
   // Auto-heal EventSub drift so the streamer isn't forced to click "Sync".
   // Fires once per mount, only when subs are actually unhealthy, and is
@@ -492,12 +490,10 @@ export function TwitchHubTab() {
       )}
 
       <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
-        Looking for live sessions, shuffle history, or want to configure modules,
-        public lobby, and channel points?{" "}
+        Your streams themselves (going live, rolls, picks and bans) run from the{" "}
         <a href="/hub" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>
-          Visit your Hub →
-        </a>{" "}
-        Open a session and click <em>Configure</em> for the per-session settings.
+          Stream hub
+        </a>.
       </p>
 
       {/* Scope-coverage reauth banner — surfaces when we've added new
@@ -610,6 +606,13 @@ export function TwitchHubTab() {
           )}
         </div>
       </div>
+
+      <ChannelPointsSettings
+        enabled={!!connection.channel_points_enabled}
+        cost={connection.channel_point_cost ?? 500}
+        onChanged={() => setReloadKey((k) => k + 1)}
+      />
+      <LiveLobbySetting enabled={connection.public_lobby_enabled !== false} />
 
       {/* Bot Test */}
       <div className="account-card">

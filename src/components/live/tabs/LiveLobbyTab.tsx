@@ -54,6 +54,22 @@ export function LiveLobbyTab() {
   );
 }
 
+/** The signed-in viewer's own seat, shown at the top of Play so they don't
+ *  have to find themselves in the lobby grid. Nothing when they aren't in. */
+export function YourRoll({ twitchUserId }: { twitchUserId: string | null }) {
+  const live = useLiveState();
+  const mine = twitchUserId
+    ? live.participants.find((p) => p.platform === "twitch" && p.platform_user_id === twitchUserId && !p.left_at)
+    : undefined;
+  if (!mine) return null;
+  return (
+    <section className="live-section live-your-roll" aria-labelledby="live-your-roll">
+      <h2 id="live-your-roll" className="live-section__title">Your roll</h2>
+      <ParticipantCard participant={mine} />
+    </section>
+  );
+}
+
 function orderParticipants(rows: ParticipantRow[]): ParticipantRow[] {
   // Broadcaster first, then by join order — gives the streamer's
   // combo top placement so viewers can spot it instantly.

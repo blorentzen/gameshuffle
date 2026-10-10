@@ -2939,6 +2939,12 @@ html.dark .empac-tabs__tab--active .empac-tabs__tab-label {
 html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
   color: var(--primary-700);
 }
+/* Owner surfaces remap --primary-600 to the owner's accent shaded 16% toward
+   black, which isn't enough for a bright accent (#ff2d95 measured 4.2:1 on the
+   live page's grey). Underline tabs there use the derived ink too. */
+:is(.profile-page, .live-page, .community-page, .tournament-page) .empac-tabs:not(.empac-tabs--pills) .empac-tabs__tab--active .empac-tabs__tab-label {
+  color: var(--brand-ink);
+}
 
 /* ── Phones: card rows swipe (ResponsiveCarousel) instead of stacking ── */
 /* Never wider than its section: the carousel track is wider than the screen by

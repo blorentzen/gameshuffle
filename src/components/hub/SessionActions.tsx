@@ -99,7 +99,7 @@ export function SessionActions({
               <Countdown to={blockingEndingEnableAt} fallback="momentarily" />)
             </span>
           ) : (
-            "Activate"
+            "Start now"
           )}
         </Button>
       );
@@ -192,9 +192,9 @@ export function SessionActions({
         <Modal
           isOpen
           onClose={() => setConfirming(null)}
-          title="Activate session?"
+          title="Start this stream now?"
           primaryAction={{
-            label: pending ? "Activating…" : "Activate",
+            label: pending ? "Starting…" : "Start now",
             onClick: () => dispatchAction("activate"),
           }}
           secondaryAction={{
@@ -203,10 +203,9 @@ export function SessionActions({
           }}
         >
           <p>
-            Activating <strong>{session.name}</strong> will trigger any
-            attached platforms (chat welcome message, channel point reward
-            setup) and start the session lifecycle. The session can be
-            ended at any time.
+            <strong>{session.name}</strong> goes live on GameShuffle: the bot
+            welcomes chat and starts answering commands, and your viewers can
+            join. You can end it any time.
           </p>
         </Modal>
       )}

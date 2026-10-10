@@ -56,6 +56,9 @@ export interface LiveSessionMeta {
 
 interface PageProps {
   params: Promise<{ "streamer-slug": string }>;
+  /** `?tab=room` opens the Lobby tab (the old /lobby/[token] page and the
+   *  `!gs-lobby` chat link land here). */
+  searchParams: Promise<{ tab?: string }>;
 }
 
 interface StreamerProfile {
@@ -85,6 +88,10 @@ interface StreamerProfile {
   /** Numeric Twitch user id (from twitch_connections) — for Helix lookups
    *  like the offline-page VOD replay. */
   twitch_user_id: string | null;
+  /** The streamer's default for showing the lobby on this page
+   *  (`twitch_connections.public_lobby_enabled`; missing = shown). A
+   *  session can override it in `feature_flags.public_lobby`. */
+  public_lobby_enabled: boolean;
 }
 
 async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
@@ -123,7 +130,7 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
   const userId = row.id as string;
   const { data: connection } = await admin
     .from("twitch_connections")
-    .select("twitch_login, twitch_user_id")
+    .select("twitch_login, twitch_user_id, public_lobby_enabled")
     .eq("user_id", userId)
     .maybeSingle();
   const twitchChannel =
@@ -143,6 +150,7 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
     profile_banner_url: (row.profile_banner_url as string | null) ?? null,
     twitch_channel: twitchChannel,
     twitch_user_id: (connection?.twitch_user_id as string | null) ?? null,
+    public_lobby_enabled: (connection?.public_lobby_enabled as boolean | null) !== false,
   };
 }
 
@@ -355,8 +363,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function LiveStreamPage({ params }: PageProps) {
+export default async function LiveStreamPage({ params, searchParams }: PageProps) {
   const { "streamer-slug": slug } = await params;
+  const { tab: initialTab } = await searchParams;
   const streamer = await resolveStreamer(slug);
   if (!streamer) notFound();
 
@@ -518,7 +527,11 @@ export default async function LiveStreamPage({ params }: PageProps) {
         initialSession: toLiveSessionMeta(sessionToRender),
         initialRounds: picksBansState.rounds,
         initialBallots: picksBansState.ballots,
+        showLobby:
+          ((sessionToRender.feature_flags?.public_lobby as boolean | null | undefined) ??
+            streamer.public_lobby_enabled) !== false,
       }}
+      initialTab={initialTab ?? null}
       initialLeaderboard={initialLeaderboard}
       brandStyle={brandStyle}
       streamSchedule={streamSchedule}

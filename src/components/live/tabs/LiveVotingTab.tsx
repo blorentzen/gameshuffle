@@ -1,22 +1,14 @@
 "use client";
 
 /**
- * Live Voting tab — spectator surface for an open picks/bans round.
- * Pure leaderboard: which tracks / item modes / items are winning the
- * pick AND the ban tally, plus total ballots in the room.
- *
- * Audience separation: the Picks & Bans tab is for ACTING (cycle picks,
- * lock your vote). This tab is for WATCHING — viewers who don't want
- * to vote (or have already locked) can pin this and follow the room.
- *
- * Tab disabled when `round.status !== 'open'` — see LiveStreamView's
- * tabs array. When the realtime layer pushes a new open round, the
- * tab enables + animates per the round-open glow CSS.
+ * The room's tally for an open picks/bans round: which tracks, item modes
+ * and items are winning the pick and the ban, plus how many ballots are in.
+ * Sits under the viewer's own ballot in the live page's Picks & bans section
+ * (it was a separate tab that pointed back there, until 2026-10-10).
  */
 
 import { useMemo } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import {
   listTracksForGame,
   listItemModesForGame,
@@ -72,27 +64,21 @@ export function LiveVotingTab({ game, gameSlug }: Props) {
     [game]
   );
 
-  // Look up display info (name + image) for a leaderboard entry id
-  // by walking the per-pool catalog. Falls back to the raw id when
-  // the catalog doesn't include it (legacy ballot rows).
-  const lookupTrack = (id: string) =>
-    tracksCatalog.find((t) => t.id === id) ?? { id, name: id, image: undefined };
-  const lookupMode = (id: string) =>
-    modesCatalog.find((m) => m.id === id) ?? { id, name: id };
-  const lookupItem = (id: string) =>
-    itemsCatalog.find((i) => i.id === id) ?? { id, name: id, image: undefined };
+  // Look up display info (name + image) for a leaderboard entry id by
+  // walking the per-pool catalog. An id the catalog doesn't know (old or
+  // mismatched ballot rows) is left out rather than printed raw ("c0-t1").
+  const lookupTrack = (id: string) => tracksCatalog.find((t) => t.id === id) ?? null;
+  const lookupMode = (id: string) => modesCatalog.find((m) => m.id === id) ?? null;
+  const lookupItem = (id: string) => itemsCatalog.find((i) => i.id === id) ?? null;
 
   if (!round) {
     return (
       <div className="live-tab live-tab--empty">
         <p className="live-pb__no-round-headline">
-          Live voting hasn&rsquo;t started yet.
+          No round open right now.
         </p>
         <p className="live-pb__no-round-sub">
-          When the streamer opens a picks/bans round, this tab activates
-          and shows the live tally as viewers vote. In the meantime, head
-          to the <strong>Picks &amp; Bans</strong>{" "}tab to pre-select what
-          you&rsquo;d vote for.
+          When the streamer opens one, the room&rsquo;s votes show here as they come in.
         </p>
       </div>
     );
@@ -102,7 +88,7 @@ export function LiveVotingTab({ game, gameSlug }: Props) {
     <div className="live-tab live-voting">
       <header className="live-voting__header">
         <p className="live-voting__title">
-          🎲 Voting live · {round.game_slug.replace(/-/g, " ")}
+          How the room is voting
         </p>
         <p className="live-voting__counts">
           <strong>{lockedCount}</strong> locked ·{" "}
@@ -117,14 +103,17 @@ export function LiveVotingTab({ game, gameSlug }: Props) {
         bans={aggregate.tracks.topBans.slice(0, TOP_N)}
         lookup={(id) => {
           const t = lookupTrack(id);
-          return { name: t.name, image: t.image };
+          return t ? { name: t.name, image: t.image } : null;
         }}
       />
       <Leaderboard
         title="Item modes"
         picks={aggregate.itemModes.topPicks.slice(0, TOP_N)}
         bans={aggregate.itemModes.topBans.slice(0, TOP_N)}
-        lookup={(id) => ({ name: lookupMode(id).name })}
+        lookup={(id) => {
+          const m = lookupMode(id);
+          return m ? { name: m.name } : null;
+        }}
       />
       <Leaderboard
         title="Items"
@@ -132,26 +121,10 @@ export function LiveVotingTab({ game, gameSlug }: Props) {
         bans={aggregate.itemLiteral.topBans.slice(0, TOP_N)}
         lookup={(id) => {
           const i = lookupItem(id);
-          return { name: i.name, image: i.image };
+          return i ? { name: i.name, image: i.image } : null;
         }}
       />
 
-      <p className="live-voting__hint">
-        Want to cast or change your vote? Head to{" "}
-        <Link
-          href="#picks-bans"
-          onClick={(e) => {
-            // Best-effort hand-off — the parent tab control listens
-            // on click but href anchors don't trigger it. The CTA
-            // mostly serves as a discovery hint; the ToastContainer
-            // and the disabled-tab transition cover the active flow.
-            e.preventDefault();
-          }}
-        >
-          Picks &amp; Bans
-        </Link>
-        .
-      </p>
     </div>
   );
 }
@@ -165,10 +138,13 @@ interface LeaderboardProps {
   title: string;
   picks: LeaderboardEntry[];
   bans: LeaderboardEntry[];
-  lookup: (id: string) => { name: string; image?: string };
+  lookup: (id: string) => { name: string; image?: string } | null;
 }
 
-function Leaderboard({ title, picks, bans, lookup }: LeaderboardProps) {
+function Leaderboard({ title, picks: rawPicks, bans: rawBans, lookup }: LeaderboardProps) {
+  // Only entries the catalog can name.
+  const picks = rawPicks.filter((p) => lookup(p.id));
+  const bans = rawBans.filter((b) => lookup(b.id));
   if (picks.length === 0 && bans.length === 0) return null;
   const maxPick = picks[0]?.count ?? 1;
   const maxBan = bans[0]?.count ?? 1;
@@ -185,7 +161,7 @@ function Leaderboard({ title, picks, bans, lookup }: LeaderboardProps) {
           ) : (
             <ol className="live-voting__list">
               {picks.map((p) => {
-                const meta = lookup(p.id);
+                const meta = lookup(p.id)!;
                 return (
                   <li key={p.id} className="live-voting__row">
                     <LeaderboardRow
@@ -209,7 +185,7 @@ function Leaderboard({ title, picks, bans, lookup }: LeaderboardProps) {
           ) : (
             <ol className="live-voting__list">
               {bans.map((b) => {
-                const meta = lookup(b.id);
+                const meta = lookup(b.id)!;
                 return (
                   <li key={b.id} className="live-voting__row">
                     <LeaderboardRow

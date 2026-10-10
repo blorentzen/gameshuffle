@@ -45,6 +45,9 @@ export interface SetupContext {
 export interface ChatSetup {
   /** What can follow `!gs setup`, for help text. */
   argHint?: string;
+  /** Named versions the stream page offers, each the words chat would type
+   *  after `!gs setup`. The first is the default. */
+  choices?: { label: string; arg: string }[];
   roll(ctx: SetupContext): ChatRoll;
 }
 
@@ -92,6 +95,7 @@ function smashRulesText(r: SmashRules): string {
 
 const smashSetup: ChatSetup = {
   argHint: "party",
+  choices: [{ label: "Competitive", arg: "" }, { label: "Party rules", arg: "party" }],
   roll: ({ arg }) => {
     const party = words(arg).includes("party");
     const pool = stagePool(ULTIMATE, { list: party ? "all" : "competitive", sometimes: false });
@@ -151,6 +155,7 @@ function heroSetup(game: HeroGame): ChatSetup {
   const modes = mapModes(game);
   return {
     argHint: modes.map((m) => m.toLowerCase()).join(", ").replace(/, ([^,]*)$/, " or $1"),
+    choices: [{ label: "Any mode", arg: "" }, ...modes.map((m) => ({ label: m, arg: m.toLowerCase() }))],
     roll: ({ arg }) => {
       const w = words(arg)[0];
       const mode = w ? modes.find((m) => m.toLowerCase() === w || m.toLowerCase().startsWith(w)) : undefined;
@@ -173,6 +178,7 @@ const splatArt = (stage: string) => (SPLATOON3.artReady ? `${SPLATOON3.assetBase
 
 const splatoonSetup: ChatSetup = {
   argHint: "3, 5, turf, ranked or salmon",
+  choices: [{ label: "One battle", arg: "" }, { label: "A set of 3", arg: "3" }, { label: "A set of 5", arg: "5" }, { label: "Salmon Run", arg: "salmon" }],
   roll: ({ arg }) => {
     const w = words(arg);
     if (w.includes("salmon")) {
@@ -197,6 +203,7 @@ const splatoonSetup: ChatSetup = {
 
 const kirbySetup: ChatSetup = {
   argHint: "top or city",
+  choices: [{ label: "Air Ride course", arg: "" }, { label: "Top Ride course", arg: "top" }, { label: "City Trial stadium", arg: "city" }],
   roll: ({ arg }) => {
     const w = words(arg);
     if (w.includes("city") || w.includes("stadium")) {
@@ -256,15 +263,17 @@ function stadiumSetup(slug: string): ChatSetup {
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 export const CHAT_SETUPS: Record<string, ChatSetup> = {
-  "mario-kart-8-deluxe": { argHint: "a number of races (4 by default)", roll: ({ arg }) => tracks("mario-kart-8-deluxe", "Grand Prix", MK8.cups ?? [], arg, 16) },
+  "mario-kart-8-deluxe": { argHint: "a number of races (4 by default)", choices: [{ label: "4 races", arg: "" }, { label: "8 races", arg: "8" }, { label: "16 races", arg: "16" }], roll: ({ arg }) => tracks("mario-kart-8-deluxe", "Grand Prix", MK8.cups ?? [], arg, 16) },
   "mario-kart-world": {
     argHint: "a number of races or rally",
+    choices: [{ label: "4 races", arg: "" }, { label: "8 races", arg: "8" }, { label: "Knockout rally", arg: "rally" }],
     roll: ({ arg }) => (words(arg).some((w) => w.startsWith("rally") || w === "knockout") && MKW.knockoutRallies?.length
       ? rally("mario-kart-world", MKW.knockoutRallies, "Knockout Tour")
       : tracks("mario-kart-world", "Grand Prix", MKW.cups ?? [], arg, 16)),
   },
   "mario-kart-64": {
     argHint: "a number of races or battle",
+    choices: [{ label: "4 races", arg: "" }, { label: "8 races", arg: "8" }, { label: "Battle course", arg: "battle" }],
     roll: ({ arg }) => (words(arg).includes("battle") ? rally("mario-kart-64", MK64.battleCourses, "Battle course") : tracks("mario-kart-64", "Grand Prix", MK64.cups, arg, 16)),
   },
   [ULTIMATE.slug]: smashSetup,

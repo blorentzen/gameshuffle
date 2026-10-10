@@ -452,20 +452,20 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
         </label>
 
         <div className="hub-form__field">
-          <span className="hub-form__label">Games for this session</span>
+          <span className="hub-form__label">Games for this stream</span>
           <GameMultiSelect
             value={configuredGames}
             onChange={setConfiguredGames}
             disabled={!lifecycleEditable}
             reorderable={configuredGames.length >= 2}
+            hint={false}
           />
           <p className="hub-form__platform-disabled">
-            Pick every game you plan to host. With 2+ games, drag the tiles
-            to set the play order. GameShuffle uses index 0 as the
-            starting game and adapts as Twitch tells us what&rsquo;s
-            currently playing. Each game keeps its own picks/bans + module
-            config under the Modules tab. Leave empty for a pure queue
-            session.
+            Pick every game you plan to host. With two or more, drag the
+            tiles into play order: the first one is where the stream starts,
+            and GameShuffle follows along as your Twitch category changes.
+            Each game has its own setup under Games. Leave it empty for a
+            viewer queue only.
           </p>
         </div>
 

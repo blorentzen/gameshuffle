@@ -15,7 +15,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Input } from "@empac/cascadeds";
-import { CommandList } from "../CommandList";
 import { GameCarousel } from "../GameCarousel";
 import { RaceSetupSection } from "../RaceSetupSection";
 import { GameArtwork } from "../GameArtwork";
@@ -112,7 +111,10 @@ export function SessionModulesTab({
                 initialCap={initialQueueCap}
                 initialRotation={initialQueueRotation}
               />
-              <CommandList gameSlug={GS_DEFAULT_SLUG} />
+              <p className="hub-games__commands">
+                Chat commands for every game are listed in{" "}
+                <a href="/account/streaming?tab=chat-commands">Streaming ▸ Chat ▸ Commands</a>.
+              </p>
             </div>
           );
         }
@@ -307,7 +309,10 @@ function PerGameModules({
         surface="config"
         discordShareAvailable={discordShareAvailable}
       />
-      <CommandList gameSlug={gameSlug} />
+      <p className="hub-games__commands">
+        Chat commands for every game are listed in{" "}
+        <a href="/account/streaming?tab=chat-commands">Streaming ▸ Chat ▸ Commands</a>.
+      </p>
     </>
   );
 }

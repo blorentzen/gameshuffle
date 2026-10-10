@@ -56,7 +56,7 @@ export async function toggleModuleAction(args: {
     byIdentityId: (identityRow as { id: string }).id,
   });
   if (result.ok) {
-    revalidatePath("/twitch/modules");
+    revalidatePath("/account/streaming");
   }
   return result;
 }

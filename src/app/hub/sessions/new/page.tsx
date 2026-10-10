@@ -11,14 +11,14 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Breadcrumb } from "@empac/cascadeds";
+import { Alert, Breadcrumb, Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { CreateSessionForm } from "@/components/hub/CreateSessionForm";
 import { requireHubAccess } from "@/lib/capabilities/hub-access";
 
 export const metadata: Metadata = {
-  title: "New session",
+  title: "New stream",
   robots: { index: false, follow: false },
 };
 
@@ -68,8 +68,8 @@ export default async function NewSessionPage({ searchParams }: PageProps) {
     <div className="hub-detail">
       <Breadcrumb
         items={[
-          { label: "Hub", href: "/hub" },
-          { label: "New session" },
+          { label: "Stream hub", href: "/hub" },
+          { label: defaultTestSession ? "New test stream" : "New stream" },
         ]}
         separator="chevron"
       />
@@ -77,7 +77,7 @@ export default async function NewSessionPage({ searchParams }: PageProps) {
       <header className="hub-detail__header">
         <div className="hub-detail__header-main">
           <h1 className="hub-detail__title">
-            {defaultTestSession ? "Create a test stream" : "Create a new session"}
+            {defaultTestSession ? "New test stream" : "New stream"}
           </h1>
           <p className="hub-page__test-session-body">
             {defaultTestSession ? (
@@ -89,9 +89,9 @@ export default async function NewSessionPage({ searchParams }: PageProps) {
               </>
             ) : (
               <>
-                Sessions are how GameShuffle binds your stream + chat +
-                viewers together. Default to &ldquo;Start now&rdquo;. You
-                can configure modules and schedule once it&rsquo;s created.
+                A stream ties your chat, overlay and live page together for
+                one broadcast. Name it, then set the games, the schedule and
+                picks and bans on the next page.
               </>
             )}
           </p>
@@ -100,20 +100,15 @@ export default async function NewSessionPage({ searchParams }: PageProps) {
 
       {existingDraft ? (
         <section className="hub-detail__section">
-          <div className="hub-page__test-session">
-            <p className="hub-page__test-session-body">
-              You already have a draft session in progress:{" "}
-              <strong>{(existingDraft as { name: string }).name}</strong>.
-              Continue it at{" "}
-              <Link
-                href={`/hub/sessions/${(existingDraft as { slug: string }).slug}`}
-                className="hub-page__test-session-refresh"
-              >
-                /hub/sessions/{(existingDraft as { slug: string }).slug}
-              </Link>{" "}
-              before starting a new one.
-            </p>
-          </div>
+          <Alert variant="warning">
+            You already have a stream you haven&rsquo;t scheduled or started:{" "}
+            <strong>{(existingDraft as { name: string }).name}</strong>. Finish it, or cancel it from its page to start a new one.
+            <div className="new-session-modal__draft">
+              <Link href={`/hub/sessions/${(existingDraft as { slug: string }).slug}`}>
+                <Button variant="secondary" size="small">Open it</Button>
+              </Link>
+            </div>
+          </Alert>
         </section>
       ) : (
         <CreateSessionForm

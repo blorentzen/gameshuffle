@@ -3958,3 +3958,56 @@ html.dark .gs-platform-icon {
 @media (max-width: 640px) {
   .dbot-alerts__routing, .dbot-alerts__add { grid-template-columns: 1fr; }
 }
+
+/* Streaming ▸ Setup ▸ Twitch: channel points reward */
+.channel-points { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); margin-top: var(--spacing-12); }
+.channel-points__cost { width: 16rem; }
+
+/* ── Streaming ▸ Chat ▸ Commands (CommandsScreen): one searchable list ── */
+.cmds__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin-bottom: var(--spacing-12); }
+.cmds__search { flex: 1 1 28rem; min-width: 0; }
+.cmds__toolbar > .empac-select { flex: 0 0 18rem; }
+.cmds { display: flex; flex-direction: column; gap: var(--spacing-24); padding-top: var(--spacing-12); }
+.cmds__setup { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); max-width: 80ch; }
+.cmds__group-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-12); border-bottom: 1px solid var(--border-default); padding-bottom: var(--spacing-6, 6px); }
+.cmds__group-title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-bold); }
+.cmds__group-count { font-size: var(--font-size-12); color: var(--text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cmds__group-blurb { margin: var(--spacing-6, 6px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.cmds__rows { list-style: none; margin: var(--spacing-4) 0 0; padding: 0; }
+.cmds__row { border-bottom: 1px solid var(--border-subtle, var(--border-default)); }
+.cmds__main { display: grid; grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr) 11rem auto; gap: var(--spacing-12); align-items: center; padding: var(--spacing-10, 10px) 0; }
+.cmds__typed { all: unset; cursor: pointer; justify-self: start; max-width: 100%; border-radius: var(--radius-4, 4px); }
+.cmds__typed code { display: inline-block; max-width: 100%; overflow-wrap: anywhere; font-size: var(--font-size-14); }
+.cmds__typed:hover code { text-decoration: underline; }
+.cmds__typed:focus-visible { outline: 2px solid var(--primary-600); outline-offset: 2px; }
+.cmds__summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6, 6px); font-size: var(--font-size-14); color: var(--text-secondary); min-width: 0; }
+.cmds__summary > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.cmds__who { font-size: var(--font-size-12); color: var(--text-tertiary); }
+/* Off rows read quieter without dropping below contrast (the switch says off). */
+.cmds__row.is-off .cmds__typed code { color: var(--text-secondary); background: transparent; box-shadow: inset 0 0 0 1px var(--border-default); }
+.cmds__more { display: grid; grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr); gap: var(--spacing-12); padding: 0 0 var(--spacing-14, 14px); font-size: var(--font-size-14); color: var(--text-secondary); }
+.cmds__facts { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-4); }
+.cmds__facts > div { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: var(--spacing-8); }
+.cmds__facts dt { color: var(--text-tertiary); }
+.cmds__facts dd { margin: 0; overflow-wrap: anywhere; }
+.cmds__explain { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.cmds__explain p { margin: 0; }
+.cmds__chat { display: flex; flex-direction: column; gap: 2px; padding: var(--spacing-8) var(--spacing-10, 10px); border-radius: var(--radius-8, 8px); background: var(--background-secondary); font-size: var(--font-size-14); }
+.cmds__chat b { font-weight: var(--font-weight-semibold); margin-right: var(--spacing-4); color: var(--text-primary); }
+.cmds__reply { overflow-wrap: anywhere; }
+.cmds__reply b { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
+.cmds__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
+.cmds__note { margin: 0 0 var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.cmds__ours { color: var(--text-primary); }
+.cmds__vars { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.cmds__vars > div { display: flex; flex-direction: column; gap: 2px; }
+.cmds__vars dd { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+@media (max-width: 760px) {
+  .cmds__main { grid-template-columns: minmax(0, 1fr) auto; }
+  .cmds__summary { grid-column: 1 / -1; grid-row: 2; }
+  .cmds__who { display: none; }
+  .cmds__more { grid-template-columns: minmax(0, 1fr); }
+}
+/* CDS Chip "warning" text is amber-700 on amber, about 3.3:1; use the
+   contrast-safe warning ink (raise upstream with CascadeDS). */
+.cmds__summary .empac-chip--warning .empac-chip__label { color: var(--warning-ink); }

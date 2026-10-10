@@ -173,7 +173,9 @@ function RecapTrackRow({
       <span className="last-stream-recap__chip-label">{label}</span>
       <div className="last-stream-recap__chips">
         {ids.map((id, idx) => {
-          const name = getTrackById(id)?.name ?? id;
+          // Old or mismatched ids would print raw ("c0-t1"); leave them out.
+          const name = getTrackById(id)?.name;
+          if (!name) return null;
           return (
             <span
               key={id}

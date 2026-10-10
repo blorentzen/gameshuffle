@@ -1,41 +1,19 @@
 /**
- * /lobby/[token]
- *
- * Public viewer-facing page for a streamer's current shuffle lobby.
- * Referenced from the bot's !gs-lobby overflow message so viewers can
- * see the full participant list when the chat reply's 10-name cap
- * elides them. Same overlay_token as the OBS overlay — the URL is the
- * secret; anyone with it can read.
+ * /lobby/[token]: retired 2026-10-10. The lobby lives on the streamer's live
+ * page now (`/live/<slug>?tab=room`), so old `!gs-lobby` links forward there.
+ * Those links carried the overlay token in public chat, which is why the
+ * chat commands now link the live page instead. A token that no longer
+ * matches (regenerated) is a 404, as before.
  */
 
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
-import { LobbyClient } from "./LobbyClient";
+import { getLiveSlugForUser } from "@/lib/twitch/streamerSlug";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}): Promise<Metadata> {
-  const { token } = await params;
-  const admin = createTwitchAdminClient();
-  const { data: connection } = await admin
-    .from("twitch_connections")
-    .select("twitch_display_name, twitch_login")
-    .eq("overlay_token", token)
-    .maybeSingle();
-
-  const name = connection?.twitch_display_name || connection?.twitch_login || "GameShuffle";
-  return {
-    title: `${name}'s Shuffle Lobby`,
-    description: `Live randomizer lobby for ${name} on GameShuffle.`,
-    robots: { index: false, follow: false },
-  };
-}
+export const metadata = { robots: { index: false, follow: false } };
 
 export default async function LobbyPage({
   params,
@@ -46,13 +24,10 @@ export default async function LobbyPage({
   const admin = createTwitchAdminClient();
   const { data: connection } = await admin
     .from("twitch_connections")
-    .select("id")
+    .select("user_id")
     .eq("overlay_token", token)
     .maybeSingle();
-
-  if (!connection) {
-    notFound();
-  }
-
-  return <LobbyClient token={token} />;
+  const slug = connection?.user_id ? await getLiveSlugForUser(connection.user_id as string) : null;
+  if (!slug) notFound();
+  redirect(`/live/${encodeURIComponent(slug)}?tab=room`);
 }
