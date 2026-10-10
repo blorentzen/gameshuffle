@@ -65,12 +65,6 @@ export default function Page() {
         <li><strong>A chaos option:</strong> adds one match rule such as One-Hit Kills, Slow Motion or Paintball. Roll the match again to change it.</li>
       </ul>
 
-      <h2>Sharing it</h2>
-      <p>
-        <strong>Copy match</strong>{" "}gives you the whole match, the simulants and everyone&apos;s character (with teams) as text for
-        chat or Discord.
-      </p>
-
       <h2>On stream</h2>
       <p>
         If you stream with GS Pro and your Twitch category is Perfect Dark, viewers can type <code>!gs-shuffle</code>{" "}in chat to

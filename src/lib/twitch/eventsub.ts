@@ -333,4 +333,41 @@ export async function recordSubscriptionStatus(
     .from("twitch_eventsub_subscriptions")
     .update({ status })
     .eq("twitch_subscription_id", subscriptionId);
+  // Channels watched only for Discord go-live alerts keep their own row.
+  await supabase
+    .from("twitch_watched_channels")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("twitch_subscription_id", subscriptionId);
+}
+
+/**
+ * Watch a channel for going live (Discord go-live alerts), with the app token:
+ * Twitch allows stream.online for any broadcaster. A connected streamer
+ * already has the subscription, and a 409 means one exists. Best-effort.
+ */
+export async function watchStreamOnline(broadcasterId: string): Promise<{ id: string | null; status: string }> {
+  try {
+    const sub = await createEventSubSubscription({
+      type: "stream.online",
+      version: "1",
+      condition: { broadcaster_user_id: broadcasterId },
+      callback: webhookCallbackUrl(),
+      secret: eventsubSecret(),
+    });
+    return { id: sub.id, status: sub.status };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message.includes("(409)")) return { id: null, status: "exists" };
+    console.error("[twitch] stream.online watch failed:", message);
+    return { id: null, status: "failed" };
+  }
+}
+
+/** Stop watching a channel we subscribed to only for alerts. */
+export async function unwatchStreamOnline(subscriptionId: string): Promise<void> {
+  try {
+    await deleteEventSubSubscription(subscriptionId);
+  } catch (err) {
+    console.error("[twitch] stream.online unwatch failed:", err);
+  }
 }

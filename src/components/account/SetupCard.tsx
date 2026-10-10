@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Icon, Tooltip } from "@empac/cascadeds";
-import { IconCheck, IconExternalLink, IconShare, IconTrash } from "@tabler/icons-react";
+import { IconCheck, IconExternalLink, IconEye, IconShare, IconTrash } from "@tabler/icons-react";
 import { IconAction, RowActions } from "@/components/actions/IconAction";
 import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
@@ -24,6 +24,8 @@ interface SetupCardProps {
   };
   onCopyLink: (token: string) => void;
   onDelete: (id: string) => void;
+  /** Opens the setup's View window (My Stuff ▸ Saved configs). */
+  onView?: (id: string) => void;
   copied: string | null;
 }
 
@@ -37,7 +39,7 @@ if (mk8dxData.items) {
   });
 }
 
-export function SetupCard({ config, onCopyLink, onDelete, copied }: SetupCardProps) {
+export function SetupCard({ config, onCopyLink, onDelete, onView, copied }: SetupCardProps) {
   const [expanded, setExpanded] = useState<ExpandedSection>(null);
   const cfg = config.config_data;
 
@@ -237,6 +239,7 @@ export function SetupCard({ config, onCopyLink, onDelete, copied }: SetupCardPro
 
       <div className="saved-build-card__actions saved-build-card__actions--row">
         <RowActions>
+          {onView && <IconAction label={`View ${config.config_name}`} icon={IconEye} onClick={() => onView(config.id)} />}
           {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup" || cfg?.type === "smash-setup" || cfg?.type === "splatoon-setup" || cfg?.type === "kirby-setup" || cfg?.type === "stadium-setup") && (
             <IconAction
               label={`Open ${config.config_name} in the randomizer`}

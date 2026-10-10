@@ -23,7 +23,7 @@ import { resolveAccentOn } from "@/lib/profile/accents";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PROFILE_ACCENTS } from "@/lib/profile/accents";
 import { COMMUNITY_TOGGLEABLE_SECTIONS } from "@/data/community-sections";
-import { DEFAULT_PROFILE_SKIN, SKIN_GRADIENTS, type ProfileSkin, type BackgroundKind, type CardBorder, type CardRadius } from "@/lib/profile/skin";
+import { DEFAULT_PROFILE_SKIN, SKIN_GRADIENTS, type ProfileSkin, type BackgroundKind } from "@/lib/profile/skin";
 
 const ACCENT_OPTIONS = [
   { value: "", label: "Default (brand color)" },
@@ -81,7 +81,6 @@ export function CommunityCustomizeEditor({
   }, [open, skin, accent, canStyle]);
 
   const setBg = (patch: Partial<ProfileSkin["bg"]>) => setSkin((s) => ({ ...s, bg: { ...s.bg, ...patch } }));
-  const setCard = (patch: Partial<ProfileSkin["card"]>) => setSkin((s) => ({ ...s, card: { ...s.card, ...patch } }));
 
   const pinOptions = [
     { value: "", label: "None" },
@@ -187,24 +186,6 @@ export function CommunityCustomizeEditor({
                 ))}
               </div>
             )}
-          </div>
-          <div className="hub-form__field" style={{ display: "flex", gap: "var(--spacing-24)", flexWrap: "wrap" }}>
-            <div>
-              <span className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-6)" }}>Card border</span>
-              <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
-                {(["subtle", "bold", "none"] as CardBorder[]).map((b) => (
-                  <Button key={b} variant={skin.card.border === b ? "primary" : "secondary"} size="small" onClick={() => setCard({ border: b })}>{b[0].toUpperCase() + b.slice(1)}</Button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <span className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-6)" }}>Card corners</span>
-              <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
-                {(["sm", "md", "lg"] as CardRadius[]).map((r) => (
-                  <Button key={r} variant={skin.card.radius === r ? "primary" : "secondary"} size="small" onClick={() => setCard({ radius: r })}>{r.toUpperCase()}</Button>
-                ))}
-              </div>
-            </div>
           </div>
           <label className="hub-form__field">
             <span className="account-card__label">Custom CSS <span style={{ fontWeight: 400, color: "var(--text-tertiary)" }}>(advanced)</span></span>

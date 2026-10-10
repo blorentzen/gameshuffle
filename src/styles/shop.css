@@ -38,17 +38,12 @@
 .empac-card--padding-none .shop-card__actions.empac-card__footer { padding-top: 0; }
 .shop-card__actions .empac-button { flex: 1 1 12rem; }
 
-/* Sticky cart button: slides with the site nav. */
+/* Cart button above the shelf, in the page (no floating bars: Britton, 2026-10-10).
+   Add to cart opens the drawer itself, so this is only the way back to it. */
 .shop-toolbar {
-  position: sticky;
-  top: calc(var(--gs-nav-offset) + var(--spacing-8));
-  transition: var(--gs-nav-slide);
-  z-index: 20;
   display: flex;
   justify-content: flex-end;
-  pointer-events: none;
 }
-.shop-toolbar .empac-button { pointer-events: auto; box-shadow: var(--shadow-md, 0 4px 14px rgba(0, 0, 0, 0.12)); }
 
 /* Quantity stepper */
 .shop-qty { display: inline-flex; align-items: center; gap: var(--spacing-8); }

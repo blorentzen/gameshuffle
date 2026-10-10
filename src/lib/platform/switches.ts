@@ -20,9 +20,15 @@ export interface SwitchDef {
 export const SWITCHES: SwitchDef[] = [
   {
     key: "shop_open", group: "Shop", name: "Shop open to everyone",
-    description: "Off: visitors see the Coming soon page with the email signup, and staff see the full shop. On: anyone can buy.",
+    description: "Off: visitors can't buy (they get the Coming soon page if that switch is on, else page not found), and staff see the full shop. On: anyone can buy.",
     turnOn: "Anyone can buy from the shop, and it starts showing up in search. You can turn it off again.",
-    turnOff: "Visitors go back to the Coming soon page and checkout closes. Orders already placed aren't affected.",
+    turnOff: "Checkout closes and visitors lose the shop again. Orders already placed aren't affected.",
+  },
+  {
+    key: "shop_coming_soon", group: "Shop", name: "Show the Coming soon shop page",
+    description: "While the shop is closed. Off: /shop is page not found for visitors (hidden while products are being worked out, 2026-10-10). On: visitors see the Coming soon page with the email signup. Staff always see the full shop.",
+    turnOn: "Visitors who go to /shop see the Coming soon page and can sign up for an email.",
+    turnOff: "Visitors who go to /shop get page not found. Staff still see the full shop.",
   },
   {
     key: "shop_live_catalog", group: "Shop", name: "Edit products in Stripe live mode",

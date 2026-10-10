@@ -315,7 +315,6 @@ export function EventShell(p: EventShellProps) {
 
   const WhereIcon = p.where?.kind === "online" ? IconWorld : IconMapPin;
   const whereLabel = p.where?.kind === "online" ? "Online" : p.where?.label || (p.where?.kind === "tba" ? "Location to be announced" : "In person");
-  const spots = p.panel?.capacity != null && p.panel.goingCount != null ? Math.max(0, p.panel.capacity - p.panel.goingCount) : null;
 
   return (
     <main className="event-shell" style={p.style}>
@@ -471,10 +470,6 @@ export function EventShell(p: EventShellProps) {
         )}
       </Container>
 
-      {/* Mobile: the action panel stacks below the body, so give thumbs a jump. */}
-      <a href="#event-action" className="event-shell__jump">
-        {p.panel?.heading ?? "Sign up"}{spots === 0 ? " · Full" : spots != null && spots <= 5 ? ` · ${spots} left` : ""}
-      </a>
     </main>
   );
 }

@@ -4,7 +4,7 @@ import { AiTournamentHelper } from "@/components/ai/AiTournamentHelper";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Container, Button, Input, Select } from "@empac/cascadeds";
+import { Card, Container, Button, Input, Select } from "@empac/cascadeds";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { isPartyGame, PARTY_SCORING_TABLE, PARTY_TABLE_ADVANCE, PARTY_TABLE_SIZE } from "@/lib/party/tournament";
 import { defaultRules as smashDefaultRules, isSmashGame, SMASH_FLIGHT_SIZE, SMASH_SCORING_TABLE } from "@/lib/smash/tournament";
@@ -21,6 +21,8 @@ import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
 import { IconSparkles, IconTrophy } from "@tabler/icons-react";
 import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import { GameCover } from "@/components/games/GameCover";
+import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
+import { GAME_CATALOG, catalogGame } from "@/data/game-catalog";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
@@ -45,8 +47,18 @@ const GAMES = [
   ...(MARVEL_RIVALS_PUBLIC ? [{ value: "marvel-rivals", label: "Marvel Rivals" }] : []),
   ...(SPLATOON_PUBLIC ? [{ value: "splatoon-3", label: "Splatoon 3" }] : []),
   ...(KIRBY_PUBLIC ? [{ value: "kirby-air-riders", label: "Kirby Air Riders" }] : []),
-  { value: "other", label: "Other game" },
+  { value: "other", label: "Another game" },
 ];
+
+/** The games with GameShuffle tools, shown as cards under the search. */
+const POPULAR_GAMES = GAMES.filter((g) => g.value !== "other");
+/** Every game GameShuffle knows by name, for the search: our games first, then the catalog. */
+const SEARCH_OPTIONS = (() => {
+  const seen = new Set<string>();
+  return [...POPULAR_GAMES.map((g) => g.label), ...GAME_CATALOG.map((g) => g.name)]
+    .filter((name) => { const k = name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+    .map((name) => ({ value: name, label: name }));
+})();
 
 /** Games where a racing ladder (Heat → Mains) makes no sense: one-on-one fighters and team hero shooters. */
 const NO_HEAT_GAMES = new Set(["street-fighter-6", "tekken-8", "overwatch", "marvel-rivals", "splatoon-3"]);
@@ -197,8 +209,25 @@ export default function CreateTournamentPage() {
       if (runMode === "championship") setRunMode("single");
     }
   };
-  const resolvedSlug = isOtherGame ? slugifyGame(customGame) || "custom-game" : gameSlug;
-  const gameLabel = isOtherGame ? customGame.trim() : GAMES.find((g) => g.value === gameSlug)?.label ?? gameSlug;
+  // "Another game": a catalog game keeps its catalog slug and name (so its box
+  // art and name show everywhere); anything typed gets a slug from its name.
+  const catalogPick = isOtherGame ? catalogGame(customGame) : null;
+  const resolvedSlug = isOtherGame ? (catalogPick ? catalogPick.appSlug ?? catalogPick.slug : slugifyGame(customGame) || "custom-game") : gameSlug;
+  const gameLabel = isOtherGame ? (catalogPick?.name ?? customGame.trim()) : GAMES.find((g) => g.value === gameSlug)?.label ?? gameSlug;
+  // Mario Kart carries race settings (race count, cc, items); every other game
+  // without its own tools records just its name. Non-Mario-Kart picks used to
+  // get Mario Kart's race defaults by mistake.
+  const isKart = gameSlug === "mario-kart-8-deluxe" || gameSlug === "mario-kart-world";
+  /** The search: one of our games selects it (with its tools); anything else is "another game" by name. */
+  const searchGame = (name: string) => {
+    const typed = name.trim();
+    const entry = typed ? catalogGame(typed) : null;
+    const ours = POPULAR_GAMES.find((g) => g.label.toLowerCase() === typed.toLowerCase() || (entry && (g.value === entry.slug || g.value === entry.appSlug)));
+    if (ours) { selectGame(ours.value); setCustomGame(""); return; }
+    if (!isOtherGame) selectGame("other");
+    setCustomGame(typed);
+  };
+  const searchValue = isOtherGame ? customGame : gameLabel;
 
   const handleCreateSingle = async () => {
     const supabase = createClient();
@@ -229,7 +258,7 @@ export default function CreateTournamentPage() {
         // MK games carry race/track/build config; other games just record a
         // label. Group Knockout adds its lobby rules on top, any game.
         settings: {
-          ...(isOtherGame
+          ...(!isKart && !isParty && !isSmash
             ? { game_label: gameLabel }
             : isParty
               // Points runs in flights of four: one board game per round, leaders
@@ -346,22 +375,45 @@ export default function CreateTournamentPage() {
               </div>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Game</label>
-                <div className="game-pick" role="radiogroup" aria-label="Game">
-                  {GAMES.map((g) => (
-                    <Button key={g.value} variant={gameSlug === g.value ? "primary" : "secondary"} size="small" className="game-pick__option" role="radio" aria-checked={gameSlug === g.value} onClick={() => selectGame(g.value)}>
-                      {g.value === "other" ? <span className="game-pick__cover game-pick__cover--other" aria-hidden>?</span> : <span className="game-pick__cover"><GameCover slug={g.value} name={g.label} /></span>}
-                      <span className="game-pick__name">{g.label}</span>
-                    </Button>
-                  ))}
+                <div className="game-pick__search">
+                  {searchValue.trim() && (
+                    <span className="game-pick__cover">
+                      <GameCover slug={isOtherGame ? catalogPick?.slug : gameSlug} name={isOtherGame ? catalogPick?.name ?? customGame.trim() : gameLabel} />
+                    </span>
+                  )}
+                  <LabeledCombobox
+                    label="Game"
+                    value={searchValue}
+                    onChange={searchGame}
+                    options={SEARCH_OPTIONS}
+                    placeholder="Search for the game you're playing"
+                    allowCreate
+                    createLabel="Use"
+                  />
                 </div>
-                {isOtherGame && (
-                  <div style={{ marginTop: "0.75rem" }}>
-                    <Input type="text" value={customGame} onChange={(e) => setCustomGame(e.target.value)} placeholder="Game name (e.g. Super Smash Bros, Rocket League)" />
-                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
-                      Brackets, points, and Heat → Mains work for any game. Mario Kart&apos;s track &amp; build tools are the only game-specific extras.
-                    </p>
-                  </div>
-                )}
+                <p className="game-pick__hint">
+                  Brackets, points and Heat → Mains work for any game.{" "}
+                  {isOtherGame && customGame.trim() && !catalogPick ? "We'll use the name as you typed it." : "Not in the list? Type the name and pick Use."}
+                </p>
+                <h3 className="game-pick__heading">Most popular games</h3>
+                <ul className="game-pick__grid" aria-label="Most popular games">
+                  {POPULAR_GAMES.map((g) => (
+                    <li key={g.value}>
+                      <Card
+                        variant="outlined"
+                        padding="small"
+                        interactive
+                        selected={gameSlug === g.value}
+                        onClick={() => { selectGame(g.value); setCustomGame(""); }}
+                        className="game-pick__card"
+                        aria-label={g.label}
+                      >
+                        <span className="game-pick__card-cover"><GameCover slug={g.value} name={g.label} /></span>
+                        <span className="game-pick__card-name">{g.label}</span>
+                      </Card>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               {runMode === "single" && (!isOtherGame || customGame.trim()) && (

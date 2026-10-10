@@ -27,6 +27,7 @@
 import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Icon, Menu } from "@empac/cascadeds";
+import { IconCards } from "@tabler/icons-react";
 import { isStaffRole } from "@/lib/subscription";
 import { ACCOUNT_SECTIONS, ACCOUNT_TAB_ALIAS, itemTabIds } from "@/lib/account/nav";
 
@@ -43,6 +44,8 @@ function TabIcon({ name }: { name: string }) {
       </svg>
     );
   }
+  // Not in the CDS icon set yet (raise upstream): Tabler's, same size and stroke.
+  if (name === "cards") return <IconCards size={20} stroke={2} aria-hidden="true" />;
   return <Icon name={name} size="20" />;
 }
 

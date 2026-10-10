@@ -2998,6 +2998,10 @@ html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
 .ai-pack__hint, .ai-pack__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .ai-pack__note { font-size: var(--font-size-12); }
 .ai-pack__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-8) var(--spacing-16); max-height: 42vh; overflow-y: auto; }
+.ai-deck__ask { display: grid; grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr) auto; gap: var(--spacing-8); align-items: center; }
+@media (max-width: 640px) { .ai-deck__ask { grid-template-columns: 1fr; } .ai-deck__ask > .empac-button { justify-self: start; } }
+.ai-deck__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); max-height: 46vh; overflow-y: auto; }
+.ai-deck__list > li { display: grid; gap: var(--spacing-6); }
 .ai-pack__footer { display: flex; align-items: center; gap: var(--spacing-8); justify-content: flex-end; flex-wrap: wrap; }
 .ai-pack__allowance { margin-right: auto; font-size: var(--font-size-12); color: var(--text-secondary); }
 .ai-pack > .empac-button { justify-self: start; }
@@ -3071,3 +3075,16 @@ html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
   background-color: var(--background-elevated);
   padding: 0 var(--spacing-4);
 }
+
+/* Stream Bingo: a pattern drawn small (overlay, /live, Streaming ▸ Bingo). */
+.bingo-shape { display: inline-grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 4rem; aspect-ratio: 1; flex-shrink: 0; }
+.bingo-shape > span { border-radius: 2px; background: var(--border-default, rgba(127, 127, 127, 0.25)); }
+.bingo-shape > span.is-on { background: var(--brand-ink, var(--primary-600, #2766ec)); }
+
+/* Stream Bingo's three steps (/live card and Streaming ▸ Bingo, same words as the overlay). */
+.bingo-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8, 8px); }
+.bingo-steps li { display: flex; align-items: flex-start; gap: var(--spacing-10, 10px); font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; }
+.bingo-steps strong { color: var(--text-primary); }
+.bingo-steps__n { display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--border-default); font-weight: 700; font-size: var(--font-size-12); color: var(--text-secondary); }
+.bingo-steps li.is-now .bingo-steps__n { background: var(--brand-ink, var(--primary-600)); border-color: transparent; color: #fff; }
+.bingo-steps li.is-done .bingo-steps__n { border-color: var(--brand-ink, var(--primary-600)); color: var(--brand-ink, var(--primary-600)); }

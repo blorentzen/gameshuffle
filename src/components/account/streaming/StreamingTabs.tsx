@@ -97,7 +97,7 @@ function proScreens(profileTimezone: string | null): ScreenMap {
     community: () => <Wrap title="Modules"><CommunityTab /></Wrap>,
     "game-modules": () => <Wrap title="Game defaults"><GameModulesTab /></Wrap>,
     polls: () => <PollsTab />,
-    bingo: () => <Wrap title="Bingo"><StreamBingoTab /></Wrap>,
+    bingo: () => <StreamBingoTab />,
     draft: () => <Wrap title="Chat Draft"><ChatDraftTab /></Wrap>,
     "chat-brain": () => <Wrap title="Chat Brain"><ChatBrainStreamTab /></Wrap>,
     engagement: () => <Wrap title="Engagement"><EngagementTab /></Wrap>,

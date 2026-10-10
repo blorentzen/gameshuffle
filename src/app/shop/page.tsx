@@ -3,7 +3,8 @@
  * TCGplayer, linked at the bottom). Marketing page, always light. Stock is
  * read live on every request. Copy: src/lib/store/copy.ts.
  *
- * Until the `shop_open` platform flag is on, visitors get the Coming soon
+ * While the shop is hidden (`shop_open` and `shop_coming_soon` both off),
+ * visitors get page not found. With `shop_coming_soon` on they get the Coming soon
  * version (Britton, 2026-10-09): the products with their placeholder pictures
  * and details, no prices, stock, cart or shipping, and an email signup for
  * launch. Staff get the full shop to test, and `?view=soon` shows them the
@@ -25,6 +26,7 @@ import { holidayState } from "@/lib/store/rules";
 import { SHOP, isOnSale } from "@/lib/store/config";
 import { getPlatformFlag } from "@/lib/platform/flags";
 import { isStaffRequest } from "@/lib/auth/raw";
+import { notFound } from "next/navigation";
 import { TCG_SHOP_URL } from "@/data/shop";
 import "@/styles/shop.css";
 
@@ -54,7 +56,9 @@ const PAGE_BG = "color-mix(in srgb, var(--text-primary) 4%, var(--surface-defaul
 
 export default async function ShopPage({ searchParams }: { searchParams: Promise<{ checkout?: string; view?: string }> }) {
   const { checkout, view } = await searchParams;
-  const [open, staff] = await Promise.all([getPlatformFlag("shop_open", false), isStaffRequest()]);
+  const [open, comingSoon, staff] = await Promise.all([getPlatformFlag("shop_open", false), getPlatformFlag("shop_coming_soon", false), isStaffRequest()]);
+  // Hidden while products are worked out: visitors get page not found until a switch says otherwise.
+  if (!open && !comingSoon && !staff) notFound();
   const soon = !open && (!staff || view === "soon");
 
   let products: ShopProduct[] = [];
@@ -92,7 +96,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
         <div className="shop-page__body">
           {staff && !open && !soon && (
             <Alert variant="info" title="Staff preview">
-              Visitors see the Coming soon page until the shop_open platform flag is on. <Link href="/shop?view=soon">See the Coming soon page</Link>
+              {comingSoon ? "Visitors see the Coming soon page" : "The shop is hidden: visitors get page not found"} until the shop opens (Platform ▸ Switches). <Link href="/shop?view=soon">See the Coming soon page</Link>
             </Alert>
           )}
           {staff && soon && (

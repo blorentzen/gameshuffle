@@ -3,7 +3,9 @@
  * shared event board keeps `new` / `mark` / `clear`, and these subcommands run
  * the number game (broadcaster + mods):
  *
- *   !bingo start [pattern|series] [tokens] [prize text]
+ *   !bingo start [pattern|series|saved pattern name] [tokens] [prize text]
+ *                          opens the hall: viewers grab cards for 2 minutes
+ *   !bingo doors           close the doors now (everyone's in)
  *   !bingo call            call the next number
  *   !bingo auto <30-600>   call on a timer  ·  !bingo auto off
  *   !bingo end             end it with no winner
@@ -17,12 +19,12 @@ import { sendChatMessage } from "@/lib/twitch/client";
 import { isProUser } from "@/lib/subscription-server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { letterFor, type Pattern } from "@/lib/originals/bingo";
-import { callNext, closeGame, getCurrentGame, getOpenGame, openGame, patternLabel, setAutoCall, tickAuto } from "@/lib/bingo/stream";
+import { callNext, closeDoors, closeGame, doorsLeft, doorsOpen, gamePatternLabel, getCurrentGame, getOpenGame, listPatterns, openGame, setAutoCall, tickAuto, type OpenGameInput, type SavedPattern } from "@/lib/bingo/stream";
 import { resolveEconomyContext } from "./economy";
 import { registerCommand, type CmdContext } from "./registry";
 import type { ShuffleContext } from "./shuffle";
 
-export const STREAM_BINGO_SUBCOMMANDS = new Set(["start", "call", "auto", "end", "stop", "status"]);
+export const STREAM_BINGO_SUBCOMMANDS = new Set(["start", "call", "auto", "end", "stop", "status", "doors"]);
 
 const PATTERN_WORDS: Record<string, Pattern | "series"> = {
   line: "line", corners: "corners", corner: "corners", x: "x", frame: "frame", blackout: "blackout", full: "blackout", series: "series",
@@ -51,11 +53,17 @@ async function liveLink(ownerUserId: string): Promise<string> {
   return slug ? `gameshuffle.co/live/${slug}` : "the GameShuffle live page";
 }
 
-/** Parses `[pattern|series] [tokens] [prize text]`. */
-export function parseStart(rest: string[]): { pattern: Pattern | "series"; tokens: number; prizeText: string | null } {
+/** Parses `[pattern|series|saved pattern name] [tokens] [prize text]`. A saved name may have spaces; the longest match wins. */
+export function parseStart(rest: string[], saved: SavedPattern[] = []): { pattern: OpenGameInput["pattern"]; tokens: number; prizeText: string | null } {
   const words = [...rest];
-  let pattern: Pattern | "series" = "line";
-  if (words[0] && PATTERN_WORDS[words[0].toLowerCase()]) pattern = PATTERN_WORDS[words.shift()!.toLowerCase()];
+  let pattern: OpenGameInput["pattern"] = "line";
+  const said = words.join(" ").toLowerCase();
+  const mine = [...saved].sort((a, b) => b.name.length - a.name.length)
+    .find((p) => said === p.name.toLowerCase() || said.startsWith(`${p.name.toLowerCase()} `));
+  if (mine) {
+    pattern = `custom:${mine.id}`;
+    words.splice(0, mine.name.split(/\s+/).length);
+  } else if (words[0] && PATTERN_WORDS[words[0].toLowerCase()]) pattern = PATTERN_WORDS[words.shift()!.toLowerCase()];
   let tokens = 0;
   if (words[0] && /^\d+$/.test(words[0])) tokens = Math.min(100000, Number(words.shift()));
   const prizeText = words.join(" ").trim().slice(0, 140) || null;
@@ -71,7 +79,7 @@ export async function handleStreamBingo(cmd: CmdContext): Promise<{ ok: boolean;
   const communityId = econ.community.id;
 
   if (action === "start") {
-    const { pattern, tokens, prizeText } = parseStart(rest);
+    const { pattern, tokens, prizeText } = parseStart(rest, await listPatterns(communityId));
     const r = await openGame({ communityId, createdBy: cmd.userId, pattern, prizeTokens: tokens, prizeText, sessionId: econ.activeSessionId });
     if (!r.ok) {
       await reply(cmd, r.error === "already_open" ? "🔢 A bingo game is already running. !bingo end first." : "🔢 Couldn't start bingo. Try again.");
@@ -80,7 +88,7 @@ export async function handleStreamBingo(cmd: CmdContext): Promise<{ ok: boolean;
     const g = r.value;
     const prize = [g.prizeTokens ? `${g.prizeTokens} tokens` : null, g.prizeText].filter(Boolean).join(" + ");
     const series = g.seriesStep ? ` (series game ${g.seriesStep})` : "";
-    await reply(cmd, `🔢 Bingo is on! To win: ${patternLabel(g.pattern)}${series}.${prize ? ` Prize: ${prize}.` : ""} Grab a card at ${await liveLink(cmd.userId)}`);
+    await reply(cmd, `🔢 The bingo hall is open! Grab a card at ${await liveLink(cmd.userId)}${g.doorsCloseAt ? ` before the doors close in ${doorsLeft(g)}` : ""}. To win: ${gamePatternLabel(g)}${series}.${prize ? ` Prize: ${prize}.` : ""}`);
     return { ok: true };
   }
 
@@ -89,7 +97,8 @@ export async function handleStreamBingo(cmd: CmdContext): Promise<{ ok: boolean;
     const g = open ? await tickAuto(open) : await getCurrentGame(communityId);
     if (!g) await reply(cmd, "🔢 No bingo game running. Start one with !bingo start [pattern] [tokens] [prize]");
     else if (g.status === "won") await reply(cmd, `🔢 Last game won by ${g.winnerName ?? "someone"} after ${g.called.length} calls.`);
-    else await reply(cmd, `🔢 Bingo: ${patternLabel(g.pattern)} to win, ${g.called.length} of 75 called${g.callInterval ? `, a call every ${g.callInterval}s` : ""}.`);
+    else if (doorsOpen(g)) await reply(cmd, `🔢 The bingo hall is open: doors close in ${doorsLeft(g)}. Grab a card at ${await liveLink(cmd.userId)}. To win: ${gamePatternLabel(g)}.`);
+    else await reply(cmd, `🔢 Bingo: ${gamePatternLabel(g)} to win, ${g.called.length} of 75 called${g.callInterval ? `, a call every ${g.callInterval}s` : ""}.`);
     return { ok: true };
   }
   if (!open) {
@@ -97,7 +106,17 @@ export async function handleStreamBingo(cmd: CmdContext): Promise<{ ok: boolean;
     return { ok: true };
   }
 
+  if (action === "doors") {
+    const r = await closeDoors(open.id);
+    if (!r.ok) await reply(cmd, "🔢 The doors are already closed. !bingo call for the next number.");
+    return { ok: r.ok };
+  }
+
   if (action === "call") {
+    if (doorsOpen(open)) {
+      await reply(cmd, `🔢 The doors are open for another ${doorsLeft(open)} so everyone can grab a card. !bingo doors closes them now.`);
+      return { ok: true };
+    }
     const next = await callNext(open);
     if (!next) {
       await reply(cmd, open.called.length >= 75 ? "🔢 All 75 numbers are out. !bingo end to finish." : "🔢 That call didn't go through. Try again.");
@@ -146,7 +165,11 @@ registerCommand({
     if (!econ) return { ok: false, reason: "no_economy" };
     const open = await getOpenGame(econ.community.id);
     if (!open) return { ok: false, reason: "no_game" }; // silent: nothing running
-    await reply(cmd, `🔢 Get your card at ${await liveLink(cmd.userId)} (${patternLabel(open.pattern)} to win)`);
+    if (open.doorsCloseAt && !doorsOpen(open)) {
+      await reply(cmd, `🔢 The doors are closed for this game (${gamePatternLabel(open)} to win). Catch the next one at ${await liveLink(cmd.userId)}`);
+      return { ok: true };
+    }
+    await reply(cmd, `🔢 Get your card at ${await liveLink(cmd.userId)}${open.doorsCloseAt ? ` before the doors close in ${doorsLeft(open)}` : ""} (${gamePatternLabel(open)} to win)`);
     return { ok: true };
   },
 });

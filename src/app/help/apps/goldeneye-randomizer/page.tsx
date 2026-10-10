@@ -55,9 +55,6 @@ export default function Page() {
         you. See <a href="/help/apps/ai-tools">AI tools</a>.
       </p>
 
-      <h2>Sharing it</h2>
-      <p><strong>Copy match</strong> gives you the whole match and everyone&apos;s character as text for chat or Discord.</p>
-
       <h2>Still need help?</h2>
       <p>Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a>.</p>
     </HelpArticle>

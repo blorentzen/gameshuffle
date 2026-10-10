@@ -21,6 +21,7 @@ import { lobbyPicks } from "@/lib/twitch/commands/shuffle";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo, sendChatMessage } from "@/lib/twitch/client";
 import { recordSubscriptionStatus } from "@/lib/twitch/eventsub";
+import { postLiveAlerts } from "@/lib/discord/liveAlerts";
 import { resolveRandomizerSlug } from "@/lib/twitch/categories";
 import { updateRedemptionStatus } from "@/lib/twitch/channelPoints";
 import {
@@ -458,6 +459,11 @@ async function maybeWelcomeBack(args: {
 
 interface StreamOnlineEvent {
   broadcaster_user_id?: string;
+  /** The stream's id (Twitch sends it as `id`). */
+  id?: string;
+  broadcaster_user_login?: string;
+  broadcaster_user_name?: string;
+  started_at?: string;
 }
 
 interface StreamOfflineEvent {
@@ -538,6 +544,9 @@ async function markStreamLive(ownerUserId: string, live: boolean) {
 async function handleStreamOnline(event: StreamOnlineEvent) {
   const broadcasterId = event.broadcaster_user_id;
   if (!broadcasterId) return;
+
+  // Discord go-live alerts: any broadcaster someone watches, connected or not.
+  await postLiveAlerts({ ...event, broadcaster_user_id: broadcasterId }).catch((err) => console.error("[twitch-webhook] live alerts failed:", err));
 
   const connection = await getConnectionByTwitchUserId(broadcasterId);
   if (!connection) {

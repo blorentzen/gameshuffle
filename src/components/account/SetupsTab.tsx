@@ -8,7 +8,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, EmptyState, List } from "@empac/cascadeds";
+import { Button, EmptyState, List, Modal } from "@empac/cascadeds";
+import { ConfigVisual } from "@/components/configs/ConfigVisual";
 import { IconDeviceGamepad2, IconCards } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -27,6 +28,9 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { AdminRowMenu, AdminScreen, AdminSection } from "@/components/account/admin/AdminKit";
 import { StuffRow } from "@/components/account/stuff/StuffList";
+
+/** Types the randomizer can load from ?config= (kart builds have no page of their own). */
+const OPENABLE = new Set(["game-night-setup", "item-set", "party-setup", "smash-setup", "splatoon-setup", "kirby-setup", "stadium-setup"]);
 
 interface SavedConfig {
   id: string;
@@ -50,6 +54,7 @@ export function SetupsTab() {
     null,
   );
   const [copied, setCopied] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<SavedConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -140,13 +145,17 @@ export function SetupsTab() {
     return <AdminScreen title="Saved configs"><LoadingLines label="Loading your saved configs" /></AdminScreen>;
   }
 
+  // Track lists, player presets and rulesets aren't listed: nothing on the
+  // site makes them yet (only dev seed data), so they could be seen but not
+  // opened or edited. They come back with Save buttons in the randomizer.
   const types: ConfigType[] = [
     "game-night-setup", "party-setup", "smash-setup", "splatoon-setup", "kirby-setup", "stadium-setup",
-    "kart-build", "item-set", "track-list", "player-preset", "ruleset",
+    "kart-build", "item-set",
   ];
   const card = (config: SavedConfig) => (
-    <SetupCard key={config.id} config={config} onCopyLink={handleCopyLink} onDelete={handleDeleteConfig} copied={copied} />
+    <SetupCard key={config.id} config={config} onCopyLink={handleCopyLink} onDelete={handleDeleteConfig} onView={(id) => setViewing(configs.find((c) => c.id === id) ?? null)} copied={copied} />
   );
+  const openable = (c: SavedConfig) => OPENABLE.has(c.config_data?.type ?? "");
 
   return (
     <AdminScreen
@@ -227,6 +236,23 @@ export function SetupsTab() {
           </List>
         )}
       </AdminSection>
+      <Modal
+        isOpen={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.config_name ?? ""}
+        size="large"
+        primaryAction={viewing && openable(viewing) ? { label: "Open in the randomizer", onClick: () => { if (viewing) window.location.assign(`/randomizers/${viewing.randomizer_slug}?config=${viewing.id}`); } } : undefined}
+        secondaryAction={{ label: "Close", onClick: () => setViewing(null) }}
+      >
+        {viewing && (
+          <div className="setup-view">
+            <p className="admin-field__help">
+              {CONFIG_TYPE_LABELS[(viewing.config_data?.type ?? "") as ConfigType] ?? "Setup"} · {getGameName(viewing.config_data?.gameSlug || viewing.randomizer_slug)} · saved {new Date(viewing.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+            </p>
+            <ConfigVisual cfg={viewing.config_data ?? {}} />
+          </div>
+        )}
+      </Modal>
     </AdminScreen>
   );
 }

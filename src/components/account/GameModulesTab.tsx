@@ -17,6 +17,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Alert,
   Button,
@@ -34,7 +35,6 @@ import type {
 } from "@/lib/modules/types";
 import { GameArtwork } from "@/components/hub/GameArtwork";
 import { useToast } from "@/components/toast/ToastProvider";
-import { DeckEditor } from "@/components/party/DeckEditor";
 
 interface GameDef {
   slug: string;
@@ -77,7 +77,7 @@ export function GameModulesTab() {
   }, []);
 
   useEffect(() => {
-    void refreshCustomized();
+    void Promise.resolve().then(refreshCustomized);
   }, [refreshCustomized]);
 
   const editingGame = editingSlug
@@ -135,18 +135,10 @@ export function GameModulesTab() {
         ))}
       </div>
 
-      <section className="game-modules__deck">
-        <h2 className="account-tab__heading account-tab__heading--section">Mario Party cards</h2>
-        <DeckEditor
-          scope="me"
-          intro={
-            <p className="account-tab__intro">
-              Write your own house rules, Chance cards and missions. They&apos;re dealt in your party nights and live
-              nights, and your mods can edit them too from your mod page.
-            </p>
-          }
-        />
-      </section>
+      <p className="account-tab__intro">
+        Looking for your Chance cards, missions and house rules? They moved to{" "}
+        <Link href="/account/stuff?tab=decks">My Stuff ▸ Decks</Link>.
+      </p>
 
       {editingGame && (
         <GameDefaultsModal

@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Select, Checkbox, Switch } from "@empac/cascadeds";
+import { Select, Checkbox, RangeSlider, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { LoadingLines } from "@/components/loading/LoadingLines";
@@ -20,6 +20,9 @@ interface Settings {
   hideCommands: boolean;
   showGsBadge: boolean;
   maxMessages: number;
+  messageSeconds: number | null;
+  textSize: "s" | "m" | "l";
+  newestFirst: boolean;
 }
 
 const THEME_OPTIONS = [
@@ -33,6 +36,24 @@ const ANIM_OPTIONS = [
   { value: "slide", label: "Slide in" },
   { value: "fade", label: "Fade in" },
   { value: "none", label: "None" },
+];
+/** CDS Select treats "" as no choice, so "until pushed out" needs its own value. */
+const UNTIL_PUSHED = "pushed";
+const STAY_OPTIONS = [
+  { value: UNTIL_PUSHED, label: "Until newer ones push it off" },
+  { value: "15", label: "15 seconds" },
+  { value: "30", label: "30 seconds" },
+  { value: "60", label: "1 minute" },
+  { value: "120", label: "2 minutes" },
+];
+const SIZE_OPTIONS = [
+  { value: "s", label: "Small" },
+  { value: "m", label: "Medium" },
+  { value: "l", label: "Large" },
+];
+const ORDER_OPTIONS = [
+  { value: "bottom", label: "At the bottom" },
+  { value: "top", label: "At the top" },
 ];
 const ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: "broadcaster", label: "Host" },
@@ -48,6 +69,7 @@ export function ChatOverlaySettings() {
   const [saving, setSaving] = useState(false);
   const [isPro, setIsPro] = useState(true);
   const [enabled, setEnabled] = useState(false);
+  const [optionsReady, setOptionsReady] = useState(true);
   const [s, setS] = useState<Settings>({
     theme: "default",
     animation: "slide",
@@ -55,6 +77,9 @@ export function ChatOverlaySettings() {
     hideCommands: true,
     showGsBadge: true,
     maxMessages: 12,
+    messageSeconds: null,
+    textSize: "m",
+    newestFirst: false,
   });
 
   useEffect(() => {
@@ -65,9 +90,14 @@ export function ChatOverlaySettings() {
         setEnabled(!!d.enabled);
         setIsPro(!!d.isPro);
         if (d.settings) {
-          const got = d.settings as Settings;
+          const { optionsReady: ready, ...got } = d.settings as Settings & { optionsReady?: boolean };
+          setOptionsReady(ready !== false);
           // An unknown stored theme made the select read "Select an option…".
-          setS({ ...got, theme: THEME_OPTIONS.some((o) => o.value === got.theme) ? got.theme : "default" });
+          setS({
+            ...got,
+            theme: THEME_OPTIONS.some((o) => o.value === got.theme) ? got.theme : "default",
+            maxMessages: Math.min(Math.max(got.maxMessages ?? 12, 1), 25),
+          });
         }
       })
       .finally(() => setLoading(false));
@@ -147,15 +177,58 @@ export function ChatOverlaySettings() {
               options={ANIM_OPTIONS}
             />
           </label>
+        </div>
+
+        <div className="chat-ov-settings__row">
+          <RangeSlider
+            className="chat-ov-settings__count"
+            label={`Messages on screen: ${s.maxMessages}`}
+            min={1}
+            max={25}
+            step={1}
+            showMinMax
+            value={s.maxMessages}
+            onChange={(v) => setS((p) => ({ ...p, maxMessages: v }))}
+          />
           <label className="account-card__label">
-            Max messages
+            Each message stays
             <Select
-              value={String(s.maxMessages)}
-              onChange={(v) => setS((p) => ({ ...p, maxMessages: Number((typeof v === "string" ? v : v[0]) ?? 12) }))}
-              options={[6, 8, 10, 12, 15, 20].map((n) => ({ value: String(n), label: String(n) }))}
+              value={s.messageSeconds ? String(s.messageSeconds) : UNTIL_PUSHED}
+              onChange={(v) => {
+                const pick = (typeof v === "string" ? v : v[0]) ?? UNTIL_PUSHED;
+                setS((p) => ({ ...p, messageSeconds: pick === UNTIL_PUSHED ? null : Number(pick) }));
+              }}
+              options={STAY_OPTIONS}
+              disabled={!optionsReady}
+            />
+          </label>
+          <label className="account-card__label">
+            Text size
+            <Select
+              value={s.textSize}
+              onChange={(v) => {
+                const pick = (typeof v === "string" ? v : v[0]) ?? "m";
+                setS((p) => ({ ...p, textSize: pick === "s" || pick === "l" ? pick : "m" }));
+              }}
+              options={SIZE_OPTIONS}
+              disabled={!optionsReady}
+            />
+          </label>
+          <label className="account-card__label">
+            Newest message
+            <Select
+              value={s.newestFirst ? "top" : "bottom"}
+              onChange={(v) => setS((p) => ({ ...p, newestFirst: ((typeof v === "string" ? v : v[0]) ?? "bottom") === "top" }))}
+              options={ORDER_OPTIONS}
+              disabled={!optionsReady}
             />
           </label>
         </div>
+        {!optionsReady && (
+          <p className="account-card__hint">
+            How long messages stay, text size and order are on their way. They switch on after the next site update.
+          </p>
+        )}
 
         <div className="chat-ov-settings__roles">
           <span className="account-card__label">Show messages from</span>

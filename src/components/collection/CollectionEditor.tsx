@@ -92,7 +92,7 @@ export function MyGamesPanel({ games }: { games: string[] }) {
   );
 }
 
-function MyGameEditor({ slug }: { slug: string }) {
+export function MyGameEditor({ slug }: { slug: string }) {
   const { collection, save, source, loaded } = useGameCollection(slug, defaultCollection(slug));
   const [draft, setDraft] = useState<GameCollection | null>(null);
   const value = draft ?? collection;

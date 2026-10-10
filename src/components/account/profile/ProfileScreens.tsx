@@ -1,26 +1,24 @@
 "use client";
 
 /**
- * Account ▸ Profile: About you · Games · Gamertags & socials · Friends.
+ * Account ▸ Profile: About you · Games (My gaming collection + board game
+ * preferences) · Gamertags & socials · Friends.
  * Every field here autosaves through ProfileStore (one row update with only
  * the changed columns). The pieces that keep their own data (avatar, banner,
  * what you own, board game list, top friends) save themselves.
  */
 
+import { useState } from "react";
 import Link from "next/link";
-import { Chip, Input, Select, Switch, Textarea } from "@empac/cascadeds";
+import { Button, Chip, Input, Select, Switch, Textarea } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { AdminField, AdminScreen, AdminSection, SaveStatus } from "@/components/account/admin/AdminKit";
 import { useProfileStore } from "@/components/account/profile/ProfileStore";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AvatarSection } from "@/components/account/AvatarSection";
 import { BannerUploader } from "@/components/account/BannerUploader";
-import { FavoriteGamesEditor } from "@/components/profile/FavoriteGamesEditor";
-import { MyGamesPanel } from "@/components/collection/CollectionEditor";
-import { COLLECTION_GAMES } from "@/lib/collection/catalog";
-import { BoardGamesManager } from "@/components/account/BoardGamesManager";
+import { GamingCollection } from "@/components/account/profile/GamingCollection";
 import { TopFriendsEditor } from "@/components/account/TopFriendsEditor";
-import { TagCombobox } from "@/components/ui/TagCombobox";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, type Socials } from "@/data/socials-types";
@@ -86,50 +84,57 @@ export function ProfileAboutScreen() {
 
 export function ProfileGamesScreen() {
   const { loading, fields, set, status } = useProfileStore();
+  const [otherGenre, setOtherGenre] = useState<string | null>(null);
   if (loading) return <Loading title="Games" />;
   const toggleLength = (v: string) =>
     set({ boardGameLengths: fields.boardGameLengths.includes(v) ? fields.boardGameLengths.filter((x) => x !== v) : [...fields.boardGameLengths, v] });
+  const toggleGenre = (g: string) =>
+    set({ boardGameGenres: fields.boardGameGenres.includes(g) ? fields.boardGameGenres.filter((x) => x !== g) : [...fields.boardGameGenres, g] });
+  const addOtherGenre = () => {
+    const g = (otherGenre ?? "").trim().slice(0, 40);
+    if (g && !fields.boardGameGenres.some((x) => x.toLowerCase() === g.toLowerCase())) set({ boardGameGenres: [...fields.boardGameGenres, g] });
+    setOtherGenre(null);
+  };
+  const customGenres = fields.boardGameGenres.filter((g) => !BOARD_GAME_GENRE_SUGGESTIONS.includes(g));
   return (
     <AdminScreen
       title="Games"
-      intro="Your favorites for your profile, what you own so randomizers only roll what you have, and the board games you play."
+      intro="The games you own, video and board. Randomizers only roll what you have, and starred games show on your profile."
       actions={<SaveStatus status={status} />}
     >
-      <AdminSection title="Favorite games">
-        <FavoriteGamesEditor value={fields.favoriteGames} onChange={(favoriteGames) => set({ favoriteGames })} />
+      <AdminSection title="My gaming collection">
+        <GamingCollection favorites={fields.favoriteGames} onFavoritesChange={(favoriteGames) => set({ favoriteGames })} />
       </AdminSection>
 
-      <AdminSection title="What you own" intro="Randomizers only roll what you can pick. The base game starts switched on; DLC and unlockables start off until you tick them.">
-        <MyGamesPanel games={COLLECTION_GAMES} />
-      </AdminSection>
-
-      <AdminSection title="Board games" intro="So the right people find your game nights. Shows on your public profile.">
+      <AdminSection title="Board game preferences" intro="So the right people find your game nights. Shows on your public profile.">
         <Switch checked={fields.playsBoardGames} onChange={(e) => set({ playsBoardGames: e.target.checked })} label="I play board games" />
         {fields.playsBoardGames && (
           <div className="admin-form">
-            <AdminField label="Genres you enjoy" helper="Pick from the suggestions or type your own.">
-              {(id) => (
-                <div className="profile-genres">
-                  <div id={id}>
-                    <TagCombobox
-                      options={BOARD_GAME_GENRE_SUGGESTIONS.filter((g) => !fields.boardGameGenres.includes(g)).map((g) => ({ value: g, label: g }))}
-                      onAdd={(genre) => { if (!fields.boardGameGenres.includes(genre)) set({ boardGameGenres: [...fields.boardGameGenres, genre] }); }}
-                      placeholder="Add a genre or type your own"
-                      size="medium"
-                      allowCreate
-                      createLabel="Add"
-                    />
-                  </div>
-                  {fields.boardGameGenres.length > 0 && (
-                    <div className="profile-chips">
-                      {fields.boardGameGenres.map((g) => (
-                        <Chip key={g} label={g} removable onRemove={() => set({ boardGameGenres: fields.boardGameGenres.filter((x) => x !== g) })} />
-                      ))}
-                    </div>
-                  )}
+            <div className="admin-field">
+              <span className="admin-field__label" id="bg-genre-label">Genres you enjoy</span>
+              <div className="profile-chips" role="group" aria-labelledby="bg-genre-label">
+                {BOARD_GAME_GENRE_SUGGESTIONS.map((g) => {
+                  const on = fields.boardGameGenres.includes(g);
+                  return <Chip key={g} label={g} clickable selected={on} variant={on ? "primary" : "default"} onClick={() => toggleGenre(g)} />;
+                })}
+                {customGenres.map((g) => <Chip key={g} label={g} variant="primary" selected removable onRemove={() => toggleGenre(g)} />)}
+                {otherGenre === null && <Chip label="+ Other" clickable onClick={() => setOtherGenre("")} />}
+              </div>
+              {otherGenre !== null && (
+                <div className="profile-other-genre">
+                  <Input
+                    autoFocus
+                    aria-label="Another genre"
+                    placeholder="Type a genre"
+                    value={otherGenre}
+                    onChange={(e) => setOtherGenre(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOtherGenre(); } if (e.key === "Escape") setOtherGenre(null); }}
+                  />
+                  <Button size="small" variant="secondary" onClick={addOtherGenre} disabled={!otherGenre.trim()}>Add</Button>
+                  <Button size="small" variant="ghost" onClick={() => setOtherGenre(null)}>Cancel</Button>
                 </div>
               )}
-            </AdminField>
+            </div>
             <AdminField label="Your comfort level">
               {(id) => (
                 <Select
@@ -152,11 +157,6 @@ export function ProfileGamesScreen() {
             </div>
           </div>
         )}
-        <div className="admin-field">
-          <span className="admin-field__label">Board games you own or play</span>
-          <p className="admin-field__help">Your game picker can draw from these, and they&apos;re one tap to add when you host a <Link href="/game-nights">game night</Link>.</p>
-          <BoardGamesManager bare />
-        </div>
       </AdminSection>
     </AdminScreen>
   );

@@ -9,21 +9,20 @@
  * Names only for now ("Image coming soon" slots). Only rolls.
  */
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Badge, Button, Card, IconButton, Input, Select, Switch } from "@empac/cascadeds";
 import { CardActions } from "@/components/randomizer/CardActions";
 import { seatLabel } from "@/lib/randomizers/seats";
-import { IconBolt, IconClock, IconCopy, IconCrosshair, IconDice5, IconMap2, IconRefresh, IconRobot, IconTarget, IconBomb } from "@tabler/icons-react";
+import { IconBolt, IconClock, IconCrosshair, IconDice5, IconMap2, IconRefresh, IconRobot, IconTarget, IconBomb } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { RollingText } from "@/components/randomizer/RollingText";
 import { perfectDarkArenaArt, perfectDarkPortrait, perfectDarkTile } from "@/data/game-art";
-import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { PERFECT_DARK } from "@/data/perfect-dark/combat-simulator";
 import {
-  arenaPool, characterPool, matchText, optionPool, rerollArena, rerollCharacter, rerollLimit, rerollOption, rerollScenario, rerollSims, rerollWeapons, rollCharacters, rollMatch, scenarioPool, weaponSetPool,
+  arenaPool, characterPool, optionPool, rerollArena, rerollCharacter, rerollLimit, rerollOption, rerollScenario, rerollSims, rerollWeapons, rollCharacters, rollMatch, scenarioPool, weaponSetPool,
 } from "@/lib/perfectdark/roll";
 import type { PdMatch, PdOptions } from "@/lib/perfectdark/types";
 
@@ -41,10 +40,8 @@ type Part = "scenario" | "arena" | "weapons" | "limit" | "sims" | "option";
 const MAX_PLAYERS = 4;
 
 export function PerfectDarkRandomizer() {
-  const toast = useToast();
   const [players, setPlayers] = useState(2);
   const [names, setNames] = useState<string[]>(Array(MAX_PLAYERS).fill(""));
-  const seatName = useCallback((i: number) => names[i]?.trim() || `Player ${i + 1}`, [names]);
   const [freshSave, setFreshSave] = useState(false);
   const [allowTeams, setAllowTeams] = useState(true);
   const [sims, setSims] = useState(2);
@@ -95,9 +92,6 @@ export function PerfectDarkRandomizer() {
     setPlayers(players - 1);
     setMatch(null);
   };
-  const seatNames = Array.from({ length: players }, (_, i) => seatName(i));
-  const hasAny = !!match || characters.some(Boolean);
-  const copy = () => hasAny && navigator.clipboard.writeText(matchText(match, characters, seatNames)).then(() => { toast.success("Match copied"); track(EVENTS.resultCopied, { tool: "perfect-dark" }); }, () => toast.error("Couldn't copy the match"));
 
   const refresh = (part: Part, label: string) => (
     <IconButton variant="tertiary" size="small" aria-label={label} title={label} onClick={reroll[part]} disabled={!match}>
@@ -117,7 +111,6 @@ export function PerfectDarkRandomizer() {
     <div className="goldeneye-randomizer pd-randomizer">
       <div className="randomizer-controls">
         <span className="party-muted">{players} {players === 1 ? "player" : "players"} · {arenaPool(opts).length} arenas · {characterPool(opts).length} characters</span>
-        <Button variant="secondary" size="small" iconBefore={IconCopy} disabled={!hasAny} onClick={copy}>Copy match</Button>
       </div>
 
       <section aria-labelledby="pd-match-h">

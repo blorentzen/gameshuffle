@@ -65,7 +65,10 @@ export async function getOwnerThemeVars(ownerUserId: string): Promise<CSSPropert
     getBrandThemeForOwner(ownerUserId),
     readAccent(ownerUserId),
   ]);
-  return withAccent(theme, accent);
+  // One color control (2026-10-10): the free single color applies only while
+  // no brand theme is on. A GS Pro brand theme takes over; losing Pro brings
+  // the brand back to default and the chosen color shows again.
+  return withAccent(theme, theme.id === DEFAULT_BRAND_THEME_ID ? accent : null);
 }
 
 

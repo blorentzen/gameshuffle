@@ -957,6 +957,14 @@ html.gs-overlay-route body {
   overflow-wrap: anywhere;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
+/* Text size (Chat feed options): medium is the default above. */
+.chat-ov--size-s .chat-ov__name,
+.chat-ov--size-s .chat-ov__text { font-size: 1.25rem; }
+.chat-ov--size-l .chat-ov__name,
+.chat-ov--size-l .chat-ov__text { font-size: 2rem; }
+.chat-ov--size-l { width: 40rem; }
+/* Newest at the top: the feed grows down and the oldest drop off the bottom. */
+.chat-ov--newest-first { justify-content: flex-start; }
 .chat-ov__badge {
   font-size: 1rem;
   font-weight: 800;
@@ -1129,6 +1137,14 @@ html.gs-overlay-route body {
 .gs-numbingo__n.is-called { background: var(--brand-fill-dark, var(--brand-primary, #2766ec)); color: var(--brand-on-dark, #fff); font-weight: 700; }
 .gs-numbingo__n.is-last { outline: 2px solid #fff; outline-offset: -1px; }
 .gs-numbingo__prize { font-size: 14px; opacity: 0.9; }
+.gs-numbingo__doors { display: flex; flex-direction: column; gap: 4px; }
+.gs-numbingo__doors-label { font-size: 14px; opacity: 0.8; }
+.gs-numbingo__clock { animation: none; }
+.gs-numbingo__doors-how { font-size: 15px; font-weight: 600; }
+.gs-numbingo__goal { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.bingo-shape--overlay { width: 46px; }
+.bingo-shape--overlay > span { background: rgba(255, 255, 255, 0.14); }
+.bingo-shape--overlay > span.is-on { background: var(--brand-fill-dark, var(--brand-primary, #2766ec)); }
 @keyframes gs-numbingo-pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .gs-numbingo__last, .gs-numbingo__winner { animation: none; } }
 

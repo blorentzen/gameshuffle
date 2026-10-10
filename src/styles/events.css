@@ -181,31 +181,11 @@
    so the row reads as one even band. */
 .event-shell__more-carousel .empac-carousel__slide > * { height: 100%; }
 
-/* Mobile jump bar → the action panel (which stacks under the body). */
-.event-shell__jump { display: none; }
 
 @media (max-width: 900px) {
   .event-shell__hero { height: 180px; }
   .event-shell__layout { grid-template-columns: minmax(0, 1fr); }
   .event-shell__aside { position: static; }
-  .event-shell { padding-bottom: calc(var(--spacing-64) + 3.5rem); }
-  .event-shell__jump {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    z-index: 30;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0.8rem 1rem;
-    border-radius: 999px;
-    background: var(--bg-primary, var(--primary-600));
-    color: var(--text-on-primary, #fff);
-    font-weight: var(--font-weight-bold);
-    text-decoration: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  }
 }
 
 /* Shared events browser additions (base card/filter styles live in game-nights.css) */

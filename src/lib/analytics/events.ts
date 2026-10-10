@@ -105,6 +105,8 @@ export const EVENTS = {
   // AI features
   aiPackGenerated: "AI Pack Generated",
   aiPackSaved: "AI Pack Saved",
+  aiDeckGenerated: "AI Deck Generated",
+  aiDeckSaved: "AI Deck Saved",
   aiRecapGenerated: "AI Recap Generated",
   aiSetupApplied: "AI Setup Applied",
   aiPlanGenerated: "AI Plan Generated",

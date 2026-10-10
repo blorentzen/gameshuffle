@@ -15,7 +15,7 @@
 import type { ComponentType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { Button, Checkbox, Chip, RangeSlider } from "@empac/cascadeds";
+import { Accordion, Button, Checkbox, IconButton, RangeSlider, Select } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { BrandThemeBar } from "@/components/account/BrandThemeBar";
@@ -26,6 +26,7 @@ import {
   resolvedAnchor,
   offsetForAnchorAt,
   isPlacementEnabled,
+  type Anchor,
   type ElementPlacement,
   type LayoutProfile,
   type OverlayFormat,
@@ -92,12 +93,18 @@ const APPS: OverlayElement[] = [
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
 
-type ElementCategory = "tools" | "apps";
 
 // Reference resolution per format. The frame renders at the reference
 // resolution and is scaled to the responsive on-screen width so the real
 // components size exactly as they will on stream. `cap` bounds the on-screen
 // width (portrait is tall, so it's capped smaller to stay on screen).
+/** The 3x3 snap grid, row by row. */
+const ANCHORS: { id: Anchor; label: string }[] = [
+  { id: "top-left", label: "top left" }, { id: "top-center", label: "top centre" }, { id: "top-right", label: "top right" },
+  { id: "mid-left", label: "middle left" }, { id: "center", label: "centre" }, { id: "mid-right", label: "middle right" },
+  { id: "bottom-left", label: "bottom left" }, { id: "bottom-center", label: "bottom centre" }, { id: "bottom-right", label: "bottom right" },
+];
+
 const FORMATS: {
   id: OverlayFormat;
   label: string;
@@ -116,7 +123,8 @@ type Profiles = Partial<Record<OverlayFormat, LayoutProfile>>;
 export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
   const [profiles, setProfiles] = useState<Profiles>({});
   const [format, setFormat] = useState<OverlayFormat>("landscape");
-  const [category, setCategory] = useState<ElementCategory>("tools");
+  // "Only this one": dim every piece but the selected one (one piece at a time).
+  const [focusOne, setFocusOne] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -444,11 +452,11 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
   const selectedScale = selectedEl?.scale ?? 1;
   const selectedEnabled = selected ? isPlacementEnabled(format, selected, profiles[format]) : true;
 
-  // The whole overlay always renders (so you see the finished picture), but
-  // only the active category (Tools or Apps) is interactive — you click/drag the
-  // real UI to move it, and select from the palette for hidden/overlapping ones.
-  const activeList = category === "apps" ? APPS : TOOLS;
-  const isActiveId = (id: string) => activeList.some((a) => a.id === id);
+  // The whole overlay always renders (so you see the finished picture). Every
+  // piece can be clicked or dragged, unless "Only this one" is on, which dims
+  // the rest and leaves just the selected piece to move.
+  const dimmed = (id: string) => !preview && focusOne && !!selected && id !== selected;
+  const pieceLabel = (t: OverlayElement) => (isPlacementEnabled(format, t.id, profiles[format]) ? t.label : `${t.label} (hidden)`);
 
   // Placement (and the selection outline) goes on the component's own root via
   // `style` — the root shrink-wraps its visible card, so the outline hugs the
@@ -514,9 +522,19 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
         </>
       )}
       <BrandThemeBar context="this preview" />
-      <OverlayLinks token={overlayToken} activeFormat={format} />
-
-      {!preview && (
+      {/* The OBS links and the safe-area note sit in one collapsed panel so
+          the editor starts near the top; open by default until there's a link. */}
+      <Accordion
+        variant="bordered"
+        className="overlay-obs"
+        defaultOpenIds={overlayToken ? [] : ["obs"]}
+        items={[{
+          id: "obs",
+          title: "Add to OBS or Streamlabs",
+          description: "Your overlay links, and where the safe area keeps pieces clear of your webcam and chat.",
+          content: (
+            <>
+              <OverlayLinks token={overlayToken} activeFormat={format} />
         <p
           style={{
             fontSize: "var(--font-size-12)",
@@ -546,78 +564,56 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
               ? "Portrait reserves the top handle, bottom captions, and the right action rail (like/comment/share)."
               : "Square keeps even margins on all sides."}
         </p>
-      )}
+            </>
+          ),
+        }]}
+      />
 
-      {/* Aspect ratio + preview toggle */}
-      <div style={{ display: "flex", gap: "var(--spacing-8)", marginBottom: "var(--spacing-24)", flexWrap: "wrap", alignItems: "center" }}>
-        {FORMATS.map((f) => (
-          <Button
-            key={f.id}
-            variant={f.id === format ? "primary" : "secondary"}
-            size="small"
-            onClick={() => {
-              setFormat(f.id);
-              setSelected(null);
-            }}
-          >
-            {f.label}
-          </Button>
-        ))}
-        <span style={{ width: 1, height: 22, background: "var(--border-default)", margin: "0 4px" }} />
+      {/* Toolbar: the piece you're editing, whether to see only it, the
+          shape (each saves its own layout) and preview. The piece list
+          replaced a row of chips plus a Tools / Apps switch. */}
+      <div className="overlay-toolbar">
+        {!preview && (
+          <div className="overlay-toolbar__piece">
+            <Select
+              aria-label="Piece to edit"
+              size="small"
+              fullWidth
+              placeholder="Pick a piece to edit"
+              value={selected ?? ""}
+              onChange={(v) => setSelected(String(v) || null)}
+              groups={[
+                { label: "Tools", options: TOOLS.map((t) => ({ value: t.id, label: pieceLabel(t) })) },
+                { label: "Apps", options: APPS.map((t) => ({ value: t.id, label: pieceLabel(t) })) },
+              ]}
+            />
+          </div>
+        )}
+        {!preview && (
+          <div className="overlay-toolbar__group" role="group" aria-label="Show">
+            <Button variant={focusOne ? "secondary" : "primary"} size="small" onClick={() => setFocusOne(false)}>All pieces</Button>
+            <Button variant={focusOne ? "primary" : "secondary"} size="small" disabled={!selected} onClick={() => setFocusOne(true)}>Only this one</Button>
+          </div>
+        )}
+        <div className="overlay-toolbar__group" role="group" aria-label="Shape">
+          {FORMATS.map((f) => (
+            <Button
+              key={f.id}
+              variant={f.id === format ? "primary" : "secondary"}
+              size="small"
+              onClick={() => {
+                setFormat(f.id);
+                setSelected(null);
+              }}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
         <Button variant={preview ? "primary" : "secondary"} size="small" onClick={() => setPreview((p) => !p)}>
           {preview ? "◉ Preview" : "○ Preview"}
         </Button>
       </div>
-
-      {/* Category toggle — which set of overlay pieces you're arranging. The
-          full overlay stays visible; this just controls which handles show. */}
-      {!preview && (
-        <div style={{ display: "flex", gap: "var(--spacing-8)", marginBottom: "var(--spacing-24)", alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: "var(--font-size-12)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            Arranging
-          </span>
-          {(["tools", "apps"] as const).map((c) => (
-            <Button
-              key={c}
-              variant={c === category ? "primary" : "secondary"}
-              size="small"
-              onClick={() => {
-                setCategory(c);
-                setSelected(null);
-              }}
-            >
-              {c === "tools" ? "🛠️ Tools" : "🎮 Apps"}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {/* Selection palette — click a chip to select any piece, including ones
-          that are hidden or stacked behind another. The selected piece gets a
-          ring in the preview; drag the piece itself to move it. */}
-      {!preview && (
-        <div style={{ display: "flex", gap: "var(--spacing-6)", flexWrap: "wrap", alignItems: "center", marginBottom: "var(--spacing-24)" }}>
-          <span style={{ fontSize: "var(--font-size-12)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em", marginRight: 2 }}>
-            Select
-          </span>
-          {activeList.map((t) => {
-            const enabled = isPlacementEnabled(format, t.id, profiles[format]);
-            const isSel = selected === t.id;
-            return (
-              <Chip
-                key={t.id}
-                size="small"
-                clickable
-                selected={isSel}
-                variant={isSel ? "primary" : "default"}
-                icon={<t.icon size={16} stroke={1.8} aria-hidden />}
-                label={enabled ? t.label : `${t.label} (hidden)`}
-                onClick={() => setSelected(t.id)}
-              />
-            );
-          })}
-        </div>
-      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)", alignItems: "flex-start" }}>
         {/* Stage — scaled real-component frame; click/drag the UI directly */}
@@ -655,7 +651,7 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
           >
             {ALL_ELEMENTS.map((t) => {
               if (!isPlacementEnabled(format, t.id, profiles[format])) return null;
-              const interactive = !preview && isActiveId(t.id);
+              const interactive = !preview && !dimmed(t.id);
               const isSel = selected === t.id;
               // Placement + interactivity + selection ring all ride on the
               // component's own root, so the outline is concentric with the item.
@@ -663,26 +659,17 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
                 ...placementStyle(format, t.id, profiles[format]),
                 cursor: interactive ? "grab" : "default",
                 pointerEvents: interactive ? "auto" : "none",
-                // Dim the set you're NOT arranging so the active pieces pop and
-                // are easier to place. Preview shows everything at full.
-                opacity: preview || isActiveId(t.id) ? 1 : 0.3,
+                // "Only this one" dims everything else. Preview shows everything at full.
+                opacity: dimmed(t.id) ? 0.15 : 1,
                 transition: "opacity 140ms ease",
                 outline: isSel && !preview ? "3px solid var(--bg-primary)" : undefined,
                 outlineOffset: 6,
                 borderRadius: 12,
                 touchAction: "none",
-                // Stack by role while editing so BOTH Tools and Apps place the
-                // same way: the selected piece sits above everything (beating
-                // Apps' high intrinsic z-index like the wheel's 9999), and the
-                // set you're arranging sits above the dimmed set. Preview mode
-                // restores the real overlay stacking.
-                zIndex: preview
-                  ? undefined
-                  : isSel
-                    ? 100000
-                    : isActiveId(t.id)
-                      ? 3
-                      : 1,
+                // While editing, the selected piece sits above everything
+                // (beating Apps' high intrinsic z-index like the wheel's 9999).
+                // Preview restores the real overlay stacking.
+                zIndex: preview ? undefined : isSel ? 100000 : dimmed(t.id) ? 1 : 3,
               };
               return (
                 // Boxless wrapper — just carries the pointer handler + title; the
@@ -776,6 +763,25 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
                     }
                   />
                 </div>
+                {/* Snap to a corner, an edge or the centre of the safe area. */}
+                <span className="overlay-anchor__label" aria-hidden>Snap to</span>
+                <div className="overlay-anchor" role="group" aria-label="Snap to">
+                  {ANCHORS.map((a) => {
+                    const on = selectedEl?.anchor === a.id && !selectedEl?.offsetPct?.x && !selectedEl?.offsetPct?.y;
+                    return (
+                      <IconButton
+                        key={a.id}
+                        size="small"
+                        variant={on ? "primary" : "tertiary"}
+                        aria-label={`Snap to ${a.label}`}
+                        aria-pressed={on}
+                        onClick={() => updateElement(selected, { anchor: a.id, offsetPct: { x: 0, y: 0 }, scale: selectedScale, enabled: selectedEnabled })}
+                      >
+                        <span className="overlay-anchor__dot" aria-hidden />
+                      </IconButton>
+                    );
+                  })}
+                </div>
                 <Button
                   variant="ghost"
                   size="small"
@@ -794,9 +800,9 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
               </>
             ) : (
               <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-                Click a piece in the preview (or a chip above) to select it, then drag it to move it.
-                Selecting shows its size + visibility here. Everything is at real size;{" "}
-                <strong>Preview</strong> shows the clean overlay.
+                Pick a piece above, or click it in the preview, then drag it to move it. Its size,
+                where it snaps and whether it shows on this shape appear here. Everything is at real
+                size; <strong>Preview</strong> shows the clean overlay.
               </p>
             )}
           </div>

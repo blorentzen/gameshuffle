@@ -3,7 +3,7 @@
 /**
  * The shop's cart: lines kept in this browser (localStorage, a per-visitor
  * convenience; nothing is held until checkout), a CDS Drawer to review it, and
- * the sticky Cart button. Quantities are capped at the lower of the product's
+ * the Cart button above the shelf. Quantities are capped at the lower of the product's
  * per-order limit and what's in stock. Check out sends the whole cart to
  * /api/shop/checkout, which checks stock, holds it and opens Stripe Checkout.
  */

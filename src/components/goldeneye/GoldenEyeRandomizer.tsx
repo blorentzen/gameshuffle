@@ -9,11 +9,11 @@
  * map screenshots, portraits from the character sheet (see game-art). Only rolls.
  */
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Badge, Button, Card, IconButton, Input, Select, Switch } from "@empac/cascadeds";
 import { CardActions } from "@/components/randomizer/CardActions";
 import { seatLabel } from "@/lib/randomizers/seats";
-import { IconBomb, IconClock, IconCopy, IconCrosshair, IconDice5, IconMap2, IconRefresh, IconTarget, IconWand } from "@tabler/icons-react";
+import { IconBomb, IconClock, IconCrosshair, IconDice5, IconMap2, IconRefresh, IconTarget, IconWand } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
@@ -21,12 +21,11 @@ import { RollingText } from "@/components/randomizer/RollingText";
 import { AiSetupBar } from "@/components/ai/AiSetupBar";
 import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
 import { goldeneyeMapArt, goldeneyePortrait } from "@/data/game-art";
-import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { GOLDENEYE_LENGTHS, GOLDENEYE_WEAPON_SETS } from "@/data/goldeneye/multiplayer";
 import {
-  characterPool, mapPool, matchText, rerollCharacter, rerollLength, rerollMap, rerollScenario, rerollWeapons, rollCharacters, rollMatch, scenarioPool,
+  characterPool, mapPool, rerollCharacter, rerollLength, rerollMap, rerollScenario, rerollWeapons, rollCharacters, rollMatch, scenarioPool,
   type GoldenEyeCast, type GoldenEyeMatch, type GoldenEyeOptions,
 } from "@/lib/goldeneye/roll";
 
@@ -34,11 +33,9 @@ const TEAM_COLORS = ["#2f66ec", "#d9502a"];
 type Part = "scenario" | "map" | "weapons" | "length";
 
 export function GoldenEyeRandomizer() {
-  const toast = useToast();
   const { trackEvent } = useAnalytics();
   const [players, setPlayers] = useState(4);
   const [names, setNames] = useState<string[]>(Array(4).fill(""));
-  const seatName = useCallback((i: number) => names[i]?.trim() || `Player ${i + 1}`, [names]);
   const [freshSave, setFreshSave] = useState(false);
   const [noOddjob, setNoOddjob] = useState(true);
   const [allowTeams, setAllowTeams] = useState(true);
@@ -98,9 +95,6 @@ export function GoldenEyeRandomizer() {
     if (o.cheat != null) setCheat(o.cheat);
     if (o.cast) setCast(o.cast);
   };
-  const seatNames = Array.from({ length: players }, (_, i) => seatName(i));
-  const hasAny = !!match || characters.some(Boolean);
-  const copy = () => hasAny && navigator.clipboard.writeText(matchText(match, characters, seatNames)).then(() => { toast.success("Match copied"); track(EVENTS.resultCopied, { tool: "goldeneye-007" }); }, () => toast.error("Couldn't copy the match"));
 
   const refresh = (part: Part, label: string) => (
     <IconButton variant="tertiary" size="small" aria-label={label} title={label} onClick={() => { reroll[part](); track(EVENTS.goldeneyePartRefreshed, { part }); }} disabled={!match}>
@@ -121,7 +115,6 @@ export function GoldenEyeRandomizer() {
     <div className="goldeneye-randomizer">
       <div className="randomizer-controls">
         <span className="party-muted">{players} players · {mapPool(opts).length} maps · {characterPool(opts).length} characters</span>
-        <Button variant="secondary" size="small" iconBefore={IconCopy} disabled={!hasAny} onClick={copy}>Copy match</Button>
       </div>
 
       <section aria-labelledby="ge-match-h">

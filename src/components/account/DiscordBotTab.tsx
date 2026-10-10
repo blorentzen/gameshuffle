@@ -20,6 +20,7 @@ import { EmojiPicker, type GuildEmoji } from "@/components/account/EmojiPicker";
 import { ROUTE_CATEGORIES } from "@/lib/discord/routeCategories";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { DiscordLiveAlerts } from "@/components/account/DiscordLiveAlerts";
 
 interface Channel {
   id: string;
@@ -742,9 +743,17 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
         </div>
       )}
 
+      {/* Go-live alerts for creators this server picks (GS Pro). */}
+      {show("posts") && canEdit && (
+        <DiscordLiveAlerts key={current?.guildId ?? "main"} withGuild={withGuild} channels={channels} roles={guildRoles} />
+      )}
+
       {/* Free accounts see the rest of the suite as greyed, inactive spaces. */}
       {show("posts") && !isPro && (
         <>
+          <LockedFeature title="Go-live alerts">
+            Post when creators you choose go live on Twitch, with a role ping. Up to 25 per server.
+          </LockedFeature>
           <LockedFeature title="Announcements">
             Post rich announcements now or on a schedule, with optional follow-up reminders.
           </LockedFeature>

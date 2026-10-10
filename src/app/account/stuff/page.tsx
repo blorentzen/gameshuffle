@@ -8,6 +8,8 @@ import {
 import { StuffTabs } from "@/components/account/StuffTabs";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getPlatformFlag } from "@/lib/platform/flags";
+import { accountOrders } from "@/lib/store/lookup";
+import { isStaffRole } from "@/lib/subscription";
 
 /** Payouts shows once paid entry is on, or for an organizer who already has a payout account. */
 async function showPayoutsFor(userId: string): Promise<boolean> {
@@ -44,5 +46,9 @@ export default async function MyStuffPage() {
   // Real GS Pro: no My Cards cap (free accounts hold MY_CARDS_FREE_LIMIT different cards).
   const isPro = effectiveTier(capUser) === "pro";
 
-  return <StuffTabs isPro={canCollect} unlimitedCards={isPro} showPayouts={await showPayoutsFor(user.id)} timeZone={(profile?.timezone as string | null) ?? null} />;
+  // Shop orders: hidden while the shop is (2026-10-10), except for staff and anyone with an order.
+  const showShopOrders = (await getPlatformFlag("shop_open", false)) || isStaffRole(capUser.role)
+    || (await accountOrders(user.id, user.email_confirmed_at ? user.email ?? null : null).catch(() => [])).length > 0;
+
+  return <StuffTabs isPro={canCollect} unlimitedCards={isPro} showPayouts={await showPayoutsFor(user.id)} showShopOrders={showShopOrders} timeZone={(profile?.timezone as string | null) ?? null} />;
 }

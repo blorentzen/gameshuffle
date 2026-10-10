@@ -470,6 +470,10 @@ export interface HelixStream {
   type: string; // "live" when streaming
   started_at: string;
   viewer_count?: number;
+  title?: string;
+  game_name?: string;
+  /** Has {width}x{height} placeholders. */
+  thumbnail_url?: string;
 }
 
 /**

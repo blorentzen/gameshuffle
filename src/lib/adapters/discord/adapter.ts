@@ -31,7 +31,8 @@ export interface DiscordEmbed {
   footer?: { text: string };
   timestamp?: string;
   thumbnail?: { url: string };
-  author?: { name: string; icon_url?: string };
+  image?: { url: string };
+  author?: { name: string; icon_url?: string; url?: string };
 }
 
 export type DiscordAdapterResult =

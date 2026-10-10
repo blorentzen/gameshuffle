@@ -8,7 +8,7 @@
  */
 
 import Link from "next/link";
-import { Select } from "@empac/cascadeds";
+import { Button, ColorPicker, Select } from "@empac/cascadeds";
 import { AdminField, AdminScreen, AdminSection, SaveStatus } from "@/components/account/admin/AdminKit";
 import { useProfileStore } from "@/components/account/profile/ProfileStore";
 import { LoadingLines } from "@/components/loading/LoadingLines";
@@ -38,27 +38,44 @@ export function ThemingThemeScreen() {
       {loading ? <LoadingLines label="Loading" /> : (
         <>
           <PersonalSurfacesBar username={fields.username || null} isStreamer={extras.hasTwitchConnection} />
-          {extras.persoAvailable && (
-            <AdminSection title="Accent color" intro="A color for the highlights on your profile.">
-              <div className="admin-form">
-                <AdminField label="Accent">
-                  {(id) => (
-                    <Select
-                      id={id}
-                      fullWidth
-                      value={fields.accent || NONE}
-                      onChange={(v) => { const s = String(v); set({ accent: s === NONE ? "" : s }); }}
-                      options={[{ value: NONE, label: "Default" }, ...PROFILE_ACCENTS.map((a) => ({ value: a.key, label: a.label }))]}
-                    />
+          {/* One place for color (Britton, 2026-10-10): a free account picks
+              one color; GS Pro picks a brand theme instead, which takes over
+              from that color everywhere (owner-theme.ts skips the accent once
+              a brand theme is on). */}
+          <AdminSection title="Colors" intro="The color of your links, buttons and highlights on your profile, live page and overlay.">
+            <ProOnly
+              fallback={
+                <>
+                  {extras.persoAvailable && (
+                    <div className="admin-field">
+                      <span className="admin-field__label" id="your-color-label">Your color</span>
+                      <div className="theme-your-color" aria-labelledby="your-color-label">
+                        <ColorPicker
+                          variant="inline"
+                          size="small"
+                          aria-label="Your color"
+                          presets={PROFILE_ACCENTS.map((a) => ({ value: a.color, label: a.label }))}
+                          value={PROFILE_ACCENTS.find((a) => a.key === fields.accent)?.color ?? ""}
+                          onChange={(hex) => {
+                            const pick = PROFILE_ACCENTS.find((a) => a.color.toLowerCase() === hex.toLowerCase());
+                            if (pick) set({ accent: pick.key });
+                          }}
+                        />
+                        {fields.accent && <Button variant="ghost" size="small" onClick={() => set({ accent: "" })}>Use GameShuffle blue</Button>}
+                      </div>
+                      <p className="admin-field__help">Free. With GS Pro you can pick a full brand theme instead.</p>
+                    </div>
                   )}
-                </AdminField>
-              </div>
-            </AdminSection>
-          )}
+                  <ThemeProPrompt />
+                </>
+              }
+            >
+              <ThemeTab bare />
+            </ProOnly>
+          </AdminSection>
         </>
       )}
-      <ProOnly fallback={<ThemeProPrompt />}>
-        <ThemeTab bare />
+      <ProOnly fallback={null}>
         <ProfileSkinEditor />
       </ProOnly>
       <ProOnly fallback={null}>

@@ -91,6 +91,8 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "payouts", label: "Payouts" },
       ] },
       { id: "setups", label: "Saved configs", iconName: "bookmark" },
+      // Your own Chance cards, missions and house rules (moved from Streaming ▸ Game defaults).
+      { id: "decks", label: "Decks", iconName: "cards" },
       { id: "my-cards", label: "My Collection", iconName: "stack-2" },
     ],
   },

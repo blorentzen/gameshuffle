@@ -50,8 +50,7 @@ export default function Page() {
         <a href="/help/apps/ai-tools">AI tools</a>.
       </p>
       <p>
-        Signed in, <strong>Save teams</strong> keeps the cup and everyone&apos;s six. <strong>Copy teams</strong> gives you a
-        plain list for chat or Discord.
+        Signed in, <strong>Save teams</strong>{" "}keeps the cup and everyone&apos;s six.
       </p>
 
       <h2>The Fire Red &amp; Leaf Green run challenge</h2>
@@ -72,8 +71,7 @@ export default function Page() {
       </p>
       <p>
         <strong>Copy link</strong> shares the exact run: anyone who opens it gets the same starter, catches and caps, which
-        makes it easy to race a friend or let your chat follow along. <strong>Copy run</strong> gives you the whole list as
-        text.
+        makes it easy to race a friend or let your chat follow along.
       </p>
 
       <h2>About the artwork</h2>

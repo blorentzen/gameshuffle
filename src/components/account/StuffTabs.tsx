@@ -2,7 +2,7 @@
 
 /**
  * The My Stuff section: Events (Tournaments · Game nights) · Purchases
- * (Tickets · Shop orders · Payouts) · Saved configs · My Collection. Views and
+ * (Tickets · Shop orders · Payouts) · Saved configs · Decks · My Collection. Views and
  * tabs live in src/lib/account/nav.ts; My Games and Board Games moved to
  * Account ▸ Profile ▸ Games (their old links forward there). The page
  * server-resolves `isPro`, whether to show Payouts and the profile timezone
@@ -19,18 +19,20 @@ import { GameNightsTab } from "@/components/account/GameNightsTab";
 import { TicketsTab } from "@/components/account/TicketsTab";
 import { PayoutsTab } from "@/components/account/PayoutsTab";
 import { ShopOrdersTab } from "@/components/account/ShopOrdersTab";
+import { DecksTab } from "@/components/account/stuff/DecksTab";
 import { AdminScreen } from "@/components/account/admin/AdminKit";
 import { MAX_SHOWCASE } from "@/lib/scrydex/types";
 
-export function StuffTabs({ isPro, unlimitedCards = false, showPayouts = false, timeZone = null }: { isPro: boolean; unlimitedCards?: boolean; showPayouts?: boolean; timeZone?: string | null }) {
+export function StuffTabs({ isPro, unlimitedCards = false, showPayouts = false, showShopOrders = true, timeZone = null }: { isPro: boolean; unlimitedCards?: boolean; showPayouts?: boolean; showShopOrders?: boolean; timeZone?: string | null }) {
   const screens: ScreenMap = {
     tournaments: () => <TournamentsTab timeZone={timeZone} />,
     "game-nights": () => <GameNightsTab timeZone={timeZone} />,
     tickets: () => <TicketsTab timeZone={timeZone} />,
-    orders: () => <ShopOrdersTab />,
+    ...(showShopOrders ? { orders: () => <ShopOrdersTab /> } : {}),
     // Organizer payouts only once paid entry is on, or for someone who has a payout account.
     ...(showPayouts ? { payouts: () => <PayoutsTab /> } : {}),
     setups: () => <SetupsTab />,
+    decks: () => <DecksTab isPro={unlimitedCards} />,
     "my-cards": () => (
       <AdminScreen title="My Collection" intro={`The Pokémon cards you own. Star your favorites: the top ${MAX_SHOWCASE} show on your public profile.`}>
         <CollectionManager isPro={isPro} unlimited={unlimitedCards} />

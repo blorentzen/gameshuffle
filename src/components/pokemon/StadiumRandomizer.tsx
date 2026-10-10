@@ -13,7 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button, Input, Modal, Select, Switch } from "@empac/cascadeds";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
-import { IconCopy, IconDeviceFloppy } from "@tabler/icons-react";
+import { IconDeviceFloppy } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 import type { StadiumSetupConfig } from "@/data/config-types";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
@@ -151,13 +151,6 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
     bump(t.map((_, s2) => s2));
   };
 
-  const copyTeams = () => {
-    const lines = [`${game.label}, ${cup.name}`, ...teams.slice(0, players).map((t, i) => {
-      const chosen = new Set(pickThree ? picks[i] ?? [] : []);
-      return `${seatName(i)}: ${t.map((r, j) => (chosen.has(j) ? `${r.name} (pick)` : r.name)).join(", ")}`;
-    })];
-    navigator.clipboard.writeText(lines.join("\n")).then(() => { toast.success("Teams copied"); track(EVENTS.resultCopied, { tool: "pokemon-stadium" }); }, () => toast.error("Couldn't copy the teams"));
-  };
 
   // Saving + loading (?config=)
   const [saveOpen, setSaveOpen] = useState(false);
@@ -205,7 +198,6 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
       <div className="randomizer-controls">
         <span className="party-muted">{game.label} · {cup.name} · {pool.length} rentals</span>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-          <Button variant="secondary" size="small" iconBefore={IconCopy} disabled={!teams.length} onClick={copyTeams}>Copy teams</Button>
           <Button variant="secondary" size="small" onClick={() => (user ? setSaveOpen(true) : void save())} iconBefore={IconDeviceFloppy}>
             {saveName && loadedId ? `Update: ${saveName}` : "Save teams"}
           </Button>

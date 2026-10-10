@@ -2505,6 +2505,10 @@
 .live-bingo__call { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8, 8px) var(--spacing-16, 16px); }
 .live-bingo__num { font-size: var(--font-size-40, 4rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--brand-ink, var(--text-primary)); }
 .live-bingo__meta { color: var(--text-secondary); font-size: var(--font-size-14); }
+.live-bingo__goal { display: flex; align-items: center; gap: var(--spacing-12, 12px); }
+.live-bingo__goal .bingo-shape { width: 4.4rem; }
+.live-bingo__doors { margin: 0; font-size: var(--font-size-16); color: var(--text-primary); }
+.live-bingo__doors strong { font-variant-numeric: tabular-nums; }
 .live-bingo__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12, 12px); }
 .live-bingo .bingo-live__card { width: 100%; }
 .stream-bingo__last { margin: 0; font-size: var(--font-size-40); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
