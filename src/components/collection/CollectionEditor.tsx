@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { Accordion, Button, Chip, Input, Radio, RadioGroup, Switch } from "@empac/cascadeds";
-import { useToast } from "@/components/toast/ToastProvider";
 import { PARTY_GAMES } from "@/data/party";
 import { collectionCatalog, defaultCollection, type GameCollection } from "@/lib/collection/catalog";
 import { useGameCollection } from "@/hooks/useGameCollection";
@@ -93,26 +93,19 @@ export function MyGamesPanel({ games }: { games: string[] }) {
 }
 
 function MyGameEditor({ slug }: { slug: string }) {
-  const toast = useToast();
   const { collection, save, source, loaded } = useGameCollection(slug, defaultCollection(slug));
   const [draft, setDraft] = useState<GameCollection | null>(null);
   const value = draft ?? collection;
+  // Saves itself a moment after a change (site-wide autosave).
+  useAutosave(value, async (v) => (await save(v)) !== false, { ready: loaded, toast: "Collection saved" });
   if (!loaded) return <LoadingLines label="Loading" />;
   return (
     <>
       <p className="party-muted">
         Switch off anything you don&apos;t have. {collectionCatalog(slug)?.label} randomizers will skip it.
-        {source === "browser" ? " Saving in this browser for now." : ""}
+        {source === "browser" ? " Saved in this browser until you sign in." : ""}
       </p>
       <CollectionEditor slug={slug} value={value} onChange={setDraft} />
-      <div className="party-row">
-        <Button variant="primary" disabled={!draft} onClick={async () => {
-          if (!draft) return;
-          const ok = await save(draft);
-          if (ok) { toast.success("Collection saved"); setDraft(null); } else toast.error("Couldn't save. Please try again.");
-        }}>Save</Button>
-        {draft && <Button variant="ghost" onClick={() => setDraft(null)}>Discard changes</Button>}
-      </div>
     </>
   );
 }

@@ -124,14 +124,14 @@ npm run lint    # ESLint
 
 ### App (auth required — theming respects user preference)
 ```
-/account                                 → Account section (Profile, Brand & Theme, Plans, Security)
-/account/stuff                           → My Stuff (Setups & Games, Tournaments, My Cards)
+/account                                 → Account section (Profile, Theming, Settings, Plans & billing)
+/account/stuff                           → My Stuff (Events, Purchases, Saved configs, My Collection)
 /account/streamer                        → Stream Setup (Integrations, Discord Bot, Mods, Overlay Layout,
                                             Wheels, Stream Tools, + Brand & Theme mirror)
 /account/community                       → Community & Chat (Chat Commands, Polls, Chat Modules,
                                             Game Modules, Engagement, Walk-Up)
 /account/platform                        → Platform Admin (staff/admin only — Platform-* tabs)
-/account/privacy                         → Per-user privacy controls
+/account/privacy/data-request            → Signed-in DSAR form (Settings ▸ Privacy links here; /account/privacy itself is not a page)
    ↑ Sidebar sections + tab catalog are the single source of truth in
      `src/lib/account/nav.ts`; each section is its own route, tabs switch via ?tab=.
 /comms                                   → Comms Center — notifications (Alerts) + messages (Messages) tabs
@@ -271,9 +271,19 @@ get theme support and consistent middleware treatment.
   under Stream Setup too, no bounce).
 - All admin tabs (prefix `Platform*`) gate on `effectiveTier({ tier, role }) === 'pro'` or `role IN ('staff','admin')`
 
-**Account** (`/account`, everyone): **Profile** · **Brand & Theme** (`ThemeTab` + `AnthemSettings` — brand theme skins overlay/`/live`/`/u` + personal walk-up anthem) · **Notifications** (`NotificationsTab`: on-site groups muted via `users.notification_prefs.muted`, `src/lib/social/notificationGroups.ts`, honored by `createNotification`; `PhoneSmsCard` for texts; email categories via `/api/account/notifications`) · **Plans** (`PlansTab`: a "Your free account" card for free accounts, then Pro and Circuit; copy in `src/lib/plans/highlights.ts`, the AI row reads live limits) · **Security** (change password, 2FA, delete account cascade).
+**Account** (`/account`, everyone; consolidated 2026-10-09, plan https://claude.ai/artifact/ETbprH4zVurfNNSv6ZuL28): four views with tabs, built on the admin kit. Screens in `src/components/account/{profile,theming,settings}/`; `src/app/account/page.tsx` is just `ProfileStoreProvider` + the trial banner + `SectionTabs`.
+- **Profile:** About you (avatar, display name, username, banner, bio, pronouns, location) · Games (favorites, what you own = `MyGamesPanel`, board game prefs + `BoardGamesManager`; old My Stuff `my-games`/`board-games` ids alias here) · Gamertags & socials · Friends (`TopFriendsEditor`).
+- **Theming:** Theme (accent, `ThemeTab` brand colors + `ProfileSkinEditor` + `ProfileCssEditor`, Pro) · Profile page (`ProfileStatusEditor`, pinned post, favorite TCG card, links, layout) · Walk-up song (`AnthemSettings`).
+- **Settings:** General (email, Display = `ThemeToggle`, timezone, live page recap) · Sign-in & security (`ConnectionsCard`, password, `TwoFactorCard`) · Notifications · Privacy (public profile, blocked, data request, delete account).
+- **Plans & billing** (`PlansTab`).
+- **ProfileStore** (`src/components/account/profile/ProfileStore.tsx`) loads the `users` row once for the section and autosaves it, sending only the changed columns (handle checks as before). Components that own other data save themselves.
+- **One status line, one game:** the old `profile_tagline` / `profile_featured_game` show on /u (and seed the editor) only while `profile_status` / `profile_now_playing` are NULL; the status API stores `""` when cleared so the old value never returns. The old columns stay in the database.
 
-**My Stuff** (`/account/stuff`): **Setups & Games** · **Tournaments** · **My Cards** (`StuffTabs`).
+**My Stuff** (`/account/stuff`): Events (Tournaments · Game nights) · Purchases (Tickets · Shop orders · Payouts; Payouts only when `paid_tickets_enabled` is on or the user has a `gs_connect_accounts` row) · Saved configs (`SetupsTab`) · My Collection (My Cards). `StuffTabs` passes a screen map to `SectionTabs`; leaving a tab out of the map hides it.
+
+**Sections share `SectionTabs`** (`src/components/account/SectionTabs.tsx`): views/tabs from `nav.ts`, CDS Tabs for multi-tab views, `?tab=` aliases resolved, and a tab owned by another section redirected there. Platform admin uses it too.
+
+**Autosave everywhere (decided 2026-10-09):** settings save themselves through `useAutosave` (`src/lib/hooks/useAutosave.ts`): waits ~1s after the last change, skips unchanged and initial values, one request at a time, flushes on unmount, toast "Saved". Header status via `SaveStatus` (admin kit). Explicit buttons only where a check comes first: password change, delete account, custom CSS, overlay layout, edit windows. Converted so far: profile fields, brand theme, walk-up song, My Games.
 
 **Stream Setup** (`/account/streamer`, Pro+/applicable): **Integrations** (`IntegrationsTab`; `TwitchHubTab` = EventSub health + overlay tokens + channel points; reauth banner is dismissible + auto-heals sub drift once/12h) · **Discord Bot** (`DiscordBotTab` — routing/roles/AutoMod/QOTD mgmt/announcements; free accounts see greyed Pro-locked cards, no comparison table) · **Mods** · **Overlay Layout** (`OverlayLayoutTab`) · **Wheels** · **Stream Tools** · **Brand & Theme** (mirror → Account).
 

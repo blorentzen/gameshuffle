@@ -2934,6 +2934,11 @@ html.dark .empac-badge--warning {
 html.dark .empac-tabs__tab--active .empac-tabs__tab-label {
   color: var(--brand-ink);
 }
+/* Pill tabs keep their light --primary-100 fill in dark mode, so the light
+   --brand-ink above would vanish on it; use CDS's own dark text there. */
+html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
+  color: var(--primary-700);
+}
 
 /* ── Phones: card rows swipe (ResponsiveCarousel) instead of stacking ── */
 /* Never wider than its section: the carousel track is wider than the screen by

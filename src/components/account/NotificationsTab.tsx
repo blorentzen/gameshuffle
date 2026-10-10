@@ -22,7 +22,7 @@ import { ALL_EMAIL_CATEGORIES, EMAIL_CATEGORY_DESCRIPTIONS, EMAIL_CATEGORY_LABEL
 
 interface Prefs { muted: string[]; email: Record<EmailCategory, boolean> | null; emailAddress: string | null }
 
-export function NotificationsTab() {
+export function NotificationsTab({ bare = false }: { bare?: boolean } = {}) {
   const toast = useToast();
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [failed, setFailed] = useState(false);
@@ -57,11 +57,15 @@ export function NotificationsTab() {
 
   return (
     <>
-      <div className="account-card">
-        <h2 className="account-tab__heading">Notifications</h2>
-        <p className="account-tab__intro">Choose what reaches you on GameShuffle, by text and by email. Changes save as you go.</p>
-        {failed && <Alert variant="error">Couldn&apos;t load your notification settings. Refresh to try again.</Alert>}
-      </div>
+      {bare ? (
+        failed && <Alert variant="error">Couldn&apos;t load your notification settings. Refresh to try again.</Alert>
+      ) : (
+        <div className="account-card">
+          <h2 className="account-tab__heading">Notifications</h2>
+          <p className="account-tab__intro">Choose what reaches you on GameShuffle, by text and by email. Changes save as you go.</p>
+          {failed && <Alert variant="error">Couldn&apos;t load your notification settings. Refresh to try again.</Alert>}
+        </div>
+      )}
 
       <div className="account-card notif-prefs">
         <h3 className="notif-prefs__title">On GameShuffle</h3>

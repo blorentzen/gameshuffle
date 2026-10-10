@@ -351,7 +351,7 @@ export async function createSessionAction(
         ok: false,
         fieldErrors: {
           attach_twitch:
-            "Twitch isn't connected. Set up the streamer integration in Account → Integrations first.",
+            "Twitch isn't connected. Set up the streamer integration in Stream Setup ▸ Integrations first.",
         },
       };
     }

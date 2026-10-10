@@ -28,7 +28,7 @@ import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Icon, Menu } from "@empac/cascadeds";
 import { isStaffRole } from "@/lib/subscription";
-import { ACCOUNT_SECTIONS, itemTabIds } from "@/lib/account/nav";
+import { ACCOUNT_SECTIONS, ACCOUNT_TAB_ALIAS, itemTabIds } from "@/lib/account/nav";
 
 // CDS has no Discord glyph, so brand-discord renders the logo inline with
 // fill:currentColor, matching the other Tabler icons + adapting to theme.
@@ -59,7 +59,8 @@ export function AccountSidebar({ role }: { role: string | null }) {
   // Which section are we on (by route), and which tab is active within it.
   const current =
     sections.find((s) => s.route === pathname) ?? sections[0];
-  const activeTab = searchParams.get("tab") ?? current.defaultTab;
+  const rawTab = searchParams.get("tab") ?? current.defaultTab;
+  const activeTab = ACCOUNT_TAB_ALIAS[rawTab] ?? rawTab;
 
   // A view (Platform Admin) is active for any of its tabs.
   const activeItem = current.items.find((i) => itemTabIds(i).includes(activeTab))

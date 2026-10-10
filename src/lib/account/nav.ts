@@ -47,29 +47,48 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     route: "/account",
     defaultTab: "profile",
     iconName: "user",
+    // Four views (2026-10-09 consolidation). Old tab ids (profile, theme,
+    // notifications, security, plans) open inside their new view.
     items: [
-      { id: "profile", label: "Profile", iconName: "user" },
-      { id: "theme", label: "Brand & Theme", iconName: "palette" },
-      { id: "notifications", label: "Notifications", iconName: "bell" },
-      { id: "plans", label: "Plans", iconName: "credit-card" },
-      { id: "security", label: "Security", iconName: "lock" },
+      { id: "profile", label: "Profile", iconName: "user", tabs: [
+        { id: "profile", label: "About you" },
+        { id: "games", label: "Games" },
+        { id: "gamertags", label: "Gamertags & socials" },
+        { id: "friends", label: "Friends" },
+      ] },
+      { id: "theme", label: "Theming", iconName: "palette", tabs: [
+        { id: "theme", label: "Theme" },
+        { id: "profile-page", label: "Profile page" },
+        { id: "walkup", label: "Walk-up song" },
+      ] },
+      { id: "settings", label: "Settings", iconName: "settings", tabs: [
+        { id: "settings", label: "General" },
+        { id: "security", label: "Sign-in & security" },
+        { id: "notifications", label: "Notifications" },
+        { id: "privacy", label: "Privacy" },
+      ] },
+      { id: "plans", label: "Plans & billing", iconName: "credit-card" },
     ],
   },
   {
     label: "My Stuff",
     route: "/account/stuff",
-    defaultTab: "setups",
-    iconName: "box",
+    defaultTab: "tournaments",
+    iconName: "folder",
+    // My Games and Board Games moved to Account ▸ Profile ▸ Games (aliases
+    // below keep their old links working).
     items: [
-      { id: "setups", label: "Setups & Games", iconName: "folder" },
-      { id: "my-games", label: "My Games", iconName: "filter" },
-      { id: "game-nights", label: "Game Nights", iconName: "calendar" },
-      { id: "board-games", label: "Board Games", iconName: "layout-grid" },
-      { id: "tournaments", label: "Tournaments", iconName: "award" },
-      { id: "tickets", label: "My Tickets", iconName: "receipt" },
-      { id: "payouts", label: "Payouts", iconName: "currency-dollar" },
-      { id: "my-cards", label: "My Cards", iconName: "stack-2" },
-      { id: "orders", label: "Shop Orders", iconName: "shopping-cart" },
+      { id: "tournaments", label: "Events", iconName: "calendar", tabs: [
+        { id: "tournaments", label: "Tournaments" },
+        { id: "game-nights", label: "Game nights" },
+      ] },
+      { id: "tickets", label: "Purchases", iconName: "receipt", tabs: [
+        { id: "tickets", label: "Tickets" },
+        { id: "orders", label: "Shop orders" },
+        { id: "payouts", label: "Payouts" },
+      ] },
+      { id: "setups", label: "Saved configs", iconName: "bookmark" },
+      { id: "my-cards", label: "My Collection", iconName: "stack-2" },
     ],
   },
   {
@@ -171,6 +190,8 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
 export const ACCOUNT_TAB_ALIAS: Record<string, string> = {
   "twitch-hub": "integrations",
   app: "setups",
+  "my-games": "games",
+  "board-games": "games",
 };
 
 /** Every tab id an item answers to: its own, plus its view's tabs. */

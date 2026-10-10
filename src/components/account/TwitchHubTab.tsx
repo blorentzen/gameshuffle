@@ -234,7 +234,7 @@ export function TwitchHubTab() {
     //
     //   Free + no link     → Step 1 (link in Profile, free) + Step 2 (upgrade to Pro)
     //   Free + linked      → "Twitch linked ✓" + Pro upsell to enable streamer integration
-    //   Pro  + no link     → "Link Twitch in Profile → Connections first"
+    //   Pro  + no link     → "Link Twitch first" (Settings ▸ Sign-in & security)
     //   Pro  + linked      → "Authorize streamer integration" CTA
     //
     // The basic Twitch OAuth identity link is FREE and lives in Profile →
@@ -292,7 +292,7 @@ export function TwitchHubTab() {
           </div>
         )}
 
-        {/* Step 1 — link Twitch (free, lives on Profile → Connections) */}
+        {/* Step 1: link Twitch (free, on Settings ▸ Sign-in & security) */}
         <div className="account-card">
           <h2 style={{ display: "flex", alignItems: "center" }}>
             <StepBadge n={1} done={isTwitchLinked} />
@@ -301,17 +301,15 @@ export function TwitchHubTab() {
           {isTwitchLinked ? (
             <p style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", margin: 0 }}>
               <strong style={{ color: "var(--success-ink)" }}>Linked as @{linkedTwitchName ?? "your Twitch account"}.</strong>{" "}
-              Manage this in <a href="/account?tab=profile" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>Profile → Connections</a>.
+              Manage it in <a href="/account?tab=security" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>Settings ▸ Sign-in &amp; security</a>.
             </p>
           ) : (
             <>
               <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
                 Free for everyone. Gives the platform your Twitch handle and avatar so the
-                bot can address you correctly. Lives in Profile → Connections.
+                bot can address you correctly.
               </p>
-              <a href="/account?tab=profile">
-                <Button variant="secondary">Link Twitch in Profile → Connections</Button>
-              </a>
+              <Button variant="secondary" onClick={() => { window.location.href = "/account?tab=security"; }}>Link Twitch</Button>
             </>
           )}
         </div>
@@ -348,8 +346,8 @@ export function TwitchHubTab() {
             </>
           ) : !isTwitchLinked ? (
             <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-              Complete step 1 first. Link your Twitch account in Profile → Connections, then
-              come back here to authorize the streamer integration.
+              Link your Twitch account first (step 1, on Settings ▸ Sign-in &amp; security),
+              then come back here to authorize the streamer integration.
             </p>
           ) : (
             <>

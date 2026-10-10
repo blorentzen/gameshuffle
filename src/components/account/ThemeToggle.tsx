@@ -52,7 +52,7 @@ function getPrefersDarkSnapshot(): boolean {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ bare = false }: { bare?: boolean } = {}) {
   // matchSystem: true when we're following the OS (no explicit user
   // choice), false when the user has forced light or dark. Lazy
   // initializer reads the cookie at first render.
@@ -140,12 +140,14 @@ export function ThemeToggle() {
 
   return (
     <div className="account-theme-toggle">
-      <div className="account-theme-toggle__heading">
-        <span className="account-theme-toggle__title">Theme</span>
-        <p className="account-theme-toggle__sub">
-          Light or dark mode for the GameShuffle interface.
-        </p>
-      </div>
+      {!bare && (
+        <div className="account-theme-toggle__heading">
+          <span className="account-theme-toggle__title">Theme</span>
+          <p className="account-theme-toggle__sub">
+            Light or dark mode for the GameShuffle interface.
+          </p>
+        </div>
+      )}
       <div className="account-theme-toggle__row">
         <Switch
           checked={matchSystem}

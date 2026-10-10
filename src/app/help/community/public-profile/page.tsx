@@ -64,7 +64,7 @@ export default function Page() {
           or force dark mode. It only affects the signed-in app, marketing pages stay light.
         </li>
         <li>
-          <strong>Brand theme</strong> (Account &rsaquo; <strong>Brand &amp; Theme</strong>): a color
+          <strong>Brand theme</strong> (Account &rsaquo; <strong>Theming</strong>): a color
           preset that re-skins your <em>customer-facing</em> surfaces, your OBS overlay,
           <code> /live</code> page, public profile, and community page, in your colors. It does not
           change your account dashboard.

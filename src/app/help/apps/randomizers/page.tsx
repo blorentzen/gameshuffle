@@ -93,7 +93,7 @@ export default function Page() {
       <p>
         Sign in to save what you build: a <strong>kart build</strong>, an <strong>item set</strong>, a whole
         <strong> game-night setup</strong>, a Mario Party setup, or a set of Pokémon Stadium teams. Saved setups appear in
-        <strong> Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Setups &amp; Games</strong> and on your
+        <strong> Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Saved configs</strong> and on your
         <a href="/help/community/public-profile"> public profile</a>. Pokémon and GoldenEye also have <strong>Copy</strong>{" "}
         buttons for pasting results into chat or Discord, and a Fire Red &amp; Leaf Green run has a link that rebuilds it exactly.
       </p>

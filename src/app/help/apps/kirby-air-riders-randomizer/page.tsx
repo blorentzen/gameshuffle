@@ -79,7 +79,7 @@ export default function Page() {
         free account first.
       </p>
       <p>
-        Find it later in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Setups &amp; Games</strong>. The <strong>Open in Randomizer</strong> button loads it back, and <strong>Copy share link</strong> gives you
+        Find it later in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Saved configs</strong>. The <strong>Open in Randomizer</strong> button loads it back, and <strong>Copy share link</strong> gives you
         a link to send to everyone playing.
       </p>
 

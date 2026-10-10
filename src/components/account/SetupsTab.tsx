@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Setups & Games — a player's saved randomizer configs (grouped by type/game)
+ * Saved configs (My Stuff): a player's saved randomizer configs (grouped by type/game)
  * + their saved TCG Companion games. Self-loading so it can live in the
  * account "My Stuff" section page independent of the profile page's state.
  */

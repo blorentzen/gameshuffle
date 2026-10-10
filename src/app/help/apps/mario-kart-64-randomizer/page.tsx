@@ -72,7 +72,7 @@ export default function Page() {
       <p>
         <strong>Save Complete Setup</strong> keeps your players, their characters, your race list and your item set together.
         Name it and press <strong>Save Setup</strong>. You need to be signed in. Saved setups are in <strong>Account</strong>{" "}
-        &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Setups &amp; Games</strong>; open one to load it back here, and the
+        &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Saved configs</strong>; open one to load it back here, and the
         button changes to <strong>Update:</strong> plus the setup&apos;s name so you can save over it. Battle courses aren&apos;t
         saved.
       </p>

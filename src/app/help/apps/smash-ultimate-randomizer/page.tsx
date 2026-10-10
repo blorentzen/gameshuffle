@@ -70,8 +70,7 @@ export default function Page() {
       <h2>Saving a setup</h2>
       <p>
         Signed in, <strong>Save Complete Setup</strong> keeps everyone&apos;s fighters, the stage and rules, Custom Smash and the
-        squads. Find it in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Setups &amp;
-        Games</strong>, where you can open it again or copy a share link.
+        squads. Find it in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Saved configs</strong>, where you can open it again or copy a share link.
       </p>
 
       <h2>On stream</h2>

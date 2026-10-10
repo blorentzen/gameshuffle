@@ -648,7 +648,7 @@ export function RaceSetupSection({
                   helperText={
                     discordShareAvailable
                       ? "Bot redirects askers to your Discord invite AND posts the code in your configured Discord channel whenever it changes."
-                      : "Set up a Discord invite on Account → Profile and connect the Discord bot on Account → Integrations to enable."
+                      : "Add a Discord invite on Account ▸ Profile ▸ Gamertags & socials and connect the Discord bot on Stream Setup ▸ Integrations to turn this on."
                   }
                 />
               </RadioGroup>

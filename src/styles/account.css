@@ -3685,3 +3685,35 @@ html.dark .gs-platform-icon {
    the bar. Where the number is already written beside it, keep the name and
    hide the print. (Known CDS gap; raise upstream.) */
 .admin-progress-quiet .empac-progress__label { display: none; }
+
+/* Autosave note in a screen header (SaveStatus). */
+.save-status { display: inline-flex; align-items: center; gap: var(--spacing-6); font-size: var(--font-size-14); color: var(--text-tertiary); white-space: nowrap; }
+.save-status--error { color: var(--error-ink, var(--error-600)); white-space: normal; }
+.save-status--saving svg { animation: save-spin 0.9s linear infinite; }
+@keyframes save-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .save-status--saving svg { animation: none; } }
+
+/* Older self-contained cards inside a screen become its sections, so a screen
+   is one card with sections, never a card in a card. */
+.admin-screen .account-card { background: none; box-shadow: none; border-radius: 0; padding: 0; margin: 0; }
+.admin-screen .account-card + .account-card { margin-top: 0; }
+.admin-screen > .account-card { padding-top: var(--spacing-28); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.admin-screen > .admin-head + .account-card { padding-top: 0; border-top: 0; }
+.admin-screen .account-card h2,
+.admin-screen .account-card h2.account-tab__heading { margin: 0 0 var(--spacing-8); font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); }
+.admin-screen .account-card > .account-tab__intro { margin-bottom: var(--spacing-16); }
+.brand-mode .empac-tabs__panel { padding-top: var(--spacing-16); }
+/* Labelled fields (AdminField) and the form column they sit in. */
+.admin-form { display: flex; flex-direction: column; gap: var(--spacing-20); max-width: 52rem; min-width: 0; }
+.admin-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--spacing-20) var(--spacing-24); min-width: 0; }
+.admin-field { display: flex; flex-direction: column; gap: var(--spacing-6); min-width: 0; }
+.admin-field__label { display: inline-flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-field__help { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); line-height: var(--line-height-relaxed); }
+.admin-field__error { margin: 0; font-size: var(--font-size-12); color: var(--error-ink, var(--error-600)); }
+.settings-verified { margin: 0; display: inline-flex; align-items: center; gap: var(--spacing-6); font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--success-ink, var(--success-600)); }
+.settings-unverified { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.settings-delete { display: flex; flex-direction: column; gap: var(--spacing-16); padding: var(--spacing-16); border: 1px solid color-mix(in srgb, var(--error-500) 40%, var(--border-default)); border-radius: var(--radius-12, 12px); background: color-mix(in srgb, var(--error-500) 6%, transparent); }
+.settings-delete__warn { margin: 0; font-weight: var(--font-weight-semibold); color: var(--error-ink, var(--error-600)); }
+.settings-delete__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.profile-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-6); }
+.profile-genres { display: flex; flex-direction: column; gap: var(--spacing-8); }

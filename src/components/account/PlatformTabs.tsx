@@ -5,15 +5,11 @@
  * (`src/app/account/platform/page.tsx`). The page server-gates on staff/admin
  * before rendering this, so these tabs never reach a non-staff session.
  *
- * The views, their tabs and the default live in `src/lib/account/nav.ts`. A
- * view with several tabs gets CDS Tabs across its top; each tab keeps its own
- * `?tab=` address. Add a new screen to nav.ts and to SCREENS below.
+ * The views, their tabs and the default live in `src/lib/account/nav.ts`;
+ * SectionTabs draws the tab bar. Add a new screen to nav.ts and to SCREENS.
  */
 
-import { Suspense, type ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Tabs } from "@empac/cascadeds";
-import { ACCOUNT_SECTIONS, viewForTab } from "@/lib/account/nav";
+import { SectionTabs, type ScreenMap } from "@/components/account/SectionTabs";
 import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
 import { PlatformGrowthTab } from "@/components/account/PlatformGrowthTab";
 import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
@@ -42,14 +38,10 @@ import { PlatformAiTab } from "@/components/account/PlatformAiTab";
 import { PlatformGamesTab } from "@/components/account/PlatformGamesTab";
 
 export function PlatformTabs() {
-  return (
-    <Suspense>
-      <PlatformTabsContent />
-    </Suspense>
-  );
+  return <SectionTabs route="/account/platform" screens={SCREENS} />;
 }
 
-const SCREENS: Record<string, () => ReactNode> = {
+const SCREENS: ScreenMap = {
   "platform-health": () => <PlatformHealthTab />,
   "platform-growth": () => <PlatformGrowthTab />,
   "platform-ai": () => <PlatformAiTab />,
@@ -79,25 +71,3 @@ const SCREENS: Record<string, () => ReactNode> = {
   "platform-economy": () => <PlatformEconomyTab />,
   "platform-compliance": () => <PlatformComplianceTab />,
 };
-
-const PLATFORM = ACCOUNT_SECTIONS.find((s) => s.route === "/account/platform")!;
-
-function PlatformTabsContent() {
-  const router = useRouter();
-  const requested = useSearchParams().get("tab") || PLATFORM.defaultTab;
-  const view = viewForTab(PLATFORM, requested) ?? PLATFORM.items[0];
-  const activeTab = SCREENS[requested] ? requested : (view.id ?? PLATFORM.defaultTab);
-  const screen = SCREENS[activeTab]?.() ?? null;
-
-  if (!view.tabs || view.tabs.length < 2) return <>{screen}</>;
-  return (
-    <div className="platform-view">
-      <Tabs
-        variant="underline"
-        activeTab={activeTab}
-        onChange={(id) => router.push(`${PLATFORM.route}?tab=${id}`, { scroll: false })}
-        tabs={view.tabs.map((t) => ({ id: t.id, label: t.label, content: t.id === activeTab ? <div className="platform-view__body">{screen}</div> : null }))}
-      />
-    </div>
-  );
-}

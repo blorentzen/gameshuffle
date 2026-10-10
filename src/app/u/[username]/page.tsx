@@ -259,8 +259,11 @@ export default async function PublicProfilePage({
 
   // Status + now-playing (guarded) + the walk-up anthem title (read-only display).
   const { data: statusRow } = await supabase.from("users").select("profile_status, profile_now_playing").eq("id", profile.id).maybeSingle();
-  const profileStatus = resolveProfileStatus((statusRow as { profile_status?: unknown } | null)?.profile_status);
-  const nowPlaying = resolveNowPlaying((statusRow as { profile_now_playing?: unknown } | null)?.profile_now_playing);
+  // One status line and one game (2026-10-09): the old tagline / featured game
+  // stand in only while the new column has never been saved (NULL; "" = cleared).
+  const statusCols = (statusRow ?? {}) as { profile_status?: string | null; profile_now_playing?: string | null };
+  const profileStatus = statusCols.profile_status == null ? tagline : resolveProfileStatus(statusCols.profile_status);
+  const nowPlaying = statusCols.profile_now_playing == null ? (featuredGame ? resolveNowPlaying(featuredGame) : null) : resolveNowPlaying(statusCols.profile_now_playing);
   const nowPlayingArt = nowPlaying ? gameArt(nowPlaying) : null;
   const walkupAnthem = await getUserAnthem(profile.id as string).catch(() => null);
   const walkupTitle =
@@ -401,12 +404,12 @@ export default async function PublicProfilePage({
     </div>
   );
 
-  const featuredWidget = featuredGame && (
+  const featuredWidget = nowPlaying && (
     <div className="pcard profile-featured">
       <h3 className="pcard__title">Featured game</h3>
       <div className="profile-featured__body">
-        <GameCover name={featuredGame} className="profile-featured__art" />
-        <span className="profile-featured__name">{featuredGame}</span>
+        <GameCover name={nowPlaying} className="profile-featured__art" />
+        <span className="profile-featured__name">{nowPlaying}</span>
       </div>
     </div>
   );
@@ -688,7 +691,7 @@ export default async function PublicProfilePage({
           <OwnerBar
             note="Your profile"
             customize={<ProfileCustomizeEditor />}
-            manageHref="/account?tab=profile#personalize"
+            manageHref="/account?tab=profile-page"
             manageLabel="Edit details"
             className="owner-bar--overlay"
           />
@@ -730,7 +733,6 @@ export default async function PublicProfilePage({
               {(pronouns || location) && (
                 <span className="profile-hero__sub">{[pronouns, location].filter(Boolean).join(" · ")}</span>
               )}
-              {tagline && <p className="profile-hero__tagline">{tagline}</p>}
               {profileStatus && <p className="profile-hero__status"><IconMessageCircle size={15} stroke={1.9} aria-hidden /> {profileStatus}</p>}
               {(nowPlaying || walkupTitle) && (
                 <div className="profile-hero__nowline">

@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * The Platform admin kit: the few layout pieces every admin screen shares, so
  * screens stop inventing their own. All CDS underneath; this only arranges it.
@@ -11,11 +13,15 @@
  *   AdminRowMenu a row's "more" menu (Archive, Delete…) so a table isn't a
  *                column of red buttons; the action itself still confirms
  *   AdminUpdated "Updated 1:48 PM" footnote for screens that refresh
+ *   AdminScreen  the card a screen sits in (older cards inside become sections)
+ *   SaveStatus   "Saving… / Saved" for autosaving screens (useAutosave)
+ *   AdminField   a label tied to its control, with helper or error text below
  */
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Dropdown, IconButton, type DropdownMenuItem } from "@empac/cascadeds";
-import { IconDots } from "@tabler/icons-react";
+import { IconAlertTriangle, IconCheck, IconDots, IconLoader2 } from "@tabler/icons-react";
+import type { AutosaveStatus } from "@/lib/hooks/useAutosave";
 
 export function AdminHeader({ title, intro, actions }: { title: string; intro?: ReactNode; actions?: ReactNode }) {
   return (
@@ -83,4 +89,52 @@ const time = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: 
 
 export function AdminUpdated({ at, every }: { at: string; every?: string }) {
   return <p className="admin-updated">Updated {time(at)} Pacific{every ? ` · refreshes every ${every}` : ""}</p>;
+}
+
+/** One screen: a header, then its sections. Older self-contained cards placed
+ *  inside render as sections (styles in account.css), never a card in a card. */
+export function AdminScreen({ title, intro, actions, className, children }: { title: string; intro?: ReactNode; actions?: ReactNode; className?: string; children: ReactNode }) {
+  return (
+    <div className={`account-card admin-screen${className ? ` ${className}` : ""}`}>
+      <AdminHeader title={title} intro={intro} actions={actions} />
+      {children}
+    </div>
+  );
+}
+
+const SAVE_TEXT: Record<AutosaveStatus, string> = {
+  idle: "Changes save automatically",
+  saving: "Saving…",
+  saved: "Saved",
+  error: "Couldn't save. Check the fields and try again.",
+};
+
+export function SaveStatus({ status }: { status: AutosaveStatus }) {
+  const Icon = status === "saving" ? IconLoader2 : status === "error" ? IconAlertTriangle : IconCheck;
+  return (
+    <span className={`save-status save-status--${status}`} role="status" aria-live="polite">
+      <Icon size={16} aria-hidden />
+      {SAVE_TEXT[status]}
+    </span>
+  );
+}
+
+/** A label tied to its control (htmlFor/id), with helper or error text that
+ *  the control points at. Render the control with the id and describedBy. */
+export function AdminField({ label, helper, error, children }: {
+  label: ReactNode;
+  helper?: ReactNode;
+  error?: string | null;
+  children: (id: string, describedBy: string | undefined) => ReactNode;
+}) {
+  const id = useId();
+  const noteId = `${id}-note`;
+  const note = error || helper;
+  return (
+    <div className="admin-field">
+      <label htmlFor={id} className="admin-field__label">{label}</label>
+      {children(id, note ? noteId : undefined)}
+      {error ? <p id={noteId} className="admin-field__error">{error}</p> : helper ? <p id={noteId} className="admin-field__help">{helper}</p> : null}
+    </div>
+  );
 }
