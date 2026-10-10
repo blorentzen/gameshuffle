@@ -13,6 +13,8 @@ import { Alert, Button, Input, Select, Switch } from "@empac/cascadeds";
 import { IconCircleCheck } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { describeSupabaseAuthError } from "@/lib/auth/errors";
+import { PASSWORD_HINT, passwordProblem } from "@/lib/auth/passwordRules";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { AdminField, AdminScreen, AdminSection, SaveStatus } from "@/components/account/admin/AdminKit";
 import { useProfileStore } from "@/components/account/profile/ProfileStore";
@@ -110,38 +112,71 @@ export function SettingsGeneralScreen() {
 }
 
 export function SettingsSecurityScreen() {
+  // null = still checking; false = no password yet (signed up with Twitch or Discord).
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/account/needs-password", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((b: { hasPassword?: boolean }) => { if (alive) setHasPassword(b.hasPassword !== false); })
+      .catch(() => { if (alive) setHasPassword(true); });
+    return () => { alive = false; };
+  }, []);
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Supabase can ask to confirm it's you (an old sign-in, with "Secure
+  // password change" on): it emails a code, and the change goes through with it.
+  const [needsCode, setNeedsCode] = useState(false);
+  const [emailCode, setEmailCode] = useState("");
 
   const change = async () => {
     setError(null);
     setDone(false);
-    if (pw.length < 8) return setError("Use at least 8 characters.");
-    if (!/[A-Z]/.test(pw)) return setError("Add an uppercase letter.");
-    if (!/[a-z]/.test(pw)) return setError("Add a lowercase letter.");
-    if (!/[0-9]/.test(pw)) return setError("Add a number.");
-    if (!/[^A-Za-z0-9]/.test(pw)) return setError("Add a special character, like ! or #.");
+    const problem = passwordProblem(pw);
+    if (problem) return setError(problem);
     if (pw !== confirm) return setError("The two passwords don't match.");
+    if (needsCode && !emailCode.trim()) return setError("Enter the code we emailed you.");
     setBusy(true);
-    const { error: e } = await createClient().auth.updateUser({ password: pw });
+    const supabase = createClient();
+    const { error: e } = await supabase.auth.updateUser({ password: pw, ...(needsCode ? { nonce: emailCode.trim() } : {}) });
+    if (e?.code === "reauthentication_needed") {
+      const { error: sendErr } = await supabase.auth.reauthenticate();
+      setBusy(false);
+      if (sendErr) return setError(describeSupabaseAuthError(sendErr).message);
+      setNeedsCode(true);
+      return;
+    }
     setBusy(false);
-    if (e) { setError(e.message.includes("same") ? "That's your current password. Pick a new one." : "Couldn't change your password. Try again."); return; }
+    if (e) return setError(describeSupabaseAuthError(e).message);
     setDone(true);
     setPw("");
     setConfirm("");
+    setNeedsCode(false);
+    setEmailCode("");
+    setHasPassword(true);
     notifySecurity("password_changed");
   };
 
   return (
     <AdminScreen title="Sign-in & security" intro="The accounts you sign in with, your password and two-factor sign-in.">
       <ConnectionsCard />
-      <AdminSection title="Password" intro="At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character.">
+      <AdminSection title={hasPassword === false ? "Backup password" : "Password"} intro={PASSWORD_HINT}>
         <form className="admin-form" onSubmit={(e) => { e.preventDefault(); void change(); }}>
+          {hasPassword === false && !done && (
+            <Alert variant="warning" title="Add a backup password (recommended)">
+              You sign in with Twitch or Discord. If that ever stops working, your email and a password still get you in.
+            </Alert>
+          )}
           {error && <Alert variant="error" onClose={() => setError(null)}>{error}</Alert>}
-          {done && <Alert variant="success" onClose={() => setDone(false)}>Password changed.</Alert>}
+          {done && <Alert variant="success" onClose={() => setDone(false)}>Password saved.</Alert>}
+          {needsCode && !done && (
+            <Alert variant="info" title="Check your email">
+              For your security, we emailed you a code. Enter it below to finish changing your password.
+            </Alert>
+          )}
           <div className="admin-form-grid">
             <AdminField label="New password">
               {(id) => <Input id={id} fullWidth type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />}
@@ -149,8 +184,13 @@ export function SettingsSecurityScreen() {
             <AdminField label="Type it again">
               {(id) => <Input id={id} fullWidth type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />}
             </AdminField>
+            {needsCode && (
+              <AdminField label="Code from your email">
+                {(id) => <Input id={id} fullWidth inputMode="numeric" autoComplete="one-time-code" value={emailCode} onChange={(e) => setEmailCode(e.target.value.trim())} />}
+              </AdminField>
+            )}
           </div>
-          <div><Button type="submit" variant="primary" loading={busy} disabled={busy || !pw || !confirm}>Change password</Button></div>
+          <div><Button type="submit" variant="primary" loading={busy} disabled={busy || !pw || !confirm}>{hasPassword === false ? "Save password" : "Change password"}</Button></div>
         </form>
       </AdminSection>
       <TwoFactorCard />

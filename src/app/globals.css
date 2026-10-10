@@ -1134,8 +1134,16 @@ ul {
   background: var(--surface-error);
   color: var(--error-700);
   border-radius: var(--radius-md, 0.5rem);
-  font-size: var(--font-size-10);
+  font-size: var(--font-size-14);
   font-weight: 500;
+}
+
+/* The password rules, said once above the fields. */
+.auth-page__hint {
+  margin: 0;
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
 .auth-page__divider {

@@ -4011,3 +4011,9 @@ html.dark .gs-platform-icon {
 /* CDS Chip "warning" text is amber-700 on amber, about 3.3:1; use the
    contrast-safe warning ink (raise upstream with CascadeDS). */
 .cmds__summary .empac-chip--warning .empac-chip__label { color: var(--warning-ink); }
+
+/* Mods tab: self-serve join note and the pending row's two buttons. */
+.mods-join { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); margin-bottom: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--background-secondary); font-size: var(--font-size-14); color: var(--text-secondary); }
+.mods-join strong { color: var(--text-primary); }
+.mods-join > div { flex: 1 1 32rem; min-width: 0; }
+.mods-join__row-actions { display: inline-flex; gap: var(--spacing-6, 6px); flex-wrap: wrap; }

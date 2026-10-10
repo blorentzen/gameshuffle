@@ -222,6 +222,19 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
     }
   };
 
+  /** The bot posts "@name … gameshuffle.co/mod/join/<you>" in your chat. */
+  const postInChat = async (modId: string) => {
+    setError(null);
+    setSuccess(null);
+    const res = await fetch(`/api/account/mods/${modId}/chat-invite`, { method: "POST" }).catch(() => null);
+    const body = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok || !body.ok) {
+      setError(body.message ?? "Couldn't post in your chat. Try again.");
+      return;
+    }
+    setSuccess("Posted in your chat.");
+  };
+
   const regenerateInvite = async (modId: string) => {
     setBusy(true);
     setError(null);
@@ -558,6 +571,30 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
           </div>
         )}
 
+        {/* Self-serve join (2026-10-10): any Twitch mod can join themselves. */}
+        {data.selfSlug && (
+          <div className="mods-join">
+            <div>
+              <strong>Your Twitch mods can join on their own.</strong>{" "}
+              They type <code>!gs mod</code>{" "}in your chat (or open the link), sign in with Twitch, and we check they mod your channel. They&rsquo;re in straight away; remove anyone below.
+            </div>
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(`https://www.gameshuffle.co/mod/join/${data.selfSlug}`);
+                  setSuccess("Mod link copied.");
+                } catch {
+                  setError("Couldn't copy. The link is gameshuffle.co/mod/join/" + data.selfSlug);
+                }
+              }}
+            >
+              Copy the mod link
+            </Button>
+          </div>
+        )}
+
         {/* Active ────────────────────────────────────────── */}
         <ModSection
           title="Active"
@@ -654,7 +691,7 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
               ? "No pending Twitch mods. Click Sync now if you've added mods on Twitch recently."
               : "Click Sync now to auto-import your Twitch moderator list."
           }
-          hint="Auto-imported from your Twitch moderator list. Click Invite to generate a one-time signup link you can DM them."
+          hint="From your Twitch mod list, not on GameShuffle yet. Post in chat sends them the join link; Invite makes a one-time link you can DM."
         >
           {pending.map((m) => (
             <ModRowDisplay
@@ -666,14 +703,19 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
                 </>
               }
               right={
-                <Button
-                  variant="primary"
-                  size="small"
-                  onClick={() => regenerateInvite(m.id)}
-                  disabled={busy}
-                >
-                  Invite
-                </Button>
+                <span className="mods-join__row-actions">
+                  <Button variant="secondary" size="small" onClick={() => void postInChat(m.id)} disabled={busy}>
+                    Post in chat
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={() => regenerateInvite(m.id)}
+                    disabled={busy}
+                  >
+                    Invite
+                  </Button>
+                </span>
               }
             />
           ))}

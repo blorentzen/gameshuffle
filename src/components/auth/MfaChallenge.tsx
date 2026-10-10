@@ -10,7 +10,17 @@ import { createClient } from "@/lib/supabase/client";
  * waiting for the other half. A recovery code is accepted as the fallback; it
  * is consumed server-side and then removes the block for this sign-in.
  */
-export function MfaChallenge({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+export function MfaChallenge({ onDone, onCancel, allowRecovery = true, cancelLabel = "Sign in as someone else" }: {
+  onDone: () => void;
+  onCancel: () => void;
+  /**
+   * Off where the next step needs a fully verified session (setting a
+   * password): a recovery code doesn't raise the session, so Supabase would
+   * still refuse the change.
+   */
+  allowRecovery?: boolean;
+  cancelLabel?: string;
+}) {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [factorType, setFactorType] = useState<"totp" | "phone">("totp");
   const [code, setCode] = useState("");
@@ -75,10 +85,12 @@ export function MfaChallenge({ onDone, onCancel }: { onDone: () => void; onCance
       </form>
 
       <div className="auth-mfa__links">
-        <button type="button" className="auth-mfa__link" onClick={() => { setUseRecovery((v) => !v); setCode(""); setError(null); }}>
-          {useRecovery ? "Use my authenticator instead" : "Use a recovery code"}
-        </button>
-        <button type="button" className="auth-mfa__link" onClick={onCancel}>Sign in as someone else</button>
+        {allowRecovery && (
+          <button type="button" className="auth-mfa__link" onClick={() => { setUseRecovery((v) => !v); setCode(""); setError(null); }}>
+            {useRecovery ? "Use my authenticator instead" : "Use a recovery code"}
+          </button>
+        )}
+        <button type="button" className="auth-mfa__link" onClick={onCancel}>{cancelLabel}</button>
       </div>
     </div>
   );

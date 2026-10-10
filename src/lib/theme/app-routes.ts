@@ -40,9 +40,17 @@ export const APP_ROUTE_PATTERNS: readonly RegExp[] = [
   /^\/trivia\/host(\/|$)/,
 ];
 
+/** Public landings inside an app namespace: signed-out visitors land
+ *  here, so they stay light like every other public page. */
+const PUBLIC_EXCEPTIONS: readonly RegExp[] = [
+  // A mod joining from a chat link, often before they have an account.
+  /^\/mod\/join(\/|$)/,
+];
+
 /** True when this pathname is an app surface (theming applies).
  *  False = marketing / public, force light mode. */
 export function isAppRoute(pathname: string): boolean {
+  if (PUBLIC_EXCEPTIONS.some((re) => re.test(pathname))) return false;
   if (
     APP_ROUTE_PREFIXES.some(
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),

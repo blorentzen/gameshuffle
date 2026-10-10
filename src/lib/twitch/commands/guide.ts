@@ -23,7 +23,7 @@ export const COMMAND_GROUPS: { id: CommandGroup; label: string; blurb: string }[
   { id: "fun", label: "Fun and info", blurb: "Quick answers, random picks, events and links." },
   { id: "replies", label: "Replies", blurb: "Ready-made replies like !socials and !rules. Keep ours or write your own." },
   { id: "custom", label: "Your commands", blurb: "Commands you wrote." },
-  { id: "admin", label: "Managing commands", blurb: "Add and change commands from chat." },
+  { id: "admin", label: "Mods and managing", blurb: "Bring your mods in and manage your commands from chat." },
 ];
 
 /** What a command needs before it can do anything on a stream. */
@@ -94,6 +94,7 @@ export const COMMAND_GUIDE: Record<string, CommandGuide> = {
   "gs.market.close": { group: "tokens", needs: ["mario-kart"] },
   "gs.market.lock": { group: "tokens", needs: ["mario-kart"] },
   "gs.market.open": { group: "tokens", needs: ["mario-kart"] },
+  "gs.mod": { group: "admin", example: ["!gs mod", "@kartkev help run the stream tools as a mod: gameshuffle.co/mod/join/novastreams"] },
   "gs.mycombo": { group: "join", needs: ["rollable-game"] },
   "gs.pick": { group: "picks", needs: ["mario-kart"], example: ["!gs pick wario stadium", "kartkev picked Wario Stadium."] },
   "gs.pickreset": { group: "picks", needs: ["mario-kart"] },

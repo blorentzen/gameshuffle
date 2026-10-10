@@ -10,6 +10,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { getStoredLeadSource } from "@/lib/analytics/leadSource";
 import { authContextFor, type AuthContext } from "@/lib/auth/auth-context";
 import { describeAuthError } from "@/lib/auth/errors";
+import { PASSWORD_HINT, passwordProblem } from "@/lib/auth/passwordRules";
 import { startOAuth } from "@/lib/auth/oauth";
 import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
 
@@ -135,6 +136,13 @@ export default function SignupPage() {
       return;
     }
 
+    // Checked here so a missing symbol doesn't cost the security check a round trip.
+    const problem = passwordProblem(password);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
@@ -153,7 +161,7 @@ export default function SignupPage() {
     resetTurnstile();
 
     if (error) {
-      setError(describeAuthError({ code: error.code, message: error.message, provider: "email" }).message);
+      setError(describeAuthError({ code: error.code, message: error.message, provider: "email", reasons: (error as { reasons?: string[] }).reasons }).message);
       setLoading(false);
     } else if (data.user && (data.user.identities?.length ?? 0) === 0) {
       // Email already registered — Supabase returns an obfuscated user with no
@@ -298,11 +306,13 @@ export default function SignupPage() {
               />
               <Input
                 type="password"
-                placeholder="Password (min 8 characters)"
+                placeholder="Password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <p className="auth-page__hint">{PASSWORD_HINT}</p>
 
               {TURNSTILE_SITE_KEY && (
                 <>

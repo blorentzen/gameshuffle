@@ -1,59 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { mergeIdentityAcrossSurfaces } from "@/lib/identity/merge";
 import { ensureUsername } from "@/lib/social/usernameAssign";
+import { PASSWORD_LATER_COOKIE } from "@/lib/auth/passwordNudge";
 import { NextResponse } from "next/server";
 import { offerGuestClaims } from "@/lib/tournaments/claims";
 import { describeAuthError } from "@/lib/auth/errors";
 import { reportAuthError } from "@/lib/auth/report";
-
-/**
- * Allowlist for the `?redirect=` param. Phase B introduced live-view
- * sign-in flows that pass `redirect=/live/[slug]`, which expanded the
- * surface area for path-based open-redirect attacks. Restricting to
- * known-good prefixes keeps the existing flows working while preventing
- * a malicious URL from bouncing users to a forged in-product path.
- *
- * External redirects (e.g. https://evil.com) were already prevented by
- * the `${origin}${redirect}` concatenation; this allowlist guards the
- * remaining path-based vectors.
- */
-const ALLOWED_REDIRECT_PREFIXES = [
-  "/account",
-  "/hub",
-  "/live/",
-  "/signup",
-  "/reset-password",
-  "/randomizers/",
-  "/competitive/",
-  "/tournament",
-  "/claim",
-  "/party",
-  // Mod invites send people back to their invite after signing in; without
-  // this they were dropped on /account instead.
-  "/mod/invite/",
-  // Signing up from the Discord Activity: its join page (signing in first to
-  // connect Discord) and the "head back to Discord" page it ends on.
-  "/discord/join",
-  "/discord/joined",
-  // "Add to Discord" on /discord: sign up, then straight into the bot install.
-  "/discord/add",
-];
-
-function safeRedirect(raw: string | null): string {
-  if (!raw) return "/account";
-  // Reject anything that looks like an absolute URL or protocol-relative.
-  if (raw.startsWith("//") || raw.includes("://")) return "/account";
-  if (!raw.startsWith("/")) return "/account";
-  // Allow exact matches or matches with a path suffix on the prefix.
-  for (const prefix of ALLOWED_REDIRECT_PREFIXES) {
-    if (raw === prefix) return raw;
-    if (prefix.endsWith("/") && raw.startsWith(prefix)) return raw;
-    if (!prefix.endsWith("/") && (raw === prefix || raw.startsWith(`${prefix}/`) || raw.startsWith(`${prefix}?`))) {
-      return raw;
-    }
-  }
-  return "/account";
-}
+import { safeRedirect } from "@/lib/auth/redirects";
+import { hasPasswordFrom } from "@/lib/auth/passwordRules";
 
 /**
  * Where a failed sign-in lands, with the reason attached (`?auth_error=`) for
@@ -61,6 +15,12 @@ function safeRedirect(raw: string | null): string {
  * everything else goes to /login, keeping the original destination.
  */
 function failureUrl(origin: string, redirect: string, code: string, explicit: boolean): string {
+  // A reset link that didn't work: straight back to asking for a new one.
+  if (redirect.startsWith("/reset-password")) {
+    const u = new URL("/forgot-password", origin);
+    u.searchParams.set("auth_error", code);
+    return u.toString();
+  }
   // Only an explicit /account destination (the Connect button) goes back there;
   // the default would bounce a signed-out person to /login and lose the reason.
   if (explicit && redirect.startsWith("/account")) {
@@ -113,17 +73,14 @@ export async function GET(request: Request) {
       await offerGuestClaims(user.id, user.email).catch((err) => console.error("[auth/callback] claim offer failed:", err));
     }
 
-    // Per gs-connections-architecture.md §5 — OAuth-only signups must
-    // set a password before landing on the rest of the app. If this
-    // user has no `email` provider on app_metadata.providers, route
-    // them through /signup/set-password and forward the original
-    // `redirect` as `return_to` so they land where they intended
-    // after completing the step.
-    const providers = Array.isArray(user.app_metadata?.providers)
-      ? (user.app_metadata.providers as string[])
-      : [];
-    const hasPassword = providers.length === 0 || providers.includes("email");
-    if (!hasPassword) {
+    // Per gs-connections-architecture.md §5 every account should have a
+    // backup password. A Twitch/Discord-only account is offered one on
+    // /signup/set-password (with `redirect` forwarded as `return_to`),
+    // unless they chose "Not now" in the last 30 days (passwordNudge.ts).
+    // A reset link is already on its way to setting a password, so don't ask twice.
+    const hasPassword = hasPasswordFrom(user.app_metadata);
+    const putOff = !!request.headers.get("cookie")?.split(/;\s*/).some((c) => c.startsWith(`${PASSWORD_LATER_COOKIE}=`));
+    if (!hasPassword && !putOff && !redirect.startsWith("/reset-password")) {
       const setPasswordUrl = new URL("/signup/set-password", request.url);
       setPasswordUrl.searchParams.set("return_to", redirect);
       return NextResponse.redirect(setPasswordUrl);

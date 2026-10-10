@@ -2691,3 +2691,14 @@ button.picks-bans__result-chip {
 /* The pill already names the tool; the row keeps only its note ("3 from chat"),
    so the option and buttons still line up with Rolls above. */
 .hub-toolbox .hub-lever__name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* /mod/join/<streamer>: a Twitch mod joins the streamer's GameShuffle mods. */
+.mod-join { padding: var(--spacing-48) 0; }
+.mod-join__card { max-width: 56rem; margin: 0 auto; padding: var(--spacing-24); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-elevated); display: flex; flex-direction: column; gap: var(--spacing-12); }
+.mod-join__eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.mod-join__title { margin: 0; font-size: var(--font-size-28, 2.8rem); line-height: 1.15; text-wrap: balance; }
+.mod-join__lede { margin: 0; color: var(--text-secondary); max-width: 60ch; }
+.mod-join__steps { margin: 0; padding-left: var(--spacing-20); display: flex; flex-direction: column; gap: var(--spacing-6, 6px); font-size: var(--font-size-14); }
+.mod-join__steps .is-done { color: var(--text-secondary); }
+.mod-join__actions { display: flex; flex-direction: column; gap: var(--spacing-8); align-items: flex-start; }
+.mod-join__note { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }

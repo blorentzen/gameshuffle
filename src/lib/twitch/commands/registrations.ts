@@ -23,7 +23,7 @@
 import "server-only";
 import { sendChatMessage } from "@/lib/twitch/client";
 import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
-import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
+import { getLiveSlugForUser, getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import {
   resolveProfileShareForUser,
   resolveProfileShareForIdentity,
@@ -1000,6 +1000,37 @@ registerCommand({
       userId: cmd.userId,
       broadcasterTwitchId: cmd.broadcasterTwitchId,
       botTwitchId: cmd.botTwitchId,
+    });
+    return { ok: true };
+  },
+});
+
+// `!gs mod`: a Twitch mod gets their link to join the streamer's GameShuffle
+// mods (/mod/join/<slug>: sign in with Twitch, verified against the
+// channel's Twitch mod list). Mods only, so the link only reaches mods.
+registerCommand({
+  name: "gs.mod",
+  trigger: ["gs", "mod"],
+  aliases: [["gs-mod"]],
+  actor: "crew",
+  surface: ["chat"],
+  economy: "none",
+  category: "moderation",
+  family: "mod",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Get your link to help run this channel's GameShuffle tools as a mod.",
+    usage: "!gs mod",
+    detail: "Opens a page where you sign in with Twitch. If you're a mod in this channel on Twitch, you're added to the streamer's GameShuffle mods straight away.",
+  },
+  handler: async (cmd) => {
+    const slug = cmd.streamerSlug ?? (await getLiveSlugForUser(cmd.userId));
+    if (!slug) return { ok: false, reason: "no_slug" };
+    await sendChatMessage({
+      broadcasterId: cmd.broadcasterTwitchId,
+      senderId: cmd.botTwitchId,
+      message: `@${cmd.senderDisplayName} help run the stream tools as a mod: gameshuffle.co/mod/join/${encodeURIComponent(slug)} (sign in with Twitch)`,
     });
     return { ok: true };
   },
