@@ -362,7 +362,11 @@
 .banner-preview {
   position: relative;
   overflow: hidden;
-  height: 7rem;
+  /* The real crop (4:1, BannerEditModal's DEFAULT_ASPECT) at the form's width,
+     not a 70px strip across the page: this is the picture people will see. */
+  aspect-ratio: 4 / 1;
+  width: 100%;
+  max-width: 52rem;
   border-radius: var(--radius-8, 0.5rem);
   background: var(--brand-gradient);
 }

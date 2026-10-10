@@ -128,7 +128,7 @@ export function ChatBrainStreamTab() {
     <div className="account-tab">
       <h2 className="account-tab__heading">Chat Brain</h2>
       <p className="account-tab__intro">
-        Chat plays a Chat Brain board as one team. Each guess, whatever most of chat says with <code>!a</code> is chat&apos;s answer:
+        Chat plays a Chat Brain board as one team. Each guess, whatever most of chat says with <code>!a</code>{" "}is chat&apos;s answer:
         on the board banks its points, anything else is a strike, and three strikes ends the board. Every viewer also scores on their own
         for answers they find. Add the Chat Brain piece in <Link href="/account/streaming?tab=overlay-layout">Overlay ▸ Layout</Link> to show the board on stream.
       </p>

@@ -235,7 +235,7 @@ export function CreateSessionForm({
             <p className="hub-form__platform-disabled">
               {preset === "announce_only" ? (
                 <>
-                  We&rsquo;ll announce <strong>1&nbsp;hour</strong> ahead; open
+                  We&rsquo;ll announce <strong>1&nbsp;hour</strong>{" "}ahead; open
                   the lobby yourself from the session controls when you&rsquo;re
                   ready.
                 </>

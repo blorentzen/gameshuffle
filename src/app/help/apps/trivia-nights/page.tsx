@@ -19,7 +19,7 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>Trivia Nights</h1>
       <p>
-        <Link href="/trivia">Trivia Nights</Link> runs a pub-style quiz for a party, the office, a fundraiser or a weekly bar
+        <Link href="/trivia">Trivia Nights</Link>{" "}runs a pub-style quiz for a party, the office, a fundraiser or a weekly bar
         night. You run it from your phone, teams answer on theirs, and a TV or laptop shows the questions and the scores.
         Hosting is free with a GameShuffle account. Teams don&apos;t need one.
       </p>

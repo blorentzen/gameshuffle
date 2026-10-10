@@ -91,7 +91,7 @@ export function LiveVotingTab({ game, gameSlug }: Props) {
         <p className="live-pb__no-round-sub">
           When the streamer opens a picks/bans round, this tab activates
           and shows the live tally as viewers vote. In the meantime, head
-          to the <strong>Picks &amp; Bans</strong> tab to pre-select what
+          to the <strong>Picks &amp; Bans</strong>{" "}tab to pre-select what
           you&rsquo;d vote for.
         </p>
       </div>

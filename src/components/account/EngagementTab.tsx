@@ -164,7 +164,7 @@ export function EngagementTab() {
         <p className="account-tab__empty">
           No engagement signals logged yet. Have someone fire{" "}
           <code>!chaos</code>, <code>!hype</code>, or{" "}
-          <code>!hug @friend</code> and they&rsquo;ll show up here.
+          <code>!hug @friend</code>{" "}and they&rsquo;ll show up here.
         </p>
       ) : (
         <div

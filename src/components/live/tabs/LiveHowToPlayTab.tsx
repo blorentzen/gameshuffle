@@ -40,7 +40,7 @@ export function LiveHowToPlayTab({
             Type <code>!gs-mycombo</code> to recall the pick you rolled
           </li>
           <li>
-            Type <code>!gs-lobby</code> to see who&rsquo;s in the shuffle
+            Type <code>!gs-lobby</code>{" "}to see who&rsquo;s in the shuffle
           </li>
         </ul>
       </section>

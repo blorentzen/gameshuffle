@@ -142,3 +142,12 @@ html.dark .shop-lookup__error { color: var(--error-400); }
 .shop-account p { margin: 0; }
 .shop-account--member { display: block; padding: var(--spacing-12) var(--spacing-16); font-size: var(--font-size-16); }
 .shop-account__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+/* Order page: the title takes the row, then status and Print receipt. On
+   paper only the order card shows (no site chrome, no buttons). */
+.shop-order__head .shop-h2 { flex: 1 1 auto; }
+@media print {
+  body:has(.shop-order) * { visibility: hidden; }
+  .shop-order, .shop-order * { visibility: visible; }
+  .shop-order { position: absolute; top: 0; left: 0; width: 100%; box-shadow: none; border: 0; color: #000; background: #fff; }
+  .shop-order button, .shop-order .empac-button, .shop-order__print { display: none !important; }
+}

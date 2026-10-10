@@ -111,6 +111,11 @@
 
 .event-shell__layout { margin-top: var(--spacing-8); }
 .event-shell__main > .comp-card { margin-bottom: var(--spacing-20); }
+/* Cards inside the page's tabs (The night, Who's going…) sat flush: the rule
+   above only reaches direct children. :not([hidden]) so inactive panels stay
+   hidden (display would override the attribute). */
+.event-shell__main .empac-tabs__panel:not([hidden]) { display: flex; flex-direction: column; gap: var(--spacing-20); }
+.event-shell__main .empac-tabs__panel > .comp-card { margin: 0; }
 
 /* Organizer card */
 .event-shell__organizer-card { padding: var(--spacing-16) var(--spacing-20); }

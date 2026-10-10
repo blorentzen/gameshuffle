@@ -39,7 +39,7 @@ export default function Page() {
       <p>
         Characters roll separately, so re-rolling the match never changes them. Press <strong>Randomize Characters</strong>,
         or <strong>Refresh Character</strong> on one player. Choose <strong>Main characters</strong> (Bond, Natalya and the
-        villains) or <strong>Additional characters</strong> (the soldiers, guards and other extras). On team scenarios the
+        villains) or <strong>Additional characters</strong>{" "}(the soldiers, guards and other extras). On team scenarios the
         teams show on each player&apos;s card.
       </p>
 

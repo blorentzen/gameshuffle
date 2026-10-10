@@ -15,7 +15,7 @@
 import type { ComponentType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { Button, Checkbox } from "@empac/cascadeds";
+import { Button, Checkbox, Chip, RangeSlider } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { BrandThemeBar } from "@/components/account/BrandThemeBar";
@@ -105,8 +105,10 @@ const FORMATS: {
   refH: number;
   cap: number;
 }[] = [
-  { id: "landscape", label: "16:9", refW: 1920, refH: 1080, cap: 1280 },
-  { id: "portrait", label: "9:16", refW: 1080, refH: 1920, cap: 520 },
+  // The preview fills its column (up to real size); the cap only stops a
+  // portrait canvas from running off the bottom of the screen.
+  { id: "landscape", label: "16:9", refW: 1920, refH: 1080, cap: 1920 },
+  { id: "portrait", label: "9:16", refW: 1080, refH: 1920, cap: 600 },
 ];
 
 type Profiles = Partial<Record<OverlayFormat, LayoutProfile>>;
@@ -145,7 +147,9 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+    // Re-run once loading ends: while loading the component returns early, so
+    // the root isn't mounted yet and the preview was stuck at its 720px default.
+  }, [loading]);
 
   useEffect(() => {
     let alive = true;
@@ -501,7 +505,7 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
           <h2 className="account-tab__heading">Overlay Layout</h2>
           <p className="account-tab__intro">
             Position each tool and app on your OBS overlay, shown at real size with sample data, so it
-            matches what viewers see. Use the <strong>Tools / Apps</strong> switch to choose which set
+            matches what viewers see. Use the <strong>Tools / Apps</strong>{" "}switch to choose which set
             you&rsquo;re arranging, then <strong>click a piece right in the preview</strong> (or a chip
             below) to select it and <strong>drag it</strong> where you want. Tune its size and visibility,
             then hit Preview to see the finished overlay. Each aspect ratio saves separately (16:9 for
@@ -600,28 +604,16 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
             const enabled = isPlacementEnabled(format, t.id, profiles[format]);
             const isSel = selected === t.id;
             return (
-              <button
+              <Chip
                 key={t.id}
-                type="button"
+                size="small"
+                clickable
+                selected={isSel}
+                variant={isSel ? "primary" : "default"}
+                icon={<t.icon size={16} stroke={1.8} aria-hidden />}
+                label={enabled ? t.label : `${t.label} (hidden)`}
                 onClick={() => setSelected(t.id)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "4px 10px",
-                  borderRadius: 999,
-                  fontSize: "var(--font-size-12)",
-                  fontWeight: "var(--font-weight-semibold)",
-                  cursor: "pointer",
-                  border: isSel ? "2px solid var(--bg-primary)" : "1px solid var(--border-default)",
-                  background: isSel ? "color-mix(in srgb, var(--bg-primary) 12%, var(--surface-default))" : "var(--surface-default)",
-                  color: enabled ? "var(--text-primary)" : "var(--text-tertiary)",
-                }}
-              >
-                <t.icon size={16} stroke={1.8} />
-                {t.label}
-                {!enabled ? <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>(hidden)</span> : null}
-              </button>
+              />
             );
           })}
         </div>
@@ -747,11 +739,11 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
           >
             {selected ? (
               <>
-                <strong style={{ fontSize: "var(--font-size-14)", whiteSpace: "nowrap" }}>
+                <strong style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-6)", fontSize: "var(--font-size-14)", whiteSpace: "nowrap" }}>
                   {(() => {
                     const el = ALL_ELEMENTS.find((t) => t.id === selected);
                     if (!el) return null;
-                    return <><el.icon size={16} stroke={1.8} /> {el.label}</>;
+                    return <><el.icon size={16} stroke={1.8} aria-hidden />{el.label}</>;
                   })()}
                 </strong>
                 <Checkbox
@@ -766,25 +758,24 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
                     })
                   }
                 />
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--font-size-14)", whiteSpace: "nowrap" }}>
-                  Size {Math.round(selectedScale * 100)}%
-                  <input
-                    type="range"
+                <div className="overlay-size">
+                  <RangeSlider
+                    label={`Size ${Math.round(selectedScale * 100)}%`}
                     min={50}
-                    max={150}
+                    max={200}
                     step={5}
+                    size="small"
                     value={Math.round(selectedScale * 100)}
-                    style={{ width: 160 }}
-                    onChange={(e) =>
+                    onChange={(v) =>
                       updateElement(selected, {
-                        scale: Number(e.target.value) / 100,
+                        scale: v / 100,
                         anchor: resolvedAnchor(format, selected, profiles[format]),
                         offsetPct: anchorToOffset(format, selected, profiles[format]),
                         enabled: selectedEnabled,
                       })
                     }
                   />
-                </label>
+                </div>
                 <Button
                   variant="ghost"
                   size="small"

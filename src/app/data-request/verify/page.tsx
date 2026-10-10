@@ -173,7 +173,7 @@ function Outcome({ outcome }: { outcome: Outcome }) {
       return (
         <Alert variant="success" title="Your request is confirmed">
           <p>
-            Thanks. We&apos;ve verified your <strong>{DSAR_REQUEST_TYPE_LABELS[outcome.requestType] ?? outcome.requestType}</strong> request.
+            Thanks. We&apos;ve verified your <strong>{DSAR_REQUEST_TYPE_LABELS[outcome.requestType] ?? outcome.requestType}</strong>{" "}request.
             We&apos;ll respond by <strong>{outcome.responseDueAt.toDateString()}</strong>.
           </p>
           <p className="dsar-page__success-note">
@@ -231,7 +231,7 @@ function Outcome({ outcome }: { outcome: Outcome }) {
         <Alert variant="error" title="Something went wrong">
           <p>
             We hit an unexpected error verifying your request. Please email{" "}
-            <a href="mailto:privacy@gameshuffle.co">privacy@gameshuffle.co</a> and we&apos;ll handle it directly.
+            <a href="mailto:privacy@gameshuffle.co">privacy@gameshuffle.co</a>{" "}and we&apos;ll handle it directly.
           </p>
         </Alert>
       );

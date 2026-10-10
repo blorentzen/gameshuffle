@@ -35,7 +35,7 @@ export default function Page() {
         in the game.
       </p>
       <p>
-        <strong>Refresh Rider</strong> rolls a new rider and machine for one player, still keeping their rider different from
+        <strong>Refresh Rider</strong>{" "}rolls a new rider and machine for one player, still keeping their rider different from
         everyone else&apos;s. <strong>Remove Player</strong> takes a card away. Switch off <strong>Rolling animation</strong>{" "}if you&apos;d rather see results straight away.
       </p>
 
@@ -48,7 +48,7 @@ export default function Page() {
           you want; Legendary on its own rolls only the four Legendary machines.
         </li>
         <li>
-          <strong>New save (starters only):</strong> just what&apos;s open at the start. That&apos;s Kirby, King Dedede, Meta
+          <strong>New save (starters only):</strong>{" "}just what&apos;s open at the start. That&apos;s Kirby, King Dedede, Meta
           Knight and Waddle Dee, the Warp Star and Compact Star, and the eight Air Ride courses open on a new save. Both starting
           machines are Stars, so the machine types don&apos;t change anything here. With only four riders, a group bigger than
           four will see some riders twice.

@@ -370,7 +370,7 @@ export function EventEditorModal({ row, isOpen, onClose, onSaved }: EditorProps)
             />
             <p className="hub-form__platform-disabled">
               Authority gate for direct invocations only. Draws via{" "}
-              <code>!chaos</code> / <code>!random</code> use the
+              <code>!chaos</code> / <code>!random</code>{" "}use the
               parent command&rsquo;s gate instead.
             </p>
           </label>

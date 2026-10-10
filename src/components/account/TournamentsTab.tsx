@@ -30,6 +30,8 @@ interface TournamentEntry {
   date_time: string | null;
   header_image_url?: string | null;
   archived_at?: string | null;
+  /** The organizer's own game name (a typed "Other" game), preferred over the slug. */
+  settings?: { game_label?: string } | null;
   role: "organizer" | "participant";
   participant_status?: string;
 }
@@ -56,7 +58,7 @@ export function TournamentsTab({ timeZone }: { timeZone?: string | null } = {}) 
     const supabase = createClient();
     let active = true;
     (async () => {
-      const cols = "id, title, game_slug, mode, status, date_time, header_image_url, archived_at";
+      const cols = "id, title, game_slug, mode, status, date_time, header_image_url, archived_at, settings";
       const [organizedRes, coRes, participatingRes, seasonsRes] = await Promise.all([
         supabase.from("tournaments").select(cols).eq("organizer_id", user.id).order("created_at", { ascending: false }),
         // Co-organized tournaments: you can manage them too, so they list with yours.
@@ -101,7 +103,7 @@ export function TournamentsTab({ timeZone }: { timeZone?: string | null } = {}) 
 
   const row = (t: TournamentEntry, opts: { status?: boolean } = {}) => {
     const organizer = t.role === "organizer";
-    const game = getGameName(t.game_slug);
+    const game = t.settings?.game_label || getGameName(t.game_slug);
     const statusBadge = opts.status && (
       t.status === "draft" ? <Badge size="small" variant="default">Draft</Badge>
         : t.status === "cancelled" ? <Badge size="small" variant="default">Cancelled</Badge>

@@ -245,12 +245,12 @@ export function TwitchHubTab() {
       <ul style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", lineHeight: "var(--line-height-relaxed)", marginBottom: "var(--spacing-20)", paddingLeft: "var(--spacing-20)", display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
         <li>
           <strong>Viewer lobby in your chat.</strong> Viewers type <code>!gs-join</code> to
-          enter the shuffle and <code>!gs-shuffle</code> to roll their own pick: a kart combo,
+          enter the shuffle and <code>!gs-shuffle</code>{" "}to roll their own pick: a kart combo,
           fighter, hero, weapon kit and more, for whichever supported game you&apos;re streaming.
           The lobby holds as many viewers as that game&apos;s online room.
         </li>
         <li>
-          <strong>Channel point redemptions.</strong> Optional &ldquo;Reroll the
+          <strong>Channel point redemptions.</strong>{" "}Optional &ldquo;Reroll the
           Streamer&rsquo;s Combo&rdquo; reward. Viewers spend points to make <em>you</em>{" "}
           shuffle. Cost is configurable; refunds happen automatically if you&rsquo;re between
           games.
@@ -265,7 +265,7 @@ export function TwitchHubTab() {
           MKW, MK8DX for MK8DX. Switch mid-stream and the bot announces the swap.
         </li>
         <li>
-          <strong>Public lobby viewer.</strong> Viewers can click a link from chat to see the
+          <strong>Public lobby viewer.</strong>{" "}Viewers can click a link from chat to see the
           full roster and everyone&rsquo;s current combo.
         </li>
       </ul>

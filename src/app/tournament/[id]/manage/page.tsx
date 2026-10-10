@@ -1980,7 +1980,7 @@ export default function ManageTournamentPage() {
             {manualLink && (
               <div className="manual-claim">
                 <p className="manual-claim__lede">
-                  Give this to {manualLink.name} in person, or let them scan it. It works once, for 72 hours, and you&apos;ll see who claimed it.
+                  Give this to {manualLink.name}{" "}in person, or let them scan it. It works once, for 72 hours, and you&apos;ll see who claimed it.
                 </p>
                 {/* SVG generated server-side by the qrcode library, from our own URL. */}
                 <div className="manual-claim__qr" aria-label={`QR code for ${manualLink.name}'s claim link`} role="img" dangerouslySetInnerHTML={{ __html: manualLink.svg }} />

@@ -29,7 +29,7 @@ export default function Page() {
       <p>
         A crew is a community&apos;s roster for a game. Communities build crews on their community
         page, and members can climb from prospect to representative to captain. For a tournament, all
-        you need to know is that a player can <strong>represent</strong> one community, and their
+        you need to know is that a player can <strong>represent</strong>{" "}one community, and their
         results count toward that community&apos;s crew standings.
       </p>
 
@@ -37,7 +37,7 @@ export default function Page() {
       <p>You can mix both in the same event:</p>
       <ul>
         <li>
-          <strong>Players self-represent.</strong> Anyone who&apos;s on a community&apos;s crew sees a
+          <strong>Players self-represent.</strong>{" "}Anyone who&apos;s on a community&apos;s crew sees a
           <strong> Representing</strong> picker on the tournament page after they join, and chooses
           which of their crews to play for.
         </li>
@@ -91,7 +91,7 @@ export default function Page() {
         Crew standings use the same results as the individual board (live per-race scoring, or your
         finalized placements once you hit Finalize). Each crew&apos;s points are the sum of its
         players&apos; points, and crews are ranked by points, then best individual finish, then
-        roster size. A player set to <strong>Solo (no crew)</strong> still competes individually but
+        roster size. A player set to <strong>Solo (no crew)</strong>{" "}still competes individually but
         doesn&apos;t count toward any crew.
       </p>
 

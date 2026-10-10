@@ -21,6 +21,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isProUser } from "@/lib/subscription-server";
+import { guildIconUrl } from "@/lib/adapters/discord/adapter";
 import { guildIsActive, listGuilds, pickGuild, removeGuild, serverLimit, setMainGuild, updateGuild, type GuildSettings } from "@/lib/discord/guilds";
 
 export const runtime = "nodejs";
@@ -70,7 +71,7 @@ export async function GET(request: Request) {
       removed: !!guild?.removedAt,
       active: guild ? guildIsActive(guild, isPro) : false,
     },
-    servers: all.map((g) => ({ guildId: g.guildId, name: g.name, isMain: g.isMain, removed: !!g.removedAt, active: guildIsActive(g, isPro) })),
+    servers: await Promise.all(all.map(async (g) => ({ guildId: g.guildId, name: g.name, iconUrl: g.removedAt ? null : await guildIconUrl(g.guildId), isMain: g.isMain, removed: !!g.removedAt, active: guildIsActive(g, isPro) }))),
     limit: serverLimit(isPro),
     isPro,
   });

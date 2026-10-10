@@ -35,7 +35,7 @@ export default function Page() {
       </p>
       <p>
         <strong>Refresh Weapon</strong> re-rolls one player and never lands on a kit someone else has. <strong>Remove
-        Player</strong> takes a card away. Switch off <strong>Rolling animation</strong> if you&apos;d rather see results straight away.
+        Player</strong> takes a card away. Switch off <strong>Rolling animation</strong>{" "}if you&apos;d rather see results straight away.
       </p>
 
       <h2>Options</h2>
@@ -46,7 +46,7 @@ export default function Page() {
           Dualies, Brellas, Blasters, Brushes, Stringers and Splatanas). Picking none means every class.
         </li>
         <li>
-          <strong>Replicas:</strong> off by default. The 13 replicas (like the Hero Shot Replica and the Order replicas from Side
+          <strong>Replicas:</strong>{" "}off by default. The 13 replicas (like the Hero Shot Replica and the Order replicas from Side
           Order) share another weapon&apos;s kit, so leaving them out stops the same kit coming up twice. That&apos;s 160 kits
           without them and all 173 with them.
         </li>
@@ -56,7 +56,7 @@ export default function Page() {
 
       <h2>No repeats tonight</h2>
       <p>
-        With <strong>No repeats tonight</strong> on, press <strong>Next battle (no repeats)</strong> after each battle. It marks
+        With <strong>No repeats tonight</strong> on, press <strong>Next battle (no repeats)</strong>{" "}after each battle. It marks
         everyone&apos;s current kit as played and deals new ones nobody has used tonight, and the intro counts how many have been
         played. If there aren&apos;t enough fresh kits left for everyone, the whole pool comes back. To start over, press <strong>Reset the night</strong>{" "}(switching the option off or on clears the list too).
       </p>
@@ -72,13 +72,13 @@ export default function Page() {
 
       <h2>Salmon Run</h2>
       <p>
-        Press <strong>Roll a Salmon Run stage</strong> for one of the seven Salmon Run stages. That&apos;s all there is to roll,
+        Press <strong>Roll a Salmon Run stage</strong>{" "}for one of the seven Salmon Run stages. That&apos;s all there is to roll,
         since the game hands out the weapons in Salmon Run.
       </p>
 
       <h2>Teams</h2>
       <p>
-        On <strong>Teams</strong>, press <strong>Make teams</strong> to split the players from the Weapon Randomizer tab into
+        On <strong>Teams</strong>, press <strong>Make teams</strong>{" "}to split the players from the Weapon Randomizer tab into
         Alpha and Bravo as evenly as possible (Alpha gets the extra player on an odd count). Each player&apos;s weapon shows
         beside their name if you&apos;ve rolled one. <strong>Shuffle the teams</strong> draws them again. You need at least two players, and a
         Private Battle takes up to four a side.

@@ -21,7 +21,7 @@ export default function Page() {
       <p>
         Who Said It? turns your channel&apos;s <code>!quote</code> pool into a game: a quote goes up with the speaker hidden
         and chat votes on who said it. It runs on the <Link href="/help/streaming/polls">polls</Link> engine, so it shows on your
-        overlay and <code>/live</code> page like any poll. It&apos;s a GameShuffle Pro feature.
+        overlay and <code>/live</code>{" "}page like any poll. It&apos;s a GameShuffle Pro feature.
       </p>
 
       <h2>Add quotes with a speaker</h2>

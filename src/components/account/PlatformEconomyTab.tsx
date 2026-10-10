@@ -392,7 +392,7 @@ export function PlatformEconomyTab() {
                   lineHeight: "var(--line-height-relaxed)",
                 }}
               >
-                Keys that exist in <code>gs_economy_config</code> but
+                Keys that exist in <code>gs_economy_config</code>{" "}but
                 aren&rsquo;t in the metadata catalog above. Usually
                 this means a new feature seeded a key via SQL; add
                 metadata to this component when adopting it.

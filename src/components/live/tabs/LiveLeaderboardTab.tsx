@@ -161,7 +161,7 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
           </p>
           <p className="live-leaderboard__empty-sub">
             Be the first. Sign in with Twitch and start interacting,
-            or chat <code>!gs-join</code> when the streamer&rsquo;s live.
+            or chat <code>!gs-join</code>{" "}when the streamer&rsquo;s live.
           </p>
         </div>
       );

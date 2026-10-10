@@ -717,7 +717,7 @@ function TracksTabbedSection({
       </div>
       <p className="items-tabbed__hint">
         <strong>Race tracks</strong> are the standard 96-track lineup.{" "}
-        <strong>Rallies</strong> are MKWorld&rsquo;s knockout-elimination
+        <strong>Rallies</strong>{" "}are MKWorld&rsquo;s knockout-elimination
         events. Each pool has its own picks/bans.
       </p>
       {tracksActive ? (

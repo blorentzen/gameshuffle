@@ -3016,11 +3016,11 @@ html.dark .gs-platform-icon {
 
 /* Account → Security: two-factor */
 .twofa__head { display: flex; align-items: center; gap: var(--spacing-8); }
-.twofa__factors { list-style: none; margin: var(--spacing-12) 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.twofa__factors { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
 .twofa__factor { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); }
 .twofa__factor-name { display: block; font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); }
 .twofa__factor-meta { display: block; color: var(--text-tertiary); font-size: var(--font-size-12); }
-.twofa__codes-note { margin: 0 0 var(--spacing-12); font-size: var(--font-size-12); color: var(--text-secondary); }
+.twofa__codes-note { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
 .twofa__enroll { display: flex; flex-direction: column; gap: var(--spacing-12); align-items: center; text-align: center; }
 .twofa__qr { width: 200px; height: 200px; border-radius: var(--gs-radius-sm, 0.5rem); background: #fff; padding: 8px; }
 .twofa__secret { display: block; margin-top: var(--spacing-8); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.1em; word-break: break-all; }
@@ -3588,7 +3588,23 @@ html.dark .gs-platform-icon {
 
 /* Platform admin: a view's tabs across the top, its screen below */
 .platform-view { display: flex; flex-direction: column; min-width: 0; }
-.platform-view__body { padding-top: var(--spacing-16); display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+/* A view's tabs and its screen are one card: the tab row is the card's top,
+   the screen starts right under its line (Britton, 2026-10-09: the tabs sat
+   52px above the screen and felt detached from it). The card look moves from
+   the screen's .account-card to the Tabs wrapper. */
+.platform-view > .empac-tabs { gap: 0; background: var(--background-elevated); border-radius: var(--radius-md, 0.5rem); box-shadow: 0 0 1rem rgba(0, 0, 0, 0.1); min-width: 0; }
+/* Labels line up with the screen's left edge (no side padding on the tabs, a
+   gap between them instead), and the divider is drawn inside the header so
+   the active underline sits on it: the header scrolls sideways, which clips
+   anything in its border, and CDS puts the underline 1px into the border. */
+.platform-view > .empac-tabs > .empac-tabs__header { padding: var(--spacing-8) 2rem 0; gap: var(--spacing-28); border-bottom: 0; box-shadow: inset 0 -1px 0 var(--border-default); }
+.platform-view > .empac-tabs > .empac-tabs__header > .empac-tabs__tab { padding-left: 0; padding-right: 0; }
+.platform-view > .empac-tabs > .empac-tabs__header > .empac-tabs__indicator { bottom: 0; }
+.platform-view .empac-tabs__content,
+.platform-view .empac-tabs__panel { padding: 0; margin: 0; }
+.platform-view__body { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.platform-view__body > .account-card { background: none; box-shadow: none; border-radius: 0; }
+.platform-view__body > .account-card + .account-card { margin-top: 0; padding-top: 0; }
 
 /* Token economy ▸ Streamers / History panels */
 .token-panel { display: flex; flex-direction: column; gap: var(--spacing-20); }
@@ -3732,7 +3748,8 @@ html.dark .gs-platform-icon {
 .tool-panel-form { padding-top: var(--spacing-8); }
 .stream-tools__bare { display: flex; flex-direction: column; gap: var(--spacing-12); }
 .schedule-editor, .schedule-rows { display: flex; flex-direction: column; gap: var(--spacing-12); }
-.schedule-row { display: grid; grid-template-columns: minmax(8rem, 10rem) minmax(8rem, 10rem) minmax(0, 1fr) auto; gap: var(--spacing-8); align-items: center; }
+/* Columns in px-sized rem (10px root): the time field needs ~150px for its clock button. */
+.schedule-row { display: grid; grid-template-columns: minmax(11rem, 13rem) minmax(15rem, 16rem) minmax(0, 1fr) auto; gap: var(--spacing-8); align-items: center; }
 @media (max-width: 640px) { .schedule-row { grid-template-columns: 1fr 1fr auto; } .schedule-row > :nth-child(3) { grid-column: 1 / -1; grid-row: 2; } }
 /* A screen wrapping an older tab component: its own repeat of the title goes. */
 /* Every h2.account-tab__heading in an older tab is that tab's own title,
@@ -3780,3 +3797,42 @@ html.dark .gs-platform-icon {
 .stuff-cell__title { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
 .stuff-cell__sub { display: block; margin-top: 2px; font-size: var(--font-size-12); color: var(--text-secondary); max-width: 34ch; white-space: normal; }
 .stuff-cell__actions { display: inline-flex; align-items: center; gap: var(--spacing-4); }
+/* Streaming ▸ Discord bot: each part's sections get the screen's rhythm
+   (they sat flush against each other once the cards were flattened), and
+   everything inside a section is spaced by gap, not stray margins. */
+.dbot-part { display: flex; flex-direction: column; gap: var(--spacing-28); min-width: 0; }
+.dbot-part > .account-card { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.dbot-part > .account-card + .account-card { padding-top: var(--spacing-28); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.dbot-part > .account-card > * { margin-top: 0; margin-bottom: 0; }
+.dbot-part > .account-card > :is(button, .empac-button) { align-self: flex-start; }
+.dbot-part .dbot-muted { margin: 0; }
+.dbot-part > .account-card h2.account-card__title { margin: 0; }
+/* The connected server: picture, name, default channel, slot count. */
+.dbot-server { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); }
+.dbot-server__text { flex: 1 1 22rem; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dbot-server__eyebrow { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
+.dbot-server__name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); color: var(--text-primary); overflow-wrap: anywhere; }
+.dbot-server__meta { font-size: var(--font-size-14); color: var(--text-secondary); }
+.dbot-server__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.dbot-server__actions .empac-select { min-width: 20rem; }
+.dbot-server-card .dbot-servers__note { margin: 0; }
+.overlay-size { width: 22rem; max-width: 100%; }
+/* My Stuff ▸ Tickets ▸ Receipt (a CDS Modal). Printing shows only the receipt. */
+.ticket-receipt { display: flex; flex-direction: column; gap: var(--spacing-16); font-size: var(--font-size-14); }
+.ticket-receipt__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--spacing-12); padding-bottom: var(--spacing-12); border-bottom: 1px solid var(--border-default); }
+.ticket-receipt__head strong { font-size: var(--font-size-18); }
+.ticket-receipt__head span { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.ticket-receipt dl { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-6); }
+.ticket-receipt dl div { display: flex; justify-content: space-between; gap: var(--spacing-12); }
+.ticket-receipt dt { color: var(--text-secondary); }
+.ticket-receipt dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.ticket-receipt__facts dd { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.ticket-receipt__lines { padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); }
+.ticket-receipt__total { padding-top: var(--spacing-8); margin-top: var(--spacing-4); border-top: 1px solid var(--border-default); font-weight: var(--font-weight-bold); }
+.ticket-receipt__total dt { color: var(--text-primary); }
+.ticket-receipt__note { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+@media print {
+  body:has(.ticket-receipt) * { visibility: hidden; }
+  .ticket-receipt, .ticket-receipt * { visibility: visible; }
+  .ticket-receipt { position: absolute; top: 0; left: 0; width: 100%; padding: 24px; color: #000; background: #fff; }
+}

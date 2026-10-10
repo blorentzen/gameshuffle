@@ -532,7 +532,7 @@ function CommandEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
           />
           <p className="hub-form__platform-disabled">
             Names a built-in dynamic handler for commands whose
-            result needs real logic (e.g. <code>roll</code> parses
+            result needs real logic (e.g. <code>roll</code>{" "}parses
             NdM dice notation). Random-pick lists (8ball, coinflip,
             hype variants) use the response pool below instead. No
             handler needed. Set this only when the result genuinely

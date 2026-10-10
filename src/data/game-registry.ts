@@ -1,3 +1,5 @@
+import { findGame } from "@/data/game-catalog";
+
 export const GAME_NAMES: Record<string, string> = {
   "mario-kart-8-deluxe": "Mario Kart 8 Deluxe",
   "mario-kart-world": "Mario Kart World",
@@ -21,6 +23,12 @@ export const GAME_NAMES: Record<string, string> = {
   "tekken-8": "Tekken 8",
 };
 
+/** A game's display name: our own list, then the game catalog (any game a
+ *  tournament or night can name, e.g. a typed "Rocket League" stored as
+ *  `rocket-league`), then the slug turned back into words. Never the raw slug. */
 export function getGameName(slug: string): string {
-  return GAME_NAMES[slug] || slug;
+  if (GAME_NAMES[slug]) return GAME_NAMES[slug];
+  const entry = findGame(slug);
+  if (entry) return entry.name;
+  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }

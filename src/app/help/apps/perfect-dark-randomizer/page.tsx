@@ -67,13 +67,13 @@ export default function Page() {
 
       <h2>Sharing it</h2>
       <p>
-        <strong>Copy match</strong> gives you the whole match, the simulants and everyone&apos;s character (with teams) as text for
+        <strong>Copy match</strong>{" "}gives you the whole match, the simulants and everyone&apos;s character (with teams) as text for
         chat or Discord.
       </p>
 
       <h2>On stream</h2>
       <p>
-        If you stream with GS Pro and your Twitch category is Perfect Dark, viewers can type <code>!gs-shuffle</code> in chat to
+        If you stream with GS Pro and your Twitch category is Perfect Dark, viewers can type <code>!gs-shuffle</code>{" "}in chat to
         roll a multiplayer character of their own. The lobby holds four, like the game&apos;s online room. Your own rolls show on
         your <a href="/help/streaming/obs-overlay">OBS overlay</a>. See the <a href="/help/streaming/chat-commands">chat command
         reference</a> for the rest.

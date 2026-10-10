@@ -123,22 +123,23 @@ export function TwoFactorCard() {
   const verified = state.factors.filter((f) => f.status === "verified");
 
   return (
-    <div className="account-card">
-      <div className="twofa__head">
-        <h2>Two-factor authentication</h2>
-        {state.enabled ? <Badge variant="success">On</Badge> : state.policy === "required" ? <Badge variant="error">Required</Badge> : <Badge variant="warning">Off</Badge>}
+    <section className="admin-section twofa">
+      <div className="admin-section__head">
+        <span className="twofa__head">
+          <h2 className="admin-section__title">Two-factor authentication</h2>
+          {state.enabled ? <Badge variant="success" size="small">On</Badge> : state.policy === "required" ? <Badge variant="error" size="small">Required</Badge> : <Badge variant="warning" size="small">Off</Badge>}
+        </span>
       </div>
+      <p className="admin-section__intro">
+        A second step at sign-in, so a stolen password isn&apos;t enough on its own. We recommend an authenticator app: it works offline and can&apos;t be intercepted like a text.
+        {state.phoneAvailable ? " Text-message codes are also available." : ""}
+      </p>
 
       {state.policy === "required" && !state.enabled && (
         <Alert variant="warning" title="Required for staff accounts">
           Your account can reach platform tools and other people&apos;s data. Turn on two-factor authentication to keep using them.
         </Alert>
       )}
-
-      <p className="account-tab__intro">
-        A second step at sign-in, so a stolen password isn&apos;t enough on its own. We recommend an authenticator app: it works offline and can&apos;t be intercepted like a text.
-        {state.phoneAvailable ? " Text-message codes are also available." : ""}
-      </p>
 
       {verified.length > 0 && (
         <ul className="twofa__factors">
@@ -162,12 +163,16 @@ export function TwoFactorCard() {
       )}
 
       {!state.enabled && (
-        <Button variant="primary" onClick={() => void startEnroll()} disabled={busy === "enroll"}>
-          {busy === "enroll" ? "Starting…" : "Set up authenticator app"}
-        </Button>
+        <div>
+          <Button variant="primary" onClick={() => void startEnroll()} disabled={busy === "enroll"}>
+            {busy === "enroll" ? "Starting…" : "Set up authenticator app"}
+          </Button>
+        </div>
       )}
       {state.enabled && verified.length < 2 && (
-        <Button variant="secondary" size="small" onClick={() => void startEnroll()} disabled={busy === "enroll"}>Add another app</Button>
+        <div>
+          <Button variant="secondary" size="small" onClick={() => void startEnroll()} disabled={busy === "enroll"}>Add another app</Button>
+        </div>
       )}
 
       {/* Enrolment */}
@@ -207,6 +212,6 @@ export function TwoFactorCard() {
         <p>Enter the current code from your authenticator app.</p>
         <Input value={challengeCode} onChange={(e) => setChallengeCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="6-digit code" inputMode="numeric" autoComplete="one-time-code" fullWidth />
       </Modal>
-    </div>
+    </section>
   );
 }

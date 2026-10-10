@@ -98,9 +98,9 @@ export default function Page() {
 
       <h2>Sharing it</h2>
       <p>
-        The <strong>Share</strong> button on the tournament page copies the link or posts it to X or Facebook. Wherever you
+        The <strong>Share</strong>{" "}button on the tournament page copies the link or posts it to X or Facebook. Wherever you
         paste it, the preview shows the tournament&apos;s own card: its name, date, game art (or your banner) and how many spots
-        are filled. <strong>Copy for Discord</strong> copies the name, the start time and the link, and Discord shows the time in
+        are filled. <strong>Copy for Discord</strong>{" "}copies the name, the start time and the link, and Discord shows the time in
         each reader&apos;s own timezone.
       </p>
 

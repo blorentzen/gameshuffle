@@ -39,13 +39,13 @@ export default function Page() {
 
       <h2>Details, and choosing a Pokémon yourself</h2>
       <p>
-        Tap <strong>Details</strong> on any card for its category, height, weight, what it evolves from, base stats and the
+        Tap <strong>Details</strong>{" "}on any card for its category, height, weight, what it evolves from, base stats and the
         rental&apos;s moves. Want a particular Pokémon in that slot? Choose it under <strong>Want a different Pokémon
         here?</strong>. It&apos;s marked <strong>Your choice</strong> and stays put when you re-roll; the randomizer fills the
         rest of the team around it. <strong>Let the randomizer pick this slot</strong> hands it back.
       </p>
       <p>
-        You can also type it: &quot;two of us, Prime Cup, give me a rain team&quot; in <strong>Describe your night</strong> sets
+        You can also type it: &quot;two of us, Prime Cup, give me a rain team&quot; in <strong>Describe your night</strong>{" "}sets
         the cup and players and puts fitting rentals on that player&apos;s team as their choices. See{" "}
         <a href="/help/apps/ai-tools">AI tools</a>.
       </p>

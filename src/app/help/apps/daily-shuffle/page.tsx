@@ -55,7 +55,7 @@ export default function Page() {
       <h2>Play in Discord</h2>
       <p>
         The Daily also runs inside Discord as an Activity, so a whole server can play together. Start it from the App Launcher
-        (the rocket in the message bar), with <code>/gs-daily</code>, or with the <strong>Play the Daily</strong> button on the
+        (the rocket in the message bar), with <code>/gs-daily</code>, or with the <strong>Play the Daily</strong>{" "}button on the
         day&apos;s card. You don&apos;t need a GameShuffle account to play there.
       </p>
       <ul>

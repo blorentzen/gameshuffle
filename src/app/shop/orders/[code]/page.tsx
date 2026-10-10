@@ -6,6 +6,7 @@
  * whether the order exists.
  */
 
+import { PrintButton } from "@/components/ui/PrintButton";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -66,6 +67,7 @@ export default async function ShopOrderPage({ params }: { params: Promise<{ code
           <div className="shop-order__head">
             <h1 className="shop-h2">Order {view.code}</h1>
             <Badge variant={status.variant}>{status.label}</Badge>
+            <PrintButton label="Print receipt" className="shop-order__print" />
           </div>
           <p className="shop-order__lede">
             {view.status === "paid" && <>Placed {view.placedLabel}. We&apos;ll ship it by <strong>{view.shipByLabel}</strong> and email you a tracking link.</>}

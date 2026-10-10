@@ -127,8 +127,8 @@ export function ChampionshipPublicClient({ initial, baseUrl }: { initial: Champi
           <span className="bg-badge bg-badge--kind">Championship series</span>
           {champ.game_slug && (
             <span className="event-game-badge">
-              <span className="event-game-badge__cover"><GameCover slug={champ.game_slug} name={getGameName(champ.game_slug)} /></span>
-              {getGameName(champ.game_slug)}
+              <span className="event-game-badge__cover"><GameCover slug={champ.game_slug} name={champ.settings?.game_label || getGameName(champ.game_slug)} /></span>
+              {champ.settings?.game_label || getGameName(champ.game_slug)}
             </span>
           )}
         </>

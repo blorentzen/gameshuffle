@@ -20,7 +20,7 @@ export default function Page() {
       <p>
         The GameShuffle Discord bot brings your game nights into your server: announcements, self-serve
         roles, moderation, a daily question, and randomizer slash commands. Configure it under
-        <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong> &rsaquo;
+        <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong>{" "}&rsaquo;
         <strong> Discord Bot</strong>.
       </p>
 
@@ -55,7 +55,7 @@ export default function Page() {
         GameShuffle also runs inside Discord as an Activity: the <a href="/help/apps/daily-shuffle">Daily Shuffle</a>, the
         {" "}<a href="/help/apps/weekly-challenge">Weekly Challenge</a> and Chat Brain, in one window everyone in the call or
         channel can open. Start it from the App Launcher (the rocket in the message bar), with <code>/gs-daily</code>, or with a
-        {" "}<strong>Play</strong> button on one of the bot&apos;s posts.
+        {" "}<strong>Play</strong>{" "}button on one of the bot&apos;s posts.
       </p>
       <ul>
         <li>The Daily needs no account. Players who link Discord to a GameShuffle account keep one streak across Discord and the site.</li>

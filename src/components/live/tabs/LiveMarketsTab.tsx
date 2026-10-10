@@ -625,7 +625,7 @@ function TokensExplainerCallout() {
             Winners split the losing-side pool pro-rata.
           </li>
           <li>
-            <strong>Earn from awards + bounties.</strong> The streamer
+            <strong>Earn from awards + bounties.</strong>{" "}The streamer
             can hand out tokens for great plays or post a bounty with
             a condition (&ldquo;first to finish top 3&rdquo;).
           </li>

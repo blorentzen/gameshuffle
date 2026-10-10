@@ -105,18 +105,18 @@ export function TokenAllowanceChip({
             <ul>
               <li>
                 <strong>Award viewers directly.</strong> Use{" "}
-                <code>!gs award @viewer N</code> in chat or the Markets
+                <code>!gs award @viewer N</code>{" "}in chat or the Markets
                 tab to mint tokens straight into a viewer&rsquo;s
                 balance, for clutch plays, mod work, or first-timer
                 shout-outs.
               </li>
               <li>
-                <strong>Open bounties.</strong> Set a token reward for
+                <strong>Open bounties.</strong>{" "}Set a token reward for
                 a specific feat (&ldquo;first to top-3 a race&rdquo;).
                 The first viewer to claim it gets paid out.
               </li>
               <li>
-                <strong>Resolve prediction markets.</strong> When you
+                <strong>Resolve prediction markets.</strong>{" "}When you
                 close a market, the winning side&rsquo;s payouts come
                 from the loser pot, but any house-funded bonuses
                 draw from your allowance.
@@ -133,7 +133,7 @@ export function TokenAllowanceChip({
                 the top-right shows how much is left.
               </li>
               <li>
-                <strong>Resets the 1st.</strong> Unspent tokens don&rsquo;t
+                <strong>Resets the 1st.</strong>{" "}Unspent tokens don&rsquo;t
                 roll over. Start of each month is a clean slate.
               </li>
               <li>
@@ -144,7 +144,7 @@ export function TokenAllowanceChip({
               <li>
                 <strong>Refunds restore budget.</strong> When you close
                 a market with{" "}
-                <em>Close + refund</em> or cancel a bounty, the tokens
+                <em>Close + refund</em>{" "}or cancel a bounty, the tokens
                 aren&rsquo;t consumed. Your remaining count stays the
                 same.
               </li>

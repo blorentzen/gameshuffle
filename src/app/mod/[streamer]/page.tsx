@@ -143,7 +143,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
         {isStreamerSelf && (
           <div style={{ marginBottom: "var(--spacing-20)" }}>
             <Alert variant="info">
-              <strong>You&rsquo;re viewing as the streamer.</strong> This is
+              <strong>You&rsquo;re viewing as the streamer.</strong>{" "}This is
               the same surface your active mods see, useful for previewing
               what they have access to, plus you can operate any of these
               tools yourself when you&rsquo;re live.
@@ -178,7 +178,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
         {!session ? (
           <>
             <Alert variant="info">
-              {streamerName} doesn&rsquo;t have an active session right now.
+              {streamerName}{" "}doesn&rsquo;t have an active session right now.
               When they go live, this view fills in with the moderation
               tools below. Keep this tab open and it&rsquo;ll light up.
             </Alert>
@@ -282,7 +282,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
               >
                 <p style={{ margin: 0 }}>
                   Once the lobby-code-sharing feature ships, this button
-                  appears here when {streamerName} has the &ldquo;Allow
+                  appears here when {streamerName}{" "}has the &ldquo;Allow
                   mods to release room codes&rdquo; setting on and the
                   current room code is in approval mode.
                 </p>

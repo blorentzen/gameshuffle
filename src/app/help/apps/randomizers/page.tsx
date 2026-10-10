@@ -38,7 +38,7 @@ export default function Page() {
           characters and minigames. See <a href="/help/apps/mario-party-randomizers">the Mario Party randomizers</a>.
         </li>
         <li>
-          <strong>Pokémon:</strong> rental teams for Pokémon Stadium and Stadium 2, and the Fire Red &amp; Leaf Green run
+          <strong>Pokémon:</strong>{" "}rental teams for Pokémon Stadium and Stadium 2, and the Fire Red &amp; Leaf Green run
           challenge. See <a href="/help/apps/pokemon-randomizers">the Pokémon randomizers</a>.
         </li>
         <li>

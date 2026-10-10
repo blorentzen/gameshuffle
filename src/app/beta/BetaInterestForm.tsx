@@ -275,7 +275,7 @@ export function BetaInterestForm() {
           </div>
 
           <p className="beta-form__footnote">
-            By applying you agree to our <a href="/privacy">Privacy Policy</a> and to sharing
+            By applying you agree to our <a href="/privacy">Privacy Policy</a>{" "}and to sharing
             feedback during the beta. We&apos;ll only use your email to review your application and
             send your invite.
           </p>

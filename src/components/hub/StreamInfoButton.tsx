@@ -252,7 +252,7 @@ function StreamInfoModal({
             <p className="hub-stream-info__section-hint">
               We&apos;d love to flip your Twitch category to MK8DX or MKW
               right from this modal. It needs the{" "}
-              <code>channel:manage:broadcast</code> scope, which requires
+              <code>channel:manage:broadcast</code>{" "}scope, which requires
               every existing streamer to reconnect Twitch, so we&apos;ll
               roll it out in the next connect-flow update.
             </p>

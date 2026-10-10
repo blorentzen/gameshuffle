@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Checkbox, Chip, EmptyState, Input, Modal, Select, Switch, Textarea } from "@empac/cascadeds";
+import { Avatar, Badge, Button, Checkbox, Chip, EmptyState, Input, Modal, Select, Switch, Textarea } from "@empac/cascadeds";
 import { IconAction, RowActions } from "@/components/actions/IconAction";
 import { IconPencil, IconTrash, IconX } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -49,7 +49,7 @@ function LockedFeature({ title, children }: { title: string; children: ReactNode
   return (
     <div className="account-card dbot-locked">
       <div className="dbot-locked__head">
-        <h3 className="account-card__title">{title}</h3>
+        <h2 className="account-card__title">{title}</h2>
         <span className="dbot-lock-badge">GS Pro</span>
       </div>
       <p className="dbot-muted">{children}</p>
@@ -62,7 +62,15 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
   label: `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`,
 }));
 
-interface ServerSummary { guildId: string; name: string | null; isMain: boolean; removed: boolean; active: boolean }
+interface ServerSummary { guildId: string; name: string | null; iconUrl?: string | null; isMain: boolean; removed: boolean; active: boolean }
+
+/** CDS Select treats "" as no choice and shows "Select an option…", so words stand in. */
+const PICK = "pick";
+const NONE = "none";
+
+/** Two letters for a server without a picture, the way Discord shows it. */
+const serverInitials = (name: string | null) =>
+  (name ?? "Server").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("") || "S";
 
 /** Which part of the suite to show: the Streaming ▸ Discord bot view gives
  *  each its own tab. Omitted = everything (older callers). */
@@ -605,52 +613,54 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
         </>
       )}
 
-      {/* Servers: pick which one the settings below are for. */}
+      {/* The server these settings are for: its picture and name from
+          Discord, a picker when there's more than one, and the slot count. */}
       {installed ? (
-        <div className="account-card">
-          <h3 className="account-card__title">Servers</h3>
-          <>
-            <div className="dbot-servers">
-              {servers.length > 1 ? (
-                <Select floatingLabel="Server" value={current?.guildId ?? ""} onChange={(v) => switchServer(String(v))}
-                  options={servers.map((g) => ({ value: g.guildId, label: `${g.name ?? "Server"}${g.isMain ? " (main)" : ""}${g.removed ? " (bot removed)" : !g.active ? " (paused)" : ""}` }))} />
-              ) : (
-                <p className="dbot-servers__one">Connected to <strong>{guildName ?? "your server"}</strong>.</p>
+        <div className="account-card dbot-server-card">
+          <div className="dbot-server">
+            <Avatar src={servers.find((g) => g.guildId === current?.guildId)?.iconUrl ?? undefined} initials={serverInitials(guildName)} alt="" size="large" shape="rounded" />
+            <div className="dbot-server__text">
+              <span className="dbot-server__eyebrow">{servers.length > 1 ? "Settings below are for" : "Connected server"}</span>
+              <span className="dbot-server__name">
+                {guildName ?? "Your server"}
+                {servers.length > 1 && current?.isMain && <Badge size="small" variant="outline">Main</Badge>}
+                {current?.removed ? <Badge size="small" variant="warning">Bot removed</Badge> : current && !current.active ? <Badge size="small" variant="warning">Paused</Badge> : null}
+              </span>
+              {!current?.removed && current?.active !== false && (
+                <span className="dbot-server__meta">
+                  {defaultChannelId ? <>Default channel <strong>#{channelName(defaultChannelId)}</strong></> : <>No default channel yet: pick one on <Link href={`/account/streaming?tab=discord${current?.guildId ? `&guild=${current.guildId}` : ""}`}>Setup ▸ Discord</Link></>}
+                </span>
               )}
+            </div>
+            <div className="dbot-server__actions">
+              {servers.length > 1 && (
+                <Select aria-label="Server to set up" size="small" value={current?.guildId ?? ""} onChange={(v) => switchServer(String(v))}
+                  options={servers.map((g) => ({ value: g.guildId, label: `${g.name ?? "Server"}${g.isMain ? " (main)" : ""}${g.removed ? " (bot removed)" : !g.active ? " (paused)" : ""}` }))} />
+              )}
+              <span className="dbot-muted">{servers.filter((g) => !g.removed).length} of {serverLimit} server{serverLimit === 1 ? "" : "s"}</span>
+              {servers.filter((g) => !g.removed).length < serverLimit ? (
+                <Button variant="secondary" size="small" onClick={() => window.location.assign("/api/discord/bot/install/start")}>Add another server</Button>
+              ) : !isPro ? (
+                <Button variant="secondary" size="small" className={tagged(EVENTS.upgradeClicked, { from: "discord-servers" })} onClick={() => router.push("/gs-pro?from=discord-servers")}>Up to 5 servers with GS Pro</Button>
+              ) : null}
+              {servers.length > 1 && current && !current.isMain && !current.removed && <Button variant="ghost" size="small" onClick={() => void makeMain()}>Make this the main server</Button>}
+            </div>
+          </div>
+          {current?.removed ? (
+            <div className="dbot-servers__note">
+              <p>The bot was removed from this server in Discord. Add it back to pick up where you left off, or forget it to free the slot.</p>
               <div className="dbot-servers__actions">
-                <span className="dbot-muted">{servers.filter((g) => !g.removed).length} of {serverLimit} server{serverLimit === 1 ? "" : "s"}</span>
-                {servers.filter((g) => !g.removed).length < serverLimit ? (
-                  <a href="/api/discord/bot/install/start"><Button variant="secondary" size="small">Add another server</Button></a>
-                ) : !isPro ? (
-                  <Link href="/gs-pro?from=discord-servers" className={tagged(EVENTS.upgradeClicked, { from: "discord-servers" })}><Button variant="secondary" size="small">Up to 5 servers with GS Pro</Button></Link>
-                ) : null}
-                {servers.length > 1 && current && !current.isMain && !current.removed && <Button variant="ghost" size="small" onClick={() => void makeMain()}>Make this the main server</Button>}
+                <Button variant="primary" size="small" onClick={() => window.location.assign("/api/discord/bot/install/start")}>Add the bot back</Button>
+                <Button variant="ghost" size="small" onClick={() => void forgetServer()}>Forget this server</Button>
               </div>
             </div>
-            {current?.removed ? (
-              <div className="dbot-servers__note">
-                <p>The bot was removed from this server in Discord. Add it back to pick up where you left off, or forget it to free the slot.</p>
-                <div className="dbot-servers__actions">
-                  <a href="/api/discord/bot/install/start"><Button variant="primary" size="small">Add the bot back</Button></a>
-                  <Button variant="ghost" size="small" onClick={() => void forgetServer()}>Forget this server</Button>
-                </div>
-              </div>
-            ) : current && !current.active ? (
-              <p className="dbot-servers__note">Paused: without GS Pro the bot runs in your main server only. This server&apos;s settings are kept and it comes back with GS Pro.</p>
-            ) : (
-              <p>
-                {defaultChannelId ? (
-                  <>Default channel: <strong>#{channelName(defaultChannelId)}</strong>.</>
-                ) : (
-                  <>No default channel set yet. Pick one on <Link href={`/account/streaming?tab=discord${current?.guildId ? `&guild=${current.guildId}` : ""}`}>Setup ▸ Discord</Link>.</>
-                )}
-                {servers.length > 1 && current?.isMain ? " This is your main server: it keeps working even without GS Pro." : ""}
-              </p>
-            )}
-            {servers.length > 1 && !current?.removed && (
-              <p className="dbot-muted">Everything below is for this server. Going live, recaps, Question of the Day, Chat Brain and the Weekly post in every server that has a channel set for them.</p>
-            )}
-          </>
+          ) : current && !current.active ? (
+            <p className="dbot-servers__note">Paused: without GS Pro the bot runs in your main server only. This server&apos;s settings are kept and it comes back with GS Pro.</p>
+          ) : servers.length > 1 ? (
+            <p className="dbot-muted">
+              Everything below is for this server.{current?.isMain ? " It's your main server, so it keeps working even without GS Pro." : ""} Going live, recaps, Question of the Day, Chat Brain and the Weekly post in every server that has a channel set for them.
+            </p>
+          ) : null}
         </div>
       ) : (
         <EmptyState
@@ -684,7 +694,7 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
       ) : (
         <div className="account-card">
           <div className="dbot-routing-head">
-            <h3 className="account-card__title">Channel routing</h3>
+            <h2 className="account-card__title">Channel routing</h2>
             {canEdit && saving && <span className="dbot-muted">Saving…</span>}
           </div>
 
@@ -762,7 +772,7 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
       {/* Announcements */}
       {show("posts") && canEdit && (
         <div className="account-card">
-          <h3 className="account-card__title">Announcements</h3>
+          <h2 className="account-card__title">Announcements</h2>
           <p className="dbot-muted">
             Post a rich announcement to your announcements channel now, or schedule it,
             with optional follow-ups (e.g. &ldquo;starts in 1 hour&rdquo;).
@@ -849,11 +859,11 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
       {/* Self-assign roles — reactions / buttons / dropdown, one builder */}
       {show("roles") && canEdit && (
         <div className="account-card">
-          <h3 className="account-card__title">Self-assign roles</h3>
+          <h2 className="account-card__title">Self-assign roles</h2>
           <p className="dbot-muted">
             Let members pick their own roles. Choose how they do it: react with an emoji, click a button, or
             use a dropdown menu. One heads-up: in your server&apos;s role settings, the GameShuffle bot&apos;s
-            role has to sit <strong>above</strong> any role it hands out, or Discord won&apos;t let it.
+            role has to sit <strong>above</strong>{" "}any role it hands out, or Discord won&apos;t let it.
           </p>
 
           {(reactionMessages.length > 0 || roleMenus.length > 0) && (
@@ -905,19 +915,19 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
                 <Textarea floatingLabel="Message text (optional)" value={sarBody} onChange={(e) => setSarBody(e.target.value)} rows={2} fullWidth />
                 <Select
                   floatingLabel="Channel to post in"
-                  options={[{ value: "", label: "Pick a channel…" }, ...channels.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
-                  value={sarChannel}
-                  onChange={(v) => setSarChannel(v as string)}
+                  options={[{ value: PICK, label: "Pick a channel…" }, ...channels.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
+                  value={sarChannel || PICK}
+                  onChange={(v) => setSarChannel(v === PICK ? "" : (v as string))}
                   fullWidth
                 />
                 <Select
                   floatingLabel="Add a role"
                   options={[
-                    { value: "", label: "Pick a role…" },
+                    { value: PICK, label: "Pick a role…" },
                     ...guildRoles.filter((r) => !sarMappings.some((x) => x.roleId === r.id)).map((r) => ({ value: r.id, label: r.name })),
                   ]}
-                  value=""
-                  onChange={(v) => v && addSarMapping(v as string)}
+                  value={PICK}
+                  onChange={(v) => v && v !== PICK && addSarMapping(v as string)}
                   fullWidth
                 />
                 {sarMappings.map((m, i) => (
@@ -958,12 +968,12 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
                 <Select
                   floatingLabel="Add a role"
                   options={[
-                    { value: "", label: "Pick a role…" },
+                    { value: PICK, label: "Pick a role…" },
                     ...guildRoles.filter((r) => !editingRr.mappings.some((x) => x.roleId === r.id)).map((r) => ({ value: r.id, label: r.name })),
                   ]}
-                  value=""
+                  value={PICK}
                   onChange={(v) => {
-                    if (!v) return;
+                    if (!v || v === PICK) return;
                     const name = guildRoles.find((r) => r.id === v)?.name ?? "Role";
                     setEditingRr({ ...editingRr, mappings: [...editingRr.mappings, { roleId: v as string, roleName: name, emoji: "" }] });
                   }}
@@ -990,7 +1000,7 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
       {/* Auto-assign on join (gateway worker) */}
       {show("roles") && canEdit && (
         <div className="account-card">
-          <h3 className="account-card__title">Roles for new members</h3>
+          <h2 className="account-card__title">Roles for new members</h2>
           <p className="dbot-muted">
             Pick roles that everyone gets automatically the moment they join your server.
           </p>
@@ -998,11 +1008,11 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
             <Select
               floatingLabel="Add a role"
               options={[
-                { value: "", label: "Pick a role…" },
+                { value: PICK, label: "Pick a role…" },
                 ...guildRoles.filter((r) => !autoroleIds.includes(r.id)).map((r) => ({ value: r.id, label: r.name })),
               ]}
-              value=""
-              onChange={(v) => v && setAutoroleIds((prev) => [...prev, v as string])}
+              value={PICK}
+              onChange={(v) => v && v !== PICK && setAutoroleIds((prev) => [...prev, v as string])}
               fullWidth
             />
             {autoroleIds.length > 0 && (
@@ -1024,7 +1034,7 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
       {/* GS Pro member role (serverless sync) */}
       {show("roles") && canEdit && (
         <div className="account-card">
-          <h3 className="account-card__title">GS Pro member role</h3>
+          <h2 className="account-card__title">GS Pro member role</h2>
           <p className="dbot-muted">
             Give members who support GameShuffle with <strong>GS Pro</strong> a special role in your server.
             Anyone who has connected their Discord to GameShuffle gets it automatically (when they join, or
@@ -1033,9 +1043,9 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
           <div className="dbot-rm-form">
             <Select
               floatingLabel="GS Pro role"
-              options={[{ value: "", label: "None" }, ...guildRoles.map((r) => ({ value: r.id, label: r.name }))]}
-              value={proRoleId}
-              onChange={(v) => setProRoleId(v as string)}
+              options={[{ value: NONE, label: "None" }, ...guildRoles.map((r) => ({ value: r.id, label: r.name }))]}
+              value={proRoleId || NONE}
+              onChange={(v) => setProRoleId(v === NONE ? "" : (v as string))}
               fullWidth
             />
             <div>
@@ -1050,7 +1060,7 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
       {/* Native AutoMod */}
       {show("moderation") && canEdit && (
         <div className="account-card">
-          <h3 className="account-card__title">AutoMod</h3>
+          <h2 className="account-card__title">AutoMod</h2>
           <p className="dbot-muted">
             Automatically block messages in your server. Add your own words to block, and/or switch on
             Discord&apos;s built-in filters. Discord enforces this for you.
@@ -1079,7 +1089,7 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
       {/* Server logging */}
       {show("moderation") && canEdit && (
         <div className="account-card">
-          <h3 className="account-card__title">Server logging</h3>
+          <h2 className="account-card__title">Server logging</h2>
           <p className="dbot-muted">
             Keep a record of what happens in your server (message edits and deletes, members joining and
             leaving, and role changes), posted to a channel you choose. Pick a channel below and choose
@@ -1089,11 +1099,11 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
             <Select
               floatingLabel="Log channel"
               options={[
-                { value: "", label: "Off, don't log" },
+                { value: NONE, label: "Off, don't log" },
                 ...channels.map((c) => ({ value: c.id, label: `#${c.name}` })),
               ]}
-              value={logChannelId}
-              onChange={(v) => setLogChannel(v as string)}
+              value={logChannelId || NONE}
+              onChange={(v) => setLogChannel(v === NONE ? "" : (v as string))}
               disabled={logSaving}
               fullWidth
             />
@@ -1117,7 +1127,7 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
       {/* Question of the Day */}
       {show("qotd") && canEdit && (
         <div className="account-card">
-          <h3 className="account-card__title">Question of the Day</h3>
+          <h2 className="account-card__title">Question of the Day</h2>
           <p className="dbot-muted">
             Post GameShuffle&apos;s daily Question of the Day to your server to spark conversation. It goes to
             the channel you set for &ldquo;Question of the Day&rdquo; in the routing above (or your default channel).
