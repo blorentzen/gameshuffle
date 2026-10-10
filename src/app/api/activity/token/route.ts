@@ -13,9 +13,10 @@
  * session (for the results card).
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { exchangeCode, verifiedChannel } from "@/lib/activity/discord";
+import { discordAvatarUrl, rememberAvatar } from "@/lib/discord/faces";
 import { signSession } from "@/lib/activity/session";
 import { accountForDiscord } from "@/lib/daily/results";
 import { resolveIdentity } from "@/lib/economy/identity";
@@ -47,6 +48,8 @@ export async function POST(req: Request) {
     takeIntent(x.me.id).catch(() => null),
     typeof body?.instanceId === "string" ? verifiedChannel(body.instanceId, x.me.id).catch(() => null) : Promise.resolve(null),
   ]);
+  // For the drawn results card in the channel. Best effort, after the reply.
+  after(() => rememberAvatar(identityId, discordAvatarUrl(x.me.id, x.me.avatar)));
   const session = signSession({ did: x.me.id, iid: identityId, uid: userId, name, avatar: x.me.avatar, cid: where?.channelId ?? null, gid: where?.guildId ?? null });
   return NextResponse.json({
     ok: true,

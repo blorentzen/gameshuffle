@@ -47,7 +47,8 @@ export interface EventCardInput {
 
 const assets: { gabarito?: Promise<Buffer>; outfit500?: Promise<Buffer>; outfit600?: Promise<Buffer>; logo?: Promise<string> } = {};
 
-function fonts() {
+/** Gabarito bold + Outfit medium/semibold, read once per process (shared with the Discord cards). */
+export function fonts() {
   const dir = join(process.cwd(), "src/app/fonts");
   assets.gabarito ??= readFile(join(dir, "gabarito-bold.ttf"));
   assets.outfit500 ??= readFile(join(dir, "outfit-medium.ttf"));
@@ -55,7 +56,7 @@ function fonts() {
   return Promise.all([assets.gabarito, assets.outfit500, assets.outfit600]);
 }
 
-function logo(): Promise<string> {
+export function logo(): Promise<string> {
   assets.logo ??= readFile(join(process.cwd(), "public/images/fg/logos/gameshuffle-wht.svg")).then(
     (b) => `data:image/svg+xml;base64,${b.toString("base64")}`,
   );
@@ -108,15 +109,15 @@ export async function bannerArt(src: string | null | undefined): Promise<CardArt
 
 // ---------------------------------------------------------------- drawing
 
-function glyphSvg(name: GlyphName, color: string, strokeWidth = 1.6): string {
+export function glyphSvg(name: GlyphName, color: string, strokeWidth = 1.6): string {
   const paths = GLYPHS[name].map((d) => `<path d="${d}"/>`).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
 }
 
-const svgUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+export const svgUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 
 /** The faint glyph field, jittered the same way every time. */
-function fieldSvg(names: GlyphName[], w: number, h: number, step = 96): string {
+export function fieldSvg(names: GlyphName[], w: number, h: number, step = 96): string {
   let seed = 11;
   const r = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
   const cells: string[] = [];

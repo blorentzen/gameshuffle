@@ -90,7 +90,7 @@ const FAQ = [
   },
   {
     q: "What can the bot see?",
-    a: "The Activity gets your Discord ID, name and avatar so it can save your results, and the bot posts the day's results card where you play. The Activity does not read your messages. Server logging only runs if a server owner turns it on with GS Pro, and only for the events they pick.",
+    a: "The Activity gets your Discord ID, name and avatar so it can save your results, and the bot posts the day's results card, with your name and picture, where you play. The Activity does not read your messages. Server logging only runs if a server owner turns it on with GS Pro, and only for the events they pick.",
   },
   {
     q: "Is this an official Nintendo app?",
@@ -179,7 +179,7 @@ export default function DiscordPage() {
                 </li>
               ))}
             </ul>
-            <Checks items={["Results in the channel as squares, never the answer", "A morning recap with medals and the channel's streak"]} />
+            <Checks items={["Everyone's face and squares in the channel, never the answer", "A morning podium with the channel's streak"]} />
           </div>
           <DiscordMock variant="summary" />
         </section>
