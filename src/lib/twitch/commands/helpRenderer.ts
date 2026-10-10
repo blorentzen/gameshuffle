@@ -104,6 +104,12 @@ async function renderCategoryList(
   callerTier: ActorTier,
   streamerSlug: string | null,
 ): Promise<string> {
+  // One chat message can't hold 80-odd commands (most groups fell off as
+  // "+N more"), so point at the channel's commands page instead: it lists
+  // what's switched on and works on this stream (2026-10-10).
+  if (streamerSlug) {
+    return `🎲 Every command on this channel: gameshuffle.co/c/${encodeURIComponent(streamerSlug)}/commands · Start with !gs join and !gs shuffle · !help <command> for one.`;
+  }
   // During the Spec 01 backfill window `actor` is optional; default
   // any unmarked command to `everyone` for filtering purposes. Once
   // every registration carries `minAuthority`, this filter switches

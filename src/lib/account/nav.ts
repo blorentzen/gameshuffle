@@ -128,7 +128,6 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       ] },
       { id: "chat-commands", label: "Chat", iconName: "message-circle", proOnly: true, tabs: [
         { id: "chat-commands", label: "Commands" },
-        { id: "built-in", label: "Built-in" },
         { id: "community", label: "Modules" },
         { id: "game-modules", label: "Game defaults" },
       ] },
@@ -208,6 +207,8 @@ export const ACCOUNT_TAB_ALIAS: Record<string, string> = {
   "twitch-hub": "integrations",
   app: "setups",
   "my-games": "games",
+  // Built-in commands joined the one Commands list (2026-10-10).
+  "built-in": "chat-commands",
   "board-games": "games",
 };
 

@@ -36,7 +36,7 @@ import { OverlayLayoutTab } from "@/components/account/OverlayLayoutTab";
 import { StreamToolsTab } from "@/components/account/StreamToolsTab";
 import { WheelsTab } from "@/components/account/WheelsTab";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
-import { ChatCommandsTab } from "@/components/account/ChatCommandsTab";
+import { CommandsScreen } from "@/components/account/commands/CommandsScreen";
 import { CommunityTab } from "@/components/account/CommunityTab";
 import { GameModulesTab } from "@/components/account/GameModulesTab";
 import { PollsTab } from "@/components/account/PollsTab";
@@ -92,8 +92,7 @@ function proScreens(profileTimezone: string | null): ScreenMap {
     "stream-tools": () => <StreamToolsTab />,
     wheels: () => <Wrap title="Wheels" intro="Build wheels and spin them on your overlay, from the Hub or with !spin in chat. The default wheel is the one !spin uses."><WheelsTab bare /></Wrap>,
     "chat-feed": () => <Wrap title="Chat feed"><ChatOverlaySettings /></Wrap>,
-    "chat-commands": () => <ChatCommandsTab part="custom" />,
-    "built-in": () => <ChatCommandsTab part="builtin" />,
+    "chat-commands": () => <CommandsScreen />,
     community: () => <Wrap title="Modules"><CommunityTab /></Wrap>,
     "game-modules": () => <Wrap title="Game defaults"><GameModulesTab /></Wrap>,
     polls: () => <PollsTab />,

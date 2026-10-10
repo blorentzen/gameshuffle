@@ -117,7 +117,10 @@ function parseStart(words: string[]): { boards?: number; seconds?: number } {
 
 registerCommand({
   name: "a",
-  trigger: ["a", "answer"],
+  // One word plus an alias: as ["a","answer"] it was a two-word path that
+  // `!a <answer>` never matched (Twitch only worked through the fast lane).
+  trigger: ["a"],
+  aliases: [["answer"]],
   actor: "everyone",
   surface: ["chat"],
   economy: "none",
@@ -137,7 +140,9 @@ registerCommand({
 
 registerCommand({
   name: "cb",
-  trigger: ["cb", "chatbrain"],
+  // Was ["cb","chatbrain"], a two-word path, so `!cb ask/start/next` never reached here.
+  trigger: ["cb"],
+  aliases: [["chatbrain"]],
   actor: "everyone",
   surface: ["chat"],
   economy: "none",

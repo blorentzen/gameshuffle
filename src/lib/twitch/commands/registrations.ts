@@ -386,7 +386,7 @@ registerCommand({
   name: "gs.spin",
   trigger: ["gs", "spin"],
   aliases: [["gs-spin"], ["spin"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -412,7 +412,7 @@ registerCommand({
   name: "gs.dice",
   trigger: ["gs", "dice"],
   aliases: [["gs-dice"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -437,7 +437,7 @@ registerCommand({
   name: "gs.flip",
   trigger: ["gs", "flip"],
   aliases: [["gs-flip"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -575,8 +575,8 @@ registerCommand({
 registerCommand({
   name: "gs.draw",
   trigger: ["gs", "draw"],
-  aliases: [["gs-draw"]],
-  actor: "host",
+  aliases: [["gs-draw"], ["draw"]],
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -601,7 +601,7 @@ registerCommand({
   name: "gs.timer",
   trigger: ["gs", "timer"],
   aliases: [["gs-timer"], ["timer"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -626,7 +626,7 @@ registerCommand({
   name: "gs.bingo",
   trigger: ["gs", "bingo"],
   aliases: [["gs-bingo"], ["bingo"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -653,7 +653,7 @@ registerCommand({
   name: "gs.tier",
   trigger: ["gs", "tier"],
   aliases: [["gs-tier"], ["tier"], ["tierlist"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -680,7 +680,7 @@ registerCommand({
   name: "gs.tourney",
   trigger: ["gs", "tourney"],
   aliases: [["gs-tourney"], ["tourney"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -800,7 +800,7 @@ registerCommand({
   name: "wheel.clear",
   trigger: ["wheel", "clear"],
   aliases: [["gs", "wheel", "clear"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
