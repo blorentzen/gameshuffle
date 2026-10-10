@@ -1,15 +1,18 @@
 "use client";
 
 /**
- * My Stuff ▸ Shop Orders: GameShuffle Shop orders placed with this account,
- * or with its confirmed email at checkout. Each opens the order page (status,
- * tracking, history). Orders placed with another email are found with the
- * lookup form.
+ * My Stuff ▸ Purchases ▸ Shop orders: GameShuffle Shop orders placed with this
+ * account, or with its confirmed email at checkout. Each opens the order page
+ * (status, tracking, history). Orders placed with another email are found with
+ * the lookup form.
  */
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Badge, Button, Card } from "@empac/cascadeds";
+import { useRouter } from "next/navigation";
+import { Badge, Button, EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
+import { IconShoppingBag } from "@tabler/icons-react";
+import { AdminScreen, AdminTable } from "@/components/account/admin/AdminKit";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { formatPrice } from "@/lib/store/copy";
 import type { AccountOrderSummary } from "@/lib/store/lookup";
@@ -22,6 +25,7 @@ const STATUS = {
 } as const;
 
 export function ShopOrdersTab() {
+  const router = useRouter();
   const [orders, setOrders] = useState<AccountOrderSummary[] | null>(null);
   useEffect(() => {
     fetch("/api/account/shop-orders", { cache: "no-store" })
@@ -30,36 +34,50 @@ export function ShopOrdersTab() {
       .catch(() => setOrders([]));
   }, []);
 
-  if (orders === null) return <LoadingLines label="Loading" />;
+  const find = <>Used a different email? <Link href="/shop/orders">Find an order</Link>.</>;
+  if (orders === null) return <AdminScreen title="Shop orders"><LoadingLines label="Loading your orders" /></AdminScreen>;
+
   return (
-    <div className="account-card">
-      <h2 className="account-card__title">Shop Orders</h2>
+    <AdminScreen title="Shop orders" intro={orders.length ? <>Open an order for tracking and its history. {find}</> : undefined}>
       {orders.length === 0 ? (
-        <p className="account-card__hint">
-          Orders from the GameShuffle Shop show up here when you check out signed in or with this account&apos;s email.
-          Used a different email? <Link href="/shop/orders">Find an order</Link>.
-        </p>
+        <EmptyState
+          variant="bordered"
+          icon={<IconShoppingBag size={40} stroke={1.4} />}
+          title="No shop orders yet"
+          description="Orders from the GameShuffle Shop show up here when you check out signed in or with this account's email."
+          action={
+            <div className="stuff-empty-actions">
+              <Button variant="secondary" onClick={() => router.push("/shop")}>Visit the shop</Button>
+              <Button variant="ghost" onClick={() => router.push("/shop/orders")}>Find an order</Button>
+            </div>
+          }
+        />
       ) : (
-        <>
-          <p className="account-card__hint">Open an order for tracking and its history. Used a different email? <Link href="/shop/orders">Find an order</Link>.</p>
-          <div className="shop-orders-list">
-            {orders.map((o) => (
-              <Card key={o.id} padding="medium">
-                <div className="shop-orders-list__row">
-                  <div className="shop-orders-list__main">
-                    <Link href={`/shop/orders/${o.code}`} className="shop-orders-list__code">Order {o.code}</Link>
-                    <p className="shop-orders-list__meta">{o.placedLabel} · {o.itemCount} {o.itemCount === 1 ? "item" : "items"} · {formatPrice(o.total)}</p>
-                  </div>
-                  <div className="shop-orders-list__side">
-                    <Badge variant={STATUS[o.status].variant} size="small">{STATUS[o.status].label}</Badge>
-                    <Link href={`/shop/orders/${o.code}`}><Button size="small" variant="secondary">View order</Button></Link>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </>
+        <AdminTable label="Shop orders">
+          <Table variant="striped" dense>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order</TableHead>
+                <TableHead>Placed</TableHead>
+                <TableHead align="right">Items</TableHead>
+                <TableHead align="right">Total</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell><Link href={`/shop/orders/${o.code}`} className="stuff-cell__title">{o.code}</Link></TableCell>
+                  <TableCell>{o.placedLabel}</TableCell>
+                  <TableCell align="right" className="admin-num">{o.itemCount}</TableCell>
+                  <TableCell align="right" className="admin-num">{formatPrice(o.total)}</TableCell>
+                  <TableCell><Badge variant={STATUS[o.status].variant} size="small">{STATUS[o.status].label}</Badge></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </AdminTable>
       )}
-    </div>
+    </AdminScreen>
   );
 }

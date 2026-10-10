@@ -223,9 +223,9 @@ export function CollectionManager({ isPro, unlimited = false }: {
           public profile (marked by the cutoff line). Hidden while searching. */}
       {!isSearching && favorites.length > 0 && (
         <section className="tcg-collection__section">
-          <h3 className="tcg-collection__heading">
+          <h2 className="tcg-collection__heading">
             Favorites ({favorites.length})
-          </h3>
+          </h2>
           <p className="tcg-collection__featured-note">
             Drag to reorder. Your top {MAX_SHOWCASE} appear on your public
             profile; the rest stay private. Tap the star to remove a favorite.
@@ -241,12 +241,12 @@ export function CollectionManager({ isPro, unlimited = false }: {
       {/* Results */}
       {query.trim().length >= MIN_CHARS && searching ? (
         <section className="tcg-collection__section">
-          <h3 className="tcg-collection__heading">Results</h3>
+          <h2 className="tcg-collection__heading">Results</h2>
           <CardGridSkeleton count={6} />
         </section>
       ) : results.length > 0 ? (
         <section className="tcg-collection__section">
-          <h3 className="tcg-collection__heading">Results</h3>
+          <h2 className="tcg-collection__heading">Results</h2>
           <div className="tcg-card-grid">
             {results.map((card) => (
               <div key={card.id} className="tcg-card-cell">
@@ -283,9 +283,9 @@ export function CollectionManager({ isPro, unlimited = false }: {
 
       {/* Collection */}
       <section className="tcg-collection__section">
-        <h3 className="tcg-collection__heading">
+        <h2 className="tcg-collection__heading">
           Your collection{unfavorited.length ? ` (${unfavorited.length})` : ""}
-        </h3>
+        </h2>
         {isPro && !unlimited && collectionLoaded ? (
           <p className="tcg-collection__limit">
             {collection.length} of {MY_CARDS_FREE_LIMIT} cards on Free, favorites included{collection.length >= MY_CARDS_FREE_LIMIT ? ". Your collection is full." : "."}

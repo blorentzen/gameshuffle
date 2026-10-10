@@ -3557,13 +3557,6 @@ html.dark .gs-platform-icon {
 .shop-admin__grid { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }
 @media (max-width: 560px) { .shop-admin__row { flex-direction: column; align-items: stretch; } }
 
-/* My Stuff ▸ Shop Orders */
-.shop-orders-list { display: grid; gap: var(--spacing-8); margin-top: var(--spacing-12); }
-.shop-orders-list__row { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
-.shop-orders-list__main { min-width: 0; }
-.shop-orders-list__code { font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
-.shop-orders-list__meta { margin: var(--spacing-2) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.shop-orders-list__side { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
 .shop-admin__totals { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-4); font-size: var(--font-size-14); }
 .shop-admin__totals div { display: flex; justify-content: space-between; gap: var(--spacing-12); }
 .shop-admin__totals dt { color: var(--text-secondary); }
@@ -3760,3 +3753,30 @@ html.dark .gs-platform-icon {
 .streaming-unlocks li { display: flex; align-items: center; gap: var(--spacing-8); }
 .streaming-unlocks svg { color: var(--success-ink, var(--success-600)); flex: 0 0 auto; }
 .dbot-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-8); }
+/* My Stuff: event, season and saved-game rows (StuffList on CDS List) */
+.stuff-list { container: stuff / inline-size; }
+.stuff-list .stuff-row.empac-list__item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-4); }
+.stuff-list .stuff-row .empac-list__item-icon { width: auto; height: auto; color: inherit; }
+.stuff-list .stuff-row .empac-list__item-content { display: flex; flex-direction: column; gap: 2px; }
+.stuff-list .stuff-row .empac-list__item-suffix { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--spacing-8); margin-left: 0; color: inherit; font-size: inherit; }
+.stuff-row__title { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); text-decoration: none; overflow-wrap: anywhere; }
+.stuff-row__title:hover { text-decoration: underline; }
+.stuff-row__meta { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+@container stuff (max-width: 520px) {
+  .stuff-list .stuff-row.empac-list__item { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .stuff-list .stuff-row .empac-list__item-suffix { grid-column: 2; justify-content: flex-start; }
+}
+.stuff-thumb { position: relative; display: block; width: 45px; height: 60px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--surface-sunken); }
+.stuff-thumb img, .stuff-thumb .game-cover { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 0; aspect-ratio: auto; }
+.stuff-thumb .game-cover--blank { font-size: var(--font-size-16); }
+.stuff-thumb .evart { position: absolute; inset: 0; }
+/* A thumbnail is too small for the band's off-edge glyph: centre it whole. */
+.stuff-thumb .evart__feature { right: auto; left: 50%; top: 50%; width: 72%; height: auto; transform: translate(-50%, -50%); }
+.stuff-thumb--icon { display: grid; place-items: center; color: var(--brand-ink, var(--primary-600)); background: color-mix(in srgb, var(--primary-500) 12%, transparent); }
+.stuff-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-8); }
+.stuff-subgroup { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.stuff-subgroup__title { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+/* Table cells on My Stuff ▸ Purchases */
+.stuff-cell__title { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.stuff-cell__sub { display: block; margin-top: 2px; font-size: var(--font-size-12); color: var(--text-secondary); max-width: 34ch; white-space: normal; }
+.stuff-cell__actions { display: inline-flex; align-items: center; gap: var(--spacing-4); }

@@ -1,128 +1,125 @@
 "use client";
 
 /**
- * "Game Nights" under My Stuff — the member's nights in one place, organized by
- * lifecycle section (Draft → Registration → Complete → Cancelled). Each card
- * carries a role tag (Hosting / Going) and links to manage or the public page.
- * Backed by /api/account/game-nights.
- *
- * Renders the SHARED EventCard, so generated header art, hover motion and card
- * geometry all arrive for free. It used to hand-roll .bgn-card with a gradient
- * and a literal emoji, which is why My Stuff still looked a generation behind
- * /game-nights after the art pass.
+ * My Stuff ▸ Events ▸ Game nights: nights you host and nights you're going to,
+ * as a list per stage (coming up, past, then archived out of the way). Rows
+ * come from StuffList; discovery pages keep the big event cards. Backed by
+ * /api/account/game-nights.
  */
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Accordion, Button } from "@empac/cascadeds";
-import { formatEventTime } from "@/lib/time/format";
-import { EventCard } from "@/components/events/EventCard";
-import { artCategoryFor } from "@/components/events/EventHeaderArt";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Accordion, Badge, Button, EmptyState, List } from "@empac/cascadeds";
+import { IconCalendarEvent } from "@tabler/icons-react";
+import { formatEventShort } from "@/lib/time/format";
+import { artCategoryFor } from "@/lib/events/artCategory";
 import type { GameNight } from "@/lib/game-nights/types";
-import { MYSTUFF_SECTIONS, sectionForNightStatus } from "@/lib/account/statusSections";
+import { AdminScreen } from "@/components/account/admin/AdminKit";
+import { StuffGroup, StuffRow, StuffThumb, viewerTimeZone } from "@/components/account/stuff/StuffList";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Entry { night: GameNight; role: "host" | "attend" }
 
-function NightCard({ entry }: { entry: Entry }) {
-  const { night: n, role } = entry;
-  const href = role === "host" ? `/game-nights/${n.id}/manage` : `/game-nights/${n.id}`;
-  return (
-    <EventCard
-      href={href}
-      title={n.title}
-      seed={n.id}
-      cover={n.cover_image_url}
-      artCategory={artCategoryFor("game-night", n.kind)}
-      when={n.starts_at ? formatEventTime(n.starts_at) : "Date TBD"}
-      meta={n.place}
-      countLabel={role === "host" ? "Manage \u2192" : "View \u2192"}
-      // Management surface: it does not load ticket tiers, so a price chip
-      // here would say "Free" on a paid night.
-      showPrice={false}
-      badges={
-        <span className={`mystuff-role mystuff-role--${role}`}>
-          {role === "host" ? "Hosting" : "Going"}
-        </span>
-      }
-    />
-  );
-}
+/** A night counts as past a few hours after it starts (most run 3 hours or so). */
+const PAST_AFTER_MS = 6 * 3600_000;
 
-export function GameNightsTab() {
-  const [hosting, setHosting] = useState<GameNight[]>([]);
-  const [attending, setAttending] = useState<GameNight[]>([]);
-  const [loading, setLoading] = useState(true);
+const startOf = (e: Entry) => (e.night.starts_at ? Date.parse(e.night.starts_at) : Number.POSITIVE_INFINITY);
+
+export function GameNightsTab({ timeZone }: { timeZone?: string | null } = {}) {
+  const router = useRouter();
+  const [entries, setEntries] = useState<Entry[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetch("/api/account/game-nights")
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
-        if (cancelled || !j?.ok) return;
-        setHosting(Array.isArray(j.hosting) ? j.hosting : []);
-        setAttending(Array.isArray(j.attending) ? j.attending : []);
+        if (cancelled) return;
+        const hosting: GameNight[] = Array.isArray(j?.hosting) ? j.hosting : [];
+        const attending: GameNight[] = Array.isArray(j?.attending) ? j.attending : [];
+        setEntries([
+          ...hosting.map((night) => ({ night, role: "host" as const })),
+          ...attending.filter((n) => !hosting.some((h) => h.id === n.id)).map((night) => ({ night, role: "attend" as const })),
+        ]);
       })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .catch(() => { if (!cancelled) setEntries([]); });
     return () => { cancelled = true; };
   }, []);
 
-  if (loading) {
-    return <div className="account-card"><LoadingLines label="Loading your game nights" /></div>;
+  const groups = useMemo(() => {
+    const list = entries ?? [];
+    // eslint-disable-next-line react-hooks/purity -- "now" only sorts rows into coming up / past for this render
+    const now = Date.now();
+    const off = (e: Entry) => !!e.night.archived_at || e.night.status === "cancelled";
+    const past = (e: Entry) => e.night.status === "ended" || startOf(e) < now - PAST_AFTER_MS;
+    return {
+      upcoming: list.filter((e) => !off(e) && !past(e)).sort((a, b) => startOf(a) - startOf(b)),
+      past: list.filter((e) => !off(e) && past(e)).sort((a, b) => startOf(b) - startOf(a)),
+      archived: list.filter(off),
+    };
+  }, [entries]);
+
+  const tz = viewerTimeZone(timeZone);
+
+  if (entries === null) {
+    return <AdminScreen title="Game nights"><LoadingLines label="Loading your game nights" /></AdminScreen>;
   }
 
-  const entries: Entry[] = [
-    ...hosting.map((night) => ({ night, role: "host" as const })),
-    ...attending.map((night) => ({ night, role: "attend" as const })),
-  ];
-  const empty = entries.length === 0;
+  const row = ({ night: n, role }: Entry, opts: { status?: boolean } = {}) => (
+    <StuffRow
+      key={`${n.id}-${role}`}
+      thumb={<StuffThumb cover={n.cover_image_url} art={artCategoryFor("game-night", n.kind)} seed={n.id} />}
+      title={n.title}
+      href={`/game-nights/${n.id}`}
+      meta={<>{n.starts_at ? formatEventShort(n.starts_at, tz) : "No date yet"}{n.place ? ` · ${n.place}` : ""}</>}
+      badges={
+        <>
+          {opts.status && n.status === "draft" && <Badge size="small" variant="default">Draft</Badge>}
+          {opts.status && n.status === "cancelled" && <Badge size="small" variant="default">Cancelled</Badge>}
+          {opts.status && n.archived_at && n.status !== "cancelled" && <Badge size="small" variant="default">Archived</Badge>}
+          {/* Nights you host carry a Manage button; the rest say you're going. */}
+          {role === "attend" && <Badge size="small" variant="outline">Going</Badge>}
+        </>
+      }
+      action={role === "host" ? { label: "Manage", href: `/game-nights/${n.id}/manage` } : undefined}
+    />
+  );
 
   return (
-    <div className="account-card">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--spacing-16)", flexWrap: "wrap", marginBottom: "var(--spacing-20)" }}>
-        <div>
-          <h2 style={{ margin: 0 }}>Game Nights</h2>
-          <p style={{ color: "var(--text-tertiary)", margin: "var(--spacing-4) 0 0", fontSize: "var(--font-size-14)" }}>
-            Nights you host and nights you&rsquo;re going to, grouped by where they are in their run.
-          </p>
-        </div>
-        <Link href="/game-nights/create" style={{ textDecoration: "none" }}>
-          <Button variant="primary">Host a night</Button>
-        </Link>
-      </div>
-
-      {empty ? (
-        <div className="bgn-empty">
-          <p>You haven&rsquo;t hosted or joined a game night yet.</p>
-          <Link href="/game-nights" style={{ textDecoration: "none" }}>
-            <Button variant="secondary">Find a night</Button>
-          </Link>
-        </div>
-      ) : (
-        MYSTUFF_SECTIONS.map((section) => {
-          const inSection = entries.filter((e) => sectionForNightStatus(e.night.status, e.night.archived_at) === section.key);
-          if (inSection.length === 0) return null;
-          // Cancelled and archived: out of the way, one tap to open.
-          if (section.key === "archived") {
-            return (
-              <Accordion key="archived" variant="bordered" items={[{
-                id: "archived",
-                title: `Archived (${inSection.length})`,
-                content: <div className="bgn-grid">{inSection.map((e) => <NightCard key={`${e.night.id}-${e.role}`} entry={e} />)}</div>,
-              }]} />
-            );
-          }
-          return (
-            <div key={section.key} style={{ marginBottom: "var(--spacing-32)" }}>
-              <h3 className="bgn-side__heading" style={{ marginTop: 0 }}>{section.label}</h3>
-              <div className="bgn-grid">
-                {inSection.map((e) => <NightCard key={`${e.night.id}-${e.role}`} entry={e} />)}
-              </div>
+    <AdminScreen
+      title="Game nights"
+      intro="Nights you host and nights you're going to. Times are in your timezone."
+      actions={entries.length > 0 ? <Button variant="primary" onClick={() => router.push("/game-nights/create")}>Host a night</Button> : undefined}
+    >
+      {entries.length === 0 ? (
+        <EmptyState
+          variant="bordered"
+          icon={<IconCalendarEvent size={40} stroke={1.4} />}
+          title="No game nights yet"
+          description="Find a night near you, or host one: board games, video games, cards or a mix."
+          action={
+            <div className="stuff-empty-actions">
+              <Button variant="primary" onClick={() => router.push("/game-nights/create")}>Host a night</Button>
+              <Button variant="secondary" onClick={() => router.push("/game-nights")}>Find a night</Button>
             </div>
-          );
-        })
+          }
+        />
+      ) : (
+        <>
+          <StuffGroup title="Coming up" items={groups.upcoming} row={(e) => row(e, { status: true })} />
+          <StuffGroup title="Past" items={groups.past} page={5} row={(e) => row(e)} />
+          {groups.archived.length > 0 && (
+            <Accordion
+              variant="bordered"
+              items={[{
+                id: "archived",
+                title: `Archived and cancelled (${groups.archived.length})`,
+                content: <List divided className="stuff-list">{groups.archived.map((e) => row(e, { status: true }))}</List>,
+              }]}
+            />
+          )}
+        </>
       )}
-    </div>
+    </AdminScreen>
   );
 }

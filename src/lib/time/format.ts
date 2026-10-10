@@ -97,6 +97,19 @@ export function formatEventTime(iso: string | null | undefined, viewerTz?: strin
   return `${ptDate} · ${pt} / ${etDate} · ${et}`;
 }
 
+/**
+ * One short line for lists you manage (My Stuff): "Wed, Sep 30 · 7:00 PM CT",
+ * in the viewer's zone (their profile timezone, else the browser's), falling
+ * back to Pacific. No "(your time)": a list of your own events is always yours.
+ */
+export function formatEventShort(iso: string | null | undefined, viewerTz?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const tz = isValidTimeZone(viewerTz) ? viewerTz : PLATFORM_TZ.pacific;
+  return `${fmtDate(d, tz)} · ${fmtTime(d, tz)} ${zoneLabel(d, tz)}`;
+}
+
 /** A short label for a zone right now (e.g. "CT", "PT", or "GMT+2"). */
 export function currentZoneLabel(timeZone: string): string {
   return zoneLabel(new Date(), timeZone);

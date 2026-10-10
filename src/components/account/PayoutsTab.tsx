@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Alert, AreaChart, Card, DonutChart, Select, StatCard } from "@empac/cascadeds";
+import { Alert, AreaChart, Card, DonutChart, Select, StatCard, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
+import { AdminScreen, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
 import { ConnectAccountCard } from "@/components/events/ConnectAccountCard";
 import { PaidEntryNotice } from "@/components/billing/PaidEntryNotice";
 import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
@@ -55,27 +56,22 @@ export function PayoutsTab() {
   // Paid entry off and nothing ever sold: just say so.
   if (availability && !availability.paidEntry && !sold && !a?.payouts?.recent.length) {
     return (
-      <div className="account-card">
-        <h2 className="account-card__title">Payouts</h2>
+      <AdminScreen title="Payouts" intro="Where ticket money lands once paid entry is on.">
         <PaidEntryNotice />
-      </div>
+      </AdminScreen>
     );
   }
 
   return (
-    <div className="account-card">
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-12)", alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div>
-          <h2 className="account-card__title">Payouts</h2>
-          <p className="account-card__hint">Where ticket money lands. Prices and refund rules live on each event&apos;s manage page.</p>
-        </div>
-        <Select value={String(days)} onChange={(v) => setDays(Number(v))}
+    <AdminScreen
+      title="Payouts"
+      intro="Where ticket money lands. Prices and refund rules live on each event's manage page."
+      actions={
+        <Select aria-label="Time period" value={String(days)} onChange={(v) => setDays(Number(v))}
           options={[{ value: "7", label: "Last 7 days" }, { value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }]} />
-      </div>
-
-      <div style={{ marginTop: "var(--spacing-12)" }}>
-        <ConnectAccountCard intro="Selling tickets to a tournament or game night? Connect a payout account with Stripe. It takes a couple of minutes, and GameShuffle never touches your bank details." />
-      </div>
+      }
+    >
+      <ConnectAccountCard intro="Selling tickets to a tournament or game night? Connect a payout account with Stripe. It takes a couple of minutes, and GameShuffle never touches your bank details." />
 
       {/* On its way to the bank */}
       {a?.payouts && (a.payouts.availableCents > 0 || a.payouts.pendingCents > 0 || a.payouts.recent.length > 0) && (
@@ -108,14 +104,12 @@ export function PayoutsTab() {
       {loading && !a && <LoadingLines label="Loading" />}
 
       {a && !sold && !loading && (
-        <p className="account-card__hint" style={{ marginTop: "var(--spacing-12)" }}>
-          No ticket sales in this window. Add a ticket type on any event you organize to start charging.
-        </p>
+        <p className="admin-field__help">No ticket sales in this window. Add a ticket type on any event you organize to start charging.</p>
       )}
 
       {a && sold && (
         <>
-          <div className="stat-row" style={{ marginTop: "var(--spacing-20)" }}>
+          <AdminStats columns={3} label="Ticket sales">
             <StatCard label="Collected" value={usdShort(a.totals.grossCents)} change={change(a.totals.grossCents, a.previous.grossCents)} changeLabel={`vs previous ${days} days`}
               sparklineData={series.map((p) => p.grossCents)} sparklineType="area" />
             <StatCard label="Yours after fees" value={usdShort(a.totals.netCents)} change={change(a.totals.netCents, a.previous.netCents)} changeLabel={`vs previous ${days} days`} variant="accent" />
@@ -123,48 +117,59 @@ export function PayoutsTab() {
               sparklineData={series.map((p) => p.tickets)} sparklineType="bar" />
             <StatCard label="Average order" value={usd(a.totals.avgOrderCents)} variant="muted" />
             <StatCard label="Refunded" value={usdShort(a.totals.refundedCents)} variant="muted" />
-          </div>
+          </AdminStats>
 
           {detailed ? (
             <>
-              <h3 style={{ margin: "var(--spacing-20) 0 var(--spacing-8)", fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)" }}>Sales over time</h3>
+              <AdminSection title="Sales over time">
               <AreaChart
                 data={series.map((p) => ({ date: day(p.date), Collected: p.grossCents / 100, Yours: p.netCents / 100 }))}
                 series={[{ dataKey: "Collected", color: "var(--primary-ink-500)" }, { dataKey: "Yours", color: "var(--accent-500)" }]}
                 xAxisKey="date" height={220} showLegend valueFormatter={(v) => `$${v.toFixed(2)}`}
               />
+              </AdminSection>
 
               {a.byTier.length > 0 && (
-                <>
-                  <h3 style={{ margin: "var(--spacing-20) 0 var(--spacing-8)", fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)" }}>What people are buying</h3>
+                <AdminSection title="What people are buying">
                   <DonutChart
                     data={a.byTier.map((t) => ({ name: t.name, value: t.tickets }))}
                     height={200} showLegend legendPosition="right" valueFormatter={(v) => `${v} tickets`}
                   />
-                </>
+                </AdminSection>
               )}
             </>
           ) : (
-            <div style={{ marginTop: "var(--spacing-20)" }}>
-              <Alert variant="info">
-                Daily trends and ticket mix come with Circuit. <Link href="/gs-circuit">See Circuit plans</Link>.
-              </Alert>
-            </div>
+            <Alert variant="info">
+              Daily trends and ticket mix come with Circuit. <Link href="/gs-circuit">See Circuit plans</Link>.
+            </Alert>
           )}
 
-          <h3 style={{ margin: "var(--spacing-20) 0 var(--spacing-8)", fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)" }}>By event</h3>
-          <div style={{ display: "grid", gap: "var(--spacing-4)" }}>
-            {a.byEvent.map((e) => (
-              <div key={`${e.type}:${e.id}`} style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-8)", alignItems: "center", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-12)" }}>
-                <Link href={e.href}>{e.title}</Link>
-                <span style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
-                  {e.tickets} sold · {usd(e.netCents)} yours{e.refundedCents > 0 ? ` · ${usd(e.refundedCents)} refunded` : ""}
-                </span>
-              </div>
-            ))}
-          </div>
+          <AdminSection title="By event">
+            <AdminTable label="Sales by event">
+              <Table variant="striped" dense>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Event</TableHead>
+                    <TableHead align="right">Sold</TableHead>
+                    <TableHead align="right">Yours</TableHead>
+                    <TableHead align="right">Refunded</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {a.byEvent.map((e) => (
+                    <TableRow key={`${e.type}:${e.id}`}>
+                      <TableCell><Link href={e.href} className="stuff-cell__title">{e.title}</Link></TableCell>
+                      <TableCell align="right" className="admin-num">{e.tickets}</TableCell>
+                      <TableCell align="right" className="admin-num">{usd(e.netCents)}</TableCell>
+                      <TableCell align="right" className="admin-num">{e.refundedCents > 0 ? usd(e.refundedCents) : "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </AdminTable>
+          </AdminSection>
         </>
       )}
-    </div>
+    </AdminScreen>
   );
 }

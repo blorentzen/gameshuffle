@@ -31,7 +31,7 @@ export default async function MyStuffPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("subscription_tier, role, circuit_tier, circuit_status")
+    .select("subscription_tier, role, circuit_tier, circuit_status, timezone")
     .eq("id", user.id)
     .maybeSingle();
   const capUser = {
@@ -44,5 +44,5 @@ export default async function MyStuffPage() {
   // Real GS Pro: no My Cards cap (free accounts hold MY_CARDS_FREE_LIMIT different cards).
   const isPro = effectiveTier(capUser) === "pro";
 
-  return <StuffTabs isPro={canCollect} unlimitedCards={isPro} showPayouts={await showPayoutsFor(user.id)} />;
+  return <StuffTabs isPro={canCollect} unlimitedCards={isPro} showPayouts={await showPayoutsFor(user.id)} timeZone={(profile?.timezone as string | null) ?? null} />;
 }

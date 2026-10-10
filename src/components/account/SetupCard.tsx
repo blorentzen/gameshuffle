@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Icon, Tooltip } from "@empac/cascadeds";
+import { IconCheck, IconExternalLink, IconShare, IconTrash } from "@tabler/icons-react";
+import { IconAction, RowActions } from "@/components/actions/IconAction";
 import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
 import mk8dxData from "@/data/mk8dx-data.json";
@@ -234,27 +236,24 @@ export function SetupCard({ config, onCopyLink, onDelete, copied }: SetupCardPro
       </div>
 
       <div className="saved-build-card__actions saved-build-card__actions--row">
-        {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup" || cfg?.type === "smash-setup" || cfg?.type === "splatoon-setup" || cfg?.type === "kirby-setup" || cfg?.type === "stadium-setup") && (
-          <Tooltip content="Open in Randomizer" position="bottom">
-            <a href={`/randomizers/${config.randomizer_slug}?config=${config.id}`}>
-              <button className="icon-action-btn icon-action-btn--primary">
-                <Icon name="external-link" size="16" />
-              </button>
-            </a>
-          </Tooltip>
-        )}
-        {config.share_token && (
-          <Tooltip content={copied === config.share_token ? "Copied!" : "Copy share link"} position="bottom">
-            <button className="icon-action-btn" onClick={() => onCopyLink(config.share_token!)}>
-              <Icon name={copied === config.share_token ? "check" : "share"} size="16" />
-            </button>
-          </Tooltip>
-        )}
-        <Tooltip content="Delete" position="bottom">
-          <button className="icon-action-btn icon-action-btn--danger" onClick={() => onDelete(config.id)}>
-            <Icon name="trash" size="16" />
-          </button>
-        </Tooltip>
+        <RowActions>
+          {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup" || cfg?.type === "smash-setup" || cfg?.type === "splatoon-setup" || cfg?.type === "kirby-setup" || cfg?.type === "stadium-setup") && (
+            <IconAction
+              label={`Open ${config.config_name} in the randomizer`}
+              icon={IconExternalLink}
+              variant="primary"
+              onClick={() => window.location.assign(`/randomizers/${config.randomizer_slug}?config=${config.id}`)}
+            />
+          )}
+          {config.share_token && (
+            <IconAction
+              label={copied === config.share_token ? "Link copied" : `Copy a share link for ${config.config_name}`}
+              icon={copied === config.share_token ? IconCheck : IconShare}
+              onClick={() => onCopyLink(config.share_token!)}
+            />
+          )}
+          <IconAction label={`Delete ${config.config_name}`} icon={IconTrash} variant="danger" onClick={() => onDelete(config.id)} />
+        </RowActions>
       </div>
     </div>
   );
