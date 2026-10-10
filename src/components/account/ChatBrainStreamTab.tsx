@@ -130,12 +130,12 @@ export function ChatBrainStreamTab() {
       <p className="account-tab__intro">
         Chat plays a Chat Brain board as one team. Each guess, whatever most of chat says with <code>!a</code> is chat&apos;s answer:
         on the board banks its points, anything else is a strike, and three strikes ends the board. Every viewer also scores on their own
-        for answers they find. Add the Chat Brain piece in <Link href="/account/streamer?tab=overlay-layout">Overlay Layout</Link> to show the board on stream.
+        for answers they find. Add the Chat Brain piece in <Link href="/account/streaming?tab=overlay-layout">Overlay ▸ Layout</Link> to show the board on stream.
       </p>
 
       {!data.ready && <div className="account-card"><p className="dbot-muted">Chat Brain games need a quick update on our side before they can run.</p></div>}
       {data.ready && (!data.hasCommunity || !data.hasTwitch) && (
-        <div className="account-card"><p className="dbot-muted">Connect Twitch on the <Link href="/account/streamer?tab=integrations">Integrations tab</Link> so chat can play.</p></div>
+        <div className="account-card"><p className="dbot-muted">Connect Twitch on the <Link href="/account/streaming?tab=integrations">Streaming ▸ Setup</Link> so chat can play.</p></div>
       )}
 
       {g && (

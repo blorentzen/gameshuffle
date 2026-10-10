@@ -63,7 +63,7 @@ export function CommunityTab() {
         <h2 className="account-tab__heading">Community</h2>
         <Alert variant="info">
           Connect Twitch on{" "}
-          <a href="/account/streamer?tab=integrations">Stream Setup ▸ Integrations</a>{" "}
+          <a href="/account/streaming?tab=integrations">Streaming ▸ Setup</a>{" "}
           to start your community. Once it&rsquo;s set up the
           community modules (markets, bounties, awards, chaos events,
           leaderboards, etc.) will surface here for enablement.
@@ -76,10 +76,10 @@ export function CommunityTab() {
     <div className="account-card">
       <h2 className="account-tab__heading">Community</h2>
       <p className="account-tab__intro">
-        Toggle community features on or off for your viewers. Disabled
-        modules disappear from chat, help, overlays, and tactile
-        surfaces. Turn one back on to bring its commands and panels
-        back instantly.
+        Turn features on or off for your viewers. A module that&rsquo;s off
+        disappears from chat, help, your overlay and your live page; turn it
+        back on and its commands come straight back. Region rules (like the
+        ones on prediction markets) still apply when a module is on.
       </p>
 
       {loadError && (
@@ -106,6 +106,7 @@ export function CommunityTab() {
           communityDisplayName={data.community.displayName}
           catalog={data.catalog}
           enablement={data.enablement}
+          embedded
         />
       )}
     </div>

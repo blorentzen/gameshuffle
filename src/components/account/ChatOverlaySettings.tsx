@@ -8,8 +8,9 @@
  */
 
 import { useEffect, useState } from "react";
-import { Button, Select, Checkbox, Switch } from "@empac/cascadeds";
+import { Select, Checkbox, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Settings {
@@ -63,7 +64,11 @@ export function ChatOverlaySettings() {
         if (!d) return;
         setEnabled(!!d.enabled);
         setIsPro(!!d.isPro);
-        if (d.settings) setS(d.settings as Settings);
+        if (d.settings) {
+          const got = d.settings as Settings;
+          // An unknown stored theme made the select read "Select an option…".
+          setS({ ...got, theme: THEME_OPTIONS.some((o) => o.value === got.theme) ? got.theme : "default" });
+        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -84,8 +89,8 @@ export function ChatOverlaySettings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      if (res.ok) toast.success("Chat overlay saved");
-      else if (res.status === 403) toast.error("Chat overlay is a GameShuffle Pro feature");
+      if (res.ok) toast.success("Saved");
+      else if (res.status === 403) toast.error("The chat feed is a GS Pro feature.");
       else toast.error("Couldn't save. Try again.");
     } catch {
       toast.error("Couldn't save. Try again.");
@@ -94,13 +99,21 @@ export function ChatOverlaySettings() {
     }
   }
 
+  // The feed's look saves itself a moment after a change (site-wide autosave).
+  useAutosave(s, async (v) => {
+    const res = await fetch("/api/account/chat-overlay", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(v) }).catch(() => null);
+    if (!res?.ok) { toast.error(res?.status === 403 ? "The chat feed is a GS Pro feature." : "Couldn't save. Try again."); return false; }
+    return true;
+  }, { ready: !loading && isPro, toast: "Chat feed saved" });
+
   if (loading) return <LoadingLines label="Loading chat overlay settings" />;
 
   return (
     <div className="account-card">
       <div className="account-card__head">
-        <h2 className="account-card__title">Chat timeline overlay</h2>
+        <h2 className="account-card__title">Show chat on the overlay</h2>
         <Switch
+          aria-label="Show chat on the overlay"
           checked={enabled}
           onChange={(e) => {
             const next = e.target.checked;
@@ -111,9 +124,9 @@ export function ChatOverlaySettings() {
         />
       </div>
       <p className="account-card__hint">
-        Show your chat as an animated feed on the OBS overlay, with role badges and a
-        GameShuffle indicator so players with a profile stand out. Position it in the
-        layout editor above. {!isPro && "Available on GameShuffle Pro."}
+        Your chat as an animated feed on the OBS overlay, with role badges and a
+        GameShuffle mark so players with a profile stand out. Place it on Overlay ▸ Layout.
+        {!isPro && " Available on GS Pro."}
       </p>
 
       <div className="chat-ov-settings" aria-disabled={!isPro}>
@@ -171,24 +184,6 @@ export function ChatOverlaySettings() {
           />
         </div>
 
-        <div className="chat-ov-settings__actions">
-          <Button
-            variant="primary"
-            disabled={!isPro || saving}
-            onClick={() =>
-              void save({
-                theme: s.theme,
-                animation: s.animation,
-                showRoles: s.showRoles,
-                hideCommands: s.hideCommands,
-                showGsBadge: s.showGsBadge,
-                maxMessages: s.maxMessages,
-              })
-            }
-          >
-            {saving ? "Saving…" : "Save chat overlay"}
-          </Button>
-        </div>
       </div>
     </div>
   );

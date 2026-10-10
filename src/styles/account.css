@@ -1862,17 +1862,19 @@ html.dark .gs-platform-icon {
   border-radius: 999px;
   white-space: nowrap;
 }
+/* Inks mixed 30% toward the text color: darker in light mode, lighter in dark,
+   so 10px labels on a tinted pill clear 4.5:1 on the dark card too. */
 .cmd-ref__auth--viewer {
-  background: rgba(26, 143, 60, 0.15);
-  color: #1a8f3c;
+  background: color-mix(in srgb, var(--success-ink) 12%, transparent);
+  color: color-mix(in srgb, var(--success-ink) 70%, var(--text-primary));
 }
 .cmd-ref__auth--mod {
-  background: rgba(217, 138, 0, 0.18);
-  color: #b06f00;
+  background: color-mix(in srgb, var(--warning-ink) 14%, transparent);
+  color: color-mix(in srgb, var(--warning-ink) 70%, var(--text-primary));
 }
 .cmd-ref__auth--host {
-  background: rgba(225, 6, 0, 0.12);
-  color: #c01e1e;
+  background: color-mix(in srgb, var(--error-ink) 12%, transparent);
+  color: color-mix(in srgb, var(--error-ink) 70%, var(--text-primary));
 }
 .cmd-ref__desc {
   color: var(--text-secondary);
@@ -2422,9 +2424,8 @@ html.dark .gs-platform-icon {
   background: var(--background-subtle, var(--background-elevated));
 }
 /* Greyed, inactive GS Pro feature placeholder for Free accounts. */
-.dbot-locked {
-  opacity: 0.62;
-}
+/* Greyed by color, not opacity: faded text failed contrast (4.5:1). */
+.dbot-locked .account-card__title { color: var(--text-secondary); }
 .dbot-locked__head {
   display: flex;
   align-items: center;
@@ -2438,7 +2439,7 @@ html.dark .gs-platform-icon {
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full, 999px);
   padding: 2px var(--spacing-8);
@@ -2522,7 +2523,7 @@ html.dark .gs-platform-icon {
   gap: var(--spacing-8);
 }
 .dbot-followup__offset {
-  width: 92px;
+  width: 136px;
   flex-shrink: 0;
 }
 .dbot-announce-actions {
@@ -2776,7 +2777,9 @@ html.dark .gs-platform-icon {
 .poll-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-12);
+  /* Room for CDS floating labels, which sit above their field. */
+  gap: var(--spacing-20);
+  padding-top: var(--spacing-12);
   max-width: 640px;
 }
 .poll-optrow {
@@ -3717,3 +3720,43 @@ html.dark .gs-platform-icon {
 .settings-delete__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
 .profile-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-6); }
 .profile-genres { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.cmd-reply { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 46ch; }
+.cmd-reply--off { color: var(--text-tertiary); font-style: italic; }
+.cmd-vars { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-8) var(--spacing-16); font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Tool color fields (stream-tools/fields.tsx) on CDS ColorPicker. */
+.tool-color { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); font-size: var(--font-size-14); flex-wrap: wrap; width: 100%; }
+.tool-color__brand { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border-default); background: var(--brand-primary); }
+/* Streaming ▸ Overlay ▸ Tool looks */
+.tool-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); }
+.tool-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); }
+.tool-row + .tool-row { border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.tool-row__icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--background-secondary); color: var(--text-secondary); }
+.tool-row__text { display: flex; flex-direction: column; min-width: 0; font-size: var(--font-size-14); }
+.tool-row__text span { color: var(--text-tertiary); font-size: var(--font-size-12); }
+.tool-row__swatches { display: inline-flex; gap: 4px; }
+.tool-row__swatches i { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border-default); display: inline-block; }
+.tool-panel, .tool-panel-form { display: flex; flex-direction: column; gap: var(--spacing-16); width: 100%; align-self: stretch; align-items: stretch; }
+.tool-panel-form { padding-top: var(--spacing-8); }
+.stream-tools__bare { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.schedule-editor, .schedule-rows { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.schedule-row { display: grid; grid-template-columns: minmax(8rem, 10rem) minmax(8rem, 10rem) minmax(0, 1fr) auto; gap: var(--spacing-8); align-items: center; }
+@media (max-width: 640px) { .schedule-row { grid-template-columns: 1fr 1fr auto; } .schedule-row > :nth-child(3) { grid-column: 1 / -1; grid-row: 2; } }
+/* A screen wrapping an older tab component: its own repeat of the title goes. */
+/* Every h2.account-tab__heading in an older tab is that tab's own title,
+   which the screen header already shows (Engagement's sits in a flex row). */
+.admin-screen--wrap h2.account-tab__heading:not(.account-tab__heading--section) { display: none; }
+.admin-screen--wrap > .account-tab { display: flex; flex-direction: column; gap: var(--spacing-20); }
+/* Streaming ▸ Get started (free accounts) */
+.streaming-hero { display: flex; flex-direction: column; gap: var(--spacing-12); padding: var(--spacing-24); border-radius: var(--radius-12, 12px); color: #fff; background: radial-gradient(120% 140% at 0% 0%, #4b5cf5 0%, #2f3fae 38%, #151a4a 100%); }
+.streaming-hero__badge { width: fit-content; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); padding: 2px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.16); }
+.streaming-hero__terms { margin: 0; color: rgba(255, 255, 255, 0.88); font-size: var(--font-size-14); }
+.streaming-hero__more { color: #fff; font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); width: fit-content; }
+.streaming-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--spacing-12); }
+.streaming-step { display: flex; flex-direction: column; gap: var(--spacing-6); padding: var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); font-size: var(--font-size-14); }
+.streaming-step span:last-child { color: var(--text-secondary); }
+.streaming-step__num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: var(--font-weight-bold); font-size: var(--font-size-12); background: color-mix(in srgb, var(--primary-500) 16%, transparent); color: var(--brand-ink, var(--primary-600)); }
+.streaming-step.is-done .streaming-step__num { background: color-mix(in srgb, var(--success-500) 18%, transparent); color: var(--success-ink, var(--success-600)); }
+.streaming-unlocks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-8) var(--spacing-16); font-size: var(--font-size-14); }
+.streaming-unlocks li { display: flex; align-items: center; gap: var(--spacing-8); }
+.streaming-unlocks svg { color: var(--success-ink, var(--success-600)); flex: 0 0 auto; }
+.dbot-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-8); }

@@ -111,7 +111,7 @@ const FORMATS: {
 
 type Profiles = Partial<Record<OverlayFormat, LayoutProfile>>;
 
-export function OverlayLayoutTab() {
+export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
   const [profiles, setProfiles] = useState<Profiles>({});
   const [format, setFormat] = useState<OverlayFormat>("landscape");
   const [category, setCategory] = useState<ElementCategory>("tools");
@@ -496,15 +496,19 @@ export function OverlayLayoutTab() {
 
   return (
     <div className="overlay-layout-tab" ref={rootRef}>
-      <h2 className="account-tab__heading">Overlay Layout</h2>
-      <p className="account-tab__intro">
-        Position each tool and app on your OBS overlay, shown at real size with sample data, so it
-        matches what viewers see. Use the <strong>Tools / Apps</strong> switch to choose which set
-        you&rsquo;re arranging, then <strong>click a piece right in the preview</strong> (or a chip
-        below) to select it and <strong>drag it</strong> where you want. Tune its size + visibility,
-        then hit Preview to see the finished overlay. Each aspect ratio saves separately (16:9 for
-        Twitch, 9:16 for a vertical/TikTok co-stream); untouched formats use the smart defaults.
-      </p>
+      {!bare && (
+        <>
+          <h2 className="account-tab__heading">Overlay Layout</h2>
+          <p className="account-tab__intro">
+            Position each tool and app on your OBS overlay, shown at real size with sample data, so it
+            matches what viewers see. Use the <strong>Tools / Apps</strong> switch to choose which set
+            you&rsquo;re arranging, then <strong>click a piece right in the preview</strong> (or a chip
+            below) to select it and <strong>drag it</strong> where you want. Tune its size and visibility,
+            then hit Preview to see the finished overlay. Each aspect ratio saves separately (16:9 for
+            Twitch, 9:16 for a vertical or TikTok co-stream); untouched formats use the smart defaults.
+          </p>
+        </>
+      )}
       <BrandThemeBar context="this preview" />
       <OverlayLinks token={overlayToken} activeFormat={format} />
 
@@ -514,12 +518,10 @@ export function OverlayLayoutTab() {
             fontSize: "var(--font-size-12)",
             color: "var(--text-secondary)",
             margin: "0 0 var(--spacing-16)",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
+            lineHeight: 1.6,
           }}
         >
+          {/* Inline, not flex: a flex row split the sentence into pieces. */}
           <span
             aria-hidden
             style={{
@@ -528,6 +530,8 @@ export function OverlayLayoutTab() {
               height: 15,
               border: "1px dashed var(--border-default)",
               borderRadius: 3,
+              verticalAlign: "middle",
+              marginRight: 8,
             }}
           />
           The dashed box is the <strong>safe area</strong>. Keep tools inside it so they never
@@ -817,9 +821,11 @@ export function OverlayLayoutTab() {
         </Button>
       </div>
 
-      <div style={{ marginTop: "var(--spacing-24)" }}>
-        <ChatOverlaySettings />
-      </div>
+      {!bare && (
+        <div style={{ marginTop: "var(--spacing-24)" }}>
+          <ChatOverlaySettings />
+        </div>
+      )}
     </div>
   );
 }
@@ -866,7 +872,7 @@ function OverlayLinks({
         <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-12)" }}>
           Connect your Twitch integration to get your overlay browser-source link.
         </p>
-        <Link href="/account/streamer?tab=integrations" style={{ textDecoration: "none" }}>
+        <Link href="/account/streaming?tab=integrations" style={{ textDecoration: "none" }}>
           <Button variant="secondary" size="small">
             Connect Twitch
           </Button>
@@ -927,6 +933,7 @@ function OverlayLinks({
                 </div>
                 <input
                   readOnly
+                  aria-label={`${r.label} overlay link`}
                   value={url}
                   onFocus={(e) => e.currentTarget.select()}
                   style={{

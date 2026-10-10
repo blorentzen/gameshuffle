@@ -97,7 +97,7 @@ function identitySummary(row: ModRow): string {
   return parts.length === 0 ? "-" : parts.join(" · ");
 }
 
-export function ModsTab() {
+export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
   const [data, setData] = useState<ListResponse | null>(null);
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
@@ -493,7 +493,7 @@ export function ModsTab() {
           }}
         >
           <div>
-            <h2 style={{ margin: 0 }}>Mods</h2>
+            {!bare && <h2 style={{ margin: 0 }}>Mods</h2>}
             <p
               style={{
                 fontSize: "var(--font-size-12)",
@@ -717,6 +717,7 @@ export function ModsTab() {
             >
               <Input
                 placeholder="@username"
+                aria-label="Twitch handle"
                 value={addTwitchLogin}
                 onChange={(e) => setAddTwitchLogin(e.target.value)}
                 disabled={busy}
@@ -747,12 +748,14 @@ export function ModsTab() {
             >
               <Input
                 placeholder="123456789012345678"
+                aria-label="Discord user ID"
                 value={addDiscordId}
                 onChange={(e) => setAddDiscordId(e.target.value)}
                 disabled={busy}
               />
               <Input
                 placeholder="Display name (optional)"
+                aria-label="Display name (optional)"
                 value={addDiscordHandle}
                 onChange={(e) => setAddDiscordHandle(e.target.value)}
                 disabled={busy}
@@ -836,7 +839,7 @@ function ModSection({
           marginBottom: "var(--spacing-6)",
         }}
       >
-        <h3
+        <h2
           style={{
             margin: 0,
             fontSize: "var(--font-size-14)",
@@ -844,7 +847,7 @@ function ModSection({
           }}
         >
           {title}
-        </h3>
+        </h2>
         <Badge variant="default" size="small">
           {count}
         </Badge>
@@ -976,7 +979,7 @@ function SettingRow({
           {hint}
         </div>
       </div>
-      <Switch checked={checked} onChange={onToggle} disabled={disabled} />
+      <Switch checked={checked} onChange={onToggle} disabled={disabled} aria-label={label} />
     </div>
   );
 }

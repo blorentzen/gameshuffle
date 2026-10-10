@@ -34,8 +34,8 @@ function appBaseUrl(): string {
 }
 
 function failureRedirect(reason: string): NextResponse {
-  const url = new URL(`${appBaseUrl()}/account`);
-  url.searchParams.set("tab", "integrations");
+  const url = new URL(`${appBaseUrl()}/account/streaming`);
+  url.searchParams.set("tab", "discord");
   url.searchParams.set("discord_install_error", reason);
   return NextResponse.redirect(url);
 }
@@ -134,8 +134,8 @@ export async function GET(request: Request) {
   const added = await addGuild(user.id, tokenPayload.guild.id, tokenPayload.guild.name);
   if (!added.ok) return failureRedirect(added.error);
 
-  const success = new URL(`${appBaseUrl()}/account`);
-  success.searchParams.set("tab", "integrations");
+  const success = new URL(`${appBaseUrl()}/account/streaming`);
+  success.searchParams.set("tab", "discord");
   success.searchParams.set("discord_installed", added.added ? "1" : "again");
   success.searchParams.set("guild", added.guild.guildId);
   const response = NextResponse.redirect(success);

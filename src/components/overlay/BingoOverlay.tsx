@@ -11,6 +11,7 @@
 
 import { type CSSProperties } from "react";
 import { resolveOverlayAccent } from "@/lib/overlay/accent";
+import { accessibleFill } from "@/lib/theme/contrast";
 import { isImageUrl } from "@/lib/overlay/imageItem";
 
 export interface BingoOverlayPayload {
@@ -39,9 +40,20 @@ export function BingoOverlay({
   const accent = resolveOverlayAccent(payload.accentColor);
   const center = payload.freeCenter && size % 2 === 1 ? Math.floor((size * size) / 2) : -1;
 
+  // Marked squares put text on the accent, so they get a fill whose text
+  // clears 4.5:1: the brand's own (brand.ts works it out) or, for a custom
+  // color, the nearest shade that does. The raw accent stays for the trim.
+  const mark = accent.startsWith("#")
+    ? accessibleFill(accent)
+    : payload.accentColor === "brand-accent"
+      ? { fill: accent, on: "#ffffff" }
+      : { fill: "var(--brand-fill-dark, var(--brand-primary))", on: "var(--brand-on-dark, #ffffff)" };
+
   const rootStyle: CSSProperties = {
     ...style,
     ["--bingo-accent" as string]: accent,
+    ["--bingo-mark" as string]: mark.fill,
+    ["--bingo-mark-on" as string]: mark.on,
     ["--bingo-size" as string]: String(size),
   };
 

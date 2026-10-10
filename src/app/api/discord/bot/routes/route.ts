@@ -9,6 +9,8 @@
 
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { isProUser } from "@/lib/subscription-server";
 import { botServer, proRequired } from "@/lib/discord/botServer";
 import { isRouteCategory } from "@/lib/discord/routeCategories";
 import { listTextChannels } from "@/lib/adapters/discord/adapter";
@@ -18,8 +20,13 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const ctx = await botServer(request, { allowRemoved: true });
   if (!ctx.ok) {
-    // Not installed yet: the tab still renders (locked cards, the install button).
-    if (ctx.response.status === 404) return NextResponse.json({ ok: true, isPro: false, guildId: null, guildName: null, defaultChannelId: null, routes: {} });
+    // Not installed yet: the tab still renders (locked cards, the install
+    // button), and still knows the account is Pro so it doesn't say "On Free".
+    if (ctx.response.status === 404) {
+      const { data: { user } } = await (await createClient()).auth.getUser();
+      const isPro = user ? await isProUser(user.id) : false;
+      return NextResponse.json({ ok: true, isPro, guildId: null, guildName: null, defaultChannelId: null, routes: {} });
+    }
     return ctx.response;
   }
   const { data: routeRows } = await createServiceClient().from("discord_channel_routes").select("category, channel_id").eq("guild_id", ctx.guild.guildId);

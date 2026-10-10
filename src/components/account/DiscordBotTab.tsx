@@ -10,7 +10,8 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Button, Chip, Input, Modal, Select, Switch, Textarea } from "@empac/cascadeds";
+import { useRouter } from "next/navigation";
+import { Button, Checkbox, Chip, EmptyState, Input, Modal, Select, Switch, Textarea } from "@empac/cascadeds";
 import { IconAction, RowActions } from "@/components/actions/IconAction";
 import { IconPencil, IconTrash, IconX } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -63,7 +64,13 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
 
 interface ServerSummary { guildId: string; name: string | null; isMain: boolean; removed: boolean; active: boolean }
 
-export function DiscordBotTab() {
+/** Which part of the suite to show: the Streaming ▸ Discord bot view gives
+ *  each its own tab. Omitted = everything (older callers). */
+export type DiscordBotPart = "posts" | "roles" | "moderation" | "qotd";
+
+export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
+  const show = (p: DiscordBotPart) => !part || part === p;
+  const router = useRouter();
   const toast = useToast();
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
@@ -82,7 +89,6 @@ export function DiscordBotTab() {
   const [defaultChannelId, setDefaultChannelId] = useState<string | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [routes, setRoutes] = useState<Record<string, string>>({});
-  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Announcements
@@ -206,7 +212,6 @@ export function DiscordBotTab() {
   const switchServer = (id: string) => {
     if (id === (current?.guildId ?? null)) return;
     setLoading(true);
-    setDirty(false);
     setGuildId(id);
     const url = new URL(window.location.href);
     url.searchParams.set("guild", id);
@@ -245,32 +250,27 @@ export function DiscordBotTab() {
   // Activation constraints so a click isn't captured as a drag, and touch
   // doesn't fight scroll (same fix as the Companion board).
 
+  // A channel pick saves straight away (site-wide autosave): one dropdown, one write.
   function assignRoute(catKey: string, channelId: string | null) {
-    setRoutes((prev) => {
-      const next = { ...prev };
-      if (!channelId) delete next[catKey];
-      else next[catKey] = channelId;
-      return next;
-    });
-    setDirty(true);
+    const next = { ...routes };
+    if (!channelId) delete next[catKey];
+    else next[catKey] = channelId;
+    setRoutes(next);
+    void saveRoutes(next);
   }
 
-  async function save() {
+  async function saveRoutes(next: Record<string, string>) {
     setSaving(true);
     const payload: Record<string, string | null> = {};
-    for (const c of ROUTE_CATEGORIES) payload[c.key] = routes[c.key] ?? null;
+    for (const c of ROUTE_CATEGORIES) payload[c.key] = next[c.key] ?? null;
     const res = await fetch(withGuild("/api/discord/bot/routes"), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ routes: payload }),
-    });
+    }).catch(() => null);
     setSaving(false);
-    if (res.ok) {
-      toast.success("Channel routing saved.");
-      setDirty(false);
-    } else {
-      toast.error("Could not save routing.");
-    }
+    if (res?.ok) toast.success("Saved");
+    else toast.error("Couldn't save that channel. Try again.");
   }
 
   function updateFollowUp(i: number, field: "offset" | "body", value: string) {
@@ -594,17 +594,21 @@ export function DiscordBotTab() {
   const canEdit = isPro && installed;
 
   return (
-    <div className="account-tab">
-      <h2 className="account-tab__heading">Discord Bot</h2>
-      <p className="account-tab__intro">
-        Manage the GameShuffle bot in your Discord server. Route each type of post
-        to the right channel, and more as we roll out the suite.
-      </p>
+    <div className={part ? "dbot-part" : "account-tab"}>
+      {!part && (
+        <>
+          <h2 className="account-tab__heading">Discord Bot</h2>
+          <p className="account-tab__intro">
+            Manage the GameShuffle bot in your Discord server. Route each type of post
+            to the right channel, and more as we roll out the suite.
+          </p>
+        </>
+      )}
 
       {/* Servers: pick which one the settings below are for. */}
-      <div className="account-card">
-        <h3 className="account-card__title">Servers</h3>
-        {installed ? (
+      {installed ? (
+        <div className="account-card">
+          <h3 className="account-card__title">Servers</h3>
           <>
             <div className="dbot-servers">
               {servers.length > 1 ? (
@@ -638,7 +642,7 @@ export function DiscordBotTab() {
                 {defaultChannelId ? (
                   <>Default channel: <strong>#{channelName(defaultChannelId)}</strong>.</>
                 ) : (
-                  <>No default channel set yet. Pick one on the <Link href={`/account/streamer?tab=integrations${current?.guildId ? `&guild=${current.guildId}` : ""}`}>Integrations tab</Link>.</>
+                  <>No default channel set yet. Pick one on <Link href={`/account/streaming?tab=discord${current?.guildId ? `&guild=${current.guildId}` : ""}`}>Setup ▸ Discord</Link>.</>
                 )}
                 {servers.length > 1 && current?.isMain ? " This is your main server: it keeps working even without GS Pro." : ""}
               </p>
@@ -647,17 +651,23 @@ export function DiscordBotTab() {
               <p className="dbot-muted">Everything below is for this server. Going live, recaps, Question of the Day, Chat Brain and the Weekly post in every server that has a channel set for them.</p>
             )}
           </>
-        ) : (
-          <p>
-            The GameShuffle bot isn&apos;t connected yet.{" "}
-            <Link href="/account/streamer?tab=integrations">Connect it on the Integrations tab</Link>{" "}
-            to get started, or <Link href="/discord">see what it does</Link>.
-          </p>
-        )}
-      </div>
+        </div>
+      ) : (
+        <EmptyState
+          variant="bordered"
+          title="Connect the bot first"
+          description="Add the GameShuffle bot to your Discord server on Setup ▸ Discord, then everything here works for that server."
+          action={
+            <div className="dbot-empty-actions">
+              <Button variant="primary" size="small" onClick={() => router.push("/account/streaming?tab=discord")}>Connect Discord</Button>
+              <Button variant="ghost" size="small" onClick={() => router.push("/discord")}>See what it does</Button>
+            </div>
+          }
+        />
+      )}
 
       {/* Free accounts: one clear indicator + CTA (full comparison lives on /gs-pro). */}
-      {!isPro && (
+      {show("posts") && !isPro && (
         <div className="dbot-pro-banner">
           <span>
             The sections below are GS Pro. On Free, the bot posts to your single default channel.
@@ -667,7 +677,7 @@ export function DiscordBotTab() {
       )}
 
       {/* Routing board */}
-      {!isPro ? (
+      {!show("posts") || (isPro && !installed) ? null : !isPro ? (
         <LockedFeature title="Channel routing">
           Send each type of post to its own channel. On Free, everything posts to your default channel.
         </LockedFeature>
@@ -675,11 +685,7 @@ export function DiscordBotTab() {
         <div className="account-card">
           <div className="dbot-routing-head">
             <h3 className="account-card__title">Channel routing</h3>
-            {canEdit && (
-              <Button variant="primary" size="small" onClick={() => void save()} disabled={!dirty || saving}>
-                {saving ? "Saving…" : "Save routing"}
-              </Button>
-            )}
+            {canEdit && saving && <span className="dbot-muted">Saving…</span>}
           </div>
 
           {!installed ? (
@@ -727,7 +733,7 @@ export function DiscordBotTab() {
       )}
 
       {/* Free accounts see the rest of the suite as greyed, inactive spaces. */}
-      {!isPro && (
+      {show("posts") && !isPro && (
         <>
           <LockedFeature title="Announcements">
             Post rich announcements now or on a schedule, with optional follow-up reminders.
@@ -754,7 +760,7 @@ export function DiscordBotTab() {
       )}
 
       {/* Announcements */}
-      {canEdit && (
+      {show("posts") && canEdit && (
         <div className="account-card">
           <h3 className="account-card__title">Announcements</h3>
           <p className="dbot-muted">
@@ -791,9 +797,9 @@ export function DiscordBotTab() {
               <Button size="small" variant={annMode === "now" ? "primary" : "secondary"} onClick={() => setAnnMode("now")}>Send now</Button>
               <Button size="small" variant={annMode === "schedule" ? "primary" : "secondary"} onClick={() => setAnnMode("schedule")}>Schedule</Button>
               {annMode === "schedule" && (
-                <input
+                <Input
                   type="datetime-local"
-                  className="save-setup-input"
+                  floatingLabel="When"
                   value={annWhen}
                   onChange={(e) => setAnnWhen(e.target.value)}
                 />
@@ -802,13 +808,16 @@ export function DiscordBotTab() {
 
             {followUps.map((f, i) => (
               <div key={i} className="dbot-followup">
-                <input
-                  type="number"
-                  className="save-setup-input dbot-followup__offset"
-                  placeholder="min later"
-                  value={f.offset}
-                  onChange={(e) => updateFollowUp(i, "offset", e.target.value)}
-                />
+                <span className="dbot-followup__offset">
+                  <Input
+                    type="number"
+                    min={1}
+                    floatingLabel="Minutes later"
+                    value={f.offset}
+                    onChange={(e) => updateFollowUp(i, "offset", e.target.value)}
+                    fullWidth
+                  />
+                </span>
                 <Input
                   floatingLabel="Follow-up message"
                   value={f.body}
@@ -838,7 +847,7 @@ export function DiscordBotTab() {
       )}
 
       {/* Self-assign roles — reactions / buttons / dropdown, one builder */}
-      {canEdit && (
+      {show("roles") && canEdit && (
         <div className="account-card">
           <h3 className="account-card__title">Self-assign roles</h3>
           <p className="dbot-muted">
@@ -979,7 +988,7 @@ export function DiscordBotTab() {
       )}
 
       {/* Auto-assign on join (gateway worker) */}
-      {canEdit && (
+      {show("roles") && canEdit && (
         <div className="account-card">
           <h3 className="account-card__title">Roles for new members</h3>
           <p className="dbot-muted">
@@ -1013,7 +1022,7 @@ export function DiscordBotTab() {
       )}
 
       {/* GS Pro member role (serverless sync) */}
-      {canEdit && (
+      {show("roles") && canEdit && (
         <div className="account-card">
           <h3 className="account-card__title">GS Pro member role</h3>
           <p className="dbot-muted">
@@ -1039,7 +1048,7 @@ export function DiscordBotTab() {
       )}
 
       {/* Native AutoMod */}
-      {canEdit && (
+      {show("moderation") && canEdit && (
         <div className="account-card">
           <h3 className="account-card__title">AutoMod</h3>
           <p className="dbot-muted">
@@ -1054,9 +1063,9 @@ export function DiscordBotTab() {
               rows={3} fullWidth />
             <p className="dbot-muted">Separate words with commas or new lines.</p>
             <div className="dbot-automod-presets">
-              <label><input type="checkbox" checked={automodPresets.includes(1)} onChange={() => toggleAutomodPreset(1)} /> Profanity</label>
-              <label><input type="checkbox" checked={automodPresets.includes(2)} onChange={() => toggleAutomodPreset(2)} /> Sexual content</label>
-              <label><input type="checkbox" checked={automodPresets.includes(3)} onChange={() => toggleAutomodPreset(3)} /> Slurs</label>
+              <Checkbox label="Profanity" checked={automodPresets.includes(1)} onChange={() => toggleAutomodPreset(1)} />
+              <Checkbox label="Sexual content" checked={automodPresets.includes(2)} onChange={() => toggleAutomodPreset(2)} />
+              <Checkbox label="Slurs" checked={automodPresets.includes(3)} onChange={() => toggleAutomodPreset(3)} />
             </div>
             <div>
               <Button variant="primary" onClick={() => void saveAutomod()} disabled={automodSaving}>
@@ -1068,7 +1077,7 @@ export function DiscordBotTab() {
       )}
 
       {/* Server logging */}
-      {canEdit && (
+      {show("moderation") && canEdit && (
         <div className="account-card">
           <h3 className="account-card__title">Server logging</h3>
           <p className="dbot-muted">
@@ -1106,7 +1115,7 @@ export function DiscordBotTab() {
       )}
 
       {/* Question of the Day */}
-      {canEdit && (
+      {show("qotd") && canEdit && (
         <div className="account-card">
           <h3 className="account-card__title">Question of the Day</h3>
           <p className="dbot-muted">

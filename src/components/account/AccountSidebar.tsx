@@ -46,15 +46,18 @@ function TabIcon({ name }: { name: string }) {
   return <Icon name={name} size="20" />;
 }
 
-export function AccountSidebar({ role }: { role: string | null }) {
+export function AccountSidebar({ role, isPro = false }: { role: string | null; isPro?: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
+  // Streaming shows free accounts only what they can use (proOnly/freeOnly).
   const sections = ACCOUNT_SECTIONS.filter(
     (s) => !s.staffOnly || isStaffRole(role),
-  );
+  ).map((s) => ({ ...s, items: s.items.filter((i) => (isPro ? !i.freeOnly : !i.proOnly)) }));
+  const landingTab = (s: (typeof sections)[number]) =>
+    s.items.some((i) => itemTabIds(i).includes(s.defaultTab)) ? s.defaultTab : (s.items[0]?.id ?? s.defaultTab);
 
   // Which section are we on (by route), and which tab is active within it.
   const current =
@@ -64,7 +67,7 @@ export function AccountSidebar({ role }: { role: string | null }) {
 
   // A view (Platform Admin) is active for any of its tabs.
   const activeItem = current.items.find((i) => itemTabIds(i).includes(activeTab))
-    ?? current.items.find((i) => itemTabIds(i).includes(current.defaultTab));
+    ?? current.items.find((i) => itemTabIds(i).includes(landingTab(current)));
   const activeSub = activeItem?.tabs?.find((t) => t.id === activeTab);
   const activeLabel = activeItem
     ? activeItem.tabs && activeItem.tabs.length > 1 && activeSub ? `${activeItem.label} · ${activeSub.label}` : activeItem.label
@@ -101,7 +104,7 @@ export function AccountSidebar({ role }: { role: string | null }) {
       label: section.label,
       icon: <TabIcon name={section.iconName} />,
       active: false,
-      onClick: () => go(`${section.route}?tab=${section.defaultTab}`),
+      onClick: () => go(`${section.route}?tab=${landingTab(section)}`),
     })),
   };
 

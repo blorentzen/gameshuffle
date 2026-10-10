@@ -24,6 +24,7 @@ import {
   Modal,
   Radio,
   RadioGroup,
+  Select,
   Switch,
 } from "@empac/cascadeds";
 import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
@@ -135,7 +136,7 @@ export function GameModulesTab() {
       </div>
 
       <section className="game-modules__deck">
-        <h3 className="account-tab__heading">Mario Party cards</h3>
+        <h2 className="account-tab__heading account-tab__heading--section">Mario Party cards</h2>
         <DeckEditor
           scope="me"
           intro={
@@ -397,30 +398,14 @@ function GameDefaultsModal({
               </span>
             </label>
 
-            <label
-              className="hub-form__field"
-              htmlFor={`series-${game.slug}`}
-            >
-              <span className="hub-form__label">
-                Default series length
-              </span>
-              <select
-                id={`series-${game.slug}`}
-                className="hub-form__select"
+            <div className="hub-form__field">
+              <Select
+                floatingLabel="Default series length"
                 value={String(config.defaultSeriesLength ?? 1)}
-                onChange={(e) =>
-                  patch({
-                    defaultSeriesLength: parseInt(e.target.value, 10),
-                  })
-                }
-              >
-                {SERIES_PRESETS.map((n) => (
-                  <option key={n} value={String(n)}>
-                    {n === 1 ? "1 race" : `${n} races`}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={(v) => patch({ defaultSeriesLength: parseInt(String(v), 10) })}
+                options={SERIES_PRESETS.map((n) => ({ value: String(n), label: n === 1 ? "1 race" : `${n} races` }))}
+              />
+            </div>
 
             {game.hasRallies && (
               <RadioGroup

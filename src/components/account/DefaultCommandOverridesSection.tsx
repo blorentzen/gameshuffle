@@ -308,7 +308,7 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
         if (list.length === 0) return null;
         return (
           <div key={cat} style={{ marginBottom: "var(--spacing-24)" }}>
-            <h4 className="dc-cat-title">{CATEGORY_LABEL[cat]}</h4>
+            <h2 className="dc-cat-title">{CATEGORY_LABEL[cat]}</h2>
             <div className="chat-commands__grid">
               {list.map((row) => {
                 const current = stateOf(row);

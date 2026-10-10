@@ -661,11 +661,11 @@ html.gs-overlay-route body {
   overflow-wrap: anywhere;
 }
 .gs-overlay-bingo__cell.is-marked {
-  background: var(--bingo-accent, #7c3aed);
-  border-color: color-mix(in srgb, var(--bingo-accent, #7c3aed) 40%, white);
+  background: var(--bingo-mark, var(--bingo-accent, #7c3aed));
+  border-color: color-mix(in srgb, var(--bingo-mark, var(--bingo-accent, #7c3aed)) 40%, white);
 }
 .gs-overlay-bingo__cell.is-marked .gs-overlay-bingo__cell-text {
-  color: #fff;
+  color: var(--bingo-mark-on, #fff);
 }
 .gs-overlay-bingo__banner {
   position: absolute;
@@ -1124,7 +1124,9 @@ html.gs-overlay-route body {
   color: rgba(255, 255, 255, 0.45);
   font-variant-numeric: tabular-nums;
 }
-.gs-numbingo__n.is-called { background: var(--brand-primary, #2766ec); color: var(--brand-on, #fff); font-weight: 700; }
+/* The adjusted dark-surface fill with its own readable text (4.5:1). --brand-on
+   pairs with the adjusted fill, so it failed on the raw --brand-primary. */
+.gs-numbingo__n.is-called { background: var(--brand-fill-dark, var(--brand-primary, #2766ec)); color: var(--brand-on-dark, #fff); font-weight: 700; }
 .gs-numbingo__n.is-last { outline: 2px solid #fff; outline-offset: -1px; }
 .gs-numbingo__prize { font-size: 14px; opacity: 0.9; }
 @keyframes gs-numbingo-pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }

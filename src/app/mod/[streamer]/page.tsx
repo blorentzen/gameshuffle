@@ -309,7 +309,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
               View {streamerName}&rsquo;s live page →
             </Button>
           </a>
-          <a href="/account/streamer?tab=mods" style={{ textDecoration: "none" }}>
+          <a href="/account/streaming?tab=mods" style={{ textDecoration: "none" }}>
             <Button variant="secondary">Manage your mod accounts</Button>
           </a>
         </div>

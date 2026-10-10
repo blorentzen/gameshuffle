@@ -21,14 +21,22 @@ import {
   Accordion,
   Alert,
   Button,
-  Card,
+  EmptyState,
   Input,
   Modal,
   Select,
   Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@empac/cascadeds";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { AdminRowMenu, AdminScreen, AdminTable } from "@/components/account/admin/AdminKit";
 import { useToast } from "@/components/toast/ToastProvider";
-import { IconScript } from "@tabler/icons-react";
+import { IconMessage, IconPlus, IconScript } from "@tabler/icons-react";
 import { DefaultCommandOverridesSection } from "./DefaultCommandOverridesSection";
 import { EventOverridesSection } from "./EventOverridesSection";
 import { CommandReference } from "./CommandReference";
@@ -171,7 +179,13 @@ function CommandFormFields({
   );
 }
 
-export function ChatCommandsTab() {
+/** "custom" = your commands (Streaming ▸ Chat ▸ Commands); "builtin" = the
+ *  built-in commands, events, variables and the reference (▸ Built-in). */
+/** Some stored triggers already start with "!" (older rows), some don't. */
+const cmdName = (t: string) => (t.startsWith("!") ? t : `!${t}`);
+
+export function ChatCommandsTab({ part = "custom" }: { part?: "custom" | "builtin" } = {}) {
+  const confirm = useConfirm();
   const [rows, setRows] = useState<CustomCommandRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [noCommunity, setNoCommunity] = useState(false);
@@ -321,7 +335,10 @@ export function ChatCommandsTab() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (row: CustomCommandRow) => {
+    const ok = await confirm({ title: `Delete ${cmdName(row.trigger)}?`, body: "Chat stops answering it. Its use count goes too.", confirmLabel: `Delete ${cmdName(row.trigger)}` });
+    if (!ok) return;
+    const id = row.id;
     setDeletingId(id);
     try {
       const res = await fetch(`/api/account/custom-commands/${id}`, {
@@ -340,243 +357,119 @@ export function ChatCommandsTab() {
     }
   };
 
+  if (part === "builtin") {
+    return (
+      <AdminScreen title="Built-in commands" intro="The commands every channel gets, chaos and random events, and the variables you can use in any reply. Turn each off, keep the default or write your own reply.">
+        <Accordion
+          variant="bordered"
+          defaultOpenIds={["defaults"]}
+          items={[
+            {
+              id: "defaults",
+              title: "Built-in commands",
+              description: "!hype, !discord, !8ball, !roll and the rest. Off, default, or your own reply.",
+              content: <DefaultCommandOverridesSection hideHeader />,
+            },
+            {
+              id: "events",
+              title: "Chaos and random events",
+              description: "Change an event's wording, or whether viewers can trigger it directly.",
+              content: <EventOverridesSection hideHeader />,
+            },
+            {
+              id: "variables",
+              title: "Variables",
+              description: "Type { in a reply to pick one. Here they all are.",
+              content: (
+                <div className="cmd-vars">
+                  <span><code>{`{user}`}</code>: who typed the command</span>
+                  <span><code>{`{touser}`}</code>: the first @name, or who typed it</span>
+                  <span><code>{`{streamer}`}</code>: your name</span>
+                  <span><code>{`{game}`}</code>: what you&apos;re playing</span>
+                  <span><code>{`{random}`}</code>: 0 to 99</span>
+                  <span><code>{`{count}`}</code>: times it&apos;s been used</span>
+                  <span><code>{`{uptime}`}</code>: how long you&apos;ve been live</span>
+                  <span><code>{`{followage}`}</code>: how long they&apos;ve followed</span>
+                  <span><code>{`{discord_invite}`}</code>: your Discord invite</span>
+                  <span><code>{`{discord}`}</code> / <code>{`{youtube}`}</code> / <code>{`{twitter}`}</code>: socials</span>
+                  <span><code>{`{psn}`}</code> / <code>{`{nso}`}</code> / <code>{`{xbox}`}</code> / <code>{`{steam}`}</code>: gamertags</span>
+                </div>
+              ),
+            },
+          ]}
+        />
+        <CommandReference />
+      </AdminScreen>
+    );
+  }
+
   if (noCommunity) {
     return (
-      <div className="account-card">
-        <h2 className="account-tab__heading">Chat Commands</h2>
+      <AdminScreen title="Commands" intro="Your own !commands and what the bot replies.">
         <Alert variant="info">
-          Connect Twitch on{" "}
-          <a href="/account/streamer?tab=integrations">Stream Setup ▸ Integrations</a> to
-          start your community. Once it&rsquo;s set up the default commands
-          (<code>!socials</code>, <code>!discord</code>, <code>!so</code>,
-          etc.) will seed automatically and this editor will surface them.
+          Connect Twitch on <a href="/account/streaming?tab=integrations">Streaming ▸ Setup</a> to start
+          your community. The default commands (<code>!socials</code>, <code>!discord</code>, <code>!so</code> and
+          more) are added for you, and you can edit them here.
         </Alert>
-      </div>
+      </AdminScreen>
     );
   }
 
   return (
-    <div className="account-card">
-      <h2 className="account-tab__heading">Chat Commands</h2>
-      <p className="account-tab__intro">
-        Static-response commands viewers can run with <code>!trigger</code> in
-        your Twitch chat. Defaults like <code>!socials</code> and{" "}
-        <code>!so</code> are seeded when your community is created. Edit any
-        card or add a new one. Use the template variables for dynamic
-        responses.
-      </p>
-
-      {loadError && (
-        <div style={{ marginBottom: "var(--spacing-16)" }}>
-          <Alert variant="error" onClose={() => setLoadError(null)}>
-            {loadError}
-          </Alert>
-        </div>
+    <AdminScreen
+      title="Commands"
+      intro={<>Your own <code>!commands</code> and what the bot replies. Type <code>{"{"}</code> in a reply to add your socials, the game and more.</>}
+      actions={<Button variant="primary" size="small" iconBefore={IconPlus} onClick={openAdd}>New command</Button>}
+    >
+      {loadError && <Alert variant="error" onClose={() => setLoadError(null)}>{loadError}</Alert>}
+      {rows === null ? (
+        <LoadingLines label="Loading" />
+      ) : rows.length === 0 ? (
+        <EmptyState variant="bordered" icon={<IconMessage size={28} />} title="No commands yet" description="Add one, like !discord or !rules, and the bot answers it in your chat." action={<Button variant="secondary" size="small" onClick={openAdd}>New command</Button>} />
+      ) : (
+        <AdminTable label="Your commands">
+          <Table variant="striped">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Command</TableHead>
+                <TableHead>Reply</TableHead>
+                <TableHead>Who</TableHead>
+                <TableHead align="right">Uses</TableHead>
+                <TableHead>On</TableHead>
+                <TableHead align="right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell><code className="chat-commands__trigger">{cmdName(row.trigger)}</code></TableCell>
+                  <TableCell>
+                    <span className={`cmd-reply${row.enabled ? "" : " cmd-reply--off"}`}>{row.enabled ? row.response_tmpl : "Off: hidden from chat"}</span>
+                    {row.cooldown_s > 0 && <span className="admin-table__sub">Every {row.cooldown_s}s</span>}
+                  </TableCell>
+                  <TableCell>{ACTOR_LABEL[row.actor]}</TableCell>
+                  <TableCell align="right" className="admin-num">{row.use_count.toLocaleString("en-US")}</TableCell>
+                  <TableCell>
+                    <Switch checked={row.enabled} onChange={() => void toggleEnabled(row, !row.enabled)} disabled={togglingId === row.id || deletingId !== null} aria-label={`${cmdName(row.trigger)} on`} />
+                  </TableCell>
+                  <TableCell align="right">
+                    <span className="admin-row-actions">
+                      <Button variant="ghost" size="small" onClick={() => openEdit(row)} disabled={deletingId !== null} aria-label={`Edit ${cmdName(row.trigger)}`}>Edit</Button>
+                      <AdminRowMenu label={`More for ${cmdName(row.trigger)}`} items={[{ label: `Delete ${cmdName(row.trigger)}`, danger: true, onClick: () => void handleDelete(row) }]} />
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </AdminTable>
       )}
-
-      <Accordion
-        variant="bordered"
-        defaultOpenIds={["custom"]}
-        items={[
-          {
-            id: "custom",
-            title: "Your custom commands",
-            description:
-              rows === null
-                ? "Loading…"
-                : rows.length === 0
-                  ? "No custom commands yet. Add one to get started."
-                  : `${rows.length} custom command${rows.length === 1 ? "" : "s"} on your channel`,
-            content: (
-              <div>
-                {communitySlug && (
-                  <div
-                    style={{
-                      marginBottom: "var(--spacing-16)",
-                      padding: "var(--spacing-12) var(--spacing-16)",
-                      background: "var(--background-secondary)",
-                      borderRadius: "var(--radius-medium)",
-                      fontSize: "var(--font-size-14)",
-                      color: "var(--text-secondary)",
-                      lineHeight: "var(--line-height-relaxed)",
-                    }}
-                  >
-                    <IconScript size={14} stroke={1.9} aria-hidden /> Viewers can browse your <code>!quote</code> pool at{" "}
-                    <a
-                      href={`/quotes/${communitySlug}`}
-                      style={{
-                        color: "var(--text-primary)",
-                        fontWeight: "var(--font-weight-semibold)",
-                      }}
-                    >
-                      gameshuffle.co/quotes/{communitySlug}
-                    </a>
-                    . Mods grow it with <code>!quote add &lt;text&gt;</code> in
-                    chat.
-                  </div>
-                )}
-
-                {rows === null ? (
-                  <LoadingLines label="Loading" />
-                ) : (
-                  <div className="chat-commands__grid">
-                    {/* Add tile — opens the modal (no inline reflow). */}
-                    <button
-                      type="button"
-                      className="chat-commands__add-tile"
-                      onClick={openAdd}
-                      disabled={deletingId !== null}
-                    >
-                      <span
-                        className="chat-commands__add-tile-icon"
-                        aria-hidden="true"
-                      >
-                        +
-                      </span>
-                      <span className="chat-commands__add-tile-label">
-                        Add command
-                      </span>
-                    </button>
-
-                    {rows.map((row) => (
-                      <Card
-                        key={row.id}
-                        variant="outlined"
-                        padding="medium"
-                        className="chat-commands__card"
-                      >
-                        <div className="chat-commands__row-meta">
-                          <code className="chat-commands__trigger">
-                            {row.trigger}
-                          </code>
-                          <span className="dc-card__toggle">
-                            <Switch
-                              checked={row.enabled}
-                              onChange={() =>
-                                void toggleEnabled(row, !row.enabled)
-                              }
-                              disabled={
-                                togglingId === row.id || deletingId !== null
-                              }
-                              aria-label={`Enable ${row.trigger}`}
-                            />
-                          </span>
-                        </div>
-
-                        {row.enabled ? (
-                          <p className="chat-commands__response">
-                            {row.response_tmpl}
-                          </p>
-                        ) : (
-                          <p className="dc-card__preview dc-card__preview--muted">
-                            Hidden from chat.
-                          </p>
-                        )}
-
-                        <div className="dc-card__controls">
-                          <span className="dc-card__meta">
-                            {ACTOR_LABEL[row.actor]} · {row.cooldown_s}s
-                          </span>
-                          <div className="dc-card__actions">
-                            <Button
-                              variant="secondary"
-                              size="small"
-                              onClick={() => openEdit(row)}
-                              disabled={deletingId !== null}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="danger"
-                              size="small"
-                              onClick={() => handleDelete(row.id)}
-                              loading={deletingId === row.id}
-                              disabled={deletingId !== null}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ),
-          },
-          {
-            id: "defaults",
-            title: "Platform default commands",
-            description:
-              "Built-in commands every streamer gets (!hype, !discord, !8ball, !roll…). Pick Off, Default, or Override per command.",
-            content: <DefaultCommandOverridesSection hideHeader />,
-          },
-          {
-            id: "events",
-            title: "Platform events",
-            description:
-              "Curated chaos / random / direct-trigger events. Override flavor text or flip the direct-trigger flag per community.",
-            content: <EventOverridesSection hideHeader />,
-          },
-          {
-            id: "variables",
-            title: "Template variables reference",
-            description:
-              "Type `{` in any response or flavor field for inline autocomplete. This card is the at-a-glance reference.",
-            content: (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: "var(--spacing-8) var(--spacing-16)",
-                  fontSize: "var(--font-size-14)",
-                  color: "var(--text-secondary)",
-                }}
-              >
-                <span>
-                  <code>{`{user}`}</code>: caller&rsquo;s display name
-                </span>
-                <span>
-                  <code>{`{touser}`}</code>: first @user arg, defaults to
-                  caller
-                </span>
-                <span>
-                  <code>{`{streamer}`}</code>: broadcaster name
-                </span>
-                <span>
-                  <code>{`{game}`}</code>: current game
-                </span>
-                <span>
-                  <code>{`{random}`}</code>: 0 to 99
-                </span>
-                <span>
-                  <code>{`{count}`}</code>: usage counter
-                </span>
-                <span>
-                  <code>{`{uptime}`}</code>: stream uptime
-                </span>
-                <span>
-                  <code>{`{followage}`}</code>: caller follow duration
-                </span>
-                <span>
-                  <code>{`{discord_invite}`}</code>: Discord invite
-                </span>
-                <span>
-                  <code>{`{discord}`}</code> / <code>{`{youtube}`}</code> /{" "}
-                  <code>{`{twitter}`}</code>: socials
-                </span>
-                <span>
-                  <code>{`{psn}`}</code> / <code>{`{nso}`}</code> /{" "}
-                  <code>{`{xbox}`}</code> / <code>{`{steam}`}</code>:
-                  gamertags
-                </span>
-              </div>
-            ),
-          },
-        ]}
-      />
-
-      <CommandReference />
+      {communitySlug && (
+        <p className="admin-field__help">
+          <IconScript size={14} stroke={1.9} aria-hidden /> Viewers can browse your <code>!quote</code> pool at{" "}
+          <a href={`/quotes/${communitySlug}`}>gameshuffle.co/quotes/{communitySlug}</a>. Mods add to it with <code>!quote add &lt;text&gt;</code>.
+        </p>
+      )}
 
       <Modal
         isOpen={modalOpen}
@@ -613,6 +506,6 @@ export function ChatCommandsTab() {
           showTriggerHint
         />
       </Modal>
-    </div>
+    </AdminScreen>
   );
 }

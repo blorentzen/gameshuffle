@@ -556,7 +556,7 @@ export function TwitchHubTab() {
                 display: "block",
                 marginTop: "var(--spacing-4)",
                 fontSize: "var(--font-size-12)",
-                color: "var(--text-tertiary)",
+                color: "var(--text-secondary)",
               }}
             >
               You&rsquo;ll be asked to authorize:{" "}

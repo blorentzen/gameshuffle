@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     // Not signed in → bounce to login with a return-to so the user
     // lands back on Account → Integrations after auth.
     const loginUrl = new URL(`${appBaseUrl()}/login`);
-    loginUrl.searchParams.set("redirect", "/account?tab=integrations");
+    loginUrl.searchParams.set("redirect", "/account/streaming?tab=discord");
     return NextResponse.redirect(loginUrl);
   }
 

@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, Chip } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl, uploadToolImage } from "./fields";
 import { TIER_ITEM_MAX } from "@/lib/modules/types";
@@ -30,11 +31,10 @@ const toLines = (a: string[]) => a.join("\n");
 const fromLinesTier = (t: string) =>
   t.split("\n").map((s) => capItem(s.trim())).filter(Boolean).slice(0, TIER_MAX_ITEMS);
 
-export function TierListConfigCard({ onSaved, live }: { onSaved?: () => void; live?: ReactNode }) {
+export function TierListConfigCard({ onSaved, live, bare = false }: { onSaved?: () => void; live?: ReactNode; bare?: boolean }) {
   const [cfg, setCfg] = useState<TierCfg>(DEFAULT_TIER);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -73,23 +73,19 @@ export function TierListConfigCard({ onSaved, live }: { onSaved?: () => void; li
     else toast.error("Couldn't upload that image. Try again.");
   };
 
-  const save = async () => {
-    setSaving(true);
-    const ok = await saveModuleConfig("tierlist", cfg);
-    setSaving(false);
-    if (ok) {
-      toast.success("Your changes are live.", { title: "Tier List saved" });
-      onSaved?.();
-    } else {
-      toast.error("Please try again.", { title: "Couldn't save Tier List" });
-    }
-  };
+  // Saves itself a moment after a change (site-wide autosave); the Hub uses this card too.
+  useAutosave(cfg, async (v) => {
+    const ok = await saveModuleConfig("tierlist", v);
+    if (ok) onSaved?.();
+    else toast.error("Please try again.", { title: "Couldn't save Tier list" });
+    return ok;
+  }, { ready: !loading, toast: "Tier list saved" });
 
   if (loading) return null;
 
   return (
-    <section className="stream-tools__section" style={vars}>
-      <h3 className="stream-tools__heading">📊 Tier List</h3>
+    <section className={bare ? "stream-tools__bare" : "stream-tools__section"} style={vars}>
+      {!bare && <h3 className="stream-tools__heading">📊 Tier List</h3>}
       <div className="stream-tools__row">
         <AccentField label="Accent" value={cfg.accentColor} onChange={(v) => setCfg({ ...cfg, accentColor: v })} />
         <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
@@ -175,9 +171,6 @@ export function TierListConfigCard({ onSaved, live }: { onSaved?: () => void; li
           />
         </details>
       </div>
-      <Button variant="secondary" size="small" loading={saving} onClick={save}>
-        Save tier list
-      </Button>
       {live ? <div className="stream-tools__live">{live}</div> : null}
     </section>
   );

@@ -27,18 +27,26 @@ export function SectionTabs(props: { route: string; screens: ScreenMap }) {
 function SectionTabsContent({ route, screens }: { route: string; screens: ScreenMap }) {
   const router = useRouter();
   const section = ACCOUNT_SECTIONS.find((s) => s.route === route)!;
-  const raw = useSearchParams().get("tab") || section.defaultTab;
+  const params = useSearchParams();
+  const raw = params.get("tab") || section.defaultTab;
   const requested = ACCOUNT_TAB_ALIAS[raw] ?? raw;
   const here = viewForTab(section, requested);
   const elsewhere = !here ? sectionForTab(requested) : undefined;
-  const moveTo = elsewhere && elsewhere.route !== route ? hrefForTab(requested) : null;
+  // Forward to the owning section, keeping any other params (OAuth results, ?guild=).
+  const rest = new URLSearchParams(params.toString());
+  rest.delete("tab");
+  const moveTo = elsewhere && elsewhere.route !== route ? `${hrefForTab(requested)}${rest.size ? `&${rest.toString()}` : ""}` : null;
 
   useEffect(() => {
     if (moveTo) router.replace(moveTo);
   }, [moveTo, router]);
   if (moveTo) return null;
 
-  const view = here ?? section.items.find((i) => i.id === section.defaultTab) ?? section.items[0];
+  // A page leaves out the screens a person can't use (Streaming for a free
+  // account), so fall back to the first view this page does render.
+  const firstShown = section.items.find((i) => i.id && screens[i.id]);
+  let view = here ?? section.items.find((i) => i.id === section.defaultTab) ?? section.items[0];
+  if (!(here && screens[requested]) && !(view.id && screens[view.id]) && firstShown) view = firstShown;
   const activeTab = here && screens[requested] ? requested : (view.id ?? section.defaultTab);
   const screen = screens[activeTab]?.() ?? null;
   // A page can leave a tab out of `screens` to hide it (e.g. Payouts until paid entry is on).

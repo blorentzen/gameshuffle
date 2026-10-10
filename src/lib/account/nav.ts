@@ -18,9 +18,12 @@ export interface AccountNavItem {
   href?: string;
   /** Sidebar group heading this item sits under (Platform Admin). */
   group?: string;
-  /** A view with tabs across its top (Platform Admin). `id` is the tab it
-   *  opens on; every tab keeps its own `?tab=` address, so old links work. */
+  /** A view with tabs across its top. `id` is the tab it opens on; every tab
+   *  keeps its own `?tab=` address, so old links work. */
   tabs?: AccountSubTab[];
+  /** Shown only to GS Pro accounts (Streaming), or only to everyone else. */
+  proOnly?: boolean;
+  freeOnly?: boolean;
 }
 
 export interface AccountSubTab {
@@ -92,39 +95,51 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     ],
   },
   {
-    label: "Stream Setup",
-    route: "/account/streamer",
+    // Stream Setup + Community & Chat, merged 2026-10-09 (mockups
+    // https://claude.ai/artifact/K23oSsSY9FJvFBKfVTfX6S). /account/streamer and
+    // /account/community forward here; every old tab id is kept. Free accounts
+    // see Get started and the Discord bot (one server works on Free).
+    label: "Streaming",
+    route: "/account/streaming",
     defaultTab: "integrations",
     iconName: "video",
     items: [
-      { id: "integrations", label: "Integrations", iconName: "link" },
-      { id: "discord-bot", label: "Discord Bot", iconName: "brand-discord" },
-      { id: "mods", label: "Mods", iconName: "shield" },
-      { id: "overlay-layout", label: "Overlay Layout", iconName: "layout-dashboard" },
-      { id: "wheels", label: "Wheels", iconName: "rotate" },
-      { id: "stream-tools", label: "Stream Tools", iconName: "sparkles" },
-      // Mirror: the canonical home is Account ▸ Brand & Theme, but it also skins
-      // the overlay + /live, so it renders IN PLACE here too (same components,
-      // no link-out). `sectionForTab` still resolves "theme" to Account first;
-      // the section pages guard against redirecting a tab their own section owns.
-      { id: "theme", label: "Brand & Theme", iconName: "palette" },
-    ],
-  },
-  {
-    label: "Community & Chat",
-    route: "/account/community",
-    defaultTab: "chat-commands",
-    iconName: "users",
-    items: [
-      { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
-      { id: "polls", label: "Polls", iconName: "chart-bar" },
-      { id: "bingo", label: "Stream Bingo", iconName: "border-all" },
-      { id: "draft", label: "Chat Draft", iconName: "list" },
-      { id: "chat-brain", label: "Chat Brain", iconName: "lightbulb" },
-      { id: "community", label: "Chat Modules", iconName: "sparkles" },
-      { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
-      { id: "engagement", label: "Engagement", iconName: "trending-up" },
-      { id: "anthems", label: "Walk-Up", iconName: "music" },
+      { id: "get-started", label: "Get started", iconName: "star", freeOnly: true },
+      { id: "integrations", label: "Setup", iconName: "link", proOnly: true, tabs: [
+        { id: "integrations", label: "Twitch" },
+        { id: "discord", label: "Discord" },
+        { id: "youtube", label: "YouTube & Kick" },
+        { id: "schedule", label: "Schedule" },
+        { id: "mods", label: "Mods" },
+      ] },
+      { id: "discord-bot", label: "Discord bot", iconName: "brand-discord", tabs: [
+        { id: "discord-bot", label: "Channels & posts" },
+        { id: "discord-roles", label: "Roles" },
+        { id: "discord-automod", label: "AutoMod & logs" },
+        { id: "discord-qotd", label: "Question of the Day" },
+      ] },
+      { id: "overlay-layout", label: "Overlay", iconName: "layout-dashboard", proOnly: true, tabs: [
+        { id: "overlay-layout", label: "Layout" },
+        { id: "stream-tools", label: "Tool looks" },
+        { id: "wheels", label: "Wheels" },
+        { id: "chat-feed", label: "Chat feed" },
+      ] },
+      { id: "chat-commands", label: "Chat", iconName: "message-circle", proOnly: true, tabs: [
+        { id: "chat-commands", label: "Commands" },
+        { id: "built-in", label: "Built-in" },
+        { id: "community", label: "Modules" },
+        { id: "game-modules", label: "Game defaults" },
+      ] },
+      { id: "polls", label: "Live games", iconName: "player-play", proOnly: true, tabs: [
+        { id: "polls", label: "Polls" },
+        { id: "bingo", label: "Bingo" },
+        { id: "draft", label: "Chat Draft" },
+        { id: "chat-brain", label: "Chat Brain" },
+      ] },
+      { id: "engagement", label: "Viewers", iconName: "users", proOnly: true, tabs: [
+        { id: "engagement", label: "Engagement" },
+        { id: "anthems", label: "Walk-up songs" },
+      ] },
     ],
   },
   {

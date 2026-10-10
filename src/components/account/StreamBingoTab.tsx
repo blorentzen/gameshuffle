@@ -115,12 +115,12 @@ export function StreamBingoTab() {
       <h2 className="account-tab__heading">Stream Bingo</h2>
       <p className="account-tab__intro">
         Viewers take a card on your live page and mark it as numbers are called. The first real bingo for the pattern wins,
-        checked against the numbers actually called. Add the Number Bingo piece in <Link href="/account/streamer?tab=overlay-layout">Overlay Layout</Link> to show calls on stream.
+        checked against the numbers actually called. Add the Number Bingo piece in <Link href="/account/streaming?tab=overlay-layout">Overlay ▸ Layout</Link> to show calls on stream.
       </p>
 
       {!hasCommunity ? (
         <div className="account-card">
-          <p className="dbot-muted">Connect Twitch on the <Link href="/account/streamer?tab=integrations">Integrations tab</Link> to run Stream Bingo.</p>
+          <p className="dbot-muted">Connect Twitch on the <Link href="/account/streaming?tab=integrations">Streaming ▸ Setup</Link> to run Stream Bingo.</p>
         </div>
       ) : open && game ? (
         <div className="account-card">

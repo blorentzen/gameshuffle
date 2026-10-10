@@ -203,7 +203,7 @@ export function ProfileHandlesScreen() {
         </div>
       </AdminSection>
 
-      <AdminSection title="Socials" intro={<>Your channels. They also fill <code>$youtube</code>, <code>$twitter</code> and the rest in your <Link href="/account/community?tab=chat-commands">chat commands</Link>.</>}>
+      <AdminSection title="Socials" intro={<>Your channels. They also fill <code>$youtube</code>, <code>$twitter</code> and the rest in your <Link href="/account/streaming?tab=chat-commands">chat commands</Link>.</>}>
         <div className="admin-form-grid">
           {SOCIAL_PLATFORMS.map((p) => (
             <AdminField key={p.key} label={<><PlatformIcon platform={p.key} />{p.label}</>}>
