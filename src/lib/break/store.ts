@@ -237,6 +237,12 @@ export async function endRun(run: BreakRun): Promise<BreakRun> {
   const ended = data as BreakRun | null;
   if (!ended) return (await getRun(run.id)) ?? run;
   forgetOpen(run.owner_user_id);
+  // Ended mid-round on another engine (Stream Bingo): close that game too, or it stays open on the channel.
+  const hostedOpen = run.phase === "open" && run.round ? GAMES[run.round.game]?.hosted : undefined;
+  if (hostedOpen && run.round) {
+    await hostedOpen.close({ round: run.round.view, secret: run.secret ?? {} })
+      .catch((err) => console.error(`[break] ${run.round?.game} didn't close at the end:`, err));
+  }
   const name = await streamerName(run.owner_user_id);
   const handicap = ended.meta?.handicap;
   const prize = winners.length ? await payChampions(run, winners) : 0;
@@ -422,6 +428,7 @@ async function step(run: BreakRun): Promise<BreakRun | null> {
   // A hosted game can finish before its time is up (a bingo).
   const hosted = run.phase === "open" && run.round ? GAMES[run.round.game].hosted : undefined;
   if (hosted && Date.parse(run.phase_ends_at) > now) {
+    await hosted.tick?.(run.secret ?? {}).catch((err) => console.error(`[break] ${run.round?.game} didn't tick:`, err));
     return (await hosted.finished(run.secret ?? {}).catch(() => false)) ? closeRound(run) : null;
   }
   if (Date.parse(run.phase_ends_at) > now) return null;

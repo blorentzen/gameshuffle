@@ -108,6 +108,8 @@ export interface HostedGame {
   close: (draft: { round: BreakRound; secret: Record<string, unknown> }) => Promise<Judged>;
   /** Live progress for the break screen. */
   progress?: (secret: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
+  /** Moves the hosted game along on every tick while its round is open (bingo calls its numbers). */
+  tick?: (secret: Record<string, unknown>) => Promise<void>;
 }
 
 export interface BreakGame {

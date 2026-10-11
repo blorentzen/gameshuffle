@@ -10,7 +10,10 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { closeGame, getGame, getOpenGame, openGame, viewOf } from "@/lib/bingo/stream";
+import { callNext, closeGame, doorsOpen, getGame, getOpenGame, openGame, tickAuto, viewOf } from "@/lib/bingo/stream";
+
+/** Seconds between numbers while bingo runs on a break (the blurb promises 10). */
+const CALL_SECONDS = 10;
 import type { BreakGame } from "./common";
 
 export const streamBingo: BreakGame = {
@@ -21,7 +24,9 @@ export const streamBingo: BreakGame = {
   hosted: {
     open: async (ctx) => {
       if (await getOpenGame(ctx.communityId)) return null;
-      const res = await openGame({ communityId: ctx.communityId, createdBy: ctx.ownerUserId, pattern: "line", doorsSeconds: 60, callInterval: 10, prizeTokens: 0 });
+      // Calls are made by `tick` below every CALL_SECONDS: the bingo timer itself only goes down to
+      // 30 seconds (a database limit), too slow to finish a line inside a break round.
+      const res = await openGame({ communityId: ctx.communityId, createdBy: ctx.ownerUserId, pattern: "line", doorsSeconds: 60, callInterval: null, prizeTokens: 0 });
       if (!res.ok) return null;
       const url = ctx.liveSlug ? `gameshuffle.co/live/${ctx.liveSlug}` : null;
       return {
@@ -29,6 +34,14 @@ export const streamBingo: BreakGame = {
         round: { layout: "bingo", prompt: "Stream Bingo: first line wins", hint: url ? `Get a card at ${url}` : "Get a card on the live page", url },
         secret: { bingoId: res.value.id },
       };
+    },
+    tick: async (secret) => {
+      let g = await getGame(String(secret.bingoId));
+      if (!g || g.status !== "open") return;
+      g = await tickAuto(g); // closes the doors on time (and says so in chat once)
+      if (g.status !== "open" || doorsOpen(g)) return;
+      if (g.lastCalledAt && Date.now() - Date.parse(g.lastCalledAt) < CALL_SECONDS * 1000) return;
+      await callNext(g); // guarded on the last call, so two ticks at once still make one call
     },
     finished: async (secret) => {
       const g = await getGame(String(secret.bingoId));
