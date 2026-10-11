@@ -3,7 +3,8 @@
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Card, Input, Modal, Select, Switch } from "@empac/cascadeds";
+import { Alert, Button, Card, Input, Modal, Switch } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { EventType } from "@/lib/events/calendar";
 import type { EventTicketing, PromoCode, TicketOrder, TicketTier } from "@/lib/events/tickets";

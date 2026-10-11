@@ -19,14 +19,9 @@
  */
 
 import { ToastContainer, type ToastProps } from "@empac/cascadeds";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+
+const noopSubscribe = () => () => {};
+import { createContext, useCallback, useContext, useRef, useState, type ReactNode, useSyncExternalStore } from "react";
 
 const DEFAULT_DURATION_MS = 4000;
 
@@ -75,10 +70,13 @@ export function CompanionToastProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // CDS ToastContainer draws nothing on the server and a portal in the
+  // browser, so it mounts after hydration (same as the site's ToastProvider).
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   return (
     <Ctx.Provider value={{ push }}>
       {children}
-      <ToastContainer toasts={toasts} />
+      {hydrated && <ToastContainer toasts={toasts} />}
     </Ctx.Provider>
   );
 }

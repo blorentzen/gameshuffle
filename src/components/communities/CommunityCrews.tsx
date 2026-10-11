@@ -11,7 +11,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, Button, Select, Icon, IconButton } from "@empac/cascadeds";
+import { Card, Button, Icon, IconButton } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { useMessenger } from "@/components/social/MessengerProvider";
 import { useToast } from "@/components/toast/ToastProvider";

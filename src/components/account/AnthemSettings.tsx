@@ -14,7 +14,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
+import { Alert, Input, RangeSlider, Switch } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { LoadingLines } from "@/components/loading/LoadingLines";

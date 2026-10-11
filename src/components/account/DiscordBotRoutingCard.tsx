@@ -18,7 +18,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Select, Switch } from "@empac/cascadeds";
+import { Alert, Badge, Button, Switch } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { IconMapPin } from "@tabler/icons-react";
 import { TOURNAMENT_FORMATS, formatLabel } from "@/data/tournament-formats";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Button, Chip, Drawer, Input, Select, Tabs } from "@empac/cascadeds";
+import { Button, Chip, Drawer, Input, Tabs } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { IconAdjustments } from "@tabler/icons-react";
 import { boardGameLevelLabel, BOARD_GAME_LEVELS } from "@/data/board-games";
 import { EventCard } from "./EventCard";
@@ -166,6 +167,13 @@ const STATUS_TABS: { id: string; label: string }[] = [
   { id: "complete", label: "Completed" },
 ];
 
+const noopSubscribe = () => () => {};
+
+/** A full-width filter Select ("Any" choices have empty values; the shared Select shows them). */
+function FilterSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  return <Select value={value} onChange={(v) => onChange(String(v))} fullWidth options={options} />;
+}
+
 export function EventsBrowser({ events, config, viewerPrefs = null }: { events: BrowseEvent[]; config: EventsBrowserConfig; viewerPrefs?: ViewerPrefs | null }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -189,6 +197,9 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
   const [radius, setRadius] = useState(Number(params.get("radius") ?? 0) || 0);
   const [status, setStatus] = useState(params.get("status") ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // CDS Drawer renders differently on the server than in the browser, so the
+  // filters drawer mounts after hydration (it broke /tournament and /game-nights).
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(initialNear);
   const [geo, setGeo] = useState<GeoState>(initialNear ? "ok" : "idle");
   const firstRender = useRef(true);
@@ -603,7 +614,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         </div>
       )}
 
-      <Drawer
+      {hydrated && <Drawer
         open={filtersOpen}
         onClose={() => setFiltersOpen(false)}
         position="right"
@@ -622,39 +633,39 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
           {config.filters.game && gameOptions.length > 0 && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Game</label>
-              <Select value={game} onChange={(v) => setGame(v as string)} fullWidth options={[{ value: "", label: "Any game" }, ...gameOptions.map((g) => ({ value: g, label: g }))]} />
+              <FilterSelect value={game} onChange={setGame} options={[{ value: "", label: "Any game" }, ...gameOptions.map((g) => ({ value: g, label: g }))]} />
             </div>
           )}
           {config.filters.format && formatOptions.length > 0 && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Format</label>
-              <Select value={format} onChange={(v) => setFormat(v as string)} fullWidth
+              <FilterSelect value={format} onChange={setFormat}
                 options={[{ value: "", label: "Any format" }, ...formatOptions]} />
             </div>
           )}
           {config.filters.openSpots && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Availability</label>
-              <Select value={openSpots ? "open" : ""} onChange={(v) => setOpenSpots(v === "open")} fullWidth
+              <FilterSelect value={openSpots ? "open" : ""} onChange={(v) => setOpenSpots(v === "open")}
                 options={[{ value: "", label: "Any" }, { value: "open", label: "Has room" }]} />
             </div>
           )}
           {config.filters.genre && genreOptions.length > 0 && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Genre</label>
-              <Select value={genre} onChange={(v) => setGenre(v as string)} fullWidth options={[{ value: "", label: "Any genre" }, ...genreOptions.map((g) => ({ value: g, label: g }))]} />
+              <FilterSelect value={genre} onChange={setGenre} options={[{ value: "", label: "Any genre" }, ...genreOptions.map((g) => ({ value: g, label: g }))]} />
             </div>
           )}
           {config.filters.kind && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Playing</label>
-              <Select value={kind} onChange={(v) => setKind(v as string)} fullWidth options={[{ value: "", label: "Anything" }, ...NIGHT_KINDS.map((k) => ({ value: k.value, label: k.short }))]} />
+              <FilterSelect value={kind} onChange={setKind} options={[{ value: "", label: "Anything" }, ...NIGHT_KINDS.map((k) => ({ value: k.value, label: k.short }))]} />
             </div>
           )}
           {config.filters.level && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Skill level</label>
-              <Select value={level} onChange={(v) => setLevel(v as string)} fullWidth options={[{ value: "", label: "Any level" }, ...BOARD_GAME_LEVELS.map((l) => ({ value: l.value, label: l.label }))]} />
+              <FilterSelect value={level} onChange={setLevel} options={[{ value: "", label: "Any level" }, ...BOARD_GAME_LEVELS.map((l) => ({ value: l.value, label: l.label }))]} />
             </div>
           )}
           {/* Price used to hang off the `online` flag, so a hub could not offer
@@ -664,13 +675,13 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
           {config.filters.online && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Where</label>
-              <Select value={online} onChange={(v) => setOnline(v as string)} fullWidth options={[{ value: "", label: "Online + in person" }, { value: "online", label: "Online" }, { value: "in_person", label: "In person" }]} />
+              <FilterSelect value={online} onChange={setOnline} options={[{ value: "", label: "Online + in person" }, { value: "online", label: "Online" }, { value: "in_person", label: "In person" }]} />
             </div>
           )}
           {config.filters.price && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Price</label>
-              <Select value={price} onChange={(v) => setPrice(v as string)} fullWidth options={[{ value: "", label: "Any price" }, { value: "free", label: "Free" }, { value: "paid", label: "Ticketed" }]} />
+              <FilterSelect value={price} onChange={setPrice} options={[{ value: "", label: "Any price" }, { value: "free", label: "Free" }, { value: "paid", label: "Ticketed" }]} />
             </div>
           )}
           <div className="bgn-filters__field">
@@ -691,7 +702,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
             </div>
           </div>
         </div>
-      </Drawer>
+      </Drawer>}
 
       {geo === "denied" && <p className="bgn-filters__note">Location access was blocked, so we can&apos;t sort by distance. You can still search and filter.</p>}
       {geo === "unsupported" && <p className="bgn-filters__note">Your browser doesn&apos;t support location, so distance sorting isn&apos;t available.</p>}

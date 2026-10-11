@@ -14,7 +14,8 @@
  */
 
 import { useState } from "react";
-import { Button, Select } from "@empac/cascadeds";
+import { Button } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import { checkInWindow, checkInMessage } from "@/lib/events/checkInWindow";
 import { reasonsFor, FEEDBACK_DISCLOSURE } from "@/data/attendance-reasons";

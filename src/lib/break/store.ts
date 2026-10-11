@@ -395,20 +395,32 @@ async function claim(run: BreakRun, patch: Record<string, unknown>): Promise<Bre
   return (data as BreakRun | null) ?? null;
 }
 
-async function skipSet(communityId: string, game: BreakGameId): Promise<(key: string) => boolean> {
+/**
+ * What a round may not show. `skip`: played on this channel in the last 30
+ * days, or pulled for review. `fallback`, for when everything is used up:
+ * only what was played before this break started, and never anything pulled
+ * (a tiny pool, like a channel's own few questions, used to repeat within one
+ * break, and the old fallback let pulled questions back in).
+ */
+async function skipSet(communityId: string, game: BreakGameId, breakStartedAt: string): Promise<{ skip: (key: string) => boolean; fallback: (key: string) => boolean }> {
   const admin = createServiceClient();
   const [seen, pulled] = await Promise.all([
-    admin.from("break_seen").select("item_key").eq("community_id", communityId).eq("game", game).gte("seen_at", at(Date.now() - SEEN_DAYS * 864e5)).limit(5000),
+    admin.from("break_seen").select("item_key, seen_at").eq("community_id", communityId).eq("game", game).gte("seen_at", at(Date.now() - SEEN_DAYS * 864e5)).limit(5000),
     admin.from("break_pulled").select("item_key").eq("game", game).or("keep.is.null,keep.eq.false").limit(5000),
   ]);
-  const keys = new Set([...(seen.data ?? []), ...(pulled.data ?? [])].map((r) => (r as { item_key: string }).item_key));
-  return (k) => keys.has(k);
+  const seenRows = (seen.data ?? []) as { item_key: string; seen_at: string }[];
+  const pulledKeys = new Set(((pulled.data ?? []) as { item_key: string }[]).map((r) => r.item_key));
+  const all = new Set([...seenRows.map((r) => r.item_key), ...pulledKeys]);
+  // Five minutes of slack: seen times come from the app's clock, the break's start from the database's.
+  const since = Date.parse(breakStartedAt) - 5 * 60_000;
+  const thisBreak = new Set([...seenRows.filter((r) => Date.parse(r.seen_at) >= since).map((r) => r.item_key), ...pulledKeys]);
+  return { skip: (k) => all.has(k), fallback: (k) => thisBreak.has(k) };
 }
 
 async function openRound(run: BreakRun): Promise<BreakRun | null> {
   const id = gameAt(run);
   const game = GAMES[id];
-  const [skip, name, playing] = await Promise.all([skipSet(run.community_id, id), streamerName(run.owner_user_id), gameOnStream(run.owner_user_id)]);
+  const [{ skip, fallback }, name, playing] = await Promise.all([skipSet(run.community_id, id, run.started_at), streamerName(run.owner_user_id), gameOnStream(run.owner_user_id)]);
   // A game that reads the database (approved trivia, a Chat Brain question) loads first.
   const data = game.load
     ? await game.load({ communityId: run.community_id, ownerUserId: run.owner_user_id, streamer: name, liveSlug: null, gameOnStream: playing, skip })
@@ -424,8 +436,9 @@ async function openRound(run: BreakRun): Promise<BreakRun | null> {
       .catch((err) => { console.error(`[break] ${id} didn't open:`, err); return null; });
   } else {
     draft = game.make({ ...base, skip });
-    // Everything this channel can see has been played in the last 30 days: let the oldest come back.
-    if (!draft) draft = game.make({ ...base, skip: () => false });
+    // Everything this channel can see has been played in the last 30 days: let earlier ones come back,
+    // but never one from this break or one pulled for review. Nothing left = on to the next game.
+    if (!draft) draft = game.make({ ...base, skip: fallback });
   }
   if (!draft) {
     // A game with nothing to show (no facts for any public game): on to the next one.

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { TagCombobox } from "@/components/ui/TagCombobox";
 import { useRouter } from "next/navigation";
-import { Button, Chip, Input, Select, Textarea } from "@empac/cascadeds";
+import { Button, Chip, Input, Textarea } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS } from "@/data/board-games";
 import { CADENCES } from "@/lib/game-nights/seriesSchedule";
 import { GamesBroughtInput } from "./GamesBroughtInput";
