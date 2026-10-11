@@ -16,6 +16,19 @@ export interface AccountNavItem {
   /** When set, the item is a link-out to this absolute path rather than a
    *  `?tab=` within the section. */
   href?: string;
+  /** Sidebar group heading this item sits under (Platform Admin). */
+  group?: string;
+  /** A view with tabs across its top. `id` is the tab it opens on; every tab
+   *  keeps its own `?tab=` address, so old links work. */
+  tabs?: AccountSubTab[];
+  /** Shown only to GS Pro accounts (Streaming), or only to everyone else. */
+  proOnly?: boolean;
+  freeOnly?: boolean;
+}
+
+export interface AccountSubTab {
+  id: string;
+  label: string;
 }
 
 export interface AccountNavSection {
@@ -37,63 +50,98 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     route: "/account",
     defaultTab: "profile",
     iconName: "user",
+    // Four views (2026-10-09 consolidation). Old tab ids (profile, theme,
+    // notifications, security, plans) open inside their new view.
     items: [
-      { id: "profile", label: "Profile", iconName: "user" },
-      { id: "theme", label: "Brand & Theme", iconName: "palette" },
-      { id: "notifications", label: "Notifications", iconName: "bell" },
-      { id: "plans", label: "Plans", iconName: "credit-card" },
-      { id: "security", label: "Security", iconName: "lock" },
+      { id: "profile", label: "Profile", iconName: "user", tabs: [
+        { id: "profile", label: "About you" },
+        { id: "games", label: "Games" },
+        { id: "gamertags", label: "Gamertags & socials" },
+        { id: "friends", label: "Friends" },
+      ] },
+      { id: "theme", label: "Theming", iconName: "palette", tabs: [
+        { id: "theme", label: "Theme" },
+        { id: "profile-page", label: "Profile page" },
+        { id: "walkup", label: "Walk-up song" },
+      ] },
+      { id: "settings", label: "Settings", iconName: "settings", tabs: [
+        { id: "settings", label: "General" },
+        { id: "security", label: "Sign-in & security" },
+        { id: "notifications", label: "Notifications" },
+        { id: "privacy", label: "Privacy" },
+      ] },
+      { id: "plans", label: "Plans & billing", iconName: "credit-card" },
     ],
   },
   {
     label: "My Stuff",
     route: "/account/stuff",
-    defaultTab: "setups",
-    iconName: "box",
+    defaultTab: "tournaments",
+    iconName: "folder",
+    // My Games and Board Games moved to Account ▸ Profile ▸ Games (aliases
+    // below keep their old links working).
     items: [
-      { id: "setups", label: "Setups & Games", iconName: "folder" },
-      { id: "my-games", label: "My Games", iconName: "filter" },
-      { id: "game-nights", label: "Game Nights", iconName: "calendar" },
-      { id: "board-games", label: "Board Games", iconName: "layout-grid" },
-      { id: "tournaments", label: "Tournaments", iconName: "award" },
-      { id: "tickets", label: "My Tickets", iconName: "receipt" },
-      { id: "payouts", label: "Payouts", iconName: "currency-dollar" },
-      { id: "my-cards", label: "My Cards", iconName: "stack-2" },
+      { id: "tournaments", label: "Events", iconName: "calendar", tabs: [
+        { id: "tournaments", label: "Tournaments" },
+        { id: "game-nights", label: "Game nights" },
+      ] },
+      { id: "tickets", label: "Purchases", iconName: "receipt", tabs: [
+        { id: "tickets", label: "Tickets" },
+        { id: "orders", label: "Shop orders" },
+        { id: "payouts", label: "Payouts" },
+      ] },
+      { id: "setups", label: "Saved configs", iconName: "bookmark" },
+      // Your own Chance cards, missions and house rules (moved from Streaming ▸ Game defaults).
+      { id: "decks", label: "Decks", iconName: "cards" },
+      { id: "my-cards", label: "My Collection", iconName: "stack-2" },
     ],
   },
   {
-    label: "Stream Setup",
-    route: "/account/streamer",
+    // Stream Setup + Community & Chat, merged 2026-10-09 (mockups
+    // https://claude.ai/artifact/K23oSsSY9FJvFBKfVTfX6S). /account/streamer and
+    // /account/community forward here; every old tab id is kept. Free accounts
+    // see Get started and the Discord bot (one server works on Free).
+    label: "Streaming",
+    route: "/account/streaming",
     defaultTab: "integrations",
     iconName: "video",
     items: [
-      { id: "integrations", label: "Integrations", iconName: "link" },
-      { id: "discord-bot", label: "Discord Bot", iconName: "brand-discord" },
-      { id: "mods", label: "Mods", iconName: "shield" },
-      { id: "overlay-layout", label: "Overlay Layout", iconName: "layout-dashboard" },
-      { id: "wheels", label: "Wheels", iconName: "rotate" },
-      { id: "stream-tools", label: "Stream Tools", iconName: "sparkles" },
-      // Mirror: the canonical home is Account ▸ Brand & Theme, but it also skins
-      // the overlay + /live, so it renders IN PLACE here too (same components,
-      // no link-out). `sectionForTab` still resolves "theme" to Account first;
-      // the section pages guard against redirecting a tab their own section owns.
-      { id: "theme", label: "Brand & Theme", iconName: "palette" },
-    ],
-  },
-  {
-    label: "Community & Chat",
-    route: "/account/community",
-    defaultTab: "chat-commands",
-    iconName: "users",
-    items: [
-      { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
-      { id: "polls", label: "Polls", iconName: "chart-bar" },
-      { id: "bingo", label: "Stream Bingo", iconName: "border-all" },
-      { id: "draft", label: "Chat Draft", iconName: "list" },
-      { id: "community", label: "Chat Modules", iconName: "sparkles" },
-      { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
-      { id: "engagement", label: "Engagement", iconName: "trending-up" },
-      { id: "anthems", label: "Walk-Up", iconName: "music" },
+      { id: "get-started", label: "Get started", iconName: "star", freeOnly: true },
+      { id: "integrations", label: "Setup", iconName: "link", proOnly: true, tabs: [
+        { id: "integrations", label: "Twitch" },
+        { id: "discord", label: "Discord" },
+        { id: "youtube", label: "YouTube & Kick" },
+        { id: "schedule", label: "Schedule" },
+        { id: "mods", label: "Mods" },
+      ] },
+      { id: "discord-bot", label: "Discord bot", iconName: "brand-discord", tabs: [
+        { id: "discord-bot", label: "Channels & posts" },
+        { id: "discord-roles", label: "Roles" },
+        { id: "discord-automod", label: "AutoMod & logs" },
+        { id: "discord-qotd", label: "Question of the Day" },
+      ] },
+      { id: "overlay-layout", label: "Overlay", iconName: "layout-dashboard", proOnly: true, tabs: [
+        { id: "overlay-layout", label: "Layout" },
+        { id: "stream-tools", label: "Tool looks" },
+        { id: "wheels", label: "Wheels" },
+        { id: "chat-feed", label: "Chat feed" },
+      ] },
+      { id: "chat-commands", label: "Chat", iconName: "message-circle", proOnly: true, tabs: [
+        { id: "chat-commands", label: "Commands" },
+        { id: "community", label: "Modules" },
+        { id: "game-modules", label: "Game defaults" },
+      ] },
+      { id: "polls", label: "Live games", iconName: "player-play", proOnly: true, tabs: [
+        { id: "polls", label: "Polls" },
+        { id: "bingo", label: "Bingo" },
+        { id: "draft", label: "Chat Draft" },
+        { id: "chat-brain", label: "Chat Brain" },
+        { id: "break-mode", label: "Break mode" },
+      ] },
+      { id: "engagement", label: "Viewers", iconName: "users", proOnly: true, tabs: [
+        { id: "engagement", label: "Engagement" },
+        { id: "anthems", label: "Walk-up songs" },
+      ] },
     ],
   },
   {
@@ -103,28 +151,54 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     iconName: "server",
     staffOnly: true,
     items: [
-      { id: "platform-health", label: "Health", iconName: "activity" },
-      { id: "platform-growth", label: "Growth", iconName: "chart-line" },
-      { id: "platform-events", label: "Events", iconName: "sparkles" },
-      { id: "platform-decks", label: "Decks", iconName: "layers" },
-      { id: "platform-originals", label: "Originals", iconName: "sparkles" },
-      { id: "platform-ai", label: "AI usage", iconName: "bolt" },
-      { id: "platform-games", label: "Game catalog", iconName: "photo" },
-      { id: "platform-weekly", label: "Weekly Challenge", iconName: "calendar" },
-      { id: "platform-chat-brain", label: "Chat Brain", iconName: "message-circle" },
-      { id: "platform-variables", label: "Variables", iconName: "code" },
-      { id: "platform-default-commands", label: "Commands", iconName: "message-circle" },
-      { id: "platform-compliance", label: "Compliance", iconName: "shield" },
-      { id: "platform-tournaments", label: "Tournaments", iconName: "award" },
-      { id: "platform-engagement", label: "Engagement", iconName: "trending-up" },
-      { id: "platform-ticketing", label: "Ticketing", iconName: "receipt" },
-      { id: "platform-economy", label: "Economy", iconName: "currency-dollar" },
-      { id: "platform-pricing", label: "Pricing", iconName: "credit-card" },
-      { id: "platform-snapshot", label: "Snapshot", iconName: "chart-bar" },
-      { id: "platform-staff", label: "Staff", iconName: "users" },
-      { id: "platform-moderation", label: "Moderation", iconName: "flag" },
-      { id: "platform-shop", label: "Shop", iconName: "shopping-cart" },
-      { id: "platform-guides", label: "Guides", iconName: "book" },
+      // Ten views in five groups (2026-10-09). Each tab id is unchanged, so
+      // links like ?tab=platform-shop-orders still open the right screen.
+      { id: "platform-health", label: "Overview", iconName: "activity", group: "Run the site", tabs: [
+        { id: "platform-health", label: "Health" },
+        { id: "platform-growth", label: "Growth" },
+        { id: "platform-revenue", label: "Revenue" },
+        { id: "platform-ai", label: "AI usage" },
+      ] },
+      { id: "platform-switches", label: "Switches", iconName: "settings", group: "Run the site" },
+      { id: "platform-shop-orders", label: "Shop", iconName: "shopping-cart", group: "Shop", tabs: [
+        { id: "platform-shop-orders", label: "Orders" },
+        { id: "platform-shop-products", label: "Products" },
+        { id: "platform-shop", label: "Featured cards" },
+      ] },
+      { id: "platform-originals", label: "Originals", iconName: "sparkles", group: "Content", tabs: [
+        { id: "platform-originals", label: "Overview" },
+        { id: "platform-chat-brain", label: "Chat Brain" },
+        { id: "platform-weekly", label: "Weekly Challenge" },
+        { id: "platform-trivia", label: "Trivia" },
+        { id: "platform-break", label: "Break mode" },
+      ] },
+      { id: "platform-guides", label: "Library", iconName: "bookmark", group: "Content", tabs: [
+        { id: "platform-guides", label: "Guides" },
+        { id: "platform-decks", label: "Card decks" },
+        { id: "platform-games", label: "Game catalog" },
+      ] },
+      { id: "platform-default-commands", label: "Chat bot", iconName: "message-circle", group: "Community", tabs: [
+        { id: "platform-default-commands", label: "Commands" },
+        { id: "platform-variables", label: "Variables" },
+        { id: "platform-events", label: "Chaos events" },
+        { id: "platform-engagement", label: "Engagement" },
+      ] },
+      { id: "platform-tournaments", label: "Events", iconName: "award", group: "Community", tabs: [
+        { id: "platform-tournaments", label: "Tournaments" },
+        { id: "platform-ticketing", label: "Ticket sales" },
+      ] },
+      { id: "platform-moderation", label: "People", iconName: "users", group: "Community", tabs: [
+        { id: "platform-moderation", label: "Moderation" },
+        { id: "platform-staff", label: "Staff & roles" },
+      ] },
+      { id: "platform-pricing", label: "Pricing", iconName: "credit-card", group: "Money" },
+      { id: "platform-snapshot", label: "Token economy", iconName: "currency-dollar", group: "Money", tabs: [
+        { id: "platform-snapshot", label: "Overview" },
+        { id: "platform-token-streamers", label: "Streamers" },
+        { id: "platform-token-history", label: "History" },
+        { id: "platform-economy", label: "Levers" },
+        { id: "platform-compliance", label: "Rules" },
+      ] },
     ],
   },
 ];
@@ -135,12 +209,26 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
 export const ACCOUNT_TAB_ALIAS: Record<string, string> = {
   "twitch-hub": "integrations",
   app: "setups",
+  "my-games": "games",
+  // Built-in commands joined the one Commands list (2026-10-10).
+  "built-in": "chat-commands",
+  "board-games": "games",
 };
+
+/** Every tab id an item answers to: its own, plus its view's tabs. */
+export function itemTabIds(item: AccountNavItem): string[] {
+  return [...(item.id ? [item.id] : []), ...(item.tabs?.map((t) => t.id) ?? [])];
+}
+
+/** The item (view) in a section that holds this tab. */
+export function viewForTab(section: AccountNavSection, tabId: string): AccountNavItem | undefined {
+  return section.items.find((i) => itemTabIds(i).includes(tabId));
+}
 
 /** The section a given tab id belongs to (after alias resolution). */
 export function sectionForTab(tabId: string): AccountNavSection | undefined {
   const id = ACCOUNT_TAB_ALIAS[tabId] ?? tabId;
-  return ACCOUNT_SECTIONS.find((s) => s.items.some((i) => i.id === id));
+  return ACCOUNT_SECTIONS.find((s) => s.items.some((i) => itemTabIds(i).includes(id)));
 }
 
 /** Full href (route + ?tab) for a tab id. */

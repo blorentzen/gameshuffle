@@ -2384,6 +2384,11 @@
 .dmock__activity-text span { color: #949ba4; font-size: var(--font-size-12); }
 .dmock__embed { margin-top: 0.4rem; background: #2b2d31; border-left: 4px solid #2766ec; border-radius: 4px; padding: var(--spacing-12) var(--spacing-16); max-width: 46rem; }
 .dmock__embed--live { border-left-color: #e5484d; }
+/* Discord's newer layout: one container with the bot's drawn card, a line of text and the buttons. */
+.dmock__container { margin-top: 0.4rem; display: grid; gap: var(--spacing-8); justify-items: start; background: #2b2d31; border-left: 4px solid #2766ec; border-radius: 8px; padding: var(--spacing-12); max-width: 46rem; }
+.dmock__card { display: block; width: 100%; height: auto; border-radius: 6px; }
+.dmock__container .dmock__text { margin: 0; }
+.dmock__container .dmock__btn { margin-top: 0; }
 .dmock__live { display: grid; grid-template-columns: minmax(0, 1fr) 8rem; gap: var(--spacing-12); align-items: start; }
 .dmock__thumb { width: 8rem; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 6px; }
 .dmock__author { margin: 0 0 0.4rem; color: #f2f3f5; font-weight: 600; font-size: var(--font-size-12); display: flex; align-items: center; gap: 0.6rem; }
@@ -2392,18 +2397,7 @@
 .dmock__pairs b { color: #f2f3f5; }
 .dmock__title { margin: 0; color: #f2f3f5; font-weight: 700; }
 .dmock__desc { margin: 0.2rem 0 var(--spacing-12); }
-.dmock__fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-12); }
-.dmock__field b { display: block; color: #f2f3f5; font-size: var(--font-size-12); margin-bottom: 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.dmock__squares { display: grid; gap: 0.3rem; }
-.dmock__row { display: flex; gap: 0.3rem; }
-.dmock__sq { width: 1.4rem; height: 1.4rem; border-radius: 3px; }
-.dmock__sq--match { background: #5fad56; }
-.dmock__sq--close { background: #e3b341; }
-.dmock__sq--miss { background: #4a4d55; }
 .dmock__foot { margin: var(--spacing-12) 0 0; color: #949ba4; font-size: var(--font-size-12); }
-.dmock__ranks { list-style: none; margin: var(--spacing-8) 0 0; padding: 0; display: grid; gap: 0.3rem; }
-.dmock__ranks span { display: inline-block; width: 2rem; }
-.dmock__streak { margin: var(--spacing-12) 0 0; }
 .dmock__poll { list-style: none; margin: 0 0 var(--spacing-8); padding: 0; display: grid; gap: 0.6rem; max-width: 40rem; }
 .dmock__poll li { position: relative; display: flex; justify-content: space-between; gap: var(--spacing-8); background: #2b2d31; border-radius: 6px; padding: 0.6rem 1rem; overflow: hidden; }
 .dmock__poll-fill { position: absolute; inset: 0 auto 0 0; background: rgba(88, 101, 242, 0.28); }
@@ -2423,15 +2417,13 @@
   .dmock__msg { grid-template-columns: 3.2rem minmax(0, 1fr); gap: var(--spacing-8); }
   .dmock__av:not(.dmock__av--tiny) { width: 3.2rem; height: 3.2rem; }
   .dmock__embed { padding-inline: var(--spacing-12); }
-  .dmock__fields { gap: var(--spacing-8); }
-  .dmock__squares, .dmock__row { gap: 0.2rem; }
-  .dmock__sq { width: 1rem; height: 1rem; border-radius: 2px; }
+  .dmock__container { padding: var(--spacing-8); }
   .dmock__live { grid-template-columns: minmax(0, 1fr) 6rem; }
   .dmock__thumb { width: 6rem; }
   .dmock__ephemeral { margin-left: 4rem; }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .dmock__row { animation: dmock-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(0.35s + var(--r, 0) * 0.18s); }
+  .dmock__card { animation: dmock-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s both; }
 }
 @keyframes dmock-in {
   from { opacity: 0; transform: translateY(4px) scale(0.92); }
@@ -2453,3 +2445,18 @@
 }
 .discord-plug img { flex-shrink: 0; }
 .discord-plug a { font-weight: 600; color: #3640c0; }
+
+/* ProTrialPrompt: the shared "this is GS Pro" card (src/components/billing). */
+.pro-trial { display: grid; gap: var(--spacing-12); }
+.pro-trial__head { display: flex; align-items: center; gap: var(--spacing-8); }
+.pro-trial__icon { display: grid; place-items: center; width: 3.2rem; height: 3.2rem; border-radius: 50%; background: color-mix(in srgb, var(--primary-500, #3d5afe) 12%, transparent); color: var(--primary-600, #2f55e4); flex-shrink: 0; }
+.pro-trial__title { margin: 0; font-size: var(--font-size-18); }
+.pro-trial__body { color: var(--text-secondary); font-size: var(--font-size-16); line-height: var(--line-height-relaxed); }
+.pro-trial__body p { margin: 0; }
+.pro-trial__terms { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.pro-trial__more { font-size: var(--font-size-14); font-weight: 600; }
+
+/* SeasonPicker (community season board, profile Season tab). */
+.season-picker { max-width: 26rem; margin: 0 0 var(--spacing-12); }
+.season-picker__upsell { margin: 0 0 var(--spacing-12); font-size: var(--font-size-14); }
+.season-picker__upsell a { font-weight: 600; }

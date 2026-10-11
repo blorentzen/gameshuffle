@@ -169,10 +169,9 @@ export default async function Page() {
       />
 
       {/* Hero — full-bleed module using the card art as a background */}
+      {/* The card art is a decorative background: no role="img" on a section that holds links and buttons. */}
       <section
         className="tcg-hero"
-        role="img"
-        aria-label={HERO.imageAlt}
         style={{
           backgroundImage: `linear-gradient(90deg, rgba(8,11,18,0.94) 0%, rgba(8,11,18,0.78) 48%, rgba(8,11,18,0.5) 100%), url(${HERO.image})`,
         }}

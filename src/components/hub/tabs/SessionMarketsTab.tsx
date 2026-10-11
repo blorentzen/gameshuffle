@@ -20,6 +20,11 @@ import { TokenIcon } from "@/components/TokenIcon";
 interface Props {
   streamerSlug: string;
   ownerUserId: string;
+  /** "panel": the live controls only; "history": awards and bounties (recap);
+   *  unset: both (the stream page's Predictions tab). */
+  part?: "panel" | "history";
+  /** Show the prediction market (Mario Kart games); bounties always show. */
+  markets?: boolean;
 }
 
 interface AwardRow {
@@ -151,22 +156,22 @@ async function loadHistory(ownerUserId: string): Promise<{
   return { awards, bounties };
 }
 
-export async function SessionMarketsTab({ streamerSlug, ownerUserId }: Props) {
+export async function SessionMarketsTab({ streamerSlug, ownerUserId, part, markets = true }: Props) {
+  if (part === "panel") return <MarketsAdminPanel streamerSlug={streamerSlug} bare markets={markets} />;
   const history = await loadHistory(ownerUserId);
 
   return (
     <>
-      <MarketsAdminPanel streamerSlug={streamerSlug} />
+      {part !== "history" && <MarketsAdminPanel streamerSlug={streamerSlug} bare markets={markets} />}
 
       <section className="hub-markets-history">
-        <h2 className="hub-markets-history__heading">History</h2>
+        <h2 className="hub-markets-history__heading">{part === "history" ? "Tokens handed out across your streams" : "Tokens handed out"}</h2>
 
         <div className="hub-markets-history__group">
           <h3>Recent awards (last 25)</h3>
           {history.awards.length === 0 ? (
             <p className="hub-markets-history__empty">
-              No awards yet. Use <code>!gs award @viewer N</code> in chat or the
-              Markets tab admin to mint from your monthly allowance.
+              No awards yet. Use <code>!gs award @viewer N</code> in chat to give tokens from your monthly allowance.
             </p>
           ) : (
             <table className="hub-markets-history__table">

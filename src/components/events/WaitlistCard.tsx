@@ -109,7 +109,9 @@ export function WaitlistCard({ type, eventId, signedIn, onChanged, className = "
               {me.capacity != null ? `${Math.min(me.seatsTaken, me.capacity)} of ${me.capacity} ${noun} taken. ` : ""}
               {me.standby
                 ? "It starts soon: if a spot opens, everyone waiting hears at once and the first to claim it gets it. Checked in at the venue? You're seated first."
-                : "If a spot opens, it's offered to you in turn and we'll alert, email and text you."}
+                : me.planLimited
+                  ? "If a spot opens or the organizer makes room for more players, it's offered to you in turn and we'll alert, email and text you."
+                  : "If a spot opens, it's offered to you in turn and we'll alert, email and text you."}
             </p>
             <div className="waitlist-card__row">
               <Button variant="ghost" size="small" disabled={busy} onClick={() => void act("leave")}>Leave the waitlist</Button>
@@ -128,7 +130,7 @@ export function WaitlistCard({ type, eventId, signedIn, onChanged, className = "
       <p className="waitlist-card__note">
         {me.capacity != null ? `All ${me.capacity} ${noun} are taken` : "It's full"}
         {me.lineLength > 0 ? ` and ${me.lineLength} ${me.lineLength === 1 ? "person is" : "people are"} waiting` : ""}.
-        {me.waitlistFull ? " The waitlist is full too." : " Join the waitlist and you'll be offered the next spot that opens, in turn."}
+        {me.waitlistFull ? " The waitlist is full too." : me.planLimited ? " Join the waitlist and you'll be offered a spot in turn when one opens or the organizer makes room for more players." : " Join the waitlist and you'll be offered the next spot that opens, in turn."}
       </p>
       {!me.waitlistFull && (signedIn ? (
         <div className="waitlist-card__row">

@@ -39,7 +39,7 @@ export interface LegalPageProps {
   /** Slug of *this* page — controls which siblings appear in the footer strip.
    *  Non-policy pages (e.g. "tcg-attribution") aren't in the sibling set, so
    *  the footer strip shows all four policies for them. */
-  current: "privacy" | "terms" | "cookie-policy" | "accessibility" | "tcg-attribution";
+  current: "privacy" | "terms" | "cookie-policy" | "accessibility" | "tcg-attribution" | "shop-policies";
 }
 
 const DEFAULT_OPERATOR = "Britton Lorentzen, doing business as Empac and GameShuffle";

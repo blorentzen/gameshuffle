@@ -11,6 +11,8 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
+import { streamOwnerFor } from "@/lib/mods/acting";
 import { effectiveTier, hasCapability, normalizeTier } from "@/lib/subscription";
 import { deleteWheel, listWheels, upsertWheel } from "@/lib/wheels/store";
 import {
@@ -64,18 +66,23 @@ type Authed =
   | { ok: true; userId: string }
   | { ok: false; status: number; error: string };
 
-/** Require an authenticated user with the wheels Pro capability. */
-async function authedProUser(): Promise<Authed> {
+/**
+ * Require an authenticated user with the wheels Pro capability. With
+ * `mods`, a Full-access mod on their mod page reads the streamer's wheels
+ * (the hub's wheel tool lists them; editing stays with the streamer).
+ */
+async function authedProUser(opts: { mods?: boolean } = {}): Promise<Authed> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, status: 401, error: "unauthenticated" };
+  const { ownerUserId, viaMod } = opts.mods ? await streamOwnerFor(user.id) : { ownerUserId: user.id, viaMod: false };
 
-  const { data: profile } = await supabase
+  const { data: profile } = await (viaMod ? createServiceClient() : supabase)
     .from("users")
     .select("subscription_tier, role, circuit_tier, circuit_status")
-    .eq("id", user.id)
+    .eq("id", ownerUserId)
     .maybeSingle();
 
   const capUser = {
@@ -87,7 +94,7 @@ async function authedProUser(): Promise<Authed> {
   if (effectiveTier(capUser) !== "pro" || !hasCapability(capUser, "wheels.use")) {
     return { ok: false, status: 403, error: "pro_required" };
   }
-  return { ok: true, userId: user.id };
+  return { ok: true, userId: ownerUserId };
 }
 
 /** Coerce + clamp client-supplied segments into safe WheelSegment rows. */
@@ -112,7 +119,7 @@ function sanitizeSegments(input: unknown): WheelSegment[] | null {
 }
 
 export async function GET() {
-  const auth = await authedProUser();
+  const auth = await authedProUser({ mods: true });
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const wheels = await listWheels(auth.userId);
   return NextResponse.json({ ok: true, wheels });

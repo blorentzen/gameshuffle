@@ -6,8 +6,14 @@
  *   node scripts/a11y-check.cjs /daily /weekly "/discord/activity?preview=guest&tab=daily"
  *   BASE=http://localhost:3001 node scripts/a11y-check.cjs /
  *
- * Needs Google Chrome installed and the dev server running. Pages behind
- * sign-in need a signed-in Chrome profile, so check those by hand. axe can't
+ * Needs Google Chrome installed and the dev server running. For pages behind
+ * sign-in, point A11Y_COOKIES at a JSON file of session cookies
+ * ({ "cookies": [{ "name", "value" }] }, e.g. a dev persona's Supabase
+ * auth cookie; never commit one):
+ *
+ *   A11Y_COOKIES=/path/to/cookies.json node scripts/a11y-check.cjs /account
+ *
+ * axe can't
  * judge everything (text on gradients and photos, focus order, what a screen
  * reader actually says), so it's a floor, not a pass.
  */
@@ -45,6 +51,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const evalJs = async (js) => (await send("Runtime.evaluate", { expression: js, awaitPromise: true, returnByValue: true })).result?.result?.value;
   await send("Page.enable");
   await send("Runtime.enable");
+  if (process.env.A11Y_COOKIES) {
+    await send("Network.enable");
+    const host = new URL(BASE).hostname;
+    for (const c of JSON.parse(fs.readFileSync(process.env.A11Y_COOKIES, "utf8")).cookies) await send("Network.setCookie", { name: c.name, value: c.value, domain: host, path: "/" });
+  }
 
   const found = new Map();
   for (const [size, w, h] of SIZES) {

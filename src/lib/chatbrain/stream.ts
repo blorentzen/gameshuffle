@@ -5,7 +5,9 @@ import "server-only";
  *
  * A window is a timed period when chat answers with `!a`. Guesses land in
  * brain_stream_guesses, one per viewer per window (a later `!a` replaces it).
- * This first slice runs standalone **survey windows** (`!cb ask`): chat answers
+ * Two kinds of window run through here. A game's **guess windows** (Chat
+ * plays: chat against a published board) are opened and scored by
+ * streamGame.ts. Standalone **survey windows** (`!cb ask`): chat answers
  * a question for 30 to 180 seconds, and at close every guess becomes a
  * brain_answers row (source 'twitch', with the window id):
  *
@@ -36,7 +38,10 @@ export interface StreamWindow {
   communityId: string;
   broadcasterId: string;
   kind: string;
+  team: number | null;
   promptId: string | null;
+  /** Game windows: the board's question (its prompt id). */
+  boardId: string | null;
   seconds: number;
   opensAt: string;
   closesAt: string;
@@ -44,19 +49,19 @@ export interface StreamWindow {
 }
 
 type WindowRow = {
-  id: string; game_id: string | null; community_id: string; broadcaster_id: string; kind: string;
-  prompt_id: string | null; seconds: number; opens_at: string; closes_at: string; status: StreamWindow["status"];
+  id: string; game_id: string | null; community_id: string; broadcaster_id: string; kind: string; team: number | null;
+  prompt_id: string | null; board_id: string | null; seconds: number; opens_at: string; closes_at: string; status: StreamWindow["status"];
 };
-const WINDOW_COLS = "id, game_id, community_id, broadcaster_id, kind, prompt_id, seconds, opens_at, closes_at, status";
+export const WINDOW_COLS = "id, game_id, community_id, broadcaster_id, kind, team, prompt_id, board_id, seconds, opens_at, closes_at, status";
 
-function toWindow(r: WindowRow): StreamWindow {
+export function toWindow(r: WindowRow): StreamWindow {
   return {
-    id: r.id, gameId: r.game_id, communityId: r.community_id, broadcasterId: r.broadcaster_id, kind: r.kind,
-    promptId: r.prompt_id, seconds: r.seconds, opensAt: r.opens_at, closesAt: r.closes_at, status: r.status,
+    id: r.id, gameId: r.game_id, communityId: r.community_id, broadcasterId: r.broadcaster_id, kind: r.kind, team: r.team,
+    promptId: r.prompt_id, boardId: r.board_id, seconds: r.seconds, opensAt: r.opens_at, closesAt: r.closes_at, status: r.status,
   };
 }
 
-function notReady(error: { code?: string } | null): boolean {
+export function notReady(error: { code?: string } | null): boolean {
   return error?.code === "42P01" || error?.code === "PGRST205" || error?.code === "42703";
 }
 
@@ -67,6 +72,36 @@ const cache = new Map<string, { at: number; window: StreamWindow | null }>();
 
 export function forgetChannel(broadcasterId: string): void {
   cache.delete(broadcasterId);
+}
+
+/**
+ * Open a game's guess window. It opens `delayMs` from now (the beat after a
+ * reveal, or the question's first look) and runs `seconds` from then.
+ * Null if the channel already has an open window.
+ */
+export async function openGuessWindow(input: {
+  gameId: string; communityId: string; broadcasterId: string; boardId: string; team: number; seconds: number; delayMs: number;
+}): Promise<StreamWindow | null> {
+  const opens = Date.now() + input.delayMs;
+  const { data, error } = await createServiceClient().from("brain_stream_windows").insert({
+    game_id: input.gameId, community_id: input.communityId, broadcaster_id: input.broadcasterId, kind: "guess",
+    team: input.team, board_id: input.boardId, seconds: input.seconds,
+    opens_at: new Date(opens).toISOString(), closes_at: new Date(opens + input.seconds * 1000).toISOString(),
+  }).select(WINDOW_COLS).single();
+  if (error || !data) {
+    if (error && error.code !== "23505") console.error("[chatbrain/stream] guess window not opened:", error);
+    return null;
+  }
+  const window = toWindow(data as WindowRow);
+  cache.set(input.broadcasterId, { at: Date.now(), window });
+  return window;
+}
+
+/** Retire an open window without scoring it (the board ended, or the game did). */
+export async function dropWindow(windowId: string, broadcasterId: string): Promise<void> {
+  await createServiceClient().from("brain_stream_windows").update({ status: "closed", closed_at: new Date().toISOString() })
+    .eq("id", windowId).eq("status", "open");
+  forgetChannel(broadcasterId);
 }
 
 /** The channel's open window, cached for 3s per serverless instance. */
@@ -155,6 +190,8 @@ export type GuessResult = "saved" | "no_window" | "closed" | "rejected";
 export async function recordGuess(input: { broadcasterId: string; platform: Platform; viewer: string; name?: string | null; raw: string }): Promise<GuessResult> {
   const window = await openWindowFor(input.broadcasterId);
   if (!window) return "no_window";
+  // A game's next guess hasn't started (chat is still seeing the reveal).
+  if (Date.parse(window.opensAt) > Date.now()) return "no_window";
   if (Date.parse(window.closesAt) <= Date.now()) {
     await closeWindow(window.id);
     return "closed";
@@ -180,7 +217,7 @@ export interface CloseSummary {
   top: { label: string; count: number }[];
 }
 
-type GuessRow = { platform: Platform; viewer: string; name: string | null; raw: string; normalized: string };
+export type GuessRow = { platform: Platform; viewer: string; name: string | null; raw: string; normalized: string; created_at: string };
 
 async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
   let i = 0;
@@ -201,8 +238,16 @@ export async function closeWindow(windowId: string, opts: { announce?: boolean }
   const window = toWindow(claimed as WindowRow);
   forgetChannel(window.broadcasterId);
 
-  const { data: gs } = await svc.from("brain_stream_guesses").select("platform, viewer, name, raw, normalized").eq("window_id", windowId).limit(20_000);
+  const { data: gs } = await svc.from("brain_stream_guesses").select("platform, viewer, name, raw, normalized, created_at").eq("window_id", windowId).limit(20_000);
   const guesses = (gs ?? []) as GuessRow[];
+
+  // A game's guess window: the game scores it, opens the next one and posts the line.
+  if (window.gameId) {
+    const { closeGameWindow } = await import("./streamGame");
+    await closeGameWindow(window, guesses);
+    return { windowId, broadcasterId: window.broadcasterId, guesses: guesses.length, own: false, question: null, top: [] };
+  }
+
   let question: string | null = null;
   let own = false;
   if (window.kind === "survey" && window.promptId) {
@@ -270,6 +315,10 @@ export async function sweepStreamWindows(): Promise<number> {
 /** What `!cb` says right now: the open window, or how to play. */
 export async function statusLine(broadcasterId: string): Promise<string> {
   const window = await openWindowFor(broadcasterId, { fresh: true });
+  if (window?.gameId) {
+    const { gameStatusLine } = await import("./streamGame");
+    return gameStatusLine(window.gameId);
+  }
   if (window?.kind === "survey" && window.promptId) {
     const svc = createServiceClient();
     const [{ data: p }, { count }] = await Promise.all([

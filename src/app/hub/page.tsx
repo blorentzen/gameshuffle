@@ -1,47 +1,43 @@
 /**
- * /hub — Hub home / session list view.
+ * /hub: the Stream hub home (rebuilt 2026-10-10, audit + mockups
+ * https://claude.ai/artifact/4npmxxzygb6MWZemkxtQ54).
  *
- * Per gs-pro-v1-phase-4a-spec.md §4. Server-rendered list of every
- * session owned by the current user across all lifecycle states, with
- * URL-state-driven filters + sort + pagination.
+ * What a streamer opens the hub for, in order: the stream that's live now
+ * (one big card with the control room button), then what's coming up
+ * (scheduled streams and drafts as short rows), this month in numbers, and
+ * past streams as a list they can search. Test streams stay out of the
+ * past list unless asked for. A setup problem (no Twitch, the bot can't
+ * post, missing EventSub) shows once at the top with a link to fix it.
  *
- * URL params:
- *   - status=draft,scheduled,...  (multi-value, comma-separated)
- *   - platform=twitch,discord     (multi-value, comma-separated; 4A only sees twitch)
- *   - sort=newest|oldest|name     (default newest)
- *   - limit=50                    (default 50; "Load more" doubles in 50-session increments)
+ * URL params: q (search past streams by name), test=1 (include test
+ * streams in the past list), limit (past streams shown, default 25).
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, Card, EmptyState } from "@empac/cascadeds";
-import { PlatformBadge } from "@/components/hub/PlatformBadge";
-import { GameArtwork } from "@/components/hub/GameArtwork";
-import { getGameName } from "@/data/game-registry";
+import { Alert, Button, EmptyState, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
-import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
-import { HubFilterControls } from "@/components/hub/HubFilterControls";
-import { NewSessionButton } from "@/components/hub/NewSessionButton";
-import { StreamInfoButton } from "@/components/hub/StreamInfoButton";
-import { statusLabel, type SessionStatus } from "@/lib/sessions/types";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { requireHubAccess } from "@/lib/capabilities/hub-access";
+import { getGameName } from "@/data/game-registry";
+import { GameCover } from "@/components/games/GameCover";
+import { NewSessionButton } from "@/components/hub/NewSessionButton";
+import { PlatformBadge } from "@/components/hub/PlatformBadge";
+import { TokenAllowanceBadge } from "@/components/hub/TokenAllowanceBadge";
+import { formatDuration } from "@/lib/time/relative";
+import { formatEventShort } from "@/lib/time/format";
+import { gsMonthStart } from "@/lib/time/gsClock";
+import type { SessionStatus } from "@/lib/sessions/types";
 
 export const metadata: Metadata = {
-  title: "Hub",
+  title: "Stream hub",
   robots: { index: false, follow: false },
 };
 
-const ALL_STATUSES: SessionStatus[] = [
-  "draft",
-  "scheduled",
-  "ready",
-  "active",
-  "ending",
-  "ended",
-  "cancelled",
-];
-const DEFAULT_LIMIT = 50;
+const PAGE_SIZE = 25;
+/** EventSub subscriptions a healthy connection has (twitch/eventsub.ts). */
+const EXPECTED_SUBS = 4;
+const ROLL_EVENTS = ["shuffle", "race_randomized"];
 
 interface SessionRow {
   id: string;
@@ -59,522 +55,272 @@ interface SessionRow {
   created_at: string;
 }
 
+const COLS = "id, name, slug, status, scheduled_at, activated_at, ended_at, feature_flags, platforms, config, configured_games, active_game, created_at";
+
 interface PageSearchParams {
-  status?: string | string[];
-  platform?: string | string[];
-  sort?: string | string[];
-  limit?: string | string[];
-  /** Real-vs-test view toggle. Default `real` so test runs don't muddy
-   *  the streamer's session history. */
-  view?: string | string[];
+  q?: string;
+  test?: string;
+  limit?: string;
 }
 
-type HubView = "real" | "test" | "all";
-
-function parseView(raw: string | string[] | undefined): HubView {
-  const v = Array.isArray(raw) ? raw[0] : raw;
-  if (v === "test" || v === "all") return v;
-  return "real";
+const isTest = (r: SessionRow) => !!r.feature_flags?.test_session;
+const gameOf = (r: SessionRow, live = false) =>
+  (live ? r.active_game : null) ?? r.configured_games?.[0] ?? r.config?.game ?? null;
+/** Seconds since a time (for a live stream's running length). */
+function elapsed(from: string | null): number | null {
+  return seconds(from, Date.now());
 }
+const seconds = (from: string | null, to: string | null | number) => {
+  if (!from) return null;
+  const end = typeof to === "number" ? to : to ? Date.parse(to) : NaN;
+  const ms = end - Date.parse(from);
+  return Number.isFinite(ms) && ms > 0 ? Math.floor(ms / 1000) : null;
+};
 
-export default async function HubHomePage({
-  searchParams,
-}: {
-  searchParams: Promise<PageSearchParams>;
-}) {
+export default async function HubHomePage({ searchParams }: { searchParams: Promise<PageSearchParams> }) {
   const params = await searchParams;
   await requireHubAccess("/hub");
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const statusFilter = parseList(params.status, ALL_STATUSES);
-  const platformFilter = parseList(params.platform, ["twitch", "discord"]);
-  const sort = parseSort(params.sort);
-  const limit = parseLimit(params.limit);
-  const view = parseView(params.view);
-
-  // Query gs_sessions filtered to the owner. Apply status filter at the DB
-  // level; platform filter is a JSONB walk so we filter in JS.
-  let query = supabase
-    .from("gs_sessions")
-    .select(
-      "id, name, slug, status, scheduled_at, activated_at, ended_at, feature_flags, platforms, config, configured_games, active_game, created_at"
-    )
-    .eq("owner_user_id", user.id);
-
-  if (statusFilter.length > 0 && statusFilter.length < ALL_STATUSES.length) {
-    query = query.in("status", statusFilter);
-  }
-
-  // View filter — real / test / all. Default real keeps test sessions
-  // out of the streamer's session history; the toggle exposes them
-  // explicitly when wanted.
-  if (view === "real") {
-    // feature_flags->>test_session is null OR != 'true'
-    query = query.or(
-      "feature_flags->>test_session.is.null,feature_flags->>test_session.neq.true"
-    );
-  } else if (view === "test") {
-    query = query.eq("feature_flags->>test_session", "true");
-  }
-
-  if (sort === "newest") {
-    query = query.order("created_at", { ascending: false });
-  } else if (sort === "oldest") {
-    query = query.order("created_at", { ascending: true });
-  } else {
-    query = query.order("name", { ascending: true });
-  }
-
-  // Fetch one extra so we know whether "Load more" should render.
-  query = query.limit(limit + 1);
-
-  const { data: rows } = await query;
-  const allRows = (rows ?? []) as SessionRow[];
-
-  // Apply platform filter (JSONB walk)
-  const filtered = filterByPlatform(allRows, platformFilter);
-  const hasMore = filtered.length > limit;
-  const visible = filtered.slice(0, limit);
-
-  // Total counts for the view-toggle chips. Two cheap head-only counts;
-  // the labels surface "Sessions (12) · Test streams (3)" so the
-  // streamer sees the size of each bucket.
-  const adminCounts = createServiceClient();
-  const [realCountResult, testCountResult] = await Promise.all([
-    adminCounts
-      .from("gs_sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_user_id", user.id)
-      .or(
-        "feature_flags->>test_session.is.null,feature_flags->>test_session.neq.true"
-      ),
-    adminCounts
-      .from("gs_sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("owner_user_id", user.id)
-      .eq("feature_flags->>test_session", "true"),
-  ]);
-  const viewCounts = {
-    real: realCountResult.count ?? 0,
-    test: testCountResult.count ?? 0,
-  };
-
-  // Stream-info modal needs the streamer's overlay token + connection
-  // existence so the header CTA can show / hide. Live-view link on
-  // active session cards needs the public-facing slug.
+  const q = (params.q ?? "").trim().slice(0, 80);
+  const showTest = params.test === "1";
+  const limit = Math.min(Math.max(parseInt(params.limit ?? "", 10) || PAGE_SIZE, PAGE_SIZE), 500);
   const admin = createServiceClient();
-  const [{ data: connectionRow }, { data: profileRow }] = await Promise.all([
-    admin
-      .from("twitch_connections")
-      .select("id, overlay_token")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    admin
-      .from("users")
-      .select("username, twitch_username")
-      .eq("id", user.id)
-      .maybeSingle(),
+
+  // Live and coming up: never many, so read them whole.
+  const { data: openRows } = await supabase.from("gs_sessions").select(COLS)
+    .eq("owner_user_id", user.id).in("status", ["active", "ending", "scheduled", "ready", "draft"])
+    .order("created_at", { ascending: false });
+  const open = (openRows ?? []) as SessionRow[];
+  const live = open.filter((r) => r.status === "active" || r.status === "ending");
+  const comingUp = open
+    .filter((r) => r.status === "scheduled" || r.status === "ready" || r.status === "draft")
+    .sort((a, b) => (a.scheduled_at ? Date.parse(a.scheduled_at) : Infinity) - (b.scheduled_at ? Date.parse(b.scheduled_at) : Infinity));
+
+  // Past streams: ended or cancelled, newest first, searchable, test ones only when asked.
+  let pastQuery = supabase.from("gs_sessions").select(COLS)
+    .eq("owner_user_id", user.id).in("status", ["ended", "cancelled"])
+    .order("ended_at", { ascending: false, nullsFirst: false }).limit(limit + 1);
+  if (!showTest) pastQuery = pastQuery.or("feature_flags->>test_session.is.null,feature_flags->>test_session.neq.true");
+  if (q) pastQuery = pastQuery.ilike("name", `%${q.replace(/[\\%_]/g, "\\$&")}%`);
+  const { data: pastRows } = await pastQuery;
+  const pastAll = (pastRows ?? []) as SessionRow[];
+  const hasMore = pastAll.length > limit;
+  const past = pastAll.slice(0, limit);
+
+  // Who played: viewers (not the streamer) per session, for the live card and the past list.
+  const countIds = [...live, ...past].map((r) => r.id);
+  const players = new Map<string, number>();
+  const lobbyNow = new Map<string, number>();
+  if (countIds.length) {
+    const { data: parts } = await admin.from("session_participants")
+      .select("session_id, left_at").in("session_id", countIds).eq("is_broadcaster", false);
+    for (const p of (parts ?? []) as { session_id: string; left_at: string | null }[]) {
+      players.set(p.session_id, (players.get(p.session_id) ?? 0) + 1);
+      if (!p.left_at) lobbyNow.set(p.session_id, (lobbyNow.get(p.session_id) ?? 0) + 1);
+    }
+  }
+  const openRounds = new Set<string>();
+  if (live.length) {
+    const { data: rounds } = await admin.from("session_picks_bans_rounds")
+      .select("session_id").in("session_id", live.map((r) => r.id)).eq("status", "open");
+    for (const r of (rounds ?? []) as { session_id: string }[]) openRounds.add(r.session_id);
+  }
+
+  // This month (Pacific), real streams only.
+  const monthStart = gsMonthStart();
+  const { data: monthRows } = await admin.from("gs_sessions").select("id")
+    .eq("owner_user_id", user.id).gte("activated_at", monthStart)
+    .or("feature_flags->>test_session.is.null,feature_flags->>test_session.neq.true");
+  const monthIds = ((monthRows ?? []) as { id: string }[]).map((r) => r.id);
+  let monthPlayers = 0;
+  let monthRolls = 0;
+  if (monthIds.length) {
+    const [{ data: mp }, { count: rolls }] = await Promise.all([
+      admin.from("session_participants").select("platform, platform_user_id").in("session_id", monthIds).eq("is_broadcaster", false),
+      admin.from("session_events").select("id", { count: "exact", head: true }).in("session_id", monthIds).in("event_type", ROLL_EVENTS),
+    ]);
+    monthPlayers = new Set(((mp ?? []) as { platform: string; platform_user_id: string }[]).map((p) => `${p.platform}:${p.platform_user_id}`)).size;
+    monthRolls = rolls ?? 0;
+  }
+
+  // Setup health, said once.
+  const [{ data: profile }, { data: conn }, { count: enabledSubs }] = await Promise.all([
+    admin.from("users").select("username, twitch_username, timezone").eq("id", user.id).maybeSingle(),
+    admin.from("twitch_connections").select("bot_authorized").eq("user_id", user.id).maybeSingle(),
+    admin.from("twitch_eventsub_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "enabled"),
   ]);
-  const hasTwitchConnection = !!connectionRow;
-  const overlayToken = (connectionRow?.overlay_token as string | null) ?? null;
-  // Streamer's public live-view slug — username first, twitch_username
-  // fallback. Mirrors /live/[streamer-slug] resolution. Null when
-  // neither is set; the "Live view" link on active-session cards
-  // hides in that case.
-  const liveSlug =
-    (profileRow?.username as string | null) ??
-    (profileRow?.twitch_username as string | null) ??
-    null;
+  const tz = (profile?.timezone as string | null) ?? null;
+  const liveSlug = (profile?.username as string | null) ?? (profile?.twitch_username as string | null) ?? null;
+  const setupProblem = !conn
+    ? { title: "Connect Twitch so GameShuffle can follow your streams", body: "It opens a stream here when you go live and runs your chat commands.", action: "Connect Twitch" }
+    : !conn.bot_authorized
+      ? { title: "The bot can't post in your chat yet", body: "Reconnect Twitch to let the GameShuffle bot reply, then send a test message.", action: "Fix in Setup" }
+      : (enabledSubs ?? 0) < EXPECTED_SUBS
+        ? { title: "GameShuffle isn't hearing everything from Twitch", body: "Going live, game changes or chat may be missed. Setup can repair it in one click.", action: "Fix in Setup" }
+        : null;
+
+  const nothingYet = live.length === 0 && comingUp.length === 0 && past.length === 0 && !q && !showTest;
 
   return (
-    <div className="hub-page">
-      <header className="hub-page__header">
-        <div className="hub-page__heading">
-          <p className="hub-page__eyebrow">Hub</p>
-          <h1 className="hub-page__title">
-            {view === "test"
-              ? "Test streams"
-              : view === "all"
-                ? "All sessions"
-                : "Sessions"}
-          </h1>
+    <div className="hub-page hub-home">
+      <header className="hub-home__head">
+        <div className="hub-home__title">
+          <h1 className="hub-page__title">Stream hub</h1>
+          <TokenAllowanceBadge ownerUserId={user.id} />
         </div>
         <div className="hub-page__header-actions">
-          {hasTwitchConnection && (
-            <StreamInfoButton overlayToken={overlayToken} />
-          )}
-          <NewSessionButton defaultTest={view === "test"} />
+          <Link href="/account/streaming"><Button variant="secondary">Stream settings</Button></Link>
+          <NewSessionButton />
         </div>
       </header>
 
-      <HubFilterControls
-        statusOptions={ALL_STATUSES}
-        platformOptions={[
-          { value: "twitch", label: "Twitch" },
-          { value: "discord", label: "Discord" },
-        ]}
-        initialStatus={statusFilter}
-        initialPlatform={platformFilter}
-        initialSort={sort}
-        initialView={view}
-        counts={viewCounts}
-      />
+      {setupProblem && (
+        <Alert variant="warning" title={setupProblem.title}>
+          <span className="hub-home__alert-body">
+            {setupProblem.body}{" "}
+            <Link href="/account/streaming?tab=integrations">{setupProblem.action}</Link>
+          </span>
+        </Alert>
+      )}
 
-      {visible.length === 0 ? (
+      {nothingYet ? (
         <EmptyState
-          title={
-            view === "test"
-              ? "No test streams yet"
-              : "No sessions yet"
-          }
-          description={
-            view === "test"
-              ? "Test streams are draft → configure → activate runs that mimic the real flow but skip auto-end + wrap-up. Create one above to rehearse without affecting your session history."
-              : "When you go live in a supported game, GameShuffle will open a session here. You can also create a test stream above to rehearse without going live."
-          }
+          variant="bordered"
+          title="No streams yet"
+          description="Go live on Twitch in a game GameShuffle supports and a stream opens here on its own. Or start one now to set up games, picks and bans, and your stream tools ahead of time."
+          action={<NewSessionButton />}
         />
       ) : (
         <>
-          <StatusLegend />
-          <SessionGroupedList rows={visible} liveSlug={liveSlug} />
+          {live.map((r) => {
+            const game = gameOf(r, true);
+            const dur = elapsed(r.activated_at);
+            return (
+              <section key={r.id} className="hub-live" aria-label="Live now">
+                <span className="hub-live__cover">{game && <GameCover slug={game} name={getGameName(game)} />}</span>
+                <div className="hub-live__main">
+                  <div className="hub-live__badges">
+                    <span className="hub-live__pill">
+                      {r.status === "ending" ? "Wrapping up" : "Live"}
+                      {/* A session left open for days reads better as a date than as 414h. */}
+                      {dur ? (dur > 12 * 3600 ? ` · since ${formatEventShort(r.activated_at, tz).split(" · ")[0]}` : ` · ${formatDuration(dur)}`) : ""}
+                    </span>
+                    {isTest(r) && <span className="hub-live__tag">Test</span>}
+                  </div>
+                  <h2 className="hub-live__name">{r.name}</h2>
+                  <p className="hub-live__meta">
+                    {[game ? getGameName(game) : null, `${lobbyNow.get(r.id) ?? 0} in the lobby`, openRounds.has(r.id) ? "picks and bans open" : null].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+                <div className="hub-live__actions">
+                  {liveSlug && <Link href={`/live/${encodeURIComponent(liveSlug)}`} target="_blank" rel="noopener noreferrer"><Button variant="secondary">Live page ↗</Button></Link>}
+                  <Link href={`/hub/sessions/${r.slug}`}><Button variant="primary">Open control room</Button></Link>
+                </div>
+              </section>
+            );
+          })}
+
+          <div className="hub-home__row">
+            <section className="hub-panel" aria-labelledby="hub-coming">
+              <h2 id="hub-coming" className="hub-panel__title">Coming up <span className="hub-page__group-count">{comingUp.length}</span></h2>
+              {comingUp.length === 0 ? (
+                <p className="hub-panel__empty">Nothing planned. Schedule a stream and GameShuffle opens it and announces it for you.</p>
+              ) : (
+                <ul className="hub-rows">
+                  {comingUp.map((r) => {
+                    const game = gameOf(r);
+                    const platform = r.platforms?.streaming?.type;
+                    return (
+                      <li key={r.id} className="hub-rows__row">
+                        <span className="hub-rows__cover">{game && <GameCover slug={game} name={getGameName(game)} />}</span>
+                        <div className="hub-rows__main">
+                          <Link href={`/hub/sessions/${r.slug}`} className="hub-rows__name">{r.name}</Link>
+                          <span className="hub-rows__meta">
+                            {r.status === "draft" ? <span className="hub-rows__tag">Draft</span> : null}
+                            {isTest(r) ? <span className="hub-rows__tag">Test</span> : null}
+                            {r.scheduled_at ? formatEventShort(r.scheduled_at, tz) : r.status === "draft" ? "Not scheduled yet" : ""}
+                            {platform ? <PlatformBadge platform={platform} /> : null}
+                          </span>
+                        </div>
+                        <Link href={`/hub/sessions/${r.slug}`}><Button variant="secondary" size="small">{r.status === "draft" ? "Continue" : "Edit"}</Button></Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            <section className="hub-panel" aria-labelledby="hub-month">
+              <h2 id="hub-month" className="hub-panel__title">This month</h2>
+              <div className="hub-stats">
+                <div className="hub-stats__item"><span className="hub-stats__label">Streams</span><span className="hub-stats__value">{monthIds.length}</span></div>
+                <div className="hub-stats__item"><span className="hub-stats__label">Viewers who played</span><span className="hub-stats__value">{monthPlayers}</span></div>
+                <div className="hub-stats__item"><span className="hub-stats__label">Rolls</span><span className="hub-stats__value">{monthRolls}</span></div>
+              </div>
+            </section>
+          </div>
+
+          <section className="hub-panel" aria-labelledby="hub-past">
+            <div className="hub-panel__head">
+              <h2 id="hub-past" className="hub-panel__title">Past streams</h2>
+              <Link className="hub-panel__link" href={showTest ? `/hub${q ? `?q=${encodeURIComponent(q)}` : ""}` : `/hub?test=1${q ? `&q=${encodeURIComponent(q)}` : ""}`}>
+                {showTest ? "Hide test streams" : "Show test streams"}
+              </Link>
+            </div>
+            <form method="get" action="/hub" className="hub-panel__search" role="search">
+              {showTest && <input type="hidden" name="test" value="1" />}
+              <Input type="search" name="q" defaultValue={q} placeholder="Search past streams" aria-label="Search past streams" fullWidth />
+              <Button type="submit" variant="secondary">Search</Button>
+            </form>
+            {past.length === 0 ? (
+              <p className="hub-panel__empty">{q ? `No past streams match "${q}".` : "Streams you finish show up here, with what happened on each."}</p>
+            ) : (
+              <div className="hub-table" role="region" aria-label="Past streams table" tabIndex={0}>
+                <Table hoverable>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Stream</TableHead>
+                      <TableHead>Game</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Length</TableHead>
+                      <TableHead align="right">Viewers who played</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {past.map((r) => {
+                      const game = gameOf(r);
+                      const dur = seconds(r.activated_at, r.ended_at);
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell>
+                            <Link href={`/hub/sessions/${r.slug}`} className="hub-table__name">{r.name}</Link>
+                            {isTest(r) && <span className="hub-rows__tag">Test</span>}
+                            {r.status === "cancelled" && <span className="hub-rows__tag">Cancelled</span>}
+                          </TableCell>
+                          <TableCell>{game ? getGameName(game) : "-"}</TableCell>
+                          <TableCell>{formatEventShort(r.ended_at ?? r.created_at, tz).split(" · ")[0]}</TableCell>
+                          <TableCell>{dur ? formatDuration(dur) : "-"}</TableCell>
+                          <TableCell align="right">{players.get(r.id) ?? 0}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            {hasMore && (
+              <div className="hub-page__load-more">
+                <Link href={`/hub?limit=${limit + PAGE_SIZE}${showTest ? "&test=1" : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`} scroll={false}>
+                  <Button variant="secondary">Show more</Button>
+                </Link>
+              </div>
+            )}
+          </section>
         </>
       )}
-
-      {hasMore && (
-        <div className="hub-page__load-more">
-          <Link
-            href={buildLoadMoreHref(params, limit + DEFAULT_LIMIT)}
-            scroll={false}
-          >
-            <Button variant="secondary">Load more</Button>
-          </Link>
-        </div>
-      )}
     </div>
   );
-}
-
-interface SessionGroup {
-  key: "in_progress" | "drafts" | "scheduled" | "completed";
-  label: string;
-  description: string;
-  rows: SessionRow[];
-}
-
-const GROUP_LABELS: Record<SessionGroup["key"], { label: string; description: string }> = {
-  in_progress: {
-    label: "In progress",
-    description: "Live or wrapping up. The bot is responding to chat.",
-  },
-  drafts: {
-    label: "Drafts",
-    description: "Created but not yet activated. Activate from the session detail page.",
-  },
-  scheduled: {
-    label: "Scheduled",
-    description: "Set to activate at a future time, or inside an open eligibility window.",
-  },
-  completed: {
-    label: "Completed",
-    description: "Ended or cancelled. Recaps are available for finished sessions.",
-  },
-};
-
-function bucketFor(status: SessionStatus): SessionGroup["key"] {
-  if (status === "active" || status === "ending") return "in_progress";
-  if (status === "draft") return "drafts";
-  if (status === "scheduled" || status === "ready") return "scheduled";
-  return "completed"; // ended | cancelled
-}
-
-function SessionGroupedList({
-  rows,
-  liveSlug,
-}: {
-  rows: SessionRow[];
-  liveSlug: string | null;
-}) {
-  // Bucket by lifecycle phase. Within each bucket, the parent query
-  // already applied the user's chosen sort, so order is preserved.
-  const buckets: Record<SessionGroup["key"], SessionRow[]> = {
-    in_progress: [],
-    drafts: [],
-    scheduled: [],
-    completed: [],
-  };
-  for (const row of rows) {
-    buckets[bucketFor(row.status)].push(row);
-  }
-
-  // Display order: most-actionable first.
-  const order: SessionGroup["key"][] = [
-    "in_progress",
-    "drafts",
-    "scheduled",
-    "completed",
-  ];
-
-  return (
-    <div className="hub-page__groups">
-      {order.map((key) => {
-        const groupRows = buckets[key];
-        if (groupRows.length === 0) return null;
-        const meta = GROUP_LABELS[key];
-        return (
-          <section key={key} className="hub-page__group">
-            <header className="hub-page__group-header">
-              <div>
-                <h2 className="hub-page__group-title">
-                  {meta.label}{" "}
-                  <span className="hub-page__group-count">{groupRows.length}</span>
-                </h2>
-                <p className="hub-page__group-description">{meta.description}</p>
-              </div>
-            </header>
-            <div className="hub-page__list">
-              {groupRows.map((row) => (
-                <SessionListCard key={row.id} row={row} liveSlug={liveSlug} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
-    </div>
-  );
-}
-
-function SessionListCard({
-  row,
-  liveSlug,
-}: {
-  row: SessionRow;
-  liveSlug: string | null;
-}) {
-  const isActive = row.status === "active" || row.status === "ending";
-  const isTest = !!row.feature_flags?.test_session;
-  const platformType = row.platforms?.streaming?.type;
-  // Multi-game spec: prefer the live `active_game` pointer when the
-  // session is active, fall back to `configured_games[0]`, then
-  // `config.game` (legacy single-game). Card artwork shows GS Queue
-  // when none of these are set.
-  const cardArtworkSlug = isActive
-    ? row.active_game ?? row.configured_games?.[0] ?? row.config?.game ?? null
-    : row.configured_games?.[0] ?? row.config?.game ?? null;
-  const gameSlug = cardArtworkSlug;
-  const gameLabel = gameSlug ? getGameName(gameSlug) : null;
-  const isMultiGame =
-    Array.isArray(row.configured_games) && row.configured_games.length > 1;
-  const startTime = row.activated_at ?? row.created_at;
-  const durationSeconds =
-    row.activated_at && row.ended_at
-      ? Math.max(
-          0,
-          Math.floor(
-            (Date.parse(row.ended_at) - Date.parse(row.activated_at)) / 1000
-          )
-        )
-      : null;
-
-  // Text hierarchy: title (primary) → game (secondary) → platforms
-  // (chips) → time/duration meta (tertiary). Only render rows that
-  // have data so empty fields don't show as blank lines.
-  //
-  // Live-view link sits OUTSIDE the clickable Card so clicks on it
-  // don't race the card's outer navigation to the session detail.
-  return (
-    <div
-      className={`hub-card-wrapper hub-card-wrapper--${row.status}${isTest ? " hub-card-wrapper--test" : ""}`}
-      data-status={row.status}
-    >
-      <Card variant="outlined" padding="medium" interactive href={`/hub/sessions/${row.slug}`}>
-        <div className="hub-card">
-          <div className="hub-card__artwork">
-            <GameArtwork slug={cardArtworkSlug} size="thumb" />
-          </div>
-          <div className="hub-card__main">
-            <div className="hub-card__title-row">
-              <span className="hub-card__title">{row.name}</span>
-              {isTest && (
-                <span className="hub-card__test-flag" title="Test stream">
-                  TEST
-                </span>
-              )}
-            </div>
-            {gameLabel && (
-              <span className="hub-card__game">
-                {gameLabel}
-                {isMultiGame && row.configured_games && (
-                  <span className="hub-card__game-extra">
-                    {" "}+ {row.configured_games.length - 1} more
-                  </span>
-                )}
-              </span>
-            )}
-            {platformType && (
-              <div className="hub-card__platforms">
-                <PlatformBadge platform={platformType} />
-              </div>
-            )}
-            <div className="hub-card__meta">
-              {row.scheduled_at && (
-                <span className="hub-card__meta-item">
-                  scheduled <strong>{formatDateTimeShort(row.scheduled_at)}</strong>
-                  {" · "}
-                  {formatRelativeTime(row.scheduled_at)}
-                </span>
-              )}
-              {isActive && (
-                <span className="hub-card__meta-item">
-                  started <strong>{formatDateTimeShort(startTime)}</strong>
-                  {" · "}
-                  {formatRelativeTime(startTime)}
-                </span>
-              )}
-              {(row.status === "ended" || row.status === "cancelled") && (
-                <span className="hub-card__meta-item">
-                  {row.status === "ended" ? "ended" : "cancelled"}{" "}
-                  <strong>{formatDateShort(row.ended_at ?? row.created_at)}</strong>
-                  {row.status === "ended" && durationSeconds !== null && (
-                    <> · lasted {formatDuration(durationSeconds)}</>
-                  )}
-                </span>
-              )}
-              {!isActive &&
-                row.status !== "ended" &&
-                row.status !== "cancelled" &&
-                !row.scheduled_at && (
-                  <span className="hub-card__meta-item">
-                    created <strong>{formatDateShort(row.created_at)}</strong>
-                    {" · "}
-                    {formatRelativeTime(row.created_at)}
-                  </span>
-                )}
-            </div>
-          </div>
-        </div>
-      </Card>
-      {isActive && liveSlug && (
-        <a
-          href={`/live/${encodeURIComponent(liveSlug)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hub-card__live-link"
-        >
-          Live view ↗
-        </a>
-      )}
-    </div>
-  );
-}
-
-/**
- * Status legend rendered above the session list. Replaces per-card
- * Badges with a single shared key so the cards stay clean and the
- * accent stripe colors carry their meaning.
- */
-const LEGEND_STATUSES: SessionStatus[] = [
-  "active",
-  "scheduled",
-  "ready",
-  "draft",
-  "ending",
-  "ended",
-  "cancelled",
-];
-
-function StatusLegend() {
-  return (
-    <div className="hub-legend" role="list" aria-label="Session status legend">
-      {LEGEND_STATUSES.map((s) => (
-        <span key={s} className="hub-legend__item" role="listitem">
-          <span
-            className={`hub-legend__swatch hub-legend__swatch--${s}`}
-            aria-hidden="true"
-          />
-          {statusLabel(s)}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-// ---- helpers --------------------------------------------------------------
-
-function parseList<T extends string>(
-  raw: string | string[] | undefined,
-  validValues: readonly T[]
-): T[] {
-  if (!raw) return [];
-  const flat = Array.isArray(raw) ? raw.join(",") : raw;
-  return flat
-    .split(",")
-    .map((v) => v.trim())
-    .filter((v): v is T => (validValues as readonly string[]).includes(v));
-}
-
-function parseSort(raw: string | string[] | undefined): "newest" | "oldest" | "name" {
-  const v = Array.isArray(raw) ? raw[0] : raw;
-  if (v === "oldest" || v === "name") return v;
-  return "newest";
-}
-
-function parseLimit(raw: string | string[] | undefined): number {
-  const v = Array.isArray(raw) ? raw[0] : raw;
-  const n = v ? parseInt(v, 10) : NaN;
-  if (!Number.isFinite(n) || n <= 0) return DEFAULT_LIMIT;
-  return Math.min(n, 500);
-}
-
-function filterByPlatform(rows: SessionRow[], platforms: string[]): SessionRow[] {
-  if (platforms.length === 0) return rows;
-  return rows.filter((row) => {
-    const t = row.platforms?.streaming?.type;
-    return t ? platforms.includes(t) : false;
-  });
-}
-
-function buildLoadMoreHref(
-  params: PageSearchParams,
-  newLimit: number
-): string {
-  const out = new URLSearchParams();
-  if (params.status) out.set("status", asString(params.status));
-  if (params.platform) out.set("platform", asString(params.platform));
-  if (params.sort) out.set("sort", asString(params.sort));
-  out.set("limit", String(newLimit));
-  return `/hub?${out.toString()}`;
-}
-
-function asString(v: string | string[]): string {
-  return Array.isArray(v) ? v.join(",") : v;
-}
-
-/** Short date like "Apr 24". Anchors the timeline on the card alongside
- *  the relative-time cue. */
-function formatDateShort(input: string | null | undefined): string {
-  if (!input) return "-";
-  const ms = Date.parse(input);
-  if (!Number.isFinite(ms)) return "-";
-  return new Date(ms).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-/** Short date+time like "Apr 24, 8:00 PM". For scheduled/started events
- *  where the exact time matters. */
-function formatDateTimeShort(input: string | null | undefined): string {
-  if (!input) return "-";
-  const ms = Date.parse(input);
-  if (!Number.isFinite(ms)) return "-";
-  return new Date(ms).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }

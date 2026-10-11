@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { sweepDuePolls } from "@/lib/polls/store";
 import { sweepStreamWindows } from "@/lib/chatbrain/stream";
+import { sweepBreaks } from "@/lib/break/store";
 
 export const runtime = "nodejs";
 
@@ -28,5 +29,10 @@ export async function GET(request: Request) {
     console.error("[cron/polls-sweep] chat brain sweep failed:", err);
     return 0;
   });
-  return NextResponse.json({ ok: true, closed, brainWindows });
+  // Break mode: moves any break whose overlay isn't open (the overlay's read normally does it).
+  const breaks = await sweepBreaks().catch((err) => {
+    console.error("[cron/polls-sweep] break sweep failed:", err);
+    return 0;
+  });
+  return NextResponse.json({ ok: true, closed, brainWindows, breaks });
 }

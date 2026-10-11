@@ -29,6 +29,7 @@ export async function listMoreFromOrganizer(
       .select("id, title, date_time, settings, status, header_image_url")
       .eq("organizer_id", userId)
       .in("status", ["open", "in_progress"])
+      .is("archived_at", null)
       .gte("date_time", nowIso)
       .order("date_time", { ascending: true })
       .limit(limit + 1),
@@ -38,6 +39,7 @@ export async function listMoreFromOrganizer(
       .eq("host_id", userId)
       .eq("status", "scheduled")
       .eq("visibility", "public")
+      .is("archived_at", null)
       .gte("starts_at", nowIso)
       .order("starts_at", { ascending: true })
       .limit(limit + 1),

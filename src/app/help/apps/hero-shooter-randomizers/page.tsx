@@ -61,9 +61,6 @@ export default function Page() {
         a phone. Portraits may come later.
       </p>
 
-      <h2>Sharing it</h2>
-      <p><strong>Copy heroes</strong> gives you everyone&apos;s hero, and the map if you rolled one, as text for chat or Discord.</p>
-
       <h2>On stream</h2>
       <p>
         GS Pro streamers: while your Twitch category is one of these games, viewers type <code>!gs-shuffle</code> in chat to roll

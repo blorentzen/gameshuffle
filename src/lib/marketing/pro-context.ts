@@ -48,11 +48,61 @@ const FROM: Record<string, ProContext> = {
     headline: "Turn your chat into players.",
     lede: "Pro adds the module layer: prediction markets, bounties, awards and the token economy your viewers play for.",
   },
+  "discord-page": {
+    headline: "Run your Discord with GameShuffle.",
+    lede: "Pro adds the server tools: go-live alerts for the creators you follow, roles, AutoMod and logs, Question of the Day, and up to five servers.",
+  },
+  "discord-servers": {
+    headline: "Run GameShuffle in more servers.",
+    lede: "Free works in one server. Pro runs the bot in up to five, each with its own channels, roles and posts.",
+  },
+  draft: {
+    headline: "Let chat draft your team.",
+    lede: "Pro runs Chat Draft: chat votes your Pokémon team, kart combo or Smash fighter one pick at a time, live on your overlay.",
+  },
+  bingo: {
+    headline: "Run Stream Bingo for your chat.",
+    lede: "Pro deals every viewer a card on your live page, calls the numbers on your overlay and checks every bingo for you.",
+  },
+  "streaming-get-started": {
+    headline: "Turn your stream into game night.",
+    lede: "Pro connects Twitch: your overlay, chat commands, rolls for every game, live games and break mode, all run from one place.",
+  },
+  jackbox: {
+    headline: "Let chat pick the Jackbox game.",
+    lede: "Pro sends your three picks to one poll across your overlay, Twitch chat and Discord, and tallies every vote.",
+  },
+  decks: {
+    headline: "Write your own cards.",
+    lede: "Pro lets you write Chance cards, missions and house rules for your community, and draft a set with AI.",
+  },
+  "ai-pack": {
+    headline: "Make a content pack with AI.",
+    lede: "Pro drafts wheel slices, bingo prompts and tier lists from a theme you give it, and you keep the ones you like.",
+  },
+  "ai-recap": {
+    headline: "Recap your stream with AI.",
+    lede: "Pro writes the Discord post and a short post from what happened on stream; you edit them and share.",
+  },
+  "ai-deck": {
+    headline: "Draft deck cards with AI.",
+    lede: "Pro drafts Chance cards, missions and house rules from a theme, and you publish the ones that fit your table.",
+  },
+  "ai-trivia": {
+    headline: "Draft trivia questions with AI.",
+    lede: "Pro drafts questions for your trivia night with sources to check, and you approve every one before it's used.",
+  },
+};
+
+/** Any other AI tool (`?from=ai-<feature>` from AiGate): the allowance pitch. */
+const AI_ANY: ProContext = {
+  headline: "Keep going with the AI tools.",
+  lede: "Free accounts get a few tries a day. Pro gives you a monthly allowance across every AI tool, from setups and plans to packs and recaps.",
 };
 
 export function proContextFor(from: string | null | undefined): ProContext | null {
   if (!from) return null;
-  return FROM[from] ?? null;
+  return FROM[from] ?? (from.startsWith("ai-") ? AI_ANY : null);
 }
 
 /** The keys a link may pass, for the test and for anyone adding a new gate. */

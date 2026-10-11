@@ -13,6 +13,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { googleCalendarUrl, icsPath, type EventType } from "@/lib/events/calendar";
 import { buildEventJsonLd } from "@/lib/events/jsonld";
 import { OrganizerCard, type OrganizerInfo } from "./OrganizerCard";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * The shared event page shell (Eventbrite's page shape, our content):
@@ -84,6 +85,8 @@ export interface EventShellProps {
   presentedBy?: { slug: string; name: string } | null;
   organizer: OrganizerInfo;
   organizerRoleLabel?: string;
+  /** An official event hosted by GameShuffle itself (tournaments.hosted_by_gs). */
+  official?: boolean;
   isOrganizer?: boolean;
   /** When set, shows the owner bar with a link to the manage surface. */
   manageHref?: string | null;
@@ -103,6 +106,11 @@ export interface EventShellProps {
   calendarDescription?: string | null;
   /** Absolute page URL for share + calendar. */
   pageUrl: string;
+  /**
+   * "link" for an unlisted event: copying and direct shares only, no public
+   * posts to X or Facebook. Defaults to "public".
+   */
+  shareScope?: "public" | "link";
   /** Existing "Share to feed" control (GS-specific), rendered next to the share menu. */
   shareToFeed?: ReactNode;
   /** Good-to-know chips: duration, players, level, what to bring… */
@@ -217,24 +225,63 @@ export function EventShell(p: EventShellProps) {
   const [copied, setCopied] = useState(false);
   const [slot, setSlot] = useState(p.slots?.[0]?.id ?? "");
 
+  /* Every shared link says where it was shared (?src=share-x and so on). The
+     site already records ?src= visits (leadSource), so the share menu shows up
+     in analytics as a source with no extra plumbing. */
+  const shareUrl = useCallback((src: string) => {
+    try {
+      const u = new URL(p.pageUrl);
+      u.searchParams.set("src", src);
+      return u.toString();
+    } catch {
+      return p.pageUrl;
+    }
+  }, [p.pageUrl]);
+  const shared = useCallback((via: string) => track(EVENTS.eventShared, { type: p.type, via }), [p.type]);
+
   const copyLink = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(p.pageUrl);
+      await navigator.clipboard.writeText(shareUrl("share-link"));
       setCopied(true);
       toast.success("Link copied");
+      shared("link");
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
       toast.error("Couldn't copy the link");
     }
-  }, [p.pageUrl, toast]);
+  }, [shareUrl, shared, toast]);
+
+  /* Discord renders <t:unix:F> in each reader's own timezone, so a post for a
+     7pm Pacific night reads 10pm to someone in New York. The link below it
+     unfurls into the event's share card. */
+  const startsAt = p.when?.startsAt ?? null;
+  const whenLabel = p.when?.label ?? null;
+  const copyForDiscord = useCallback(async () => {
+    const unix = startsAt ? Math.floor(new Date(startsAt).getTime() / 1000) : null;
+    const text = [
+      `**${p.title.replace(/([*_~`|])/g, "\\$1")}**`,
+      unix && Number.isFinite(unix) ? `<t:${unix}:F> (<t:${unix}:R>)` : whenLabel,
+      shareUrl("share-discord"),
+    ].filter(Boolean).join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied. Discord shows the time in each person's own timezone.");
+      shared("discord");
+    } catch {
+      toast.error("Couldn't copy that");
+    }
+  }, [p.title, startsAt, whenLabel, shareUrl, shared, toast]);
 
   const nativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
   const shareText = [p.title, p.when?.label].filter(Boolean).join(" · ");
   const shareItems = [
     { label: copied ? "Copied!" : "Copy link", onClick: () => void copyLink() },
-    { label: "Share on X", onClick: () => window.open(`https://twitter.com/intent/tweet?${new URLSearchParams({ text: shareText, url: p.pageUrl })}`, "_blank", "noopener") },
-    { label: "Share on Facebook", onClick: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(p.pageUrl)}`, "_blank", "noopener") },
-    ...(nativeShare ? [{ label: "More…", onClick: () => void navigator.share({ title: p.title, text: shareText, url: p.pageUrl }).catch(() => {}) }] : []),
+    { label: "Copy for Discord", onClick: () => void copyForDiscord() },
+    ...(p.shareScope === "link" ? [] : [
+      { label: "Share on X", onClick: () => { shared("x"); window.open(`https://twitter.com/intent/tweet?${new URLSearchParams({ text: shareText, url: shareUrl("share-x") })}`, "_blank", "noopener"); } },
+      { label: "Share on Facebook", onClick: () => { shared("facebook"); window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl("share-facebook"))}`, "_blank", "noopener"); } },
+    ]),
+    ...(nativeShare ? [{ label: "More…", onClick: () => void navigator.share({ title: p.title, text: shareText, url: shareUrl("share-native") }).then(() => shared("native")).catch(() => {}) }] : []),
   ];
 
   const gcal = googleCalendarUrl({
@@ -261,7 +308,9 @@ export function EventShell(p: EventShellProps) {
         attendance: p.where?.kind === "online" ? "online" : "in_person",
         locationName: p.where?.kind === "online" ? null : p.where?.label ?? null,
         lat: p.schema.lat ?? null, lng: p.schema.lng ?? null,
-        organizer: { name: p.organizer.displayName, url: p.organizer.username ? `${p.pageUrl.split("/").slice(0, 3).join("/")}/u/${p.organizer.username}` : null },
+        organizer: p.official
+          ? { name: "GameShuffle", url: p.pageUrl.split("/").slice(0, 3).join("/") }
+          : { name: p.organizer.displayName, url: p.organizer.username ? `${p.pageUrl.split("/").slice(0, 3).join("/")}/u/${p.organizer.username}` : null },
         price: p.schema.price ?? null,
         capacity: p.panel?.capacity ?? null, goingCount: p.panel?.goingCount ?? null,
         registrationOpen: p.schema.registrationOpen,
@@ -270,7 +319,6 @@ export function EventShell(p: EventShellProps) {
 
   const WhereIcon = p.where?.kind === "online" ? IconWorld : IconMapPin;
   const whereLabel = p.where?.kind === "online" ? "Online" : p.where?.label || (p.where?.kind === "tba" ? "Location to be announced" : "In person");
-  const spots = p.panel?.capacity != null && p.panel.goingCount != null ? Math.max(0, p.panel.capacity - p.panel.goingCount) : null;
 
   return (
     <main className="event-shell" style={p.style}>
@@ -356,7 +404,7 @@ export function EventShell(p: EventShellProps) {
         <div className={`tournament-layout event-shell__layout${p.action ? "" : " event-shell__layout--full"}`}>
           <div className="tournament-layout__main event-shell__main">
             <div className="comp-card event-shell__organizer-card">
-              <OrganizerCard organizer={p.organizer} roleLabel={p.organizerRoleLabel ?? (p.presentedBy ? "Run by" : "Hosted by")} isYou={!!p.isOrganizer} />
+              <OrganizerCard organizer={p.organizer} roleLabel={p.organizerRoleLabel ?? (p.presentedBy ? "Run by" : "Hosted by")} isYou={!!p.isOrganizer} official={!!p.official} />
             </div>
 
             {p.goodToKnow && p.goodToKnow.length > 0 && (
@@ -426,10 +474,6 @@ export function EventShell(p: EventShellProps) {
         )}
       </Container>
 
-      {/* Mobile: the action panel stacks below the body, so give thumbs a jump. */}
-      <a href="#event-action" className="event-shell__jump">
-        {p.panel?.heading ?? "Sign up"}{spots === 0 ? " · Full" : spots != null && spots <= 5 ? ` · ${spots} left` : ""}
-      </a>
     </main>
   );
 }

@@ -9,6 +9,7 @@
  * `event_reminders_sent` ledger. Schedule: see `vercel.json`.
  */
 
+import { nudgeStaleTournaments } from "@/lib/events/stale";
 import { NextResponse } from "next/server";
 import { sendDueEventReminders, sendCheckInOpenAlerts } from "@/lib/events/reminders";
 import { expireOffers } from "@/lib/events/waitlist";
@@ -31,5 +32,7 @@ export async function GET(request: Request) {
   const checkIn = await sendCheckInOpenAlerts();
   // Waitlist offers past their deadline move on to the next person.
   const offersExpired = await expireOffers().catch((e) => { console.error("[cron/event-reminders] expireOffers failed:", e); return 0; });
-  return NextResponse.json({ ok: true, ...result, checkIn, offersExpired });
+  // Open tournaments whose date passed without starting: one nudge to the organizer.
+  const staleNudged = await nudgeStaleTournaments().catch((e) => { console.error("[cron/event-reminders] stale nudge failed:", e); return 0; });
+  return NextResponse.json({ ok: true, ...result, checkIn, offersExpired, staleNudged });
 }

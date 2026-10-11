@@ -42,7 +42,7 @@ export default async function TournamentBrowsePage() {
               createHref: canCreate ? "/tournament/create" : null,
               createLabel: "Create tournament",
               searchPlaceholder: "Tournaments, games, organizers",
-              emptyText: "No tournaments match. Try Everything under When, or widen the filters.",
+              emptyText: "No tournaments match. Try another tab, or widen the filters.",
               // Status tabs replace When here: Registration is upcoming and
               // Completed is past by definition, so offering both would let a
               // viewer pick a contradictory pair.

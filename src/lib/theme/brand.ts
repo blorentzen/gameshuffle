@@ -152,6 +152,11 @@ export function getBrandTheme(id: string | null | undefined): BrandTheme {
  * `style`. Returns `{}` for the default theme so the `:root` baselines (the
  * site brand) stay in effect — nothing to override.
  */
+/** The dimmest page surfaces brand text sits on, per mode (cards, the grey
+ *  page, tinted alerts). Inks are derived to pass on these. */
+const INK_SURFACE_LIGHT = "#eeeeee";
+const INK_SURFACE_DARK = "#1c1c22";
+
 export function brandCssVars(theme: BrandTheme): CSSProperties {
   if (theme.id === DEFAULT_BRAND_THEME_ID) return {};
 
@@ -176,11 +181,14 @@ export function brandCssVars(theme: BrandTheme): CSSProperties {
     "--brand-on-light": light.on,
     "--brand-on-dark": dark.on,
     // Two inks, because one variable cannot serve both themes. globals.css picks
-    // whichever matches the active surface.
-    "--brand-ink-light": readableInk(theme.primary, "#ffffff"),
-    "--brand-ink-dark": readableInk(theme.primary, "#0a0a0f"),
-    "--brand-accent-ink-light": readableInk(theme.accent, "#ffffff"),
-    "--brand-accent-ink-dark": readableInk(theme.accent, "#0a0a0f"),
+    // whichever matches the active surface. Measured against the dimmest
+    // surface brand text sits on, not pure white/black: an ink that just clears
+    // 4.5:1 on white fell to ~4.3 on the light grey page and the pale-blue info
+    // alert (the /live page, 2026-10-10).
+    "--brand-ink-light": readableInk(theme.primary, INK_SURFACE_LIGHT),
+    "--brand-ink-dark": readableInk(theme.primary, INK_SURFACE_DARK),
+    "--brand-accent-ink-light": readableInk(theme.accent, INK_SURFACE_LIGHT),
+    "--brand-accent-ink-dark": readableInk(theme.accent, INK_SURFACE_DARK),
     // The generated header art draws WHITE glyphs on this gradient, so both
     // ends are darkened until white clears 3:1. A pale brand would otherwise
     // swallow the glyph — the same failure as a brand CTA on a brand page,

@@ -1,5 +1,38 @@
 import type { Metadata } from "next";
 import { LegalPage, LegalSubSection, LegalContact, type LegalSection } from "@/components/legal/LegalPage";
+import { circuitLaunch } from "@/lib/tournaments/circuit";
+import { circuitLaunchState } from "@/lib/tournaments/circuit-resolve";
+
+/** Re-render hourly (and on the billing switch, which revalidates this path) so §3.4 follows the Circuit launch. */
+export const revalidate = 3600;
+
+/** §3.4: the preview wording, an announced day, or the plans and prices once the billing switch is on. */
+async function CircuitTerms() {
+  const { launchedAt, graceEnd } = await circuitLaunchState();
+  const circuit = circuitLaunch(launchedAt);
+  return (
+            <LegalSubSection number="3.4" title="GameShuffle Circuit">
+              {circuit.phase === "preview" ? (
+                <>
+                  <p>GameShuffle Circuit is our set of organizer features for larger and recurring events, such as bigger fields, championship series, co-organizers and custom branding. Circuit is free to use during the preview.</p>
+                  <p>If we start charging for Circuit, we will publish the plans and prices in these Terms and email organizers using Circuit at least 30 days before any charge applies. Tournaments created before billing starts keep the Circuit features they were created with. Nothing is charged unless you choose a paid plan and confirm it at checkout.</p>
+                </>
+              ) : (
+                <>
+                  <p>GameShuffle Circuit is our set of organizer features for larger and recurring events, such as bigger fields, championship series, co-organizers, custom branding and custom seeding. Every tournament format stays free for one full lobby of your game.</p>
+                  <p>{circuit.phase === "announced" ? `Circuit is free to use until ${circuit.dateLabel}. From that date, the larger fields and organizer features are paid plans:` : `Since ${circuit.dateLabel}, the larger fields and organizer features are paid plans:`}</p>
+                  <ul>
+                    <li>Circuit 64: events of up to 64 players, $12 per month or $120 per year.</li>
+                    <li>Circuit 256: events of up to 256 players, with GameShuffle Pro included, $29 per month or $290 per year.</li>
+                    <li>GameShuffle Pro add-on for Circuit 64 subscribers: $5 per month or $50 per year.</li>
+                  </ul>
+                  <p>Circuit plans are for customers in the United States. Billing and renewal, payment methods and sales tax, cancellation, refunds, failed payments, price changes and availability work as described in sections 5.3 to 5.9. Passes for a single in-person or commercial event (Circuit Events) are arranged with us directly.</p>
+                  <p>Tournaments created before {circuit.dateLabel} keep the Circuit features they were created with.{circuit.phase === "live" && graceEnd ? ` Organizers who created a tournament before ${circuit.dateLabel} also keep every Circuit feature free on new tournaments until ${graceEnd.label}, at least 30 days after we emailed them about the change.` : ""} Nothing is charged unless you choose a paid plan and confirm it at checkout.</p>
+                </>
+              )}
+            </LegalSubSection>
+  );
+}
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -75,10 +108,7 @@ const SECTIONS: LegalSection[] = [
           <p>Prizes are the organizer&apos;s responsibility. GameShuffle does not award, hold or guarantee prizes, and organizers are responsible for making sure any prize they offer is allowed where their event takes place.</p>
           <p>Events on GameShuffle are free to enter for now. GameShuffle does not currently process paid entry fees.</p>
         </LegalSubSection>
-        <LegalSubSection number="3.4" title="GameShuffle Circuit">
-          <p>GameShuffle Circuit is our set of organizer features for larger and recurring events, such as bigger fields, championship series, co-organizers and custom branding. Circuit is free to use during the preview.</p>
-          <p>If we start charging for Circuit, we will publish the plans and prices in these Terms and email organizers using Circuit at least 30 days before any charge applies. Tournaments created before billing starts keep the Circuit features they were created with. Nothing is charged unless you choose a paid plan and confirm it at checkout.</p>
-        </LegalSubSection>
+        <CircuitTerms />
         <LegalSubSection number="3.5" title="Arcade Tokens">
           <p>Arcade Tokens are earned through activity on GameShuffle and in communities that use it. They have no cash value. They cannot be bought, sold, transferred for money or redeemed for money or anything of monetary value from GameShuffle. We may change how tokens are earned or used, or reset balances, at any time.</p>
           <p>Community owners who offer prizes for tokens, raffles or other activities in their communities are responsible for those prizes.</p>

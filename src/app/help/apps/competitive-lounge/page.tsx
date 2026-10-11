@@ -48,7 +48,7 @@ export default function Page() {
       <h2>Session flow</h2>
       <p>
         A lounge moves through phases: <strong>waiting</strong> &rarr; <strong>character select</strong>
-        &rarr; <strong>lobby</strong> &rarr; <strong>in progress</strong> &rarr;
+        &rarr; <strong>lobby</strong> &rarr; <strong>in progress</strong>{" "}&rarr;
         <strong> complete</strong>. Everyone sees the same phase and standings as they change.
       </p>
 

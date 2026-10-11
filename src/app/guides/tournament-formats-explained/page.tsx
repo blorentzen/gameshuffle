@@ -51,7 +51,7 @@ export default function Page() {
         forty-five. The growth is what limits it, and it catches people out.
       </p>
       <p>
-        <strong>Good for:</strong> eight players or fewer. The fairest result you can get, because
+        <strong>Good for:</strong>{" "}eight players or fewer. The fairest result you can get, because
         nobody&rsquo;s finish depends on the draw.<br />
         <strong>Bad for:</strong> anything above ten, where the match count runs away.
       </p>

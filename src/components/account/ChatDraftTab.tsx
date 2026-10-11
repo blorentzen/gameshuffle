@@ -102,12 +102,12 @@ export function ChatDraftTab() {
       <p className="account-tab__intro">
         Run a draft live on stream. With <strong>chat votes</strong>, chat builds something for you one pick at a time: each pick is a vote between a few random options that fit the rules.
         With <strong>captains</strong>, captains take turns picking players into teams.
-        Add the Chat Draft piece in <Link href="/account/streamer?tab=overlay-layout">Overlay Layout</Link> to show either one on stream.
+        Add the Chat Draft piece in <Link href="/account/streaming?tab=overlay-layout">Overlay ▸ Layout</Link> to show either one on stream.
       </p>
 
       {!data.ready && <div className="account-card"><p className="dbot-muted">Chat drafts need a quick update on our side before they can run.</p></div>}
       {data.ready && !data.hasCommunity && (
-        <div className="account-card"><p className="dbot-muted">Connect Twitch on the <Link href="/account/streamer?tab=integrations">Integrations tab</Link> to run chat drafts.</p></div>
+        <div className="account-card"><p className="dbot-muted">Connect Twitch on the <Link href="/account/streaming?tab=integrations">Streaming ▸ Setup</Link> to run chat drafts.</p></div>
       )}
 
       {data.ready && data.hasCommunity && (

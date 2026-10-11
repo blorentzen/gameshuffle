@@ -39,7 +39,7 @@ export default function Page() {
       <p>
         Characters roll separately, so re-rolling the match never changes them. Press <strong>Randomize Characters</strong>,
         or <strong>Refresh Character</strong> on one player. Choose <strong>Main characters</strong> (Bond, Natalya and the
-        villains) or <strong>Additional characters</strong> (the soldiers, guards and other extras). On team scenarios the
+        villains) or <strong>Additional characters</strong>{" "}(the soldiers, guards and other extras). On team scenarios the
         teams show on each player&apos;s card.
       </p>
 
@@ -54,9 +54,6 @@ export default function Page() {
         Or type it: &quot;three of us, chaos night, no Oddjob&quot; in <strong>Describe your night</strong> sets the options for
         you. See <a href="/help/apps/ai-tools">AI tools</a>.
       </p>
-
-      <h2>Sharing it</h2>
-      <p><strong>Copy match</strong> gives you the whole match and everyone&apos;s character as text for chat or Discord.</p>
 
       <h2>Still need help?</h2>
       <p>Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a>.</p>

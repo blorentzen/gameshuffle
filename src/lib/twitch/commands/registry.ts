@@ -370,6 +370,35 @@ export function resolveCommand(
   return REGISTRY.get(name) ?? null;
 }
 
+/**
+ * Resolve what someone typed: `path` from the parser plus its `args`.
+ * Bare two-word commands (`!party join`, `!chance vote`, `!wheel add x`)
+ * are tried as the verb plus its first argument word first, since the
+ * parser only splits `!gs …` into words. Then the deepest path that
+ * matches wins, trailing words falling back into args (`!gs resolve win`).
+ */
+export function resolveTypedCommand(
+  typedPath: ReadonlyArray<string>,
+  typedArgs: string,
+): { def: CommandDef | null; path: string[]; args: string } {
+  const path = [...typedPath];
+  let args = typedArgs;
+  if (path.length === 1 && path[0] !== "gs" && args) {
+    const [first, ...rest] = args.split(/\s+/);
+    if (first && resolveCommand([path[0], first.toLowerCase()])) {
+      path.push(first.toLowerCase());
+      args = rest.join(" ").trim();
+    }
+  }
+  let def = resolveCommand(path);
+  while (!def && path.length > 1) {
+    const popped = path.pop()!;
+    args = args.length === 0 ? popped : `${popped} ${args}`;
+    def = resolveCommand(path);
+  }
+  return { def, path, args };
+}
+
 /** All registered commands, in registration order. Iteration order
  *  doubles as the default help ordering. */
 export function listCommands(): CommandDef[] {

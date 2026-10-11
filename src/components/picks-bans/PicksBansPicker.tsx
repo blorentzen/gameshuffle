@@ -36,6 +36,7 @@ import {
   type Track,
 } from "@/lib/randomizers/race";
 import { aggregateBallots } from "@/lib/picks-bans/aggregate";
+import { getGameName } from "@/data/game-registry";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   getModePresentation,
@@ -446,7 +447,7 @@ export function PicksBansPicker({
             <strong>Editing canonical picks & bans</strong>
           ) : round ? (
             <>
-              <strong>Round open</strong> · {round.game_slug}
+              <strong>Round open</strong> · {getGameName(round.game_slug)}
             </>
           ) : (
             <strong>Drafting: round not open yet</strong>

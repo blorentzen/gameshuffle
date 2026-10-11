@@ -50,6 +50,8 @@ export interface RecapHighlight {
   /** Last applied picks/bans results, if any. Top 5 picks + top 5 bans
    *  in each pool — keeps the surface scannable. */
   lastApplied: PicksBansResults | null;
+  /** Break mode: how many breaks ended, and the latest break champion's name(s). */
+  breaks: { count: number; champion: string | null };
 }
 
 /** Fetch the recap for a streamer's last ended (non-test) session.
@@ -130,12 +132,15 @@ export async function loadRecapForStreamer(
       preset_id?: string | null;
       preset_name?: string | null;
       trigger?: string | null;
+      champion?: { names?: string[]; points?: number } | null;
     } | null;
     created_at: string;
   }>;
 
   let raceCount = 0;
   let channelPointRerollCount = 0;
+  // Newest first, so the first champion seen is the latest break's.
+  const breaks: RecapHighlight["breaks"] = { count: 0, champion: null };
   let lastRoll: RecapHighlight["lastRoll"] = null;
   for (const e of events) {
     if (
@@ -156,6 +161,11 @@ export async function loadRecapForStreamer(
     }
     if (e.event_type === "shuffle" && e.payload?.trigger === "channel_points") {
       channelPointRerollCount += 1;
+    }
+    if (e.event_type === "break_ended") {
+      breaks.count += 1;
+      const names = e.payload?.champion?.names;
+      if (!breaks.champion && names?.length) breaks.champion = names.join(" and ");
     }
   }
 
@@ -213,5 +223,6 @@ export async function loadRecapForStreamer(
     channelPointRerollCount,
     lastRoll,
     lastApplied,
+    breaks,
   };
 }

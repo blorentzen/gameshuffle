@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { IconCards, IconCircleNumber1, IconUserQuestion, IconHandFinger, IconTrophy, IconTornado, IconDice6, IconDice3, IconDice5, IconFlag, IconGridDots, IconHeart, IconMoon, IconNotebook, IconSearch, IconSparkles, IconStack2, IconStopwatch, IconTargetArrow } from "@tabler/icons-react";
+import { IconBulb, IconCards, IconCircleNumber1, IconUserQuestion, IconHandFinger, IconTrophy, IconTornado, IconDice6, IconDice3, IconDice5, IconFlag, IconGridDots, IconHeart, IconMoon, IconNotebook, IconSearch, IconSparkles, IconStack2, IconStopwatch, IconTargetArrow } from "@tabler/icons-react";
 
 /**
  * Companion-tools registry — digital versions of the physical bits a board-game
@@ -205,6 +205,22 @@ export const COMPANION_TOOLS: CompanionTool[] = [
       "Coins are worth 1 and Stars 3. Every third Mushroom in a turn is worth 5 more. Each Shell steals 1 point from the leader when you bank.",
       "Your third Bomb in a turn busts it: you lose that turn's points. Bank any time to lock in what you have.",
       "First to 40 wins.",
+    ],
+  },
+  {
+    id: "trivia",
+    name: "Trivia Night",
+    description: "Run a pub-style quiz: teams answer on their phones, the TV shows the questions and the scores.",
+    href: "/trivia",
+    icon: IconBulb,
+    tagline: "A GameShuffle Original: a full trivia night from a template, scored for you.",
+    usesRoster: false,
+    about: "A trivia night kit for parties, offices, fundraisers and bar nights. Pick an occasion, fill each round from the GameShuffle question pack, your own questions or AI drafts you approve, and open the room. Teams join with a code on their phones, the TV shows each question with a timer, and answers are scored as they come in, with the close calls left to you.",
+    howToPlay: [
+      "Pick an occasion template. Each one sets the rounds: classic questions, a picture round, a confidence round and a final wager.",
+      "Fill the rounds from the question pack, your own library, or GS Pro AI drafts you check before they go in.",
+      "Open the room and put the TV view on a screen. Teams scan the code and type a team name, no account needed.",
+      "Run each question from your phone: show it, lock answers, rule on anything close with one tap, reveal, and show the standings.",
     ],
   },
   {

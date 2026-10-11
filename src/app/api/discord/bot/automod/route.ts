@@ -1,51 +1,39 @@
 /**
  * GET / PUT /api/discord/bot/automod
  *
- * Native Discord AutoMod (GS Pro). GameShuffle manages a custom keyword
+ * Native Discord AutoMod (GS Pro), per server (?guild=). GameShuffle manages a custom keyword
  * blocklist rule + a preset (profanity/sexual/slurs) rule; Discord blocks the
  * offending messages itself. PUT { keywords: string[], presets: number[] }.
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { isProUser } from "@/lib/subscription-server";
+import { botServer, proRequired } from "@/lib/discord/botServer";
 import { syncKeywordAutoMod, syncPresetAutoMod, deleteAutoModRule } from "@/lib/adapters/discord/adapter";
 
 export const runtime = "nodejs";
 
 const VALID_PRESETS = new Set([1, 2, 3]);
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
+export async function GET(request: Request) {
+  const ctx = await botServer(request, { allowRemoved: true });
+  if (!ctx.ok) return ctx.response.status === 404 ? NextResponse.json({ ok: true, keywords: [], presets: [] }) : ctx.response;
   const { data } = await createServiceClient()
     .from("discord_automod")
     .select("keywords, presets")
-    .eq("user_id", user.id)
+    .eq("guild_id", ctx.guild.guildId)
     .maybeSingle();
   const row = data as { keywords: string[] | null; presets: number[] | null } | null;
   return NextResponse.json({ ok: true, keywords: row?.keywords ?? [], presets: row?.presets ?? [] });
 }
 
 export async function PUT(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
+  const ctx = await botServer(request);
+  if (!ctx.ok) return ctx.response;
+  const denied = proRequired(ctx);
+  if (denied) return denied;
   const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("users")
-    .select("discord_guild_id, subscription_tier, role")
-    .eq("id", user.id)
-    .maybeSingle();
-  const p = profile as { discord_guild_id: string | null; subscription_tier: string | null; role: string | null } | null;
-  const isPro = await isProUser(user.id, admin);
-  if (!isPro) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
-  if (!p?.discord_guild_id) return NextResponse.json({ ok: false, error: "bot_not_installed" }, { status: 404 });
-  const guildId = p.discord_guild_id;
+  const guildId = ctx.guild.guildId;
 
   let body: unknown;
   try {
@@ -65,7 +53,7 @@ export async function PUT(request: Request) {
   const { data: existing } = await admin
     .from("discord_automod")
     .select("keyword_rule_id, preset_rule_id")
-    .eq("user_id", user.id)
+    .eq("guild_id", guildId)
     .maybeSingle();
   const e = existing as { keyword_rule_id: string | null; preset_rule_id: string | null } | null;
 
@@ -89,7 +77,7 @@ export async function PUT(request: Request) {
 
   await admin.from("discord_automod").upsert(
     {
-      user_id: user.id,
+      user_id: ctx.userId,
       guild_id: guildId,
       keyword_rule_id: keywordRuleId,
       preset_rule_id: presetRuleId,
@@ -97,7 +85,7 @@ export async function PUT(request: Request) {
       presets,
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "user_id" },
+    { onConflict: "guild_id" },
   );
 
   return NextResponse.json({ ok: true });

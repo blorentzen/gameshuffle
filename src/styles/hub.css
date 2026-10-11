@@ -162,309 +162,6 @@
   margin-top: var(--spacing-4);
 }
 
-/* Stream-info modal — surfaced from the Hub home header CTA, shows
- * overlay URL + current Twitch category + the future "set category
- * from GS" stub. Sections share spacing/typography. */
-
-.hub-stream-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-24);
-}
-
-.hub-stream-info__section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
-}
-
-.hub-stream-info__section--future {
-  padding: var(--spacing-12) var(--spacing-16);
-  background: var(--background-secondary);
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-8);
-}
-
-.hub-stream-info__section-header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-}
-
-.hub-stream-info__section-title {
-  margin: 0;
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  flex-wrap: wrap;
-}
-
-.hub-stream-info__section-hint {
-  margin: 0;
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-  line-height: var(--line-height-relaxed);
-}
-
-.hub-stream-info__section-hint code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--font-size-12);
-  background: var(--background-tertiary);
-  padding: 1px var(--spacing-4);
-  border-radius: var(--radius-4);
-}
-
-.hub-stream-info__url {
-  display: block;
-  background: var(--background-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-8) var(--spacing-12);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--font-size-12);
-  color: var(--text-primary);
-  word-break: break-all;
-}
-
-.hub-stream-info__row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-8);
-  align-items: center;
-}
-
-.hub-stream-info__caption {
-  margin: 0;
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-  line-height: var(--line-height-relaxed);
-}
-
-.hub-stream-info__muted {
-  margin: 0;
-  font-size: var(--font-size-14);
-  color: var(--text-tertiary);
-}
-
-.hub-stream-info__category {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-12);
-  background: var(--background-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-12) var(--spacing-16);
-  flex-wrap: wrap;
-}
-
-.hub-stream-info__category-name {
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-}
-
-.hub-stream-info__category-status {
-  display: flex;
-  align-items: center;
-}
-
-/* Hub session list cards (grid layout) */
-
-.hub-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
-  min-height: 100%;
-  /* Nudge content past the 4px accent stripe rendered by
-   * .hub-card-wrapper::before. */
-  padding-left: var(--spacing-4);
-}
-
-.hub-card__main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-8);
-  min-width: 0;
-  flex: 1;
-}
-
-.hub-card__title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--spacing-8);
-}
-
-.hub-card__title {
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  word-break: break-word;
-  line-height: var(--line-height-snug);
-  flex: 1;
-}
-
-.hub-card__game {
-  font-size: var(--font-size-14);
-  color: var(--text-secondary);
-  font-weight: var(--font-weight-medium);
-  word-break: break-word;
-}
-
-.hub-card__platforms {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-6);
-  flex-wrap: wrap;
-}
-
-.hub-card__meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  flex-wrap: wrap;
-}
-
-.hub-card__meta-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  flex-wrap: wrap;
-}
-
-.hub-card__meta-item {
-  font-size: var(--font-size-12);
-  color: var(--text-secondary);
-}
-
-.hub-card__meta-item strong {
-  color: var(--text-primary);
-  font-weight: var(--font-weight-semibold);
-}
-
-/* Wrapper around the Card + the "Live view" link for active sessions —
- * the link sits outside the Card so its click doesn't race the card's
- * own navigation to the session detail. The wrapper itself is a flex
- * column so the Card child can stretch (`flex: 1`) and fill the grid
- * row's height — keeping all cards in a row visually equal. */
-.hub-card-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  position: relative;
-  height: 100%;
-}
-
-/* Force the CDS Card child to fill the wrapper. Without this, cards
- * with less content sit at the top of a stretched grid cell and the
- * accent stripe would dangle past the card's bottom edge. */
-.hub-card-wrapper > .empac-card {
-  position: relative;
-  overflow: hidden;
-  flex: 1;
-}
-
-/* Status accent stripe — sits on the Card itself so its height tracks
- * the Card exactly (no tail). The legend above the list provides the
- * color key. Test streams overlay a subtle stripe pattern. */
-.hub-card-wrapper > .empac-card::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: var(--hub-card-accent, var(--text-tertiary));
-  z-index: 1;
-}
-
-.hub-card-wrapper--draft     { --hub-card-accent: var(--text-tertiary); }
-.hub-card-wrapper--scheduled { --hub-card-accent: var(--primary-500); }
-.hub-card-wrapper--ready     { --hub-card-accent: var(--primary-700); }
-.hub-card-wrapper--active    { --hub-card-accent: var(--success-500); }
-.hub-card-wrapper--ending    { --hub-card-accent: var(--warning-500); }
-.hub-card-wrapper--ended     { --hub-card-accent: var(--text-tertiary); }
-.hub-card-wrapper--cancelled { --hub-card-accent: var(--error-500); }
-
-/* Test-stream marker — small monospace TEST chip pinned to the card's
- * top-right corner. Sits above the accent stripe (z-index 1) and below
- * any focus rings. The title row gets right-padding when this is
- * present so wrapped titles don't slide underneath. */
-.hub-card__test-flag {
-  position: absolute;
-  top: var(--spacing-8);
-  right: var(--spacing-8);
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--font-size-10);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.08em;
-  padding: 2px var(--spacing-6);
-  border-radius: var(--radius-6);
-  background: var(--background-tertiary);
-  color: var(--text-secondary);
-}
-
-.hub-card-wrapper--test .hub-card__title-row {
-  padding-right: var(--spacing-44);
-}
-
-/* Status legend — sits above the session list, gives the accent
- * stripes their meaning without needing a per-card badge. */
-.hub-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-12);
-  padding: var(--spacing-8) var(--spacing-12);
-  background: var(--background-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-8);
-  font-size: var(--font-size-12);
-  color: var(--text-secondary);
-}
-
-.hub-legend__item {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-6);
-}
-
-.hub-legend__swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-4);
-  background: var(--text-tertiary);
-}
-
-.hub-legend__swatch--draft     { background: var(--text-tertiary); }
-.hub-legend__swatch--scheduled { background: var(--primary-500); }
-.hub-legend__swatch--ready     { background: var(--primary-700); }
-.hub-legend__swatch--active    { background: var(--success-500); }
-.hub-legend__swatch--ending    { background: var(--warning-500); }
-.hub-legend__swatch--ended     { background: var(--text-tertiary); }
-.hub-legend__swatch--cancelled { background: var(--error-500); }
-
-.hub-card__live-link {
-  align-self: flex-end;
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  color: #9146ff;
-  text-decoration: none;
-  padding: var(--spacing-4) var(--spacing-8);
-  border-radius: var(--radius-6);
-}
-
-.hub-card__live-link:hover {
-  text-decoration: underline;
-  background: var(--background-secondary);
-}
-
 /* Platform-brand badge color utilities — applied via className on top of
  * the CDS Badge component. Colors match each platform's official brand
  * (Twitch purple, Kick green, YouTube red, Discord blurple). White
@@ -515,68 +212,6 @@
 .hub-detail__platform-pill--youtube { background-color: #ff0000; }
 .hub-detail__platform-pill--discord { background-color: #5865f2; }
 
-/* Hub filters */
-
-.hub-filters {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
-}
-
-/* View-toggle chips above the filter dropdowns — Real / Test / All. */
-.hub-filters__view-row {
-  display: flex;
-  gap: var(--spacing-6);
-  flex-wrap: wrap;
-}
-
-.hub-filters__view-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-6);
-  padding: var(--spacing-6) var(--spacing-12);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-default);
-  background: var(--background-secondary);
-  font: inherit;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-
-.hub-filters__view-chip:hover {
-  border-color: var(--primary-300);
-}
-
-.hub-filters__view-chip--active {
-  background: var(--surface-selected);
-  border-color: var(--primary-ink-500);
-  color: var(--primary-ink-700);
-}
-
-.hub-filters__view-count {
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-regular);
-  background: rgba(0, 0, 0, 0.06);
-  padding: 1px var(--spacing-6);
-  border-radius: var(--radius-full);
-  color: var(--text-tertiary);
-}
-
-.hub-filters__view-chip--active .hub-filters__view-count {
-  background: var(--surface-selected);
-  color: var(--primary-ink-700);
-}
-
-.hub-filters__row {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--spacing-12);
-  flex-wrap: wrap;
-}
-
 /* New session modal — slim 4-field draft creator that drops streamers
  * into the detail page's Settings tab for further configuration. */
 .new-session-modal {
@@ -591,20 +226,8 @@
   line-height: var(--line-height-relaxed);
 }
 
-
-.hub-filters__group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  min-width: 180px;
-  flex: 1 1 180px;
-}
-
-.hub-filters__label {
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
-}
+/* "Open it" under the you-already-have-a-draft notice. */
+.new-session-modal__draft { margin-top: var(--spacing-8); }
 
 /* Hub session detail */
 
@@ -1309,30 +932,6 @@
   gap: var(--spacing-8);
 }
 
-/* ----- Hub home cards: artwork ----- */
-
-.hub-card {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-12);
-}
-
-.hub-card__artwork {
-  flex-shrink: 0;
-}
-
-.hub-card__artwork .game-art__img--thumb {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-8);
-}
-
-.hub-card__game-extra {
-  font-weight: var(--font-weight-regular);
-  color: var(--text-tertiary);
-  font-size: var(--font-size-12);
-}
-
 .hub-detail__action-row {
   display: flex;
   gap: var(--spacing-8);
@@ -1443,6 +1042,9 @@
  * Picks & Bans card grows taller with round content (picker, apply
  * editor); both cards top-align so the Manual Roll card stays
  * predictable. Falls back to a single column on narrow viewports. */
+/* Picks-only race section (the stream page's Picks & bans tab): one full-width card. */
+.hub-detail__card-stack { display: flex; flex-direction: column; gap: var(--spacing-16); }
+
 .hub-detail__card-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
@@ -1899,49 +1501,6 @@
   line-height: var(--line-height-snug);
 }
 
-/* Items section — Modes vs Items tabbed switcher */
-
-.items-tabbed {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
-}
-
-.items-tabbed__tabs {
-  display: flex;
-  gap: var(--spacing-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.items-tabbed__tab {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: var(--spacing-8) var(--spacing-12);
-  font-family: inherit;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  margin-bottom: -1px;
-}
-
-.items-tabbed__tab:hover {
-  color: var(--text-secondary);
-}
-
-.items-tabbed__tab--active {
-  color: var(--primary-ink-700);
-  border-bottom-color: var(--primary-ink-500);
-}
-
-.items-tabbed__hint {
-  margin: 0;
-  font-size: var(--font-size-14);
-  color: var(--text-secondary);
-  line-height: var(--line-height-relaxed);
-}
-
 /* Live view picks/bans tab — viewer ballot interaction */
 
 .live-pb {
@@ -1959,10 +1518,10 @@
 
 /* ---------- Live Voting tab ---------- */
 
-/* Pulse animation on the CDS Tab badge while a round is open. CDS
- * scopes badges via .empac-tabs__tab-badge — the pulse draws viewer
- * attention to the just-enabled Live Voting tab without requiring a
- * structural change to the Tabs component. */
+/* Pulse on the live page's tab badge (Play's LIVE while a round is open).
+ * Scoped to .live-page: unscoped, with !important, it turned every CDS tab
+ * badge on the site into a pulsing red alert (stream page counts, Platform
+ * admin tabs) until 2026-10-10. */
 @keyframes live-voting-badge-pulse {
   0%, 100% {
     box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
@@ -1974,7 +1533,7 @@
   }
 }
 
-.empac-tabs__tab-badge {
+.live-page .empac-tabs__tab-badge {
   animation: live-voting-badge-pulse 1.6s ease-in-out infinite;
   background: #dc2626 !important;
   color: #ffffff !important;
@@ -2003,7 +1562,6 @@
   margin: 0;
   font-size: var(--font-size-16);
   font-weight: var(--font-weight-semibold);
-  text-transform: capitalize;
 }
 
 .live-voting__counts {
@@ -2147,13 +1705,6 @@
   font-variant-numeric: tabular-nums;
   min-width: 24px;
   text-align: right;
-}
-
-.live-voting__hint {
-  margin: 0;
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-  text-align: center;
 }
 
 .live-pb__signin-link {
@@ -2469,88 +2020,6 @@ button.picks-bans__result-chip {
 
 .picks-bans__result-chip--rejected:hover {
   opacity: 0.7;
-}
-
-/* ===========================================================================
- * Command list — Modules tab per-game / GS Queue chat command catalog
- * =========================================================================== */
-
-.command-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-16);
-  margin-top: var(--spacing-12);
-}
-
-.command-list__group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-}
-
-.command-list__group-title {
-  margin: 0;
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-tertiary);
-  padding-bottom: var(--spacing-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.command-list__items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-}
-
-.command-list__row {
-  display: grid;
-  grid-template-columns: minmax(160px, auto) 1fr;
-  gap: var(--spacing-12);
-  align-items: baseline;
-  padding: var(--spacing-6) 0;
-  font-size: var(--font-size-14);
-  color: var(--text-primary);
-}
-
-.command-list__row--caveat {
-  grid-template-columns: minmax(160px, auto) 1fr auto;
-}
-
-.command-list__name {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--primary-ink-700);
-  background: var(--surface-selected);
-  padding: 2px var(--spacing-8);
-  border-radius: var(--radius-6);
-  white-space: nowrap;
-}
-
-.command-list__args {
-  font-weight: var(--font-weight-regular);
-  color: var(--text-secondary);
-}
-
-.command-list__desc {
-  color: var(--text-secondary);
-  line-height: var(--line-height-snug);
-}
-
-.command-list__caveat {
-  font-size: var(--font-size-12);
-  color: var(--warning-ink);
-  background: var(--surface-warning);
-  padding: 2px var(--spacing-8);
-  border-radius: var(--radius-6);
-  grid-column: 1 / -1;
-  margin-top: var(--spacing-2);
 }
 
 .hub-form__platform-row {
@@ -3040,3 +2509,196 @@ button.picks-bans__result-chip {
   flex: none;
 }
 
+/* ── Hub home (rebuilt 2026-10-10): live card, coming up, this month, past streams ── */
+.hub-home { display: flex; flex-direction: column; gap: var(--spacing-24); }
+.hub-home__head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-16); flex-wrap: wrap; }
+.hub-home__title { display: flex; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
+.hub-home__title .hub-page__title { margin: 0; }
+.hub-home__alert-body a { font-weight: var(--font-weight-semibold); }
+.hub-live {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--spacing-20); align-items: center;
+  padding: var(--spacing-20) var(--spacing-24); border-radius: var(--radius-16, 16px);
+  background: linear-gradient(120deg, #0f1d4a, #1d3a9e 60%, #3b2a8f); color: #fff;
+}
+.hub-live__cover { width: 6.4rem; flex-shrink: 0; }
+.hub-live__cover .game-cover { width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: var(--radius-8, 8px); display: block; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.hub-live__main { display: flex; flex-direction: column; gap: var(--spacing-6); min-width: 0; }
+.hub-live__badges { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
+.hub-live__pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; background: #fde8e8; color: #b91c1c; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); }
+.hub-live__pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #dc2626; }
+.hub-live__tag { padding: 2px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.16); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); }
+.hub-live__name { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-bold); color: #fff; overflow-wrap: anywhere; }
+.hub-live__meta { margin: 0; font-size: var(--font-size-14); color: rgba(255, 255, 255, 0.82); }
+.hub-live__actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; justify-content: flex-end; }
+.hub-live__actions .empac-button--secondary { background: rgba(255, 255, 255, 0.1); color: #fff; border-color: rgba(255, 255, 255, 0.4); }
+.hub-live__actions .empac-button--primary { background: #fff; color: #1d3a9e; border-color: #fff; }
+@media (max-width: 720px) {
+  .hub-live { grid-template-columns: auto minmax(0, 1fr); }
+  .hub-live__actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .hub-live__cover { width: 4.8rem; }
+}
+.hub-home__row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--spacing-16); align-items: start; }
+@media (max-width: 900px) { .hub-home__row { grid-template-columns: 1fr; } }
+.hub-panel { display: flex; flex-direction: column; gap: var(--spacing-12); padding: var(--spacing-16) var(--spacing-20); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-elevated); min-width: 0; }
+.hub-panel__head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); flex-wrap: wrap; }
+.hub-panel__title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-bold); display: flex; align-items: center; gap: var(--spacing-8); }
+.hub-panel__link { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); }
+.hub-panel__empty { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.hub-panel__search { display: flex; gap: var(--spacing-8); max-width: 44rem; }
+.hub-panel__search > :first-child { flex: 1; min-width: 0; }
+.hub-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.hub-rows__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--spacing-12); align-items: center; padding: var(--spacing-10, 10px) 0; border-top: 1px solid var(--border-default); }
+.hub-rows__row:first-child { border-top: 0; }
+.hub-rows__cover { width: 3rem; }
+.hub-rows__cover .game-cover { width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 4px; display: block; }
+.hub-rows__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hub-rows__name { font-weight: var(--font-weight-semibold); color: var(--text-primary); text-decoration: none; overflow-wrap: anywhere; }
+.hub-rows__name:hover { text-decoration: underline; }
+.hub-rows__meta { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; font-size: var(--font-size-12); color: var(--text-secondary); }
+.hub-rows__tag { display: inline-flex; padding: 1px 8px; margin-left: var(--spacing-6); border-radius: 999px; background: var(--surface-sunken, rgba(127, 127, 127, 0.12)); color: var(--text-secondary); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); }
+.hub-rows__meta .hub-rows__tag { margin-left: 0; }
+.hub-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-8); }
+.hub-stats__item { display: flex; flex-direction: column; gap: 2px; padding: var(--spacing-10, 10px) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); }
+.hub-stats__label { font-size: var(--font-size-12); color: var(--text-secondary); }
+.hub-stats__value { font-size: var(--font-size-24); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+.hub-table { overflow-x: auto; }
+.hub-table:focus-visible { outline: 2px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; }
+.hub-table__name { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.hub-table__name { text-decoration: none; }
+.hub-table__name:hover { text-decoration: underline; }
+/* Phones: the past streams table scrolls sideways with the name pinned (legibility over fit). */
+@media (max-width: 720px) {
+  .hub-table .empac-table { min-width: 56rem; }
+  .hub-table .empac-table th:first-child,
+  .hub-table .empac-table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--background-elevated); min-width: 16rem; }
+}
+
+/* ── Session page by state (2026-10-10) ── */
+.hub-session { display: flex; flex-direction: column; gap: var(--spacing-20); }
+.hub-session__head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--spacing-16); align-items: center; }
+.hub-session__cover { width: 5.2rem; }
+.hub-session__cover .game-cover { width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: var(--radius-8, 8px); display: block; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18); }
+.hub-session__titles { display: flex; flex-direction: column; gap: var(--spacing-6); min-width: 0; }
+.hub-session__titles .hub-detail__title { margin: 0; display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; overflow-wrap: anywhere; }
+.hub-session__status { margin: 0; display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; font-size: var(--font-size-14); color: var(--text-secondary); }
+.hub-session__status.is-grace { color: var(--text-warning, #9a5b00); }
+@media (max-width: 900px) {
+  .hub-session__head { grid-template-columns: auto minmax(0, 1fr); }
+  .hub-session__head .hub-detail__header-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .hub-session__cover { width: 4rem; }
+}
+.hub-control { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.hub-control__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(30rem, 34rem); gap: var(--spacing-16); align-items: start; }
+.hub-control__main, .hub-control__side { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+/* The lobby scrolls inside the control room; the Lobby tab shows everyone. */
+.hub-control__lobby { max-height: 42rem; overflow-y: auto; margin-right: calc(var(--spacing-8) * -1); padding-right: var(--spacing-8); }
+.hub-control__lobby:focus-visible { outline: 2px solid var(--primary-600); outline-offset: 2px; border-radius: var(--radius-8, 8px); }
+@media (max-width: 1000px) { .hub-control__grid { grid-template-columns: 1fr; } }
+
+/* Levers (Lever.tsx): every roll and tool is a row with the same three
+   columns, so options line up and buttons line up down the page. */
+.hub-levers { display: flex; flex-direction: column; }
+.hub-lever { display: grid; grid-template-columns: 13rem 17rem minmax(0, 1fr); column-gap: var(--spacing-16); row-gap: var(--spacing-6, 6px); align-items: center; padding: var(--spacing-10, 10px) 0; border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.hub-lever:first-child { border-top: 0; padding-top: 0; }
+.hub-lever:last-child { padding-bottom: 0; }
+.hub-lever__label { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hub-lever__name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); }
+.hub-lever__hint { font-size: var(--font-size-12); color: var(--text-tertiary); }
+.hub-lever__option { min-width: 0; }
+.hub-lever__option .empac-select { width: 100%; }
+.hub-lever__fixed { display: block; font-size: var(--font-size-14); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hub-lever__pair { display: flex; align-items: center; gap: var(--spacing-6, 6px); }
+.hub-lever__pair .empac-select { flex: 1; min-width: 0; }
+.hub-lever__minutes { width: 8rem; flex: none; }
+.hub-lever__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6, 6px); min-width: 0; }
+.hub-lever__actions .hub-lever__main { min-width: 14rem; justify-content: center; }
+.hub-lever__status { grid-column: 2 / -1; font-size: var(--font-size-14); color: var(--text-secondary); overflow-wrap: anywhere; }
+.hub-lever__more { grid-column: 2 / -1; min-width: 0; }
+.hub-lever__panel { display: flex; flex-direction: column; gap: var(--spacing-8); max-width: 48rem; }
+.hub-lever__add { display: flex; gap: var(--spacing-8); }
+.hub-lever__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
+.hub-lever__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.hub-lever__board { display: grid; gap: 4px; max-width: 36rem; }
+.hub-lever__square { aspect-ratio: 1 / 1; padding: 4px; border-radius: var(--radius-8, 8px); border: 1px solid var(--border-default); background: var(--background-elevated); color: var(--text-primary); font: inherit; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); line-height: 1.1; overflow: hidden; cursor: pointer; }
+.hub-lever__square.is-marked { background: var(--bg-primary); color: var(--text-on-primary, #fff); border-color: var(--bg-primary); }
+.hub-lever__square:disabled { cursor: default; }
+.hub-lever__tiers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-width: 48rem; }
+.hub-lever__tier-row { display: grid; grid-template-columns: minmax(0, 1fr) 16rem; align-items: center; gap: var(--spacing-8); padding: 4px var(--spacing-8); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); }
+.hub-lever__tier-text { font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 700px) {
+  .hub-lever { grid-template-columns: minmax(0, 1fr); }
+  .hub-lever__status, .hub-lever__more { grid-column: 1 / -1; }
+  .hub-lever__option:empty { display: none; }
+}
+.hub-panel__sub { font-weight: var(--font-weight-medium, 500); color: var(--text-secondary); }
+.hub-panel__meta { font-size: var(--font-size-12); color: var(--text-tertiary); }
+
+/* Last roll (side column). */
+.hub-lastroll { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.hub-lastroll__line { margin: 0; font-size: var(--font-size-14); line-height: 1.4; overflow-wrap: anywhere; }
+.hub-lastroll__slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-6, 6px); }
+.hub-lastroll__slot { display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); grid-template-rows: auto auto; column-gap: var(--spacing-8); align-items: center; }
+.hub-lastroll__art { grid-row: 1 / span 2; width: 3.2rem; height: 3.2rem; border-radius: var(--radius-6, 6px); overflow: hidden; }
+.hub-lastroll__art img { width: 100%; height: 100%; object-fit: cover; }
+.hub-lastroll__name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); line-height: 1.2; }
+.hub-lastroll__detail { font-size: var(--font-size-12); color: var(--text-secondary); line-height: 1.2; }
+
+/* Running now: a card per thing happening, then the ways to start one. */
+.hub-running__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr)); gap: var(--spacing-10, 10px); }
+.hub-running__card { display: flex; flex-direction: column; gap: var(--spacing-8); padding: var(--spacing-12) var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); min-width: 0; }
+.hub-running__card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); }
+.hub-running__card-title { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-bold); }
+.hub-running__card-line { margin: 0; flex: 1; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.4; overflow-wrap: anywhere; }
+.hub-running__card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6, 6px); margin-top: auto; }
+.hub-running__open { margin-left: auto; }
+.hub-running__start { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-4); }
+.hub-running__start-label { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; margin-right: var(--spacing-4); }
+
+/* Lobby tab: everyone on the left; visibility and chat commands beside. */
+.hub-lobby { display: grid; grid-template-columns: minmax(0, 1fr) minmax(30rem, 36rem); gap: var(--spacing-16); align-items: start; }
+.hub-lobby__side { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.hub-lobby__side .hub-detail__section { padding: var(--spacing-16) var(--spacing-20); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-elevated); margin: 0; }
+.hub-lobby__commands { margin: 0; padding-left: var(--spacing-20); display: flex; flex-direction: column; gap: var(--spacing-6, 6px); font-size: var(--font-size-14); color: var(--text-secondary); }
+@media (max-width: 1000px) { .hub-lobby { grid-template-columns: 1fr; } }
+
+/* Predictions / Bounties tab. */
+.hub-predict { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.hub-predict__head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); flex-wrap: wrap; }
+.hub-livegames .empac-tabs__content { padding-top: var(--spacing-16); }
+.hub-livegames .empac-tabs__tab-badge { background: var(--success-100); color: var(--success-ink, var(--success-700)); }
+.hub-plan { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--spacing-20); align-items: start; }
+@media (max-width: 900px) { .hub-plan { grid-template-columns: 1fr; } }
+.hub-plan__steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.hub-plan__steps li { display: grid; grid-template-columns: 2.4rem 1fr; gap: var(--spacing-10, 10px); align-items: start; padding: var(--spacing-10, 10px) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--background-elevated); font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; }
+.hub-plan__steps strong { color: var(--text-primary); display: block; }
+.hub-plan__n { display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 50%; background: var(--surface-sunken, rgba(127, 127, 127, 0.12)); font-size: var(--font-size-12); font-weight: var(--font-weight-bold); }
+.hub-plan__steps li.is-done .hub-plan__n { background: var(--success-100, #e2f5ea); color: var(--success-700, #1c7a45); }
+.hub-recap { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.hub-stats--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 720px) { .hub-stats--four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hub-games__commands { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.mod-view { padding: var(--spacing-32) 0 var(--spacing-48); }
+
+/* Counts on the stream page's tabs (Lobby 6) are information, not alerts. */
+.hub-session .empac-tabs__tab-badge { background: var(--background-secondary); color: var(--text-secondary); font-weight: var(--font-weight-semibold); }
+.hub-session .empac-tabs__tab--active .empac-tabs__tab-badge { background: color-mix(in srgb, var(--primary-500) 14%, var(--background-elevated)); color: var(--brand-ink, var(--primary-600)); }
+
+/* Overlay tools: pick one, its row shows. */
+.hub-toolbox .empac-tabs__header { flex-wrap: wrap; gap: var(--spacing-4); }
+.hub-toolbox .empac-tabs__content { padding-top: var(--spacing-8); }
+.hub-toolbox .empac-tabs__panel { padding: 0; }
+.hub-toolbox .hub-lever { padding-top: 0; }
+/* The pill already names the tool; the row keeps only its note ("3 from chat"),
+   so the option and buttons still line up with Rolls above. */
+.hub-toolbox .hub-lever__name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* /mod/join/<streamer>: a Twitch mod joins the streamer's GameShuffle mods. */
+.mod-join { padding: var(--spacing-48) 0; }
+.mod-join__card { max-width: 56rem; margin: 0 auto; padding: var(--spacing-24); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-elevated); display: flex; flex-direction: column; gap: var(--spacing-12); }
+.mod-join__eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.mod-join__title { margin: 0; font-size: var(--font-size-28, 2.8rem); line-height: 1.15; text-wrap: balance; }
+.mod-join__lede { margin: 0; color: var(--text-secondary); max-width: 60ch; }
+.mod-join__steps { margin: 0; padding-left: var(--spacing-20); display: flex; flex-direction: column; gap: var(--spacing-6, 6px); font-size: var(--font-size-14); }
+.mod-join__steps .is-done { color: var(--text-secondary); }
+.mod-join__actions { display: flex; flex-direction: column; gap: var(--spacing-8); align-items: flex-start; }
+.mod-join__note { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }

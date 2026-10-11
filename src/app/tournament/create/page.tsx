@@ -4,7 +4,8 @@ import { AiTournamentHelper } from "@/components/ai/AiTournamentHelper";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Container, Button, Input, Select } from "@empac/cascadeds";
+import { Card, Container, Button, Input, Select, Switch } from "@empac/cascadeds";
+import { isReservedName, RESERVED_TITLE_MESSAGE, reservedNameError } from "@/lib/reservedName";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { isPartyGame, PARTY_SCORING_TABLE, PARTY_TABLE_ADVANCE, PARTY_TABLE_SIZE } from "@/lib/party/tournament";
 import { defaultRules as smashDefaultRules, isSmashGame, SMASH_FLIGHT_SIZE, SMASH_SCORING_TABLE } from "@/lib/smash/tournament";
@@ -12,7 +13,10 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
 import { describeStructure } from "@/lib/tournaments/groups";
-import { ORGANIZER_BILLING_LAUNCH } from "@/lib/tournaments/circuit";
+import { circuitLaunch } from "@/lib/tournaments/circuit";
+
+/** Circuit launch wording (ORGANIZER_BILLING_LAUNCH). */
+const circuitPhase = circuitLaunch();
 import { getGameLobbySize } from "@/lib/tournaments/gameData";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
@@ -21,6 +25,8 @@ import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
 import { IconSparkles, IconTrophy } from "@tabler/icons-react";
 import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import { GameCover } from "@/components/games/GameCover";
+import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
+import { GAME_CATALOG, catalogGame } from "@/data/game-catalog";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
@@ -45,8 +51,18 @@ const GAMES = [
   ...(MARVEL_RIVALS_PUBLIC ? [{ value: "marvel-rivals", label: "Marvel Rivals" }] : []),
   ...(SPLATOON_PUBLIC ? [{ value: "splatoon-3", label: "Splatoon 3" }] : []),
   ...(KIRBY_PUBLIC ? [{ value: "kirby-air-riders", label: "Kirby Air Riders" }] : []),
-  { value: "other", label: "Other game" },
+  { value: "other", label: "Another game" },
 ];
+
+/** The games with GameShuffle tools, shown as cards under the search. */
+const POPULAR_GAMES = GAMES.filter((g) => g.value !== "other");
+/** Every game GameShuffle knows by name, for the search: our games first, then the catalog. */
+const SEARCH_OPTIONS = (() => {
+  const seen = new Set<string>();
+  return [...POPULAR_GAMES.map((g) => g.label), ...GAME_CATALOG.map((g) => g.name)]
+    .filter((name) => { const k = name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+    .map((name) => ({ value: name, label: name }));
+})();
 
 /** Games where a racing ladder (Heat → Mains) makes no sense: one-on-one fighters and team hero shooters. */
 const NO_HEAT_GAMES = new Set(["street-fighter-6", "tekken-8", "overwatch", "marvel-rivals", "splatoon-3"]);
@@ -80,12 +96,16 @@ export default function CreateTournamentPage() {
   // Championship creation is Pro-only — read the user's effective tier for a
   // clean upsell (RLS also enforces this server-side).
   const [isPro, setIsPro] = useState(true); // optimistic until loaded (avoids a flash of the upsell)
+  // Admins can host as GameShuffle (an official event; supabase/official-events-m1.sql).
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [hostedByGs, setHostedByGs] = useState(false);
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
     (async () => {
       const { data } = await supabase.from("users").select("subscription_tier, role, circuit_tier, circuit_status").eq("id", user.id).maybeSingle();
       setIsPro(effectiveTier({ tier: normalizeTier(data?.subscription_tier), role: data?.role, circuitTier: data?.circuit_tier ?? null, circuitStatus: data?.circuit_status ?? null }) === "pro");
+      setIsAdmin(data?.role === "admin");
     })();
   }, [user]);
 
@@ -125,14 +145,22 @@ export default function CreateTournamentPage() {
   const [lobbyCustom, setLobbyCustom] = useState(false);
   const isElim = format === "single_elim" || format === "double_elim";
   const gkBracketing = format === "double_elim" ? "double" : "single";
-  // GS Circuit billing flag (admin-toggleable) — drives the free-preview hint.
+  // GS Circuit billing (the admin switch) and this organizer's plan, for the field-size note.
   const [billingEnabled, setBillingEnabled] = useState(false);
+  const [circuitPlan, setCircuitPlan] = useState<{ plan: string | null; graceLabel: string | null }>({ plan: null, graceLabel: null });
   useEffect(() => {
     fetch("/api/tournaments/billing-status")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setBillingEnabled(!!d.billingEnabled); })
+      .then((d: { billingEnabled?: boolean; plan?: string | null; graceUntil?: string | null } | null) => {
+        if (!d) return;
+        setBillingEnabled(!!d.billingEnabled);
+        setCircuitPlan({
+          plan: d.plan ?? null,
+          graceLabel: d.graceUntil ? new Date(d.graceUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" }) : null,
+        });
+      })
       .catch(() => {});
-  }, []);
+  }, [user]);
   // Communities the organizer can present this event under (owner/mod).
   useEffect(() => {
     fetch("/api/communities/organizable")
@@ -197,8 +225,25 @@ export default function CreateTournamentPage() {
       if (runMode === "championship") setRunMode("single");
     }
   };
-  const resolvedSlug = isOtherGame ? slugifyGame(customGame) || "custom-game" : gameSlug;
-  const gameLabel = isOtherGame ? customGame.trim() : GAMES.find((g) => g.value === gameSlug)?.label ?? gameSlug;
+  // "Another game": a catalog game keeps its catalog slug and name (so its box
+  // art and name show everywhere); anything typed gets a slug from its name.
+  const catalogPick = isOtherGame ? catalogGame(customGame) : null;
+  const resolvedSlug = isOtherGame ? (catalogPick ? catalogPick.appSlug ?? catalogPick.slug : slugifyGame(customGame) || "custom-game") : gameSlug;
+  const gameLabel = isOtherGame ? (catalogPick?.name ?? customGame.trim()) : GAMES.find((g) => g.value === gameSlug)?.label ?? gameSlug;
+  // Mario Kart carries race settings (race count, cc, items); every other game
+  // without its own tools records just its name. Non-Mario-Kart picks used to
+  // get Mario Kart's race defaults by mistake.
+  const isKart = gameSlug === "mario-kart-8-deluxe" || gameSlug === "mario-kart-world";
+  /** The search: one of our games selects it (with its tools); anything else is "another game" by name. */
+  const searchGame = (name: string) => {
+    const typed = name.trim();
+    const entry = typed ? catalogGame(typed) : null;
+    const ours = POPULAR_GAMES.find((g) => g.label.toLowerCase() === typed.toLowerCase() || (entry && (g.value === entry.slug || g.value === entry.appSlug)));
+    if (ours) { selectGame(ours.value); setCustomGame(""); return; }
+    if (!isOtherGame) selectGame("other");
+    setCustomGame(typed);
+  };
+  const searchValue = isOtherGame ? customGame : gameLabel;
 
   const handleCreateSingle = async () => {
     const supabase = createClient();
@@ -225,11 +270,12 @@ export default function CreateTournamentPage() {
         rules: rules.trim() || null,
         share_token: generateShareToken(),
         status: "draft",
+        ...(hostedByGs ? { hosted_by_gs: true } : {}),
         ...(isParty ? { scoring_table: PARTY_SCORING_TABLE } : isSmash ? { scoring_table: SMASH_SCORING_TABLE } : {}),
         // MK games carry race/track/build config; other games just record a
         // label. Group Knockout adds its lobby rules on top, any game.
         settings: {
-          ...(isOtherGame
+          ...(!isKart && !isParty && !isSmash
             ? { game_label: gameLabel }
             : isParty
               // Points runs in flights of four: one board game per round, leaders
@@ -257,7 +303,12 @@ export default function CreateTournamentPage() {
         .from("tournaments").insert(row).select("id").single());
     }
 
-    if (dbError) { setError(dbError.message); setSaving(false); return; }
+    if (dbError) {
+      const missingColumn = /hosted_by_gs/i.test(dbError.message);
+      setError(missingColumn ? "Official events need the latest database update (official-events-m1)." : reservedNameError(dbError.message) ?? dbError.message);
+      setSaving(false);
+      return;
+    }
     if (data) { trackEvent("Tournament Created", { mode, game: resolvedSlug, format }); router.push(`/tournament/${data.id}/manage`); }
   };
 
@@ -284,6 +335,7 @@ export default function CreateTournamentPage() {
     if (runMode === "championship" && !isPro) { setError("Championship series is a GS Pro feature."); return; }
     if (runMode === "championship" && noHeat) { setError(`Championship series runs Heat → Mains, which doesn't suit ${isSmash ? "Smash" : isParty ? "Mario Party" : gameLabel}. Run a single tournament instead.`); return; }
     if (!title.trim()) { setError(`${runMode === "championship" ? "Championship" : "Tournament"} name is required.`); return; }
+    if (isReservedName(title) && !(runMode === "single" && hostedByGs)) { setError(RESERVED_TITLE_MESSAGE); return; }
     if (isOtherGame && !customGame.trim()) { setError("Enter the name of the game."); return; }
     setSaving(true);
     setError(null);
@@ -340,28 +392,59 @@ export default function CreateTournamentPage() {
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>{runMode === "championship" ? "Season / League Name" : "Tournament Name"} *</label>
                 <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={runMode === "championship" ? "Friday Night League" : "Friday Night Karts"} />
               </div>
+              {isAdmin && runMode === "single" && (
+                <Switch
+                  checked={hostedByGs}
+                  onChange={(e) => setHostedByGs(e.target.checked)}
+                  label="Host as GameShuffle"
+                  helperText="An official event: the page shows GameShuffle as the host with an Official badge, and the GameShuffle name can be used in the title."
+                />
+              )}
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Description</label>
                 <textarea className="save-setup-input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={runMode === "championship" ? "What's this league about?" : "What's this tournament about?"} rows={3} style={{ resize: "vertical" }} />
               </div>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Game</label>
-                <div className="game-pick" role="radiogroup" aria-label="Game">
-                  {GAMES.map((g) => (
-                    <Button key={g.value} variant={gameSlug === g.value ? "primary" : "secondary"} size="small" className="game-pick__option" role="radio" aria-checked={gameSlug === g.value} onClick={() => selectGame(g.value)}>
-                      {g.value === "other" ? <span className="game-pick__cover game-pick__cover--other" aria-hidden>?</span> : <span className="game-pick__cover"><GameCover slug={g.value} name={g.label} /></span>}
-                      <span className="game-pick__name">{g.label}</span>
-                    </Button>
-                  ))}
+                <div className="game-pick__search">
+                  {searchValue.trim() && (
+                    <span className="game-pick__cover">
+                      <GameCover slug={isOtherGame ? catalogPick?.slug : gameSlug} name={isOtherGame ? catalogPick?.name ?? customGame.trim() : gameLabel} />
+                    </span>
+                  )}
+                  <LabeledCombobox
+                    label="Game"
+                    value={searchValue}
+                    onChange={searchGame}
+                    options={SEARCH_OPTIONS}
+                    placeholder="Search for the game you're playing"
+                    allowCreate
+                    createLabel="Use"
+                  />
                 </div>
-                {isOtherGame && (
-                  <div style={{ marginTop: "0.75rem" }}>
-                    <Input type="text" value={customGame} onChange={(e) => setCustomGame(e.target.value)} placeholder="Game name (e.g. Super Smash Bros, Rocket League)" />
-                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
-                      Brackets, points, and Heat → Mains work for any game. Mario Kart&apos;s track &amp; build tools are the only game-specific extras.
-                    </p>
-                  </div>
-                )}
+                <p className="game-pick__hint">
+                  Brackets, points and Heat → Mains work for any game.{" "}
+                  {isOtherGame && customGame.trim() && !catalogPick ? "We'll use the name as you typed it." : "Not in the list? Type the name and pick Use."}
+                </p>
+                <h3 className="game-pick__heading">Most popular games</h3>
+                <ul className="game-pick__grid" aria-label="Most popular games">
+                  {POPULAR_GAMES.map((g) => (
+                    <li key={g.value}>
+                      <Card
+                        variant="outlined"
+                        padding="small"
+                        interactive
+                        selected={gameSlug === g.value}
+                        onClick={() => { selectGame(g.value); setCustomGame(""); }}
+                        className="game-pick__card"
+                        aria-label={g.label}
+                      >
+                        <span className="game-pick__card-cover"><GameCover slug={g.value} name={g.label} /></span>
+                        <span className="game-pick__card-name">{g.label}</span>
+                      </Card>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               {runMode === "single" && (!isOtherGame || customGame.trim()) && (
@@ -432,9 +515,19 @@ export default function CreateTournamentPage() {
                             : describeStructure({ lobbySize: gkLobby, advance: gkAdvance, bracketing: gkBracketing }, maxParticipants ? Number(maxParticipants) : 16)}
                           {gkLobby > 2 && !maxParticipants && <span style={{ color: "var(--text-tertiary)" }}> (example with 16 players)</span>}
                         </div>
+                        {billingEnabled && (circuitPlan.plan === "grace" || circuitPlan.plan === "free") && (
+                          <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", margin: 0 }}>
+                            <IconSparkles size={14} stroke={1.9} aria-hidden />{" "}
+                            {circuitPlan.plan === "grace"
+                              ? <><strong>GameShuffle Circuit is free for you until {circuitPlan.graceLabel}:</strong> you ran tournaments before it launched, so bigger fields and every organizer feature cost nothing until then.</>
+                              : <><strong>Free plan:</strong> up to {getGameLobbySize(isOtherGame ? null : gameSlug)} players get a spot; anyone after that joins the waitlist. Upgrade to <Link href="/gs-circuit">GameShuffle Circuit</Link> (64 or 256 players) and they&rsquo;re offered spots in line order.</>}
+                          </p>
+                        )}
                         {!billingEnabled && (
                           <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", margin: 0 }}>
-                            <IconSparkles size={14} stroke={1.9} aria-hidden /> <strong>GameShuffle Circuit preview:</strong> fields over {getGameLobbySize(isOtherGame ? null : gameSlug)} players will become part of GameShuffle Circuit{ORGANIZER_BILLING_LAUNCH ? ` starting ${new Date(ORGANIZER_BILLING_LAUNCH).toLocaleDateString()}` : ""}. Everything is free while it&rsquo;s in preview.
+                            <IconSparkles size={14} stroke={1.9} aria-hidden /> <strong>GameShuffle Circuit {circuitPhase.phase === "preview" ? "preview" : "is free for now"}:</strong> fields over {getGameLobbySize(isOtherGame ? null : gameSlug)} players {circuitPhase.phase === "preview"
+                              ? <>will become part of GameShuffle Circuit. Everything is free while it&rsquo;s in preview.</>
+                              : <>become part of GameShuffle Circuit on {circuitPhase.dateLabel}. Until then it&rsquo;s free, and a tournament you create now keeps its Circuit features.</>}
                           </p>
                         )}
                       </div>

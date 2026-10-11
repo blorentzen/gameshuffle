@@ -1,12 +1,18 @@
 /**
  * /mod/[streamer] — the mod's operational view of a streamer's surfaces.
  *
- * M.4 ships the live operational panel: active-participant list with
- * kick, real-time activity feed, plus stubbed sections for the
- * downstream features (code-request approval queue, prequeue
- * management, room-code release). Each stub explains what it'll
- * become so a streamer previewing the surface sees exactly what
- * their mods will get.
+ * Laid out like the streamer's control room (2026-10-10): a banner saying
+ * whose stream it is and what a mod can do, the session header, the lobby
+ * with Kick and the activity feed, then the streamer's decks.
+ *
+ * Mod access levels (supabase/mod-access-m1.sql): Standard mods get the
+ * above. Full mods, while the streamer is live, get the stream page's own
+ * controls as tabs: Control room (rolls, what's running, overlay tools),
+ * Picks & bans for games that have it, Live games (polls, bingo, drafts,
+ * Chat Brain, break mode) and Decks. Those components act on "the
+ * streamer": their actions and routes resolve a Full mod on this page to
+ * the streamer (src/lib/mods/acting.ts). Ending or editing the stream
+ * stays on the streamer's own stream page.
  *
  * Auth: caller must be signed in AND either (a) the streamer
  * themselves (implicit-mod self-access) OR (b) hold an `active` row
@@ -24,6 +30,17 @@ import { listActiveParticipants, listSessionEvents } from "@/lib/sessions/querie
 import { RealtimeActivityFeed } from "@/components/hub/RealtimeActivityFeed";
 import { ModParticipantsPanel } from "./ModParticipantsPanel";
 import { DeckEditor } from "@/components/party/DeckEditor";
+import { GameCover } from "@/components/games/GameCover";
+import { getGameName } from "@/data/game-registry";
+import { modAccess } from "@/lib/mods/acting";
+import { hubGameActions } from "@/lib/hub/gameActions";
+import { HubLiveProvider } from "@/components/hub/live/HubLiveProvider";
+import { GameRolls, LastRoll } from "@/components/hub/live/OnScreenNow";
+import { RunningNow } from "@/components/hub/live/RunningNow";
+import { LiveGamesPanel } from "@/components/hub/live/LiveGamesPanel";
+import { HubToolsRun } from "@/components/hub/HubToolsRun";
+import { DashboardLiveControls } from "@/components/hub/DashboardLiveControls";
+import { SessionDetailTabs, type SessionDetailTabDef } from "@/components/hub/SessionDetailTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +90,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
 
   if (!streamer) {
     return (
-      <Container>
+      <Container as="main">
         <ModShell>
           <h1 style={{ marginTop: 0 }}>Streamer not found</h1>
           <Alert variant="error">
@@ -84,24 +101,19 @@ export default async function ModView({ params, searchParams }: PageProps) {
     );
   }
 
-  // Access gates: caller is an active mod OR the streamer themselves.
+  // Access gates: caller is an active mod OR the streamer themselves. The
+  // streamer previewing their own page sees what a Full mod sees.
   const isStreamerSelf = user.id === streamer.id;
-  const { data: modRow } = await admin
-    .from("streamer_mods")
-    .select("id, status")
-    .eq("streamer_user_id", streamer.id)
-    .eq("gs_user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
-  const isActiveMod = modRow !== null;
-  const canAccess = isStreamerSelf || isActiveMod;
+  const access = isStreamerSelf ? "full" : await modAccess(streamer.id, user.id);
+  const canAccess = access !== null;
+  const full = access === "full";
 
   const streamerName =
     streamer.display_name ?? streamer.username ?? streamer.twitch_username ?? slug;
 
   if (!canAccess) {
     return (
-      <Container>
+      <Container as="main">
         <ModShell>
           <h1 style={{ marginTop: 0 }}>You&rsquo;re not modding for this streamer</h1>
           <Alert variant="warning">
@@ -128,192 +140,152 @@ export default async function ModView({ params, searchParams }: PageProps) {
       ])
     : [[], []];
 
+  const game = session ? session.active_game ?? session.configured_games?.[0] ?? null : null;
+  const inLobby = participants.filter((p) => !p.is_broadcaster).length;
+
+  // Full access while live: the stream page's controls, for the game on stream.
+  const configuredGames: string[] = session
+    ? Array.isArray(session.configured_games) && session.configured_games.length > 0
+      ? session.configured_games
+      : session.config?.game ? [session.config.game as string] : []
+    : [];
+  const gameActions = session && full ? hubGameActions(game) : null;
+  let rawRaceConfig: Record<string, unknown> | null = null;
+  if (session && full && gameActions?.race) {
+    const { data: raceRow } = await admin
+      .from("session_modules")
+      .select("config")
+      .eq("session_id", session.id)
+      .eq("module_id", "race_randomizer")
+      .maybeSingle();
+    rawRaceConfig = (raceRow?.config as Record<string, unknown> | null) ?? null;
+  }
+
+  const lobbyPanel = session ? (
+    <section className="hub-panel" aria-labelledby="mod-lobby">
+      <h2 id="mod-lobby" className="hub-panel__title">Lobby <span className="hub-page__group-count">{inLobby}</span></h2>
+      <ModParticipantsPanel streamerSlug={slug} sessionId={session.id} initialParticipants={participants} />
+    </section>
+  ) : null;
+  const activityPanel = session ? (
+    <section className="hub-panel" aria-labelledby="mod-activity">
+      <h2 id="mod-activity" className="hub-panel__title">Activity</h2>
+      <RealtimeActivityFeed sessionId={session.id} initialEvents={events.map((row) => ({ ...row }))} limit={12} />
+    </section>
+  ) : null;
+  const decksPanel = (
+    <section className="hub-panel" aria-labelledby="mod-decks">
+      <h2 id="mod-decks" className="hub-panel__title">{streamerName}&rsquo;s decks</h2>
+      <p className="hub-panel__empty">Chance cards, missions and house rules for {streamerName}&rsquo;s game nights and live nights.</p>
+      <DeckEditor scope={streamer.id} />
+    </section>
+  );
+
+  let fullTabs: SessionDetailTabDef[] | null = null;
+  if (session && full) {
+    fullTabs = [
+      {
+        id: "overview",
+        label: "Control room",
+        content: (
+          <div className="hub-control">
+            <div className="hub-control__grid">
+              <div className="hub-control__main">
+                <GameRolls key={gameActions?.slug ?? "queue"} sessionId={session.id} actions={gameActions} rawRaceConfig={rawRaceConfig} legacyDefaultSlug={configuredGames[0]} streamerName={isStreamerSelf ? undefined : streamerName} />
+                <RunningNow sessionSlug={session.slug} liveSlug={slug} actions={gameActions} predictions={false} />
+                <HubToolsRun slug={session.slug} setupLink={false} />
+              </div>
+              <aside className="hub-control__side">
+                <LastRoll />
+                {lobbyPanel}
+                {activityPanel}
+              </aside>
+            </div>
+          </div>
+        ),
+      },
+      ...(gameActions?.race
+        ? [{
+            id: "picks",
+            label: "Picks & bans",
+            content: (
+              <DashboardLiveControls
+                sessionId={session.id}
+                sessionSlug={session.slug}
+                initialActiveGameSlug={game}
+                legacyDefaultSlug={configuredGames[0]}
+                rawRaceConfig={rawRaceConfig}
+                part="picks"
+              />
+            ),
+          }]
+        : []),
+      { id: "live-games", label: "Live games", content: <LiveGamesPanel /> },
+      { id: "decks", label: "Decks", content: decksPanel },
+    ];
+  }
+  const tabParam = typeof sp.tab === "string" ? sp.tab : "";
+  const initialTab = fullTabs?.some((t) => t.id === tabParam) ? tabParam : "overview";
+
   return (
-    <Container>
-      <ModShell>
+    <Container as="main">
+      <div className="hub-detail hub-session mod-view">
         {justClaimed && (
-          <div style={{ marginBottom: "var(--spacing-20)" }}>
-            <Alert variant="success">
-              You&rsquo;re in. {streamerName} now sees you as an active mod
-              for their streams.
-            </Alert>
-          </div>
+          <Alert variant="success">
+            You&rsquo;re in. {streamerName} now sees you as an active mod for their streams.
+          </Alert>
         )}
 
-        {isStreamerSelf && (
-          <div style={{ marginBottom: "var(--spacing-20)" }}>
-            <Alert variant="info">
-              <strong>You&rsquo;re viewing as the streamer.</strong> This is
-              the same surface your active mods see, useful for previewing
-              what they have access to, plus you can operate any of these
-              tools yourself when you&rsquo;re live.
-            </Alert>
-          </div>
-        )}
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--spacing-12)",
-            marginBottom: "var(--spacing-16)",
-            flexWrap: "wrap",
-          }}
-        >
-          <h1 style={{ margin: 0 }}>Mod view: {streamerName}</h1>
-          <Badge variant={isStreamerSelf ? "default" : "success"} size="small">
-            {isStreamerSelf ? "Streamer" : "Active"}
-          </Badge>
-          {session ? (
-            <Badge variant="success" size="small">
-              ● Live session
-            </Badge>
-          ) : (
-            <Badge variant="default" size="small">
-              No active session
-            </Badge>
-          )}
+        <div className="mod-view__banner">
+          <Alert variant="info" title={isStreamerSelf ? "This is your mods' page" : `You're a mod for ${streamerName}`}>
+            {isStreamerSelf
+              ? "Standard mods manage the lobby and edit your decks. Full mods also get the controls below while you're live: rolls, picks and bans, overlay tools, live games and break mode. Starting, ending and editing the stream stay with you."
+              : full
+                ? `You have Full access: while ${streamerName} is live you can roll, run picks and bans, the overlay tools, live games and break mode, and manage the lobby and decks. Starting, ending and editing the stream stay with ${streamerName}.`
+                : `You can manage the lobby and edit ${streamerName}'s decks. ${streamerName} runs rolls, picks and bans, predictions and the stream itself.`}
+          </Alert>
         </div>
 
-        {!session ? (
-          <>
-            <Alert variant="info">
-              {streamerName} doesn&rsquo;t have an active session right now.
-              When they go live, this view fills in with the moderation
-              tools below. Keep this tab open and it&rsquo;ll light up.
-            </Alert>
-            <div
-              style={{
-                marginTop: "var(--spacing-16)",
-                padding: "var(--spacing-12) var(--spacing-16)",
-                background: "var(--background-secondary)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "var(--radius-md, 0.5rem)",
-                color: "var(--text-tertiary)",
-                fontSize: "var(--font-size-12)",
-                lineHeight: "var(--line-height-relaxed)",
-              }}
-            >
-              Tools you&rsquo;ll have access to once a session is live:
-              kick active participants · read the activity feed
-              <span style={{ opacity: 0.7 }}>
-                {" "}
-                · approve code requests · kick prequeue spots · release
-                room code <em>(rolling out as features ship)</em>
-              </span>
-            </div>
-          </>
+        <header className="hub-session__head">
+          <span className="hub-session__cover">{game && <GameCover slug={game} name={getGameName(game)} />}</span>
+          <div className="hub-session__titles">
+            <h1 className="hub-detail__title">{session ? session.name : `${streamerName}'s streams`}</h1>
+            <p className="hub-session__status">
+              {session ? (
+                <>
+                  <Badge variant="success" size="small">Live</Badge>
+                  <span>{[game ? `Playing ${getGameName(game)}` : null, `${inLobby} in the lobby`].filter(Boolean).join(" · ")}</span>
+                </>
+              ) : (
+                <>
+                  <Badge variant="default" size="small">Not live</Badge>
+                  <span>Keep this tab open; it fills in when {streamerName} goes live.</span>
+                </>
+              )}
+            </p>
+          </div>
+          <div className="hub-detail__header-actions">
+            <a href={`/live/${slug}`} target="_blank" rel="noopener noreferrer"><Button variant="secondary">{streamerName}&rsquo;s live page ↗</Button></a>
+            {isStreamerSelf && <a href="/account/streaming?tab=mods"><Button variant="secondary">Manage mods</Button></a>}
+          </div>
+        </header>
+
+        {session && fullTabs ? (
+          <HubLiveProvider sessionId={session.id} renderedGame={game}>
+            <SessionDetailTabs tabs={fullTabs} initialTab={initialTab} />
+          </HubLiveProvider>
         ) : (
           <>
-            <Section title="Active participants">
-              <ModParticipantsPanel
-                streamerSlug={slug}
-                sessionId={session.id}
-                initialParticipants={participants}
-              />
-            </Section>
-
-            <Section
-              title="Activity feed"
-              hint="Read-only stream of what's happening this session: joins, shuffles, picks/bans, adapter events. Realtime."
-            >
-              <RealtimeActivityFeed
-                sessionId={session.id}
-                initialEvents={events.map((row) => ({ ...row }))}
-                limit={25}
-              />
-            </Section>
-
-            {/* Forward-looking stubs are scoped to the live-session
-                branch so an inactive view stays quiet. They sit below
-                the operational panels under a "rolling out" header so
-                streamers can preview what their mods will eventually
-                get without the stubs visually competing with the
-                actually-functional tools above. */}
-            <div
-              style={{
-                marginTop: "var(--spacing-32)",
-                paddingTop: "var(--spacing-16)",
-                borderTop: "1px dashed var(--border-subtle)",
-              }}
-            >
-              <p
-                style={{
-                  margin: "0 0 var(--spacing-12)",
-                  fontSize: "var(--font-size-12)",
-                  fontWeight: "var(--font-weight-semibold)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                Rolling out (preview)
-              </p>
-
-              <Section
-                title="Code requests"
-                hint="Pending room-code + friend-code requests in approval mode."
-                stub
-              >
-                <p style={{ margin: 0 }}>
-                  Once the lobby-code-sharing feature ships, viewers who
-                  request the room code (or your friend code) in approval
-                  mode will land here for one-tap Approve / Deny.
-                </p>
-              </Section>
-
-              <Section
-                title="Pre-stream queue"
-                hint="Discord pre-queue management for the streamer's next session."
-                stub
-              >
-                <p style={{ margin: 0 }}>
-                  Once the Discord prequeue feature ships, viewers who
-                  clicked &ldquo;I&rsquo;m in&rdquo; on the announcement
-                  embed will be listed here with per-row kick +
-                  clear-no-shows controls.
-                </p>
-              </Section>
-
-              <Section
-                title="Room code release"
-                hint="Manually release the room code when the streamer's sharing mode is set to approval + mod-release."
-                stub
-              >
-                <p style={{ margin: 0 }}>
-                  Once the lobby-code-sharing feature ships, this button
-                  appears here when {streamerName} has the &ldquo;Allow
-                  mods to release room codes&rdquo; setting on and the
-                  current room code is in approval mode.
-                </p>
-              </Section>
-            </div>
+            {session && (
+              <div className="hub-control">
+                <div className="hub-control__main">{lobbyPanel}</div>
+                <aside className="hub-control__side">{activityPanel}</aside>
+              </div>
+            )}
+            {decksPanel}
           </>
         )}
-
-        <section style={{ marginTop: "var(--spacing-32)" }}>
-          <h2>{streamerName}&rsquo;s Mario Party cards</h2>
-          <DeckEditor scope={streamer.id} />
-        </section>
-
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--spacing-8)",
-            flexWrap: "wrap",
-            marginTop: "var(--spacing-24)",
-          }}
-        >
-          <a href={`/live/${slug}`} style={{ textDecoration: "none" }}>
-            <Button variant="primary">
-              View {streamerName}&rsquo;s live page →
-            </Button>
-          </a>
-          <a href="/account/streamer?tab=mods" style={{ textDecoration: "none" }}>
-            <Button variant="secondary">Manage your mod accounts</Button>
-          </a>
-        </div>
-      </ModShell>
+      </div>
     </Container>
   );
 }
@@ -322,7 +294,7 @@ function ModShell({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        maxWidth: "56rem",
+        maxWidth: "640px",
         margin: "var(--spacing-48) auto",
         padding: "var(--spacing-24)",
         background: "var(--background-elevated)",
@@ -332,69 +304,5 @@ function ModShell({ children }: { children: React.ReactNode }) {
     >
       {children}
     </div>
-  );
-}
-
-function Section({
-  title,
-  hint,
-  stub,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  /** When true, renders dimmed with a "Coming soon" pill so the
-   *  user knows the section is a placeholder rather than empty state. */
-  stub?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      style={{
-        marginTop: "var(--spacing-24)",
-        padding: "var(--spacing-16) var(--spacing-20)",
-        background: "var(--background-secondary)",
-        border: "1px solid var(--border-default)",
-        borderRadius: "var(--radius-md, 0.5rem)",
-        opacity: stub ? 0.7 : 1,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--spacing-8)",
-          marginBottom: hint ? "var(--spacing-4)" : "var(--spacing-12)",
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: "var(--font-size-18)" }}>{title}</h2>
-        {stub && (
-          <Badge variant="default" size="small">
-            Coming soon
-          </Badge>
-        )}
-      </div>
-      {hint && (
-        <p
-          style={{
-            margin: "0 0 var(--spacing-12)",
-            fontSize: "var(--font-size-12)",
-            color: "var(--text-tertiary)",
-            lineHeight: "var(--line-height-snug)",
-          }}
-        >
-          {hint}
-        </p>
-      )}
-      <div
-        style={{
-          fontSize: "var(--font-size-14)",
-          color: "var(--text-secondary)",
-          lineHeight: "var(--line-height-relaxed)",
-        }}
-      >
-        {children}
-      </div>
-    </section>
   );
 }

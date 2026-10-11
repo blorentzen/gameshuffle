@@ -27,6 +27,8 @@ export const revalidate = 3600; // regenerate every hour
 const UNLISTED = new Set(["/beta", "/features"]);
 /** Tool pages marked noindex (prototypes), kept out of the tool list below. */
 const NOINDEX_TOOLS = new Set(["shuffle-dice"]);
+/** Registry entries whose page is listed elsewhere in the sitemap. */
+const LISTED_ELSEWHERE = new Set(["trivia"]);
 
 /**
  * When a page's content last changed, from src/data/sitemap-lastmod.json
@@ -110,6 +112,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/weekly`,
       lastModified: lm("/weekly"),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/trivia`,
+      lastModified: lm("/trivia"),
       changeFrequency: "weekly",
       priority: 0.7,
     },
@@ -372,10 +380,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    // The game nights hub (browse + host). Individual nights stay out, like tournaments.
+    { url: `${baseUrl}/game-nights`, lastModified: lm("/game-nights"), changeFrequency: "daily", priority: 0.8 },
     // Free game-night tools: the hub plus every registered tool (the tool pages
     // were missing from the sitemap entirely until 2026-09-29).
     { url: `${baseUrl}/game-nights/tools`, lastModified: lm("/game-nights/tools"), changeFrequency: "monthly", priority: 0.6 },
-    ...COMPANION_TOOLS.filter((t) => !NOINDEX_TOOLS.has(t.id)).map((t) => ({
+    ...COMPANION_TOOLS.filter((t) => !NOINDEX_TOOLS.has(t.id) && !LISTED_ELSEWHERE.has(t.id)).map((t) => ({
       url: `${baseUrl}${t.href}`,
       lastModified: lm(t.href),
       changeFrequency: "monthly" as const,

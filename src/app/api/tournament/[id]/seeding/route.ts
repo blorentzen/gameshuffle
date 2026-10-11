@@ -9,6 +9,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canManageEvent } from "@/lib/events/attendees";
+import { createServiceClient } from "@/lib/supabase/admin";
+import { tournamentHasFeature, type TournamentForCircuit } from "@/lib/tournaments/circuit-resolve";
 import { getSeedingState, runDraw, setAnnotation } from "@/lib/tournaments/seedingStore";
 import type { SeedingMethod, Tier } from "@/lib/tournaments/seeding";
 
@@ -48,6 +50,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   };
   if (!body.method || !METHODS.has(body.method)) {
     return NextResponse.json({ error: "Pick a seeding method." }, { status: 400 });
+  }
+
+  const admin = createServiceClient();
+  const { data: t } = await admin.from("tournaments").select("id, game_slug, organizer_id, created_at").eq("id", id).maybeSingle();
+  if (t && !(await tournamentHasFeature(admin, t as TournamentForCircuit, "seeding"))) {
+    return NextResponse.json({ error: "Seeding is part of GameShuffle Circuit.", circuit: true }, { status: 402 });
   }
 
   const result = await runDraw({

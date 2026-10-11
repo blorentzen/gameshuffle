@@ -399,7 +399,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "filter", title: "New save mode", description: "Keep to the 6 maps and 8 characters open from the start." },
       { icon: "checks", title: "No Oddjob", description: "On by default: he's short enough that auto-aim shoots over his head." },
       { icon: "sparkles", title: "Chaos options", description: "Random health handicaps and a random multiplayer cheat." },
-      { icon: "share", title: "Copy the match", description: "Paste the setup into your chat or Discord." },
+      { icon: "users", title: "Name your players", description: "Type everyone's name so each card says who plays who." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -457,7 +457,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "layout-grid", title: "Teams", description: "King of the Hill and Capture the Case split players and simulants into two teams." },
       { icon: "filter", title: "New save mode", description: "Keep to the arenas, scenarios and simulants open from the start." },
       { icon: "sparkles", title: "Chaos options", description: "One-Hit Kills, Slow Motion, Paintball and more." },
-      { icon: "share", title: "Copy the match", description: "Paste the setup into your chat or Discord." },
+      { icon: "users", title: "Name your players", description: "Type everyone's name so each card says who plays who." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -486,7 +486,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "filter", title: "Role filters", description: "Only Tanks, only Supports, or any mix." },
       { icon: "checks", title: "No repeats tonight", description: "Nobody plays the same hero twice until the pool runs out." },
       { icon: "map", title: "Random map", description: "From the Standard map pool, filtered by mode." },
-      { icon: "share", title: "Copy the lineup", description: "Paste everyone's heroes into chat or Discord." },
+      { icon: "users", title: "Name your players", description: "Type everyone's name so each card says whose hero it is." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -514,7 +514,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "filter", title: "Role filters", description: "Vanguards, Duelists, Strategists, or any mix." },
       { icon: "checks", title: "No repeats tonight", description: "Nobody plays the same hero twice until the pool runs out." },
       { icon: "map", title: "Random map", description: "From the core Convergence, Convoy and Domination maps." },
-      { icon: "share", title: "Copy the lineup", description: "Paste everyone's heroes into chat or Discord." },
+      { icon: "users", title: "Name your players", description: "Type everyone's name so each card says whose hero it is." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -542,7 +542,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "filter", title: "Catchable by then", description: "Every target can be caught before that gym on your version, at a level under the cap." },
       { icon: "checks", title: "Gym rules", description: "A level cap at the leader's ace, a team-size limit and an optional twist for every gym." },
       { icon: "sparkles", title: "No trades needed", description: "Kadabra, Machoke, Graveler and Haunter are flagged: they stop evolving without a trade." },
-      { icon: "share", title: "Share the link", description: "Copy the run as text for chat, or as a link that opens the same run." },
+      { icon: "share", title: "Share the link", description: "A link that opens the exact same run, to race a friend or let chat follow along." },
       { icon: "users", title: "Checklist", description: "Tick off catches and badges as you go; saved in your browser per run." },
     ],
     faqHeading: "Frequently asked questions",

@@ -233,7 +233,7 @@ export function AvatarSection({
 
         {!hasDiscordAvatar && !hasTwitchAvatar && (
           <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6)", lineHeight: "var(--line-height-snug)" }}>
-            More avatar options unlock when you link Discord or Twitch in Connections.
+            More avatar options unlock when you link Discord or Twitch in Settings ▸ Sign-in &amp; security.
           </p>
         )}
 

@@ -25,7 +25,7 @@ import { useGameCollection } from "@/hooks/useGameCollection";
 import { applyToKartData } from "@/lib/collection/core";
 import { CollectionBar } from "@/components/collection/CollectionBar";
 import type { GameConfig, GameData, KartCombo } from "@/data/types";
-import type { GameNightSetupConfig } from "@/data/config-types";
+import type { GameNightSetupConfig, ItemSetConfig } from "@/data/config-types";
 
 const CHAR_WEIGHT_OPTIONS = [
   { value: "Light", label: "Light" },
@@ -138,9 +138,21 @@ export function RandomizerClient({
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
-        if (!data || data.config_data?.type !== "game-night-setup") return;
+        if (!data) return;
         // Don't hydrate a config from a different game
         if (data.randomizer_slug && data.randomizer_slug !== gameConfig.slug) return;
+        // A saved item set opens on the Items tab with those items picked
+        // ("Open in randomizer" on My Stuff used to load nothing for these).
+        if (data.config_data?.type === "item-set") {
+          const names = ((data.config_data as ItemSetConfig).items ?? []).map((i) => i.name);
+          if (names.length === 0) return;
+          setInitialItemSet(new Set(names));
+          setActiveItems(names);
+          setRandomizerTab("items");
+          trackEvent("Config Loaded", { configId });
+          return;
+        }
+        if (data.config_data?.type !== "game-night-setup") return;
         const cfg = data.config_data as GameNightSetupConfig;
 
         setLoadedConfigId(data.id);

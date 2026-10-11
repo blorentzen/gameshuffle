@@ -1134,8 +1134,16 @@ ul {
   background: var(--surface-error);
   color: var(--error-700);
   border-radius: var(--radius-md, 0.5rem);
-  font-size: var(--font-size-10);
+  font-size: var(--font-size-14);
   font-weight: 500;
+}
+
+/* The password rules, said once above the fields. */
+.auth-page__hint {
+  margin: 0;
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
 .auth-page__divider {
@@ -2916,6 +2924,36 @@ ul {
   background-clip: content-box;
 }
 
+/* ── CDS bug: the warning Badge is --warning-700 on --warning-100 (about
+   2.7:1), under WCAG's 4.5:1 for its 12px text, wherever it appears. A darker
+   amber keeps the look and clears 4.5:1. In dark mode it's --warning-300 on
+   our --warning-900 (3.1:1); white text on the same amber is 5.4:1.
+   Upstream fix belongs in CascadeDS; local override until then. ── */
+html:not(.dark) .empac-badge--warning {
+  color: #6f4400;
+}
+html.dark .empac-badge--warning {
+  color: #ffffff;
+}
+
+/* ── CDS bug: the active Tab label is --primary-600 in every theme, about
+   2.6:1 on dark surfaces. --brand-ink is the site's contrast-safe brand text
+   colour and turns lighter in dark mode. Upstream fix belongs in CascadeDS. ── */
+html.dark .empac-tabs__tab--active .empac-tabs__tab-label {
+  color: var(--brand-ink);
+}
+/* Pill tabs keep their light --primary-100 fill in dark mode, so the light
+   --brand-ink above would vanish on it; use CDS's own dark text there. */
+html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
+  color: var(--primary-700);
+}
+/* Owner surfaces remap --primary-600 to the owner's accent shaded 16% toward
+   black, which isn't enough for a bright accent (#ff2d95 measured 4.2:1 on the
+   live page's grey). Underline tabs there use the derived ink too. */
+:is(.profile-page, .live-page, .community-page, .tournament-page) .empac-tabs:not(.empac-tabs--pills) .empac-tabs__tab--active .empac-tabs__tab-label {
+  color: var(--brand-ink);
+}
+
 /* ── Phones: card rows swipe (ResponsiveCarousel) instead of stacking ── */
 /* Never wider than its section: the carousel track is wider than the screen by
    design, so clip it here and let the section around it shrink. */
@@ -2974,6 +3012,10 @@ ul {
 .ai-pack__hint, .ai-pack__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .ai-pack__note { font-size: var(--font-size-12); }
 .ai-pack__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-8) var(--spacing-16); max-height: 42vh; overflow-y: auto; }
+.ai-deck__ask { display: grid; grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr) auto; gap: var(--spacing-8); align-items: center; }
+@media (max-width: 640px) { .ai-deck__ask { grid-template-columns: 1fr; } .ai-deck__ask > .empac-button { justify-self: start; } }
+.ai-deck__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); max-height: 46vh; overflow-y: auto; }
+.ai-deck__list > li { display: grid; gap: var(--spacing-6); }
 .ai-pack__footer { display: flex; align-items: center; gap: var(--spacing-8); justify-content: flex-end; flex-wrap: wrap; }
 .ai-pack__allowance { margin-right: auto; font-size: var(--font-size-12); color: var(--text-secondary); }
 .ai-pack > .empac-button { justify-self: start; }
@@ -3034,3 +3076,29 @@ ul {
 .discord-joined .auth-page__title { margin-bottom: 0; }
 .discord-joined__icon { color: var(--color-success-600, #158a50); }
 .discord-joined__actions { display: grid; gap: var(--spacing-8); width: 100%; }
+
+/* CDS floating labels sit inside an empty field, but a date or time field
+   always shows its own "mm/dd/yyyy" text, so the two overlapped (Chat Brain's
+   Opens field, the shop's Sold on). Float the label from the start for those
+   types. Raise upstream with CascadeDS. */
+.empac-input:is([type="date"], [type="datetime-local"], [type="time"], [type="month"]) ~ .empac-input__floating-label {
+  top: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  background-color: var(--background-elevated);
+  padding: 0 var(--spacing-4);
+}
+
+/* Stream Bingo: a pattern drawn small (overlay, /live, Streaming ▸ Bingo). */
+.bingo-shape { display: inline-grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 4rem; aspect-ratio: 1; flex-shrink: 0; }
+.bingo-shape > span { border-radius: 2px; background: var(--border-default, rgba(127, 127, 127, 0.25)); }
+.bingo-shape > span.is-on { background: var(--brand-ink, var(--primary-600, #2766ec)); }
+
+/* Stream Bingo's three steps (/live card and Streaming ▸ Bingo, same words as the overlay). */
+.bingo-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8, 8px); }
+.bingo-steps li { display: flex; align-items: flex-start; gap: var(--spacing-10, 10px); font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; }
+.bingo-steps strong { color: var(--text-primary); }
+.bingo-steps__n { display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--border-default); font-weight: 700; font-size: var(--font-size-12); color: var(--text-secondary); }
+.bingo-steps li.is-now .bingo-steps__n { background: var(--brand-ink, var(--primary-600)); border-color: transparent; color: #fff; }
+.bingo-steps li.is-done .bingo-steps__n { border-color: var(--brand-ink, var(--primary-600)); color: var(--brand-ink, var(--primary-600)); }

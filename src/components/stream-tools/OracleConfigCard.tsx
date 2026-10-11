@@ -9,8 +9,9 @@
  */
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Button, Checkbox } from "@empac/cascadeds";
+import { Checkbox, Select } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { AccentField, loadModuleConfig, saveModuleConfig } from "./fields";
 import { ORACLE_ENTRY_MAX } from "@/lib/modules/types";
@@ -88,10 +89,9 @@ function DefaultChecklist({
   );
 }
 
-export function OracleConfigCard({ onSaved, live }: { onSaved?: () => void; live?: ReactNode }) {
+export function OracleConfigCard({ onSaved, live, bare = false }: { onSaved?: () => void; live?: ReactNode; bare?: boolean }) {
   const [oracle, setOracle] = useState<OracleCfg>(DEFAULT_ORACLE);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const toast = useToast();
   const { vars } = useBrandTheme();
 
@@ -108,17 +108,13 @@ export function OracleConfigCard({ onSaved, live }: { onSaved?: () => void; live
     };
   }, []);
 
-  const save = async () => {
-    setSaving(true);
-    const ok = await saveModuleConfig("oracle", oracle);
-    setSaving(false);
-    if (ok) {
-      toast.success("Your changes are live.", { title: "Oracle saved" });
-      onSaved?.();
-    } else {
-      toast.error("Please try again.", { title: "Couldn't save Oracle" });
-    }
-  };
+  // Saves itself a moment after a change (site-wide autosave); the Hub uses this card too.
+  useAutosave(oracle, async (v) => {
+    const ok = await saveModuleConfig("oracle", v);
+    if (ok) onSaved?.();
+    else toast.error("Please try again.", { title: "Couldn't save Oracle" });
+    return ok;
+  }, { ready: !loading, toast: "Oracle saved" });
 
   if (loading) return null;
 
@@ -132,8 +128,8 @@ export function OracleConfigCard({ onSaved, live }: { onSaved?: () => void; live
     setOracle((o) => ({ ...o, [key]: on ? [] : [...all] }));
 
   return (
-    <section className="stream-tools__section" style={vars}>
-      <h3 className="stream-tools__heading">🎱 Oracle (8-Ball / Yes-No / Truth or Dare)</h3>
+    <section className={bare ? "stream-tools__bare" : "stream-tools__section"} style={vars}>
+      {!bare && <h3 className="stream-tools__heading">🎱 Oracle (8-Ball / Yes-No / Truth or Dare)</h3>}
 
       <div className="stream-tools__row">
         <AccentField label="Card accent" value={oracle.accentColor} onChange={(v) => setOracle({ ...oracle, accentColor: v })} />
@@ -168,16 +164,17 @@ export function OracleConfigCard({ onSaved, live }: { onSaved?: () => void; live
       <div className="stream-tools__field">
         <div className="stream-tools__field-head">
           <strong>Truth or Dare</strong>
-          <select
+          <Select
+            aria-label="Truth or Dare set"
+            size="small"
             value={oracle.truthDareSet}
-            onChange={(e) => setOracle({ ...oracle, truthDareSet: e.target.value })}
-            aria-label="Standard set"
-            style={{ height: 34, borderRadius: 8, border: "1px solid var(--border-default)", padding: "0 var(--spacing-8)", background: "var(--surface-default)", color: "var(--text-primary)" }}
-          >
-            <option value="clean">Clean set</option>
-            <option value="party">Party set</option>
-            <option value="couples">Couples set</option>
-          </select>
+            onChange={(v) => setOracle({ ...oracle, truthDareSet: String(v) })}
+            options={[
+              { value: "clean", label: "Clean set" },
+              { value: "party", label: "Party set" },
+              { value: "couples", label: "Couples set" },
+            ]}
+          />
         </div>
         <p className="stream-tools__hint">Toggle any prompt from the selected set off, and add your own. Switching sets shows that set&apos;s prompts.</p>
         <div className="stream-tools__row stream-tools__row--stack">
@@ -218,9 +215,6 @@ export function OracleConfigCard({ onSaved, live }: { onSaved?: () => void; live
         </div>
       </div>
 
-      <Button variant="secondary" size="small" loading={saving} onClick={save}>
-        Save oracle
-      </Button>
       {live ? <div className="stream-tools__live">{live}</div> : null}
     </section>
   );

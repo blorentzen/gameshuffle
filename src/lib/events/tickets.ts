@@ -901,9 +901,37 @@ export interface MyTicket {
   refundable: { ok: boolean; reason?: string };
   refundAmountCents: number;
   refundTerms: string;
+  /** What the buyer was charged, line by line, for their receipt. Fee lines are
+   *  only the fees the buyer paid (an organizer can cover them). */
+  receipt: {
+    unitCents: number;
+    subtotalCents: number;
+    serviceFeeCents: number;
+    processingFeeCents: number;
+    totalCents: number;
+    paidAt: string | null;
+    refundedAt: string | null;
+    buyerName: string | null;
+    buyerEmail: string | null;
+  };
 }
 
 /** Everything a buyer has bought, with the event details and their refund rights. */
+/** The buyer's side of an order: fee lines only when the buyer paid them. */
+function receiptFor(o: TicketOrder): MyTicket["receipt"] {
+  const buyerFees = Math.max(0, o.buyerTotalCents - o.subtotalCents);
+  const bothFees = o.platformFeeCents + o.processingFeeCents;
+  // The buyer covered the fees: show them as charged. Otherwise (the organizer
+  // covered them, or a promo changed the total) put whatever's left in one line.
+  const service = buyerFees === bothFees ? o.platformFeeCents : buyerFees;
+  const processing = buyerFees === bothFees ? o.processingFeeCents : 0;
+  return {
+    unitCents: o.unitAmountCents, subtotalCents: o.subtotalCents,
+    serviceFeeCents: service, processingFeeCents: processing, totalCents: o.buyerTotalCents,
+    paidAt: o.paidAt, refundedAt: o.refundedAt, buyerName: o.buyerName, buyerEmail: o.buyerEmail,
+  };
+}
+
 export async function listMyTickets(userId: string): Promise<MyTicket[]> {
   const orders = await myOrders(userId);
   const keys = Array.from(new Set(orders.map((o) => `${o.eventType}:${o.eventId}`)));
@@ -929,6 +957,7 @@ export async function listMyTickets(userId: string): Promise<MyTicket[]> {
         refundPolicy: ctx.ticketing.refundPolicy, refundDaysBefore: ctx.ticketing.refundDaysBefore,
         feePayer: ctx.ticketing.feePayer, feesRefundable, feeCents: o.platformFeeCents + o.processingFeeCents,
       }),
+      receipt: receiptFor(o),
     });
   }
   return out;

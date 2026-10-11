@@ -2,25 +2,12 @@
  * A drawing of GameShuffle posts in a Discord channel, for the /discord page.
  *
  * An illustration, not UI: it copies Discord's dark message layout (so it stays
- * dark in both site themes) and shows made-up players. The squares are CSS
- * cells instead of emoji so they look the same on every system. Mirrors the
- * real posts in src/lib/activity/channelCard.ts (the day's card and the
- * morning summary); keep the wording in step if those change.
+ * dark in both site themes) and shows made-up players. Mirrors the real posts
+ * in src/lib/activity/channelCard.ts (the day's card and the morning podium):
+ * their pictures are drawn by the bot's own renderer
+ * (scripts/render-discord-card-examples.ts), so rerun that script and keep the
+ * wording here in step when the posts change.
  */
-
-const SQUARE = { g: "match", y: "close", x: "miss" } as const;
-
-function Squares({ rows }: { rows: string[] }) {
-  return (
-    <span className="dmock__squares" aria-hidden>
-      {rows.map((row, r) => (
-        <span key={r} className="dmock__row" style={{ "--r": r } as React.CSSProperties}>
-          {[...row].map((c, i) => <span key={i} className={`dmock__sq dmock__sq--${SQUARE[c as keyof typeof SQUARE]}`} />)}
-        </span>
-      ))}
-    </span>
-  );
-}
 
 function BotHead({ time }: { time: string }) {
   return (
@@ -32,17 +19,19 @@ function BotHead({ time }: { time: string }) {
   );
 }
 
+// The players drawn in public/images/discord/daily-card-example.webp.
 const PLAYERS = [
-  { name: "Sam", score: "3/6", rows: ["xgxxx", "xgyxx", "ggggg"], said: "solved in 3" },
-  { name: "Riley", score: "4/6", rows: ["xxxxx", "xxyxg", "ggxyg", "ggggg"], said: "solved in 4" },
-  { name: "Jordan", score: "playing", rows: ["xgxxx", "xxyxx"], said: "still playing" },
+  { name: "Sam", said: "solved in 3" },
+  { name: "Riley", said: "solved in 4" },
+  { name: "Jordan", said: "is still playing" },
+  { name: "Alex", said: "ran out of guesses" },
 ];
 
 export type DiscordMockVariant = "card" | "summary" | "poll" | "golive" | "roles";
 
 const LABELS: Record<DiscordMockVariant, string> = {
-  card: `Example Discord channel: Riley used /gs-daily, then the GameShuffle bot posted today's results card. ${PLAYERS.map((p) => `${p.name} ${p.said}`).join(", ")}. Squares only, no answer.`,
-  summary: "Example Discord message: the GameShuffle bot's morning summary. Sam solved yesterday's Daily in 3, Riley in 4, Jordan in 5, Alex ran out of guesses, and the channel has solved it 6 days running.",
+  card: `Example Discord channel: Riley used /gs-daily, then the GameShuffle bot posted today's results card, a picture with each player's profile picture and squares. ${PLAYERS.map((p) => `${p.name} ${p.said}`).join(", ")}. Squares only, no answer.`,
+  summary: "Example Discord message: the GameShuffle bot's morning podium. Sam solved yesterday's Daily in 3, Riley in 4, Jordan in 5, Alex ran out of guesses, and the channel has solved it 6 days running.",
   poll: "Example Discord message: a live poll, Which cup next?, with a vote button per cup and 214 votes counted from Discord, Twitch chat and the live page.",
   golive: "Example Discord message: the GameShuffle bot announces that a streamer is live on Twitch playing Mario Kart World, with the game's cover art and a link to their live page.",
   roles: "Example Discord message: a role menu where members tap buttons to pick their games and game night pings. A reply only the member sees confirms the role was added.",
@@ -84,20 +73,12 @@ export function DiscordMock({ variant }: { variant: DiscordMockVariant }) {
               <img className="dmock__av" src="/images/fg/logos/gs-monogram.png" alt="" width={40} height={40} />
               <div className="dmock__content">
                 <BotHead time="Today at 9:41 AM" />
-                <div className="dmock__embed">
-                  <p className="dmock__title">The Daily #9 · Mario Party</p>
-                  <p className="dmock__desc">3 players here today. Squares only, no spoilers.</p>
-                  <div className="dmock__fields">
-                    {PLAYERS.map((p) => (
-                      <div key={p.name} className="dmock__field">
-                        <b>{p.name} · {p.score}</b>
-                        <Squares rows={p.rows} />
-                      </div>
-                    ))}
-                  </div>
-                  <p className="dmock__foot">The Daily Shuffle on GameShuffle</p>
+                <div className="dmock__container">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- the bot's drawn card, in an illustration */}
+                  <img className="dmock__card" src="/images/discord/daily-card-example.webp" alt="" width={1120} height={556} loading="lazy" />
+                  <p className="dmock__text"><b>Sam</b> leads with 3. Can anyone do it in 2?</p>
+                  <span className="dmock__btns"><span className="dmock__btn dmock__btn--go">Play the Daily</span></span>
                 </div>
-                <span className="dmock__btn dmock__btn--go">Play the Daily</span>
               </div>
             </div>
           </>
@@ -174,21 +155,15 @@ export function DiscordMock({ variant }: { variant: DiscordMockVariant }) {
             <img className="dmock__av" src="/images/fg/logos/gs-monogram.png" alt="" width={40} height={40} />
             <div className="dmock__content">
               <BotHead time="Today at 9:05 AM" />
-              <div className="dmock__embed">
-                <p className="dmock__title">Yesterday&apos;s Daily #8 · Mario Kart World</p>
-                <ul className="dmock__ranks">
-                  <li><span>🥇</span> Sam in 3</li>
-                  <li><span>🥈</span> Riley in 4</li>
-                  <li><span>🥉</span> Jordan in 5</li>
-                  <li><span>•</span> Alex ran out of guesses</li>
-                </ul>
-                <p className="dmock__streak">This channel has solved the Daily 6 days running.</p>
-                <p className="dmock__foot">Today&apos;s Daily is Mario Party</p>
+              <div className="dmock__container">
+                {/* eslint-disable-next-line @next/next/no-img-element -- the bot's drawn podium, in an illustration */}
+                <img className="dmock__card" src="/images/discord/daily-podium-example.webp" alt="" width={1120} height={736} loading="lazy" />
+                <p className="dmock__text">Out of guesses: Alex.<br />Today it&apos;s <b>Mario Party</b>. Keep the streak going.</p>
+                <span className="dmock__btns">
+                  <span className="dmock__btn dmock__btn--go">Play today&apos;s Daily</span>
+                  <span className="dmock__btn">Weekly</span>
+                </span>
               </div>
-              <span className="dmock__btns">
-                <span className="dmock__btn dmock__btn--go">Play today&apos;s Daily</span>
-                <span className="dmock__btn">Weekly</span>
-              </span>
             </div>
           </div>
         )}

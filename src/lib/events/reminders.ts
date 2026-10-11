@@ -45,11 +45,11 @@ async function loadUpcoming(now: number): Promise<Upcoming[]> {
   const from = new Date(now).toISOString();
   const to = new Date(now + 24 * HOUR).toISOString();
   // Guarded select: the check-in columns arrive with tournament-checkin-window-m1.
-  const tq = (cols: string) => svc.from("tournaments").select(cols).in("status", ["open", "in_progress"]).gt("date_time", from).lte("date_time", to);
+  const tq = (cols: string) => svc.from("tournaments").select(cols).in("status", ["open", "in_progress"]).is("archived_at", null).gt("date_time", from).lte("date_time", to);
   const tBase = "id, title, date_time, status, organizer_id, settings";
   const [tWith, n] = await Promise.all([
     tq(`${tBase}, check_in_enabled, check_in_opens_minutes`),
-    svc.from("board_game_nights").select("id, title, starts_at, status, host_id, place, timezone").eq("status", "scheduled").gt("starts_at", from).lte("starts_at", to),
+    svc.from("board_game_nights").select("id, title, starts_at, status, host_id, place, timezone").eq("status", "scheduled").is("archived_at", null).gt("starts_at", from).lte("starts_at", to),
   ]);
   const t = tWith.error ? await tq(tBase) : tWith;
   return [

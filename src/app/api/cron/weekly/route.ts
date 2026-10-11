@@ -52,15 +52,17 @@ export async function GET(request: Request) {
 
     const { data: routes } = await admin.from("discord_channel_routes").select("user_id").eq("category", "weekly").limit(5000);
     let posted = 0;
-    for (const r of (routes ?? []) as { user_id: string }[]) {
+    // Routes are one row per server: post once per owner (postComponentsToCategory covers each of their servers).
+    const owners = [...new Set(((routes ?? []) as { user_id: string }[]).map((r) => r.user_id))];
+    for (const ownerUserId of owners) {
       const res = await postComponentsToCategory({
-        ownerUserId: r.user_id, category: "weekly", requireRoute: true,
+        ownerUserId, category: "weekly", requireRoute: true,
         embed: message.embeds[0], components: message.components,
       }).catch((err) => ({ ok: false as const, reason: String(err) }));
       if (res.ok) {
-        posted += 1;
-        await recordPromptPost({ messageId: res.messageId, channelId: res.channelId, guildId: res.guildId, topic, kind: "weekly", ref: week.week_start, payload: { footerLine } });
-      } else console.warn("[cron/weekly] post skipped:", r.user_id, res.reason);
+        posted += res.posts.length;
+        for (const post of res.posts) await recordPromptPost({ messageId: post.messageId, channelId: post.channelId, guildId: post.guildId, topic, kind: "weekly", ref: week.week_start, payload: { footerLine } });
+      } else console.warn("[cron/weekly] post skipped:", ownerUserId, res.reason);
     }
     return NextResponse.json({ ok: true, posted });
   } catch (err) {

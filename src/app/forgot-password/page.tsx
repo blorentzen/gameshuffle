@@ -2,8 +2,10 @@
 
 /**
  * Forgot-password request page. Enter your email, we send a Supabase password
- * recovery link whose `redirectTo` routes through /auth/callback (which exchanges
- * the code for a recovery session) and lands on /reset-password to set a new one.
+ * recovery link that lands on /reset-password to set a new one. With the
+ * token-hash email template the link opens /auth/confirm (works on any
+ * device); until then it routes through /auth/callback (same browser only).
+ * A reset link that failed comes back here with ?auth_error=, shown at the top.
  *
  * Neutral success copy ("if an account exists…") so we don't leak whether the
  * email is registered.
@@ -14,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
+import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -85,6 +88,7 @@ export default function ForgotPasswordPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="auth-page__form">
+              <AuthErrorNotice surface="forgot" />
               {error && <div className="auth-page__error">{error}</div>}
               <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
                 Enter the email for your account and we&apos;ll send a reset link.

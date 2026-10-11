@@ -23,6 +23,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminSupabase } from "@supabase/supabase-js";
+import { passwordFlag } from "@/lib/auth/passwordRules";
 
 export const runtime = "nodejs";
 
@@ -59,7 +60,7 @@ export async function GET() {
   const providers = Array.isArray(adminUser.app_metadata?.providers)
     ? (adminUser.app_metadata!.providers as string[])
     : [];
-  const hasPassword = providers.includes("email");
+  const hasPassword = passwordFlag(adminUser.app_metadata) ?? providers.includes("email");
 
   const identities = (adminUser.identities ?? []).map((identity) => ({
     id: identity.id,

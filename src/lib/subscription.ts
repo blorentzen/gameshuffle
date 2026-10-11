@@ -489,12 +489,15 @@ export const VOTE_SESSION_LIMITS: Record<SubscriptionTier, number> = {
   pro: Infinity,
 };
 
-/** Every account connects one server today (users.discord_guild_id). Pro goes
- *  to 5 once several servers per account are built; until then the plan
- *  pages don't compare it. */
+/** My Cards on a free account: up to this many different cards (extra copies of
+ *  a card you have don't count). GS Pro has no cap. Decided 2026-10-07. */
+export const MY_CARDS_FREE_LIMIT = 250;
+
+/** Discord servers the bot can run in (discord_guilds, src/lib/discord/guilds.ts).
+ *  Without Pro only the main server stays active; the rest pause. */
 export const DISCORD_SERVER_LIMITS: Record<SubscriptionTier, number> = {
   free: 1,
-  pro: 1,
+  pro: 5,
 };
 
 export const DISCORD_INTEGRATION_LIMITS: Record<SubscriptionTier, number> = {

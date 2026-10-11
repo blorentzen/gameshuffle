@@ -23,7 +23,7 @@
 import "server-only";
 import { sendChatMessage } from "@/lib/twitch/client";
 import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
-import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
+import { getLiveSlugForUser, getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import {
   resolveProfileShareForUser,
   resolveProfileShareForIdentity,
@@ -386,7 +386,7 @@ registerCommand({
   name: "gs.spin",
   trigger: ["gs", "spin"],
   aliases: [["gs-spin"], ["spin"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -412,7 +412,7 @@ registerCommand({
   name: "gs.dice",
   trigger: ["gs", "dice"],
   aliases: [["gs-dice"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -437,7 +437,7 @@ registerCommand({
   name: "gs.flip",
   trigger: ["gs", "flip"],
   aliases: [["gs-flip"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -575,8 +575,8 @@ registerCommand({
 registerCommand({
   name: "gs.draw",
   trigger: ["gs", "draw"],
-  aliases: [["gs-draw"]],
-  actor: "host",
+  aliases: [["gs-draw"], ["draw"]],
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -601,7 +601,7 @@ registerCommand({
   name: "gs.timer",
   trigger: ["gs", "timer"],
   aliases: [["gs-timer"], ["timer"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -626,7 +626,7 @@ registerCommand({
   name: "gs.bingo",
   trigger: ["gs", "bingo"],
   aliases: [["gs-bingo"], ["bingo"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -653,7 +653,7 @@ registerCommand({
   name: "gs.tier",
   trigger: ["gs", "tier"],
   aliases: [["gs-tier"], ["tier"], ["tierlist"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -680,7 +680,7 @@ registerCommand({
   name: "gs.tourney",
   trigger: ["gs", "tourney"],
   aliases: [["gs-tourney"], ["tourney"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -800,7 +800,7 @@ registerCommand({
   name: "wheel.clear",
   trigger: ["wheel", "clear"],
   aliases: [["gs", "wheel", "clear"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -1000,6 +1000,37 @@ registerCommand({
       userId: cmd.userId,
       broadcasterTwitchId: cmd.broadcasterTwitchId,
       botTwitchId: cmd.botTwitchId,
+    });
+    return { ok: true };
+  },
+});
+
+// `!gs mod`: a Twitch mod gets their link to join the streamer's GameShuffle
+// mods (/mod/join/<slug>: sign in with Twitch, verified against the
+// channel's Twitch mod list). Mods only, so the link only reaches mods.
+registerCommand({
+  name: "gs.mod",
+  trigger: ["gs", "mod"],
+  aliases: [["gs-mod"]],
+  actor: "crew",
+  surface: ["chat"],
+  economy: "none",
+  category: "moderation",
+  family: "mod",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Get your link to help run this channel's GameShuffle tools as a mod.",
+    usage: "!gs mod",
+    detail: "Opens a page where you sign in with Twitch. If you're a mod in this channel on Twitch, you're added to the streamer's GameShuffle mods straight away.",
+  },
+  handler: async (cmd) => {
+    const slug = cmd.streamerSlug ?? (await getLiveSlugForUser(cmd.userId));
+    if (!slug) return { ok: false, reason: "no_slug" };
+    await sendChatMessage({
+      broadcasterId: cmd.broadcasterTwitchId,
+      senderId: cmd.botTwitchId,
+      message: `@${cmd.senderDisplayName} help run the stream tools as a mod: gameshuffle.co/mod/join/${encodeURIComponent(slug)} (sign in with Twitch)`,
     });
     return { ok: true };
   },
@@ -1906,6 +1937,7 @@ import "./engagementCommand";
 import "./polls";
 import "./chatbrain";
 import "./whosaid";
+import "./breakMode";
 import "./draft";
 import { tryCaptainPick } from "./draft";
 import "./party";

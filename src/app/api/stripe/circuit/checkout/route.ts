@@ -51,6 +51,8 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const tier = body.tier as string | undefined;
   const interval = body.interval as string | undefined;
+  // Back to the page they upgraded from (a tournament's manage page), same site only.
+  const returnTo = typeof body.returnTo === "string" && /^\/tournament\/[0-9a-f-]{36}\/manage$/i.test(body.returnTo) ? body.returnTo : null;
   if (tier !== "circuit_64" && tier !== "circuit_256") {
     return NextResponse.json({ error: "invalid_tier" }, { status: 400 });
   }
@@ -103,7 +105,7 @@ export async function POST(request: Request) {
       },
       submit: { message: "Charges appear as EMPAC* GS CIRCUIT. GameShuffle is built by Empac." },
     },
-    success_url: `${baseUrl}/account?tab=plans&circuit_checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    success_url: returnTo ? `${baseUrl}${returnTo}${returnTo.includes("?") ? "&" : "?"}circuit_checkout=success` : `${baseUrl}/account?tab=plans&circuit_checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/gs-circuit?circuit_checkout=canceled`,
     client_reference_id: user.id,
     metadata: { gs_user_id: user.id, interval, product: "circuit", circuit_tier: tier },

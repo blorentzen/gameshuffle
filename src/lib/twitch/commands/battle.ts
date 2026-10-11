@@ -13,7 +13,6 @@
 
 import "server-only";
 import { collectionForTwitchSender } from "@/lib/collection/server";
-import { getBaseUrl } from "@/lib/env";
 import {
   findTwitchSessionForUser,
   listActiveTwitchParticipants,
@@ -21,6 +20,7 @@ import {
   recordTwitchShuffleEvent,
 } from "@/lib/sessions/twitch-platform";
 import { getChatGame } from "@/lib/twitch/chatGames";
+import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import { rollSlots, type ChatRoll, type RollSlot } from "@/lib/twitch/chatRoll";
 import { adapterFor, type ShuffleContext } from "./shuffle";
 
@@ -98,7 +98,8 @@ export async function handleBattleCommand(ctx: ShuffleContext): Promise<void> {
 
   const title = `Viewer battle${setting ? ` on ${setting}` : ""}`;
   const lines = rolls.map(({ player, roll }) => `${player.twitch_display_name}: ${roll.text}`);
-  const fullListUrl = ctx.overlayToken ? `${getBaseUrl()}/lobby/${ctx.overlayToken}` : null;
+  const liveUrl = await getLiveUrlForUser(ctx.userId);
+  const fullListUrl = liveUrl ? `${liveUrl}?tab=room` : null;
   // YouTube live chat caps a message at 200 characters, Twitch at 500.
   for (const message of lineupMessages(`⚔️ ${title}!`, lines, fullListUrl, platform === "youtube" ? 190 : 480)) {
     await adapter.postChatMessage(message);

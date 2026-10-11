@@ -10,15 +10,23 @@
  * Bodies are GFM markdown, matching what a drafting session hands back and what
  * GuideBody renders. No rich-text editor on purpose: markdown survives a paste
  * from anywhere, and a WYSIWYG would fight the source of the text.
+ *
+ * Layout (admin kit): header with "New guide", three counts, then every guide
+ * in a table. Writing and editing happen in a modal; Delete sits in the row's
+ * "more" menu and asks first.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Input, Select, Switch, Textarea } from "@empac/cascadeds";
+import {
+  Alert, Badge, Button, EmptyState, Input, Modal, Select, StatCard, Switch, Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow, Textarea,
+} from "@empac/cascadeds";
+import { IconBook, IconEye, IconPlus, IconTarget } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { GUIDE_CLUSTERS } from "@/lib/guides/manifest";
-import { IconAction, RowActions } from "@/components/actions/IconAction";
-import { IconPencil, IconTrash } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { AdminHeader, AdminRowMenu, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
 
 interface Row {
   id: string; slug: string; title: string; description: string; cluster: string;
@@ -26,15 +34,26 @@ interface Row {
   published: boolean; updated_at: string;
 }
 
-const BLANK = {
+interface Form {
+  id: string; slug: string; title: string; description: string; cluster: string;
+  bodyMd: string; minutes: number; gameSpecific: string; published: boolean;
+}
+
+const BLANK: Form = {
   id: "", slug: "", title: "", description: "",
   cluster: GUIDE_CLUSTERS[0].id as string,
   bodyMd: "", minutes: 6, gameSpecific: "", published: false,
 };
 
+const PAGE = 25;
+/** CDS Select treats "" as no choice (and hides its label), so "not about one
+ *  game" uses this stand-in in the picker and goes back to "" when saved. */
+const NO_GAME = "none";
+
 const CLUSTER_OPTIONS = GUIDE_CLUSTERS.map((c) => ({ value: c.id, label: c.label }));
+const clusterLabel = (id: string) => GUIDE_CLUSTERS.find((c) => c.id === id)?.label ?? id;
 const GAME_OPTIONS = [
-  { value: "", label: "Not about one game" },
+  { value: NO_GAME, label: "Not about one game" },
   { value: "mario-kart", label: "Mario Kart" },
   { value: "pokemon-tcg", label: "Pokémon TCG" },
 ];
@@ -43,13 +62,16 @@ const GAME_OPTIONS = [
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
 
+const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
+const words = (md: string) => (md.trim() ? md.trim().split(/\s+/).length : 0);
+
 export function PlatformGuidesTab() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [rows, setRows] = useState<Row[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "not_migrated" | "error">("loading");
-  const [form, setForm] = useState({ ...BLANK });
-  const [saving, setSaving] = useState(false);
-  const [slugTouched, setSlugTouched] = useState(false);
+  const [editing, setEditing] = useState<Form | null>(null);
+  const [limit, setLimit] = useState(PAGE);
 
   const load = useCallback(async () => {
     try {
@@ -62,19 +84,172 @@ export function PlatformGuidesTab() {
     } catch { setState("error"); }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
-  const edit = (r: Row) => {
-    setForm({
-      id: r.id, slug: r.slug, title: r.title, description: r.description,
-      cluster: r.cluster, bodyMd: r.body_md, minutes: r.minutes,
-      gameSpecific: r.game_specific ?? "", published: r.published,
+  const edit = (r: Row) => setEditing({
+    id: r.id, slug: r.slug, title: r.title, description: r.description,
+    cluster: r.cluster, bodyMd: r.body_md, minutes: r.minutes,
+    gameSpecific: r.game_specific ?? "", published: r.published,
+  });
+
+  const remove = async (r: Row) => {
+    const ok = await confirm({
+      title: `Delete "${r.title}"?`,
+      body: r.published
+        ? "It comes off the guides page straight away, and links to it stop working. This can't be undone."
+        : "The draft is gone for good. This can't be undone.",
+      confirmLabel: "Delete guide",
     });
-    setSlugTouched(true);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!ok) return;
+    const res = await fetch(`/api/admin/guides?id=${r.id}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Couldn't delete that guide. Try again."); return; }
+    toast.success("Guide deleted.");
+    await load();
+  };
+
+  const header = (
+    <AdminHeader
+      title="Guides"
+      intro="Write and publish the how-to guides on the guides page. Paste a finished draft, save it as a draft, and publish when it's ready."
+      actions={state === "ready" ? <Button variant="primary" size="small" iconBefore={IconPlus} onClick={() => setEditing({ ...BLANK })}>New guide</Button> : undefined}
+    />
+  );
+
+  if (state === "loading") return <div className="account-card admin-screen">{header}<LoadingLines label="Loading guides" /></div>;
+
+  if (state === "not_migrated") {
+    return (
+      <div className="account-card admin-screen">
+        {header}
+        <Alert variant="info" title="The guides editor needs a database update">
+          Ask a developer to apply it, then reload this page. Until then the two built-in guides keep showing on the guides page, and nothing there changes.
+        </Alert>
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <div className="account-card admin-screen">
+        {header}
+        <Alert variant="error">Couldn&apos;t load the guides. Your account may not have access to them, or the site had a hiccup: reload in a minute.</Alert>
+      </div>
+    );
+  }
+
+  const live = rows.filter((r) => r.published).length;
+  const gameSpecificCount = rows.filter((r) => r.game_specific).length;
+  const pct = rows.length ? Math.round((gameSpecificCount / rows.length) * 100) : 0;
+  const shown = rows.slice(0, limit);
+
+  return (
+    <div className="account-card admin-screen admin-library-guides">
+      {header}
+
+      {rows.length > 0 && (
+        <AdminStats label="Guides at a glance" columns={3}>
+          <StatCard label="Guides written here" value={rows.length.toLocaleString()} source={`${(rows.length - live).toLocaleString()} ${rows.length - live === 1 ? "draft" : "drafts"}`} icon={<IconBook size={20} />} variant="accent" />
+          <StatCard label="Live on the site" value={live.toLocaleString()} source="Anyone can read these" icon={<IconEye size={20} />} />
+          <StatCard label="About one game" value={`${pct}%`} source={`${gameSpecificCount.toLocaleString()} of ${rows.length.toLocaleString()} · keep it under a third`} icon={<IconTarget size={20} />} />
+        </AdminStats>
+      )}
+
+      {pct > 33 && (
+        <Alert variant="warning" title="Too many guides are about one game">
+          More than a third of these are about a single game. Write a few that work for any game night before adding more game-specific ones.
+        </Alert>
+      )}
+
+      <AdminSection
+        title="All guides"
+        intro="Newest changes first. The two built-in guides aren't listed here because they're part of the site itself; anything written here shows next to them."
+      >
+        {rows.length === 0 ? (
+          <EmptyState
+            variant="bordered"
+            icon={<IconBook size={28} />}
+            title="No guides written here yet"
+            description="Paste a finished draft to start one. It stays a draft until you publish it."
+            action={<Button variant="primary" size="small" iconBefore={IconPlus} onClick={() => setEditing({ ...BLANK })}>New guide</Button>}
+          />
+        ) : (
+          <>
+            <AdminTable label="Guides">
+              <Table variant="striped" hoverable dense>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Guide</TableHead><TableHead>Topic</TableHead><TableHead>Status</TableHead>
+                    <TableHead align="right">Read time</TableHead><TableHead>Last changed</TableHead><TableHead align="right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {shown.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        <button type="button" className="admin-table__link admin-library-open" onClick={() => edit(r)}>{r.title}</button>
+                        <span className="admin-table__sub">/guides/{r.slug}{r.game_specific ? ` · ${GAME_OPTIONS.find((g) => g.value === r.game_specific)?.label ?? "One game"}` : ""}</span>
+                      </TableCell>
+                      <TableCell>{clusterLabel(r.cluster)}</TableCell>
+                      <TableCell><Badge size="small" variant={r.published ? "success" : "default"}>{r.published ? "Live" : "Draft"}</Badge></TableCell>
+                      <TableCell align="right" className="admin-num">{r.minutes} min</TableCell>
+                      <TableCell className="admin-num">{day(r.updated_at)}</TableCell>
+                      <TableCell align="right">
+                        <span className="admin-row-actions">
+                          <Button variant="ghost" size="small" onClick={() => edit(r)} aria-label={`Edit ${r.title}`}>Edit</Button>
+                          <AdminRowMenu
+                            label={`More for ${r.title}`}
+                            items={[
+                              ...(r.published ? [{ label: "Open on the site", onClick: () => window.open(`/guides/${r.slug}`, "_blank", "noopener") }] : []),
+                              { label: "Delete", danger: true, onClick: () => void remove(r) },
+                            ]}
+                          />
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </AdminTable>
+            {rows.length > limit && (
+              <div>
+                <Button variant="ghost" size="small" onClick={() => setLimit((n) => n + PAGE)}>
+                  Show {Math.min(PAGE, rows.length - limit)} more of {rows.length.toLocaleString()}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </AdminSection>
+
+      {editing && (
+        <GuideModal
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSaved={async () => { setEditing(null); await load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function GuideModal({ initial, onClose, onSaved }: { initial: Form; onClose: () => void; onSaved: () => Promise<void> }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [form, setForm] = useState<Form>(initial);
+  const [saving, setSaving] = useState(false);
+  // A new guide's address follows its title until someone types one.
+  const [slugTouched, setSlugTouched] = useState(!!initial.id);
+  const isNew = !initial.id;
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
+
+  const requestClose = async () => {
+    if (saving) return;
+    if (dirty && !(await confirm({ title: "Close without saving?", body: "Your changes to this guide will be lost.", confirmLabel: "Discard changes" }))) return;
+    onClose();
   };
 
   const save = async () => {
+    if (saving) return;
     setSaving(true);
     try {
       const res = await fetch("/api/admin/guides", {
@@ -83,167 +258,103 @@ export function PlatformGuidesTab() {
         body: JSON.stringify(form),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) { toast.error(body.error ?? "Couldn't save."); return; }
+      if (!res.ok) { toast.error(body.error ?? "Couldn't save the guide. Try again."); return; }
       toast.success(form.published ? "Guide published." : "Draft saved.");
-      setForm({ ...BLANK });
-      setSlugTouched(false);
-      await load();
-    } catch { toast.error("Network error."); }
+      await onSaved();
+    } catch { toast.error("Couldn't reach the site. Check your connection and try again."); }
     finally { setSaving(false); }
   };
 
-  const remove = async (r: Row) => {
-    const res = await fetch(`/api/admin/guides?id=${r.id}`, { method: "DELETE" });
-    if (!res.ok) { toast.error("Couldn't delete."); return; }
-    toast.success("Guide deleted.");
-    await load();
-  };
-
-  if (state === "loading") return <div className="account-card"><LoadingLines label="Loading guides" /></div>;
-
-  if (state === "not_migrated") {
-    return (
-      <div className="account-card">
-        <h2>Guides</h2>
-        <p style={{ color: "var(--text-secondary)" }}>
-          The editor is ready but its table is not. Apply{" "}
-          <code>supabase/guides-m1.sql</code> and reload. Until then the two
-          file-backed guides keep serving, and nothing on <code>/guides</code> is affected.
-        </p>
-      </div>
-    );
-  }
-
-  if (state === "error") {
-    return <div className="account-card"><p>Couldn&rsquo;t load guides. You may not have permission.</p></div>;
-  }
-
-  const gameSpecificCount = rows.filter((r) => r.game_specific).length;
-  const pct = rows.length ? Math.round((gameSpecificCount / rows.length) * 100) : 0;
+  const saveLabel = saving ? "Saving…" : !isNew ? "Save changes" : form.published ? "Publish" : "Save draft";
+  const count = words(form.bodyMd);
 
   return (
-    <>
-      <div className="account-card">
-        <h2>{form.id ? "Edit guide" : "New guide"}</h2>
-        <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-20)" }}>
-          Paste a finished draft as markdown. It renders server-side, so it is in the
-          HTML for crawlers. Raw HTML is ignored by design.
+    <Modal
+      isOpen
+      onClose={() => void requestClose()}
+      title={isNew ? "New guide" : `Edit "${initial.title}"`}
+      size="large"
+      closeOnOverlayClick={false}
+      primaryAction={{ label: saveLabel, onClick: () => void save() }}
+      secondaryAction={{ label: "Cancel", onClick: () => void requestClose() }}
+    >
+      <div className="admin-form admin-library-form">
+        <p className="admin-field__help admin-library-form__lead">
+          Paste the finished draft as markdown (## for headings, - for lists). Any HTML in the text is ignored.
         </p>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)" }}>
-          <label className="hub-form__field">
-            <span className="account-card__label">Title</span>
-            <Input
-              value={form.title}
-              onChange={(e) => {
-                const title = e.target.value;
-                setForm((f) => ({ ...f, title, slug: slugTouched ? f.slug : slugify(title) }));
-              }}
-              placeholder="How to seed a tournament fairly"
-            />
-          </label>
-
-          <label className="hub-form__field">
-            <span className="account-card__label">Slug</span>
-            <Input
-              value={form.slug}
-              onChange={(e) => { setSlugTouched(true); setForm((f) => ({ ...f, slug: e.target.value })); }}
-              placeholder="how-to-seed-a-tournament"
-            />
-            <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-              Lives at /guides/{form.slug || "…"}. Changing it after publishing breaks existing links.
-            </span>
-          </label>
-
-          <label className="hub-form__field">
-            <span className="account-card__label">Description</span>
-            <Textarea
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              rows={2}
-              fullWidth
-              placeholder="One sentence. This is the meta description and the index card."
-            />
-          </label>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(12rem, 1fr))", gap: "var(--spacing-16)" }}>
-            <label className="hub-form__field">
-              <span className="account-card__label">Cluster</span>
-              <Select value={form.cluster} onChange={(v) => setForm((f) => ({ ...f, cluster: typeof v === "string" ? v : v[0] }))} options={CLUSTER_OPTIONS} fullWidth />
-            </label>
-            <label className="hub-form__field">
-              <span className="account-card__label">About one game?</span>
-              <Select value={form.gameSpecific} onChange={(v) => setForm((f) => ({ ...f, gameSpecific: typeof v === "string" ? v : v[0] }))} options={GAME_OPTIONS} fullWidth />
-            </label>
-            <label className="hub-form__field">
-              <span className="account-card__label">Read time (minutes)</span>
-              <Input type="number" value={String(form.minutes)} onChange={(e) => setForm((f) => ({ ...f, minutes: Number(e.target.value) || 6 }))} />
-            </label>
-          </div>
-
-          <label className="hub-form__field">
-            <span className="account-card__label">Body (markdown)</span>
-            <Textarea
-              value={form.bodyMd}
-              onChange={(e) => setForm((f) => ({ ...f, bodyMd: e.target.value }))}
-              rows={18}
-              fullWidth
-              spellCheck
-              placeholder={"## Work backwards from how long you have\n\nDecide the finish time first…"}
-            />
-            <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-              {form.bodyMd.trim() ? `${form.bodyMd.trim().split(/\s+/).length} words` : "Empty"}
-            </span>
-          </label>
-
-          <label style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
-            <Switch checked={form.published} onChange={() => setForm((f) => ({ ...f, published: !f.published }))} />
-            <span>Published{form.published ? "" : " (saves as a draft, invisible to everyone)"}</span>
-          </label>
-
-          <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-            <Button variant="primary" onClick={save} loading={saving}>
-              {form.id ? "Save changes" : form.published ? "Publish" : "Save draft"}
-            </Button>
-            {form.id && (
-              <Button variant="secondary" onClick={() => { setForm({ ...BLANK }); setSlugTouched(false); }}>
-                New guide instead
-              </Button>
-            )}
-          </div>
+        <Input
+          fullWidth
+          floatingLabel="Title"
+          value={form.title}
+          maxLength={140}
+          onChange={(e) => {
+            const title = e.target.value;
+            setForm((f) => ({ ...f, title, slug: slugTouched ? f.slug : slugify(title) }));
+          }}
+        />
+        <div className="admin-field">
+          <Input
+            fullWidth
+            floatingLabel="Web address"
+            value={form.slug}
+            aria-describedby="guide-slug-note"
+            onChange={(e) => { setSlugTouched(true); setForm((f) => ({ ...f, slug: e.target.value })); }}
+          />
+          <p id="guide-slug-note" className="admin-field__help">
+            {form.slug ? `Lives at /guides/${form.slug}.` : "Filled in from the title."} Lowercase words joined with dashes. Changing it after publishing breaks links people already have.
+          </p>
         </div>
-      </div>
-
-      <div className="account-card">
-        <h2>All guides <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}>· {rows.length}</span></h2>
-        {rows.length > 0 && (
-          <p style={{ fontSize: "var(--font-size-13, 13px)", color: pct > 33 ? "var(--warning-600, #b4530f)" : "var(--text-tertiary)", marginBottom: "var(--spacing-16)" }}>
-            {gameSpecificCount} of {rows.length} ({pct}%) are about one game.
-            {pct > 33 ? " Over the third we hold to; add game-agnostic guides." : " Ceiling is a third."}
+        <div className="admin-field">
+          <Textarea
+            fullWidth
+            floatingLabel="Description"
+            value={form.description}
+            rows={2}
+            aria-describedby="guide-desc-note"
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+          />
+          <p id="guide-desc-note" className="admin-field__help">One sentence. It shows on the guides page and under the title in search results.</p>
+        </div>
+        <div className="admin-library-form__row">
+          <Select fullWidth floatingLabel="Topic" value={form.cluster} onChange={(v) => setForm((f) => ({ ...f, cluster: typeof v === "string" ? v : v[0] }))} options={CLUSTER_OPTIONS} />
+          <Select
+            fullWidth
+            floatingLabel="About one game?"
+            value={form.gameSpecific || NO_GAME}
+            onChange={(v) => { const g = typeof v === "string" ? v : v[0]; setForm((f) => ({ ...f, gameSpecific: g === NO_GAME ? "" : g })); }}
+            options={GAME_OPTIONS}
+          />
+          <Input
+            fullWidth
+            type="number"
+            min={1}
+            max={90}
+            floatingLabel="Read time (minutes)"
+            value={String(form.minutes)}
+            onChange={(e) => setForm((f) => ({ ...f, minutes: Number(e.target.value) || 6 }))}
+          />
+        </div>
+        <div className="admin-field">
+          <Textarea
+            fullWidth
+            floatingLabel="Guide text (markdown)"
+            value={form.bodyMd}
+            rows={16}
+            spellCheck
+            aria-describedby="guide-body-note"
+            onChange={(e) => setForm((f) => ({ ...f, bodyMd: e.target.value }))}
+          />
+          <p id="guide-body-note" className="admin-field__help admin-num">
+            {count ? `${count.toLocaleString()} ${count === 1 ? "word" : "words"}` : "Empty. A guide needs text before it can be published."}
           </p>
-        )}
-        {rows.length === 0 ? (
-          <p style={{ color: "var(--text-secondary)" }}>
-            Nothing here yet. The two original guides still live in the repo; anything written
-            here joins them on /guides.
-          </p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
-            {rows.map((r) => (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", padding: "var(--spacing-12)", border: "1px solid var(--border-default)", borderRadius: "var(--radius-8, 8px)", flexWrap: "wrap" }}>
-                <span style={{ fontWeight: 600, flex: 1, minWidth: "14rem" }}>{r.title}</span>
-                <span style={{ fontSize: "var(--font-size-12)", padding: "0.15rem 0.5rem", borderRadius: 999, background: r.published ? "color-mix(in srgb, #16a34a 16%, transparent)" : "var(--surface-muted, rgba(0,0,0,0.05))", color: r.published ? "#15803d" : "var(--text-tertiary)" }}>
-                  {r.published ? "Live" : "Draft"}
-                </span>
-                <RowActions>
-                  <IconAction label="Edit this guide" icon={IconPencil} onClick={() => edit(r)} />
-                  <IconAction label="Delete this guide" icon={IconTrash} variant="danger" onClick={() => remove(r)} />
-                </RowActions>
-              </div>
-            ))}
-          </div>
-        )}
+        </div>
+        <Switch
+          label="Published"
+          helperText={form.published ? "Shows on the guides page as soon as you save." : "Off: saves as a draft, hidden from the site."}
+          checked={form.published}
+          onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))}
+        />
       </div>
-    </>
+    </Modal>
   );
 }

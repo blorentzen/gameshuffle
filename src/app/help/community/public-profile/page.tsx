@@ -25,7 +25,7 @@ export default function Page() {
       <h2>Turn your profile on</h2>
       <p>
         Go to <strong>Account</strong> &rsaquo; <strong>Profile</strong> and set a
-        <strong> username</strong>, then flip <strong>Public Profile</strong> on. A username is
+        <strong> username</strong>, then flip <strong>Public Profile</strong>{" "}on. A username is
         required to be public (it&apos;s also your <code>/u</code>, <code>/c</code>, and
         <code> /live</code> handle).
       </p>
@@ -42,7 +42,7 @@ export default function Page() {
 
       <h2>Personalize it</h2>
       <p>
-        In the <strong>&ldquo;Personalize your profile&rdquo;</strong> card (Account &rsaquo; Profile)
+        In the <strong>&ldquo;Personalize your profile&rdquo;</strong>{" "}card (Account &rsaquo; Profile)
         you can add:
       </p>
       <ul>
@@ -59,12 +59,12 @@ export default function Page() {
       </p>
       <ul>
         <li>
-          <strong>Light / dark mode</strong> (Account &rsaquo; Profile, the Theme toggle): controls
+          <strong>Light / dark mode</strong>{" "}(Account &rsaquo; Profile, the Theme toggle): controls
           how the GameShuffle app looks <em>for you</em>. Choose &ldquo;Match my system theme&rdquo;
           or force dark mode. It only affects the signed-in app, marketing pages stay light.
         </li>
         <li>
-          <strong>Brand theme</strong> (Account &rsaquo; <strong>Brand &amp; Theme</strong>): a color
+          <strong>Brand theme</strong> (Account &rsaquo; <strong>Theming</strong>): a color
           preset that re-skins your <em>customer-facing</em> surfaces, your OBS overlay,
           <code> /live</code> page, public profile, and community page, in your colors. It does not
           change your account dashboard.
@@ -83,7 +83,7 @@ export default function Page() {
       <h2>Privacy</h2>
       <p>
         You control visibility: keep your profile private by leaving Public Profile off, scope who
-        sees your gamertags, and manage blocks from <strong>Account</strong> &rsaquo;
+        sees your gamertags, and manage blocks from <strong>Account</strong>{" "}&rsaquo;
         <strong> Security</strong>. See also <a href="/help/account/email-preferences">Email
         Preferences</a> and <a href="/help/account/deleting-account">Deleting Your Account</a>.
       </p>

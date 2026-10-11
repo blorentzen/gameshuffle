@@ -24,6 +24,10 @@ export const EVENTS = {
   brainShareCopied: "Brain Share Copied",
   brainUpdatesSignup: "Brain Updates Signup",
 
+  // Shop
+  /** "Notify me" on the shop's Coming soon page. {signedIn} */
+  shopUpdatesJoined: "Shop Updates Joined",
+
   // Discord
   /** "Add to Discord" on /discord. {from: hero|steps|band} */
   discordAddClicked: "Discord Add Clicked",
@@ -52,6 +56,20 @@ export const EVENTS = {
   gameNightCreated: "Game Night Created",
   rsvp: "RSVP",
   seriesCreated: "Series Created",
+  /** The share menu on a tournament, game night or season page. {type, via: link|discord|x|facebook|native} */
+  eventShared: "Event Shared",
+
+  // Trivia Nights
+  /** A host started a night from a template. {template} */
+  triviaNightCreated: "Trivia Night Created",
+  /** A host opened the room (teams can join). {questions} */
+  triviaRoomOpened: "Trivia Room Opened",
+  /** A team joined from a phone. */
+  triviaTeamJoined: "Trivia Team Joined",
+  /** Claude drafted questions in the studio. {count} */
+  triviaQuestionsDrafted: "Trivia Questions Drafted",
+  /** The host filled rounds from the GameShuffle pack. {added, scope: all|round} */
+  triviaPackFilled: "Trivia Pack Filled",
 
   // Forms and accounts
   betaApplied: "Beta Applied",
@@ -87,6 +105,8 @@ export const EVENTS = {
   // AI features
   aiPackGenerated: "AI Pack Generated",
   aiPackSaved: "AI Pack Saved",
+  aiDeckGenerated: "AI Deck Generated",
+  aiDeckSaved: "AI Deck Saved",
   aiRecapGenerated: "AI Recap Generated",
   aiSetupApplied: "AI Setup Applied",
   aiPlanGenerated: "AI Plan Generated",

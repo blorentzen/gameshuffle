@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ownerHasPro } from "@/lib/profile/proLooks";
 import { FOUNDING_BRAIN_ANSWERS } from "@/lib/chatbrain/rules";
 import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
@@ -18,7 +19,8 @@ import { getGameArtwork } from "@/lib/games/artwork";
 import { getProfileEnrichment, type TournamentLite } from "@/lib/profile/enrichment";
 import { userSeason } from "@/lib/seasons/store";
 import { rivalsFor } from "@/lib/party/rivals";
-import { seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { isSeasonKey, recentSeasonKeys, seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { SeasonPicker } from "@/components/seasons/SeasonPicker";
 import { SeasonPanel } from "@/components/seasons/SeasonPanel";
 import { effectiveTier, isStaffRole, type SubscriptionTier } from "@/lib/subscription";
 import { getFollowCounts, getFollowState } from "@/lib/social/follows";
@@ -130,10 +132,13 @@ function TournamentRow({ t }: { t: TournamentLite }) {
 
 export default async function PublicProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ season?: string }>;
 }) {
   const { username } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -239,7 +244,9 @@ export default async function PublicProfilePage({
   // Profile skin (background + card styling) — guarded: column may be unapplied,
   // and the gate strips anything but allowlisted values / our own image origin.
   const { data: skinRow } = await supabase.from("users").select("profile_skin").eq("id", profile.id).maybeSingle();
-  const skin = resolveProfileSkin((skinRow as { profile_skin?: unknown } | null)?.profile_skin);
+  // Skins and custom CSS are GS Pro: shown while the owner has it (kept either way).
+  const ownerPro = await ownerHasPro(profile.id);
+  const skin = resolveProfileSkin(ownerPro ? (skinRow as { profile_skin?: unknown } | null)?.profile_skin : null);
   const skinBg = skinBackground(skin);
 
   // Link buttons + spotlight (guarded). The spotlight embed is built from the
@@ -252,8 +259,11 @@ export default async function PublicProfilePage({
 
   // Status + now-playing (guarded) + the walk-up anthem title (read-only display).
   const { data: statusRow } = await supabase.from("users").select("profile_status, profile_now_playing").eq("id", profile.id).maybeSingle();
-  const profileStatus = resolveProfileStatus((statusRow as { profile_status?: unknown } | null)?.profile_status);
-  const nowPlaying = resolveNowPlaying((statusRow as { profile_now_playing?: unknown } | null)?.profile_now_playing);
+  // One status line and one game (2026-10-09): the old tagline / featured game
+  // stand in only while the new column has never been saved (NULL; "" = cleared).
+  const statusCols = (statusRow ?? {}) as { profile_status?: string | null; profile_now_playing?: string | null };
+  const profileStatus = statusCols.profile_status == null ? tagline : resolveProfileStatus(statusCols.profile_status);
+  const nowPlaying = statusCols.profile_now_playing == null ? (featuredGame ? resolveNowPlaying(featuredGame) : null) : resolveNowPlaying(statusCols.profile_now_playing);
   const nowPlayingArt = nowPlaying ? gameArt(nowPlaying) : null;
   const walkupAnthem = await getUserAnthem(profile.id as string).catch(() => null);
   const walkupTitle =
@@ -264,7 +274,7 @@ export default async function PublicProfilePage({
   // Custom CSS (Level 3) — re-sanitized on read even though only sanitized CSS
   // is ever stored (never trust the blob). Scoped to `.u-custom`.
   const { data: cssRow } = await supabase.from("users").select("profile_custom_css").eq("id", profile.id).maybeSingle();
-  const customCss = sanitizeCustomCss((cssRow as { profile_custom_css?: unknown } | null)?.profile_custom_css).css;
+  const customCss = ownerPro ? sanitizeCustomCss((cssRow as { profile_custom_css?: unknown } | null)?.profile_custom_css).css : "";
 
   // Stream schedule (guarded).
   const { data: schedRow } = await supabase.from("users").select("stream_schedule").eq("id", profile.id).maybeSingle();
@@ -294,7 +304,10 @@ export default async function PublicProfilePage({
     .limit(10);
 
   // Wallet, communities, configs count, tournaments (service-client reads).
-  const season = currentSeasonKey();
+  // This month for everyone; past months (?season=) while the profile owner has GS Pro.
+  const thisSeason = currentSeasonKey();
+  const seasonHistory = await ownerHasPro(profile.id as string);
+  const season = isSeasonKey(sp.season) && seasonHistory && recentSeasonKeys().includes(sp.season) ? sp.season : thisSeason;
   const [enrichment, seasonData, rivals] = await Promise.all([
     getProfileEnrichment(profile.id as string),
     userSeason(profile.id as string, season).catch(() => null),
@@ -391,12 +404,12 @@ export default async function PublicProfilePage({
     </div>
   );
 
-  const featuredWidget = featuredGame && (
+  const featuredWidget = nowPlaying && (
     <div className="pcard profile-featured">
       <h3 className="pcard__title">Featured game</h3>
       <div className="profile-featured__body">
-        <GameCover name={featuredGame} className="profile-featured__art" />
-        <span className="profile-featured__name">{featuredGame}</span>
+        <GameCover name={nowPlaying} className="profile-featured__art" />
+        <span className="profile-featured__name">{nowPlaying}</span>
       </div>
     </div>
   );
@@ -651,8 +664,13 @@ export default async function PublicProfilePage({
   tabs.push({ id: "about", label: "About", content: aboutPanel });
   if (enrichment.showcaseCards.length > 0) tabs.push({ id: "cards", label: "Cards", content: cardsPanel });
   if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
-  if (seasonData && (seasonData.points > 0 || rivals.length > 0 || seasonData.rosters.some((r) => r.won.length))) {
-    tabs.push({ id: "season", label: "Season", content: <SeasonPanel seasonKey={season} season={seasonData} rivals={rivals} /> });
+  if (seasonData && (season !== thisSeason || seasonData.points > 0 || rivals.length > 0 || seasonData.rosters.some((r) => r.won.length))) {
+    tabs.push({ id: "season", label: "Season", content: (
+      <>
+        <SeasonPicker value={season} months={recentSeasonKeys()} allowPast={seasonHistory} ownerUpsell={viewer?.id === profile.id} extra={{ tab: "season" }} />
+        <SeasonPanel seasonKey={season} season={seasonData} rivals={rivals} />
+      </>
+    ) });
   }
 
   return (
@@ -673,7 +691,7 @@ export default async function PublicProfilePage({
           <OwnerBar
             note="Your profile"
             customize={<ProfileCustomizeEditor />}
-            manageHref="/account?tab=profile#personalize"
+            manageHref="/account?tab=profile-page"
             manageLabel="Edit details"
             className="owner-bar--overlay"
           />
@@ -715,7 +733,6 @@ export default async function PublicProfilePage({
               {(pronouns || location) && (
                 <span className="profile-hero__sub">{[pronouns, location].filter(Boolean).join(" · ")}</span>
               )}
-              {tagline && <p className="profile-hero__tagline">{tagline}</p>}
               {profileStatus && <p className="profile-hero__status"><IconMessageCircle size={15} stroke={1.9} aria-hidden /> {profileStatus}</p>}
               {(nowPlaying || walkupTitle) && (
                 <div className="profile-hero__nowline">

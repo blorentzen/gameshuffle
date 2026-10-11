@@ -1,21 +1,25 @@
 "use client";
 
 /**
- * Platform ▸ Chat Brain (staff). The prompt and board queue, three lanes:
- *   1. Prompt queue: drafts (staff now; AI drafts and player suggestions next).
- *      Write a prompt, set its category and dates, open it for answers.
- *   2. Collecting: open prompts with answers so far against the 50 needed.
+ * Platform admin ▸ Originals ▸ Chat Brain (staff). The question and board
+ * queue, four lanes:
+ *   1. Drafts: write a question, add the bank or draft some with Claude (each
+ *      in a modal), then open drafts for answers.
+ *   2. Collecting: open questions with answers so far against those needed.
  *   3. Review and publish: grouping (spelling, Claude, by hand) and the board
  *      preview, then publish (ChatBrainReview).
+ *   4. Published: share, or run a question again for a new edition.
  * Spec: specs/gs-originals-chat-brain.md.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Input, Progress, Select, Switch, Tabs } from "@empac/cascadeds";
+import { Alert, Button, EmptyState, Input, Modal, Progress, Select, Switch, Tabs } from "@empac/cascadeds";
+import { IconBrain, IconExternalLink, IconLibraryPlus, IconPlus, IconSparkles } from "@tabler/icons-react";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { AdminHeader, AdminRowMenu } from "@/components/account/admin/AdminKit";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainReview } from "./ChatBrainReview";
 import { CHAT_BRAIN_BANK } from "@/data/originals/chat-brain-questions";
-import { LAUNCH_BOARDS } from "@/lib/chatbrain/rules";
 import { ChatBrainShare } from "./ChatBrainShare";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
@@ -23,10 +27,16 @@ type Status = "draft" | "collecting" | "review" | "published" | "retired";
 interface Prompt { id: string; text: string; category: string; familySafe: boolean; status: Status; minAnswers: number; origin: string; opensAt: string | null; closesAt: string | null; publishedAt: string | null; createdAt: string; answers: number; edition: number }
 interface Category { slug: string; name: string }
 
-const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "–");
+const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" }) : "not set");
+/** Drafts can run to 150+; show them a page at a time. */
+const DRAFTS_PAGE = 25;
+const ORIGIN: Record<string, string> = { staff: "written by staff", ai: "drafted by Claude", bank: "question bank", player: "suggested by a player" };
 
 export function PlatformChatBrainTab() {
   const toast = useToast();
+  const confirm = useConfirm();
+  const [adding, setAdding] = useState<"question" | "claude" | null>(null);
+  const [draftsShown, setDraftsShown] = useState(DRAFTS_PAGE);
   const [lane, setLane] = useState<"queue" | "collecting" | "review" | "published">("queue");
   const [data, setData] = useState<{ ready: boolean; prompts: Prompt[]; categories: Category[] } | null>(null);
   const [text, setText] = useState("");
@@ -53,13 +63,13 @@ export function PlatformChatBrainTab() {
       const r = await fetch("/api/admin/chat-brain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const j = await r.json().catch(() => null);
       if (j?.ok) { toast.success(okMsg); await load(); return true; }
-      toast.error(j?.error === "blocked" ? "That prompt has blocked language." : j?.error === "bad_length" ? "Prompts are 8 to 140 characters." : "That didn't save.");
+      toast.error(j?.error === "blocked" ? "That question has blocked language." : j?.error === "bad_length" ? "Questions are 8 to 140 characters." : "That didn't save.");
       return false;
     } finally { setBusy(false); }
   };
 
   const create = async () => {
-    if (await post({ action: "create", text, category, familySafe, opensAt: opensAt ? new Date(opensAt).toISOString() : null }, "Prompt added to the queue")) setText("");
+    if (await post({ action: "create", text, category, familySafe, opensAt: opensAt ? new Date(opensAt).toISOString() : null }, "Question added to the drafts")) { setText(""); setOpensAt(""); setAdding(null); }
   };
   const status = (p: Prompt, s: Status, msg: string) => void post({ action: "status", id: p.id, status: s }, msg);
   const draftWithClaude = async () => {
@@ -70,10 +80,13 @@ export function PlatformChatBrainTab() {
       if (!j?.ok) { toast.error(j?.error === "not_configured" ? "The Anthropic key isn't set up here." : "Claude couldn't draft questions. Try again."); return; }
       const dup = (j.skipped as { reason: string }[]).filter((x) => x.reason === "duplicate").length;
       toast.success(`Added ${j.created.length} draft${j.created.length === 1 ? "" : "s"}${dup ? `, skipped ${dup} near-duplicate${dup === 1 ? "" : "s"}` : ""}`);
+      setAdding(null);
       await load();
     } finally { setDrafting(false); }
   };
   const addBank = async () => {
+    const ok = await confirm({ title: "Add the question bank?", body: `${CHAT_BRAIN_BANK.length} reviewed, family-safe questions ship with the site. Adding skips any already in Chat Brain and updates drafts still using an older wording. They land as drafts.`, confirmLabel: "Add the question bank" });
+    if (!ok) return;
     setBusy(true);
     try {
       const j = await fetch("/api/admin/chat-brain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bank" }) }).then((r) => r.json()).catch(() => null);
@@ -88,7 +101,14 @@ export function PlatformChatBrainTab() {
     if (await post({ action: "edit", id: editing.id, text: editing.text }, "Question updated")) setEditing(null);
   };
 
-  if (!data) return <div className="account-card"><LoadingLines label="Loading" /></div>;
+  const header = (
+    <AdminHeader
+      title="Chat Brain"
+      intro="Write and schedule survey questions, watch answers come in, then group them into boards."
+      actions={<Button variant="secondary" size="small" iconBefore={IconExternalLink} onClick={() => window.open("/chat-brain", "_blank", "noopener")}>Open the answer page</Button>}
+    />
+  );
+  if (!data) return <div className="account-card admin-screen">{header}<LoadingLines label="Loading" /></div>;
   const catName = (slug: string) => data.categories.find((c) => c.slug === slug)?.name ?? slug;
   const by = (s: Status) => data.prompts.filter((p) => p.status === s);
 
@@ -97,7 +117,7 @@ export function PlatformChatBrainTab() {
       <div className="brain-admin__main">
         <strong>{p.text}</strong>
         <span className="brain-admin__meta">
-          {catName(p.category)} · {p.origin}{p.familySafe ? " · family-safe" : ""} · opens {fmt(p.opensAt)}{p.closesAt ? ` · closes ${fmt(p.closesAt)}` : ""}{p.publishedAt ? ` · published ${fmt(p.publishedAt)}` : ""}
+          {catName(p.category)} · {ORIGIN[p.origin] ?? p.origin}{p.familySafe ? " · family-safe" : ""} · opens {fmt(p.opensAt)}{p.closesAt ? ` · closes ${fmt(p.closesAt)}` : ""}{p.publishedAt ? ` · published ${fmt(p.publishedAt)}` : ""}
         </span>
         {extra}
       </div>
@@ -107,63 +127,47 @@ export function PlatformChatBrainTab() {
 
   const queue = (
     <div className="brain-admin__lane">
-      <div className="account-card">
-        <h3 className="account-card__title">New prompt</h3>
-        <div className="poll-form">
-          <Input floatingLabel="Prompt" value={text} maxLength={140} onChange={(e) => setText(e.target.value)} placeholder="Name something you bring to a game night" />
-          <Select floatingLabel="Category" value={category} onChange={(v) => setCategory(String(v))} options={data.categories.map((c) => ({ value: c.slug, label: c.name }))} />
-          <Input floatingLabel="Opens (optional)" type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
-          <Switch label="Family-safe" checked={familySafe} onChange={(e) => setFamilySafe(e.target.checked)} />
-          <div><Button variant="primary" disabled={busy || text.trim().length < 8} onClick={() => void create()}>Add to queue</Button></div>
-        </div>
+      <div className="brain-admin__tools">
+        <Button variant="primary" size="small" iconBefore={IconPlus} onClick={() => setAdding("question")}>New question</Button>
+        <Button variant="secondary" size="small" iconBefore={IconSparkles} onClick={() => setAdding("claude")}>Draft with Claude</Button>
+        <Button variant="secondary" size="small" iconBefore={IconLibraryPlus} disabled={busy} onClick={() => void addBank()}>Add the question bank</Button>
       </div>
-      <div className="account-card">
-        <h3 className="account-card__title">Question bank</h3>
-        <p className="dbot-muted">{CHAT_BRAIN_BANK.length} reviewed, family-safe questions ship with the site, written for surprising boards (opinions, confessions, stream culture). Launch needs {LAUNCH_BOARDS} boards and not every question makes one, so this is about five per board. Adding skips any already in Chat Brain and updates drafts still using an older wording.</p>
-        <div><Button variant="secondary" disabled={busy} onClick={() => void addBank()}>Add the question bank</Button></div>
-      </div>
-      <div className="account-card">
-        <h3 className="account-card__title">Draft with Claude</h3>
-        <p className="dbot-muted">Claude writes questions for a category, skipping anything close to a question already in Chat Brain. They land below as drafts for you to approve, edit or retire.</p>
-        <div className="poll-form">
-          <Select floatingLabel="Category" value={aiCat} onChange={(v) => setAiCat(String(v))} options={data.categories.map((c) => ({ value: c.slug, label: c.name }))} />
-          <Select floatingLabel="How many" value={aiCount} onChange={(v) => setAiCount(String(v))} options={["5", "10", "20"].map((n) => ({ value: n, label: `${n} questions` }))} />
-          <Input floatingLabel="Direction (optional)" value={aiGuide} maxLength={300} onChange={(e) => setAiGuide(e.target.value)} placeholder="e.g. holiday themed, or about Mario Kart items" />
-          <div><Button variant="primary" disabled={drafting} onClick={() => void draftWithClaude()}>{drafting ? "Claude is writing…" : "Draft questions"}</Button></div>
-        </div>
-      </div>
-      <h3 className="brain-admin__h">Drafts ({by("draft").length})</h3>
-      {by("draft").length === 0 ? <p className="dbot-muted">Nothing in the queue.</p> : (
+      {by("draft").length === 0 ? (
+        <EmptyState variant="bordered" icon={<IconBrain size={28} />} title="No drafts" description="Write a question, draft some with Claude, or add the question bank. Launch needs about five questions per board." />
+      ) : (
         <ul className="brain-admin__list">
-          {by("draft").map((p) => editing?.id === p.id ? (
+          {by("draft").slice(0, draftsShown).map((p) => editing?.id === p.id ? (
             <li key={p.id} className="brain-admin__row">
-              <div className="brain-admin__main"><Input value={editing.text} maxLength={140} aria-label="Question" onChange={(e) => setEditing({ id: p.id, text: e.target.value })} /></div>
+              <div className="brain-admin__main"><Input fullWidth value={editing.text} maxLength={140} floatingLabel="Question" onChange={(e) => setEditing({ id: p.id, text: e.target.value })} /></div>
               <div className="brain-admin__actions">
                 <Button size="small" variant="primary" disabled={busy || editing.text.trim().length < 8} onClick={() => void saveEdit()}>Save</Button>
                 <Button size="small" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
               </div>
             </li>
           ) : row(p, <>
-            <Button size="small" variant="primary" disabled={busy} onClick={() => status(p, "collecting", "Open for answers")}>Open for answers</Button>
-            <Button size="small" variant="secondary" disabled={busy} onClick={() => setEditing({ id: p.id, text: p.text })}>Edit</Button>
-            <Button size="small" variant="ghost" disabled={busy} onClick={() => status(p, "retired", "Retired")}>Retire</Button>
+            <Button size="small" variant="secondary" disabled={busy} onClick={() => status(p, "collecting", "Open for answers")}>Open for answers</Button>
+            <Button size="small" variant="ghost" disabled={busy} onClick={() => setEditing({ id: p.id, text: p.text })}>Edit</Button>
+            <AdminRowMenu label={`More for: ${p.text}`} items={[{ label: "Retire", onClick: () => status(p, "retired", "Retired") }]} />
           </>))}
         </ul>
+      )}
+      {by("draft").length > draftsShown && (
+        <div><Button variant="ghost" size="small" onClick={() => setDraftsShown((n) => n + DRAFTS_PAGE)}>Show {Math.min(DRAFTS_PAGE, by("draft").length - draftsShown)} more of {by("draft").length}</Button></div>
       )}
     </div>
   );
 
   const collecting = (
     <div className="brain-admin__lane">
-      {by("collecting").length === 0 ? <p className="dbot-muted">No prompts are collecting answers.</p> : (
+      {by("collecting").length === 0 ? <EmptyState variant="bordered" icon={<IconBrain size={28} />} title="Nothing collecting answers" description="Open a draft for answers and it shows here with its progress." /> : (
         <ul className="brain-admin__list">
           {by("collecting").sort((a, b) => b.answers / b.minAnswers - a.answers / a.minAnswers).map((p) => row(p, <>
-            <Button size="small" variant="secondary" onClick={() => setSharing({ id: p.id, text: p.text })}>Share</Button>
             <Button size="small" variant={p.answers >= p.minAnswers ? "primary" : "secondary"} disabled={busy} onClick={() => status(p, "review", "Sent to review")}>Send to review</Button>
-            <Button size="small" variant="ghost" disabled={busy} onClick={() => status(p, "draft", "Back to drafts")}>Pause</Button>
+            <Button size="small" variant="ghost" onClick={() => setSharing({ id: p.id, text: p.text })}>Share</Button>
+            <AdminRowMenu label={`More for: ${p.text}`} items={[{ label: "Pause (back to drafts)", onClick: () => status(p, "draft", "Back to drafts") }]} />
           </>, (
             <div className="brain-admin__progress">
-              <Progress value={Math.min(100, Math.round((p.answers / p.minAnswers) * 100))} size="small" aria-label="Answers" />
+              <Progress value={Math.min(100, Math.round((p.answers / p.minAnswers) * 100))} size="small" label={`${p.answers} of ${p.minAnswers} answers`} className="admin-progress-quiet" />
               <span>{p.answers} of {p.minAnswers} answers</span>
             </div>
           )))}
@@ -180,7 +184,7 @@ export function PlatformChatBrainTab() {
 
   const published = (
     <div className="brain-admin__lane">
-      {by("published").length === 0 ? <p className="dbot-muted">No published boards yet.</p> : (
+      {by("published").length === 0 ? <EmptyState variant="bordered" icon={<IconBrain size={28} />} title="No published boards yet" description="Boards land here once you publish them from Review." /> : (
         <ul className="brain-admin__list">
           {by("published").map((p) => row(p, <>
             <Button size="small" variant="secondary" onClick={() => setSharing({ id: p.id, text: p.text })}>Share</Button>
@@ -191,20 +195,40 @@ export function PlatformChatBrainTab() {
     </div>
   );
 
+  const catOptions = data.categories.map((c) => ({ value: c.slug, label: c.name }));
   return (
-    <div className="account-tab">
-      <h2 className="account-tab__heading">Chat Brain</h2>
-      <p className="account-tab__intro">Write and schedule survey prompts, watch answers come in, then group them into boards. <a href="/chat-brain" target="_blank" rel="noreferrer">Open the answer page</a>.</p>
+    <div className="account-card admin-screen">
+      {header}
       <ChatBrainShare prompt={sharing} onClose={() => setSharing(null)} />
-      {!data.ready && <Alert variant="warning" title="Not set up yet">Apply <code>chat-brain-m1.sql</code> to turn Chat Brain on.</Alert>}
+      {!data.ready && <Alert variant="warning" title="Not set up yet">Chat Brain&apos;s tables aren&apos;t on this database yet.</Alert>}
       {data.ready && (
-        <Tabs variant="pills" activeTab={lane} onChange={(id) => setLane(id as typeof lane)} tabs={[
-          { id: "queue", label: "Prompt queue", badge: by("draft").length || undefined, content: lane === "queue" ? queue : null },
+        <Tabs variant="underline" activeTab={lane} onChange={(id) => setLane(id as typeof lane)} tabs={[
+          { id: "queue", label: "Drafts", badge: by("draft").length || undefined, content: lane === "queue" ? queue : null },
           { id: "collecting", label: "Collecting", badge: by("collecting").length || undefined, content: lane === "collecting" ? collecting : null },
           { id: "review", label: "Review and publish", badge: by("review").length || undefined, content: lane === "review" ? review : null },
           { id: "published", label: "Published", badge: by("published").length || undefined, content: lane === "published" ? published : null },
         ]} />
       )}
+
+      <Modal isOpen={adding === "question"} onClose={() => setAdding(null)} title="New question" size="medium"
+        footer={<><Button variant="ghost" onClick={() => setAdding(null)}>Cancel</Button><Button variant="primary" disabled={busy || text.trim().length < 8} onClick={() => void create()}>Add to drafts</Button></>}>
+        <div className="poll-form">
+          <Input fullWidth floatingLabel="Question" value={text} maxLength={140} onChange={(e) => setText(e.target.value)} placeholder="Name something you bring to a game night" />
+          <Select floatingLabel="Category" value={category} onChange={(v) => setCategory(String(v))} options={catOptions} />
+          <Input fullWidth floatingLabel="Opens (optional, your time)" type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
+          <Switch label="Family-safe" checked={familySafe} onChange={(e) => setFamilySafe(e.target.checked)} />
+        </div>
+      </Modal>
+
+      <Modal isOpen={adding === "claude"} onClose={() => setAdding(null)} title="Draft with Claude" size="medium"
+        footer={<><Button variant="ghost" onClick={() => setAdding(null)}>Cancel</Button><Button variant="primary" loading={drafting} disabled={drafting} onClick={() => void draftWithClaude()}>{drafting ? "Claude is writing" : "Draft questions"}</Button></>}>
+        <div className="poll-form">
+          <p className="dbot-muted">Claude writes questions for a category and skips anything close to a question already in Chat Brain. They land as drafts for you to open, edit or retire.</p>
+          <Select floatingLabel="Category" value={aiCat} onChange={(v) => setAiCat(String(v))} options={catOptions} />
+          <Select floatingLabel="How many" value={aiCount} onChange={(v) => setAiCount(String(v))} options={["5", "10", "20"].map((n) => ({ value: n, label: `${n} questions` }))} />
+          <Input fullWidth floatingLabel="Direction (optional)" value={aiGuide} maxLength={300} onChange={(e) => setAiGuide(e.target.value)} placeholder="Holiday themed, or about Mario Kart items" />
+        </div>
+      </Modal>
     </div>
   );
 }

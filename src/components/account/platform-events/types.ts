@@ -73,15 +73,18 @@ export const CTYPE_SHORT: Record<Ctype, string> = {
   story: "story",
 };
 
+/** What staff see for each effect type in the event editor. */
 export const CTYPE_LABEL: Record<Ctype, string> = {
-  token_delta: "Token delta",
+  token_delta: "Token change",
   modifier: "Modifier",
   challenge: "Challenge",
-  story: "Story beat",
+  story: "Story line",
 };
 
+/** Who an effect goes to, for two-viewer events (the editor words group
+ *  events its own way). */
 export const TARGET_LABEL: Record<ConsequenceTarget, string> = {
-  actor: "actor",
-  partner: "partner",
-  both: "both",
+  actor: "The viewer who set it off",
+  partner: "The other viewer",
+  both: "Both viewers",
 };

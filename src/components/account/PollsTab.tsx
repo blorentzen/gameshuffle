@@ -1,20 +1,28 @@
 "use client";
 
 /**
- * Polls tab (Community & Chat) — GS Pro streamer authoring surface for live
- * polls. Compose a question + 2–8 options, open it (a community runs one open
- * poll at a time), watch the tally, and close it. Voting surfaces (chat,
- * Discord, /live) come in later phases; this is the create/run/close home.
+ * Streaming ▸ Live games ▸ Polls (GS Pro): start a poll (a question and 2 to 8
+ * options), watch the running one, close it; past polls in a short table, ten
+ * at a time, with Run again. One poll runs per community at a time, voted on
+ * from Twitch, Discord, the live page and the overlay.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Input, Select, Switch } from "@empac/cascadeds";
+import { Alert, Badge, Button, EmptyState, Input, Select, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { MAX_POLL_OPTIONS, MIN_POLL_OPTIONS, type Poll, type PollTally } from "@/lib/polls/types";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { IconAction } from "@/components/actions/IconAction";
-import { IconX } from "@tabler/icons-react";
+import { IconChartBar, IconX } from "@tabler/icons-react";
+import { AdminPanel, AdminScreen, AdminSection, AdminTable } from "@/components/account/admin/AdminKit";
+
+const PAGE = 10;
+const STATUS_BADGE: Record<string, { label: string; variant: "success" | "warning" | "default" }> = {
+  open: { label: "Running", variant: "success" },
+  draft: { label: "Saved", variant: "warning" },
+  closed: { label: "Closed", variant: "default" },
+};
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 export function PollsTab() {
@@ -26,7 +34,7 @@ export function PollsTab() {
   const [tallies, setTallies] = useState<Record<string, PollTally>>({});
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]);
-  const [openNow, setOpenNow] = useState(true);
+  const [shown, setShown] = useState(PAGE);
   const [closeMins, setCloseMins] = useState("0");
   const [busy, setBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -48,7 +56,7 @@ export function PollsTab() {
       setLoading(false);
       const entries = await Promise.all(
         list
-          .filter((p) => p.status !== "draft")
+          .filter((p, i) => p.status === "open" || (p.status !== "draft" && i < PAGE))
           .map(async (p) => {
             const r = await fetch(`/api/polls/${p.id}`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
             return r?.ok ? ([p.id, r.tally as PollTally] as const) : null;
@@ -61,13 +69,27 @@ export function PollsTab() {
     };
   }, [reloadKey]);
 
+  // Tallies for polls revealed by "Show more" (the first load only covers the first page).
+  useEffect(() => {
+    if (shown <= PAGE) return;
+    const need = polls.filter((p, i) => p.status !== "draft" && i < shown + 1 && !(p.id in tallies)).slice(0, PAGE);
+    if (!need.length) return;
+    let active = true;
+    void Promise.all(need.map(async (p) => {
+      const r = await fetch(`/api/polls/${p.id}`, { cache: "no-store" }).then((x) => x.json()).catch(() => null);
+      return r?.ok ? ([p.id, r.tally as PollTally] as const) : ([p.id, { total: 0, byOption: {} } as unknown as PollTally] as const);
+    })).then((got) => { if (active) setTallies((t) => ({ ...t, ...Object.fromEntries(got) })); });
+    return () => { active = false; };
+  }, [shown, polls, tallies]);
+
   const setOption = (i: number, v: string) => setOptions((o) => o.map((x, j) => (j === i ? v : x)));
   const addOption = () => setOptions((o) => (o.length < MAX_POLL_OPTIONS ? [...o, ""] : o));
   const removeOption = (i: number) => setOptions((o) => (o.length > MIN_POLL_OPTIONS ? o.filter((_, j) => j !== i) : o));
 
-  async function create() {
-    const opts = options.map((o) => o.trim()).filter(Boolean);
-    if (!question.trim() || opts.length < MIN_POLL_OPTIONS) {
+  async function create(openNow: boolean, again?: Poll) {
+    const opts = again ? again.options.map((o) => o.label) : options.map((o) => o.trim()).filter(Boolean);
+    const q = again ? again.question : question;
+    if (!q.trim() || opts.length < MIN_POLL_OPTIONS) {
       toast.error("Add a question and at least two options.");
       return;
     }
@@ -76,17 +98,16 @@ export function PollsTab() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        question,
+        question: q,
         options: opts,
         open: openNow,
-        closeInSeconds: Number(closeMins) * 60,
+        closeInSeconds: openNow ? Number(closeMins) * 60 : 0,
       }),
     });
     setBusy(false);
     if (res.ok) {
-      toast.success(openNow ? "Poll opened." : "Poll saved as a draft.");
-      setQuestion("");
-      setOptions(["", ""]);
+      toast.success(openNow ? "Poll started" : "Poll saved for later");
+      if (!again) { setQuestion(""); setOptions(["", ""]); }
       refresh();
     } else {
       const d = await res.json().catch(() => null);
@@ -108,146 +129,136 @@ export function PollsTab() {
     } else toast.error("Couldn't update the poll.");
   }
 
-  if (loading) return <div className="account-card"><LoadingLines label="Loading" /></div>;
+  const intro = "One question, voted on from Twitch, Discord, your live page and the overlay at once. One poll runs at a time.";
+  if (loading) return <AdminScreen title="Polls" intro={intro}><LoadingLines label="Loading" /></AdminScreen>;
 
   if (!isPro) {
     return (
-      <div className="account-tab">
-        <h2 className="account-tab__heading">Polls</h2>
-        <div className="account-card dbot-locked">
-          <div className="dbot-locked__head">
-            <h3 className="account-card__title">Polls</h3>
-            <span className="dbot-lock-badge">GS Pro</span>
-          </div>
-          <p className="dbot-muted">
-            Run live polls your viewers vote on from chat, Discord, and your stream. Creating polls is a GS Pro feature.
-          </p>
-          <Link href="/gs-pro?from=polls" className={tagged(EVENTS.upgradeClicked, { from: "polls" })}><Button variant="primary" size="small">See GS Pro</Button></Link>
-        </div>
-      </div>
+      <AdminScreen title="Polls" intro={intro}>
+        <Alert variant="info" title="Polls are part of GS Pro">
+          Run live polls your viewers vote on from chat, Discord and your stream.{" "}
+          <Link href="/gs-pro?from=polls" className={tagged(EVENTS.upgradeClicked, { from: "polls" })}>See GS Pro</Link>
+        </Alert>
+      </AdminScreen>
     );
   }
 
+  if (!hasCommunity) {
+    return (
+      <AdminScreen title="Polls" intro={intro}>
+        <Alert variant="info">Connect Twitch on <Link href="/account/streaming?tab=integrations">Streaming ▸ Setup</Link> to run polls.</Alert>
+      </AdminScreen>
+    );
+  }
+
+  const running = polls.find((p) => p.status === "open") ?? null;
+  const past = polls.filter((p) => p !== running);
+  const topOf = (poll: Poll) => {
+    const t = tallies[poll.id];
+    if (!t || !t.total) return null;
+    const best = poll.options.reduce((a, o) => ((t.byOption[o.id] ?? 0) > (t.byOption[a.id] ?? 0) ? o : a), poll.options[0]);
+    return best?.label ?? null;
+  };
+
   return (
-    <div className="account-tab">
-      <h2 className="account-tab__heading">Polls</h2>
-      <p className="account-tab__intro">
-        Ask your community a question and let them vote live. Your community runs one open poll at a time.
-      </p>
-
-      {!hasCommunity ? (
-        <div className="account-card">
-          <p className="dbot-muted">
-            Connect Twitch on the <Link href="/account/streamer?tab=integrations">Integrations tab</Link> to run polls.
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Compose */}
-          <div className="account-card">
-            <h3 className="account-card__title">New poll</h3>
-            <div className="poll-form">
-              <Input
-                floatingLabel="Question"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                fullWidth
-              />
-              {options.map((opt, i) => (
-                <div key={i} className="poll-optrow">
-                  <Input
-                    floatingLabel={`Option ${i + 1}`}
-                    value={opt}
-                    onChange={(e) => setOption(i, e.target.value)}
-                    fullWidth
-                  />
-                  {options.length > MIN_POLL_OPTIONS && (
-                    <IconAction label={`Remove option ${i + 1}`} icon={IconX} onClick={() => removeOption(i)} />
-                  )}
-                </div>
-              ))}
-              {options.length < MAX_POLL_OPTIONS && (
-                <Button variant="secondary" size="small" onClick={addOption}>Add option</Button>
-              )}
-              <Switch
-                checked={openNow}
-                onChange={(e) => setOpenNow(e.target.checked)}
-                label="Open it right away (otherwise save as a draft)"
-              />
-              {openNow && (
-                <Select
-                  floatingLabel="Auto-close"
-                  options={[
-                    { value: "0", label: "Off, I'll close it myself" },
-                    { value: "1", label: "After 1 minute" },
-                    { value: "2", label: "After 2 minutes" },
-                    { value: "5", label: "After 5 minutes" },
-                    { value: "10", label: "After 10 minutes" },
-                  ]}
-                  value={closeMins}
-                  onChange={(v) => setCloseMins(v as string)}
-                />
-              )}
-              <div>
-                <Button variant="primary" onClick={() => void create()} disabled={busy}>
-                  {openNow ? "Create & open" : "Save draft"}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Existing polls */}
-          {polls.length === 0 ? (
-            <div className="account-card"><p className="dbot-muted">No polls yet. Create your first one above.</p></div>
-          ) : (
-            polls.map((poll) => {
-              const t = tallies[poll.id];
-              const total = t?.total ?? 0;
-              const topCount = poll.status === "closed" ? Math.max(0, ...poll.options.map((o) => t?.byOption[o.id] ?? 0)) : -1;
+    <AdminScreen title="Polls" intro={intro}>
+      {running && (
+        <AdminPanel title="Running now" className="poll-running">
+          <p className="poll-running__q">{running.question}</p>
+          <ul className="poll-results">
+            {running.options.map((o) => {
+              const t = tallies[running.id];
+              const count = t?.byOption[o.id] ?? 0;
+              const pct = t?.total ? Math.round((count / t.total) * 100) : 0;
               return (
-                <div key={poll.id} className="account-card">
-                  <div className="poll-head">
-                    <h3 className="account-card__title">{poll.question}</h3>
-                    <span className={`poll-status poll-status--${poll.status}`}>{poll.status}</span>
-                  </div>
-                  {poll.status !== "draft" && (
-                    <ul className="poll-results">
-                      {poll.options.map((o) => {
-                        const count = t?.byOption[o.id] ?? 0;
-                        const pct = total ? Math.round((count / total) * 100) : 0;
-                        const isWinner = poll.status === "closed" && count > 0 && count === topCount;
-                        return (
-                          <li key={o.id} className={`poll-result${isWinner ? " poll-result--win" : ""}`}>
-                            <div className="poll-result__row">
-                              <span>{o.label}</span>
-                              <span className="dbot-muted">{count} · {pct}%</span>
-                            </div>
-                            <div className="poll-bar"><div className="poll-bar__fill" style={{ width: `${pct}%` }} /></div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                  {poll.status === "draft" && (
-                    <ul className="poll-optlist">
-                      {poll.options.map((o) => <li key={o.id}>{o.label}</li>)}
-                    </ul>
-                  )}
-                  <div className="poll-actions">
-                    {poll.status === "open" && (
-                      <Button variant="secondary" size="small" onClick={() => void transition(poll.id, "close")} disabled={busy}>Close poll</Button>
-                    )}
-                    {poll.status !== "open" && poll.status !== "closed" && (
-                      <Button variant="primary" size="small" onClick={() => void transition(poll.id, "open")} disabled={busy}>Open poll</Button>
-                    )}
-                    {poll.status === "closed" && <span className="dbot-muted">Closed · {total} vote{total === 1 ? "" : "s"}</span>}
-                  </div>
-                </div>
+                <li key={o.id} className="poll-result">
+                  <div className="poll-result__row"><span>{o.label}</span><span className="dbot-muted">{count} · {pct}%</span></div>
+                  <div className="poll-bar"><div className="poll-bar__fill" style={{ width: `${pct}%` }} /></div>
+                </li>
               );
-            })
-          )}
-        </>
+            })}
+          </ul>
+          <div><Button variant="secondary" size="small" onClick={() => void transition(running.id, "close")} disabled={busy}>Close the poll</Button></div>
+        </AdminPanel>
       )}
-    </div>
+
+      <AdminSection title="Start a poll" intro={running ? "Starting a new poll closes the one that's running." : undefined}>
+        <div className="poll-form">
+          <Input floatingLabel="Question" value={question} onChange={(e) => setQuestion(e.target.value)} fullWidth />
+          <div className="admin-form-grid">
+            {options.map((opt, i) => (
+              <div key={i} className="poll-optrow">
+                <Input floatingLabel={`Option ${i + 1}`} value={opt} onChange={(e) => setOption(i, e.target.value)} fullWidth />
+                {options.length > MIN_POLL_OPTIONS && <IconAction label={`Remove option ${i + 1}`} icon={IconX} onClick={() => removeOption(i)} />}
+              </div>
+            ))}
+          </div>
+          <div className="admin-form-grid">
+            <Select
+              floatingLabel="Close it"
+              options={[
+                { value: "0", label: "When I close it" },
+                { value: "1", label: "After 1 minute" },
+                { value: "2", label: "After 2 minutes" },
+                { value: "5", label: "After 5 minutes" },
+                { value: "10", label: "After 10 minutes" },
+              ]}
+              value={closeMins}
+              onChange={(v) => setCloseMins(v as string)}
+            />
+          </div>
+          <div className="admin-row-actions poll-form__actions">
+            {options.length < MAX_POLL_OPTIONS && <Button variant="ghost" size="small" onClick={addOption}>Add an option</Button>}
+            <Button variant="primary" onClick={() => void create(true)} disabled={busy}>Start the poll</Button>
+            <Button variant="secondary" onClick={() => void create(false)} disabled={busy}>Save for later</Button>
+          </div>
+        </div>
+      </AdminSection>
+
+      <AdminSection title="Recent polls">
+        {past.length === 0 ? (
+          <EmptyState variant="bordered" icon={<IconChartBar size={28} />} title="No polls yet" description="Polls you run or save show here." />
+        ) : (
+          <>
+            <AdminTable label="Recent polls">
+              <Table variant="striped" dense>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Question</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead align="right">Votes</TableHead>
+                    <TableHead>Top answer</TableHead>
+                    <TableHead align="right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {past.slice(0, shown).map((poll) => {
+                    const t = tallies[poll.id];
+                    const badge = STATUS_BADGE[poll.status] ?? STATUS_BADGE.closed;
+                    const top = topOf(poll);
+                    return (
+                      <TableRow key={poll.id}>
+                        <TableCell>{poll.question}<span className="admin-table__sub">{poll.options.length} options</span></TableCell>
+                        <TableCell><Badge variant={badge.variant} size="small">{badge.label}</Badge></TableCell>
+                        <TableCell align="right" className="admin-num">{poll.status === "draft" ? "-" : t ? t.total : "…"}</TableCell>
+                        <TableCell>{poll.status === "draft" ? <span className="dbot-muted">Not run yet</span> : top ?? <span className="dbot-muted">{t ? "No votes" : "-"}</span>}</TableCell>
+                        <TableCell align="right">
+                          {poll.status === "draft"
+                            ? <Button variant="ghost" size="small" onClick={() => void transition(poll.id, "open")} disabled={busy}>Start</Button>
+                            : <Button variant="ghost" size="small" onClick={() => void create(true, poll)} disabled={busy}>Run again</Button>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </AdminTable>
+            {past.length > shown && (
+              <div><Button variant="ghost" size="small" onClick={() => setShown((n) => n + PAGE)}>Show {Math.min(PAGE, past.length - shown)} more of {past.length}</Button></div>
+            )}
+          </>
+        )}
+      </AdminSection>
+    </AdminScreen>
   );
 }

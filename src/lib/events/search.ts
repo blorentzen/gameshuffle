@@ -22,6 +22,7 @@ import "server-only";
  * every caller falls back to the old load-everything path.
  */
 
+import { notStaleOpenFilter } from "@/lib/events/lifecycle";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getGameName } from "@/data/game-registry";
 import { FORMAT_LABEL } from "@/data/tournament-formats";
@@ -86,6 +87,8 @@ type TRow = {
   header_image_url: string | null; settings: Record<string, unknown> | null;
   going_count: number; min_price_cents: number | null; organizer_name: string | null;
   game_label: string | null; is_online: boolean; lat?: number | null; lng?: number | null;
+  /** An official GameShuffle event (official-events-m1); missing before that migration. */
+  hosted_by_gs?: boolean;
 };
 
 function tournamentToEvent(t: TRow): BrowseEvent {
@@ -110,6 +113,7 @@ function tournamentToEvent(t: TRow): BrowseEvent {
     game: t.game_label || getGameName(t.game_slug),
     format: t.format ?? null,
     tags: [
+      t.hosted_by_gs ? "Official" : null,
       t.format ? FORMAT_LABEL[t.format] ?? t.format : null,
       t.mode?.toUpperCase() ?? null,
       s.requireVerified ? "Verified only" : null,
@@ -180,9 +184,9 @@ export async function searchBrowse(qy: BrowseQuery): Promise<BrowsePage | null> 
     let b = svc.from(view).select(forCount ? "id" : "*", forCount ? { count: "exact", head: true } : undefined);
 
     if (isT) {
-      b = b.in("status", ["open", "in_progress", "complete", "cancelled"]);
+      b = b.in("status", ["open", "in_progress", "complete"]).is("archived_at", null).is("championship_id", null).or(notStaleOpenFilter());
     } else {
-      b = b.eq("visibility", "public").in("status", ["scheduled", "cancelled"]);
+      b = b.eq("visibility", "public").in("status", ["scheduled"]).is("archived_at", null);
     }
     b = b.or(`${dateCol}.gte.${since()},${dateCol}.is.null`);
 

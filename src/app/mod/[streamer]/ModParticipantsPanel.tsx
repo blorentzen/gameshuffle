@@ -6,7 +6,7 @@
  * Twitch chat right now.
  *
  * Mirrors the realtime+polling-fallback pattern of
- * `<RealtimeParticipantsList />` so the panel stays fresh as viewers
+ * the hub's activity feed so the panel stays fresh as viewers
  * join/leave. Kick action is server-side authorized (see
  * `./actions.ts`) — the UI just dispatches; permission failures
  * surface inline.

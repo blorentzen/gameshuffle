@@ -36,7 +36,7 @@ export function PaidPlansWaitlist({ product = "pro" }: { product?: "pro" | "circ
   return (
     <div className="paid-waitlist">
       <p className="paid-waitlist__note">
-        {label} is available in the US for now. Join the waitlist and we&apos;ll let you know when it opens where you are.
+        {label}{" "}is available in the US for now. Join the waitlist and we&apos;ll let you know when it opens where you are.
         Everything free on GameShuffle works wherever you are.
       </p>
       <div className="paid-waitlist__row">

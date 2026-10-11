@@ -31,17 +31,18 @@ import {
 } from "@/lib/economy/compliance/gate";
 import { resolveRegionForIdentity } from "@/lib/economy/compliance/region";
 import { isModuleEnabled } from "@/lib/economy/modules/registry";
+import { isCommandOff } from "./toggles";
 import {
   authorityMeets,
   listCommands,
-  resolveCommand,
+  resolveTypedCommand,
   tierMeets,
   type ActorTier,
   type Authority,
   type CmdContext,
   type CommandDef,
 } from "./registry";
-import { loadCustomCommandsForCommunity } from "./customCommands";
+import { loadCustomCommandsForCommunity, resolveCustomCommand } from "./customCommands";
 import { tryFireMentionEvent } from "./mentionEvents";
 import { tryFireDefaultCommand } from "./defaultCommandsFallback";
 import { tryFireDirectEvent } from "./directEvents";
@@ -145,6 +146,12 @@ function resolveCallerTier(ctx: CommandDispatchContext): ActorTier {
   if (ctx.isBroadcaster) return "host";
   if (ctx.isModerator) return "crew";
   return "everyone";
+}
+
+/** Whether this caller passes a command's role gates (same checks as step 3). */
+function callerMayUse(def: CommandDef, ctx: CommandDispatchContext): boolean {
+  if (def.actor && !tierMeets(resolveCallerTier(ctx), def.actor)) return false;
+  return commandGateGranted(def, resolveCallerAuthority(ctx), ctx.isVIP === true);
 }
 
 /**
@@ -275,10 +282,12 @@ export async function dispatchCommand(
   // 0. Refresh this community's custom commands into the registry
   //    so a freshly-added `!socials` shows up within the 15s TTL.
   //    Best-effort: a load failure shouldn't block built-in routing.
+  let communityId: string | null = null;
   if (ctx.streamerSlug) {
     try {
       const community = await getCommunityBySlug(ctx.streamerSlug);
       if (community) {
+        communityId = community.id;
         await loadCustomCommandsForCommunity(community.id);
       }
     } catch (err) {
@@ -305,24 +314,20 @@ export async function dispatchCommand(
   //    `['gs','resolve']` with args `'win'`, and `!gs market`
   //    (which has no command registered for the 2-segment form)
   //    can still hit the future help for the 'market' namespace.
-  const path = [...command.path];
-  let args = command.args;
-  let def = resolveCommand(path);
-
-  // Diagnostic: log resolution attempts so we can see why commands
-  // fall through to the bare `gs` handler.
+  const resolved = resolveTypedCommand(command.path, command.args);
+  const args = resolved.args;
+  let def = resolved.def;
   console.log(
-    `[dispatch] raw=${JSON.stringify(command.raw)} path=${JSON.stringify(command.path)} firstResolve=${def?.name ?? "(null)"}`,
+    `[dispatch] raw=${JSON.stringify(command.raw)} path=${JSON.stringify(command.path)} resolved=${def?.name ?? "(null)"}`,
   );
 
-  while (!def && path.length > 1) {
-    const popped = path.pop()!;
-    args = args.length === 0 ? popped : `${popped} ${args}`;
-    def = resolveCommand(path);
-    console.log(
-      `[dispatch] pop fallback path=${JSON.stringify(path)} resolve=${def?.name ?? "(null)"}`,
-    );
-  }
+  // A built-in the caller isn't allowed to use falls through, so a
+  // viewer's `!commands` gets the "every command" reply while the
+  // streamer's `!commands add …` still manages commands.
+  if (def && !callerMayUse(def, ctx)) def = null;
+
+  // Then this channel's own custom commands (built-ins win a clash).
+  if (!def && communityId) def = resolveCustomCommand(communityId, command.path);
 
   if (!def) {
     // ────────────────────────────────────────────────────────────
@@ -437,6 +442,16 @@ export async function dispatchCommand(
       console.error("[dispatch] module-enabled check failed", err);
       // Fail open — better to risk firing a disabled module than to
       // block every command on a transient DB error.
+    }
+  }
+
+  // 2.5. The streamer switched this built-in off (Streaming ▸ Chat ▸
+  //      Commands). Custom commands have their own enabled flag.
+  if (communityId && !def.name.startsWith("cc:")) {
+    try {
+      if (await isCommandOff(communityId, def.name)) return; // silent no-op
+    } catch (err) {
+      console.error("[dispatch] command toggle check failed", err);
     }
   }
 

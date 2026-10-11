@@ -48,6 +48,8 @@ interface Props {
   legacyDefaultSlug: string | undefined;
   /** Raw `session_modules.config` blob for race_randomizer (or null). */
   rawRaceConfig: Record<string, unknown> | null;
+  /** "picks": the round controls only (the stream page's Picks & bans tab). */
+  part?: "all" | "picks";
 }
 
 export function DashboardLiveControls({
@@ -56,6 +58,7 @@ export function DashboardLiveControls({
   initialActiveGameSlug,
   legacyDefaultSlug,
   rawRaceConfig,
+  part = "all",
 }: Props) {
   const [activeGameSlug, setActiveGameSlug] = useState<string | null>(
     initialActiveGameSlug,
@@ -118,6 +121,7 @@ export function DashboardLiveControls({
       initial={raceConfig}
       sessionLive={true}
       surface="live"
+      livePart={part}
     />
   );
 }

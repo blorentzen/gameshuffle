@@ -43,19 +43,19 @@ function buildMenuSections(args: {
   if (args.hasStreamerIntegration) {
     sections.push({
       label: "Activity",
-      items: [{ label: "Stream Hub", onClick: go("/hub") }],
+      items: [{ label: "Stream hub", onClick: go("/hub") }],
     });
   }
 
-  // My Stuff — quick access to a player's own content (each its own surface).
-  sections.push({
-    label: "My Stuff",
-    items: [
-      { label: "Setups & Games", onClick: go("/account/stuff?tab=setups") },
-      { label: "Tournaments", onClick: go("/account/stuff?tab=tournaments") },
-      { label: "My Cards", onClick: go("/account/stuff?tab=my-cards") },
-    ],
-  });
+  // My Stuff: quick access to a player's own content, straight from the nav
+  // model so the menu always matches the section's views.
+  const stuff = ACCOUNT_SECTIONS.find((s) => s.route === "/account/stuff");
+  if (stuff) {
+    sections.push({
+      label: stuff.label,
+      items: stuff.items.filter((i) => i.id).map((i) => ({ label: i.label, onClick: go(`${stuff.route}?tab=${i.id}`) })),
+    });
+  }
 
   // Settings mirror the account section pages — derived from ACCOUNT_SECTIONS
   // (the single source of truth) so new sections/renames flow through here

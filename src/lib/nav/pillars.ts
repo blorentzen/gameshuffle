@@ -180,6 +180,7 @@ export const PILLARS: Pillar[] = [
         items: [
           { label: "Community hub", href: "/communities", blurb: "Every community on GameShuffle." },
           { label: "Game nights", href: "/game-nights", blurb: "Board, video and TCG nights near you or online." },
+          { label: "Trivia nights", href: "/trivia", blurb: "Host a pub-style quiz: teams on their phones, questions on the TV. New." },
           { label: "GameShuffle for Discord", href: "/discord", blurb: "The Daily, the Weekly and Chat Brain with your server." },
         ],
       },
@@ -201,8 +202,8 @@ export const PILLARS: Pillar[] = [
       {
         heading: "Your channel",
         items: [
-          { label: "Stream hub", href: "/hub", blurb: "Sessions, modules and fan-out.", audience: "streamer" },
-          { label: "Twitch integration", href: "/twitch", blurb: "Chat bot, channel points and EventSub health.", audience: "streamer" },
+          { label: "Stream hub", href: "/hub", blurb: "Plan, run and look back on your streams.", audience: "streamer" },
+          { label: "Stream settings", href: "/account/streaming", blurb: "Connections, chat bot, overlay and channel points.", audience: "streamer" },
         ],
       },
       {

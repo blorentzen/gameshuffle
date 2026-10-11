@@ -22,7 +22,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Input, Switch } from "@empac/cascadeds";
+import { Alert, Badge, Button, Input, Select, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
@@ -41,7 +41,14 @@ interface ModRow {
   invite_expires_at: string | null;
   claimed_at: string | null;
   created_at: string;
+  access: "standard" | "full";
 }
+
+/** Mod access levels (src/lib/mods/acting.ts). */
+const ACCESS_OPTIONS = [
+  { value: "standard", label: "Standard", description: "Lobby, activity and your decks" },
+  { value: "full", label: "Full", description: "Also rolls, picks and bans, tools and live games" },
+];
 
 interface MyInviteRow {
   id: string;
@@ -55,6 +62,7 @@ interface MyInviteRow {
 interface ListResponse {
   ok: true;
   mods: { active: ModRow[]; invited: ModRow[]; pending: ModRow[] };
+  accessReady: boolean;
   myInvites: MyInviteRow[];
   selfSlug: string | null;
   settings: {
@@ -97,7 +105,7 @@ function identitySummary(row: ModRow): string {
   return parts.length === 0 ? "-" : parts.join(" · ");
 }
 
-export function ModsTab() {
+export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
   const [data, setData] = useState<ListResponse | null>(null);
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
@@ -222,6 +230,19 @@ export function ModsTab() {
     }
   };
 
+  /** The bot posts "@name … gameshuffle.co/mod/join/<you>" in your chat. */
+  const postInChat = async (modId: string) => {
+    setError(null);
+    setSuccess(null);
+    const res = await fetch(`/api/account/mods/${modId}/chat-invite`, { method: "POST" }).catch(() => null);
+    const body = res ? await res.json().catch(() => ({})) : {};
+    if (!res?.ok || !body.ok) {
+      setError(body.message ?? "Couldn't post in your chat. Try again.");
+      return;
+    }
+    setSuccess("Posted in your chat.");
+  };
+
   const regenerateInvite = async (modId: string) => {
     setBusy(true);
     setError(null);
@@ -285,6 +306,27 @@ export function ModsTab() {
       }
       setSuccess(`${displayName} revoked.`);
       await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setAccess = async (mod: ModRow, access: "standard" | "full") => {
+    if (access === mod.access) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/account/mods", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mod_id: mod.id, access }),
+      }).catch(() => null);
+      const body = (await res?.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!body?.ok) {
+        toast.error(body?.error === "needs_update" ? "Mod access needs the latest database update." : "Couldn't change their access. Try again.");
+        return;
+      }
+      await load();
+      toast.success(access === "full" ? `${mod.display_name} has Full access` : `${mod.display_name} has Standard access`);
     } finally {
       setBusy(false);
     }
@@ -493,7 +535,7 @@ export function ModsTab() {
           }}
         >
           <div>
-            <h2 style={{ margin: 0 }}>Mods</h2>
+            {!bare && <h2 style={{ margin: 0 }}>Mods</h2>}
             <p
               style={{
                 fontSize: "var(--font-size-12)",
@@ -558,25 +600,67 @@ export function ModsTab() {
           </div>
         )}
 
+        {/* Self-serve join (2026-10-10): any Twitch mod can join themselves. */}
+        {data.selfSlug && (
+          <div className="mods-join">
+            <div>
+              <strong>Your Twitch mods can join on their own.</strong>{" "}
+              They type <code>!gs mod</code>{" "}in your chat (or open the link), sign in with Twitch, and we check they mod your channel. They&rsquo;re in straight away; remove anyone below.
+            </div>
+            <Button
+              variant="secondary"
+              size="small"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(`https://www.gameshuffle.co/mod/join/${data.selfSlug}`);
+                  setSuccess("Mod link copied.");
+                } catch {
+                  setError("Couldn't copy. The link is gameshuffle.co/mod/join/" + data.selfSlug);
+                }
+              }}
+            >
+              Copy the mod link
+            </Button>
+          </div>
+        )}
+
         {/* Active ────────────────────────────────────────── */}
         <ModSection
           title="Active"
           count={active.length}
           empty="No active mods yet. Invite someone from your pending list below."
+          hint={
+            data.accessReady
+              ? "Standard mods manage the lobby and edit your decks. Full mods can also roll, run picks and bans, the overlay tools, live games and break mode from their mod page. Starting, ending and editing the stream stay with you."
+              : undefined
+          }
         >
           {active.map((m) => (
             <ModRowDisplay
               key={m.id}
               row={m}
               right={
-                <Button
-                  variant="ghost"
-                  size="small"
-                  onClick={() => revokeMod(m.id, m.display_name)}
-                  disabled={busy}
-                >
-                  Revoke
-                </Button>
+                <div className="mods-row__actions">
+                  {data.accessReady && (
+                    <Select
+                      size="small"
+                      floatingLabel="Access"
+                      options={ACCESS_OPTIONS}
+                      value={m.access}
+                      onChange={(v) => void setAccess(m, v === "full" ? "full" : "standard")}
+                      disabled={busy}
+                      className="mods-row__access"
+                    />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={() => revokeMod(m.id, m.display_name)}
+                    disabled={busy}
+                  >
+                    Revoke
+                  </Button>
+                </div>
               }
               meta={
                 <>
@@ -654,7 +738,7 @@ export function ModsTab() {
               ? "No pending Twitch mods. Click Sync now if you've added mods on Twitch recently."
               : "Click Sync now to auto-import your Twitch moderator list."
           }
-          hint="Auto-imported from your Twitch moderator list. Click Invite to generate a one-time signup link you can DM them."
+          hint="From your Twitch mod list, not on GameShuffle yet. Post in chat sends them the join link; Invite makes a one-time link you can DM."
         >
           {pending.map((m) => (
             <ModRowDisplay
@@ -666,14 +750,19 @@ export function ModsTab() {
                 </>
               }
               right={
-                <Button
-                  variant="primary"
-                  size="small"
-                  onClick={() => regenerateInvite(m.id)}
-                  disabled={busy}
-                >
-                  Invite
-                </Button>
+                <span className="mods-join__row-actions">
+                  <Button variant="secondary" size="small" onClick={() => void postInChat(m.id)} disabled={busy}>
+                    Post in chat
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={() => regenerateInvite(m.id)}
+                    disabled={busy}
+                  >
+                    Invite
+                  </Button>
+                </span>
               }
             />
           ))}
@@ -717,6 +806,7 @@ export function ModsTab() {
             >
               <Input
                 placeholder="@username"
+                aria-label="Twitch handle"
                 value={addTwitchLogin}
                 onChange={(e) => setAddTwitchLogin(e.target.value)}
                 disabled={busy}
@@ -747,12 +837,14 @@ export function ModsTab() {
             >
               <Input
                 placeholder="123456789012345678"
+                aria-label="Discord user ID"
                 value={addDiscordId}
                 onChange={(e) => setAddDiscordId(e.target.value)}
                 disabled={busy}
               />
               <Input
                 placeholder="Display name (optional)"
+                aria-label="Display name (optional)"
                 value={addDiscordHandle}
                 onChange={(e) => setAddDiscordHandle(e.target.value)}
                 disabled={busy}
@@ -836,7 +928,7 @@ function ModSection({
           marginBottom: "var(--spacing-6)",
         }}
       >
-        <h3
+        <h2
           style={{
             margin: 0,
             fontSize: "var(--font-size-14)",
@@ -844,7 +936,7 @@ function ModSection({
           }}
         >
           {title}
-        </h3>
+        </h2>
         <Badge variant="default" size="small">
           {count}
         </Badge>
@@ -976,7 +1068,7 @@ function SettingRow({
           {hint}
         </div>
       </div>
-      <Switch checked={checked} onChange={onToggle} disabled={disabled} />
+      <Switch checked={checked} onChange={onToggle} disabled={disabled} aria-label={label} />
     </div>
   );
 }

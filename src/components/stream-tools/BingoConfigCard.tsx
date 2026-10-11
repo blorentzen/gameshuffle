@@ -8,8 +8,9 @@
  */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Button, Checkbox } from "@empac/cascadeds";
+import { Button, Checkbox, Select } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl, uploadToolImage } from "./fields";
 import { BINGO_PROMPT_MAX } from "@/lib/modules/types";
@@ -37,10 +38,9 @@ const fromLinesBingo = (t: string) =>
     .filter(Boolean)
     .slice(0, BINGO_MAX_PROMPTS);
 
-export function BingoConfigCard({ onSaved, live }: { onSaved?: () => void; live?: ReactNode }) {
+export function BingoConfigCard({ onSaved, live, bare = false }: { onSaved?: () => void; live?: ReactNode; bare?: boolean }) {
   const [cfg, setCfg] = useState<BingoCfg>(DEFAULT_BINGO);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -69,37 +69,27 @@ export function BingoConfigCard({ onSaved, live }: { onSaved?: () => void; live?
     };
   }, []);
 
-  const save = async () => {
-    setSaving(true);
-    const ok = await saveModuleConfig("bingo", cfg);
-    setSaving(false);
-    if (ok) {
-      toast.success("Your changes are live.", { title: "Bingo saved" });
-      onSaved?.();
-    } else {
-      toast.error("Please try again.", { title: "Couldn't save Bingo" });
-    }
-  };
+  // Saves itself a moment after a change (site-wide autosave); the Hub uses this card too.
+  useAutosave(cfg, async (v) => {
+    const ok = await saveModuleConfig("bingo", v);
+    if (ok) onSaved?.();
+    else toast.error("Please try again.", { title: "Couldn't save Bingo" });
+    return ok;
+  }, { ready: !loading, toast: "Bingo saved" });
 
   if (loading) return null;
 
   return (
-    <section className="stream-tools__section" style={vars}>
-      <h3 className="stream-tools__heading">🅱️ Community Bingo</h3>
+    <section className={bare ? "stream-tools__bare" : "stream-tools__section"} style={vars}>
+      {!bare && <h3 className="stream-tools__heading">🅱️ Community Bingo</h3>}
       <div className="stream-tools__row">
         <AccentField label="Accent" value={cfg.accentColor} onChange={(v) => setCfg({ ...cfg, accentColor: v })} />
-        <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-          Board size
-          <select
-            value={cfg.size}
-            onChange={(e) => setCfg({ ...cfg, size: Number(e.target.value) })}
-            style={{ height: 34, borderRadius: 8, border: "1px solid var(--border-default)", padding: "0 var(--spacing-8)", background: "var(--surface-default)", color: "var(--text-primary)" }}
-          >
-            <option value={3}>3×3</option>
-            <option value={4}>4×4</option>
-            <option value={5}>5×5</option>
-          </select>
-        </label>
+        <Select
+          floatingLabel="Board size"
+          value={String(cfg.size)}
+          onChange={(v) => setCfg({ ...cfg, size: Number(v) })}
+          options={[3, 4, 5].map((n) => ({ value: String(n), label: `${n}×${n}` }))}
+        />
         <Checkbox
           label="Free center square"
           checked={cfg.freeCenter}
@@ -143,9 +133,6 @@ export function BingoConfigCard({ onSaved, live }: { onSaved?: () => void; live?
           onChange={(e) => setCfg({ ...cfg, prompts: fromLinesBingo(e.target.value) })}
         />
       </div>
-      <Button variant="secondary" size="small" loading={saving} onClick={save}>
-        Save bingo
-      </Button>
       {live ? <div className="stream-tools__live">{live}</div> : null}
       <AiPackModal
         kind="bingo"

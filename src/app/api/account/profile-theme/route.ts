@@ -10,6 +10,7 @@
  * Authorization: authenticated. No community or tier gate.
  */
 
+import { ownerHasPro } from "@/lib/profile/proLooks";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -77,6 +78,8 @@ export async function PUT(req: NextRequest) {
       ? body.brandTheme
       : null;
   if (!brandTheme) return NextResponse.json({ error: "bad_theme" }, { status: 400 });
+  // Brand themes are GS Pro; going back to the default never needs it.
+  if (brandTheme !== "default" && !(await ownerHasPro(user.id))) return NextResponse.json({ error: "pro_required" }, { status: 403 });
 
   const admin = createServiceClient();
   const { error } = await admin

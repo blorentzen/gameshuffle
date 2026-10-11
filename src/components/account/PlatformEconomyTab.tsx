@@ -1,26 +1,23 @@
 "use client";
 
 /**
- * PlatformEconomyTab — staff/admin-only editor for the
- * `gs_economy_config` levers.
+ * Platform ▸ Token economy ▸ Levers (staff/admin): every number the token
+ * economy reads from `gs_economy_config` (grants, earn defaults, daily limits,
+ * chaos price band, streamer allowance, stream-end grace), grouped by what it
+ * affects, each with what it does and when it last changed. Edit opens a small
+ * modal; a save lands straight away (the engine reads the value on every
+ * interaction, with a code default as the safety net when a row is missing).
  *
- * Every numeric constant the token economy reads (grants, earn
- * defaults, daily ceilings, chaos price band, streamer allowance,
- * stream-end grace) lives here. Today changes require a SQL Editor
- * session; this tab is the UI alternative.
- *
- * Layout: levers grouped by domain (Onboarding / Earns / Chaos /
- * Streamer / Lifecycle) with per-row helper text explaining what
- * each one controls and which surface reads it. Unknown keys (rare
- * — would only appear if staff seeded a custom key via SQL) bucket
- * into a fallback section with a generic input.
+ * Keys without a description here (seeded by a later feature) still show, in
+ * "Other settings", so staff can edit them.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Card, Input } from "@empac/cascadeds";
-import { IconCoin } from "@tabler/icons-react";
+import { Alert, Button, Input, Modal } from "@empac/cascadeds";
+import { IconBroadcast, IconCoins, IconConfetti, IconHandStop, IconPencil, IconSparkles, IconUserPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { AdminField, AdminHeader, AdminSection } from "@/components/account/admin/AdminKit";
 
 interface ConfigRow {
   key: string;
@@ -28,12 +25,7 @@ interface ConfigRow {
   updated_at: string;
 }
 
-type LeverCategory =
-  | "onboarding"
-  | "earns"
-  | "chaos"
-  | "streamer"
-  | "lifecycle";
+type LeverCategory = "onboarding" | "earns" | "chaos" | "streamer" | "lifecycle";
 
 interface LeverMeta {
   key: string;
@@ -44,443 +36,221 @@ interface LeverMeta {
 }
 
 const LEVERS: LeverMeta[] = [
-  // ── Onboarding ────────────────────────────────────────────────
-  {
-    key: "grant_start",
-    label: "New viewer grant",
-    helper:
-      "Tokens credited to a new identity on first contact. Sets every viewer's starting wallet. Bumping it makes early gameplay feel richer, at the cost of inflating supply on every signup.",
-    unit: "tokens",
-    category: "onboarding",
-  },
-  {
-    key: "new_community_bonus",
-    label: "New community bonus",
-    helper:
-      "Bonus when a viewer first touches a new community (different streamer). Encourages cross-stream participation. Small by design.",
-    unit: "tokens",
-    category: "onboarding",
-  },
-  {
-    key: "bust_recovery_amount",
-    label: "Bust recovery",
-    helper:
-      "Tokens credited when a viewer's balance drops to the bust floor. Keeps wallets from sticking at zero. Pair with bust_floor.",
-    unit: "tokens",
-    category: "onboarding",
-  },
-  {
-    key: "bust_floor",
-    label: "Bust floor",
-    helper:
-      "Balance threshold at which a viewer becomes eligible for bust recovery. Set too high and recovery loops indefinitely; set too low and viewers stay stuck.",
-    unit: "tokens",
-    category: "onboarding",
-  },
-  // ── Earns ─────────────────────────────────────────────────────
-  {
-    key: "earn_t1_default",
-    label: "T1 earn (in-game)",
-    helper:
-      "Base earn for in-game payouts (race finishes, tournament wins). Per-streamer multipliers stack on this. T1 is the higher-value channel.",
-    unit: "tokens",
-    category: "earns",
-  },
-  {
-    key: "earn_t2_default",
-    label: "T2 earn (chat)",
-    helper:
-      "Base earn for chat engagement. First N messages per session count. Smaller than T1 to keep chat farming below in-game contribution.",
-    unit: "tokens",
-    category: "earns",
-  },
-  {
-    key: "t2_first_n_per_session",
-    label: "T2 cap per session",
-    helper:
-      "How many T2 earns a single viewer can accumulate per session. Caps spam farming without punishing genuine chatters.",
-    unit: "count",
-    category: "earns",
-  },
-  {
-    key: "daily_earn_ceiling",
-    label: "Daily earn ceiling",
-    helper:
-      "Per-viewer daily cap across all earn types. The inflation thermostat. Pulls down individual flow without affecting one-time grants.",
-    unit: "tokens",
-    category: "earns",
-  },
-  // ── Chaos ─────────────────────────────────────────────────────
-  {
-    key: "chaos_price_min",
-    label: "Chaos price floor",
-    helper:
-      "Minimum cost a streamer can set for !chaos. Caller's request below this is rejected. Pair with chaos_price_max.",
-    unit: "tokens",
-    category: "chaos",
-  },
-  {
-    key: "chaos_price_max",
-    label: "Chaos price ceiling",
-    helper:
-      "Maximum cost a streamer can set for !chaos. Caps how punishing a streamer can make their disruption pool. Preserves the platform feel.",
-    unit: "tokens",
-    category: "chaos",
-  },
-  // ── Streamer ──────────────────────────────────────────────────
-  {
-    key: "streamer_monthly_allowance",
-    label: "Default monthly allowance",
-    helper:
-      "Default monthly mint-on-award ceiling per paying streamer. Tier-specific overrides snapshot at billing period start. Never exposed to streamers (per Spec 05 §5).",
-    unit: "tokens",
-    category: "streamer",
-  },
-  {
-    key: "party_mission_tokens_per_point",
-    label: "Party mission payout",
-    helper:
-      "Tokens per mission point when a streamer confirms a mission in a live Mario Party night (missions are worth 1 to 3 points). Paid through the award path, so it draws on the streamer's monthly allowance.",
-    unit: "tokens",
-    category: "streamer",
-  },
-  // ── Lifecycle ─────────────────────────────────────────────────
-  {
-    key: "stream_end_grace_seconds",
-    label: "Stream-end grace",
-    helper:
-      "Seconds after Twitch reports stream.offline before we flip to ended state. A brief disconnect-and-reconnect within this window keeps open markets alive instead of triggering refunds.",
-    unit: "seconds",
-    category: "lifecycle",
-  },
+  // ── Welcome and recovery ──────────────────────────────────────
+  { key: "grant_start", label: "Welcome grant", unit: "tokens", category: "onboarding",
+    helper: "Tokens every new viewer starts with, whether they arrive from chat or make an account. More makes early games feel richer, but adds tokens with every sign-up." },
+  { key: "new_community_bonus", label: "New-community bonus", unit: "tokens", category: "onboarding",
+    helper: "Tokens a viewer gets the first time they join another streamer's community. Encourages trying other streams. Small on purpose." },
+  { key: "grant_onboarding_default", label: "Getting-started reward", unit: "tokens", category: "onboarding",
+    helper: "Tokens for each getting-started step an account completes, unless that step has its own amount. 0 turns them off." },
+  { key: "bust_recovery_amount", label: "Bust recovery", unit: "tokens", category: "onboarding",
+    helper: "Tokens given back when a viewer's wallet drops to the bust floor, so nobody stays stuck at zero. Works with the bust floor below." },
+  { key: "bust_floor", label: "Bust floor", unit: "tokens", category: "onboarding",
+    helper: "The wallet balance where bust recovery kicks in. Too high and recovery repeats forever; too low and viewers stay stuck." },
+  // ── Earning ───────────────────────────────────────────────────
+  { key: "earn_t1_default", label: "In-game earn", unit: "tokens", category: "earns",
+    helper: "Base tokens for in-game results, like race finishes and tournament wins. A streamer's multiplier stacks on top. Worth more than chat earns." },
+  { key: "earn_t2_default", label: "Chat earn", unit: "tokens", category: "earns",
+    helper: "Base tokens for chatting during a stream. Kept smaller than in-game earns so chatting never pays more than playing." },
+  { key: "t2_first_n_per_session", label: "Chat earns per stream", unit: "count", category: "earns",
+    helper: "How many chat earns one viewer can collect in a stream. Stops spam farming without punishing real chatters." },
+  { key: "daily_earn_ceiling", label: "Daily earn limit", unit: "tokens", category: "earns",
+    helper: "The most a viewer can earn in a day across every kind of earn. Welcome grants don't count. This is the main brake on new tokens." },
+  // ── Chaos prices ──────────────────────────────────────────────
+  { key: "chaos_price_min", label: "Lowest chaos price", unit: "tokens", category: "chaos",
+    helper: "The least a streamer can charge for a chaos event in chat. Works with the highest price below." },
+  { key: "chaos_price_default", label: "Chaos price", unit: "tokens", category: "chaos",
+    helper: "What a chaos event costs on every stream for now. Always kept between the lowest and highest price." },
+  { key: "chaos_price_max", label: "Highest chaos price", unit: "tokens", category: "chaos",
+    helper: "The most a streamer can charge for a chaos event, so chaos never gets too punishing." },
+  // ── Streamer payouts ──────────────────────────────────────────
+  { key: "streamer_monthly_allowance", label: "Monthly award allowance", unit: "tokens", category: "streamer",
+    helper: "Tokens a GS Pro streamer can award each month, unless their plan sets another amount at the start of the month. Streamers never see this number." },
+  { key: "party_mission_tokens_per_point", label: "Party mission payout", unit: "tokens", category: "streamer",
+    helper: "Tokens per mission point when a streamer confirms a mission on a live Mario Party night (missions are worth 1 to 3 points). Paid from the streamer's monthly allowance." },
+  { key: "night_mvp_tokens", label: "Live night MVP payout", unit: "tokens", category: "streamer",
+    helper: "Tokens the MVP gets when the host ends a live night. Paid from the host's monthly allowance. 0 turns it off." },
+  // ── Streams ───────────────────────────────────────────────────
+  { key: "stream_end_grace_seconds", label: "Stream-end grace", unit: "seconds", category: "lifecycle",
+    helper: "How long after Twitch says a stream went offline before we end it. A quick drop and reconnect inside this time keeps open predictions alive instead of refunding them." },
 ];
 
-const CATEGORY_LABEL: Record<LeverCategory, string> = {
-  onboarding: "Onboarding & welcome",
-  earns: "Daily earns",
-  chaos: "Chaos pricing",
-  streamer: "Streamer allowance",
-  lifecycle: "Session lifecycle",
-};
-
-const CATEGORY_ORDER: LeverCategory[] = [
-  "onboarding",
-  "earns",
-  "chaos",
-  "streamer",
-  "lifecycle",
+const CATEGORIES: { id: LeverCategory; title: string; intro: string; icon: typeof IconCoins }[] = [
+  { id: "onboarding", title: "Welcome and recovery", intro: "What viewers start with, and what keeps an empty wallet from staying empty.", icon: IconUserPlus },
+  { id: "earns", title: "Earning", intro: "How viewers earn tokens by playing and chatting, and the daily limit.", icon: IconSparkles },
+  { id: "chaos", title: "Chaos prices", intro: "The range streamers can charge when chat spends tokens on a chaos event.", icon: IconConfetti },
+  { id: "streamer", title: "Streamer payouts", intro: "Tokens streamers hand out, which come from their monthly allowance.", icon: IconCoins },
+  { id: "lifecycle", title: "Streams", intro: "Timing around the end of a stream.", icon: IconBroadcast },
 ];
 
-const UNIT_LABEL: Record<LeverMeta["unit"], string> = {
-  tokens: "tokens",
-  seconds: "seconds",
-  count: "count",
+const fmt = (v: number) => v.toLocaleString("en-US");
+const valueText = (v: number, unit: LeverMeta["unit"]) =>
+  unit === "tokens" ? `${fmt(v)} ${v === 1 ? "token" : "tokens"}` : unit === "seconds" ? `${fmt(v)} ${v === 1 ? "second" : "seconds"}` : fmt(v);
+const UNIT_FIELD: Record<LeverMeta["unit"], string> = { tokens: "tokens", seconds: "seconds", count: "a number" };
+const when = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
+const humanize = (key: string) => {
+  const s = key.replace(/[._]+/g, " ").trim();
+  return s.charAt(0).toUpperCase() + s.slice(1);
 };
+
+interface Editing { key: string; label: string; helper: string; unit: LeverMeta["unit"]; current: number | null; draft: string }
 
 export function PlatformEconomyTab() {
   const [config, setConfig] = useState<ConfigRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Editing | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const toast = useToast();
 
   const load = useCallback(async () => {
     setLoadError(null);
     try {
-      const res = await fetch("/api/admin/economy-config", {
-        cache: "no-store",
-      });
+      const res = await fetch("/api/admin/economy-config", { cache: "no-store" });
       if (res.status === 403) {
-        setLoadError("Forbidden. Staff only.");
+        setLoadError("This screen is for staff only. Sign in with a staff account.");
         setConfig([]);
         return;
       }
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) {
-        setLoadError(body.error || `Load failed (${res.status}).`);
+        setLoadError("Couldn't load the levers. Refresh the page in a moment.");
         setConfig([]);
         return;
       }
-      const rows = (body.config as ConfigRow[]) ?? [];
-      setConfig(rows);
-      const seeded: Record<string, string> = {};
-      for (const r of rows) seeded[r.key] = String(r.value);
-      setDrafts(seeded);
+      setConfig((body.config as ConfigRow[]) ?? []);
     } catch {
-      setLoadError("Network error while loading.");
+      setLoadError("Couldn't reach the server. Check your connection and refresh.");
       setConfig([]);
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
-  const save = async (key: string) => {
-    const value = parseInt(drafts[key] ?? "", 10);
-    if (!Number.isInteger(value) || value < 0) {
-      setLoadError("Value must be a non-negative integer.");
+  const save = async () => {
+    if (!editing) return;
+    const value = Number(editing.draft);
+    if (editing.draft.trim() === "" || !Number.isInteger(value) || value < 0) {
+      setFieldError("Use a whole number, 0 or more.");
       return;
     }
-    setSavingKey(key);
+    if (value === editing.current) { setEditing(null); return; }
+    setSaving(true);
     try {
       const res = await fetch("/api/admin/economy-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key, value }),
+        body: JSON.stringify({ key: editing.key, value }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) {
-        setLoadError(body.error || `Save failed (${res.status}).`);
+        toast.error(`Couldn't save ${editing.label}. Try again.`);
         return;
       }
-      toast.success("Lever saved");
+      toast.success(`Saved: ${editing.label} is now ${valueText(value, editing.unit)}`);
+      setEditing(null);
       await load();
+    } catch {
+      toast.error("Couldn't reach the server. Check your connection and try again.");
     } finally {
-      setSavingKey(null);
+      setSaving(false);
     }
   };
 
-  // Bucket rows: known levers (with metadata) vs. unknown keys
-  // (custom additions via SQL). Unknown keys still get rendered so
-  // staff can edit them, just without rich helper text.
-  const knownByKey = new Map(LEVERS.map((l) => [l.key, l]));
-  const knownByCategory = new Map<LeverCategory, LeverMeta[]>();
-  for (const cat of CATEGORY_ORDER) knownByCategory.set(cat, []);
-  for (const l of LEVERS) knownByCategory.get(l.category)?.push(l);
+  const open = (key: string, label: string, helper: string, unit: LeverMeta["unit"]) => {
+    const row = config?.find((r) => r.key === key);
+    setFieldError(null);
+    setEditing({ key, label, helper, unit, current: row ? row.value : null, draft: row ? String(row.value) : "" });
+  };
 
-  const unknownKeys =
-    config?.filter((r) => !knownByKey.has(r.key)).map((r) => r.key) ?? [];
+  const known = new Set(LEVERS.map((l) => l.key));
+  const unknown = config?.filter((r) => !known.has(r.key)) ?? [];
 
-  const renderLever = (lever: LeverMeta) => {
-    const row = config?.find((r) => r.key === lever.key);
-    const draft = drafts[lever.key] ?? "";
-    const dirty = row ? draft !== String(row.value) : true;
-    const isSaving = savingKey === lever.key;
+  const row = (key: string, label: string, helper: string, unit: LeverMeta["unit"]) => {
+    const r = config?.find((c) => c.key === key);
     return (
-      <Card key={lever.key} variant="outlined" padding="medium">
-        <div className="lever">
-          <div className="lever__text">
-            <p className="lever__label">{lever.label}</p>
-            <p className="lever__key">{lever.key}</p>
-            <p className="lever__helper">{lever.helper}</p>
-          </div>
-          <div className="lever__control">
-            <span className="lever__unit">
-              {lever.unit === "tokens" && <IconCoin size={14} stroke={1.8} aria-hidden />}
-              {UNIT_LABEL[lever.unit]}
-            </span>
-            {/* Input and Save share one row, so Save lines up with the control
-                it applies to. It used to be its own grid column pinned to the
-                bottom of the card, which floated it below the input and made
-                every row read as misaligned. */}
-            <div className="lever__row">
-              <Input
-                type="number"
-                min={0}
-                value={draft}
-                onChange={(e) =>
-                  setDrafts((prev) => ({ ...prev, [lever.key]: e.target.value }))
-                }
-                fullWidth
-              />
-              <Button
-                variant="primary"
-                size="small"
-                onClick={() => void save(lever.key)}
-                disabled={!dirty || isSaving}
-                loading={isSaving}
-              >
-                Save
-              </Button>
-            </div>
-            {row && (
-              <p className="lever__updated">
-                Updated{" "}
-                {new Date(row.updated_at).toLocaleString(undefined, {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}
-              </p>
-            )}
-          </div>
+      <li key={key} className="admin-money-row">
+        <div className="admin-money-row__text">
+          <p className="admin-money-row__name">{label}</p>
+          {helper && <p className="admin-money-row__help">{helper}</p>}
+          <p className="admin-money-row__meta">{r ? `Last changed ${when(r.updated_at)}` : "Not set yet: the built-in default applies"}</p>
         </div>
-      </Card>
+        <span className="admin-money-row__value admin-num">{r ? valueText(r.value, unit) : "Default"}</span>
+        <Button variant="ghost" size="small" iconBefore={IconPencil} aria-label={`Edit ${label}`} onClick={() => open(key, label, helper, unit)}>Edit</Button>
+      </li>
     );
   };
 
   return (
-    <div className="account-card">
-      <h2 className="account-tab__heading">Economy levers</h2>
-      <p className="account-tab__intro">
-        Every numeric constant the token economy reads: grants,
-        earn defaults, daily ceilings, chaos band, streamer
-        allowance, stream-end grace. Edits land instantly; the
-        engine reads from{" "}
-        <code>gs_economy_config_value(key, default)</code> on every
-        interaction. The fallback default in code is the safety net
-        when the row is missing or unreadable.
-      </p>
+    <div className="account-card admin-screen admin-money">
+      <AdminHeader
+        title="Levers"
+        intro="Every number the token economy runs on: welcome grants, earning, chaos prices and streamer payouts. A change applies straight away."
+      />
 
-      {loadError && (
-        <div style={{ marginBottom: "var(--spacing-16)" }}>
-          <Alert variant="error" onClose={() => setLoadError(null)}>
-            {loadError}
-          </Alert>
-        </div>
-      )}
+      {loadError && <Alert variant="error" onClose={() => setLoadError(null)}>{loadError}</Alert>}
 
       {config === null ? (
-        <LoadingLines label="Loading" />
+        <LoadingLines label="Loading the levers" />
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--spacing-32)",
-          }}
-        >
-          {CATEGORY_ORDER.map((cat) => {
-            const list = knownByCategory.get(cat) ?? [];
+        <>
+          {CATEGORIES.map((cat) => {
+            const list = LEVERS.filter((l) => l.category === cat.id);
             if (list.length === 0) return null;
+            const Icon = cat.icon;
             return (
-              <section key={cat}>
-                <h3
-                  style={{
-                    fontSize: "var(--font-size-14)",
-                    fontWeight: "var(--font-weight-semibold)",
-                    color: "var(--text-secondary)",
-                    margin: "0 0 var(--spacing-12)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  {CATEGORY_LABEL[cat]}
-                </h3>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "var(--spacing-12)",
-                  }}
-                >
-                  {list.map(renderLever)}
-                </div>
-              </section>
+              <AdminSection key={cat.id} title={cat.title} intro={cat.intro} icon={<Icon size={20} />}>
+                <ul className="admin-money-list">{list.map((l) => row(l.key, l.label, l.helper, l.unit))}</ul>
+              </AdminSection>
             );
           })}
 
-          {unknownKeys.length > 0 && (
-            <section>
-              <h3
-                style={{
-                  fontSize: "var(--font-size-14)",
-                  fontWeight: "var(--font-weight-semibold)",
-                  color: "var(--text-secondary)",
-                  margin: "0 0 var(--spacing-12)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Custom keys (no metadata)
-              </h3>
-              <p
-                style={{
-                  margin: "0 0 var(--spacing-12)",
-                  fontSize: "var(--font-size-14)",
-                  color: "var(--text-tertiary)",
-                  lineHeight: "var(--line-height-relaxed)",
-                }}
-              >
-                Keys that exist in <code>gs_economy_config</code> but
-                aren&rsquo;t in the metadata catalog above. Usually
-                this means a new feature seeded a key via SQL; add
-                metadata to this component when adopting it.
-              </p>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--spacing-12)",
-                }}
-              >
-                {unknownKeys.map((key) => {
-                  const row = config!.find((r) => r.key === key)!;
-                  const draft = drafts[key] ?? "";
-                  const dirty = draft !== String(row.value);
-                  const isSaving = savingKey === key;
-                  return (
-                    <Card
-                      key={key}
-                      variant="outlined"
-                      padding="medium"
-                    >
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "1fr 200px auto",
-                          gap: "var(--spacing-16)",
-                          alignItems: "flex-start",
-                        }}
-                      >
-                        <div>
-                          <code
-                            style={{
-                              fontSize: "var(--font-size-14)",
-                            }}
-                          >
-                            {key}
-                          </code>
-                        </div>
-                        <label
-                          className="hub-form__field"
-                          style={{ minWidth: 0 }}
-                        >
-                          <span className="hub-form__label">
-                            Value
-                          </span>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={draft}
-                            onChange={(e) =>
-                              setDrafts((prev) => ({
-                                ...prev,
-                                [key]: e.target.value,
-                              }))
-                            }
-                            fullWidth
-                          />
-                        </label>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "flex-end",
-                            height: "100%",
-                            paddingTop:
-                              "var(--spacing-20)",
-                          }}
-                        >
-                          <Button
-                            variant="primary"
-                            size="small"
-                            onClick={() => void save(key)}
-                            disabled={!dirty || isSaving}
-                            loading={isSaving}
-                          >
-                            Save
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </section>
+          {unknown.length > 0 && (
+            <AdminSection title="Other settings" icon={<IconHandStop size={20} />} intro="Settings a newer feature added that this page doesn't describe yet. Check with a developer what one does before changing it.">
+              <ul className="admin-money-list">{unknown.map((r) => row(r.key, humanize(r.key), "", "count"))}</ul>
+            </AdminSection>
           )}
-        </div>
+        </>
       )}
+
+      <Modal
+        isOpen={!!editing}
+        onClose={() => { if (!saving) setEditing(null); }}
+        title={editing ? `Edit: ${editing.label}` : ""}
+        size="small"
+        primaryAction={{ label: saving ? "Saving…" : "Save", onClick: () => { if (!saving) void save(); } }}
+        secondaryAction={{ label: "Cancel", onClick: () => setEditing(null) }}
+      >
+        {editing && (
+          <form className="admin-form" onSubmit={(e) => { e.preventDefault(); if (!saving) void save(); }}>
+            {editing.helper && <p className="admin-money-modal__note">{editing.helper}</p>}
+            <AdminField
+              label={`New value (${UNIT_FIELD[editing.unit]})`}
+              error={fieldError}
+              helper={editing.current == null ? "Not set yet: the built-in default applies." : `Now ${valueText(editing.current, editing.unit)}.`}
+            >
+              {(id, describedBy) => (
+                <Input
+                  id={id}
+                  aria-describedby={describedBy}
+                  aria-invalid={fieldError ? true : undefined}
+                  error={!!fieldError}
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={1}
+                  value={editing.draft}
+                  onChange={(e) => { setFieldError(null); setEditing({ ...editing, draft: e.target.value }); }}
+                  fullWidth
+                  autoFocus
+                />
+              )}
+            </AdminField>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -3,19 +3,23 @@
 /**
  * /signup/set-password
  *
- * Required step for OAuth-only signups. Per gs-connections-architecture.md
- * §5 — every account MUST have a password set as the canonical sign-in
- * fallback so users don't get locked out if their OAuth provider revokes
- * access or they accidentally disconnect.
+ * The backup-password prompt for Twitch / Discord sign-ups. Per
+ * gs-connections-architecture.md §5 every account should have a password as
+ * a fallback, so nobody's locked out if Twitch or Discord sign-in stops
+ * working. Since 2026-10-10 it's a strong recommendation: "Not now" sets a
+ * 30-day cookie (src/lib/auth/passwordNudge.ts) and the middleware stops
+ * redirecting here until it expires. Staff and admins get no "Not now".
  *
- * No skip button. No staff bypass. The middleware redirects every protected
- * route to this page until a password is set; the only escape hatches are
- * setting one or signing out.
- *
- * Validation mirrors signup + the Security tab's "Change password" form.
+ * Rules come from src/lib/auth/passwordRules.ts, like every password form.
+ * Signed out, it sends you to log in first; an account with two-step
+ * verification enters its code before saving (Supabase refuses a password
+ * change from a half-verified session).
  */
 
-import { describeAuthError } from "@/lib/auth/errors";
+import { describeSupabaseAuthError } from "@/lib/auth/errors";
+import { PASSWORD_HINT, passwordProblem } from "@/lib/auth/passwordRules";
+import { useSecondStep } from "@/lib/auth/useSecondStep";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
@@ -48,6 +52,16 @@ function SetPasswordContent() {
   // checking, false = already has one (we'll auto-redirect away), true =
   // show the form.
   const [needsPassword, setNeedsPassword] = useState<boolean | null>(null);
+  const [canSkip, setCanSkip] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const second = useSecondStep(!!user && needsPassword === true);
+
+  // Signed out (or signed out in another tab): log in first, then come back here.
+  useEffect(() => {
+    if (loading || user) return;
+    const back = `/signup/set-password${rawReturn ? `?return_to=${encodeURIComponent(returnTo)}` : ""}`;
+    router.replace(`/login?redirect=${encodeURIComponent(back)}`);
+  }, [loading, user, rawReturn, returnTo, router]);
 
   // If the user already has a password set, this page shouldn't show — bounce
   // them straight to where they were headed.
@@ -61,6 +75,7 @@ function SetPasswordContent() {
         if (body.needsPassword === false) {
           router.replace(returnTo);
         } else {
+          setCanSkip(body.canSkip !== false);
           setNeedsPassword(true);
         }
       })
@@ -77,28 +92,36 @@ function SetPasswordContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (password.length < 8) return setError("Password must be at least 8 characters.");
-    if (!/[A-Z]/.test(password)) return setError("Password must include an uppercase letter.");
-    if (!/[a-z]/.test(password)) return setError("Password must include a lowercase letter.");
-    if (!/[0-9]/.test(password)) return setError("Password must include a number.");
-    if (!/[^A-Za-z0-9]/.test(password)) return setError("Password must include a special character.");
+    const problem = passwordProblem(password);
+    if (problem) return setError(problem);
     if (password !== confirm) return setError("Passwords do not match.");
 
     setSubmitting(true);
     const supabase = createClient();
     const { error: updateErr } = await supabase.auth.updateUser({ password });
     if (updateErr) {
-      setError(describeAuthError({ code: updateErr.code, message: updateErr.message }).message);
+      setError(describeSupabaseAuthError(updateErr).message);
       setSubmitting(false);
       return;
     }
-    // updateUser flips `app_metadata.providers` to include `email` server-side
-    // — refresh the session so middleware sees the change before the redirect.
+    // The auth.users trigger sets app_metadata.has_password
+    // (supabase/auth-has-password-m1.sql); refresh so the session carries it.
     await supabase.auth.refreshSession();
     router.replace(returnTo);
   };
 
-  if (loading || needsPassword === null) {
+  const notNow = async () => {
+    setSkipping(true);
+    const res = await fetch("/api/account/password-later", { method: "POST" }).catch(() => null);
+    if (!res?.ok) {
+      setSkipping(false);
+      setError("Couldn't skip just now. Add a password, or try again.");
+      return;
+    }
+    router.replace(returnTo);
+  };
+
+  if (loading || !user || needsPassword === null || second.state === "checking") {
     return (
       <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
         <Container>
@@ -107,22 +130,34 @@ function SetPasswordContent() {
       </main>
     );
   }
-  if (!user) {
-    // Edge case: user signed out from another tab while this page loaded.
-    return null;
+  if (second.state === "needed") {
+    return (
+      <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
+        <Container>
+          <div className="auth-page" style={{ maxWidth: 460 }}>
+            <h1 className="auth-page__title">Add a backup password</h1>
+            <MfaChallenge
+              allowRecovery={false}
+              cancelLabel={canSkip ? "Not now" : "Sign out"}
+              onDone={second.passed}
+              onCancel={() => void (canSkip ? notNow() : signOut())}
+            />
+          </div>
+        </Container>
+      </main>
+    );
   }
 
   return (
     <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
       <Container>
         <div className="auth-page" style={{ maxWidth: 460 }}>
-          <h1 className="auth-page__title">Set a password</h1>
+          <h1 className="auth-page__title">Add a backup password</h1>
 
           <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "1rem", lineHeight: 1.6 }}>
-            We need a password on file for your account before you can keep going. This is
-            your <strong>fallback</strong> sign-in method. Your linked accounts (Discord,
-            Twitch) keep working as before, but if you ever lose access to them, the
-            password gets you back in.
+            {canSkip
+              ? <>We recommend it. You signed in with Twitch or Discord, and that keeps working. If you ever can&rsquo;t get in that way (you lose that account, or it&rsquo;s locked), your email and this password still get you in.</>
+              : <>Staff accounts need one. You signed in with Twitch or Discord, and that keeps working; the password is your way back in if it ever doesn&rsquo;t.</>}
           </p>
 
           <div
@@ -141,6 +176,7 @@ function SetPasswordContent() {
 
           <form onSubmit={handleSubmit} className="auth-page__form">
             {error && <div className="auth-page__error">{error}</div>}
+            <p className="auth-page__hint">{PASSWORD_HINT}</p>
 
             <Input
               type="password"
@@ -150,9 +186,6 @@ function SetPasswordContent() {
               autoComplete="new-password"
               required
             />
-            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "-0.5rem" }}>
-              Min 8 characters, with uppercase, lowercase, number, and special character.
-            </p>
 
             <Input
               type="password"
@@ -163,14 +196,20 @@ function SetPasswordContent() {
               required
             />
 
-            <Button type="submit" variant="primary" fullWidth disabled={submitting}>
-              {submitting ? "Saving…" : "Set password and continue"}
+            <Button type="submit" variant="primary" fullWidth disabled={submitting || skipping}>
+              {submitting ? "Saving…" : "Save password and continue"}
             </Button>
 
-            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.75rem", lineHeight: 1.5 }}>
-              Need to step away? Sign out. Your account is preserved and you can finish
-              this when you come back.
-            </p>
+            {canSkip && (
+              <>
+                <Button type="button" variant="secondary" fullWidth disabled={submitting || skipping} onClick={() => void notNow()}>
+                  {skipping ? "One moment…" : "Not now"}
+                </Button>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.25rem", lineHeight: 1.5 }}>
+                  We&rsquo;ll remind you in a month. You can add one any time in Settings ▸ Sign-in &amp; security.
+                </p>
+              </>
+            )}
             <Button type="button" variant="ghost" fullWidth onClick={() => void signOut()}>
               Sign out
             </Button>

@@ -142,6 +142,8 @@ export const DEFAULT_HANDLERS: Record<string, DefaultHandler> = {
   roll: rollHandler,
 };
 
+// Staff-facing names for these handlers live in ./handlerInfo (client-safe): add one there with every handler.
+
 /** Lookup helper — returns null when the handler name isn't
  *  registered, so the dispatcher can fall through to "no result"
  *  rather than crashing. */

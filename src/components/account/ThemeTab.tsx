@@ -15,8 +15,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Button } from "@empac/cascadeds";
+import { Tabs } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   BRAND_THEMES,
@@ -35,19 +36,17 @@ interface ThemeMeta {
   isPublic: boolean;
 }
 
-export function ThemeTab() {
+export function ThemeTab({ bare = false }: { bare?: boolean } = {}) {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<ThemeMode>("preset");
   const [selected, setSelected] = useState(DEFAULT_BRAND_THEME_ID);
   const [customPrimary, setCustomPrimary] = useState("#2766ec");
   const [customAccent, setCustomAccent] = useState("#7048e8");
-  const [saved, setSaved] = useState(DEFAULT_BRAND_THEME_ID);
   const [meta, setMeta] = useState<ThemeMeta>({
     liveSlug: null,
     profileUsername: null,
     isPublic: false,
   });
-  const [saving, setSaving] = useState(false);
   const toast = useToast();
 
   const load = useCallback(async () => {
@@ -56,7 +55,6 @@ export function ThemeTab() {
       const res = await fetch("/api/account/profile-theme", { cache: "no-store" });
       if (!res.ok) return;
       const body = (await res.json()) as { brandTheme: string } & ThemeMeta;
-      setSaved(body.brandTheme);
       const t = getBrandTheme(body.brandTheme);
       // Seed the color pickers from the saved theme so switching to Customize
       // starts from where the streamer already is, not a cold default.
@@ -89,82 +87,36 @@ export function ThemeTab() {
     [mode, customPrimary, customAccent, selected],
   );
 
-  async function save() {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/account/profile-theme", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brandTheme: currentValue }),
-      });
-      if (!res.ok) {
-        toast.error("Couldn't save your theme. Try again.");
-        return;
-      }
-      setSaved(currentValue);
-      toast.success("Theme saved");
-    } finally {
-      setSaving(false);
-    }
-  }
+  // Saves itself a moment after a change (site-wide autosave).
+  useAutosave(currentValue, async (brandTheme) => {
+    const res = await fetch("/api/account/profile-theme", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brandTheme }) }).catch(() => null);
+    if (!res?.ok) { toast.error("Couldn't save your theme. Try again."); return false; }
+    return true;
+  }, { ready: !loading, toast: "Theme saved" });
 
   const preview = getBrandTheme(currentValue);
 
   return (
     <div className="account-card">
-      <h2 className="account-tab__heading">Brand &amp; Theme</h2>
+      <h2 className="account-tab__heading">{bare ? "Brand colors" : "Brand & Theme"}</h2>
       <p className="account-tab__intro">
-        Set your channel&rsquo;s brand colors. It re-skins your{" "}
-        <strong>public profile</strong>, and if you stream, your OBS overlay, your
-        live page, and every overlay tool (timer, bingo, tier list, and more)
-        &mdash; all from here. Override a single tool&rsquo;s color in{" "}
-        <strong>Stream Tools</strong> if you ever need to. Your own dashboard keeps
-        its light/dark preference.
+        Re-skins your <strong>public profile</strong>, and if you stream, your OBS overlay, your
+        live page and every overlay tool (timer, bingo, tier list and more). Your own
+        dashboard keeps its light or dark setting.
       </p>
 
       {loading ? (
         <LoadingLines label="Loading" />
       ) : (
         <>
-          <div
-            role="tablist"
-            aria-label="Theme mode"
-            style={{
-              display: "inline-flex",
-              borderRadius: 999,
-              border: "1px solid var(--border-default)",
-              overflow: "hidden",
-              marginBottom: "var(--spacing-20)",
-            }}
-          >
-            {(
-              [
-                ["preset", "Pick a theme"],
-                ["custom", "Customize"],
-              ] as const
-            ).map(([m, label]) => (
-              <button
-                key={m}
-                type="button"
-                role="tab"
-                aria-selected={mode === m}
-                onClick={() => setMode(m)}
-                style={{
-                  padding: "6px 16px",
-                  fontSize: "var(--font-size-14)",
-                  fontWeight: "var(--font-weight-semibold)",
-                  cursor: "pointer",
-                  border: "none",
-                  background: mode === m ? "var(--bg-primary)" : "transparent",
-                  color: mode === m ? "var(--text-on-primary)" : "var(--text-secondary)",
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {mode === "preset" ? (
+          <Tabs
+            variant="pills"
+            size="small"
+            activeTab={mode}
+            onChange={(id) => setMode(id as ThemeMode)}
+            className="brand-mode"
+            tabs={[
+              { id: "preset", label: "Pick a theme", content: (
             <div className="brand-gallery" role="radiogroup" aria-label="Brand theme">
               {BRAND_THEMES.map((t) => (
                 <button
@@ -181,7 +133,8 @@ export function ThemeTab() {
                 </button>
               ))}
             </div>
-          ) : (
+              ) },
+              { id: "custom", label: "Customize", content: (
             <div
               style={{
                 display: "flex",
@@ -214,7 +167,9 @@ export function ThemeTab() {
                 preview below.
               </p>
             </div>
-          )}
+              ) },
+            ]}
+          />
 
           <div className="brand-preview-row" style={brandCssVars(preview)}>
             {(["light", "dark"] as const).map((mode) => (
@@ -248,27 +203,6 @@ export function ThemeTab() {
             </div>
           )}
 
-          <div style={{ marginTop: "var(--spacing-20)" }}>
-            <Button
-              variant="primary"
-              loading={saving}
-              disabled={currentValue === saved}
-              onClick={() => void save()}
-            >
-              Save theme
-            </Button>
-            {currentValue !== saved ? (
-              <span
-                style={{
-                  marginLeft: "var(--spacing-12)",
-                  color: "var(--text-tertiary)",
-                  fontSize: "var(--font-size-14)",
-                }}
-              >
-                Save to apply it to your live pages.
-              </span>
-            ) : null}
-          </div>
         </>
       )}
     </div>

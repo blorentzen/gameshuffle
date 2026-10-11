@@ -51,7 +51,7 @@ import {
   cancelPicksBansRoundAction,
   updateRaceConfigAction,
 } from "@/app/hub/sessions/[slug]/actions";
-import { topN } from "@/lib/picks-bans/aggregate";
+import { aggregateBallots, topN } from "@/lib/picks-bans/aggregate";
 import type {
   PicksBansBallot,
   PicksBansRound,
@@ -113,6 +113,9 @@ interface Props {
    *  Two surfaces give the streamer a clean mental model: configure
    *  before going live, control while live. */
   surface: "config" | "live";
+  /** Live surface only: "picks" leaves out the manual roll card (the stream
+   *  page's Picks & bans tab; the control room has its own roll buttons). */
+  livePart?: "all" | "picks";
   /** Whether the streamer has BOTH a connected Discord guild AND a
    *  Discord invite URL set on their profile. Drives the "Share via
    *  Discord" radio's disabled state in the Lobby Info section. */
@@ -206,6 +209,7 @@ export function RaceSetupSection({
   initial,
   sessionLive,
   surface,
+  livePart = "all",
   discordShareAvailable = false,
 }: Props) {
   const isConfigSurface = surface === "config";
@@ -451,7 +455,8 @@ export function RaceSetupSection({
   // Manual Roll card.
   const hasRallies = game ? listRalliesForGame(game).length > 0 : false;
 
-  const sectionTitle = isConfigSurface ? "Race Setup" : "Race Controls";
+  const picksOnly = isLiveSurface && livePart === "picks";
+  const sectionTitle = isConfigSurface ? "Race Setup" : picksOnly ? "Picks and bans" : "Race Controls";
   // Live surface gets a per-game qualifier — the Dashboard is scoped
   // to whichever game the streamer is currently playing, so we make it
   // unmistakable WHICH game these controls drive. Modules tab already
@@ -482,9 +487,8 @@ export function RaceSetupSection({
 
       {!game && (
         <Alert variant="info">
-          This session has no race game selected. Set a supported game
-          (Mario Kart 8 Deluxe or Mario Kart World) on the Session
-          details section to use this module.
+          This stream has no racing game. Add Mario Kart 8 Deluxe or Mario
+          Kart World to its games to use race rolls.
         </Alert>
       )}
 
@@ -648,7 +652,7 @@ export function RaceSetupSection({
                   helperText={
                     discordShareAvailable
                       ? "Bot redirects askers to your Discord invite AND posts the code in your configured Discord channel whenever it changes."
-                      : "Set up a Discord invite on Account → Profile and connect the Discord bot on Account → Integrations to enable."
+                      : "Add a Discord invite on Account ▸ Profile ▸ Gamertags & socials and connect the Discord bot on Streaming ▸ Setup to turn this on."
                   }
                 />
               </RadioGroup>
@@ -749,7 +753,8 @@ export function RaceSetupSection({
           CDS `<RadioGroup>` rather than competing primary buttons.
           ────────────────────────────────────────────────────────── */}
       {isLiveSurface && (
-        <div className="hub-detail__card-grid">
+        <div className={picksOnly ? "hub-detail__card-stack" : "hub-detail__card-grid"}>
+          {!picksOnly && (
           <Card variant="outlined" padding="medium">
             <h3 className="hub-detail__card-title">Manual roll</h3>
             <div className="hub-form__action-stack">
@@ -827,18 +832,24 @@ export function RaceSetupSection({
             </div>
             {!liveSession && (
               <p className="hub-form__platform-disabled">
-                Manual rolls fire from here once the session is active.
+                You can roll from here once the stream is live.
               </p>
             )}
           </Card>
+          )}
 
           <Card variant="outlined" padding="medium">
-            <h3 className="hub-detail__card-title">Picks &amp; Bans</h3>
+            {!picksOnly && <h3 className="hub-detail__card-title">Picks &amp; Bans</h3>}
+            {picksOnly && (
+              <p className="hub-detail__panel-text">
+                Viewers vote on your live page to pick and ban tracks and items. When you close the round, the top picks and bans go into what the randomizer rolls from.
+              </p>
+            )}
 
             {!sessionLive && (
               <Alert variant="info">
-                Activate the session to open a picks/bans round. Once live,
-                viewers can vote at <code>/live/[your-slug]</code>.
+                Start the stream to open a picks and bans round. Once it&apos;s
+                live, viewers vote on your live page.
               </Alert>
             )}
 
@@ -862,9 +873,8 @@ export function RaceSetupSection({
                   />
                   <p className="hub-form__platform-disabled">
                     When the round closes, the top {topNValue} picks and
-                    the top {topNValue} bans (by viewer votes) get written
-                    back into your canonical Race Setup pool: the
-                    settings the randomizer rolls from going forward.
+                    bans by viewer votes go into what the randomizer rolls
+                    from.
                   </p>
                 </label>
                 <RadioGroup
@@ -877,12 +887,12 @@ export function RaceSetupSection({
                   <Radio
                     value="recommend"
                     label="Recommend"
-                    helperText="Show the top-N as a suggestion you confirm before applying."
+                    helperText="You look over the top picks and bans before they go in."
                   />
                   <Radio
                     value="auto_apply"
-                    label="Auto-apply on close"
-                    helperText="Top-N writes directly into the canonical config when the round closes."
+                    label="Apply when the round closes"
+                    helperText="The top picks and bans go in as soon as you close the round."
                   />
                 </RadioGroup>
                 <div className="hub-form__action-row">
@@ -928,6 +938,8 @@ export function RaceSetupSection({
                 </div>
               </div>
             )}
+
+            {picksOnly && sessionLive && round && <LeadingSoFar ballots={ballots} topN={round.recommendation_top_n ?? topNValue} />}
 
             {sessionLive && !round && closedRound && aggregateClosed && (
               <ApplyEditor
@@ -1201,6 +1213,43 @@ function ApplyEditor({
   );
 }
 
+/** The open round's standings so far (every ballot, locked or not), read only. */
+function LeadingSoFar({ ballots, topN: n }: { ballots: PicksBansBallot[]; topN: number }) {
+  const results = useMemo(() => aggregateBallots(ballots, { lockedOnly: false }), [ballots]);
+  if (ballots.length === 0) {
+    return <p className="hub-form__platform-disabled">No ballots yet. Viewers vote on your live page.</p>;
+  }
+  // Ids the catalog doesn't know (old or mismatched ballots) are left out rather than printed raw.
+  const known = (ids: string[], has: (id: string) => boolean) => ids.filter(has);
+  const t = topN(results.tracks, n);
+  const r = topN(results.rallies, n);
+  const m = topN(results.itemModes, n);
+  const i = topN(results.itemLiteral, n);
+  const noop = () => {};
+  const lists = [
+    known(t.picks, (id) => !!getTrackById(id)), known(t.bans, (id) => !!getTrackById(id)),
+    known(r.picks, (id) => !!getRallyById(id)), known(r.bans, (id) => !!getRallyById(id)),
+    known(m.picks, (id) => !!getItemModeById(id)), known(m.bans, (id) => !!getItemModeById(id)),
+    known(i.picks, (id) => !!getItemById(id)), known(i.bans, (id) => !!getItemById(id)),
+  ];
+  if (lists.every((l) => l.length === 0)) {
+    return <p className="hub-form__platform-disabled">{ballots.length} {ballots.length === 1 ? "ballot" : "ballots"} in, with no picks or bans for this game yet.</p>;
+  }
+  return (
+    <div className="picks-bans__results">
+      <h4 className="hub-detail__card-title">Leading so far</h4>
+      <ApplyRow readOnly label="Picked tracks" ids={known(t.picks, (id) => !!getTrackById(id))} rows={results.tracks.topPicks} accepted={[]} resolveName={(id) => getTrackById(id)?.name ?? id} resolveImage={(id) => getTrackById(id)?.image} variant="pick" onToggle={noop} />
+      <ApplyRow readOnly label="Banned tracks" ids={known(t.bans, (id) => !!getTrackById(id))} rows={results.tracks.topBans} accepted={[]} resolveName={(id) => getTrackById(id)?.name ?? id} resolveImage={(id) => getTrackById(id)?.image} variant="ban" onToggle={noop} />
+      <ApplyRow readOnly label="Picked rallies" ids={known(r.picks, (id) => !!getRallyById(id))} rows={results.rallies.topPicks} accepted={[]} resolveName={(id) => getRallyById(id)?.name ?? id} resolveImage={(id) => getRallyById(id)?.image} variant="pick" onToggle={noop} />
+      <ApplyRow readOnly label="Banned rallies" ids={known(r.bans, (id) => !!getRallyById(id))} rows={results.rallies.topBans} accepted={[]} resolveName={(id) => getRallyById(id)?.name ?? id} resolveImage={(id) => getRallyById(id)?.image} variant="ban" onToggle={noop} />
+      <ApplyRow readOnly label="Picked item modes" ids={known(m.picks, (id) => !!getItemModeById(id))} rows={results.itemModes.topPicks} accepted={[]} resolveName={(id) => getItemModeById(id)?.name ?? id} resolvePresentation={getModePresentation} variant="pick" onToggle={noop} />
+      <ApplyRow readOnly label="Banned item modes" ids={known(m.bans, (id) => !!getItemModeById(id))} rows={results.itemModes.topBans} accepted={[]} resolveName={(id) => getItemModeById(id)?.name ?? id} resolvePresentation={getModePresentation} variant="ban" onToggle={noop} />
+      <ApplyRow readOnly label="Picked items" ids={known(i.picks, (id) => !!getItemById(id))} rows={results.itemLiteral.topPicks} accepted={[]} resolveName={(id) => getItemById(id)?.name ?? id} resolveImage={(id) => getItemById(id)?.image} variant="pick" onToggle={noop} />
+      <ApplyRow readOnly label="Banned items" ids={known(i.bans, (id) => !!getItemById(id))} rows={results.itemLiteral.topBans} accepted={[]} resolveName={(id) => getItemById(id)?.name ?? id} resolveImage={(id) => getItemById(id)?.image} variant="ban" onToggle={noop} />
+    </div>
+  );
+}
+
 interface TileInfoPayload {
   description?: string;
   items?: Array<{ id: string; name: string; image?: string }>;
@@ -1217,6 +1266,7 @@ function ApplyRow({
   resolvePresentation,
   variant,
   onToggle,
+  readOnly = false,
 }: {
   label: string;
   ids: string[];
@@ -1234,6 +1284,8 @@ function ApplyRow({
   resolvePresentation?: (id: string) => ModePresentation | undefined;
   variant: "pick" | "ban";
   onToggle: (id: string) => void;
+  /** No include/skip buttons: the open round's "Leading so far" view. */
+  readOnly?: boolean;
 }) {
   const [infoOpen, setInfoOpen] = useState<{
     id: string;
@@ -1262,7 +1314,7 @@ function ApplyRow({
             <div
               key={id}
               className={`live-pb__tile${stateClass}`}
-              aria-label={`${resolveName(id)}, ${
+              aria-label={readOnly ? `${resolveName(id)}, ${count} ${variant === "pick" ? "picks" : "bans"}` : `${resolveName(id)}, ${
                 isAccepted ? "included in apply" : "skipped"
               }`}
             >
@@ -1314,6 +1366,7 @@ function ApplyRow({
                   {variant === "pick" ? "✓" : "✗"} {count}
                 </span>
               </div>
+              {!readOnly && (
               <div className="live-pb__tile-actions">
                 <button
                   type="button"
@@ -1326,6 +1379,7 @@ function ApplyRow({
                   {isAccepted ? "Included" : "Skip"}
                 </button>
               </div>
+              )}
             </div>
           );
         })}

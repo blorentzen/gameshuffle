@@ -12,7 +12,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isStaffRole } from "@/lib/subscription";
-import {
+import { listRestrictedAccounts,
   listReportsForReview,
   resolveReport,
   setUserModeration,
@@ -41,14 +41,16 @@ export async function GET() {
   if (!caller.ok) return NextResponse.json({ error: caller.error }, { status: caller.status });
   if (!isStaffRole(caller.role)) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const [reports, appeals] = await Promise.all([
+  const [reports, appeals, restricted] = await Promise.all([
     listReportsForReview(),
     listOpenAppeals(),
+    listRestrictedAccounts().catch(() => []),
   ]);
   return NextResponse.json({
     ok: true,
     reports,
     appeals,
+    restricted,
     isAdmin: caller.role === "admin",
   });
 }

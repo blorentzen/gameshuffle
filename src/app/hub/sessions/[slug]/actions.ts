@@ -59,6 +59,7 @@ import { performSpin } from "@/lib/wheels/spin";
 import { clearEntries, countEntries, getDefaultWheel, getWheel } from "@/lib/wheels/store";
 import { sendChatMessage } from "@/lib/twitch/client";
 import { wheelSpinResultMessage } from "@/lib/twitch/commands/messages";
+import { modLabel, streamOwnerFor } from "@/lib/mods/acting";
 
 export interface ActionResult {
   ok: boolean;
@@ -66,8 +67,21 @@ export interface ActionResult {
   redirectTo?: string;
 }
 
-async function resolveAuthorizedUser(): Promise<
-  | { ok: true; userId: string; capabilityUser: CapabilityUser }
+/**
+ * Actions a Full-access mod may run from their mod page: picks and bans and
+ * the overlay tools. Everything else (start, end, edit or restart the
+ * stream, its settings) stays with the streamer.
+ */
+const MODS_TOO = { mods: true } as const;
+
+/**
+ * The account an action acts for. Normally the signed-in streamer; with
+ * `mods`, a Full-access mod on /mod/<streamer> acts for that streamer
+ * (src/lib/mods/acting.ts), so `userId` and the plan checks are the
+ * streamer's and `actorLabel` names the mod on the overlay.
+ */
+async function resolveAuthorizedUser(opts: { mods?: boolean } = {}): Promise<
+  | { ok: true; userId: string; capabilityUser: CapabilityUser; actorLabel: string }
   | { ok: false; error: string }
 > {
   const supabase = await createClient();
@@ -76,11 +90,12 @@ async function resolveAuthorizedUser(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "unauthenticated" };
 
+  const acting = opts.mods ? await streamOwnerFor(user.id) : { ownerUserId: user.id, viaMod: false };
   const admin = createServiceClient();
   const { data: profile } = await admin
     .from("users")
     .select("subscription_tier, role, circuit_tier, circuit_status")
-    .eq("id", user.id)
+    .eq("id", acting.ownerUserId)
     .maybeSingle();
   const role = (profile?.role as string | null) ?? null;
   const rawTier = normalizeTier(
@@ -94,7 +109,7 @@ async function resolveAuthorizedUser(): Promise<
     tier: rawTier,
     role,
     viewingAsTier:
-      role === "staff" || role === "admin"
+      !acting.viaMod && (role === "staff" || role === "admin")
         ? impersonation.viewingAsTier ?? undefined
         : undefined,
     // Circuit 256 (bundle) / Circuit 64 + add-on grant Pro via effectiveTier.
@@ -104,7 +119,8 @@ async function resolveAuthorizedUser(): Promise<
   if (!hasCapability(capabilityUser, "hub.access")) {
     return { ok: false, error: "capability_required" };
   }
-  return { ok: true, userId: user.id, capabilityUser };
+  const actorLabel = acting.viaMod ? await modLabel(user.id) : "Streamer";
+  return { ok: true, userId: acting.ownerUserId, capabilityUser, actorLabel };
 }
 
 async function loadSessionForOwner(slug: string, userId: string) {
@@ -775,7 +791,7 @@ export async function openPicksBansRoundAction(
   slug: string,
   input: OpenPicksBansRoundInput
 ): Promise<ActionResult & { roundId?: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   const session = await loadSessionForOwner(slug, auth.userId);
   if (!session) return { ok: false, error: "not_found" };
@@ -899,7 +915,7 @@ export async function closePicksBansRoundAction(
   slug: string,
   roundId: string
 ): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   const session = await loadSessionForOwner(slug, auth.userId);
   if (!session) return { ok: false, error: "not_found" };
@@ -1035,7 +1051,7 @@ export async function applyPicksBansResultsAction(
   roundId: string,
   input: ApplyPicksBansResultsInput = {}
 ): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   const session = await loadSessionForOwner(slug, auth.userId);
   if (!session) return { ok: false, error: "not_found" };
@@ -1297,7 +1313,7 @@ export async function cancelPicksBansRoundAction(
   slug: string,
   roundId: string
 ): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   const session = await loadSessionForOwner(slug, auth.userId);
   if (!session) return { ok: false, error: "not_found" };
@@ -1403,7 +1419,7 @@ export async function restartSessionAction(slug: string): Promise<ActionResult> 
 export async function spinWheelAction(
   wheelId?: string,
 ): Promise<ActionResult & { winningLabel?: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (!hasCapability(auth.capabilityUser, "wheels.use")) {
     return { ok: false, error: "pro_required" };
@@ -1412,7 +1428,7 @@ export async function spinWheelAction(
   const outcome = await performSpin({
     ownerUserId: auth.userId,
     wheelId,
-    triggeredBy: "Streamer",
+    triggeredBy: auth.actorLabel,
     triggerType: "hub",
   });
   if (!outcome.ok) return { ok: false, error: outcome.error };
@@ -1449,7 +1465,7 @@ export async function spinWheelAction(
 export async function rollDiceAction(
   count?: number,
 ): Promise<ActionResult & { values?: number[]; total?: number }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") {
     return { ok: false, error: "pro_required" };
@@ -1458,7 +1474,7 @@ export async function rollDiceAction(
   const res = await triggerDiceRoll({
     ownerUserId: auth.userId,
     count,
-    triggeredBy: "Streamer",
+    triggeredBy: auth.actorLabel,
     source: "hub",
   });
 
@@ -1490,13 +1506,13 @@ export async function rollDiceAction(
  * the result in chat. Pro-gated. Mirrors rollDiceAction.
  */
 export async function flipCoinAction(): Promise<ActionResult & { result?: "heads" | "tails" }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") {
     return { ok: false, error: "pro_required" };
   }
 
-  const res = await triggerCoinFlip({ ownerUserId: auth.userId, triggeredBy: "Streamer", source: "hub" });
+  const res = await triggerCoinFlip({ ownerUserId: auth.userId, triggeredBy: auth.actorLabel, source: "hub" });
 
   try {
     const admin = createServiceClient();
@@ -1542,10 +1558,10 @@ async function announceAsBot(ownerUserId: string, message: string): Promise<void
 
 /** Hub "Ask 8-Ball" — random answer card on the overlay. Pro-gated. */
 export async function askEightBallAction(): Promise<ActionResult & { answer?: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
-  const { answer } = await triggerEightBall({ ownerUserId: auth.userId, triggeredBy: "Streamer", source: "hub" });
+  const { answer } = await triggerEightBall({ ownerUserId: auth.userId, triggeredBy: auth.actorLabel, source: "hub" });
   await announceAsBot(auth.userId, `🎱 ${answer}`);
   return { ok: true, answer };
 }
@@ -1554,10 +1570,10 @@ export async function askEightBallAction(): Promise<ActionResult & { answer?: st
 export async function truthOrDareAction(
   which: "truth" | "dare",
 ): Promise<ActionResult & { answer?: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
-  const { answer } = await triggerTruthOrDare({ ownerUserId: auth.userId, which, triggeredBy: "Streamer", source: "hub" });
+  const { answer } = await triggerTruthOrDare({ ownerUserId: auth.userId, which, triggeredBy: auth.actorLabel, source: "hub" });
   await announceAsBot(auth.userId, which === "dare" ? `🔥 Dare: ${answer}` : `🗣️ Truth: ${answer}`);
   return { ok: true, answer };
 }
@@ -1573,7 +1589,7 @@ export async function drawRaffleAction(
   count?: number,
   removeWinners?: boolean,
 ): Promise<ActionResult & { winners?: string[]; entries?: number }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const session = await loadSessionForOwner(slug, auth.userId);
@@ -1599,7 +1615,7 @@ export async function drawRaffleAction(
 export async function raffleEntryCountAction(
   slug: string,
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const session = await loadSessionForOwner(slug, auth.userId);
@@ -1611,7 +1627,7 @@ export async function raffleEntryCountAction(
 export async function listRaffleEntriesAction(
   slug: string,
 ): Promise<{ ok: true; entries: { id: string; displayName: string }[] } | { ok: false; error: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const session = await loadSessionForOwner(slug, auth.userId);
@@ -1621,7 +1637,7 @@ export async function listRaffleEntriesAction(
 
 /** Manually add a raffle entrant by name from the Hub. Pro-gated. */
 export async function addRaffleEntryAction(slug: string, name: string): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const session = await loadSessionForOwner(slug, auth.userId);
@@ -1632,7 +1648,7 @@ export async function addRaffleEntryAction(slug: string, name: string): Promise<
 
 /** Remove one raffle entrant by id from the Hub. Pro-gated. */
 export async function removeRaffleEntryAction(slug: string, id: string): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const session = await loadSessionForOwner(slug, auth.userId);
@@ -1643,7 +1659,7 @@ export async function removeRaffleEntryAction(slug: string, id: string): Promise
 
 /** Clear all raffle entrants for a session (fresh giveaway). Pro-gated. */
 export async function clearRaffleAction(slug: string): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const session = await loadSessionForOwner(slug, auth.userId);
@@ -1661,7 +1677,7 @@ export async function startTimerAction(
   seconds: number,
   label?: string | null,
 ): Promise<ActionResult & { seconds?: number }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
 
@@ -1684,7 +1700,7 @@ export async function startTimerAction(
 
 /** Hub "Clear timer" — removes the countdown from the overlay. Pro-gated. */
 export async function stopTimerAction(): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   await triggerTimerStop({ ownerUserId: auth.userId, source: "hub" });
@@ -1697,7 +1713,7 @@ export async function stopTimerAction(): Promise<ActionResult> {
 export async function getBingoBoardAction(): Promise<
   { ok: true; board: BingoBoard | null } | { ok: false; error: string }
 > {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   return { ok: true, board: await getActiveBingoBoard(auth.userId) };
@@ -1707,7 +1723,7 @@ export async function getBingoBoardAction(): Promise<
 export async function newBingoAction(
   size?: number,
 ): Promise<{ ok: true; board: BingoBoard } | { ok: false; error: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const board = await newBingoBoard({ ownerUserId: auth.userId, size, source: "hub" });
@@ -1719,7 +1735,7 @@ export async function newBingoAction(
 export async function markBingoAction(
   square: number,
 ): Promise<{ ok: true; board: BingoBoard | null; newBingo: boolean } | { ok: false; error: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const res = await markBingoSquare({ ownerUserId: auth.userId, square, source: "hub" });
@@ -1729,7 +1745,7 @@ export async function markBingoAction(
 
 /** Clear the board off the overlay. Pro-gated. */
 export async function clearBingoAction(): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   await clearBingoBoard({ ownerUserId: auth.userId, source: "hub" });
@@ -1742,7 +1758,7 @@ export async function clearBingoAction(): Promise<ActionResult> {
 export async function getTierListAction(): Promise<
   { ok: true; list: TierList | null } | { ok: false; error: string }
 > {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   return { ok: true, list: await getActiveTierList(auth.userId) };
@@ -1752,7 +1768,7 @@ export async function getTierListAction(): Promise<
 export async function newTierListAction(): Promise<
   { ok: true; list: TierList } | { ok: false; error: string }
 > {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const list = await newTierList({ ownerUserId: auth.userId, source: "hub" });
@@ -1764,7 +1780,7 @@ export async function placeTierItemAction(
   itemId: number,
   tier: string | null,
 ): Promise<{ ok: true; list: TierList | null } | { ok: false; error: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const res = await placeTierItem({ ownerUserId: auth.userId, itemId, tier, source: "hub" });
@@ -1775,7 +1791,7 @@ export async function placeTierItemAction(
 export async function addTierItemAction(
   text: string,
 ): Promise<{ ok: true; list: TierList | null } | { ok: false; error: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const res = await addTierItem({ ownerUserId: auth.userId, text, source: "hub" });
@@ -1786,7 +1802,7 @@ export async function addTierItemAction(
 export async function removeTierItemAction(
   itemId: number,
 ): Promise<{ ok: true; list: TierList | null } | { ok: false; error: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const res = await removeTierItem({ ownerUserId: auth.userId, itemId, source: "hub" });
@@ -1795,7 +1811,7 @@ export async function removeTierItemAction(
 
 /** Clear the tier list off the overlay. Pro-gated. */
 export async function clearTierListAction(): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   await clearTierList({ ownerUserId: auth.userId, source: "hub" });
@@ -1806,7 +1822,7 @@ export async function clearTierListAction(): Promise<ActionResult> {
 export async function wheelEntryCountAction(
   wheelId?: string,
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (!hasCapability(auth.capabilityUser, "wheels.use")) {
     return { ok: false, error: "pro_required" };
@@ -1822,7 +1838,7 @@ export async function wheelEntryCountAction(
 export async function clearWheelEntriesAction(
   wheelId?: string,
 ): Promise<ActionResult> {
-  const auth = await resolveAuthorizedUser();
+  const auth = await resolveAuthorizedUser(MODS_TOO);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (!hasCapability(auth.capabilityUser, "wheels.use")) {
     return { ok: false, error: "pro_required" };

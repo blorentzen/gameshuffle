@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { noteCircuitWaitlist } from "@/lib/tournaments/circuit-resolve";
 import { getBaseUrl } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { verifyTurnstileToken } from "@/lib/turnstile";
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const admin = createServiceClient();
   const { data: t } = await admin
     .from("tournaments")
-    .select("id, title, status, acceptance_mode, max_participants, entry_policy")
+    .select("id, title, status, acceptance_mode, max_participants, entry_policy, game_slug, organizer_id, created_at")
     .eq("id", id)
     .maybeSingle();
   if (!t) return NextResponse.json({ error: "Tournament not found." }, { status: 404 });
@@ -61,6 +62,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const decision = await joinDecision("tournament", id);
   if (decision === "paid") return NextResponse.json({ error: "This tournament sells tickets. Get one from the tournament page." }, { status: 400 });
   if (decision === "waitlist_full") return NextResponse.json({ error: "This tournament is full and so is its waitlist." }, { status: 400 });
+  // Full includes the organizer's Circuit plan being full: they wait in line,
+  // and an upgrade offers them a spot.
   const waitlisted = decision === "waitlist";
 
   const status = waitlisted ? "waitlisted" : t.acceptance_mode === "auto" ? "confirmed" : "registered";
@@ -72,6 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (error || !participant) {
     return NextResponse.json({ error: error?.message || "Could not join." }, { status: 400 });
   }
+  if (waitlisted) await noteCircuitWaitlist(id);
 
   /* Contact goes to the private table, never onto the participant row, which
      is world-readable. Best effort: a missing friend code must not fail a join,

@@ -78,3 +78,28 @@ export function patternHit(card: Card, called: number[], pattern: Pattern): numb
 export function seriesPattern(n: number): Pattern {
   return PATTERN_SERIES[(Math.max(1, n) - 1) % PATTERN_SERIES.length];
 }
+
+/** The squares a pattern needs, for drawing it (null for "line": any of 12 lines). */
+export function patternCells(pattern: Pattern): number[] | null {
+  return pattern === "line" ? null : SHAPES[pattern];
+}
+
+/** Every listed square marked from the called numbers (a custom pattern's check). */
+export function cellsHit(card: Card, called: number[], cells: number[]): number[] | null {
+  const hit = (i: number) => card[i] === FREE || called.includes(card[i]);
+  return cells.length > 0 && cells.every(hit) ? cells : null;
+}
+
+/** The free centre square's index. */
+export const FREE_INDEX = 12;
+
+/**
+ * A drawn pattern's squares, cleaned: whole numbers 0-24, no repeats, sorted.
+ * The free centre is always marked, so it isn't stored. Null when fewer than
+ * two real squares are left (a one-square bingo is over at the first call).
+ */
+export function cleanCells(raw: unknown): number[] | null {
+  if (!Array.isArray(raw)) return null;
+  const cells = [...new Set(raw.filter((n): n is number => Number.isInteger(n) && n >= 0 && n <= 24 && n !== FREE_INDEX))].sort((a, b) => a - b);
+  return cells.length >= 2 ? cells : null;
+}

@@ -1,36 +1,25 @@
 "use client";
 
 /**
- * Tournaments — the ones a player organizes + the ones they've joined.
- * Self-loading so it can live in the account "My Stuff" section page.
+ * My Stuff ▸ Events ▸ Tournaments: the ones you organize or co-organize, the
+ * ones you've joined, and the championship seasons you run, as one list per
+ * stage: running now, coming up, didn't start (an open tournament whose date
+ * passed without starting, `isStaleOpen`), finished, then archived out of the
+ * way. Rows come from StuffList; discovery pages keep the big event cards.
  */
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Button } from "@empac/cascadeds";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Accordion, Badge, Button, EmptyState, List } from "@empac/cascadeds";
+import { IconTrophy } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
-import { formatEventTime } from "@/lib/time/format";
-import { EventCard } from "@/components/events/EventCard";
-import { artCategoryFor } from "@/components/events/EventHeaderArt";
-import { MYSTUFF_SECTIONS, sectionForTournamentStatus } from "@/lib/account/statusSections";
+import { formatEventShort } from "@/lib/time/format";
+import { isStaleOpen } from "@/lib/events/lifecycle";
+import { AdminScreen } from "@/components/account/admin/AdminKit";
+import { StuffGroup, StuffRow, StuffThumb, viewerTimeZone } from "@/components/account/stuff/StuffList";
 import { LoadingLines } from "@/components/loading/LoadingLines";
-
-/** Human-friendly tournament/participant status label (no raw snake_case). */
-function statusLabel(s: string): string {
-  const map: Record<string, string> = {
-    draft: "Draft",
-    open: "Open",
-    in_progress: "In Progress",
-    complete: "Complete",
-    cancelled: "Cancelled",
-    registered: "Registered",
-    confirmed: "Confirmed",
-    dropped: "Dropped",
-  };
-  return map[s] ?? s.replace(/_/g, " ");
-}
 
 interface TournamentEntry {
   id: string;
@@ -40,155 +29,164 @@ interface TournamentEntry {
   status: string;
   date_time: string | null;
   header_image_url?: string | null;
+  archived_at?: string | null;
+  /** The organizer's own game name (a typed "Other" game), preferred over the slug. */
+  settings?: { game_label?: string } | null;
   role: "organizer" | "participant";
   participant_status?: string;
 }
 
-/**
- * One card, the SHARED EventCard — same object as /tournament and the browse
- * rails. It used to hand-roll .bgn-card with a gradient and a 🏆/🏁 emoji,
- * which left My Stuff a generation behind the rest of the product.
- */
-function TournamentCard({ t }: { t: TournamentEntry }) {
-  const organizer = t.role === "organizer";
-  const href = organizer ? `/tournament/${t.id}/manage` : `/tournament/${t.id}`;
-  return (
-    <EventCard
-      href={href}
-      title={t.title}
-      seed={t.id}
-      cover={t.header_image_url}
-      artCategory={artCategoryFor("tournament")}
-      when={t.date_time ? formatEventTime(t.date_time) : "Date TBD"}
-      meta={getGameName(t.game_slug)}
-      countLabel={organizer ? "Manage \u2192" : "View \u2192"}
-      // Management surface: ticket tiers are not loaded here, so a price chip
-      // would claim "Free" on a paid tournament.
-      showPrice={false}
-      badges={
-        <>
-          <span className={`mystuff-role mystuff-role--${organizer ? "host" : "attend"}`}>
-            {organizer ? "Organizing" : "Playing"}
-          </span>
-          {!organizer && t.participant_status && (
-            <span className="mystuff-card__place">{statusLabel(t.participant_status)}</span>
-          )}
-        </>
-      }
-    />
-  );
-}
+interface Season { id: string; name: string; status: string }
 
-export function TournamentsTab() {
+const PLAYER_STATUS: Record<string, string> = { registered: "Registered", confirmed: "Confirmed", checked_in: "Checked in", waitlisted: "Waitlist" };
+
+const byDate = (dir: 1 | -1) => (a: TournamentEntry, b: TournamentEntry) => {
+  if (!a.date_time) return 1;
+  if (!b.date_time) return -1;
+  return dir * (Date.parse(a.date_time) - Date.parse(b.date_time));
+};
+
+export function TournamentsTab({ timeZone }: { timeZone?: string | null } = {}) {
   const { user } = useAuth();
-  const supabase = createClient();
+  const router = useRouter();
   const [tournaments, setTournaments] = useState<TournamentEntry[]>([]);
+  const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
+    const supabase = createClient();
     let active = true;
-    const load = async () => {
-      const [organizedRes, participatingRes] = await Promise.all([
-        supabase
-          .from("tournaments")
-          .select("id, title, game_slug, mode, status, date_time, header_image_url")
-          .eq("organizer_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("tournament_participants")
-          .select(
-            "tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time, header_image_url)",
-          )
-          .eq("user_id", user.id)
-          .order("joined_at", { ascending: false }),
+    (async () => {
+      const cols = "id, title, game_slug, mode, status, date_time, header_image_url, archived_at, settings";
+      const [organizedRes, coRes, participatingRes, seasonsRes] = await Promise.all([
+        supabase.from("tournaments").select(cols).eq("organizer_id", user.id).order("created_at", { ascending: false }),
+        // Co-organized tournaments: you can manage them too, so they list with yours.
+        supabase.from("tournament_organizers").select(`tournaments(${cols})`).eq("user_id", user.id),
+        supabase.from("tournament_participants").select(`tournament_id, status, tournaments(${cols})`).eq("user_id", user.id).neq("status", "dropped").order("joined_at", { ascending: false }),
+        // Championship seasons you run (listed nowhere else in My Stuff).
+        supabase.from("championships").select("id, name, status").eq("owner_id", user.id).order("created_at", { ascending: false }),
       ]);
       if (!active) return;
       const entries: TournamentEntry[] = [];
-      if (organizedRes.data)
-        organizedRes.data.forEach((t: Record<string, unknown>) =>
-          entries.push({ ...(t as unknown as TournamentEntry), role: "organizer" }),
-        );
-      if (participatingRes.data) {
-        participatingRes.data.forEach((p: Record<string, unknown>) => {
-          const t = p.tournaments as TournamentEntry | undefined;
-          if (t && !entries.find((e) => e.id === t.id))
-            entries.push({
-              ...t,
-              role: "participant",
-              participant_status: p.status as string,
-            });
-        });
-      }
-      entries.sort((a, b) => {
-        const order: Record<string, number> = {
-          in_progress: 0,
-          open: 1,
-          draft: 2,
-          complete: 3,
-          cancelled: 4,
-        };
-        return (order[a.status] || 5) - (order[b.status] || 5);
+      const add = (t: TournamentEntry | undefined, extra: Partial<TournamentEntry>) => {
+        if (t && !entries.find((e) => e.id === t.id)) entries.push({ ...t, ...extra } as TournamentEntry);
+      };
+      (organizedRes.data ?? []).forEach((t) => add(t as unknown as TournamentEntry, { role: "organizer" }));
+      (coRes.data ?? []).forEach((r) => add((r as Record<string, unknown>).tournaments as TournamentEntry, { role: "organizer" }));
+      (participatingRes.data ?? []).forEach((p) => {
+        const row = p as Record<string, unknown>;
+        add(row.tournaments as TournamentEntry, { role: "participant", participant_status: row.status as string });
       });
       setTournaments(entries);
+      setSeasons((seasonsRes.data ?? []) as Season[]);
       setLoading(false);
-    };
-    load();
-    return () => {
-      active = false;
-    };
-  }, [user, supabase]);
+    })();
+    return () => { active = false; };
+  }, [user]);
+
+  const groups = useMemo(() => {
+    const live = tournaments.filter((t) => !t.archived_at && t.status === "in_progress");
+    const stale = tournaments.filter((t) => !t.archived_at && isStaleOpen(t)).sort(byDate(-1));
+    const upcoming = tournaments.filter((t) => !t.archived_at && (t.status === "draft" || t.status === "open") && !isStaleOpen(t)).sort(byDate(1));
+    const finished = tournaments.filter((t) => !t.archived_at && t.status === "complete").sort(byDate(-1));
+    const archived = tournaments.filter((t) => t.archived_at || t.status === "cancelled");
+    return { live, stale, upcoming, finished, archived };
+  }, [tournaments]);
+
+  const tz = viewerTimeZone(timeZone);
+  const create = <Button variant="primary" onClick={() => router.push("/tournament/create")}>Create tournament</Button>;
 
   if (loading) {
-    return (
-      <div className="account-card">
-        <LoadingLines label="Loading" />
-      </div>
-    );
+    return <AdminScreen title="Tournaments"><LoadingLines label="Loading your tournaments" /></AdminScreen>;
   }
 
-  return (
-    <div className="account-card">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "var(--spacing-16)",
-          flexWrap: "wrap",
-          marginBottom: "var(--spacing-20)",
-        }}
-      >
-        <div>
-          <h2 style={{ margin: 0 }}>Tournaments</h2>
-          <p style={{ color: "var(--text-tertiary)", margin: "var(--spacing-4) 0 0", fontSize: "var(--font-size-14)" }}>
-            The ones you organize and the ones you&rsquo;re in, grouped by where they are in their run.
-          </p>
-        </div>
-        <Link href="/tournament/create" style={{ textDecoration: "none" }}><Button variant="primary">Create Tournament</Button></Link>
-      </div>
+  const row = (t: TournamentEntry, opts: { status?: boolean } = {}) => {
+    const organizer = t.role === "organizer";
+    const game = t.settings?.game_label || getGameName(t.game_slug);
+    const statusBadge = opts.status && (
+      t.status === "draft" ? <Badge size="small" variant="default">Draft</Badge>
+        : t.status === "cancelled" ? <Badge size="small" variant="default">Cancelled</Badge>
+          : t.archived_at ? <Badge size="small" variant="default">Archived</Badge>
+            : null
+    );
+    return (
+      <StuffRow
+        key={t.id}
+        thumb={<StuffThumb cover={t.header_image_url} game={{ slug: t.game_slug, name: game }} seed={t.id} />}
+        title={t.title}
+        href={`/tournament/${t.id}`}
+        meta={<>{t.date_time ? formatEventShort(t.date_time, tz) : "No date yet"} · {game}</>}
+        badges={
+          <>
+            {statusBadge}
+            {/* Yours carry a Manage button; ones you've joined say where you stand. */}
+            {!organizer && <Badge size="small" variant="outline">{PLAYER_STATUS[t.participant_status ?? ""] ?? "Playing"}</Badge>}
+          </>
+        }
+        action={organizer ? { label: "Manage", href: `/tournament/${t.id}/manage` } : undefined}
+      />
+    );
+  };
 
-      {tournaments.length === 0 ? (
-        <div className="bgn-empty">
-          <p>You haven&rsquo;t created or joined a tournament yet.</p>
-          <Link href="/tournament" style={{ textDecoration: "none" }}>
-            <Button variant="secondary">Browse tournaments</Button>
-          </Link>
-        </div>
-      ) : (
-        MYSTUFF_SECTIONS.map((section) => {
-          const inSection = tournaments.filter((t) => sectionForTournamentStatus(t.status) === section.key);
-          if (inSection.length === 0) return null;
-          return (
-            <div key={section.key} style={{ marginBottom: "var(--spacing-32)" }}>
-              <h3 className="bgn-side__heading" style={{ marginTop: 0 }}>{section.label}</h3>
-              <div className="bgn-grid">
-                {inSection.map((t) => <TournamentCard key={t.id} t={t} />)}
-              </div>
+  const empty = tournaments.length === 0 && seasons.length === 0;
+
+  return (
+    <AdminScreen
+      title="Tournaments"
+      intro="The ones you run and the ones you've joined. Times are in your timezone."
+      actions={empty ? undefined : create}
+    >
+      {empty ? (
+        <EmptyState
+          variant="bordered"
+          icon={<IconTrophy size={40} stroke={1.4} />}
+          title="No tournaments yet"
+          description="Join one that's taking sign-ups, or run your own: brackets, heats, points and randomized rounds."
+          action={
+            <div className="stuff-empty-actions">
+              <Button variant="primary" onClick={() => router.push("/tournament/create")}>Create tournament</Button>
+              <Button variant="secondary" onClick={() => router.push("/tournament")}>Browse tournaments</Button>
             </div>
-          );
-        })
+          }
+        />
+      ) : (
+        <>
+          <StuffGroup title="Running now" items={groups.live} row={(t) => row(t)} />
+          <StuffGroup
+            title="Championship seasons"
+            items={seasons}
+            row={(c) => (
+              <StuffRow
+                key={c.id}
+                thumb={<StuffThumb art="series" seed={c.id} />}
+                title={c.name}
+                href={`/tournament/championship/${c.id}`}
+                meta={c.status === "archived" ? "Season complete" : "Season running"}
+                action={{ label: "Manage", href: `/tournament/championship/${c.id}/manage` }}
+              />
+            )}
+          />
+          <StuffGroup title="Coming up" items={groups.upcoming} row={(t) => row(t, { status: true })} />
+          <StuffGroup
+            title="Didn't start"
+            intro="Their date passed and they never started. If one is yours, start it, give it a new date or archive it from its manage page."
+            items={groups.stale}
+            row={(t) => row(t)}
+          />
+          <StuffGroup title="Finished" items={groups.finished} page={5} row={(t) => row(t)} />
+          {groups.archived.length > 0 && (
+            <Accordion
+              variant="bordered"
+              items={[{
+                id: "archived",
+                title: `Archived and cancelled (${groups.archived.length})`,
+                content: <List divided className="stuff-list">{groups.archived.map((t) => row(t, { status: true }))}</List>,
+              }]}
+            />
+          )}
+        </>
       )}
-    </div>
+    </AdminScreen>
   );
 }

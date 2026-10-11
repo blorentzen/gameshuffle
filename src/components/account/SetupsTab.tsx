@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * Setups & Games — a player's saved randomizer configs (grouped by type/game)
- * + their saved TCG Companion games. Self-loading so it can live in the
- * account "My Stuff" section page independent of the profile page's state.
+ * My Stuff ▸ Saved configs: saved randomizer setups (a section per kind,
+ * grouped by game when there's more than one) and saved TCG Companion games.
+ * Deleting asks first; copying a share link says so in a toast.
  */
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Button, EmptyState } from "@empac/cascadeds";
+import { useRouter } from "next/navigation";
+import { Button, EmptyState, List, Modal } from "@empac/cascadeds";
+import { ConfigVisual } from "@/components/configs/ConfigVisual";
 import { IconDeviceGamepad2, IconCards } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -16,7 +17,6 @@ import { deleteConfig } from "@/lib/configs";
 import { CONFIG_TYPE_LABELS, type ConfigType } from "@/data/config-types";
 import { SetupCard } from "@/components/account/SetupCard";
 import { getGameName } from "@/data/game-registry";
-import { nightVisual } from "@/data/game-night-visuals";
 import { deleteCompanionSaveAction } from "@/app/tcg-companion/save/actions";
 import {
   defaultSaveName,
@@ -24,6 +24,13 @@ import {
 } from "@/lib/companion/saveStates";
 import { formatByKey } from "@/lib/companion/gameSettings";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { AdminRowMenu, AdminScreen, AdminSection } from "@/components/account/admin/AdminKit";
+import { StuffRow } from "@/components/account/stuff/StuffList";
+
+/** Types the randomizer can load from ?config= (kart builds have no page of their own). */
+const OPENABLE = new Set(["game-night-setup", "item-set", "party-setup", "smash-setup", "splatoon-setup", "kirby-setup", "stadium-setup"]);
 
 interface SavedConfig {
   id: string;
@@ -38,12 +45,16 @@ interface SavedConfig {
 export function SetupsTab() {
   const { user } = useAuth();
   const supabase = createClient();
+  const router = useRouter();
+  const toast = useToast();
+  const confirm = useConfirm();
   const [configs, setConfigs] = useState<SavedConfig[]>([]);
   const [companionSaves, setCompanionSaves] = useState<CompanionSavedState[]>([]);
   const [companionDeletingId, setCompanionDeletingId] = useState<string | null>(
     null,
   );
   const [copied, setCopied] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<SavedConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -90,21 +101,36 @@ export function SetupsTab() {
 
   const handleDeleteConfig = async (configId: string) => {
     if (!user) return;
+    const config = configs.find((c) => c.id === configId);
+    const ok = await confirm({
+      title: `Delete ${config?.config_name ? `"${config.config_name}"` : "this setup"}?`,
+      body: config?.share_token ? "Its share link stops working too." : undefined,
+      confirmLabel: "Delete setup",
+    });
+    if (!ok) return;
     const { error } = await deleteConfig(configId, user.id);
-    if (!error) setConfigs((prev) => prev.filter((c) => c.id !== configId));
+    if (error) { toast.error("Couldn't delete that setup. Try again."); return; }
+    setConfigs((prev) => prev.filter((c) => c.id !== configId));
+    toast.success("Setup deleted");
   };
 
   const handleCopyLink = (shareToken: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/s/${shareToken}`);
+    void navigator.clipboard.writeText(`${window.location.origin}/s/${shareToken}`);
     setCopied(shareToken);
+    toast.success("Share link copied");
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleDeleteCompanionSave = async (saveId: string) => {
+  const handleDeleteCompanionSave = async (saveId: string, name: string) => {
+    const ok = await confirm({ title: `Delete "${name}"?`, body: "You won't be able to resume this game.", confirmLabel: "Delete game" });
+    if (!ok) return;
     setCompanionDeletingId(saveId);
     const result = await deleteCompanionSaveAction(saveId);
     if (result.ok) {
       setCompanionSaves((prev) => prev.filter((s) => s.id !== saveId));
+      toast.success("Saved game deleted");
+    } else {
+      toast.error("Couldn't delete that game. Try again.");
     }
     setCompanionDeletingId(null);
   };
@@ -116,184 +142,117 @@ export function SetupsTab() {
   };
 
   if (loading) {
-    return (
-      <div className="account-card">
-        <LoadingLines label="Loading" />
-      </div>
-    );
+    return <AdminScreen title="Saved configs"><LoadingLines label="Loading your saved configs" /></AdminScreen>;
   }
 
-  return (
-    <>
-      {/* Saved Configs */}
-      {configs.length === 0 ? (
-        <div className="account-card">
-          <h2>Saved Configs</h2>
-          {/* The instruction was right but unclickable: it told people to go to
-              the randomizer without taking them there. */}
-          <EmptyState
-            variant="subtle"
-            icon={<IconDeviceGamepad2 size={40} stroke={1.4} />}
-            title="No saved setups yet"
-            description="Randomize a kart build, an item set or a whole game night, then hit Save to keep it here."
-            action={
-              <Link href="/randomizers/mario-kart-8-deluxe" style={{ textDecoration: "none" }}>
-                <Button variant="primary">Open the randomizer</Button>
-              </Link>
-            }
-          />
-        </div>
-      ) : (
-        (
-          [
-            "game-night-setup",
-            "party-setup",
-            "smash-setup",
-            "splatoon-setup",
-            "kirby-setup",
-            "stadium-setup",
-            "kart-build",
-            "item-set",
-            "track-list",
-            "player-preset",
-            "ruleset",
-          ] as ConfigType[]
-        ).map((type) => {
-          const typeConfigs = configs.filter(
-            (c) => c.config_data?.type === type,
-          );
-          if (typeConfigs.length === 0) return null;
+  // Track lists, player presets and rulesets aren't listed: nothing on the
+  // site makes them yet (only dev seed data), so they could be seen but not
+  // opened or edited. They come back with Save buttons in the randomizer.
+  const types: ConfigType[] = [
+    "game-night-setup", "party-setup", "smash-setup", "splatoon-setup", "kirby-setup", "stadium-setup",
+    "kart-build", "item-set",
+  ];
+  const card = (config: SavedConfig) => (
+    <SetupCard key={config.id} config={config} onCopyLink={handleCopyLink} onDelete={handleDeleteConfig} onView={(id) => setViewing(configs.find((c) => c.id === id) ?? null)} copied={copied} />
+  );
+  const openable = (c: SavedConfig) => OPENABLE.has(c.config_data?.type ?? "");
 
-          const gameGroups = new Map<string, typeof typeConfigs>();
+  return (
+    <AdminScreen
+      title="Saved configs"
+      intro="Builds, item sets, game night setups and rules you saved from the randomizers, plus TCG Companion games you can pick back up."
+    >
+      {configs.length === 0 ? (
+        <EmptyState
+          variant="bordered"
+          icon={<IconDeviceGamepad2 size={40} stroke={1.4} />}
+          title="No saved setups yet"
+          description="Randomize a kart build, an item set or a whole game night, then hit Save to keep it here."
+          action={<Button variant="primary" onClick={() => router.push("/randomizers/mario-kart-8-deluxe")}>Open the randomizer</Button>}
+        />
+      ) : (
+        types.map((type) => {
+          const typeConfigs = configs.filter((c) => c.config_data?.type === type);
+          if (typeConfigs.length === 0) return null;
+          const gameGroups = new Map<string, SavedConfig[]>();
           for (const config of typeConfigs) {
-            const slug =
-              config.config_data?.gameSlug ||
-              config.randomizer_slug ||
-              "unknown";
+            const slug = config.config_data?.gameSlug || config.randomizer_slug || "unknown";
             if (!gameGroups.has(slug)) gameGroups.set(slug, []);
             gameGroups.get(slug)!.push(config);
           }
-
-          if (gameGroups.size === 1) {
-            return (
-              <div key={type} className="account-card">
-                <h2>{CONFIG_TYPE_LABELS[type]}</h2>
-                <div className="saved-builds-grid">
-                  {typeConfigs.map((config) => (
-                    <SetupCard
-                      key={config.id}
-                      config={config}
-                      onCopyLink={handleCopyLink}
-                      onDelete={handleDeleteConfig}
-                      copied={copied}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          }
-
           return (
-            <div key={type} className="account-card">
-              <h2>{CONFIG_TYPE_LABELS[type]}</h2>
-              {Array.from(gameGroups.entries()).map(([slug, gameConfigs]) => (
-                <div key={slug} style={{ marginBottom: "var(--spacing-24)" }}>
-                  <h3
-                    style={{
-                      fontSize: "var(--font-size-16)",
-                      fontWeight: "var(--font-weight-semibold)",
-                      color: "var(--text-secondary)",
-                      marginBottom: "var(--spacing-12)",
-                    }}
-                  >
-                    {getGameName(slug)}
-                  </h3>
-                  <div className="saved-builds-grid">
-                    {gameConfigs.map((config) => (
-                      <SetupCard
-                        key={config.id}
-                        config={config}
-                        onCopyLink={handleCopyLink}
-                        onDelete={handleDeleteConfig}
-                        copied={copied}
-                      />
-                    ))}
+            <AdminSection key={type} title={`${CONFIG_TYPE_LABELS[type]} (${typeConfigs.length})`}>
+              {gameGroups.size === 1 ? (
+                <div className="saved-builds-grid">{typeConfigs.map(card)}</div>
+              ) : (
+                Array.from(gameGroups.entries()).map(([slug, gameConfigs]) => (
+                  <div key={slug} className="stuff-subgroup">
+                    <h3 className="stuff-subgroup__title">{getGameName(slug)}</h3>
+                    <div className="saved-builds-grid">{gameConfigs.map(card)}</div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))
+              )}
+            </AdminSection>
           );
         })
       )}
 
-      {/* TCG Companion saved games */}
-      <div className="account-card">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "var(--spacing-24)",
-          }}
-        >
-          <h2>Saved TCG Companion Games</h2>
-          <a href="/tcg-companion">
-            <Button variant="primary" size="small">
-              Open Companion
-            </Button>
-          </a>
-        </div>
+      <AdminSection
+        title={`TCG Companion games${companionSaves.length ? ` (${companionSaves.length})` : ""}`}
+        actions={companionSaves.length > 0 ? <Button variant="secondary" size="small" onClick={() => router.push("/tcg-companion")}>Open the companion</Button> : undefined}
+      >
         {companionSaves.length === 0 ? (
           <EmptyState
-            variant="subtle"
+            variant="bordered"
             icon={<IconCards size={40} stroke={1.4} />}
             title="No saved games yet"
             description="Start a game in the TCG Companion and tap Save to pick it back up later."
-            action={
-              <Link href="/tcg-companion" style={{ textDecoration: "none" }}>
-                <Button variant="secondary">Open the companion</Button>
-              </Link>
-            }
+            action={<Button variant="secondary" onClick={() => router.push("/tcg-companion")}>Open the companion</Button>}
           />
         ) : (
-          <div className="bgn-grid">
+          <List divided className="stuff-list">
             {companionSaves.map((save) => {
               const formatLabel = formatByKey(save.gameSettings.format).label;
-              const displayName =
-                save.name?.trim() ||
-                defaultSaveName(formatLabel, save.updatedAt);
-              const updated = new Date(save.updatedAt).toLocaleDateString();
+              const displayName = save.name?.trim() || defaultSaveName(formatLabel, save.updatedAt);
+              const updated = new Date(save.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
               const isDeleting = companionDeletingId === save.id;
-              const v = nightVisual(save.id);
+              const prizes = save.gameSettings.prizeCount;
               return (
-                <div key={save.id} className="bgn-card bgn-card--static">
-                  <span className="bgn-card__hero" style={{ background: v.gradient }}>
-                    <IconCards size={34} stroke={1.4} aria-hidden style={{ color: "rgba(255,255,255,0.92)" }} />
-                  </span>
-                  <span className="bgn-card__body">
-                    <span className="bgn-card__when">
-                      {formatLabel} · {save.gameSettings.prizeCount}{" "}
-                      {save.gameSettings.prizeCount === 1 ? "prize" : "prizes"}
-                    </span>
-                    <span className="bgn-card__title">{displayName}</span>
-                    <span className="mystuff-card__place">
-                      {save.sessionData.playerNames.p1} vs {save.sessionData.playerNames.p2} · Saved {updated}
-                    </span>
-                    <span className="bgn-card__actions">
-                      <Button variant="primary" size="small" onClick={() => handleResumeCompanionSave(save.id)} disabled={isDeleting}>
-                        Resume
-                      </Button>
-                      <Button variant="secondary" size="small" onClick={() => handleDeleteCompanionSave(save.id)} disabled={isDeleting}>
-                        {isDeleting ? "Deleting…" : "Delete"}
-                      </Button>
-                    </span>
-                  </span>
-                </div>
+                <StuffRow
+                  key={save.id}
+                  thumb={<span className="stuff-thumb stuff-thumb--icon" aria-hidden><IconCards size={24} stroke={1.6} /></span>}
+                  title={displayName}
+                  href={`/tcg-companion?resume=${encodeURIComponent(save.id)}`}
+                  meta={`${formatLabel} · ${prizes} ${prizes === 1 ? "prize" : "prizes"} · ${save.sessionData.playerNames.p1} vs ${save.sessionData.playerNames.p2} · Saved ${updated}`}
+                  badges={
+                    <>
+                      <Button size="small" variant="primary" onClick={() => handleResumeCompanionSave(save.id)} disabled={isDeleting} aria-label={`Resume ${displayName}`}>Resume</Button>
+                      <AdminRowMenu label={`More for ${displayName}`} items={[{ label: "Delete", danger: true, onClick: () => void handleDeleteCompanionSave(save.id, displayName) }]} />
+                    </>
+                  }
+                />
               );
             })}
+          </List>
+        )}
+      </AdminSection>
+      <Modal
+        isOpen={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.config_name ?? ""}
+        size="large"
+        primaryAction={viewing && openable(viewing) ? { label: "Open in the randomizer", onClick: () => { if (viewing) window.location.assign(`/randomizers/${viewing.randomizer_slug}?config=${viewing.id}`); } } : undefined}
+        secondaryAction={{ label: "Close", onClick: () => setViewing(null) }}
+      >
+        {viewing && (
+          <div className="setup-view">
+            <p className="admin-field__help">
+              {CONFIG_TYPE_LABELS[(viewing.config_data?.type ?? "") as ConfigType] ?? "Setup"} · {getGameName(viewing.config_data?.gameSlug || viewing.randomizer_slug)} · saved {new Date(viewing.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+            </p>
+            <ConfigVisual cfg={viewing.config_data ?? {}} />
           </div>
         )}
-      </div>
-    </>
+      </Modal>
+    </AdminScreen>
   );
 }

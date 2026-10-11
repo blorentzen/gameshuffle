@@ -19,7 +19,14 @@ export interface ChatOverlaySettings {
   hideCommands: boolean;
   showGsBadge: boolean;
   maxMessages: number;
+  /** Seconds each message stays up; null = until newer ones push it out. */
+  messageSeconds: number | null;
+  textSize: ChatOverlayTextSize;
+  /** Newest message at the top (default: at the bottom, like Twitch). */
+  newestFirst: boolean;
 }
+
+export type ChatOverlayTextSize = "s" | "m" | "l";
 
 export interface ChatOverlayMessage {
   id: string;
@@ -39,6 +46,9 @@ export const DEFAULT_CHAT_OVERLAY_SETTINGS: ChatOverlaySettings = {
   hideCommands: true,
   showGsBadge: true,
   maxMessages: 12,
+  messageSeconds: null,
+  textSize: "m",
+  newestFirst: false,
 };
 
 const KNOWN_ROLES = new Set(["broadcaster", "moderator", "vip", "subscriber"]);
@@ -92,6 +102,8 @@ export async function getRecentChatMessages(
     .eq("owner_user_id", ownerUserId)
     .order("created_at", { ascending: false })
     .limit(Math.min(Math.max(settings.maxMessages, 1), 50) * 2); // headroom for filters
+  // Messages past their time never come back on a reload or a new overlay.
+  if (settings.messageSeconds) q = q.gt("created_at", new Date(Date.now() - settings.messageSeconds * 1000).toISOString());
   if (since) q = q.gt("created_at", since);
   const { data } = await q;
   const rows = (data ?? []) as Array<{
@@ -129,21 +141,34 @@ export async function getRecentChatMessages(
 }
 
 /** Read a streamer's overlay settings (defaults when no row). */
-export async function getChatOverlaySettings(ownerUserId: string): Promise<ChatOverlaySettings> {
+const BASE_COLS = "theme, animation, show_roles, hide_commands, show_gs_badge, max_messages";
+/** Columns from supabase/chat-feed-options-m1.sql; reads and writes fall back without them. */
+const OPTION_COLS = "message_seconds, text_size, newest_first";
+
+/** Read a streamer's overlay settings (defaults when no row). `optionsReady`
+ *  is false until chat-feed-options-m1.sql is applied. */
+export async function getChatOverlaySettings(ownerUserId: string): Promise<ChatOverlaySettings & { optionsReady?: boolean }> {
   const admin = createServiceClient();
-  const { data } = await admin
-    .from("gs_chat_overlay_settings")
-    .select("theme, animation, show_roles, hide_commands, show_gs_badge, max_messages")
-    .eq("owner_user_id", ownerUserId)
-    .maybeSingle();
-  if (!data) return DEFAULT_CHAT_OVERLAY_SETTINGS;
+  let optionsReady = true;
+  let res = await admin.from("gs_chat_overlay_settings").select(`${BASE_COLS}, ${OPTION_COLS}`).eq("owner_user_id", ownerUserId).maybeSingle();
+  if (res.error) {
+    optionsReady = false;
+    res = await admin.from("gs_chat_overlay_settings").select(BASE_COLS).eq("owner_user_id", ownerUserId).maybeSingle();
+  }
+  const data = res.data as Record<string, unknown> | null;
+  if (!data) return { ...DEFAULT_CHAT_OVERLAY_SETTINGS, optionsReady };
+  const size = data.text_size as string | undefined;
   return {
     theme: (data.theme as ChatOverlayTheme) ?? "default",
     animation: (data.animation as ChatOverlayAnimation) ?? "slide",
     showRoles: (data.show_roles as string[] | null) ?? DEFAULT_CHAT_OVERLAY_SETTINGS.showRoles,
-    hideCommands: data.hide_commands ?? true,
-    showGsBadge: data.show_gs_badge ?? true,
+    hideCommands: (data.hide_commands as boolean | null) ?? true,
+    showGsBadge: (data.show_gs_badge as boolean | null) ?? true,
     maxMessages: (data.max_messages as number | null) ?? 12,
+    messageSeconds: (data.message_seconds as number | null) ?? null,
+    textSize: size === "s" || size === "l" ? size : "m",
+    newestFirst: (data.newest_first as boolean | null) ?? false,
+    optionsReady,
   };
 }
 
@@ -164,7 +189,13 @@ export async function saveChatOverlaySettings(
     if (settings.hideCommands !== undefined) row.hide_commands = settings.hideCommands;
     if (settings.showGsBadge !== undefined) row.show_gs_badge = settings.showGsBadge;
     if (settings.maxMessages !== undefined) row.max_messages = settings.maxMessages;
-    await admin.from("gs_chat_overlay_settings").upsert(row, { onConflict: "owner_user_id" });
+    const extra: Record<string, unknown> = {};
+    if (settings.messageSeconds !== undefined) extra.message_seconds = settings.messageSeconds;
+    if (settings.textSize !== undefined) extra.text_size = settings.textSize;
+    if (settings.newestFirst !== undefined) extra.newest_first = settings.newestFirst;
+    const { error } = await admin.from("gs_chat_overlay_settings").upsert({ ...row, ...extra }, { onConflict: "owner_user_id" });
+    // Before chat-feed-options-m1.sql, save what the table has.
+    if (error && Object.keys(extra).length) await admin.from("gs_chat_overlay_settings").upsert(row, { onConflict: "owner_user_id" });
   }
 
   if (enabled !== undefined) {

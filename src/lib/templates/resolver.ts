@@ -124,6 +124,7 @@ const HEAVY_VAR_NAMES = [
   "uptime",
   "followage",
   "accountage",
+  "commands_link",
   ...PROFILE_VARS,
 ] as const;
 type HeavyVarKey = (typeof HEAVY_VAR_NAMES)[number];
@@ -237,6 +238,13 @@ async function resolveHeavyVar(
       const user = await getUserById(ctx.senderTwitchId, appToken);
       if (!user?.created_at) return "unknown";
       return formatDuration(Date.now() - Date.parse(user.created_at));
+    }
+    if (key === "commands_link") {
+      // The streamer's public commands page (/c/<slug>/commands).
+      if (!ctx.userId) return "gameshuffle.co";
+      const { getLiveSlugForUser } = await import("@/lib/twitch/streamerSlug");
+      const slug = await getLiveSlugForUser(ctx.userId);
+      return slug ? `gameshuffle.co/c/${encodeURIComponent(slug)}/commands` : "gameshuffle.co";
     }
     return await resolveProfileVar(key as ProfileVarKey, ctx);
   } catch (err) {

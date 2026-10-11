@@ -6,7 +6,7 @@
  * is identical in both places.
  */
 
-import type { CSSProperties } from "react";
+import { ColorPicker, Switch } from "@empac/cascadeds";
 export { isImageUrl } from "@/lib/overlay/imageItem";
 
 export function ColorField({
@@ -19,20 +19,15 @@ export function ColorField({
   onChange: (v: string) => void;
 }) {
   return (
-    <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-      <input
-        type="color"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ width: 34, height: 28, border: "1px solid var(--border-default)", borderRadius: 6, background: "none", padding: 0, cursor: "pointer" }}
-      />
-      {label}
-    </label>
+    <span className="tool-color">
+      <span className="tool-color__label">{label}</span>
+      <ColorPicker variant="popover" allowCustom size="small" value={value} onChange={onChange} aria-label={label} />
+    </span>
   );
 }
 
-/** Accent picker that follows the global brand theme by default ("brand"), with
- *  a Custom mode for a per-tool hex override. Store value is "brand" | hex. */
+/** Accent that follows the brand theme by default ("brand"), or a color of the
+ *  tool's own. Store value is "brand" | hex. */
 export function AccentField({
   label,
   value,
@@ -43,34 +38,13 @@ export function AccentField({
   onChange: (v: string) => void;
 }) {
   const brand = !value || value === "brand";
-  const segBtn = (active: boolean): CSSProperties => ({
-    padding: "3px 10px",
-    fontSize: "var(--font-size-12)",
-    fontWeight: "var(--font-weight-semibold)",
-    cursor: "pointer",
-    border: "none",
-    background: active ? "var(--bg-primary)" : "transparent",
-    color: active ? "var(--text-on-primary)" : "var(--text-secondary)",
-  });
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)", flexWrap: "wrap" }}>
-      <span>{label}</span>
-      <span style={{ display: "inline-flex", borderRadius: 999, border: "1px solid var(--border-default)", overflow: "hidden" }}>
-        <button type="button" style={segBtn(brand)} onClick={() => onChange("brand")}>Theme</button>
-        <button type="button" style={segBtn(!brand)} onClick={() => onChange(brand ? "#2f6fd6" : value)}>Custom</button>
-      </span>
+    <span className="tool-color tool-color--accent">
+      <Switch label={`${label}: match my theme`} checked={brand} onChange={(e) => onChange(e.target.checked ? "brand" : "#2f6fd6")} />
       {brand ? (
-        <span
-          title="Follows your brand theme (set it in the Theme tab)"
-          style={{ width: 34, height: 28, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--brand-primary)" }}
-        />
+        <span className="tool-color__brand" title="Your brand theme color (Account ▸ Theming)" aria-hidden />
       ) : (
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          style={{ width: 34, height: 28, border: "1px solid var(--border-default)", borderRadius: 6, background: "none", padding: 0, cursor: "pointer" }}
-        />
+        <ColorPicker variant="popover" allowCustom size="small" value={value} onChange={onChange} aria-label={label} />
       )}
     </span>
   );

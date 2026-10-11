@@ -61,7 +61,7 @@ export default function Page() {
 
       <h2>Choose an item set</h2>
       <p>
-        The <strong>Item Randomizer</strong> tab shows the game&apos;s 14 items, from Banana and Fake Item to Spiny Shell and Boo.
+        The <strong>Item Randomizer</strong>{" "}tab shows the game&apos;s 14 items, from Banana and Fake Item to Spiny Shell and Boo.
         Tap an item to turn it on or off, or set a number next to <strong>Random</strong> and press
         <strong> Randomize Items</strong> to get that many. <strong>Select All</strong> and <strong>Clear All</strong> reset the
         set, and the category buttons (<strong>Offensive</strong>, <strong>Defensive</strong>, <strong>Boost</strong>,
@@ -72,14 +72,14 @@ export default function Page() {
       <p>
         <strong>Save Complete Setup</strong> keeps your players, their characters, your race list and your item set together.
         Name it and press <strong>Save Setup</strong>. You need to be signed in. Saved setups are in <strong>Account</strong>{" "}
-        &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Setups &amp; Games</strong>; open one to load it back here, and the
-        button changes to <strong>Update:</strong> plus the setup&apos;s name so you can save over it. Battle courses aren&apos;t
+        &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Saved configs</strong>; open one to load it back here, and the
+        button changes to <strong>Update:</strong>{" "}plus the setup&apos;s name so you can save over it. Battle courses aren&apos;t
         saved.
       </p>
 
       <h2>On stream</h2>
       <p>
-        If you stream with GS Pro and your Twitch category is Mario Kart 64, viewers can type <code>!gs-shuffle</code> in chat to
+        If you stream with GS Pro and your Twitch category is Mario Kart 64, viewers can type <code>!gs-shuffle</code>{" "}in chat to
         roll a racer of their own. The lobby holds four, like the game&apos;s online room. Your own rolls show on your{" "}
         <a href="/help/streaming/obs-overlay">OBS overlay</a>. See the <a href="/help/streaming/chat-commands">chat command
         reference</a> for the rest.

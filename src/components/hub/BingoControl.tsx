@@ -9,7 +9,8 @@
  */
 
 import { useEffect, useState, useTransition } from "react";
-import { Button } from "@empac/cascadeds";
+import { Button, Select } from "@empac/cascadeds";
+import { Lever } from "./live/Lever";
 import {
   getBingoBoardAction,
   newBingoAction,
@@ -88,51 +89,28 @@ export function BingoControl() {
   const markedSet = new Set(board?.marked ?? []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-        <Button variant="secondary" onClick={() => setOpen((o) => !o)}>
-          🅱️ Bingo{board ? ` (${board.lines} line${board.lines === 1 ? "" : "s"})` : ""}
-        </Button>
-        {open && (
-          <>
-            <select
-              value={size}
-              onChange={(e) => setSize(Number(e.target.value))}
-              aria-label="Board size"
-              style={{
-                height: 36,
-                borderRadius: "var(--radius-8, 0.5rem)",
-                border: "1px solid var(--border-default)",
-                padding: "0 var(--spacing-8)",
-                background: "var(--surface-default)",
-                color: "var(--text-primary)",
-              }}
-            >
-              {SIZES.map((n) => (
-                <option key={n} value={n}>{n}×{n}</option>
-              ))}
-            </select>
-            <Button variant="primary" loading={pending} onClick={createBoard}>
-              {board ? "New board" : "Start board"}
-            </Button>
-            {board && (
-              <Button variant="ghost" onClick={clear} disabled={pending}>
-                Clear
-              </Button>
-            )}
-          </>
-        )}
-      </div>
-
+    <Lever
+      label="Bingo board"
+      hint={board ? `${board.lines} ${board.lines === 1 ? "line" : "lines"} so far` : undefined}
+      option={
+        <Select
+          size="small"
+          aria-label="Board size"
+          value={String(size)}
+          onChange={(v) => setSize(Number(v))}
+          options={SIZES.map((n) => ({ value: String(n), label: `${n}×${n}` }))}
+        />
+      }
+      actions={
+        <>
+          <Button variant="secondary" size="small" className="hub-lever__main" loading={pending} onClick={createBoard}>{board ? "New board" : "Start a board"}</Button>
+          {board && <Button variant="ghost" size="small" onClick={() => setOpen((o) => !o)}>{open ? "Hide the board" : "Mark squares"}</Button>}
+          {board && <Button variant="ghost" size="small" onClick={clear} disabled={pending}>Clear</Button>}
+        </>
+      }
+    >
       {open && board && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${board.size}, 1fr)`,
-            gap: 4,
-            maxWidth: 360,
-          }}
-        >
+        <div className="hub-lever__board" style={{ gridTemplateColumns: `repeat(${board.size}, 1fr)` }}>
           {board.squares.map((text, i) => {
             const isCenter = i === center;
             const isMarked = isCenter || markedSet.has(i);
@@ -143,22 +121,8 @@ export function BingoControl() {
                 onClick={() => !isCenter && toggleSquare(i)}
                 disabled={isCenter || pending}
                 title={text}
-                style={{
-                  aspectRatio: "1 / 1",
-                  padding: 4,
-                  borderRadius: 8,
-                  border: "1px solid var(--border-default)",
-                  background: isMarked ? "var(--bg-primary, #7c3aed)" : "var(--surface-default)",
-                  color: isMarked ? "var(--text-on-primary, #fff)" : "var(--text-primary)",
-                  fontSize: "var(--font-size-12)",
-                  fontWeight: 700,
-                  lineHeight: 1.05,
-                  cursor: isCenter ? "default" : "pointer",
-                  overflow: "hidden",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 4,
-                  WebkitBoxOrient: "vertical",
-                }}
+                aria-pressed={isMarked}
+                className={`hub-lever__square${isMarked ? " is-marked" : ""}`}
               >
                 {isCenter ? "★" : text}
               </button>
@@ -166,6 +130,6 @@ export function BingoControl() {
           })}
         </div>
       )}
-    </div>
+    </Lever>
   );
 }

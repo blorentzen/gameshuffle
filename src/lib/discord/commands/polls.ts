@@ -11,9 +11,8 @@
  * community runs one open poll at a time.
  */
 
-import { createServiceClient } from "@/lib/supabase/admin";
+import { guildOwner } from "@/lib/discord/guildOwner";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
-import { isProUser } from "@/lib/subscription-server";
 import { resolveIdentity } from "@/lib/economy/identity";
 import {
   castVote,
@@ -59,18 +58,11 @@ function canManage(interaction: Record<string, unknown>): boolean {
 async function ownerCommunityForGuild(
   guildId: string | null,
 ): Promise<{ ownerId: string; communityId: string; isPro: boolean } | null> {
-  if (!guildId) return null;
-  const { data } = await createServiceClient()
-    .from("users")
-    .select("id, subscription_tier, role")
-    .eq("discord_guild_id", guildId)
-    .maybeSingle();
-  const u = data as { id: string; subscription_tier: string | null; role: string | null } | null;
-  if (!u) return null;
-  const communityId = await resolveCommunityIdForOwner(u.id);
+  const owner = await guildOwner(guildId);
+  if (!owner) return null;
+  const communityId = await resolveCommunityIdForOwner(owner.ownerId);
   if (!communityId) return null;
-  const isPro = await isProUser(u.id);
-  return { ownerId: u.id, communityId, isPro };
+  return { ownerId: owner.ownerId, communityId, isPro: owner.isPro };
 }
 
 /** Chunk options into action rows of ≤5 buttons (Discord's per-row cap). */

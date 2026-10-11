@@ -1,16 +1,11 @@
 "use client";
 
 /**
- * Twitch Hub — embedded as a tab under /account. Accessed via
- * /account?tab=twitch-hub. The UserMenu dropdown links here after the
- * user has linked Twitch (via sign-in or account settings).
- *
- * Phase 4A scope: this tab is now strictly for **integration setup**.
- * Live operations (active session, recent shuffles, test-session control,
- * detected-category indicator) moved to /hub. The C.2 deferred decision
- * keeps Connection Status, Bot Check, Overlay Setup, Public Lobby toggle,
- * Feature Modules, and Channel Points config here until Phase 4B has a
- * dedicated configuration destination.
+ * Streaming ▸ Setup ▸ Twitch (/account/streaming?tab=integrations; the old
+ * twitch-hub id aliases here). Channel setup only: connection status, the
+ * bot check, the channel points reward and whether the lobby shows on the
+ * live page (moved here from the hub's session tabs, 2026-10-10). Anything
+ * about a stream itself runs from the Stream hub.
  *
  * Four states:
  *   - Not connected + free tier     → features list + Start-trial / Go-Pro CTAs
@@ -19,6 +14,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { ChannelPointsSettings, LiveLobbySetting } from "@/components/account/ChannelPointsSettings";
 import { useSearchParams } from "next/navigation";
 import { Alert, Badge, Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -67,7 +63,7 @@ const CONNECT_ERROR_MESSAGES: Record<string, string> = {
   state_mismatch: "Security check failed (state mismatch). Try connecting again.",
   token_exchange_failed: "Couldn't exchange the Twitch authorization code for a token.",
   db_write_failed: "Connection succeeded with Twitch, but we couldn't save it. Please retry.",
-  tier_gated: "Streamer integration requires the Pro plan. Coming soon.",
+  tier_gated: "The streamer integration is part of GS Pro. Start your 14-day trial below to connect.",
 };
 
 /**
@@ -113,6 +109,8 @@ export function TwitchHubTab() {
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
+  // Bumped after a change that the server writes (the channel points reward), to reload the connection.
+  const [reloadKey, setReloadKey] = useState(0);
   const [connection, setConnection] = useState<TwitchConnection | null>(null);
   const [subs, setSubs] = useState<EventSubSubRow[]>([]);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -178,7 +176,7 @@ export function TwitchHubTab() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, reloadKey]);
 
   // Auto-heal EventSub drift so the streamer isn't forced to click "Sync".
   // Fires once per mount, only when subs are actually unhealthy, and is
@@ -234,7 +232,7 @@ export function TwitchHubTab() {
     //
     //   Free + no link     → Step 1 (link in Profile, free) + Step 2 (upgrade to Pro)
     //   Free + linked      → "Twitch linked ✓" + Pro upsell to enable streamer integration
-    //   Pro  + no link     → "Link Twitch in Profile → Connections first"
+    //   Pro  + no link     → "Link Twitch first" (Settings ▸ Sign-in & security)
     //   Pro  + linked      → "Authorize streamer integration" CTA
     //
     // The basic Twitch OAuth identity link is FREE and lives in Profile →
@@ -245,12 +243,12 @@ export function TwitchHubTab() {
       <ul style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", lineHeight: "var(--line-height-relaxed)", marginBottom: "var(--spacing-20)", paddingLeft: "var(--spacing-20)", display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
         <li>
           <strong>Viewer lobby in your chat.</strong> Viewers type <code>!gs-join</code> to
-          enter the shuffle and <code>!gs-shuffle</code> to roll their own pick: a kart combo,
+          enter the shuffle and <code>!gs-shuffle</code>{" "}to roll their own pick: a kart combo,
           fighter, hero, weapon kit and more, for whichever supported game you&apos;re streaming.
           The lobby holds as many viewers as that game&apos;s online room.
         </li>
         <li>
-          <strong>Channel point redemptions.</strong> Optional &ldquo;Reroll the
+          <strong>Channel point redemptions.</strong>{" "}Optional &ldquo;Reroll the
           Streamer&rsquo;s Combo&rdquo; reward. Viewers spend points to make <em>you</em>{" "}
           shuffle. Cost is configurable; refunds happen automatically if you&rsquo;re between
           games.
@@ -265,7 +263,7 @@ export function TwitchHubTab() {
           MKW, MK8DX for MK8DX. Switch mid-stream and the bot announces the swap.
         </li>
         <li>
-          <strong>Public lobby viewer.</strong> Viewers can click a link from chat to see the
+          <strong>Public lobby viewer.</strong>{" "}Viewers can click a link from chat to see the
           full roster and everyone&rsquo;s current combo.
         </li>
       </ul>
@@ -292,7 +290,7 @@ export function TwitchHubTab() {
           </div>
         )}
 
-        {/* Step 1 — link Twitch (free, lives on Profile → Connections) */}
+        {/* Step 1: link Twitch (free, on Settings ▸ Sign-in & security) */}
         <div className="account-card">
           <h2 style={{ display: "flex", alignItems: "center" }}>
             <StepBadge n={1} done={isTwitchLinked} />
@@ -301,17 +299,15 @@ export function TwitchHubTab() {
           {isTwitchLinked ? (
             <p style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", margin: 0 }}>
               <strong style={{ color: "var(--success-ink)" }}>Linked as @{linkedTwitchName ?? "your Twitch account"}.</strong>{" "}
-              Manage this in <a href="/account?tab=profile" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>Profile → Connections</a>.
+              Manage it in <a href="/account?tab=security" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>Settings ▸ Sign-in &amp; security</a>.
             </p>
           ) : (
             <>
               <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
                 Free for everyone. Gives the platform your Twitch handle and avatar so the
-                bot can address you correctly. Lives in Profile → Connections.
+                bot can address you correctly.
               </p>
-              <a href="/account?tab=profile">
-                <Button variant="secondary">Link Twitch in Profile → Connections</Button>
-              </a>
+              <Button variant="secondary" onClick={() => { window.location.href = "/account?tab=security"; }}>Link Twitch</Button>
             </>
           )}
         </div>
@@ -348,8 +344,8 @@ export function TwitchHubTab() {
             </>
           ) : !isTwitchLinked ? (
             <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-              Complete step 1 first. Link your Twitch account in Profile → Connections, then
-              come back here to authorize the streamer integration.
+              Link your Twitch account first (step 1, on Settings ▸ Sign-in &amp; security),
+              then come back here to authorize the streamer integration.
             </p>
           ) : (
             <>
@@ -463,7 +459,7 @@ export function TwitchHubTab() {
   };
 
   const handleDisconnect = async () => {
-    if (!(await confirm({ title: "Disconnect Twitch from GameShuffle?", body: "Your chat commands, overlay events and session data from Twitch stop until you connect again.", confirmLabel: "Disconnect" }))) {
+    if (!(await confirm({ title: "Disconnect Twitch from GameShuffle?", body: "Your chat commands, overlay events and stream data from Twitch stop until you connect again.", confirmLabel: "Disconnect" }))) {
       return;
     }
     setDisconnecting(true);
@@ -494,12 +490,10 @@ export function TwitchHubTab() {
       )}
 
       <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
-        Looking for live sessions, shuffle history, or want to configure modules,
-        public lobby, and channel points?{" "}
+        Your streams themselves (going live, rolls, picks and bans) run from the{" "}
         <a href="/hub" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>
-          Visit your Hub →
-        </a>{" "}
-        Open a session and click <em>Configure</em> for the per-session settings.
+          Stream hub
+        </a>.
       </p>
 
       {/* Scope-coverage reauth banner — surfaces when we've added new
@@ -522,10 +516,9 @@ export function TwitchHubTab() {
                 moderator list so you can invite them to GameShuffle.
               </li>
               <li>
-                <strong>Auto-set Twitch category</strong>: scheduled
-                sessions with a pre-session announcement automatically
-                flip your stream to the right game category when the
-                announcement fires.
+                <strong>Auto-set Twitch category</strong>: a scheduled
+                stream with a heads-up switches your Twitch category to
+                the right game when the heads-up goes out.
               </li>
             </ul>
             <a
@@ -558,7 +551,7 @@ export function TwitchHubTab() {
                 display: "block",
                 marginTop: "var(--spacing-4)",
                 fontSize: "var(--font-size-12)",
-                color: "var(--text-tertiary)",
+                color: "var(--text-secondary)",
               }}
             >
               You&rsquo;ll be asked to authorize:{" "}
@@ -612,6 +605,13 @@ export function TwitchHubTab() {
           )}
         </div>
       </div>
+
+      <ChannelPointsSettings
+        enabled={!!connection.channel_points_enabled}
+        cost={connection.channel_point_cost ?? 500}
+        onChanged={() => setReloadKey((k) => k + 1)}
+      />
+      <LiveLobbySetting enabled={connection.public_lobby_enabled !== false} />
 
       {/* Bot Test */}
       <div className="account-card">

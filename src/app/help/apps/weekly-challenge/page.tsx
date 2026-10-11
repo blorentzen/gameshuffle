@@ -19,14 +19,29 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>The Weekly Challenge</h1>
       <p>
-        <Link href="/weekly">The Weekly Challenge</Link> is one challenge for everyone, new every Monday at midnight Pacific time. It has two
-        parts, and both count toward the same weekly leaderboard.
+        <Link href="/weekly">The Weekly Challenge</Link> is one challenge for everyone, new every Monday at midnight Pacific time. You need to be
+        signed in to play, and you can change your play until the week ends. Your play and the game-night mission below count toward
+        the same weekly leaderboard.
       </p>
 
-      <h2>The Tier War</h2>
+      <h2>Most weeks: the survey</h2>
       <p>
-        Everyone ranks the same six things from S to D: pizza toppings, Mario Kart items, characters and more. You need to be
-        signed in to play, and you can change your ranking until the week ends.
+        Most weeks the challenge is a <Link href="/chat-brain">Chat Brain</Link>{" "}question. Give your own answer, then, if you like,
+        guess up to three of the crowd&apos;s top answers. Guesses are optional: you can lock in with none, one, two or three.
+      </p>
+      <p>
+        On Monday the board is revealed, and each guess that&apos;s on it scores that answer&apos;s points: the more people who said
+        it, the more it&apos;s worth.
+      </p>
+      <p>
+        The week&apos;s question is also open in Chat Brain, and you get one answer either way. If you already answered it in Chat
+        Brain (on the site or in Discord), the Weekly starts with that answer filled in, and changing it here changes it there.
+      </p>
+
+      <h2>Other weeks: the Tier War</h2>
+      <p>
+        When there&apos;s no survey that week, everyone ranks the same six things from S to D instead: pizza toppings, Mario Kart
+        items, characters and more.
       </p>
       <p>
         The crowd&apos;s ranking is hidden until the next Monday, so nobody can copy it. Then every item lands in the tier most
@@ -50,7 +65,8 @@ export default function Page() {
       <h2>Play in Discord</h2>
       <p>
         In any server with the GameShuffle bot, type <code>/gs-weekly</code> and tap <strong>Play</strong>. On a survey week you
-        get a short form for your answer and up to three optional guesses; on a Tier War week, a menu for each item. Your play counts on
+        get a short form for your answer and up to three optional guesses; on a Tier War week, a menu for each item. You can also
+        play it in the GameShuffle Activity inside Discord (see <Link href="/help/community/discord-bot">the Discord Bot</Link>). Your play counts on
         the GameShuffle account you sign in to with Discord, so sign in with Discord once (or connect Discord under
         Account › Profile › Connections) and your score lands on the same leaderboard. <strong>Last week</strong> shows the
         reveal and your place.
@@ -58,9 +74,10 @@ export default function Page() {
 
       <h2>For streamers</h2>
       <p>
-        Route the <strong>Weekly Challenge</strong> category on your <strong>Discord Bot</strong> tab, and every Monday your server
+        Route the <strong>Weekly Challenge</strong> category on your <strong>Discord Bot</strong>{" "}tab, and every Monday your server
         gets a post with the new challenge, last week&apos;s winner and a <strong>Play</strong> button. It only posts if you
-        route it. Members with Manage Server can also post the card any time with <code>/gs-weekly</code>.
+        route it. Members with Manage Server can also post the card any time with <code>/gs-weekly</code>. As members of your
+        server play, the post updates with how many have answered there and their names.
       </p>
 
       <h2>Still need help?</h2>

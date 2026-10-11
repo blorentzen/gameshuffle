@@ -128,57 +128,23 @@ async function computeRow(communityId: string | null): Promise<SnapshotRow> {
   const p90 = pickPercentile(balances, 0.9);
   const p99 = pickPercentile(balances, 0.99);
 
-  // ---- Free mint volume (sum over grant/earn types)
-  const freeQuery = admin
-    .from("token_events")
-    .select("amount.sum()")
-    .in("type", FREE_MINT_TYPES as unknown as string[]);
-  if (communityId) freeQuery.eq("community_id", communityId);
-  const { data: freeRows } = await freeQuery;
-  const mintedFree = sumAmount(freeRows);
+  // ---- Flows by event type. PostgREST aggregates (`amount.sum()`) are off
+  // on our projects, so those queries came back empty and every flow read 0.
+  const totals = await typeTotals(communityId);
+  const sumOf = (types: readonly string[]) => types.reduce((acc, t) => acc + (totals.get(t)?.total ?? 0), 0);
 
-  // ---- Paid mint volume (award_mint only)
-  const paidQuery = admin
-    .from("token_events")
-    .select("amount.sum()")
-    .in("type", PAID_MINT_TYPES as unknown as string[]);
-  if (communityId) paidQuery.eq("community_id", communityId);
-  const { data: paidRows } = await paidQuery;
-  const mintedPaid = sumAmount(paidRows);
-
-  // ---- Burn volume (chaos_burn + negative event_delta).
-  // chaos_burn rows are always negative; sum and abs.
-  const burnQuery = admin
-    .from("token_events")
-    .select("amount.sum()")
-    .in("type", BURN_TYPES as unknown as string[]);
-  if (communityId) burnQuery.eq("community_id", communityId);
-  const { data: burnRows } = await burnQuery;
-  const chaosBurnVolume = Math.abs(sumAmount(burnRows));
-
-  // Negative event_delta contributions — sum of negative-amount
-  // event_delta rows. PostgREST can't express sum(filter) so we
-  // pull the raw aggregate of all event_delta and adjust if needed.
-  const eventNegQuery = admin
-    .from("token_events")
-    .select("amount.sum()")
-    .eq("type", "event_delta")
-    .lt("amount", 0);
-  if (communityId) eventNegQuery.eq("community_id", communityId);
-  const { data: eventNegRows } = await eventNegQuery;
-  const eventDeltaNeg = Math.abs(sumAmount(eventNegRows));
+  const mintedFree = sumOf(FREE_MINT_TYPES);
+  const mintedPaid = sumOf(PAID_MINT_TYPES);
+  // chaos_burn rows are always negative; sum and abs. Negative event_delta
+  // rows (an event that took tokens away) count as burned too.
+  const chaosBurnVolume = Math.abs(sumOf(BURN_TYPES));
+  const eventDeltaNeg = Math.abs(totals.get("event_delta")?.negative ?? 0);
 
   const burned = chaosBurnVolume + eventDeltaNeg;
   const netInflation = mintedFree + mintedPaid - burned;
 
   // ---- Wagered volume (markets only)
-  const wagerQuery = admin
-    .from("token_events")
-    .select("amount.sum()")
-    .in("type", WAGER_TYPES as unknown as string[]);
-  if (communityId) wagerQuery.eq("community_id", communityId);
-  const { data: wagerRows } = await wagerQuery;
-  const wageredVolume = Math.abs(sumAmount(wagerRows));
+  const wageredVolume = Math.abs(sumOf(WAGER_TYPES));
 
   return {
     community_id: communityId,
@@ -221,12 +187,40 @@ function pickPercentile(sorted: number[], q: number): number | null {
   return sorted[idx];
 }
 
-function sumAmount(rows: unknown): number {
-  if (!Array.isArray(rows) || rows.length === 0) return 0;
-  const row = rows[0] as { sum?: number | string | null };
-  const v = row.sum;
-  if (v === null || v === undefined) return 0;
-  return typeof v === "string" ? Number(v) : (v ?? 0);
+type TypeTotals = Map<string, { total: number; negative: number }>;
+
+/**
+ * Sum of `amount` per event type in scope, plus the sum of the negative
+ * amounts. Uses gs_token_type_totals (supabase/economy-type-totals-m1.sql);
+ * until that function exists it adds the rows up here, a page at a time.
+ */
+async function typeTotals(communityId: string | null): Promise<TypeTotals> {
+  const admin = createServiceClient();
+  const out: TypeTotals = new Map();
+  const { data, error } = await admin.rpc("gs_token_type_totals", { p_community_id: communityId });
+  if (!error && Array.isArray(data)) {
+    for (const r of data as { type: string; total: number | string | null; negative_total: number | string | null }[]) {
+      out.set(r.type, { total: Number(r.total ?? 0), negative: Number(r.negative_total ?? 0) });
+    }
+    return out;
+  }
+  const PAGE = 1000;
+  const MAX_ROWS = 500_000;
+  for (let from = 0; from < MAX_ROWS; from += PAGE) {
+    let q = admin.from("token_events").select("type, amount").order("id", { ascending: true }).range(from, from + PAGE - 1);
+    if (communityId) q = q.eq("community_id", communityId);
+    const { data: rows, error: pageError } = await q;
+    if (pageError || !rows?.length) break;
+    for (const r of rows as { type: string; amount: number | string }[]) {
+      const amount = Number(r.amount) || 0;
+      const cur = out.get(r.type) ?? { total: 0, negative: 0 };
+      cur.total += amount;
+      if (amount < 0) cur.negative += amount;
+      out.set(r.type, cur);
+    }
+    if (rows.length < PAGE) break;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------

@@ -35,6 +35,11 @@ interface BountyRow {
 
 interface Props {
   streamerSlug: string;
+  /** No heading of its own (the control room panel has one). */
+  bare?: boolean;
+  /** Show the prediction market. Off for games without market templates
+   *  (only Mario Kart has them), so those streams see bounties only. */
+  markets?: boolean;
 }
 
 const POLL_MS = 5_000;
@@ -45,7 +50,7 @@ const LOCK_MINUTE_OPTIONS = [
   { value: "5", label: "5 min" },
 ];
 
-export function MarketsAdminPanel({ streamerSlug }: Props) {
+export function MarketsAdminPanel({ streamerSlug, bare = false, markets = true }: Props) {
   const [market, setMarket] = useState<MarketState | null>(null);
   const [bounties, setBounties] = useState<BountyRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -176,14 +181,15 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
   };
 
   return (
-    <section className="hub-markets">
-      <h2 className="hub-markets__heading">Markets &amp; Bounties</h2>
+    <section className={`hub-markets${bare ? " hub-markets--bare" : ""}`}>
+      {/* bare: inside the control room's "Prediction and bounty" panel, which has its own heading. */}
+      {!bare && <h2 className="hub-markets__heading">Predictions and bounties</h2>}
       <p className="hub-markets__hint">
-        Tactile controls for prediction markets and streamer bounties.
-        Same actions as chat. Both surfaces share state.
+        The same as running them from chat; what you do here shows there too.
       </p>
 
       {/* ---- Market ---- */}
+      {markets && (
       <div className="hub-markets__group">
         <h3 className="hub-markets__group-heading">Market</h3>
         {!market && (
@@ -319,6 +325,7 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
           </div>
         )}
       </div>
+      )}
 
       {/* ---- Bounty ---- */}
       <div className="hub-markets__group">

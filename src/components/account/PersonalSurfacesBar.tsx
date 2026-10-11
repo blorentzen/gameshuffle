@@ -29,7 +29,7 @@ export function PersonalSurfacesBar({
   const surfaces = [
     { href: username ? `/u/${username}` : null, label: "Your profile", icon: IconUser, hint: "Background, links, layout and custom CSS" },
     { href: isStreamer && username ? `/live/${username}` : null, label: "Your live page", icon: IconBroadcast, hint: "What viewers see while you stream" },
-    { href: isStreamer ? "/account/streamer?tab=overlay-layout" : null, label: "Overlay layout", icon: IconLayout, hint: "The OBS overlay your theme skins" },
+    { href: isStreamer ? "/account/streaming?tab=overlay-layout" : null, label: "Overlay layout", icon: IconLayout, hint: "The OBS overlay your theme skins" },
   ].filter((s): s is { href: string; label: string; icon: typeof IconUser; hint: string } => !!s.href);
 
   if (surfaces.length === 0) return null;

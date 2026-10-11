@@ -55,15 +55,17 @@ export async function GET(request: Request) {
     const topic = await promptTopic(prompt.id);
     const { data: routes } = await admin.from("discord_channel_routes").select("user_id").eq("category", "chatbrain").limit(5000);
     let posted = 0;
-    for (const r of (routes ?? []) as { user_id: string }[]) {
+    // Routes are one row per server: post once per owner (postComponentsToCategory covers each of their servers).
+    const owners = [...new Set(((routes ?? []) as { user_id: string }[]).map((r) => r.user_id))];
+    for (const ownerUserId of owners) {
       const res = await postComponentsToCategory({
-        ownerUserId: r.user_id, category: "chatbrain", requireRoute: true,
+        ownerUserId, category: "chatbrain", requireRoute: true,
         embed: message.embeds[0], components: message.components,
       }).catch((err) => ({ ok: false as const, reason: String(err) }));
       if (res.ok) {
-        posted += 1;
-        await recordPromptPost({ messageId: res.messageId, channelId: res.channelId, guildId: res.guildId, topic, kind: "brain", ref: prompt.id, payload: { text: prompt.text, header: HEADER } });
-      } else console.warn("[cron/chat-brain-discord] post skipped:", r.user_id, res.reason);
+        posted += res.posts.length;
+        for (const post of res.posts) await recordPromptPost({ messageId: post.messageId, channelId: post.channelId, guildId: post.guildId, topic, kind: "brain", ref: prompt.id, payload: { text: prompt.text, header: HEADER } });
+      } else console.warn("[cron/chat-brain-discord] post skipped:", ownerUserId, res.reason);
     }
     await admin.from("brain_discord_posts").update({ servers: posted }).eq("posted_on", today);
     return NextResponse.json({ ok: true, posted, promptId: prompt.id });

@@ -71,7 +71,9 @@
   color: var(--text-secondary);
   margin: 0 0 var(--spacing-8);
 }
-.event-shell__presented a { color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-bold); }
+/* --brand-ink, not the button colour: it's the theme's text-safe shade, and the
+   button colour read 4.35:1 on the tinted page. */
+.event-shell__presented a { color: var(--brand-ink, var(--primary-ink-700)); font-weight: var(--font-weight-bold); }
 
 /* When / where facts with their affordances (calendar, map). */
 .event-shell__facts {
@@ -109,6 +111,11 @@
 
 .event-shell__layout { margin-top: var(--spacing-8); }
 .event-shell__main > .comp-card { margin-bottom: var(--spacing-20); }
+/* Cards inside the page's tabs (The night, Who's going…) sat flush: the rule
+   above only reaches direct children. :not([hidden]) so inactive panels stay
+   hidden (display would override the attribute). */
+.event-shell__main .empac-tabs__panel:not([hidden]) { display: flex; flex-direction: column; gap: var(--spacing-20); }
+.event-shell__main .empac-tabs__panel > .comp-card { margin: 0; }
 
 /* Organizer card */
 .event-shell__organizer-card { padding: var(--spacing-16) var(--spacing-20); }
@@ -126,6 +133,8 @@
 .event-shell__organizer-meta { font-size: var(--font-size-12); color: var(--text-secondary); }
 .event-shell__organizer-meta a { color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-semibold); text-decoration: none; }
 .event-shell__organizer-follow { flex: none; }
+/* An official event: GameShuffle's monogram where the host's avatar goes. */
+.event-shell__organizer-logo { width: 44px; height: 44px; flex: none; border-radius: 50%; object-fit: cover; }
 
 /* Good to know */
 .event-shell__h2 {
@@ -174,31 +183,11 @@
    so the row reads as one even band. */
 .event-shell__more-carousel .empac-carousel__slide > * { height: 100%; }
 
-/* Mobile jump bar → the action panel (which stacks under the body). */
-.event-shell__jump { display: none; }
 
 @media (max-width: 900px) {
   .event-shell__hero { height: 180px; }
   .event-shell__layout { grid-template-columns: minmax(0, 1fr); }
   .event-shell__aside { position: static; }
-  .event-shell { padding-bottom: calc(var(--spacing-64) + 3.5rem); }
-  .event-shell__jump {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    z-index: 30;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0.8rem 1rem;
-    border-radius: 999px;
-    background: var(--bg-primary, var(--primary-600));
-    color: var(--text-on-primary, #fff);
-    font-weight: var(--font-weight-bold);
-    text-decoration: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  }
 }
 
 /* Shared events browser additions (base card/filter styles live in game-nights.css) */
@@ -223,6 +212,11 @@
 .attendees__toolbar { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
 .attendees__stats { display: flex; gap: var(--spacing-16); flex-wrap: wrap; font-size: var(--font-size-14); color: var(--text-secondary); }
 .attendees__stats strong { color: var(--text-primary); }
+/* The organizer's Circuit plan is full: who's waiting and the upgrade. */
+.attendees__plan { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-subtle, var(--border-default)); border-radius: var(--gs-radius-md, 0.9rem); background: var(--background-secondary, var(--surface-raised)); }
+.attendees__plan-text { margin: 0; flex: 1 1 28rem; font-size: var(--font-size-14); color: var(--text-secondary); line-height: var(--line-height-relaxed); }
+.attendees__plan-text strong { color: var(--text-primary); }
+.attendees__plan-actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
 .attendees__actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
 .attendees__filters { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; gap: var(--spacing-8); }
 .attendees__table { overflow-x: auto; }

@@ -49,7 +49,7 @@ export function LiveActivityTab() {
         emptyState={
           <div>
             <strong>No activity yet</strong>
-            <div>Events from this session will appear here as they happen.</div>
+            <div>What happens on this stream shows here as it happens.</div>
           </div>
         }
       />

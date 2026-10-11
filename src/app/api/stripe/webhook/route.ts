@@ -10,6 +10,8 @@
  *   customer.subscription.deleted  → final cancellation; downgrade to Free
  *   invoice.paid                   → renewal; resync to pick up new period
  *   invoice.payment_failed         → status transitions to past_due
+ *   checkout.session.* / charge.refunded with metadata gs_kind "shop" → the
+ *                                    GameShuffle Shop (src/lib/store/orders.ts)
  *
  * Signature verified against STRIPE_WEBHOOK_SECRET. Delivery is
  * at-least-once; all handlers are idempotent.
@@ -23,6 +25,8 @@ import {
   upsertSubscriptionFromStripe,
 } from "@/lib/stripe/subscriptions";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { intervalForPrice, periodEndOf, subscriptionIdOf } from "@/lib/stripe/payload";
+import { fulfilShopSession, markShopRefund, releaseShopHolds } from "@/lib/store/orders";
 import {
   sendTrialStartedEmail,
   sendTrialEndingEmail,
@@ -55,13 +59,6 @@ async function getContactForUser(userId: string): Promise<{ email: string; name:
     console.warn("[stripe-webhook] getContactForUser failed:", err);
     return null;
   }
-}
-
-function intervalForPriceId(priceId: string | null | undefined): "monthly" | "annual" | undefined {
-  if (!priceId) return undefined;
-  if (priceId === process.env.STRIPE_PRICE_ID_MONTHLY) return "monthly";
-  if (priceId === process.env.STRIPE_PRICE_ID_ANNUAL) return "annual";
-  return undefined;
 }
 
 function formatAmount(cents: number | null | undefined): string | undefined {
@@ -148,6 +145,12 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+        // GameShuffle Shop order: handled first, and nothing below (tickets,
+        // subscriptions, the US-only backstop) ever sees it. Idempotent.
+        if (session.metadata?.gs_kind === "shop") {
+          if (!event.account) await fulfilShopSession(session.id);
+          break;
+        }
         const userId =
           (session.client_reference_id as string | null) ??
           (session.metadata?.gs_user_id as string | undefined) ??
@@ -202,10 +205,8 @@ export async function POST(request: Request) {
         // Circuit has no trial and its own lifecycle; skip the Pro-worded emails.
         const proEmails = result.product === "pro";
 
-        const periodEnd = (sub as Stripe.Subscription & { current_period_end?: number })
-          .current_period_end;
+        const periodEnd = periodEndOf(sub);
         const item = sub.items?.data?.[0];
-        const priceId = (item?.price?.id as string | null) ?? null;
         const amountCents = (item?.price?.unit_amount as number | null) ?? null;
 
         // Trial → active = trial converted into a paid subscription.
@@ -216,7 +217,7 @@ export async function POST(request: Request) {
               to: contact.email,
               name: contact.name,
               amount: formatAmount(amountCents),
-              interval: intervalForPriceId(priceId),
+              interval: intervalForPrice(item?.price),
               nextRenewalAt: periodEnd ? new Date(periodEnd * 1000) : undefined,
             }).catch((err) => console.error("[stripe-webhook] trial-converted email failed:", err));
           }
@@ -280,14 +281,13 @@ export async function POST(request: Request) {
           const contact = await getContactForUser(userId);
           if (contact) {
             const item = sub.items?.data?.[0];
-            const priceId = (item?.price?.id as string | null) ?? null;
             const amountCents = (item?.price?.unit_amount as number | null) ?? null;
             await sendTrialEndingEmail({
               to: contact.email,
               name: contact.name,
               trialEndsAt: new Date(sub.trial_end * 1000),
               amount: formatAmount(amountCents),
-              interval: intervalForPriceId(priceId),
+              interval: intervalForPrice(item?.price),
             }).catch((err) => console.error("[stripe-webhook] trial-ending email failed:", err));
           }
         }
@@ -296,14 +296,9 @@ export async function POST(request: Request) {
 
       case "invoice.paid":
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice & {
-          subscription?: string | Stripe.Subscription | null;
-        };
-        if (invoice.subscription) {
-          const subscriptionId =
-            typeof invoice.subscription === "string"
-              ? invoice.subscription
-              : invoice.subscription.id;
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = subscriptionIdOf(invoice);
+        if (subscriptionId) {
           const sub = await stripe.subscriptions.retrieve(subscriptionId);
           const result = await syncFromSubscription(sub);
 
@@ -376,13 +371,37 @@ export async function POST(request: Request) {
       }
 
       // A held seat whose Checkout expired goes back on sale.
+      // Delayed payment methods (a bank payment through Link) settle after
+      // checkout. Shop only; nothing else uses them.
+      case "checkout.session.async_payment_succeeded": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.gs_kind === "shop" && !event.account) await fulfilShopSession(session.id);
+        break;
+      }
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.gs_kind === "shop") await releaseShopHolds(session.id);
+        break;
+      }
+
       case "checkout.session.expired": {
         const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.gs_kind === "shop") {
+          await releaseShopHolds(session.id);
+          break;
+        }
         const orderId = session.metadata?.gs_order_id;
         if (orderId) {
           const { createServiceClient } = await import("@/lib/supabase/admin");
           await createServiceClient().from("gs_ticket_orders").update({ status: "expired", updated_at: new Date().toISOString() }).eq("id", orderId).eq("status", "held");
         }
+        break;
+      }
+
+      // A full refund on a shop order (from the Dashboard or admin) marks it
+      // refunded. Anything that isn't a shop order is ignored.
+      case "charge.refunded": {
+        if (!event.account) await markShopRefund(event.data.object as Stripe.Charge);
         break;
       }
 

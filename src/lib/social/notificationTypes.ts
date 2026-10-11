@@ -31,6 +31,8 @@ export const NOTIFICATION_TYPES = {
   tournament_update: { cds: "warning", invite: false },
   // Guest entries saved under a newly verified email (spec F): offered, never auto-linked.
   tournament_claim_offer: { cds: "info", invite: false },
+  // To the organizer: people joined the waitlist because the field is full on their Circuit plan.
+  tournament_plan_waitlist: { cds: "warning", invite: false },
   championship_invite: { cds: "success", invite: false },
   system: { cds: "system", invite: false },
   // Idea Board (spec §6.6) — all per-event, none actionable.

@@ -51,7 +51,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   const { data: t } = await supabase
     .from("tournaments")
-    .select("id, status, acceptance_mode, max_participants, settings")
+    .select("id, status, acceptance_mode, max_participants, settings, game_slug, organizer_id, created_at")
     .eq("id", id)
     .maybeSingle();
   if (!t) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -75,6 +75,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const decision = await joinDecision("tournament", id);
   if (decision === "paid") return NextResponse.json({ error: "paid" }, { status: 409 });
   if (decision !== "seat") return NextResponse.json({ error: "full", canWaitlist: decision === "waitlist" }, { status: 409 });
+  // The organizer's Circuit field size (no-op while Circuit billing is off).
+
 
   const { data: profile } = await supabase
     .from("users")

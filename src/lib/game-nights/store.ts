@@ -168,6 +168,7 @@ export async function listPublicNights(limit = 50): Promise<GameNight[]> {
     .select("*")
     .eq("visibility", "public")
     .eq("status", "scheduled")
+    .is("archived_at", null)
     .order("starts_at", { ascending: true, nullsFirst: false })
     .limit(limit);
   return (data as GameNight[] | null) ?? [];
@@ -186,6 +187,7 @@ export async function listNightsForCommunity(communityId: string, limit = 12): P
     .eq("community_id", communityId)
     .eq("visibility", "public")
     .eq("status", "scheduled")
+    .is("archived_at", null)
     .order("starts_at", { ascending: true, nullsFirst: false })
     .limit(limit);
   if (error) return [];

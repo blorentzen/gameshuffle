@@ -153,6 +153,20 @@ const BY_PREFIX: { prefix: string; intent: Intent }[] = [
     },
   },
   {
+    prefix: "/account?tab=plans",
+    intent: {
+      action: "start your GS Pro trial",
+      lede: "Free to make, and the trial is 14 days. Cancel any time before it ends.",
+      loginLede: "Sign in, then start your trial from Plans.",
+      points: [
+        "Chat rolls, the OBS overlay and live polls on stream",
+        "Server tools for your Discord",
+        "Your own brand theme on your profile and stream",
+        "No caps on saved setups or tournaments",
+      ],
+    },
+  },
+  {
     prefix: "/discord/add",
     intent: {
       action: "add GameShuffle to Discord",

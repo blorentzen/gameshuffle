@@ -11,7 +11,8 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Button } from "@empac/cascadeds";
+import { Button, Select } from "@empac/cascadeds";
+import { Lever } from "./live/Lever";
 import {
   clearWheelEntriesAction,
   spinWheelAction,
@@ -77,9 +78,15 @@ export function WheelControl() {
 
   if (wheels.length === 0) {
     return (
-      <Link href="/account/streamer?tab=wheels" className="hub-detail__header-link-action">
-        <Button variant="secondary">Set up a wheel</Button>
-      </Link>
+      <Lever
+        label="Wheel"
+        hint="No wheels yet"
+        actions={
+          <Link href="/account/streaming?tab=wheels" className="hub-detail__header-link-action">
+            <Button variant="secondary" size="small" className="hub-lever__main">Set up a wheel</Button>
+          </Link>
+        }
+      />
     );
   }
 
@@ -103,44 +110,29 @@ export function WheelControl() {
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
-      {wheels.length > 1 ? (
-        <select
-          value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-          aria-label="Wheel to spin"
-          style={{
-            height: 36,
-            borderRadius: "var(--radius-8, 0.5rem)",
-            border: "1px solid var(--border-default)",
-            padding: "0 var(--spacing-8)",
-            background: "var(--surface-default)",
-            color: "var(--text-primary)",
-          }}
-        >
-          {wheels.map((w) => (
-            <option key={w.id} value={w.id}>
-              {w.name}
-            </option>
-          ))}
-        </select>
-      ) : null}
-      <Button variant="primary" loading={pending} onClick={spin}>
-        🎡 Spin wheel
-      </Button>
-      {entryCount > 0 ? (
+    <Lever
+      label="Wheel"
+      hint={entryCount > 0 ? `${entryCount} from chat` : undefined}
+      option={
+        wheels.length > 1 ? (
+          <Select
+            size="small"
+            aria-label="Wheel to spin"
+            value={selected}
+            onChange={(v) => setSelected(String(v))}
+            options={wheels.map((w) => ({ value: w.id, label: w.name }))}
+          />
+        ) : (
+          <span className="hub-lever__fixed">{wheels[0].name}</span>
+        )
+      }
+      actions={
         <>
-          <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>
-            {entryCount} from chat
-          </span>
-          <Button variant="ghost" size="small" loading={pending} onClick={clear}>
-            Clear
-          </Button>
+          <Button variant="secondary" size="small" className="hub-lever__main" loading={pending} onClick={spin}>Spin the wheel</Button>
+          {entryCount > 0 && <Button variant="ghost" size="small" disabled={pending} onClick={clear}>Clear entries</Button>}
         </>
-      ) : null}
-      {result ? (
-        <span style={{ fontWeight: "var(--font-weight-semibold)" }}>→ {result}</span>
-      ) : null}
-    </div>
+      }
+      status={result ? <>Landed on <strong>{result}</strong></> : null}
+    />
   );
 }

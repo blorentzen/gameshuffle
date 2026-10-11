@@ -2,8 +2,8 @@
 
 /**
  * Background & skin editor (Brand & Theme tab) — the profile's background (none /
- * solid color / curated gradient / uploaded image) and card styling (border +
- * corner radius). Autosaves through /api/account/profile-skin, which re-validates
+ * solid color / curated gradient / uploaded image). Card border and corners
+ * were removed (custom CSS covers them). Autosaves through /api/account/profile-skin, which re-validates
  * the shape and re-checks the image origin server-side. Background images upload
  * to our R2 bucket; no external URLs are ever accepted.
  */
@@ -18,8 +18,6 @@ import {
   resolveProfileSkin,
   type ProfileSkin,
   type BackgroundKind,
-  type CardBorder,
-  type CardRadius,
   type BackgroundFit,
 } from "@/lib/profile/skin";
 
@@ -85,7 +83,6 @@ export function ProfileSkinEditor({ onChange, bare = false }: {
   useEffect(() => { if (!loading) onChange?.(skin); }, [skin, loading, onChange]);
 
   const setBg = (patch: Partial<ProfileSkin["bg"]>) => setSkin((s) => ({ ...s, bg: { ...s.bg, ...patch } }));
-  const setCard = (patch: Partial<ProfileSkin["card"]>) => setSkin((s) => ({ ...s, card: { ...s.card, ...patch } }));
 
   const onImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -170,25 +167,6 @@ export function ProfileSkinEditor({ onChange, bare = false }: {
         </div>
       )}
 
-      {/* Card style */}
-      <div style={{ display: "flex", gap: "var(--spacing-24)", flexWrap: "wrap", borderTop: "1px solid var(--border-subtle, var(--border-default))", paddingTop: "var(--spacing-16)" }}>
-        <div>
-          <span className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Card border</span>
-          <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
-            {(["subtle", "bold", "none"] as CardBorder[]).map((b) => (
-              <Button key={b} variant={skin.card.border === b ? "primary" : "secondary"} size="small" onClick={() => setCard({ border: b })}>{b[0].toUpperCase() + b.slice(1)}</Button>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Card corners</span>
-          <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
-            {(["sm", "md", "lg"] as CardRadius[]).map((r) => (
-              <Button key={r} variant={skin.card.radius === r ? "primary" : "secondary"} size="small" onClick={() => setCard({ radius: r })}>{r.toUpperCase()}</Button>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

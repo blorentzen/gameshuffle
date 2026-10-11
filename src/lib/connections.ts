@@ -14,6 +14,7 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { passwordFlag } from "@/lib/auth/passwordRules";
 
 export type ConnectionProvider = "discord" | "twitch" | "youtube";
 
@@ -101,7 +102,7 @@ export async function getConnections(userId: string): Promise<AccountConnections
   const appProviders = Array.isArray(adminUser.app_metadata?.providers)
     ? (adminUser.app_metadata!.providers as string[])
     : [];
-  const hasPassword = appProviders.includes("email");
+  const hasPassword = passwordFlag(adminUser.app_metadata) ?? appProviders.includes("email");
   const identities = adminUser.identities ?? [];
 
   const profile = (profileRes.data as { discord_avatar: string | null; twitch_avatar: string | null } | null) ?? null;

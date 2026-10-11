@@ -164,7 +164,6 @@ const STATUS_TABS: { id: string; label: string }[] = [
   { id: "open", label: "Registration" },
   { id: "in_progress", label: "In progress" },
   { id: "complete", label: "Completed" },
-  { id: "cancelled", label: "Cancelled" },
 ];
 
 export function EventsBrowser({ events, config, viewerPrefs = null }: { events: BrowseEvent[]; config: EventsBrowserConfig; viewerPrefs?: ViewerPrefs | null }) {
@@ -278,9 +277,12 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     if (coords && radius > 0) list = list.filter((r) => r.event.online || (r.distance != null && r.distance <= radius));
 
     const bySoon = (a: { event: BrowseEvent }, b: { event: BrowseEvent }) => {
+      const aPast = a.event.phase === "past", bPast = b.event.phase === "past";
+      // Results go after anything live or coming up, and newest first.
+      if (aPast !== bPast) return aPast ? 1 : -1;
       const av = a.event.starts_at ? Date.parse(a.event.starts_at) : Infinity;
       const bv = b.event.starts_at ? Date.parse(b.event.starts_at) : Infinity;
-      return when === "past" ? bv - av : av - bv;
+      return when === "past" || aPast ? bv - av : av - bv;
     };
     if (sort === "near") list.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity) || bySoon(a, b));
     else if (sort === "match") list.sort((a, b) => b.score - a.score || bySoon(a, b));
@@ -451,7 +453,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     const now = new Date();
     const out: { key: string; label: string; rows: typeof visible }[] = [];
     for (const r of visible) {
-      const label = bucketLabel(r.event.starts_at, now);
+      const label = r.event.phase === "past" ? "Recent results" : bucketLabel(r.event.starts_at, now);
       const last = out[out.length - 1];
       if (last && last.label === label) last.rows.push(r);
       else out.push({ key: label, label, rows: [r] });

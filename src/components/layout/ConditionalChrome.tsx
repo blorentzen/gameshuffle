@@ -27,6 +27,7 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/game-nights\/[^/]+\/display(\/|$)/,
   /^\/tournament\/[^/]+\/display(\/|$)/,
   /^\/party\/[^/]+\/tv(\/|$)/,
+  /^\/trivia\/tv\/[^/]+/,
 ];
 
 export function ConditionalChrome({ children }: { children: React.ReactNode }) {

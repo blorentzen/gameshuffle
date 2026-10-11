@@ -165,7 +165,7 @@ export function BannerUploader() {
             ) : null}
           </div>
           <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-            JPG, PNG, or WebP · position + zoom before saving · shown across the top of your public profile.
+            JPG, PNG or WebP. You can position and zoom it before saving. It runs across the top of your profile: phones show all of it, wide screens trim a little off the top and bottom.
           </p>
         </>
       )}

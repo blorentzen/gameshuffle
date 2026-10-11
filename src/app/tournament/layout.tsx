@@ -3,8 +3,12 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Tournaments",
   description: "Browse and join tournaments on GameShuffle: brackets, points, or the Heat \u2192 Mains ladder, for Mario Kart or any game you name. Find open competitions, view live brackets, and register.",
+  // Restated whole: a page's openGraph replaces the root one, site name included.
   openGraph: {
-    title: "Tournaments | GameShuffle",
+    siteName: "GameShuffle",
+    locale: "en_US",
+    type: "website",
+    title: "Tournaments",
     description: "Browse open tournaments for Mario Kart and any other game. Find competitions, view live brackets, and register.",
     url: "https://www.gameshuffle.co/tournament",
     images: [

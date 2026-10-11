@@ -11,8 +11,9 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Checkbox, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
+import { Checkbox, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   ANTHEM_MAX_DURATION_MS,
@@ -40,9 +41,8 @@ const ROLES: { value: AnthemRole; label: string }[] = [
   { value: "everyone", label: "Everyone" },
 ];
 
-export function ChannelAnthemSettings() {
+export function ChannelAnthemSettings({ bare = false }: { bare?: boolean } = {}) {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const toast = useToast();
 
   const [enabled, setEnabled] = useState(false);
@@ -52,7 +52,6 @@ export function ChannelAnthemSettings() {
   const [volume, setVolume] = useState(0.8);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [maxDurationSec, setMaxDurationSec] = useState(MAX_DUR_SEC);
-  const [dirty, setDirty] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,52 +76,33 @@ export function ChannelAnthemSettings() {
   }, [load]);
 
   function touch<T>(setter: (v: T) => void) {
-    return (v: T) => {
-      setter(v);
-      setDirty(true);
-    };
+    return (v: T) => setter(v);
   }
 
   function toggleRole(r: AnthemRole, on: boolean) {
     setRoles((prev) => (on ? [...new Set([...prev, r])] : prev.filter((x) => x !== r)));
-    setDirty(true);
   }
 
-  async function save() {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/account/anthem/policy", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enabled,
-          trigger,
-          eligibleRoles: roles,
-          allowCustom,
-          volume,
-          cooldownSeconds,
-          maxDurationMs: maxDurationSec * 1000,
-        }),
-      });
-      if (!res.ok) {
-        toast.error("Couldn't save your channel settings. Try again.");
-        return;
-      }
-      setDirty(false);
-      toast.success("Channel settings saved");
-    } finally {
-      setSaving(false);
-    }
-  }
+  // Saves itself a moment after a change (site-wide autosave).
+  const policy = { enabled, trigger, eligibleRoles: roles, allowCustom, volume, cooldownSeconds, maxDurationMs: maxDurationSec * 1000 };
+  useAutosave(policy, async (body) => {
+    const res = await fetch("/api/account/anthem/policy", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    if (!res?.ok) { toast.error("Couldn't save your channel settings. Try again."); return false; }
+    return true;
+  }, { ready: !loading, toast: "Walk-up settings saved" });
 
   return (
-    <div className="account-card">
-      <h2 className="account-tab__heading">Walk-Up Anthems</h2>
-      <p className="account-tab__intro">
-        Let your community walk out to their own song. Viewers set a personal
-        anthem on their profile; you decide whether it plays here, who gets one,
-        and how loud. <strong>Pro feature.</strong>
-      </p>
+    <div className={bare ? "anthem-policy" : "account-card"}>
+      {!bare && (
+        <>
+          <h2 className="account-tab__heading">Walk-Up Anthems</h2>
+          <p className="account-tab__intro">
+            Let your community walk out to their own song. Viewers set a personal
+            anthem on their profile; you decide whether it plays here, who gets one,
+            and how loud. <strong>Pro feature.</strong>
+          </p>
+        </>
+      )}
 
       {loading ? (
         <LoadingLines label="Loading" />
@@ -204,11 +184,6 @@ export function ChannelAnthemSettings() {
             </div>
           </div>
 
-          <div style={{ marginTop: "var(--spacing-20)" }}>
-            <Button variant="primary" loading={saving} disabled={!dirty} onClick={() => void save()}>
-              Save settings
-            </Button>
-          </div>
         </>
       )}
     </div>

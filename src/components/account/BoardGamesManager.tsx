@@ -12,7 +12,7 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
  * "Load my games" and the "From your collection" quick-add when hosting a night.
  * Autosaves on every change (debounced) so it stays in sync everywhere.
  */
-export function BoardGamesManager() {
+export function BoardGamesManager({ bare = false }: { bare?: boolean } = {}) {
   const toast = useToast();
   const [games, setGames] = useState<string[]>([]);
   const [input, setInput] = useState("");
@@ -59,12 +59,16 @@ export function BoardGamesManager() {
   };
 
   return (
-    <div className="account-mycards">
-      <h2 style={{ marginBottom: "var(--spacing-8)" }}>Board Games</h2>
-      <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-20)", maxWidth: "44rem" }}>
-        The games you own or play. Your Game Picker can draw from this, and it&rsquo;s one tap to add them when you host a{" "}
-        <Link href="/game-nights">game night</Link>.
-      </p>
+    <div className={bare ? "board-games-list" : "account-mycards"}>
+      {!bare && (
+        <>
+          <h2 style={{ marginBottom: "var(--spacing-8)" }}>Board Games</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-20)", maxWidth: "44rem" }}>
+            The games you own or play. Your Game Picker can draw from this, and it&rsquo;s one tap to add them when you host a{" "}
+            <Link href="/game-nights">game night</Link>.
+          </p>
+        </>
+      )}
 
       {migrationPending && (
         <p style={{ color: "var(--warning-ink)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>

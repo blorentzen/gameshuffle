@@ -7,8 +7,9 @@
  *   2. Exchange the code for an access token (Discord OAuth2 token
  *      endpoint). This also returns the `guild` payload — that's how
  *      we know which server the bot landed in.
- *   3. Persist `discord_guild_id` + `discord_guild_name` on the
- *      streamer's users row.
+ *   3. Add the server to the account (discord_guilds via addGuild): a
+ *      server another account has is refused, and so is a new server past
+ *      the plan's limit. Reinstalling into a connected server refreshes it.
  *   4. Redirect back to Account → Integrations with a success flash.
  *
  * The streamer still needs to pick a channel (and optional ping role)
@@ -19,7 +20,7 @@
 import { NextResponse } from "next/server";
 import { getBaseUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
+import { addGuild } from "@/lib/discord/guilds";
 
 export const runtime = "nodejs";
 
@@ -33,8 +34,8 @@ function appBaseUrl(): string {
 }
 
 function failureRedirect(reason: string): NextResponse {
-  const url = new URL(`${appBaseUrl()}/account`);
-  url.searchParams.set("tab", "integrations");
+  const url = new URL(`${appBaseUrl()}/account/streaming`);
+  url.searchParams.set("tab", "discord");
   url.searchParams.set("discord_install_error", reason);
   return NextResponse.redirect(url);
 }
@@ -128,24 +129,15 @@ export async function GET(request: Request) {
     return failureRedirect("no_guild_installed");
   }
 
-  // Persist routing on the streamer's users row. Channel + role stay
-  // null until the streamer picks them in the Account UI.
-  const admin = createServiceClient();
-  const { error: updateErr } = await admin
-    .from("users")
-    .update({
-      discord_guild_id: tokenPayload.guild.id,
-      discord_guild_name: tokenPayload.guild.name,
-    })
-    .eq("id", user.id);
-  if (updateErr) {
-    console.error("[discord-bot-install] users write failed:", updateErr);
-    return failureRedirect("db_write_failed");
-  }
+  // One row per server (discord_guilds): refuses a server another account
+  // has, and a new server past the plan's limit (1 free, 5 with GS Pro).
+  const added = await addGuild(user.id, tokenPayload.guild.id, tokenPayload.guild.name);
+  if (!added.ok) return failureRedirect(added.error);
 
-  const success = new URL(`${appBaseUrl()}/account`);
-  success.searchParams.set("tab", "integrations");
-  success.searchParams.set("discord_installed", "1");
+  const success = new URL(`${appBaseUrl()}/account/streaming`);
+  success.searchParams.set("tab", "discord");
+  success.searchParams.set("discord_installed", added.added ? "1" : "again");
+  success.searchParams.set("guild", added.guild.guildId);
   const response = NextResponse.redirect(success);
   // Clear the state cookie so a refresh of this URL doesn't re-trigger
   // a code reuse attempt.

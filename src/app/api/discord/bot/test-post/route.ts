@@ -18,21 +18,13 @@
 
 import "server-only";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { botServer } from "@/lib/discord/botServer";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { postEmbed } from "@/lib/adapters/discord/adapter";
 
 export const runtime = "nodejs";
 
-interface StreamerProfile {
-  display_name: string | null;
-  username: string | null;
-  twitch_username: string | null;
-  discord_guild_id: string | null;
-  discord_channel_id: string | null;
-}
-
-export async function POST() {
+export async function POST(request: Request) {
   // Kill switch — when the integration is paused process-wide, fail
   // the test cleanly. Surfaces "temporarily disabled" copy in the UI
   // rather than letting the streamer think their config is broken.
@@ -43,44 +35,26 @@ export async function POST() {
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json(
-      { ok: false, error: "unauthenticated" },
-      { status: 401 },
-    );
-  }
-
-  const admin = createServiceClient();
-  const { data } = await admin
-    .from("users")
-    .select(
-      "display_name, username, twitch_username, discord_guild_id, discord_channel_id",
-    )
-    .eq("id", user.id)
-    .maybeSingle();
-  const profile = data as StreamerProfile | null;
-  if (!profile?.discord_guild_id) {
-    return NextResponse.json(
-      { ok: false, error: "bot_not_installed" },
-      { status: 400 },
-    );
-  }
-  if (!profile.discord_channel_id) {
+  const ctx = await botServer(request);
+  if (!ctx.ok) return ctx.response;
+  if (!ctx.guild.defaultChannelId) {
     return NextResponse.json(
       { ok: false, error: "channel_not_configured" },
       { status: 400 },
     );
   }
+  const { data } = await createServiceClient()
+    .from("users")
+    .select("display_name, username, twitch_username")
+    .eq("id", ctx.userId)
+    .maybeSingle();
+  const profile = data as { display_name: string | null; username: string | null; twitch_username: string | null } | null;
 
   const streamerName =
-    profile.display_name ?? profile.username ?? profile.twitch_username ?? "Streamer";
+    profile?.display_name ?? profile?.username ?? profile?.twitch_username ?? "Streamer";
 
   const result = await postEmbed({
-    channelId: profile.discord_channel_id,
+    channelId: ctx.guild.defaultChannelId,
     embed: {
       title: "🎲 GameShuffle test post",
       description:

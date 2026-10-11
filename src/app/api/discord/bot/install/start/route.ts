@@ -26,6 +26,8 @@ import { NextResponse } from "next/server";
 import { getBaseUrl } from "@/lib/env";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
+import { isProUser } from "@/lib/subscription-server";
+import { listGuilds, serverLimit } from "@/lib/discord/guilds";
 
 export const runtime = "nodejs";
 
@@ -62,8 +64,17 @@ export async function GET(request: Request) {
     // Not signed in → bounce to login with a return-to so the user
     // lands back on Account → Integrations after auth.
     const loginUrl = new URL(`${appBaseUrl()}/login`);
-    loginUrl.searchParams.set("redirect", "/account?tab=integrations");
+    loginUrl.searchParams.set("redirect", "/account/streaming?tab=discord");
     return NextResponse.redirect(loginUrl);
+  }
+
+  // At the plan's server limit: say so here rather than after Discord's consent screen.
+  const [servers, isPro] = await Promise.all([listGuilds(user.id), isProUser(user.id)]);
+  if (servers.filter((g) => !g.removedAt).length >= serverLimit(isPro)) {
+    const url = new URL(`${appBaseUrl()}/account`);
+    url.searchParams.set("tab", "integrations");
+    url.searchParams.set("discord_install_error", "server_limit");
+    return NextResponse.redirect(url);
   }
 
   const clientId = process.env.DISCORD_APPLICATION_ID;

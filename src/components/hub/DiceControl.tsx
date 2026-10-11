@@ -7,7 +7,8 @@
  */
 
 import { useState, useTransition } from "react";
-import { Button } from "@empac/cascadeds";
+import { Button, Select } from "@empac/cascadeds";
+import { Lever } from "./live/Lever";
 import { rollDiceAction } from "@/app/hub/sessions/[slug]/actions";
 
 const COUNTS = [1, 2, 3, 4, 5, 6];
@@ -36,32 +37,19 @@ export function DiceControl() {
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
-      <select
-        value={count}
-        onChange={(e) => setCount(Number(e.target.value))}
-        aria-label="Number of dice"
-        style={{
-          height: 36,
-          borderRadius: "var(--radius-8, 0.5rem)",
-          border: "1px solid var(--border-default)",
-          padding: "0 var(--spacing-8)",
-          background: "var(--surface-default)",
-          color: "var(--text-primary)",
-        }}
-      >
-        {COUNTS.map((n) => (
-          <option key={n} value={n}>
-            {n} {n === 1 ? "die" : "dice"}
-          </option>
-        ))}
-      </select>
-      <Button variant="primary" loading={pending} onClick={roll}>
-        🎲 Roll dice
-      </Button>
-      {result ? (
-        <span style={{ fontWeight: "var(--font-weight-semibold)" }}>→ {result}</span>
-      ) : null}
-    </div>
+    <Lever
+      label="Dice"
+      option={
+        <Select
+          size="small"
+          aria-label="Number of dice"
+          value={String(count)}
+          onChange={(v) => setCount(Number(v))}
+          options={COUNTS.map((n) => ({ value: String(n), label: `${n} ${n === 1 ? "die" : "dice"}` }))}
+        />
+      }
+      actions={<Button variant="secondary" size="small" className="hub-lever__main" loading={pending} onClick={roll}>Roll the dice</Button>}
+      status={result ? <>Rolled <strong>{result}</strong></> : null}
+    />
   );
 }

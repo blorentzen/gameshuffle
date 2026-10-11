@@ -8,11 +8,14 @@
  *   !commands delete !socials
  *   !commands list
  *
- * Each row is registered into the in-memory CommandDef registry on
- * demand. The dispatcher's first chat-command hit per community
- * loads (or refreshes) all custom rows for that community. Aliases
- * are stamped with `cc:<community_id>:<trigger>` as the canonical
- * name so seed library + built-ins never collide.
+ * Each channel's rows live in their own in-memory table (not the shared
+ * built-in registry): the dispatcher loads (or refreshes) a community's
+ * rows on its first chat command and looks them up with
+ * `resolveCustomCommand(communityId, path)`. Until 2026-10-10 they went
+ * into the process-wide trigger index, so two channels with `!socials`
+ * could answer with each other's reply and the second failed to load.
+ * Built-ins win over a custom command with the same trigger. Canonical
+ * names stay `cc:<community_id>:<trigger>` (cooldowns key on them).
  *
  * Template variables resolved at render time:
  *   $user    — caller display name
@@ -37,12 +40,7 @@ import {
   renderTemplate as renderUnifiedTemplate,
   type TemplateContext,
 } from "@/lib/templates/resolver";
-import {
-  registerCommand,
-  unregisterCommand,
-  type ActorTier,
-  type CmdContext,
-} from "./registry";
+import type { ActorTier, CmdContext, CommandDef } from "./registry";
 
 // ---------------------------------------------------------------------------
 // Types + persistence
@@ -60,7 +58,18 @@ export interface CustomCommandRow {
 }
 
 const COMMUNITY_LOAD_CACHE = new Map<string, number>(); // community_id → ms
-const COMMUNITY_REGISTERED_NAMES = new Map<string, Set<string>>(); // community_id → set of registered canonical names
+/** community_id → trigger (no "!", lowercase) → its command. One table per channel. */
+const COMMUNITY_COMMANDS = new Map<string, Map<string, CommandDef>>();
+
+/** This channel's custom command for a typed path (custom triggers are one word). */
+export function resolveCustomCommand(communityId: string, path: ReadonlyArray<string>): CommandDef | null {
+  if (path.length !== 1) return null;
+  return COMMUNITY_COMMANDS.get(communityId)?.get(path[0].toLowerCase()) ?? null;
+}
+
+function forgetCustomCommand(communityId: string, trigger: string): void {
+  COMMUNITY_COMMANDS.get(communityId)?.delete(trigger.replace(/^!/, "").toLowerCase());
+}
 const CACHE_TTL_MS = 15_000;
 
 function canonicalName(communityId: string, trigger: string): string {
@@ -93,15 +102,10 @@ async function listForCommunity(
 // ---------------------------------------------------------------------------
 
 /**
- * Idempotent — re-loading the same community refreshes its rows
- * (re-registers triggers that exist, unregisters triggers that have
- * been deleted since last load). The dispatcher calls this with a
- * short TTL so a fresh `!commands add` shows up within ~15s without
- * a server restart.
- *
- * Per-community names are tracked in `COMMUNITY_REGISTERED_NAMES` so
- * the unregister pass touches only this community's entries — other
- * communities' custom commands stay registered.
+ * Idempotent: re-loading a community rebuilds its own table from the
+ * enabled rows, so deleted or switched-off commands drop out. The
+ * dispatcher calls this with a short TTL so a fresh `!commands add`
+ * shows up within ~15s. Other communities' tables are never touched.
  */
 export async function loadCustomCommandsForCommunity(
   communityId: string,
@@ -111,11 +115,14 @@ export async function loadCustomCommandsForCommunity(
   if (!options.force && Date.now() - lastLoad < CACHE_TTL_MS) return;
   COMMUNITY_LOAD_CACHE.set(communityId, Date.now());
 
-  const rows = await listForCommunity(communityId);
-  const nextNames = new Set<string>();
+  setCustomCommandTable(communityId, await listForCommunity(communityId));
+}
+
+/** Build and install one channel's table from its enabled rows (exported for tests). */
+export function setCustomCommandTable(communityId: string, rows: CustomCommandRow[]): void {
+  const next = new Map<string, CommandDef>();
   for (const row of rows) {
     const name = canonicalName(row.community_id, row.trigger);
-    nextNames.add(name);
     // Spec 01 §4 + §10 — custom commands auto-tag into the
     // `community` family with `communityType: "info"` by default
     // (most custom commands are link/response payloads — info-shaped).
@@ -129,9 +136,10 @@ export async function loadCustomCommandsForCommunity(
         : row.actor === "crew"
           ? "mod"
           : "viewer";
-    registerCommand({
+    const trigger = pathForTrigger(row.trigger);
+    next.set(trigger[0], {
       name,
-      trigger: pathForTrigger(row.trigger),
+      trigger,
       actor: row.actor,
       surface: ["chat"],
       economy: "none",
@@ -157,15 +165,8 @@ export async function loadCustomCommandsForCommunity(
       },
     });
   }
-
-  // Drop commands that have been disabled / deleted since last load.
-  const previous = COMMUNITY_REGISTERED_NAMES.get(communityId) ?? new Set<string>();
-  for (const name of previous) {
-    if (!nextNames.has(name)) {
-      unregisterCommand(name);
-    }
-  }
-  COMMUNITY_REGISTERED_NAMES.set(communityId, nextNames);
+  // Replace the whole table, so disabled / deleted rows drop out.
+  COMMUNITY_COMMANDS.set(communityId, next);
 }
 
 /** Force-refresh on the next dispatcher tick. Called after a
@@ -327,7 +328,7 @@ export async function deleteCustomCommand(args: {
     .eq("trigger", trigger);
   if (error) return { ok: false, reason: error.message };
   invalidateCustomCommandCache(args.communityId);
-  unregisterCommand(canonicalName(args.communityId, trigger));
+  forgetCustomCommand(args.communityId, trigger);
   return { ok: true };
 }
 
@@ -351,7 +352,7 @@ export async function deleteCustomCommandById(args: {
     .eq("id", args.id);
   if (error) return { ok: false, reason: error.message };
   invalidateCustomCommandCache(args.communityId);
-  if (trigger) unregisterCommand(canonicalName(args.communityId, trigger));
+  if (trigger) forgetCustomCommand(args.communityId, trigger);
   return { ok: true };
 }
 

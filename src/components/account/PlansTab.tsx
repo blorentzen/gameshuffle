@@ -18,7 +18,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button, Card } from "@empac/cascadeds";
+import { Alert, Badge, Button, Card } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isStaffRole } from "@/lib/subscription";
@@ -86,6 +86,8 @@ export function PlansTab() {
   // Organizer billing is still in preview. The ladder must say so rather than
   // offering paid buttons the marketing page contradicts.
   const [billingEnabled, setBillingEnabled] = useState(false);
+  // Organizers who ran tournaments before Circuit launched: free Circuit until then (Terms §3.4).
+  const [circuitGraceLabel, setCircuitGraceLabel] = useState<string | null>(null);
   // Initial flash reflects the ?checkout=success/canceled query param Stripe
   // bounces us back with. Read once at mount (lazy initializer) so we don't
   // need an effect that would trigger the "setState in effect" lint.
@@ -152,7 +154,11 @@ export function PlansTab() {
     let cancelled = false;
     fetch("/api/tournaments/billing-status")
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (!cancelled && j) setBillingEnabled(!!j.billingEnabled); })
+      .then((j) => {
+        if (cancelled || !j) return;
+        setBillingEnabled(!!j.billingEnabled);
+        setCircuitGraceLabel(j.graceUntil ? new Date(j.graceUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" }) : null);
+      })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -317,6 +323,7 @@ export function PlansTab() {
               onAnnualChange={setAnnual}
               currentTier={(userRow?.circuit_tier as CircuitTierId | null) ?? "free"}
               billingEnabled={billingEnabled}
+              graceLabel={circuitGraceLabel}
               busyTier={busyTier}
               onSubscribe={subscribeCircuit}
             />
@@ -372,23 +379,8 @@ function describeCircuitPlan(u: UserBillingRow | null): PlanDesc {
 }
 
 function StatusPill({ status }: { status: PlanStatus }) {
-  const bg: Record<PillTone, string> = {
-    active: "color-mix(in srgb, var(--success-500, #16a34a) 16%, var(--surface-default))",
-    trial: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))",
-    warn: "color-mix(in srgb, var(--warning-500, #d97706) 18%, var(--surface-default))",
-    muted: "var(--background-secondary)",
-  };
-  const fg: Record<PillTone, string> = {
-    active: "var(--success-700, #15803d)",
-    trial: "var(--primary-700, var(--primary-600))",
-    warn: "var(--warning-700, #b45309)",
-    muted: "var(--text-tertiary)",
-  };
-  return (
-    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: 999, background: bg[status.tone], color: fg[status.tone], whiteSpace: "nowrap" }}>
-      {status.label}
-    </span>
-  );
+  const variant: Record<PillTone, "success" | "info" | "warning" | "default"> = { active: "success", trial: "info", warn: "warning", muted: "default" };
+  return <Badge variant={variant[status.tone]} size="small">{status.label}</Badge>;
 }
 
 function PlanCard({ name, subtitle, status, rows, alert, learnMore, children }: { name: string; subtitle: string; status: PlanStatus; rows?: { label: string; value: string }[]; alert?: string; learnMore?: { href: string; label: string }; children?: React.ReactNode }) {
@@ -419,7 +411,7 @@ function PlanCard({ name, subtitle, status, rows, alert, learnMore, children }: 
 
       {learnMore && (
         <div style={{ marginTop: "var(--spacing-12)" }}>
-          <a href={learnMore.href} style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--bg-primary, var(--primary-600))", textDecoration: "none" }}>{learnMore.label} →</a>
+          <a href={learnMore.href} style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--brand-ink, var(--primary-600))", textDecoration: "none" }}>{learnMore.label} →</a>
         </div>
       )}
     </Card>

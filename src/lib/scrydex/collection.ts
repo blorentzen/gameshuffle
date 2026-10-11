@@ -44,6 +44,8 @@ export async function addToCollection(
   supabase: Supabase,
   userId: string,
   input: AddCardInput,
+  /** Most different cards allowed (free accounts); a new card past it is refused with "collection_full". */
+  limit?: number,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   const qty = Math.max(1, Math.floor(input.quantity ?? 1));
   const variant = input.variantName ?? null;
@@ -72,6 +74,11 @@ export async function addToCollection(
       .eq("user_id", userId);
     if (error) return { ok: false, reason: error.message };
     return { ok: true };
+  }
+
+  if (limit !== undefined) {
+    const { count } = await supabase.from("gs_user_cards").select("id", { count: "exact", head: true }).eq("user_id", userId);
+    if ((count ?? 0) >= limit) return { ok: false, reason: "collection_full" };
   }
 
   const { error } = await supabase.from("gs_user_cards").insert({

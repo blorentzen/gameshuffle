@@ -8,6 +8,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@empac/cascadeds";
+import { Lever } from "./live/Lever";
 import { askEightBallAction, truthOrDareAction } from "@/app/hub/sessions/[slug]/actions";
 
 export function OracleControl() {
@@ -31,19 +32,16 @@ export function OracleControl() {
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-      <Button variant="secondary" size="small" loading={pending} onClick={() => run(askEightBallAction)}>
-        🎱 8-Ball
-      </Button>
-      <Button variant="secondary" size="small" loading={pending} onClick={() => run(() => truthOrDareAction("truth"))}>
-        🗣️ Truth
-      </Button>
-      <Button variant="secondary" size="small" loading={pending} onClick={() => run(() => truthOrDareAction("dare"))}>
-        🔥 Dare
-      </Button>
-      {result ? (
-        <span style={{ fontWeight: "var(--font-weight-semibold)", maxWidth: 260 }}>→ {result}</span>
-      ) : null}
-    </div>
+    <Lever
+      label="8-ball, truth or dare"
+      actions={
+        <>
+          <Button variant="secondary" size="small" className="hub-lever__main" loading={pending} onClick={() => run(askEightBallAction)}>Ask the 8-ball</Button>
+          <Button variant="secondary" size="small" loading={pending} onClick={() => run(() => truthOrDareAction("truth"))}>Truth</Button>
+          <Button variant="secondary" size="small" loading={pending} onClick={() => run(() => truthOrDareAction("dare"))}>Dare</Button>
+        </>
+      }
+      status={result}
+    />
   );
 }

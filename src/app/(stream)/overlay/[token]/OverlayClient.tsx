@@ -23,6 +23,10 @@ import { PollOverlay, type PollOverlayPayload } from "@/components/overlay/PollO
 import { NumberBingoOverlay, type NumberBingoOverlayPayload } from "@/components/overlay/NumberBingoOverlay";
 import { DraftOverlay } from "@/components/overlay/DraftOverlay";
 import type { StreamDraftView } from "@/lib/drafts/store";
+import { ChatBrainOverlay } from "@/components/overlay/ChatBrainOverlay";
+import { BreakScreenOverlay } from "@/components/overlay/BreakScreenOverlay";
+import type { BreakView } from "@/lib/break/types";
+import type { StreamGameView } from "@/lib/chatbrain/streamGame";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay, type ViewerCountView } from "@/components/overlay/ViewerCountOverlay";
 import { AnthemPlayer, type AnthemEventPayload } from "@/components/overlay/AnthemPlayer";
@@ -109,6 +113,8 @@ interface ApiResponse {
   poll?: PollOverlayPayload | null;
   bingo?: NumberBingoOverlayPayload | null;
   draft?: StreamDraftView | null;
+  brain?: StreamGameView | null;
+  breakScreen?: BreakView | null;
   viewers?: ViewerCountView | null;
 }
 
@@ -241,6 +247,8 @@ export function OverlayClient({
   const [poll, setPoll] = useState<PollOverlayPayload | null>(null);
   const [bingo, setBingo] = useState<NumberBingoOverlayPayload | null>(null);
   const [draft, setDraft] = useState<StreamDraftView | null>(null);
+  const [brain, setBrain] = useState<StreamGameView | null>(null);
+  const [breakScreen, setBreakScreen] = useState<BreakView | null>(null);
   const [viewers, setViewers] = useState<ViewerCountView | null>(null);
   const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
   const [format, setFormat] = useState<OverlayFormat>("landscape");
@@ -403,6 +411,8 @@ export function OverlayClient({
         setPoll(data.poll ?? null);
         setBingo(data.bingo ?? null);
         setDraft(data.draft ?? null);
+        setBrain(data.brain ?? null);
+        setBreakScreen(data.breakScreen ?? null);
         setViewers(data.viewers ?? null);
         if (data.layouts) setLayouts(data.layouts);
         if (processToolEvents(data.overlayEvents, false) > 0) activity = true;
@@ -446,6 +456,8 @@ export function OverlayClient({
       setPoll(data.poll ?? null);
         setBingo(data.bingo ?? null);
         setDraft(data.draft ?? null);
+        setBrain(data.brain ?? null);
+        setBreakScreen(data.breakScreen ?? null);
       setViewers(data.viewers ?? null);
       if (data.layouts) setLayouts(data.layouts);
       processToolEvents(data.overlayEvents, true);
@@ -473,7 +485,7 @@ export function OverlayClient({
   //   - the shuffle card animation (existing)
   //   - the picks/bans status banner (new)
   // Either or both may be visible. Empty fragment when neither is active.
-  if (!active && !picksBans && !activeWheel && !events && !poll && !bingo && !draft && toolEvents.length === 0) return null;
+  if (!active && !picksBans && !activeWheel && !events && !poll && !bingo && !draft && !brain && !breakScreen && toolEvents.length === 0) return null;
 
   const slots: RollSlot[] = active ? rollSlots(active.combo) : [];
   // A viewer battle: one tile per player under a heading, in place of "{name} drew".
@@ -511,6 +523,12 @@ export function OverlayClient({
         <DraftOverlay draft={draft} style={placementStyle(format, "chat_draft", layouts[format])} />
       )}
 
+      {breakScreen && (breakScreen.show === "full" || isPlacementEnabled(format, "break_screen", layouts[format])) && (
+        <BreakScreenOverlay view={breakScreen} full={breakScreen.show === "full"} style={placementStyle(format, "break_screen", layouts[format])} />
+      )}
+      {brain && isPlacementEnabled(format, "chat_brain", layouts[format]) && (
+        <ChatBrainOverlay game={brain} style={placementStyle(format, "chat_brain", layouts[format])} />
+      )}
       {bingo && isPlacementEnabled(format, "number_bingo", layouts[format]) && (
         <NumberBingoOverlay bingo={bingo} style={placementStyle(format, "number_bingo", layouts[format])} />
       )}
