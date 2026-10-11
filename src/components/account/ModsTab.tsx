@@ -552,6 +552,7 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
           <div
             style={{
               display: "flex",
+              flexWrap: "wrap",
               gap: "var(--spacing-8)",
               alignItems: "center",
             }}
@@ -797,13 +798,7 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
             >
               By Twitch handle
             </label>
-            <div
-              style={{
-                display: "flex",
-                gap: "var(--spacing-8)",
-                alignItems: "flex-start",
-              }}
-            >
+            <div className="mods-add__row">
               <Input
                 placeholder="@username"
                 aria-label="Twitch handle"
@@ -828,13 +823,7 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
             >
               By Discord user ID
             </label>
-            <div
-              style={{
-                display: "flex",
-                gap: "var(--spacing-8)",
-                alignItems: "flex-start",
-              }}
-            >
+            <div className="mods-add__row">
               <Input
                 placeholder="123456789012345678"
                 aria-label="Discord user ID"

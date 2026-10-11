@@ -4,9 +4,10 @@
  *      open | lock | reveal | standings | next | end | judge (teamIds = a group's teams, verdict)
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { finishGame, hostView, judgeTeams, lockQuestion, nextQuestion, openQuestion, revealQuestion, showStandings, tick } from "@/lib/trivia/store";
 import { triviaHost } from "@/lib/trivia/host";
+import { announce } from "@/lib/trivia/stream";
 
 export const runtime = "nodejs";
 
@@ -43,5 +44,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
   if (!ok) return NextResponse.json({ ok: false, error: "not_now" }, { status: 409 });
   const fresh = await triviaHost(id);
+  // On stream, chat hears about it (after this responds). "Next" after the last question ends the night.
+  const said = body?.action === "open" ? "open" : body?.action === "reveal" ? "reveal"
+    : (body?.action === "end" || body?.action === "next") && fresh.ok && fresh.game?.status === "done" ? "end" : null;
+  if (said) after(() => announce(id, said).catch((err) => console.error("[trivia/live] announce failed:", err)));
   return NextResponse.json({ ok: true, view: fresh.ok ? await hostView(fresh.game!) : null });
 }

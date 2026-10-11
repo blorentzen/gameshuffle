@@ -73,7 +73,10 @@ export function TriviaConsole({ gameId }: { gameId: string }) {
     <div className="trivia-console">
       <div className="trivia-card trivia-console__head">
         <div>
-          <p className="trivia-muted">{view.status === "done" ? "Finished" : "Live"} · code <strong>{view.code}</strong> · {view.teamCount} team{view.teamCount === 1 ? "" : "s"}</p>
+          <p className="trivia-muted">
+            {view.status === "done" ? "Finished" : "Live"} · code <strong>{view.code}</strong> · {view.teamCount} {view.onStream ? "player" : "team"}{view.teamCount === 1 ? "" : "s"}
+            {view.onStream ? " · on your stream: chat answers with !a, viewers on your live page too" : ""}
+          </p>
           <h1 className="trivia-h2">{view.title}</h1>
         </div>
         <div className="trivia-row">
@@ -102,8 +105,9 @@ export function TriviaConsole({ gameId }: { gameId: string }) {
                 <p className="trivia-console__a">Answer: <strong>{view.current.answer}</strong>{view.current.accept.length ? <span className="trivia-muted"> · also {view.current.accept.join(", ")}</span> : null}</p>
               </>
             )}
-            {view.phase === "lobby" && <p className="trivia-muted">{view.teamCount === 0 ? `Waiting for teams. They join at gameshuffle.co/trivia with code ${view.code}.` : "Ready when you are."}</p>}
-            {view.phase === "question" && <p className="trivia-console__clock">{left}s · {view.answeredCount} of {view.teamCount} teams answered</p>}
+            {view.phase === "lobby" && <p className="trivia-muted">{view.onStream ? "Open the question when you're ready: it goes to your chat and your overlay's Trivia piece." : view.teamCount === 0 ? `Waiting for teams. They join at gameshuffle.co/trivia with code ${view.code}.` : "Ready when you are."}</p>}
+            {view.phase === "question" && <p className="trivia-console__clock">{left}s · {view.answeredCount}{view.onStream ? "" : ` of ${view.teamCount} teams`} answered</p>}
+            {view.phase === "question" && view.onStream && <p className="trivia-muted">Answers keep counting 5 seconds after the clock, for stream delay.</p>}
             {view.phase === "standings" && <p className="trivia-muted">The TV is showing the standings.</p>}
 
             {(view.phase === "locked" || view.phase === "reveal") && (
@@ -135,7 +139,8 @@ export function TriviaConsole({ gameId }: { gameId: string }) {
           <div className="trivia-card">
             <h2 className="trivia-h3">Standings</h2>
             <Standings rows={view.standings} />
-            {view.phase === "question" && (
+            {/* On stream every viewer is a team, so the who-answered list is left to the count above. */}
+            {view.phase === "question" && !view.onStream && (
               <ul className="trivia-teamlist">
                 {view.teams.map((t) => <li key={t.name} className={t.answered ? "is-in" : ""}>{t.answered ? "✓ " : ""}{t.name}</li>)}
               </ul>

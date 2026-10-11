@@ -72,7 +72,8 @@
 .viewer-balance__hint {
   font-weight: var(--font-weight-medium);
   font-size: var(--font-size-12);
-  color: var(--text-tertiary);
+  /* Secondary, not tertiary: tertiary failed AA contrast on the pill (axe, 2026-10-11). */
+  color: var(--text-secondary);
 }
 
 .live-page__streamer {
@@ -2574,12 +2575,53 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .cb-stream__meta { font-size: var(--font-size-14); margin: 0 0 var(--spacing-8); }
 .cb-stream__overrule { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin-top: var(--spacing-12); }
 .cb-stream__time { max-width: 32rem; margin-top: var(--spacing-12); }
+.cb-stream__mode { max-width: 40rem; margin-bottom: var(--spacing-12); }
+/* 1v1 and Teams console. Side colours match the overlay (blue, orange, chat violet). */
+.cb-versus__badges { display: inline-flex; gap: var(--spacing-6); }
+.cb-versus__scores { display: flex; flex-wrap: wrap; gap: var(--spacing-8); margin: 0 0 var(--spacing-12); }
+.cb-versus__side { flex: 1 1 14rem; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); padding: var(--spacing-8) var(--spacing-12); border: 2px solid var(--border-default); border-left-width: 6px; border-radius: var(--radius-8, 8px); }
+.cb-versus__side--1 { border-left-color: #3b82f6; }
+.cb-versus__side--2 { border-left-color: #f97316; }
+.cb-versus__side--3 { flex: 0 1 auto; border-left-color: #a855f7; }
+.cb-versus__side--3 .cb-versus__name { flex: 0 0 auto; }
+.cb-versus__side.is-control { border-color: var(--brand-ink, var(--text-primary)); border-left-color: inherit; }
+.cb-versus__side--1.is-control { border-left-color: #3b82f6; }
+.cb-versus__side--2.is-control { border-left-color: #f97316; }
+.cb-versus__name { flex: 1 1 6rem; font-weight: 700; font-size: var(--font-size-14); overflow-wrap: break-word; min-width: 0; }
+.cb-versus__score { margin-left: auto; font-weight: 800; font-size: var(--font-size-20); font-variant-numeric: tabular-nums; }
+.cb-versus__strikes { display: flex; gap: var(--spacing-4); }
+.cb-versus__strikes span { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: var(--radius-4, 4px); font-size: var(--font-size-12); font-weight: 900; background: var(--bg-secondary); color: var(--text-tertiary); }
+.cb-versus__strikes span.is-on { background: #c62a2f; color: #fff; }
+.cb-stream__board li.is-by-1 { border-left: 4px solid #3b82f6; }
+.cb-stream__board li.is-by-2 { border-left: 4px solid #f97316; }
+.cb-stream__board li.is-by-3 { border-left: 4px solid #a855f7; }
+.cb-versus__prompt { font-size: var(--font-size-16); font-weight: 600; margin: 0 0 var(--spacing-12); }
+.cb-versus__answer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin: 0 0 var(--spacing-12); }
+.cb-versus__answer > :first-child { flex: 1 1 22rem; min-width: 0; }
+.cb-versus__sides { display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); gap: var(--spacing-12); }
+.cb-versus__side-fields { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.cb-versus__controls { margin-top: var(--spacing-12); }
+/* Survey rounds on the dashboard: one row per group of two or more, with merge picks and Hide. */
+.cb-survey__groups { list-style: none; margin: 0 0 var(--spacing-8); padding: 0; display: flex; flex-direction: column; gap: var(--spacing-6); }
+.cb-survey__group { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto auto; align-items: center; gap: var(--spacing-8); padding: var(--spacing-6) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); font-size: var(--font-size-14); }
+.cb-survey__group.is-hidden .cb-survey__label { color: var(--text-tertiary); text-decoration: line-through; }
+.cb-survey__label { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.cb-survey__count { font-weight: 800; font-variant-numeric: tabular-nums; }
+.cb-survey__where { font-size: var(--font-size-12); color: var(--text-secondary); white-space: nowrap; }
+@media (max-width: 30em) { .cb-survey__group { grid-template-columns: auto minmax(0, 1fr) auto; } .cb-survey__where { grid-column: 2; } }
 .brain-admin__tools { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
 .brain-admin__actions { align-items: center; }
 .originals-admin__bars li { min-height: 2.4rem; }
 
 /* Break mode on the live page (LiveBreakCard), inside the live-poll card frame. */
 .live-break { display: grid; gap: var(--spacing-12, 12px); }
+/* Trivia on the live page (shares the break card's layout). */
+.live-trivia__pic { display: block; max-width: 100%; max-height: 24rem; border-radius: var(--radius-8, 8px); object-fit: contain; }
+.live-trivia__standings { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-4); counter-reset: trivia; }
+.live-trivia__standings li { counter-increment: trivia; display: flex; justify-content: space-between; gap: var(--spacing-8); font-size: var(--font-size-14); }
+.live-trivia__standings li span { min-width: 0; overflow-wrap: anywhere; }
+.live-trivia__standings li span::before { content: counter(trivia) ". "; color: var(--text-secondary); }
+.live-trivia__standings li b { font-variant-numeric: tabular-nums; }
 .live-break__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--spacing-12, 12px); }
 .live-break__title { margin: 0; font-size: var(--font-size-18); }
 .live-break__clock { font-weight: 800; font-variant-numeric: tabular-nums; }

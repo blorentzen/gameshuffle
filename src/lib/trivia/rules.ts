@@ -48,6 +48,13 @@ export interface TriviaRound {
 }
 
 export const MAX_TEAMS = 40;
+/** On stream: viewers each play as their own team, up to this many a night. */
+export const MAX_VIEWERS = 3000;
+/** On stream, answers keep counting this long after the countdown (viewers see the stream a few seconds late). */
+export const STREAM_GRACE_MS = 5000;
+/** Viewer teams (stream) have secrets that start with this; a phone team's random secret never can (base64url has no dot). */
+export const VIEWER_SECRET_PREFIX = "v1.";
+export const isViewerSecret = (secret: string) => secret.startsWith(VIEWER_SECRET_PREFIX);
 export const FINAL_WAGER_MAX = 20;
 export const ANSWER_MAX = 120;
 export const SECONDS = [20, 30, 45, 60, 90] as const;
@@ -175,6 +182,14 @@ export interface TemplateRound { title: string; style: RoundStyle; count: number
 export interface TriviaTemplate { id: string; label: string; blurb: string; familySafe: boolean; rounds: TemplateRound[] }
 
 export const TEMPLATES: TriviaTemplate[] = [
+  {
+    id: "stream", label: "On stream", blurb: "Three rounds of 6 for your chat: no wagers, 45 seconds a question so stream delay doesn't matter. About 25 minutes.", familySafe: true,
+    rounds: [
+      { title: "Warm-up", style: "classic", count: 6 },
+      { title: "Picture round", style: "picture", count: 6 },
+      { title: "Gaming", style: "classic", count: 6 },
+    ],
+  },
   {
     id: "party", label: "Party", blurb: "Five rounds of 8 with a picture round, a confidence round and a final wager. About 75 minutes.", familySafe: false,
     rounds: [

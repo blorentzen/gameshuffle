@@ -2702,3 +2702,14 @@ button.picks-bans__result-chip {
 .mod-join__steps .is-done { color: var(--text-secondary); }
 .mod-join__actions { display: flex; flex-direction: column; gap: var(--spacing-8); align-items: flex-start; }
 .mod-join__note { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+
+/* Control room ▸ Challenges window (ChallengesModal): settle chaos challenges, "Who did it?" */
+.hub-challenges__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.hub-challenges__row { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; padding: var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); }
+.hub-challenges__text { min-width: 0; flex: 1 1 16rem; display: flex; flex-direction: column; gap: var(--spacing-4); }
+.hub-challenges__title { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.hub-challenges__meta { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-4); }
+.hub-challenges__actions { display: flex; gap: var(--spacing-6, 6px); flex-wrap: wrap; }
+.hub-challenges__lead { margin: 0 0 var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.hub-challenges__empty { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.hub-challenges__people { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: var(--spacing-8) var(--spacing-16); max-height: 24rem; overflow-y: auto; }

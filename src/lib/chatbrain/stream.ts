@@ -26,6 +26,7 @@ import { sendChatMessage } from "@/lib/twitch/client";
 import { isBlockedText } from "@/lib/text/filter";
 import { MAX_ANSWER_LENGTH, autoGroup, normalize } from "./rules";
 import { ChatBrainNotReady, promptNeedingAnswers } from "./store";
+import { parseAsk, type SurveyStyle } from "./surveyRules";
 
 export const SURVEY_SECONDS = { min: 30, max: 180, default: 60 } as const;
 const OWN_QUESTION_CATEGORY = "streaming";
@@ -75,17 +76,22 @@ export function forgetChannel(broadcasterId: string): void {
 }
 
 /**
- * Open a game's guess window. It opens `delayMs` from now (the beat after a
- * reveal, or the question's first look) and runs `seconds` from then.
- * Null if the channel already has an open window.
+ * Open a game's window. It opens `delayMs` from now (the beat after a reveal,
+ * or the question's first look) and runs `seconds` from then. In Chat plays
+ * every window is a `guess` by chat; in 1v1 and Teams each player turn
+ * (`faceoff`, `guess`, `steal`) is a window too, collecting chat's shadow
+ * guesses while the side answers, and `last_steal` is chat's own. `meta`
+ * starts the window's record (brain_stream_windows.answer). Null if the
+ * channel already has an open window.
  */
 export async function openGuessWindow(input: {
-  gameId: string; communityId: string; broadcasterId: string; boardId: string; team: number; seconds: number; delayMs: number;
+  gameId: string; communityId: string; broadcasterId: string; boardId: string; team: number | null; seconds: number; delayMs: number;
+  kind?: "guess" | "faceoff" | "steal" | "last_steal"; meta?: Record<string, unknown>;
 }): Promise<StreamWindow | null> {
   const opens = Date.now() + input.delayMs;
   const { data, error } = await createServiceClient().from("brain_stream_windows").insert({
-    game_id: input.gameId, community_id: input.communityId, broadcaster_id: input.broadcasterId, kind: "guess",
-    team: input.team, board_id: input.boardId, seconds: input.seconds,
+    game_id: input.gameId, community_id: input.communityId, broadcaster_id: input.broadcasterId, kind: input.kind ?? "guess",
+    team: input.team, board_id: input.boardId, seconds: input.seconds, answer: input.meta ?? null,
     opens_at: new Date(opens).toISOString(), closes_at: new Date(opens + input.seconds * 1000).toISOString(),
   }).select(WINDOW_COLS).single();
   if (error || !data) {
@@ -119,30 +125,33 @@ export async function openWindowFor(broadcasterId: string, opts: { fresh?: boole
 // ─── opening a survey ────────────────────────────────────────────────────────
 
 export type OpenSurveyResult =
-  | { ok: true; window: StreamWindow; prompt: { id: string; text: string; own: boolean } }
+  | { ok: true; window: StreamWindow; prompt: { id: string; text: string; own: boolean }; style: SurveyStyle }
   | { ok: false; error: "window_open" | "no_questions" | "not_pro" | "bad_question" | "blocked" | "not_ready" | "failed" };
 
 /**
- * `!cb ask [seconds] [category | own question]`. A category (slug or name) or
- * nothing picks the public question that most needs answers; anything else is
- * the streamer's own question, which needs GS Pro.
+ * `!cb ask [seconds] [hidden] [category | own question]`, or the dashboard's
+ * form (`seconds`, `style` and either `category` or `question`). A category
+ * (slug or name) or nothing picks the public question that most needs answers;
+ * anything else is the streamer's own question, which needs GS Pro and becomes
+ * a board at the close (survey.ts). Own questions show their answers live
+ * unless "hidden"; public ones always stay hidden.
  */
 export async function openSurvey(input: {
-  communityId: string; broadcasterId: string; ownerUserId: string; arg: string; isPro: boolean;
+  communityId: string; broadcasterId: string; ownerUserId: string; isPro: boolean;
+  arg?: string; seconds?: number; style?: SurveyStyle; category?: string | null; question?: string | null;
 }): Promise<OpenSurveyResult> {
   const svc = createServiceClient();
-  let rest = input.arg.trim().replace(/\s+/g, " ");
-  let seconds: number = SURVEY_SECONDS.default;
-  const lead = rest.match(/^(\d{2,3})s?(?:\s+|$)/);
-  if (lead) {
-    seconds = Math.min(SURVEY_SECONDS.max, Math.max(SURVEY_SECONDS.min, Number(lead[1])));
-    rest = rest.slice(lead[0].length).trim();
-  }
+  const parsed = input.arg !== undefined ? parseAsk(input.arg) : { seconds: null, style: null, rest: "" };
+  let rest = input.arg !== undefined ? parsed.rest : (input.question ?? input.category ?? "").trim().replace(/\s+/g, " ");
+  const forceOwn = input.arg === undefined && !!input.question;
+  const askedSeconds = input.seconds ?? parsed.seconds ?? SURVEY_SECONDS.default;
+  const seconds = Math.min(SURVEY_SECONDS.max, Math.max(SURVEY_SECONDS.min, Math.round(askedSeconds)));
 
   const { data: cats, error: catErr } = await svc.from("brain_categories").select("slug, name");
   if (notReady(catErr)) return { ok: false, error: "not_ready" };
   const key = rest.toLowerCase();
-  const cat = ((cats ?? []) as { slug: string; name: string }[]).find((c) => c.slug === key || c.name.toLowerCase() === key);
+  const cat = forceOwn ? undefined : ((cats ?? []) as { slug: string; name: string }[]).find((c) => c.slug === key || c.name.toLowerCase() === key);
+  if (input.arg === undefined && !input.question) rest = cat ? rest : "";
 
   let prompt: { id: string; text: string; own: boolean };
   try {
@@ -166,17 +175,19 @@ export async function openSurvey(input: {
     throw err;
   }
 
+  const style: SurveyStyle = prompt.own ? input.style ?? parsed.style ?? "live" : "hidden";
   const now = Date.now();
   const { data: row, error } = await svc.from("brain_stream_windows").insert({
     community_id: input.communityId, broadcaster_id: input.broadcasterId, kind: "survey", prompt_id: prompt.id,
     seconds, opens_at: new Date(now).toISOString(), closes_at: new Date(now + seconds * 1000).toISOString(),
+    answer: { style, hidden: [], merges: [], ai: null },
   }).select(WINDOW_COLS).single();
   if (notReady(error)) return { ok: false, error: "not_ready" };
   if (error?.code === "23505") return { ok: false, error: "window_open" };
   if (error || !row) return { ok: false, error: "failed" };
   const window = toWindow(row as WindowRow);
   cache.set(input.broadcasterId, { at: Date.now(), window });
-  return { ok: true, window, prompt };
+  return { ok: true, window, prompt, style };
 }
 
 // ─── guesses ─────────────────────────────────────────────────────────────────
@@ -215,6 +226,9 @@ export interface CloseSummary {
   own: boolean;
   question: string | null;
   top: { label: string; count: number }[];
+  /** Survey rounds: live or hidden, and whether a board came out of it. */
+  style?: SurveyStyle;
+  board?: { made: boolean; reason: string | null; size: number } | null;
 }
 
 export type GuessRow = { platform: Platform; viewer: string; name: string | null; raw: string; normalized: string; created_at: string };
@@ -266,15 +280,33 @@ export async function closeWindow(windowId: string, opts: { announce?: boolean }
     });
   }
 
-  // Chat's top answers: groups of 2 or more viewers, biggest first.
-  const { groups } = autoGroup(guesses.map((g, i) => ({ id: String(i), raw: g.raw, normalized: g.normalized })));
-  const top = groups.filter((g) => g.count >= 2).slice(0, 3).map((g) => ({ label: g.label, count: g.count }));
+  // The round's groups (spelling, the AI pass, the host's merges and hides) and,
+  // for the channel's own question, the board (survey.ts).
+  let top: { label: string; count: number }[];
+  let record: Record<string, unknown>;
+  let style: SurveyStyle | undefined;
+  let board: CloseSummary["board"] = null;
+  if (window.kind === "survey") {
+    const { data: owner } = await svc.from("gs_communities").select("owner_user_id").eq("id", window.communityId).maybeSingle();
+    const { finishSurvey } = await import("./survey");
+    const done = await finishSurvey(window, guesses, (owner as { owner_user_id: string | null } | null)?.owner_user_id ?? null)
+      .catch((err) => { console.error("[chatbrain/stream] survey finish failed:", err); return null; });
+    const { shownGroups } = await import("./surveyRules");
+    top = done ? shownGroups(done.groups, guesses.length, 3).map((g) => ({ label: g.label, count: g.count })) : [];
+    record = { ...(done?.record ?? {}), top };
+    style = (done?.record.style ?? "live") as SurveyStyle;
+    board = done?.record.result ? { made: done.record.result.made, reason: done.record.result.reason, size: done.record.result.size } : null;
+  } else {
+    const { groups } = autoGroup(guesses.map((g, i) => ({ id: String(i), raw: g.raw, normalized: g.normalized })));
+    top = groups.filter((g) => g.count >= 2).slice(0, 3).map((g) => ({ label: g.label, count: g.count }));
+    record = { top };
+  }
   await svc.from("brain_stream_windows").update({
     status: "closed", closed_at: new Date().toISOString(), guesses: guesses.length,
-    result: guesses.length ? null : "empty", answer: { top },
+    result: guesses.length ? null : "empty", answer: record,
   }).eq("id", windowId);
 
-  const summary: CloseSummary = { windowId, broadcasterId: window.broadcasterId, guesses: guesses.length, own, question, top };
+  const summary: CloseSummary = { windowId, broadcasterId: window.broadcasterId, guesses: guesses.length, own, question, top, style, board };
   if (opts.announce !== false) await announceClose(summary);
   return summary;
 }
@@ -283,8 +315,11 @@ export function closeLine(s: CloseSummary): string {
   const n = `${s.guesses} answer${s.guesses === 1 ? "" : "s"}`;
   if (!s.guesses) return "🧠 Survey closed with no answers. Next time, answer with !a <your answer>.";
   if (s.own) {
+    const made = s.board?.made ? ` Your board is ready (${s.board.size} answers): mods, !cb start survey to play it.` : "";
+    const short = s.board && !s.board.made && s.board.reason === "few_answers" ? " Not enough answers for a board this time (it takes 10)." : "";
+    if (s.style === "hidden") return `🧠 Survey closed: ${n}. The answers stay secret for now.${made || short}`.slice(0, 480);
     const top = s.top.map((t, i) => `${i + 1}. ${t.label} (${t.count})`).join("  ");
-    return top ? `🧠 Survey closed: ${n}. Chat's top answers: ${top}` : `🧠 Survey closed: ${n}, and no two of you agreed on anything!`;
+    return (top ? `🧠 Survey closed: ${n}. Chat's top answers: ${top}.${made || short}` : `🧠 Survey closed: ${n}, and no two of you agreed on anything!${short}`).slice(0, 480);
   }
   return `🧠 Survey closed: ${n}. Thanks chat! Once enough people answer, it becomes a Chat Brain board on GameShuffle.`;
 }
@@ -334,7 +369,7 @@ export async function statusLine(broadcasterId: string): Promise<string> {
 // ─── chat grammar (shared by the webhook fast lane and the commands) ─────────
 
 /** `!cb` words that are commands, never answers. */
-export const CB_SUBCOMMANDS = new Set(["ask", "lock", "end", "help", "start", "time", "next", "accept", "reject", "hide", "merge"]);
+export const CB_SUBCOMMANDS = new Set(["ask", "lock", "end", "help", "start", "time", "next", "accept", "reject", "hide", "merge", "play", "trust", "control", "undo"]);
 
 /**
  * Is this chat line an answer? `!a <text>`, `!answer <text>`, or `!cb <text>`

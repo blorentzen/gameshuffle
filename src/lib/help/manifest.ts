@@ -245,7 +245,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     description: "Host a pub-style quiz: pick a template, fill it from the question pack, run it from your phone while teams play on theirs and the TV shows the rest.",
     href: "/help/apps/trivia-nights",
     category: "apps",
-    keywords: ["trivia", "quiz", "pub quiz", "trivia night", "host", "teams", "picture round", "confidence round", "final wager", "joker", "question pack", "answer line"],
+    keywords: ["trivia", "quiz", "pub quiz", "trivia night", "host", "teams", "picture round", "confidence round", "final wager", "joker", "question pack", "answer line", "stream trivia", "chat trivia", "!a", "overlay"],
   },
   {
     id: "weekly-challenge",
@@ -338,6 +338,14 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     href: "/help/streaming/break-mode",
     category: "streaming",
     keywords: ["break mode", "brb", "!gs brb", "!gs back", "be right back", "break games", "words on stream", "higher or lower", "fact or fiction", "overlay"],
+  },
+  {
+    id: "chat-brain-stream",
+    title: "Chat Brain on stream",
+    description: "Play Chat Brain boards on stream: chat as one team, or 1v1 and Teams with chat playing along. Survey your chat and play the board it makes.",
+    href: "/help/streaming/chat-brain",
+    category: "streaming",
+    keywords: ["chat brain", "!cb", "!a", "survey", "!cb ask", "survey your chat", "1v1", "teams", "face-off", "steal", "trust chat", "play along", "guess what people said", "overlay"],
   },
   {
     id: "mods",

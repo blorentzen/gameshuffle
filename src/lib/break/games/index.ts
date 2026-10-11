@@ -18,6 +18,8 @@ import { chatBrain } from "./brain";
 import { rosterRush } from "./rush";
 import { itemBoxRoyale } from "./royale";
 import { fourInARow } from "./connect";
+import { knowTheChannel } from "./channel";
+import { chatBounty } from "./bounty";
 
 export const GAMES: Record<BreakGameId, BreakGame> = {
   "higher-lower": higherLower,
@@ -42,6 +44,8 @@ export const GAMES: Record<BreakGameId, BreakGame> = {
   "roster-rush": rosterRush,
   "item-box-royale": itemBoxRoyale,
   "four-in-a-row": fourInARow,
+  "know-the-channel": knowTheChannel,
+  "chat-bounty": chatBounty,
 };
 
 export type { BreakGame, BreakAnswer, Award, Judged, MakeContext, RoundDraft, RunMeta } from "./common";

@@ -35,6 +35,7 @@ export function TriviaBuilder({ game, onLive }: { game: BuilderGame; onLive: () 
   const [saving, setSaving] = useState(false);
   const [studio, setStudio] = useState<number | null>(null);
   const [filling, setFilling] = useState<number | "all" | null>(null);
+  const [onStream, setOnStream] = useState(game.template === "stream");
 
   const inGame = useMemo(() => new Set(rounds.flatMap((r) => r.questions.map((q) => q.id)).filter((x): x is string => !!x)), [rounds]);
   const total = rounds.reduce((n, r) => n + r.questions.length, 0);
@@ -85,14 +86,19 @@ export function TriviaBuilder({ game, onLive }: { game: BuilderGame; onLive: () 
     if (total === 0) { toast.error("Add at least one question first."); return; }
     const empty = rounds.filter((r) => r.questions.length === 0).length;
     if (!(await confirm({
-      title: "Open the room?",
-      body: `Teams can join with code ${game.code} once it's open. ${empty ? `${empty} empty round${empty === 1 ? "" : "s"} will be left out. ` : ""}Rounds and questions can't be changed after this.`,
-      confirmLabel: "Open the room",
+      title: onStream ? "Start it on your stream?" : "Open the room?",
+      body: `${onStream ? "Your chat answers with !a and viewers can answer on your live page. " : ""}Teams can join with code ${game.code} once it's open. ${empty ? `${empty} empty round${empty === 1 ? "" : "s"} will be left out. ` : ""}Rounds and questions can't be changed after this.`,
+      confirmLabel: onStream ? "Start on stream" : "Open the room",
     }))) return;
     if (dirty && !(await save(true))) return;
-    const d = await fetch(`/api/trivia/games/${game.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "go_live" }) }).then((r) => r.json()).catch(() => null);
-    if (d?.ok) { track(EVENTS.triviaRoomOpened, { questions: total }); toast.success(`Room open. Code ${d.code}`); onLive(); }
-    else toast.error(d?.error === "no_questions" ? "Add at least one question first." : "Couldn't open the room.");
+    const d = await fetch(`/api/trivia/games/${game.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "go_live", stream: onStream }) }).then((r) => r.json()).catch(() => null);
+    if (d?.ok) { track(EVENTS.triviaRoomOpened, { questions: total }); toast.success(onStream ? "You're live with trivia. Open the first question when you're ready." : `Room open. Code ${d.code}`); onLive(); }
+    else toast.error(({
+      no_questions: "Add at least one question first.",
+      pro_required: "Playing trivia on stream is part of GS Pro.",
+      no_twitch: "Connect Twitch first (Streaming > Setup) so your chat can play.",
+      stream_busy: "Another trivia night is already on your stream. End it first.",
+    } as Record<string, string>)[d?.error] ?? "Couldn't open the room.");
   };
 
   return (
@@ -104,8 +110,9 @@ export function TriviaBuilder({ game, onLive }: { game: BuilderGame; onLive: () 
         <div className="trivia-row">
           <Button variant="secondary" disabled={!dirty || saving} onClick={() => void save()}>{saving ? "Saving…" : dirty ? "Save" : "Saved"}</Button>
           <Button variant="secondary" disabled={saving || filling !== null || !anyEmpty} onClick={() => void fill()}>{filling === "all" ? "Filling…" : "Fill every round from the pack"}</Button>
-          <Button variant="primary" disabled={saving} onClick={() => void openRoom()}>Open the room</Button>
+          <Button variant="primary" disabled={saving} onClick={() => void openRoom()}>{onStream ? "Start on stream" : "Open the room"}</Button>
         </div>
+        <Switch label="Play it on my stream: chat answers with !a, viewers on my live page too (GS Pro)" checked={onStream} onChange={(e) => setOnStream(e.target.checked)} />
       </div>
 
       {rounds.map((r, i) => {

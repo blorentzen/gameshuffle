@@ -137,7 +137,6 @@ function SetPasswordContent() {
           <div className="auth-page" style={{ maxWidth: 460 }}>
             <h1 className="auth-page__title">Add a backup password</h1>
             <MfaChallenge
-              allowRecovery={false}
               cancelLabel={canSkip ? "Not now" : "Sign out"}
               onDone={second.passed}
               onCancel={() => void (canSkip ? notNow() : signOut())}

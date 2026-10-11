@@ -66,6 +66,21 @@ export default function Page() {
         <li><strong>Joker:</strong> each team can play one joker per night, on a round that allows it and before that round starts. It doubles the points they earn in that round.</li>
       </ul>
 
+      <h2>Play it on your stream</h2>
+      <p>
+        With GS Pro and Twitch connected, your chat can play too. Pick the <strong>On stream</strong> template (three rounds of 6,
+        45 seconds a question), or any night, and turn on <strong>Play it on my stream</strong> before you tap <strong>Start on stream</strong>.
+      </p>
+      <ul>
+        <li>When you show a question, it goes to your chat. Viewers answer with <code>!a &lt;answer&gt;</code>, or just a letter on a multiple-choice question. Answering again changes it.</li>
+        <li>Viewers watching on your live page can answer there too. Signed in with Twitch, they&apos;re the same player as in chat.</li>
+        <li>Answers stay hidden until you reveal the question, and they keep counting 5 seconds after the clock because viewers see your stream a little late.</li>
+        <li>Each viewer plays on their own and scores like a team. Confidence and final wager rounds count as plain rounds for viewers.</li>
+        <li>Add the <strong>Trivia</strong> piece in Overlay Layout to show the question, the countdown, the answer and the leaders on stream. Teams in the room can still join with the code and play alongside your chat.</li>
+        <li>Chat hears the answer and the leaders at each reveal, and the winner when the night ends.</li>
+        <li>Your Discord server can play too: route the <strong>Trivia on stream</strong> category to a channel (Streaming &gt; Discord bot) and each question posts there with answer buttons.</li>
+      </ul>
+
       <h2>Still need help?</h2>
       <p>Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a>.</p>
     </HelpArticle>

@@ -21,7 +21,10 @@ import { isBlockedText } from "@/lib/text/filter";
 import {
   ANSWER_MAX,
   MAX_TEAMS,
+  MAX_VIEWERS,
+  STREAM_GRACE_MS,
   TEMPLATES,
+  isViewerSecret,
   confidenceLeft,
   groupAnswers,
   joinCode,
@@ -47,12 +50,15 @@ const notReady = (e: { code?: string } | null) => e?.code === "42P01" || e?.code
 export type Phase = "lobby" | "question" | "locked" | "reveal" | "standings" | "done";
 export type GameStatus = "draft" | "live" | "done" | "cancelled";
 
+/** A night played on stream: viewers answer in chat or on /live as their own teams (src/lib/trivia/stream.ts). */
+export interface StreamSettings { communityId: string; broadcasterId: string | null; since: string }
+
 export interface GameRow {
   id: string; host_user_id: string; title: string; template: string | null; code: string; rounds: TriviaRound[];
-  settings: { familySafe?: boolean } | null; status: GameStatus; round_index: number; question_index: number; phase: Phase;
+  settings: { familySafe?: boolean; stream?: StreamSettings } | null; status: GameStatus; round_index: number; question_index: number; phase: Phase;
   opened_at: string | null; closes_at: string | null; event_id: string | null; created_at: string; started_at: string | null; finished_at: string | null;
 }
-interface TeamRow { id: string; game_id: string; name: string; secret: string; score: number; joker_round: number | null; created_at: string; last_seen_at: string }
+export interface TeamRow { id: string; game_id: string; name: string; secret: string; score: number; joker_round: number | null; created_at: string; last_seen_at: string }
 interface AnswerRow { team_id: string; game_id: string; round: number; question: number; raw: string; normalized: string; confidence: number | null; wager: number | null; verdict: Verdict; points: number; submitted_at: string }
 
 const GAME_COLS = "id, host_user_id, title, template, code, rounds, settings, status, round_index, question_index, phase, opened_at, closes_at, event_id, created_at, started_at, finished_at";
@@ -307,8 +313,8 @@ export async function saveGame(hostUserId: string, id: string, input: { title?: 
   return { ok: true, game: data as GameRow };
 }
 
-/** Open the room: teams can join by code. Needs at least one question. */
-export async function goLive(hostUserId: string, id: string): Promise<{ ok: true; game: GameRow } | { ok: false; error: string }> {
+/** Open the room: teams can join by code. Needs at least one question. `stream` also plays it on the host's stream. */
+export async function goLive(hostUserId: string, id: string, opts: { stream?: StreamSettings } = {}): Promise<{ ok: true; game: GameRow } | { ok: false; error: string }> {
   const game = await getGame(id);
   if (!game || game.host_user_id !== hostUserId) return { ok: false, error: "not_found" };
   if (game.status !== "draft") return { ok: true, game };
@@ -317,6 +323,7 @@ export async function goLive(hostUserId: string, id: string): Promise<{ ok: true
   const svc = createServiceClient();
   const { data, error } = await svc.from("trivia_games").update({
     status: "live", rounds, round_index: 0, question_index: 0, phase: "lobby", started_at: new Date().toISOString(),
+    ...(opts.stream ? { settings: { ...(game.settings ?? {}), stream: opts.stream } } : {}),
   }).eq("id", id).eq("status", "draft").select(GAME_COLS).single();
   if (error || !data) return { ok: false, error: "failed" };
   // Count the library questions as used (repeat warnings in the builder).
@@ -372,7 +379,8 @@ export async function joinTeam(code: string, rawName: string): Promise<{ ok: tru
   if (name.length < 2) return { ok: false, error: "bad_name" };
   if (isBlockedText(name)) return { ok: false, error: "blocked" };
   const svc = createServiceClient();
-  const { count } = await svc.from("trivia_teams").select("id", { count: "exact", head: true }).eq("game_id", game.id);
+  // Viewer teams on stream don't take the room's places.
+  const { count } = await svc.from("trivia_teams").select("id", { count: "exact", head: true }).eq("game_id", game.id).not("secret", "like", "v1.%");
   if ((count ?? 0) >= MAX_TEAMS) return { ok: false, error: "full" };
   const secret = randomBytes(18).toString("base64url");
   const { data, error } = await svc.from("trivia_teams").insert({ game_id: game.id, name, secret }).select("id, name").single();
@@ -391,19 +399,30 @@ export async function teamFor(gameId: string, teamId: string, secret: string): P
 }
 
 async function teamsOf(gameId: string): Promise<TeamRow[]> {
-  const { data } = await createServiceClient().from("trivia_teams").select("id, game_id, name, secret, score, joker_round, created_at, last_seen_at").eq("game_id", gameId).order("created_at");
+  const { data } = await createServiceClient().from("trivia_teams").select("id, game_id, name, secret, score, joker_round, created_at, last_seen_at").eq("game_id", gameId).order("created_at").limit(MAX_VIEWERS + MAX_TEAMS);
   return (data ?? []) as TeamRow[];
 }
 
 async function answersFor(gameId: string, round: number, question?: number): Promise<AnswerRow[]> {
   let q = createServiceClient().from("trivia_answers").select("team_id, game_id, round, question, raw, normalized, confidence, wager, verdict, points, submitted_at").eq("game_id", gameId).eq("round", round);
   if (question !== undefined) q = q.eq("question", question);
-  const { data } = await q;
+  const { data } = await q.limit(20_000);
   return (data ?? []) as AnswerRow[];
 }
 
 const currentRound = (g: GameRow) => g.rounds[g.round_index];
 const currentQuestion = (g: GameRow) => currentRound(g)?.questions[g.question_index];
+export const isStreamGame = (g: GameRow) => !!g.settings?.stream;
+/** Update many teams' answers to the current question at once (500 ids a call). */
+async function setVerdicts(game: GameRow, teamIds: string[], verdict: Exclude<Verdict, "pending">): Promise<boolean> {
+  const svc = createServiceClient();
+  for (let i = 0; i < teamIds.length; i += 500) {
+    const { error } = await svc.from("trivia_answers").update({ verdict, judged_at: new Date().toISOString() })
+      .eq("game_id", game.id).eq("round", game.round_index).eq("question", game.question_index).in("team_id", teamIds.slice(i, i + 500));
+    if (error) return false;
+  }
+  return true;
+}
 
 /** Play the joker on a round that hasn't started yet. */
 export async function setJoker(game: GameRow, team: TeamRow, round: number): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -442,6 +461,24 @@ export async function submitAnswer(game: GameRow, team: TeamRow, input: { raw: s
   return error ? { ok: false, error: "failed" } : { ok: true };
 }
 
+/**
+ * A viewer's answer on stream (chat, /live). Viewers have no jokers, stakes
+ * or wagers: a confidence or final round counts as a plain round for them.
+ */
+export async function submitViewerAnswer(game: GameRow, team: TeamRow, raw: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  // Read the phase fresh: callers may hold a cached copy, and an answer after the
+  // lock (or the reveal) must never reset a judged one.
+  const live = await tick((await getGame(game.id)) ?? game);
+  if (live.phase !== "question") return { ok: false, error: "closed" };
+  const answer = raw.trim().replace(/\s+/g, " ").slice(0, ANSWER_MAX);
+  if (!answer) return { ok: false, error: "empty" };
+  const { error } = await createServiceClient().from("trivia_answers").upsert({
+    team_id: team.id, game_id: live.id, round: live.round_index, question: live.question_index, raw: answer, normalized: normalize(answer) || answer.toLowerCase(),
+    confidence: null, wager: null, verdict: "pending", points: 0, submitted_at: new Date().toISOString(),
+  }, { onConflict: "team_id,round,question" });
+  return error ? { ok: false, error: "failed" } : { ok: true };
+}
+
 // ─── the host's controls ─────────────────────────────────────────────────────
 
 async function patchGame(id: string, from: Partial<GameRow>, patch: Record<string, unknown>): Promise<GameRow | null> {
@@ -468,21 +505,22 @@ export async function lockQuestion(game: GameRow): Promise<GameRow | null> {
   if (!locked) return null;
   const q = currentQuestion(locked);
   const answers = await answersFor(locked.id, locked.round_index, locked.question_index);
-  const svc = createServiceClient();
+  const by: Record<"correct" | "wrong", string[]> = { correct: [], wrong: [] };
   for (const a of answers) {
     const v = judgeAnswer(a.raw, q);
-    if (v !== "ask") await svc.from("trivia_answers").update({ verdict: v, judged_at: new Date().toISOString() }).eq("team_id", a.team_id).eq("round", a.round).eq("question", a.question);
+    if (v !== "ask") by[v].push(a.team_id);
   }
+  await setVerdicts(locked, by.correct, "correct");
+  await setVerdicts(locked, by.wrong, "wrong");
   return locked;
 }
 
 /** The host rules on a group of answers (every team in it at once). */
 export async function judgeTeams(game: GameRow, teamIds: string[], verdict: Exclude<Verdict, "pending">): Promise<boolean> {
   if (game.phase !== "locked" && game.phase !== "reveal") return false;
-  const { error } = await createServiceClient().from("trivia_answers").update({ verdict, judged_at: new Date().toISOString() })
-    .eq("game_id", game.id).eq("round", game.round_index).eq("question", game.question_index).in("team_id", teamIds.slice(0, MAX_TEAMS));
-  if (!error && game.phase === "reveal") await scoreQuestion(game);
-  return !error;
+  const ok = await setVerdicts(game, teamIds.slice(0, isStreamGame(game) ? MAX_VIEWERS + MAX_TEAMS : MAX_TEAMS), verdict);
+  if (ok && game.phase === "reveal") await scoreQuestion(game);
+  return ok;
 }
 
 /** Points for the current question's answers, then every team's total from all of its answers. */
@@ -491,11 +529,14 @@ async function scoreQuestion(game: GameRow): Promise<void> {
   const round = currentRound(game);
   const [answers, teams] = await Promise.all([answersFor(game.id, game.round_index, game.question_index), teamsOf(game.id)]);
   const jokerBy = new Map(teams.map((t) => [t.id, t.joker_round]));
+  const viewers = new Set(teams.filter((t) => isViewerSecret(t.secret)).map((t) => t.id));
   for (const a of answers) {
-    const points = pointsFor({ verdict: a.verdict, style: round.style, points: round.points, confidence: a.confidence, wager: a.wager, joker: jokerBy.get(a.team_id) === game.round_index });
+    // Viewers on stream play confidence and final rounds as plain rounds.
+    const style = viewers.has(a.team_id) && (round.style === "confidence" || round.style === "final") ? "classic" : round.style;
+    const points = pointsFor({ verdict: a.verdict, style, points: round.points, confidence: a.confidence, wager: a.wager, joker: jokerBy.get(a.team_id) === game.round_index });
     if (points !== a.points) await svc.from("trivia_answers").update({ points }).eq("team_id", a.team_id).eq("round", a.round).eq("question", a.question);
   }
-  const { data: all } = await svc.from("trivia_answers").select("team_id, points").eq("game_id", game.id);
+  const { data: all } = await svc.from("trivia_answers").select("team_id, points").eq("game_id", game.id).limit(100_000);
   const totals = new Map<string, number>();
   for (const r of (all ?? []) as { team_id: string; points: number }[]) totals.set(r.team_id, (totals.get(r.team_id) ?? 0) + r.points);
   for (const t of teams) {
@@ -535,9 +576,10 @@ export async function finishGame(game: GameRow): Promise<GameRow | null> {
   return patchGame(game.id, { status: "live" }, { status: "done", phase: "done", finished_at: new Date().toISOString() });
 }
 
-/** Lock a question whose time is up (any read can do it; the phase check makes it happen once). */
+/** Lock a question whose time is up (any read can do it; the phase check makes it happen once). On stream, a few seconds later. */
 export async function tick(game: GameRow): Promise<GameRow> {
-  if (game.phase === "question" && game.closes_at && Date.parse(game.closes_at) <= Date.now()) {
+  const grace = isStreamGame(game) ? STREAM_GRACE_MS : 0;
+  if (game.phase === "question" && game.closes_at && Date.parse(game.closes_at) + grace <= Date.now()) {
     return (await lockQuestion(game)) ?? (await getGame(game.id)) ?? game;
   }
   return game;
@@ -549,7 +591,7 @@ export async function tick(game: GameRow): Promise<GameRow> {
 export interface PublicQuestion { prompt: string; kind: QuestionKind; options: string[] | null; imageUrl: string | null; category: string | null }
 /** Our own pictures go through /api/trivia/pic so the file name ("tracer.webp") can't give the answer away. */
 export const isOwnPicture = (url: string | null | undefined): url is string => !!url && /^\/images\/[\w/.-]+$/.test(url) && !url.includes("..");
-const publicQ = (q: TriviaQuestion, game: GameRow): PublicQuestion => ({
+export const publicQ = (q: TriviaQuestion, game: GameRow): PublicQuestion => ({
   prompt: q.prompt, kind: q.kind, options: q.options ?? null, category: q.category ?? null,
   imageUrl: isOwnPicture(q.imageUrl) ? `/api/trivia/pic/${game.code}?r=${game.round_index}&q=${game.question_index}` : q.imageUrl ?? null,
 });
@@ -611,8 +653,14 @@ const strip = <T extends { _answers: unknown; _teams: unknown }>(v: T): Omit<T, 
 };
 
 export async function tvView(game: GameRow): Promise<RoomView> {
-  return strip(await roomView(await tick(game)));
+  const v = strip(await roomView(await tick(game)));
+  // On stream, the room's TV lists its own teams and the top of the standings, not every viewer.
+  return isStreamGame(game) ? { ...v, standings: v.standings.slice(0, 10) } : v;
 }
+
+/** The current question of a game (stream views read it too). */
+export const questionOf = (g: GameRow): TriviaQuestion | undefined => currentQuestion(g);
+export const roundOf = (g: GameRow): TriviaRound | undefined => currentRound(g);
 
 export async function teamView(game: GameRow, team: TeamRow): Promise<TeamView> {
   const live = await tick(game);
@@ -640,6 +688,8 @@ export interface HostView extends RoomView {
   answeredCount: number;
   teamCount: number;
   isLast: boolean;
+  /** Played on the host's stream too (viewers count as teams). */
+  onStream: boolean;
 }
 
 export async function hostView(game: GameRow): Promise<HostView> {
@@ -657,8 +707,8 @@ export async function hostView(game: GameRow): Promise<HostView> {
   const round = currentRound(live);
   return {
     ...strip(v),
-    // The host always sees the standings and the answer.
-    standings: [...v._teams].sort((a, b) => b.score - a.score).map((t) => ({ name: t.name, score: t.score })),
+    // The host always sees the standings and the answer (the top 25 on stream, where every viewer is a team).
+    standings: [...v._teams].sort((a, b) => b.score - a.score).slice(0, isStreamGame(live) ? 25 : undefined).map((t) => ({ name: t.name, score: t.score })),
     answer: q?.answer ?? null,
     question: q ? publicQ(q, live) : null,
     id: live.id,
@@ -668,5 +718,6 @@ export async function hostView(game: GameRow): Promise<HostView> {
     answeredCount: v._answers.length,
     teamCount: v._teams.length,
     isLast: !!round && live.round_index === live.rounds.length - 1 && live.question_index === round.questions.length - 1,
+    onStream: isStreamGame(live),
   };
 }

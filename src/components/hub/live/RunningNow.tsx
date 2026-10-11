@@ -3,7 +3,7 @@
 /**
  * "Running now" in the control room: one card for each thing happening on
  * stream (picks and bans, a poll, bingo, a draft, Chat Brain, a prediction,
- * bounties), each with its next step and a way into its tab. Nothing running
+ * bounties, chaos challenges to settle), each with its next step and a way into its tab. Nothing running
  * means no cards, just the ways to start one, and only the ones this game
  * can run (picks and bans and predictions are Mario Kart only).
  */
@@ -15,6 +15,7 @@ import { closePicksBansRoundAction } from "@/app/hub/sessions/[slug]/actions";
 import { getGameName } from "@/data/game-registry";
 import type { HubGameActions } from "@/lib/hub/gameActions";
 import { useHubLive } from "./HubLiveProvider";
+import { ChallengesModal } from "./ChallengesModal";
 
 export function RunningNow({ sessionSlug, liveSlug, actions, predictions = true }: {
   sessionSlug: string;
@@ -23,7 +24,8 @@ export function RunningNow({ sessionSlug, liveSlug, actions, predictions = true 
   /** Off on a mod's page: predictions and bounties stay with the streamer. */
   predictions?: boolean;
 }) {
-  const { data, refresh, goTab } = useHubLive();
+  const { data, sessionId, refresh, goTab } = useHubLive();
+  const [challengesOpen, setChallengesOpen] = useState(false);
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -95,7 +97,7 @@ export function RunningNow({ sessionSlug, liveSlug, actions, predictions = true 
     const g = data.brain;
     cards.push(
       <Card key="brain" title="Chat Brain" status={<Badge variant="success" size="small">Playing</Badge>}
-        line={`Board ${g.board} of ${g.boards}: ${g.question} · ${g.strikes} ${g.strikes === 1 ? "strike" : "strikes"}, ${g.score} points`}
+        line={g.scores ? `Round ${g.board} of ${g.boards}: ${g.question} · ${g.scores}` : `Board ${g.board} of ${g.boards}: ${g.question} · ${g.strikes} ${g.strikes === 1 ? "strike" : "strikes"}, ${g.score} points`}
         onOpen={() => goTab("live-games", "chat-brain")} />,
     );
   }
@@ -134,6 +136,30 @@ export function RunningNow({ sessionSlug, liveSlug, actions, predictions = true 
     );
   }
 
+  if (data?.breakBounty) {
+    const bb = data.breakBounty;
+    cards.push(
+      <Card key="break-bounty" title="Chat's bounty" status={<Badge variant="info" size="small">{bb.tokens} tokens</Badge>}
+        line={`${bb.text} ${bb.voters} ${bb.voters === 1 ? "viewer" : "viewers"} split it if you pull it off.`} onOpen={() => goTab("live-games", "break")}>
+        <Button size="small" variant="secondary" className="hub-lever__main" disabled={busy === "bounty"}
+          onClick={() => void run("bounty", patch("/api/break", { action: "bounty_done" }), "Bounty paid to the voters")}>Did it</Button>
+        <Button size="small" variant="ghost" disabled={busy === "bounty"}
+          onClick={() => void run("bounty", patch("/api/break", { action: "bounty_missed" }), "Marked not done")}>Didn&apos;t</Button>
+      </Card>,
+    );
+  }
+  if (data && data.challenges.open + data.challenges.needsWinner > 0) {
+    const c = data.challenges;
+    const total = c.open + c.needsWinner;
+    cards.push(
+      <Card key="challenges" title={total === 1 ? "Challenge" : `${total} challenges`}
+        status={<Badge variant={c.needsWinner ? "warning" : "info"} size="small">{c.needsWinner ? "Needs a winner" : "Waiting on you"}</Badge>}
+        line={c.needsWinner ? `${c.needsWinner} done with nobody paid yet` : "Call it when chat pulls it off, or doesn't"} onOpen={() => setChallengesOpen(true)}>
+        <Button size="small" variant="secondary" className="hub-lever__main" onClick={() => setChallengesOpen(true)}>Settle</Button>
+      </Card>,
+    );
+  }
+
   // Ways to start something, only for what this game can run and isn't running.
   const starts: { key: string; label: string; onClick: () => void }[] = [];
   if (raceGame && !data?.picks) starts.push({ key: "picks", label: "Picks and bans", onClick: () => goTab("picks") });
@@ -159,6 +185,7 @@ export function RunningNow({ sessionSlug, liveSlug, actions, predictions = true 
       ) : (
         <p className="hub-panel__empty">Nothing running right now.</p>
       )}
+      <ChallengesModal sessionId={sessionId} isOpen={challengesOpen} onClose={() => setChallengesOpen(false)} onSettled={refresh} />
       <div className="hub-running__start" role="group" aria-label="Start something">
         <span className="hub-running__start-label">Start</span>
         {starts.map((st) => (

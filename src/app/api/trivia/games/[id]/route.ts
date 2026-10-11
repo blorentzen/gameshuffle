@@ -1,14 +1,16 @@
 /**
  * GET   /api/trivia/games/[id] → the night for its host (rounds with answers)
  * PATCH /api/trivia/games/[id] { title?, rounds? } → save the builder (before it starts)
- *       { action: "go_live" } → open the room so teams can join
+ *       { action: "go_live", stream? } → open the room so teams can join (stream: also play it on the host's stream, GS Pro)
  *       { action: "cancel" }  → drop a night that hasn't finished
  *       { action: "fill", round? } → fill empty slots from the GameShuffle pack
  */
 
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { fillFromPack, goLive, saveGame } from "@/lib/trivia/store";
+import { fillFromPack, goLive, saveGame, type StreamSettings } from "@/lib/trivia/store";
+import { forgetStreamGame, liveStreamGame, streamSettingsFor } from "@/lib/trivia/stream";
+import { isProUser } from "@/lib/subscription-server";
 import { triviaHost } from "@/lib/trivia/host";
 import type { TriviaRound } from "@/lib/trivia/rules";
 
@@ -26,9 +28,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const { id } = await params;
   const ctx = await triviaHost(id);
   if (!ctx.ok) return ctx.response;
-  const body = (await request.json().catch(() => null)) as { action?: string; title?: string; rounds?: Partial<TriviaRound>[]; round?: number } | null;
+  const body = (await request.json().catch(() => null)) as { action?: string; title?: string; rounds?: Partial<TriviaRound>[]; round?: number; stream?: boolean } | null;
   if (body?.action === "go_live") {
-    const r = await goLive(ctx.userId, id);
+    // "Play on stream" (GS Pro): viewers answer in chat and on the live page too.
+    let stream: StreamSettings | undefined;
+    if (body.stream === true) {
+      if (!(await isProUser(ctx.userId))) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
+      const link = await streamSettingsFor(ctx.userId);
+      if (!link?.broadcasterId) return NextResponse.json({ ok: false, error: "no_twitch" }, { status: 400 });
+      const other = await liveStreamGame(ctx.userId, { fresh: true });
+      if (other && other.id !== id) return NextResponse.json({ ok: false, error: "stream_busy" }, { status: 409 });
+      stream = { ...link, since: new Date().toISOString() };
+    }
+    const r = await goLive(ctx.userId, id, { stream });
+    if (stream) forgetStreamGame(ctx.userId);
     return r.ok ? NextResponse.json({ ok: true, code: r.game.code }) : NextResponse.json({ ok: false, error: r.error }, { status: 400 });
   }
   if (body?.action === "fill") {

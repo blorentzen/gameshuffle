@@ -48,6 +48,12 @@ const PACK_ROWS = TRIVIA_PACK.filter((q) => q.kind !== "picture").map((q, i) => 
 const LOADED: Partial<Record<string, unknown>> = {
   "trivia-rounds": PACK_ROWS,
   "chat-brain": { id: "p1", text: "What's the best snack for a long stream?", category: null },
+  "know-the-channel": [
+    { id: "k1", prompt: "What does Nova call her chat?", answer: "Nova Crew", accept: ["the crew", "crew"] },
+    { id: "k2", prompt: "What's Nova's main in Smash?", answer: "Kirby", accept: [] },
+    { id: "k3", prompt: "What year did the channel start?", answer: "2021", accept: [] },
+  ],
+  "chat-bounty": { tokens: 100 },
 };
 
 // Hosted games (Stream Bingo) run on another engine and need the database.
@@ -443,6 +449,35 @@ check("shuffle dice: accepts r", GAMES["shuffle-dice"].accept("r", holRound) ===
     results[c4.result ?? "none"] = (results[c4.result ?? "none"] ?? 0) + 1;
   }
   check("four in a row: GameShuffle beats a random chat most of the time", (results.bot ?? 0) > 100, results);
+}
+
+// ─── Chat Sets the Bounty ───────────────────────────────────────────────────
+{
+  const g = GAMES["chat-bounty"];
+  check("bounty: skips itself with no amount set", g.make({ ...ctx(null), data: { tokens: 0 } }) === null);
+  check("bounty: skips while another bounty is open", g.make({ ...ctx(null), data: { tokens: 100 }, meta: { bounty: { label: "x", text: "y", tokens: 100, voters: [], status: "open", setAt: "" } } }) === null);
+  const d = g.make({ ...ctx("mario-kart-8-deluxe"), data: { tokens: 100 } })!;
+  check("bounty: three cards with the streamer's name", d.round.layout === "choice" && d.round.options.length === 3 && d.round.options.every((o) => (o.sub ?? "").includes("Nova")), d.round);
+  const j = g.judge({ round: d.round, secret: d.secret }, [ans("a", "2"), ans("b", "2"), ans("c", "1")], {});
+  const b = j.meta?.bounty;
+  check("bounty: the most-voted card wins", !!b && b.text === (d.secret.cards as { text: string }[])[1].text, b);
+  check("bounty: only its voters split the pot", !!b && b.voters.length === 2 && b.voters.every((v) => v.viewer !== "c") && b.tokens === 100 && b.status === "open", b);
+  check("bounty: voters for it score a point", j.awards.length === 2 && j.awards.every((a) => a.points === 1), j.awards);
+  check("bounty: nobody voted, no bounty", !g.judge({ round: d.round, secret: d.secret }, [], {}).meta?.bounty);
+}
+
+// ─── Know the Channel ───────────────────────────────────────────────────────
+{
+  const g = GAMES["know-the-channel"];
+  const rows = LOADED["know-the-channel"] as { id: string; prompt: string; answer: string; accept: string[] }[];
+  check("channel: skips itself with no questions", g.make({ ...ctx(null), data: [] }) === null);
+  check("channel: skips questions seen in the last 30 days", g.make({ ...ctx(null, new Set(rows.map((r) => `channel:${r.id}`))), data: rows }) === null);
+  const d = g.make({ ...ctx(null, new Set(["channel:k2", "channel:k3"])), data: rows })!;
+  check("channel: asks the one not seen", d.key === "channel:k1" && d.round.prompt === rows[0].prompt, d);
+  const right = ["Nova Crew", "nova crw", "the crew", "Crew"].map((t, i) => ans(`v${i}`, g.accept(t, d.round) ?? ""));
+  const j = g.judge({ round: d.round, secret: d.secret }, [...right, ans("x", g.accept("chat", d.round) ?? "")], {});
+  check("channel: the answer, a typo and the other ways all count", j.awards.length === 4 && j.awards.every((a) => a.points === 2), j.awards.map((a) => a.viewer));
+  check("channel: chatter doesn't count", g.accept("lol", d.round) === null || j.awards.every((a) => a.viewer !== "x"));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

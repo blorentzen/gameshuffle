@@ -4,7 +4,7 @@
  * The server enforces this in aiAccess; the client only uses it to explain.
  */
 
-export type AiFeature = "pack" | "recap" | "setup" | "plan" | "tournament" | "trivia" | "deck";
+export type AiFeature = "pack" | "recap" | "setup" | "plan" | "tournament" | "trivia" | "deck" | "channel";
 
 export const AI_FEATURES: Record<AiFeature, { free: boolean; label: string }> = {
   pack: { free: false, label: "Making lists with AI" },
@@ -14,6 +14,7 @@ export const AI_FEATURES: Record<AiFeature, { free: boolean; label: string }> = 
   tournament: { free: true, label: "The tournament helper" },
   trivia: { free: false, label: "Trivia questions drafted with AI" },
   deck: { free: false, label: "Deck cards drafted with AI" },
+  channel: { free: false, label: "Know the Channel questions drafted with AI" },
 };
 
 export function isAiFeature(x: unknown): x is AiFeature {
