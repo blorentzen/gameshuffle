@@ -73,6 +73,15 @@ export interface RunMeta {
     decisions: number;
     over: boolean;
   } | null;
+  /** Chat Sets the Bounty: the challenge chat set for the next game, who voted for it, and whether it's been settled. */
+  bounty?: {
+    label: string;
+    text: string;
+    tokens: number;
+    voters: { platform: string; viewer: string; name: string }[];
+    status: "open" | "paid" | "missed";
+    setAt: string;
+  } | null;
   /** Four in a Row: the board (42 cells), moves made, and the result once it's over. */
   c4?: { board: string; moves: number; over: boolean; result: "chat" | "bot" | "draw" | null; last: number | null } | null;
   /** Item Box Royale: who joined and the knockouts, decided when joining closes. */

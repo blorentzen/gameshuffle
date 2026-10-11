@@ -3888,7 +3888,7 @@ html.dark .gs-platform-icon {
 .break-tab__start { display: flex; flex-wrap: wrap; gap: var(--spacing-12); align-items: center; }
 .break-tab__start > :first-child { flex: 0 1 320px; min-width: 220px; }
 .break-tab__note { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
-.break-tab__games { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-12); }
+.break-tab__games { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); gap: var(--spacing-12); }
 .break-tab__live { display: flex; flex-direction: column; gap: var(--spacing-12); }
 .break-tab__prompt { margin: 0; font-size: var(--font-size-18); font-weight: 700; }
 .break-tab__reveal { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
@@ -4087,6 +4087,23 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
 .admin-chaos-alert { scroll-margin: var(--spacing-16); }
 .admin-chaos-alert:empty { display: none; }
 
+/* Break mode ▸ Know the Channel (KnowTheChannelPanel) */
+.ktc { display: flex; flex-direction: column; gap: var(--spacing-20); }
+.ktc__add { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.ktc__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--spacing-12); }
+@media (max-width: 600px) { .ktc__row { grid-template-columns: minmax(0, 1fr); } }
+.ktc__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.ktc__group { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.ktc__h { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.ktc__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.ktc__item { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; padding: var(--spacing-10, 10px) var(--spacing-12); border: 1px solid var(--border-subtle, var(--border-default)); border-radius: var(--gs-radius-md, 0.9rem); }
+.ktc__text { min-width: 0; flex: 1 1 18rem; display: flex; flex-direction: column; gap: 2px; }
+.ktc__q { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); overflow-wrap: anywhere; }
+.ktc__a { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-4); overflow-wrap: anywhere; }
+.ktc__item-actions { display: flex; gap: var(--spacing-6, 6px); }
+.ktc__form { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.ktc__lead { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+
 /* ── Restored 2026-10-11 ─────────────────────────────────────────────────
    The admin redesign (96bec07b) dropped these rules by accident while their
    screens still use them: Notifications, the Discord server picker, Shop
@@ -4144,3 +4161,10 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
 @media (min-width: 720px) { .shop-admin__cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 @media (max-width: 560px) { .shop-admin__row { flex-direction: column; align-items: stretch; } }
 @media (max-width: 480px) { .shop-refund__line { grid-template-columns: minmax(0, 1fr) 7rem; } .shop-refund__amt { grid-column: 1 / -1; text-align: left; } }
+/* Switches: the Circuit launch email panel under the Circuit billing switch. */
+.switches__notice { margin-top: var(--spacing-8); padding: var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); display: flex; flex-direction: column; gap: var(--spacing-8); align-items: flex-start; }
+.switches__notice-title { margin: 0; font-weight: 700; font-size: var(--font-size-14); }
+/* Mods ▸ Add mod manually: inputs and Add wrap onto their own lines on phones (the Discord row was 600px wide at 320). */
+.mods-add__row { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: flex-start; }
+.mods-add__row > * { flex: 1 1 16rem; min-width: 0; }
+.mods-add__row > .empac-button { flex: 0 0 auto; }

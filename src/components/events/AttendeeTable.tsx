@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Badge, Button, Icon, IconButton, Input, Modal, Select, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from "@empac/cascadeds";
+import { Badge, Button, Icon, IconButton, Input, Modal, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { SortableList } from "@/components/ui/SortableList";
 import { lineOrder, timeLeft } from "@/lib/events/waitlistRules";
 import { biggerFieldLine } from "@/lib/tournaments/circuit";

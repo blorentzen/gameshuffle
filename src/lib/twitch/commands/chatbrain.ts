@@ -3,18 +3,30 @@
  *
  *   !a <answer>  (also !answer, or !cb <answer>)   everyone; silent
  *   !cb                                            what's open and how to play
- *   !cb ask [seconds] [category | own question]   mods: open a survey (30-180s,
+ *   !cb ask [seconds] [hidden] [category | own question]
+ *                                                  mods: open a survey (30-180s,
  *                                                  default 60). A category or
  *                                                  nothing asks a public
  *                                                  question (free); your own
- *                                                  question needs GS Pro
+ *                                                  question needs GS Pro, shows
+ *                                                  its answers live unless
+ *                                                  "hidden", and becomes a board
+ *   !cb hide <n>  ·  !cb merge <n> <m>             mods: fix a survey's groups by
+ *                                                  their numbers on stream
  *   !cb lock  /  !cb end                           mods: close it now
- *   !cb start [boards] [seconds]                   mods, GS Pro: a game of Chat
+ *   !cb start [boards] [seconds] [survey]          mods, GS Pro: a game of Chat
  *                                                  plays (1-5 boards, guesses of
- *                                                  15/30/45/60s)
+ *                                                  15/30/45/60s; "survey" starts
+ *                                                  with the board chat just made)
  *   !cb time <15|30|45|60>  ·  !cb next            mods: guess length, next board
  *   !cb accept [answer]  ·  !cb reject             mods: overrule the last result
  *                                                  (within 30s)
+ *   1v1 and Teams (started from the dashboard), mods:
+ *   !cb play [side] <answer>                       enter what a side said (the
+ *                                                  side only for the first
+ *                                                  face-off answer)
+ *   !cb trust chat|team  ·  !cb control <side>     "Trust chat?", who plays
+ *   !cb undo                                       take back the last answer
  *
  * On Twitch, answers normally never reach this file: the webhook fast lane
  * (answerFromChat + recordGuess) takes them first, skipping the dispatcher and
@@ -43,6 +55,8 @@ import {
   startGame,
   tickGame,
 } from "@/lib/chatbrain/streamGame";
+import { hideSurveyGroup, latestSurveyBoard, mergeSurveyGroups } from "@/lib/chatbrain/survey";
+import { controlFromChat, playFromChat, trustFromChat, undoLast } from "@/lib/chatbrain/streamVersus";
 import { BOARDS_PER_GAME, GUESS_SECONDS } from "@/lib/chatbrain/streamRules";
 import { resolveEconomyContext } from "./economy";
 import { registerCommand, type CmdContext } from "./registry";
@@ -97,13 +111,26 @@ const GAME_ERRORS: Record<string, string> = {
   bad_time: `🧠 Guess time can be ${GUESS_SECONDS.join(", ")} seconds.`,
   busy: "🧠 One moment, the last guess is still being scored.",
   failed: "🧠 That didn't work. Try again.",
+  use_undo: "🧠 In 1v1 and Teams, take back the last answer with !cb undo.",
+  not_versus: "🧠 That's for 1v1 and Teams games. Start one from the Chat Brain tab.",
+  round_over: "🧠 This round is over. !cb next starts the next one.",
+  no_turn: "🧠 Nobody's answering right now.",
+  chat_turn: "🧠 It's chat's last steal: chat answers with !a.",
+  choose_first: "🧠 Trust chat? Pick first: !cb trust chat or !cb trust team.",
+  pick_side: "🧠 Who answered first? !cb play <side> <answer>, with the side's name or 1 or 2.",
+  empty_answer: "🧠 Add the answer: !cb play <answer>.",
+  blocked: "🧠 That answer can't be used.",
+  no_choice: "🧠 There's nothing to choose between right now.",
+  has_control: "🧠 Someone already has control this round.",
+  nothing_to_undo: "🧠 There's no answer to take back.",
 };
 
-/** `!cb start 3 45`, `!cb start boards 3 time 45s`: the board count and the guess time, in any order. */
-function parseStart(words: string[]): { boards?: number; seconds?: number } {
-  const out: { boards?: number; seconds?: number } = {};
+/** `!cb start 3 45`, `!cb start boards 3 time 45s`, `!cb start survey`: board count, guess time and whether to start on the survey's board, in any order. */
+function parseStart(words: string[]): { boards?: number; seconds?: number; survey?: boolean } {
+  const out: { boards?: number; seconds?: number; survey?: boolean } = {};
   let expect: "boards" | "seconds" | null = null;
   for (const w of words.map((x) => x.toLowerCase())) {
+    if (w === "survey" || w === "ours") { out.survey = true; continue; }
     if (w === "boards" || w === "board") { expect = "boards"; continue; }
     if (w === "time" || w === "secs" || w === "seconds") { expect = "seconds"; continue; }
     const n = Number(w.replace(/s$/, ""));
@@ -164,8 +191,8 @@ registerCommand({
     const [first, ...rest] = arg.split(/\s+/);
     const sub = (first ?? "").toLowerCase();
 
-    const GAME_SUBS = ["start", "time", "next", "accept", "reject"];
-    const needsCommunity = !arg || sub === "help" || sub === "ask" || sub === "lock" || sub === "end" || GAME_SUBS.includes(sub);
+    const GAME_SUBS = ["start", "time", "next", "accept", "reject", "play", "trust", "control", "undo"];
+    const needsCommunity = !arg || sub === "help" || sub === "ask" || sub === "lock" || sub === "end" || sub === "hide" || sub === "merge" || GAME_SUBS.includes(sub);
     const econ = needsCommunity ? await resolveEconomyContext(asShuffleCtx(cmd)) : null;
     const running = econ ? await getRunningGame(econ.community.id).then((g) => (g ? tickGame(g) : null)).catch(() => null) : null;
     const game = running?.status === "playing" ? running : null;
@@ -204,7 +231,7 @@ registerCommand({
         await cmd.reply(why[r.error]);
         return { ok: false, reason: r.error };
       }
-      await cmd.reply(`🧠 Chat Brain survey: ${r.prompt.text}  ▸  answer with !a <your answer>. You have ${r.window.seconds} seconds!`);
+      await cmd.reply(`🧠 Chat Brain survey: ${r.prompt.text}  ▸  answer with !a <your answer>. You have ${r.window.seconds} seconds!${r.prompt.own && r.style === "hidden" ? " Answers stay secret until we play the board." : ""}`);
       return { ok: true };
     }
 
@@ -234,7 +261,13 @@ registerCommand({
         return { ok: false, reason: "not_pro" };
       }
       await tickChannel(channel);
-      const r = await startGame({ communityId: econ.community.id, hostUserId: cmd.userId, broadcasterId: channel, ...parseStart(rest) });
+      const { survey, ...opts } = parseStart(rest);
+      const first = survey ? await latestSurveyBoard(econ.community.id) : null;
+      if (survey && !first) {
+        await cmd.reply("🧠 There's no board from a survey yet. Ask your own question with !cb ask <question>, and with 10 or more answers it becomes a board.");
+        return { ok: false, reason: "no_survey_board" };
+      }
+      const r = await startGame({ communityId: econ.community.id, hostUserId: cmd.userId, broadcasterId: channel, ...opts, first });
       if (!r.ok) await cmd.reply(GAME_ERRORS[r.error] ?? GAME_ERRORS.failed);
       return { ok: r.ok, reason: r.ok ? undefined : r.error };
     }
@@ -247,6 +280,10 @@ registerCommand({
       }
       const r = sub === "time" ? await setGuessTime(game.id, Number((rest[0] ?? "").replace(/s$/i, "")))
         : sub === "next" ? await nextBoard(game.id)
+        : sub === "play" ? await playFromChat(game.id, rest.join(" "))
+        : sub === "trust" ? await trustFromChat(game.id, rest[0] ?? "")
+        : sub === "control" ? await controlFromChat(game.id, rest[0] ?? "")
+        : sub === "undo" ? await undoLast(game.id)
         : await overrule(game.id, sub === "accept" ? "accept" : "reject", rest.join(" ").trim() || undefined);
       if (!r.ok) await cmd.reply(GAME_ERRORS[r.error] ?? GAME_ERRORS.failed);
       else if (r.message && sub === "time") await cmd.reply(`🧠 ${r.message}`);
@@ -254,8 +291,24 @@ registerCommand({
     }
 
     if (sub === "hide" || sub === "merge") {
-      if (isMod(cmd)) await cmd.reply("🧠 Fixing survey groups live is coming soon.");
-      return { ok: false, reason: "not_built" };
+      if (!isMod(cmd)) return { ok: false, reason: "not_mod" };
+      if (!econ) return { ok: false, reason: "no_economy" };
+      const nums = rest.map((w) => Number(w.replace(/^#/, ""))).filter((n) => Number.isInteger(n) && n > 0);
+      const why: Record<string, string> = {
+        no_survey: "🧠 No survey is open.",
+        closed: "🧠 That survey has closed.",
+        not_found: "🧠 There's no group with that number on stream right now.",
+        pick_two: "🧠 Merge needs two different groups: !cb merge <n> <m>.",
+      };
+      if (sub === "hide" ? nums.length !== 1 : nums.length < 2) {
+        await cmd.reply(sub === "hide" ? "🧠 Hide a group by its number on stream: !cb hide 3" : "🧠 Merge groups by their numbers on stream: !cb merge 1 4 (4 goes into 1).");
+        return { ok: false, reason: "usage" };
+      }
+      const r = sub === "hide"
+        ? await hideSurveyGroup(econ.community.id, { n: nums[0] }, true)
+        : await mergeSurveyGroups(econ.community.id, nums.map((n) => ({ n })));
+      if (!r.ok) await cmd.reply(why[r.error] ?? GAME_ERRORS.failed);
+      return { ok: r.ok, reason: r.ok ? undefined : r.error };
     }
 
     // `!cb <answer>` (the fast lane usually takes these first).

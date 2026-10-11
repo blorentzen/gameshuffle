@@ -18,9 +18,10 @@ import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminPanel, AdminSection, SaveStatus } from "@/components/account/admin/AdminKit";
 import { useAutosave } from "@/lib/hooks/useAutosave";
+import { KnowTheChannelPanel } from "@/components/account/KnowTheChannelPanel";
 import { BREAK_GAMES, BREAK_GAME_IDS, DEFAULT_LINEUP, type BreakGameId, type BreakView } from "@/lib/break/types";
 
-interface Settings { lineup: BreakGameId[]; show: "panel" | "full"; championTokens: number }
+interface Settings { lineup: BreakGameId[]; show: "panel" | "full"; championTokens: number; bountyTokens?: number; bountyReady?: boolean }
 interface Loaded { ready: boolean; pro: boolean; settings: Settings | null; view: BreakView | null }
 
 /** The order games are listed and played in: the default lineup, then the extras (Stream Bingo). */
@@ -39,6 +40,14 @@ const PRIZES = [
   { value: "250", label: "250 tokens" },
   { value: "500", label: "500 tokens" },
   { value: "1000", label: "1,000 tokens" },
+];
+/** Matches BOUNTY_AMOUNTS in src/lib/break/store.ts. */
+const BOUNTIES = [
+  { value: "0", label: "Off (the game skips itself)" },
+  { value: "50", label: "50 tokens" },
+  { value: "100", label: "100 tokens" },
+  { value: "250", label: "250 tokens" },
+  { value: "500", label: "500 tokens" },
 ];
 const LENGTHS = [
   { value: "0", label: "Until I'm back" },
@@ -217,6 +226,20 @@ export function BreakModeTab() {
           floatingLabel="Prize"
         />
       </AdminSection>
+
+      {settings?.bountyReady && (
+        <AdminSection title="Chat Sets the Bounty" intro="Chat votes a challenge for your next game. If you pull it off, everyone who voted for it splits these tokens, from your monthly allowance. You (or a Full mod) call it from the control room.">
+          <Select
+            id="break-bounty"
+            options={BOUNTIES}
+            value={String(settings.bountyTokens ?? 0)}
+            onChange={(v) => setSettings({ ...settings, bountyTokens: Number(v) || 0 })}
+            floatingLabel="Bounty"
+          />
+        </AdminSection>
+      )}
+
+      <KnowTheChannelPanel />
     </div>
   );
 }

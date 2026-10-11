@@ -33,7 +33,9 @@ export type BreakGameId =
   | "chat-brain"
   | "roster-rush"
   | "item-box-royale"
-  | "four-in-a-row";
+  | "four-in-a-row"
+  | "know-the-channel"
+  | "chat-bounty";
 
 /** Shuffle Dice faces (src/lib/originals/shuffleDice.ts). */
 export type DiceFace = "star" | "coin" | "mushroom" | "shell" | "bomb";
@@ -186,6 +188,8 @@ export const BREAK_GAMES: Record<BreakGameId, BreakGameInfo> = {
   "roster-rush": { name: "Roster Rush", howTo: "Type names, as many as you know", blurb: "Name every character on a roster together before time runs out.", rounds: 1, seconds: 75 },
   "item-box-royale": { name: "Item Box Royale", howTo: "Type join to get in", blurb: "Everyone who joins is in. Items knock players out until one is left.", rounds: 8, seconds: 25 },
   "four-in-a-row": { name: "Four in a Row", howTo: "Type a column, 1 to 7", blurb: "Chat votes each move against GameShuffle. Up to 4 minutes.", rounds: 21, seconds: 12 },
+  "know-the-channel": { name: "Know the Channel", howTo: "Type your answer", blurb: "Questions about this channel, written by the streamer and their mods. Skips itself until some are approved.", rounds: 3, seconds: 20 },
+  "chat-bounty": { name: "Chat Sets the Bounty", howTo: "Type 1, 2 or 3", blurb: "Chat votes a challenge for the streamer's next game. Pull it off and the voters split the tokens. Skips itself until a bounty amount is set.", rounds: 1, seconds: 30 },
 };
 
 export const BREAK_GAME_IDS = Object.keys(BREAK_GAMES) as BreakGameId[];
@@ -193,7 +197,7 @@ export const BREAK_GAME_IDS = Object.keys(BREAK_GAMES) as BreakGameId[];
 export const DEFAULT_LINEUP: BreakGameId[] = [
   "higher-lower", "read-the-room", "over-under", "zoomed-in", "odd-one-out", "tier-war-live", "trivia-rounds",
   "scramble", "item-box-royale", "lucky-number", "emoji-puzzle", "shuffle-dice", "chat-brain", "fact-or-fiction",
-  "roster-rush", "closest-guess", "high-roller", "roll-call", "next-build", "handicap-vote",
+  "roster-rush", "know-the-channel", "closest-guess", "high-roller", "roll-call", "next-build", "handicap-vote", "chat-bounty",
 ];
 
 export function isBreakGameId(v: unknown): v is BreakGameId {

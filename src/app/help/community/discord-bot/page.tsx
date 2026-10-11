@@ -74,6 +74,12 @@ export default function Page() {
       </ul>
       <p>Slash commands can take a few minutes to appear after the bot joins.</p>
       <p>
+        <strong>Trivia on stream:</strong> route the <strong>Trivia on stream</strong> category to a channel and, when you play a{" "}
+        <a href="/help/apps/trivia-nights">trivia night</a>{" "}on your stream, each question posts there as it opens, with a button per
+        choice (or an Answer button). Answers count with your chat&apos;s, stay hidden until you reveal, and the post shows the answer
+        after. Members with Twitch linked to GameShuffle are the same player as in chat. <strong>GameShuffle Pro.</strong>
+      </p>
+      <p>
         Chat Brain and Weekly posts from the bot keep count of who has answered: as members of your server answer (from the
         post&apos;s buttons, the Weekly form or the Activity in that server), the post updates with how many have answered there and their names.
       </p>

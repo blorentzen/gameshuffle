@@ -291,6 +291,13 @@
   border-radius: var(--radius-6);
 }
 
+/* Phones: amount + description, then the winner box, then the buttons (five columns were 456px wide at 320). */
+@media (max-width: 640px) {
+  .hub-markets__bounty-row { grid-template-columns: auto minmax(0, 1fr); }
+  .hub-markets__bounty-row > :nth-child(3) { grid-column: 1 / -1; }
+  .hub-markets__bounty-row > .empac-button { justify-self: start; }
+}
+
 .hub-markets__bounty-amount {
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);

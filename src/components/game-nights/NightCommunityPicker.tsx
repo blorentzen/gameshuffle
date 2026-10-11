@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Select } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 
 /**

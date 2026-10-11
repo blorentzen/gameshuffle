@@ -63,6 +63,8 @@ export default function Page() {
         <li><strong>Roster Rush:</strong> chat names every character on a roster together. Every name you get right scores, and naming them all gives everyone a bonus.</li>
         <li><strong>Item Box Royale:</strong> everyone who types <code>join</code> is in, then items knock players out a few at a time until one is left. Nothing to type after joining: just watch.</li>
         <li><strong>Four in a Row:</strong> chat votes a column each move against GameShuffle. A full game can take several minutes, so it&apos;s not in the lineup until you add it.</li>
+        <li><strong>Know the Channel:</strong> questions about your channel that you and your mods write (or draft with AI from a short questionnaire and then keep the good ones). Add them under <strong>Know the Channel</strong> on the Break mode screen. It skips itself until there are some.</li>
+        <li><strong>Chat Sets the Bounty:</strong> chat votes on a challenge for your next game, like winning the next race without items. If you pull it off, everyone who voted for it splits the bounty, paid in tokens from your monthly allowance. Pick the amount under <strong>Bounty</strong> on the Break mode screen (off until you do). When you&apos;re back, mark it <strong>Did it</strong> or <strong>Didn&apos;t</strong> in your control room.</li>
       </ul>
       <p>
         What chat picks or calls for your next game (a build, a roll, a handicap) shows on the break screen and in chat when

@@ -19,7 +19,7 @@
  * session info so the client can update its cached id.
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import {
   findTwitchSessionForUser,
@@ -36,6 +36,8 @@ import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { getOpenPollForCommunity, tally as pollTally } from "@/lib/polls/store";
 import { getCurrentDraft, tickDraft, viewOf as draftView, type StreamDraftView } from "@/lib/drafts/store";
 import { gameView as brainGameView, getShowableGame as getBrainGame, tickGame as tickBrainGame, type StreamGameView } from "@/lib/chatbrain/streamGame";
+import { maybeAiPass as brainSurveyAi, overlaySurveyView, tickSurvey as tickBrainSurvey, type StreamSurveyView } from "@/lib/chatbrain/survey";
+import { overlayTrivia, type TriviaStreamView } from "@/lib/trivia/stream";
 import { getCurrentGame as getBingoGame, tickAuto as tickBingo, viewOf as bingoView, type StreamBingoView } from "@/lib/bingo/stream";
 import { breakView, getShowable as getShowableBreak, tickBreak } from "@/lib/break/store";
 import type { BreakView } from "@/lib/break/types";
@@ -184,13 +186,35 @@ export async function GET(
   }
 
   // Chat Brain: the community's game on stream (also closes a guess whose time is up).
+  // With no game, a survey round (open, or just closed); closing it when its
+  // time is up and its AI merge pass both run after this responds.
   let brain: StreamGameView | null = null;
+  let brainSurvey: StreamSurveyView | null = null;
   try {
     const communityId = await resolveCommunityIdForOwner(ownerUserId);
     const g = communityId ? await getBrainGame(communityId) : null;
-    if (g) brain = await brainGameView(await tickBrainGame(g));
+    // A running game wins; an open survey beats a game that just finished.
+    if (g?.status === "playing") brain = await brainGameView(await tickBrainGame(g));
+    else if (communityId) {
+      brainSurvey = await overlaySurveyView(communityId);
+      if (g && brainSurvey?.status !== "open") { brain = await brainGameView(g); brainSurvey = null; }
+      if (brainSurvey?.status === "open") {
+        after(async () => {
+          await tickBrainSurvey(communityId).catch((err) => console.error("[overlay/latest] survey close failed:", err));
+          await brainSurveyAi(communityId).catch((err) => console.error("[overlay/latest] survey AI pass failed:", err));
+        });
+      }
+    }
   } catch (err) {
     console.error("[overlay/latest] chat brain fetch failed:", err);
+  }
+
+  // Trivia on stream: the night on stream (also locks a question whose time is up), or one that just ended.
+  let trivia: TriviaStreamView | null = null;
+  try {
+    trivia = await overlayTrivia(ownerUserId);
+  } catch (err) {
+    console.error("[overlay/latest] trivia fetch failed:", err);
   }
 
   // Break mode: the channel's break (also moves it along, like Bingo's caller).
@@ -258,6 +282,8 @@ export async function GET(
       bingo,
       draft,
       brain,
+      brainSurvey,
+      trivia,
       breakScreen,
       viewers,
     });
@@ -418,6 +444,8 @@ export async function GET(
     bingo,
     draft,
     brain,
+    brainSurvey,
+    trivia,
     breakScreen,
     viewers,
   });

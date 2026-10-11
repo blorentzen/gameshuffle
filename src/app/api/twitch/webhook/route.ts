@@ -17,6 +17,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { after } from "next/server";
 import { answerFromChat, openWindowFor, recordGuess } from "@/lib/chatbrain/stream";
 import { answerFromChat as breakAnswerFromChat, endBreakForOwner } from "@/lib/break/store";
+import { answerFromChat as triviaAnswerFromChat } from "@/lib/trivia/stream";
 import { collectionForTwitchSender } from "@/lib/collection/server";
 import { lobbyPicks } from "@/lib/twitch/commands/shuffle";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
@@ -380,6 +381,18 @@ async function handleChatMessage(event: ChatMessageEvent) {
     text,
   }).catch((err) => { console.error("[twitch-webhook] break answer failed", err); return false; });
   if (consumed) return;
+
+  // Trivia on stream: `!a <answer>` (or a bare letter on a multiple-choice
+  // question) while the streamer's trivia question is open. Silent, before
+  // Chat Brain so `!a` goes to whichever game is actually asking.
+  const triviaTaken = await triviaAnswerFromChat({
+    ownerUserId: connection.user_id,
+    platform: "twitch",
+    viewer: senderId,
+    name: event.chatter_user_name || event.chatter_user_login || null,
+    text,
+  }).catch((err) => { console.error("[twitch-webhook] trivia answer failed", err); return false; });
+  if (triviaTaken) return;
 
   // Chat Brain fast lane: `!a <answer>` (or !answer / !cb <answer>) while a
   // window is open in this channel goes straight to the guess table, skipping

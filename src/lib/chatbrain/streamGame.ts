@@ -50,22 +50,27 @@ type GameRow = {
   id: string; host_community_id: string; host_user_id: string; mode: string; board_ids: string[]; current_board: number;
   rounds: number; window_seconds: number; family_safe: boolean; status: "lobby" | "playing" | "done" | "cancelled";
   created_at: string; finished_at: string | null;
+  /** 1v1 and Teams: rounds banked so far (a round banks once: round = current_board + 1), and who's in control. */
+  round: number; control_team: number | null; chat_advisor: boolean; chat_last_steal: boolean;
 };
-type TeamRow = { game_id: string; team: number; kind: string; broadcaster_id: string | null; name: string; score: number; strikes: number };
+type TeamRow = { game_id: string; team: number; kind: string; broadcaster_id: string | null; name: string; score: number; strikes: number; members?: { name: string }[] };
 type RevealRow = { board_id: string; rank: number; team: number | null; points: number; window_id: string | null };
+
+/** 1v1 and Teams games run in streamVersus.ts; Chat plays ("host") runs here. */
+export const isVersusMode = (mode: string) => mode === "versus" || mode === "teams";
 
 export interface StreamBoard { id: string; promptId: string; question: string; answers: BoardAnswer[] }
 
 /** What a closed window recorded (brain_stream_windows.answer). */
 interface WindowAnswer { chat: ChatAnswer | null; outcome: WindowOutcome; playalong: Record<string, number> }
 
-const GAME_COLS = "id, host_community_id, host_user_id, mode, board_ids, current_board, rounds, window_seconds, family_safe, status, created_at, finished_at";
+export const GAME_COLS = "id, host_community_id, host_user_id, mode, board_ids, current_board, rounds, window_seconds, family_safe, status, created_at, finished_at, round, control_team, chat_advisor, chat_last_steal";
 
 // ─── boards ──────────────────────────────────────────────────────────────────
 
 const boardCache = new Map<string, StreamBoard>();
 
-async function loadBoard(boardId: string): Promise<StreamBoard | null> {
+export async function loadBoard(boardId: string): Promise<StreamBoard | null> {
   const hit = boardCache.get(boardId);
   if (hit) return hit;
   const { data } = await createServiceClient().from("brain_boards").select("id, prompt_id, answers, brain_prompts(text)").eq("id", boardId).maybeSingle();
@@ -96,7 +101,7 @@ export async function playableBoards(communityId: string, familySafe: boolean): 
   return [...latest.values()].map(({ id, promptId }) => ({ id, promptId }));
 }
 
-function shuffle<T>(list: T[]): T[] {
+export function shuffle<T>(list: T[]): T[] {
   const a = [...list];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -107,7 +112,7 @@ function shuffle<T>(list: T[]): T[] {
 
 // ─── reads ───────────────────────────────────────────────────────────────────
 
-async function loadGame(gameId: string): Promise<GameRow | null> {
+export async function loadGame(gameId: string): Promise<GameRow | null> {
   const { data } = await createServiceClient().from("brain_stream_games").select(GAME_COLS).eq("id", gameId).maybeSingle();
   return (data as GameRow | null) ?? null;
 }
@@ -118,7 +123,7 @@ async function loadTeam(gameId: string): Promise<TeamRow | null> {
   return (data as TeamRow | null) ?? null;
 }
 
-async function loadReveals(gameId: string, boardId: string): Promise<RevealRow[]> {
+export async function loadReveals(gameId: string, boardId: string): Promise<RevealRow[]> {
   const { data } = await createServiceClient().from("brain_stream_reveals").select("board_id, rank, team, points, window_id")
     .eq("game_id", gameId).eq("board_id", boardId);
   return (data ?? []) as RevealRow[];
@@ -141,13 +146,13 @@ export async function getRunningGame(communityId: string): Promise<GameRow | nul
   return g?.status === "playing" ? g : null;
 }
 
-async function gameWindow(gameId: string): Promise<StreamWindow | null> {
+export async function gameWindow(gameId: string): Promise<StreamWindow | null> {
   const { data } = await createServiceClient().from("brain_stream_windows").select(WINDOW_COLS)
     .eq("game_id", gameId).in("status", ["open", "closing"]).limit(1).maybeSingle();
   return data ? toWindow(data as Parameters<typeof toWindow>[0]) : null;
 }
 
-async function say(broadcasterId: string | null, message: string): Promise<void> {
+export async function say(broadcasterId: string | null, message: string): Promise<void> {
   const botId = process.env.TWITCH_BOT_USER_ID;
   if (!botId || !broadcasterId) return;
   await sendChatMessage({ broadcasterId, senderId: botId, message }).catch((err) => console.error("[chatbrain/game] chat line failed:", err));
@@ -158,12 +163,35 @@ const questionLine = (i: { index: number; count: number; question: string; secon
 
 // ─── starting ────────────────────────────────────────────────────────────────
 
+/**
+ * `count` boards for a new game, skipping what this community played in its
+ * last few games while there's enough left. `first` (the board chat just made
+ * in a survey round) goes first, whatever the filters.
+ */
+export async function pickBoards(communityId: string, familySafe: boolean, count: number, first?: { id: string; promptId: string } | null): Promise<{ id: string; promptId: string }[] | "not_ready"> {
+  let pool: { id: string; promptId: string }[];
+  try { pool = await playableBoards(communityId, familySafe); } catch (err) {
+    if (err instanceof StreamGamesNotReady) return "not_ready";
+    throw err;
+  }
+  const { data: recent } = await createServiceClient().from("brain_stream_games").select("board_ids").eq("host_community_id", communityId)
+    .order("created_at", { ascending: false }).limit(8);
+  const played = new Set(((recent ?? []) as { board_ids: string[] }[]).flatMap((r) => r.board_ids ?? []));
+  const rest = first ? count - 1 : count;
+  const others = pool.filter((b) => b.id !== first?.id);
+  const fresh = others.filter((b) => !played.has(b.id));
+  const drawn = rest > 0 ? shuffle(fresh.length >= rest ? fresh : [...shuffle(fresh), ...shuffle(others.filter((b) => played.has(b.id)))]).slice(0, rest) : [];
+  return first ? [first, ...drawn] : drawn;
+}
+
 export type StartResult =
   | { ok: true; game: GameRow }
   | { ok: false; error: "game_running" | "window_open" | "no_boards" | "not_ready" | "failed" };
 
 export async function startGame(input: {
   communityId: string; hostUserId: string; broadcasterId: string; boards?: number; seconds?: number; familySafe?: boolean;
+  /** Start with the board chat just made in a survey round. */
+  first?: { id: string; promptId: string } | null;
 }): Promise<StartResult> {
   const svc = createServiceClient();
   const count = Math.min(BOARDS_PER_GAME.max, Math.max(BOARDS_PER_GAME.min, Math.round(input.boards ?? BOARDS_PER_GAME.default)));
@@ -173,17 +201,9 @@ export async function startGame(input: {
   if (await getRunningGame(input.communityId)) return { ok: false, error: "game_running" };
   if (await openWindowFor(input.broadcasterId, { fresh: true })) return { ok: false, error: "window_open" };
 
-  let pool: { id: string; promptId: string }[];
-  try { pool = await playableBoards(input.communityId, familySafe); } catch (err) {
-    if (err instanceof StreamGamesNotReady) return { ok: false, error: "not_ready" };
-    throw err;
-  }
-  // Skip what this community played in its last few games, while there's enough left.
-  const { data: recent } = await svc.from("brain_stream_games").select("board_ids").eq("host_community_id", input.communityId)
-    .order("created_at", { ascending: false }).limit(8);
-  const played = new Set(((recent ?? []) as { board_ids: string[] }[]).flatMap((r) => r.board_ids ?? []));
-  const fresh = pool.filter((b) => !played.has(b.id));
-  const picks = shuffle(fresh.length >= count ? fresh : [...shuffle(fresh), ...shuffle(pool.filter((b) => played.has(b.id)))]).slice(0, count);
+  const picked = await pickBoards(input.communityId, familySafe, count, input.first);
+  if (picked === "not_ready") return { ok: false, error: "not_ready" };
+  const picks = picked;
   if (picks.length === 0) return { ok: false, error: "no_boards" };
 
   const { data: game, error } = await svc.from("brain_stream_games").insert({
@@ -206,12 +226,12 @@ export async function startGame(input: {
 
 // ─── closing a window ────────────────────────────────────────────────────────
 
-function toGuesses(rows: GuessRow[]): StreamGuess[] {
+export function toGuesses(rows: GuessRow[]): StreamGuess[] {
   return rows.map((r) => ({ viewer: `${r.platform}:${r.viewer}`, name: r.name, raw: r.raw, normalized: r.normalized, at: Date.parse(r.created_at) || 0 }));
 }
 
 /** Ranks each viewer already earned on this board (from earlier windows' records). */
-async function earnedOnBoard(gameId: string, boardPromptId: string, exceptWindow: string): Promise<Map<string, Set<number>>> {
+export async function earnedOnBoard(gameId: string, boardPromptId: string, exceptWindow: string): Promise<Map<string, Set<number>>> {
   const { data } = await createServiceClient().from("brain_stream_windows").select("id, answer")
     .eq("game_id", gameId).eq("board_id", boardPromptId).eq("status", "closed");
   const earned = new Map<string, Set<number>>();
@@ -226,7 +246,7 @@ async function earnedOnBoard(gameId: string, boardPromptId: string, exceptWindow
   return earned;
 }
 
-async function addPlayAlong(gameId: string, awards: Map<string, { rank: number; points: number; name: string | null }>, windowId: string): Promise<void> {
+export async function addPlayAlong(gameId: string, awards: Map<string, { rank: number; points: number; name: string | null }>, windowId: string): Promise<void> {
   if (awards.size === 0) return;
   const svc = createServiceClient();
   const keys = [...awards.keys()];
@@ -256,6 +276,11 @@ export async function closeGameWindow(window: StreamWindow, rows: GuessRow[]): P
     svc.from("brain_stream_windows").update({ status: "closed", closed_at: new Date().toISOString(), guesses: rows.length, ...patch }).eq("id", window.id);
 
   const game = window.gameId ? await loadGame(window.gameId) : null;
+  if (game && isVersusMode(game.mode)) {
+    const { closeTurnChat } = await import("./streamVersus");
+    await closeTurnChat(window, rows, game);
+    return;
+  }
   const team = game ? await loadTeam(game.id) : null;
   const board = game ? await loadBoard(game.board_ids[game.current_board]) : null;
   if (!game || !team || !board || game.status !== "playing" || window.boardId !== board.promptId) {
@@ -313,7 +338,7 @@ async function endBoard(game: GameRow, team: TeamRow, board: StreamBoard, opts: 
   if (last) await finishGame(game, team);
 }
 
-async function topPlayAlong(gameId: string, limit = 5): Promise<{ name: string; points: number }[]> {
+export async function topPlayAlong(gameId: string, limit = 5): Promise<{ name: string; points: number }[]> {
   const { data } = await createServiceClient().from("brain_stream_playalong").select("name, viewer, points")
     .eq("game_id", gameId).gt("points", 0).order("points", { ascending: false }).limit(limit);
   return ((data ?? []) as { name: string | null; viewer: string; points: number }[]).map((r) => ({ name: r.name || "A viewer", points: r.points }));
@@ -344,6 +369,7 @@ export async function lockWindow(gameId: string): Promise<ControlResult> {
 export async function nextBoard(gameId: string): Promise<ControlResult> {
   const game = await loadGame(gameId);
   if (!game || game.status !== "playing") return { ok: false, error: "no_game" };
+  if (isVersusMode(game.mode)) return (await import("./streamVersus")).nextRound(game);
   const team = await loadTeam(gameId);
   const board = await loadBoard(game.board_ids[game.current_board]);
   if (!team || !board) return { ok: false, error: "failed" };
@@ -390,6 +416,7 @@ export async function overrule(gameId: string, kind: "accept" | "reject", named?
   const svc = createServiceClient();
   const game = await loadGame(gameId);
   if (!game || game.status !== "playing") return { ok: false, error: "no_game" };
+  if (isVersusMode(game.mode)) return { ok: false, error: "use_undo" };
   const [team, board] = await Promise.all([loadTeam(gameId), loadBoard(game.board_ids[game.current_board])]);
   if (!team || !board) return { ok: false, error: "failed" };
   const { data: lastRow } = await svc.from("brain_stream_windows").select("id, board_id, result, answer, closed_at, overruled")
@@ -442,6 +469,10 @@ export async function endGame(gameId: string): Promise<ControlResult> {
   if (!game || game.status !== "playing") return { ok: false, error: "no_game" };
   const w = await gameWindow(gameId);
   if (w && w.status === "open") await dropWindow(w.id, w.broadcasterId);
+  if (isVersusMode(game.mode)) {
+    await (await import("./streamVersus")).finishVersus(game);
+    return { ok: true };
+  }
   await finishGame(game, await loadTeam(gameId));
   return { ok: true };
 }
@@ -464,12 +495,14 @@ export async function tickGame(game: GameRow): Promise<GameRow> {
 
 export interface StreamGameView {
   id: string;
+  /** host = Chat plays; versus = 1v1; teams = Teams (then `versus` has the rest). */
+  mode: "host" | "versus" | "teams";
   status: "playing" | "done" | "cancelled" | "lobby";
   boardIndex: number;
   boardCount: number;
   question: string;
   /** Every answer on the board, in rank order; label/points null until revealed. `found` = chat got it. */
-  slots: { rank: number; label: string | null; points: number | null; found: boolean }[];
+  slots: { rank: number; label: string | null; points: number | null; found: boolean; by?: number | null }[];
   strikes: number;
   score: number;
   seconds: number;
@@ -481,6 +514,7 @@ export interface StreamGameView {
   playalong: { name: string; points: number }[];
   canOverrule: boolean;
   familySafe: boolean;
+  versus?: import("./streamVersus").VersusView;
 }
 
 const leanCache = new Map<string, { at: number; value: StreamGameView["leaning"]; guesses: number }>();
@@ -497,6 +531,7 @@ async function currentLeaning(windowId: string, board: StreamBoard): Promise<{ l
 }
 
 export async function gameView(game: GameRow): Promise<StreamGameView | null> {
+  if (isVersusMode(game.mode)) return (await import("./streamVersus")).versusView(game);
   const svc = createServiceClient();
   const index = Math.min(game.current_board, game.board_ids.length - 1);
   const [board, team, w] = await Promise.all([loadBoard(game.board_ids[index]), loadTeam(game.id), game.status === "playing" ? gameWindow(game.id) : Promise.resolve(null)]);
@@ -521,6 +556,7 @@ export async function gameView(game: GameRow): Promise<StreamGameView | null> {
   const lean = w && phase === "guessing" ? await currentLeaning(w.id, board) : { leaning: [], guesses: 0 };
   return {
     id: game.id,
+    mode: "host",
     status: game.status,
     boardIndex: index,
     boardCount: game.board_ids.length,
@@ -555,6 +591,7 @@ export async function gameView(game: GameRow): Promise<StreamGameView | null> {
 export async function gameStatusLine(gameId: string): Promise<string> {
   const game = await loadGame(gameId);
   if (!game) return "🧠 Chat Brain: answer with !a <your answer>.";
+  if (isVersusMode(game.mode)) return (await import("./streamVersus")).versusStatusLine(game);
   const view = await gameView(game);
   if (!view) return "🧠 Chat Brain: answer with !a <your answer>.";
   const found = view.slots.filter((s) => s.label).length;
@@ -563,4 +600,4 @@ export async function gameStatusLine(gameId: string): Promise<string> {
   return `🧠 Chat Brain, board ${view.boardIndex + 1} of ${view.boardCount}: ${view.question}  ·  ${found}/${view.slots.length} found, ${view.strikes} strike${view.strikes === 1 ? "" : "s"}, ${view.score} points  ·  ${timing}  ·  answer with !a <your answer>`;
 }
 
-export type { GameRow as StreamGameRow };
+export type { GameRow as StreamGameRow, TeamRow as StreamTeamRow, RevealRow as StreamRevealRow, WindowAnswer as ChatWindowAnswer };

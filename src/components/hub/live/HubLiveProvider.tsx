@@ -15,6 +15,8 @@ const POLL_MS = 5_000;
 
 interface HubLive {
   data: HubRunning | null;
+  /** The stream (gs_sessions id) this control room runs. */
+  sessionId: string;
   refresh: () => void;
   /** Switch the stream page to a tab (and an inner view, e.g. a live game). */
   goTab: (tab: string, view?: string) => void;
@@ -74,5 +76,5 @@ export function HubLiveProvider({ sessionId, renderedGame, children }: {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [pathname, router, searchParams]);
 
-  return <Ctx.Provider value={{ data, refresh: () => void load(), goTab }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ data, sessionId, refresh: () => void load(), goTab }}>{children}</Ctx.Provider>;
 }

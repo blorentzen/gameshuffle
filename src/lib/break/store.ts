@@ -122,15 +122,33 @@ export interface BreakSettings {
   show: "panel" | "full";
   /** The champion's prize in tokens from the monthly allowance; 0 = none (the default). */
   championTokens: number;
+  /** Chat Sets the Bounty: tokens the voters split if the streamer pulls it off; 0 = the game skips itself. */
+  bountyTokens: number;
+  /** False until break-mode-m2.sql adds the bounty column (the setting is hidden then). */
+  bountyReady: boolean;
 }
 
 export const CHAMPION_PRIZES = [0, 50, 100, 250, 500, 1000];
+export const BOUNTY_AMOUNTS = [0, 50, 100, 250, 500];
 
 export async function getSettings(communityId: string): Promise<BreakSettings> {
-  const { data, error } = await createServiceClient().from("break_settings").select("lineup, show, champion_tokens").eq("community_id", communityId).maybeSingle();
-  if (error) missing(error);
-  const row = data as { lineup: string[]; show: string; champion_tokens: number | null } | null;
-  return { lineup: cleanLineup(row?.lineup), show: row?.show === "full" ? "full" : "panel", championTokens: row?.champion_tokens ?? 0 };
+  const admin = createServiceClient();
+  let res = await admin.from("break_settings").select("lineup, show, champion_tokens, bounty_tokens").eq("community_id", communityId).maybeSingle();
+  let bountyReady = true;
+  if (res.error) {
+    // bounty_tokens arrives with break-mode-m2.sql; read without it until then.
+    bountyReady = false;
+    res = await admin.from("break_settings").select("lineup, show, champion_tokens").eq("community_id", communityId).maybeSingle() as typeof res;
+  }
+  if (res.error) missing(res.error);
+  const row = res.data as { lineup: string[]; show: string; champion_tokens: number | null; bounty_tokens?: number | null } | null;
+  return {
+    lineup: cleanLineup(row?.lineup),
+    show: row?.show === "full" ? "full" : "panel",
+    championTokens: row?.champion_tokens ?? 0,
+    bountyTokens: row?.bounty_tokens ?? 0,
+    bountyReady,
+  };
 }
 
 export async function saveSettings(communityId: string, s: Partial<BreakSettings>): Promise<BreakSettings> {
@@ -139,11 +157,12 @@ export async function saveSettings(communityId: string, s: Partial<BreakSettings
     lineup: s.lineup ? cleanLineup(s.lineup) : current.lineup,
     show: s.show === "full" || s.show === "panel" ? s.show : current.show,
     championTokens: typeof s.championTokens === "number" && CHAMPION_PRIZES.includes(s.championTokens) ? s.championTokens : current.championTokens,
+    bountyTokens: typeof s.bountyTokens === "number" && BOUNTY_AMOUNTS.includes(s.bountyTokens) ? s.bountyTokens : current.bountyTokens,
+    bountyReady: current.bountyReady,
   };
-  const { error } = await createServiceClient().from("break_settings").upsert(
-    { community_id: communityId, lineup: next.lineup, show: next.show, champion_tokens: next.championTokens, updated_at: at(Date.now()) },
-    { onConflict: "community_id" },
-  );
+  const row: Record<string, unknown> = { community_id: communityId, lineup: next.lineup, show: next.show, champion_tokens: next.championTokens, updated_at: at(Date.now()) };
+  if (current.bountyReady) row.bounty_tokens = next.bountyTokens;
+  const { error } = await createServiceClient().from("break_settings").upsert(row, { onConflict: "community_id" });
   if (error) { if (missing(error)) throw new BreakNotReady(); throw error; }
   return next;
 }
@@ -250,7 +269,8 @@ export async function endRun(run: BreakRun): Promise<BreakRun> {
     ? `${name} is back! Break champion: ${champion.names.join(" and ")} with ${champion.points} point${champion.points === 1 ? "" : "s"}${prize ? ` (+${prize} tokens${winners.length > 1 ? " each" : ""})` : ""}.`
     : `${name} is back! Thanks for hanging out.`;
   const nextPick = ended.meta?.nextPick;
-  void announceToCommunity(run.community_id, `${lead}${nextPick ? ` For the first game back: ${nextPick}.` : ""}${handicap ? ` Chat's handicap: ${handicap}` : ""}`);
+  const bounty = ended.meta?.bounty?.status === "open" ? ended.meta.bounty : null;
+  void announceToCommunity(run.community_id, `${lead}${nextPick ? ` For the first game back: ${nextPick}.` : ""}${handicap ? ` Chat's handicap: ${handicap}` : ""}${bounty ? ` Chat's bounty (${bounty.tokens} tokens): ${bounty.text}` : ""}`);
   void noteOnSession(run.owner_user_id, SESSION_EVENT_TYPES.break_ended, { champion, handicap: handicap ?? null });
   return ended;
 }
@@ -265,20 +285,76 @@ async function payChampions(run: BreakRun, winners: { platform: string; viewer: 
   if (championTokens <= 0) return 0;
   const each = Math.floor(championTokens / winners.length);
   if (each <= 0) return 0;
+  return payViewers(run.community_id, run.id, winners.map((w) => ({ platform: w.platform, viewer: w.viewer, name: w.display_name })), each, "break_mode");
+}
+
+/**
+ * Tokens from the streamer's monthly allowance to break players (as their
+ * Twitch wallet, or their site wallet). Returns what each got (0 when nothing
+ * went out). A shortfall in the allowance stops paying but undoes nothing.
+ */
+async function payViewers(communityId: string, refId: string, viewers: { platform: string; viewer: string; name: string | null }[], each: number, source: string): Promise<number> {
   let paid = 0;
-  for (const w of winners) {
+  for (const w of viewers) {
     try {
       const identityId = w.platform === "site"
-        ? (await ensureAccountWallet(w.viewer, w.display_name ?? "Someone"))?.identityId
-        : (await resolveIdentity({ platform: "twitch", platformId: w.viewer, displayName: w.display_name })).identityId;
+        ? (await ensureAccountWallet(w.viewer, w.name ?? "Someone"))?.identityId
+        : (await resolveIdentity({ platform: "twitch", platformId: w.viewer, displayName: w.name })).identityId;
       if (!identityId) continue;
-      const minted = await awardMint({ communityId: run.community_id, toIdentityId: identityId, amount: each, refId: run.id, meta: { source: "break_mode" } });
+      const minted = await awardMint({ communityId, toIdentityId: identityId, amount: each, refId, meta: { source } });
       if (minted.ok) paid = Math.max(paid, minted.minted);
     } catch (err) {
-      console.error("[break] champion prize failed:", err);
+      console.error(`[break] ${source} payout failed:`, err);
     }
   }
   return paid;
+}
+
+// ─── Chat Sets the Bounty ────────────────────────────────────────────────────
+
+export interface BreakBounty { runId: string; label: string; text: string; tokens: number; voters: number; setAt: string }
+
+/** The bounty chat set on this channel's latest break, while it's waiting to be called (6 hours at most). */
+export async function openBreakBounty(communityId: string): Promise<BreakBounty | null> {
+  const since = at(Date.now() - 6 * 3600_000);
+  const { data, error } = await createServiceClient().from("break_runs").select("id, meta, started_at")
+    .eq("community_id", communityId).gte("started_at", since).order("started_at", { ascending: false }).limit(3);
+  if (error) return null;
+  for (const r of (data ?? []) as { id: string; meta: RunMeta | null }[]) {
+    const b = r.meta?.bounty;
+    if (b?.status === "open") return { runId: r.id, label: b.label, text: b.text, tokens: b.tokens, voters: b.voters.length, setAt: b.setAt };
+  }
+  return null;
+}
+
+export type BountySettle = { ok: true; paidEach: number; voters: number } | { ok: false; error: "no_bounty" | "already_settled" };
+
+/**
+ * Done: the voters split the tokens (from the allowance). Not done: nothing is
+ * paid. Claims the bounty on the run's meta first, so it can't be paid twice.
+ */
+export async function settleBreakBounty(communityId: string, done: boolean): Promise<BountySettle> {
+  const open = await openBreakBounty(communityId);
+  if (!open) return { ok: false, error: "no_bounty" };
+  const admin = createServiceClient();
+  const { data: row } = await admin.from("break_runs").select("id, meta, updated_at").eq("id", open.runId).maybeSingle();
+  const r = row as { id: string; meta: RunMeta | null; updated_at: string } | null;
+  const b = r?.meta?.bounty;
+  if (!r || !b || b.status !== "open") return { ok: false, error: "already_settled" };
+  const { data: claimed } = await admin.from("break_runs")
+    .update({ meta: { ...r.meta, bounty: { ...b, status: done ? "paid" : "missed" } }, updated_at: at(Date.now()) })
+    .eq("id", r.id).eq("updated_at", r.updated_at).select("id");
+  if (!claimed || !claimed.length) return { ok: false, error: "already_settled" };
+  if (!done) {
+    void announceToCommunity(communityId, `The bounty didn't happen this time: ${b.text}`);
+    return { ok: true, paidEach: 0, voters: b.voters.length };
+  }
+  const each = b.voters.length ? Math.max(1, Math.floor(b.tokens / b.voters.length)) : 0;
+  const paidEach = each ? await payViewers(communityId, r.id, b.voters, each, "break_bounty") : 0;
+  void announceToCommunity(communityId, paidEach
+    ? `Bounty claimed! ${b.text} ${b.voters.length} ${b.voters.length === 1 ? "viewer gets" : "viewers get"} ${paidEach} tokens${b.voters.length === 1 ? "" : " each"}.`
+    : `Bounty done: ${b.text}`);
+  return { ok: true, paidEach, voters: b.voters.length };
 }
 
 export type PullResult = { ok: true; prompt: string } | { ok: false; error: "nothing_to_pull" };
@@ -319,20 +395,32 @@ async function claim(run: BreakRun, patch: Record<string, unknown>): Promise<Bre
   return (data as BreakRun | null) ?? null;
 }
 
-async function skipSet(communityId: string, game: BreakGameId): Promise<(key: string) => boolean> {
+/**
+ * What a round may not show. `skip`: played on this channel in the last 30
+ * days, or pulled for review. `fallback`, for when everything is used up:
+ * only what was played before this break started, and never anything pulled
+ * (a tiny pool, like a channel's own few questions, used to repeat within one
+ * break, and the old fallback let pulled questions back in).
+ */
+async function skipSet(communityId: string, game: BreakGameId, breakStartedAt: string): Promise<{ skip: (key: string) => boolean; fallback: (key: string) => boolean }> {
   const admin = createServiceClient();
   const [seen, pulled] = await Promise.all([
-    admin.from("break_seen").select("item_key").eq("community_id", communityId).eq("game", game).gte("seen_at", at(Date.now() - SEEN_DAYS * 864e5)).limit(5000),
+    admin.from("break_seen").select("item_key, seen_at").eq("community_id", communityId).eq("game", game).gte("seen_at", at(Date.now() - SEEN_DAYS * 864e5)).limit(5000),
     admin.from("break_pulled").select("item_key").eq("game", game).or("keep.is.null,keep.eq.false").limit(5000),
   ]);
-  const keys = new Set([...(seen.data ?? []), ...(pulled.data ?? [])].map((r) => (r as { item_key: string }).item_key));
-  return (k) => keys.has(k);
+  const seenRows = (seen.data ?? []) as { item_key: string; seen_at: string }[];
+  const pulledKeys = new Set(((pulled.data ?? []) as { item_key: string }[]).map((r) => r.item_key));
+  const all = new Set([...seenRows.map((r) => r.item_key), ...pulledKeys]);
+  // Five minutes of slack: seen times come from the app's clock, the break's start from the database's.
+  const since = Date.parse(breakStartedAt) - 5 * 60_000;
+  const thisBreak = new Set([...seenRows.filter((r) => Date.parse(r.seen_at) >= since).map((r) => r.item_key), ...pulledKeys]);
+  return { skip: (k) => all.has(k), fallback: (k) => thisBreak.has(k) };
 }
 
 async function openRound(run: BreakRun): Promise<BreakRun | null> {
   const id = gameAt(run);
   const game = GAMES[id];
-  const [skip, name, playing] = await Promise.all([skipSet(run.community_id, id), streamerName(run.owner_user_id), gameOnStream(run.owner_user_id)]);
+  const [{ skip, fallback }, name, playing] = await Promise.all([skipSet(run.community_id, id, run.started_at), streamerName(run.owner_user_id), gameOnStream(run.owner_user_id)]);
   // A game that reads the database (approved trivia, a Chat Brain question) loads first.
   const data = game.load
     ? await game.load({ communityId: run.community_id, ownerUserId: run.owner_user_id, streamer: name, liveSlug: null, gameOnStream: playing, skip })
@@ -348,8 +436,9 @@ async function openRound(run: BreakRun): Promise<BreakRun | null> {
       .catch((err) => { console.error(`[break] ${id} didn't open:`, err); return null; });
   } else {
     draft = game.make({ ...base, skip });
-    // Everything this channel can see has been played in the last 30 days: let the oldest come back.
-    if (!draft) draft = game.make({ ...base, skip: () => false });
+    // Everything this channel can see has been played in the last 30 days: let earlier ones come back,
+    // but never one from this break or one pulled for review. Nothing left = on to the next game.
+    if (!draft) draft = game.make({ ...base, skip: fallback });
   }
   if (!draft) {
     // A game with nothing to show (no facts for any public game): on to the next one.

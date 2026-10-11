@@ -86,7 +86,6 @@ export default function ResetPasswordPage() {
             </div>
           ) : second.state === "needed" ? (
             <MfaChallenge
-              allowRecovery={false}
               cancelLabel="Cancel and sign out"
               onDone={second.passed}
               onCancel={async () => { await createClient().auth.signOut(); router.push("/login"); }}

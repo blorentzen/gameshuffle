@@ -17,7 +17,7 @@ import { streamOwnerFor } from "@/lib/mods/acting";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { getOpenPollForCommunity, tally } from "@/lib/polls/store";
 import { getCurrentGame as getBingoGame, doorsOpen, gamePatternLabel } from "@/lib/bingo/stream";
-import { breakView, getRunning as getRunningBreak, tickBreak } from "@/lib/break/store";
+import { breakView, getRunning as getRunningBreak, openBreakBounty, tickBreak } from "@/lib/break/store";
 import { getCurrentDraft } from "@/lib/drafts/store";
 import { getRunningGame, gameView } from "@/lib/chatbrain/streamGame";
 import { rollSlots, rollTitle, rollKind } from "@/lib/twitch/chatRoll";
@@ -124,6 +124,8 @@ export async function GET(request: Request) {
     breakMode: null,
     market: null,
     bounties: { count: 0, first: null, amount: null },
+    challenges: { open: 0, needsWinner: 0 },
+    breakBounty: null,
   };
   if (!communityId) return NextResponse.json(empty);
 
@@ -149,7 +151,10 @@ export async function GET(request: Request) {
       if (!g) return null;
       const v = await gameView(g);
       if (!v) return null;
-      return { id: g.id, board: v.boardIndex + 1, boards: v.boardCount, question: v.question, strikes: v.strikes, score: v.score };
+      return {
+        id: g.id, board: v.boardIndex + 1, boards: v.boardCount, question: v.question, strikes: v.strikes, score: v.score,
+        scores: v.versus ? v.versus.sides.map((s) => `${s.name} ${s.score}`).join(" · ") : undefined,
+      };
     }, null),
     safe(async () => {
       const run = await getRunningBreak(communityId);
@@ -172,5 +177,13 @@ export async function GET(request: Request) {
     }, { count: 0, first: null, amount: null }),
   ]);
 
-  return NextResponse.json({ ...empty, poll, bingo, draft, brain, breakMode, market, bounties } satisfies HubRunning);
+  const [openCh, unpaidCh] = await Promise.all([
+    admin.from("gs_event_challenges").select("id", { count: "exact", head: true }).eq("session_id", sessionId).eq("status", "open"),
+    admin.from("gs_event_challenges").select("id", { count: "exact", head: true }).eq("session_id", sessionId).eq("status", "resolved")
+      .eq("resolved_outcome", "success").is("target_identity_id", null).is("resolved_to", null).is("payout_event", null).gt("reward", 0),
+  ]);
+  const challenges = { open: openCh.count ?? 0, needsWinner: unpaidCh.count ?? 0 };
+  const openBounty = communityId ? await safe(() => openBreakBounty(communityId), null) : null;
+  const breakBounty = openBounty ? { text: openBounty.text, tokens: openBounty.tokens, voters: openBounty.voters } : null;
+  return NextResponse.json({ ...empty, poll, bingo, draft, brain, breakMode, market, bounties, challenges, breakBounty } satisfies HubRunning);
 }

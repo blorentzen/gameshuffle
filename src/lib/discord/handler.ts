@@ -33,6 +33,8 @@ import {
   handleWeeklyTierPick,
 } from "./commands/weekly";
 import { ephemeralMessage } from "./respond";
+import { handleTriviaAnswerButton, handleTriviaModalSubmit, handleTriviaPick } from "./commands/trivia";
+import { TRIVIA_ANSWER_PREFIX, TRIVIA_MODAL_PREFIX, TRIVIA_PICK_PREFIX } from "@/lib/trivia/discord";
 import { ACTIVITY_PLAY_PREFIX } from "@/lib/activity/channelCard";
 import { handleGsDaily, launchActivity, type ActivityTab } from "./activityLaunch";
 import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
@@ -97,6 +99,10 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
       return handlePollVote(interaction);
     }
 
+    // Trivia on stream: a choice, or the Answer button that opens a form.
+    if (customId.startsWith(TRIVIA_PICK_PREFIX)) return handleTriviaPick(interaction);
+    if (customId.startsWith(TRIVIA_ANSWER_PREFIX)) return handleTriviaAnswerButton(interaction);
+
     // Chat Brain: "brainnext:{category}" checked before "brain:{promptId}".
     if (customId === BRAIN_PLAY) return handleBrainPlay(interaction);
     if (customId.startsWith(BRAIN_NEXT_PREFIX)) {
@@ -149,6 +155,9 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     }
     if (customId.startsWith(WEEKLY_MODAL_PREFIX)) {
       return handleWeeklyModalSubmit(interaction);
+    }
+    if (customId.startsWith(TRIVIA_MODAL_PREFIX)) {
+      return handleTriviaModalSubmit(interaction);
     }
     return ephemeralMessage("Unknown form.");
   }

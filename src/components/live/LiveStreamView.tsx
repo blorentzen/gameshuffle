@@ -10,9 +10,10 @@
  * controls (configure, manual reroll, end session) live on /hub.
  */
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { Accordion, Container, Tabs, ToastContainer, type ToastProps } from "@empac/cascadeds";
+import { Accordion, Container, Tabs } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
 import type { RaceGame } from "@/lib/randomizers/race";
@@ -49,6 +50,7 @@ import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
 import { LiveBingoCard } from "./LiveBingoCard";
 import { LiveBreakCard } from "./LiveBreakCard";
+import { LiveTriviaCard } from "./LiveTriviaCard";
 import { LiveDraftCard } from "./LiveDraftCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
@@ -210,6 +212,7 @@ export function LiveStreamView({
           <LiveTournamentRace ownerUserId={streamer.userId} />
           {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
           <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
+          <LiveTriviaCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
           <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
           <LiveDraftCard communityId={initialLeaderboard.communityId} />
           {upcoming && (
@@ -340,71 +343,38 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
   const [activeTab, setActiveTab] = useState<string>(initialTab ?? "play");
   const [historyView, setHistoryView] = useState<string>("races");
 
-  // Toast queue + the set of round IDs we've already announced. The
-  // initial set is seeded with whatever rounds are open at SSR time
-  // so we don't fire toasts for rounds the viewer arrived to find
-  // already in progress — only for rounds that newly open after
-  // they're on the page.
-  const [toasts, setToasts] = useState<ToastProps[]>([]);
-  const [seenOpenRoundIds, setSeenOpenRoundIds] = useState<Set<string>>(
-    () =>
-      new Set(
-        live.rounds
-          .filter((r) => r.status === "open")
-          .map((r) => r.id)
-      )
-  );
-
-  // Diff the live open rounds against what we've already announced.
-  // New ones get a toast; closed/applied/cancelled rounds drop out
-  // of the seen set so a future re-open of the same game (different
-  // round id) fires a fresh toast. Render-time sentinel update per
-  // React's "storing-information-from-previous-renders" pattern —
-  // avoids the setState-in-effect cascade.
+  // "Picks/bans open!" alerts through the site's toasts (a local CDS
+  // ToastContainer only draws in the browser, so the page never hydrated
+  // cleanly). Rounds already open when the viewer arrived aren't announced:
+  // the first run only records them. Fired from an effect because toasting
+  // updates another component's state.
+  const toast = useToast();
   const currentOpenRoundIds = useMemo(
-    () =>
-      new Set(
-        live.rounds
-          .filter((r) => r.status === "open")
-          .map((r) => r.id)
-      ),
+    () => live.rounds.filter((r) => r.status === "open").map((r) => r.id).sort().join(","),
     [live.rounds]
   );
-  const newOpenRoundIds = useMemo(
-    () =>
-      [...currentOpenRoundIds].filter((id) => !seenOpenRoundIds.has(id)),
-    [currentOpenRoundIds, seenOpenRoundIds]
-  );
-  if (newOpenRoundIds.length > 0) {
-    setSeenOpenRoundIds(currentOpenRoundIds);
-    const newToasts: ToastProps[] = newOpenRoundIds.map((roundId: string) => {
+  const announcedRounds = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const open = new Set(currentOpenRoundIds ? currentOpenRoundIds.split(",") : []);
+    if (!announcedRounds.current) { announcedRounds.current = open; return; }
+    for (const roundId of open) {
+      if (announcedRounds.current.has(roundId)) continue;
       const round = live.rounds.find((r) => r.id === roundId);
       const gameLabel =
-        round?.game_slug === "mario-kart-8-deluxe"
-          ? "MK8DX"
-          : round?.game_slug === "mario-kart-world"
-            ? "MKWorld"
+        round?.game_slug === "mario-kart-8-deluxe" ? "MK8DX"
+          : round?.game_slug === "mario-kart-world" ? "MKWorld"
             : "this game";
-      const toastId = `round-open-${roundId}`;
-      const dismiss = () =>
-        setToasts((prev) => prev.filter((t) => t.id !== toastId));
-      return {
-        id: toastId,
+      let id = "";
+      id = toast.toast({
         variant: "success",
         title: "Picks/bans open!",
         message: `Cast your ballot for ${gameLabel}. The streamer just opened a round.`,
-        onClose: dismiss,
-        action: {
-          label: "Open Picks & Bans",
-          onClick: () => {
-            setActiveTab("play");
-            dismiss();
-          },
-        },
-      };
-    });
-    setToasts((prev) => [...prev, ...newToasts]);
-  }
+        action: { label: "Open Picks & Bans", onClick: () => { setActiveTab("play"); toast.dismiss(id); } },
+      });
+    }
+    // Closed rounds drop out, so a later round for the same game is announced fresh.
+    announcedRounds.current = open;
+  }, [currentOpenRoundIds, live.rounds, toast]);
 
   // Resolve the viewer's auth state on mount + on auth-change events.
   // Supabase Auth's session is HTTP-only-cookie-backed but the client
@@ -721,6 +691,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
         </div>
 
         <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
+        <LiveTriviaCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
         <LivePollCard communityId={initialLeaderboard.communityId} />
         <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
         <LiveDraftCard communityId={initialLeaderboard.communityId} />
@@ -752,7 +723,6 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
         </footer>
       </div>
 
-      <ToastContainer toasts={toasts} />
 
       <AuthPromptModal
         isOpen={authOpen}

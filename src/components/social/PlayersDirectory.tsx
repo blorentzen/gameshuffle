@@ -10,7 +10,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { Input, Select, Chip, Badge, FollowButton } from "@empac/cascadeds";
+import { Input, Chip, Badge, FollowButton } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { UserAvatar } from "@/components/UserAvatar";
 import { UserIdentity } from "@/components/profile/UserIdentity";
 import { LivePresenceDot } from "@/components/social/LivePresenceDot";
