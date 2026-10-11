@@ -133,6 +133,8 @@
 .event-shell__organizer-meta { font-size: var(--font-size-12); color: var(--text-secondary); }
 .event-shell__organizer-meta a { color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-semibold); text-decoration: none; }
 .event-shell__organizer-follow { flex: none; }
+/* An official event: GameShuffle's monogram where the host's avatar goes. */
+.event-shell__organizer-logo { width: 44px; height: 44px; flex: none; border-radius: 50%; object-fit: cover; }
 
 /* Good to know */
 .event-shell__h2 {
@@ -210,6 +212,11 @@
 .attendees__toolbar { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
 .attendees__stats { display: flex; gap: var(--spacing-16); flex-wrap: wrap; font-size: var(--font-size-14); color: var(--text-secondary); }
 .attendees__stats strong { color: var(--text-primary); }
+/* The organizer's Circuit plan is full: who's waiting and the upgrade. */
+.attendees__plan { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-subtle, var(--border-default)); border-radius: var(--gs-radius-md, 0.9rem); background: var(--background-secondary, var(--surface-raised)); }
+.attendees__plan-text { margin: 0; flex: 1 1 28rem; font-size: var(--font-size-14); color: var(--text-secondary); line-height: var(--line-height-relaxed); }
+.attendees__plan-text strong { color: var(--text-primary); }
+.attendees__plan-actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
 .attendees__actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
 .attendees__filters { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; gap: var(--spacing-8); }
 .attendees__table { overflow-x: auto; }

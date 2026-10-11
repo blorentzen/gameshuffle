@@ -16,10 +16,12 @@ import { getGameName } from "@/data/game-registry";
 import type { HubGameActions } from "@/lib/hub/gameActions";
 import { useHubLive } from "./HubLiveProvider";
 
-export function RunningNow({ sessionSlug, liveSlug, actions }: {
+export function RunningNow({ sessionSlug, liveSlug, actions, predictions = true }: {
   sessionSlug: string;
   liveSlug: string | null;
   actions: HubGameActions | null;
+  /** Off on a mod's page: predictions and bounties stay with the streamer. */
+  predictions?: boolean;
 }) {
   const { data, refresh, goTab } = useHubLive();
   const toast = useToast();
@@ -39,7 +41,7 @@ export function RunningNow({ sessionSlug, liveSlug, actions }: {
   };
 
   const raceGame = !!actions?.race;
-  const marketsGame = !!actions?.markets;
+  const marketsGame = predictions && !!actions?.markets;
   const cards: ReactNode[] = [];
 
   if (data?.picks && raceGame) {
@@ -97,6 +99,20 @@ export function RunningNow({ sessionSlug, liveSlug, actions }: {
         onOpen={() => goTab("live-games", "chat-brain")} />,
     );
   }
+  if (data?.breakMode) {
+    const b = data.breakMode;
+    const where = b.phase === "intro" ? `Up next: ${b.game ?? "a game"}` : b.phase === "standings" ? `Standings after ${b.game ?? "the game"}` : `${b.game ?? "Round"} · round ${b.round} of ${b.rounds}`;
+    // You're on a break: this comes first.
+    cards.unshift(
+      <Card key="break" title="On a break" status={<Badge variant="success" size="small">{b.ending ? "Ending" : "Chat's playing"}</Badge>}
+        line={`${where} · ${b.players} scored so far`} onOpen={() => goTab("live-games", "break")}>
+        {!b.ending && (
+          <Button size="small" variant="secondary" disabled={busy !== null}
+            onClick={() => void run("break", patch("/api/break", { action: "end" }, "PATCH"), "Ending after this round")}>I&apos;m back</Button>
+        )}
+      </Card>,
+    );
+  }
   if (data?.market && marketsGame) {
     const m = data.market;
     cards.push(
@@ -110,7 +126,7 @@ export function RunningNow({ sessionSlug, liveSlug, actions }: {
       </Card>,
     );
   }
-  if (data && data.bounties.count > 0) {
+  if (predictions && data && data.bounties.count > 0) {
     const b = data.bounties;
     cards.push(
       <Card key="bounties" title={b.count === 1 ? "Bounty" : `${b.count} bounties`} status={<Badge variant="info" size="small">Open</Badge>}
@@ -125,8 +141,9 @@ export function RunningNow({ sessionSlug, liveSlug, actions }: {
   if (!data?.bingo || data.bingo.status !== "open") starts.push({ key: "bingo", label: "Bingo", onClick: () => goTab("live-games", "bingo") });
   if (!data?.draft) starts.push({ key: "draft", label: "Chat Draft", onClick: () => goTab("live-games", "draft") });
   if (!data?.brain) starts.push({ key: "brain", label: "Chat Brain", onClick: () => goTab("live-games", "chat-brain") });
+  if (!data?.breakMode) starts.push({ key: "break", label: "Break mode", onClick: () => goTab("live-games", "break") });
   if (marketsGame && !data?.market) starts.push({ key: "market", label: "Prediction", onClick: () => goTab("predictions") });
-  starts.push({ key: "bounty", label: "Bounty", onClick: () => goTab("predictions") });
+  if (predictions) starts.push({ key: "bounty", label: "Bounty", onClick: () => goTab("predictions") });
 
   return (
     <section className="hub-panel hub-running" aria-labelledby="hub-running-title">

@@ -4,7 +4,8 @@ import { AiTournamentHelper } from "@/components/ai/AiTournamentHelper";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, Container, Button, Input, Select } from "@empac/cascadeds";
+import { Card, Container, Button, Input, Select, Switch } from "@empac/cascadeds";
+import { isReservedName, RESERVED_TITLE_MESSAGE, reservedNameError } from "@/lib/reservedName";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { isPartyGame, PARTY_SCORING_TABLE, PARTY_TABLE_ADVANCE, PARTY_TABLE_SIZE } from "@/lib/party/tournament";
 import { defaultRules as smashDefaultRules, isSmashGame, SMASH_FLIGHT_SIZE, SMASH_SCORING_TABLE } from "@/lib/smash/tournament";
@@ -12,7 +13,10 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
 import { describeStructure } from "@/lib/tournaments/groups";
-import { ORGANIZER_BILLING_LAUNCH } from "@/lib/tournaments/circuit";
+import { circuitLaunch } from "@/lib/tournaments/circuit";
+
+/** Circuit launch wording (ORGANIZER_BILLING_LAUNCH). */
+const circuitPhase = circuitLaunch();
 import { getGameLobbySize } from "@/lib/tournaments/gameData";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
@@ -92,12 +96,16 @@ export default function CreateTournamentPage() {
   // Championship creation is Pro-only — read the user's effective tier for a
   // clean upsell (RLS also enforces this server-side).
   const [isPro, setIsPro] = useState(true); // optimistic until loaded (avoids a flash of the upsell)
+  // Admins can host as GameShuffle (an official event; supabase/official-events-m1.sql).
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [hostedByGs, setHostedByGs] = useState(false);
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
     (async () => {
       const { data } = await supabase.from("users").select("subscription_tier, role, circuit_tier, circuit_status").eq("id", user.id).maybeSingle();
       setIsPro(effectiveTier({ tier: normalizeTier(data?.subscription_tier), role: data?.role, circuitTier: data?.circuit_tier ?? null, circuitStatus: data?.circuit_status ?? null }) === "pro");
+      setIsAdmin(data?.role === "admin");
     })();
   }, [user]);
 
@@ -137,14 +145,22 @@ export default function CreateTournamentPage() {
   const [lobbyCustom, setLobbyCustom] = useState(false);
   const isElim = format === "single_elim" || format === "double_elim";
   const gkBracketing = format === "double_elim" ? "double" : "single";
-  // GS Circuit billing flag (admin-toggleable) — drives the free-preview hint.
+  // GS Circuit billing (the admin switch) and this organizer's plan, for the field-size note.
   const [billingEnabled, setBillingEnabled] = useState(false);
+  const [circuitPlan, setCircuitPlan] = useState<{ plan: string | null; graceLabel: string | null }>({ plan: null, graceLabel: null });
   useEffect(() => {
     fetch("/api/tournaments/billing-status")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setBillingEnabled(!!d.billingEnabled); })
+      .then((d: { billingEnabled?: boolean; plan?: string | null; graceUntil?: string | null } | null) => {
+        if (!d) return;
+        setBillingEnabled(!!d.billingEnabled);
+        setCircuitPlan({
+          plan: d.plan ?? null,
+          graceLabel: d.graceUntil ? new Date(d.graceUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" }) : null,
+        });
+      })
       .catch(() => {});
-  }, []);
+  }, [user]);
   // Communities the organizer can present this event under (owner/mod).
   useEffect(() => {
     fetch("/api/communities/organizable")
@@ -254,6 +270,7 @@ export default function CreateTournamentPage() {
         rules: rules.trim() || null,
         share_token: generateShareToken(),
         status: "draft",
+        ...(hostedByGs ? { hosted_by_gs: true } : {}),
         ...(isParty ? { scoring_table: PARTY_SCORING_TABLE } : isSmash ? { scoring_table: SMASH_SCORING_TABLE } : {}),
         // MK games carry race/track/build config; other games just record a
         // label. Group Knockout adds its lobby rules on top, any game.
@@ -286,7 +303,12 @@ export default function CreateTournamentPage() {
         .from("tournaments").insert(row).select("id").single());
     }
 
-    if (dbError) { setError(dbError.message); setSaving(false); return; }
+    if (dbError) {
+      const missingColumn = /hosted_by_gs/i.test(dbError.message);
+      setError(missingColumn ? "Official events need the latest database update (official-events-m1)." : reservedNameError(dbError.message) ?? dbError.message);
+      setSaving(false);
+      return;
+    }
     if (data) { trackEvent("Tournament Created", { mode, game: resolvedSlug, format }); router.push(`/tournament/${data.id}/manage`); }
   };
 
@@ -313,6 +335,7 @@ export default function CreateTournamentPage() {
     if (runMode === "championship" && !isPro) { setError("Championship series is a GS Pro feature."); return; }
     if (runMode === "championship" && noHeat) { setError(`Championship series runs Heat → Mains, which doesn't suit ${isSmash ? "Smash" : isParty ? "Mario Party" : gameLabel}. Run a single tournament instead.`); return; }
     if (!title.trim()) { setError(`${runMode === "championship" ? "Championship" : "Tournament"} name is required.`); return; }
+    if (isReservedName(title) && !(runMode === "single" && hostedByGs)) { setError(RESERVED_TITLE_MESSAGE); return; }
     if (isOtherGame && !customGame.trim()) { setError("Enter the name of the game."); return; }
     setSaving(true);
     setError(null);
@@ -369,6 +392,14 @@ export default function CreateTournamentPage() {
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>{runMode === "championship" ? "Season / League Name" : "Tournament Name"} *</label>
                 <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={runMode === "championship" ? "Friday Night League" : "Friday Night Karts"} />
               </div>
+              {isAdmin && runMode === "single" && (
+                <Switch
+                  checked={hostedByGs}
+                  onChange={(e) => setHostedByGs(e.target.checked)}
+                  label="Host as GameShuffle"
+                  helperText="An official event: the page shows GameShuffle as the host with an Official badge, and the GameShuffle name can be used in the title."
+                />
+              )}
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Description</label>
                 <textarea className="save-setup-input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={runMode === "championship" ? "What's this league about?" : "What's this tournament about?"} rows={3} style={{ resize: "vertical" }} />
@@ -484,9 +515,19 @@ export default function CreateTournamentPage() {
                             : describeStructure({ lobbySize: gkLobby, advance: gkAdvance, bracketing: gkBracketing }, maxParticipants ? Number(maxParticipants) : 16)}
                           {gkLobby > 2 && !maxParticipants && <span style={{ color: "var(--text-tertiary)" }}> (example with 16 players)</span>}
                         </div>
+                        {billingEnabled && (circuitPlan.plan === "grace" || circuitPlan.plan === "free") && (
+                          <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", margin: 0 }}>
+                            <IconSparkles size={14} stroke={1.9} aria-hidden />{" "}
+                            {circuitPlan.plan === "grace"
+                              ? <><strong>GameShuffle Circuit is free for you until {circuitPlan.graceLabel}:</strong> you ran tournaments before it launched, so bigger fields and every organizer feature cost nothing until then.</>
+                              : <><strong>Free plan:</strong> up to {getGameLobbySize(isOtherGame ? null : gameSlug)} players get a spot; anyone after that joins the waitlist. Upgrade to <Link href="/gs-circuit">GameShuffle Circuit</Link> (64 or 256 players) and they&rsquo;re offered spots in line order.</>}
+                          </p>
+                        )}
                         {!billingEnabled && (
                           <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", margin: 0 }}>
-                            <IconSparkles size={14} stroke={1.9} aria-hidden /> <strong>GameShuffle Circuit preview:</strong> fields over {getGameLobbySize(isOtherGame ? null : gameSlug)} players will become part of GameShuffle Circuit{ORGANIZER_BILLING_LAUNCH ? ` starting ${new Date(ORGANIZER_BILLING_LAUNCH).toLocaleDateString()}` : ""}. Everything is free while it&rsquo;s in preview.
+                            <IconSparkles size={14} stroke={1.9} aria-hidden /> <strong>GameShuffle Circuit {circuitPhase.phase === "preview" ? "preview" : "is free for now"}:</strong> fields over {getGameLobbySize(isOtherGame ? null : gameSlug)} players {circuitPhase.phase === "preview"
+                              ? <>will become part of GameShuffle Circuit. Everything is free while it&rsquo;s in preview.</>
+                              : <>become part of GameShuffle Circuit on {circuitPhase.dateLabel}. Until then it&rsquo;s free, and a tournament you create now keeps its Circuit features.</>}
                           </p>
                         )}
                       </div>

@@ -14,9 +14,10 @@ import { PollsTab } from "@/components/account/PollsTab";
 import { StreamBingoTab } from "@/components/account/StreamBingoTab";
 import { ChatDraftTab } from "@/components/account/ChatDraftTab";
 import { ChatBrainStreamTab } from "@/components/account/ChatBrainStreamTab";
+import { BreakModeTab } from "@/components/account/BreakModeTab";
 import { useHubLive } from "./HubLiveProvider";
 
-const VIEWS = ["polls", "bingo", "draft", "chat-brain"] as const;
+const VIEWS = ["polls", "bingo", "draft", "chat-brain", "break"] as const;
 type View = (typeof VIEWS)[number];
 
 export function LiveGamesPanel() {
@@ -46,6 +47,7 @@ export function LiveGamesPanel() {
           { id: "bingo", label: "Bingo", badge: live(data?.bingo?.status === "open"), content: <StreamBingoTab /> },
           { id: "draft", label: "Chat Draft", badge: live(!!data?.draft), content: <div className="account-card"><ChatDraftTab /></div> },
           { id: "chat-brain", label: "Chat Brain", badge: live(!!data?.brain), content: <div className="account-card"><ChatBrainStreamTab /></div> },
+          { id: "break", label: "Break mode", badge: live(!!data?.breakMode), content: <div className="account-card"><BreakModeTab /></div> },
         ]}
       />
     </div>
@@ -58,5 +60,6 @@ function firstRunning(data: ReturnType<typeof useHubLive>["data"]): View | null 
   if (data.bingo?.status === "open") return "bingo";
   if (data.draft) return "draft";
   if (data.brain) return "chat-brain";
+  if (data.breakMode) return "break";
   return null;
 }

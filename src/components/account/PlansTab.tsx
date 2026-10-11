@@ -86,6 +86,8 @@ export function PlansTab() {
   // Organizer billing is still in preview. The ladder must say so rather than
   // offering paid buttons the marketing page contradicts.
   const [billingEnabled, setBillingEnabled] = useState(false);
+  // Organizers who ran tournaments before Circuit launched: free Circuit until then (Terms §3.4).
+  const [circuitGraceLabel, setCircuitGraceLabel] = useState<string | null>(null);
   // Initial flash reflects the ?checkout=success/canceled query param Stripe
   // bounces us back with. Read once at mount (lazy initializer) so we don't
   // need an effect that would trigger the "setState in effect" lint.
@@ -152,7 +154,11 @@ export function PlansTab() {
     let cancelled = false;
     fetch("/api/tournaments/billing-status")
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (!cancelled && j) setBillingEnabled(!!j.billingEnabled); })
+      .then((j) => {
+        if (cancelled || !j) return;
+        setBillingEnabled(!!j.billingEnabled);
+        setCircuitGraceLabel(j.graceUntil ? new Date(j.graceUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" }) : null);
+      })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -317,6 +323,7 @@ export function PlansTab() {
               onAnnualChange={setAnnual}
               currentTier={(userRow?.circuit_tier as CircuitTierId | null) ?? "free"}
               billingEnabled={billingEnabled}
+              graceLabel={circuitGraceLabel}
               busyTier={busyTier}
               onSubscribe={subscribeCircuit}
             />

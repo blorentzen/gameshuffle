@@ -1,3 +1,5 @@
+import { createServiceClient } from "@/lib/supabase/admin";
+import { tournamentPlayerCap } from "@/lib/tournaments/circuit-resolve";
 import { createClient } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/env";
 import { listTiers } from "@/lib/events/tickets";
@@ -65,5 +67,9 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
     console.error("[tournament page] server read failed; the browser will load it", err);
     return null;
   });
-  return <TournamentPageClient initial={initial} baseUrl={getBaseUrl()} />;
+  // The organizer's GameShuffle Circuit player limit, so "full" (and the waitlist) shows before anyone taps Join.
+  const circuitCap = initial
+    ? await tournamentPlayerCap(createServiceClient(), { id: initial.tournament.id, organizer_id: initial.tournament.organizer_id, game_slug: initial.tournament.game_slug, created_at: initial.tournament.created_at }).catch(() => Number.POSITIVE_INFINITY)
+    : Number.POSITIVE_INFINITY;
+  return <TournamentPageClient initial={initial} baseUrl={getBaseUrl()} circuitCap={Number.isFinite(circuitCap) ? circuitCap : null} />;
 }

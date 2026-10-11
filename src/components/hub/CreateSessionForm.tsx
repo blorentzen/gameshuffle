@@ -21,7 +21,6 @@ import { useActionState, useState } from "react";
 import {
   Accordion,
   Alert,
-  Badge,
   Button,
   Checkbox,
   DatePickerModal,
@@ -159,12 +158,10 @@ export function CreateSessionForm({
             <Checkbox checked={false} disabled />
             <span className="hub-form__platform-label">
               <strong>Discord</strong>{" "}
-              <Badge variant="default" size="small">
-                Coming soon
-              </Badge>
               <span className="hub-form__platform-disabled">
-                Discord streamer integration ships in a follow-up. Twitch
-                + Discord sessions arrive together.
+                Nothing to add here: once the GameShuffle bot is in your
+                server (Streaming ▸ Setup ▸ Discord), your go-live and recap
+                posts go out on their own.
               </span>
             </span>
           </div>
@@ -173,10 +170,10 @@ export function CreateSessionForm({
     },
     {
       id: "schedule",
-      title: "Schedule + fan-out",
+      title: "When it starts",
       description:
         preset === "manual"
-          ? "Go live only: opens when you activate"
+          ? "No set time: starts when you press Start or go live"
           : effScheduledAt
             ? `${
                 preset === "auto_open"
@@ -192,7 +189,7 @@ export function CreateSessionForm({
         <div className="hub-form__field-stack">
           <div className="hub-form__schedule-policy">
             <span className="hub-form__label">
-              How should this session start?
+              How should this stream start?
             </span>
             <RadioGroup
               name="schedule_preset_ui"
@@ -215,7 +212,7 @@ export function CreateSessionForm({
                 onChange={setScheduledAt}
                 showTime
                 fullWidth
-                placeholder="Pick a session start time"
+                placeholder="Pick a start time"
                 error={!!fieldErrors.scheduled_at}
               />
               {fieldErrors.scheduled_at && (
@@ -225,7 +222,7 @@ export function CreateSessionForm({
               )}
               {scheduleIncomplete && (
                 <p className="hub-form__platform-disabled">
-                  Pick a start time to schedule this session.
+                  Pick a start time to schedule this stream.
                 </p>
               )}
             </label>
@@ -235,33 +232,32 @@ export function CreateSessionForm({
             <p className="hub-form__platform-disabled">
               {preset === "announce_only" ? (
                 <>
-                  We&rsquo;ll announce <strong>1&nbsp;hour</strong>{" "}ahead; open
-                  the lobby yourself from the session controls when you&rsquo;re
-                  ready.
+                  We&rsquo;ll post a heads-up <strong>1&nbsp;hour</strong>{" "}before;
+                  press Start on the stream page when you&rsquo;re ready.
                 </>
               ) : preset === "weekly" ? (
                 <>
-                  Repeats <strong>weekly</strong>. We&rsquo;ll announce{" "}
-                  <strong>1&nbsp;hour</strong> ahead and open the lobby
-                  automatically each week.
+                  Repeats <strong>every week</strong>. We&rsquo;ll post a heads-up{" "}
+                  <strong>1&nbsp;hour</strong>{" "}before and open the lobby on its
+                  own each week.
                 </>
               ) : (
                 <>
-                  We&rsquo;ll announce <strong>1&nbsp;hour</strong> ahead and
-                  open the lobby automatically at the start time.
+                  We&rsquo;ll post a heads-up <strong>1&nbsp;hour</strong>{" "}before and
+                  open the lobby on its own at the start time.
                 </>
               )}{" "}
-              Need a different lead time? Choose <em>Custom</em>.
+              Want a different time? Choose <em>Custom</em>.
             </p>
           )}
 
           {preset === "custom" && (
             <div className="hub-form__schedule-policy">
-              <span className="hub-form__label">Pre-session notification</span>
+              <span className="hub-form__label">Heads-up before the stream</span>
               <p className="hub-form__platform-disabled">
-                When the notification fires, GameShuffle pings Discord and
-                opens the lobby so viewers can <code>!gs-join</code> ahead of
-                go-live.
+                When the heads-up goes out, GameShuffle posts on Discord and
+                opens the lobby so viewers can <code>!gs-join</code>{" "}before
+                you go live.
               </p>
 
               <RadioGroup
@@ -296,10 +292,10 @@ export function CreateSessionForm({
                   onChange={() => setAutoActivate((v) => !v)}
                 />
                 <span>
-                  <strong>Auto-activate at start time</strong>
+                  <strong>Start on its own at the start time</strong>
                   <span className="hub-form__platform-disabled">
-                    GameShuffle flips the session to active when your scheduled
-                    start time arrives.
+                    No need to press Start: GameShuffle starts the stream at
+                    the scheduled time.
                   </span>
                 </span>
               </label>
@@ -331,15 +327,14 @@ export function CreateSessionForm({
     },
     {
       id: "modules",
-      title: "Modules",
-      description: "Default modules (kart randomizer + chat commands)",
+      title: "What's included",
+      description: "Rolls, lobby commands and your overlay",
       content: (
         <div className="hub-form__field-stack">
           <p className="hub-form__platform-disabled">
-            Default modules ship with every session: kart randomizer, lobby
-            commands, and the broadcaster overlay. Module-specific configuration
-            (picks &amp; bans rules, etc.) is available on the session&rsquo;s{" "}
-            <em>Configure</em> page after creation.
+            Every stream comes with rolls for the game you play, the lobby
+            commands and your overlay. Picks and bans and the rest are set
+            on the stream&rsquo;s page once it&rsquo;s made.
           </p>
         </div>
       ),
@@ -377,7 +372,7 @@ export function CreateSessionForm({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            placeholder="A short blurb about this session, shown on the public recap page."
+            placeholder="A short blurb about this stream, shown on its public recap."
             fullWidth
           />
         </label>
@@ -400,12 +395,12 @@ export function CreateSessionForm({
         <ul>
           <li>
             {attachTwitch && twitchHandle
-              ? `Twitch session "${name || "(unnamed)"}"`
-              : `Session "${name || "(unnamed)"}"`}
+              ? `Twitch stream "${name || "(unnamed)"}"`
+              : `Stream "${name || "(unnamed)"}"`}
           </li>
           <li>
             {preset === "manual"
-              ? "No schedule: opens on activation / go-live"
+              ? "No schedule: starts when you press Start or go live"
               : effScheduledAt
                 ? `${
                     preset === "auto_open"
@@ -416,7 +411,7 @@ export function CreateSessionForm({
                   } for ${effScheduledAt}`
                 : "Schedule selected: pick a start time"}
           </li>
-          <li>{defaultTestSession ? "Test session" : "Live session"}</li>
+          <li>{defaultTestSession ? "Test stream" : "Real stream"}</li>
         </ul>
       </div>
 

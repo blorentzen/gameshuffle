@@ -1,23 +1,23 @@
 "use client";
 
 /**
- * PlatformEconomySnapshotTab — staff/admin-only dashboard for the
- * token economy's current state and recent trend.
+ * Platform ▸ Token economy ▸ Overview (`part="overview"`) and ▸ History
+ * (`part="history"`), staff/admin only. Both read GET /api/admin/economy-snapshot:
+ * the live ecosystem-wide snapshot (`liveSnapshot(null)`) plus the last 30
+ * persisted daily snapshots (`gs_economy_snapshots`).
  *
- * Reads the live ecosystem-wide snapshot via the existing
- * `liveSnapshot(null)` computer, plus the last 30 persisted daily
- * snapshots from `gs_economy_snapshots`. The hero stats answer
- * "what's the economy doing right now?", the history table answers
- * "what's the trend?"
- *
- * No charts — first pass keeps it readable with stat cards + a
- * dense numeric table. Adding sparkline visuals is a clean
- * additive follow-up if staff start using this regularly.
+ *   Overview  how many tokens exist right now, where they came from, how many
+ *             were burned and how evenly they're spread (counted live).
+ *   History   the latest snapshot for each day. Children (the activity tables
+ *             from TokenEconomyPanels) render inside the same screen, so the
+ *             History tab stays one screen with one h1.
  */
 
-import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Card } from "@empac/cascadeds";
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from "react";
+import { Alert, Button, EmptyState, StatCard, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
+import { IconArrowsExchange, IconCalendarStats, IconChartPie, IconCoins, IconCrown, IconFlame, IconRefresh, IconScale, IconStairsUp, IconTrendingUp, IconUsers, IconWallet } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { AdminHeader, AdminSection, AdminStats, AdminTable, AdminUpdated } from "@/components/account/admin/AdminKit";
 
 interface SnapshotRow {
   community_id: string | null;
@@ -42,507 +42,175 @@ interface ApiResponse {
   fetchedAt: string;
 }
 
+const PAGE = 25;
 const tokenFormat = new Intl.NumberFormat("en-US");
-const decimalFormat = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 4,
-  minimumFractionDigits: 0,
-});
 
-function formatTokens(value: number | null | undefined): string {
+function tokens(value: number | null | undefined): string {
   if (value === null || value === undefined) return "-";
   return tokenFormat.format(value);
 }
 
-function formatGini(value: number | null | undefined): string {
+/** Net change with its sign, so "up" and "down" read without colour. */
+function signed(value: number | null | undefined): string {
   if (value === null || value === undefined) return "-";
-  return decimalFormat.format(value);
+  return value > 0 ? `+${tokenFormat.format(value)}` : tokenFormat.format(value);
 }
 
-function inflationColor(net: number): string {
-  if (net > 0) return "var(--text-warning, var(--text-primary))";
-  if (net < 0) return "var(--text-success, var(--text-primary))";
-  return "var(--text-secondary)";
+function spread(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "-";
+  return value.toFixed(2);
 }
 
-function StatCard({
-  label,
-  value,
-  helper,
-  emphasis,
-  colorOverride,
-}: {
-  label: string;
-  value: string;
-  helper?: string;
-  emphasis?: boolean;
-  colorOverride?: string;
-}) {
-  return (
-    <Card variant="outlined" padding="medium">
-      <p
-        style={{
-          margin: 0,
-          fontSize: "var(--font-size-12)",
-          textTransform: "uppercase",
-          letterSpacing: "0.04em",
-          color: "var(--text-tertiary)",
-          fontWeight: "var(--font-weight-semibold)",
-        }}
-      >
-        {label}
-      </p>
-      <p
-        style={{
-          margin: "var(--spacing-8) 0 0",
-          fontSize: emphasis
-            ? "var(--font-size-32)"
-            : "var(--font-size-24)",
-          fontWeight: "var(--font-weight-bold)",
-          color: colorOverride ?? "var(--text-primary)",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {value}
-      </p>
-      {helper && (
-        <p
-          style={{
-            margin: "var(--spacing-4) 0 0",
-            fontSize: "var(--font-size-12)",
-            color: "var(--text-secondary)",
-            lineHeight: "var(--line-height-relaxed)",
-          }}
-        >
-          {helper}
-        </p>
-      )}
-    </Card>
-  );
+/** What the spread number means, in words. */
+function spreadWord(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "Not enough wallets to tell";
+  if (value < 0.3) return "Fairly even";
+  if (value < 0.6) return "Somewhat uneven";
+  return "A few wallets hold most of it";
 }
 
-/**
- * Token economy ▸ Overview (`part="overview"`: supply, flows, distribution) and
- * ▸ History (`part="history"`: the daily snapshots). Same data, one fetch each.
- */
-export function PlatformEconomySnapshotTab({ part = "overview" }: { part?: "overview" | "history" }) {
+const pacificDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+const dayLabel = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
+
+export function PlatformEconomySnapshotTab({ part = "overview", children }: { part?: "overview" | "history"; children?: ReactNode }) {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [limit, setLimit] = useState(PAGE);
+  const [round, setRound] = useState(0);
 
   const load = useCallback(async () => {
     setLoadError(null);
     setRefreshing(true);
     try {
-      const res = await fetch("/api/admin/economy-snapshot", {
-        cache: "no-store",
-      });
+      const res = await fetch("/api/admin/economy-snapshot", { cache: "no-store" });
       if (res.status === 403) {
-        setLoadError("Forbidden. Staff only.");
+        setLoadError("This screen is for staff only. Sign in with a staff account.");
         return;
       }
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) {
-        setLoadError(body.error || `Load failed (${res.status}).`);
+        setLoadError("Couldn't count the tokens. Try Refresh in a moment.");
         return;
       }
       setData(body as ApiResponse);
     } catch {
-      setLoadError("Network error while loading.");
+      setLoadError("Couldn't reach the server. Check your connection and try Refresh.");
     } finally {
       setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
-  return (
-    <div className="account-card">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: "var(--spacing-16)",
-          flexWrap: "wrap",
-          marginBottom: "var(--spacing-32)",
-        }}
-      >
-        <div>
-          <h2 className="account-tab__heading">{part === "history" ? "Daily history" : "Token economy"}</h2>
-          <p className="account-tab__intro" style={{ marginTop: 0 }}>
-            {part === "history"
-              ? "One row per day: how many tokens existed, how many were earned, awarded and burned, and how evenly they were spread."
-              : "How many tokens exist right now, where new ones came from, how many were burned, and how evenly they're spread. Counted live, including anything since today's daily snapshot."}
-          </p>
-        </div>
-        <Button
-          variant="secondary"
-          size="small"
-          onClick={() => void load()}
-          loading={refreshing}
-          disabled={refreshing}
-        >
-          Refresh
-        </Button>
-      </div>
+  const history = part === "history";
+  const refresh = <Button variant="secondary" size="small" iconBefore={IconRefresh} aria-label="Refresh" loading={refreshing} disabled={refreshing} onClick={() => { setRound((r) => r + 1); void load(); }}>Refresh</Button>;
 
-      {loadError && (
-        <div style={{ marginBottom: "var(--spacing-16)" }}>
-          <Alert variant="error" onClose={() => setLoadError(null)}>
-            {loadError}
-          </Alert>
-        </div>
-      )}
+  return (
+    <div className="account-card admin-screen admin-money">
+      <AdminHeader
+        title={history ? "History" : "Token economy"}
+        intro={history
+          ? "The token totals at the end of each day, then what happened with tokens day by day."
+          : "How many tokens exist right now, where they came from, how many were burned and how evenly they're spread. Counted live, so it includes anything since today's daily snapshot."}
+        actions={refresh}
+      />
+
+      {loadError && <Alert variant="error" onClose={() => setLoadError(null)}>{loadError}</Alert>}
 
       {data === null ? (
-        <LoadingLines label="Loading" />
+        !loadError && <LoadingLines label="Loading the token numbers" />
+      ) : history ? (
+        <HistorySection rows={data.history} limit={limit} onMore={() => setLimit((x) => x + PAGE)} />
       ) : (
         <>
-          {part === "overview" && <>
-          {/* ── Hero stats ─────────────────────────────────────── */}
-          <section style={{ marginBottom: "var(--spacing-32)" }}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "var(--spacing-12)",
-              }}
-            >
-              <StatCard
-                label="Total supply"
-                value={formatTokens(data.live.total_supply)}
-                helper="Sum of positive balances across every identity."
-                emphasis
-              />
-              <StatCard
-                label="Active identities"
-                value={formatTokens(data.live.active_identities)}
-                helper="Distinct identities with a positive balance."
-              />
-              <StatCard
-                label="Net inflation"
-                value={formatTokens(data.live.net_inflation)}
-                helper="(Free + paid mint) − burned. Should trend near zero or mildly positive."
-                colorOverride={inflationColor(data.live.net_inflation)}
-              />
-              <StatCard
-                label="Gini coefficient"
-                value={formatGini(data.live.gini)}
-                helper="Wealth concentration: 0 = perfectly equal, 1 = single holder. Watch for runaway concentration."
-              />
-            </div>
-          </section>
+          <AdminStats label="Tokens right now">
+            <StatCard label="Tokens in wallets" value={tokens(data.live.total_supply)} source="Every token viewers hold" icon={<IconCoins size={20} />} variant="accent" />
+            <StatCard label="Viewers holding tokens" value={tokens(data.live.active_identities)} source="Wallets with at least one token" icon={<IconUsers size={20} />} />
+            <StatCard label="Net change" value={signed(data.live.net_inflation)} source="New tokens minus burned. Near zero or a little above is healthy." icon={<IconTrendingUp size={20} />} />
+            <StatCard label="Spread" value={spread(data.live.gini)} source={`${spreadWord(data.live.gini)}. 0 is even, 1 is one holder.`} icon={<IconScale size={20} />} />
+          </AdminStats>
 
-          {/* ── Mint / Burn / Wager breakdown ─────────────────── */}
-          <section style={{ marginBottom: "var(--spacing-32)" }}>
-            <h3
-              style={{
-                fontSize: "var(--font-size-14)",
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-secondary)",
-                margin: "0 0 var(--spacing-12)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              Flow components
-            </h3>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: "var(--spacing-12)",
-              }}
-            >
-              <StatCard
-                label="Minted (free)"
-                value={formatTokens(data.live.minted_free)}
-                helper="Grants + earns. Bottom-weighted per Spec 05 §3."
-              />
-              <StatCard
-                label="Minted (paid)"
-                value={formatTokens(data.live.minted_paid)}
-                helper="Streamer awards via award_mint. Trending faster than burn = paid channel inflating."
-              />
-              <StatCard
-                label="Burned"
-                value={formatTokens(data.live.burned)}
-                helper="chaos_burn + |negative event_delta|. The inflation thermostat counterweight."
-              />
-              <StatCard
-                label="Wagered volume"
-                value={formatTokens(data.live.wagered_volume)}
-                helper="Prediction-market bet volume in scope. Closed-loop since Spec 07."
-              />
-            </div>
-          </section>
+          <AdminSection title="Where tokens came from and went" icon={<IconArrowsExchange size={20} />} intro="All-time totals. If streamer awards grow faster than burning, the award allowance is adding too many tokens.">
+            <AdminStats label="Token flows, all time">
+              <StatCard label="Earned and welcome grants" value={tokens(data.live.minted_free)} source="Welcome grants, recoveries and chat and in-game earns" icon={<IconWallet size={20} />} />
+              <StatCard label="Awarded by streamers" value={tokens(data.live.minted_paid)} source="From streamers' monthly award allowance" icon={<IconCoins size={20} />} />
+              <StatCard label="Burned" value={tokens(data.live.burned)} source="Spent on chaos and in the shop, gone for good" icon={<IconFlame size={20} />} />
+              <StatCard label="Bet on predictions" value={tokens(data.live.wagered_volume)} source="Tokens put into prediction markets" icon={<IconChartPie size={20} />} />
+            </AdminStats>
+          </AdminSection>
 
-          {/* ── Balance distribution ─────────────────────────── */}
-          <section style={{ marginBottom: "var(--spacing-32)" }}>
-            <h3
-              style={{
-                fontSize: "var(--font-size-14)",
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-secondary)",
-                margin: "0 0 var(--spacing-12)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              Balance distribution
-            </h3>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(160px, 1fr))",
-                gap: "var(--spacing-12)",
-              }}
-            >
-              <StatCard
-                label="p50"
-                value={formatTokens(data.live.p50_balance)}
-                helper="Median balance. 50% of viewers hold less than this."
-              />
-              <StatCard
-                label="p90"
-                value={formatTokens(data.live.p90_balance)}
-                helper="90th percentile. The top decile starts here."
-              />
-              <StatCard
-                label="p99"
-                value={formatTokens(data.live.p99_balance)}
-                helper="99th percentile. Outlier band."
-              />
-            </div>
-          </section>
-
-          </>}
-          {/* ── History table ────────────────────────────────── */}
-          {part === "history" && <section>
-            <h3
-              style={{
-                fontSize: "var(--font-size-14)",
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-secondary)",
-                margin: "0 0 var(--spacing-12)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              Recent snapshots ({data.history.length})
-            </h3>
-            {data.history.length === 0 ? (
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "var(--font-size-14)",
-                  color: "var(--text-tertiary)",
-                  fontStyle: "italic",
-                }}
-              >
-                No daily snapshots yet. The cron writes one per day;
-                the live stats above are still accurate.
-              </p>
-            ) : (
-              <Card variant="outlined" padding="medium">
-                <div style={{ overflowX: "auto" }}>
-                  <table
-                    style={{
-                      width: "100%",
-                      borderCollapse: "collapse",
-                      fontSize: "var(--font-size-14)",
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    <thead>
-                      <tr
-                        style={{
-                          textAlign: "right",
-                          color: "var(--text-secondary)",
-                          fontSize: "var(--font-size-12)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
-                        }}
-                      >
-                        <th
-                          style={{
-                            padding:
-                              "var(--spacing-8) var(--spacing-12)",
-                            textAlign: "left",
-                          }}
-                        >
-                          Day
-                        </th>
-                        <th
-                          style={{
-                            padding:
-                              "var(--spacing-8) var(--spacing-12)",
-                          }}
-                        >
-                          Supply
-                        </th>
-                        <th
-                          style={{
-                            padding:
-                              "var(--spacing-8) var(--spacing-12)",
-                          }}
-                        >
-                          Mint (free)
-                        </th>
-                        <th
-                          style={{
-                            padding:
-                              "var(--spacing-8) var(--spacing-12)",
-                          }}
-                        >
-                          Mint (paid)
-                        </th>
-                        <th
-                          style={{
-                            padding:
-                              "var(--spacing-8) var(--spacing-12)",
-                          }}
-                        >
-                          Burned
-                        </th>
-                        <th
-                          style={{
-                            padding:
-                              "var(--spacing-8) var(--spacing-12)",
-                          }}
-                        >
-                          Net
-                        </th>
-                        <th
-                          style={{
-                            padding:
-                              "var(--spacing-8) var(--spacing-12)",
-                          }}
-                        >
-                          Active
-                        </th>
-                        <th
-                          style={{
-                            padding:
-                              "var(--spacing-8) var(--spacing-12)",
-                          }}
-                        >
-                          Gini
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.history.map((row) => (
-                        <tr
-                          key={row.taken_at}
-                          style={{
-                            borderTop:
-                              "1px solid var(--border-default)",
-                            textAlign: "right",
-                            color: "var(--text-primary)",
-                          }}
-                        >
-                          <td
-                            style={{
-                              padding:
-                                "var(--spacing-8) var(--spacing-12)",
-                              textAlign: "left",
-                              color: "var(--text-secondary)",
-                            }}
-                          >
-                            {row.taken_at.slice(0, 10)}
-                          </td>
-                          <td
-                            style={{
-                              padding:
-                                "var(--spacing-8) var(--spacing-12)",
-                            }}
-                          >
-                            {formatTokens(row.total_supply)}
-                          </td>
-                          <td
-                            style={{
-                              padding:
-                                "var(--spacing-8) var(--spacing-12)",
-                            }}
-                          >
-                            {formatTokens(row.minted_free)}
-                          </td>
-                          <td
-                            style={{
-                              padding:
-                                "var(--spacing-8) var(--spacing-12)",
-                            }}
-                          >
-                            {formatTokens(row.minted_paid)}
-                          </td>
-                          <td
-                            style={{
-                              padding:
-                                "var(--spacing-8) var(--spacing-12)",
-                            }}
-                          >
-                            {formatTokens(row.burned)}
-                          </td>
-                          <td
-                            style={{
-                              padding:
-                                "var(--spacing-8) var(--spacing-12)",
-                              color: inflationColor(
-                                row.net_inflation,
-                              ),
-                              fontWeight:
-                                "var(--font-weight-semibold)",
-                            }}
-                          >
-                            {formatTokens(row.net_inflation)}
-                          </td>
-                          <td
-                            style={{
-                              padding:
-                                "var(--spacing-8) var(--spacing-12)",
-                            }}
-                          >
-                            {formatTokens(row.active_identities)}
-                          </td>
-                          <td
-                            style={{
-                              padding:
-                                "var(--spacing-8) var(--spacing-12)",
-                            }}
-                          >
-                            {formatGini(row.gini)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            )}
-          </section>}
-
-          <p
-            style={{
-              marginTop: "var(--spacing-24)",
-              fontSize: "var(--font-size-12)",
-              color: "var(--text-tertiary)",
-              textAlign: "right",
-            }}
-          >
-            Fetched{" "}
-            {new Date(data.fetchedAt).toLocaleString(undefined, {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}
-          </p>
+          <AdminSection title="Wallet sizes" icon={<IconWallet size={20} />} intro="How many tokens a typical viewer holds, and where the biggest wallets start.">
+            <AdminStats label="Wallet sizes" columns={3}>
+              <StatCard label="Typical wallet" value={tokens(data.live.p50_balance)} source="Half of viewers hold less than this" icon={<IconWallet size={20} />} />
+              <StatCard label="Top 10% start at" value={tokens(data.live.p90_balance)} source="The biggest tenth of wallets" icon={<IconStairsUp size={20} />} />
+              <StatCard label="Top 1% start at" value={tokens(data.live.p99_balance)} source="The biggest wallets of all" icon={<IconCrown size={20} />} />
+            </AdminStats>
+          </AdminSection>
         </>
       )}
+
+      {/* Remounted on Refresh so the activity tables fetch again too. */}
+      {history && <Fragment key={round}>{children}</Fragment>}
+
+      {data && <AdminUpdated at={data.fetchedAt} />}
     </div>
+  );
+}
+
+function HistorySection({ rows, limit, onMore }: { rows: Array<SnapshotRow & { taken_at: string }>; limit: number; onMore: () => void }) {
+  // The snapshot job can run more than once a day (it's scheduled at both
+  // Pacific offsets); rows come newest first, so keep the first one per day.
+  const seen = new Set<string>();
+  const days = rows.filter((r) => {
+    const d = pacificDay(r.taken_at);
+    if (seen.has(d)) return false;
+    seen.add(d);
+    return true;
+  });
+  return (
+    <AdminSection title="Totals at the end of each day" icon={<IconCalendarStats size={20} />} intro="Running totals from the latest snapshot each day. Earned includes welcome grants. Net change is earned plus awarded, minus burned. Holders are viewers with at least one token.">
+      {days.length === 0 ? (
+        <EmptyState variant="bordered" icon={<IconCalendarStats size={28} />} title="No daily snapshots yet" description="A snapshot is taken once a day. The live numbers on Overview are up to date in the meantime." />
+      ) : (
+        <>
+          <AdminTable label="Token totals by day">
+            <Table variant="striped" dense>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Day</TableHead>
+                  <TableHead align="right">In wallets</TableHead>
+                  <TableHead align="right">Earned</TableHead>
+                  <TableHead align="right">Awarded</TableHead>
+                  <TableHead align="right">Burned</TableHead>
+                  <TableHead align="right">Net change</TableHead>
+                  <TableHead align="right">Holders</TableHead>
+                  <TableHead align="right">Spread</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {days.slice(0, limit).map((row) => (
+                  <TableRow key={row.taken_at}>
+                    <TableCell className="admin-money-nowrap">{dayLabel(row.taken_at)}</TableCell>
+                    <TableCell align="right" className="admin-num">{tokens(row.total_supply)}</TableCell>
+                    <TableCell align="right" className="admin-num">{tokens(row.minted_free)}</TableCell>
+                    <TableCell align="right" className="admin-num">{tokens(row.minted_paid)}</TableCell>
+                    <TableCell align="right" className="admin-num">{tokens(row.burned)}</TableCell>
+                    <TableCell align="right" className={`admin-num${row.net_inflation > 0 ? " admin-money-positive" : row.net_inflation < 0 ? " admin-money-negative" : ""}`}>{signed(row.net_inflation)}</TableCell>
+                    <TableCell align="right" className="admin-num">{tokens(row.active_identities)}</TableCell>
+                    <TableCell align="right" className="admin-num">{spread(row.gini)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </AdminTable>
+          {days.length > limit && (
+            <div className="admin-money-more"><Button variant="ghost" size="small" onClick={onMore}>Show {Math.min(PAGE, days.length - limit)} more of {days.length}</Button></div>
+          )}
+        </>
+      )}
+    </AdminSection>
   );
 }

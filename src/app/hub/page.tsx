@@ -155,7 +155,7 @@ export default async function HubHomePage({ searchParams }: { searchParams: Prom
   const tz = (profile?.timezone as string | null) ?? null;
   const liveSlug = (profile?.username as string | null) ?? (profile?.twitch_username as string | null) ?? null;
   const setupProblem = !conn
-    ? { title: "Connect Twitch so GameShuffle can follow your streams", body: "It opens a session when you go live and runs your chat commands.", action: "Connect Twitch" }
+    ? { title: "Connect Twitch so GameShuffle can follow your streams", body: "It opens a stream here when you go live and runs your chat commands.", action: "Connect Twitch" }
     : !conn.bot_authorized
       ? { title: "The bot can't post in your chat yet", body: "Reconnect Twitch to let the GameShuffle bot reply, then send a test message.", action: "Fix in Setup" }
       : (enabledSubs ?? 0) < EXPECTED_SUBS
@@ -190,7 +190,7 @@ export default async function HubHomePage({ searchParams }: { searchParams: Prom
         <EmptyState
           variant="bordered"
           title="No streams yet"
-          description="Go live on Twitch in a game GameShuffle supports and a session opens here on its own. Or start one now to set up games, picks and bans, and your stream tools ahead of time."
+          description="Go live on Twitch in a game GameShuffle supports and a stream opens here on its own. Or start one now to set up games, picks and bans, and your stream tools ahead of time."
           action={<NewSessionButton />}
         />
       ) : (

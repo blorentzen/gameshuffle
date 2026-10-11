@@ -33,7 +33,7 @@ function Loading({ title }: { title: string }) {
 
 export function ProfileAboutScreen() {
   const { user } = useAuth();
-  const { loading, fields, set, extras, setExtras, status, usernameError } = useProfileStore();
+  const { loading, fields, set, extras, setExtras, status, usernameError, displayNameError } = useProfileStore();
   if (loading || !user) return <Loading title="About you" />;
   const handle = fields.username;
   return (
@@ -53,8 +53,8 @@ export function ProfileAboutScreen() {
           onSaved={({ source, seed, options }) => setExtras({ avatarSource: source, avatarSeed: seed, avatarOptions: options })}
         />
         <div className="admin-form">
-          <AdminField label="Display name" helper="Shown on your profile, live pages and tournaments.">
-            {(id, d) => <Input id={id} aria-describedby={d} fullWidth value={fields.displayName} onChange={(e) => set({ displayName: e.target.value })} placeholder="Your display name" />}
+          <AdminField label="Display name" helper="Shown on your profile, live pages and tournaments." error={displayNameError}>
+            {(id, d) => <Input id={id} aria-describedby={d} fullWidth value={fields.displayName} error={!!displayNameError} onChange={(e) => set({ displayName: e.target.value })} placeholder="Your display name" />}
           </AdminField>
           <AdminField label="Username" helper={handle ? `Your profile address: gameshuffle.co/u/${handle}` : "Your profile address. Needed for a public profile."} error={usernameError}>
             {(id, d) => <Input id={id} aria-describedby={d} fullWidth value={fields.username} error={!!usernameError} onChange={(e) => set({ username: e.target.value.toLowerCase() })} placeholder="your-username" />}

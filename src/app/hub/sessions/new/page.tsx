@@ -82,10 +82,10 @@ export default async function NewSessionPage({ searchParams }: PageProps) {
           <p className="hub-page__test-session-body">
             {defaultTestSession ? (
               <>
-                Test streams mirror real sessions (same configure flow,
-                same module setup, same activate step), but they don&rsquo;t
-                auto-time out and skip the wrap-up window. Use them to
-                rehearse without affecting your real session history.
+                Test streams work like real ones (the same setup and the
+                same Start button), but they don&rsquo;t end on their own or
+                wrap up. Use them to rehearse without adding to your stream
+                history.
               </>
             ) : (
               <>

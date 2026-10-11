@@ -87,6 +87,8 @@ type TRow = {
   header_image_url: string | null; settings: Record<string, unknown> | null;
   going_count: number; min_price_cents: number | null; organizer_name: string | null;
   game_label: string | null; is_online: boolean; lat?: number | null; lng?: number | null;
+  /** An official GameShuffle event (official-events-m1); missing before that migration. */
+  hosted_by_gs?: boolean;
 };
 
 function tournamentToEvent(t: TRow): BrowseEvent {
@@ -111,6 +113,7 @@ function tournamentToEvent(t: TRow): BrowseEvent {
     game: t.game_label || getGameName(t.game_slug),
     format: t.format ?? null,
     tags: [
+      t.hosted_by_gs ? "Official" : null,
       t.format ? FORMAT_LABEL[t.format] ?? t.format : null,
       t.mode?.toUpperCase() ?? null,
       s.requireVerified ? "Verified only" : null,

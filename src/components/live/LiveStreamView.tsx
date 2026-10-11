@@ -48,6 +48,7 @@ import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
 import { LiveBingoCard } from "./LiveBingoCard";
+import { LiveBreakCard } from "./LiveBreakCard";
 import { LiveDraftCard } from "./LiveDraftCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
@@ -208,6 +209,7 @@ export function LiveStreamView({
           <StreamerHeader streamer={streamer} />
           <LiveTournamentRace ownerUserId={streamer.userId} />
           {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
+          <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
           <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
           <LiveDraftCard communityId={initialLeaderboard.communityId} />
           {upcoming && (
@@ -221,8 +223,8 @@ export function LiveStreamView({
           <section className="live-page__not-live">
             <p className="live-page__not-live-headline">
               {upcoming
-                ? `${streamerName} has a session coming up.`
-                : `${streamerName} doesn’t have an active GameShuffle session right now.`}
+                ? `${streamerName} has a stream coming up.`
+                : `${streamerName} isn’t running a GameShuffle stream right now.`}
             </p>
             <p className="live-page__not-live-sub">
               {upcoming
@@ -718,6 +720,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
           </div>
         </div>
 
+        <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
         <LivePollCard communityId={initialLeaderboard.communityId} />
         <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
         <LiveDraftCard communityId={initialLeaderboard.communityId} />
@@ -775,8 +778,8 @@ function SessionEndedPanel({
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
   const headline =
     reason === "cancelled"
-      ? `${streamerName} cancelled this session.`
-      : `${streamerName}'s session has ended.`;
+      ? `${streamerName} cancelled this stream.`
+      : `${streamerName}'s stream has ended.`;
   return (
     <Container>
       <div className="live-page">
@@ -786,8 +789,8 @@ function SessionEndedPanel({
           <p className="live-page__not-live-headline">{headline}</p>
           <p className="live-page__not-live-sub">
             {reason === "ended"
-              ? "Thanks for watching. When the streamer goes live again, this page will populate with the new session."
-              : "When the streamer kicks off another session, this page will populate again."}
+              ? "Thanks for watching. This page fills in again when they go live."
+              : "This page fills in again when they start their next stream."}
           </p>
           {streamer.twitchHandle && (
             <p>
@@ -945,7 +948,7 @@ function UpcomingLobbyCard({
 
   return (
     <section className="live-page__upcoming" aria-live="polite">
-      <p className="live-page__upcoming-eyebrow">Upcoming session</p>
+      <p className="live-page__upcoming-eyebrow">Upcoming stream</p>
       <h2 className="live-page__upcoming-title">
         {upcoming.sessionName?.trim() || `${streamerName}’s game night`}
       </h2>

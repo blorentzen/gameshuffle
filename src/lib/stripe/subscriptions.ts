@@ -126,6 +126,12 @@ export async function upsertSubscriptionFromStripe(args: {
         updated_at: new Date().toISOString(),
       })
       .eq("id", userId);
+    // A bigger plan: people waiting in this organizer's tournaments get the new
+    // seats, in line order. Best effort; it never fails the sync.
+    if (active) {
+      const { fillCircuitWaitlists } = await import("@/lib/events/waitlist");
+      await fillCircuitWaitlists(userId).catch((err) => console.warn("[stripe] circuit waitlist fill failed", err));
+    }
     return { product: "circuit" };
   }
 

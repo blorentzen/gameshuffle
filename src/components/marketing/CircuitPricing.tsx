@@ -13,6 +13,7 @@ import { Button, Card } from "@empac/cascadeds";
 import { CIRCUIT_TIERS, CIRCUIT_PAID_FEATURES, PRO_ADDON_PRICE, PRO_INCLUDED_ANNUAL_VALUE, type CircuitTier } from "@/lib/tournaments/circuit";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
+import { circuitLaunch } from "@/lib/tournaments/circuit";
 
 const FEATURE_LABEL: Record<(typeof CIRCUIT_PAID_FEATURES)[number], string> = {
   analytics: "Ticket sales analytics",
@@ -33,7 +34,7 @@ function capLine(t: CircuitTier): string {
   return `Multi-lobby events up to ${t.playerCap} players.`;
 }
 
-export function CircuitPricing() {
+export function CircuitPricing({ launchedAt = null }: { launchedAt?: string | null }) {
   const [annual, setAnnual] = useState(false);
   const pricing = usePublicPricing();
   const amounts = (t: CircuitTier) => {
@@ -42,7 +43,9 @@ export function CircuitPricing() {
     return t.price && t.price !== "quoted" ? { monthly: t.price.monthlyUsd, annual: t.price.annualUsd } : null;
   };
   const addonMonthly = pricing.plans.pro_addon?.monthly ?? PRO_ADDON_PRICE.monthlyUsd;
-  const [billingEnabled, setBillingEnabled] = useState(false);
+  const [billingEnabled, setBillingEnabled] = useState(!!launchedAt);
+  // Launch wording: "planned" only while nothing is announced or live.
+  const launch = circuitLaunch(launchedAt);
   const [busyTier, setBusyTier] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,7 +104,8 @@ export function CircuitPricing() {
           if (a) {
             priceBig = annual ? usd(a.annual) : usd(a.monthly);
             suffix = annual ? " /yr" : " /mo";
-            subtext = annual ? `${usd(a.monthly)}/mo billed monthly · planned` : `or ${usd(a.annual)}/year · planned`;
+            const tag = launch.phase === "preview" ? " · planned" : "";
+            subtext = annual ? `${usd(a.monthly)}/mo billed monthly${tag}` : `or ${usd(a.annual)}/year${tag}`;
           }
           return (
             <Card key={t.id} variant={featured ? "elevated" : "outlined"} padding="large" className={`pricing-card${featured ? " pricing-card--featured" : ""}`}>
@@ -116,7 +120,7 @@ export function CircuitPricing() {
                 ) : (
                   <Link href="/tournament/create" style={{ textDecoration: "none" }}>
                     <Button variant={featured ? "primary" : "secondary"} fullWidth>
-                      {billingEnabled ? "Create a tournament" : "Start free in preview"}
+                      {billingEnabled || launch.phase !== "preview" ? "Create a tournament" : "Start free in preview"}
                     </Button>
                   </Link>
                 )}
@@ -165,7 +169,11 @@ export function CircuitPricing() {
       </div>
 
       <p style={{ textAlign: "center", fontSize: "var(--font-size-14)", color: "var(--gray-400, #9aa3b2)", marginTop: "var(--spacing-16)" }}>
-        Planned pricing, subject to change. Nothing is charged during preview, and every tier is free right now.
+        {launch.phase === "preview"
+          ? "Planned pricing, subject to change. Nothing is charged during preview, and every tier is free right now."
+          : launch.phase === "announced"
+            ? `Every tier is free until ${launch.dateLabel}. Prices are in US dollars, plus sales tax where it applies.`
+            : "Prices are in US dollars, plus sales tax where it applies."}
       </p>
     </>
   );

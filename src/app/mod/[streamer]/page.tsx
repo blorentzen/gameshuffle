@@ -3,9 +3,16 @@
  *
  * Laid out like the streamer's control room (2026-10-10): a banner saying
  * whose stream it is and what a mod can do, the session header, the lobby
- * with Kick and the activity feed, then the streamer's decks. The
- * "Coming soon" boxes for unbuilt features are gone; add a panel when a
- * mod tool actually ships (code requests, pre-stream queue, room code).
+ * with Kick and the activity feed, then the streamer's decks.
+ *
+ * Mod access levels (supabase/mod-access-m1.sql): Standard mods get the
+ * above. Full mods, while the streamer is live, get the stream page's own
+ * controls as tabs: Control room (rolls, what's running, overlay tools),
+ * Picks & bans for games that have it, Live games (polls, bingo, drafts,
+ * Chat Brain, break mode) and Decks. Those components act on "the
+ * streamer": their actions and routes resolve a Full mod on this page to
+ * the streamer (src/lib/mods/acting.ts). Ending or editing the stream
+ * stays on the streamer's own stream page.
  *
  * Auth: caller must be signed in AND either (a) the streamer
  * themselves (implicit-mod self-access) OR (b) hold an `active` row
@@ -25,6 +32,15 @@ import { ModParticipantsPanel } from "./ModParticipantsPanel";
 import { DeckEditor } from "@/components/party/DeckEditor";
 import { GameCover } from "@/components/games/GameCover";
 import { getGameName } from "@/data/game-registry";
+import { modAccess } from "@/lib/mods/acting";
+import { hubGameActions } from "@/lib/hub/gameActions";
+import { HubLiveProvider } from "@/components/hub/live/HubLiveProvider";
+import { GameRolls, LastRoll } from "@/components/hub/live/OnScreenNow";
+import { RunningNow } from "@/components/hub/live/RunningNow";
+import { LiveGamesPanel } from "@/components/hub/live/LiveGamesPanel";
+import { HubToolsRun } from "@/components/hub/HubToolsRun";
+import { DashboardLiveControls } from "@/components/hub/DashboardLiveControls";
+import { SessionDetailTabs, type SessionDetailTabDef } from "@/components/hub/SessionDetailTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -85,17 +101,12 @@ export default async function ModView({ params, searchParams }: PageProps) {
     );
   }
 
-  // Access gates: caller is an active mod OR the streamer themselves.
+  // Access gates: caller is an active mod OR the streamer themselves. The
+  // streamer previewing their own page sees what a Full mod sees.
   const isStreamerSelf = user.id === streamer.id;
-  const { data: modRow } = await admin
-    .from("streamer_mods")
-    .select("id, status")
-    .eq("streamer_user_id", streamer.id)
-    .eq("gs_user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
-  const isActiveMod = modRow !== null;
-  const canAccess = isStreamerSelf || isActiveMod;
+  const access = isStreamerSelf ? "full" : await modAccess(streamer.id, user.id);
+  const canAccess = access !== null;
+  const full = access === "full";
 
   const streamerName =
     streamer.display_name ?? streamer.username ?? streamer.twitch_username ?? slug;
@@ -132,6 +143,90 @@ export default async function ModView({ params, searchParams }: PageProps) {
   const game = session ? session.active_game ?? session.configured_games?.[0] ?? null : null;
   const inLobby = participants.filter((p) => !p.is_broadcaster).length;
 
+  // Full access while live: the stream page's controls, for the game on stream.
+  const configuredGames: string[] = session
+    ? Array.isArray(session.configured_games) && session.configured_games.length > 0
+      ? session.configured_games
+      : session.config?.game ? [session.config.game as string] : []
+    : [];
+  const gameActions = session && full ? hubGameActions(game) : null;
+  let rawRaceConfig: Record<string, unknown> | null = null;
+  if (session && full && gameActions?.race) {
+    const { data: raceRow } = await admin
+      .from("session_modules")
+      .select("config")
+      .eq("session_id", session.id)
+      .eq("module_id", "race_randomizer")
+      .maybeSingle();
+    rawRaceConfig = (raceRow?.config as Record<string, unknown> | null) ?? null;
+  }
+
+  const lobbyPanel = session ? (
+    <section className="hub-panel" aria-labelledby="mod-lobby">
+      <h2 id="mod-lobby" className="hub-panel__title">Lobby <span className="hub-page__group-count">{inLobby}</span></h2>
+      <ModParticipantsPanel streamerSlug={slug} sessionId={session.id} initialParticipants={participants} />
+    </section>
+  ) : null;
+  const activityPanel = session ? (
+    <section className="hub-panel" aria-labelledby="mod-activity">
+      <h2 id="mod-activity" className="hub-panel__title">Activity</h2>
+      <RealtimeActivityFeed sessionId={session.id} initialEvents={events.map((row) => ({ ...row }))} limit={12} />
+    </section>
+  ) : null;
+  const decksPanel = (
+    <section className="hub-panel" aria-labelledby="mod-decks">
+      <h2 id="mod-decks" className="hub-panel__title">{streamerName}&rsquo;s decks</h2>
+      <p className="hub-panel__empty">Chance cards, missions and house rules for {streamerName}&rsquo;s game nights and live nights.</p>
+      <DeckEditor scope={streamer.id} />
+    </section>
+  );
+
+  let fullTabs: SessionDetailTabDef[] | null = null;
+  if (session && full) {
+    fullTabs = [
+      {
+        id: "overview",
+        label: "Control room",
+        content: (
+          <div className="hub-control">
+            <div className="hub-control__grid">
+              <div className="hub-control__main">
+                <GameRolls key={gameActions?.slug ?? "queue"} sessionId={session.id} actions={gameActions} rawRaceConfig={rawRaceConfig} legacyDefaultSlug={configuredGames[0]} streamerName={isStreamerSelf ? undefined : streamerName} />
+                <RunningNow sessionSlug={session.slug} liveSlug={slug} actions={gameActions} predictions={false} />
+                <HubToolsRun slug={session.slug} setupLink={false} />
+              </div>
+              <aside className="hub-control__side">
+                <LastRoll />
+                {lobbyPanel}
+                {activityPanel}
+              </aside>
+            </div>
+          </div>
+        ),
+      },
+      ...(gameActions?.race
+        ? [{
+            id: "picks",
+            label: "Picks & bans",
+            content: (
+              <DashboardLiveControls
+                sessionId={session.id}
+                sessionSlug={session.slug}
+                initialActiveGameSlug={game}
+                legacyDefaultSlug={configuredGames[0]}
+                rawRaceConfig={rawRaceConfig}
+                part="picks"
+              />
+            ),
+          }]
+        : []),
+      { id: "live-games", label: "Live games", content: <LiveGamesPanel /> },
+      { id: "decks", label: "Decks", content: decksPanel },
+    ];
+  }
+  const tabParam = typeof sp.tab === "string" ? sp.tab : "";
+  const initialTab = fullTabs?.some((t) => t.id === tabParam) ? tabParam : "overview";
+
   return (
     <Container as="main">
       <div className="hub-detail hub-session mod-view">
@@ -142,10 +237,12 @@ export default async function ModView({ params, searchParams }: PageProps) {
         )}
 
         <div className="mod-view__banner">
-          <Alert variant="info" title={isStreamerSelf ? "This is what your mods see" : `You're a mod for ${streamerName}`}>
+          <Alert variant="info" title={isStreamerSelf ? "This is your mods' page" : `You're a mod for ${streamerName}`}>
             {isStreamerSelf
-              ? "They can manage the lobby and edit your decks. Rolls, picks and bans, predictions and the stream itself stay with you, in the Stream hub."
-              : `You can manage the lobby and edit ${streamerName}'s decks. ${streamerName} runs rolls, picks and bans, predictions and the stream itself.`}
+              ? "Standard mods manage the lobby and edit your decks. Full mods also get the controls below while you're live: rolls, picks and bans, overlay tools, live games and break mode. Starting, ending and editing the stream stay with you."
+              : full
+                ? `You have Full access: while ${streamerName} is live you can roll, run picks and bans, the overlay tools, live games and break mode, and manage the lobby and decks. Starting, ending and editing the stream stay with ${streamerName}.`
+                : `You can manage the lobby and edit ${streamerName}'s decks. ${streamerName} runs rolls, picks and bans, predictions and the stream itself.`}
           </Alert>
         </div>
 
@@ -173,28 +270,21 @@ export default async function ModView({ params, searchParams }: PageProps) {
           </div>
         </header>
 
-        {session && (
-          <div className="hub-control">
-            <div className="hub-control__main">
-              <section className="hub-panel" aria-labelledby="mod-lobby">
-                <h2 id="mod-lobby" className="hub-panel__title">Lobby <span className="hub-page__group-count">{inLobby}</span></h2>
-                <ModParticipantsPanel streamerSlug={slug} sessionId={session.id} initialParticipants={participants} />
-              </section>
-            </div>
-            <aside className="hub-control__side">
-              <section className="hub-panel" aria-labelledby="mod-activity">
-                <h2 id="mod-activity" className="hub-panel__title">Activity</h2>
-                <RealtimeActivityFeed sessionId={session.id} initialEvents={events.map((row) => ({ ...row }))} limit={12} />
-              </section>
-            </aside>
-          </div>
+        {session && fullTabs ? (
+          <HubLiveProvider sessionId={session.id} renderedGame={game}>
+            <SessionDetailTabs tabs={fullTabs} initialTab={initialTab} />
+          </HubLiveProvider>
+        ) : (
+          <>
+            {session && (
+              <div className="hub-control">
+                <div className="hub-control__main">{lobbyPanel}</div>
+                <aside className="hub-control__side">{activityPanel}</aside>
+              </div>
+            )}
+            {decksPanel}
+          </>
         )}
-
-        <section className="hub-panel" aria-labelledby="mod-decks">
-          <h2 id="mod-decks" className="hub-panel__title">{streamerName}&rsquo;s decks</h2>
-          <p className="hub-panel__empty">Chance cards, missions and house rules for {streamerName}&rsquo;s game nights and live nights.</p>
-          <DeckEditor scope={streamer.id} />
-        </section>
       </div>
     </Container>
   );

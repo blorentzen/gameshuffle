@@ -77,7 +77,7 @@ const FAQ: { q: string; a: string }[] = [
           { q: "What is the Heat to Mains format?", a: "A sprint-car ladder. The field splits into heats, winning your heat locks you into the A Main, and the top finishers of each lower main transfer up. Nobody is eliminated after one bad race." },
           { q: "Which Mario Kart games are supported?", a: "Mario Kart 8 Deluxe and Mario Kart World, each with its own tracks, vehicles and build rules. You can also name any other game and write its own rules, though the draw is deepest on these two." },
           { q: "Do players need an account?", a: "No. Organizers can add guests by name, so people can race without signing up. Championship seasons are the exception and are accounts-only, so points stay tied to real players all season." },
-          { q: "Is it free?", a: "Yes, creating and running is free with an account, and joining is open to everyone. Larger fields fall under GameShuffle Circuit, which is free while it is in preview." },
+          { q: "Is it free?", a: "Yes, creating and running is free with an account, and joining is open to everyone. Every format is free for one full lobby of your game; bigger fields are part of GameShuffle Circuit, and the Circuit page says what that costs today." },
 ];
 
 const REST: { title: string; body: string; icon: IconName }[] = [

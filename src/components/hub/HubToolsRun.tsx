@@ -51,7 +51,8 @@ function chooseTool(id: string) {
   window.dispatchEvent(new Event(EVENT));
 }
 
-export function HubToolsRun({ slug }: { slug: string }) {
+/** `setupLink` off on a mod's page: setting tools up stays in the streamer's own Streaming settings. */
+export function HubToolsRun({ slug, setupLink = true }: { slug: string; setupLink?: boolean }) {
   const stored = useSyncExternalStore(subscribe, readTool, () => "wheel");
 
   const tools: { id: string; label: string; control: ReactNode }[] = [
@@ -70,7 +71,7 @@ export function HubToolsRun({ slug }: { slug: string }) {
     <section className="hub-panel hub-toolbox" aria-labelledby="hub-tools-title">
       <div className="hub-panel__head">
         <h2 id="hub-tools-title" className="hub-panel__title">Overlay tools</h2>
-        <Link className="hub-panel__link" href="/account/streaming?tab=stream-tools">Set them up</Link>
+        {setupLink && <Link className="hub-panel__link" href="/account/streaming?tab=stream-tools">Set them up</Link>}
       </div>
       <Tabs
         variant="pills"

@@ -43,6 +43,7 @@ import { PollsTab } from "@/components/account/PollsTab";
 import { StreamBingoTab } from "@/components/account/StreamBingoTab";
 import { ChatDraftTab } from "@/components/account/ChatDraftTab";
 import { ChatBrainStreamTab } from "@/components/account/ChatBrainStreamTab";
+import { BreakModeTab } from "@/components/account/BreakModeTab";
 import { EngagementTab } from "@/components/account/EngagementTab";
 import { ChannelAnthemSettings } from "@/components/account/ChannelAnthemSettings";
 
@@ -99,6 +100,11 @@ function proScreens(profileTimezone: string | null): ScreenMap {
     bingo: () => <StreamBingoTab />,
     draft: () => <Wrap title="Chat Draft"><ChatDraftTab /></Wrap>,
     "chat-brain": () => <Wrap title="Chat Brain"><ChatBrainStreamTab /></Wrap>,
+    "break-mode": () => (
+      <Wrap title="Break mode" intro="Step away and GameShuffle keeps chat playing: quick games on your overlay, points, and a break champion when you're back.">
+        <BreakModeTab />
+      </Wrap>
+    ),
     engagement: () => <Wrap title="Engagement"><EngagementTab /></Wrap>,
     anthems: () => (
       <Wrap title="Walk-up songs" intro="Let viewers walk out to their own song when they show up in your chat. Viewers pick their song on their profile; you choose who gets one, when it plays and how loud.">

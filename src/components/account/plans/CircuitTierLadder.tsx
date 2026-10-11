@@ -50,6 +50,7 @@ export function CircuitTierLadder({
   onAnnualChange,
   currentTier,
   billingEnabled,
+  graceLabel = null,
   busyTier,
   onSubscribe,
 }: {
@@ -60,6 +61,8 @@ export function CircuitTierLadder({
   currentTier: CircuitTierId | null;
   /** False while organizer billing is in preview: every tier is free. */
   billingEnabled: boolean;
+  /** Set for an organizer who ran tournaments before Circuit launched: every Circuit feature is free for them until this day. */
+  graceLabel?: string | null;
   busyTier: string | null;
   onSubscribe: (tier: "circuit_64" | "circuit_256") => void;
 }) {
@@ -89,6 +92,11 @@ export function CircuitTierLadder({
         {!billingEnabled && (
           <p className="circuit-ladder__preview">
             Organizer billing is in preview, so every tier is free right now. These are the planned prices.
+          </p>
+        )}
+        {billingEnabled && graceLabel && (
+          <p className="circuit-ladder__preview">
+            You ran tournaments before Circuit launched, so every Circuit feature is free for you until {graceLabel}. Pick a plan any time before then to keep bigger fields after it.
           </p>
         )}
       </div>

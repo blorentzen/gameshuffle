@@ -1937,6 +1937,7 @@ import "./engagementCommand";
 import "./polls";
 import "./chatbrain";
 import "./whosaid";
+import "./breakMode";
 import "./draft";
 import { tryCaptainPick } from "./draft";
 import "./party";

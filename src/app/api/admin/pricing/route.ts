@@ -34,8 +34,14 @@ export async function GET() {
   const auth = await requireStaff();
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
   const c = await getCatalog();
-  const { data: audit } = await createServiceClient().from("gs_pricing_audit").select("id, actor_id, action, target, before, after, created_at").order("id", { ascending: false }).limit(25);
+  const admin = createServiceClient();
+  const { data: audit } = await admin.from("gs_pricing_audit").select("id, actor_id, action, target, before, after, created_at").order("id", { ascending: false }).limit(25);
+  // Who made each change, by name (the log stores only the account id).
+  const ids = [...new Set(((audit ?? []) as { actor_id: string | null }[]).map((a) => a.actor_id).filter((x): x is string => !!x))];
+  const { data: people } = ids.length ? await admin.from("users").select("id, display_name, username").in("id", ids) : { data: [] };
+  const names = Object.fromEntries(((people ?? []) as { id: string; display_name: string | null; username: string | null }[]).map((p) => [p.id, p.display_name || p.username || "Staff"]));
   return NextResponse.json({
+    names,
     plans: c.plans,
     prices: c.prices,
     levers: [...c.levers.values()].sort((a, b) => a.key.localeCompare(b.key)),

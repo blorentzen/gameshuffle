@@ -154,10 +154,11 @@ export function TokenAllowanceChip({
           <section className="hub-allowance-modal__section">
             <h3>Where to manage</h3>
             <p>
-              Open any session and head to the <strong>Markets</strong>{" "}
-              tab. That&rsquo;s where you open markets, post bounties,
-              and award tokens manually. Chat commands cover the same
-              actions during a live stream.
+              Open a live stream and go to its <strong>Predictions</strong>{" "}
+              tab (<strong>Bounties</strong>{" "}for games without predictions).
+              That&rsquo;s where you open predictions, post bounties and
+              award tokens by hand. Chat commands do the same while
+              you&rsquo;re live.
             </p>
           </section>
         </div>

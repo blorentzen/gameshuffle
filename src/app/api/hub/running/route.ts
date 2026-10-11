@@ -6,15 +6,18 @@
  * category change), the lobby count, the last roll on screen, and whatever
  * is running (picks and bans, a poll, bingo, a draft, Chat Brain, a
  * prediction, bounties). Only what's running comes back; the page shows a
- * card per item, just in time. Owner only.
+ * card per item, just in time. The owner, or a Full-access mod on their mod
+ * page (src/lib/mods/acting.ts).
  */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { streamOwnerFor } from "@/lib/mods/acting";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { getOpenPollForCommunity, tally } from "@/lib/polls/store";
 import { getCurrentGame as getBingoGame, doorsOpen, gamePatternLabel } from "@/lib/bingo/stream";
+import { breakView, getRunning as getRunningBreak, tickBreak } from "@/lib/break/store";
 import { getCurrentDraft } from "@/lib/drafts/store";
 import { getRunningGame, gameView } from "@/lib/chatbrain/streamGame";
 import { rollSlots, rollTitle, rollKind } from "@/lib/twitch/chatRoll";
@@ -45,11 +48,12 @@ export async function GET(request: Request) {
     .select("id, owner_user_id, active_game, configured_games, config")
     .eq("id", sessionId)
     .maybeSingle();
-  if (!session || session.owner_user_id !== user.id) {
+  const { ownerUserId } = await streamOwnerFor(user.id);
+  if (!session || session.owner_user_id !== ownerUserId) {
     return NextResponse.json({ error: "session_not_found" }, { status: 404 });
   }
 
-  const communityId = await safe(() => resolveCommunityIdForOwner(user.id), null);
+  const communityId = await safe(() => resolveCommunityIdForOwner(ownerUserId), null);
 
   const [lobbyRes, eventsRes, roundRes] = await Promise.all([
     admin.from("session_participants").select("id", { count: "exact", head: true })
@@ -117,12 +121,13 @@ export async function GET(request: Request) {
     bingo: null,
     draft: null,
     brain: null,
+    breakMode: null,
     market: null,
     bounties: { count: 0, first: null, amount: null },
   };
   if (!communityId) return NextResponse.json(empty);
 
-  const [poll, bingo, draft, brain, market, bounties] = await Promise.all([
+  const [poll, bingo, draft, brain, breakMode, market, bounties] = await Promise.all([
     safe(async () => {
       const p = await getOpenPollForCommunity(communityId);
       if (!p || p.kind === "draft") return null;
@@ -147,6 +152,13 @@ export async function GET(request: Request) {
       return { id: g.id, board: v.boardIndex + 1, boards: v.boardCount, question: v.question, strikes: v.strikes, score: v.score };
     }, null),
     safe(async () => {
+      const run = await getRunningBreak(communityId);
+      if (!run) return null;
+      const v = await breakView(await tickBreak(run));
+      if (v.status !== "running") return null;
+      return { id: v.id, game: v.game?.name ?? null, phase: v.phase, round: v.gameRound, rounds: v.gameRounds, players: v.players, ending: v.endingRequested };
+    }, null),
+    safe(async () => {
       const { data } = await admin.from("gs_markets").select("id, question, status, lock_at")
         .eq("community_id", communityId).in("status", ["open", "locked"])
         .order("opened_at", { ascending: false }).limit(1).maybeSingle();
@@ -160,5 +172,5 @@ export async function GET(request: Request) {
     }, { count: 0, first: null, amount: null }),
   ]);
 
-  return NextResponse.json({ ...empty, poll, bingo, draft, brain, market, bounties } satisfies HubRunning);
+  return NextResponse.json({ ...empty, poll, bingo, draft, brain, breakMode, market, bounties } satisfies HubRunning);
 }

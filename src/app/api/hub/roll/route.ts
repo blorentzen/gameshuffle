@@ -9,12 +9,14 @@
  * result posts in chat and shows on the overlay exactly as if typed. Mario
  * Kart's race rolls stay on /api/twitch/race/reroll.
  *
- * Auth: signed in, and the owner of a session that is live.
+ * Auth: signed in, and the owner of a session that is live (or a Full-access
+ * mod acting from their mod page, src/lib/mods/acting.ts).
  */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { streamOwnerFor } from "@/lib/mods/acting";
 import { handleShuffleCommand, type ShuffleContext } from "@/lib/twitch/commands/shuffle";
 import { handleSetupCommand } from "@/lib/twitch/commands/setup";
 import { handleBattleCommand } from "@/lib/twitch/commands/battle";
@@ -36,11 +38,12 @@ export async function POST(request: Request) {
   const arg = typeof body.arg === "string" ? body.arg.slice(0, 40) : "";
 
   const admin = createServiceClient();
+  const { ownerUserId } = await streamOwnerFor(user.id);
   const { data: session } = await admin
     .from("gs_sessions")
     .select("id")
     .eq("id", body.sessionId)
-    .eq("owner_user_id", user.id)
+    .eq("owner_user_id", ownerUserId)
     .in("status", ["active", "ending"])
     .maybeSingle();
   if (!session) return NextResponse.json({ error: "session_not_found" }, { status: 404 });
@@ -48,13 +51,13 @@ export async function POST(request: Request) {
   const { data: connection } = await admin
     .from("twitch_connections")
     .select("twitch_user_id, twitch_login, twitch_display_name, overlay_token")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .maybeSingle();
   if (!connection?.twitch_user_id) return NextResponse.json({ error: "twitch_not_connected" }, { status: 400 });
 
   const twitchId = connection.twitch_user_id as string;
   const ctx: ShuffleContext = {
-    userId: user.id,
+    userId: ownerUserId,
     platform: "twitch",
     broadcasterTwitchId: twitchId,
     senderTwitchId: twitchId,

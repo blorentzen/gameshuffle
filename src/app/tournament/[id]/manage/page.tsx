@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Container, Button, Input, Accordion, Switch, Select, Modal } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { reservedNameError } from "@/lib/reservedName";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -42,6 +43,7 @@ import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { IconTrophy, IconSparkles, IconScale, IconDice5 } from "@tabler/icons-react";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { biggerFieldLine } from "@/lib/tournaments/circuit";
 
 /** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
 function toDatetimeLocal(iso: string): string {
@@ -159,6 +161,36 @@ export default function ManageTournamentPage() {
   const [hmSeries, setHmSeries] = useState(2);
   const [hmHeatSize, setHmHeatSize] = useState<number | "auto">("auto");
   const [guestName, setGuestName] = useState("");
+  // This tournament's GameShuffle Circuit access once billing is on (null while loading).
+  const [circuit, setCircuit] = useState<{ billingEnabled: boolean; graceLabel: string | null; source: string | null; playerCap: number | null; paidFeatures: boolean } | null>(null);
+  useEffect(() => {
+    fetch(`/api/tournaments/billing-status?tournament=${tournamentId}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { billingEnabled?: boolean; graceUntil?: string | null; tournament?: { source: string; playerCap: number | null; paidFeatures: boolean } | null } | null) => {
+        if (!d) return;
+        setCircuit({
+          billingEnabled: !!d.billingEnabled,
+          graceLabel: d.graceUntil ? new Date(d.graceUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" }) : null,
+          source: d.tournament?.source ?? null,
+          playerCap: d.tournament?.playerCap ?? null,
+          paidFeatures: d.tournament?.paidFeatures ?? !d.billingEnabled,
+        });
+      })
+      .catch(() => {});
+  }, [tournamentId]);
+  /** The small label beside a Circuit section's title. */
+  const circuitTag = !circuit?.billingEnabled
+    ? "GS Circuit · free in preview"
+    : circuit.source === "grace" ? `GS Circuit · free until ${circuit.graceLabel}`
+    : circuit.source === "grandfathered" ? "GS Circuit · kept from before launch"
+    : circuit.paidFeatures ? "GS Circuit · included"
+    : "GS Circuit plan";
+  /** Under a Circuit section's title when this tournament doesn't have it. */
+  const circuitLocked = (what: string) => circuit?.billingEnabled && !circuit.paidFeatures ? (
+    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", margin: "0 0 0.75rem" }}>
+      {what} is part of GameShuffle Circuit. <Link href="/gs-circuit">See the plans</Link>
+    </p>
+  ) : null;
   const [savedFlash, setSavedFlash] = useState(false);
   const [showPending, setShowPending] = useState(false);
   const [scheduleInput, setScheduleInput] = useState("");
@@ -173,6 +205,14 @@ export default function ManageTournamentPage() {
   const [crewResults, setCrewResults] = useState<{ id: string; slug: string; name: string }[]>([]);
   const [crewSearchBusy, setCrewSearchBusy] = useState(false);
   const toast = useToast();
+  // Back from an upgrade (Circuit checkout returns here): say what happens next, once.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("circuit_checkout") !== "success") return;
+    toast.success("You're on GameShuffle Circuit. Anyone waiting is being offered a spot, in line order.");
+    url.searchParams.delete("circuit_checkout");
+    window.history.replaceState(null, "", url.pathname + url.search);
+  }, [toast]);
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
   const savedTimer = useRef<NodeJS.Timeout>(undefined);
   const flashSaved = () => {
@@ -378,7 +418,12 @@ export default function ManageTournamentPage() {
   );
 
   const updateTournament = async (updates: Partial<Tournament>) => {
-    await supabase.from("tournaments").update(updates).eq("id", tournamentId);
+    const { error: saveError } = await supabase.from("tournaments").update(updates).eq("id", tournamentId);
+    if (saveError) {
+      // A refused save (the GameShuffle name, an official-only change) keeps the old values on screen.
+      toast.error(reservedNameError(saveError.message) ?? "Please try again.", { title: "Couldn't save" });
+      return;
+    }
     setTournament((prev) => prev ? { ...prev, ...updates } as Tournament : prev);
     flashSaved();
     // Location changed → refresh coords for the events browser (best effort).
@@ -590,6 +635,14 @@ export default function ManageTournamentPage() {
       const current = participants.filter((p) => ["registered", "confirmed", "checked_in", "offered"].includes(p.status)).length;
       if (current >= cap) {
         toast.error(`This tournament is capped at ${cap} ${cap === 1 ? "entry" : "entries"}. Raise the max in Settings to add more.`, { title: "Roster full" });
+        return;
+      }
+    }
+    // The same Circuit field size the public join enforces, once Circuit billing is on.
+    if (circuit?.billingEnabled && circuit.playerCap != null) {
+      const seated = participants.filter((p) => ["registered", "confirmed", "checked_in", "offered"].includes(p.status)).length;
+      if (seated >= circuit.playerCap) {
+        toast.error(`Your plan lets up to ${circuit.playerCap} players into this tournament. ${biggerFieldLine(circuit.playerCap)}`, { title: "Roster full" });
         return;
       }
     }
@@ -1071,10 +1124,12 @@ export default function ManageTournamentPage() {
   const checkedInCount = participants.filter((p) => p.status === "checked_in").length;
   // Registration cap + spots. Field size is tier-gated (GS Circuit); until
   // billing launches everything is free, so the note is anticipatory.
-  const fieldCap = tournament.max_participants ?? null;
+  // Seats: the organizer's own limit, or their Circuit plan's when that's lower (after launch).
+  const planCap = circuit?.billingEnabled ? circuit.playerCap : null;
+  const fieldCap = [tournament.max_participants ?? null, planCap].filter((n): n is number => n != null).reduce<number | null>((m, n) => (m == null ? n : Math.min(m, n)), null);
   const spotsLeft = fieldCap != null ? Math.max(0, fieldCap - confirmedCount) : null;
   const freeCap = getGameLobbySize(tournament.game_slug); // one full lobby of this game
-  const nearFreeCap = (fieldCap != null && fieldCap > freeCap) || confirmedCount >= freeCap;
+  const nearFreeCap = (tournament.max_participants ?? 0) > freeCap || confirmedCount >= freeCap;
 
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
 
@@ -1261,8 +1316,27 @@ export default function ManageTournamentPage() {
               })}
             </div>
 
-            {/* Field-size / GS Circuit upgrade note — free while billing's off. */}
-            {nearFreeCap && (
+            {/* Field size once Circuit has launched: what this tournament's plan allows. */}
+            {circuit?.billingEnabled && nearFreeCap && circuit.source !== "subscription" && circuit.source !== "override" && circuit.source !== "preview" && (
+              <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "0.6rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
+                <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+                  <IconSparkles size={14} stroke={1.9} aria-hidden />{" "}
+                  {circuit.source === "grace"
+                    ? <>GameShuffle Circuit is free for you until {circuit.graceLabel}, so this field can go past {freeCap} players.</>
+                    : circuit.source === "grandfathered"
+                      ? <>You made this tournament before GameShuffle Circuit launched, so it keeps every Circuit feature, including a field past {freeCap} players.</>
+                      : <>On the free plan, up to {freeCap} players get a spot and anyone after that joins the waitlist. Upgrade to <strong>GameShuffle Circuit</strong> (64 or 256 players) and they&rsquo;re offered spots in line order.</>}
+                </span>
+                {circuit.source === "free" && (
+                  <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
+                    <Button variant="primary" size="small">See Circuit plans</Button>
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {/* Field-size / GS Circuit note while it's in preview (billing off). */}
+            {!circuit?.billingEnabled && nearFreeCap && (
               <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "0.6rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
                 <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                   <IconSparkles size={14} stroke={1.9} aria-hidden /> Fields over {freeCap} players will be part of{" "}<strong>GameShuffle Circuit</strong>{" "}at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
@@ -1610,8 +1684,9 @@ export default function ManageTournamentPage() {
           {showSettings && isOwner && (
             <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
-                Team access <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> GS Circuit · free in preview</span>
+                Team access <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> {circuitTag}</span>
               </h2>
+              {circuitLocked("Team access")}
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                 Add co-organizers by GameShuffle username. They can edit this tournament and run it with you, but only you can delete it or change the team.
               </p>
@@ -1647,8 +1722,9 @@ export default function ManageTournamentPage() {
           {showSettings && !setupLocked && (
             <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
-                Page branding <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> GS Circuit · free in preview</span>
+                Page branding <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> {circuitTag}</span>
               </h2>
+              {circuitLocked("Page branding")}
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>Make your public tournament page feel like your event.</p>
 
               <div style={{ marginBottom: "1.25rem" }}>
@@ -1711,8 +1787,9 @@ export default function ManageTournamentPage() {
             return (
               <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
-                  Display board <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> GS Circuit · free in preview</span>
+                  Display board <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> {circuitTag}</span>
                 </h2>
+                {circuitLocked("Display board customization")}
                 <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                   Skin the big-screen <a href={`/tournament/${tournamentId}/display`} target="_blank" rel="noopener noreferrer">display board</a> for your venue or stream.
                 </p>

@@ -79,7 +79,7 @@ function resolveTab(raw: string | undefined, phase: Phase, raceGame: boolean): s
 }
 
 export const metadata: Metadata = {
-  title: "Session",
+  title: "Stream",
   robots: { index: false, follow: false },
 };
 

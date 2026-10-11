@@ -487,9 +487,8 @@ export function RaceSetupSection({
 
       {!game && (
         <Alert variant="info">
-          This session has no race game selected. Set a supported game
-          (Mario Kart 8 Deluxe or Mario Kart World) on the Session
-          details section to use this module.
+          This stream has no racing game. Add Mario Kart 8 Deluxe or Mario
+          Kart World to its games to use race rolls.
         </Alert>
       )}
 
@@ -833,7 +832,7 @@ export function RaceSetupSection({
             </div>
             {!liveSession && (
               <p className="hub-form__platform-disabled">
-                Manual rolls fire from here once the session is active.
+                You can roll from here once the stream is live.
               </p>
             )}
           </Card>
@@ -849,8 +848,8 @@ export function RaceSetupSection({
 
             {!sessionLive && (
               <Alert variant="info">
-                Activate the session to open a picks/bans round. Once live,
-                viewers can vote at <code>/live/[your-slug]</code>.
+                Start the stream to open a picks and bans round. Once it&apos;s
+                live, viewers vote on your live page.
               </Alert>
             )}
 

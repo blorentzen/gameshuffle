@@ -8,6 +8,7 @@
  */
 
 import { SWITCHES } from "@/lib/platform/switches";
+import { revalidatePath } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -54,6 +55,12 @@ export async function PUT(req: NextRequest) {
   // (Circuit Phase 6) — tournaments created before this keep full access.
   if (body.key === "organizer_billing_enabled" && body.enabled === true) {
     await ensureBillingEnabledAt();
+  }
+  // The Terms (§3.4) and /gs-circuit read the switch; refresh them now rather
+  // than at the next hourly revalidation.
+  if (body.key === "organizer_billing_enabled") {
+    revalidatePath("/terms");
+    revalidatePath("/gs-circuit");
   }
   return NextResponse.json({ ok: true });
 }

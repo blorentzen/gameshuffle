@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { Container, Button } from "@empac/cascadeds";
+import { Badge, Container, Button } from "@empac/cascadeds";
 import { EventShell, EventPanelHead } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
 import { canHoldTicket, type AttendeeStatus } from "@/lib/events/ticketEligibility";
@@ -57,6 +57,8 @@ import { GameCover } from "@/components/games/GameCover";
 export interface Tournament {
   id: string;
   organizer_id: string;
+  /** An official event hosted by GameShuffle (supabase/official-events-m1.sql). */
+  hosted_by_gs?: boolean;
   title: string;
   description: string | null;
   game_slug: string;
@@ -119,7 +121,7 @@ export interface TournamentInitial {
   lowestTicketPrice: number | null;
 }
 
-export function TournamentPageClient({ initial, baseUrl }: { initial: TournamentInitial | null; baseUrl: string }) {
+export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { initial: TournamentInitial | null; baseUrl: string; circuitCap?: number | null }) {
   const params = useParams();
   const tournamentId = params.id as string;
   const { user } = useAuth();
@@ -318,7 +320,9 @@ export function TournamentPageClient({ initial, baseUrl }: { initial: Tournament
   const seated = participants.filter((p) => p.status !== "waitlisted" && p.status !== "dropped");
   // Full for a newcomer: no seat left, or people already waiting (they go first).
   const lineExists = participants.some((p) => p.status === "waitlisted" || p.status === "offered");
-  const isFull = (tournament.max_participants ? seated.length >= tournament.max_participants : false) || lineExists;
+  // The seats: the organizer's own limit or their Circuit plan's, whichever is smaller.
+  const seatLimit = [tournament.max_participants || null, circuitCap].filter((n): n is number => n != null).reduce<number | null>((m, n) => (m == null ? n : Math.min(m, n)), null);
+  const isFull = (seatLimit != null ? seated.length >= seatLimit : false) || lineExists;
 
   /* Joining goes through the server, which decides seat / waitlist / tickets
      (the same answer the database guard enforces) and files contact handles in
@@ -333,7 +337,7 @@ export function TournamentPageClient({ initial, baseUrl }: { initial: Tournament
       toast.toast({
         variant: "error",
         title: "Couldn't join",
-        message: j?.error === "full" ? "It just filled up. Join the waitlist and you'll be offered the next spot."
+        message: j?.error === "full" ? (j.canWaitlist === false ? "This tournament is full." : "It just filled up. Join the waitlist and you'll be offered the next spot.")
           : j?.error === "paid" ? "This tournament sells tickets. Get one to save your spot."
           : j?.error === "verification_required" ? "Verify your email to join this tournament."
           : "Something went wrong. Please try again.",
@@ -706,6 +710,7 @@ export function TournamentPageClient({ initial, baseUrl }: { initial: Tournament
       hero={{ imageUrl: tournament.header_image_url ?? null }}
       badges={
         <>
+          {tournament.hosted_by_gs && <Badge variant="info" size="small">Official</Badge>}
           <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status.replace("_", " ")}</span>
           <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
           {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
@@ -717,10 +722,11 @@ export function TournamentPageClient({ initial, baseUrl }: { initial: Tournament
       }
       breadcrumb={[{ label: "Tournaments", href: "/tournament" }, { label: tournament.title }]}
       presentedBy={presentingCommunity ? { slug: presentingCommunity.slug, name: presentingCommunity.display_name || presentingCommunity.slug } : null}
+      official={!!tournament.hosted_by_gs}
       organizer={{
         userId: tournament.organizer_id,
-        username: host?.username ?? null,
-        displayName: host?.display_name || host?.username || "the organizer",
+        username: tournament.hosted_by_gs ? null : host?.username ?? null,
+        displayName: tournament.hosted_by_gs ? "GameShuffle" : host?.display_name || host?.username || "the organizer",
         avatar: host ? { id: host.id, avatar_source: host.avatar_source, avatar_seed: host.avatar_seed, avatar_options: host.avatar_options, discord_avatar: host.discord_avatar, twitch_avatar: host.twitch_avatar } : null,
         coHosts: coHosts.map((c) => ({ username: c.username, displayName: c.displayName })),
       }}
@@ -981,7 +987,7 @@ export function TournamentPageClient({ initial, baseUrl }: { initial: Tournament
           {/* Participants */}
           <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ fontSize: "var(--font-size-12)" }}>Participants ({participants.length}{tournament.max_participants ? `/${tournament.max_participants}` : ""})</h2>
+              <h2 style={{ fontSize: "var(--font-size-12)" }}>Participants ({seatLimit != null ? `${seated.length}/${seatLimit}` : participants.length}{participants.some((p) => p.status === "waitlisted") ? `, ${participants.filter((p) => p.status === "waitlisted").length} waiting` : ""})</h2>
             </div>
             {participants.length === 0 ? (
               <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-tertiary)" }}>

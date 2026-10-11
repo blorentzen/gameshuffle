@@ -104,6 +104,11 @@ function presetFromAnnounceAt(
   return "custom";
 }
 
+/** A stream's status in plain words. */
+const STATUS_WORDS: Record<string, string> = {
+  draft: "a draft", scheduled: "scheduled", open: "open", active: "live", ending: "wrapping up", ended: "over", cancelled: "cancelled",
+};
+
 export function SessionDetailsForm({ slug, status, initial }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -273,13 +278,13 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                 return { ok: false, error: msg };
               }
               if (announceMs <= Date.now()) {
-                const msg = "Notification time must be in the future.";
+                const msg = "The heads-up time has to be in the future.";
                 setError(msg);
                 return { ok: false, error: msg };
               }
               if (announceMs > ms) {
                 const msg =
-                  "Notification time must be at or before the session start.";
+                  "The heads-up has to be at or before the start time.";
                 setError(msg);
                 return { ok: false, error: msg };
               }
@@ -328,7 +333,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                 }
                 if (cutoffMs <= ms) {
                   const msg =
-                    "'Repeat until' must be after the session start time.";
+                    "'Repeat until' has to be after the start time.";
                   setError(msg);
                   return { ok: false, error: msg };
                 }
@@ -358,7 +363,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
         router.refresh();
         return { ok: true };
       },
-      { label: "Session details" },
+      { label: "Stream details" },
     );
     return () => unregisterSection(id);
   }, [registerSection, unregisterSection, slug, lifecycleEditable, router]);
@@ -417,12 +422,12 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
 
   return (
     <section className="hub-detail__section">
-      <h2 className="hub-detail__section-title">Session details</h2>
+      <h2 className="hub-detail__section-title">Stream details</h2>
 
       {!lifecycleEditable && (
         <Alert variant="info">
-          This session is <strong>{status}</strong>. Name and description are
-          still editable, but the games + schedule are locked from this point.
+          This stream is <strong>{STATUS_WORDS[status] ?? status}</strong>. You can still change the name and
+          description; the games and schedule are locked now.
         </Alert>
       )}
 
@@ -487,8 +492,8 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
 
               {preset === "manual" && (
                 <p className="hub-form__platform-disabled">
-                  No schedule. The session fires its go-live events when you
-                  activate it, or when you go live on Twitch.
+                  No schedule. It starts when you press Start, or when you go
+                  live on Twitch.
                 </p>
               )}
 
@@ -498,20 +503,18 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                   onChange={setScheduledAt}
                   showTime
                   fullWidth
-                  placeholder="Pick a session start time"
+                  placeholder="Pick a start time"
                 />
               )}
               {presetNeedsSchedule(preset) && !scheduledAt && (
                 <p className="hub-form__platform-disabled">
-                  Pick a start time to schedule this session.
+                  Pick a start time to schedule this stream.
                 </p>
               )}
               {scheduledAt && preset !== "manual" && (
                 <p className="hub-form__platform-disabled">
-                  Times are stored in UTC and shown in each viewer&rsquo;s local
-                  zone. Set your timezone in{" "}
-                  <a href="/account?tab=profile">Account → Profile</a> so the
-                  live view + overlay surface the converted time.
+                  Viewers see this time in their own timezone. Yours comes from{" "}
+                  <a href="/account?tab=settings">Settings ▸ General</a>.
                 </p>
               )}
 
@@ -521,20 +524,20 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                 <div className="hub-form__schedule-policy">
                   <p className="hub-form__platform-disabled">
                     {preset === "weekly"
-                      ? "Repeats weekly. Announces 1 hour ahead (Discord heads-up + queue opens) and auto-activates at the start time."
+                      ? "Repeats every week. Posts a heads-up on Discord and opens the lobby an hour before, then starts on its own."
                       : preset === "auto_open"
-                        ? "Announces 1 hour ahead (Discord heads-up + queue opens) and auto-activates at the start time."
-                        : "Announces 1 hour ahead (Discord heads-up + queue opens). You activate the session yourself."}{" "}
-                    Choose <strong>Custom</strong> to fine-tune the notification,
-                    queue timing, and recurrence.
+                        ? "Posts a heads-up on Discord and opens the lobby an hour before, then starts on its own."
+                        : "Posts a heads-up on Discord and opens the lobby an hour before. You press Start yourself."}{" "}
+                    Choose <strong>Custom</strong>{" "}to change the heads-up, the
+                    lobby and repeats.
                   </p>
                 </div>
               )}
 
               {preset === "custom" && !scheduledAt && (
                 <p className="hub-form__platform-disabled">
-                  Leave empty to start on manual activation, or pick a date to
-                  schedule the session and configure the controls below.
+                  Leave it empty to start it yourself, or pick a date to
+                  schedule it and set the options below.
                 </p>
               )}
               {preset === "custom" && scheduledAt && (
@@ -550,13 +553,13 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                 <>
                   <div className="hub-form__schedule-policy">
                     <span className="hub-form__label">
-                      Pre-session notification
+                      Heads-up before the stream
                     </span>
                     <p className="hub-form__platform-disabled">
-                      When the notification fires, GameShuffle posts a
-                      heads-up on Discord, opens the lobby so viewers can{" "}
-                      <code>!gs-join</code>, and (once you go live)
-                      flips your Twitch category to{" "}
+                      When the heads-up goes out, GameShuffle posts on
+                      Discord and opens the lobby so viewers can{" "}
+                      <code>!gs-join</code>. Once you go live, your Twitch
+                      category switches to{" "}
                       <strong>
                         {configuredGames[0] ?? "your first game"}
                       </strong>
@@ -572,7 +575,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                       <Radio
                         value="none"
                         label="Don't notify in advance"
-                        helperText="Session sits scheduled; nothing posts until you manually activate."
+                        helperText="It stays scheduled, and nothing posts until you press Start."
                       />
                       <Radio value="30m" label="30 minutes before" />
                       <Radio value="1h" label="1 hour before" />
@@ -581,7 +584,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                       <Radio
                         value="custom"
                         label="Custom time"
-                        helperText="Pick an exact moment for the notification + queue open."
+                        helperText="Pick the exact time for the heads-up and the lobby to open."
                       />
                     </RadioGroup>
 
@@ -600,8 +603,8 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                           />
                         </label>
                         <p className="hub-form__platform-disabled">
-                          Must be in the future and at or before your
-                          session start time.
+                          Has to be in the future, and at or before the
+                          start time.
                         </p>
                       </div>
                     )}
@@ -615,13 +618,13 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                         <span>
                           <strong>
                             {opensQueue
-                              ? "Open the queue when the notification fires"
-                              : "Reminder only: keep the queue closed"}
+                              ? "Open the lobby when the heads-up goes out"
+                              : "Heads-up only: keep the lobby closed"}
                           </strong>
                           <span className="hub-form__platform-disabled">
                             {opensQueue
-                              ? "Viewers can !gs-join as soon as the Discord notification goes out."
-                              : "The Discord notification fires on schedule, but viewers can't !gs-join until you manually activate the session."}
+                              ? "Viewers can !gs-join as soon as the Discord heads-up goes out."
+                              : "The Discord heads-up goes out on time, but viewers can't !gs-join until you press Start."}
                           </span>
                         </span>
                       </label>
@@ -634,11 +637,10 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                       onChange={() => setAutoActivate((v) => !v)}
                     />
                     <span>
-                      <strong>Auto-activate at start time</strong>
+                      <strong>Start on its own at the start time</strong>
                       <span className="hub-form__platform-disabled">
-                        Skip the manual go-live step. GameShuffle flips
-                        the session to active when your scheduled start
-                        time arrives.
+                        No need to press Start: GameShuffle starts the
+                        stream at the scheduled time.
                       </span>
                     </span>
                   </label>
@@ -646,9 +648,8 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                   <div className="hub-form__schedule-policy">
                     <span className="hub-form__label">Repeat</span>
                     <p className="hub-form__platform-disabled">
-                      Make this a recurring session. After each instance
-                      ends, GameShuffle creates the next one with the
-                      same configuration at the next slot.
+                      Make this a repeating stream. When one ends,
+                      GameShuffle sets up the next with the same settings.
                     </p>
                     <RadioGroup
                       name="recurrence_picker"
@@ -662,8 +663,8 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                     >
                       <Radio
                         value="none"
-                        label="One-shot"
-                        helperText="Just this session, no repeats."
+                        label="Just once"
+                        helperText="No repeats."
                       />
                       <Radio value="daily" label="Every day" />
                       <Radio value="weekly" label="Every week" />

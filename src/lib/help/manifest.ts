@@ -332,6 +332,22 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     keywords: ["bingo", "stream bingo", "!bingo", "number bingo", "bingo card", "patterns", "blackout", "prize", "overlay"],
   },
   {
+    id: "break-mode",
+    title: "Break mode",
+    description: "Step away and GameShuffle keeps chat playing: quick games on your overlay, points, and a break champion when you're back.",
+    href: "/help/streaming/break-mode",
+    category: "streaming",
+    keywords: ["break mode", "brb", "!gs brb", "!gs back", "be right back", "break games", "words on stream", "higher or lower", "fact or fiction", "overlay"],
+  },
+  {
+    id: "mods",
+    title: "Mods",
+    description: "Let your Twitch mods help run your stream: they join with one command, and you choose Standard or Full access for each.",
+    href: "/help/streaming/mods",
+    category: "streaming",
+    keywords: ["mods", "moderators", "mod page", "!gs mod", "full access", "standard access", "kick", "lobby", "invite a mod"],
+  },
+  {
     id: "chat-draft",
     title: "Chat Draft",
     description: "Chat drafts your Pokémon team, Mario Kart combo or track list one vote at a time, live on your overlay.",

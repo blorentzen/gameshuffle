@@ -14,6 +14,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { validateUsername } from "@/lib/username";
+import { isReservedName, RESERVED_DISPLAY_NAME_MESSAGE } from "@/lib/reservedName";
 import { useAutosave, type AutosaveStatus } from "@/lib/hooks/useAutosave";
 import type { Gamertags } from "@/data/gamertag-types";
 import type { Socials } from "@/data/socials-types";
@@ -65,6 +66,8 @@ interface ProfileStoreValue {
   status: AutosaveStatus;
   usernameError: string | null;
   setUsernameError: (e: string | null) => void;
+  /** Set when the display name uses the GameShuffle name (kept for the team); the old name stays saved. */
+  displayNameError: string | null;
 }
 
 const EMPTY: ProfileFields = {
@@ -119,6 +122,9 @@ export function ProfileStoreProvider({ children }: { children: ReactNode }) {
     hasTwitchConnection: false, trialEligible: false, persoAvailable: false, myPosts: [], myCards: [],
   });
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
+  // Staff and admins may use the GameShuffle name in a display name.
+  const teamRole = useRef(false);
   // The row as last stored, so a save sends only the columns that changed.
   const savedRow = useRef<Record<string, unknown>>({});
   const savedUsername = useRef("");
@@ -141,6 +147,7 @@ export function ProfileStoreProvider({ children }: { children: ReactNode }) {
       const perso = !persoRes.error && !!persoRes.data;
       const q = (persoRes.data ?? {}) as Record<string, unknown>;
       const role = (p.role as string | null) ?? null;
+      teamRole.current = role === "staff" || role === "admin";
       const loaded: ProfileFields = {
         displayName: (p.display_name as string) || "",
         username: (p.username as string) || "",
@@ -213,7 +220,14 @@ export function ProfileStoreProvider({ children }: { children: ReactNode }) {
     // A public profile is its /u/username address, so it needs a handle.
     if (f.isPublic && !handle) { setUsernameError("Choose a username before making your profile public."); return false; }
 
-    const row = { ...toRow(f, extras.persoAvailable), username: handle };
+    const row: Record<string, unknown> = { ...toRow(f, extras.persoAvailable), username: handle };
+    // The GameShuffle name is kept for the team: keep the saved display name and say why.
+    if (!teamRole.current && isReservedName(f.displayName)) {
+      setDisplayNameError(RESERVED_DISPLAY_NAME_MESSAGE);
+      row.display_name = savedRow.current.display_name ?? null;
+    } else {
+      setDisplayNameError(null);
+    }
     const prev: Record<string, unknown> = { ...savedRow.current, username: savedUsername.current || null };
     const changed: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(row)) if (JSON.stringify(v) !== JSON.stringify(prev[k])) changed[k] = v;
@@ -240,6 +254,7 @@ export function ProfileStoreProvider({ children }: { children: ReactNode }) {
     setExtras: (patch) => setExtrasState((x) => ({ ...x, ...patch })),
     status,
     usernameError,
+    displayNameError,
     setUsernameError,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

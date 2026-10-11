@@ -232,6 +232,14 @@ registerCommand({
 // internals beyond the public resolveEconomyContext / EconomyContext)
 // ---------------------------------------------------------------------------
 
+/**
+ * The game an event's "Game" setting is matched against. The old Mario Kart
+ * short names map to their slugs; every other game passes through as its own
+ * slug, so an event set to Smash or Mario Party is drawn while that game is on
+ * stream. (This used to return null for anything but Mario Kart, which meant
+ * game-specific events for other games were never drawn. Prediction markets
+ * keep their Mario Kart-only mapping in economy.ts.)
+ */
 function canonicalizeGameKey(slug: string): string | null {
   if (slug === "mk8dx" || slug === "mario-kart-8-deluxe") {
     return "mario-kart-8-deluxe";
@@ -239,7 +247,7 @@ function canonicalizeGameKey(slug: string): string | null {
   if (slug === "mkworld" || slug === "mario-kart-world") {
     return "mario-kart-world";
   }
-  return null;
+  return slug.trim() || null;
 }
 
 export const __EVENT_COMMANDS_REGISTERED__ = true;

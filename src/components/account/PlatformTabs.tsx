@@ -12,6 +12,7 @@
 import { SectionTabs, type ScreenMap } from "@/components/account/SectionTabs";
 import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
 import { PlatformGrowthTab } from "@/components/account/PlatformGrowthTab";
+import { PlatformRevenueTab } from "@/components/account/PlatformRevenueTab";
 import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
 import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab";
 import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
@@ -30,6 +31,7 @@ import { PlatformDecksTab } from "@/components/account/PlatformDecksTab";
 import { PlatformWeeklyTab } from "@/components/account/PlatformWeeklyTab";
 import { PlatformChatBrainTab } from "@/components/account/PlatformChatBrainTab";
 import { PlatformTriviaTab } from "@/components/account/PlatformTriviaTab";
+import { PlatformBreakTab } from "@/components/account/PlatformBreakTab";
 import { PlatformShopOrdersTab, PlatformShopProductsTab } from "@/components/account/PlatformShopOrdersTab";
 import { PlatformSwitchesTab } from "@/components/account/PlatformSwitchesTab";
 import { TokenActivityPanel, TokenStreamersPanel } from "@/components/account/TokenEconomyPanels";
@@ -44,6 +46,7 @@ export function PlatformTabs() {
 const SCREENS: ScreenMap = {
   "platform-health": () => <PlatformHealthTab />,
   "platform-growth": () => <PlatformGrowthTab />,
+  "platform-revenue": () => <PlatformRevenueTab />,
   "platform-ai": () => <PlatformAiTab />,
   "platform-switches": () => <PlatformSwitchesTab />,
   "platform-shop-orders": () => <PlatformShopOrdersTab />,
@@ -53,6 +56,7 @@ const SCREENS: ScreenMap = {
   "platform-chat-brain": () => <PlatformChatBrainTab />,
   "platform-weekly": () => <PlatformWeeklyTab />,
   "platform-trivia": () => <PlatformTriviaTab />,
+  "platform-break": () => <PlatformBreakTab />,
   "platform-guides": () => <PlatformGuidesTab />,
   "platform-decks": () => <PlatformDecksTab />,
   "platform-games": () => <PlatformGamesTab />,
@@ -67,7 +71,7 @@ const SCREENS: ScreenMap = {
   "platform-pricing": () => <PlatformPricingTab />,
   "platform-snapshot": () => <PlatformEconomySnapshotTab part="overview" />,
   "platform-token-streamers": () => <TokenStreamersPanel />,
-  "platform-token-history": () => <><PlatformEconomySnapshotTab part="history" /><TokenActivityPanel /></>,
+  "platform-token-history": () => <PlatformEconomySnapshotTab part="history"><TokenActivityPanel embedded /></PlatformEconomySnapshotTab>,
   "platform-economy": () => <PlatformEconomyTab />,
   "platform-compliance": () => <PlatformComplianceTab />,
 };

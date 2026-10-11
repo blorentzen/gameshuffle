@@ -22,7 +22,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Input, Switch } from "@empac/cascadeds";
+import { Alert, Badge, Button, Input, Select, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
@@ -41,7 +41,14 @@ interface ModRow {
   invite_expires_at: string | null;
   claimed_at: string | null;
   created_at: string;
+  access: "standard" | "full";
 }
+
+/** Mod access levels (src/lib/mods/acting.ts). */
+const ACCESS_OPTIONS = [
+  { value: "standard", label: "Standard", description: "Lobby, activity and your decks" },
+  { value: "full", label: "Full", description: "Also rolls, picks and bans, tools and live games" },
+];
 
 interface MyInviteRow {
   id: string;
@@ -55,6 +62,7 @@ interface MyInviteRow {
 interface ListResponse {
   ok: true;
   mods: { active: ModRow[]; invited: ModRow[]; pending: ModRow[] };
+  accessReady: boolean;
   myInvites: MyInviteRow[];
   selfSlug: string | null;
   settings: {
@@ -298,6 +306,27 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
       }
       setSuccess(`${displayName} revoked.`);
       await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setAccess = async (mod: ModRow, access: "standard" | "full") => {
+    if (access === mod.access) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/account/mods", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mod_id: mod.id, access }),
+      }).catch(() => null);
+      const body = (await res?.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+      if (!body?.ok) {
+        toast.error(body?.error === "needs_update" ? "Mod access needs the latest database update." : "Couldn't change their access. Try again.");
+        return;
+      }
+      await load();
+      toast.success(access === "full" ? `${mod.display_name} has Full access` : `${mod.display_name} has Standard access`);
     } finally {
       setBusy(false);
     }
@@ -600,20 +629,38 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
           title="Active"
           count={active.length}
           empty="No active mods yet. Invite someone from your pending list below."
+          hint={
+            data.accessReady
+              ? "Standard mods manage the lobby and edit your decks. Full mods can also roll, run picks and bans, the overlay tools, live games and break mode from their mod page. Starting, ending and editing the stream stay with you."
+              : undefined
+          }
         >
           {active.map((m) => (
             <ModRowDisplay
               key={m.id}
               row={m}
               right={
-                <Button
-                  variant="ghost"
-                  size="small"
-                  onClick={() => revokeMod(m.id, m.display_name)}
-                  disabled={busy}
-                >
-                  Revoke
-                </Button>
+                <div className="mods-row__actions">
+                  {data.accessReady && (
+                    <Select
+                      size="small"
+                      floatingLabel="Access"
+                      options={ACCESS_OPTIONS}
+                      value={m.access}
+                      onChange={(v) => void setAccess(m, v === "full" ? "full" : "standard")}
+                      disabled={busy}
+                      className="mods-row__access"
+                    />
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={() => revokeMod(m.id, m.display_name)}
+                    disabled={busy}
+                  >
+                    Revoke
+                  </Button>
+                </div>
               }
               meta={
                 <>

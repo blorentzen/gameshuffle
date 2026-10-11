@@ -1,24 +1,27 @@
 "use client";
 
 /**
- * Platform Admin → Tournaments.
+ * Platform admin ▸ Events ▸ Tournaments (staff).
  *
- * Was a flat list of cards that only did entitlement grants: no status filter,
- * no totals, no sort, and raw <input> elements inside an expanding row. That is
- * unusable for moderation once there are more tournaments than fit on a screen.
- *
- * Now a scannable table: platform-wide totals across the top, search + status
- * filter, sortable columns, and the Circuit Events grant moved into a modal so
- * a row stays one line. Reads/writes /api/admin/tournament-entitlements.
+ * Every tournament on the platform: totals across the top, search, a status
+ * filter and a sort, a table (25 rows at a time), and Circuit access per event.
+ * Staff can give one tournament full Circuit access for free (sponsored with no
+ * player limit, or a pass with a limit) and take it away again; both happen in
+ * a window or a confirmation so a row stays one line.
+ * Reads/writes /api/admin/tournament-entitlements (newest 100 per search).
  */
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Button, Input, Modal, Select, StatCard,
+  Alert, Badge, Button, Input, Modal, Radio, RadioGroup, Select, StatCard,
   Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow,
 } from "@empac/cascadeds";
+import { IconCalendarEvent, IconCircleCheck, IconPlayerPlay, IconRefresh, IconTrophy } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { AdminHeader, AdminRowMenu, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
+import { getGameName } from "@/data/game-registry";
 
 interface OverrideRow {
   id: string;
@@ -41,231 +44,278 @@ interface Row {
   override: OverrideRow | null;
 }
 
+type GrantType = "gs_sponsored" | "circuit_events" | "partner_comp";
+
 const TYPE_LABEL: Record<OverrideRow["type"], string> = {
-  gs_sponsored: "GS Sponsored",
-  circuit_events: "Circuit Events",
-  partner_comp: "Partner comp",
+  gs_sponsored: "Sponsored",
+  circuit_events: "Circuit pass",
+  partner_comp: "Partner, free",
 };
+
+const STATUS: Record<string, { label: string; variant: "default" | "success" | "warning" | "error" | "info" | "outline" }> = {
+  open: { label: "Sign-ups open", variant: "info" },
+  in_progress: { label: "Running", variant: "success" },
+  complete: { label: "Finished", variant: "default" },
+  cancelled: { label: "Cancelled", variant: "error" },
+  draft: { label: "Draft", variant: "outline" },
+};
+const statusOf = (s: string) => STATUS[s] ?? { label: s.replace(/_/g, " "), variant: "default" as const };
+
+/** "all" stands for no filter: CDS Select treats "" as no choice. */
+const FILTERS = [
+  { value: "all", label: "All" },
+  { value: "open", label: "Sign-ups open" },
+  { value: "in_progress", label: "Running" },
+  { value: "complete", label: "Finished" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "draft", label: "Drafts" },
+];
+
+/** Sorting is a Select, not clickable column heads: CDS's sortable heads use
+ *  ARIA that screen readers don't support (known CDS gap). */
+const SORTS = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "title", label: "Title, A to Z" },
+  { value: "players", label: "Most players" },
+];
+
+const PAGE = 25;
+/** The API returns the newest 100 that match. */
+const API_LIMIT = 100;
+const n = (x: number) => x.toLocaleString();
+const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
+
+function accessText(o: OverrideRow): string {
+  return `${TYPE_LABEL[o.type]}, ${o.player_cap != null ? `up to ${n(o.player_cap)} players` : "no player limit"}`;
+}
 
 export function PlatformTournamentsTab() {
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [filter, setFilter] = useState("all");
   const [counts, setCounts] = useState<Record<string, number>>({});
-  const [sort, setSort] = useState<{ key: "title" | "participants" | "created"; dir: "asc" | "desc" }>({ key: "created", dir: "desc" });
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [eventsFor, setEventsFor] = useState<string | null>(null); // tournament id with the Circuit Events form open
-  const [capDraft, setCapDraft] = useState("");
-  const [noteDraft, setNoteDraft] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [rows, setRows] = useState<Row[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [shown, setShown] = useState(PAGE);
+  const [grantFor, setGrantFor] = useState<Row | null>(null);
   const toast = useToast();
+  const confirm = useConfirm();
 
   const load = useCallback(async (search: string, status: string) => {
-    setLoading(true);
-    const res = await fetch(`/api/admin/tournament-entitlements?q=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`);
-    const j = await res.json().catch(() => ({}));
-    setRows(Array.isArray(j.tournaments) ? j.tournaments : []);
-    setCounts((j.counts as Record<string, number>) ?? {});
-    setLoading(false);
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/tournament-entitlements?q=${encodeURIComponent(search)}&status=${encodeURIComponent(status === "all" ? "" : status)}`, { cache: "no-store" });
+      if (!res.ok) { setFailed(true); setRows((r) => r ?? []); return; }
+      const j = await res.json().catch(() => ({}));
+      setRows(Array.isArray(j.tournaments) ? j.tournaments : []);
+      setCounts((j.counts as Record<string, number>) ?? {});
+      setFailed(false);
+      setShown(PAGE);
+    } catch {
+      setFailed(true);
+      setRows((r) => r ?? []);
+    } finally {
+      setBusy(false);
+    }
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => load(q, statusFilter), q ? 250 : 0);
+    const t = setTimeout(() => void load(q, filter), q ? 250 : 0);
     return () => clearTimeout(t);
-  }, [q, statusFilter, load]);
+  }, [q, filter, load]);
 
-  const grant = async (tournamentId: string, type: OverrideRow["type"], playerCap: number | null, note: string | null) => {
-    setBusy(tournamentId);
+  const grant = async (tournamentId: string, type: GrantType, playerCap: number | null, note: string | null) => {
     const res = await fetch("/api/admin/tournament-entitlements", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tournamentId, type, playerCap, note }),
+    }).catch(() => null);
+    if (!res?.ok) { toast.error("Couldn't give the access. Try again."); return false; }
+    toast.success(type === "gs_sponsored" ? "Tournament sponsored" : type === "partner_comp" ? "Partner access given" : "Circuit pass given");
+    void load(q, filter);
+    return true;
+  };
+
+  const revoke = async (t: Row, o: OverrideRow) => {
+    const ok = await confirm({
+      title: `Take Circuit access away from ${t.title}?`,
+      body: "It goes back to whatever the organizer's own plan allows. You can give access again later.",
+      confirmLabel: "Take access away",
     });
-    setBusy(null);
-    if (res.ok) {
-      toast.success(`${TYPE_LABEL[type]} granted.`);
-      setEventsFor(null); setCapDraft(""); setNoteDraft("");
-      void load(q, statusFilter);
-    } else {
-      toast.error("Could not grant override.");
-    }
+    if (!ok) return;
+    const res = await fetch(`/api/admin/tournament-entitlements?id=${o.id}`, { method: "DELETE" }).catch(() => null);
+    if (res?.ok) { toast.success("Circuit access taken away"); void load(q, filter); }
+    else toast.error("Couldn't take the access away. Try again.");
   };
 
-  const revoke = async (o: OverrideRow) => {
-    setBusy(o.id);
-    const res = await fetch(`/api/admin/tournament-entitlements?id=${o.id}`, { method: "DELETE" });
-    setBusy(null);
-    if (res.ok) { toast.success("Override revoked."); void load(q, statusFilter); }
-    else toast.error("Could not revoke.");
-  };
-
-  const STATUSES = [
-    { value: "", label: "All statuses" },
-    { value: "open", label: "Registration" },
-    { value: "in_progress", label: "In progress" },
-    { value: "complete", label: "Completed" },
-    { value: "cancelled", label: "Cancelled" },
-    { value: "draft", label: "Draft" },
-  ];
-
-  const sorted = [...rows].sort((a, b) => {
-    const d = sort.dir === "asc" ? 1 : -1;
-    if (sort.key === "title") return a.title.localeCompare(b.title) * d;
-    if (sort.key === "participants") return (a.participants - b.participants) * d;
-    return ((a.createdAt ?? "").localeCompare(b.createdAt ?? "")) * d;
+  const sorted = [...(rows ?? [])].sort((a, b) => {
+    if (sort === "title") return a.title.localeCompare(b.title);
+    if (sort === "players") return b.participants - a.participants;
+    const byDate = (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
+    return sort === "oldest" ? byDate : -byDate;
   });
-  const toggleSort = (key: typeof sort.key) =>
-    setSort((s2) => ({ key, dir: s2.key === key && s2.dir === "desc" ? "asc" : "desc" }));
-  const dirFor = (key: typeof sort.key) => (sort.key === key ? sort.dir : null);
-
-  const eventsRow = rows.find((t) => t.id === eventsFor) ?? null;
+  const visible = sorted.slice(0, shown);
+  const more = Math.min(PAGE, sorted.length - shown);
+  const filtered = !!q || filter !== "all";
 
   return (
-    <div className="account-card">
-      <h2 className="account-tab__heading">Tournaments</h2>
-      <p className="account-tab__intro">
-        Every tournament on the platform. Grant a single event full Circuit access:
-        mark it <strong>GS Sponsored</strong> (unlimited) or issue a{" "}
-        <strong>Circuit Events</strong> pass with a player cap. Overrides win over the
-        billing flag and subscriptions.
-      </p>
+    <div className="account-card admin-screen">
+      <AdminHeader
+        title="Tournaments"
+        intro="Every tournament on GameShuffle. Give one event every Circuit feature for free, whatever the organizer's plan and even while Circuit billing is off."
+        actions={<Button variant="secondary" size="small" iconBefore={IconRefresh} loading={busy} disabled={busy} aria-label="Refresh" onClick={() => void load(q, filter)}>Refresh</Button>}
+      />
 
-      {/* Platform totals, not page totals — these answer "how much is out there". */}
-      <div className="admin-stats">
-        {[
-          { label: "Total", key: "total" },
-          { label: "Registration", key: "open" },
-          { label: "In progress", key: "in_progress" },
-          { label: "Completed", key: "complete" },
-          { label: "Cancelled", key: "cancelled" },
-        ].map((c) => (
-          <StatCard
-            key={c.key}
-            label={c.label}
-            value={counts[c.key] ?? 0}
-            variant={c.key === "total" ? "accent" : "default"}
-          />
-        ))}
-      </div>
+      {rows === null && !failed ? <LoadingLines label="Loading tournaments" /> : (
+        <>
+          {/* Platform totals, not page totals: they answer "how much is out there". */}
+          <AdminStats label="Tournaments at a glance">
+            <StatCard label="All tournaments" value={n(counts.total ?? 0)} source={`${n(counts.draft ?? 0)} still drafts`} icon={<IconTrophy size={20} />} variant="accent" />
+            <StatCard label="Sign-ups open" value={n(counts.open ?? 0)} icon={<IconCalendarEvent size={20} />} />
+            <StatCard label="Running now" value={n(counts.in_progress ?? 0)} icon={<IconPlayerPlay size={20} />} />
+            <StatCard label="Finished" value={n(counts.complete ?? 0)} source={`${n(counts.cancelled ?? 0)} cancelled`} icon={<IconCircleCheck size={20} />} />
+          </AdminStats>
 
-      <div className="admin-filters">
-        <Input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search by title…"
-          fullWidth
-        />
-        <Select
-          value={statusFilter}
-          onChange={(v) => setStatusFilter(v as string)}
-          options={STATUSES}
-          aria-label="Filter by status"
-          fullWidth
-        />
-      </div>
+          {failed && <Alert variant="error">Couldn&apos;t load the tournaments. Try Refresh in a moment.</Alert>}
 
-      {loading ? (
-        <LoadingLines label="Loading" />
-      ) : (
-        <div className="admin-table">
-          <Table variant="striped" hoverable dense>
-            <TableHeader>
-              <TableRow>
-                <TableHead sortable sortDirection={dirFor("title")} onSort={() => toggleSort("title")}>Tournament</TableHead>
-                <TableHead>Organizer</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead align="right" sortable sortDirection={dirFor("participants")} onSort={() => toggleSort("participants")}>Players</TableHead>
-                <TableHead>Access</TableHead>
-                <TableHead align="right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sorted.length === 0 ? (
-                <TableRow>
-                  <TableCell>
-                    <TableEmpty
-                      title="No tournaments found"
-                      description={q || statusFilter ? "Try clearing the search or status filter." : "Nothing on the platform yet."}
-                    />
-                  </TableCell>
-                </TableRow>
-              ) : sorted.map((t) => {
-                const o = t.override;
-                return (
-                  <TableRow key={t.id}>
-                    <TableCell>
-                      <a href={`/tournament/${t.id}/manage`} className="admin-table__link">{t.title}</a>
-                      <span className="admin-table__sub">{t.gameSlug}</span>
-                    </TableCell>
-                    <TableCell>{t.organizer}</TableCell>
-                    <TableCell><span className={`lounge-status lounge-status--${t.status}`}>{t.status.replace("_", " ")}</span></TableCell>
-                    <TableCell align="right">{t.participants}{t.maxParticipants ? ` / ${t.maxParticipants}` : ""}</TableCell>
-                    <TableCell>
-                      {o ? (
-                        <span className="admin-table__grant">
-                          {TYPE_LABEL[o.type]}{o.player_cap != null ? ` · cap ${o.player_cap}` : " · unlimited"}
-                        </span>
-                      ) : (
-                        <span className="admin-table__sub">Standard</span>
-                      )}
-                    </TableCell>
-                    <TableCell align="right">
-                      {o ? (
-                        <Button variant="ghost" size="small" disabled={busy === o.id} onClick={() => revoke(o)}>Revoke</Button>
-                      ) : (
-                        <span className="admin-table__actions">
-                          <Button variant="secondary" size="small" disabled={busy === t.id} onClick={() => grant(t.id, "gs_sponsored", null, null)}>Sponsor</Button>
-                          <Button variant="ghost" size="small" onClick={() => { setEventsFor(t.id); setCapDraft(""); setNoteDraft(""); }}>Pass…</Button>
-                        </span>
-                      )}
-                    </TableCell>
+          <AdminSection
+            title="All tournaments"
+            intro={<><strong>Sponsored</strong> gives every Circuit feature with no player limit. A <strong>Circuit pass</strong> does the same up to a player limit you set. Open a tournament&apos;s name to manage it.</>}
+          >
+            <div className="admin-filters admin-events-filters">
+              <Input type="search" fullWidth floatingLabel="Search by title" value={q} onChange={(e) => setQ(e.target.value)} />
+              <Select floatingLabel="Show" value={filter} onChange={(v) => setFilter(String(v))} options={FILTERS} fullWidth />
+              <Select floatingLabel="Sort" value={sort} onChange={(v) => { setSort(String(v)); setShown(PAGE); }} options={SORTS} fullWidth />
+            </div>
+
+            <AdminTable label="Tournaments">
+              <Table variant="striped" hoverable dense>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tournament</TableHead>
+                    <TableHead>Organizer</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead align="right">Players</TableHead>
+                    <TableHead>Circuit access</TableHead>
+                    <TableHead align="right"><span className="sr-only">Actions</span></TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {visible.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6}>
+                        <TableEmpty
+                          title={filtered ? "No tournaments match" : "No tournaments yet"}
+                          description={filtered ? "Try another search, or show all tournaments." : "They show here as soon as an organizer makes one."}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ) : visible.map((t) => {
+                    const o = t.override;
+                    const st = statusOf(t.status);
+                    return (
+                      <TableRow key={t.id}>
+                        <TableCell>
+                          <a href={`/tournament/${t.id}/manage`} className="admin-table__link admin-events-title">{t.title}</a>
+                          <span className="admin-table__sub">{getGameName(t.gameSlug)}{t.createdAt ? ` · made ${day(t.createdAt)}` : ""}</span>
+                        </TableCell>
+                        <TableCell>{t.organizer}</TableCell>
+                        <TableCell><Badge variant={st.variant} size="small">{st.label}</Badge></TableCell>
+                        <TableCell align="right" className="admin-num">{n(t.participants)}{t.maxParticipants ? ` of ${n(t.maxParticipants)}` : ""}</TableCell>
+                        <TableCell>
+                          {o ? (
+                            <>
+                              <span className="admin-table__grant">{accessText(o)}</span>
+                              {o.note && <span className="admin-table__sub">{o.note}</span>}
+                            </>
+                          ) : (
+                            <span className="admin-table__sub">Organizer&apos;s plan</span>
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className="admin-row-actions">
+                            {o ? (
+                              <AdminRowMenu
+                                label={`More for ${t.title}`}
+                                items={[{ label: "Take Circuit access away", danger: true, onClick: () => void revoke(t, o) }]}
+                              />
+                            ) : (
+                              <Button variant="ghost" size="small" onClick={() => setGrantFor(t)} aria-label={`Give access to ${t.title}`}>Give access</Button>
+                            )}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </AdminTable>
+
+            {(more > 0 || (rows?.length ?? 0) >= API_LIMIT) && (
+              <div className="admin-events-more">
+                {more > 0 && <Button variant="ghost" size="small" onClick={() => setShown((s) => s + PAGE)}>Show {more} more</Button>}
+                {(rows?.length ?? 0) >= API_LIMIT && <p className="admin-updated">This list holds the newest {API_LIMIT} that match. Search by title to find an older one.</p>}
+              </div>
+            )}
+          </AdminSection>
+        </>
       )}
 
-      {/* The grant form was an expanding row with raw <input>s, which broke the
-          table rhythm and skipped the design system. */}
-      <Modal
-        isOpen={!!eventsRow}
-        onClose={() => setEventsFor(null)}
-        title={eventsRow ? `Circuit Events pass: ${eventsRow.title}` : "Circuit Events pass"}
-        size="small"
-        primaryAction={{
-          label: busy === eventsFor ? "Granting…" : "Grant pass",
-          onClick: () => {
-            if (!eventsFor) return;
-            void grant(eventsFor, "circuit_events", capDraft.trim() ? Number(capDraft) : null, noteDraft.trim() || null);
-            setEventsFor(null);
-          },
-        }}
-        secondaryAction={{ label: "Cancel", onClick: () => setEventsFor(null) }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
-          <Input
-            type="number"
-            min={1}
-            value={capDraft}
-            onChange={(e) => setCapDraft(e.target.value)}
-            floatingLabel="Player cap"
-            fullWidth
-          />
-          <Input
-            type="text"
-            value={noteDraft}
-            onChange={(e) => setNoteDraft(e.target.value)}
-            floatingLabel="Note (invoice #, org…)"
-            fullWidth
-          />
-          <p style={{ margin: 0, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-            Leave the cap empty for an uncapped pass.
-          </p>
-        </div>
-      </Modal>
+      {grantFor && <GrantModal tournament={grantFor} onClose={() => setGrantFor(null)} onGrant={grant} />}
     </div>
+  );
+}
+
+/** Give one tournament Circuit access: sponsored (no limit) or a pass with a limit. */
+function GrantModal({ tournament, onClose, onGrant }: {
+  tournament: Row;
+  onClose: () => void;
+  onGrant: (id: string, type: GrantType, cap: number | null, note: string | null) => Promise<boolean>;
+}) {
+  const [type, setType] = useState<GrantType>("gs_sponsored");
+  const [cap, setCap] = useState("");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const capValue = cap.trim() ? Number(cap) : null;
+  const capOk = capValue === null || (Number.isInteger(capValue) && capValue >= 1);
+
+  const submit = async () => {
+    if (!capOk) return;
+    setBusy(true);
+    const ok = await onGrant(tournament.id, type, type === "circuit_events" ? capValue : null, note.trim() || null);
+    setBusy(false);
+    if (ok) onClose();
+  };
+
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Circuit access for ${tournament.title}`}
+      size="small"
+      footer={
+        <div className="admin-events-modal-footer">
+          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button variant="primary" loading={busy} disabled={busy || !capOk} onClick={() => void submit()}>
+            {type === "gs_sponsored" ? "Sponsor it" : type === "partner_comp" ? "Give partner access" : "Give the pass"}
+          </Button>
+        </div>
+      }
+    >
+      <div className="admin-events-form">
+        <RadioGroup name="circuit-access" label="What to give" value={type} onChange={(v) => setType(v as GrantType)}>
+          <Radio value="gs_sponsored" label="Sponsored" helperText="Every Circuit feature, no player limit, free." />
+          <Radio value="circuit_events" label="Circuit pass" helperText="Every Circuit feature up to a player limit." />
+          <Radio value="partner_comp" label="Partner, free" helperText="For a venue or partner we work with: every Circuit feature, no player limit, free." />
+        </RadioGroup>
+        {type === "circuit_events" && (
+          <Input type="number" min={1} inputMode="numeric" fullWidth floatingLabel="Player limit (leave empty for none)" value={cap} onChange={(e) => setCap(e.target.value)} error={!capOk} />
+        )}
+        <Input type="text" fullWidth floatingLabel="Note for staff (invoice number, partner…)" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
+        <p className="admin-updated">It takes effect straight away and shows on this list until someone takes it away.</p>
+      </div>
+    </Modal>
   );
 }

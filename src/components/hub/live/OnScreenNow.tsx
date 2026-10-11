@@ -24,11 +24,13 @@ const ROLL_ERRORS: Record<string, string> = {
   session_not_found: "This stream isn't live any more.",
 };
 
-export function GameRolls({ sessionId, actions, rawRaceConfig, legacyDefaultSlug }: {
+export function GameRolls({ sessionId, actions, rawRaceConfig, legacyDefaultSlug, streamerName }: {
   sessionId: string;
   actions: HubGameActions | null;
   rawRaceConfig: Record<string, unknown> | null;
   legacyDefaultSlug: string | undefined;
+  /** Set on a mod's page, so the streamer's own roll reads "Nova's combo" instead of "Your combo". */
+  streamerName?: string;
 }) {
   const { data, refresh } = useHubLive();
   const toast = useToast();
@@ -83,7 +85,7 @@ export function GameRolls({ sessionId, actions, rawRaceConfig, legacyDefaultSlug
             />
           )}
           <Lever
-            label={`Your ${actions.noun}`}
+            label={streamerName ? `${streamerName}'s ${actions.noun}` : `Your ${actions.noun}`}
             option={actions.pickChoices.length > 1 ? (
               <Select
                 size="small"
@@ -95,7 +97,7 @@ export function GameRolls({ sessionId, actions, rawRaceConfig, legacyDefaultSlug
             ) : undefined}
             actions={
               <Button variant={raceOn ? "secondary" : "primary"} size="small" className="hub-lever__main" onClick={() => hubRoll("pick", pickArg)} disabled={busy !== null}>
-                {label("pick", `Roll my ${actions.noun}`)}
+                {label("pick", streamerName ? `Roll ${streamerName}'s ${actions.noun}` : `Roll my ${actions.noun}`)}
               </Button>
             }
           />

@@ -48,12 +48,13 @@ import { WheelOverlay } from "@/components/overlay/WheelOverlay";
 import { NumberBingoOverlay } from "@/components/overlay/NumberBingoOverlay";
 import { DraftOverlay } from "@/components/overlay/DraftOverlay";
 import { ChatBrainOverlay } from "@/components/overlay/ChatBrainOverlay";
+import { BreakScreenOverlay } from "@/components/overlay/BreakScreenOverlay";
 import { PollOverlay } from "@/components/overlay/PollOverlay";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
-import { IconBallBowling, IconBrain, IconCar, IconCards, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
+import { IconBallBowling, IconBrain, IconCar, IconCards, IconChartBar, IconChecklist, IconCoffee, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type OverlayElement = {
@@ -88,6 +89,7 @@ const APPS: OverlayElement[] = [
   { id: "randomizer_mk8dx", label: "MK8DX Combo", icon: IconCar },
   { id: "randomizer_mkw", label: "MK World Combo", icon: IconWorld },
   { id: "wheel", label: "Wheel", icon: IconRotate },
+  { id: "break_screen", label: "Break screen", icon: IconCoffee },
   { id: "chat", label: "Chat", icon: IconMessageCircle },
   { id: "viewers", label: "Viewer Count", icon: IconEye },
 ];
@@ -331,6 +333,18 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
         playalong: [{ name: "Sam", points: 55 }, { name: "Riley", points: 38 }, { name: "Jo", points: 17 }],
         canOverrule: false, familySafe: true,
       },
+      break_screen: {
+        id: "sample", status: "running" as const, phase: "open" as const,
+        phaseEndsAt: new Date(8.64e15).toISOString(), answerUntil: new Date(8.64e15).toISOString(), countdownEndsAt: new Date(8.64e15).toISOString(),
+        game: { id: "higher-lower" as const, name: "Higher or Lower", howTo: "Type 1 or 2" },
+        next: { id: "over-under" as const, name: "Over or Under" },
+        gameRound: 3, gameRounds: 5,
+        round: { layout: "choice" as const, prompt: "Which one debuted first?", hint: "Type 1 or 2", tag: "Mario Kart World", options: [{ key: "1", label: "Wario" }, { key: "2", label: "Yoshi" }] },
+        reveal: null,
+        leaders: [{ name: "speedyriley", points: 14 }, { name: "samthegreat", points: 11 }, { name: "jo_plays", points: 9 }, { name: "kaizen", points: 6 }],
+        players: 9, answering: 12, backBy: null, startedAt: new Date(0).toISOString(), endingRequested: false,
+        champion: null, handicap: null, nextPick: null, found: null, bingo: null, chatStreak: 2, show: "panel" as const, streamer: "You",
+      },
       number_bingo: {
         status: "open" as const,
         patternLabel: "Four corners",
@@ -498,6 +512,8 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
         return <DraftOverlay draft={samples.chat_draft} style={style} />;
       case "chat_brain":
         return <ChatBrainOverlay game={samples.chat_brain} style={style} />;
+      case "break_screen":
+        return <BreakScreenOverlay view={samples.break_screen} style={style} />;
       case "chat":
         return <ChatTimelineOverlay sample style={style} />;
       case "viewers":

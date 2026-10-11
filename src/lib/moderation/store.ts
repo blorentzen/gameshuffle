@@ -212,3 +212,59 @@ export async function clearUserField(args: {
     detail: args.field,
   });
 }
+
+export interface RestrictedAccount {
+  userId: string;
+  username: string | null;
+  displayName: string | null;
+  state: "restricted" | "suspended" | "banned";
+  /** Features turned off (restricted accounts). */
+  restrictions: string[];
+  /** When a suspension ends (null = until lifted). */
+  until: string | null;
+  strikeCount: number;
+}
+
+/**
+ * Accounts limited, suspended or banned right now (a suspension that has run
+ * out isn't listed), newest first, so staff can see them and an admin can
+ * lift one early (`unban`). Reads the account standing table, falling back to
+ * the older users.moderation_status before that table exists.
+ */
+export async function listRestrictedAccounts(): Promise<RestrictedAccount[]> {
+  const svc = createServiceClient();
+  const now = new Date().toISOString();
+  const { data, error } = await svc
+    .from("gs_account_standing")
+    .select("user_id, state, restrictions, state_expires_at, strike_count, updated_at")
+    .in("state", ["restricted", "suspended", "banned"])
+    .or(`state_expires_at.is.null,state_expires_at.gt.${now}`)
+    .order("updated_at", { ascending: false })
+    .limit(200);
+  type Row = { user_id: string; state: RestrictedAccount["state"]; restrictions: Record<string, boolean> | null; state_expires_at: string | null; strike_count: number | null };
+  let rows: Row[] = [];
+  if (!error) {
+    rows = (data ?? []) as Row[];
+  } else {
+    const { data: legacy } = await svc
+      .from("users")
+      .select("id, moderation_status, moderation_until")
+      .in("moderation_status", ["suspended", "banned"])
+      .or(`moderation_until.is.null,moderation_until.gt.${now}`)
+      .limit(200);
+    rows = ((legacy ?? []) as { id: string; moderation_status: "suspended" | "banned"; moderation_until: string | null }[])
+      .map((u) => ({ user_id: u.id, state: u.moderation_status, restrictions: null, state_expires_at: u.moderation_until, strike_count: 0 }));
+  }
+  if (!rows.length) return [];
+  const { data: users } = await svc.from("users").select("id, username, display_name").in("id", rows.map((r) => r.user_id));
+  const byId = new Map(((users ?? []) as { id: string; username: string | null; display_name: string | null }[]).map((u) => [u.id, u]));
+  return rows.map((r) => ({
+    userId: r.user_id,
+    username: byId.get(r.user_id)?.username ?? null,
+    displayName: byId.get(r.user_id)?.display_name ?? null,
+    state: r.state,
+    restrictions: Object.entries(r.restrictions ?? {}).filter(([, v]) => v === false).map(([k]) => k),
+    until: r.state === "suspended" ? r.state_expires_at : null,
+    strikeCount: r.strike_count ?? 0,
+  }));
+}

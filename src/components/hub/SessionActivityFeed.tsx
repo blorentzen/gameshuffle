@@ -26,6 +26,12 @@ interface SessionActivityFeedProps {
   events: SessionEventRow[];
 }
 
+/** A stream's status in plain words (the activity feed showed the raw status names). */
+const STATE_WORDS: Record<string, string> = {
+  draft: "Draft", scheduled: "Scheduled", open: "Open", active: "Live", ending: "Wrapping up", ended: "Ended", cancelled: "Cancelled",
+};
+const stateWord = (s: string) => STATE_WORDS[s] ?? s;
+
 const SYSTEM_ACTOR = { name: "GameShuffle", initials: "GS" } as const;
 
 export function SessionActivityFeed({ events }: SessionActivityFeedProps) {
@@ -41,7 +47,7 @@ export function SessionActivityFeed({ events }: SessionActivityFeedProps) {
       emptyState={
         <div>
           <strong>No activity yet</strong>
-          <div>Session events appear here as they happen.</div>
+          <div>What happens on this stream shows here as it happens.</div>
         </div>
       }
     />
@@ -112,8 +118,8 @@ function describeEvent(event: SessionEventRow): EventSummary | null {
       if (!to) return null;
       return {
         user: SYSTEM_ACTOR,
-        action: from ? "transitioned the session" : "set session state to",
-        target: from ? `${from} → ${to}` : to,
+        action: from ? `moved the stream from ${stateWord(from)} to` : "set the stream to",
+        target: stateWord(to),
         type: "edit",
       };
     }
@@ -134,7 +140,7 @@ function describeEvent(event: SessionEventRow): EventSummary | null {
     case "auto_timeout_triggered":
       return {
         user: SYSTEM_ACTOR,
-        action: "ended the session automatically",
+        action: "ended the stream automatically",
         type: "complete",
       };
     case "wrap_up_started":
@@ -169,6 +175,19 @@ function describeEvent(event: SessionEventRow): EventSummary | null {
         target: (p.level as string | undefined) ?? undefined,
         type: "edit",
       };
+    case "break_started": {
+      const minutes = p.minutes as number | null | undefined;
+      return { user: SYSTEM_ACTOR, action: "started break mode", target: minutes ? `about ${minutes} min` : undefined, type: "edit" };
+    }
+    case "break_ended": {
+      const champ = p.champion as { names?: string[]; points?: number } | null | undefined;
+      return {
+        user: SYSTEM_ACTOR,
+        action: "ended break mode",
+        target: champ?.names?.length ? `champion ${champ.names.join(" and ")} with ${champ.points} points` : undefined,
+        type: "complete",
+      };
+    }
     case "adapter_call":
     case "adapter_call_failed":
       // Internal audit — not surfaced to user.

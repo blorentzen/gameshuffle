@@ -226,7 +226,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     crossSell: PRO_CROSS_SELL,
     faqHeading: "Frequently asked questions",
     faq: [
-      { q: "Is it free to host a tournament?", a: "Yes. Creating and running tournaments is free with an account, and browsing or joining is open to everyone. Large fields and live reveal fall under GameShuffle Circuit, which is free while it is in preview." },
+      { q: "Is it free to host a tournament?", a: "Yes. Creating and running tournaments is free with an account, and browsing or joining is open to everyone. Every format is free for one full lobby of your game; bigger fields and live reveal are part of GameShuffle Circuit, and the Circuit page says what that costs today." },
       { q: "Do I need an account?", a: "To host, yes, and it takes a minute. To play in someone else's tournament, no: organizers can add guests by name. Championship seasons are the exception and are accounts-only, so points stay tied to real players all season." },
       { q: "What games can I run?", a: "Any. Mario Kart 8 Deluxe and Mario Kart World ship with full track, vehicle, and build data, so you get randomized rounds and build restrictions. For anything else, pick \"Other game\", name it, and write the rules; the brackets, points, and Heat → Mains ladder all run the same way." },
       { q: "What formats are supported?", a: "Single and double-elimination brackets, round-robin, free-for-all points, and the Heat → Mains ladder, with Swiss on the way. Double-elimination currently wants a power-of-two field." },

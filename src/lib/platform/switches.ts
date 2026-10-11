@@ -44,8 +44,8 @@ export const SWITCHES: SwitchDef[] = [
   },
   {
     key: "organizer_billing_enabled", group: "Circuit", name: "Circuit billing",
-    description: "Off: Circuit is free (preview). On: organizer paid tiers and Circuit checkout. The first time it turns on, tournaments made before then keep full access.",
-    turnOn: "Circuit paid tiers start. Tournaments created before now keep full access.",
+    description: "Off: Circuit is free (preview). On: Circuit has launched: paid plans and checkout, and the Terms and /gs-circuit say so. Tournaments made before the first launch keep full access, and their organizers keep every Circuit feature free for 30 days after the launch email below.",
+    turnOn: "Circuit launches now: paid plans and checkout open, the Terms publish the prices, and new organizers get one free lobby. Tournaments created before now keep full access, and organizers who made one keep Circuit free for 30 days after you send them the launch email.",
     turnOff: "Circuit goes back to free for everyone.",
   },
   {
@@ -57,6 +57,6 @@ export const SWITCHES: SwitchDef[] = [
 ];
 
 /** Rows in gs_platform_flags that aren't switches (internal markers). */
-export const NOT_SWITCHES = new Set(["organizer_billing_enabled_at"]);
+export const NOT_SWITCHES = new Set(["organizer_billing_enabled_at", "organizer_circuit_notice_at", "organizer_circuit_notice_sent"]);
 
 export const SWITCH_GROUPS: SwitchGroup[] = ["Shop", "Events", "Circuit"];

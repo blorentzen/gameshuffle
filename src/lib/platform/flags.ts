@@ -88,3 +88,32 @@ export async function setPlatformFlag(
   await admin.from("gs_platform_flags").upsert(row, { onConflict: "key" });
   cache.set(key, { enabled, ts: Date.now() });
 }
+
+/** When the Circuit launch email went out to organizers who used Circuit in
+ *  preview (scripts/send-circuit-launch-notice.ts). Their free Circuit runs
+ *  CIRCUIT_LAUNCH_GRACE_DAYS from the later of this and the launch, so a late
+ *  email still gives the 30 days Terms §3.4 promises. Same storage trick as the
+ *  billing anchor: the description of its own flag row. */
+export async function getCircuitNoticeAt(): Promise<Date | null> {
+  try {
+    const admin = createServiceClient();
+    const { data } = await admin.from("gs_platform_flags").select("description").eq("key", "organizer_circuit_notice_at").maybeSingle();
+    const iso = (data as { description: string | null } | null)?.description ?? null;
+    return iso ? new Date(iso) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Stamp the notice moment the first time the launch email goes out. Never overwrites. */
+export async function ensureCircuitNoticeAt(): Promise<Date> {
+  const existing = await getCircuitNoticeAt();
+  if (existing) return existing;
+  const now = new Date();
+  const admin = createServiceClient();
+  await admin.from("gs_platform_flags").upsert(
+    { key: "organizer_circuit_notice_at", enabled: true, description: now.toISOString(), updated_at: now.toISOString() },
+    { onConflict: "key" },
+  );
+  return now;
+}

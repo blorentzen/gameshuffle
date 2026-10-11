@@ -92,7 +92,11 @@ export function LastStreamRecap({ recap }: Props) {
             value={recap.channelPointRerollCount}
           />
         )}
+        {recap.breaks.count > 0 && <RecapStat label={recap.breaks.count === 1 ? "Break" : "Breaks"} value={recap.breaks.count} />}
       </div>
+      {recap.breaks.champion && (
+        <p className="last-stream-recap__meta">Break champion: <strong>{recap.breaks.champion}</strong></p>
+      )}
 
       {recap.lastRoll && lastRollName && (
         <Card variant="outlined" padding="medium">

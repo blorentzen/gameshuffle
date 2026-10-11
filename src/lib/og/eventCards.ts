@@ -83,7 +83,7 @@ export async function tournamentCard(id: string): Promise<EventCardInput> {
   if (meta.length < 3) meta.push({ icon: where === "Online" ? "world" : "map-pin", text: where });
 
   return {
-    kicker: `${status === "complete" ? "Tournament results" : "Tournament"} · ${game}`,
+    kicker: `${t.hosted_by_gs ? "Official GameShuffle tournament" : status === "complete" ? "Tournament results" : "Tournament"} · ${game}`,
     title: t.title as string,
     when: status === "cancelled" ? (date ? `Was ${date}` : null) : date,
     meta: status === "cancelled" ? [{ icon: "calendar-event", text: "This tournament was cancelled" }] : meta,

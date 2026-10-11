@@ -13,6 +13,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { streamOwnerFor } from "@/lib/mods/acting";
 import {
   handleItemsCommand,
   handleRaceCommand,
@@ -56,13 +57,15 @@ export async function POST(request: Request) {
   // Ownership guard — same shape used by the rest of the Hub server
   // actions. The reroll handler trusts the broadcaster context, so the
   // ownership check is the only thing standing between a token-leak
-  // vector and a third party rolling on someone else's session.
+  // vector and a third party rolling on someone else's session. A
+  // Full-access mod on their mod page acts for the streamer.
   const admin = createServiceClient();
+  const { ownerUserId } = await streamOwnerFor(user.id);
   const { data: session } = await admin
     .from("gs_sessions")
     .select("id")
     .eq("id", sessionId)
-    .eq("owner_user_id", user.id)
+    .eq("owner_user_id", ownerUserId)
     .in("status", ["active", "ending"])
     .maybeSingle();
   if (!session) {
@@ -74,14 +77,14 @@ export async function POST(request: Request) {
   const { data: connection } = await admin
     .from("twitch_connections")
     .select("twitch_user_id, twitch_display_name")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerUserId)
     .maybeSingle();
   if (!connection?.twitch_user_id) {
     return NextResponse.json({ error: "twitch_not_connected" }, { status: 400 });
   }
 
   const ctx: RaceCommandContext = {
-    userId: user.id,
+    userId: ownerUserId,
     broadcasterTwitchId: connection.twitch_user_id as string,
     senderTwitchId: connection.twitch_user_id as string,
     senderDisplayName:

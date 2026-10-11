@@ -110,7 +110,7 @@ export function SessionActions({
           onClick={() => setConfirming("cancel")}
           disabled={pending}
         >
-          Cancel session
+          Cancel stream
         </Button>
       );
       break;
@@ -141,7 +141,7 @@ export function SessionActions({
           onClick={() => setConfirming("cancel")}
           disabled={pending}
         >
-          Cancel session
+          Cancel stream
         </Button>
       );
       break;
@@ -153,7 +153,7 @@ export function SessionActions({
           onClick={() => setConfirming("end")}
           disabled={pending}
         >
-          End session
+          End stream
         </Button>
       );
       break;
@@ -214,10 +214,10 @@ export function SessionActions({
         <Modal
           isOpen
           onClose={() => setConfirming(null)}
-          title="Cancel this session?"
+          title="Cancel this stream?"
           destructive
           primaryAction={{
-            label: pending ? "Cancelling…" : "Cancel session",
+            label: pending ? "Cancelling…" : "Cancel stream",
             onClick: () => dispatchAction("cancel"),
           }}
           secondaryAction={{
@@ -226,9 +226,8 @@ export function SessionActions({
           }}
         >
           <p>
-            Cancelling <strong>{session.name}</strong> marks it as cancelled
-            and removes it from active flows. You can restart it from
-            history later.
+            Cancelling <strong>{session.name}</strong> takes it off your hub
+            and live page. You can restart it from Past streams later.
           </p>
         </Modal>
       )}
@@ -237,10 +236,10 @@ export function SessionActions({
         <Modal
           isOpen
           onClose={() => setConfirming(null)}
-          title="End this session?"
+          title="End this stream?"
           destructive
           primaryAction={{
-            label: pending ? "Ending…" : "End session",
+            label: pending ? "Ending…" : "End stream",
             onClick: () => dispatchAction("end"),
           }}
           secondaryAction={{
@@ -249,9 +248,9 @@ export function SessionActions({
           }}
         >
           <p>
-            Ending <strong>{session.name}</strong> will end the session for
-            all participants and trigger the wrap-up sequence. A recap
-            posts to chat once wrap-up completes (~60s).
+            Ending <strong>{session.name}</strong> ends it for everyone in the
+            lobby and starts the wrap-up. A recap posts to chat about a
+            minute later.
           </p>
         </Modal>
       )}
@@ -260,9 +259,9 @@ export function SessionActions({
         <Modal
           isOpen
           onClose={() => setConfirming(null)}
-          title="Restart session?"
+          title="Restart this stream?"
           primaryAction={{
-            label: pending ? "Cloning…" : "Restart",
+            label: pending ? "Restarting…" : "Restart",
             onClick: () => dispatchAction("restart"),
           }}
           secondaryAction={{
@@ -271,9 +270,9 @@ export function SessionActions({
           }}
         >
           <p>
-            Creates a new draft session with the same name + platforms +
-            config as <strong>{session.name}</strong>. The new session
-            stays in draft until you activate it.
+            Makes a new draft with the same name, platforms and settings as{" "}
+            <strong>{session.name}</strong>. It stays a draft until you
+            start it.
           </p>
         </Modal>
       )}

@@ -136,6 +136,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "bingo", label: "Bingo" },
         { id: "draft", label: "Chat Draft" },
         { id: "chat-brain", label: "Chat Brain" },
+        { id: "break-mode", label: "Break mode" },
       ] },
       { id: "engagement", label: "Viewers", iconName: "users", proOnly: true, tabs: [
         { id: "engagement", label: "Engagement" },
@@ -155,6 +156,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-health", label: "Overview", iconName: "activity", group: "Run the site", tabs: [
         { id: "platform-health", label: "Health" },
         { id: "platform-growth", label: "Growth" },
+        { id: "platform-revenue", label: "Revenue" },
         { id: "platform-ai", label: "AI usage" },
       ] },
       { id: "platform-switches", label: "Switches", iconName: "settings", group: "Run the site" },
@@ -168,6 +170,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "platform-chat-brain", label: "Chat Brain" },
         { id: "platform-weekly", label: "Weekly Challenge" },
         { id: "platform-trivia", label: "Trivia" },
+        { id: "platform-break", label: "Break mode" },
       ] },
       { id: "platform-guides", label: "Library", iconName: "bookmark", group: "Content", tabs: [
         { id: "platform-guides", label: "Guides" },

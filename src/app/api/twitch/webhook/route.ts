@@ -16,6 +16,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { after } from "next/server";
 import { answerFromChat, openWindowFor, recordGuess } from "@/lib/chatbrain/stream";
+import { answerFromChat as breakAnswerFromChat, endBreakForOwner } from "@/lib/break/store";
 import { collectionForTwitchSender } from "@/lib/collection/server";
 import { lobbyPicks } from "@/lib/twitch/commands/shuffle";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
@@ -368,6 +369,18 @@ async function handleChatMessage(event: ChatMessageEvent) {
     );
   }
 
+  // Break mode fast lane: while a break round is open in this channel, a
+  // short message shaped like an answer ("1", "over", a year, a name) is that
+  // viewer's answer. Stored silently; the dispatcher never sees it.
+  const consumed = await breakAnswerFromChat({
+    ownerUserId: connection.user_id,
+    platform: "twitch",
+    viewer: senderId,
+    name: event.chatter_user_name || event.chatter_user_login || null,
+    text,
+  }).catch((err) => { console.error("[twitch-webhook] break answer failed", err); return false; });
+  if (consumed) return;
+
   // Chat Brain fast lane: `!a <answer>` (or !answer / !cb <answer>) while a
   // window is open in this channel goes straight to the guess table, skipping
   // the dispatcher and its cooldowns. Silent. No open window → the normal
@@ -665,6 +678,9 @@ async function handleStreamOffline(event: StreamOfflineEvent) {
   // Clear the public live flag immediately (independent of the session
   // grace period below — the badge reflects Twitch's actual offline event).
   await markStreamLive(connection.user_id, false);
+
+  // A break can't outlast the stream.
+  await endBreakForOwner(connection.user_id).catch((err) => console.error("[twitch-webhook] break end failed", err));
 
   // Phase 2 grace period: instead of ending the live session immediately,
   // start a 1h grace timer. If stream.online arrives before the timer

@@ -17,6 +17,8 @@ export interface HubRunning {
   bingo: { id: string; status: "open" | "won" | "closed"; doors: boolean; called: number; pattern: string; winner: string | null } | null;
   draft: { id: string; title: string; status: string; picked: number; slots: number; mode: string } | null;
   brain: { id: string; board: number; boards: number; question: string; strikes: number; score: number } | null;
+  /** Break mode: the break running now. */
+  breakMode: { id: string; game: string | null; phase: string; round: number; rounds: number; players: number; ending: boolean } | null;
   market: { id: string; question: string; status: "open" | "locked"; lockAt: string | null } | null;
   bounties: { count: number; first: string | null; amount: number | null };
 }

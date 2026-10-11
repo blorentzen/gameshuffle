@@ -31,7 +31,7 @@ export function LiveLobbyTab() {
         <p className="live-lobby__empty-headline">No one&rsquo;s in the lobby yet.</p>
         <p className="live-lobby__empty-sub">
           Viewers join from chat with <code>!gs-join</code>; the streamer is
-          auto-seated when the session activates.
+          in automatically once the stream starts.
         </p>
       </div>
     );

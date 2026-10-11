@@ -37,6 +37,8 @@ interface ModRow {
   invite_expires_at: string | null;
   claimed_at: string | null;
   created_at: string;
+  /** Standard or Full (supabase/mod-access-m1.sql); "standard" until it runs. */
+  access: "standard" | "full";
 }
 
 interface MyInviteRow {
@@ -55,6 +57,8 @@ interface ListResponse {
     invited: ModRow[];
     pending: ModRow[];
   };
+  /** False until supabase/mod-access-m1.sql runs (the Mods tab hides the access picker). */
+  accessReady: boolean;
   /** Invites where the caller is the invitee — populated only after
    *  the identity merge has linked their Discord/Twitch to the row.
    *  Drives the "Pending invites for you" surface on the Mods tab.
@@ -96,14 +100,12 @@ export async function GET() {
     );
   }
   const admin = createServiceClient();
-  const [modsRes, myInvitesRes, profileRes] = await Promise.all([
-    admin
-      .from("streamer_mods")
-      .select(
-        "id, gs_user_id, twitch_user_id, discord_user_id, display_name, status, source, invited_at, invite_token, invite_expires_at, claimed_at, created_at",
-      )
-      .eq("streamer_user_id", user.id)
-      .order("created_at", { ascending: false }),
+  const MOD_COLUMNS =
+    "id, gs_user_id, twitch_user_id, discord_user_id, display_name, status, source, invited_at, invite_token, invite_expires_at, claimed_at, created_at";
+  const listMods = (columns: string) =>
+    admin.from("streamer_mods").select(columns).eq("streamer_user_id", user.id).order("created_at", { ascending: false });
+  const [firstModsRes, myInvitesRes, profileRes] = await Promise.all([
+    listMods(`${MOD_COLUMNS}, access`),
     // Inverse view: invites that have been bound to this user by the
     // identity merge but haven't been accepted yet. `gs_user_id` is
     // set the moment they sign in / link the matching provider, so
@@ -126,7 +128,11 @@ export async function GET() {
       .eq("id", user.id)
       .maybeSingle(),
   ]);
-  const rows = (modsRes.data as ModRow[] | null) ?? [];
+  // Before supabase/mod-access-m1.sql there's no access column: read without
+  // it, call everyone standard and hide the picker.
+  const accessReady = !firstModsRes.error;
+  const modsRes = accessReady ? firstModsRes : await listMods(MOD_COLUMNS);
+  const rows = ((modsRes.data as unknown as ModRow[] | null) ?? []).map((r) => ({ ...r, access: r.access === "full" ? "full" as const : "standard" as const }));
   const myInvitesRaw = (myInvitesRes.data as Array<{
     id: string;
     invite_token: string | null;
@@ -187,6 +193,7 @@ export async function GET() {
   const body: ListResponse = {
     ok: true,
     mods: { active, invited, pending },
+    accessReady,
     myInvites,
     selfSlug: profile?.username ?? profile?.twitch_username ?? null,
     settings: {
@@ -373,6 +380,9 @@ export async function DELETE(request: Request) {
 interface SettingsBody {
   auto_revoke_lost_twitch_mods?: boolean;
   allow_mod_code_release?: boolean;
+  /** One mod's access level: { mod_id, access }. */
+  mod_id?: string;
+  access?: "standard" | "full";
 }
 
 export async function PATCH(request: Request) {
@@ -392,6 +402,28 @@ export async function PATCH(request: Request) {
       { status: 400 },
     );
   }
+  // A mod's access level (Standard or Full), on an active mod of this streamer.
+  if (body.mod_id || body.access) {
+    if (typeof body.mod_id !== "string" || (body.access !== "standard" && body.access !== "full")) {
+      return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
+    }
+    const { data, error } = await createServiceClient()
+      .from("streamer_mods")
+      .update({ access: body.access, updated_at: new Date().toISOString() })
+      .eq("id", body.mod_id)
+      .eq("streamer_user_id", user.id)
+      .eq("status", "active")
+      .select("id");
+    if (error) {
+      // 42703: the access column isn't there yet (supabase/mod-access-m1.sql).
+      const notReady = error.code === "42703";
+      if (!notReady) console.error("[account/mods] access update failed:", error);
+      return NextResponse.json({ ok: false, error: notReady ? "needs_update" : error.message }, { status: notReady ? 503 : 500 });
+    }
+    if (!data?.length) return NextResponse.json({ ok: false, error: "mod_not_found" }, { status: 404 });
+    return NextResponse.json({ ok: true });
+  }
+
   const updates: Record<string, unknown> = {};
   if (typeof body.auto_revoke_lost_twitch_mods === "boolean") {
     updates.auto_revoke_lost_twitch_mods = body.auto_revoke_lost_twitch_mods;

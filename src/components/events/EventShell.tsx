@@ -85,6 +85,8 @@ export interface EventShellProps {
   presentedBy?: { slug: string; name: string } | null;
   organizer: OrganizerInfo;
   organizerRoleLabel?: string;
+  /** An official event hosted by GameShuffle itself (tournaments.hosted_by_gs). */
+  official?: boolean;
   isOrganizer?: boolean;
   /** When set, shows the owner bar with a link to the manage surface. */
   manageHref?: string | null;
@@ -306,7 +308,9 @@ export function EventShell(p: EventShellProps) {
         attendance: p.where?.kind === "online" ? "online" : "in_person",
         locationName: p.where?.kind === "online" ? null : p.where?.label ?? null,
         lat: p.schema.lat ?? null, lng: p.schema.lng ?? null,
-        organizer: { name: p.organizer.displayName, url: p.organizer.username ? `${p.pageUrl.split("/").slice(0, 3).join("/")}/u/${p.organizer.username}` : null },
+        organizer: p.official
+          ? { name: "GameShuffle", url: p.pageUrl.split("/").slice(0, 3).join("/") }
+          : { name: p.organizer.displayName, url: p.organizer.username ? `${p.pageUrl.split("/").slice(0, 3).join("/")}/u/${p.organizer.username}` : null },
         price: p.schema.price ?? null,
         capacity: p.panel?.capacity ?? null, goingCount: p.panel?.goingCount ?? null,
         registrationOpen: p.schema.registrationOpen,
@@ -400,7 +404,7 @@ export function EventShell(p: EventShellProps) {
         <div className={`tournament-layout event-shell__layout${p.action ? "" : " event-shell__layout--full"}`}>
           <div className="tournament-layout__main event-shell__main">
             <div className="comp-card event-shell__organizer-card">
-              <OrganizerCard organizer={p.organizer} roleLabel={p.organizerRoleLabel ?? (p.presentedBy ? "Run by" : "Hosted by")} isYou={!!p.isOrganizer} />
+              <OrganizerCard organizer={p.organizer} roleLabel={p.organizerRoleLabel ?? (p.presentedBy ? "Run by" : "Hosted by")} isYou={!!p.isOrganizer} official={!!p.official} />
             </div>
 
             {p.goodToKnow && p.goodToKnow.length > 0 && (

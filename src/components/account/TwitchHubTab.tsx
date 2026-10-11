@@ -459,7 +459,7 @@ export function TwitchHubTab() {
   };
 
   const handleDisconnect = async () => {
-    if (!(await confirm({ title: "Disconnect Twitch from GameShuffle?", body: "Your chat commands, overlay events and session data from Twitch stop until you connect again.", confirmLabel: "Disconnect" }))) {
+    if (!(await confirm({ title: "Disconnect Twitch from GameShuffle?", body: "Your chat commands, overlay events and stream data from Twitch stop until you connect again.", confirmLabel: "Disconnect" }))) {
       return;
     }
     setDisconnecting(true);
@@ -516,10 +516,9 @@ export function TwitchHubTab() {
                 moderator list so you can invite them to GameShuffle.
               </li>
               <li>
-                <strong>Auto-set Twitch category</strong>: scheduled
-                sessions with a pre-session announcement automatically
-                flip your stream to the right game category when the
-                announcement fires.
+                <strong>Auto-set Twitch category</strong>: a scheduled
+                stream with a heads-up switches your Twitch category to
+                the right game when the heads-up goes out.
               </li>
             </ul>
             <a
