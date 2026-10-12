@@ -13,6 +13,9 @@ import { MARQUEE_BY_DECK } from "@/data/tcg-featured";
 import type { TcgCard } from "@/lib/scrydex/types";
 import { DeckCardFan } from "@/components/tcg/DeckCardFan";
 import { TCG_HUB_LIVE } from "@/data/tcg-hub";
+import { SITE_URL } from "@/lib/seo";
+import { battleBoxUrl, deckUrl, shareImage } from "@/lib/decks/seo";
+import { CompanionNote, splitAfterSection } from "@/components/tcg/CompanionNote";
 
 /**
  * Battle Box wrapper — `/pokemon-tcg/decks/battle-box/[slug]`. A thin
@@ -22,7 +25,7 @@ import { TCG_HUB_LIVE } from "@/data/tcg-hub";
  * See `specs/tcg-setup/gameshuffle-battle-box-claude-code-spec.md`.
  */
 
-const SITE = "https://www.gameshuffle.co";
+const SITE = SITE_URL;
 
 export function generateStaticParams() {
   return getBattleBoxSlugs().map((slug) => ({ slug }));
@@ -39,22 +42,26 @@ export async function generateMetadata({
   const box = getBattleBoxBySlug(slug);
   if (!box) return {};
   const fm = box.frontmatter;
+  // Built from SITE_URL + slug (always www), not the frontmatter canonical.
+  const url = battleBoxUrl(fm.slug);
+  const image = shareImage(fm.og_image);
   return {
     title: fm.title,
     description: fm.meta_description,
     openGraph: {
       title: fm.title,
       description: fm.meta_description,
-      url: fm.canonical,
+      url,
       type: "article",
-      images: fm.og_image ? [fm.og_image] : undefined,
+      images: [image],
     },
     twitter: {
       card: "summary_large_image",
       title: fm.title,
       description: fm.meta_description,
+      images: [image],
     },
-    alternates: { canonical: fm.canonical },
+    alternates: { canonical: url },
     // Shares the TCG surface's launch flag — noindex until the shop is live.
     robots: TCG_HUB_LIVE ? undefined : { index: false, follow: false },
   };
@@ -69,6 +76,12 @@ export default async function Page({
   const box = getBattleBoxBySlug(slug);
   if (!box) notFound();
   const fm = box.frontmatter;
+  const url = battleBoxUrl(fm.slug);
+  // The companion note follows the "Play your first game together" walkthrough.
+  const [bodyTop, bodyRest] = splitAfterSection(
+    box.body,
+    /^## Play your first game together/,
+  );
 
   // Roles come from the wrapper frontmatter so each box labels its own pair
   // (Box #1: hit fast / build up; Box #2: tempo / status).
@@ -98,13 +111,14 @@ export default async function Page({
     "@graph": [
       {
         "@type": "ItemList",
-        name: fm.title,
+        name: fm.h1,
         description: fm.meta_description,
+        image: shareImage(fm.og_image),
         itemListElement: decks.map((d, i) => ({
           "@type": "ListItem",
           position: i + 1,
           name: d.deck.frontmatter.archetype,
-          url: `${SITE}/pokemon-tcg/decks/${d.deck.frontmatter.slug}`,
+          url: deckUrl(d.deck.frontmatter.slug),
         })),
       },
       {
@@ -112,7 +126,7 @@ export default async function Page({
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Pokémon TCG", item: `${SITE}/pokemon-tcg` },
           { "@type": "ListItem", position: 2, name: "Decks", item: `${SITE}/pokemon-tcg/decks` },
-          { "@type": "ListItem", position: 3, name: "Battle Box", item: fm.canonical },
+          { "@type": "ListItem", position: 3, name: "Battle Box", item: url },
         ],
       },
     ],
@@ -137,7 +151,7 @@ export default async function Page({
 
         {/* Header */}
         <header className="deck-detail__header">
-          <h1 className="deck-detail__title">{fm.title}</h1>
+          <h1 className="deck-detail__title">{fm.h1}</h1>
           <div className="deck-detail__stats">
             <Badge variant="info" size="small">
               Battle Box
@@ -187,7 +201,9 @@ export default async function Page({
         </section>
 
         {/* Teaching narrative + first-game walkthrough (MDX body) */}
-        <DeckBody markdown={box.body} />
+        <DeckBody markdown={bodyTop} />
+        <CompanionNote lead="Playing your first game? Track damage, conditions and prizes for both decks in the free GameShuffle TCG Companion." />
+        {bodyRest ? <DeckBody markdown={bodyRest} /> : null}
 
         {/* Shop CTA band → the shop page (internal-link funnel) */}
         <section className="deck-cta">

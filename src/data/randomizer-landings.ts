@@ -34,6 +34,14 @@ export interface RandomizerLanding {
   faq: AppFaq[];
 }
 
+/** The card game, for anyone who came for a Pokémon video game randomizer. */
+const POKEMON_TCG_STEP = {
+  title: "Play the Pokémon card game too?",
+  body: "Deck guides from beginner to competitive, singles, and a free companion that tracks damage and prizes at the table.",
+  ctaLabel: "Visit the Pokémon TCG hub",
+  ctaHref: "/pokemon-tcg",
+};
+
 const GAME_NIGHT_STEP = {
   title: "Hosting a game night?",
   body: "Set up a game night on GameShuffle to invite your crew, track who's coming, and add Mario Party with Chance cards, missions and one scoreboard across the night.",
@@ -372,6 +380,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "refresh", title: "Pick my 3 too", description: "Let the randomizer choose which 3 you battle with." },
       { icon: "bookmark", title: "Save and share", description: "Save a set of teams, or copy them for your chat or Discord." },
     ],
+    nextStep: POKEMON_TCG_STEP,
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "Is the Pokémon Stadium randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
@@ -545,6 +554,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "share", title: "Share the link", description: "A link that opens the exact same run, to race a friend or let chat follow along." },
       { icon: "users", title: "Checklist", description: "Tick off catches and badges as you go; saved in your browser per run." },
     ],
+    nextStep: POKEMON_TCG_STEP,
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "Is the run challenge free?", a: "Yes. It is free and runs in your browser with no account required." },

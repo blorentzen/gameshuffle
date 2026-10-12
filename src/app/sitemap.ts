@@ -10,6 +10,7 @@ import { SITE_URL } from "@/lib/seo";
 import { getDeckSlugs } from "@/lib/decks";
 import { getBattleBoxSlugs } from "@/lib/battle-boxes";
 import { TCG_HUB_LIVE } from "@/data/tcg-hub";
+import { RULES_PATH, RULE_PAGES } from "@/data/tcg-rules";
 import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
@@ -21,10 +22,12 @@ export const revalidate = 3600; // regenerate every hour
 
 /**
  * Public pages deliberately left out: /beta (a sign-up gate), /features (a
- * redirect). Profiles, quote pools and tournament instances are left out too,
- * as thin or short-lived pages; those pages carry their own robots rules.
+ * redirect), /tcg-companion (the app shell, noindex; its landing page is
+ * /pokemon-tcg-companion). Profiles, quote pools and tournament instances are
+ * left out too, as thin or short-lived pages; those pages carry their own
+ * robots rules.
  */
-const UNLISTED = new Set(["/beta", "/features"]);
+const UNLISTED = new Set(["/beta", "/features", "/tcg-companion"]);
 /** Tool pages marked noindex (prototypes), kept out of the tool list below. */
 const NOINDEX_TOOLS = new Set(["shuffle-dice"]);
 /** Registry entries whose page is listed elsewhere in the sitemap. */
@@ -471,6 +474,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: "monthly" as const,
         priority: 0.6,
       })),
+      {
+        url: `${baseUrl}${RULES_PATH}`,
+        lastModified: lm(RULES_PATH),
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+      },
+      ...RULE_PAGES.map((p) => ({
+        url: `${baseUrl}${RULES_PATH}/${p.slug}`,
+        lastModified: lm(`${RULES_PATH}/${p.slug}`),
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+      })),
       ...getBattleBoxSlugs().map((slug) => ({
         url: `${baseUrl}/pokemon-tcg/decks/battle-box/${slug}`,
         lastModified: lm("/pokemon-tcg/decks/battle-box/[slug]"),
@@ -504,10 +519,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch ideas", err);
   }
 
-  return [
+  // One entry per URL. The blocks above overlap (the pillar map also lists
+  // /pokemon-tcg, which the deck block adds too), so keep the first position
+  // and the higher priority whenever a URL turns up twice.
+  return dedupeByUrl([
     ...staticRoutes,
     ...championshipRoutes,
     ...deckRoutes,
     ...ideaRoutes,
-  ];
+  ]);
+}
+
+function dedupeByUrl(entries: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
+  const at = new Map<string, number>();
+  const out: MetadataRoute.Sitemap = [];
+  for (const e of entries) {
+    const key = String(e.url).replace(/\/$/, "");
+    const i = at.get(key);
+    if (i === undefined) {
+      at.set(key, out.length);
+      out.push(e);
+    } else if ((e.priority ?? 0) > (out[i].priority ?? 0)) {
+      out[i] = { ...e, url: out[i].url, lastModified: e.lastModified ?? out[i].lastModified };
+    }
+  }
+  return out;
 }

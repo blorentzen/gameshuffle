@@ -93,7 +93,10 @@ export default function ToolsPage() {
             ))}
           </ul>
           <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
-            Looking for everything else? <a href="/apps" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the apps →</a>
+            Looking for everything else? <a href="/apps" style={{ color: "var(--brand-ink, var(--text-primary))", fontWeight: 600 }}>Browse the apps →</a>
+          </p>
+          <p style={{ marginTop: "var(--spacing-12)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
+            Playing the Pokémon card game? <Link href="/pokemon-tcg" style={{ color: "var(--brand-ink, var(--text-primary))", fontWeight: 600 }}>Deck guides and a free companion on the Pokémon TCG hub →</Link>
           </p>
         </section>
 

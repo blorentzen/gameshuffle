@@ -67,8 +67,9 @@ export interface DeckRtb {
 // ── Hero ──────────────────────────────────────────────────────────────
 export const HERO = {
   eyebrow: "GameShuffle TCG",
-  // Non-breaking space keeps "with care." together so "care." never orphans.
-  h1: "Pokémon cards, handled with\u00A0care.",
+  // Leads with the page's keyword ("Pokémon TCG"). The non-breaking space keeps
+  // "free companion" together so "companion" never orphans.
+  h1: "Pokémon TCG decks, singles and a free\u00A0companion",
   subhead:
     "Singles to chase and ready-to-run decks, competitive to meme. Every card ships fast and protected, backed by a free companion app for game night.",
   image: "https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png",
@@ -297,7 +298,8 @@ export const FAQ: { q: string; a: string }[] = [
 ];
 
 export const META = {
-  title: "GameShuffle TCG: Pokémon Singles, Decks + the Companion App",
+  // The layout template adds " | GameShuffle", so the brand stays out of here.
+  title: "Pokémon TCG Singles, Decks and a Companion App",
   description:
     "Pokémon singles and ready-to-run decks (competitive, beginner, and meme) from GameShuffle TCG, shipped fast and protected, backed by a free companion app for running your games.",
   ogImage: "https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg",

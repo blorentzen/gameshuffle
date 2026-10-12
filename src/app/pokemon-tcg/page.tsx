@@ -164,7 +164,7 @@ export default async function Page() {
   return (
     <main>
       <MarketingJsonLd
-        breadcrumb={{ label: "GameShuffle TCG", path: TCG_HUB_PATH }}
+        breadcrumb={{ label: "Pokémon TCG", path: TCG_HUB_PATH }}
         faq={FAQ}
       />
 
@@ -402,6 +402,11 @@ export default async function Page() {
             <p className="tcg-companion__eyebrow">{COMPANION.eyebrow}</p>
             <h2 className="tcg-companion__title">{COMPANION.heading}</h2>
             <p className="tcg-companion__body">{COMPANION.body}</p>
+            <p className="tcg-companion__more">
+              <Link href={COMPANION.learnMore.href}>{COMPANION.learnMore.label} →</Link>
+              {" · "}
+              <Link href="/pokemon-tcg/rules">Pokémon TCG rules in plain words →</Link>
+            </p>
           </div>
 
           <div className="tcg-rtb-grid">

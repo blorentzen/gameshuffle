@@ -101,6 +101,10 @@ export function shopCopy(config: ShopConfig = SHOP) {
       line: "Looking for single cards?",
       link: "Shop singles on TCGplayer",
     },
+    hubPath: { // NEW (2026-10-11 SEO pass: one link to the Pokémon TCG hub)
+      line: "Want a deck guide or a free companion for game night?",
+      link: "Visit the Pokémon TCG hub",
+    },
     closed: { // NEW
       title: "The shop is closed right now",
       body: "Check back soon for the next drop.",

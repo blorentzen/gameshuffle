@@ -48,11 +48,25 @@ export function DeckBody({
         </a>
       );
     },
-    table: ({ children }) => (
-      <div className="deck-prose__table-wrap">
-        <table>{children}</table>
-      </div>
-    ),
+    table: ({ node, children }) => {
+      // Focusable so a keyboard can scroll a wide decklist sideways; named by
+      // its first row of data so each table's region label is different.
+      const rows: HastNode[] = [];
+      const walk = (n: HastNode | undefined) => {
+        if (!n) return;
+        if (n.type === "element" && n.tagName === "tr") rows.push(n);
+        else (n.children ?? []).forEach((c) => walk(c as HastNode));
+      };
+      walk(node as HastNode | undefined);
+      const firstData = rows.find((r) => !(r.children ?? []).some((c) => (c as HastNode).tagName === "th"));
+      const cells = (firstData?.children ?? []).filter((c) => (c as HastNode).type === "element").map((c) => hastText(c as HastNode).trim()).filter(Boolean);
+      const label = `Table starting ${cells.join(", ").slice(0, 60) || "here"}`;
+      return (
+        <div className="deck-prose__table-wrap" role="region" aria-label={label} tabIndex={0}>
+          <table>{children}</table>
+        </div>
+      );
+    },
     ...(withCards
       ? {
           tr: ({ node, children }) => {
@@ -84,6 +98,7 @@ export function DeckBody({
                       images={card.images}
                       name={card.name}
                       size="small"
+                      decorative
                     />
                   </span>
                   <span>{el.props.children}</span>

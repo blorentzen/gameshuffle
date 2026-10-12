@@ -28,13 +28,22 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
         appUrl={c.path}
         breadcrumb={{ label: c.breadcrumbLabel, path: c.path }}
         faq={c.faq}
+        // HowTo mirrors the "How it works" steps rendered below.
+        howTo={
+          c.howItWorks?.length
+            ? {
+                name: `${c.howItWorksHeading ?? "How it works"}: ${c.schemaName}`,
+                steps: c.howItWorks.map((s) => ({ name: s.title, text: s.description })),
+              }
+            : undefined
+        }
       />
 
-      {/* Hero — full-bleed module using the app's art as a background */}
+      {/* Hero: a full-bleed module using the app's art as a background. The art
+          is decorative (a CSS background), so the section is a plain region:
+          role="img" on it hid the H1 and the CTA from screen readers. */}
       <section
         className="app-hero"
-        role="img"
-        aria-label={c.heroImageAlt}
         style={{
           backgroundImage: `linear-gradient(90deg, rgba(8,11,18,0.94) 0%, rgba(8,11,18,0.78) 48%, rgba(8,11,18,0.5) 100%), url(${c.heroImage})`,
         }}

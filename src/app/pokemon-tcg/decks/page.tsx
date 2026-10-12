@@ -189,9 +189,7 @@ export default async function Page() {
                         </Badge>
                       ) : null}
                     </div>
-                    <h3 className="deck-tile__name">
-                      {bf.title.split("—")[0].trim()}
-                    </h3>
+                    <h3 className="deck-tile__name">{bf.name}</h3>
                     <p className="deck-tile__desc">{bf.meta_description}</p>
                     <div className="deck-tile__meta">Two decks · Full guide →</div>
                   </Link>
