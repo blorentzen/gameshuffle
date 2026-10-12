@@ -8,6 +8,9 @@
  * Run: npm run sitemap:lastmod   (then commit the JSON with the release)
  */
 import { execFileSync } from "node:child_process";
+
+// /usr/bin/git: the shell's first git here can be a stale Intel-only build.
+const GIT = process.platform === "darwin" ? "/usr/bin/git" : "git";
 import { readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
@@ -38,9 +41,9 @@ const IGNORE = [":(exclude,glob)**/opengraph-image.*", ":(exclude,glob)**/twitte
 
 function gitDate(paths: string[]): string | null {
   const spec = ["--", ...paths, ...IGNORE];
-  const dirty = execFileSync("git", ["status", "--porcelain", ...spec], { encoding: "utf8" }).trim();
+  const dirty = execFileSync(GIT, ["status", "--porcelain", ...spec], { encoding: "utf8" }).trim();
   if (dirty) return today;
-  const d = execFileSync("git", ["log", "-1", "--format=%cs", ...spec], { encoding: "utf8" }).trim();
+  const d = execFileSync(GIT, ["log", "-1", "--format=%cs", ...spec], { encoding: "utf8" }).trim();
   return d || null;
 }
 
