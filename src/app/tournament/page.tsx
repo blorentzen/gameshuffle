@@ -19,7 +19,7 @@ export default async function TournamentBrowsePage() {
   const canCreate = !!user && isEmailVerified(user);
 
   return (
-    <>
+    <main>
       <BrowseHero
         eyebrow="Compete"
         title="Run the bracket. Crown a winner."
@@ -63,6 +63,6 @@ export default async function TournamentBrowsePage() {
         </Suspense>
         </section>
       </Container>
-    </>
+    </main>
   );
 }

@@ -28,6 +28,8 @@ function normalizeFrontmatter(
     typeof v === "string" ? v : fallback;
   return {
     title: str(data.title),
+    h1: str(data.h1) || str(data.title),
+    name: str(data.name) || str(data.title),
     slug: str(data.slug, slug),
     type: "battle-box",
     deck_a: str(data.deck_a),

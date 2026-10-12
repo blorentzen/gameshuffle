@@ -34,6 +34,8 @@ export const NOTIFICATION_TYPES = {
   // To the organizer: people joined the waitlist because the field is full on their Circuit plan.
   tournament_plan_waitlist: { cds: "warning", invite: false },
   championship_invite: { cds: "success", invite: false },
+  // Chat Brain co-stream: another streamer invites you (accept on the Chat Brain tab; the row links there).
+  chatbrain_costream: { cds: "info", invite: false },
   system: { cds: "system", invite: false },
   // Idea Board (spec §6.6) — all per-event, none actionable.
   idea_accepted: { cds: "success", invite: false },

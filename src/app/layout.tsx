@@ -17,6 +17,7 @@ import "../styles/live.css";
 import "../styles/marketing.css";
 import "../styles/tcg-hub.css";
 import "../styles/decks.css";
+import "../styles/tcg-rules.css";
 import "../styles/profile.css";
 import "../styles/randomizer.css";
 import "../styles/competitive.css";

@@ -333,7 +333,7 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
         last: null,
         leaning: [{ label: "Board games", share: 0.46 }, { label: "Cards", share: 0.21 }],
         playalong: [{ name: "Sam", points: 55 }, { name: "Riley", points: 38 }, { name: "Jo", points: 17 }],
-        canOverrule: false, familySafe: true,
+        canOverrule: false, familySafe: true, prize: 0,
       },
       trivia: {
         id: "sample", title: "Friday trivia", status: "live" as const, phase: "question" as const,

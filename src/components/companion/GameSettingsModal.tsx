@@ -14,6 +14,7 @@
 import { Modal } from "@empac/cascadeds";
 import { useState } from "react";
 import { useSession } from "@/lib/companion/SessionContext";
+import { JoinByCode } from "./JoinByCode";
 import {
   GAME_FORMATS,
   formatByKey,
@@ -25,10 +26,12 @@ import { TablerIcon } from "./TablerIcon";
 interface Props {
   isOpen: boolean;
   onApplied: () => void;
+  /** Closing without starting (back to the resume list). Without it, closing starts the game with the picked format, since there's nothing behind this window. */
+  onClose?: () => void;
 }
 
-export function GameSettingsModal({ isOpen, onApplied }: Props) {
-  const { dispatch } = useSession();
+export function GameSettingsModal({ isOpen, onApplied, onClose }: Props) {
+  const { dispatch, live } = useSession();
   const [format, setFormat] = useState<GameFormatKey>("standard");
   const [custom, setCustom] = useState({
     prizeCount: 6,
@@ -53,7 +56,7 @@ export function GameSettingsModal({ isOpen, onApplied }: Props) {
   return (
     <Modal
       isOpen={isOpen}
-      onClose={handleConfirm}
+      onClose={onClose ?? handleConfirm}
       title="New Game"
       size="large"
       primaryAction={{ label: "Start game", onClick: handleConfirm }}
@@ -177,6 +180,8 @@ export function GameSettingsModal({ isOpen, onApplied }: Props) {
             {effective.allowMega ? "Mega allowed" : "no Mega"}
           </strong>
         </div>
+        {/* Play together: the opponent at the same table joins the host's game instead. */}
+        {!live && <JoinByCode compact />}
       </div>
     </Modal>
   );

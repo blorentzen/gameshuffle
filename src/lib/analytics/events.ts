@@ -85,6 +85,8 @@ export const EVENTS = {
   bingoCardTaken: "Bingo Card Taken",
   bingoClaimed: "Bingo Claimed",
   draftPicked: "Draft Picked",
+  /** A Chat Brain guess or survey answer sent from the live page (props: { mode: host | speed | versus | teams | survey }). */
+  brainLiveAnswered: "Chat Brain Live Answered",
 
   // Randomizer extras
   pokemonDetailsOpened: "Pokemon Details Opened",

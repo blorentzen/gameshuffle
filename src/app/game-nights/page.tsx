@@ -41,7 +41,7 @@ export default async function GameNightsPage() {
   }
 
   return (
-    <>
+    <main>
       <BrowseHero
         eyebrow="Game nights, in real life"
         title="Find your table. Bring a game."
@@ -84,6 +84,6 @@ export default async function GameNightsPage() {
         </Suspense>
         </section>
       </Container>
-    </>
+    </main>
   );
 }

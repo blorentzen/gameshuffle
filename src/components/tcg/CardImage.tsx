@@ -21,11 +21,14 @@ export function CardImage({
   name,
   size = "small",
   className,
+  decorative = false,
 }: {
   images: TcgCardImages | null | undefined;
   name: string;
   size?: Size;
   className?: string;
+  /** The name is already written next to it (a decklist row): hide it from screen readers. */
+  decorative?: boolean;
 }) {
   // Prefer requested size; fall back to the other thumbnail size, never large.
   const url =
@@ -50,8 +53,7 @@ export function CardImage({
     return (
       <div
         className={`tcg-card-img tcg-card-img--fallback ${className ?? ""}`}
-        role="img"
-        aria-label={name}
+        {...(decorative ? { "aria-hidden": true } : { role: "img", "aria-label": name })}
         title={name}
       >
         <span className="tcg-card-img__fallback-name">{name}</span>
@@ -70,7 +72,7 @@ export function CardImage({
       <img
         ref={imgRef}
         src={retry ? `${url}${url.includes("?") ? "&" : "?"}r=${retry}` : url}
-        alt={name}
+        alt={decorative ? "" : name}
         loading="lazy"
         draggable={false}
         onLoad={() => setStatus("ok")}

@@ -256,6 +256,17 @@
 .tcg-companion .tcg-rtb-grid {
   margin: 0 0 var(--spacing-40);
 }
+/* "How the companion works" link to the companion's landing page. */
+.tcg-companion__more {
+  margin: var(--spacing-16) 0 0;
+  font-size: var(--font-size-16);
+}
+.tcg-companion__more a {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 /* ── Reviews (full-width band + carousel) ───────────────────────────── */
 .tcg-reviews-band {

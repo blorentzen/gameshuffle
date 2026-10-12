@@ -84,6 +84,7 @@ function normalizeFrontmatter(
 
   return {
     title: str(data.title),
+    h1: str(data.h1) || str(data.title),
     slug: str(data.slug, slug),
     archetype: str(data.archetype),
     tiers: safeTiers,

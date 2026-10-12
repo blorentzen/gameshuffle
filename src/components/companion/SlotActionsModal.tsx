@@ -1,27 +1,31 @@
 "use client";
 
 /**
- * Slot action sheet — opens on tap of an occupied slot.
- *
- * Wave 1: damage controls + discard.
- * Wave 2: condition toggles (Poison / Burn) + Knockout button (the
- * score-crediting removal that decrements the opposing player's
- * win counter).
+ * A Pokémon's window (tap a Pokémon on the board). Few choices up front:
+ * the whole card beside its HP and a damage stepper, facts from the card as
+ * icons, condition tags you tap on or off (Active only), the Energy that's
+ * attached with Add Energy, and six actions: Attack, Evolve, Tool, To Bench /
+ * Make Active, Knock Out, More. Evolve, Tool and More swap the window's
+ * content (with Back) instead of stacking sections.
+ * Knock Out and Discard are one tap, so each says what happened with Undo.
  */
 
-import { Modal } from "@empac/cascadeds";
 import { useState } from "react";
+import { Button, Chip, IconButton, Input, Modal, Radio, RadioGroup } from "@empac/cascadeds";
+import { IconArrowDown, IconArrowLeft, IconArrowUp, IconDots, IconMinus, IconPlus, IconSwords, IconTool, IconX } from "@tabler/icons-react";
 import { useMode, useSession } from "@/lib/companion/SessionContext";
 import { findSlot } from "@/lib/companion/state";
 import { DEFAULT_SLOT_THEME } from "@/lib/companion/styling";
+import { prizeValue, rulesFromCard } from "@/lib/companion/pokemonRules";
 import { BENCH_POSITIONS, type PlayerId, type SlotPosition } from "@/lib/companion/types";
 import type { TcgCard } from "@/lib/scrydex/types";
+import { AttackModal } from "./AttackModal";
 import { CardPicker } from "./CardPicker";
+import { EnergyPicker } from "./EnergyPicker";
+import { ConditionTag, EnergyDot, conditionLooks } from "./glyphs";
 import { ThemePicker } from "./ThemePicker";
 import { TablerIcon } from "./TablerIcon";
-
-/** Which accordion section is expanded (one at a time). */
-type ActionSection = "damage" | "conditions" | "evolve" | "type" | "energy";
+import { useCompanionToasts } from "./ToastProvider";
 
 interface Props {
   isOpen: boolean;
@@ -30,17 +34,19 @@ interface Props {
   onClose: () => void;
 }
 
+type View = "main" | "evolve" | "tool" | "more";
+
 export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
-  const { state, dispatch } = useSession();
+  const { state, dispatch, undo } = useSession();
+  const toasts = useCompanionToasts();
   const mode = useMode();
   const slot = findSlot(state, player, position);
-  // Exclusive accordion — only one section open at a time. Damage is the
-  // most-used action, so it's open by default.
-  const [open, setOpen] = useState<ActionSection | null>("damage");
+  const [view, setView] = useState<View>("main");
+  const [energyOpen, setEnergyOpen] = useState(false);
+  const [attackOpen, setAttackOpen] = useState(false);
 
   if (!slot || !slot.occupied) {
-    // CDS Modal needs to render even when closed (animation), but
-    // there's nothing meaningful to show before the slot has a piece.
+    // CDS Modal needs to render even when closed (animation).
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="">
         <span />
@@ -48,515 +54,232 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
     );
   }
 
-  const positionLabel =
-    position === "active" ? mode.positionLabels.active : mode.positionLabels.bench;
-  const title = `${slot.name ?? "Unnamed"}: ${positionLabel}`;
-
-  const handleAdjust = (delta: number) => {
-    dispatch({ type: "ADJUST_DAMAGE", player, position, delta });
-  };
-
-  const handleReset = () => {
-    dispatch({ type: "RESET_DAMAGE", player, position });
-  };
-
-  const handleToggleCondition = (which: "a" | "b", value: boolean) => {
-    dispatch({ type: "TOGGLE_CONDITION", player, position, which, value });
-  };
-
-  const handleToggleExtraCondition = (key: string, value: boolean) => {
-    dispatch({
-      type: "TOGGLE_EXTRA_CONDITION",
-      player,
-      position,
-      key,
-      value,
-    });
-  };
-
-  const handleRetheme = (slotTheme: string) => {
-    dispatch({
-      type: "STYLE_SLOT",
-      player,
-      position,
-      slotTheme,
-    });
-  };
-
-  const handleUpdateKoValue = (koValue: number) => {
-    dispatch({
-      type: "UPDATE_PIECE_META",
-      player,
-      position,
-      koValue,
-    });
-  };
-
-  const handleCommitName = (next: string) => {
-    const trimmed = next.trim();
-    dispatch({
-      type: "UPDATE_PIECE_META",
-      player,
-      position,
-      name: trimmed.length === 0 ? null : trimmed,
-    });
-  };
-
-  const handleCommitMaxHp = (next: string) => {
-    const trimmed = next.trim();
-    if (trimmed.length === 0) {
-      dispatch({ type: "UPDATE_PIECE_META", player, position, maxHp: null });
-      return;
-    }
-    const n = Number.parseInt(trimmed, 10);
-    if (!Number.isFinite(n) || n < 0) return;
-    dispatch({ type: "UPDATE_PIECE_META", player, position, maxHp: n });
-  };
+  const isActive = position === "active";
+  const where = isActive ? mode.positionLabels.active : mode.positionLabels.bench;
+  const owner = state.playerNames[player];
+  const other = state.playerNames[player === "p1" ? "p2" : "p1"];
+  const name = slot.name ?? "Unnamed";
+  const turn = state.turn;
+  const meta = (patch: Omit<Extract<Parameters<typeof dispatch>[0], { type: "UPDATE_PIECE_META" }>, "type" | "player" | "position">) =>
+    dispatch({ type: "UPDATE_PIECE_META", player, position, ...patch });
+  const close = () => { setView("main"); onClose(); };
 
   const handleKnockout = () => {
     dispatch({ type: "KNOCKOUT", player, position });
-    onClose();
+    close();
+    toasts.push({ variant: "info", message: `${slot.name || "That Pokémon"} was Knocked Out.`, action: { label: "Undo", onClick: undo } });
   };
-
   const handleDiscard = () => {
     dispatch({ type: "REMOVE_PIECE", player, position });
-    onClose();
+    close();
+    toasts.push({ variant: "info", message: `${slot.name || "That Pokémon"} was discarded.`, action: { label: "Undo", onClick: undo } });
   };
-
-  const handleAdjustEnergy = (energyKey: string, delta: number) => {
-    dispatch({
-      type: "ADJUST_ENERGY",
-      player,
-      position,
-      energyKey,
-      delta,
-    });
-  };
-
-  const handleClearEnergies = () => {
-    dispatch({ type: "CLEAR_ENERGIES", player, position });
-  };
-
-  // Evolve = swap the underlying card. Updates name / HP / art / type, KEEPS
-  // damage + attached energy (the reducer spreads them), and CLEARS Special
-  // Conditions (evolution heals them). koValue is left as-is — the player can
-  // change the card type below if the evolution shifts the prize category.
-  const handleEvolve = (card: TcgCard) => {
-    const hpNum = card.hp ? Number.parseInt(card.hp, 10) : NaN;
-    const type = card.types?.[0]?.toLowerCase();
-    dispatch({
-      type: "UPDATE_PIECE_META",
-      player,
-      position,
-      name: card.name,
-      maxHp: Number.isNaN(hpNum) ? null : hpNum,
-      slotTheme:
-        type && mode.slotThemes.some((t) => t.key === type)
-          ? type
-          : DEFAULT_SLOT_THEME,
-      cardId: card.id,
-      cardImage: card.images?.small ?? card.images?.medium ?? null,
-      evolved: true,
-    });
-  };
-
-  const totalEnergy = mode.energyTypes.reduce(
-    (sum, def) => sum + (slot.energies[def.key] ?? 0),
-    0,
-  );
-
-  // Fallback for the tricky drag gesture (§ mobile): promote a bench piece to
-  // active, or retreat the active to the first open bench slot (swaps if the
-  // bench is full). Same MOVE_PIECE the drag dispatches.
-  const isActive = position === "active";
   const moveTarget: SlotPosition = isActive
-    ? BENCH_POSITIONS.slice(0, state.gameSettings.benchSize).find(
-        (p) => !findSlot(state, player, p)?.occupied,
-      ) ?? "bench_1"
+    ? BENCH_POSITIONS.slice(0, state.gameSettings.benchSize).find((p) => !findSlot(state, player, p)?.occupied) ?? "bench_1"
     : "active";
   const handleMove = () => {
     dispatch({ type: "MOVE_PIECE", player, from: position, to: moveTarget });
-    onClose();
+    close();
   };
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title}>
-      <div className="companion-actions companion-actions--accordion">
-        {/* Promote / retreat — the reliable alternative to dragging. */}
-        <button type="button" className="companion-actions__move" onClick={handleMove}>
-          <TablerIcon name={isActive ? "arrow-down" : "arrow-up"} size="18" />
-          {isActive
-            ? `Send to ${mode.positionLabels.bench}`
-            : `Promote to ${mode.positionLabels.active}`}
-        </button>
+  // Evolve = swap the card: name, HP, art, type, attacks and prizes change;
+  // damage and Energy stay; Special Conditions clear.
+  const handleEvolve = (card: TcgCard) => {
+    const hpNum = card.hp ? Number.parseInt(card.hp, 10) : NaN;
+    const type = card.types?.[0]?.toLowerCase();
+    meta({
+      name: card.name,
+      maxHp: Number.isNaN(hpNum) ? null : hpNum,
+      slotTheme: type && mode.slotThemes.some((t) => t.key === type) ? type : DEFAULT_SLOT_THEME,
+      cardId: card.id,
+      // Scrydex URLs are stored as returned; medium is the largest our terms allow.
+      cardImage: card.images?.medium ?? card.images?.small ?? null,
+      rules: rulesFromCard(card),
+      koValue: prizeValue(card.subtypes ?? []),
+      evolved: true,
+    });
+    setView("main");
+    toasts.push({ variant: "success", message: `${name} evolved into ${card.name}.`, action: { label: "Undo", onClick: undo } });
+  };
 
-        {/* ── Damage ── */}
-        <AccSection
-          id="damage"
-          label="Damage"
-          summary={`${slot.damage}${slot.maxHp != null ? ` / ${slot.maxHp}` : ""}`}
-          open={open}
-          onToggle={setOpen}
-        >
-          <div className="companion-actions__buttons">
-            {mode.damageIncrements.map((inc) => (
-              <button
-                key={`plus-${inc}`}
-                type="button"
-                className="companion-actions__btn companion-actions__btn--add"
-                onClick={() => handleAdjust(inc)}
-              >
-                +{inc}
-              </button>
-            ))}
-            {mode.damageIncrements.map((inc) => (
-              <button
-                key={`minus-${inc}`}
-                type="button"
-                className="companion-actions__btn companion-actions__btn--sub"
-                onClick={() => handleAdjust(-inc)}
-              >
-                −{inc}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="companion-actions__btn companion-actions__btn--reset"
-              onClick={handleReset}
-            >
-              Reset
-            </button>
-          </div>
-        </AccSection>
+  const commitName = (next: string) => { const t = next.trim(); if ((t || null) !== slot.name) meta({ name: t || null }); };
+  const commitMaxHp = (next: string) => {
+    const t = next.trim();
+    if (!t) { if (slot.maxHp != null) meta({ maxHp: null }); return; }
+    const n = Number.parseInt(t, 10);
+    if (Number.isFinite(n) && n >= 0 && n !== slot.maxHp) meta({ maxHp: n });
+  };
+  const commitTool = (next: string) => { const t = next.trim().slice(0, 40); if ((t || null) !== (slot.tool ?? null)) meta({ tool: t || null }); };
+  const blurOnEnter = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); };
 
-        {/* ── Conditions ── */}
-        <AccSection
-          id="conditions"
-          label="Conditions"
-          open={open}
-          onToggle={setOpen}
-        >
-          <div className="companion-actions__conditions-row">
-            <label
-              className={`companion-actions__condition${
-                slot.conditionA ? " companion-actions__condition--on" : ""
-              }`}
-              style={
-                {
-                  "--condition-color": mode.conditionAColor,
-                } as React.CSSProperties
-              }
-            >
-              <input
-                type="checkbox"
-                checked={slot.conditionA}
-                onChange={(e) => handleToggleCondition("a", e.target.checked)}
-              />
-              <span>{mode.conditionALabel}</span>
-            </label>
-            <label
-              className={`companion-actions__condition${
-                slot.conditionB ? " companion-actions__condition--on" : ""
-              }`}
-              style={
-                {
-                  "--condition-color": mode.conditionBColor,
-                } as React.CSSProperties
-              }
-            >
-              <input
-                type="checkbox"
-                checked={slot.conditionB}
-                onChange={(e) => handleToggleCondition("b", e.target.checked)}
-              />
-              <span>{mode.conditionBLabel}</span>
-            </label>
+  const hpLeft = slot.maxHp != null ? Math.max(0, slot.maxHp - slot.damage) : null;
+  const hpShare = hpLeft != null && slot.maxHp ? Math.round((hpLeft / slot.maxHp) * 100) : 0;
+  const energies = mode.energyTypes.map((def) => ({ def, count: slot.energies[def.key] ?? 0 })).filter((e) => e.count > 0);
+  const rules = slot.rules;
+  const canAttack = isActive && !!turn && turn.player === player && !turn.used.attacked;
+  const back = (
+    <Button variant="ghost" size="small" iconBefore={IconArrowLeft} onClick={() => setView("main")}>Back</Button>
+  );
+
+  const body = (() => {
+    if (view === "evolve") {
+      return (
+        <div className="companion-actions__view">
+          {back}
+          <p className="companion-actions__hint">Pick the card it evolves into. Damage and Energy stay; Special Conditions clear.</p>
+          <CardPicker onPick={handleEvolve} label="Your cards" />
+        </div>
+      );
+    }
+    if (view === "tool") {
+      return (
+        <div className="companion-actions__view">
+          {back}
+          <Input
+            key={`tool-${slot.tool ?? ""}`}
+            floatingLabel="Tool attached"
+            fullWidth
+            defaultValue={slot.tool ?? ""}
+            maxLength={40}
+            placeholder="e.g. Defiance Band"
+            onBlur={(e) => commitTool(e.target.value)}
+            onKeyDown={blurOnEnter}
+          />
+          <p className="companion-actions__hint">One Tool a Pokémon. It goes to the discard pile with the Pokémon.</p>
+          {slot.tool && <Button variant="ghost" size="small" onClick={() => meta({ tool: null })}>Take the Tool off</Button>}
+        </div>
+      );
+    }
+    if (view === "more") {
+      return (
+        <div className="companion-actions__view">
+          {back}
+          <div className="companion-actions__fields">
+            <Input key={`name-${slot.name ?? ""}`} floatingLabel="Name" fullWidth defaultValue={slot.name ?? ""} placeholder="e.g. Charizard" onBlur={(e) => commitName(e.target.value)} onKeyDown={blurOnEnter} />
+            <Input key={`hp-${slot.maxHp ?? ""}`} floatingLabel="HP" fullWidth type="number" inputMode="numeric" min={0} defaultValue={slot.maxHp != null ? String(slot.maxHp) : ""} placeholder="e.g. 150" onBlur={(e) => commitMaxHp(e.target.value)} onKeyDown={blurOnEnter} />
           </div>
-          {mode.extraConditions.length > 0 && (
-            <>
-              <div className="companion-actions__conditions-label">
-                Status (one at a time)
-              </div>
-              <div className="companion-actions__conditions-row companion-actions__conditions-row--three">
-                {mode.extraConditions.map((def) => {
-                  const on = !!slot.extraConditions[def.key];
-                  return (
-                    <label
-                      key={def.key}
-                      className={`companion-actions__condition${
-                        on ? " companion-actions__condition--on" : ""
-                      }`}
-                      style={
-                        {
-                          "--condition-color": def.color,
-                        } as React.CSSProperties
-                      }
-                    >
-                      <input
-                        type="checkbox"
-                        checked={on}
-                        onChange={(e) =>
-                          handleToggleExtraCondition(def.key, e.target.checked)
-                        }
-                      />
-                      <span>{def.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </>
+          {mode.koValueOptions.length > 1 && (
+            <RadioGroup name={`prizes-${player}-${position}`} label={`${mode.winCounterLabel} if Knocked Out`} orientation="horizontal" value={String(slot.koValue)} onChange={(v) => meta({ koValue: Number(v) })}>
+              {mode.koValueOptions.map((opt) => <Radio key={opt} value={String(opt)} label={`${opt}: ${mode.koValueLabels[opt] ?? opt}`} />)}
+            </RadioGroup>
           )}
-        </AccSection>
-
-        {/* ── Evolve / Edit ── */}
-        <AccSection
-          id="evolve"
-          label="Evolve / Edit piece"
-          open={open}
-          onToggle={setOpen}
-        >
-          {/* Pick the evolution from your collection / the catalog — swaps art +
-              name + HP + type, keeps damage & energy, clears conditions. */}
-          <CardPicker onPick={handleEvolve} />
-          <div className="companion-actions__evolve">
-            {/* Name + HP commit on blur. Keyed on the current value so an
-                evolve (card swap) resets them to the new card. */}
-            <EvolveField
-              key={`name-${slot.name ?? ""}`}
-              label="Name"
-              initial={slot.name ?? ""}
-              type="text"
-              placeholder="e.g. Charizard"
-              onCommit={handleCommitName}
-            />
-            <EvolveField
-              key={`hp-${slot.maxHp ?? ""}`}
-              label="Max HP"
-              initial={slot.maxHp != null ? String(slot.maxHp) : ""}
-              type="number"
-              placeholder="e.g. 150"
-              onCommit={handleCommitMaxHp}
-            />
-            {mode.koValueOptions.length > 1 && (
-              <div className="companion-actions__evolve-row">
-                <div className="companion-actions__evolve-label">Card type</div>
-                <div className="companion-actions__evolve-ko">
-                  {mode.koValueOptions.map((opt) => {
-                    const label = mode.koValueLabels[opt] ?? String(opt);
-                    return (
-                      <button
-                        key={opt}
-                        type="button"
-                        className={`companion-place__ko-btn${
-                          slot.koValue === opt
-                            ? " companion-place__ko-btn--selected"
-                            : ""
-                        }`}
-                        onClick={() => handleUpdateKoValue(opt)}
-                      >
-                        <span className="companion-place__ko-btn-label">
-                          {label}
-                        </span>
-                        <span className="companion-place__ko-btn-count">
-                          {opt} {mode.winCounterLabel.toLowerCase()}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+          <ThemePicker selected={slot.slotTheme} onChange={(slotTheme) => dispatch({ type: "STYLE_SLOT", player, position, slotTheme })} />
+          <Button variant="ghost" size="small" onClick={handleDiscard}>Discard it (no {mode.winCounterLabel.toLowerCase()})</Button>
+        </div>
+      );
+    }
+    return (
+      <div className="companion-actions">
+        <div className={`companion-actions__top${slot.cardImage ? " companion-actions__top--card" : ""}`}>
+          {slot.cardImage && (
+            /* Stored cross-origin Scrydex URL, rendered as returned. */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={slot.cardImage} alt={`${name} card`} className="companion-actions__card" draggable={false} />
+          )}
+          <div className="companion-actions__vitals">
+            {hpLeft != null ? (
+              <div className="companion-actions__hp">
+                <span className="companion-actions__hp-value"><TablerIcon name="heart" size="20" color="#ff8fa3" />{hpLeft}<span className="companion-actions__hp-max">/{slot.maxHp}</span></span>
+                <span className="companion-actions__hp-bar" aria-hidden="true"><span style={{ width: `${hpShare}%` }} /></span>
               </div>
+            ) : (
+              <p className="companion-actions__hint">No HP set: add it under More and the board will Knock it Out at 0.</p>
             )}
+            <ul className="companion-actions__facts" aria-label="From the card">
+              <li><TablerIcon name="cards" size="16" color="#e0a800" /><span>Worth {slot.koValue} {(slot.koValue === 1 ? mode.winCounterLabel.replace(/s$/, "") : mode.winCounterLabel).toLowerCase()}</span></li>
+              {rules && (
+                <li>
+                  <TablerIcon name="arrows-exchange" size="16" />
+                  <span>Retreat</span>
+                  {rules.retreat === 0 ? <span>free</span> : Array.from({ length: rules.retreat }, (_, i) => <EnergyDot key={i} type="colorless" size={16} decorative />)}
+                  <span className="sr-only">{rules.retreat} Energy</span>
+                </li>
+              )}
+              {rules?.weaknesses.map((w) => <li key={`w-${w.type}`}><EnergyDot type={w.type} size={16} label={w.type} /><span>Weak {w.value}</span></li>)}
+              {rules?.resistances.map((r) => <li key={`r-${r.type}`}><EnergyDot type={r.type} size={16} label={r.type} /><span>Resists {r.value}</span></li>)}
+              {slot.tool && <li><TablerIcon name="tool" size="16" /><span>{slot.tool}</span></li>}
+            </ul>
           </div>
-        </AccSection>
+        </div>
 
-        {/* ── Pokémon Type ── */}
-        <AccSection
-          id="type"
-          label="Pokémon Type"
-          open={open}
-          onToggle={setOpen}
-        >
-          <ThemePicker selected={slot.slotTheme} onChange={handleRetheme} />
-        </AccSection>
+        <div className="companion-actions__group" role="group" aria-label={`Damage on ${name}`}>
+          <span className="companion-actions__label">Damage</span>
+          <div className="companion-actions__damage-row">
+            <IconButton variant="secondary" size="medium" aria-label="Take off 10 damage" disabled={slot.damage === 0} onClick={() => dispatch({ type: "ADJUST_DAMAGE", player, position, delta: -10 })}><IconMinus size={18} aria-hidden /></IconButton>
+            <span className="companion-actions__damage-value" aria-live="polite">{slot.damage}</span>
+            <IconButton variant="secondary" size="medium" aria-label="Add 10 damage" onClick={() => dispatch({ type: "ADJUST_DAMAGE", player, position, delta: 10 })}><IconPlus size={18} aria-hidden /></IconButton>
+            <Button variant="secondary" size="small" aria-label="Add 50 damage" onClick={() => dispatch({ type: "ADJUST_DAMAGE", player, position, delta: 50 })}>+50</Button>
+            <Button variant="secondary" size="small" aria-label="Add 100 damage" onClick={() => dispatch({ type: "ADJUST_DAMAGE", player, position, delta: 100 })}>+100</Button>
+          </div>
+        </div>
 
-        {/* ── Energy ── */}
-        {mode.energyTypes.length > 0 && (
-          <AccSection
-            id="energy"
-            label="Energy"
-            summary={String(totalEnergy)}
-            open={open}
-            onToggle={setOpen}
-          >
-            <div className="companion-actions__energy-grid">
-              {mode.energyTypes.map((def) => {
-                const count = slot.energies[def.key] ?? 0;
+        {isActive && (
+          <div className="companion-actions__group">
+            <span className="companion-actions__label">Conditions</span>
+            <div className="companion-actions__conds">
+              {conditionLooks(mode).map((c) => {
+                const on = c.key === "a" ? slot.conditionA : c.key === "b" ? slot.conditionB : !!slot.extraConditions[c.key];
                 return (
-                  <div
-                    key={def.key}
-                    className="companion-actions__energy-row"
-                    style={
-                      {
-                        "--energy-color": def.color,
-                      } as React.CSSProperties
+                  <Chip
+                    key={c.key}
+                    size="small"
+                    clickable
+                    selected={on}
+                    variant="outline"
+                    className="companion-actions__cond"
+                    style={{ "--cond-color": c.color } as React.CSSProperties}
+                    icon={<ConditionTag look={c} size={20} off={!on} decorative />}
+                    label={c.label}
+                    onClick={() =>
+                      c.key === "a" || c.key === "b"
+                        ? dispatch({ type: "TOGGLE_CONDITION", player, position, which: c.key, value: !on })
+                        : dispatch({ type: "TOGGLE_EXTRA_CONDITION", player, position, key: c.key, value: !on })
                     }
-                  >
-                    <span
-                      className={`companion-actions__energy-chip${
-                        def.invertText
-                          ? " companion-actions__energy-chip--invert"
-                          : ""
-                      }`}
-                      title={def.label}
-                    >
-                      <TablerIcon name={def.icon} size="16" />
-                    </span>
-                    <span className="companion-actions__energy-label">
-                      {def.label}
-                    </span>
-                    <div className="companion-actions__energy-counter">
-                      <button
-                        type="button"
-                        className="companion-actions__energy-btn"
-                        onClick={() => handleAdjustEnergy(def.key, -1)}
-                        disabled={count === 0}
-                        aria-label={`Remove one ${def.label} energy`}
-                      >
-                        −
-                      </button>
-                      <span className="companion-actions__energy-count">
-                        {count}
-                      </span>
-                      <button
-                        type="button"
-                        className="companion-actions__energy-btn"
-                        onClick={() => handleAdjustEnergy(def.key, 1)}
-                        aria-label={`Attach one ${def.label} energy`}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
+                  />
                 );
               })}
             </div>
-            {totalEnergy > 0 && (
-              <button
-                type="button"
-                className="companion-actions__energy-clear"
-                onClick={handleClearEnergies}
-              >
-                Discard all energy
-              </button>
-            )}
-          </AccSection>
+          </div>
         )}
 
-        {/* Terminal actions stay visible below the accordion. */}
-        <div className="companion-actions__exit">
-          <button
-            type="button"
-            className="companion-actions__knockout"
-            onClick={handleKnockout}
-          >
-            Knockout (opponent takes {slot.koValue})
-          </button>
-          <button
-            type="button"
-            className="companion-actions__remove"
-            onClick={handleDiscard}
-          >
-            Discard (no {mode.winCounterLabel.toLowerCase()})
-          </button>
+        {mode.energyTypes.length > 0 && (
+          <div className="companion-actions__group">
+            <span className="companion-actions__label">Energy</span>
+            <div className="companion-actions__energy">
+              {energies.map(({ def, count }) => (
+                <span key={def.key} className="companion-actions__energy-chip2">
+                  <EnergyDot type={def.key} size={24} label={def.label} />
+                  <span className="companion-actions__energy-n">{count}</span>
+                  <IconButton variant="tertiary" size="small" aria-label={`Remove one ${def.label} Energy`} onClick={() => dispatch({ type: "ADJUST_ENERGY", player, position, energyKey: def.key, delta: -1 })}>
+                    <IconMinus size={14} aria-hidden />
+                  </IconButton>
+                </span>
+              ))}
+              <Button variant="secondary" size="small" iconBefore={IconPlus} onClick={() => setEnergyOpen(true)}>Add Energy</Button>
+            </div>
+          </div>
+        )}
+
+        <div className="companion-actions__tiles">
+          {canAttack && <Button variant="primary" className="companion-actions__tile" iconBefore={IconSwords} onClick={() => setAttackOpen(true)}>Attack</Button>}
+          <Button variant="secondary" className="companion-actions__tile" iconBefore={IconArrowUp} onClick={() => setView("evolve")}>Evolve</Button>
+          <Button variant="secondary" className="companion-actions__tile" iconBefore={IconTool} onClick={() => setView("tool")}>Tool</Button>
+          <Button variant="secondary" className="companion-actions__tile" iconBefore={isActive ? IconArrowDown : IconArrowUp} onClick={handleMove}>{isActive ? `To ${mode.positionLabels.bench}` : `Make ${mode.positionLabels.active}`}</Button>
+          <Button variant="secondary" className="companion-actions__tile companion-actions__tile--danger" iconBefore={IconX} onClick={handleKnockout} aria-label={`Knock Out ${name}: ${slot.koValue} ${mode.winCounterLabel.toLowerCase()} to ${other}`}>Knock Out</Button>
+          <Button variant="secondary" className="companion-actions__tile" iconBefore={IconDots} onClick={() => setView("more")}>More</Button>
         </div>
       </div>
-    </Modal>
-  );
-}
+    );
+  })();
 
-/**
- * One collapsible section of the action sheet. Exclusive — the parent tracks a
- * single open id, so opening one collapses the others. Optional `summary` shows
- * the current value on the header even when collapsed (e.g. damage, energy).
- */
-function AccSection({
-  id,
-  label,
-  summary,
-  open,
-  onToggle,
-  children,
-}: {
-  id: ActionSection;
-  label: string;
-  summary?: string;
-  open: ActionSection | null;
-  onToggle: (next: ActionSection | null) => void;
-  children: React.ReactNode;
-}) {
-  const isOpen = open === id;
   return (
-    <div className={`companion-acc${isOpen ? " is-open" : ""}`}>
-      <button
-        type="button"
-        className="companion-acc__header"
-        aria-expanded={isOpen}
-        onClick={() => onToggle(isOpen ? null : id)}
-      >
-        <span className="companion-acc__label">{label}</span>
-        {summary ? (
-          <span className="companion-acc__summary">{summary}</span>
-        ) : null}
-        <TablerIcon
-          name={isOpen ? "chevron-up" : "chevron-down"}
-          size="18"
-        />
-      </button>
-      {isOpen && <div className="companion-acc__body">{children}</div>}
-    </div>
-  );
-}
-
-/**
- * Editable field for the Evolve section — commits the value on
- * Enter or blur via the parent's `onCommit` callback. Local draft
- * state stays uncommitted until then so a half-typed value doesn't
- * cause a partial dispatch.
- */
-function EvolveField({
-  label,
-  initial,
-  type,
-  placeholder,
-  onCommit,
-}: {
-  label: string;
-  initial: string;
-  type: "text" | "number";
-  placeholder?: string;
-  onCommit: (next: string) => void;
-}) {
-  const [draft, setDraft] = useState(initial);
-  return (
-    <label className="companion-actions__evolve-row">
-      <span className="companion-actions__evolve-label">{label}</span>
-      <input
-        type={type}
-        className="companion-actions__evolve-input"
-        value={draft}
-        placeholder={placeholder}
-        inputMode={type === "number" ? "numeric" : undefined}
-        min={type === "number" ? 0 : undefined}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={() => {
-          if (draft !== initial) onCommit(draft);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            (e.target as HTMLInputElement).blur();
-          }
-        }}
-      />
-    </label>
+    <>
+      <Modal isOpen={isOpen} onClose={close} title={name} size="medium">
+        <p className="companion-actions__where">{owner}&apos;s {where}{turn ? ` · Turn ${turn.number}` : ""}</p>
+        {body}
+      </Modal>
+      {energyOpen && <EnergyPicker isOpen player={player} position={position} onClose={() => setEnergyOpen(false)} />}
+      {attackOpen && <AttackModal isOpen onClose={() => { setAttackOpen(false); close(); }} />}
+    </>
   );
 }

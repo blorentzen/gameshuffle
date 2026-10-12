@@ -135,6 +135,10 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             {copy.singlesPath.line}{" "}
             <a href={TCG_SHOP_URL} target="_blank" rel="noopener noreferrer">{copy.singlesPath.link}</a>
           </p>
+          <p className="shop-singles-path">
+            {copy.hubPath.line}{" "}
+            <Link href="/pokemon-tcg">{copy.hubPath.link}</Link>
+          </p>
 
           <p className="shop-disclaimer">{copy.disclaimer}</p>
         </div>

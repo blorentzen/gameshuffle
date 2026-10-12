@@ -1337,7 +1337,8 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-tertiary);
+  /* Secondary, not tertiary: tertiary fails 4.5:1 at this size (axe, 2026-10-11). */
+  color: var(--text-secondary);
 }
 .bgn-filters__loc { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
 .bgn-filter {

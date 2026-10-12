@@ -20,8 +20,9 @@ export default function Page() {
       <h1>Chat Brain on stream</h1>
       <p>
         Chat Brain is our survey game: guess what most people said. Each board is a question with the top answers people gave,
-        worth more points the more people said them. On stream you can play boards with your chat, run them as 1v1 or Teams with
-        chat playing along, and run surveys that help build new boards. Games on stream are a GameShuffle Pro feature; surveys are free.
+        worth more points the more people said them. On stream you can play boards with your chat, race chat in a speed round, run
+        them as 1v1 or Teams with chat playing along, and run surveys that help build new boards. Games on stream are a GameShuffle
+        Pro feature; surveys are free.
       </p>
       <p>
         Start everything from <strong>Streaming &gt; Live games &gt; Chat Brain</strong>, or the <strong>Live games</strong> tab on your
@@ -37,6 +38,46 @@ export default function Page() {
         <li>The board ends when chat finds everything or takes three strikes. The rest is revealed, and you move on with <strong>Next board</strong> or <code>!cb next</code>.</li>
       </ul>
       <p>Start from the dashboard, or type <code>!cb start</code> (<code>!cb start 3 45</code> for 3 boards and 45-second guesses).</p>
+
+      <h2>Speed round</h2>
+      <p>
+        A race instead of a vote. The board stays open, and the first viewer to type a hidden answer with <code>!a</code>{" "}reveals it and
+        takes its points. Every find restarts a 20-second timer; when it runs out with nobody finding anything, that&apos;s a strike, and
+        three strikes ends the board. Each answer on the board shows who found it, and the fastest viewers are called out at the end.
+      </p>
+      <p>
+        Pick <strong>Speed round</strong> under <strong>Who plays</strong>, or type <code>!cb start speed</code> (<code>!cb start speed 2</code>{" "}
+        for 2 boards). Because the first answer wins, it plays best on low-latency streams: viewers on normal latency see the question
+        a few seconds after everyone else.
+      </p>
+
+      <h2>Co-stream: your chat against another streamer&apos;s</h2>
+      <p>
+        Two channels, one game. Pick <strong>Co-stream</strong> under <strong>Who plays</strong>, search for the other streamer (they
+        need a GameShuffle account with Twitch connected and our bot in their chat) and send the invite. They get a notification and
+        accept on their own Chat Brain tab; you start the game when you&apos;re both live. Only you need GS Pro to run it.
+      </p>
+      <ul>
+        <li><strong>Face-off:</strong> each round opens with both chats answering at once with <code>!a</code>, each in their own channel. The chat whose answer ranks higher takes control. Same answer? The chat that typed it first. Nobody on the board after three tries, and you pick who plays.</li>
+        <li><strong>Control and steal:</strong> the chat in control keeps answering until it clears the board or takes three strikes; then the other chat gets one answer to steal the round.</li>
+        <li><strong>Points:</strong> every answer found goes into the round&apos;s pot and the winner banks it. The last round is worth double. The board shows on both overlays (each streamer adds the Chat Brain piece) and the lines go to both chats.</li>
+        <li><strong>Who runs it:</strong> you and your mods set the pace (<strong>Next round</strong>, <code>!cb next</code>, <code>!cb lock</code>, <code>!cb control 1</code> or <code>2</code> after three empty face-offs). Either streamer can leave, which ends the game with the scores as they are. In a Twitch Shared Chat, each message counts for the channel it was typed in.</li>
+      </ul>
+
+      <h2>Prizes for the top brains</h2>
+      <p>
+        When you start any game, you can put up a token prize (25 to 500 tokens). When the game ends, the top three viewers by points
+        split it 50/30/20 (60/40 if only two scored, all of it for one; viewers tied on points share). In a speed round that&apos;s the
+        fastest finders; in every other game it&apos;s the play-along points. Prizes come out of your monthly token allowance, and the
+        dashboard shows how much you have left. The winners are named in chat with what they won.
+      </p>
+
+      <h2>Playing on your live page</h2>
+      <p>
+        Viewers watching on your GameShuffle live page see the board there too, and once signed in they can answer from the page
+        instead of chat: a guess, a speed-round find, a play-along guess or a survey answer, whatever is open. A viewer with Twitch
+        linked to their account is the same player as in chat, so their points add up in one place.
+      </p>
 
       <h2>1v1 and Teams</h2>
       <p>
@@ -84,7 +125,7 @@ export default function Page() {
       <h2>Chat commands</h2>
       <ul>
         <li>Everyone: <code>!a &lt;answer&gt;</code> to answer or play along, <code>!cb</code> to see where the game stands.</li>
-        <li>You and your mods, any game: <code>!cb lock</code> closes the guess now, <code>!cb next</code>, <code>!cb time 30</code>, <code>!cb end</code>. <code>!cb start survey</code> starts on the board your last survey made.</li>
+        <li>You and your mods, any game: <code>!cb lock</code> closes the guess now, <code>!cb next</code>, <code>!cb time 30</code>, <code>!cb end</code>. <code>!cb start survey</code> starts on the board your last survey made, and <code>!cb start speed</code> starts a speed round.</li>
         <li>Surveys: <code>!cb ask [seconds] [hidden] [category or your question]</code>, <code>!cb hide &lt;n&gt;</code>, <code>!cb merge &lt;n&gt; &lt;m&gt;</code>, <code>!cb lock</code>.</li>
         <li>Chat plays: <code>!cb accept [answer]</code> counts the last miss (naming the answer it should be), <code>!cb reject</code> takes back the last hit. Both work for 30 seconds.</li>
         <li>1v1 and Teams: <code>!cb play &lt;answer&gt;</code> enters what the side said (in a face-off, <code>!cb play &lt;side&gt; &lt;answer&gt;</code> for whoever answered first; the side can be its name or 1 or 2), <code>!cb trust chat</code> or <code>!cb trust team</code>, <code>!cb control &lt;side&gt;</code>, <code>!cb undo</code>.</li>

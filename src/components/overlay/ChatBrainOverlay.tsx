@@ -4,7 +4,8 @@
  * ChatBrainOverlay: a Chat Brain game on the OBS overlay. Chat plays: the
  * question, the board filling in, three strike marks, the guess countdown,
  * what chat is leaning toward, a short reveal or strike moment after each
- * guess, and the top play-along viewers. 1v1 and Teams: both sides' scores
+ * guess, and the top play-along viewers. Speed round: who found each answer,
+ * the timer to the next strike, and a "too slow" moment when it runs out. 1v1 and Teams: both sides' scores
  * (who's in control), the face-off, strikes for the side in control, "Trust
  * chat?" side by side, and chat's last steal. Placement-aware like the other
  * overlay pieces. Text only.
@@ -33,10 +34,12 @@ export function ChatBrainOverlay({ game, style }: { game: StreamGameView; style?
   if (game.versus) return <VersusBoard game={game} style={style} now={now} />;
   const w = game.window;
   const flash = game.last && now - Date.parse(game.last.at) < FLASH_MS ? game.last : null;
+  const speed = game.mode === "speed";
 
   let status: string;
   if (game.phase === "done") status = `Final score: ${game.score} points`;
   else if (game.phase === "board_done") status = game.boardIndex + 1 < game.boardCount ? "Board over. Next board coming up" : "Board over";
+  else if (game.phase === "guessing" && w && speed) status = `First to find one with !a  ·  ${secsUntil(w.closesAt, now)}s`;
   else if (game.phase === "guessing" && w) status = `Answer with !a  ·  ${secsUntil(w.closesAt, now)}s`;
   else if (w) status = game.phase === "starting" ? `Get ready: first guess in ${secsUntil(w.opensAt, now)}s` : `Next guess in ${secsUntil(w.opensAt, now)}s`;
   else status = "";
@@ -44,16 +47,17 @@ export function ChatBrainOverlay({ game, style }: { game: StreamGameView; style?
   return (
     <div className="gs-brain" style={style}>
       <div className="gs-brain__head">
-        <span>Chat Brain{game.boardCount > 1 ? ` · Board ${game.boardIndex + 1} of ${game.boardCount}` : ""}</span>
+        <span>Chat Brain{speed ? " · Speed round" : ""}{game.boardCount > 1 ? ` · Board ${game.boardIndex + 1} of ${game.boardCount}` : ""}</span>
         <span className="gs-brain__score">{game.score} pts</span>
       </div>
+      {game.prize > 0 && game.status === "playing" && <div className="gs-brain__prize">Prize for the top brains: {game.prize} tokens</div>}
       <div className="gs-brain__q">{game.question}</div>
       {/* Two columns read down like the TV board (1-4 left, 5-8 right), split evenly for shorter boards. */}
       <ol className="gs-brain__board" style={{ gridTemplateRows: `repeat(${Math.max(1, Math.ceil(game.slots.length / 2))}, auto)` }}>
         {game.slots.map((s) => (
           <li key={s.rank} className={`gs-brain__slot${s.label ? (s.found ? " is-found" : " is-revealed") : ""}${flash?.rank === s.rank ? " is-new" : ""}`}>
             <span className="gs-brain__rank">{s.rank}</span>
-            <span className="gs-brain__label">{s.label ?? ""}</span>
+            <span className="gs-brain__label">{s.label ?? ""}{s.finder && <small className="gs-brain__by">{s.finder}</small>}</span>
             <span className="gs-brain__pts">{s.points ?? ""}</span>
           </li>
         ))}
@@ -70,12 +74,12 @@ export function ChatBrainOverlay({ game, style }: { game: StreamGameView; style?
       {flash && (
         <div className={`gs-brain__flash gs-brain__flash--${flash.result === "hit" ? "hit" : "miss"}`}>
           {flash.result === "hit"
-            ? <>{flash.label}{flash.rank ? <small>#{flash.rank}</small> : null}</>
-            : flash.result === "empty" ? <>✕ No answers</> : <>✕ {flash.label}{flash.already ? <small>already up</small> : null}</>}
+            ? <>{flash.label}{flash.rank ? <small>#{flash.rank}{flash.finder ? ` · ${flash.finder}` : ""}</small> : null}</>
+            : flash.result === "empty" ? <>{speed ? "✕ Too slow" : "✕ No answers"}</> : <>✕ {flash.label}{flash.already ? <small>already up</small> : null}</>}
         </div>
       )}
       {game.playalong.length > 0 && (
-        <div className="gs-brain__top">Top brains: {game.playalong.slice(0, 3).map((p) => `${p.name} ${p.points}`).join("  ·  ")}</div>
+        <div className="gs-brain__top">{speed ? "Fastest brains" : "Top brains"}: {game.playalong.slice(0, 3).map((p) => `${p.name} ${p.points}`).join("  ·  ")}</div>
       )}
     </div>
   );
@@ -88,9 +92,14 @@ function VersusBoard({ game, style, now }: { game: StreamGameView; style?: CSSPr
   const last = v.last && now - Date.parse(v.last.at) < FLASH_MS ? v.last : null;
   const control = v.sides.find((s) => s.inControl);
   const playing = game.status === "playing";
+  const co = game.mode === "costream";
 
   let status: string;
-  if (!playing) status = v.winner === 0 ? `It's a tie at ${v.sides[0].score}!` : `${v.sides.find((s) => s.team === v.winner)?.name ?? ""} wins!`;
+  if (co && playing && v.phase !== "round_done" && v.phase !== "pick_control") {
+    status = v.phase === "faceoff" ? "Face-off: the higher answer wins control"
+      : v.phase === "control" && control ? `${control.name}'s chat in control`
+      : v.phase === "steal" ? `${t?.side ?? "The other"}'s chat can steal!` : "";
+  } else if (!playing) status = v.winner === 0 ? `It's a tie at ${v.sides[0].score}!` : `${v.sides.find((s) => s.team === v.winner)?.name ?? ""} wins!`;
   else if (v.phase === "round_done") status = v.round + 1 < v.rounds ? "Round over. Next round coming up" : "Round over";
   else if (v.phase === "pick_control") status = "The host picks who plays";
   else if (t?.state === "advisor") status = "Trust chat?";
@@ -100,16 +109,19 @@ function VersusBoard({ game, style, now }: { game: StreamGameView; style?: CSSPr
   else if (v.phase === "last_steal" && t) status = t.state === "pause" ? `Chat's last steal in ${secsUntil(t.opensAt, now)}s` : `Chat's last steal! !a  ·  ${secsUntil(t.closesAt, now)}s`;
   else status = "";
 
-  const chatLine = t && playing && t.kind !== "last_steal"
+  const chatLine = co && t && playing
+    ? t.state === "open" ? `${t.kind === "faceoff" ? "Both chats" : `${t.side}'s chat`}: answer with !a  ·  ${secsUntil(t.closesAt, now)}s` : t.state === "pause" ? `Next answer in ${secsUntil(t.opensAt, now)}s` : null
+    : t && playing && t.kind !== "last_steal"
     ? t.state === "open" ? `Chat, play along with !a  ·  ${secsUntil(t.closesAt, now)}s` : t.state === "pause" ? "Chat, get ready to play along" : null
     : null;
 
   return (
     <div className="gs-brain gs-brain--versus" style={style}>
       <div className="gs-brain__head">
-        <span>Chat Brain{v.rounds > 1 ? ` · Round ${v.round + 1} of ${v.rounds}` : ""}{v.double && playing ? " · Double points" : ""}</span>
+        <span>Chat Brain{co ? " · Co-stream" : ""}{v.rounds > 1 ? ` · Round ${v.round + 1} of ${v.rounds}` : ""}{v.double && playing ? " · Double points" : ""}</span>
         {v.pot > 0 && playing && v.phase !== "round_done" && <span className="gs-brain__score">{v.pot * (v.double ? 2 : 1)} in play</span>}
       </div>
+      {game.prize > 0 && playing && <div className="gs-brain__prize">Prize for chat&apos;s top brains: {game.prize} tokens</div>}
       <div className="gs-brain__sides">
         {v.sides.map((s) => (
           <div key={s.team} className={`gs-brain__side gs-brain__side--${s.team}${s.inControl && playing ? " is-control" : ""}${!playing && v.winner === s.team ? " is-winner" : ""}`}>
@@ -148,7 +160,7 @@ function VersusBoard({ game, style, now }: { game: StreamGameView; style?: CSSPr
           <span><small>Chat · {Math.round(t.advisor.share * 100)}%</small>{t.advisor.chat}</span>
         </div>
       )}
-      {v.phase === "last_steal" && game.leaning.length > 0 && (
+      {(v.phase === "last_steal" || co) && game.leaning.length > 0 && (
         <div className="gs-brain__lean">Chat is leaning: {game.leaning.map((l) => `${l.label} ${Math.round(l.share * 100)}%`).join("  ·  ")}</div>
       )}
       {chatLine && <div className="gs-brain__lean">{chatLine}</div>}
@@ -160,7 +172,7 @@ function VersusBoard({ game, style, now }: { game: StreamGameView; style?: CSSPr
         </div>
       )}
       {game.playalong.length > 0 && (
-        <div className="gs-brain__top">Top brains in chat: {game.playalong.slice(0, 3).map((p) => `${p.name} ${p.points}`).join("  ·  ")}</div>
+        <div className="gs-brain__top">{co ? "Top brains in both chats" : "Top brains in chat"}: {game.playalong.slice(0, 3).map((p) => `${p.name} ${p.points}`).join("  ·  ")}</div>
       )}
     </div>
   );

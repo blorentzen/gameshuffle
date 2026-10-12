@@ -8,11 +8,17 @@ import {
 } from "@/lib/subscription";
 import type { CompanionSavedState } from "@/lib/companion/saveStates";
 import { CompanionShell } from "./CompanionShell";
+import { normalizeCode } from "@/lib/companion/liveRules";
+import { SITE_URL } from "@/lib/seo";
 
+// The app itself (sign-in chooser, then the board): kept out of search so the
+// landing page, /pokemon-tcg-companion, is the one that ranks. Links still count.
 export const metadata: Metadata = {
   title: "TCG Companion",
   description:
-    "A TCG-agnostic digital accessory kit: damage counters, condition tracking, prize counts, coin flips, and dice for the table. Ships with Pokémon Mode.",
+    "Open the free GameShuffle TCG Companion: damage counters, condition tracking, prize counts, coin flips and dice for your Pokémon TCG table.",
+  alternates: { canonical: `${SITE_URL}/tcg-companion` },
+  robots: { index: false, follow: true },
 };
 
 /**
@@ -24,7 +30,7 @@ export const metadata: Metadata = {
  * client-only signal for the "continue as guest" opt-in.
  */
 interface PageProps {
-  searchParams?: Promise<{ resume?: string | string[] }>;
+  searchParams?: Promise<{ resume?: string | string[]; play?: string | string[] }>;
 }
 
 export default async function Page({ searchParams }: PageProps) {
@@ -111,6 +117,9 @@ export default async function Page({ searchParams }: PageProps) {
     autoResume = savedGames.find((s) => s.id === resumeId) ?? null;
   }
 
+  // Play together: `?play=CODE` joins (or gets back into) a shared game.
+  const liveCode = normalizeCode(typeof params.play === "string" ? params.play : null);
+
   return (
     <CompanionShell
       isAuthenticated={!!user}
@@ -118,6 +127,7 @@ export default async function Page({ searchParams }: PageProps) {
       tier={tier}
       savedGames={savedGames}
       autoResume={autoResume}
+      liveCode={liveCode}
     />
   );
 }

@@ -6,13 +6,14 @@
  *
  * v1 Scope §7: "When a player's prize count reaches 0, prompt
  * 'Game over — Player X wins?'". The prompt is confirmation-style
- * because mistakes happen: the player may want to undo and adjust.
+ * because mistakes happen: Undo (or closing it) steps back the move
+ * that ended the game, with the board restored.
  *
  * Wave 3: on "New game", an authenticated viewer's result persists
  * via `saveCompanionGameResult`. Guests' games are in-memory only.
  */
 
-import { Modal } from "@empac/cascadeds";
+import { Button, Modal } from "@empac/cascadeds";
 import { useState } from "react";
 import { useSession } from "@/lib/companion/SessionContext";
 import { saveCompanionGameResult } from "@/lib/companion/persistence";
@@ -23,22 +24,18 @@ interface Props {
 }
 
 export function GameOverModal({ viewer }: Props) {
-  const { state, dispatch, mode, startedAt } = useSession();
+  const { state, dispatch, mode, startedAt, undo } = useSession();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const winner = state.winner;
   const isOpen = winner != null;
 
+  // Step back the move that ended the game (a Knock Out puts the Pokémon
+  // back, prize counts and all). The old version gave a prize back but never
+  // cleared the winner, so the window stayed open and each Undo added a prize.
   const handleUndo = () => {
-    if (saving) return;
-    if (!winner) return;
-    // Roll back the win flag and give the player a prize back, so
-    // they can keep playing without resetting the whole game.
-    dispatch({
-      type: "ADJUST_WIN_COUNTER",
-      player: winner,
-      delta: mode.winCounterDirection === "down" ? 1 : -1,
-    });
+    if (saving || !winner) return;
+    undo();
     setSaveError(null);
   };
 
@@ -50,8 +47,8 @@ export function GameOverModal({ viewer }: Props) {
       try {
         const result = await saveCompanionGameResult({
           mode: mode.key,
-          player1Label: "Player 1",
-          player2Label: "Player 2",
+          player1Label: state.playerNames.p1,
+          player2Label: state.playerNames.p2,
           winner: winner === "p1" ? "player_1" : "player_2",
           startedAt: new Date(startedAt).toISOString(),
         });
@@ -60,7 +57,7 @@ export function GameOverModal({ viewer }: Props) {
           // start a new game. Losing a single result row is far less
           // damaging than blocking them on the game-over screen.
           console.error("[companion] save failed", result.reason);
-          setSaveError("Saved offline only. Couldn't reach the server.");
+          setSaveError("Couldn't save this result to your account. Your next games still save.");
         }
       } finally {
         setSaving(false);
@@ -69,7 +66,7 @@ export function GameOverModal({ viewer }: Props) {
     dispatch({ type: "RESET_GAME", mode });
   };
 
-  const winnerLabel = winner === "p1" ? "Player 1" : winner === "p2" ? "Player 2" : "";
+  const winnerLabel = winner ? state.playerNames[winner] : "";
 
   return (
     <Modal isOpen={isOpen} onClose={handleUndo} title="Game over?">
@@ -90,22 +87,10 @@ export function GameOverModal({ viewer }: Props) {
         )}
 
         <div className="companion-gameover__actions">
-          <button
-            type="button"
-            className="companion-gameover__btn companion-gameover__btn--secondary"
-            onClick={handleUndo}
-            disabled={saving}
-          >
-            Undo
-          </button>
-          <button
-            type="button"
-            className="companion-gameover__btn companion-gameover__btn--primary"
-            onClick={handleNewGame}
-            disabled={saving}
-          >
-            {saving ? "Saving…" : "New game"}
-          </button>
+          <Button variant="secondary" onClick={handleUndo} disabled={saving}>Undo the last move</Button>
+          <Button variant="primary" onClick={() => void handleNewGame()} disabled={saving} loading={saving}>
+            New game
+          </Button>
         </div>
       </div>
     </Modal>

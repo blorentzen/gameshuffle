@@ -14,9 +14,8 @@
  */
 
 import { Modal } from "@empac/cascadeds";
-import { useEffect, useState } from "react";
-import { useMode, useSession } from "@/lib/companion/SessionContext";
-import { rollDie } from "@/lib/companion/rng";
+import { useEffect, useRef, useState } from "react";
+import { useMode, useSession, type DieResult } from "@/lib/companion/SessionContext";
 import { DicePips } from "./DicePips";
 
 const ANIM_MS = 900;
@@ -102,21 +101,28 @@ interface BodyProps {
 }
 
 function DiceRollBody({ faces, onReveal }: BodyProps) {
-  const { dispatch } = useSession();
-  // Pure-React idiom: useState's lazy initializer runs exactly once
-  // per mount, so the RNG fires once and the rendered result is
-  // stable across re-renders.
-  const [value] = useState<number>(() => rollDie(faces));
+  const { dispatch, random } = useSession();
+  // One roll per mount (the ref survives React's dev double-run of effects).
+  // In a shared game the server rolls and logs it for both phones.
+  const [result, setResult] = useState<DieResult | null>(null);
+  const asked = useRef(false);
+  useEffect(() => {
+    if (asked.current) return;
+    asked.current = true;
+    void random.die(faces).then(setResult);
+  }, [random, faces]);
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
+    if (!result) return;
     const t = setTimeout(() => {
-      dispatch({ type: "LOG_DICE_ROLL", faces, result: value });
+      if (!result.logged) dispatch({ type: "LOG_DICE_ROLL", faces, result: result.value });
       setSettled(true);
-      onReveal(value);
+      onReveal(result.value);
     }, ANIM_MS);
     return () => clearTimeout(t);
-  }, [dispatch, faces, value, onReveal]);
+  }, [dispatch, faces, result, onReveal]);
+  const value = result?.value ?? 1;
 
   // d6 gets the canonical pip face. Larger dice (a future mode might
   // ship d10/d20) fall back to the digit display since there's no

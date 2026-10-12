@@ -1306,7 +1306,10 @@ html.dark .gs-platform-icon {
    hero's dark frosted pill the blue primary reads fine, so this is --plain-only. */
 .gs-nav-shell--plain .user-menu__signup .empac-button {
   background: #fff !important;
-  color: var(--primary-ink-700) !important;
+  /* The fixed step, not --primary-ink-700: the background is always white, and
+     the ink alias turns light in dark mode (light-on-white on any themed page
+     reached signed out). */
+  color: var(--primary-700) !important;
   border-color: #fff !important;
 }
 .gs-nav-shell--plain .user-menu__signup .empac-button::before {

@@ -162,9 +162,12 @@ export function boardEndLine(i: { cleared: boolean; strikes: number; boardPoints
   return `${head}${rest}${i.last ? "" : " Mods: !cb next for the next board."}`.slice(0, 480);
 }
 
-export function finalLine(i: { score: number; boards: number; top: { name: string; points: number }[] }): string {
-  const top = i.top.length ? ` Top brains: ${i.top.map((t) => `${t.name} ${t.points}`).join(", ")}.` : "";
-  return `🧠 Game over! Chat scored ${i.score} points over ${i.boards} board${i.boards === 1 ? "" : "s"}.${top}`.slice(0, 480);
+/** "Sam 48 (+50 tokens)" for a viewer on the final line. */
+const withTokens = (t: { name: string; points: number; tokens?: number }) => `${t.name} ${t.points}${t.tokens ? ` (+${t.tokens} tokens)` : ""}`;
+
+export function finalLine(i: { score: number; boards: number; top: { name: string; points: number; tokens?: number }[]; speed?: boolean }): string {
+  const top = i.top.length ? ` ${i.speed ? "Fastest brains" : "Top brains"}: ${i.top.map(withTokens).join(", ")}.` : "";
+  return `🧠 Game over! Chat ${i.speed ? "found" : "scored"} ${i.score} points over ${i.boards} board${i.boards === 1 ? "" : "s"}.${top}`.slice(0, 480);
 }
 
 // ─── 1v1 and Teams (two player sides; spec "1v1 and Teams") ──────────────────
@@ -305,12 +308,159 @@ export function roundEndLine(i: {
   return `🧠 ${head}${advice}${rest}${scores}${i.last ? "" : " Next round coming up."}`.slice(0, 480);
 }
 
-export function versusFinalLine(i: { sides: { name: string; score: number }[]; chatScore: number; chatRight: { right: number; asked: number }; top: { name: string; points: number }[] }): string {
+export function versusFinalLine(i: { sides: { name: string; score: number }[]; chatScore: number; chatRight: { right: number; asked: number }; top: { name: string; points: number; tokens?: number }[] }): string {
   const [a, b] = i.sides;
   const head = a.score === b.score ? `It's a tie at ${a.score}!`
     : `${(a.score > b.score ? a : b).name} wins, ${Math.max(a.score, b.score)} to ${Math.min(a.score, b.score)}!`;
   const chat = i.chatScore > 0 ? ` Chat stole ${i.chatScore} points.` : "";
   const right = i.chatRight.asked ? ` Chat was right ${i.chatRight.right} of ${i.chatRight.asked} time${i.chatRight.asked === 1 ? "" : "s"} it was asked.` : "";
-  const top = i.top.length ? ` Top brains in chat: ${i.top.map((t) => `${t.name} ${t.points}`).join(", ")}.` : "";
+  const top = i.top.length ? ` Top brains in chat: ${i.top.map(withTokens).join(", ")}.` : "";
   return `🧠 Game over! ${head}${chat}${right}${top}`.slice(0, 480);
+}
+
+// ─── Speed round (spec "Speed round") ────────────────────────────────────────
+//
+// No guess windows: the board is open, and the first viewer whose `!a` matches
+// a hidden answer reveals it and takes its points. Every find restarts a
+// 20-second timer; when it runs out with no find, that's a strike. Three
+// strikes or a cleared board ends it. First to answer wins, so it suits
+// low-latency streams best.
+
+/** Seconds between finds before a strike. */
+export const SPEED_SECONDS = 20;
+
+export function speedQuestionLine(i: { index: number; count: number; question: string }): string {
+  return `🧠 SPEED ROUND${i.count > 1 ? `, board ${i.index + 1} of ${i.count}` : ""}: ${i.question}  ▸  first to find an answer with !a gets its points. ${SPEED_SECONDS}s between finds or it's a strike!`.slice(0, 480);
+}
+
+export function findLine(i: { name: string; rank: number; label: string; points: number; left: number }): string {
+  const tail = i.left > 0 ? ` ${i.left} still hidden, ${SPEED_SECONDS}s to find the next.` : "";
+  return `🧠 ${i.name} found #${i.rank} ${shout(i.label)} for ${i.points}!${tail}`.slice(0, 480);
+}
+
+export function speedStrikeLine(i: { strikes: number; left: number }): string {
+  return `🧠 ${SPEED_SECONDS} seconds with no find: ✖ Strike ${i.strikes}. ${i.left} still hidden, the timer starts again.`;
+}
+
+// ─── Prize for the top brains ────────────────────────────────────────────────
+//
+// The host can put up a token prize when starting a game. At the end it's
+// split between the top three viewers by points (play-along points, or what
+// they found in a speed round): 50/30/20, or 60/40 with two, all of it with
+// one. Viewers tied on points share the places they cover; nobody past third
+// place gets anything, and nobody with 0 points. Paid from the streamer's
+// monthly allowance.
+
+export const PRIZE_CHOICES = [0, 25, 50, 100, 250, 500] as const;
+export const PRIZE_MAX = 5000;
+
+const PLACE_SHARES: Record<number, number[]> = { 1: [1], 2: [0.6, 0.4], 3: [0.5, 0.3, 0.2] };
+
+/** Each viewer's cut of the prize (key → tokens). Whole tokens; leftovers go to the top of the table. */
+export function prizeSplit(prize: number, standings: { key: string; points: number }[]): Map<string, number> {
+  const out = new Map<string, number>();
+  const total = Math.max(0, Math.floor(prize));
+  const scored = standings.filter((s) => s.points > 0).sort((a, b) => b.points - a.points);
+  if (!total || !scored.length) return out;
+  const shares = PLACE_SHARES[Math.min(3, scored.length)];
+  // Group ties; a group covering places i..j shares whichever of those are in the top three.
+  let place = 0;
+  const cuts: { key: string; share: number }[] = [];
+  for (let i = 0; i < scored.length && place < shares.length; ) {
+    let j = i;
+    while (j + 1 < scored.length && scored[j + 1].points === scored[i].points) j += 1;
+    const size = j - i + 1;
+    const groupShare = shares.slice(place, place + size).reduce((n, s) => n + s, 0);
+    for (let k = i; k <= j; k += 1) cuts.push({ key: scored[k].key, share: groupShare / size });
+    place += size;
+    i = j + 1;
+  }
+  let given = 0;
+  for (const c of cuts) {
+    const n = Math.floor(total * c.share);
+    out.set(c.key, n);
+    given += n;
+  }
+  // Rounding leftovers, one token at a time from the top.
+  for (let i = 0; given < total && cuts.length; i = (i + 1) % cuts.length) {
+    out.set(cuts[i].key, (out.get(cuts[i].key) ?? 0) + 1);
+    given += 1;
+  }
+  for (const [k, v] of out) if (v <= 0) out.delete(k);
+  return out;
+}
+
+// ─── Co-stream (two chat sides; spec "Co-stream") ─────────────────────────────
+//
+// Two channels' chats, one team each. A round per board: a face-off window
+// open to both chats at once (each chat's answer counted separately; the
+// higher hit wins control; both on the same answer = the chat that found it
+// first; neither = again, up to three tries, then the host picks), then guess
+// windows for the chat in control until the board is cleared or three
+// strikes, then one steal window for the other chat. The round's pot goes to
+// the winner, doubled in the last round of two or more.
+
+export const COSTREAM_ROUNDS = { min: 2, max: 6, default: 4 } as const;
+
+/** One chat's face-off: its answer, what it scored, and when that chat first typed the answer it scored with. */
+export interface FaceoffSide { team: number; outcome: WindowOutcome; firstAt: number | null }
+
+export type CostreamFaceoff =
+  | { result: "won"; winner: number; reveals: { team: number; rank: number; points: number }[] }
+  | { result: "again" };
+
+/**
+ * Who wins a co-stream face-off. Hits on different answers both reveal and the
+ * higher one (lower rank) wins; the same answer reveals once, for the chat
+ * that typed it first; no hits = again.
+ */
+export function costreamFaceoff(a: FaceoffSide, b: FaceoffSide): CostreamFaceoff {
+  const hitA = a.outcome.result === "hit" ? a.outcome : null;
+  const hitB = b.outcome.result === "hit" ? b.outcome : null;
+  if (!hitA && !hitB) return { result: "again" };
+  if (hitA && hitB && hitA.rank === hitB.rank) {
+    const first = (a.firstAt ?? Infinity) <= (b.firstAt ?? Infinity) ? a : b;
+    return { result: "won", winner: first.team, reveals: [{ team: first.team, rank: hitA.rank, points: hitA.points }] };
+  }
+  const reveals = [hitA && { team: a.team, rank: hitA.rank, points: hitA.points }, hitB && { team: b.team, rank: hitB.rank, points: hitB.points }]
+    .filter((r): r is { team: number; rank: number; points: number } => !!r);
+  const winner = hitA && hitB ? (hitA.rank < hitB.rank ? a.team : b.team) : hitA ? a.team : b.team;
+  return { result: "won", winner, reveals };
+}
+
+/** When a chat first typed an answer matching this board rank (for face-off ties). */
+export function firstMatchAt(guesses: StreamGuess[], board: BoardAnswer[], rank: number): number | null {
+  let first: number | null = null;
+  for (const g of guesses) {
+    const hit = matchGuess(g.normalized, board, []);
+    if (hit?.rank === rank && (first === null || g.at < first)) first = g.at;
+  }
+  return first;
+}
+
+export function costreamQuestionLine(i: { round: number; rounds: number; question: string; sides: [string, string]; double: boolean }): string {
+  const head = `Round ${i.round + 1} of ${i.rounds}${i.double ? " (double points!)" : ""}`;
+  return `🧠 Co-stream ${head}: ${i.question}  ▸  Face-off! ${i.sides[0]} vs ${i.sides[1]}: both chats answer with !a, the higher answer wins control.`.slice(0, 480);
+}
+
+const chatSaid = (who: string, o: WindowOutcome) =>
+  o.result === "hit" ? `${who} said ${shout(o.label)} (#${o.rank})`
+    : o.result === "empty" ? `${who} didn't answer`
+    : o.reason === "already" ? `${who} said ${shout(o.label)} (already up)`
+    : `${who} said ${shout(o.label)} (not on the board)`;
+
+export function faceoffLine(i: { sides: [string, string]; outcomes: [WindowOutcome, WindowOutcome]; result: CostreamFaceoff; winnerName: string | null; attempt: number; maxAttempts: number }): string {
+  const said = `${chatSaid(i.sides[0], i.outcomes[0])}; ${chatSaid(i.sides[1], i.outcomes[1])}.`;
+  if (i.result.result === "won") return `🧠 Face-off: ${said} ${i.winnerName} takes control: !a to keep going!`.slice(0, 480);
+  return i.attempt < i.maxAttempts
+    ? `🧠 Face-off: ${said} No hits, so it's face-off again!`.slice(0, 480)
+    : `🧠 Face-off: ${said} Still nothing, so the host picks who plays.`.slice(0, 480);
+}
+
+export function costreamTurnLine(i: { who: string; outcome: WindowOutcome; strikes: number; next: "guess" | "steal" | "cleared"; other: string }): string {
+  const head = chatSaid(i.who, i.outcome);
+  if (i.next === "cleared") return `🧠 ${head}. Board cleared!`.slice(0, 480);
+  if (i.outcome.result === "hit") return `🧠 ${head}! Keep going: !a.`.slice(0, 480);
+  if (i.next === "steal") return `🧠 ${head}. ✖ Strike 3! ${i.other}, one answer to steal the round: !a.`.slice(0, 480);
+  return `🧠 ${head}. ✖ Strike ${i.strikes}.`.slice(0, 480);
 }

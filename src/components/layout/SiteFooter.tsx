@@ -63,8 +63,9 @@ const SECTIONS = [
     title: p.label,
     links: p.groups.flatMap((g) => g.items)
       // Signed-in-only destinations are pointless in a footer most visitors
-      // meet while logged out; secondary ones would unbalance the columns.
-      .filter((i) => !i.secondary && (!i.audience || i.audience === "everyone"))
+      // meet while logged out; secondary ones would unbalance the columns,
+      // unless an item asks for a footer spot (`footer: true`).
+      .filter((i) => (!i.secondary || i.footer) && (!i.audience || i.audience === "everyone"))
       .map((i) => ({ label: i.label, href: i.href })),
   })),
   ...FOOTER_EXTRA.filter((g) => g.heading !== "Legal").map((g) => ({

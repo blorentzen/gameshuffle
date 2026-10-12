@@ -37,6 +37,8 @@ export interface NavDestination {
   paid?: "pro" | "circuit";
   /** Keep out of the primary nav; still reachable from the pillar page/footer. */
   secondary?: boolean;
+  /** List in the footer even when `secondary` keeps it out of the nav menus. */
+  footer?: boolean;
 }
 
 export interface NavGroup {
@@ -110,7 +112,11 @@ export const PILLARS: Pillar[] = [
           ...(PERFECT_DARK_PUBLIC ? [{ label: "Perfect Dark randomizer", href: "/randomizers/perfect-dark", blurb: "Scenario, arena, weapons and simulants for a Combat Simulator match. New.", secondary: true }] : []),
           ...(OVERWATCH_PUBLIC ? [{ label: "Overwatch hero randomizer", href: "/randomizers/overwatch", blurb: "Hero roulette with role queue, no repeats and a random map. New.", secondary: true }] : []),
           ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players. New.", secondary: true }] : []),
-          { label: "TCG Companion", href: "/pokemon-tcg", blurb: "Damage, conditions, prizes and coin flips at the table." },
+          { label: "Pokémon TCG", href: "/pokemon-tcg", blurb: "Deck guides, singles and the free companion for the card game." },
+          // Footer only: the nav menu already reaches the deck guides through the hub.
+          { label: "Pokémon decks", href: "/pokemon-tcg/decks", blurb: "Standard deck lists and guides, from beginner to competitive.", secondary: true, footer: true },
+          { label: "Pokémon TCG rules", href: "/pokemon-tcg/rules", blurb: "Damage counters, Special Conditions, Prize cards and a turn, in plain words.", secondary: true, footer: true },
+          { label: "TCG Companion", href: "/pokemon-tcg-companion", blurb: "Damage, conditions, prizes and coin flips at the table." },
           { label: "Open the Companion", href: "/tcg-companion", secondary: true },
           { label: "My Cards", href: "/account/stuff?tab=my-cards", blurb: "Track the cards you own.", audience: "member" },
           // One door to the tools rather than ten rows of them. Listing every

@@ -1,0 +1,272 @@
+/* Pokémon TCG rules pages (/pokemon-tcg/rules): reuse the deck guides'
+   .deck-detail / .deck-prose layout; these add the lede, tools, FAQ,
+   companion hand-off, related links and the rules hub list. */
+.rules-page__lede {
+  margin: var(--spacing-8) 0 0;
+  max-width: 68ch;
+  font-size: var(--font-size-18);
+  line-height: var(--line-height-relaxed, 1.6);
+  color: var(--text-secondary);
+}
+.rules-page__body h2 {
+  scroll-margin-top: calc(var(--gs-nav-offset, 64px) + var(--spacing-16));
+}
+.rules-page__companion {
+  margin: var(--spacing-32) 0 0;
+  padding: var(--spacing-20);
+  border-radius: var(--radius-12);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+}
+.rules-page__companion h2 {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-20);
+}
+.rules-page__companion p {
+  margin: 0;
+  max-width: 64ch;
+  color: var(--text-secondary);
+}
+.rules-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-16);
+}
+.rules-page__faq {
+  margin-top: var(--spacing-32);
+}
+.rules-page__faq dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.rules-page__qa dt {
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.rules-page__qa dd {
+  margin: var(--spacing-4) 0 0;
+  color: var(--text-secondary);
+  max-width: 68ch;
+}
+.rules-page__related {
+  margin-top: var(--spacing-32);
+}
+.rules-page__related h2 {
+  font-size: var(--font-size-20);
+  margin: 0 0 var(--spacing-12);
+}
+.rules-page__related ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: var(--spacing-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rules-page__related li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-12) var(--spacing-14, 1.4rem);
+  border-radius: var(--radius-10, 1rem);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.rules-page__related a,
+.rules-hub__link {
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-ink, var(--primary-600));
+}
+.rules-page__checked {
+  margin: var(--spacing-32) 0 var(--spacing-48);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  max-width: 72ch;
+}
+.rules-page__table {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-10, 1rem);
+}
+.rules-page__table table {
+  margin: 0;
+}
+.rules-page__table:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+}
+/* Condition list with the companion's icons. */
+.rules-conds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  padding: 0 !important;
+  list-style: none;
+}
+.rules-conds li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+/* The interactive tools (counter tray, damage calculator). */
+.rules-tool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-14, 1.4rem);
+  margin: var(--spacing-12) 0 var(--spacing-24);
+  padding: var(--spacing-20);
+  border-radius: var(--radius-12);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+}
+.rules-tool__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+.rules-tool__hp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.rules-tool__hp-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  font-size: var(--font-size-18);
+  color: var(--text-primary);
+}
+.rules-tool__sub {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.rules-tool__bar {
+  display: block;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--background-elevated);
+  overflow: hidden;
+}
+.rules-tool__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--success-500);
+  transition: width 160ms ease;
+}
+.rules-tool__bar.is-low > span { background-color: var(--warning-500); }
+.rules-tool__bar.is-danger > span { background-color: var(--error-500); }
+.rules-tool__total {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-16);
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--radius-10, 1rem);
+  background-color: var(--background-elevated);
+}
+.rules-tool__number {
+  flex: none;
+  min-width: 5.6rem;
+  font-family: var(--font-display);
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.rules-tool__stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+.rules-tool__steps {
+  margin: 0;
+  padding-left: var(--spacing-16);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.rules-tool__mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+  max-width: 36rem;
+  padding: var(--spacing-4);
+  border-radius: var(--radius-8);
+  background-color: var(--background-elevated);
+}
+.rules-tool__mode .empac-button {
+  width: 100%;
+  justify-content: center;
+}
+.rules-tool__tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-16);
+  align-items: flex-end;
+}
+.rules-tool__token.empac-button {
+  height: auto;
+  padding: var(--spacing-6);
+  border-radius: var(--radius-12);
+}
+.rules-tool__token .empac-button__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+.rules-tool__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.rules-tool__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: var(--spacing-12);
+}
+/* Rules hub list */
+.rules-hub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  margin: var(--spacing-24) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.rules-hub__item {
+  display: flex;
+  gap: var(--spacing-14, 1.4rem);
+  align-items: flex-start;
+  padding: var(--spacing-16);
+  border-radius: var(--radius-12);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--background-elevated);
+}
+.rules-hub__n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  background-color: var(--background-secondary);
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.rules-hub__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.rules-hub__link {
+  font-size: var(--font-size-18);
+}

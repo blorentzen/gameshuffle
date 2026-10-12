@@ -12,7 +12,14 @@
 
 export interface BattleBoxFrontmatter {
   // Identity & routing
+  /** The `<title>` (the layout adds " | GameShuffle"). Keep it to 46
+   *  characters so the full title stays within 60. */
   title: string;
+  /** The page's H1. Can run longer than `title`; falls back to it. */
+  h1: string;
+  /** The box's short name, e.g. "Fire vs. Fighting Battle Box", used in
+   *  cross-links from the deck pages and the deck index. */
+  name: string;
   slug: string;
   type: "battle-box";
   // The paired decks — each references a deck `.mdx` slug.
@@ -28,7 +35,9 @@ export interface BattleBoxFrontmatter {
   meta_description: string;
   target_keyword: string;
   secondary_keywords: string[];
+  /** Share image path under `public/`; pages fall back when it's missing. */
   og_image: string;
+  /** Informational only: pages build their canonical from SITE_URL + slug. */
   canonical: string;
   // Lifecycle (decay management)
   last_verified: string;

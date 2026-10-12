@@ -59,7 +59,11 @@ export function orderedTierBadges(
 
 export interface DeckFrontmatter {
   // Identity & routing
+  /** The `<title>` (the layout adds " | GameShuffle"). Keep it to 46
+   *  characters so the full title stays within 60. */
   title: string;
+  /** The page's H1. Can run longer than `title`; falls back to it. */
+  h1: string;
   slug: string;
   archetype: string;
   // Taxonomy (multi-value)
@@ -83,7 +87,10 @@ export interface DeckFrontmatter {
   meta_description: string;
   target_keyword: string;
   secondary_keywords: string[];
+  /** Share image path under `public/`. Pages fall back to the deck index's
+   *  image when the file doesn't exist (see `shareImage` in `@/lib/decks/seo`). */
   og_image: string;
+  /** Informational only: pages build their canonical from SITE_URL + slug. */
   canonical: string;
   // Lifecycle
   last_verified: string;

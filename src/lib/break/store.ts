@@ -22,9 +22,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { announceToCommunity } from "@/lib/twitch/announce";
 import { isProUser } from "@/lib/subscription-server";
-import { awardMint } from "@/lib/economy/awards";
-import { ensureAccountWallet } from "@/lib/economy/accountWallet";
-import { resolveIdentity } from "@/lib/economy/identity";
+import { payViewer } from "@/lib/economy/viewerPayouts";
 import { recordEvent } from "@/lib/sessions/service";
 import { getLiveSlugForUser } from "@/lib/twitch/streamerSlug";
 import { SESSION_EVENT_TYPES } from "@/lib/sessions/event-types";
@@ -295,18 +293,7 @@ async function payChampions(run: BreakRun, winners: { platform: string; viewer: 
  */
 async function payViewers(communityId: string, refId: string, viewers: { platform: string; viewer: string; name: string | null }[], each: number, source: string): Promise<number> {
   let paid = 0;
-  for (const w of viewers) {
-    try {
-      const identityId = w.platform === "site"
-        ? (await ensureAccountWallet(w.viewer, w.name ?? "Someone"))?.identityId
-        : (await resolveIdentity({ platform: "twitch", platformId: w.viewer, displayName: w.name })).identityId;
-      if (!identityId) continue;
-      const minted = await awardMint({ communityId, toIdentityId: identityId, amount: each, refId, meta: { source } });
-      if (minted.ok) paid = Math.max(paid, minted.minted);
-    } catch (err) {
-      console.error(`[break] ${source} payout failed:`, err);
-    }
-  }
+  for (const w of viewers) paid = Math.max(paid, await payViewer(communityId, refId, w, each, source));
   return paid;
 }
 

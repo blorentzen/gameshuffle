@@ -9,6 +9,8 @@
 
 import { Modal, Button } from "@empac/cascadeds";
 import { useState } from "react";
+import { IconUserPlus, IconUsers } from "@tabler/icons-react";
+import { JoinByCode } from "./JoinByCode";
 
 interface Props {
   isOpen: boolean;
@@ -18,7 +20,16 @@ interface Props {
   /** Save only shows for a signed-in player mid-game. */
   canSave: boolean;
   onSave: () => void;
+  /** Hidden for the second phone of a shared game (only the host starts one). */
+  canStartNew?: boolean;
   onNewGame: () => void;
+  /** Play together: null on a single phone; otherwise whether this phone hosts. */
+  live?: { host: boolean } | null;
+  /** Play together is switched on (its table exists). */
+  canPlayTogether?: boolean;
+  onPlayTogether: () => void;
+  onEndLive: () => void;
+  onLeaveLive: () => void;
 }
 
 export function GameMenuModal({
@@ -27,7 +38,13 @@ export function GameMenuModal({
   summary,
   canSave,
   onSave,
+  canStartNew = true,
   onNewGame,
+  live = null,
+  canPlayTogether = false,
+  onPlayTogether,
+  onEndLive,
+  onLeaveLive,
 }: Props) {
   const [confirmingNew, setConfirmingNew] = useState(false);
 
@@ -55,14 +72,32 @@ export function GameMenuModal({
               Save game
             </Button>
           )}
-          <Button
-            variant={confirmingNew ? "danger" : "secondary"}
-            fullWidth
-            onClick={handleNewGame}
-          >
-            {confirmingNew ? "Confirm: start a new game?" : "New game"}
-          </Button>
+          {!live && canPlayTogether && (
+            <Button variant="secondary" fullWidth iconBefore={IconUsers} onClick={onPlayTogether}>
+              Play together
+            </Button>
+          )}
+          {live?.host && (
+            <Button variant="secondary" fullWidth iconBefore={IconUserPlus} onClick={onPlayTogether}>
+              Show the game code
+            </Button>
+          )}
+          {canStartNew && (
+            <Button
+              variant={confirmingNew ? "danger" : "secondary"}
+              fullWidth
+              onClick={handleNewGame}
+            >
+              {confirmingNew ? "Confirm: start a new game?" : "New game"}
+            </Button>
+          )}
+          {live && (
+            <Button variant="ghost" fullWidth onClick={live.host ? onEndLive : onLeaveLive}>
+              {live.host ? "End the shared game" : "Leave the shared game"}
+            </Button>
+          )}
         </div>
+        {!live && <JoinByCode compact />}
       </div>
     </Modal>
   );

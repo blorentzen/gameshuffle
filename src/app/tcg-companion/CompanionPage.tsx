@@ -10,14 +10,14 @@
  * or playing as a guest (no persistence).
  */
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import {
   IconCards,
   IconShoppingCart,
 } from "@tabler/icons-react";
-import { SessionProvider, useSession } from "@/lib/companion/SessionContext";
+import { SessionProvider, useSession, type LiveBoot } from "@/lib/companion/SessionContext";
 import { CompanionBoard } from "@/components/companion/CompanionBoard";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { ResolveModal } from "@/components/companion/ResolveModal";
@@ -30,6 +30,7 @@ import { CompanionToastProvider } from "@/components/companion/ToastProvider";
 import { pokemonMode } from "@/lib/companion/modes/pokemon";
 import type { PlayerId } from "@/lib/companion/types";
 import type { CompanionSavedState } from "@/lib/companion/saveStates";
+import { readLocalGame, type LocalGame } from "@/lib/companion/autosave";
 
 /** Which player's Resolve modal is open, or null when closed. The
  *  context provider below makes this available to CheckupPrompt
@@ -71,9 +72,11 @@ interface Props {
    *  page dispatches LOAD_SAVED_STATE on mount and skips the resume
    *  picker / settings modal entirely. */
   autoResume: CompanionSavedState | null;
+  /** Play together: open straight into this shared game. */
+  live?: LiveBoot | null;
 }
 
-export function CompanionPage({ viewer, savedGames, autoResume }: Props) {
+export function CompanionPage({ viewer, savedGames, autoResume, live = null }: Props) {
   // Player 1 auto-seeds with the signed-in user's display name so
   // their identity is recognized on the board out of the box. Guests
   // (no display name) fall back to the engine's "Player 1" default.
@@ -87,10 +90,12 @@ export function CompanionPage({ viewer, savedGames, autoResume }: Props) {
       player1Name={player1Name}
       initialSavedState={autoResume}
       isAuthenticated={viewer.kind === "auth"}
+      isPro={viewer.kind === "auth" && viewer.tier === "pro"}
+      live={live}
     >
       <CompanionToastProvider>
         <ResolveOverlayProvider>
-          <div className="companion-page">
+          <main className="companion-page">
             <Header viewer={viewer} />
             <GameSettingsGate savedGames={savedGames}>
               <CompanionBoard />
@@ -99,10 +104,11 @@ export function CompanionPage({ viewer, savedGames, autoResume }: Props) {
             <FeedbackButton viewerIsAuthenticated={viewer.kind === "auth"} />
             {/* Card-data + imagery attribution — required now that real card
                 art can appear on the board (Scrydex / Pokémon Company). */}
-            <footer className="companion-page__legal">
+            {/* A div, not <footer>: the site footer is the page's one contentinfo landmark. */}
+            <div className="companion-page__legal">
               <TcgAttribution />
-            </footer>
-          </div>
+            </div>
+          </main>
         </ResolveOverlayProvider>
       </CompanionToastProvider>
     </SessionProvider>
@@ -121,38 +127,59 @@ function GameSettingsGate({
   savedGames: CompanionSavedState[];
   children: React.ReactNode;
 }) {
-  const { state } = useSession();
-  // Track whether the user has dismissed the resume picker in favor
-  // of a new game. Stays in-memory because we want the picker back
-  // on a Reset Game (which flips gameStarted off, re-renders this).
-  const [dismissedResume, setDismissedResume] = useState(false);
+  const { state, startedAt, live } = useSession();
+  // The picker was dismissed for THIS game: a Reset Game (new startedAt)
+  // brings it back. (A plain boolean stayed true after a reset.)
+  const [dismissedFor, setDismissedFor] = useState<number | null>(null);
+  const dismissedResume = dismissedFor === startedAt;
   // CDS Modal is portal/client-only (returns null on the server). Rendering an
   // open Modal during SSR/first hydration mismatches the tree — and the ensuing
   // client regeneration can leave the shared scroll-lock unbalanced. Defer the
   // modal branches until mounted so the first client render matches the server.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  // The game this browser kept (localStorage), read again after each Reset.
+  // Nothing renders until mounted, so reading it here can't mismatch the server.
+  const [local, setLocal] = useState<{ at: number; game: LocalGame | null }>(() => ({ at: startedAt, game: browserGame() }));
+  if (local.at !== startedAt) setLocal({ at: startedAt, game: browserGame() });
+  const localGame = local.game;
 
   if (state.gameSettings.gameStarted) return <>{children}</>;
   if (!mounted) return null;
 
-  if (savedGames.length > 0 && !dismissedResume) {
+  // A shared game between games: the host sets the next one up.
+  if (live && !live.host) {
+    return (
+      <div className="companion-waiting" role="status">
+        <p className="companion-waiting__title">Waiting for {live.seats.p1.name || "the host"} to set up the next game</p>
+        <p className="companion-waiting__note">The board appears here as soon as they start.</p>
+      </div>
+    );
+  }
+
+  // The browser's own saved game belongs to single-phone play.
+  const localForPicker = live ? null : localGame;
+  const canResume = savedGames.length > 0 || !!localForPicker;
+  if (canResume && !dismissedResume) {
     return (
       <ResumePicker
         isOpen={true}
         savedGames={savedGames}
+        localGame={localForPicker}
         onResume={() => {
           // LOAD_SAVED_STATE dispatch happens inside the picker;
           // dismissing here just hides the modal layer.
-          setDismissedResume(true);
+          setDismissedFor(startedAt);
         }}
-        onStartNew={() => setDismissedResume(true)}
+        onStartNew={() => setDismissedFor(startedAt)}
       />
     );
   }
 
-  return <GameSettingsModal isOpen={true} onApplied={() => undefined} />;
+  return <GameSettingsModal isOpen={true} onApplied={() => undefined} onClose={canResume ? () => setDismissedFor(null) : undefined} />;
 }
+
+const noopSubscribe = () => () => {};
+const browserGame = () => (typeof window === "undefined" ? null : readLocalGame());
 
 /** Hosts the per-player Resolve modal at the page root and exposes
  *  an `open`/`setOpen` context so CheckupPrompt buttons can open it

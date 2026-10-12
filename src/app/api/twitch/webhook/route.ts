@@ -305,6 +305,8 @@ async function handleNotification(payload: NotificationPayload) {
 
 interface ChatMessageEvent {
   broadcaster_user_id?: string;
+  /** Shared Chat: the channel the message was typed in (null outside a shared session). */
+  source_broadcaster_user_id?: string | null;
   chatter_user_id?: string;
   chatter_user_login?: string;
   chatter_user_name?: string;
@@ -398,10 +400,17 @@ async function handleChatMessage(event: ChatMessageEvent) {
   // window is open in this channel goes straight to the guess table, skipping
   // the dispatcher and its cooldowns. Silent. No open window → the normal
   // dispatcher handles it (so `!cb` subcommands still work).
+  // In a Twitch Shared Chat session a message can arrive through another
+  // channel's subscription: the channel it was typed in decides which chat it
+  // plays for (a Chat Brain co-stream), else this channel's window.
   const brainAnswer = answerFromChat(text);
-  if (brainAnswer && (await openWindowFor(broadcasterId))) {
+  const source = event.source_broadcaster_user_id || broadcasterId;
+  const brainChannel = brainAnswer
+    ? source !== broadcasterId && (await openWindowFor(source)) ? source : (await openWindowFor(broadcasterId)) ? broadcasterId : null
+    : null;
+  if (brainAnswer && brainChannel) {
     await recordGuess({
-      broadcasterId,
+      broadcasterId: brainChannel,
       platform: "twitch",
       viewer: senderId,
       name: event.chatter_user_name || event.chatter_user_login || null,

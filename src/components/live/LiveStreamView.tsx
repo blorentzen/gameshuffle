@@ -51,6 +51,7 @@ import { LivePollCard } from "./LivePollCard";
 import { LiveBingoCard } from "./LiveBingoCard";
 import { LiveBreakCard } from "./LiveBreakCard";
 import { LiveTriviaCard } from "./LiveTriviaCard";
+import { LiveChatBrainCard } from "./LiveChatBrainCard";
 import { LiveDraftCard } from "./LiveDraftCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
@@ -213,6 +214,7 @@ export function LiveStreamView({
           {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
           <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
           <LiveTriviaCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
+          <LiveChatBrainCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
           <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
           <LiveDraftCard communityId={initialLeaderboard.communityId} />
           {upcoming && (
@@ -692,6 +694,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
 
         <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
         <LiveTriviaCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
+        <LiveChatBrainCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
         <LivePollCard communityId={initialLeaderboard.communityId} />
         <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
         <LiveDraftCard communityId={initialLeaderboard.communityId} />

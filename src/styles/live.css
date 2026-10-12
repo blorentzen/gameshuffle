@@ -2572,6 +2572,13 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .cb-stream__rank { font-weight: 800; }
 .cb-stream__label { font-weight: 600; overflow-wrap: anywhere; }
 .cb-stream__pts { font-weight: 800; font-variant-numeric: tabular-nums; }
+.cb-costream__search { display: grid; gap: var(--spacing-8, 8px); }
+.cb-costream__hits { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
+.cb-costream__picked { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8, 8px); padding: var(--spacing-10, 10px) var(--spacing-12, 12px); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); }
+.cb-costream__invite { display: grid; gap: var(--spacing-8, 8px); padding-block: var(--spacing-8, 8px); border-bottom: 1px solid var(--border-default); }
+.cb-costream__invite:last-of-type { border-bottom: 0; }
+.cb-costream__invite p { margin: 0; }
+.cb-stream__finder { display: block; font-size: var(--font-size-12); font-weight: 500; color: var(--text-secondary); }
 .cb-stream__meta { font-size: var(--font-size-14); margin: 0 0 var(--spacing-8); }
 .cb-stream__overrule { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin-top: var(--spacing-12); }
 .cb-stream__time { max-width: 32rem; margin-top: var(--spacing-12); }
@@ -2622,6 +2629,21 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .live-trivia__standings li span { min-width: 0; overflow-wrap: anywhere; }
 .live-trivia__standings li span::before { content: counter(trivia) ". "; color: var(--text-secondary); }
 .live-trivia__standings li b { font-variant-numeric: tabular-nums; }
+/* Chat Brain on the live page: the board reads down two columns like the TV board, one on phones. */
+.live-brain__board { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-6, 6px); }
+.live-brain__board--bars { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 30rem) { .live-brain__board { grid-template-columns: minmax(0, 1fr); } }
+.live-brain__board li { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-8, 8px); min-height: 3.6rem; padding: 0 var(--spacing-10, 10px); border-radius: var(--radius-8, 8px); border: 1px dashed var(--border-default); background: var(--background-secondary); font-size: var(--font-size-14); }
+.live-brain__board li.is-found { border-style: solid; background: color-mix(in srgb, var(--brand-primary, var(--bg-primary)) 10%, var(--background-secondary)); }
+.live-brain__board li.is-revealed { border-style: solid; color: var(--text-secondary); }
+.live-brain__rank { font-weight: 800; color: var(--text-secondary); }
+.live-brain__label { font-weight: 700; overflow-wrap: anywhere; }
+.live-brain__label small { font-weight: 500; color: var(--text-secondary); }
+.live-brain__pts { font-weight: 800; font-variant-numeric: tabular-nums; }
+.live-brain__sides { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
+.live-brain__sides li { display: flex; gap: var(--spacing-8, 8px); align-items: baseline; padding: 0.4rem 1rem; border-radius: 99px; border: 1px solid var(--border-default); font-size: var(--font-size-14); }
+.live-brain__sides li.is-control { border-color: var(--brand-ink, var(--text-primary)); font-weight: 700; }
+.live-brain__sides li b { font-variant-numeric: tabular-nums; }
 .live-break__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--spacing-12, 12px); }
 .live-break__title { margin: 0; font-size: var(--font-size-18); }
 .live-break__clock { font-weight: 800; font-variant-numeric: tabular-nums; }
