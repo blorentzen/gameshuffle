@@ -2924,6 +2924,23 @@ ul {
   background-clip: content-box;
 }
 
+/* ── CDS bug: a selected success / warning / error Chip is white text on the
+   500 shade (green about 2.3:1, under WCAG's 4.5:1 for its small label). The
+   700 shades keep the look and clear 4.5:1 with white in both themes.
+   Upstream fix belongs in CascadeDS; local override until then. ── */
+.empac-chip--success.empac-chip--selected {
+  background: var(--success-700);
+  border-color: var(--success-700);
+}
+.empac-chip--warning.empac-chip--selected {
+  background: var(--warning-700);
+  border-color: var(--warning-700);
+}
+.empac-chip--error.empac-chip--selected {
+  background: var(--error-700);
+  border-color: var(--error-700);
+}
+
 /* ── CDS bug: the warning Badge is --warning-700 on --warning-100 (about
    2.7:1), under WCAG's 4.5:1 for its 12px text, wherever it appears. A darker
    amber keeps the look and clears 4.5:1. In dark mode it's --warning-300 on

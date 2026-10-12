@@ -13,6 +13,14 @@
  *
  *   A11Y_COOKIES=/path/to/cookies.json node scripts/a11y-check.cjs /account
  *
+ * For a page that needs state in the browser first (a game in progress),
+ * A11Y_STORAGE names a JSON file of localStorage items ({ "key": value }; a
+ * non-string value is stored as JSON) set before a reload, and A11Y_CLICK
+ * lists button texts to press after load, separated by "||" ("css:<selector>"
+ * clicks the first element matching a selector instead):
+ *
+ *   A11Y_STORAGE=game.json A11Y_CLICK="Resume||Attack" node scripts/a11y-check.cjs /tcg-companion
+ *
  * axe can't
  * judge everything (text on gradients and photos, focus order, what a screen
  * reader actually says), so it's a floor, not a pass.
@@ -63,6 +71,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     for (const page of PAGES) {
       await send("Page.navigate", { url: `${BASE}${page}` });
       await sleep(6000);
+      if (process.env.A11Y_STORAGE) {
+        const items = JSON.parse(fs.readFileSync(process.env.A11Y_STORAGE, "utf8"));
+        for (const [k, v] of Object.entries(items)) await evalJs(`localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(typeof v === "string" ? v : JSON.stringify(v))});1`);
+        await send("Page.reload", {});
+        await sleep(6000);
+      }
+      for (const text of (process.env.A11Y_CLICK || "").split("||").filter(Boolean)) {
+        await evalJs(`(() => { const want = ${JSON.stringify(text)}; const el = want.startsWith("css:") ? document.querySelector(want.slice(4)) : [...document.querySelectorAll("button, [role=button]")].find((b) => b.textContent.trim() === want); el?.click(); return !!el; })()`);
+        await sleep(2000);
+      }
       await evalJs(`${AXE};1`);
       const violations = await evalJs(`axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"] } })
         .then((r) => r.violations.map((v) => ({ id: v.id, impact: v.impact, help: v.help, url: v.helpUrl, nodes: v.nodes.slice(0, 4).map((n) => n.target.join(" ")) })))`);
