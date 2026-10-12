@@ -7,6 +7,8 @@ import { normalize, type BoardAnswer } from "../src/lib/chatbrain/rules";
 import {
   advisorMoment, answerLine, boardOver, chatAnswer, cleanSides, faceoffWinner, lastStealOpen, leaning, onClock, outcomeFor,
   playAlongAwards, playerOutcome, resultLine, roundEndLine, roundMultiplier, sameAnswer, versusFinalLine, type StreamGuess,
+  finalLine, findLine, prizeSplit, speedQuestionLine, speedStrikeLine, SPEED_SECONDS,
+  costreamFaceoff, costreamTurnLine, faceoffLine, firstMatchAt,
 } from "../src/lib/chatbrain/streamRules";
 import {
   EMPTY_SURVEY_STATE, aiPassDue, boardBlocker, parseAsk, shownGroups, surveyGroups, surveyStateOf, withHidden, withMerge,
@@ -248,6 +250,72 @@ test("!cb ask reads seconds and hidden in either order", () => {
   assert.deepEqual(parseAsk("secret 45 food"), { seconds: 45, style: "hidden", rest: "food" });
   assert.deepEqual(parseAsk("What is the best Mario Kart track?"), { seconds: null, style: null, rest: "What is the best Mario Kart track?" });
   assert.equal(surveyStateOf({ style: "hidden", hidden: ["x"], merges: "bad" }).merges.length, 0);
+});
+
+test("prize: 50/30/20 for three or more, 60/40 for two, all of it for one", () => {
+  const p = (pts: number[]) => prizeSplit(100, pts.map((points, i) => ({ key: `v${i}`, points })));
+  assert.deepEqual([...p([90, 50, 20, 10])], [["v0", 50], ["v1", 30], ["v2", 20]]);
+  assert.deepEqual([...p([40, 10])], [["v0", 60], ["v1", 40]]);
+  assert.deepEqual([...p([5])], [["v0", 100]]);
+  assert.equal(p([0, 0]).size, 0);
+  assert.equal(prizeSplit(0, [{ key: "a", points: 9 }]).size, 0);
+});
+
+test("prize: ties share the places they cover, nobody past third, every token handed out", () => {
+  const split = prizeSplit(100, [{ key: "a", points: 50 }, { key: "b", points: 40 }, { key: "c", points: 40 }, { key: "d", points: 40 }, { key: "e", points: 10 }]);
+  assert.equal(split.get("a"), 51); // 50, plus a rounding token
+  assert.deepEqual([split.get("b"), split.get("c"), split.get("d")].sort(), [16, 16, 17]); // places 2+3 (50) shared by three
+  assert.equal(split.has("e"), false);
+  assert.equal([...split.values()].reduce((n, v) => n + v, 0), 100);
+  const two = prizeSplit(25, [{ key: "a", points: 7 }, { key: "b", points: 7 }]);
+  assert.deepEqual([two.get("a"), two.get("b")].sort(), [12, 13]);
+  const firstTie = prizeSplit(100, [{ key: "a", points: 9 }, { key: "b", points: 9 }, { key: "c", points: 3 }]);
+  assert.equal((firstTie.get("a") ?? 0) + (firstTie.get("b") ?? 0), 80); // places 1+2 shared
+  assert.equal(firstTie.get("c"), 20);
+});
+
+test("speed round lines say who found it and what's left", () => {
+  assert.match(speedQuestionLine({ index: 0, count: 3, question: "Name a snack" }), /SPEED ROUND, board 1 of 3: Name a snack/);
+  assert.match(speedQuestionLine({ index: 0, count: 1, question: "Name a snack" }), new RegExp(`${SPEED_SECONDS}s between finds`));
+  assert.equal(findLine({ name: "Sam", rank: 2, label: "Board games", points: 25, left: 3 }), `🧠 Sam found #2 BOARD GAMES for 25! 3 still hidden, ${SPEED_SECONDS}s to find the next.`);
+  assert.equal(findLine({ name: "Sam", rank: 2, label: "Board games", points: 25, left: 0 }), "🧠 Sam found #2 BOARD GAMES for 25!");
+  assert.match(speedStrikeLine({ strikes: 2, left: 4 }), /Strike 2\. 4 still hidden/);
+});
+
+test("final lines add what each top viewer won", () => {
+  assert.equal(finalLine({ score: 80, boards: 2, top: [{ name: "Sam", points: 48, tokens: 50 }, { name: "Jo", points: 20 }], speed: true }),
+    "🧠 Game over! Chat found 80 points over 2 boards. Fastest brains: Sam 48 (+50 tokens), Jo 20.");
+  assert.match(finalLine({ score: 80, boards: 1, top: [{ name: "Sam", points: 48 }] }), /Chat scored 80 points over 1 board\. Top brains: Sam 48\.$/);
+});
+
+test("co-stream face-off: the higher hit wins, both hits reveal", () => {
+  const hit = (rank: number) => ({ result: "hit" as const, rank, points: board[rank - 1].points, label: board[rank - 1].label });
+  const miss = { result: "miss" as const, reason: "not_on_board" as const, label: "tacos" };
+  let r = costreamFaceoff({ team: 1, outcome: hit(3), firstAt: 5 }, { team: 2, outcome: hit(1), firstAt: 9 });
+  assert.ok(r.result === "won" && r.winner === 2 && r.reveals.length === 2);
+  r = costreamFaceoff({ team: 1, outcome: hit(2), firstAt: 5 }, { team: 2, outcome: miss, firstAt: null });
+  assert.ok(r.result === "won" && r.winner === 1 && r.reveals.length === 1 && r.reveals[0].team === 1);
+  r = costreamFaceoff({ team: 1, outcome: { result: "empty" }, firstAt: null }, { team: 2, outcome: miss, firstAt: null });
+  assert.equal(r.result, "again");
+});
+
+test("co-stream face-off: the same answer goes to the chat that typed it first, revealed once", () => {
+  const hit1 = { result: "hit" as const, rank: 1, points: 38, label: "Snacks" };
+  const r = costreamFaceoff({ team: 1, outcome: hit1, firstAt: 200 }, { team: 2, outcome: hit1, firstAt: 150 });
+  assert.ok(r.result === "won" && r.winner === 2 && r.reveals.length === 1 && r.reveals[0].team === 2);
+  t = 0;
+  const gs = [g("a", "drinks"), g("b", "chips"), g("c", "snacks")];
+  assert.equal(firstMatchAt(gs, board, 1), gs[1].at);
+  assert.equal(firstMatchAt(gs, board, 5), null);
+});
+
+test("co-stream lines", () => {
+  const hit = { result: "hit" as const, rank: 2, points: 25, label: "Board games" };
+  const miss = { result: "miss" as const, reason: "not_on_board" as const, label: "tacos" };
+  assert.match(faceoffLine({ sides: ["Blue", "Gold"], outcomes: [hit, miss], result: { result: "won", winner: 1, reveals: [] }, winnerName: "Blue", attempt: 1, maxAttempts: 3 }),
+    /Blue said BOARD GAMES \(#2\); Gold said TACOS \(not on the board\)\. Blue takes control/);
+  assert.match(faceoffLine({ sides: ["Blue", "Gold"], outcomes: [miss, miss], result: { result: "again" }, winnerName: null, attempt: 3, maxAttempts: 3 }), /host picks/);
+  assert.match(costreamTurnLine({ who: "Blue", outcome: miss, strikes: 3, next: "steal", other: "Gold" }), /Strike 3! Gold, one answer to steal/);
 });
 
 console.log(`\n${passed} passed`);

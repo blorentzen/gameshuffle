@@ -18,7 +18,7 @@ export interface NotificationGroup {
 export const NOTIFICATION_GROUPS: NotificationGroup[] = [
   { id: "social", label: "Follows, comments and reactions", helper: "Someone follows you, comments, replies, reacts or mentions you.", types: ["follow", "post_reaction", "post_comment", "comment_reply", "comment_like", "post_mention"] },
   { id: "messages", label: "Messages", helper: "A new direct message. The message itself still arrives in Comms.", types: ["message"] },
-  { id: "invites", label: "Invitations", helper: "Invites to sessions, tournaments and championships.", types: ["session_invite", "tournament_invite", "championship_invite"] },
+  { id: "invites", label: "Invitations", helper: "Invites to sessions, tournaments, championships and Chat Brain co-streams.", types: ["session_invite", "tournament_invite", "championship_invite", "chatbrain_costream"] },
   { id: "tournaments", label: "Tournaments", helper: "Reminders, check-in opening, when you're up, changes from the organizer, and when people are waiting to get into your own tournament.", types: ["tournament_reminder", "tournament_checkin_open", "tournament_youre_up", "tournament_update", "tournament_claim_offer", "tournament_plan_waitlist"] },
   { id: "game_nights", label: "Game nights", helper: "RSVPs to your nights and reminders for the ones you're going to.", types: ["game_night_rsvp", "game_night_reminder"] },
   { id: "ideas", label: "Idea Board", helper: "Updates on ideas you submitted.", types: ["idea_accepted", "idea_in_review", "idea_verdict", "idea_shipped"] },

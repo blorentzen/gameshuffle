@@ -6,7 +6,9 @@ import "server-only";
  * board: the question shows, then guess windows of the host's length run until
  * chat clears the board or takes three strikes; the rest of the board reveals
  * and the host moves on with `!cb next`. Every viewer also plays along on
- * their own (streamRules.playAlongAwards).
+ * their own (streamRules.playAlongAwards). A **speed round** (mode "speed")
+ * plays the same boards with no guess windows: the first viewer to find each
+ * answer takes it (streamSpeed.ts).
  *
  * Windows live in brain_stream_windows (stream.ts opens, caches and claims
  * them); this file scores a closed window, opens the next one, and keeps the
@@ -23,6 +25,7 @@ import {
   DEFAULT_GUESS_SECONDS,
   OVERRULE_MS,
   REVEAL_PAUSE_MS,
+  SPEED_SECONDS,
   boardEndLine,
   boardOver,
   chatAnswer,
@@ -32,11 +35,13 @@ import {
   outcomeFor,
   playAlongAwards,
   resultLine,
+  speedQuestionLine,
   type ChatAnswer,
   type StreamGuess,
   type WindowOutcome,
 } from "./streamRules";
 import { WINDOW_COLS, dropWindow, notReady, openGuessWindow, openWindowFor, toWindow, type GuessRow, type StreamWindow } from "./stream";
+import { payPrize, prizeOf, setPrize, type PrizePaid } from "./streamPrize";
 
 const CHAT_TEAM = 1;
 /** A finished game stays on the overlay this long. */
@@ -56,8 +61,21 @@ type GameRow = {
 type TeamRow = { game_id: string; team: number; kind: string; broadcaster_id: string | null; name: string; score: number; strikes: number; members?: { name: string }[] };
 type RevealRow = { board_id: string; rank: number; team: number | null; points: number; window_id: string | null };
 
-/** 1v1 and Teams games run in streamVersus.ts; Chat plays ("host") runs here. */
+/** 1v1 and Teams games run in streamVersus.ts; Chat plays ("host") and the speed round run here. */
 export const isVersusMode = (mode: string) => mode === "versus" || mode === "teams";
+export const isSpeedMode = (mode: string) => mode === "speed";
+export const isCostream = (mode: string) => mode === "costream";
+const costream = () => import("./streamCostream");
+
+/** How a board's window opens: a guess of the host's length, or a speed board's open window with its 20s timer. */
+async function windowOpts(game: { mode: string; window_seconds: number }): Promise<{ seconds: number; meta?: Record<string, unknown> }> {
+  if (!isSpeedMode(game.mode)) return { seconds: game.window_seconds };
+  const { speedMeta } = await import("./streamSpeed");
+  return { seconds: SPEED_SECONDS, meta: { ...speedMeta() } };
+}
+
+const boardLine = (game: { mode: string }, i: { index: number; count: number; question: string; seconds: number }) =>
+  isSpeedMode(game.mode) ? speedQuestionLine(i) : questionLine(i);
 
 export interface StreamBoard { id: string; promptId: string; question: string; answers: BoardAnswer[] }
 
@@ -117,7 +135,7 @@ export async function loadGame(gameId: string): Promise<GameRow | null> {
   return (data as GameRow | null) ?? null;
 }
 
-async function loadTeam(gameId: string): Promise<TeamRow | null> {
+export async function loadTeam(gameId: string): Promise<TeamRow | null> {
   const { data } = await createServiceClient().from("brain_stream_teams").select("game_id, team, kind, broadcaster_id, name, score, strikes")
     .eq("game_id", gameId).eq("team", CHAT_TEAM).maybeSingle();
   return (data as TeamRow | null) ?? null;
@@ -192,13 +210,17 @@ export async function startGame(input: {
   communityId: string; hostUserId: string; broadcasterId: string; boards?: number; seconds?: number; familySafe?: boolean;
   /** Start with the board chat just made in a survey round. */
   first?: { id: string; promptId: string } | null;
+  /** A speed round: the first viewer to find each answer takes it. */
+  speed?: boolean;
+  /** Tokens for the top brains at the end (needs chat-brain-stream-m2.sql). */
+  prize?: number;
 }): Promise<StartResult> {
   const svc = createServiceClient();
   const count = Math.min(BOARDS_PER_GAME.max, Math.max(BOARDS_PER_GAME.min, Math.round(input.boards ?? BOARDS_PER_GAME.default)));
   const seconds = isGuessSeconds(input.seconds ?? 0) ? input.seconds! : DEFAULT_GUESS_SECONDS;
   const familySafe = input.familySafe ?? true;
 
-  if (await getRunningGame(input.communityId)) return { ok: false, error: "game_running" };
+  if (await getRunningGame(input.communityId) || await (await costream()).inCostream(input.communityId)) return { ok: false, error: "game_running" };
   if (await openWindowFor(input.broadcasterId, { fresh: true })) return { ok: false, error: "window_open" };
 
   const picked = await pickBoards(input.communityId, familySafe, count, input.first);
@@ -207,7 +229,7 @@ export async function startGame(input: {
   if (picks.length === 0) return { ok: false, error: "no_boards" };
 
   const { data: game, error } = await svc.from("brain_stream_games").insert({
-    host_community_id: input.communityId, host_user_id: input.hostUserId, mode: "host",
+    host_community_id: input.communityId, host_user_id: input.hostUserId, mode: input.speed ? "speed" : "host",
     board_ids: picks.map((p) => p.id), current_board: 0, rounds: picks.length, window_seconds: seconds,
     family_safe: familySafe, status: "playing",
   }).select(GAME_COLS).single();
@@ -217,10 +239,12 @@ export async function startGame(input: {
   const g = game as GameRow;
 
   await svc.from("brain_stream_teams").insert({ game_id: g.id, team: CHAT_TEAM, kind: "chat", community_id: input.communityId, broadcaster_id: input.broadcasterId, name: "Chat" });
+  await setPrize(g.id, input.prize);
   const board = await loadBoard(picks[0].id);
   if (!board) return { ok: false, error: "failed" };
-  await openGuessWindow({ gameId: g.id, communityId: input.communityId, broadcasterId: input.broadcasterId, boardId: board.promptId, team: CHAT_TEAM, seconds, delayMs: REVEAL_PAUSE_MS });
-  await say(input.broadcasterId, questionLine({ index: 0, count: picks.length, question: board.question, seconds }));
+  const opts = await windowOpts(g);
+  await openGuessWindow({ gameId: g.id, communityId: input.communityId, broadcasterId: input.broadcasterId, boardId: board.promptId, team: CHAT_TEAM, seconds: opts.seconds, delayMs: REVEAL_PAUSE_MS, meta: opts.meta });
+  await say(input.broadcasterId, boardLine(g, { index: 0, count: picks.length, question: board.question, seconds }));
   return { ok: true, game: g };
 }
 
@@ -281,6 +305,15 @@ export async function closeGameWindow(window: StreamWindow, rows: GuessRow[]): P
     await closeTurnChat(window, rows, game);
     return;
   }
+  if (game && isCostream(game.mode)) {
+    await (await costream()).closeCostreamWindow(window, rows, game);
+    return;
+  }
+  // A speed board's window only closes when the board ends (streamSpeed.ts).
+  if (game && isSpeedMode(game.mode)) {
+    await finish({});
+    return;
+  }
   const team = game ? await loadTeam(game.id) : null;
   const board = game ? await loadBoard(game.board_ids[game.current_board]) : null;
   if (!game || !team || !board || game.status !== "playing" || window.boardId !== board.promptId) {
@@ -320,7 +353,7 @@ export async function closeGameWindow(window: StreamWindow, rows: GuessRow[]): P
 }
 
 /** Reveal what chat didn't find (no points), then end the game if that was the last board. */
-async function endBoard(game: GameRow, team: TeamRow, board: StreamBoard, opts: { hint?: boolean } = {}): Promise<void> {
+export async function endBoard(game: GameRow, team: TeamRow, board: StreamBoard, opts: { hint?: boolean } = {}): Promise<void> {
   const svc = createServiceClient();
   const reveals = await loadReveals(game.id, board.id);
   const found = new Set(reveals.map((r) => r.rank));
@@ -338,17 +371,32 @@ async function endBoard(game: GameRow, team: TeamRow, board: StreamBoard, opts: 
   if (last) await finishGame(game, team);
 }
 
+/** The top play-along viewers, as shown on stream and the live page (names only). */
 export async function topPlayAlong(gameId: string, limit = 5): Promise<{ name: string; points: number }[]> {
-  const { data } = await createServiceClient().from("brain_stream_playalong").select("name, viewer, points")
+  return (await topPlayAlongKeyed(gameId, limit)).map(({ name, points }) => ({ name, points }));
+}
+
+/** The same with each viewer's key (platform:id), for matching prize payouts. Never sent to a page. */
+export async function topPlayAlongKeyed(gameId: string, limit = 5): Promise<{ key: string; name: string; points: number }[]> {
+  const { data } = await createServiceClient().from("brain_stream_playalong").select("platform, name, viewer, points")
     .eq("game_id", gameId).gt("points", 0).order("points", { ascending: false }).limit(limit);
-  return ((data ?? []) as { name: string | null; viewer: string; points: number }[]).map((r) => ({ name: r.name || "A viewer", points: r.points }));
+  return ((data ?? []) as { platform: string; name: string | null; viewer: string; points: number }[])
+    .map((r) => ({ key: `${r.platform}:${r.viewer}`, name: r.name || "A viewer", points: r.points }));
+}
+
+/** The top viewers with what each won from the prize, for the final chat line. */
+export function withPrizes(top: { key: string; name: string; points: number }[], paid: PrizePaid[]): { name: string; points: number; tokens?: number }[] {
+  const won = new Map(paid.map((p) => [p.key, p.tokens]));
+  return top.map((t) => ({ name: t.name, points: t.points, tokens: won.get(t.key) }));
 }
 
 async function finishGame(game: GameRow, team: TeamRow | null): Promise<void> {
   const { data } = await createServiceClient().from("brain_stream_games").update({ status: "done", finished_at: new Date().toISOString() })
     .eq("id", game.id).eq("status", "playing").select("id").maybeSingle();
   if (!data) return; // someone else finished it
-  await say(team?.broadcaster_id ?? null, finalLine({ score: team?.score ?? 0, boards: game.current_board + 1, top: await topPlayAlong(game.id, 3) }));
+  const score = isSpeedMode(game.mode) ? await (await import("./streamSpeed")).syncSpeedScore(game.id) : team?.score ?? 0;
+  const paid = await payPrize(game).catch((err) => { console.error("[chatbrain/game] prize not paid:", err); return [] as PrizePaid[]; });
+  await say(team?.broadcaster_id ?? null, finalLine({ score, boards: game.current_board + 1, top: withPrizes(await topPlayAlongKeyed(game.id, 3), paid), speed: isSpeedMode(game.mode) }));
 }
 
 // ─── host controls ───────────────────────────────────────────────────────────
@@ -359,6 +407,7 @@ export type ControlResult = { ok: true; message?: string } | { ok: false; error:
 export async function lockWindow(gameId: string): Promise<ControlResult> {
   const w = await gameWindow(gameId);
   if (!w || w.status !== "open") return { ok: false, error: "no_window" };
+  if (w.speed) return { ok: false, error: "speed_round" };
   if (Date.parse(w.opensAt) > Date.now()) return { ok: false, error: "not_started" };
   const { closeWindow } = await import("./stream");
   await closeWindow(w.id);
@@ -370,6 +419,7 @@ export async function nextBoard(gameId: string): Promise<ControlResult> {
   const game = await loadGame(gameId);
   if (!game || game.status !== "playing") return { ok: false, error: "no_game" };
   if (isVersusMode(game.mode)) return (await import("./streamVersus")).nextRound(game);
+  if (isCostream(game.mode)) return (await costream()).nextCostreamRound(game);
   const team = await loadTeam(gameId);
   const board = await loadBoard(game.board_ids[game.current_board]);
   if (!team || !board) return { ok: false, error: "failed" };
@@ -396,14 +446,15 @@ export async function nextBoard(gameId: string): Promise<ControlResult> {
   await createServiceClient().from("brain_stream_teams").update({ strikes: 0 }).eq("game_id", gameId).eq("team", CHAT_TEAM);
   const nb = await loadBoard(game.board_ids[nextIndex]);
   if (!nb) return { ok: false, error: "failed" };
-  await openGuessWindow({ gameId, communityId: game.host_community_id, broadcasterId: team.broadcaster_id!, boardId: nb.promptId, team: CHAT_TEAM, seconds: game.window_seconds, delayMs: REVEAL_PAUSE_MS });
-  await say(team.broadcaster_id, questionLine({ index: nextIndex, count: game.board_ids.length, question: nb.question, seconds: game.window_seconds }));
+  const opts = await windowOpts(game);
+  await openGuessWindow({ gameId, communityId: game.host_community_id, broadcasterId: team.broadcaster_id!, boardId: nb.promptId, team: CHAT_TEAM, seconds: opts.seconds, delayMs: REVEAL_PAUSE_MS, meta: opts.meta });
+  await say(team.broadcaster_id, boardLine(game, { index: nextIndex, count: game.board_ids.length, question: nb.question, seconds: game.window_seconds }));
   return { ok: true };
 }
 
 export async function setGuessTime(gameId: string, seconds: number): Promise<ControlResult> {
   if (!isGuessSeconds(seconds)) return { ok: false, error: "bad_time" };
-  const { data } = await createServiceClient().from("brain_stream_games").update({ window_seconds: seconds }).eq("id", gameId).eq("status", "playing").select("id").maybeSingle();
+  const { data } = await createServiceClient().from("brain_stream_games").update({ window_seconds: seconds }).eq("id", gameId).eq("status", "playing").neq("mode", "speed").select("id").maybeSingle();
   return data ? { ok: true, message: `Guesses are ${seconds}s from the next one.` } : { ok: false, error: "no_game" };
 }
 
@@ -417,6 +468,8 @@ export async function overrule(gameId: string, kind: "accept" | "reject", named?
   const game = await loadGame(gameId);
   if (!game || game.status !== "playing") return { ok: false, error: "no_game" };
   if (isVersusMode(game.mode)) return { ok: false, error: "use_undo" };
+  if (isSpeedMode(game.mode)) return { ok: false, error: "speed_round" };
+  if (isCostream(game.mode)) return { ok: false, error: "use_next" };
   const [team, board] = await Promise.all([loadTeam(gameId), loadBoard(game.board_ids[game.current_board])]);
   if (!team || !board) return { ok: false, error: "failed" };
   const { data: lastRow } = await svc.from("brain_stream_windows").select("id, board_id, result, answer, closed_at, overruled")
@@ -473,6 +526,10 @@ export async function endGame(gameId: string): Promise<ControlResult> {
     await (await import("./streamVersus")).finishVersus(game);
     return { ok: true };
   }
+  if (isCostream(game.mode)) {
+    await (await costream()).finishCostream(game);
+    return { ok: true };
+  }
   await finishGame(game, await loadTeam(gameId));
   return { ok: true };
 }
@@ -495,25 +552,28 @@ export async function tickGame(game: GameRow): Promise<GameRow> {
 
 export interface StreamGameView {
   id: string;
-  /** host = Chat plays; versus = 1v1; teams = Teams (then `versus` has the rest). */
-  mode: "host" | "versus" | "teams";
+  /** host = Chat plays; speed = the speed round; versus = 1v1; teams = Teams; costream = two channels' chats (then `versus` has the rest). */
+  mode: "host" | "speed" | "versus" | "teams" | "costream";
   status: "playing" | "done" | "cancelled" | "lobby";
   boardIndex: number;
   boardCount: number;
   question: string;
-  /** Every answer on the board, in rank order; label/points null until revealed. `found` = chat got it. */
-  slots: { rank: number; label: string | null; points: number | null; found: boolean; by?: number | null }[];
+  /** Every answer on the board, in rank order; label/points null until revealed. `found` = chat got it; `finder` = who found it (speed round). */
+  slots: { rank: number; label: string | null; points: number | null; found: boolean; by?: number | null; finder?: string | null }[];
   strikes: number;
   score: number;
   seconds: number;
   /** starting = the question's first look; pause = the beat after a result; board_done = waiting for next. */
   phase: "starting" | "guessing" | "pause" | "board_done" | "done";
   window: { opensAt: string; closesAt: string; guesses: number } | null;
-  last: { result: "hit" | "miss" | "empty"; label: string | null; rank: number | null; already: boolean; overruled: boolean; at: string } | null;
+  /** Speed round: a find is a hit with its `finder`; a strike from the timer is "empty". */
+  last: { result: "hit" | "miss" | "empty"; label: string | null; rank: number | null; already: boolean; overruled: boolean; at: string; finder?: string | null } | null;
   leaning: { label: string; share: number }[];
   playalong: { name: string; points: number }[];
   canOverrule: boolean;
   familySafe: boolean;
+  /** Tokens for the top brains when the game ends (0 = none). */
+  prize: number;
   versus?: import("./streamVersus").VersusView;
 }
 
@@ -531,7 +591,58 @@ async function currentLeaning(windowId: string, board: StreamBoard): Promise<{ l
 }
 
 export async function gameView(game: GameRow): Promise<StreamGameView | null> {
-  if (isVersusMode(game.mode)) return (await import("./streamVersus")).versusView(game);
+  const [view, prize] = await Promise.all([
+    isVersusMode(game.mode) ? (await import("./streamVersus")).versusView(game)
+      : isCostream(game.mode) ? (await costream()).costreamView(game)
+      : isSpeedMode(game.mode) ? speedView(game) : hostView(game),
+    prizeOf(game.id),
+  ]);
+  return view ? { ...view, prize } : null;
+}
+
+type ViewNoPrize = Omit<StreamGameView, "prize">;
+
+/** A speed round: the board, who found what, the strike timer. */
+async function speedView(game: GameRow): Promise<ViewNoPrize | null> {
+  const index = Math.min(game.current_board, game.board_ids.length - 1);
+  const [board, team, w] = await Promise.all([loadBoard(game.board_ids[index]), loadTeam(game.id), game.status === "playing" ? gameWindow(game.id) : Promise.resolve(null)]);
+  if (!board || !team) return null;
+  const { speedExtras, speedScore } = await import("./streamSpeed");
+  const [reveals, extras, playalong, score] = await Promise.all([loadReveals(game.id, board.id), speedExtras(game.id, board.promptId), topPlayAlong(game.id), speedScore(game.id)]);
+  const byRank = new Map(reveals.map((r) => [r.rank, r]));
+  const now = Date.now();
+  const phase: StreamGameView["phase"] = game.status !== "playing" ? "done" : !w ? "board_done" : Date.parse(w.opensAt) > now ? "starting" : "guessing";
+  const ev = extras.last;
+  const lastAnswer = ev?.kind === "find" ? board.answers.find((a) => a.rank === ev.rank) : null;
+  return {
+    id: game.id,
+    mode: "speed",
+    status: game.status,
+    boardIndex: index,
+    boardCount: game.board_ids.length,
+    question: board.question,
+    slots: board.answers.map((a) => {
+      const r = byRank.get(a.rank);
+      return { rank: a.rank, label: r ? a.label : null, points: r ? a.points : null, found: r?.team === CHAT_TEAM, finder: r?.team === CHAT_TEAM ? extras.finders.get(a.rank) ?? null : null };
+    }),
+    strikes: team.strikes,
+    score,
+    seconds: SPEED_SECONDS,
+    phase,
+    window: w ? { opensAt: w.opensAt, closesAt: w.closesAt, guesses: extras.guesses } : null,
+    last: ev
+      ? ev.kind === "find"
+        ? { result: "hit", label: lastAnswer?.label ?? null, rank: ev.rank, already: false, overruled: false, at: ev.at, finder: ev.name }
+        : { result: "empty", label: null, rank: null, already: false, overruled: false, at: ev.at }
+      : null,
+    leaning: [],
+    playalong,
+    canOverrule: false,
+    familySafe: game.family_safe,
+  };
+}
+
+async function hostView(game: GameRow): Promise<ViewNoPrize | null> {
   const svc = createServiceClient();
   const index = Math.min(game.current_board, game.board_ids.length - 1);
   const [board, team, w] = await Promise.all([loadBoard(game.board_ids[index]), loadTeam(game.id), game.status === "playing" ? gameWindow(game.id) : Promise.resolve(null)]);
@@ -592,10 +703,15 @@ export async function gameStatusLine(gameId: string): Promise<string> {
   const game = await loadGame(gameId);
   if (!game) return "🧠 Chat Brain: answer with !a <your answer>.";
   if (isVersusMode(game.mode)) return (await import("./streamVersus")).versusStatusLine(game);
+  if (isCostream(game.mode)) return (await costream()).costreamStatusLine(game);
   const view = await gameView(game);
   if (!view) return "🧠 Chat Brain: answer with !a <your answer>.";
   const found = view.slots.filter((s) => s.label).length;
   const left = view.window ? Math.max(0, Math.round((Date.parse(view.window.closesAt) - Date.now()) / 1000)) : 0;
+  if (view.mode === "speed") {
+    const clock = view.phase === "guessing" ? `first to find one with !a takes it, ${left}s on the clock` : view.phase === "board_done" ? "waiting for the next board" : "starting in a moment";
+    return `🧠 Speed round, board ${view.boardIndex + 1} of ${view.boardCount}: ${view.question}  ·  ${found}/${view.slots.length} found, ${view.strikes} strike${view.strikes === 1 ? "" : "s"}  ·  ${clock}`;
+  }
   const timing = view.phase === "guessing" ? `${left}s left` : view.phase === "board_done" ? "waiting for the next board" : "next guess in a moment";
   return `🧠 Chat Brain, board ${view.boardIndex + 1} of ${view.boardCount}: ${view.question}  ·  ${found}/${view.slots.length} found, ${view.strikes} strike${view.strikes === 1 ? "" : "s"}, ${view.score} points  ·  ${timing}  ·  answer with !a <your answer>`;
 }

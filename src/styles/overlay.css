@@ -1200,6 +1200,8 @@ html.gs-overlay-route body {
 .gs-brain__slot { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 10px; min-height: 38px; border-radius: 8px; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.12); font-size: 15px; }
 .gs-brain__rank { font-weight: 800; opacity: 0.6; font-variant-numeric: tabular-nums; }
 .gs-brain__label { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-brain__by { display: block; font-size: 11px; line-height: 1.2; font-weight: 600; opacity: 0.85; text-transform: none; overflow: hidden; text-overflow: ellipsis; }
+.gs-brain__prize { font-size: 12px; font-weight: 700; opacity: 0.85; }
 .gs-brain__pts { font-weight: 800; font-variant-numeric: tabular-nums; }
 .gs-brain__slot.is-found { background: var(--brand-primary, #2766ec); border-color: transparent; }
 .gs-brain__slot.is-revealed { opacity: 0.6; border-style: dashed; }

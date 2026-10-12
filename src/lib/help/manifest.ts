@@ -342,10 +342,10 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "chat-brain-stream",
     title: "Chat Brain on stream",
-    description: "Play Chat Brain boards on stream: chat as one team, or 1v1 and Teams with chat playing along. Survey your chat and play the board it makes.",
+    description: "Play Chat Brain boards on stream: chat as one team, a speed round, or 1v1 and Teams with chat playing along. Put up a token prize, survey your chat and play the board it makes.",
     href: "/help/streaming/chat-brain",
     category: "streaming",
-    keywords: ["chat brain", "!cb", "!a", "survey", "!cb ask", "survey your chat", "1v1", "teams", "face-off", "steal", "trust chat", "play along", "guess what people said", "overlay"],
+    keywords: ["chat brain", "!cb", "!a", "survey", "!cb ask", "survey your chat", "1v1", "teams", "face-off", "steal", "trust chat", "play along", "speed round", "!cb start speed", "co-stream", "costream", "shared chat", "prize", "tokens", "live page", "guess what people said", "overlay"],
   },
   {
     id: "mods",

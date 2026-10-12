@@ -66,6 +66,7 @@ import {
   type WindowOutcome,
 } from "./streamRules";
 import { closeWindow, dropWindow, openGuessWindow, openWindowFor, type GuessRow, type StreamWindow } from "./stream";
+import { payPrize, setPrize, type PrizePaid } from "./streamPrize";
 import {
   GAME_COLS,
   addPlayAlong,
@@ -80,6 +81,8 @@ import {
   say,
   toGuesses,
   topPlayAlong,
+  topPlayAlongKeyed,
+  withPrizes,
   type ControlResult,
   type StreamBoard,
   type StreamGameRow as GameRow,
@@ -244,6 +247,8 @@ export async function startVersus(input: {
   rounds?: number; seconds?: number; familySafe?: boolean; chatAdvisor?: boolean; chatLastSteal?: boolean;
   /** Start with the board chat just made in a survey round. */
   first?: { id: string; promptId: string } | null;
+  /** Tokens for chat's top play-along viewers at the end (needs chat-brain-stream-m2.sql). */
+  prize?: number;
 }): Promise<VersusStartResult> {
   const svc = createServiceClient();
   const clean = cleanSides(input.mode, input.sides);
@@ -253,7 +258,7 @@ export async function startVersus(input: {
   const seconds = isGuessSeconds(input.seconds ?? 0) ? input.seconds! : DEFAULT_GUESS_SECONDS;
   const familySafe = input.familySafe ?? true;
 
-  if (await getRunningGame(input.communityId)) return { ok: false, error: "game_running" };
+  if (await getRunningGame(input.communityId) || await (await import("./streamCostream")).inCostream(input.communityId)) return { ok: false, error: "game_running" };
   if (await openWindowFor(input.broadcasterId, { fresh: true })) return { ok: false, error: "window_open" };
   const picks = await pickBoards(input.communityId, familySafe, count, input.first);
   if (picks === "not_ready") return { ok: false, error: "not_ready" };
@@ -280,6 +285,7 @@ export async function startVersus(input: {
     await svc.from("brain_stream_games").update({ status: "cancelled", finished_at: new Date().toISOString() }).eq("id", game.id);
     return { ok: false, error: "failed" };
   }
+  await setPrize(game.id, input.prize);
   await startRound(game, board, 0, await loadSides(game.id), input.broadcasterId);
   return { ok: true, game };
 }
@@ -549,13 +555,14 @@ export async function finishVersus(game: GameRow): Promise<void> {
     .eq("id", game.id).eq("status", "playing").select("id").maybeSingle();
   if (!data) return;
   const sides = await loadSides(game.id);
+  const paid = await payPrize(game).catch((err) => { console.error("[chatbrain/versus] prize not paid:", err); return [] as PrizePaid[]; });
   const { data: asked } = await svc.from("brain_stream_windows").select("answer").eq("game_id", game.id).eq("overruled", false).not("trusted", "is", null);
   const moments = (asked ?? []) as { answer: TurnMeta | null }[];
   await say(sides.get(CHAT_SIDE)?.broadcasterId ?? null, versusFinalLine({
     sides: [1, 2].map((t) => ({ name: sideName(sides, t), score: sides.get(t)?.score ?? 0 })),
     chatScore: sides.get(CHAT_SIDE)?.score ?? 0,
     chatRight: { right: moments.filter((m) => m.answer?.chatOutcome?.result === "hit").length, asked: moments.length },
-    top: await topPlayAlong(game.id, 3),
+    top: withPrizes(await topPlayAlongKeyed(game.id, 3), paid),
   }));
 }
 
@@ -708,7 +715,7 @@ async function windowGuesses(windowId: string, board: StreamBoard, withLeaning: 
   return value;
 }
 
-export async function versusView(game: GameRow): Promise<StreamGameView | null> {
+export async function versusView(game: GameRow): Promise<Omit<StreamGameView, "prize"> | null> {
   const index = Math.min(game.current_board, game.board_ids.length - 1);
   const board = await loadBoard(game.board_ids[index]);
   if (!board) return null;

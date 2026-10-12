@@ -14,10 +14,13 @@
  *   !cb hide <n>  ·  !cb merge <n> <m>             mods: fix a survey's groups by
  *                                                  their numbers on stream
  *   !cb lock  /  !cb end                           mods: close it now
- *   !cb start [boards] [seconds] [survey]          mods, GS Pro: a game of Chat
+ *   !cb start [boards] [seconds] [survey] [speed]  mods, GS Pro: a game of Chat
  *                                                  plays (1-5 boards, guesses of
  *                                                  15/30/45/60s; "survey" starts
- *                                                  with the board chat just made)
+ *                                                  with the board chat just made;
+ *                                                  "speed" = the speed round: the
+ *                                                  first to find each answer takes
+ *                                                  it, 20s between finds)
  *   !cb time <15|30|45|60>  ·  !cb next            mods: guess length, next board
  *   !cb accept [answer]  ·  !cb reject             mods: overrule the last result
  *                                                  (within 30s)
@@ -57,6 +60,7 @@ import {
 } from "@/lib/chatbrain/streamGame";
 import { hideSurveyGroup, latestSurveyBoard, mergeSurveyGroups } from "@/lib/chatbrain/survey";
 import { controlFromChat, playFromChat, trustFromChat, undoLast } from "@/lib/chatbrain/streamVersus";
+import { costreamControlFromChat } from "@/lib/chatbrain/streamCostream";
 import { BOARDS_PER_GAME, GUESS_SECONDS } from "@/lib/chatbrain/streamRules";
 import { resolveEconomyContext } from "./economy";
 import { registerCommand, type CmdContext } from "./registry";
@@ -123,14 +127,17 @@ const GAME_ERRORS: Record<string, string> = {
   no_choice: "🧠 There's nothing to choose between right now.",
   has_control: "🧠 Someone already has control this round.",
   nothing_to_undo: "🧠 There's no answer to take back.",
+  use_next: "🧠 Not in a co-stream. !cb next moves on to the next round.",
+  speed_round: "🧠 Not in a speed round: answers count the moment someone finds them. !cb next moves on, !cb end finishes.",
 };
 
-/** `!cb start 3 45`, `!cb start boards 3 time 45s`, `!cb start survey`: board count, guess time and whether to start on the survey's board, in any order. */
-function parseStart(words: string[]): { boards?: number; seconds?: number; survey?: boolean } {
-  const out: { boards?: number; seconds?: number; survey?: boolean } = {};
+/** `!cb start 3 45`, `!cb start boards 3 time 45s`, `!cb start survey`, `!cb start speed 3`: board count, guess time, whether to start on the survey's board and the speed round, in any order. */
+function parseStart(words: string[]): { boards?: number; seconds?: number; survey?: boolean; speed?: boolean } {
+  const out: { boards?: number; seconds?: number; survey?: boolean; speed?: boolean } = {};
   let expect: "boards" | "seconds" | null = null;
   for (const w of words.map((x) => x.toLowerCase())) {
     if (w === "survey" || w === "ours") { out.survey = true; continue; }
+    if (w === "speed" || w === "fast") { out.speed = true; continue; }
     if (w === "boards" || w === "board") { expect = "boards"; continue; }
     if (w === "time" || w === "secs" || w === "seconds") { expect = "seconds"; continue; }
     const n = Number(w.replace(/s$/, ""));
@@ -181,7 +188,7 @@ registerCommand({
   cooldownSeconds: 3,
   help: {
     summary: "Chat Brain: answer survey questions and guess what most people said.",
-    usage: "!cb  ·  !a <answer>  ·  mods: !cb ask [seconds] [category or your own question]  ·  !cb start [boards] [seconds]  ·  !cb next  ·  !cb lock  ·  !cb end",
+    usage: "!cb  ·  !a <answer>  ·  mods: !cb ask [seconds] [category or your own question]  ·  !cb start [boards] [seconds] [speed]  ·  !cb next  ·  !cb lock  ·  !cb end",
     detail: `Mods open a survey with !cb ask (${SURVEY_SECONDS.min}-${SURVEY_SECONDS.max} seconds, default ${SURVEY_SECONDS.default}). A category, or nothing, asks a GameShuffle question; your own question needs GS Pro and chat sees its top answers at the end.`,
   },
   handler: async (cmd) => {
@@ -245,6 +252,11 @@ registerCommand({
     if (sub === "lock" || sub === "end") {
       if (!isMod(cmd)) return { ok: false, reason: "not_mod" };
       const open = await openWindowFor(channel, { fresh: true });
+      // A co-stream guest's chat sees the host's window, but only the host sets the pace.
+      if (open && open.broadcasterId !== channel) {
+        await cmd.reply("🧠 This is a co-stream: the host runs the game.");
+        return { ok: false, reason: "costream_guest" };
+      }
       if (!open) {
         await cmd.reply("🧠 Nothing is open.");
         return { ok: true };
@@ -282,7 +294,7 @@ registerCommand({
         : sub === "next" ? await nextBoard(game.id)
         : sub === "play" ? await playFromChat(game.id, rest.join(" "))
         : sub === "trust" ? await trustFromChat(game.id, rest[0] ?? "")
-        : sub === "control" ? await controlFromChat(game.id, rest[0] ?? "")
+        : sub === "control" ? game.mode === "costream" ? await costreamControlFromChat(game.id, rest[0] ?? "") : await controlFromChat(game.id, rest[0] ?? "")
         : sub === "undo" ? await undoLast(game.id)
         : await overrule(game.id, sub === "accept" ? "accept" : "reject", rest.join(" ").trim() || undefined);
       if (!r.ok) await cmd.reply(GAME_ERRORS[r.error] ?? GAME_ERRORS.failed);

@@ -37,6 +37,7 @@ import { getOpenPollForCommunity, tally as pollTally } from "@/lib/polls/store";
 import { getCurrentDraft, tickDraft, viewOf as draftView, type StreamDraftView } from "@/lib/drafts/store";
 import { gameView as brainGameView, getShowableGame as getBrainGame, tickGame as tickBrainGame, type StreamGameView } from "@/lib/chatbrain/streamGame";
 import { maybeAiPass as brainSurveyAi, overlaySurveyView, tickSurvey as tickBrainSurvey, type StreamSurveyView } from "@/lib/chatbrain/survey";
+import { guestGameFor as brainGuestGame } from "@/lib/chatbrain/streamCostream";
 import { overlayTrivia, type TriviaStreamView } from "@/lib/trivia/stream";
 import { getCurrentGame as getBingoGame, tickAuto as tickBingo, viewOf as bingoView, type StreamBingoView } from "@/lib/bingo/stream";
 import { breakView, getShowable as getShowableBreak, tickBreak } from "@/lib/break/store";
@@ -192,7 +193,8 @@ export async function GET(
   let brainSurvey: StreamSurveyView | null = null;
   try {
     const communityId = await resolveCommunityIdForOwner(ownerUserId);
-    const g = communityId ? await getBrainGame(communityId) : null;
+    // A streamer who is the guest in a co-stream shows the host's game.
+    const g = communityId ? (await getBrainGame(communityId)) ?? (await brainGuestGame(communityId)) : null;
     // A running game wins; an open survey beats a game that just finished.
     if (g?.status === "playing") brain = await brainGameView(await tickBrainGame(g));
     else if (communityId) {

@@ -47,18 +47,26 @@ export interface StreamWindow {
   opensAt: string;
   closesAt: string;
   status: "open" | "closing" | "closed";
+  /** A speed round's board: guesses are judged as they arrive (streamSpeed.ts). */
+  speed: boolean;
+  /** A co-stream window: both channels' chats feed it, each guess tagged with its team (streamCostream.ts). */
+  costream: boolean;
 }
 
 type WindowRow = {
   id: string; game_id: string | null; community_id: string; broadcaster_id: string; kind: string; team: number | null;
   prompt_id: string | null; board_id: string | null; seconds: number; opens_at: string; closes_at: string; status: StreamWindow["status"];
+  speed?: string | null;
+  costream?: string | null;
 };
-export const WINDOW_COLS = "id, game_id, community_id, broadcaster_id, kind, team, prompt_id, board_id, seconds, opens_at, closes_at, status";
+export const WINDOW_COLS = "id, game_id, community_id, broadcaster_id, kind, team, prompt_id, board_id, seconds, opens_at, closes_at, status, speed:answer->>speed, costream:answer->>costream";
 
 export function toWindow(r: WindowRow): StreamWindow {
   return {
     id: r.id, gameId: r.game_id, communityId: r.community_id, broadcasterId: r.broadcaster_id, kind: r.kind, team: r.team,
     promptId: r.prompt_id, boardId: r.board_id, seconds: r.seconds, opensAt: r.opens_at, closesAt: r.closes_at, status: r.status,
+    speed: r.speed === "true",
+    costream: r.costream === "true",
   };
 }
 
@@ -67,9 +75,13 @@ export function notReady(error: { code?: string } | null): boolean {
 }
 
 // ─── the open-window cache (the webhook fast lane reads this per chat line) ──
+//
+// Keyed by the channel a chat line came from. A co-stream's windows live on
+// the host's channel; the guest's channel finds them through its team row
+// (team 2), so `team` says which chat a guess belongs to (1 = the host's).
 
 const CACHE_MS = 3000;
-const cache = new Map<string, { at: number; window: StreamWindow | null }>();
+const cache = new Map<string, { at: number; window: StreamWindow | null; team: number | null }>();
 
 export function forgetChannel(broadcasterId: string): void {
   cache.delete(broadcasterId);
@@ -99,7 +111,7 @@ export async function openGuessWindow(input: {
     return null;
   }
   const window = toWindow(data as WindowRow);
-  cache.set(input.broadcasterId, { at: Date.now(), window });
+  cache.set(input.broadcasterId, { at: Date.now(), window, team: window.costream ? 1 : null });
   return window;
 }
 
@@ -112,14 +124,35 @@ export async function dropWindow(windowId: string, broadcasterId: string): Promi
 
 /** The channel's open window, cached for 3s per serverless instance. */
 export async function openWindowFor(broadcasterId: string, opts: { fresh?: boolean } = {}): Promise<StreamWindow | null> {
+  return (await channelWindow(broadcasterId, opts))?.window ?? null;
+}
+
+/**
+ * The window a chat line from this channel goes to, and which team it plays
+ * for: the channel's own window, or (for a co-stream guest) the host's.
+ */
+export async function channelWindow(broadcasterId: string, opts: { fresh?: boolean } = {}): Promise<{ window: StreamWindow; team: number | null } | null> {
   const hit = cache.get(broadcasterId);
-  if (!opts.fresh && hit && Date.now() - hit.at < CACHE_MS) return hit.window;
-  const { data, error } = await createServiceClient().from("brain_stream_windows").select(WINDOW_COLS)
+  if (!opts.fresh && hit && Date.now() - hit.at < CACHE_MS) return hit.window ? { window: hit.window, team: hit.team } : null;
+  const svc = createServiceClient();
+  const { data, error } = await svc.from("brain_stream_windows").select(WINDOW_COLS)
     .eq("broadcaster_id", broadcasterId).eq("status", "open").maybeSingle();
-  if (notReady(error)) { cache.set(broadcasterId, { at: Date.now(), window: null }); return null; }
-  const window = data ? toWindow(data as WindowRow) : null;
-  cache.set(broadcasterId, { at: Date.now(), window });
-  return window;
+  if (notReady(error)) { cache.set(broadcasterId, { at: Date.now(), window: null, team: null }); return null; }
+  let window = data ? toWindow(data as WindowRow) : null;
+  let team: number | null = window?.costream ? 1 : null;
+  if (!window) {
+    // A co-stream guest: their chat plays the host's game.
+    const { data: t } = await svc.from("brain_stream_teams").select("game_id, brain_stream_games!inner(status)")
+      .eq("broadcaster_id", broadcasterId).eq("team", 2).eq("brain_stream_games.status", "playing").limit(1).maybeSingle();
+    const gameId = (t as { game_id: string } | null)?.game_id;
+    if (gameId) {
+      const { data: w } = await svc.from("brain_stream_windows").select(WINDOW_COLS).eq("game_id", gameId).eq("status", "open").limit(1).maybeSingle();
+      if (w) { window = toWindow(w as WindowRow); team = 2; }
+    }
+  }
+  cache.set(broadcasterId, { at: Date.now(), window, team });
+  if (cache.size > 2000) cache.delete(cache.keys().next().value!);
+  return window ? { window, team } : null;
 }
 
 // ─── opening a survey ────────────────────────────────────────────────────────
@@ -141,6 +174,7 @@ export async function openSurvey(input: {
   arg?: string; seconds?: number; style?: SurveyStyle; category?: string | null; question?: string | null;
 }): Promise<OpenSurveyResult> {
   const svc = createServiceClient();
+  if (await (await import("./streamCostream")).inCostream(input.communityId)) return { ok: false, error: "window_open" };
   const parsed = input.arg !== undefined ? parseAsk(input.arg) : { seconds: null, style: null, rest: "" };
   let rest = input.arg !== undefined ? parsed.rest : (input.question ?? input.category ?? "").trim().replace(/\s+/g, " ");
   const forceOwn = input.arg === undefined && !!input.question;
@@ -186,7 +220,7 @@ export async function openSurvey(input: {
   if (error?.code === "23505") return { ok: false, error: "window_open" };
   if (error || !row) return { ok: false, error: "failed" };
   const window = toWindow(row as WindowRow);
-  cache.set(input.broadcasterId, { at: Date.now(), window });
+  cache.set(input.broadcasterId, { at: Date.now(), window, team: null });
   return { ok: true, window, prompt, style };
 }
 
@@ -199,8 +233,12 @@ export type GuessResult = "saved" | "no_window" | "closed" | "rejected";
  * time is up, this closes it instead (and the close posts to chat).
  */
 export async function recordGuess(input: { broadcasterId: string; platform: Platform; viewer: string; name?: string | null; raw: string }): Promise<GuessResult> {
-  const window = await openWindowFor(input.broadcasterId);
-  if (!window) return "no_window";
+  const hit = await channelWindow(input.broadcasterId);
+  if (!hit) return "no_window";
+  const { window, team } = hit;
+  if (window.speed) return (await import("./streamSpeed")).speedGuess(window, input);
+  // A co-stream's control and steal windows take one chat only.
+  if (window.costream && window.team !== null && window.team !== team) return "no_window";
   // A game's next guess hasn't started (chat is still seeing the reveal).
   if (Date.parse(window.opensAt) > Date.now()) return "no_window";
   if (Date.parse(window.closesAt) <= Date.now()) {
@@ -211,7 +249,7 @@ export async function recordGuess(input: { broadcasterId: string; platform: Plat
   const normalized = normalize(raw);
   if (!raw || !normalized || isBlockedText(raw)) return "rejected";
   const { error } = await createServiceClient().from("brain_stream_guesses").upsert({
-    window_id: window.id, platform: input.platform, viewer: input.viewer, name: input.name?.slice(0, 40) ?? null,
+    window_id: window.id, team: window.costream ? team : null, platform: input.platform, viewer: input.viewer, name: input.name?.slice(0, 40) ?? null,
     raw, normalized, created_at: new Date().toISOString(),
   }, { onConflict: "window_id,platform,viewer" });
   return error ? "rejected" : "saved";
@@ -231,7 +269,7 @@ export interface CloseSummary {
   board?: { made: boolean; reason: string | null; size: number } | null;
 }
 
-export type GuessRow = { platform: Platform; viewer: string; name: string | null; raw: string; normalized: string; created_at: string };
+export type GuessRow = { platform: Platform; viewer: string; name: string | null; raw: string; normalized: string; created_at: string; team?: number | null };
 
 async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
   let i = 0;
@@ -246,13 +284,19 @@ async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<v
  */
 export async function closeWindow(windowId: string, opts: { announce?: boolean } = {}): Promise<CloseSummary | null> {
   const svc = createServiceClient();
+  // A speed board's window isn't closed by its timer: running out is a strike (streamSpeed.ts).
+  const { data: pre } = await svc.from("brain_stream_windows").select("speed:answer->>speed").eq("id", windowId).maybeSingle();
+  if ((pre as { speed: string | null } | null)?.speed === "true") {
+    await (await import("./streamSpeed")).speedTimeout(windowId);
+    return null;
+  }
   const { data: claimed } = await svc.from("brain_stream_windows").update({ status: "closing" })
     .eq("id", windowId).eq("status", "open").select(WINDOW_COLS).maybeSingle();
   if (!claimed) return null;
   const window = toWindow(claimed as WindowRow);
   forgetChannel(window.broadcasterId);
 
-  const { data: gs } = await svc.from("brain_stream_guesses").select("platform, viewer, name, raw, normalized, created_at").eq("window_id", windowId).limit(20_000);
+  const { data: gs } = await svc.from("brain_stream_guesses").select("platform, viewer, name, raw, normalized, created_at, team").eq("window_id", windowId).limit(20_000);
   const guesses = (gs ?? []) as GuessRow[];
 
   // A game's guess window: the game scores it, opens the next one and posts the line.
@@ -272,6 +316,11 @@ export async function closeWindow(windowId: string, opts: { announce?: boolean }
     // who already answered this question elsewhere keeps their first answer.
     await mapLimit(guesses, 8, async (g) => {
       try {
+        // A viewer on the live page without Twitch linked answers as their account.
+        if (g.platform === "site") {
+          await svc.from("brain_answers").insert({ prompt_id: window.promptId, raw: g.raw, normalized: g.normalized, source: "site:live", user_id: g.viewer, window_id: windowId });
+          return;
+        }
         const { identityId } = await resolveIdentity({ platform: g.platform === "youtube" ? "youtube" : "twitch", platformId: g.viewer, displayName: g.name });
         await svc.from("brain_answers").insert({ prompt_id: window.promptId, raw: g.raw, normalized: g.normalized, source: g.platform === "youtube" ? "youtube" : "twitch", identity_id: identityId, window_id: windowId });
       } catch (err) {
