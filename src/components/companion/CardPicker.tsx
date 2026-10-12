@@ -1,62 +1,61 @@
 "use client";
 
 /**
- * Shared card picker for the Companion. Two sources, no gate beyond sign-in:
- * the player's collection ("your cards", the default quick-pick) AND the full
- * catalog (searched once the query is long enough). Calls `onPick(card)` with
- * the chosen card — the parent decides what to do (place a new piece, evolve an
- * existing one). Renders nothing for guests / modes without a card catalog.
+ * Card picker for the Companion: your cards first, the whole catalog once
+ * you type 3 letters. Tiles show each card's art window with its name, HP and
+ * prizes, so a card is recognisable at a glance. Calls `onPick(card)`; the
+ * parent decides what happens (place a new piece, evolve one). Renders
+ * nothing for guests or modes without a catalog (they add by name).
  */
 
 import { useEffect, useRef, useState } from "react";
+import { Input } from "@empac/cascadeds";
+import { IconSearch } from "@tabler/icons-react";
 import { useMode, useSession } from "@/lib/companion/SessionContext";
-import { CardImage } from "@/components/tcg/CardImage";
-import { CardGridSkeleton } from "@/components/tcg/CardGridSkeleton";
+import { prizeValue } from "@/lib/companion/pokemonRules";
 import type { TcgCard, UserCard } from "@/lib/scrydex/types";
+import { CardArt } from "./glyphs";
+import { TablerIcon } from "./TablerIcon";
 
 const CARD_DEBOUNCE_MS = 400;
 const CARD_MIN_CHARS = 3;
+const SHOWN = 12;
 
-export function CardPicker({ onPick }: { onPick: (card: TcgCard) => void }) {
+export function CardPicker({ onPick, selectedId, label = "Your cards" }: { onPick: (card: TcgCard) => void; selectedId?: string | null; label?: string }) {
   const { isAuthenticated } = useSession();
   const mode = useMode();
   const enabled = isAuthenticated && mode.slotThemes.length > 0;
 
   const [collection, setCollection] = useState<UserCard[] | null>(null);
-  const [cardQuery, setCardQuery] = useState("");
-  const [libraryResults, setLibraryResults] = useState<TcgCard[]>([]);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<TcgCard[]>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reqSeq = useRef(0);
 
-  // Load the player's collection once (the default quick-pick source).
+  // Your collection, loaded once (the default list).
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    const load = async () => {
+    (async () => {
       try {
         const res = await fetch("/api/tcg/collection");
-        const next = res.ok
-          ? (((await res.json())?.cards as UserCard[]) ?? [])
-          : [];
+        const next = res.ok ? (((await res.json())?.cards as UserCard[]) ?? []) : [];
         if (active) setCollection(next);
       } catch {
         if (active) setCollection([]);
       }
-    };
-    load();
-    return () => {
-      active = false;
-    };
+    })();
+    return () => { active = false; };
   }, [enabled]);
 
-  // Search the whole catalog once the query is long enough (debounced).
+  // The whole catalog once the query is long enough (debounced).
   useEffect(() => {
     if (!enabled) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    const query = cardQuery.trim();
-    if (query.length < CARD_MIN_CHARS) {
-      setLibraryResults([]);
+    const q = query.trim();
+    if (q.length < CARD_MIN_CHARS) {
+      setResults([]);
       setSearching(false);
       return;
     }
@@ -64,85 +63,67 @@ export function CardPicker({ onPick }: { onPick: (card: TcgCard) => void }) {
     debounceRef.current = setTimeout(async () => {
       const seq = ++reqSeq.current;
       try {
-        const res = await fetch(`/api/tcg/search?q=${encodeURIComponent(query)}`);
+        const res = await fetch(`/api/tcg/search?q=${encodeURIComponent(q)}`);
         const body = await res.json().catch(() => ({}));
         if (seq !== reqSeq.current) return;
-        setLibraryResults(res.ok ? ((body.cards as TcgCard[]) ?? []) : []);
+        setResults(res.ok ? ((body.cards as TcgCard[]) ?? []) : []);
       } finally {
         if (seq === reqSeq.current) setSearching(false);
       }
     }, CARD_DEBOUNCE_MS);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [cardQuery, enabled]);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query, enabled]);
 
   if (!enabled) return null;
 
-  const isSearchingLibrary = cardQuery.trim().length >= CARD_MIN_CHARS;
+  const searchingCatalog = query.trim().length >= CARD_MIN_CHARS;
+  const mine = (collection ?? []).map((uc) => uc.card).filter((c): c is TcgCard => !!c && c.supertype !== "Trainer" && c.supertype !== "Energy");
+  const cards = searchingCatalog ? results : mine;
+  const loading = searchingCatalog ? searching : collection === null;
 
   return (
-    <div className="companion-place__mycards">
-      <input
+    <div className="companion-cards">
+      <Input
         type="search"
-        className="companion-place__mycards-search"
-        value={cardQuery}
-        onChange={(e) => setCardQuery(e.target.value)}
-        placeholder="Search all Pokémon cards…"
+        iconBefore={IconSearch}
+        fullWidth
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Find any card"
+        aria-label="Find any card"
       />
-      {isSearchingLibrary ? (
-        searching ? (
-          <CardGridSkeleton
-            count={6}
-            containerClassName="companion-place__mycards-grid"
-          />
-        ) : libraryResults.length > 0 ? (
-          <div className="companion-place__mycards-grid">
-            {libraryResults.slice(0, 12).map((card) => (
+      <span className="companion-cards__label">{searchingCatalog ? "Cards" : label}</span>
+      {loading ? (
+        <div className="companion-cards__grid" aria-busy="true">
+          {Array.from({ length: 6 }, (_, i) => <span key={i} className="companion-cards__tile companion-cards__tile--loading" />)}
+        </div>
+      ) : cards.length > 0 ? (
+        <div className="companion-cards__grid">
+          {cards.slice(0, SHOWN).map((card) => {
+            const img = card.images?.medium ?? card.images?.small ?? null;
+            const prizes = prizeValue(card.subtypes ?? []);
+            const on = selectedId === card.id;
+            return (
               <button
                 key={card.id}
                 type="button"
-                className="companion-place__mycard"
-                title={card.name}
+                className={`companion-cards__tile${on ? " is-on" : ""}`}
+                aria-pressed={selectedId !== undefined ? on : undefined}
                 onClick={() => onPick(card)}
               >
-                <CardImage images={card.images} name={card.name} size="small" />
+                {img ? <CardArt src={img} className="companion-cards__art" /> : <span className="companion-cards__art companion-cards__art--none" aria-hidden="true" />}
+                <span className="companion-cards__name">{card.name}</span>
+                <span className="companion-cards__facts">
+                  {card.hp && <span><TablerIcon name="heart" size="12" color="#ff8fa3" />{card.hp}</span>}
+                  {prizes > 1 && <span><TablerIcon name="cards" size="12" color="#f5c518" />{prizes}</span>}
+                  {card.expansion_name && <span className="companion-cards__set">{card.expansion_name}</span>}
+                </span>
               </button>
-            ))}
-          </div>
-        ) : (
-          <p className="companion-place__mycards-note">No cards found.</p>
-        )
-      ) : collection === null ? (
-        <CardGridSkeleton
-          count={6}
-          containerClassName="companion-place__mycards-grid"
-        />
-      ) : collection.length > 0 ? (
-        <>
-          <span className="companion-place__mycards-sub">Your cards</span>
-          <div className="companion-place__mycards-grid">
-            {collection.slice(0, 12).map((uc) => (
-              <button
-                key={uc.id}
-                type="button"
-                className="companion-place__mycard"
-                title={uc.card?.name ?? uc.card_id}
-                onClick={() => uc.card && onPick(uc.card)}
-              >
-                <CardImage
-                  images={uc.card?.images}
-                  name={uc.card?.name ?? uc.card_id}
-                  size="small"
-                />
-              </button>
-            ))}
-          </div>
-        </>
+            );
+          })}
+        </div>
       ) : (
-        <p className="companion-place__mycards-note">
-          Search above to find any card.
-        </p>
+        <p className="companion-cards__note">{searchingCatalog ? "No cards found." : "Cards you add to My Cards show up here. Search above for any card."}</p>
       )}
     </div>
   );

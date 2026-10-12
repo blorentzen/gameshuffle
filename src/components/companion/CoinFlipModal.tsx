@@ -10,14 +10,14 @@
  *
  * The result is logged to the shared history on REVEAL, not at
  * flip-start, so the history strip doesn't spoil the animation.
- * If the dialog unmounts mid-flight, the dispatch still fires (the
- * flip happened the moment the user tapped Flip).
+ *
+ * In a shared game (Play together) the server flips and logs it for both
+ * phones; the coin animates once its answer is in.
  */
 
 import { Modal } from "@empac/cascadeds";
-import { useEffect, useState } from "react";
-import { useMode, useSession } from "@/lib/companion/SessionContext";
-import { flipCoin } from "@/lib/companion/rng";
+import { useEffect, useRef, useState } from "react";
+import { useMode, useSession, type CoinResult } from "@/lib/companion/SessionContext";
 import { Coin3D } from "./Coin3D";
 import type { CoinFlipEntry } from "@/lib/companion/types";
 
@@ -61,31 +61,37 @@ interface BodyProps {
 }
 
 function CoinFlipBody({ onReveal }: BodyProps) {
-  const { dispatch } = useSession();
+  const { dispatch, random } = useSession();
   const mode = useMode();
-  // RNG runs exactly once per mount, courtesy of useState's lazy
-  // initializer — pure-React idiom for "compute once on mount".
-  const [side] = useState<CoinFlipEntry["side"]>(() =>
-    flipCoin() === 0 ? "a" : "b",
-  );
+  // One flip per mount (the ref survives React's dev double-run of effects).
+  const [result, setResult] = useState<CoinResult | null>(null);
+  const asked = useRef(false);
+  useEffect(() => {
+    if (asked.current) return;
+    asked.current = true;
+    void random.coin("log").then(setResult);
+  }, [random]);
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
+    if (!result) return;
     const t = setTimeout(() => {
-      // Log first so a mid-flight close still records the flip.
-      dispatch({ type: "LOG_COIN_FLIP", side });
+      // A shared game's flip is already on the log (the server put it there).
+      if (!result.logged) dispatch({ type: "LOG_COIN_FLIP", side: result.side });
       setSettled(true);
-      onReveal(side);
+      onReveal(result.side);
     }, ANIM_MS);
     return () => clearTimeout(t);
-  }, [dispatch, side, onReveal]);
+  }, [dispatch, result, onReveal]);
 
+  const side = result?.side ?? "a";
   const label = side === "a" ? mode.coinLabels.a : mode.coinLabels.b;
 
   return (
     <div className="companion-coin-modal">
       <div className="companion-coin-modal__stage">
-        <Coin3D resultSide={side} phase={settled ? "settled" : "flipping"} />
+        {/* Keyed so the flip starts over once a shared game's answer is in. */}
+        <Coin3D key={result ? "flip" : "wait"} resultSide={side} phase={settled ? "settled" : "flipping"} />
       </div>
       <p className="companion-coin-modal__caption" aria-live="polite">
         {settled ? `${label}!` : "Flipping…"}

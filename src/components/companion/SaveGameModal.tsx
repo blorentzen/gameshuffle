@@ -74,6 +74,7 @@ export function SaveGameModal({ isOpen, onClose, onSaved }: Props) {
         slots: state.slots,
         playerNames: state.playerNames,
         winCounters: state.winCounters,
+        turn: state.turn ?? null,
       },
     });
     setBusy(false);

@@ -59,6 +59,10 @@ export default function Page() {
         There&apos;s an always-on feedback button in the app, we read it. You&apos;ll also find a
         <strong> Shop our Pokemon cards</strong> link that opens our TCGplayer storefront in a new tab.
       </p>
+      <p>
+        Looking for a deck to play? The <Link href="/pokemon-tcg">Pokémon TCG hub</Link>{" "}has deck
+        guides from beginner to competitive, plus the singles to build them.
+      </p>
 
       <h2>Still need help?</h2>
       <p>Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a> with any Companion questions.</p>

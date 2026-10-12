@@ -16,17 +16,21 @@
  * and P2 view" and the future dual-device path layer in later.
  */
 
+import { useSession } from "@/lib/companion/SessionContext";
 import { Slot } from "./Slot";
 import { CoinFlip } from "./CoinFlip";
 import { Dice } from "./Dice";
-import { TurnInfoButton } from "./TurnInfoButton";
+import { HelpButton } from "./HelpButton";
 import { GameMenuButton } from "./GameMenuButton";
 
 export function ActiveBattle() {
+  // This phone's player sits at the bottom (P1, or P2 on the second phone of a shared game).
+  const { bottom } = useSession();
+  const top = bottom === "p1" ? "p2" : "p1";
   return (
     <div className="companion-active-battle">
-      <div className="companion-active-battle__slot companion-active-battle__slot--p2">
-        <Slot player="p2" position="active" emphasis="active" />
+      <div className="companion-active-battle__slot companion-active-battle__slot--top">
+        <Slot player={top} position="active" emphasis="active" />
       </div>
 
       <div className="companion-active-battle__utilities">
@@ -35,11 +39,11 @@ export function ActiveBattle() {
           <CoinFlip />
           <Dice />
         </div>
-        <TurnInfoButton />
+        <HelpButton />
       </div>
 
-      <div className="companion-active-battle__slot companion-active-battle__slot--p1">
-        <Slot player="p1" position="active" emphasis="active" />
+      <div className="companion-active-battle__slot companion-active-battle__slot--bottom">
+        <Slot player={bottom} position="active" emphasis="active" />
       </div>
     </div>
   );

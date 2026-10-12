@@ -72,9 +72,13 @@ import { Slot, parseSlotDndId } from "./Slot";
 import { PlayerHeader } from "./PlayerHeader";
 import { PlayerBench } from "./PlayerBench";
 import { ActiveBattle } from "./ActiveBattle";
+import { TurnBar } from "./TurnBar";
+import { LiveStrip } from "./LiveStrip";
 
 export function CompanionBoard() {
-  const { state, dispatch } = useSession();
+  const { state, dispatch, bottom, live } = useSession();
+  // This phone's player at the bottom (P2 on the second phone of a shared game).
+  const top = bottom === "p1" ? "p2" : "p1";
   // The slot currently being dragged — `null` when no drag is in
   // progress. DragOverlay renders a floating ghost slot that follows
   // the cursor so players get the tactile "I'm carrying this card
@@ -145,11 +149,13 @@ export function CompanionBoard() {
       }}
     >
       <div className={`companion-board${activeDrag ? " companion-board--dragging" : ""}`}>
-        <PlayerHeader player="p2" rank="secondary" />
-        <PlayerBench player="p2" />
+        <TurnBar />
+        {live && <LiveStrip />}
+        <PlayerHeader player={top} rank="secondary" />
+        <PlayerBench player={top} />
         <ActiveBattle />
-        <PlayerBench player="p1" />
-        <PlayerHeader player="p1" rank="primary" />
+        <PlayerBench player={bottom} />
+        <PlayerHeader player={bottom} rank="primary" />
       </div>
       <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
         {activeDrag && activeSlot?.occupied ? (

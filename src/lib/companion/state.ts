@@ -45,6 +45,7 @@ import type {
   SlotState,
 } from "./types";
 import { ALL_POSITIONS } from "./types";
+import { FRESH_TURN, nextPlayer, type CardRules, type TurnState, type TurnUsed } from "./pokemonRules";
 import { DEFAULT_SLOT_THEME } from "./styling";
 import { DEFAULT_GAME_SETTINGS, type GameSettings } from "./gameSettings";
 
@@ -126,6 +127,8 @@ export type SessionAction =
        *  small image URL for the real card art on the slot. */
       cardId?: string | null;
       cardImage?: string | null;
+      /** The card's rules data, when it came from the catalog. */
+      rules?: CardRules | null;
     }
   | { type: "REMOVE_PIECE"; player: PlayerId; position: SlotPosition }
   | { type: "KNOCKOUT"; player: PlayerId; position: SlotPosition }
@@ -181,6 +184,10 @@ export type SessionAction =
       /** Explicit "this was an evolution" — clears conditions (damage +
        *  energy carry over). A koValue change also implies evolution. */
       evolved?: boolean;
+      /** The new card's rules data (an evolution from the catalog). */
+      rules?: CardRules | null;
+      /** Attach a Tool (by name) or take it off (null). */
+      tool?: string | null;
     }
   | {
       /** Adjust an attached-energy count by `delta`. Clamps at 0 —
@@ -235,6 +242,7 @@ export type SessionAction =
         playerNames: Record<PlayerId, string>;
         winCounters: Record<PlayerId, number>;
         gameSettings: GameSettings;
+        turn?: TurnState | null;
       };
     }
   | {
@@ -266,6 +274,8 @@ export type SessionAction =
       player: PlayerId;
       position: SlotPosition;
       side: CoinFlipEntry["side"];
+      /** In a shared game: the server's flip this resolves (its side wins). */
+      rollId?: string;
     }
   | {
       /** Resolve an extra-condition coin flip (Pokémon Asleep wake
@@ -277,8 +287,28 @@ export type SessionAction =
       position: SlotPosition;
       key: string;
       side: CoinFlipEntry["side"];
+      /** In a shared game: the server's flip this resolves (its side wins). */
+      rollId?: string;
     }
-  | { type: "RESET_GAME"; mode: ModeConfig };
+  | { type: "RESET_GAME"; mode: ModeConfig }
+  /** The flip is done: turns start with `first` (turn 1). */
+  | { type: "START_TURNS"; first: PlayerId }
+  /** End the turn: the next player's turn, once-a-turn things fresh. */
+  | { type: "END_TURN" }
+  /** Tick (or untick) a once-a-turn thing by hand: a Supporter or Stadium played, etc. */
+  | { type: "MARK_USED"; key: keyof TurnUsed; value: boolean }
+  /** An attack: damage onto the target (Knock Out when it reaches HP) and
+   *  the attack ticked. Ending the turn is separate (Checkup comes first). */
+  | {
+      type: "ATTACK";
+      target: { player: PlayerId; position: SlotPosition };
+      damage: number;
+      /** The attack's name, for the other phone's "Pikachu ex used Thunder". */
+      name?: string;
+      /** Damage the attack does to the attacker itself ("also does 30 damage
+       *  to itself"), in the same step so one Undo takes back the whole attack. */
+      self?: { player: PlayerId; position: SlotPosition; damage: number };
+    };
 
 // ---------------------------------------------------------------------------
 // Slot helpers
@@ -416,6 +446,9 @@ export function makeReducer(mode: ModeConfig) {
           slotTheme: action.slotTheme ?? DEFAULT_SLOT_THEME,
           cardId: action.cardId ?? null,
           cardImage: action.cardImage ?? null,
+          rules: action.rules ?? null,
+          tool: null,
+          enteredTurn: state.turn?.number ?? null,
         }));
         return { ...state, slots };
       }
@@ -437,7 +470,8 @@ export function makeReducer(mode: ModeConfig) {
           // clears, so typo fixes are safe.
           const koChanged =
             action.koValue !== undefined && action.koValue !== s.koValue;
-          const isEvolution = clears && (action.evolved === true || koChanged);
+          const evolvedNow = action.evolved === true || koChanged;
+          const isEvolution = clears && evolvedNow;
           return {
             ...s,
             ...(action.name !== undefined ? { name: action.name } : {}),
@@ -450,6 +484,10 @@ export function makeReducer(mode: ModeConfig) {
             ...(action.cardImage !== undefined
               ? { cardImage: action.cardImage }
               : {}),
+            ...(action.rules !== undefined ? { rules: action.rules } : {}),
+            ...(action.tool !== undefined ? { tool: action.tool } : {}),
+            // It can't evolve again this turn.
+            ...(evolvedNow ? { enteredTurn: state.turn?.number ?? s.enteredTurn ?? null } : {}),
             ...(isEvolution
               ? {
                   conditionA: false,
@@ -463,6 +501,7 @@ export function makeReducer(mode: ModeConfig) {
       }
 
       case "ADJUST_ENERGY": {
+        const target = findSlotIn(state.slots, action.player, action.position);
         const slots = mapSlot(state.slots, action.player, action.position, (s) => {
           if (!s.occupied) return s;
           const current = s.energies[action.energyKey] ?? 0;
@@ -472,7 +511,11 @@ export function makeReducer(mode: ModeConfig) {
             energies: { ...s.energies, [action.energyKey]: next },
           };
         });
-        return { ...state, slots };
+        // Attaching to your own Pokémon on your turn ticks off the Energy for the turn.
+        const turn = state.turn && target?.occupied && action.delta > 0 && action.player === state.turn.player
+          ? { ...state.turn, used: { ...state.turn.used, energy: true } }
+          : state.turn;
+        return { ...state, slots, turn };
       }
 
       case "CLEAR_ENERGIES": {
@@ -504,10 +547,17 @@ export function makeReducer(mode: ModeConfig) {
         return knockoutSlot(state, mode, action.player, action.position);
 
       case "ADJUST_DAMAGE": {
+        const slot = findSlotIn(state.slots, action.player, action.position);
         const slots = mapSlot(state.slots, action.player, action.position, (s) => ({
           ...s,
           damage: Math.max(0, s.damage + action.delta),
         }));
+        // Damage reaching HP is a Knock Out, the same as Checkup damage
+        // (Undo puts it back if it was a slip).
+        const damage = Math.max(0, (slot?.damage ?? 0) + action.delta);
+        if (slot?.occupied && action.delta > 0 && slot.maxHp != null && damage >= slot.maxHp) {
+          return knockoutSlot({ ...state, slots }, mode, action.player, action.position);
+        }
         return { ...state, slots };
       }
 
@@ -548,6 +598,9 @@ export function makeReducer(mode: ModeConfig) {
           slotTheme: fromSlot.slotTheme,
           cardId: fromSlot.cardId,
           cardImage: fromSlot.cardImage,
+          enteredTurn: fromSlot.enteredTurn ?? null,
+          tool: fromSlot.tool ?? null,
+          rules: fromSlot.rules ?? null,
           // Energies travel with the piece in either direction. TCG
           // retreat costs are paid manually via the "Discard energy"
           // controls in the action sheet — we don't auto-deduct on
@@ -575,6 +628,9 @@ export function makeReducer(mode: ModeConfig) {
               cardId: toSlot.cardId,
               cardImage: toSlot.cardImage,
               energies: toSlot.energies,
+              enteredTurn: toSlot.enteredTurn ?? null,
+              tool: toSlot.tool ?? null,
+              rules: toSlot.rules ?? null,
             }
           : null;
 
@@ -590,7 +646,11 @@ export function makeReducer(mode: ModeConfig) {
           }
           return s;
         });
-        return { ...state, slots };
+        // The Active leaving (or swapping with a Benched Pokémon) on your own
+        // turn is your retreat. Promoting into an empty Active isn't.
+        const retreated = !!state.turn && action.player === state.turn.player && (action.from === "active" || (action.to === "active" && toSlot.occupied));
+        const turn = retreated && state.turn ? { ...state.turn, used: { ...state.turn.used, retreat: true } } : state.turn;
+        return { ...state, slots, turn };
       }
 
       case "TOGGLE_CONDITION": {
@@ -653,6 +713,7 @@ export function makeReducer(mode: ModeConfig) {
           nextHistoryId: 1,
           winner: null,
           loadedFromSaveId: action.saveId ?? null,
+          turn: action.snapshot.turn ?? null,
         };
       }
 
@@ -671,6 +732,7 @@ export function makeReducer(mode: ModeConfig) {
           },
           winner: null,
           loadedFromSaveId: null,
+          turn: null,
         };
       }
 
@@ -787,6 +849,41 @@ export function makeReducer(mode: ModeConfig) {
         };
       }
 
+      case "START_TURNS":
+        return { ...state, turn: { number: 1, player: action.first, first: action.first, used: { ...FRESH_TURN } } };
+
+      case "END_TURN": {
+        if (!state.turn) return state;
+        // Paralysis wears off at the end of its owner's turn (the turn it
+        // couldn't act in).
+        const ending = state.turn.player;
+        const slots = state.slots.map((s) =>
+          s.player === ending && s.occupied && s.extraConditions.paralyzed
+            ? { ...s, extraConditions: { ...s.extraConditions, paralyzed: false } }
+            : s,
+        );
+        return { ...state, slots, turn: { ...state.turn, number: state.turn.number + 1, player: nextPlayer(ending), used: { ...FRESH_TURN } } };
+      }
+
+      case "MARK_USED":
+        if (!state.turn || state.turn.used[action.key] === action.value) return state;
+        return { ...state, turn: { ...state.turn, used: { ...state.turn.used, [action.key]: action.value } } };
+
+      case "ATTACK": {
+        const turn = state.turn ? { ...state.turn, used: { ...state.turn.used, attacked: true } } : state.turn;
+        const hit = (st: SessionState, player: PlayerId, position: SlotPosition, amount: number): SessionState => {
+          const slot = findSlotIn(st.slots, player, position);
+          if (!slot || !slot.occupied || amount <= 0) return st;
+          const damage = slot.damage + amount;
+          const next = { ...st, slots: mapSlot(st.slots, player, position, (s) => ({ ...s, damage })) };
+          return slot.maxHp != null && damage >= slot.maxHp ? knockoutSlot(next, mode, player, position) : next;
+        };
+        let next: SessionState = { ...state, turn };
+        next = hit(next, action.target.player, action.target.position, Math.max(0, action.damage));
+        if (action.self) next = hit(next, action.self.player, action.self.position, action.self.damage);
+        return next;
+      }
+
       case "RESET_GAME": {
         // Player names are identity, not game state — preserve them
         // across a reset so the same two players carry their names
@@ -824,4 +921,59 @@ export function playerHasCheckup(state: SessionState, player: PlayerId): boolean
     // (Paralyzed / Confused).
     return Object.values(s.extraConditions).some(Boolean);
   });
+}
+
+// ---------------------------------------------------------------------------
+// Undo history
+// ---------------------------------------------------------------------------
+
+/** The board plus the states before it, newest last, for Undo. */
+export interface HistoryState {
+  present: SessionState;
+  past: SessionState[];
+}
+
+export type HistoryAction =
+  | SessionAction
+  | { type: "UNDO" }
+  /** Put a whole board in place with nothing to undo (leaving a shared game keeps its board). */
+  | { type: "REPLACE_STATE"; state: SessionState };
+
+/** How many steps Undo can go back. */
+export const UNDO_CAP = 50;
+/** Not a change to the game: coin and dice logs, and which save row this is. */
+const OUTSIDE_HISTORY = new Set<SessionAction["type"]>(["LOG_COIN_FLIP", "LOG_DICE_ROLL", "LINK_SAVE_ID"]);
+/** A new game (or a loaded one): nothing before it to undo. */
+const STARTS_FRESH = new Set<SessionAction["type"]>(["RESET_GAME", "LOAD_SAVED_STATE", "APPLY_GAME_SETTINGS"]);
+
+/**
+ * Wrap the reducer with Undo. Every change to the game is recorded (up to
+ * UNDO_CAP); UNDO steps back one, keeping the coin and dice logs and the
+ * save link as they are now (they're not moves).
+ */
+export function withHistory(reducer: (state: SessionState, action: SessionAction) => SessionState) {
+  return function historyReducer(h: HistoryState, action: HistoryAction): HistoryState {
+    if (action.type === "REPLACE_STATE") return { present: action.state, past: [] };
+    if (action.type === "UNDO") {
+      const prev = h.past[h.past.length - 1];
+      if (!prev) return h;
+      return {
+        present: {
+          ...prev,
+          coinHistory: h.present.coinHistory,
+          diceHistory: h.present.diceHistory,
+          nextHistoryId: h.present.nextHistoryId,
+          loadedFromSaveId: h.present.loadedFromSaveId,
+        },
+        past: h.past.slice(0, -1),
+      };
+    }
+    const next = reducer(h.present, action);
+    if (next === h.present) return h;
+    if (STARTS_FRESH.has(action.type)) return { present: next, past: [] };
+    if (OUTSIDE_HISTORY.has(action.type)) return { present: next, past: h.past };
+    const past = [...h.past, h.present];
+    if (past.length > UNDO_CAP) past.shift();
+    return { present: next, past };
+  };
 }

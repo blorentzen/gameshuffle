@@ -24,6 +24,8 @@ export interface CompanionSessionSnapshot {
   slots: SlotState[];
   playerNames: Record<PlayerId, string>;
   winCounters: Record<PlayerId, number>;
+  /** Whose turn it was (missing in saves from before turn tracking). */
+  turn?: import("./pokemonRules").TurnState | null;
 }
 
 /** What the Resume picker + Save flow read back from the DB row.

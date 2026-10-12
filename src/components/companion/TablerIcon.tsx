@@ -17,11 +17,22 @@
 
 import { Icon as CdsIcon } from "@empac/cascadeds";
 import {
+  IconArrowsExchange,
+  IconBuildingStadium,
   IconCards,
   IconCardsFilled,
+  IconCrown,
+  IconHandStop,
+  IconHelp,
+  IconHourglass,
   IconLayoutCards,
+  IconLeaf,
   IconPlayCardStar,
+  IconSkull,
   IconSparkles2,
+  IconSpiral,
+  IconSwords,
+  IconZzz,
   type IconProps,
 } from "@tabler/icons-react";
 
@@ -37,6 +48,19 @@ const EXTRAS: Record<string, TablerComponent> = {
   // bucket so it stays visually distinct from Psychic's classic
   // `sparkles` icon.
   "sparkles-2": IconSparkles2,
+  // The board's icon language (one meaning per glyph): Energy types,
+  // Special Conditions (never an Energy glyph), turn plays and card facts.
+  leaf: IconLeaf,
+  "hand-stop": IconHandStop,
+  crown: IconCrown,
+  skull: IconSkull,
+  zzz: IconZzz,
+  spiral: IconSpiral,
+  hourglass: IconHourglass,
+  swords: IconSwords,
+  "building-stadium": IconBuildingStadium,
+  "arrows-exchange": IconArrowsExchange,
+  help: IconHelp,
 };
 
 interface Props {

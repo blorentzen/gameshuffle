@@ -24,7 +24,8 @@ export function CheckupPrompt({ player }: Props) {
   const { setOpen } = useResolveOverlay();
   const ready = playerHasCheckup(state, player);
 
-  if (!ready) return null;
+  // While turns are tracked, End turn runs the Checkup for both players.
+  if (!ready || state.turn) return null;
 
   return (
     <button

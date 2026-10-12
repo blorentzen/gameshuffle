@@ -34,7 +34,7 @@ export function WinCounter({ player }: Props) {
           type="button"
           className="companion-win__btn"
           onClick={() => dispatch({ type: "ADJUST_WIN_COUNTER", player, delta: undoDelta })}
-          aria-label="Undo (return one)"
+          aria-label={`Give ${state.playerNames[player]} back one prize card`}
         >
           +
         </button>
@@ -45,7 +45,7 @@ export function WinCounter({ player }: Props) {
           type="button"
           className="companion-win__btn"
           onClick={() => dispatch({ type: "ADJUST_WIN_COUNTER", player, delta: takeDelta })}
-          aria-label="Take one"
+          aria-label={`${state.playerNames[player]} takes one prize card`}
         >
           −
         </button>
