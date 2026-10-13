@@ -2,7 +2,7 @@ import "server-only";
 
 import type Stripe from "stripe";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { getStripe } from "@/lib/stripe/client";
+import { getCircuitPriceId, getStripe } from "@/lib/stripe/client";
 import { bustPricingCache, getCatalog, type PlanId, type PriceInterval } from "./catalog";
 
 /**
@@ -161,6 +161,25 @@ export async function mirrorStripeEvent(event: Stripe.Event): Promise<{ changed:
 
 export interface ReconcileResult { backfilled: string[]; amountDrift: { lookupKey: string; table: number; stripe: number }[]; unmapped: { id: string; lookupKey: string | null; amount: number | null; product: string | null }[] }
 
+/**
+ * Prices the site already sells by id (Vercel env, plus Circuit's built-in
+ * fallbacks), mapped to their catalog lookup key. GS Pro's live prices predate
+ * the pricing tables and carry no Stripe lookup key, so without this the sync
+ * listed them as unknown (and the page suggested archiving them, which would
+ * break GS Pro checkout). Linking is table-only: Stripe isn't changed.
+ */
+function configuredPriceKeys(): Map<string, string> {
+  const pairs: [string | undefined, string][] = [
+    [process.env.STRIPE_PRICE_ID_MONTHLY, "pro_monthly"],
+    [process.env.STRIPE_PRICE_ID_ANNUAL, "pro_annual"],
+    [getCircuitPriceId("circuit_64", "monthly"), "circuit_64_monthly"],
+    [getCircuitPriceId("circuit_64", "annual"), "circuit_64_annual"],
+    [getCircuitPriceId("circuit_256", "monthly"), "circuit_256_monthly"],
+    [getCircuitPriceId("circuit_256", "annual"), "circuit_256_annual"],
+  ];
+  return new Map(pairs.filter((p): p is [string, string] => !!p[0]));
+}
+
 /** Full pass: backfill ids by lookup key, report amount drift and unmapped active prices. */
 export async function reconcile(actorId: string | null): Promise<ReconcileResult> {
   const stripe = getStripe();
@@ -168,11 +187,18 @@ export async function reconcile(actorId: string | null): Promise<ReconcileResult
   const c = await getCatalog();
   const out: ReconcileResult = { backfilled: [], amountDrift: [], unmapped: [] };
   const known = new Map(c.prices.filter((p) => p.active).map((p) => [p.lookupKey, p]));
+  const configured = configuredPriceKeys();
   const seen = new Set<string>();
-  for await (const price of stripe.prices.list({ active: true, limit: 100, expand: ["data.product"] })) {
+  const prices: Stripe.Price[] = [];
+  for await (const price of stripe.prices.list({ active: true, limit: 100, expand: ["data.product"] })) prices.push(price);
+  const keyed = new Set(prices.map((p) => p.lookup_key).filter((k): k is string => !!k));
+  for (const price of prices) {
     // Shop prices are seeded from src/data/store/shop-seed.json, not the pricing levers.
     if (price.metadata?.gs_kind === "shop") continue;
-    const key = price.lookup_key;
+    // A lookup key wins; a price with none that the site sells by id links to its
+    // row, unless another Stripe price already carries that row's lookup key.
+    const byId = configured.get(price.id);
+    const key = price.lookup_key ?? (byId && !keyed.has(byId) ? byId : null);
     const row = key ? known.get(key) : undefined;
     if (!row) {
       const prod = typeof price.product === "string" ? price.product : (price.product as Stripe.Product).name;

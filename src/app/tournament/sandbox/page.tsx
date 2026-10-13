@@ -56,35 +56,35 @@ interface P { id: string; name: string; status: PStatus; handle?: string; email?
 
 // Fake "already on GameShuffle" directory for the invite-existing-player typeahead.
 const GS_DIRECTORY: { id: string; name: string; handle: string }[] = [
-  { id: "u-rueful", name: "Rue", handle: "ruefulracer" },
+  { id: "u-rue", name: "Rue", handle: "ruefulracer" },
   { id: "u-tavi", name: "Tavi", handle: "octavia_gg" },
-  { id: "u-brisk", name: "Brisk", handle: "briskbanana" },
-  { id: "u-marlo", name: "Marlo", handle: "marlo_mk" },
-  { id: "u-sage", name: "Sage", handle: "sageshells" },
-  { id: "u-quo", name: "Quo", handle: "quokka" },
-  { id: "u-vint", name: "Vint", handle: "vintage_v" },
-  { id: "u-nyx", name: "Nyx", handle: "nyxnitro" },
+  { id: "u-brooke", name: "Brooke", handle: "brooke.plays" },
+  { id: "u-marlo", name: "Marlo", handle: "marlo.games" },
+  { id: "u-sage", name: "Sage", handle: "sage_k" },
+  { id: "u-quinn", name: "Quinn", handle: "quinnplays" },
+  { id: "u-vin", name: "Vin", handle: "vin_t" },
+  { id: "u-nia", name: "Nia", handle: "nia_n" },
 ];
 
 const START_ROSTER: P[] = [
-  { id: "aria", name: "Aria", status: "confirmed" },
-  { id: "bolt", name: "Bolt", status: "confirmed" },
-  { id: "cypher", name: "Cypher", status: "confirmed" },
-  { id: "dash", name: "Dash", status: "confirmed" },
-  { id: "echo", name: "Echo", status: "confirmed" },
-  { id: "fjord", name: "Fjord", status: "confirmed" },
-  { id: "glyph", name: "Glyph", status: "confirmed" },
-  { id: "hex", name: "Hex", status: "confirmed" },
-  { id: "ion", name: "Ion", status: "confirmed" },
-  { id: "jinx", name: "Jinx", status: "confirmed" },
-  { id: "koda", name: "Koda", status: "confirmed" },
-  { id: "lux", name: "Lux", status: "confirmed" },
-  { id: "mako", name: "Mako", status: "confirmed" },
-  { id: "nova", name: "Nova", status: "confirmed" },
-  { id: "orbit", name: "Orbit", status: "confirmed" },
-  { id: "pixel", name: "Pixel", status: "confirmed" },
-  { id: "quill", name: "Quill", status: "registered" }, // pending — visitor reviews
-  { id: "raze", name: "Raze", status: "registered" },
+  { id: "alex", name: "Alex", status: "confirmed" },
+  { id: "jordan", name: "Jordan", status: "confirmed" },
+  { id: "priya", name: "Priya", status: "confirmed" },
+  { id: "sam", name: "Sam", status: "confirmed" },
+  { id: "maya", name: "Maya", status: "confirmed" },
+  { id: "leo", name: "Leo", status: "confirmed" },
+  { id: "hana", name: "Hana", status: "confirmed" },
+  { id: "chris", name: "Chris", status: "confirmed" },
+  { id: "dani", name: "Dani", status: "confirmed" },
+  { id: "eli", name: "Eli", status: "confirmed" },
+  { id: "fatima", name: "Fatima", status: "confirmed" },
+  { id: "gabe", name: "Gabe", status: "confirmed" },
+  { id: "imani", name: "Imani", status: "confirmed" },
+  { id: "jun", name: "Jun", status: "confirmed" },
+  { id: "kai", name: "Kai", status: "confirmed" },
+  { id: "lena", name: "Lena", status: "confirmed" },
+  { id: "noah", name: "Noah", status: "registered" }, // pending — visitor reviews
+  { id: "omar", name: "Omar", status: "registered" },
 ];
 
 const MODES: { id: Mode; label: string }[] = [
