@@ -93,7 +93,11 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "setups", label: "Saved configs", iconName: "bookmark" },
       // Your own Chance cards, missions and house rules (moved from Streaming ▸ Game defaults).
       { id: "decks", label: "Decks", iconName: "cards" },
-      { id: "my-cards", label: "My Collection", iconName: "stack-2" },
+      // Your Pokémon cards and your TCG deck lists (not the game-night Decks above).
+      { id: "my-cards", label: "My Collection", iconName: "stack-2", tabs: [
+        { id: "my-cards", label: "Cards" },
+        { id: "tcg-decks", label: "Deck lists" },
+      ] },
     ],
   },
   {
@@ -163,6 +167,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-shop-orders", label: "Shop", iconName: "shopping-cart", group: "Shop", tabs: [
         { id: "platform-shop-orders", label: "Orders" },
         { id: "platform-shop-products", label: "Products" },
+        { id: "platform-shop-states", label: "States" },
         { id: "platform-shop", label: "Featured cards" },
       ] },
       { id: "platform-originals", label: "Originals", iconName: "sparkles", group: "Content", tabs: [

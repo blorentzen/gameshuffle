@@ -20,9 +20,10 @@ import { getBaseUrl } from "@/lib/env";
 import { sendShopOrderReceived, sendShopShipped, uspsTrackingUrl } from "@/lib/email/shop";
 import { orderLinkToken } from "./access";
 import { REFUNDED_COLUMNS, notifyRefunded, type RefundedRow } from "./orders";
-import { orderCode, refundCents, shipByDay, type RefundQuote } from "./rules";
+import { orderCode, refundCents, shipByDay, stateTotals, type RefundQuote, type StateOrder, type StateTotals } from "./rules";
 import { shopDate } from "./copy";
-import { SHOP_METADATA_KIND, digitalListsFor, type ShipMethod } from "./config";
+import { SHOP, SHOP_METADATA_KIND, digitalListsFor, type ShipMethod } from "./config";
+import { gsAddDays, gsDay, gsDayStart } from "@/lib/time/gsClock";
 
 export class ManageError extends Error {
   constructor(public code: string) { super(code); this.name = "ManageError"; }
@@ -323,4 +324,35 @@ export async function resendConfirmation(id: string, actor: string | null): Prom
     digitalLists: digitalListsFor(d.items.map((i) => i.sku)), account: { member: !!owner?.user_id },
   });
   await event(id, "email", false, { what: "confirmation_resent" }, actor);
+}
+
+// ---------------------------------------------------------------------------
+// Sales by state (Platform ▸ Shop ▸ States)
+
+export interface StateSales {
+  rows: StateTotals[];
+  /** Live orders, or test orders when there are none live yet. */
+  live: boolean;
+  warnOrders: number;
+  warnRevenue: number;
+  year: string;
+}
+
+/** Totals per state over the last 12 months and this calendar year (Pacific). */
+export async function stateSales(now = new Date()): Promise<StateSales> {
+  const svc = createServiceClient();
+  const year = gsDay(now).slice(0, 4);
+  const yearStart = gsDayStart(`${year}-01-01`);
+  const rollingStart = gsDayStart(gsAddDays(gsDay(now), -365));
+  const since = new Date(Math.min(yearStart.getTime(), rollingStart.getTime())).toISOString();
+  const read = async (livemode: boolean) => {
+    const { data } = await svc.from("shop_orders").select("ship_state, created_at, status, amount_total, amount_tax, amount_refunded")
+      .eq("livemode", livemode).gte("created_at", since).limit(20000).abortSignal(new AbortController().signal);
+    return ((data ?? []) as { ship_state: string | null; created_at: string; status: StateOrder["status"]; amount_total: number; amount_tax: number; amount_refunded: number | null }[])
+      .map((o): StateOrder => ({ state: o.ship_state, createdAt: o.created_at, status: o.status, sales: Math.max(0, o.amount_total - o.amount_tax), refunded: o.amount_refunded ?? 0 }));
+  };
+  let live = true;
+  let orders = await read(true);
+  if (orders.length === 0) { live = false; orders = await read(false); }
+  return { rows: stateTotals(orders, { rollingStart, yearStart }), live, warnOrders: SHOP.nexus_monitor.warn_orders, warnRevenue: SHOP.nexus_monitor.warn_revenue_cents, year };
 }

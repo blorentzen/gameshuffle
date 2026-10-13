@@ -33,6 +33,19 @@ export function shopCopy(config: ShopConfig = SHOP) {
   const standard = formatPrice(rate.standard_cents);
   return {
     nav: "Shop",
+    // Entry points around the site (build G). The copy doc says "Free shipping
+    // anywhere in the US"; these follow the $4.99-under-$25 rule instead (CHANGED,
+    // Britton to confirm).
+    entry: {
+      band: {
+        eyebrow: "HOLIDAY DROP",
+        heading: "Pokémon packs, packed by us",
+        body: `Pikachu sets, Halloween packs and ready-to-play decks. Free shipping on orders of ${threshold} or more.`, // CHANGED
+        button: "Visit the shop",
+      },
+      tcg: { line: `Need cards for game night? Our holiday packs ship free on orders of ${threshold} or more.`, link: "Visit the shop" }, // CHANGED
+      gameNights: { line: "Bringing kids to game night? Grab a few packs from the shop.", link: "Visit the shop" },
+    },
     hero: {
       eyebrow: "HOLIDAY DROP",
       title: "Packs for game night, gifts and stockings",

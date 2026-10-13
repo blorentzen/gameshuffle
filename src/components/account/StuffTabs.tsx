@@ -2,7 +2,8 @@
 
 /**
  * The My Stuff section: Events (Tournaments · Game nights) · Purchases
- * (Tickets · Shop orders · Payouts) · Saved configs · Decks · My Collection. Views and
+ * (Tickets · Shop orders · Payouts) · Saved configs · Decks · My Collection (Cards ·
+ * Deck lists). Views and
  * tabs live in src/lib/account/nav.ts; My Games and Board Games moved to
  * Account ▸ Profile ▸ Games (their old links forward there). The page
  * server-resolves `isPro`, whether to show Payouts and the profile timezone
@@ -20,6 +21,7 @@ import { TicketsTab } from "@/components/account/TicketsTab";
 import { PayoutsTab } from "@/components/account/PayoutsTab";
 import { ShopOrdersTab } from "@/components/account/ShopOrdersTab";
 import { DecksTab } from "@/components/account/stuff/DecksTab";
+import { TcgDecksTab } from "@/components/tcg/decks/TcgDecksTab";
 import { AdminScreen } from "@/components/account/admin/AdminKit";
 import { MAX_SHOWCASE } from "@/lib/scrydex/types";
 
@@ -41,6 +43,7 @@ export function StuffTabs({ isPro, unlimitedCards = false, showPayouts = false, 
         </footer>
       </AdminScreen>
     ),
+    "tcg-decks": () => <TcgDecksTab isPro={isPro} />,
   };
   return <SectionTabs route="/account/stuff" screens={screens} />;
 }

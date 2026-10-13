@@ -20,7 +20,8 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { formatPrice } from "@/lib/store/copy";
-import type { AdminOrderDetail, AdminOrderRow, AdminRefundQuote, OrderFilter, OrdersSummary, RefundReason } from "@/lib/store/manage";
+import type { AdminOrderDetail, AdminOrderRow, AdminRefundQuote, OrderFilter, OrdersSummary, RefundReason, StateSales } from "@/lib/store/manage";
+import type { StateTotals } from "@/lib/store/rules";
 import { refundCents } from "@/lib/store/rules";
 import { AdminHeader, AdminRowMenu, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
 import { IconCash, IconPackage, IconPlus, IconReceipt, IconReceiptRefund, IconRefresh } from "@tabler/icons-react";
@@ -497,5 +498,84 @@ function ProductModal({ product, onClose, onSaved }: { product: AdminProduct | n
         {product && <p className="admin-table__sub">A price change makes a new Stripe price; past orders keep what they paid.</p>}
       </div>
     </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sales by state (build F): an early warning before a state's sales tax threshold.
+
+const STATE_STATUS: Record<StateTotals["status"], { label: string; variant: "info" | "error" | "warning" | "success" }> = {
+  home: { label: "Home state, registered", variant: "info" },
+  over: { label: "Over the line", variant: "error" },
+  close: { label: "Getting close", variant: "warning" },
+  fine: { label: "Fine", variant: "success" },
+};
+
+export function PlatformShopStatesTab() {
+  const toast = useToast();
+  const [data, setData] = useState<StateSales | null>(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/shop/orders?states=1", { cache: "no-store" });
+      const d = await res.json().catch(() => null);
+      if (d?.states) setData(d.states as StateSales);
+      else toast.toast({ variant: "error", message: "Couldn't load sales by state. Try again." });
+    } finally {
+      setBusy(false);
+    }
+  }, [toast]);
+  useEffect(() => { void load(); }, [load]);
+
+  const flagged = data?.rows.filter((r) => r.status === "over" || r.status === "close").length ?? 0;
+
+  return (
+    <div className="account-card admin-screen shop-admin">
+      <AdminHeader
+        title="Sales by state"
+        intro={data
+          ? `An early warning before a state's sales tax threshold. Most states start at $100,000 or 200 orders a year; this flags at ${formatPrice(data.warnRevenue).replace(/\.00$/, "")} or ${data.warnOrders} orders, over the last 12 months and ${data.year}, and says "Getting close" at three quarters.`
+          : "An early warning before a state's sales tax threshold."}
+        actions={<Button variant="secondary" size="small" iconBefore={IconRefresh} loading={busy} disabled={busy} onClick={() => void load()}>Refresh</Button>}
+      />
+      {data && !data.live && <Alert variant="info">No live orders yet, so these are test orders.</Alert>}
+      {data && flagged > 0 && (
+        <Alert variant="warning" title={`${flagged} ${flagged === 1 ? "state needs" : "states need"} a look`}>
+          Check whether that state wants you to register to collect its sales tax before you pass its threshold.
+        </Alert>
+      )}
+      {data === null ? <LoadingLines label="Loading" /> : (
+        <AdminTable label="Sales by state">
+          <Table variant="striped" hoverable dense>
+            <TableHeader>
+              <TableRow>
+                <TableHead>State</TableHead>
+                <TableHead align="right">Orders, 12 months</TableHead>
+                <TableHead align="right">Sales, 12 months</TableHead>
+                <TableHead align="right">Orders, {data.year}</TableHead>
+                <TableHead align="right">Sales, {data.year}</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.rows.length === 0 ? (
+                <TableRow><TableCell colSpan={6}><TableEmpty title="No orders yet" description="Each state shows here once it has an order." /></TableCell></TableRow>
+              ) : data.rows.map((r) => (
+                <TableRow key={r.state}>
+                  <TableCell>{r.state}</TableCell>
+                  <TableCell align="right">{r.orders12}</TableCell>
+                  <TableCell align="right">{formatPrice(r.sales12)}</TableCell>
+                  <TableCell align="right">{r.ordersYear}</TableCell>
+                  <TableCell align="right">{formatPrice(r.salesYear)}</TableCell>
+                  <TableCell><Badge variant={STATE_STATUS[r.status].variant} size="small">{STATE_STATUS[r.status].label}</Badge></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </AdminTable>
+      )}
+      <p className="admin-updated">Sales are order totals minus tax and refunds. Canceled and fully refunded orders don&apos;t count.</p>
+    </div>
   );
 }
