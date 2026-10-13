@@ -15,6 +15,8 @@ import { PillarDoors } from "@/components/marketing/PillarDoors";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
 import { getPublicFeaturedShopCards } from "@/lib/shop/featuredCards";
+import { shopVisibleToVisitors } from "@/lib/store/visibility";
+import { ShopBand } from "@/components/store/ShopEntry";
 
 /** Free-tools wayfinder tiles. CDS (Tabler) icons — no emoji (they clash with
  *  the icon system + render per-OS). CDS lacks dice/coin glyphs, so those use
@@ -80,7 +82,7 @@ const TOP_RANDOMIZERS = [
 export default async function HomePage() {
   // Featured shop cards for the homepage TCG module (read-only, 0 Scrydex
   // credits; FPO fallback inside the component if none configured).
-  const shopCards = await getPublicFeaturedShopCards();
+  const [shopCards, shopVisible] = await Promise.all([getPublicFeaturedShopCards(), shopVisibleToVisitors()]);
   return (
     <>
       <script
@@ -293,6 +295,9 @@ export default async function HomePage() {
               />
             </ResponsiveCarousel>
           </section>
+
+          {/* The holiday drop (shop build G): only while visitors can see the shop. */}
+          {shopVisible && <ShopBand />}
 
           {/* Featured Pokémon cards — moved down (Phase 3): the two-hop TCG
               funnel shouldn't carry the heaviest treatment up top. */}

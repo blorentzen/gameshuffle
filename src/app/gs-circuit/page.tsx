@@ -60,7 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "GameShuffle Circuit: run bigger tournaments",
     description:
-      `GameShuffle Circuit is the organizer plan for bigger events. Every format is free for one full lobby, for Mario Kart and random-character rounds in Smash, Mario Party, Splatoon, Kirby, Street Fighter 6 and Tekken 8. Circuit 64 and Circuit 256 raise the field and add live randomized rounds, text reminders, championship series, co-organizers, custom branding and seeding. ${(await launchCopy()).short}`.trim(),
+      `GameShuffle Circuit is the organizer plan for bigger events. Every format is free for one full lobby: brackets, points, Swiss with a top cut and deck lists, and Heat to Mains, for any game. Circuit 64 and Circuit 256 raise the field and add live randomized rounds, text reminders, championship series, co-organizers, custom branding and seeding. ${(await launchCopy()).short}`.trim(),
     openGraph: {
       title: "GameShuffle Circuit",
       url: "https://www.gameshuffle.co/gs-circuit",
@@ -75,7 +75,10 @@ const PAGE_BG = "color-mix(in srgb, var(--text-primary) 4%, var(--surface-defaul
  *  four organizer features. Everything is free during preview. */
 const COMPARE: { label: string; free: string | boolean; c64: string | boolean; c256: string | boolean }[] = [
   { label: "Players per event", free: "One full lobby", c64: "Up to 64", c256: "Up to 256" },
-  { label: "Every format (single/double elim, points, Heat → Mains)", free: true, c64: true, c256: true },
+  { label: "Every format (single/double elim, points, Swiss with a top cut, Heat → Mains)", free: true, c64: true, c256: true },
+  { label: "Any game: ours with full rules, or any other by name", free: true, c64: true, c256: true },
+  { label: "Pokémon TCG deck lists, checked as players send them", free: true, c64: true, c256: true },
+  { label: "A waitlist when the field is full (offered spots in line order)", free: true, c64: true, c256: true },
   { label: "Team modes (2v2 … 6v6)", free: true, c64: true, c256: true },
   { label: "Multi-flight points + custom lobby rules", free: true, c64: true, c256: true },
   { label: "Live scoring, public join page, picks & bans", free: true, c64: true, c256: true },
@@ -85,7 +88,7 @@ const COMPARE: { label: string; free: string | boolean; c64: string | boolean; c
   { label: "Text reminders to entrants (US numbers)", free: false, c64: "500 a month", c256: "2,000 a month" },
   { label: "Championship series (seasons + standings)", free: false, c64: true, c256: true },
   { label: "Co-organizers (share edit access)", free: false, c64: true, c256: true },
-  { label: "Custom page branding (header + theme)", free: false, c64: true, c256: true },
+  { label: "Custom branding (page header, theme, display board look)", free: false, c64: true, c256: true },
   { label: "Custom seeding + redraw", free: false, c64: true, c256: true },
   { label: "GameShuffle Pro included", free: false, c64: false, c256: true },
 ];
@@ -107,8 +110,8 @@ export default async function GsCircuitPage() {
         breadcrumb={{ label: "GameShuffle Circuit", path: "/gs-circuit" }}
         faq={[
           { q: "How much does GameShuffle Circuit cost?", a: copy.cost },
-          { q: "What's free?", a: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, picks & bans, random-character rounds for fighting and party games, and the AI tournament helper, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
-          { q: "Which games can I run?", a: "Mario Kart 8 Deluxe, Mario Kart World and Mario Kart 64 with track and build rules, plus random-character rounds for Smash Ultimate, Mario Party, Splatoon 3, Kirby Air Riders, Street Fighter 6 and Tekken 8: every confirmed player gets a pick each round, with no repeats if you want." },
+          { q: "What's free?", a: "Every format (single/double elimination, points, Swiss with a top cut, Heat to Mains, team modes), Pokémon TCG deck lists, multi-flight points, live scoring, a public join page, picks & bans, random-character rounds for fighting and party games, a waitlist, and the AI tournament helper, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
+          { q: "Which games can I run?", a: "Any game. Mario Kart 8 Deluxe, Mario Kart World and Mario Kart 64 come with track and build rules; Smash Ultimate, Mario Party, Splatoon 3, Kirby Air Riders, Street Fighter 6 and Tekken 8 get random-character rounds; Pokémon TCG gets Swiss with deck lists. Anything else runs by name with your rules." },
           { q: "What does GameShuffle Circuit add?", a: "A bigger field (Circuit 64 or Circuit 256), live randomized rounds, text reminders to entrants, and four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
           { q: "What happens when a free tournament fills up?", a: "Nobody is turned away. Once one full lobby has a spot, anyone else who signs up joins the waitlist, and the organizer sees who's waiting. If the organizer upgrades to Circuit 64 or Circuit 256, the people waiting are offered spots in line order." },
           { q: "Is it the same as GameShuffle Pro?", a: "No. GameShuffle Pro is for streamers (Twitch/Discord integration, overlay, chat commands, token economy). GameShuffle Circuit is for organizers running bigger tournaments. They're separate plans." },
@@ -166,8 +169,8 @@ export default async function GsCircuitPage() {
               <ProSpotlight
                 reverse
                 eyebrow="Your format"
-                title="Brackets, points or Heat → Mains: your call"
-                body="Single or double elimination, free-for-all points, or the sprint-car Heat-to-Mains ladder. Run eliminations with a tap to say who moves on, and record points or placements just as fast."
+                title="Brackets, points, Swiss or Heat → Mains: your call"
+                body="Single or double elimination, free-for-all points, Swiss rounds with a top cut, or the sprint-car Heat-to-Mains ladder. Run eliminations with a tap to say who moves on, let Swiss pair every round with no rematches, and record points or placements just as fast."
                 media={<BracketShot />}
               />
             </Reveal>
@@ -175,7 +178,7 @@ export default async function GsCircuitPage() {
               <ProSpotlight
                 eyebrow="Every game we roll"
                 title="Not just Mario Kart"
-                body="Run Mario Kart with track and build rules, or random-character rounds for Smash, Mario Party, Splatoon, Kirby Air Riders, Street Fighter 6 and Tekken 8. Each round deals every confirmed player a pick, with no repeats if you want, and text reminders bring them back for check-in."
+                body="Run Mario Kart with track and build rules, random-character rounds for Smash, Mario Party, Splatoon, Kirby Air Riders, Street Fighter 6 and Tekken 8, or a Pokémon League Cup style Swiss with deck lists checked as players send them. Any other game works by name, with your rules."
                 media={<GamesShot />}
               />
             </Reveal>
@@ -267,7 +270,7 @@ export default async function GsCircuitPage() {
             defaultOpenIds={["cost", "free", "adds", "bundle", "vs-pro"]}
             items={[
               { id: "cost", title: "How much does GameShuffle Circuit cost?", content: copy.cost },
-              { id: "free", title: "What's free?", content: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, and picks & bans, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
+              { id: "free", title: "What's free?", content: "Every format (single/double elimination, points, Swiss with a top cut, Heat to Mains, team modes), Pokémon TCG deck lists, multi-flight points, live scoring, a public join page, picks & bans and a waitlist, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
               { id: "adds", title: "What does Circuit add?", content: "A bigger field (Circuit 64 or Circuit 256) plus four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
               { id: "bundle", title: "Does Circuit 256 really include GameShuffle Pro?", content: "Yes. Circuit 256 bundles a GameShuffle Pro subscription, so if you also stream your events you get the OBS overlay, Twitch and Discord integration, chat commands, and the token economy at no extra cost." },
               { id: "vs-pro", title: "Is it the same as GameShuffle Pro?", content: "No. GameShuffle Pro is for streamers (Twitch/Discord integration, overlay, chat commands, token economy). GameShuffle Circuit is for organizers running bigger tournaments. They're separate plans, and Circuit 256 includes Pro." },

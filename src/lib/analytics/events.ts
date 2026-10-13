@@ -27,6 +27,10 @@ export const EVENTS = {
   // Shop
   /** "Notify me" on the shop's Coming soon page. {signedIn} */
   shopUpdatesJoined: "Shop Updates Joined",
+  /** A link into the shop from around the site (props: { from: nav | home-band | tcg | game-nights }). */
+  shopLinkClicked: "Shop Link Clicked",
+  /** A shop order was paid (server event; props: { placement, source }). Revenue rides along. */
+  shopOrderPlaced: "Shop Order Placed",
 
   // Discord
   /** "Add to Discord" on /discord. {from: hero|steps|band} */
@@ -70,6 +74,10 @@ export const EVENTS = {
   triviaQuestionsDrafted: "Trivia Questions Drafted",
   /** The host filled rounds from the GameShuffle pack. {added, scope: all|round} */
   triviaPackFilled: "Trivia Pack Filled",
+  /** A host started a league. {weeks, scoring} */
+  triviaLeagueStarted: "Trivia League Started",
+  /** A captain entered a team in a league from the league page. {crew: yes|no} */
+  triviaLeagueTeamEntered: "Trivia League Team Entered",
 
   // Forms and accounts
   betaApplied: "Beta Applied",

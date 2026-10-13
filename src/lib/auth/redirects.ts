@@ -27,17 +27,35 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/tournament",
   "/claim",
   "/party",
-  // Mod invites send people back to their invite after signing in; without
-  // this they were dropped on /account instead.
-  "/mod/invite/",
-  // A Twitch mod joining from `!gs mod` (sign in with Twitch, then join).
-  "/mod/join/",
-  // Signing up from the Discord Activity: its join page (signing in first to
-  // connect Discord) and the "head back to Discord" page it ends on.
-  "/discord/join",
-  "/discord/joined",
-  // "Add to Discord" on /discord: sign up, then straight into the bot install.
-  "/discord/add",
+  // Mod pages: invites (/mod/invite/<token>), self-serve join (/mod/join/<slug>)
+  // and a mod's view of a streamer (/mod/<slug>) all send people back after sign-in.
+  "/mod/",
+  // Signing up from the Discord Activity (/discord/join, /discord/joined) and
+  // "Add to Discord" (/discord/add: sign up, then straight into the bot install).
+  "/discord",
+  // Every other page that sends someone to sign in and expects them back
+  // (2026-10-13: Twitch, Discord and magic-link sign-ins from these landed on
+  // /account because they weren't listed; password sign-in already returned).
+  "/tcg-companion",     // the companion, incl. a Play together joiner (?play=CODE) and ?deck=
+  "/pokemon-tcg/",      // deck guides' "Sign in to save this deck", checklists
+  "/trivia",
+  "/daily",
+  "/weekly",
+  "/chat-brain",
+  "/arcade",
+  "/communities",
+  "/community/",
+  "/c",
+  "/game-nights",
+  "/championship/",
+  "/ideas",
+  "/players",
+  "/u/",
+  "/comms",
+  "/beta",
+  "/gs-circuit",
+  "/gs-pro",
+  "/shop",
 ];
 
 export function safeRedirect(raw: string | null, fallback = "/account"): string {
@@ -45,6 +63,8 @@ export function safeRedirect(raw: string | null, fallback = "/account"): string 
   // Reject anything that looks like an absolute URL or protocol-relative.
   if (raw.startsWith("//") || raw.includes("://")) return fallback;
   if (!raw.startsWith("/")) return fallback;
+  // Browsers read "/\\evil.com" as "//evil.com"; control characters have no place in a path.
+  if (raw.includes("\\") || /[\u0000-\u001f\u007f]/.test(raw)) return fallback;
   // Allow exact matches or matches with a path suffix on the prefix.
   for (const prefix of ALLOWED_REDIRECT_PREFIXES) {
     if (raw === prefix) return raw;

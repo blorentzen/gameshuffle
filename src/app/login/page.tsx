@@ -9,6 +9,7 @@ import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { authContextFor } from "@/lib/auth/auth-context";
 import { describeAuthError } from "@/lib/auth/errors";
 import { startOAuth } from "@/lib/auth/oauth";
+import { safeRedirect } from "@/lib/auth/redirects";
 import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
@@ -36,7 +37,8 @@ function LoginForm() {
   const widgetIdRef = useRef<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const redirect = searchParams.get("redirect") || "/account";
+  // Only our own pages (the same allowlist the sign-in callback uses), so a crafted link can't send someone off-site.
+  const redirect = safeRedirect(searchParams.get("redirect"));
   /**
    * Why they are here. Login takes MORE contextual redirects than signup does
    * (tournaments, check-in, mod surfaces, data requests) and said nothing
@@ -146,7 +148,7 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${redirect}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`,
         ...(TURNSTILE_SITE_KEY && captchaToken ? { captchaToken } : {}),
       },
     });
@@ -257,7 +259,7 @@ function LoginForm() {
                     fullWidth
                     onClick={async () => {
                       setError(null);
-                      const problem = await startOAuth(provider, `${window.location.origin}/auth/callback?redirect=${redirect}`, { surface: "login" });
+                      const problem = await startOAuth(provider, `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}`, { surface: "login" });
                       if (problem) setError(problem);
                     }}
                     disabled={isLockedOut}
