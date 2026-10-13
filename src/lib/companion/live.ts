@@ -24,6 +24,7 @@ import type { ModeConfig, SessionState } from "./types";
 import { IDLE_HOURS, SEEN_EVERY_MS, makeCode, otherSeat, type LivePreview, type LiveView, type Seat } from "./liveRules";
 import {
   fail,
+  planFreeSeat,
   planJoin,
   planMove,
   planRoll,
@@ -277,6 +278,13 @@ export async function liveRoll(
   const saved = await planAndSave(code, cred, (row, seat) => planRoll(row, seat!, { kind, faces, use, value, rollId }, modeOf(row), nowIso()));
   if (!saved.ok) return saved;
   return { ok: true, value: { value, rollId, view: viewNow(saved.value.row, saved.value.seat!) } };
+}
+
+/** The host opens the second seat again; the old opponent's phone drops out. */
+export async function freeLiveSeat(code: string, cred: Credentials): Promise<LiveResult<LiveView>> {
+  const saved = await planAndSave(code, cred, (row, seat) => planFreeSeat(row, seat!, nowIso()));
+  if (!saved.ok) return saved;
+  return { ok: true, value: viewNow(saved.value.row, saved.value.seat!) };
 }
 
 /** The host ends the game for both phones. */

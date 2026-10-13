@@ -176,6 +176,30 @@ export function planUndo(row: GameRow, seat: Seat, now: string): Plan {
 }
 
 /**
+ * The host opens the second seat again (the opponent lost their link, or
+ * someone else is taking over). The board stays as it is; the next person
+ * to join takes the seat. Undo history goes: it can't reach back past a
+ * different player.
+ */
+export function planFreeSeat(row: GameRow, seat: Seat, now: string): Plan {
+  if (seat !== "p1") return fail("host_only", "Only the host can open the seat again.");
+  if (!row.seats.p2) return { ok: true, value: null };
+  const seats = { ...row.seats };
+  delete seats.p2;
+  const version = row.version + 1;
+  return {
+    ok: true,
+    value: {
+      seats,
+      version,
+      past: [],
+      pending_rolls: (row.pending_rolls ?? []).filter((r) => r.seat !== "p2"),
+      last_move: { by: "p1", text: `${row.state.playerNames.p1} opened the seat for someone new to join`, big: true, at: now, version },
+    },
+  };
+}
+
+/**
  * A server roll. `log`: on the board's log for both players (and on the Undo
  * list so nobody's Undo reaches past it). `resolve`: kept for the phone's
  * resolve move; the board and its version don't change.

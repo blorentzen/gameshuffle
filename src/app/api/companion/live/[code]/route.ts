@@ -7,6 +7,7 @@
  * POST { op: "move", action }                    → { view }
  * POST { op: "undo" }                            → { view }
  * POST { op: "roll", kind, faces?, use }         → { value, rollId?, view }
+ * POST { op: "free" }                            → { view } (host: open the second seat again)
  * POST { op: "end" }                             → { ok }   (host only)
  *
  * A signed-in player is known by their session; a guest sends the token
@@ -19,6 +20,7 @@ import { rateLimit } from "@/lib/ratelimit";
 import {
   applyLiveMove,
   endLiveGame,
+  freeLiveSeat,
   getLiveView,
   joinLiveGame,
   liveRoll,
@@ -99,6 +101,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ cod
       const result = await liveRoll(code, cred, { kind, faces: body.faces, use });
       if (!result.ok) return liveError(result.error, result.message);
       return NextResponse.json(result.value);
+    }
+    case "free": {
+      const result = await freeLiveSeat(code, cred);
+      if (!result.ok) return liveError(result.error, result.message);
+      return NextResponse.json({ view: result.value });
     }
     case "end": {
       const result = await endLiveGame(code, cred);

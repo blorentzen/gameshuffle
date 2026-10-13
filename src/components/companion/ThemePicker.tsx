@@ -12,6 +12,7 @@
  * The first option in the row is always "None" (clears the styling).
  */
 
+import { Chip } from "@empac/cascadeds";
 import { useMode } from "@/lib/companion/SessionContext";
 import { NO_THEME_KEY } from "@/lib/companion/styling";
 
@@ -25,38 +26,26 @@ export function ThemePicker({ selected, onChange }: Props) {
   return (
     <div className="companion-theme">
       <div className="companion-theme__label">Theme</div>
-      <div className="companion-theme__chips">
-        {/* "None" sentinel first — clears the styling */}
-        <button
-          type="button"
-          className={`companion-theme__chip companion-theme__chip--none${
-            selected === NO_THEME_KEY ? " companion-theme__chip--selected" : ""
-          }`}
+      <div className="companion-theme__chips" role="group" aria-label="Theme">
+        {/* "None" first: clears the styling. */}
+        <Chip
+          label="None"
+          clickable
+          selected={selected === NO_THEME_KEY}
+          variant={selected === NO_THEME_KEY ? "primary" : "default"}
           onClick={() => onChange(NO_THEME_KEY)}
-          aria-label="No theme"
-          aria-pressed={selected === NO_THEME_KEY}
-          title="No theme"
-        >
-          <span className="companion-theme__chip-fill" />
-          <span className="companion-theme__chip-label">None</span>
-        </button>
-
+          icon={<span className="companion-theme__chip-fill companion-theme__chip-fill--none" aria-hidden="true" />}
+        />
         {mode.slotThemes.map((theme) => (
-          <button
+          <Chip
             key={theme.key}
-            type="button"
-            className={`companion-theme__chip${
-              selected === theme.key ? " companion-theme__chip--selected" : ""
-            }`}
-            data-style-preview-theme={theme.key}
+            label={theme.label}
+            clickable
+            selected={selected === theme.key}
+            variant={selected === theme.key ? "primary" : "default"}
             onClick={() => onChange(theme.key)}
-            aria-label={theme.label}
-            aria-pressed={selected === theme.key}
-            title={theme.description ?? theme.label}
-          >
-            <span className="companion-theme__chip-fill" />
-            <span className="companion-theme__chip-label">{theme.label}</span>
-          </button>
+            icon={<span className="companion-theme__chip-fill" data-style-preview-theme={theme.key} aria-hidden="true" />}
+          />
         ))}
       </div>
     </div>
