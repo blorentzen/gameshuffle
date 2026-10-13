@@ -270,3 +270,44 @@
 .rules-hub__link {
   font-size: var(--font-size-18);
 }
+
+/* Checklists (/pokemon-tcg/checklists): tick cards off as you pull them. */
+.checklist__meta { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.checklist { display: flex; flex-direction: column; gap: var(--spacing-24); margin-top: var(--spacing-24); }
+.checklist__bar {
+  position: sticky;
+  top: calc(var(--gs-nav-offset, 64px) + var(--spacing-8));
+  transition: var(--gs-nav-slide);
+  z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12) var(--spacing-20);
+  padding: var(--spacing-12) var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12, 12px);
+  background: var(--background-elevated, var(--background-primary));
+}
+.checklist__progress { flex: 1 1 22rem; min-width: 0; display: grid; gap: var(--spacing-6); }
+.checklist__count { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.checklist__count b { font-size: var(--font-size-20); color: var(--text-primary); margin-right: var(--spacing-4); }
+.checklist__tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+.checklist__section { display: grid; gap: var(--spacing-8); }
+.checklist__section .tcg-h2 { margin: 0; }
+.checklist__blurb, .checklist__done { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.checklist__items { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr)); gap: var(--spacing-6) var(--spacing-16); }
+.checklist__items li {
+  display: grid; grid-template-columns: auto 4rem minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-10);
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8, 8px);
+  background: var(--background-primary);
+}
+.checklist__items li.is-got { background: var(--background-secondary); }
+.checklist__items li.is-got .checklist__name { text-decoration: line-through; text-decoration-color: var(--text-tertiary); }
+.checklist__no { font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); color: var(--text-secondary); font-size: var(--font-size-14); }
+.checklist__name { min-width: 0; font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.checklist__name small { font-weight: var(--font-weight-medium, 500); color: var(--text-secondary); font-size: var(--font-size-12); }
+.checklist__artist { font-size: var(--font-size-14); color: var(--text-secondary); text-align: right; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .checklist__items li { grid-template-columns: auto 3.6rem minmax(0, 1fr); }
+  .checklist__artist { grid-column: 3; text-align: left; font-size: var(--font-size-12); }
+}
+.checklist__shop { margin-top: var(--spacing-24); display: grid; gap: var(--spacing-6); }

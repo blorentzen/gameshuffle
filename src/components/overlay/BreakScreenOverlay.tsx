@@ -12,8 +12,8 @@
  */
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
-import { IconBomb, IconCoin, IconMushroom, IconShield, IconStar } from "@tabler/icons-react";
-import type { BreakOption, BreakView, DiceFace, ShuffleTable } from "@/lib/break/types";
+import { IconBolt, IconBomb, IconBox, IconCloudStorm, IconCoin, IconDice5, IconMoon, IconMushroom, IconShield, IconStar, IconSteeringWheel, type Icon } from "@tabler/icons-react";
+import type { BossView, BreakOption, BreakView, DerbyEvent, DerbyLane, DiceFace, LetterRow, ShuffleTable } from "@/lib/break/types";
 
 function useNow(active: boolean): number {
   const [now, setNow] = useState(() => Date.now());
@@ -102,6 +102,108 @@ export function ConnectBoard({ board, last, win, className = "gs-break__c4" }: {
       {[...board].map((cell, i) => (
         <span key={i} className={`${cell === "c" ? "is-chat" : cell === "b" ? "is-bot" : ""}${i === last ? " is-last" : ""}${winSet.has(i) ? " is-win" : ""}`} />
       ))}
+    </div>
+  );
+}
+
+const BOSS_GLYPHS: Record<string, Icon> = { bomb: IconBomb, cloud: IconCloudStorm, shield: IconShield, box: IconBox, dice: IconDice5, wheel: IconSteeringWheel, moon: IconMoon, bolt: IconBolt };
+
+/** Boss Fight: the boss's glyph, name and health bar. */
+export function BossBar({ boss, className = "gs-break__boss" }: { boss: BossView; className?: string }) {
+  const Glyph = BOSS_GLYPHS[boss.glyph] ?? IconBomb;
+  const pct = boss.maxHp ? Math.max(0, Math.min(100, (boss.hp / boss.maxHp) * 100)) : 0;
+  return (
+    <div className={`${className}${boss.hp <= 0 ? " is-down" : ""}`}>
+      <span className={`${className}-glyph`} aria-hidden="true"><Glyph size={44} stroke={1.75} /></span>
+      <div className={`${className}-info`}>
+        <b>{boss.name}</b>
+        <span className={`${className}-hp`} role="meter" aria-label={`${boss.name}'s health`} aria-valuemin={0} aria-valuemax={boss.maxHp} aria-valuenow={boss.hp}>
+          <i style={{ width: `${pct}%` }} />
+        </span>
+        <small>{boss.hp} / {boss.maxHp} health</small>
+      </div>
+    </div>
+  );
+}
+
+const KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+
+/** Five Letters: the guesses so far (empty rows to fill) and, optionally, what each letter has shown. */
+export function LetterGrid({ rows, maxRows, keys = false, className = "gs-break__letters" }: { rows: LetterRow[]; maxRows: number; keys?: boolean; className?: string }) {
+  const best: Record<string, string> = {};
+  for (const r of rows) r.word.split("").forEach((ch, i) => {
+    const m = r.marks[i];
+    if (m === "g" || (m === "y" && best[ch] !== "g") || (m === "x" && !best[ch])) best[ch] = m;
+  });
+  const label: Record<string, string> = { g: "right spot", y: "in the word", x: "not in it" };
+  return (
+    <div className={className}>
+      <ol className={`${className}-grid`} aria-label="Guesses">
+        {Array.from({ length: maxRows }, (_, i) => {
+          const r = rows[i];
+          if (r && !r.word) return <li key={i} className="is-skipped"><span>No guess</span></li>;
+          return (
+            <li key={i} aria-label={r ? `${r.word}: ${r.word.split("").map((ch, k) => `${ch} ${label[r.marks[k]]}`).join(", ")}` : undefined}>
+              {Array.from({ length: 5 }, (_, k) => <span key={k} className={r ? `is-${r.marks[k]}` : ""} aria-hidden={!!r}>{r?.word[k] ?? ""}</span>)}
+            </li>
+          );
+        })}
+      </ol>
+      {keys && (
+        <div className={`${className}-keys`} aria-hidden="true">
+          {KEY_ROWS.map((row) => <div key={row}>{row.split("").map((ch) => <span key={ch} className={best[ch] ? `is-${best[ch]}` : ""}>{ch}</span>)}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+/** Our own kart, side on: body, driver and two wheels in the lane's colour. */
+function Kart({ lane }: { lane: number }) {
+  return (
+    <svg className={`gs-kart is-lane-${lane}`} viewBox="0 0 40 24" aria-hidden="true">
+      <circle cx="17" cy="7" r="5" className="gs-kart__head" />
+      <path d="M4 15 Q4 11 9 11 L27 11 Q31 11 34 14 L37 16 Q38 19 35 19 L6 19 Q4 19 4 17 Z" className="gs-kart__body" />
+      <circle cx="10" cy="19" r="4" className="gs-kart__wheel" />
+      <circle cx="30" cy="19" r="4" className="gs-kart__wheel" />
+    </svg>
+  );
+}
+
+/**
+ * Kart Derby: eight lanes and a finish line. During a lap the karts move from
+ * where they were to where they'll be, over the lap's seconds from `openedAt`;
+ * item boxes show as they happen. At the reveal they sit at the lap's end.
+ */
+export function DerbyTrack({ lanes, events, openedAt, seconds, reveal, now, className = "gs-break__derby" }: {
+  lanes: DerbyLane[]; events: DerbyEvent[]; openedAt?: string; seconds: number; reveal: boolean; now: number; className?: string;
+}) {
+  const elapsed = openedAt ? Math.max(0, now - Date.parse(openedAt)) : 0;
+  const t = reveal || !seconds ? 1 : Math.min(1, elapsed / (seconds * 1000));
+  const shown = reveal ? events : events.filter((e) => e.at * seconds * 1000 <= elapsed);
+  const hot = new Set(shown.slice(-2).map((e) => e.lane));
+  return (
+    <div className={className}>
+      <ol className={`${className}-lanes`}>
+        {lanes.map((l) => {
+          const pos = l.from + (l.to - l.from) * easeInOut(t);
+          return (
+            <li key={l.lane} className={`is-lane-${l.lane}${hot.has(l.lane) ? " is-hot" : ""}`}>
+              <b className={`${className}-num`}>{l.lane}</b>
+              <span className={`${className}-road`}>
+                <span className={`${className}-kart`} style={{ "--pos": (pos / 100).toFixed(4) } as CSSProperties}><Kart lane={l.lane} /></span>
+              </span>
+              <span className={`${className}-name`}>
+                {l.place && l.place <= 3 && <em className={`${className}-place is-${l.place}`}>{["1st", "2nd", "3rd"][l.place - 1]}</em>}
+                {l.label}{l.racers > 1 ? <small> · {l.racers}</small> : null}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+      {shown.length > 0 && <ul className={`${className}-events`}>{shown.slice(-3).map((e, i) => <li key={`${e.lane}-${i}`}>{e.text}</li>)}</ul>}
     </div>
   );
 }
@@ -266,6 +368,28 @@ export function BreakScreenOverlay({ view, style, full = false }: { view: BreakV
             </ol>
           </div>
         )}
+        {r.layout === "boss" && <BossBar boss={rv?.boss ?? r.boss} />}
+        {r.layout === "boss" && !rv && <p className="gs-break__joined"><span className="gs-break__numeral">{view.answering}</span> hitting this round{r.fighters ? ` · ${r.fighters} fighters so far` : ""}</p>}
+        {r.layout === "letters" && (
+          <div className="gs-break__letterwrap">
+            <LetterGrid rows={rv?.rows ?? r.rows} maxRows={r.maxRows} keys />
+            <div className="gs-break__lettermeta">
+              <p className="gs-break__eyebrow">Clue</p>
+              <p className="gs-break__category">{r.category}</p>
+              {rv?.word && <span className="gs-break__answer">{rv.word}</span>}
+            </div>
+          </div>
+        )}
+        {r.layout === "derby" && (
+          r.stage === "join" && !rv
+            ? (
+              <div className="gs-break__derbyjoin">
+                <ol className="gs-break__lanepick">{r.lanes.map((l) => <li key={l.lane} className={`is-lane-${l.lane}`}><Kart lane={l.lane} /><b>{l.lane}</b></li>)}</ol>
+                <p className="gs-break__joined"><span className="gs-break__numeral">{view.answering}</span> racers so far</p>
+              </div>
+            )
+            : <DerbyTrack lanes={rv?.lanes ?? r.lanes} events={r.events} openedAt={r.openedAt} seconds={r.seconds} reveal={!!rv} now={now} />
+        )}
         {r.layout === "number" && (
           <div className="gs-break__number">
             {r.img && (
@@ -302,14 +426,14 @@ export function BreakScreenOverlay({ view, style, full = false }: { view: BreakV
           <div className="gs-break__reveal">
             <p>{rv.text}</p>
             {rv.winners && rv.winners.length > 0 && (
-              <p className="gs-break__winners">{rv.winners.slice(0, 3).map((w) => `${w.name}${w.detail ? ` (${w.detail})` : ""} +${w.points}`).join("  ·  ")}</p>
+              <p className="gs-break__winners">{rv.winners.slice(0, 3).map((w) => `${w.name}${w.detail ? ` (${w.detail})` : ""}${w.points ? ` +${w.points}` : ""}`).join("  ·  ")}</p>
             )}
             {!rv.winners && rv.answered > 0 && <p className="gs-break__winners">{rv.right} of {rv.answered} got it</p>}
           </div>
         ) : (
-          r.layout === "bingo" || (r.layout === "royale" && r.stage === "wave")
+          r.layout === "bingo" || (r.layout === "royale" && r.stage === "wave") || (r.layout === "derby" && r.stage === "race")
             ? <p className="gs-break__hint"><b>{r.hint}</b></p>
-            : r.layout === "rush" || r.layout === "royale"
+            : r.layout === "rush" || r.layout === "royale" || r.layout === "boss" || r.layout === "derby"
               ? <p className="gs-break__hint"><b>{r.hint}</b> in chat</p>
               : <p className="gs-break__hint"><b>{r.hint}</b> in chat{view.answering ? `  ·  ${view.answering} answer${view.answering === 1 ? "" : "s"} in` : ""}</p>
         )}

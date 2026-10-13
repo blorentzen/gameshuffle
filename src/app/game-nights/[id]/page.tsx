@@ -30,6 +30,7 @@ import { boardGameLengthLabel as lengthLabel } from "@/data/board-games";
 import { gameArtFallback } from "@/data/game-night-visuals";
 import { partyModuleOf } from "@/lib/game-nights/modules";
 import { liveNightForEvent } from "@/lib/game-nights/module-server";
+import { leagueForNight } from "@/lib/trivia/leagues";
 import { nightGame } from "@/lib/nights/games";
 import { cardDate, previewText, shareMeta } from "@/lib/og/meta";
 
@@ -95,6 +96,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   const partyMod = night ? partyModuleOf(night.modules) : null;
   const partyLive = partyMod ? await liveNightForEvent(id).catch(() => null) : null;
   if (!night) notFound();
+  const triviaLeague = await leagueForNight(id).catch(() => null);
 
   const supabase = await createClient();
   const {
@@ -292,6 +294,17 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
             </>
           )}
         </div>
+        {triviaLeague && (
+          <div className="comp-card">
+            <EventPanelHead heading="Trivia league" />
+            <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-12)" }}>
+              This night is a week of {triviaLeague.title}.{triviaLeague.code ? ` Playing now: join with code ${triviaLeague.code}.` : " Standings and teams are on the league page."}
+            </p>
+            <Link href={triviaLeague.code ? `/trivia/play/${triviaLeague.code}` : `/trivia/leagues/${triviaLeague.slug}`} style={{ textDecoration: "none" }}>
+              <Button variant="secondary" fullWidth>{triviaLeague.code ? "Play tonight" : "See the league"}</Button>
+            </Link>
+          </div>
+        )}
         </>
       )}
       moreFromOrganizer={moreFromOrganizer}

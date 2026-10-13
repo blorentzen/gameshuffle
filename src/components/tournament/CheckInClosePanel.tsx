@@ -112,7 +112,7 @@ export function CheckInClosePanel({
             <Button variant="secondary" size="small" loading={busy} onClick={() => void act("keep")}>
               Keep in the field
             </Button>
-            <Button variant="ghost" size="small" loading={busy} onClick={() => void act("drop")}>
+            <Button variant="secondary" size="small" loading={busy} onClick={() => void act("drop")}>
               Remove from the field
             </Button>
           </div>

@@ -38,6 +38,8 @@ export const APP_ROUTE_PATTERNS: readonly RegExp[] = [
   /^\/game-nights\/[^/]+\/manage(\/|$)/,
   // Trivia: the hub, phones and the TV are public; building and hosting a night are auth.
   /^\/trivia\/host(\/|$)/,
+  /^\/trivia\/leagues\/new(\/|$)/,
+  /^\/trivia\/leagues\/[^/]+\/manage(\/|$)/,
 ];
 
 /** Public landings inside an app namespace: signed-out visitors land

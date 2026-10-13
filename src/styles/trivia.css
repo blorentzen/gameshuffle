@@ -112,3 +112,57 @@
 .trivia-admin { display: flex; flex-direction: column; gap: var(--spacing-12); padding-top: var(--spacing-12); }
 .trivia-admin__bar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--spacing-12); }
 .trivia-admin__bar > :first-child { flex: 1 1 24rem; max-width: 36rem; }
+.trivia-admin__bar > :nth-child(2):not(button) { flex: 1 1 20rem; max-width: 30rem; }
+.trivia-admin__draft { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.trivia-admin__draft .trivia-row { justify-content: flex-end; }
+
+/* ---------- Play as yourself or your crew; leagues (2026-10-13) ---------- */
+.trivia-error { margin: 0; color: var(--error-ink); font-size: var(--font-size-14); font-weight: 600; }
+.trivia-join__signin { align-self: center; font-size: var(--font-size-14); font-weight: 600; color: var(--brand-ink, var(--text-link)); }
+.trivia-joinas .empac-radio-group { gap: var(--spacing-8); }
+.trivia-joinas .empac-radio-container {
+  padding: var(--spacing-10, 1rem) var(--spacing-12);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-10, 10px);
+  background: var(--surface-default);
+}
+.trivia-joinas .empac-radio-container:has(input:checked) {
+  border-color: var(--brand-ink, var(--primary-600));
+  box-shadow: inset 0 0 0 1px var(--brand-ink, var(--primary-600));
+}
+.trivia-joinas .empac-radio-text { min-width: 0; overflow-wrap: anywhere; }
+
+.trivia-away { color: var(--warning-ink); font-weight: 600; }
+.trivia-away-note { color: var(--warning-ink); }
+
+.trivia-league-final { display: flex; flex-direction: column; gap: var(--spacing-10, 1rem); margin-top: var(--spacing-8); padding-top: var(--spacing-12); border-top: 1px solid var(--border-subtle); }
+.trivia-league-final__head { justify-content: space-between; }
+.trivia-league-final__scroll { overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-10, 10px); }
+.trivia-league-final__scroll:focus-visible { outline: 2px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; }
+.trivia-league-final__table { width: 100%; border-collapse: collapse; font-size: var(--font-size-14); font-variant-numeric: tabular-nums; }
+.trivia-league-final__table th { text-align: left; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); padding: var(--spacing-8) var(--spacing-10, 1rem); border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+.trivia-league-final__table td { padding: var(--spacing-8) var(--spacing-10, 1rem); border-bottom: 1px solid var(--border-subtle); white-space: nowrap; }
+.trivia-league-final__table tr:last-child td { border-bottom: 0; }
+.trivia-league-final__table td:nth-child(2) { white-space: normal; min-width: 12rem; font-weight: 600; }
+
+.trivia-leagues { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.trivia-leagues__head { justify-content: space-between; }
+
+.league-page { gap: var(--spacing-16); }
+.league-page__title { margin: var(--spacing-4) 0; }
+.league-page .trivia-label a { color: inherit; }
+.league-lock { align-items: flex-start; }
+.league-form .empac-radio-group--horizontal { gap: var(--spacing-16); }
+.league-enter { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.league-enter__foot { justify-content: flex-end; width: 100%; }
+
+.league-manage { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.league-manage__status { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; }
+.league-manage__status .trivia-label a { color: inherit; }
+.league-nights { gap: 0; padding: 0; overflow: hidden; }
+.league-night { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-16); padding: var(--spacing-12) var(--spacing-16); border-bottom: 1px solid var(--border-subtle); }
+.league-night > div:first-child { min-width: 0; flex: 1 1 24rem; }
+.league-night__title { margin: 0; font-weight: 700; }
+.league-nights__kit { padding: var(--spacing-12) var(--spacing-16); }
+.league-manage__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6) var(--spacing-8); }
+.league-form__place, .league-form__place .place-ac, .league-form__place .empac-input-wrapper, .league-form__place .empac-input { width: 100%; max-width: none; }

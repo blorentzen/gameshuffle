@@ -20,6 +20,8 @@ export interface NightTemplateData {
   genres?: string[] | null;
   level?: string | null;
   games?: NightGame[];
+  /** Where the nights happen (a trivia league online sets "online"). Missing = the table's default, in person. */
+  locationType?: "in_person" | "online" | "tba";
 }
 
 export interface NightTemplate {

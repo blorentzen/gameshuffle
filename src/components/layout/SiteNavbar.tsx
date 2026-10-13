@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/auth/UserMenu";
 import { CommsIcons } from "@/components/social/CommsIcons";
 import { NavMenu, type NavItem, type NavSection } from "@/components/layout/NavMenu";
 import { PILLARS, primaryItems, type Pillar } from "@/lib/nav/pillars";
+import { shopHref } from "@/lib/store/links";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -104,7 +105,8 @@ function isHeroPath(pathname: string): boolean {
   return false;
 }
 
-export function SiteNavbar() {
+/** `shop`: visitors can see the shop (open or Coming soon), so the nav links to it. */
+export function SiteNavbar({ shop = false }: { shop?: boolean }) {
   const { user } = useAuth();
   const pathname = usePathname();
   // Event detail pages open on a hero image. They were rendering the 64px nav
@@ -247,6 +249,7 @@ export function SiteNavbar() {
       hdr(p.label),
       ...primaryItems(p, navCtx).flatMap((g) => g.items.map((i) => ({ label: i.label, href: i.href }))),
     ]),
+    ...(shop ? [hdr("Shop"), { label: "GameShuffle shop", href: shopHref("nav") }] : []),
   ];
 
   const floating = isHeroPage && !scrolled;
@@ -280,6 +283,11 @@ export function SiteNavbar() {
                 {PILLARS.map((p) => (
                   <NavMenu key={p.id} label={p.label} sections={pillarSections(p)} pathname={pathname} />
                 ))}
+                {shop && (
+                  <Link href={shopHref("nav")} className={`${pathname.startsWith("/shop") ? "is-active " : ""}${tagged(EVENTS.shopLinkClicked, { from: "nav" })}`}>
+                    Shop
+                  </Link>
+                )}
               </span>
             </span>
           }

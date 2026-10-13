@@ -2222,6 +2222,108 @@ html.dark .gs-platform-icon {
   border-top: 1px solid var(--border-subtle);
 }
 
+/* ---------- Deck lists (My Stuff ▸ My Collection ▸ Deck lists) ---------- */
+.tcg-decks__list { margin-top: var(--spacing-8); }
+.tcg-decks__row .empac-list__item-content { min-width: 0; flex: 1 1 auto; }
+/* Card art is a portrait 5:7 box; the cover is the deck's lead Pokémon. */
+.tcg-decks__cover {
+  width: 4rem;
+  aspect-ratio: 5 / 7;
+  object-fit: cover;
+  border-radius: var(--radius-8);
+  background: var(--background-secondary);
+  display: block;
+  flex-shrink: 0;
+}
+.tcg-decks__cover--none { border: 1px dashed var(--border-default); }
+.tcg-decks__name {
+  all: unset;
+  cursor: pointer;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.tcg-decks__name:hover { text-decoration: underline; }
+.tcg-decks__name:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; border-radius: 2px; }
+.tcg-decks__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4) var(--spacing-12);
+  margin-top: var(--spacing-4);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.tcg-decks__progress { margin-top: var(--spacing-8); max-width: 24rem; }
+.tcg-decks__limit { margin-top: var(--spacing-16); font-size: var(--font-size-14); color: var(--text-secondary); }
+.tcg-decks__guides { text-decoration: none; }
+
+.tcg-decks__paste,
+.tcg-decks__deck { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.tcg-decks__textarea textarea { font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: var(--font-size-14); }
+.tcg-decks__hint { margin: calc(var(--spacing-8) * -1) 0 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+.tcg-decks__paste-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--spacing-8); }
+
+.tcg-decks__checks {
+  list-style: none;
+  margin: 0;
+  padding: var(--spacing-12) var(--spacing-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-secondary);
+}
+.tcg-decks__check { display: flex; align-items: baseline; gap: var(--spacing-10); font-size: var(--font-size-14); color: var(--text-primary); }
+.tcg-decks__check-mark {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  color: var(--background-primary);
+  transform: translateY(0.3rem);
+}
+.tcg-decks__check--ok .tcg-decks__check-mark { background: var(--success-ink); }
+.tcg-decks__check--warn .tcg-decks__check-mark { background: var(--warning-ink); }
+.tcg-decks__check--bad .tcg-decks__check-mark { background: var(--error-ink); }
+
+.tcg-decks__deck-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8) var(--spacing-12);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.tcg-decks__deck-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.tcg-decks__deck-actions a { text-decoration: none; }
+.tcg-decks__rename { display: flex; align-items: flex-end; gap: var(--spacing-8); }
+.tcg-decks__rename > :first-child { flex: 1 1 auto; min-width: 0; }
+.tcg-decks__owned { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.tcg-decks__owned a { color: var(--brand-ink); font-weight: var(--font-weight-semibold); }
+.tcg-decks__card { display: inline-flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
+.tcg-decks__thumb {
+  width: 2.4rem;
+  aspect-ratio: 5 / 7;
+  object-fit: cover;
+  border-radius: 3px;
+  background: var(--background-secondary);
+  flex-shrink: 0;
+}
+.tcg-decks__thumb--none { display: inline-block; border: 1px dashed var(--border-default); }
+.tcg-decks__unmatched { font-size: var(--font-size-12); color: var(--warning-ink); }
+.tcg-decks__mark { color: var(--text-tertiary); }
+.tcg-decks__have { color: var(--success-ink); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.tcg-decks__need { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
 /* ---------- Stream Tools tab (overlay tool customization) ---------- */
 .stream-tools__section {
   padding: var(--spacing-20);

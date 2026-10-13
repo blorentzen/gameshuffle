@@ -109,7 +109,7 @@ export function PlacePieceModal({ isOpen, player, position, onClose }: Props) {
         <p className="companion-place2__sub">{sub}</p>
         {!byName ? (
           <>
-            <CardPicker onPick={setPicked} selectedId={picked?.id ?? null} />
+            <CardPicker onPick={setPicked} selectedId={picked?.id ?? null} player={player} />
             <p className="companion-place2__switch">
               No card handy? <Button variant="ghost" size="small" onClick={() => setByName(true)}>Add one by name</Button>
             </p>

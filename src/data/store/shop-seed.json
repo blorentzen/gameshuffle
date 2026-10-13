@@ -270,9 +270,9 @@
   "digital_lists": {
     "_rule": "Britton, 2026-10-09: every checklist and deck list is digital, not printed. Each list shows in the order email and on the order page once it has a url; null keeps it hidden.",
     "lists": [
-      { "id": "collect-all-30", "title": "Collect all 30 checklist", "url": null, "skus": ["thirty-hunt-1", "thirty-hunt-3"] },
-      { "id": "thirty-set-artists", "title": "Artist checklist", "url": null, "skus": ["thirty-set"] },
-      { "id": "set-builder-checklist", "title": "Set Builder checklist", "url": null, "skus": ["set-builder-100"] },
+      { "id": "collect-all-30", "title": "Collect all 30 checklist", "url": "/pokemon-tcg/checklists/30th-celebration-pikachu", "skus": ["thirty-hunt-1", "thirty-hunt-3"] },
+      { "id": "thirty-set-artists", "title": "Artist checklist", "url": "/pokemon-tcg/checklists/30th-celebration-pikachu", "skus": ["thirty-set"] },
+      { "id": "set-builder-checklist", "title": "Set Builder checklist", "url": "/pokemon-tcg/checklists/ascended-heroes-commons-uncommons", "skus": ["set-builder-100"] },
       { "id": "deck-list", "title": "Deck list", "url": null, "skus": ["ready-deck"] }
     ]
   },

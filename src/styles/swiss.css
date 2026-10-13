@@ -1,0 +1,98 @@
+/* Swiss tournaments and tournament deck lists (src/components/tournament/swiss, /decks).
+   The root font-size is 10px: type sizes use the CDS font tokens only. */
+
+/* ── Settings (create form + manage page) ── */
+.swiss-fields { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.swiss-fields__row { display: flex; flex-direction: column; gap: var(--spacing-6); }
+.swiss-fields__label { font-size: var(--font-size-12); font-weight: 600; color: var(--text-primary); }
+.swiss-fields__choices { display: flex; flex-wrap: wrap; gap: var(--spacing-6); }
+.swiss-fields__summary { margin: 0; padding: var(--spacing-10) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8); background: var(--surface-default); font-size: var(--font-size-14); line-height: 1.45; color: var(--text-secondary); }
+.swiss-fields__summary strong { color: var(--text-primary); }
+.swiss-fields__muted { color: var(--text-tertiary); }
+.swiss-fields__help { margin: calc(var(--spacing-6) * -1) 0 0; font-size: var(--font-size-12); line-height: 1.45; color: var(--text-tertiary); max-width: 66ch; }
+.swiss-decks-panel { margin-top: var(--spacing-16); padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12); display: flex; flex-direction: column; gap: var(--spacing-12); }
+.swiss-decks-panel__head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); }
+
+/* ── Shared ── */
+.swiss-muted { color: var(--text-tertiary); }
+.swiss-help { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); line-height: 1.45; color: var(--text-tertiary); max-width: 70ch; }
+.swiss-eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); }
+.swiss-card-title { font-size: var(--font-size-16); font-weight: 700; margin: 0 0 var(--spacing-12); }
+.swiss-player { white-space: nowrap; }
+.swiss-rec { font-size: var(--font-size-12); color: var(--text-tertiary); font-variant-numeric: tabular-nums; margin-left: var(--spacing-2); }
+.swiss-vs { color: var(--text-tertiary); font-size: var(--font-size-12); padding: 0 var(--spacing-6); }
+.swiss-num { text-align: right; font-variant-numeric: tabular-nums; }
+.swiss-row--flag td:first-child { box-shadow: inset 3px 0 0 var(--warning-ink); }
+.swiss-row--cut td { border-bottom: 2px dashed var(--warning-ink); }
+.swiss-row--you td { background: var(--surface-selected); }
+.swiss-champion { display: flex; align-items: center; gap: var(--spacing-6); margin: 0; font-size: var(--font-size-16); font-weight: 700; }
+
+/* ── Organizer console ── */
+.swiss-run { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.swiss-run__head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--spacing-12); flex-wrap: wrap; }
+.swiss-run__title { margin: var(--spacing-2) 0 0; font-size: var(--font-size-20); font-weight: 700; }
+.swiss-run__chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.swiss-run__actions { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
+.swiss-run__secondary { display: flex; flex-wrap: wrap; gap: var(--spacing-6); }
+.swiss-clock { display: flex; flex-direction: column; align-items: flex-end; }
+.swiss-clock__time { font-size: var(--font-size-24); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.swiss-clock__label { font-size: var(--font-size-12); color: var(--text-tertiary); }
+.swiss-result { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.swiss-result__said { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--spacing-4); font-size: var(--font-size-14); color: var(--text-secondary); }
+.swiss-result__options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-8); }
+.swiss-result__options > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+.swiss-drop { display: flex; flex-direction: column; gap: var(--spacing-8); }
+
+/* ── A player's match (public page) ── */
+.swiss-you { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.swiss-you__top { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-8); }
+.swiss-you__label { margin: 0; font-size: var(--font-size-14); font-weight: 600; color: var(--text-secondary); }
+.swiss-you__vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: var(--spacing-8); text-align: center; }
+.swiss-you__who { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-4); min-width: 0; font-size: var(--font-size-14); }
+.swiss-you__who strong { overflow-wrap: anywhere; }
+.swiss-you__who .swiss-muted { font-size: var(--font-size-12); font-variant-numeric: tabular-nums; }
+.swiss-you__av { width: 4rem; height: 4rem; border-radius: var(--radius-full); display: grid; place-items: center; font-size: var(--font-size-14); font-weight: 700; color: var(--text-on-primary); background: var(--bg-primary); }
+.swiss-you__av--me { background: var(--success-ink); }
+.swiss-you__clock { margin: 0; text-align: center; }
+.swiss-you__report { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.swiss-you__ask { margin: 0; font-size: var(--font-size-14); font-weight: 600; }
+.swiss-you__choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-8); }
+.swiss-you__choices > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+.swiss-you__status { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.swiss-you__status--warn { color: var(--warning-ink); font-weight: 600; }
+.swiss-you__links { display: flex; flex-wrap: wrap; gap: var(--spacing-4); justify-content: space-between; }
+.swiss-you__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.swiss-join-deck { display: flex; flex-direction: column; gap: var(--spacing-8); margin-bottom: var(--spacing-12); }
+
+/* ── Deck lists ── */
+.deckpick { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.deckpick__legend { font-size: var(--font-size-14); font-weight: 600; padding: 0; margin-bottom: var(--spacing-8); }
+.deckpick__list { display: flex; flex-direction: column; gap: var(--spacing-6); }
+.deckpick__row { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-8); padding: var(--spacing-8) var(--spacing-10); border: 1px solid var(--border-default); border-radius: var(--radius-8); background: var(--surface-default); }
+.deckpick__row.is-on { border-color: var(--bg-primary); box-shadow: inset 0 0 0 1px var(--bg-primary); }
+.deckpick__row > :first-child { min-width: 0; }
+.tdeck-mine { display: flex; flex-direction: column; gap: var(--spacing-10); scroll-margin-top: calc(var(--gs-nav-offset, 64px) + 16px); }
+.tdeck-mine__head { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-8); }
+.tdeck-mine__head .swiss-card-title { margin: 0; }
+.tdeck-mine__deck { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); }
+.tdeck-mine__pick { display: flex; flex-direction: column; gap: var(--spacing-10); }
+.tdeck-mine__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); }
+.tdeck-org, .tdeck-detail, .tdeck-pub { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.tdeck-pub__title { display: inline-flex; flex-wrap: wrap; gap: var(--spacing-6); align-items: baseline; }
+.tdeck-lines { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--spacing-12) var(--spacing-20); }
+.tdeck-lines__head { margin: 0 0 var(--spacing-4); font-size: var(--font-size-12); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); }
+.tdeck-lines__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--spacing-2); font-size: var(--font-size-14); }
+.tdeck-lines__count { display: inline-block; min-width: 2ch; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tdeck-lines__line--unmatched { color: var(--warning-ink); }
+
+/* ── TV display board (inside .tourney-display, which sizes in its own big type) ── */
+.swiss-board__clock { font-variant-numeric: tabular-nums; }
+.swiss-board__tables { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(42rem, 1fr)); gap: 0.8rem 2.4rem; }
+.swiss-board__table { display: flex; align-items: baseline; gap: 1.6rem; font-size: clamp(1.75rem, 2vw, 2.6rem); font-weight: 600; min-width: 0; }
+.swiss-board__table.is-done { opacity: 0.6; }
+.swiss-board__t { width: 4.4rem; flex: 0 0 auto; text-align: center; font-weight: 800; font-variant-numeric: tabular-nums; }
+.swiss-board__names { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.swiss-board__rec { font-size: 0.7em; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.swiss-board__vs { font-size: 0.7em; opacity: 0.7; padding: 0 0.4rem; }
+.swiss-board__res { flex: 0 0 auto; font-size: 0.8em; opacity: 0.9; }
+.swiss-board__note { margin: 1.6rem 0 0; font-size: clamp(1.5rem, 1.8vw, 2rem); opacity: 0.85; }

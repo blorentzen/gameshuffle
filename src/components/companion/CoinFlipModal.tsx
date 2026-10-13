@@ -15,7 +15,7 @@
  * phones; the coin animates once its answer is in.
  */
 
-import { Modal } from "@empac/cascadeds";
+import { Button, Modal } from "@empac/cascadeds";
 import { useEffect, useRef, useState } from "react";
 import { useMode, useSession, type CoinResult } from "@/lib/companion/SessionContext";
 import { Coin3D } from "./Coin3D";
@@ -111,22 +111,8 @@ function CoinFlipActions({
 }) {
   return (
     <div className="companion-coin-modal__actions">
-      <button
-        type="button"
-        className="companion-coin-modal__btn companion-coin-modal__btn--secondary"
-        onClick={onClose}
-        disabled={!canRollAgain}
-      >
-        Close
-      </button>
-      <button
-        type="button"
-        className="companion-coin-modal__btn companion-coin-modal__btn--primary"
-        onClick={onFlipAgain}
-        disabled={!canRollAgain}
-      >
-        Flip again
-      </button>
+      <Button variant="secondary" onClick={onClose} disabled={!canRollAgain}>Close</Button>
+      <Button variant="primary" onClick={onFlipAgain} disabled={!canRollAgain}>Flip again</Button>
     </div>
   );
 }

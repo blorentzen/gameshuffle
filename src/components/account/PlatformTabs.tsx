@@ -32,7 +32,7 @@ import { PlatformWeeklyTab } from "@/components/account/PlatformWeeklyTab";
 import { PlatformChatBrainTab } from "@/components/account/PlatformChatBrainTab";
 import { PlatformTriviaTab } from "@/components/account/PlatformTriviaTab";
 import { PlatformBreakTab } from "@/components/account/PlatformBreakTab";
-import { PlatformShopOrdersTab, PlatformShopProductsTab } from "@/components/account/PlatformShopOrdersTab";
+import { PlatformShopOrdersTab, PlatformShopProductsTab, PlatformShopStatesTab } from "@/components/account/PlatformShopOrdersTab";
 import { PlatformSwitchesTab } from "@/components/account/PlatformSwitchesTab";
 import { TokenActivityPanel, TokenStreamersPanel } from "@/components/account/TokenEconomyPanels";
 import { PlatformOriginalsTab } from "@/components/account/PlatformOriginalsTab";
@@ -51,6 +51,7 @@ const SCREENS: ScreenMap = {
   "platform-switches": () => <PlatformSwitchesTab />,
   "platform-shop-orders": () => <PlatformShopOrdersTab />,
   "platform-shop-products": () => <PlatformShopProductsTab />,
+  "platform-shop-states": () => <PlatformShopStatesTab />,
   "platform-shop": () => <PlatformShopTab />,
   "platform-originals": () => <PlatformOriginalsTab />,
   "platform-chat-brain": () => <PlatformChatBrainTab />,

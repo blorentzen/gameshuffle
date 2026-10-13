@@ -44,6 +44,8 @@ import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
 import { CompanionCTAs } from "@/components/tcg/CompanionCTAs";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { shopVisibleToVisitors } from "@/lib/store/visibility";
+import { ShopLine } from "@/components/store/ShopEntry";
 
 /**
  * GameShuffle TCG hub (`/pokemon-tcg`) — dual-purpose brand page: sells
@@ -126,7 +128,7 @@ export default async function Page() {
   // Admin-managed featured shop cards — read-only from the DB (0 credits;
   // never resolves live so an anon page view can't drive credit spend).
   // Falls back to FPO cards if none are configured yet.
-  const shopCards = await getPublicFeaturedShopCards();
+  const [shopCards, shopVisible] = await Promise.all([getPublicFeaturedShopCards(), shopVisibleToVisitors()]);
   const recentlySold = await getRecentlySoldCards(12);
 
   // Top pick per tier, pulled from the real deck cluster (content/decks).
@@ -203,6 +205,7 @@ export default async function Page() {
           heading="Featured cards in the shop"
           intro="Our highest-value singles, straight from the GameShuffle TCG store. Tap a card to grab it on TCGplayer."
         />
+        {shopVisible && <ShopLine placement="tcg" />}
 
         {/* Featured decks — right below the featured cards. Top pick per tier
             (both halves of a beginner Battle Box); final slide is a "Browse

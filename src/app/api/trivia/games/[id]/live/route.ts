@@ -8,6 +8,7 @@ import { NextResponse, after } from "next/server";
 import { finishGame, hostView, judgeTeams, lockQuestion, nextQuestion, openQuestion, revealQuestion, showStandings, tick } from "@/lib/trivia/store";
 import { triviaHost } from "@/lib/trivia/host";
 import { announce } from "@/lib/trivia/stream";
+import { consoleLeague, recordLeagueNight } from "@/lib/trivia/leagues";
 
 export const runtime = "nodejs";
 
@@ -15,7 +16,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const ctx = await triviaHost(id);
   if (!ctx.ok) return ctx.response;
-  return NextResponse.json({ ok: true, view: await hostView(ctx.game!) });
+  const game = ctx.game!;
+  return NextResponse.json({ ok: true, view: await hostView(game), league: game.league_id ? await consoleLeague(game).catch(() => null) : null });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -48,5 +50,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const said = body?.action === "open" ? "open" : body?.action === "reveal" ? "reveal"
     : (body?.action === "end" || body?.action === "next") && fresh.ok && fresh.game?.status === "done" ? "end" : null;
   if (said) after(() => announce(id, said).catch((err) => console.error("[trivia/live] announce failed:", err)));
-  return NextResponse.json({ ok: true, view: fresh.ok ? await hostView(fresh.game!) : null });
+  // A league night that just finished adds its league points before the console reloads.
+  if (said === "end" && fresh.ok && fresh.game?.league_id) await recordLeagueNight(id).catch((err) => console.error("[trivia/live] league points failed:", err));
+  const league = fresh.ok && fresh.game?.league_id ? await consoleLeague(fresh.game).catch(() => null) : null;
+  return NextResponse.json({ ok: true, view: fresh.ok ? await hostView(fresh.game!) : null, league });
 }

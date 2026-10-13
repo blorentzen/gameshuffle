@@ -24,7 +24,7 @@ export interface OriginalsHost {
     /** Shares text to a Discord channel or DM, with a link back into the Activity. */
     share?: (message: string) => Promise<boolean>;
     /** Switches the Activity to another game's tab (Chat Brain has its own there). */
-    showTab?: (tab: "daily" | "weekly" | "brain") => void;
+    showTab?: (tab: "daily" | "weekly" | "brain" | "trivia" | "room") => void;
     /** Starts signing up (in the browser) and watches for the new account; sign-in links use it. */
     signUp?: () => void;
   };

@@ -15,6 +15,8 @@ import type { TcgCard } from "@/lib/scrydex/types";
 import { DeckCardFan } from "@/components/tcg/DeckCardFan";
 import { TCG_HUB_LIVE } from "@/data/tcg-hub";
 import { TCG_SHOP_URL } from "@/data/shop";
+import { shopVisibleToVisitors } from "@/lib/store/visibility";
+import { ShopLine } from "@/components/store/ShopEntry";
 
 /**
  * Deck hub — `/pokemon-tcg/decks`. Topic-cluster authority node: reads all
@@ -41,6 +43,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
+  const shopVisible = await shopVisibleToVisitors();
   const decks = getAllDecks();
   const featured = getFeaturedByTier();
   const battleBoxes = getAllBattleBoxes();
@@ -115,6 +118,7 @@ export default async function Page() {
           <Link href="/pokemon-tcg">GameShuffle singles</Link>, with budget
           swaps called out on each page.
         </p>
+        {shopVisible && <ShopLine placement="tcg" />}
 
         {/* Featured — one per tier */}
         {DECK_TIERS.some((t) => featured[t]) && (

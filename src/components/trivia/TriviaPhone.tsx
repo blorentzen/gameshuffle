@@ -14,6 +14,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { Standings } from "./TriviaConsole";
+import { TriviaJoinChoices, type JoinedTeam } from "./TriviaJoinChoices";
 import type { TeamView } from "@/lib/trivia/store";
 import "@/styles/trivia.css";
 
@@ -48,6 +49,13 @@ const ERRORS: Record<string, string> = {
   bad_wager: "That bet is more than you can stake.",
   joker_used: "Your team already played its joker.",
   round_started: "This round has started: the joker goes on a round before it begins.",
+  sign_in: "Sign in first to play for your crew.",
+  not_your_crew: "You're not on that crew any more.",
+  not_your_team: "That league team isn't yours. Ask its captain for the team link.",
+  captains_only: "Only the crew's captains can enter it in the league.",
+  league_full: "This league is full.",
+  season_over: "This league's season is over.",
+  not_league: "This isn't a league night.",
 };
 
 export function TriviaPhone({ code }: { code: string }) {
@@ -55,7 +63,6 @@ export function TriviaPhone({ code }: { code: string }) {
   const confirm = useConfirm();
   const [team, setTeam] = useState<Saved | null>(null);
   const [checked, setChecked] = useState(false);
-  const [name, setName] = useState("");
   const [view, setView] = useState<TeamView | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [answer, setAnswer] = useState("");
@@ -107,17 +114,23 @@ export function TriviaPhone({ code }: { code: string }) {
     setWager(view?.myAnswer?.wager != null ? String(view.myAnswer.wager) : "");
   }
 
-  const join = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    const d = await fetch(`/api/trivia/room/${code}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "join", name }) }).then((r) => r.json()).catch(() => null);
-    setBusy(false);
-    if (!d?.ok) { toast.error(ERRORS[d?.error] ?? "Couldn't join. Try again."); return; }
-    const s = { teamId: d.teamId as string, key: d.key as string, name: d.name as string };
+  const joined = (s: JoinedTeam) => {
     writeSaved(code, s);
     setTeam(s);
     track(EVENTS.triviaTeamJoined);
   };
+
+  // Fair play: tell the host when this phone leaves the page while a question is open (a nudge, never a penalty).
+  const asking = view?.phase === "question";
+  useEffect(() => {
+    if (!team || !asking) return;
+    const onHide = () => {
+      if (document.visibilityState !== "hidden") return;
+      void fetch(`/api/trivia/room/${code}`, { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "away", team: team.teamId, key: team.key }) }).catch(() => null);
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+  }, [team, asking, code]);
 
   const send = async (action: "answer" | "joker", extra: Record<string, unknown>) => {
     if (!team) return;
@@ -147,11 +160,7 @@ export function TriviaPhone({ code }: { code: string }) {
           {problem === "not_found" ? (
             <div className="trivia-card"><p>{ERRORS.not_found}</p><Link href="/trivia"><Button variant="secondary">Enter another code</Button></Link></div>
           ) : (
-            <form className="trivia-card trivia-form" onSubmit={join}>
-              <Input fullWidth floatingLabel="Team name" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} autoComplete="off" />
-              <p className="trivia-muted">One phone per team is enough. Teammates can join from a link once you&apos;re in.</p>
-              <Button type="submit" variant="primary" disabled={busy || name.trim().length < 2}>Join</Button>
-            </form>
+            <TriviaJoinChoices code={code} errors={ERRORS} onJoined={joined} />
           )}
         </div>
       </main>

@@ -19,6 +19,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { postComponentsToCategory } from "@/lib/adapters/discord";
 import { editComponentsMessage, type DiscordEmbed } from "@/lib/adapters/discord/adapter";
+import { activityLive } from "@/lib/discord/activityLaunch";
 import { questionOf, roundOf, type GameRow } from "./store";
 import type { Viewer } from "./stream";
 
@@ -60,15 +61,22 @@ export function questionEmbed(game: GameRow, opts: { revealed?: { answer: string
   };
 }
 
+/** A green button that opens GameShuffle inside Discord on the Trivia tab (the same game, with the
+ *  countdown, pictures and standings). `activity:` is ACTIVITY_PLAY_PREFIX (channelCard.ts, not
+ *  imported here: it pulls in the card renderer). Gone when the Activity is switched off. */
+function playAlongRow(label: string): unknown[] {
+  return activityLive() ? [{ type: 1, components: [{ type: 2, style: 3, label, custom_id: "activity:trivia" }] }] : [];
+}
+
 export function questionButtons(game: GameRow): unknown[] {
   const q = questionOf(game);
   const ref = questionRef(game);
   if (q?.kind === "choice" && q.options?.length) {
     // Discord fits five buttons in a row.
     const buttons = q.options.slice(0, LETTERS.length).map((_, i) => ({ type: 2, style: 2, label: LETTERS[i], custom_id: `${TRIVIA_PICK_PREFIX}${ref}:${LETTERS[i]}` }));
-    return [buttons.slice(0, 5), buttons.slice(5)].filter((row) => row.length).map((components) => ({ type: 1, components }));
+    return [...[buttons.slice(0, 5), buttons.slice(5)].filter((row) => row.length).map((components) => ({ type: 1, components })), ...playAlongRow("Play along")];
   }
-  return [{ type: 1, components: [{ type: 2, style: 1, label: "Answer", custom_id: `${TRIVIA_ANSWER_PREFIX}${ref}` }] }];
+  return [{ type: 1, components: [{ type: 2, style: 1, label: "Answer", custom_id: `${TRIVIA_ANSWER_PREFIX}${ref}` }] }, ...playAlongRow("Play along")];
 }
 
 /** The question just opened: post it to every server routing `trivia`, and keep the posts for the reveal. */
@@ -102,7 +110,7 @@ export async function postFinal(game: GameRow, standings: { name: string; score:
       color: 0xb7791f,
       footer: { text: `${game.title} · Trivia on stream · GameShuffle` },
     },
-    components: [],
+    components: playAlongRow("Play more trivia"),
   }).catch((err) => console.error("[trivia/discord] final post failed:", err));
 }
 

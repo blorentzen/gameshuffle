@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { SHOP, isOnSale, stripeLookupKey, stripeProductId } from "../src/lib/store/config";
-import { holidayState, missesChristmas, orderCode, postageCents, refundCents, shipByDay, shipMethodFor, shipWeightOz, shippingCents, toFreeShippingCents } from "../src/lib/store/rules";
+import { holidayState, missesChristmas, orderCode, postageCents, refundCents, shipByDay, shipMethodFor, shipWeightOz, shippingCents, stateTotals, toFreeShippingCents, type StateOrder } from "../src/lib/store/rules";
 import { shopDate } from "../src/lib/store/copy";
 
 let passed = 0;
@@ -114,6 +114,33 @@ test("refunds prorate each line and add up exactly", () => {
   assert.equal(refundCents({ ...quote, shipping: { total: 547, refunded: true } }, [], true), 0, "shipping only once");
   assert.equal(refundCents({ ...quote, amountRefunded: 2900 }, [{ sku: "a", quantity: 3 }], false), 100, "capped at what's left");
   assert.equal(refundCents(quote, [{ sku: "b", quantity: 5 }], false), 453, "no more than sold");
+});
+
+test("sales by state: windows, refunds, canceled orders and the warning lines", () => {
+  const windows = { rollingStart: new Date("2025-10-12T07:00:00Z"), yearStart: new Date("2026-01-01T08:00:00Z") };
+  const o = (state: string, createdAt: string, sales: number, extra: Partial<StateOrder> = {}): StateOrder => ({ state, createdAt, status: "paid", sales, refunded: 0, ...extra });
+  const orders: StateOrder[] = [
+    o("CA", "2025-11-01T20:00:00Z", 2000),           // in the 12 months, not this year
+    o("CA", "2026-03-01T20:00:00Z", 3000),
+    o("CA", "2026-03-02T20:00:00Z", 1000, { refunded: 400 }),
+    o("CA", "2026-03-03T20:00:00Z", 5000, { status: "refunded", refunded: 5000 }),
+    o("CA", "2026-03-04T20:00:00Z", 5000, { status: "canceled" }),
+    o("OR", "2024-12-01T20:00:00Z", 9000),           // too old for either window
+    o("WA", "2026-05-01T20:00:00Z", 1500),
+  ];
+  const rows = stateTotals(orders, windows);
+  const ca = rows.find((r) => r.state === "CA")!;
+  assert.equal(ca.orders12, 3);
+  assert.equal(ca.sales12, 5600, "partial refunds come off; refunded and canceled orders don't count");
+  assert.equal(ca.ordersYear, 2);
+  assert.equal(ca.salesYear, 3600);
+  assert.equal(ca.status, "fine");
+  assert.equal(rows.some((r) => r.state === "OR"), false, "a state with nothing in either window drops out");
+  assert.equal(rows.find((r) => r.state === "WA")!.status, "home");
+  const many = Array.from({ length: SHOP.nexus_monitor.warn_orders }, (_, i) => o("TX", `2026-04-${String((i % 28) + 1).padStart(2, "0")}T20:00:00Z`, 100));
+  assert.equal(stateTotals(many, windows)[0].status, "over", "150 orders is over the line");
+  assert.equal(stateTotals(many.slice(0, Math.ceil(SHOP.nexus_monitor.warn_orders * 0.75)), windows)[0].status, "close");
+  assert.equal(stateTotals([o("NV", "2026-04-01T20:00:00Z", SHOP.nexus_monitor.warn_revenue_cents)], windows)[0].status, "over", "or $75,000 in sales");
 });
 
 console.log(`\n${passed} passed`);

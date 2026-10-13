@@ -11,7 +11,7 @@ import { findSlot, initialSessionState, makeReducer } from "@/lib/companion/stat
 import { pokemonMode } from "@/lib/companion/modes/pokemon";
 import type { SessionState } from "@/lib/companion/types";
 import { CODE_ALPHABET, CODE_LENGTH, PAST_CAP, describeMove, isAway, makeCode, normalizeCode, spacedCode, AWAY_MS } from "@/lib/companion/liveRules";
-import { planJoin, planMove, planRoll, planUndo, viewFor, type GameRow, type Patch, type Plan } from "@/lib/companion/livePlan";
+import { planFreeSeat, planJoin, planMove, planRoll, planUndo, viewFor, type GameRow, type Patch, type Plan } from "@/lib/companion/livePlan";
 
 const reducer = makeReducer(pokemonMode);
 const NOW = "2026-10-11T20:00:00.000Z";
@@ -259,6 +259,23 @@ test("Undo history stays short", () => {
     row = apply(row, planMove(row, "p1", { type: "ADJUST_DAMAGE", player: "p2", position: "active", delta: 10 }, pokemonMode, heads, NOW));
   }
   assert.equal(row.past.length, PAST_CAP);
+});
+
+// --- Opening the seat again ----------------------------------------------------
+
+test("the host can open the seat again; the board stays and someone new can join", () => {
+  let row = joined();
+  row = apply(row, planMove(row, "p2", { type: "ADJUST_DAMAGE", player: "p1", position: "active", delta: 30 }, pokemonMode, heads, NOW));
+  const guestTry = planFreeSeat(row, "p2", NOW);
+  assert.equal(!guestTry.ok && guestTry.error, "host_only");
+  row = apply(row, planFreeSeat(row, "p1", NOW));
+  assert.equal(row.seats.p2, undefined);
+  assert.equal(findSlot(row.state, "p1", "active")?.damage, 30, "the board stays");
+  assert.deepEqual(row.past, [], "nobody can undo across players");
+  assert.equal(row.last_move?.text, "Sam opened the seat for someone new to join");
+  row = apply(row, planJoin(row, pokemonMode, { name: "Alex", userId: null, tokenHash: "hash-alex" }, NOW));
+  assert.equal(row.state.playerNames.p2, "Alex");
+  assert.equal(row.seats.p2?.tokenHash, "hash-alex");
 });
 
 // --- Lines -------------------------------------------------------------------

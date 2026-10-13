@@ -29,7 +29,7 @@ import { SESSION_EVENT_TYPES } from "@/lib/sessions/event-types";
 import { GAMES, puzzleOrder, type BreakAnswer, type Judged, type RunMeta } from "./games";
 import {
   BREAK_GAMES, GRACE_SECONDS, INTRO_SECONDS, MAX_BREAK_MINUTES, REVEAL_SECONDS, STANDINGS_SECONDS,
-  cleanLineup, isBreakGameId,
+  cleanLineup, isBreakGameId, withNewGames,
   type BreakGameId, type BreakPhase, type BreakReveal, type BreakRound, type BreakView,
 } from "./types";
 
@@ -131,17 +131,17 @@ export const BOUNTY_AMOUNTS = [0, 50, 100, 250, 500];
 
 export async function getSettings(communityId: string): Promise<BreakSettings> {
   const admin = createServiceClient();
-  let res = await admin.from("break_settings").select("lineup, show, champion_tokens, bounty_tokens").eq("community_id", communityId).maybeSingle();
+  let res = await admin.from("break_settings").select("lineup, show, champion_tokens, bounty_tokens, updated_at").eq("community_id", communityId).maybeSingle();
   let bountyReady = true;
   if (res.error) {
     // bounty_tokens arrives with break-mode-m2.sql; read without it until then.
     bountyReady = false;
-    res = await admin.from("break_settings").select("lineup, show, champion_tokens").eq("community_id", communityId).maybeSingle() as typeof res;
+    res = await admin.from("break_settings").select("lineup, show, champion_tokens, updated_at").eq("community_id", communityId).maybeSingle() as typeof res;
   }
   if (res.error) missing(res.error);
-  const row = res.data as { lineup: string[]; show: string; champion_tokens: number | null; bounty_tokens?: number | null } | null;
+  const row = res.data as { lineup: string[]; show: string; champion_tokens: number | null; bounty_tokens?: number | null; updated_at?: string | null } | null;
   return {
-    lineup: cleanLineup(row?.lineup),
+    lineup: row ? withNewGames(cleanLineup(row.lineup), row.updated_at) : cleanLineup(null),
     show: row?.show === "full" ? "full" : "panel",
     championTokens: row?.champion_tokens ?? 0,
     bountyTokens: row?.bounty_tokens ?? 0,

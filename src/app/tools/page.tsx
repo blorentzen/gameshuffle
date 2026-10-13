@@ -46,6 +46,8 @@ const TOOL_TILES: { icon: IconName; label: string; desc: string; href: string; f
   { icon: "flame", label: "Truth or Dare", desc: "Endless party prompts", href: "/truth-or-dare", family: "party" },
   { icon: "calendar", label: "The Daily Shuffle", desc: "Guess today's Mario Kart or Mario Party character", href: "/daily", family: "party" },
   { icon: "award", label: "The Weekly Challenge", desc: "Rank this week's Tier War like the crowd", href: "/weekly", family: "party" },
+  { icon: "pencil", label: "Trivia Team Names", desc: "Funny, gaming and office team names", href: "/trivia/team-names", family: "party" },
+  { icon: "clipboard", label: "Trivia Answer Sheet", desc: "Printable sheets for a trivia night", href: "/trivia/answer-sheet", family: "kit" },
   { icon: "users", label: "Game Night Tools", desc: "Score sheets, timers, pickers & more", href: "/game-nights/tools", family: "kit" },
 ];
 

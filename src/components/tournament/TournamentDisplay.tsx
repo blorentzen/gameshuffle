@@ -17,6 +17,7 @@ import { PlaceMedal } from "./PlaceMedal";
 import { IconFlagCheck, IconUserCheck } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { GameCover } from "@/components/games/GameCover";
+import { SwissBoard } from "@/components/tournament/swiss/SwissBoard";
 import { getGameName } from "@/data/game-registry";
 import { boxArt, findGame } from "@/data/game-catalog";
 
@@ -166,6 +167,9 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
             {live && display.subtitle ? <p className="tourney-display__subtitle">{display.subtitle}</p> : null}
           </div>
         </header>
+
+        {/* Swiss: the round, its clock and every table (or the top cut). */}
+        {tournament.format === "swiss" && <SwissBoard tournamentId={tournament.id} />}
 
         {/* Now racing — bracket + heat/mains (the current match/heat/main). */}
         {nowLabel && (

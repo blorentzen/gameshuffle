@@ -19,7 +19,7 @@
  * lives in the reducer).
  */
 
-import { Modal } from "@empac/cascadeds";
+import { Button, Modal } from "@empac/cascadeds";
 import { TablerIcon } from "./TablerIcon";
 import { useState, type CSSProperties } from "react";
 import { useMode, useSession } from "@/lib/companion/SessionContext";
@@ -179,8 +179,8 @@ function PoisonRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
             +{mode.conditionADamage} applied
           </span>
         ) : (
-          <button
-            type="button"
+          <Button
+            size="small"
             className="companion-resolve__action-btn"
             style={
               {
@@ -190,7 +190,7 @@ function PoisonRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
             onClick={handleApply}
           >
             Apply +{mode.conditionADamage}
-          </button>
+          </Button>
         )
       }
     />
@@ -243,8 +243,8 @@ function BurnRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
       description={mode.conditionBDescription}
       action={
         stage === "ready" ? (
-          <button
-            type="button"
+          <Button
+            size="small"
             className="companion-resolve__action-btn"
             style={
               {
@@ -254,7 +254,7 @@ function BurnRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
             onClick={handleResolve}
           >
             Resolve {mode.conditionBLabel}
-          </button>
+          </Button>
         ) : stage === "flipping" ? (
           side ? (
             <div className="companion-resolve__inline-coin">
@@ -316,14 +316,14 @@ function ExtraConditionRow({
   if (hasAction) {
     if (stage === "ready") {
       actionContent = (
-        <button
-          type="button"
+        <Button
+          size="small"
           className="companion-resolve__action-btn"
           style={{ "--condition-color": def.color } as CSSProperties}
           onClick={handleFlip}
         >
           Flip for {def.label}
-        </button>
+        </Button>
       );
     } else if (stage === "flipping") {
       actionContent = side ? (

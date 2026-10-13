@@ -5,7 +5,7 @@
  * a new one from an occasion template (Party, Office, Fundraiser, Bar night).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Input } from "@empac/cascadeds";
@@ -14,6 +14,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { TEMPLATES } from "@/lib/trivia/rules";
+import { TriviaLeaguesSection } from "./leagues/TriviaLeaguesSection";
 import "@/styles/trivia.css";
 
 interface GameSummary { id: string; title: string; code: string; status: "draft" | "live" | "done" | "cancelled"; template: string | null; createdAt: string; questions: number }
@@ -25,7 +26,7 @@ const STATUS: Record<GameSummary["status"], { label: string; variant: "default" 
   cancelled: { label: "Cancelled", variant: "default" },
 };
 
-export function TriviaHome({ signedIn }: { signedIn: boolean }) {
+export function TriviaHome({ signedIn, children }: { signedIn: boolean; children?: ReactNode }) {
   const router = useRouter();
   const toast = useToast();
   const [code, setCode] = useState("");
@@ -124,8 +125,10 @@ export function TriviaHome({ signedIn }: { signedIn: boolean }) {
                 ))}
               </ul>
             )}
+            <TriviaLeaguesSection />
           </>
         )}
+        {children}
       </div>
     </main>
   );

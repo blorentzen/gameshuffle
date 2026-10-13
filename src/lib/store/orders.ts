@@ -19,6 +19,8 @@ import { shopDate } from "./copy";
 import { sendShopCantShip, sendShopNewOrderAlert, sendShopOrderReceived, sendShopRefunded, type ShopEmailItem } from "@/lib/email/shop";
 import { getBaseUrl } from "@/lib/env";
 import { orderLinkToken } from "./access";
+import { trackServerEvent } from "@/lib/analytics/server";
+import { EVENTS } from "@/lib/analytics/events";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -145,6 +147,14 @@ export async function fulfilShopSession(sessionId: string): Promise<FulfilResult
     if (error) throw new Error(`shop_fulfil: ${error.message}`);
     const r = res as { ok: boolean; created: boolean; order_id: string; order_number: number; shortfall?: { sku: string; missing: number }[] | null };
     if (r.created) await sendOrderEmails(r.order_id, r.order_number, order, items, bySku, r.shortfall ?? null, created);
+    if (r.created && order.livemode) {
+      // Which way into the shop sold it (build G's placement tags); live orders only, so test runs don't count.
+      await trackServerEvent(EVENTS.shopOrderPlaced, {
+        url: `${getBaseUrl()}/shop/thanks`,
+        props: { placement: order.utm_content ?? "direct", source: order.source_page ?? "shop" },
+        revenue: { currency: "USD", amount: Math.round(order.amount_total) / 100 },
+      });
+    }
     if (r.created && order.payment_intent_id && order.email) {
       // A Stripe receipt for the payment (sent in live mode only); best effort.
       await stripe.paymentIntents.update(order.payment_intent_id, { receipt_email: order.email }).catch((e) => console.warn("[shop] receipt_email failed:", e instanceof Error ? e.message : e));

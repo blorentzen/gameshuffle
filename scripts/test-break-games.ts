@@ -7,12 +7,18 @@
 
 import { PUZZLES } from "@/lib/originals/daily";
 import { GAMES, puzzleOrder, type BreakAnswer, type MakeContext } from "@/lib/break/games";
-import { BREAK_GAMES, BREAK_GAME_IDS, DEFAULT_LINEUP, cleanLineup } from "@/lib/break/types";
+import { BREAK_GAMES, BREAK_GAME_IDS, DEFAULT_LINEUP, cleanLineup, withNewGames } from "@/lib/break/types";
 import { roomTier } from "@/lib/break/games/tierLive";
+import { TIER_TOPICS } from "@/data/originals/tier-wars";
 import { nameMatcher, typedAnswer } from "@/lib/break/games/names";
 import { stepAt, zoomRosters, ZOOM_STEPS } from "@/lib/break/games/zoom";
 import { drawRoyale, ITEM_LINES } from "@/lib/break/games/royale";
 import { botMove, drop, emptyBoard, openColumns, winLine } from "@/lib/break/games/connect";
+import { applyHits, BASE_HP, BOSSES, HP_PER_FIGHTER, hpFor, MAX_ROUNDS as BOSS_ROUNDS } from "@/lib/break/games/boss";
+import { markGuess, MAX_ROWS, solvePoints } from "@/lib/break/games/letters";
+import { drawRace, HOUSE_KARTS, LANES, LAPS, seatRacers } from "@/lib/break/games/derby";
+import { FIVE_LETTER_ANSWERS, FIVE_LETTER_GUESSES } from "@/data/originals/five-letters";
+import { isBlockedText } from "@/lib/text/filter";
 import { EMOJI_PUZZLES } from "@/data/originals/emoji-puzzles";
 import { READ_THE_ROOM } from "@/data/originals/read-the-room";
 import { TRIVIA_PACK } from "@/data/originals/trivia-pack";
@@ -36,6 +42,9 @@ const ans = (viewer: string, answer: string): BreakAnswer => ({ platform: "twitc
 check("catalog and engines match", BREAK_GAME_IDS.every((id) => GAMES[id]) && Object.keys(GAMES).every((id) => id in BREAK_GAMES));
 check("cleanLineup drops unknowns and repeats", JSON.stringify(cleanLineup(["scramble", "nope", "scramble", "over-under"])) === JSON.stringify(["scramble", "over-under"]));
 check("cleanLineup never empty (falls back to the default lineup)", cleanLineup([]).length === DEFAULT_LINEUP.length);
+check("new games join a lineup saved before they arrived, before the closers", JSON.stringify(withNewGames(["scramble", "roll-call"], "2026-10-01T00:00:00Z")) === JSON.stringify(["scramble", "boss-fight", "five-letters", "kart-derby", "game-trivia", "roll-call"]));
+check("a lineup saved after they arrived stays as saved", JSON.stringify(withNewGames(["scramble"], "2026-10-20T00:00:00Z")) === JSON.stringify(["scramble"]));
+check("a game already in the lineup isn't added twice", withNewGames(["kart-derby"], "2026-10-01T00:00:00Z").filter((g) => g === "kart-derby").length === 1);
 check("the default lineup leaves out Stream Bingo and Four in a Row (the long ones)", !DEFAULT_LINEUP.includes("stream-bingo") && !DEFAULT_LINEUP.includes("four-in-a-row"));
 
 const BAD_TEXT = /undefined|null|NaN|\[object|—|–/;
@@ -54,6 +63,7 @@ const LOADED: Partial<Record<string, unknown>> = {
     { id: "k3", prompt: "What year did the channel start?", answer: "2021", accept: [] },
   ],
   "chat-bounty": { tokens: 100 },
+  "game-trivia": { rows: PACK_ROWS.filter((r) => r.category === "Video games"), tag: "Mario Kart 8 Deluxe" },
 };
 
 // Hosted games (Stream Bingo) run on another engine and need the database.
@@ -215,6 +225,11 @@ for (let n = 0; n < 40; n += 1) {
   const last = t.reveals[t.reveals.length - 1];
   const placed = (last?.tiers ?? []).reduce((a, r) => a + r.items.length, 0);
   check("tier war: the last reveal has the whole list", placed === 6, last?.tiers);
+}
+// Items are keyed by name, so a topic with two items of the same name could never finish its list.
+for (const t of TIER_TOPICS) {
+  const labels = t.items.map((i) => i.label);
+  check(`tier topic ${t.id}: every item has its own name`, new Set(labels).size === labels.length, labels.filter((l, i) => labels.indexOf(l) !== i));
 }
 check("tier war: room tier is the most votes", roomTier(["S", "A", "A", "B"]) === "A");
 check("tier war: a tie goes to the tier nearest the average", roomTier(["S", "S", "C", "C", "B"]) === "B" || roomTier(["S", "S", "C", "C", "B"]) === "C", roomTier(["S", "S", "C", "C", "B"]));
@@ -478,6 +493,157 @@ check("shuffle dice: accepts r", GAMES["shuffle-dice"].accept("r", holRound) ===
   const j = g.judge({ round: d.round, secret: d.secret }, [...right, ans("x", g.accept("chat", d.round) ?? "")], {});
   check("channel: the answer, a typo and the other ways all count", j.awards.length === 4 && j.awards.every((a) => a.points === 2), j.awards.map((a) => a.viewer));
   check("channel: chatter doesn't count", g.accept("lol", d.round) === null || j.awards.every((a) => a.viewer !== "x"));
+}
+
+// ─── Boss Fight ─────────────────────────────────────────────────────────────
+{
+  const g = GAMES["boss-fight"];
+  check("boss: names are ours and glyphs unique", BOSSES.length >= 6 && new Set(BOSSES.map((b) => b.glyph)).size === BOSSES.length);
+  check("boss: health follows the busiest round", hpFor(0) === BASE_HP && hpFor(1) === BASE_HP && hpFor(10) === 10 * HP_PER_FIGHTER);
+  const d = g.make({ ...ctx(null), meta: {}, fresh: true, roundOfGame: 1 })!;
+  check("boss: hit is accepted, chatter isn't", g.accept("hit", d.round) === "hit" && g.accept("!HIT!", d.round) === "hit" && g.accept("hi", d.round) === null && g.accept("hit me baby", d.round) === null);
+  const fighters = (n: number) => Array.from({ length: n }, (_, i) => ({ platform: "twitch", viewer: `v${i}`, name: `P${i}` }));
+  // Growth: new fighters raise max health, missing health stays missing.
+  const b0 = d.meta!.boss!;
+  const r1 = applyHits(b0, fighters(3), () => 0.5); // 11 damage each, no criticals
+  check("boss: three fighters, 120 health, 33 damage", r1.boss.maxHp === 120 && r1.boss.hp === 87, r1.boss);
+  const r2 = applyHits(r1.boss, fighters(5), () => 0.5);
+  check("boss: a bigger round grows it by 80", r2.boss.maxHp === 200 && r2.boss.hp === 87 + 80 - 55, r2.boss);
+  const r3 = applyHits(r2.boss, fighters(2), () => 0.5);
+  check("boss: a smaller round doesn't shrink it", r3.boss.maxHp === 200 && r3.boss.hp === 112 - 22, r3.boss);
+  check("boss: a critical triples", applyHits(b0, fighters(1), (() => { let k = 0; return () => [0, 0.01][k++ % 2]; })()).hits[0].damage === 24);
+  // Whole fights: a chat that hits every round usually wins; nobody hitting always loses.
+  const fight = (n: number, everyRound: boolean) => {
+    let meta: RunMeta = {};
+    for (let r = 1; r <= BOSS_ROUNDS; r += 1) {
+      const dd = g.make({ ...ctx(null), meta, fresh: r === 1, roundOfGame: r });
+      if (!dd) break;
+      if (dd.meta) meta = { ...meta, ...dd.meta };
+      const hitters = everyRound || r === 1 ? fighters(n).map((f) => ans(f.viewer, "hit")) : [];
+      const j = g.judge(dd, hitters, meta);
+      check(`boss ${n}: reveal says something`, j.reveal.text.length > 0 && !BAD_TEXT.test(j.reveal.text), j.reveal.text);
+      meta = { ...meta, ...j.meta };
+      if (meta.boss!.over) {
+        if (meta.boss!.won) check(`boss ${n}: everyone who hit scores, the final blow more`, j.awards.length === n && j.awards.filter((a) => a.points === 5).length === 1, j.awards.map((a) => a.points));
+        else check(`boss ${n}: a lost fight scores nothing`, j.awards.length === 0);
+        return meta.boss!;
+      }
+    }
+    return meta.boss!;
+  };
+  for (const n of [1, 2, 5, 40, 500]) {
+    let wins = 0;
+    for (let k = 0; k < 40; k += 1) wins += fight(n, true).won ? 1 : 0;
+    check(`boss ${n}: a busy chat usually wins (${wins}/40)`, n === 1 ? wins >= 8 : wins >= 30, wins);
+    check(`boss ${n}: one round of hits then nothing loses`, !fight(n, false).won || n === 1);
+  }
+  check("boss: rounds stop when it's over", g.rounds!({ boss: { ...b0, over: true, rounds: 3 } }) === 3);
+}
+
+// ─── Five Letters ───────────────────────────────────────────────────────────
+{
+  const g = GAMES["five-letters"];
+  check("letters: every answer is five letters and unique", FIVE_LETTER_ANSWERS.every((a) => /^[A-Z]{5}$/.test(a.word)) && new Set(FIVE_LETTER_ANSWERS.map((a) => a.word)).size === FIVE_LETTER_ANSWERS.length);
+  check("letters: every guess is five letters", [...FIVE_LETTER_GUESSES].every((w) => /^[A-Z]{5}$/.test(w)), [...FIVE_LETTER_GUESSES].filter((w) => !/^[A-Z]{5}$/.test(w)));
+  check("letters: every word passes the word filter", [...FIVE_LETTER_GUESSES].every((w) => !isBlockedText(w)), [...FIVE_LETTER_GUESSES].filter((w) => isBlockedText(w)));
+  check("letters: common starters count", ["CRANE", "ADIEU", "AUDIO", "RAISE", "SLATE", "STARE"].every((w) => FIVE_LETTER_GUESSES.has(w)));
+  check("letters: marks", markGuess("CRANE", "TRACK") === "yggxx" && markGuess("TRACK", "TRACK") === "ggggg", [markGuess("CRANE", "TRACK")]);
+  check("letters: repeated letters count once", markGuess("LEVEL", "PIXEL") === "xxxgg" && markGuess("SPEED", "STEAL") === "gxgxx", [markGuess("LEVEL", "PIXEL"), markGuess("SPEED", "STEAL")]);
+  check("letters: solve points", solvePoints(1) === 5 && solvePoints(4) === 4 && solvePoints(6) === 3);
+  {
+    const d0 = g.make({ ...ctx(null), meta: {}, fresh: true, roundOfGame: 1 })!;
+    const other = [...FIVE_LETTER_GUESSES].find((w) => w !== d0.secret.word)!;
+    const j0 = g.judge(d0, [ans("a", other)], { ...d0.meta });
+    const d1 = g.make({ ...ctx(null), meta: { ...d0.meta, ...j0.meta }, fresh: false, roundOfGame: 2 })!;
+    const j1 = g.judge(d1, [ans("a", other), ans("b", other)], { ...d0.meta, ...j0.meta });
+    check("letters: a word already played isn't played again", j1.meta!.letters!.rows[1].word === "", j1.meta!.letters!.rows);
+  }
+  const d = g.make({ ...ctx(null), meta: {}, fresh: true, roundOfGame: 1 })!;
+  check("letters: accepts words on the list only", g.accept("crane", d.round) === "CRANE" && g.accept("zzzzz", d.round) === null && g.accept("hi", d.round) === null && g.accept("cranes", d.round) === null);
+  check("letters: skips answers seen lately", FIVE_LETTER_ANSWERS.every((a) => {
+    const seen = new Set(FIVE_LETTER_ANSWERS.filter((x) => x.word !== a.word).map((x) => `five:${x.word}`));
+    const one = g.make({ ...ctx(null, seen), meta: {}, fresh: true, roundOfGame: 1 });
+    return one?.secret.word === a.word;
+  }));
+  // Play whole games: chat guesses the answer on round k (or never).
+  for (const solveOn of [1, 3, 6, 0]) {
+    let meta: RunMeta = {};
+    let rounds = MAX_ROWS;
+    let last = null as ReturnType<typeof g.judge> | null;
+    for (let r = 1; r <= rounds; r += 1) {
+      const dd = g.make({ ...ctx(null), meta, fresh: r === 1, roundOfGame: r });
+      if (!dd) break;
+      if (dd.meta) meta = { ...meta, ...dd.meta };
+      const word = String(dd.secret.word);
+      const wrong = [...FIVE_LETTER_GUESSES].find((w) => w !== word && !meta.letters!.rows.some((x) => x.word === w))!;
+      const guess = r === solveOn ? word : wrong;
+      const answers = r === 2 && solveOn !== 2 ? [] : [ans("a", guess), ans("b", guess), ans("c", word === guess ? wrong : wrong)];
+      last = g.judge(dd, answers, meta);
+      check(`letters: reveal says something`, last.reveal.text.length > 0 && !BAD_TEXT.test(last.reveal.text), last.reveal.text);
+      meta = { ...meta, ...last.meta };
+      rounds = g.rounds!(meta);
+    }
+    const st = meta.letters!;
+    if (solveOn) {
+      check(`letters: solved on guess ${solveOn}`, st.solved && st.rows.length === solveOn && rounds === solveOn, st);
+      check(`letters: solvers score`, last!.awards.filter((a) => a.points === 1 + solvePoints(solveOn)).length === 2, last!.awards);
+    } else {
+      check("letters: six guesses then the word is shown", !st.solved && st.over && st.rows.length === MAX_ROWS && last!.reveal.word === st.word, st);
+      check("letters: a round with no guesses is a lost turn", st.rows[1].word === "", st.rows[1]);
+    }
+  }
+}
+
+// ─── Kart Derby ─────────────────────────────────────────────────────────────
+{
+  const g = GAMES["kart-derby"];
+  check("derby: our karts have names", HOUSE_KARTS.length >= LANES && new Set(HOUSE_KARTS).size === HOUSE_KARTS.length);
+  const d = g.make({ ...ctx(null), meta: {}, fresh: true, roundOfGame: 1 })!;
+  check("derby: lanes and join are accepted", g.accept("3", d.round) === "3" && g.accept("lane 8", d.round) === "8" && g.accept("join", d.round) === "any" && g.accept("9", d.round) === null && g.accept("hello", d.round) === null);
+  const seated = seatRacers(Array.from({ length: 80 }, (_, i) => ({ racer: { platform: "twitch", viewer: `v${i}`, name: `P${i}` }, lane: null })), Math.random);
+  check("derby: join spreads people across lanes", seated.every((l) => l.length === 10), seated.map((l) => l.length));
+  for (let k = 0; k < 300; k += 1) {
+    const race = drawRace(Array.from({ length: LANES }, (_, i) => `L${i}`), Math.random);
+    check("derby: a start line and a mark per lap", race.marks.length === LAPS + 1 && race.marks[0].every((x) => x === 0));
+    check("derby: karts never go backwards", race.marks.every((row, lap) => lap === 0 || row.every((x, i) => x >= race.marks[lap - 1][i])));
+    check("derby: the winner crosses at 100", Math.max(...race.marks[LAPS]) === 100 && race.marks[LAPS][race.order[0] - 1] === 100, race.marks[LAPS]);
+    check("derby: finishing order is every lane once", new Set(race.order).size === LANES);
+    check("derby: item boxes happen every lap", race.events.length === LAPS && race.events.every((e) => e.length >= 1 && e.every((x) => x.at > 0 && x.at < 1 && !BAD_TEXT.test(x.text))), race.events);
+  }
+  for (const n of [0, 1, 3, 8, 30, 400]) {
+    let meta: RunMeta = {};
+    const join = g.make({ ...ctx(null), meta, fresh: true, roundOfGame: 1 })!;
+    if (join.meta) meta = { ...meta, ...join.meta };
+    const picks = Array.from({ length: n }, (_, i) => ans(`v${i}`, i % 3 === 0 ? "any" : String((i % LANES) + 1)));
+    const j1 = g.judge(join, picks, meta);
+    meta = { ...meta, ...j1.meta };
+    check(`derby ${n}: everyone who joined scores 1`, j1.awards.length === n && j1.awards.every((a) => a.points === 1));
+    const rounds = g.rounds!(meta);
+    check(`derby ${n}: a lap per round (none if nobody joined)`, rounds === (n ? 1 + LAPS : 1), rounds);
+    let podium = 0;
+    for (let r = 2; r <= rounds; r += 1) {
+      const dd = g.make({ ...ctx(null), meta, fresh: false, roundOfGame: r })!;
+      check(`derby ${n}: laps are quiet`, dd.quiet === true && g.accept("3", dd.round) === null);
+      if (dd.round.layout === "derby") check(`derby ${n}: each lap starts where the last one ended`, dd.round.lanes.every((l, i) => l.from === meta.derby!.marks[r - 2][i]));
+      const j = g.judge(dd, [], meta);
+      check(`derby ${n}: reveal says something`, j.reveal.text.length > 0 && !BAD_TEXT.test(j.reveal.text), j.reveal.text);
+      meta = { ...meta, ...j.meta };
+      if (r === rounds) podium = j.awards.length;
+    }
+    if (n) {
+      const top3 = meta.derby!.order.slice(0, 3).reduce((s2, lane) => s2 + meta.derby!.lanes[lane - 1].racers.length, 0);
+      check(`derby ${n}: everyone in the podium lanes scores`, podium === top3, { podium, top3 });
+    }
+  }
+}
+
+// ─── Game Trivia ────────────────────────────────────────────────────────────
+{
+  const g = GAMES["game-trivia"];
+  check("game trivia: skips itself with nothing loaded", g.make({ ...ctx(null) }) === null);
+  const d = g.make({ ...ctx("mario-kart-8-deluxe"), data: LOADED["game-trivia"] })!;
+  check("game trivia: tagged with the game", d.round.tag === "Mario Kart 8 Deluxe", d.round.tag);
+  check("game trivia: shares Trivia's no-repeat keys", String(d.key).startsWith("trivia:"), d.key);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

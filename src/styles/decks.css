@@ -173,6 +173,7 @@ a.deck-detail__winrate-src {
   gap: var(--spacing-12);
   justify-content: center;
 }
+.deck-save { text-decoration: none; }
 
 /* ── Related / cluster links ────────────────────────────────────────── */
 .deck-related {

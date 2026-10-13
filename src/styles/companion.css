@@ -248,27 +248,12 @@
   gap: var(--spacing-12);
 }
 
-.companion-player-header__name {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4) var(--spacing-6);
-  border: 1px solid transparent;
-  background-color: transparent;
-  border-radius: var(--radius-4);
-  font-family: inherit;
+/* The name is a CDS ghost Button with a pencil; editing swaps in a CDS Input. */
+.companion-player-header__name.empac-button {
+  max-width: 60%;
   font-size: var(--font-size-16);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  cursor: pointer;
-  text-align: left;
-  max-width: 60%;
-}
-
-.companion-player-header__name:hover {
-  background-color: var(--surface-hover);
-  border-color: var(--border-default);
+  justify-content: flex-start;
 }
 
 .companion-player-header__name-text {
@@ -277,34 +262,8 @@
   white-space: nowrap;
 }
 
-/* Always visible (not hover-only) so the edit affordance reads on touch
-   devices too, sitting to the left of the name. */
-.companion-player-header__name-pencil {
-  flex-shrink: 0;
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-  opacity: 0.65;
-  transition: opacity 120ms ease, color 120ms ease;
-}
-
-.companion-player-header__name:hover .companion-player-header__name-pencil {
-  opacity: 1;
-  color: var(--text-secondary);
-}
-
 .companion-player-header__name-input {
-  appearance: none;
-  border: 1px solid var(--primary-500);
-  background-color: var(--background-elevated);
-  border-radius: var(--radius-4);
-  padding: var(--spacing-4) var(--spacing-8);
-  font-family: inherit;
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
   max-width: 60%;
-  outline: none;
-  box-shadow: var(--shadow-focus);
 }
 
 /* Primary vs secondary rank — for v1 they render identically. The
@@ -586,23 +545,7 @@
   gap: var(--spacing-6);
 }
 
-.companion-win__btn {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  background-color: var(--background-elevated);
-  color: var(--text-primary);
-  border-radius: var(--radius-full);
-  width: 28px;
-  height: 28px;
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  line-height: 1;
-}
-
-.companion-win__btn:hover {
-  background-color: var(--surface-hover);
-}
+/* + and − are CDS IconButtons (IconAction). */
 
 .companion-win__value {
   font-family: var(--font-display);
@@ -978,39 +921,9 @@
 
 /* ---------- Checkup prompt button (in PlayerArea) ---------- */
 
+/* The Resolve button is a CDS Button; this only centres it under the board. */
 .companion-checkup-prompt {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-6);
   margin: var(--spacing-4) auto 0;
-  padding: var(--spacing-6) var(--spacing-12);
-  /* Not --primary-ink-*: that's a text colour and turns light in dark mode,
-     which left this white label unreadable. The 600/700 fills hold up with
-     white in both themes. */
-  background-color: transparent;
-  color: var(--primary-ink-500);
-  border: 1px solid currentColor;
-  border-radius: var(--radius-full);
-  font-family: inherit;
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  line-height: 1;
-}
-
-.companion-checkup-prompt:hover {
-  background-color: color-mix(in srgb, var(--primary-500) 12%, transparent);
-}
-
-.companion-checkup-prompt[disabled] {
-  background-color: var(--gray-500);
-  border-color: var(--gray-500);
-  cursor: default;
-}
-
-.companion-checkup-prompt__icon {
-  font-size: var(--font-size-14);
 }
 
 /* ---------- Checkup modal body ---------- */
@@ -1358,19 +1271,12 @@
   justify-content: flex-end;
 }
 
-.companion-resolve__action-btn {
-  appearance: none;
-  /* The condition colours are light (Poison purple is about 3.9:1 with white),
-     so the button darkens its own colour until white text clears 4.5:1. */
+/* CDS Buttons tinted with the condition's colour, darkened until white text clears 4.5:1
+   (Poison purple is about 3.9:1 with white as it is). */
+.companion-resolve__action-btn.empac-button {
   background-color: color-mix(in srgb, var(--condition-color, var(--primary-500)) 72%, #000);
+  border-color: color-mix(in srgb, var(--condition-color, var(--primary-500)) 72%, #000);
   color: var(--empac-white, #fff);
-  border: 1px solid color-mix(in srgb, var(--condition-color, var(--primary-500)) 72%, #000);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-6) var(--spacing-12);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  font-family: inherit;
-  cursor: pointer;
   white-space: nowrap;
 }
 
@@ -1752,38 +1658,17 @@
 
 /* ---------- Feedback floating button ---------- */
 
+/* The feedback trigger is a CDS Button; this only pins it to the corner. */
 .companion-feedback {
-  appearance: none;
   position: fixed;
   bottom: var(--spacing-16);
   right: var(--spacing-16);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-6);
-  padding: var(--spacing-8) var(--spacing-12);
-  /* The raw ramp for a fill (the --primary-ink-* text aliases turn light in dark mode). */
-  background-color: var(--primary-600);
-  color: var(--empac-white);
-  border: 1px solid var(--primary-600);
   border-radius: var(--radius-full);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  font-family: inherit;
-  cursor: pointer;
-  text-decoration: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   /* Sits above the navbar (100) but below modal/cookie chrome
      (9999) so a tester clicking it while a Modal is open won't
      accidentally pre-empt the open dialog. */
   z-index: 400;
-}
-
-.companion-feedback:hover {
-  background-color: var(--primary-700);
-}
-
-.companion-feedback__icon {
-  font-size: var(--font-size-14);
 }
 
 /* ---------- Feedback modal form ---------- */
@@ -1796,57 +1681,17 @@
   color: var(--text-primary);
 }
 
-.companion-feedback-form__field {
+.companion-feedback-form__message {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
 }
 
-.companion-feedback-form__field > span {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--font-size-10);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  font-weight: var(--font-weight-medium);
-}
-
 .companion-feedback-form__count {
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: var(--font-weight-regular);
-  font-size: var(--font-size-10);
+  align-self: flex-end;
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
-}
-
-.companion-feedback-form__field input,
-.companion-feedback-form__field select,
-.companion-feedback-form__field textarea {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-8) var(--spacing-10);
-  font-size: var(--font-size-14);
-  font-family: inherit;
-  color: var(--text-primary);
-  /* Sunken vs the modal body so the input reads as a form field
-     instead of blending into the surrounding surface. */
-  background-color: var(--background-secondary);
-}
-
-.companion-feedback-form__field textarea {
-  resize: vertical;
-  min-height: 100px;
-  line-height: var(--line-height-snug);
-}
-
-.companion-feedback-form__field input:focus,
-.companion-feedback-form__field select:focus,
-.companion-feedback-form__field textarea:focus {
-  outline: 2px solid var(--primary-500);
-  outline-offset: 1px;
+  font-variant-numeric: tabular-nums;
 }
 
 .companion-feedback-form__error {
@@ -1859,38 +1704,6 @@
   display: flex;
   gap: var(--spacing-8);
   justify-content: flex-end;
-}
-
-.companion-feedback-form__btn {
-  appearance: none;
-  border-radius: var(--radius-6);
-  padding: var(--spacing-8) var(--spacing-14);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  font-family: inherit;
-  border: 1px solid transparent;
-}
-
-.companion-feedback-form__btn--secondary {
-  background-color: transparent;
-  border-color: var(--border-default);
-  color: var(--text-primary);
-}
-
-.companion-feedback-form__btn--primary {
-  background-color: var(--primary-ink-500);
-  color: var(--empac-white);
-  border-color: var(--primary-ink-500);
-}
-
-.companion-feedback-form__btn--primary:hover {
-  background-color: var(--primary-ink-600);
-}
-
-.companion-feedback-form__btn[disabled] {
-  opacity: 0.5;
-  cursor: default;
 }
 
 .companion-feedback-form__thanks {
@@ -2001,43 +1814,7 @@
   justify-content: center;
 }
 
-.companion-coin-modal__btn,
-.companion-dice-modal__btn {
-  appearance: none;
-  border-radius: var(--radius-8);
-  padding: var(--spacing-10) var(--spacing-16);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  font-family: inherit;
-  border: 1px solid transparent;
-  min-width: 110px;
-}
-
-.companion-coin-modal__btn--primary,
-.companion-dice-modal__btn--primary {
-  background-color: var(--primary-ink-500);
-  border-color: var(--primary-ink-500);
-  color: var(--empac-white);
-}
-
-.companion-coin-modal__btn--primary:hover,
-.companion-dice-modal__btn--primary:hover {
-  background-color: var(--primary-ink-600);
-}
-
-.companion-coin-modal__btn--secondary,
-.companion-dice-modal__btn--secondary {
-  background-color: transparent;
-  border-color: var(--border-default);
-  color: var(--text-primary);
-}
-
-.companion-coin-modal__btn[disabled],
-.companion-dice-modal__btn[disabled] {
-  opacity: 0.5;
-  cursor: default;
-}
+/* Close / Flip again / Roll again are CDS Buttons (no styles of their own). */
 
 .companion-dice-modal__picker {
   display: flex;
@@ -2046,24 +1823,7 @@
   gap: var(--spacing-6);
 }
 
-.companion-dice-modal__picker-btn {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  /* Sunken vs modal body so the unselected face buttons remain
-     visible against the modal surface in both themes. */
-  background-color: var(--background-secondary);
-  color: var(--text-primary);
-  padding: var(--spacing-4) var(--spacing-10);
-  font-size: var(--font-size-12);
-  cursor: pointer;
-}
-
-.companion-dice-modal__picker-btn--selected {
-  background-color: var(--primary-ink-500);
-  border-color: var(--primary-ink-500);
-  color: var(--empac-white);
-}
+/* The die faces are CDS Chips. */
 
 /* =============================================================
    Canonical d6 pip face
@@ -2602,53 +2362,23 @@
   gap: var(--spacing-6);
 }
 
-.companion-theme__chip {
-  appearance: none;
-  border: 2px solid transparent;
-  background-color: transparent;
-  border-radius: var(--radius-8);
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-4);
-  width: 56px;
-  transition: transform 100ms ease;
-}
-
-.companion-theme__chip:hover {
-  transform: scale(1.05);
-}
-
-.companion-theme__chip--selected {
-  border-color: var(--text-primary);
-}
-
+/* Each theme is a CDS Chip whose icon is a small swatch of the slot texture. */
 .companion-theme__chip-fill {
   display: block;
-  width: 48px;
-  height: 32px;
-  border-radius: var(--radius-6);
+  width: 22px;
+  height: 16px;
+  border-radius: var(--radius-4);
   background-color: var(--background-elevated);
   border: 1px solid var(--border-default);
 }
 
-.companion-theme__chip-label {
-  font-size: var(--font-size-10);
-  color: var(--text-primary);
-  font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 /* "None" chip — dashed outline + slash to read as unstyled. */
-.companion-theme__chip--none .companion-theme__chip-fill {
+.companion-theme__chip-fill--none {
   border-style: dashed;
   position: relative;
   background-color: var(--background-secondary);
 }
-.companion-theme__chip--none .companion-theme__chip-fill::after {
+.companion-theme__chip-fill--none::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -2661,7 +2391,7 @@
 
 /* Per-theme preview fills — same visual recipes as the slot
    versions, scaled to the 48×32 chip. */
-.companion-theme__chip[data-style-preview-theme="grass"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="grass"] {
   background:
     repeating-linear-gradient(
       135deg,
@@ -2670,19 +2400,19 @@
     );
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="fire"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="fire"] {
   background:
     radial-gradient(circle at 50% 90%, #ffb84a 0%, transparent 60%),
     linear-gradient(180deg, #b71f1f 0%, #f76e2a 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="water"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="water"] {
   background:
     radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
     linear-gradient(180deg, #2575b3 0%, #4ca9cd 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="lightning"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="lightning"] {
   background:
     repeating-linear-gradient(
       -60deg,
@@ -2691,33 +2421,33 @@
     );
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="psychic"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="psychic"] {
   background:
     radial-gradient(circle at 70% 30%, #ee7ad9 0%, transparent 55%),
     linear-gradient(135deg, #6b3ea3 0%, #b45cb1 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="fighting"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="fighting"] {
   background: linear-gradient(180deg, #c26f4d 0%, #8f4a2d 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="darkness"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="darkness"] {
   background:
     radial-gradient(circle, rgba(255, 255, 255, 0.5) 0.6px, transparent 1px) 0 0 / 12px 12px,
     linear-gradient(180deg, #1c1d28 0%, #3a3c52 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="metal"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="metal"] {
   background: linear-gradient(180deg, #dcdfe2 0%, #99a2a6 50%, #6f7780 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="dragon"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="dragon"] {
   background:
     radial-gradient(circle at 50% 25%, #f5e08a 0%, transparent 55%),
     linear-gradient(180deg, #b8862e 0%, #8a6217 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="colorless"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="colorless"] {
   background: linear-gradient(180deg, #f0eee5 0%, #b3b3a3 100%);
   border-color: transparent;
 }
@@ -2727,12 +2457,12 @@
    reads as a true preview of the rendered slot. Tile size is
    smaller to fit the 48×32 chip. */
 
-.companion-theme__chip[data-style-preview-theme] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme] {
   position: relative;
   overflow: hidden;
 }
 
-.companion-theme__chip[data-style-preview-theme] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme]::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -2743,37 +2473,37 @@
   opacity: 0.2;
 }
 
-.companion-theme__chip[data-style-preview-theme="grass"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="grass"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 21c.5 -4.5 2.5 -8 7 -10'/><path d='M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="fire"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="fire"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="water"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="water"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M7.502 19.423c2.602 2.105 6.395 2.105 8.996 0c2.602 -2.105 3.262 -5.708 1.566 -8.546l-4.89 -7.26c-.42 -.625 -1.287 -.803 -1.936 -.397a1.376 1.376 0 0 0 -.41 .397l-4.893 7.26c-1.695 2.838 -1.035 6.441 1.567 8.546z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="lightning"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="lightning"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a4a08' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11'/></svg>");
   opacity: 0.28;
 }
-.companion-theme__chip[data-style-preview-theme="psychic"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="psychic"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="fighting"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="fighting"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0 -18z'/><path d='M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0 -10z'/><path d='M12 11a1 1 0 1 0 0 2a1 1 0 0 0 0 -2z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="darkness"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="darkness"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3h.393a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z'/></svg>");
   opacity: 0.28;
 }
-.companion-theme__chip[data-style-preview-theme="metal"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="metal"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f262b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3'/></svg>");
   opacity: 0.2;
 }
-.companion-theme__chip[data-style-preview-theme="dragon"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="dragon"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="colorless"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="colorless"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232e2f30' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/></svg>");
   opacity: 0.22;
 }
@@ -2799,6 +2529,7 @@
   gap: var(--spacing-16);
   background-color: var(--background-elevated);
   color: var(--text-primary);
+  container-type: inline-size;
 }
 
 .companion-settings__lede {
@@ -2808,57 +2539,45 @@
   line-height: var(--line-height-snug);
 }
 
+/* Two by two on a phone, one row of four once the window is wide enough. */
 .companion-settings__formats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-10);
 }
+@container (min-width: 600px) {
+  .companion-settings__formats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
-.companion-settings__format {
-  appearance: none;
+/* Format tiles are CDS Cards (frame, hover and selected come from CDS), set out like
+   the site's other icon tiles (Chat Brain, the admin kit): icon tile on top, then title and text. */
+.companion-settings__format.empac-card {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: flex-start;
-  gap: var(--spacing-8);
-  padding: var(--spacing-12);
-  background-color: var(--background-secondary);
-  border: 2px solid var(--border-default);
-  border-radius: var(--radius-8);
-  cursor: pointer;
-  font-family: inherit;
+  gap: var(--spacing-10);
+  height: 100%;
   text-align: left;
-  transition: border-color 100ms ease, background-color 100ms ease;
+  font-family: inherit;
+  width: 100%;
 }
 
-.companion-settings__format:hover {
-  border-color: var(--primary-300);
-}
-
-.companion-settings__format--selected {
-  border-color: var(--primary-ink-500);
-  background-color: color-mix(
-    in srgb,
-    var(--primary-500) 10%,
-    var(--background-secondary)
-  );
-}
-
+/* The site's icon tile: a rounded square in the brand gradient (a circle means Energy in the companion). */
 .companion-settings__format-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  background-color: var(--primary-ink-500);
-  color: var(--empac-white);
-  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2f66ec, #4b5cf5);
+  color: #fff;
 }
 
 .companion-settings__format-body {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: var(--spacing-4);
   min-width: 0;
 }
 
@@ -2892,40 +2611,10 @@
   letter-spacing: 0.05em;
 }
 
-.companion-settings__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-}
-
-.companion-settings__field > span {
-  font-size: var(--font-size-12);
-  color: var(--text-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.companion-settings__field input[type="number"] {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-6) var(--spacing-10);
-  font-size: var(--font-size-14);
-  color: var(--text-primary);
-  background-color: var(--background-elevated);
-  font-family: inherit;
-  width: 80px;
-}
-
-.companion-settings__toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  font-size: var(--font-size-12);
-  color: var(--text-primary);
-}
-
-.companion-settings__toggle input {
-  margin: 0;
+.companion-settings__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--spacing-10);
 }
 
 .companion-settings__summary {
@@ -3146,50 +2835,7 @@
   flex-shrink: 0;
 }
 
-.companion-resume__resume-btn {
-  appearance: none;
-  background-color: var(--primary-ink-500);
-  color: var(--empac-white);
-  border: 1px solid var(--primary-500);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-6) var(--spacing-12);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.companion-resume__resume-btn:hover:not(:disabled) {
-  background-color: var(--primary-ink-600);
-}
-
-.companion-resume__resume-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.companion-resume__delete-btn {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  color: var(--text-secondary);
-  padding: var(--spacing-6);
-  cursor: pointer;
-}
-
-.companion-resume__delete-btn:hover:not(:disabled) {
-  color: var(--error-ink);
-  border-color: var(--error-500);
-}
-
-.companion-resume__delete-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+/* Resume is a CDS Button; delete is a CDS IconButton (IconAction) that asks first. */
 /* ═══════════ Card art on a slot (piece placed from My Cards) ═══════════ */
 /* The two-selector head beats the themed `.companion-slot[data-slot-theme]
    .companion-slot__inner` panel rule (a picked card also sets a type theme),
@@ -4802,4 +4448,36 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .companion-together__pulse { animation: none; opacity: 1; }
+}
+
+/* ---------- Play with a deck (TCG deck lists) ---------- */
+.companion-deckchoice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+.companion-deckchoice__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-deckchoice__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-8);
+}
+.companion-deckchoice__note,
+.companion-deckchoice__none {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-deckchoice__none a {
+  color: var(--primary-ink-600);
+  font-weight: var(--font-weight-semibold);
 }

@@ -26,6 +26,8 @@ import { sendChatMessage } from "@/lib/twitch/client";
 import { isBlockedText } from "@/lib/text/filter";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import {
+  GAME_COLS,
+  TEAM_COLS,
   getGame,
   isStreamGame,
   publicQ,
@@ -39,8 +41,7 @@ import {
 } from "./store";
 import { MAX_VIEWERS, STYLE_LABEL, VIEWER_SECRET_PREFIX, type Verdict } from "./rules";
 
-const GAME_COLS = "id, host_user_id, title, template, code, rounds, settings, status, round_index, question_index, phase, opened_at, closes_at, event_id, created_at, started_at, finished_at";
-const TEAM_COLS = "id, game_id, name, secret, score, joker_round, created_at, last_seen_at";
+
 const LETTERS = ["A", "B", "C", "D", "E", "F"];
 
 export type ViewerPlatform = "twitch" | "youtube" | "site" | "discord";

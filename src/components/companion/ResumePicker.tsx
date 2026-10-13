@@ -11,7 +11,10 @@
  * round trip.
  */
 
-import { Icon, Modal } from "@empac/cascadeds";
+import { Button, Modal } from "@empac/cascadeds";
+import { IconTrash } from "@tabler/icons-react";
+import { IconAction } from "@/components/actions/IconAction";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useState } from "react";
 import { useSession } from "@/lib/companion/SessionContext";
 import { deleteCompanionSaveAction } from "@/app/tcg-companion/save/actions";
@@ -41,6 +44,7 @@ export function ResumePicker({
   const [busyId, setBusyId] = useState<string | null>(null);
   const { dispatch } = useSession();
   const toasts = useCompanionToasts();
+  const confirm = useConfirm();
 
   const handleResume = (save: CompanionSavedState) => {
     dispatch({
@@ -76,8 +80,10 @@ export function ResumePicker({
   };
 
   const handleDelete = async (id: string) => {
-    setBusyId(id);
     const target = items.find((s) => s.id === id);
+    const label = target?.name?.trim() || (target ? defaultSaveName(formatByKey(target.gameSettings.format).label, target.updatedAt) : "this saved game");
+    if (!(await confirm({ title: `Delete "${label}"?`, body: "The saved game is removed for good.", confirmLabel: "Delete save" }))) return;
+    setBusyId(id);
     const result = await deleteCompanionSaveAction(id);
     if (result.ok) {
       setItems((prev) => prev.filter((s) => s.id !== id));
@@ -128,7 +134,7 @@ export function ResumePicker({
                 <div className="companion-resume__item-time">Saved {formatRelative(localGame.savedAt)}</div>
               </div>
               <div className="companion-resume__item-actions">
-                <button type="button" className="companion-resume__resume-btn" onClick={() => handleResumeLocal(localGame)}>Resume</button>
+                <Button variant="primary" size="small" onClick={() => handleResumeLocal(localGame)}>Resume</Button>
               </div>
             </li>
           </ul>
@@ -165,23 +171,8 @@ export function ResumePicker({
                     </div>
                   </div>
                   <div className="companion-resume__item-actions">
-                    <button
-                      type="button"
-                      className="companion-resume__resume-btn"
-                      onClick={() => handleResume(save)}
-                      disabled={isDeleting}
-                    >
-                      Resume
-                    </button>
-                    <button
-                      type="button"
-                      className="companion-resume__delete-btn"
-                      onClick={() => handleDelete(save.id)}
-                      disabled={isDeleting}
-                      title="Delete this saved game"
-                    >
-                      <Icon name="trash" size="14" />
-                    </button>
+                    <Button variant="primary" size="small" onClick={() => handleResume(save)} disabled={isDeleting}>Resume</Button>
+                    <IconAction icon={IconTrash} variant="danger" label={`Delete ${displayName}`} onClick={() => void handleDelete(save.id)} disabled={isDeleting} />
                   </div>
                 </li>
               );

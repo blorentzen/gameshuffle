@@ -8,6 +8,8 @@ import { loadNightRows, loadTournamentRows } from "@/lib/events/browse";
 import { SeriesManager } from "@/components/game-nights/SeriesManager";
 import { listSeries } from "@/lib/game-nights/series";
 import type { ViewerPrefs } from "@/lib/game-nights/match";
+import { shopVisibleToVisitors } from "@/lib/store/visibility";
+import { ShopLine } from "@/components/store/ShopEntry";
 
 export const metadata: Metadata = {
   title: "Game nights",
@@ -16,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GameNightsPage() {
+  const shopVisible = await shopVisibleToVisitors();
   const [nights, tournamentRail] = await Promise.all([loadNightRows(), loadTournamentRows(24)]);
   const supabase = await createClient();
   const {
@@ -54,6 +57,7 @@ export default async function GameNightsPage() {
       />
 
       <Container>
+        {shopVisible && <ShopLine placement="game-nights" />}
         <section id="bgn-list" className="bgn-browse" style={{ margin: "var(--spacing-40) 0 var(--spacing-64)", scrollMarginTop: "6rem" }}>
         {mySeries.length > 0 && (
           <SeriesManager initial={mySeries.map((s) => ({ id: s.id, name: s.name, cadence: s.cadence, active: s.active, nextAt: s.nextAt }))} />

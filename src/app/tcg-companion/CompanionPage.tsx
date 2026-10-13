@@ -10,7 +10,7 @@
  * or playing as a guest (no persistence).
  */
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import {
@@ -74,9 +74,11 @@ interface Props {
   autoResume: CompanionSavedState | null;
   /** Play together: open straight into this shared game. */
   live?: LiveBoot | null;
+  /** `?deck=<id>` from a saved deck list: player 1 starts with it. */
+  startDeck?: string | null;
 }
 
-export function CompanionPage({ viewer, savedGames, autoResume, live = null }: Props) {
+export function CompanionPage({ viewer, savedGames, autoResume, live = null, startDeck = null }: Props) {
   // Player 1 auto-seeds with the signed-in user's display name so
   // their identity is recognized on the board out of the box. Guests
   // (no display name) fall back to the engine's "Player 1" default.
@@ -97,6 +99,7 @@ export function CompanionPage({ viewer, savedGames, autoResume, live = null }: P
         <ResolveOverlayProvider>
           <main className="companion-page">
             <Header viewer={viewer} />
+            {startDeck && viewer.kind === "auth" && <StartDeck id={startDeck} />}
             <GameSettingsGate savedGames={savedGames}>
               <CompanionBoard />
               <GameOverModal viewer={viewer} />
@@ -113,6 +116,18 @@ export function CompanionPage({ viewer, savedGames, autoResume, live = null }: P
       </CompanionToastProvider>
     </SessionProvider>
   );
+}
+
+/** Picks the deck list from "Play in the companion" for this phone's player, once. */
+function StartDeck({ id }: { id: string }) {
+  const { chooseDeck, bottom } = useSession();
+  const picked = useRef<string | null>(null);
+  useEffect(() => {
+    if (picked.current === id) return;
+    picked.current = id;
+    void chooseDeck(bottom, { id });
+  }, [id, bottom, chooseDeck]);
+  return null;
 }
 
 /** Pre-game gate. Decision tree:

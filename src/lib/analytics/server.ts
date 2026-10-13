@@ -15,7 +15,7 @@ const PLAUSIBLE_ENDPOINT = "https://plausible.io/api/event";
 
 export async function trackServerEvent(
   name: string,
-  opts?: { url?: string; props?: Record<string, string | number | boolean> },
+  opts?: { url?: string; props?: Record<string, string | number | boolean>; revenue?: { currency: string; amount: number } },
 ): Promise<void> {
   try {
     await fetch(PLAUSIBLE_ENDPOINT, {
@@ -29,6 +29,8 @@ export async function trackServerEvent(
         domain: PLAUSIBLE_DOMAIN,
         url: opts?.url ?? "https://gameshuffle.co/twitch",
         props: opts?.props,
+        // Plausible revenue goals: amount in whole currency units.
+        ...(opts?.revenue ? { revenue: opts.revenue } : {}),
       }),
     });
   } catch {

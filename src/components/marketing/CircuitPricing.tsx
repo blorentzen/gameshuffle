@@ -20,7 +20,7 @@ const FEATURE_LABEL: Record<(typeof CIRCUIT_PAID_FEATURES)[number], string> = {
   promo_codes: "Promo codes",
   series: "Championship series",
   co_organizers: "Co-organizers",
-  branding: "Custom page branding",
+  branding: "Custom branding (page and display board)",
   seeding: "Custom seeding & redraw",
   randomizer: "Live randomized rounds",
 };

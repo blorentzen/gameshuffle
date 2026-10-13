@@ -1,0 +1,639 @@
+/* Trivia pages written for search: the /trivia visitor sections, occasion
+   pages, the hosting guide, game question pages, the team name generator and
+   the printable answer sheet. Article pages reuse .deck-detail/.deck-prose
+   and .rules-page; these add the trivia pieces. Root font is 10px: size type
+   with the tokens. */
+
+/* ---------- Shared article bits ---------- */
+.trivia-article__more {
+  align-self: center;
+  font-weight: var(--font-weight-semibold);
+  color: var(--brand-ink, var(--text-link));
+}
+
+/* "At a glance" chips at the top of an occasion page. */
+.trivia-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin: 0 0 var(--spacing-24);
+  padding: 0;
+  list-style: none;
+}
+.trivia-facts li {
+  margin: 0;
+  padding: var(--spacing-6, 6px) var(--spacing-12);
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* Sample questions on an occasion page. */
+.trivia-samples li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  margin-bottom: var(--spacing-12);
+}
+.trivia-samples__answer {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+/* ---------- /trivia for visitors ---------- */
+.trivia-landing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-48);
+  margin-top: var(--spacing-24);
+  padding-bottom: var(--spacing-48);
+}
+.trivia-landing__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+  min-width: 0;
+}
+.trivia-landing__section.pricing-page__faq {
+  margin: 0;
+}
+.trivia-landing__h2 {
+  margin: 0;
+  font-size: var(--font-size-fluid-h3, var(--font-size-28));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  text-wrap: balance;
+}
+.trivia-landing .app-steps {
+  margin: 0;
+}
+.trivia-landing__topics {
+  margin: 0;
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed, 1.6);
+}
+.trivia-landing__topics a {
+  font-weight: var(--font-weight-semibold);
+  color: var(--brand-ink, var(--text-link));
+}
+
+/* ---------- Free tool pages (team names, answer sheet) ---------- */
+.trivia-tool-copy {
+  width: 100%;
+  max-width: 76rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.trivia-tool-copy h2 {
+  margin: var(--spacing-16) 0 0;
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+.trivia-tool-copy > p {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 68ch;
+}
+.trivia-name-lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: var(--spacing-20) var(--spacing-24);
+}
+.trivia-name-lists h3 {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+}
+.trivia-name-lists ul {
+  margin: 0;
+  padding-left: var(--spacing-20);
+  display: grid;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.trivia-tool-faq {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.trivia-tool-faq dt {
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.trivia-tool-faq dd {
+  margin: var(--spacing-4) 0 0;
+  color: var(--text-secondary);
+  max-width: 68ch;
+}
+.trivia-tool-cta {
+  margin-top: var(--spacing-16);
+  padding: var(--spacing-20);
+  border-radius: var(--radius-12, 12px);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+}
+.trivia-tool-copy .trivia-tool-cta h2 {
+  margin: 0;
+  font-size: var(--font-size-20);
+}
+.trivia-tool-cta p {
+  margin: 0;
+  color: var(--text-secondary);
+  max-width: 64ch;
+}
+.trivia-tool-cta a:not(.empac-button) {
+  color: var(--brand-ink, var(--text-link));
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Team name generator */
+.team-names {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  text-align: left;
+}
+.team-names__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12) var(--spacing-16);
+}
+.team-names__themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+.team-names__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
+  gap: var(--spacing-8);
+}
+.team-names__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  min-width: 0;
+  padding: var(--spacing-10, 1rem) var(--spacing-8) var(--spacing-10, 1rem) var(--spacing-16);
+  border-radius: var(--radius-10, 1rem);
+  border: 1px solid var(--border-default);
+  background: var(--surface-default);
+}
+.team-names__name {
+  min-width: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+.team-names__more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+.team-names__count {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+/* ---------- Answer sheet maker ---------- */
+.answer-maker {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-24);
+  text-align: left;
+}
+@container (min-width: 820px) {
+  .answer-maker { grid-template-columns: minmax(0, 30rem) minmax(0, 1fr); align-items: start; }
+}
+.free-tool .tool-panel:has(.answer-maker) {
+  container-type: inline-size;
+}
+.answer-maker__controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  align-items: stretch;
+}
+.answer-maker__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-12);
+  align-items: center;
+}
+.answer-maker__controls > .empac-button {
+  align-self: flex-start;
+}
+.answer-maker__hint {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+/* The sheet itself is paper: black on white in either theme. */
+.answer-sheet {
+  --sheet-ink: #111317;
+  --sheet-rule: #9aa0aa;
+  color: var(--sheet-ink);
+  background: #ffffff;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8, 8px);
+  padding: var(--spacing-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  min-width: 0;
+  font-size: var(--font-size-14);
+}
+/* Head: two columns that line up at every width. Left: the night's name,
+   then the team name line. Right: the QR code (a real night's sheet), then the
+   total box, the same width so the column reads as one. */
+.answer-sheet__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "title qr" "line total";
+  align-items: end;
+  gap: var(--spacing-12) var(--spacing-16);
+}
+.answer-sheet__head .answer-sheet__title { grid-area: title; align-self: start; min-width: 0; }
+.answer-sheet__head .answer-sheet__qr { grid-area: qr; }
+.answer-sheet__head .answer-sheet__line { grid-area: line; min-width: 0; }
+.answer-sheet__head .answer-sheet__total { grid-area: total; }
+.answer-sheet__title {
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+.answer-sheet__line {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-8);
+  font-weight: var(--font-weight-semibold);
+}
+.answer-sheet__line::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--sheet-ink);
+  height: 1.6rem;
+}
+.answer-sheet__qr {
+  width: 6.4rem;
+  height: 6.4rem;
+  flex: none;
+}
+.answer-sheet__qr svg { width: 100%; height: 100%; display: block; }
+.answer-sheet__score {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6, 6px);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+/* "Total" above its box, as wide as the QR code. */
+.answer-sheet__total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+.answer-sheet__total > span,
+.answer-sheet__score > span {
+  display: inline-block;
+  border: 1.5px solid var(--sheet-ink);
+  border-radius: 4px;
+}
+.answer-sheet__total > span { width: 6.4rem; height: 4rem; }
+.answer-sheet__score > span { width: 4.4rem; height: 2.6rem; }
+.answer-sheet__rounds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: var(--spacing-16) var(--spacing-20);
+}
+.answer-sheet__round {
+  break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6, 6px);
+}
+.answer-sheet__round-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-8);
+  font-weight: var(--font-weight-bold);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 2px solid var(--sheet-ink);
+}
+.answer-sheet__round ol {
+  margin: 0;
+  padding-left: var(--spacing-24);
+  display: grid;
+  gap: var(--spacing-4);
+  font-variant-numeric: tabular-nums;
+}
+.answer-sheet__round li::marker {
+  font-weight: var(--font-weight-semibold);
+}
+.answer-sheet__blank {
+  display: inline-block;
+  width: 100%;
+  height: 2rem;
+  vertical-align: bottom;
+  border-bottom: 1px solid var(--sheet-rule);
+}
+.answer-sheet__blank--short {
+  width: 6rem;
+}
+.answer-sheet__extras {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
+  gap: var(--spacing-12) var(--spacing-20);
+}
+.answer-sheet__extra {
+  break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-10, 1rem) var(--spacing-12);
+  border: 1.5px solid var(--sheet-ink);
+  border-radius: 6px;
+}
+.answer-sheet__extra > span {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-8);
+  white-space: nowrap;
+}
+.answer-sheet__extra > span .answer-sheet__blank:not(.answer-sheet__blank--short) {
+  flex: 1;
+  width: auto;
+}
+.answer-sheet__foot {
+  font-size: var(--font-size-12);
+  color: #5b616b;
+  text-align: right;
+}
+
+@media print {
+  @page { margin: 12mm; }
+  body * { visibility: hidden; }
+  .answer-sheet, .answer-sheet * { visibility: visible; }
+  .answer-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    font-size: 11pt;
+    gap: 10pt;
+  }
+  .answer-sheet__title { font-size: 16pt; }
+  .answer-sheet__rounds { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10pt 16pt; }
+  .answer-sheet__extras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .answer-sheet__blank { height: 18pt; }
+}
+
+/* ---------- Game question pages ---------- */
+.topic-questions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  margin-top: var(--spacing-24);
+}
+.topic-questions__bar {
+  display: flex;
+  justify-content: flex-end;
+}
+.topic-questions__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.topic-questions__item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10, 1rem);
+  padding: var(--spacing-16);
+  border-radius: var(--radius-12, 12px);
+  border: 1px solid var(--border-default);
+  background: var(--surface-default);
+  min-width: 0;
+}
+.topic-questions__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+.topic-questions__num {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.8rem;
+  height: 2.8rem;
+  padding: 0 var(--spacing-6, 6px);
+  border-radius: 8px;
+  background: var(--background-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.topic-questions__level {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.topic-questions__level--easy { color: var(--success-ink); }
+.topic-questions__level--hard { color: var(--error-ink); }
+.topic-questions__prompt {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-relaxed, 1.5);
+  overflow-wrap: anywhere;
+}
+.topic-questions__pic {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 20rem;
+  height: auto;
+  border-radius: var(--radius-8, 8px);
+  object-fit: contain;
+  align-self: flex-start;
+  background: var(--background-secondary);
+}
+.topic-questions__options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--spacing-6, 6px);
+  font-size: var(--font-size-16);
+}
+.topic-questions__options li {
+  display: flex;
+  gap: var(--spacing-8);
+  align-items: baseline;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.topic-questions__options b {
+  flex: none;
+  color: var(--text-secondary);
+}
+.topic-questions__reveal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8) var(--spacing-12);
+}
+/* Hidden until revealed, but still in the HTML. */
+.topic-questions__answer {
+  display: none;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+.topic-questions__answer.is-shown {
+  display: flex;
+}
+.topic-questions__answer-text {
+  font-size: var(--font-size-16);
+  overflow-wrap: anywhere;
+}
+.topic-questions__source {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.topic-questions__source a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* Questions index */
+.trivia-topics {
+  margin: var(--spacing-24) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: var(--spacing-12);
+}
+.trivia-topics__link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-16);
+  border-radius: var(--radius-12, 12px);
+  border: 1px solid var(--border-default);
+  background: var(--surface-default);
+  text-decoration: none;
+  color: inherit;
+}
+.trivia-topics__link:hover,
+.trivia-topics__link:focus-visible {
+  border-color: var(--brand-ink, var(--border-strong));
+}
+.trivia-topics__name {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-ink, var(--text-primary));
+}
+.trivia-topics__count {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.trivia-topics__empty {
+  margin: var(--spacing-24) 0 0;
+  color: var(--text-secondary);
+}
+
+/* ---------- Public league page (owner theme on the root) ---------- */
+.league-public { background: var(--background-primary, var(--surface-default)); }
+.league-hero {
+  background: var(--brand-gradient, linear-gradient(135deg, #141a4a, #2f3fb8));
+  color: #fff;
+  padding-block: var(--spacing-32) var(--spacing-24);
+}
+.league-hero .empac-container { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); }
+.league-hero__crumbs { margin: 0; font-size: var(--font-size-14); color: rgba(255, 255, 255, 0.85); }
+.league-hero__crumbs a { color: #fff; }
+.league-hero__title { margin: 0; font-size: var(--font-size-fluid-h2, var(--font-size-32)); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); text-wrap: balance; color: #fff; }
+.league-hero__sub { margin: 0; font-size: var(--font-size-16); color: rgba(255, 255, 255, 0.9); }
+.league-body { display: flex; flex-direction: column; gap: var(--spacing-20); padding-block: var(--spacing-24) var(--spacing-48); max-width: 88rem; }
+.league-next { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12) var(--spacing-24); }
+.league-next > div:first-child { min-width: 0; flex: 1 1 26rem; display: flex; flex-direction: column; gap: var(--spacing-4); }
+.league-next__when { margin: 0; font-size: var(--font-size-20); font-weight: var(--font-weight-bold); }
+.league-next a:not(.empac-button) { color: var(--brand-ink, var(--text-link)); font-weight: 600; }
+.league-champion__name { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-bold); }
+.league-section { display: flex; flex-direction: column; gap: var(--spacing-10, 1rem); }
+.league-team__head { justify-content: space-between; }
+.league-weeks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
+.league-weeks li { font-size: var(--font-size-12); font-weight: 600; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--background-secondary); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.league-weeks li.is-win { background: var(--warning-100, #fdf3dc); color: var(--warning-ink); border-color: transparent; }
+.league-weeks li.is-empty { opacity: 0.7; }
+.league-roster { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px) var(--spacing-12); font-size: var(--font-size-14); }
+.league-roster li { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); }
+.league-table tr.is-you td { background: color-mix(in srgb, var(--brand-ink, var(--primary-600)) 8%, transparent); }
+.league-table a { color: var(--brand-ink, var(--text-link)); font-weight: 600; }
+.league-move.is-up { color: var(--success-ink); }
+.league-move.is-down { color: var(--error-ink); }
+.league-past { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
+.league-past li { flex-direction: row; flex-wrap: wrap; justify-content: space-between; gap: var(--spacing-4) var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); }
+.league-about { margin: 0; white-space: pre-line; color: var(--text-secondary); max-width: 68ch; }
+
+/* ---------- League poster (prints only the poster) ---------- */
+.league-poster-page { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-16); padding-block: var(--spacing-32) var(--spacing-48); }
+.league-poster-page__hint { text-align: center; }
+.league-poster {
+  width: 100%;
+  max-width: 54rem;
+  background: #141a4a;
+  color: #fff;
+  border-radius: 16px;
+  padding: var(--spacing-32) var(--spacing-24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-12);
+}
+.league-poster__eyebrow { margin: 0; font-size: var(--font-size-14); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #aab0ff; }
+.league-poster__title { margin: 0; font-size: var(--font-size-40, 4rem); font-weight: 800; line-height: 1.1; text-wrap: balance; }
+.league-poster__slot { margin: 0; font-size: var(--font-size-24); font-weight: 700; }
+.league-poster__line { margin: 0; font-size: var(--font-size-16); color: #d6d9f6; }
+.league-poster__qr { width: 22rem; height: 22rem; max-width: 70%; background: #fff; border-radius: 12px; padding: 1.2rem; }
+.league-poster__qr svg { width: 100%; height: 100%; display: block; }
+.league-poster__url { margin: 0; font-size: var(--font-size-14); color: #d6d9f6; }
+@media print {
+  @page { margin: 12mm; }
+  body * { visibility: hidden; }
+  .league-poster, .league-poster * { visibility: visible; }
+  .league-poster { position: absolute; left: 0; top: 0; max-width: none; border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

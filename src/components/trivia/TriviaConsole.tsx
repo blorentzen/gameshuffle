@@ -14,6 +14,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import type { HostView } from "@/lib/trivia/store";
+import type { ConsoleLeague } from "@/lib/trivia/leagues";
 import { STYLE_LABEL } from "@/lib/trivia/rules";
 
 const POLL_MS = 2000;
@@ -25,12 +26,13 @@ export function TriviaConsole({ gameId }: { gameId: string }) {
   const toast = useToast();
   const confirm = useConfirm();
   const [view, setView] = useState<HostView | null>(null);
+  const [league, setLeague] = useState<ConsoleLeague | null>(null);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
     const d = await fetch(`/api/trivia/games/${gameId}/live`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
-    if (d?.ok) setView(d.view as HostView);
+    if (d?.ok) { setView(d.view as HostView); setLeague((d.league as ConsoleLeague | null) ?? null); }
   }, [gameId]);
   useEffect(() => {
     void Promise.resolve().then(load);
@@ -43,9 +45,23 @@ export function TriviaConsole({ gameId }: { gameId: string }) {
     setBusy(true);
     const d = await fetch(`/api/trivia/games/${gameId}/live`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...extra }) }).then((r) => r.json()).catch(() => null);
     setBusy(false);
-    if (d?.ok && d.view) setView(d.view as HostView);
+    if (d?.ok && d.view) { setView(d.view as HostView); setLeague((d.league as ConsoleLeague | null) ?? null); }
     else if (!d?.ok) toast.error(d?.error === "not_now" ? "That already happened. Refreshing." : "That didn't work.");
     if (!d?.ok) void load();
+  };
+
+  const undoLeague = async () => {
+    if (!league) return;
+    if (!(await confirm({ title: "Take tonight's league points out?", body: "Tonight's places stop counting in the standings, and the night no longer counts as a week played. The night's own scores stay.", confirmLabel: "Undo league points" }))) return;
+    const d = await fetch(`/api/trivia/leagues/${league.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "undo_night", gameId }) }).then((r) => r.json()).catch(() => null);
+    if (d?.ok) { toast.success("League points taken out."); void load(); }
+    else toast.error("Couldn't undo that. Try again.");
+  };
+
+  const copyLeague = async () => {
+    if (!league) return;
+    const lines = [`${league.title} · Week ${league.week} results`, ...league.rows.map((r) => `${r.place}. ${r.name} · ${r.score} (+${r.points})`), `${window.location.origin}/trivia/leagues/${league.slug}`];
+    try { await navigator.clipboard.writeText(lines.join("\n")); toast.success("Copied. Paste it in Discord."); } catch { toast.error("Couldn't copy."); }
   };
 
   const end = async () => {
@@ -89,7 +105,39 @@ export function TriviaConsole({ gameId }: { gameId: string }) {
         <div className="trivia-card">
           <h2 className="trivia-h3">Final standings</h2>
           <Standings rows={view.standings} />
-          <Link href="/trivia"><Button variant="secondary">Back to Trivia</Button></Link>
+          {league && (
+            <div className="trivia-league-final">
+              <div className="trivia-row trivia-league-final__head">
+                <h3 className="trivia-h3">{league.title} · Week {league.week} of {league.weeks}</h3>
+                <Badge variant={league.recorded ? "success" : "default"} size="small">{league.recorded ? "Added to the league" : "No league points"}</Badge>
+              </div>
+              {league.rows.length > 0 ? (
+                <div className="trivia-league-final__scroll" tabIndex={0} role="region" aria-label="League points tonight">
+                  <table className="trivia-league-final__table">
+                    <thead><tr><th scope="col">Place</th><th scope="col">Team</th><th scope="col">Score</th><th scope="col">League points</th><th scope="col">League</th></tr></thead>
+                    <tbody>
+                      {league.rows.map((r) => (
+                        <tr key={r.name}>
+                          <td>{r.place}</td>
+                          <td>{r.name}</td>
+                          <td>{r.score}</td>
+                          <td>+{r.points}</td>
+                          <td>{r.rank === null ? "" : r.previousRank === null || r.previousRank === r.rank ? `${r.rank}${r.previousRank === null ? " (new)" : ""}` : `${r.previousRank} → ${r.rank} ${r.rank < r.previousRank ? "▲" : "▼"}`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : <p className="trivia-muted">No league teams played tonight, so the standings didn&apos;t change.</p>}
+              {league.tonightOnly.length > 0 && <p className="trivia-muted">Played just tonight (not in the league): {league.tonightOnly.join(", ")}.</p>}
+              <div className="trivia-row">
+                <Link href={`/trivia/leagues/${league.slug}`}><Button variant="secondary" size="small">League page</Button></Link>
+                <Button variant="secondary" size="small" onClick={() => void copyLeague()}>Copy results for Discord</Button>
+                {league.recorded && <Button variant="ghost" size="small" onClick={() => void undoLeague()}>Undo league points</Button>}
+              </div>
+            </div>
+          )}
+          <Link href={league ? `/trivia/leagues/${league.slug}/manage` : "/trivia"}><Button variant="secondary">{league ? "Back to the league" : "Back to Trivia"}</Button></Link>
         </div>
       ) : (
         <div className="trivia-console__cols">
@@ -142,8 +190,14 @@ export function TriviaConsole({ gameId }: { gameId: string }) {
             {/* On stream every viewer is a team, so the who-answered list is left to the count above. */}
             {view.phase === "question" && !view.onStream && (
               <ul className="trivia-teamlist">
-                {view.teams.map((t) => <li key={t.name} className={t.answered ? "is-in" : ""}>{t.answered ? "✓ " : ""}{t.name}</li>)}
+                {view.teams.map((t) => {
+                  const away = view.away.find((a) => a.name === t.name)?.times ?? 0;
+                  return <li key={t.name} className={t.answered ? "is-in" : ""}>{t.answered ? "✓ " : ""}{t.name}{away ? <span className="trivia-away"> · left the page {away}×</span> : null}</li>;
+                })}
               </ul>
+            )}
+            {(view.phase === "locked" || view.phase === "reveal") && view.away.length > 0 && (
+              <p className="trivia-muted trivia-away-note">Left the page during this question: {view.away.map((a) => `${a.name} (${a.times}×)`).join(", ")}. A nudge for you, never a penalty.</p>
             )}
           </div>
         </div>

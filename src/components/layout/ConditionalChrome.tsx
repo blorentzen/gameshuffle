@@ -30,7 +30,7 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/trivia\/tv\/[^/]+/,
 ];
 
-export function ConditionalChrome({ children }: { children: React.ReactNode }) {
+export function ConditionalChrome({ children, shop = false }: { children: React.ReactNode; shop?: boolean }) {
   const pathname = usePathname() || "";
   const hideChrome = CHROME_FREE_PATTERNS.some((p) => p.test(pathname));
 
@@ -40,7 +40,7 @@ export function ConditionalChrome({ children }: { children: React.ReactNode }) {
     <PresenceProvider>
       <MessengerProvider>
         <PolicyUpdateBanner />
-        <SiteNavbar />
+        <SiteNavbar shop={shop} />
         {children}
         <SiteFooter />
         <CookieConsent />

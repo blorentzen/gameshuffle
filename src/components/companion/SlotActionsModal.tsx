@@ -127,7 +127,7 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
         <div className="companion-actions__view">
           {back}
           <p className="companion-actions__hint">Pick the card it evolves into. Damage and Energy stay; Special Conditions clear.</p>
-          <CardPicker onPick={handleEvolve} label="Your cards" />
+          <CardPicker onPick={handleEvolve} label="Your cards" player={player} />
         </div>
       );
     }

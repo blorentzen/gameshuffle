@@ -18,7 +18,7 @@ import { PlayTogetherModal } from "./PlayTogetherModal";
 import { useLiveReady } from "@/lib/companion/useLiveReady";
 
 export function GameMenuButton() {
-  const { state, dispatch, mode, isAuthenticated, undo, canUndo, live, endLive, leaveLive } = useSession();
+  const { state, dispatch, mode, isAuthenticated, undo, canUndo, live, endLive, leaveLive, freeSeat } = useSession();
   const confirm = useConfirm();
   const [menuOpen, setMenuOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
@@ -71,7 +71,7 @@ export function GameMenuButton() {
           });
           if (ok) dispatch({ type: "RESET_GAME", mode });
         }}
-        live={live && !live.ended ? { host: live.host } : null}
+        live={live && !live.ended ? { host: live.host, opponent: live.seats.p2.joined ? live.seats.p2.name : null } : null}
         canPlayTogether={liveReady}
         onPlayTogether={() => {
           setMenuOpen(false);
@@ -85,6 +85,17 @@ export function GameMenuButton() {
             confirmLabel: "End the shared game",
           });
           if (ok) await endLive();
+        }}
+        onFreeSeat={async () => {
+          setMenuOpen(false);
+          const ok = await confirm({
+            title: `Let someone else join?`,
+            body: `${opponent || "Your opponent"}'s phone leaves the game and the seat opens for the next person with the code. The board stays as it is.`,
+            confirmLabel: "Open the seat",
+          });
+          if (!ok) return;
+          await freeSeat();
+          setTogetherOpen(true);
         }}
         onLeaveLive={async () => {
           setMenuOpen(false);

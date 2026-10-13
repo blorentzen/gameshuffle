@@ -50,6 +50,8 @@ export interface ProfileEnrichment {
   weeklyTopTen: number;
   /** Chat Brain answers counted toward Founding Brain (account + linked chat identities). */
   brainAnswers: number;
+  /** Finished trivia nights played as themselves (crew nights show on the crew's page). */
+  triviaNights: number;
 }
 
 const EMPTY: ProfileEnrichment = {
@@ -65,6 +67,7 @@ const EMPTY: ProfileEnrichment = {
   dailyStreak: 0,
   weeklyTopTen: 0,
   brainAnswers: 0,
+  triviaNights: 0,
 };
 
 function oneCard(value: unknown): TcgCard | null {
@@ -187,6 +190,17 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       .map((r) => oneCard(r.card))
       .filter((c): c is TcgCard => !!c);
 
+    // Trivia nights played as themselves, counted once the night finished.
+    let triviaNights = 0;
+    try {
+      const { data: selfTeams } = await admin.from("trivia_teams").select("game_id").eq("user_id", userId).limit(500);
+      const ids = [...new Set(((selfTeams ?? []) as { game_id: string }[]).map((t) => t.game_id))];
+      if (ids.length) {
+        const { count } = await admin.from("trivia_games").select("id", { count: "exact", head: true }).in("id", ids).eq("status", "done");
+        triviaNights = count ?? 0;
+      }
+    } catch { triviaNights = 0; }
+
     return {
       tokenBalance,
       communities,
@@ -199,6 +213,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       showcaseCards,
       weeklyTopTen,
       brainAnswers,
+      triviaNights,
       dailyStreak: statsFrom((dailyRes.data ?? []) as { day: string; guesses: number; solved: boolean }[]).streak,
     };
   } catch {

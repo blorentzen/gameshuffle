@@ -173,6 +173,7 @@ export async function materializeSeries(
       level: d.level || null,
       games: d.games ?? [],
       status: "scheduled",
+      ...(d.locationType ? { location_type: d.locationType } : {}),
     })
     .select("id")
     .single();

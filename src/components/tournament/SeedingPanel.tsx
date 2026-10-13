@@ -15,7 +15,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Select, Tabs } from "@empac/cascadeds";
+import { Accordion, Button, Select, Tabs } from "@empac/cascadeds";
 import { SortableList } from "@/components/ui/SortableList";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { SeedingMethod, Tier } from "@/lib/tournaments/seeding";
@@ -131,6 +131,40 @@ export function SeedingPanel({
 
   const pinnedCount = Object.values(state.protectedRanks).filter((r) => r != null).length;
 
+  // The field in order: the control itself for tiered and protected seeding, a preview for a random draw.
+  const orderList = (
+    <ul className="seeding__list">
+      {(state.order.length ? state.order.map(nameOfId(seated)) : seated).map((e, i) => (
+        <li key={e.id} className="seeding__row">
+          {state.order.length > 0 && <span className="seeding__seed">{i + 1}</span>}
+          <span className="seeding__name">{e.display_name}</span>
+          {state.method === "tiered" && (
+            <span className="seeding__tiers">
+              {(["A", "B", "C"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={(state.tiers[e.id] ?? "B") === t}
+                  className={`seeding__tier${(state.tiers[e.id] ?? "B") === t ? " is-on" : ""}`}
+                  onClick={() => void annotate(e.id, { tier: t })}
+                >{t}</button>
+              ))}
+            </span>
+          )}
+          {state.method === "protected" && (
+            <button
+              type="button"
+              className={`seeding__pin${state.protectedRanks[e.id] != null ? " is-on" : ""}`}
+              onClick={() => void annotate(e.id, {
+                protectedRank: state.protectedRanks[e.id] != null ? null : pinnedCount + 1,
+              })}
+            >{state.protectedRanks[e.id] != null ? `Pinned ${state.protectedRanks[e.id]}` : "Pin"}</button>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+
   return (
     <div className="seeding">
       <div className="seeding__head">
@@ -196,36 +230,14 @@ export function SeedingPanel({
               )}
             </SortableList>
           ) : (
-            <ul className="seeding__list">
-              {(state.order.length ? state.order.map(nameOfId(seated)) : seated).map((e, i) => (
-                <li key={e.id} className="seeding__row">
-                  {state.order.length > 0 && <span className="seeding__seed">{i + 1}</span>}
-                  <span className="seeding__name">{e.display_name}</span>
-                  {state.method === "tiered" && (
-                    <span className="seeding__tiers">
-                      {(["A", "B", "C"] as const).map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          aria-pressed={(state.tiers[e.id] ?? "B") === t}
-                          className={`seeding__tier${(state.tiers[e.id] ?? "B") === t ? " is-on" : ""}`}
-                          onClick={() => void annotate(e.id, { tier: t })}
-                        >{t}</button>
-                      ))}
-                    </span>
-                  )}
-                  {state.method === "protected" && (
-                    <button
-                      type="button"
-                      className={`seeding__pin${state.protectedRanks[e.id] != null ? " is-on" : ""}`}
-                      onClick={() => void annotate(e.id, {
-                        protectedRank: state.protectedRanks[e.id] != null ? null : pinnedCount + 1,
-                      })}
-                    >{state.protectedRanks[e.id] != null ? `Pinned ${state.protectedRanks[e.id]}` : "Pin"}</button>
-                  )}
-                </li>
-              ))}
-            </ul>
+            state.method === "random" ? (
+              // A random draw has nothing to set per player, so the names fold away.
+              <Accordion
+                variant="flush"
+                className="seeding__fold"
+                items={[{ id: "order", title: state.order.length ? `Show the order (${seated.length})` : `Show who's in (${seated.length})`, content: orderList }]}
+              />
+            ) : orderList
           )}
 
           <Preview

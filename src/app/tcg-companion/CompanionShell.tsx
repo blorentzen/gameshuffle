@@ -42,6 +42,8 @@ interface Props {
   /** Play together: a shared game's code from `?play=`. Its join card is the
    *  way in, for guests too (no guest chooser first). */
   liveCode?: string | null;
+  /** `?deck=<id>`: start with this saved deck list (signed in). */
+  startDeck?: string | null;
 }
 
 type DecisionKind = "loading" | "entry" | "auth" | "guest";
@@ -75,6 +77,7 @@ export function CompanionShell({
   savedGames = [],
   autoResume = null,
   liveCode = null,
+  startDeck = null,
 }: Props) {
   const getSnapshot = useCallback(
     () => readDecision(isAuthenticated),
@@ -129,6 +132,7 @@ export function CompanionShell({
       }
       savedGames={savedGames}
       autoResume={autoResume}
+      startDeck={startDeck}
     />
   );
 }

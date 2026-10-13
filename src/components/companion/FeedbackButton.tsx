@@ -9,7 +9,8 @@
  * the Companion.
  */
 
-import { Modal } from "@empac/cascadeds";
+import { Button, Input, Modal, Select, Textarea } from "@empac/cascadeds";
+import { IconMessageCircle } from "@tabler/icons-react";
 import { useState, useTransition } from "react";
 import {
   submitCompanionFeedbackAction,
@@ -48,12 +49,9 @@ export function FeedbackButton({ viewerIsAuthenticated }: Props) {
 
   return (
     <>
-      <button type="button" className="companion-feedback" onClick={handleOpen}>
-        <span className="companion-feedback__icon" aria-hidden="true">
-          ✍
-        </span>
-        <span className="companion-feedback__label">Feedback</span>
-      </button>
+      <Button variant="primary" size="small" iconBefore={IconMessageCircle} className="companion-feedback" onClick={handleOpen}>
+        Feedback
+      </Button>
       <FeedbackModal
         key={nonce}
         isOpen={open}
@@ -122,52 +120,38 @@ function FeedbackModal({ isOpen, viewerIsAuthenticated, onClose }: ModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Send feedback">
       <form className="companion-feedback-form" onSubmit={handleSubmit}>
-        <label className="companion-feedback-form__field">
-          <span>Category</span>
-          <select
-            value={category}
-            onChange={(e) =>
-              setCategory(
-                e.target.value as (typeof COMPANION_FEEDBACK_CATEGORIES)[number],
-              )
-            }
-          >
-            {CATEGORY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          floatingLabel="Category"
+          fullWidth
+          value={category}
+          onChange={(v) => setCategory(v as (typeof COMPANION_FEEDBACK_CATEGORIES)[number])}
+          options={CATEGORY_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+        />
 
-        <label className="companion-feedback-form__field">
-          <span>
-            What&apos;s up?
-            <span className="companion-feedback-form__count">
-              {message.length}/{MESSAGE_MAX}
-            </span>
-          </span>
-          <textarea
+        <div className="companion-feedback-form__message">
+          <Textarea
+            floatingLabel="What's up?"
+            fullWidth
             value={message}
             onChange={(e) => setMessage(e.target.value.slice(0, MESSAGE_MAX))}
             rows={5}
             placeholder="Describe the issue, idea, or confusion. Steps to reproduce help a lot for bugs."
             autoFocus
           />
-        </label>
+          <span className="companion-feedback-form__count">{message.length}/{MESSAGE_MAX}</span>
+        </div>
 
         {!viewerIsAuthenticated && (
-          <label className="companion-feedback-form__field">
-            <span>Contact email (optional)</span>
-            <input
-              type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
-              inputMode="email"
-            />
-          </label>
+          <Input
+            floatingLabel="Contact email (optional)"
+            fullWidth
+            type="email"
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+            inputMode="email"
+          />
         )}
 
         {error && (
@@ -177,21 +161,8 @@ function FeedbackModal({ isOpen, viewerIsAuthenticated, onClose }: ModalProps) {
         )}
 
         <div className="companion-feedback-form__actions">
-          <button
-            type="button"
-            className="companion-feedback-form__btn companion-feedback-form__btn--secondary"
-            onClick={onClose}
-            disabled={pending}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="companion-feedback-form__btn companion-feedback-form__btn--primary"
-            disabled={pending || message.trim().length === 0}
-          >
-            {pending ? "Sending…" : "Send"}
-          </button>
+          <Button type="button" variant="secondary" onClick={onClose} disabled={pending}>Cancel</Button>
+          <Button type="submit" variant="primary" loading={pending} disabled={pending || message.trim().length === 0}>Send</Button>
         </div>
       </form>
     </Modal>

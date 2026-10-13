@@ -93,6 +93,10 @@ export function liveRollCall(code: string, token: string | null, body: { kind: "
   return call<{ value: number | "a" | "b"; rollId?: string; view: LiveView }>(gameUrl(code), { method: "POST", token, body: JSON.stringify({ op: "roll", ...body }) });
 }
 
+export function liveFreeSeat(code: string, token: string | null) {
+  return call<{ view: LiveView }>(gameUrl(code), { method: "POST", token, body: JSON.stringify({ op: "free" }) });
+}
+
 export function liveEnd(code: string, token: string | null) {
   return call<{ ok: true }>(gameUrl(code), { method: "POST", token, body: JSON.stringify({ op: "end" }) });
 }

@@ -161,7 +161,7 @@ export async function loadTournamentRows(limit = DEFAULT_LIMIT): Promise<BrowseE
       gameCount: 0,
       game: t.settings?.game_label || getGameName(t.game_slug),
       format: t.format ?? null,
-      tags: [t.format ? FORMAT_LABEL[t.format] ?? t.format : null, t.mode?.toUpperCase() ?? null, t.settings?.requireVerified ? "Verified only" : null].filter((x): x is string => !!x),
+      tags: [t.format ? FORMAT_LABEL[t.format] ?? t.format : null, t.format === "swiss" ? null : t.mode?.toUpperCase() ?? null, t.settings?.requireVerified ? "Verified only" : null].filter((x): x is string => !!x),
       phase: t.status === "cancelled" ? "cancelled" : t.status === "complete" ? "past" : t.status === "in_progress" ? "live" : "upcoming",
       status: (t.status as BrowseEvent["status"]) ?? null,
       goingCount: count.get(t.id) ?? 0,

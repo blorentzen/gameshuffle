@@ -41,7 +41,7 @@ import type { SessionAction } from "./state";
 import { clearLocalGame, writeLocalGame } from "./autosave";
 import { flipCoin, rollDie } from "./rng";
 import { POLL_MS, hostOnly, serverRolls, type LiveMove, type LiveSeatView, type LiveView, type Seat } from "./liveRules";
-import { isFailure, liveCreate, liveEnd, liveGet, liveMove, liveRollCall, liveUndoCall } from "./liveClient";
+import { isFailure, liveCreate, liveEnd, liveFreeSeat, liveGet, liveMove, liveRollCall, liveUndoCall } from "./liveClient";
 
 /** A shared game as this phone knows it. */
 export interface LiveInfo {
@@ -67,6 +67,13 @@ export interface LiveBoot {
   code: string;
   token: string | null;
   view: LiveView;
+}
+
+/** A deck list a player picked for this game (TCG deck lists): its cards lead the card picker. */
+export interface PlayerDeck {
+  id: string;
+  name: string;
+  cards: import("@/lib/scrydex/types").TcgCard[];
 }
 
 export interface CoinResult {
@@ -111,6 +118,13 @@ interface SessionContextValue {
   endLive: () => Promise<void>;
   /** Stop sharing on this phone and keep playing on it alone. */
   leaveLive: () => void;
+  /** Host: open the second seat again (the opponent lost their link). */
+  freeSeat: () => Promise<void>;
+  /** Deck lists picked for this game, by player (their Pokémon lead the card picker). */
+  decks: Partial<Record<PlayerId, PlayerDeck>>;
+  /** Pick (or clear) a player's deck list for this game. */
+  /** Use a saved deck list for a player (name optional: the deck's own name is used). */
+  chooseDeck: (player: PlayerId, deck: { id: string; name?: string } | null) => Promise<void>;
   /** Coin flips and dice: from the server in a shared game, from this phone otherwise. */
   random: {
     coin: (use?: "log" | "resolve") => Promise<CoinResult>;
@@ -415,6 +429,19 @@ export function SessionProvider({
     toast({ variant: "success", message: "Shared game ended. The board stays on this phone." });
   }, [goLocal, toast]);
 
+  const freeSeat = useCallback(async () => {
+    const l = liveRef.current;
+    if (!l) return;
+    await queue.current;
+    const res = await liveFreeSeat(l.code, l.token);
+    if (isFailure(res)) {
+      toast({ variant: "warning", message: res.message });
+      return;
+    }
+    applyView(res.view);
+    toast({ variant: "success", message: "The seat is open. Share the code again for someone to join." });
+  }, [applyView, toast]);
+
   const random = useMemo<SessionContextValue["random"]>(() => {
     const offline = () => toast({ variant: "warning", message: "Couldn't reach GameShuffle, so this roll only shows on your phone." });
     return {
@@ -446,6 +473,26 @@ export function SessionProvider({
     };
   }, [applyView, toast]);
 
+  // Deck lists for this game (kept on this phone only; a reload picks them again from the menu).
+  const [decks, setDecks] = useState<Partial<Record<PlayerId, PlayerDeck>>>({});
+  const chooseDeck = useCallback<SessionContextValue["chooseDeck"]>(async (player, deck) => {
+    if (!deck) {
+      setDecks((d) => { const next = { ...d }; delete next[player]; return next; });
+      return;
+    }
+    try {
+      const res = await fetch(`/api/tcg/decks/${encodeURIComponent(deck.id)}?cards=1`, { cache: "no-store" });
+      const body = (await res.json().catch(() => ({}))) as { name?: string; cards?: PlayerDeck["cards"]; message?: string };
+      if (!res.ok || !body.cards) {
+        toast({ variant: "warning", message: body.message ?? "Couldn't load that deck. Try again." });
+        return;
+      }
+      setDecks((d) => ({ ...d, [player]: { id: deck.id, name: deck.name ?? body.name ?? "Deck", cards: body.cards! } }));
+    } catch {
+      toast({ variant: "warning", message: "Couldn't load that deck. Check your connection." });
+    }
+  }, [toast]);
+
   const liveInfo = useMemo<LiveInfo | null>(
     () => (live ? { code: live.code, you: live.you, host: live.host, seats: live.seats, lastMove: live.lastMove, ended: live.ended } : null),
     [live],
@@ -453,8 +500,8 @@ export function SessionProvider({
   const bottom: PlayerId = live?.you ?? "p1";
 
   const value = useMemo(
-    () => ({ state, dispatch, mode, startedAt, isAuthenticated, isPro, undo, canUndo, flash, flashSlot, live: liveInfo, bottom, startLive, endLive, leaveLive: goLocal, random }),
-    [state, dispatch, mode, startedAt, isAuthenticated, isPro, undo, canUndo, flash, flashSlot, liveInfo, bottom, startLive, endLive, goLocal, random],
+    () => ({ state, dispatch, mode, startedAt, isAuthenticated, isPro, undo, canUndo, flash, flashSlot, live: liveInfo, bottom, startLive, endLive, leaveLive: goLocal, freeSeat, decks, chooseDeck, random }),
+    [state, dispatch, mode, startedAt, isAuthenticated, isPro, undo, canUndo, flash, flashSlot, liveInfo, bottom, startLive, endLive, goLocal, freeSeat, decks, chooseDeck, random],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

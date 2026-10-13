@@ -41,13 +41,15 @@ export interface OddActivityView {
   history: { round: number; word: string; odd: number; caught: boolean }[];
 }
 
-export function OddOneOutPanel({ activity: a, me, seatName, busy, act, gameDone }: {
+export function OddOneOutPanel({ activity: a, me, seatName, busy, act, gameDone, inCall = false }: {
   activity: OddActivityView;
   me: { isHost: boolean; seat: number | null };
   seatName: (i: number) => string;
   busy: boolean;
   act: (body: Record<string, unknown>) => Promise<unknown>;
   gameDone: boolean;
+  /** Played in a Discord call (the Activity's Together tab) instead of at a live night. */
+  inCall?: boolean;
 }) {
   const [pack, setPack] = useState(MIXED);
   const [guess, setGuess] = useState("");
@@ -69,11 +71,11 @@ export function OddOneOutPanel({ activity: a, me, seatName, busy, act, gameDone 
         <span className="party-muted">{c ? `Round ${c.round} of ${a.totalRounds}` : `${a.totalRounds} rounds`}</span>
       </div>
 
-      {a.players.length < 3 && <Alert variant="warning" title="Needs three players">Odd One Out needs at least three people in seats. Share the code so more can join.</Alert>}
+      {a.players.length < 3 && <Alert variant="warning" title="Needs three players">{inCall ? "Odd One Out needs at least three people in the room. Ask the call to open the Together tab." : "Odd One Out needs at least three people in seats. Share the code so more can join."}</Alert>}
 
       {!c && (
         <p className="party-muted">
-          Everyone gets the same secret word except one player, who only sees the category. Go around giving one-word hints out loud, then vote on your phone for who&apos;s faking it.
+          Everyone gets the same secret word except one player, who only sees the category. {inCall ? "Go around giving one-word hints in voice, then vote here for who's faking it." : "Go around giving one-word hints out loud, then vote on your phone for who's faking it."}
         </p>
       )}
 
@@ -152,7 +154,7 @@ export function OddOneOutPanel({ activity: a, me, seatName, busy, act, gameDone 
         </div>
       )}
 
-      {standings.some((s) => s.points > 0) && (
+      {!inCall && standings.some((s) => s.points > 0) && (
         <div>
           <p className="party-options__label">Odd One Out standings</p>
           <ul className="party-live__scores">

@@ -23,6 +23,7 @@ import { TCG_SHOP_URL } from "@/data/shop";
 import { SITE_URL } from "@/lib/seo";
 import { deckUrl, shareImage } from "@/lib/decks/seo";
 import { CompanionNote, splitAfterSection } from "@/components/tcg/CompanionNote";
+import { SaveGuideDeck } from "@/components/tcg/decks/SaveGuideDeck";
 
 /**
  * Deck detail page — `/pokemon-tcg/decks/[deck]`. Renders one deck guide.
@@ -258,7 +259,8 @@ export default async function Page({
             store; secondary keeps the internal funnel to the deck index. */}
         <section className="deck-cta">
           <p className="deck-cta__text">
-            Build this deck from GameShuffle singles.
+            Build this deck from GameShuffle singles, or save the list to see
+            how much of it you own and play it in the companion.
           </p>
           <div className="deck-cta__actions">
             <a
@@ -271,6 +273,7 @@ export default async function Page({
                 Shop the cards →
               </Button>
             </a>
+            <SaveGuideDeck slug={fm.slug} />
             <Link href="/pokemon-tcg/decks" style={{ textDecoration: "none" }}>
               <Button variant="secondary" size="large">
                 Browse all decks

@@ -20,6 +20,10 @@ import { itemBoxRoyale } from "./royale";
 import { fourInARow } from "./connect";
 import { knowTheChannel } from "./channel";
 import { chatBounty } from "./bounty";
+import { bossFight } from "./boss";
+import { fiveLetters } from "./letters";
+import { kartDerby } from "./derby";
+import { gameTrivia } from "./gameTrivia";
 
 export const GAMES: Record<BreakGameId, BreakGame> = {
   "higher-lower": higherLower,
@@ -46,6 +50,10 @@ export const GAMES: Record<BreakGameId, BreakGame> = {
   "four-in-a-row": fourInARow,
   "know-the-channel": knowTheChannel,
   "chat-bounty": chatBounty,
+  "boss-fight": bossFight,
+  "five-letters": fiveLetters,
+  "kart-derby": kartDerby,
+  "game-trivia": gameTrivia,
 };
 
 export type { BreakGame, BreakAnswer, Award, Judged, MakeContext, RoundDraft, RunMeta } from "./common";

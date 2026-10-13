@@ -13,7 +13,7 @@
  * the in-modal picker re-rolls when the face count changes.
  */
 
-import { Modal } from "@empac/cascadeds";
+import { Button, Chip, Modal } from "@empac/cascadeds";
 import { useEffect, useRef, useState } from "react";
 import { useMode, useSession, type DieResult } from "@/lib/companion/SessionContext";
 import { DicePips } from "./DicePips";
@@ -56,40 +56,16 @@ export function DiceRollModal({ isOpen, onClose }: Props) {
       />
 
       {mode.diceFaceOptions.length > 1 && (
-        <div className="companion-dice-modal__picker">
+        <div className="companion-dice-modal__picker" role="group" aria-label="Die">
           {mode.diceFaceOptions.map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={`companion-dice-modal__picker-btn${
-                faces === n ? " companion-dice-modal__picker-btn--selected" : ""
-              }`}
-              onClick={() => handlePickFaces(n)}
-              disabled={reveal == null}
-            >
-              d{n}
-            </button>
+            <Chip key={n} label={`d${n}`} clickable selected={faces === n} variant={faces === n ? "primary" : "default"} onClick={() => handlePickFaces(n)} disabled={reveal == null} />
           ))}
         </div>
       )}
 
       <div className="companion-dice-modal__actions">
-        <button
-          type="button"
-          className="companion-dice-modal__btn companion-dice-modal__btn--secondary"
-          onClick={onClose}
-          disabled={reveal == null}
-        >
-          Close
-        </button>
-        <button
-          type="button"
-          className="companion-dice-modal__btn companion-dice-modal__btn--primary"
-          onClick={handleRollAgain}
-          disabled={reveal == null}
-        >
-          Roll again
-        </button>
+        <Button variant="secondary" onClick={onClose} disabled={reveal == null}>Close</Button>
+        <Button variant="primary" onClick={handleRollAgain} disabled={reveal == null}>Roll again</Button>
       </div>
     </Modal>
   );

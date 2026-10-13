@@ -30,7 +30,7 @@ export const metadata: Metadata = {
  * client-only signal for the "continue as guest" opt-in.
  */
 interface PageProps {
-  searchParams?: Promise<{ resume?: string | string[]; play?: string | string[] }>;
+  searchParams?: Promise<{ resume?: string | string[]; play?: string | string[]; deck?: string | string[] }>;
 }
 
 export default async function Page({ searchParams }: PageProps) {
@@ -119,6 +119,8 @@ export default async function Page({ searchParams }: PageProps) {
 
   // Play together: `?play=CODE` joins (or gets back into) a shared game.
   const liveCode = normalizeCode(typeof params.play === "string" ? params.play : null);
+  // "Play in the companion" from a saved deck list (the deck API checks it's theirs).
+  const startDeck = user && typeof params.deck === "string" && /^[0-9a-f-]{36}$/i.test(params.deck) ? params.deck : null;
 
   return (
     <CompanionShell
@@ -128,6 +130,7 @@ export default async function Page({ searchParams }: PageProps) {
       savedGames={savedGames}
       autoResume={autoResume}
       liveCode={liveCode}
+      startDeck={startDeck}
     />
   );
 }

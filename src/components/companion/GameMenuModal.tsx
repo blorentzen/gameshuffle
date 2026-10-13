@@ -24,12 +24,14 @@ interface Props {
   canStartNew?: boolean;
   onNewGame: () => void;
   /** Play together: null on a single phone; otherwise whether this phone hosts. */
-  live?: { host: boolean } | null;
+  live?: { host: boolean; opponent: string | null } | null;
   /** Play together is switched on (its table exists). */
   canPlayTogether?: boolean;
   onPlayTogether: () => void;
   onEndLive: () => void;
   onLeaveLive: () => void;
+  /** Host: open the second seat again. */
+  onFreeSeat: () => void;
 }
 
 export function GameMenuModal({
@@ -45,6 +47,7 @@ export function GameMenuModal({
   onPlayTogether,
   onEndLive,
   onLeaveLive,
+  onFreeSeat,
 }: Props) {
   const [confirmingNew, setConfirmingNew] = useState(false);
 
@@ -89,6 +92,11 @@ export function GameMenuModal({
               onClick={handleNewGame}
             >
               {confirmingNew ? "Confirm: start a new game?" : "New game"}
+            </Button>
+          )}
+          {live?.host && live.opponent && (
+            <Button variant="ghost" fullWidth onClick={onFreeSeat}>
+              Let someone else join
             </Button>
           )}
           {live && (

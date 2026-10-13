@@ -9,6 +9,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isEmailVerified } from "@/lib/auth-utils";
+import { deckNeededToJoin } from "@/lib/tournaments/deckLists";
+import { submitDeckList } from "@/lib/tournaments/deckListStore";
 
 export const runtime = "nodejs";
 
@@ -43,8 +45,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   });
 }
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // A Pokémon TCG event that wants deck lists to join sends the saved list to register with.
+  const body = (await req.json().catch(() => null)) as { deckId?: unknown } | null;
+  const deckId = typeof body?.deckId === "string" ? body.deckId : null;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
@@ -61,6 +66,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (settings.requireVerified && !isEmailVerified(user)) {
     return NextResponse.json({ error: "verification_required" }, { status: 403 });
   }
+
+  if (deckNeededToJoin(t) && !deckId) return NextResponse.json({ error: "deck_required" }, { status: 400 });
 
   // Already registered? Report it as success so the button lands in the joined state.
   const { data: existing } = await supabase
@@ -116,5 +123,12 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       .then(undefined, () => {});
   }
 
-  return NextResponse.json({ ok: true, status });
+  // The deck list rides along. A failure here doesn't undo the seat: the page asks for the list again.
+  let deckError: string | null = null;
+  if (joined && deckId) {
+    const sent = await submitDeckList(id, user.id, { deckId }, { asParticipant: (joined as { id: string }).id });
+    if (!sent.ok) deckError = sent.error;
+  }
+
+  return NextResponse.json({ ok: true, status, ...(deckError ? { deckError } : {}) });
 }

@@ -136,3 +136,61 @@ export function refundCents(quote: RefundQuote, items: { sku: string; quantity: 
   if (shipping && !quote.shipping.refunded) cents += quote.shipping.total;
   return Math.min(cents, Math.max(quote.amountTotal - quote.amountRefunded, 0));
 }
+
+// ---------------------------------------------------------------------------
+// Sales by state (build F): an early warning before a state's sales tax
+// threshold. Most states register sellers at $100,000 or 200 orders a year;
+// the monitor flags at config.nexus_monitor (150 orders or $75,000), over the
+// last 12 months and the calendar year (Pacific), and "getting close" at three
+// quarters of either line. Washington is home and already registered.
+
+export interface StateOrder {
+  state: string | null;
+  createdAt: string;
+  status: "paid" | "shipped" | "refunded" | "canceled";
+  /** Order total minus tax, in cents (goods + shipping, before refunds). */
+  sales: number;
+  refunded: number;
+}
+
+export type StateStatus = "home" | "over" | "close" | "fine";
+
+export interface StateTotals {
+  state: string;
+  orders12: number;
+  sales12: number;
+  ordersYear: number;
+  salesYear: number;
+  status: StateStatus;
+}
+
+export const HOME_STATE = "WA";
+
+/**
+ * Totals per state, busiest first. Canceled orders (refused addresses, never
+ * shipped) and fully refunded ones don't count; partial refunds come off the
+ * sales. `yearStart` and `rollingStart` are the two windows' starts.
+ */
+export function stateTotals(orders: StateOrder[], windows: { rollingStart: Date; yearStart: Date }, config: ShopConfig = SHOP): StateTotals[] {
+  const by = new Map<string, StateTotals>();
+  for (const o of orders) {
+    if (!o.state || o.status === "canceled" || o.status === "refunded") continue;
+    const at = Date.parse(o.createdAt);
+    const net = Math.max(0, o.sales - o.refunded);
+    const row = by.get(o.state) ?? { state: o.state, orders12: 0, sales12: 0, ordersYear: 0, salesYear: 0, status: "fine" as StateStatus };
+    if (at >= windows.rollingStart.getTime()) { row.orders12 += 1; row.sales12 += net; }
+    if (at >= windows.yearStart.getTime()) { row.ordersYear += 1; row.salesYear += net; }
+    by.set(o.state, row);
+  }
+  const { warn_orders: warnOrders, warn_revenue_cents: warnRevenue } = config.nexus_monitor;
+  const rows = [...by.values()].filter((r) => r.orders12 > 0 || r.ordersYear > 0);
+  for (const r of rows) {
+    const orders = Math.max(r.orders12, r.ordersYear);
+    const sales = Math.max(r.sales12, r.salesYear);
+    r.status = r.state === HOME_STATE ? "home"
+      : orders >= warnOrders || sales >= warnRevenue ? "over"
+      : orders >= warnOrders * 0.75 || sales >= warnRevenue * 0.75 ? "close"
+      : "fine";
+  }
+  return rows.sort((a, b) => b.sales12 - a.sales12 || b.orders12 - a.orders12 || a.state.localeCompare(b.state));
+}
