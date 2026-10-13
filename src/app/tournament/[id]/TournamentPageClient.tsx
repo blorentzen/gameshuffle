@@ -53,6 +53,10 @@ import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { IconFlagCheck, IconTrophy } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { GameCover } from "@/components/games/GameCover";
+import { SwissPublicPanel } from "@/components/tournament/swiss/SwissPublicPanel";
+import { DeckListPicker } from "@/components/tournament/decks/DeckListPicker";
+import { MyDeckListCard, PublicDeckLists } from "@/components/tournament/decks/TournamentDeckLists";
+import { deckListSettingsOf, deckListsOn, deckNeededToJoin } from "@/lib/tournaments/deckLists";
 
 export interface Tournament {
   id: string;
@@ -142,6 +146,8 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
   const [races, setRaces] = useState<TournamentRace[]>(initial?.races ?? []);
   const [loading, setLoading] = useState(!initial);
   const [joining, setJoining] = useState(false);
+  // A Pokémon TCG event that wants a deck list to join: the list to register with.
+  const [joinDeck, setJoinDeck] = useState<string | null>(null);
   // Multi-crew tournaments — the viewer's crew communities (rep options), which
   // one they're repping here, and names for every community represented (so the
   // crew-standings roll-up can label rows). All guarded so it no-ops pre-migration.
@@ -323,6 +329,8 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
   // The seats: the organizer's own limit or their Circuit plan's, whichever is smaller.
   const seatLimit = [tournament.max_participants || null, circuitCap].filter((n): n is number => n != null).reduce<number | null>((m, n) => (m == null ? n : Math.min(m, n)), null);
   const isFull = (seatLimit != null ? seated.length >= seatLimit : false) || lineExists;
+  const needsDeck = deckNeededToJoin(tournament);
+  const decksOn = deckListsOn(tournament);
 
   /* Joining goes through the server, which decides seat / waitlist / tickets
      (the same answer the database guard enforces) and files contact handles in
@@ -330,8 +338,12 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
   const handleJoin = async () => {
     if (!user) return;
     setJoining(true);
-    const r = await fetch(`/api/tournament/${tournamentId}/quick-join`, { method: "POST" });
-    const j = (await r.json().catch(() => null)) as { ok?: boolean; status?: string; error?: string; canWaitlist?: boolean } | null;
+    const r = await fetch(`/api/tournament/${tournamentId}/quick-join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(needsDeck ? { deckId: joinDeck } : {}),
+    });
+    const j = (await r.json().catch(() => null)) as { ok?: boolean; status?: string; error?: string; canWaitlist?: boolean; deckError?: string } | null;
     setJoining(false);
     if (!j?.ok) {
       toast.toast({
@@ -340,12 +352,14 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
         message: j?.error === "full" ? (j.canWaitlist === false ? "This tournament is full." : "It just filled up. Join the waitlist and you'll be offered the next spot.")
           : j?.error === "paid" ? "This tournament sells tickets. Get one to save your spot."
           : j?.error === "verification_required" ? "Verify your email to join this tournament."
+          : j?.error === "deck_required" ? "Pick a deck list to join with."
           : "Something went wrong. Please try again.",
       });
       void loadData();
       return;
     }
     trackEvent("Tournament Joined");
+    if (j.deckError) toast.toast({ variant: "warning", title: "You're in, but your list didn't send", message: "Send it from Your deck list on this page." });
     toast.toast({
       variant: "success",
       title: tournament.acceptance_mode === "auto" ? "You're in!" : "Request sent 🏁",
@@ -625,8 +639,14 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
                   capacity={tournament.max_participants ?? null}
                 />
                 <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
-                <Button variant="primary" onClick={() => void handleJoin()} disabled={joining}>
-                  {joining ? "Joining..." : tournament.acceptance_mode === "auto" ? "Join Tournament" : "Request to Join"}
+                {needsDeck && (
+                  <div className="swiss-join-deck">
+                    <DeckListPicker format={deckListSettingsOf(tournament.settings).format} value={joinDeck} onChange={setJoinDeck} />
+                    <p className="swiss-help">The organizer sees it. Everyone else sees it only if the organizer shares lists after the event. You can swap it until the event starts.</p>
+                  </div>
+                )}
+                <Button variant="primary" onClick={() => void handleJoin()} disabled={joining || (needsDeck && !joinDeck)}>
+                  {joining ? "Joining..." : needsDeck ? "Join with this list" : tournament.acceptance_mode === "auto" ? "Join Tournament" : "Request to Join"}
                 </Button>
               </div>
             )
@@ -636,7 +656,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
               tournament shows a sign-up path that returns here rather than a
               guest form that would be rejected. Absent column reads as open. */}
           {!user && tournament.status === "open" && (
-            tournament.entry_policy === "accounts_only" ? (
+            tournament.entry_policy === "accounts_only" || needsDeck ? (
               <div className="comp-card">
                 <EventPanelHead
                   heading="Registration"
@@ -644,7 +664,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
                   capacity={tournament.max_participants ?? null}
                 />
                 <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, marginBottom: "0.35rem" }}>
-                  A GameShuffle account is needed to enter this one.
+                  {needsDeck ? "This one needs a deck list to enter, which lives in a free GameShuffle account." : "A GameShuffle account is needed to enter this one."}
                 </p>
                 <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "1rem" }}>
                   It is free, and it means your results follow you to every event you play.
@@ -712,7 +732,8 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
         <>
           {tournament.hosted_by_gs && <Badge variant="info" size="small">Official</Badge>}
           <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status.replace("_", " ")}</span>
-          <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
+          {/* Swiss is 1v1, so its badge names the format instead of a team mode. */}
+          <span className="lounge-mode-badge">{tournament.format === "swiss" ? "Swiss" : tournament.mode.toUpperCase()}</span>
           {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
           <span className="event-game-badge">
             <span className="event-game-badge__cover"><GameCover slug={tournament.game_slug} name={gameLabel} /></span>
@@ -779,6 +800,24 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
               <TournamentRounds rounds={tournament.settings.rounds as GeneratedRound[]} />
             </>
           )}
+
+          {/* The player's deck list (Pokémon TCG events that take them): first while it can still be sent or swapped. */}
+          {user && decksOn && myParticipation && myParticipation.status !== "waitlisted" && myParticipation.status !== "offered" && tournament.status === "open" && (
+            <MyDeckListCard tournamentId={tournamentId} />
+          )}
+
+          {/* Swiss: your match, the round's tables, standings and the top cut. */}
+          {tournament.format === "swiss" && tournament.status !== "draft" && (
+            <SwissPublicPanel tournamentId={tournamentId} showDeckLink={decksOn && !!myParticipation} />
+          )}
+
+          {/* Once the event runs, the list is locked: it sits below the match. */}
+          {user && decksOn && myParticipation && myParticipation.status !== "waitlisted" && myParticipation.status !== "offered" && tournament.status !== "open" && (
+            <MyDeckListCard tournamentId={tournamentId} />
+          )}
+
+          {/* After the event: the deck lists the organizer chose to share. */}
+          {decksOn && tournament.status === "complete" && <PublicDeckLists tournamentId={tournamentId} signedIn={!!user} />}
 
           {/* Live "Now racing" — the tournament's own real-time board (works with
               or without a stream; rides the existing tournaments realtime sub). */}
@@ -892,7 +931,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
           )}
 
           {/* Final Standings */}
-          {standings.length > 0 && (
+          {standings.length > 0 && tournament.format !== "swiss" && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1.4rem" }}>
                 {tournament.status === "complete" ? "Final Standings" : "Live Standings"}
@@ -1061,6 +1100,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
               single_elim: "Single elimination",
               double_elim: "Double elimination",
               heat_mains: "Heat → Mains",
+              swiss: "Swiss",
             };
             const fmt = tournament.format ? FORMAT_LABEL[tournament.format] ?? null : null;
             const lobbySize = Number(tournament.settings?.lobbySize ?? 0);
@@ -1070,7 +1110,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
             const reg = tournament.acceptance_mode === "auto" ? "Open · join instantly" : "Approval required";
             const items: { label: string; value: string }[] = [
               ...(fmt ? [{ label: "Format", value: fmt }] : []),
-              { label: "Team mode", value: tournament.mode.toUpperCase() },
+              ...(tournament.format === "swiss" ? [] : [{ label: "Team mode", value: tournament.mode.toUpperCase() }]),
               ...(structure ? [{ label: "Structure", value: structure }] : []),
               { label: "Registration", value: reg },
               { label: "Spots", value: spots },

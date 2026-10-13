@@ -4,7 +4,7 @@ import { AiTournamentHelper } from "@/components/ai/AiTournamentHelper";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, Container, Button, Input, Switch } from "@empac/cascadeds";
+import { Accordion, Badge, Card, Container, Button, Input, Modal, Switch, Textarea } from "@empac/cascadeds";
 import { Select } from "@/components/ui/Select";
 import { isReservedName, RESERVED_TITLE_MESSAGE, reservedNameError } from "@/lib/reservedName";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
@@ -23,12 +23,15 @@ import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
-import { IconSparkles, IconTrophy } from "@tabler/icons-react";
+import { IconSparkles, IconTournament, IconTrophy } from "@tabler/icons-react";
 import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import { GameCover } from "@/components/games/GameCover";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { GAME_CATALOG, catalogGame } from "@/data/game-catalog";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { SwissSettingsFields, DeckListSettingsFields } from "@/components/tournament/swiss/SwissSettingsFields";
+import { defaultSwissSettings, type SwissSettings } from "@/lib/tournaments/swiss";
+import { DEFAULT_DECK_LISTS, isDeckListGame, type DeckListSettings } from "@/lib/tournaments/deckLists";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
 
@@ -75,7 +78,7 @@ function slugifyGame(name: string): string {
 }
 
 // Competition structure. FFA-points, round-robin, both brackets, and the
-// Heat → Mains ladder run now; Swiss is on the way.
+// Heat → Mains ladder run now; Swiss turns on once supabase/swiss-m1.sql has run.
 const FORMATS = [
   { value: "ffa_points", label: "FFA / Points", available: true },
   { value: "single_elim", label: "Single Elim", available: true },
@@ -93,6 +96,11 @@ export default function CreateTournamentPage() {
 
   // What are you running?
   const [runMode, setRunMode] = useState<"single" | "championship">("single");
+  // Popular games: one row until asked for the rest. The AI helper opens in a window.
+  const [showAllGames, setShowAllGames] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  // AI text lands in More options, so it opens when the helper fills it.
+  const [moreOpen, setMoreOpen] = useState(false);
 
   // Championship creation is Pro-only — read the user's effective tier for a
   // clean upsell (RLS also enforces this server-side).
@@ -145,6 +153,14 @@ export default function CreateTournamentPage() {
   const [gkAdvance, setGkAdvance] = useState(1);
   const [lobbyCustom, setLobbyCustom] = useState(false);
   const isElim = format === "single_elim" || format === "double_elim";
+  // Swiss (and tournament deck lists for Pokémon TCG) once the database has them.
+  const [swissReady, setSwissReady] = useState(false);
+  const [swissSettings, setSwissSettings] = useState<SwissSettings>(() => defaultSwissSettings(true));
+  const [deckLists, setDeckLists] = useState<DeckListSettings>({ ...DEFAULT_DECK_LISTS, when: "join" });
+  useEffect(() => {
+    fetch("/api/tournaments/swiss-ready").then((r) => (r.ok ? r.json() : null)).then((d) => setSwissReady(!!d?.ready)).catch(() => {});
+  }, []);
+  const formats = FORMATS.map((f) => (f.value === "swiss" ? { ...f, available: swissReady } : f));
   const gkBracketing = format === "double_elim" ? "double" : "single";
   // GS Circuit billing (the admin switch) and this organizer's plan, for the field-size note.
   const [billingEnabled, setBillingEnabled] = useState(false);
@@ -289,6 +305,8 @@ export default function CreateTournamentPage() {
               ? { raceCount: 12, items: "normal", game_label: gameLabel }
               : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard", game_label: gameLabel }),
           ...(isElim ? { lobbySize: gkLobby, advance: gkAdvance } : {}),
+          ...(format === "swiss" ? { swiss: swissSettings } : {}),
+          ...(isDeckListGame(resolvedSlug) && swissReady ? { deckLists } : {}),
           locationType,
           location: locationType === "in_person" ? (locationText.trim() || null) : null,
         },
@@ -344,29 +362,26 @@ export default function CreateTournamentPage() {
     else await handleCreateSingle();
   };
 
-  const optionCard = (id: "single" | "championship", heading: string, blurb: string) => {
-    const on = runMode === id;
-    return (
-      <button
-        type="button"
-        onClick={() => setRunMode(id)}
-        style={{
-          textAlign: "left", cursor: "pointer", padding: "1rem", borderRadius: "0.6rem", flex: 1, minWidth: 240,
-          border: `1.5px solid ${on ? "var(--bg-primary, var(--primary-500))" : "var(--border-default)"}`,
-          background: on ? "color-mix(in srgb, var(--primary-500) 10%, var(--surface-default))" : "var(--surface-default)",
-        }}
-      >
-        <div style={{ fontWeight: 700, fontSize: "var(--font-size-16)", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-          {id === "championship" ? <IconTrophy size={16} stroke={1.9} aria-hidden style={{ marginRight: "0.35em", verticalAlign: "-0.15em" }} /> : null}{heading}
-          {id === "championship" && !isPro && (
-            <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, padding: "0.05rem 0.4rem", borderRadius: 999, background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))" }}>PRO</span>
-          )}
-          {on && <span style={{ marginLeft: "auto", color: "var(--bg-primary, var(--primary-500))" }}>✓</span>}
-        </div>
-        <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", lineHeight: 1.4 }}>{blurb}</div>
-      </button>
-    );
-  };
+  const runPick = (id: "single" | "championship", heading: string, blurb: string) => (
+    <Card
+      variant="outlined"
+      padding="small"
+      interactive
+      selected={runMode === id}
+      onClick={() => setRunMode(id)}
+      className="run-pick"
+    >
+      <span className="run-pick__icon" aria-hidden>{id === "single" ? <IconTournament size={20} stroke={1.9} /> : <IconTrophy size={20} stroke={1.9} />}</span>
+      <span className="run-pick__title">
+        {heading}
+        {id === "championship" && !isPro && <Badge variant="info" size="small">Pro</Badge>}
+      </span>
+      <span className="run-pick__text">{blurb}</span>
+    </Card>
+  );
+  // The selected game stays in view even when it's past the first row.
+  const pickedIndex = POPULAR_GAMES.findIndex((g) => g.value === gameSlug);
+  const visibleGames = showAllGames || pickedIndex >= 6 ? POPULAR_GAMES : POPULAR_GAMES.slice(0, 6);
 
   return (
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem", minHeight: "100%", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
@@ -377,18 +392,17 @@ export default function CreateTournamentPage() {
           {error && <div className="auth-page__error" style={{ marginBottom: "1.5rem" }}>{error}</div>}
 
           {/* What are you running? */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: "1rem" }}>What are you running?</h2>
-            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-              {optionCard("single", "Single tournament", "One event: brackets, points, round robin, or the Heat → Mains ladder. Play it out and share the results.")}
-              {optionCard("championship", "Championship series", "A season of Heat → Mains events. Points accumulate across nights into a live standings table. Accounts-only roster.")}
+          <div className="comp-card create-card">
+            <h2 className="create-card__title">What are you running?</h2>
+            <div className="run-picks" role="group" aria-label="What are you running">
+              {runPick("single", "Single tournament", "One event: brackets, points, Swiss or the Heat → Mains ladder. Play it out and share the results.")}
+              {runPick("championship", "Championship series", "A season of Heat → Mains events, with points adding up into one standings table.")}
             </div>
           </div>
 
-          {/* Basics */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: "1.5rem" }}>Basics</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          {/* The event: its name and the game. */}
+          <div className="comp-card create-card">
+            <h2 className="create-card__title">The event</h2>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>{runMode === "championship" ? "Season / League Name" : "Tournament Name"} *</label>
                 <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={runMode === "championship" ? "Friday Night League" : "Friday Night Karts"} />
@@ -401,10 +415,6 @@ export default function CreateTournamentPage() {
                   helperText="An official event: the page shows GameShuffle as the host with an Official badge, and the GameShuffle name can be used in the title."
                 />
               )}
-              <div>
-                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Description</label>
-                <textarea className="save-setup-input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={runMode === "championship" ? "What's this league about?" : "What's this tournament about?"} rows={3} style={{ resize: "vertical" }} />
-              </div>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Game</label>
                 <div className="game-pick__search">
@@ -429,7 +439,7 @@ export default function CreateTournamentPage() {
                 </p>
                 <h3 className="game-pick__heading">Most popular games</h3>
                 <ul className="game-pick__grid" aria-label="Most popular games">
-                  {POPULAR_GAMES.map((g) => (
+                  {visibleGames.map((g) => (
                     <li key={g.value}>
                       <Card
                         variant="outlined"
@@ -446,34 +456,35 @@ export default function CreateTournamentPage() {
                     </li>
                   ))}
                 </ul>
+                {visibleGames.length < POPULAR_GAMES.length && (
+                  <span className="create-showall"><Button variant="ghost" size="small" onClick={() => setShowAllGames(true)}>Show all {POPULAR_GAMES.length} popular games</Button></span>
+                )}
               </div>
 
-              {runMode === "single" && (!isOtherGame || customGame.trim()) && (
-                <AiTournamentHelper
-                  game={gameLabel}
-                  allowHeat={!noHeat}
-                  formatLabel={(v) => FORMATS.find((f) => f.value === v)?.label.replace(" ★", "") ?? v}
-                  onUse={(part) => {
-                    if (part.format && FORMATS.some((f) => f.value === part.format && f.available)) setFormat(part.format);
-                    if (part.description) setDescription(part.description);
-                    if (part.rules) setRules(part.rules);
-                  }}
-                />
-              )}
+          </div>
 
-              {runMode === "single" ? (
-                <>
+          {/* Format: how it's played. */}
+          <div className="comp-card create-card">
+            <div className="create-card__head">
+              <h2 className="create-card__title">Format</h2>
+              {runMode === "single" && (!isOtherGame || customGame.trim()) && (
+                <Button variant="secondary" size="small" iconBefore={IconSparkles} onClick={() => setAiOpen(true)}>Draft it with AI</Button>
+              )}
+            </div>
+            {runMode === "single" ? (
+              <>
                   <div>
-                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Format</label>
-                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      {FORMATS.filter((f) => !(noHeat && f.value === "heat_mains")).map((f) => (
+                    <div role="group" aria-label="Format" style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
+                      {formats.filter((f) => !(noHeat && f.value === "heat_mains")).map((f) => (
                         <Button key={f.value} variant={format === f.value ? "primary" : "secondary"} size="small" disabled={!f.available} onClick={() => f.available && setFormat(f.value)}>
                           {f.label}{!f.available ? " · Soon" : ""}
                         </Button>
                       ))}
                     </div>
                     <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
-                      {format === "heat_mains"
+                      {format === "swiss"
+                        ? "Swiss: everyone plays every round against someone on the same record, with no rematches. The best records go on to a top cut bracket."
+                        : format === "heat_mains"
                         ? "Heat → Mains: race heats into A/B mains, win to lock the A Main, top finishers transfer up. Want points across a season? Pick Championship series above."
                         : isElim
                           ? `${format === "double_elim" ? "Double" : "Single"} elimination. Lobbies of 2 is a classic 1v1 bracket; make the lobbies bigger to race in groups where the top finishers move on${format === "double_elim" ? " and everyone else gets a second chance in a lower bracket" : ""}.`
@@ -481,8 +492,19 @@ export default function CreateTournamentPage() {
                             ? "Points: each board game at a table of four scores 10, 6, 3 and 1, plus any mission bonus points. Every table plays the same rolled board each round."
                           : isSmash
                             ? "Points: four-player free-for-alls in flights, scoring 10, 6, 3 and 1, plus mission bonus points. Every flight plays the same rolled stage each round."
-                            : "FFA/Points and Round Robin run now. Swiss is on the way."}
+                            : swissReady ? "FFA/Points: every race scores, and the most points wins." : "FFA/Points and Round Robin run now. Swiss is on the way."}
                     </p>
+                    {format === "swiss" && (
+                      <div style={{ marginTop: "0.85rem" }}>
+                        <SwissSettingsFields value={swissSettings} onChange={setSwissSettings} players={Number(maxParticipants) || 0} />
+                      </div>
+                    )}
+                    {isDeckListGame(resolvedSlug) && swissReady && (
+                      <div className="swiss-decks-panel">
+                        <div className="swiss-decks-panel__head"><span className="account-card__label">Deck lists</span><Badge variant="info" size="small">Pokémon TCG</Badge></div>
+                        <DeckListSettingsFields value={deckLists} onChange={setDeckLists} swiss={format === "swiss"} />
+                      </div>
+                    )}
                     {isElim && (
                       <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                         <div>
@@ -542,59 +564,32 @@ export default function CreateTournamentPage() {
                       ))}
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                    <div>
-                      <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Date & Time</label>
-                      <input type="datetime-local" className="save-setup-input" value={dateTime} onChange={(e) => setDateTime(e.target.value)} />
-                      {ORGANIZER_TZ && (
-                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
-                          Times are in your timezone ({currentZoneLabel(ORGANIZER_TZ)}). Attendees see the start time converted to theirs.
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Max Participants</label>
-                      <Input type="number" min={2} max={200} value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} placeholder="No limit" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Where</label>
-                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: locationType === "in_person" ? "0.75rem" : 0 }}>
-                      {([["online", "Online"], ["in_person", "In person"]] as const).map(([val, label]) => (
-                        <Button key={val} variant={locationType === val ? "primary" : "secondary"} size="small" onClick={() => setLocationType(val)}>{label}</Button>
-                      ))}
-                    </div>
-                    {locationType === "in_person" && (
-                      <PlaceAutocompleteInput
-                        value={locationText}
-                        onChange={setLocationText}
-                        onPick={(p) => setLocationText(p.address)}
-                        placeholder="Venue or address (e.g. Card Kingdom, Seattle WA)"
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Registration</label>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <Button variant={acceptanceMode === "auto" ? "primary" : "secondary"} size="small" onClick={() => setAcceptanceMode("auto")}>Auto-Accept</Button>
-                      <Button variant={acceptanceMode === "manual" ? "primary" : "secondary"} size="small" onClick={() => setAcceptanceMode("manual")}>Manual Approval</Button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Who can enter</label>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
-                      <Button variant={entryPolicy === "open" ? "primary" : "secondary"} size="small" onClick={() => setEntryPolicy("open")}>Anyone</Button>
-                      <Button variant={entryPolicy === "accounts_only" ? "primary" : "secondary"} size="small" onClick={() => setEntryPolicy("accounts_only")}>Accounts only</Button>
-                    </div>
-                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.45rem", maxWidth: "46ch" }}>
-                      {entryPolicy === "open"
-                        ? "Easier to fill: people can enter by name without signing up. You will know less about who is coming."
-                        : "Every entrant has a GameShuffle account, so you can see their history before you seed and their results follow them afterwards."}
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
+                {/* GameShuffle doesn't know this game, so its rules are the format: they stay here rather than under More options. */}
+                {isOtherGame && (
+              <div className="create-field">
+                <label className="account-card__label" htmlFor="create-rules">Rules</label>
+                {isOtherGame && (
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: "0 0 var(--spacing-12)" }}>
+                    GameShuffle doesn&rsquo;t know {customGame.trim() || "this game"}, so the bracket, points or Heat → Mains
+                    ladder runs on named players and these rules are what everyone plays by. Worth being specific: match
+                    length, stage or map picks, tie-breaks.
+                  </p>
+                )}
+                <Textarea
+                  id="create-rules"
+                  value={rules}
+                  onChange={(e) => setRules(e.target.value)}
+                  placeholder={isOtherGame
+                    ? "e.g. Best of 3. Stage striking, no items. Tie-break on total stocks."
+                    : "Any rules, notes, or instructions for participants..."}
+                  rows={5}
+                  fullWidth
+                />
+              </div>
+                )}
+              </>
+            ) : (
+              <>
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Event format</label>
                     <div style={{ padding: "0.7rem 0.9rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)", background: "var(--surface-raised, var(--surface-default))", fontSize: "var(--font-size-14)" }}>
@@ -620,16 +615,85 @@ export default function CreateTournamentPage() {
                   <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)" }}>
                     Next you&apos;ll build the league roster (invite existing players or email an invite to create a free account) and run events.
                   </p>
-                </>
-              )}
-            </div>
+              </>
+            )}
           </div>
 
-          {/* Single-only: Community + Rules */}
+          {/* When and who: single tournaments only (a championship's events get their own dates). */}
           {runMode === "single" && (
-            <>
-              <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-                <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, marginBottom: "1.5rem" }}>Organizer</h2>
+            <div className="comp-card create-card">
+              <h2 className="create-card__title">When and who</h2>
+                  <div className="create-pair">
+                    <div>
+                      <label className="account-card__label" htmlFor="create-when" style={{ display: "block", marginBottom: "0.5rem" }}>Date and time</label>
+                      <input id="create-when" type="datetime-local" className="save-setup-input" value={dateTime} onChange={(e) => setDateTime(e.target.value)} />
+                      {ORGANIZER_TZ && (
+                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                          Times are in your timezone ({currentZoneLabel(ORGANIZER_TZ)}). Attendees see the start time converted to theirs.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="account-card__label" htmlFor="create-max" style={{ display: "block", marginBottom: "0.5rem" }}>Max players</label>
+                      <Input id="create-max" type="number" min={2} max={200} value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} placeholder="No limit" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Where</label>
+                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: locationType === "in_person" ? "0.75rem" : 0 }}>
+                      {([["online", "Online"], ["in_person", "In person"]] as const).map(([val, label]) => (
+                        <Button key={val} variant={locationType === val ? "primary" : "secondary"} size="small" onClick={() => setLocationType(val)}>{label}</Button>
+                      ))}
+                    </div>
+                    {locationType === "in_person" && (
+                      <PlaceAutocompleteInput
+                        value={locationText}
+                        onChange={setLocationText}
+                        onPick={(p) => setLocationText(p.address)}
+                        placeholder="Venue or address (e.g. Card Kingdom, Seattle WA)"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Accept people</label>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <Button variant={acceptanceMode === "auto" ? "primary" : "secondary"} size="small" onClick={() => setAcceptanceMode("auto")}>Automatically</Button>
+                      <Button variant={acceptanceMode === "manual" ? "primary" : "secondary"} size="small" onClick={() => setAcceptanceMode("manual")}>By hand</Button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Who can enter</label>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <Button variant={entryPolicy === "open" ? "primary" : "secondary"} size="small" onClick={() => setEntryPolicy("open")}>Anyone</Button>
+                      <Button variant={entryPolicy === "accounts_only" ? "primary" : "secondary"} size="small" onClick={() => setEntryPolicy("accounts_only")}>Accounts only</Button>
+                    </div>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.45rem", maxWidth: "46ch" }}>
+                      {entryPolicy === "open"
+                        ? "Easier to fill: people can enter by name without signing up. You will know less about who is coming."
+                        : "Every entrant has a GameShuffle account, so you can see their history before you seed and their results follow them afterwards."}
+                    </p>
+                  </div>
+            </div>
+          )}
+
+          {/* More options: everything that can wait (all of it can be changed on the manage page). */}
+          <div className="comp-card create-card">
+            <Accordion
+              key={moreOpen ? "open" : "closed"}
+              variant="flush"
+              defaultOpenIds={moreOpen ? ["more"] : []}
+              items={[{
+                id: "more",
+                title: "More options",
+                description: runMode === "single" ? (isOtherGame ? "Description, organizer and community" : "Description, organizer and community, rules") : "Description",
+                content: (
+                  <div className="create-more">
+              <div className="create-field">
+                <label className="account-card__label" htmlFor="create-description">Description</label>
+                <Textarea id="create-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={runMode === "championship" ? "What's this league about?" : "What's this tournament about?"} rows={3} fullWidth />
+              </div>
+                    {runMode === "single" && (
+                      <>
                 <div style={{ marginBottom: "1.25rem" }}>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Organized by</label>
                   <Select
@@ -658,14 +722,9 @@ export default function CreateTournamentPage() {
                     <Input type="url" value={communityLink} onChange={(e) => setCommunityLink(e.target.value)} placeholder="https://discord.gg/..." />
                   </div>
                 </div>
-              </div>
-
-              <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-                <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: isOtherGame ? "var(--spacing-8)" : "1.5rem" }}>Rules</h2>
-                {/* For our own games the format is configured — races, tracks,
-                    build restrictions. For any other game there is nothing to
-                    configure, so this field IS the format, and it is worth
-                    saying so rather than leaving it looking optional. */}
+                        {!isOtherGame && (
+              <div className="create-field">
+                <label className="account-card__label" htmlFor="create-rules">Rules</label>
                 {isOtherGame && (
                   <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: "0 0 var(--spacing-12)" }}>
                     GameShuffle doesn&rsquo;t know {customGame.trim() || "this game"}, so the bracket, points or Heat → Mains
@@ -673,18 +732,41 @@ export default function CreateTournamentPage() {
                     length, stage or map picks, tie-breaks.
                   </p>
                 )}
-                <textarea
-                  className="save-setup-input"
+                <Textarea
+                  id="create-rules"
                   value={rules}
                   onChange={(e) => setRules(e.target.value)}
                   placeholder={isOtherGame
                     ? "e.g. Best of 3. Stage striking, no items. Tie-break on total stocks."
                     : "Any rules, notes, or instructions for participants..."}
                   rows={5}
-                  style={{ resize: "vertical" }}
+                  fullWidth
                 />
               </div>
-            </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ),
+              }]}
+            />
+          </div>
+
+          {runMode === "single" && (
+            <Modal isOpen={aiOpen} onClose={() => setAiOpen(false)} title="Draft it with AI" size="large">
+              <AiTournamentHelper
+                bare
+                game={gameLabel}
+                allowHeat={!noHeat}
+                formatLabel={(v) => formats.find((f) => f.value === v)?.label.replace(" ★", "") ?? v}
+                onUse={(part) => {
+                  if (part.format && formats.some((f) => f.value === part.format && f.available)) setFormat(part.format);
+                  if (part.description) setDescription(part.description);
+                  if (part.rules) setRules(part.rules);
+                  if (part.description || (part.rules && !isOtherGame)) setMoreOpen(true);
+                }}
+              />
+            </Modal>
           )}
 
           {runMode === "championship" && !isPro && (
