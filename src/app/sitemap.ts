@@ -1,3 +1,4 @@
+import { CHECKLISTS, CHECKLISTS_PATH, checklistUrl } from "@/data/tcg-checklists";
 import type { MetadataRoute } from "next";
 import { publishedGuidesAsync } from "@/lib/guides/store";
 import { GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
@@ -11,6 +12,9 @@ import { getDeckSlugs } from "@/lib/decks";
 import { getBattleBoxSlugs } from "@/lib/battle-boxes";
 import { TCG_HUB_LIVE } from "@/data/tcg-hub";
 import { RULES_PATH, RULE_PAGES } from "@/data/tcg-rules";
+import { OCCASIONS, TRIVIA_PATH, occasionUrl, topicUrl } from "@/data/trivia-seo";
+import { liveTopics } from "@/lib/trivia/topics";
+import { listPublicLeagues } from "@/lib/trivia/leagues";
 import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
@@ -124,6 +128,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.7,
     },
+    // Trivia pages written for search: occasions, the hosting guide, the free tools.
+    ...OCCASIONS.map((o) => ({ url: `${baseUrl}${occasionUrl(o.slug)}`, lastModified: lm(`${TRIVIA_PATH}/[occasion]`), changeFrequency: "monthly" as const, priority: 0.6 })),
+    ...["how-to-host", "team-names", "answer-sheet"].map((p) => ({ url: `${baseUrl}${TRIVIA_PATH}/${p}`, lastModified: lm(`${TRIVIA_PATH}/${p}`), changeFrequency: "monthly" as const, priority: 0.6 })),
     {
       url: `${baseUrl}/wheel-spinner`,
       lastModified: lm("/wheel-spinner"),
@@ -492,6 +499,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: "monthly" as const,
         priority: 0.6,
       })),
+      { url: `${baseUrl}${CHECKLISTS_PATH}`, lastModified: lm(CHECKLISTS_PATH), changeFrequency: "monthly" as const, priority: 0.5 },
+      ...CHECKLISTS.map((c) => ({
+        url: `${baseUrl}${checklistUrl(c.slug)}`,
+        lastModified: lm(`${CHECKLISTS_PATH}/[slug]`),
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      })),
     ];
   }
 
@@ -519,6 +533,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch ideas", err);
   }
 
+  // Game trivia question pages: only the ones with enough approved questions.
+  const triviaTopics = await liveTopics().catch(() => []);
+  const triviaRoutes: MetadataRoute.Sitemap = triviaTopics.length
+    ? [
+        { url: `${baseUrl}${TRIVIA_PATH}/questions`, lastModified: lm(`${TRIVIA_PATH}/questions`), changeFrequency: "weekly", priority: 0.6 },
+        ...triviaTopics.map((t) => ({ url: `${baseUrl}${topicUrl(t.slug)}`, lastModified: lm(`${TRIVIA_PATH}/questions/[topic]`), changeFrequency: "weekly" as const, priority: 0.6 })),
+      ]
+    : [];
+  // Trivia leagues: the weekly bar nights ("trivia night near me" lands on these).
+  const leagues = await listPublicLeagues().catch(() => []);
+  triviaRoutes.push(...leagues.map((l) => ({ url: `${baseUrl}${TRIVIA_PATH}/leagues/${l.slug}`, lastModified: new Date(l.updated_at), changeFrequency: "weekly" as const, priority: 0.5 })));
+
   // One entry per URL. The blocks above overlap (the pillar map also lists
   // /pokemon-tcg, which the deck block adds too), so keep the first position
   // and the higher priority whenever a URL turns up twice.
@@ -527,6 +553,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...championshipRoutes,
     ...deckRoutes,
     ...ideaRoutes,
+    ...triviaRoutes,
   ]);
 }
 

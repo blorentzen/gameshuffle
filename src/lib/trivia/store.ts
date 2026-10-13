@@ -57,11 +57,20 @@ export interface GameRow {
   id: string; host_user_id: string; title: string; template: string | null; code: string; rounds: TriviaRound[];
   settings: { familySafe?: boolean; stream?: StreamSettings } | null; status: GameStatus; round_index: number; question_index: number; phase: Phase;
   opened_at: string | null; closes_at: string | null; event_id: string | null; created_at: string; started_at: string | null; finished_at: string | null;
+  /** A league night: its league and week (supabase/trivia-leagues-m1.sql). */
+  league_id: string | null; league_week: number | null;
 }
-export interface TeamRow { id: string; game_id: string; name: string; secret: string; score: number; joker_round: number | null; created_at: string; last_seen_at: string }
+export interface TeamRow {
+  id: string; game_id: string; name: string; secret: string; score: number; joker_round: number | null; created_at: string; last_seen_at: string;
+  /** Plays for a league team, a crew (community), or one account playing as themselves. */
+  league_team_id: string | null; community_id: string | null; user_id: string | null;
+  /** Fair play: { "<round>:<question>": times the team's phone left the page while it was open }. */
+  away: Record<string, number> | null;
+}
+export const TEAM_COLS = "id, game_id, name, secret, score, joker_round, created_at, last_seen_at, league_team_id, community_id, user_id, away";
 interface AnswerRow { team_id: string; game_id: string; round: number; question: number; raw: string; normalized: string; confidence: number | null; wager: number | null; verdict: Verdict; points: number; submitted_at: string }
 
-const GAME_COLS = "id, host_user_id, title, template, code, rounds, settings, status, round_index, question_index, phase, opened_at, closes_at, event_id, created_at, started_at, finished_at";
+export const GAME_COLS = "id, host_user_id, title, template, code, rounds, settings, status, round_index, question_index, phase, opened_at, closes_at, event_id, created_at, started_at, finished_at, league_id, league_week";
 
 // ─── the question library ────────────────────────────────────────────────────
 
@@ -75,14 +84,14 @@ export interface LibraryQuestion extends TriviaQuestion {
   createdAt: string;
 }
 
-type QuestionRow = {
+export type QuestionRow = {
   id: string; owner_user_id: string | null; category: string; difficulty: "easy" | "medium" | "hard"; kind: QuestionKind; prompt: string; answer: string;
   accept: string[]; ask_about: string[]; reject: string[]; options: string[] | null; image_url: string | null; sources: { title: string; url?: string | null }[];
   as_of: string | null; changeable: boolean; family_safe: boolean; origin: "host" | "ai" | "staff"; status: "draft" | "approved" | "retired"; times_used: number; created_at: string;
 };
-const Q_COLS = "id, owner_user_id, category, difficulty, kind, prompt, answer, accept, ask_about, reject, options, image_url, sources, as_of, changeable, family_safe, origin, status, times_used, created_at";
+export const Q_COLS = "id, owner_user_id, category, difficulty, kind, prompt, answer, accept, ask_about, reject, options, image_url, sources, as_of, changeable, family_safe, origin, status, times_used, created_at";
 
-function toQuestion(r: QuestionRow): LibraryQuestion {
+export function toQuestion(r: QuestionRow): LibraryQuestion {
   return {
     id: r.id, ownerUserId: r.owner_user_id, category: r.category, difficulty: r.difficulty, kind: r.kind, prompt: r.prompt, answer: r.answer,
     accept: r.accept ?? [], askAbout: r.ask_about ?? [], reject: r.reject ?? [], options: r.options, imageUrl: r.image_url, sources: r.sources ?? [],
@@ -392,14 +401,14 @@ export async function joinTeam(code: string, rawName: string): Promise<{ ok: tru
 /** Another phone joining a team that already exists: same secret, shared by the team's players. */
 export async function teamFor(gameId: string, teamId: string, secret: string): Promise<TeamRow | null> {
   if (!teamId || !secret) return null;
-  const { data } = await createServiceClient().from("trivia_teams").select("id, game_id, name, secret, score, joker_round, created_at, last_seen_at")
+  const { data } = await createServiceClient().from("trivia_teams").select(TEAM_COLS)
     .eq("id", teamId).eq("game_id", gameId).maybeSingle();
   const team = data as TeamRow | null;
   return team && team.secret === secret ? team : null;
 }
 
 async function teamsOf(gameId: string): Promise<TeamRow[]> {
-  const { data } = await createServiceClient().from("trivia_teams").select("id, game_id, name, secret, score, joker_round, created_at, last_seen_at").eq("game_id", gameId).order("created_at").limit(MAX_VIEWERS + MAX_TEAMS);
+  const { data } = await createServiceClient().from("trivia_teams").select(TEAM_COLS).eq("game_id", gameId).order("created_at").limit(MAX_VIEWERS + MAX_TEAMS);
   return (data ?? []) as TeamRow[];
 }
 
@@ -465,6 +474,15 @@ export async function submitAnswer(game: GameRow, team: TeamRow, input: { raw: s
  * A viewer's answer on stream (chat, /live). Viewers have no jokers, stakes
  * or wagers: a confidence or final round counts as a plain round for them.
  */
+/** Fair play: a team's phone left the page while a question was open. A nudge for the host, never a penalty. */
+export async function noteAway(game: GameRow, team: TeamRow): Promise<void> {
+  if (game.phase !== "question" || isStreamGame(game)) return;
+  const key = `${game.round_index}:${game.question_index}`;
+  const away = { ...(team.away ?? {}) };
+  away[key] = Math.min(99, (away[key] ?? 0) + 1);
+  await createServiceClient().from("trivia_teams").update({ away }).eq("id", team.id);
+}
+
 export async function submitViewerAnswer(game: GameRow, team: TeamRow, raw: string): Promise<{ ok: true } | { ok: false; error: string }> {
   // Read the phase fresh: callers may hold a cached copy, and an answer after the
   // lock (or the reveal) must never reset a judged one.
@@ -690,6 +708,8 @@ export interface HostView extends RoomView {
   isLast: boolean;
   /** Played on the host's stream too (viewers count as teams). */
   onStream: boolean;
+  /** Teams whose phone left the page during this question, and how often. */
+  away: { name: string; times: number }[];
 }
 
 export async function hostView(game: GameRow): Promise<HostView> {
@@ -719,5 +739,8 @@ export async function hostView(game: GameRow): Promise<HostView> {
     teamCount: v._teams.length,
     isLast: !!round && live.round_index === live.rounds.length - 1 && live.question_index === round.questions.length - 1,
     onStream: isStreamGame(live),
+    away: isStreamGame(live) || !(live.phase === "question" || live.phase === "locked" || live.phase === "reveal") ? [] : v._teams
+      .map((t) => ({ name: t.name, times: t.away?.[`${live.round_index}:${live.question_index}`] ?? 0 }))
+      .filter((t) => t.times > 0),
   };
 }

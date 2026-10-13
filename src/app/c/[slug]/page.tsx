@@ -31,6 +31,8 @@ import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
 import { listCommunityCrews, getViewerCrewTiers } from "@/lib/communities/crews";
 import { listCommunityBattles, getCrewRecord } from "@/lib/communities/battles";
 import { CommunityCrews } from "@/components/communities/CommunityCrews";
+import { CommunityTrivia } from "@/components/communities/CommunityTrivia";
+import { crewTriviaRecord } from "@/lib/trivia/crews";
 import { CommunityBattles } from "@/components/communities/CommunityBattles";
 import { listCommunityFeed } from "@/lib/social/feed";
 import { CommunityJoinButton } from "@/components/communities/CommunityJoinButton";
@@ -96,6 +98,8 @@ export default async function CommunityHomePage({ params, searchParams }: { para
   // Prediction markets are also economy/channel-only.
   const openMarkets = isChannel ? await getOpenMarketsForCommunity(community.id).catch(() => []) : [];
   const communityNights = await listNightsForCommunity(community.id).catch(() => []);
+  // Trivia nights the crew played as itself (hidden until it has played one).
+  const triviaRecord = await crewTriviaRecord(community.id).catch(() => null);
   const accountBalance = user ? await getAccountBalance(user.id).catch(() => 0) : 0;
   // Raffle (repeatable token sink) — channels only (they carry the economy).
   const raffleRow = community.kind === "channel" ? await getOpenRaffle(community.id).catch(() => null) : null;
@@ -276,6 +280,12 @@ export default async function CommunityHomePage({ params, searchParams }: { para
             viewerId={user?.id ?? ""}
             members={members.map((m) => ({ id: m.userId, name: m.displayName || m.username || "Player" }))}
           />
+        </div>
+      )}
+{/* Trivia record — nights played as the crew */}
+      {triviaRecord && !customization.hiddenSections.includes("crews") && (
+        <div style={{ order: orderOf("crews") }}>
+          <CommunityTrivia record={triviaRecord} />
         </div>
       )}
 {/* Crew battles — cross-community matches + record */}

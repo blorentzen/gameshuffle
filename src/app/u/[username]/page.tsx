@@ -352,6 +352,7 @@ export default async function PublicProfilePage({
     stats.push({ num: formatCompact(enrichment.configCount), label: "Configs" });
   if (tournamentTotal) stats.push({ num: formatCompact(tournamentTotal), label: "Tournaments" });
   if (enrichment.dailyStreak) stats.push({ num: formatCompact(enrichment.dailyStreak), label: "Daily streak" });
+  if (enrichment.triviaNights) stats.push({ num: formatCompact(enrichment.triviaNights), label: "Trivia nights" });
 
   // Identity badges: Staff / GS Pro + a streamer "Watch live" link.
   const role = (profile.role as string | null) ?? null;

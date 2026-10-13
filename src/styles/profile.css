@@ -2354,8 +2354,23 @@ a.ct__name:hover { text-decoration: underline; }
 .game-pick__heading { margin: var(--spacing-20) 0 var(--spacing-10, 10px); font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
 .game-pick__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, 9.6rem); gap: var(--spacing-12); }
 .game-pick__grid > li { display: flex; }
-.game-pick__card.empac-card { width: 100%; display: flex; flex-direction: column; gap: var(--spacing-8); text-align: left; }
+.game-pick__card.empac-card { width: 100%; display: flex; flex-direction: column; gap: var(--spacing-6, 6px); padding: var(--spacing-6, 6px); text-align: left; }
+/* The name sits under the art with a little room of its own, not the card's full padding. */
+.game-pick__card-name { padding: 0 2px 2px; }
 .game-pick__card-cover { display: block; border-radius: var(--radius-6, 6px); overflow: hidden; }
 .game-pick__card-cover .game-cover { border-radius: 0; }
 .game-pick__card-name { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); line-height: 1.3; color: var(--text-primary); overflow-wrap: anywhere; }
 @media (max-width: 480px) { .game-pick__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Crew trivia record on /c/[slug] (2026-10-13) */
+.community-trivia { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.community-trivia__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8); }
+.community-trivia__league { text-decoration: none; }
+.community-trivia__stats { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--spacing-8); }
+.community-trivia__stats div { padding: var(--spacing-10, 1rem) var(--spacing-12); border: 1px solid var(--border-subtle); border-radius: var(--radius-10, 10px); }
+.community-trivia__stats dt { font-size: var(--font-size-12); color: var(--text-secondary); }
+.community-trivia__stats dd { margin: 0; font-size: var(--font-size-20); font-weight: 700; font-variant-numeric: tabular-nums; }
+.community-trivia__nights { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-6, 6px); }
+.community-trivia__nights li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--spacing-4) var(--spacing-12); padding: var(--spacing-10, 1rem) var(--spacing-12); border: 1px solid var(--border-subtle); border-radius: var(--radius-10, 10px); }
+.community-trivia__night-title { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.community-trivia__night-meta { font-size: var(--font-size-14); color: var(--text-secondary); }
