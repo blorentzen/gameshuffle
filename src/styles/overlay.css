@@ -1418,6 +1418,57 @@ html.gs-overlay-route body {
 .gs-break__c4 span.is-chat { background: #ffd34d; }
 .gs-break__c4 span.is-bot { background: #ff6b8a; }
 .gs-break__c4 span.is-last { box-shadow: 0 0 0 3px #fff; }
+/* Wave 3 layouts: Boss Fight, Five Letters, Kart Derby. */
+.gs-break__boss { display: flex; align-items: center; gap: 16px; padding: 12px 14px; border-radius: 12px; background: rgba(229, 72, 107, 0.14); border: 1px solid rgba(255, 107, 138, 0.35); }
+.gs-break__boss-glyph { flex: none; width: 72px; height: 72px; border-radius: 16px; display: grid; place-items: center; background: #2a1030; color: #ff8aa6; box-shadow: inset 0 0 0 2px rgba(255, 138, 166, 0.4); }
+.gs-break__boss.is-down .gs-break__boss-glyph { filter: grayscale(1); opacity: 0.6; transform: rotate(-12deg); }
+.gs-break__boss-info { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.gs-break__boss-info b { font-size: 20px; font-weight: 900; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-break__boss-info small { font-size: 13px; color: #ffd0da; font-variant-numeric: tabular-nums; }
+.gs-break__boss-hp { display: block; height: 16px; border-radius: 99px; background: rgba(0, 0, 0, 0.35); overflow: hidden; }
+.gs-break__boss-hp i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #ff4d6d, #ffb347); transition: width 900ms ease; }
+.gs-break__letterwrap { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; }
+.gs-break__letters { display: grid; gap: 8px; }
+.gs-break__letters-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.gs-break__letters-grid li { display: grid; grid-template-columns: repeat(5, 30px); gap: 4px; }
+.gs-break__letters-grid span { height: 30px; display: grid; place-items: center; border-radius: 6px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18); font-size: 17px; font-weight: 900; }
+.gs-break__letters-grid span.is-g { background: #2fb36d; border-color: #2fb36d; color: #04210f; }
+.gs-break__letters-grid span.is-y { background: #e8a92c; border-color: #e8a92c; color: #2a1a00; }
+.gs-break__letters-grid span.is-x { background: #3a3f57; border-color: #3a3f57; color: #c4c9ff; }
+.gs-break__letters-grid li.is-skipped { grid-template-columns: 1fr; }
+.gs-break__letters-grid li.is-skipped span { background: transparent; border-style: dashed; font-size: 12px; font-weight: 700; color: #c4c9ff; }
+.gs-break__letters-keys { display: grid; gap: 3px; }
+.gs-break__letters-keys div { display: flex; gap: 3px; }
+.gs-break__letters-keys div:nth-child(2) { padding-left: 8px; }
+.gs-break__letters-keys div:nth-child(3) { padding-left: 20px; }
+.gs-break__letters-keys span { width: 16px; height: 20px; display: grid; place-items: center; border-radius: 4px; background: rgba(255, 255, 255, 0.14); font-size: 11px; font-weight: 800; }
+.gs-break__letters-keys span.is-g { background: #2fb36d; color: #04210f; }
+.gs-break__letters-keys span.is-y { background: #e8a92c; color: #2a1a00; }
+.gs-break__letters-keys span.is-x { background: transparent; color: rgba(255, 255, 255, 0.3); }
+.gs-break__lettermeta { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.gs-break__category { margin: 0; font-size: 22px; font-weight: 900; }
+/* Kart Derby (the kart and lane colours are in live.css, shared with the live page). */
+.gs-break__derby { display: grid; gap: 8px; }
+.gs-break__derby-lanes { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.gs-break__derby-lanes li { display: grid; grid-template-columns: 22px minmax(0, 1fr) 128px; align-items: center; gap: 8px; }
+.gs-break__derby-num { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--lane); color: #10133a; font-size: 12px; font-weight: 900; }
+.gs-break__derby-road { position: relative; height: 22px; border-radius: 6px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.07) 0 18px, rgba(255, 255, 255, 0.03) 18px 36px); box-shadow: inset -4px 0 0 #fff, inset -8px 0 0 #10133a; }
+/* --pos 0 to 1; the finish line is the road's last 8px, so the kart's nose stops there. */
+.gs-break__derby-kart { position: absolute; top: 1px; left: calc((100% - 42px) * var(--pos, 0)); transition: left 260ms linear; }
+.gs-break__derby-lanes li.is-hot .gs-break__derby-road { box-shadow: inset -4px 0 0 #fff, inset -8px 0 0 #10133a, 0 0 0 2px var(--lane); }
+.gs-break__derby-name { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gs-break__derby-name small { font-weight: 600; color: #c4c9ff; }
+.gs-break__derby-place { font-style: normal; font-size: 11px; font-weight: 900; padding: 1px 5px; border-radius: 5px; margin-right: 5px; color: #10133a; background: #c9a227; }
+.gs-break__derby-place.is-2 { background: #c7cbd8; }
+.gs-break__derby-place.is-3 { background: #d08a4e; }
+.gs-break__derby-events { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.gs-break__derby-events li { font-size: 14px; color: #ffe8a3; }
+.gs-break__derby-events li::before { content: "✦ "; color: #ffd34d; }
+.gs-break__derbyjoin { display: grid; gap: 10px; }
+.gs-break__lanepick { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+.gs-break__lanepick li { display: grid; justify-items: center; gap: 4px; padding: 8px 4px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); border: 2px solid var(--lane); }
+.gs-break__lanepick b { font-size: 18px; font-weight: 900; }
+@media (prefers-reduced-motion: reduce) { .gs-break__boss-hp i, .gs-break__derby-kart { transition: none; } }
 .gs-break__c4 span.is-win { box-shadow: 0 0 0 3px #3bd17f; }
 .gs-break__c4cols { list-style: none; margin: 0; padding: 0 8px; display: grid; grid-template-columns: repeat(7, 28px); gap: 5px; text-align: center; font-size: 14px; font-weight: 800; color: #c4c9ff; }
 .gs-break__c4cols li.is-picked { color: #ffd34d; }

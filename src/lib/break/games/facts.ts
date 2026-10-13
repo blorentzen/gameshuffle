@@ -13,7 +13,7 @@
  * Questions lean toward the game on stream (just in time) when it has facts.
  */
 
-import { PUZZLES, type DailyCharacter, type DailyPuzzle, type TraitDef } from "@/lib/originals/daily";
+import { KART_GAME_NAMES, PUZZLES, type DailyCharacter, type DailyPuzzle, type TraitDef } from "@/lib/originals/daily";
 import { randomizerPublic } from "@/lib/games-visibility";
 import type { BreakOption } from "../types";
 import {
@@ -22,7 +22,7 @@ import {
 } from "./common";
 
 /** Which GameShuffle games each fact set belongs to (for "the game on stream"). */
-const PUZZLE_GAMES: Record<string, string[]> = {
+export const PUZZLE_GAMES: Record<string, string[]> = {
   "mk8dx-character": ["mario-kart-8-deluxe"],
   "mkworld-character": ["mario-kart-world"],
   "party-character": ["super-mario-party-jamboree", "mario-party-superstars", "mario-party", "mario-party-2", "mario-party-3"],
@@ -32,6 +32,12 @@ const PUZZLE_GAMES: Record<string, string[]> = {
 };
 
 const SMASH_NAMES: Record<string, string> = { "64": "the first Smash (64)", Melee: "Melee", Brawl: "Brawl", "Smash 4": "Smash 4", Ultimate: "Ultimate" };
+/** Crews (the Daily's Mario Kart and Mario Party column) as a sentence says them. */
+const CREW_SAID: Record<string, string> = {
+  "Mario's crew": "one of Mario's crew", "Bowser's crew": "one of Bowser's crew", Kongs: "a Kong",
+  Guests: "a guest from another series", "Everyone else": "not in anyone's crew",
+};
+const kartName = (v: string | number) => KART_GAME_NAMES[String(v)] ?? String(v);
 /** Values that say nothing ("Other", "Unknown", MK8DX's "Any" weight for Miis). */
 const NOTHING = new Set(["Other", "Unknown", "Any", "Every role", "Solo"]);
 
@@ -63,9 +69,9 @@ const the = (v: string) => (THE.has(v) ? `the ${v}` : v);
 const usable = (v: unknown): v is string | number => v !== null && v !== undefined && v !== "" && !NOTHING.has(String(v));
 const option = (key: string, c: DailyCharacter, sub?: string): BreakOption => ({ key, label: c.name, img: c.img || null, ...(sub ? { sub } : {}) });
 
-/** A year, or the position on an ordered scale (weight class, first Smash, season joined). */
+/** A year or a count, or the position on an ordered scale (weight class, first Smash, season joined). */
 function rank(t: TraitDef, v: string | number): number | null {
-  if (t.kind === "year") return typeof v === "number" ? v : Number(v);
+  if (t.kind === "year" || t.kind === "count") return typeof v === "number" ? v : Number(v);
   if (t.kind === "ordered" && t.order) {
     const i = t.order.indexOf(String(v));
     return i >= 0 ? i : null;
@@ -86,8 +92,9 @@ function attempt(tries: number, make: () => RoundDraft | null, ctx: MakeContext)
 
 const HOL: Record<string, { ask: (game: string) => string; high: boolean; said: (v: string | number) => string }> = {
   "Debut year": { ask: () => "Which one debuted first?", high: false, said: (v) => String(v) },
-  "Mario Kart debut": { ask: () => "Which one raced in Mario Kart first?", high: false, said: (v) => String(v) },
-  "Mario Party debut": { ask: () => "Which one joined Mario Party first?", high: false, said: (v) => String(v) },
+  "First Mario Kart": { ask: () => "Which one raced in Mario Kart first?", high: false, said: kartName },
+  "First Mario Party": { ask: () => "Which one joined Mario Party first?", high: false, said: (v) => String(v) },
+  "Mario Party games": { ask: () => "Which one is playable in more Mario Party games?", high: true, said: (v) => `${v} game${Number(v) === 1 ? "" : "s"}` },
   Released: { ask: () => "Which hero came to Overwatch first?", high: false, said: (v) => String(v) },
   "Comic debut": { ask: () => "Which hero was in comics first?", high: false, said: (v) => String(v) },
   "Weight class": { ask: (game) => `Which one is heavier in ${game}?`, high: true, said: (v) => String(v) },
@@ -143,7 +150,15 @@ function oddPrompt(p: DailyPuzzle, label: string, v: string): string | null {
   switch (label) {
     case "Weight class": return `Three of these are ${v} in ${p.game}. Which one isn't?`;
     case "Species": return `Three of these are the same species (${v}). Which one isn't?`;
-    case "First series": return `Three of these first appeared in a ${v} game. Which one didn't?`;
+    case "Crew":
+      if (v === "Everyone else") return "Three of these aren't in anyone's crew. Which one is?";
+      if (v === "Kongs") return "Three of these are Kongs. Which one isn't?";
+      if (v === "Guests") return "Three of these are guests from other series. Which one isn't?";
+      return v === "Wario & Waluigi" ? null : `Three of these are in ${v}. Which one isn't?`;
+    case "First Mario Kart": return `Three of these first raced in ${kartName(v)}. Which one didn't?`;
+    case "Home series": return `Three of these call ${v} home. Which one doesn't?`;
+    case "Variant": return v === "Yes" ? "Three of these are a version of another racer. Which one isn't?" : null;
+    case "First Mario Party": return `Three of these were first playable in ${v === "Mario Party" ? "the first Mario Party" : v}. Which one wasn't?`;
     case "Series": return `Three of these come from ${v}. Which one doesn't?`;
     case "First Smash": return `Three of these were first playable in ${SMASH_NAMES[v] ?? v}. Which one wasn't?`;
     case "Third party": return v === "Yes" ? "Three of these are third-party fighters. Which one isn't?" : "Three of these aren't third-party fighters. Which one is?";
@@ -156,12 +171,19 @@ function oddPrompt(p: DailyPuzzle, label: string, v: string): string | null {
   }
 }
 
+/** A column's label mid-sentence: "weight class", "first Mario Kart", but "Mario Party games" keeps its name. */
+const NAMES_FIRST = new Set(["Mario", "Smash", "Overwatch"]);
+function inLine(label: string): string {
+  const [first, ...rest] = label.split(" ");
+  return [NAMES_FIRST.has(first) ? first : first.toLowerCase(), ...rest].join(" ");
+}
+
 export const oddOneOut: BreakGame = {
   id: "odd-one-out",
   make: (ctx) => attempt(40, () => {
     const p = choosePuzzle(ctx);
     if (!p) return null;
-    const traits = p.traits.map((t, i) => ({ t, i })).filter(({ t }) => t.kind !== "year");
+    const traits = p.traits.map((t, i) => ({ t, i })).filter(({ t }) => t.kind !== "year" && t.kind !== "count");
     if (!traits.length) return null;
     const { t, i } = pick(traits, ctx.rand);
     const groups = new Map<string, DailyCharacter[]>();
@@ -193,7 +215,7 @@ export const oddOneOut: BreakGame = {
     const correct = String(secret.correct);
     const counts = count(answers);
     const right = counts[correct] ?? 0;
-    const text = `${secret.odd} is the odd one out (${String(secret.label).toLowerCase()}: ${secret.oddValue}).`;
+    const text = `${secret.odd} is the odd one out (${inLine(String(secret.label))}: ${secret.oddValue}).`;
     return {
       awards: rightAwards(answers, new Set([correct]), 2),
       reveal: { text, correct: [correct], counts, answered: answers.length, right },
@@ -209,11 +231,13 @@ function statement(p: DailyPuzzle, label: string, name: string, v: string | numb
   switch (label) {
     case "Weight class": return `${name} is in the ${s} weight class in ${p.game}.`;
     case "Species": return name.toLowerCase().includes(s.toLowerCase()) ? null : `${name}'s species is ${s.replace(" (cybernetic)", ", with cybernetics")}.`;
-    case "First series": return `${name} first appeared in a ${s} game.`;
+    case "Crew": return CREW_SAID[s] && s !== "Wario & Waluigi" ? `${name} is ${CREW_SAID[s]}.` : null;
+    case "First Mario Kart": return `${name} first raced in ${kartName(s)}.`;
+    case "Home series": return `${name}'s home series is ${s}.`;
+    case "First Mario Party": return `${name} was first playable in ${s === "Mario Party" ? "the first Mario Party" : s}.`;
+    case "Mario Party games": return `${name} is playable in ${s} Mario Party game${s === "1" ? "" : "s"}.`;
     case "Series": return `${name} comes from the ${s} series.`;
     case "Debut year": return `${name} first appeared in ${s}.`;
-    case "Mario Kart debut": return `${name} first raced in Mario Kart in ${s}.`;
-    case "Mario Party debut": return `${name} first joined Mario Party in ${s}.`;
     case "First Smash": return `${name} was first playable in ${SMASH_NAMES[s] ?? s}.`;
     case "Role": return p.id === "overwatch-hero" ? `${name} is a ${s} hero in Overwatch.` : `${name} is a ${s} in Marvel Rivals.`;
     case "Origin": return `${name} is from ${the(s)}.`;
@@ -228,6 +252,7 @@ function statement(p: DailyPuzzle, label: string, name: string, v: string | numb
 /** Yes/no columns: one sentence, true when the value is Yes, and how the truth reads when it's No. */
 const YES_NO: Record<string, { says: (name: string) => string; not: (name: string) => string }> = {
   "Third party": { says: (name) => `${name} is a third-party fighter in Smash.`, not: (name) => `${name} isn't a third-party fighter.` },
+  Variant: { says: (name) => `${name} is a version of another racer.`, not: (name) => `${name} isn't a version of another racer.` },
   "In Superstars": { says: (name) => `${name} is playable in Mario Party Superstars.`, not: (name) => `${name} isn't playable in Mario Party Superstars.` },
 };
 
@@ -255,7 +280,8 @@ export const factOrFiction: BreakGame = {
       if (!truth) {
         // Another character's value from the same column; for years, a close one so it isn't obvious.
         const others = [...new Set(p.characters.map((o) => o.traits[i]).filter((v): v is string | number => usable(v) && String(v) !== String(real)))];
-        const near = t.kind === "year" ? others.filter((v) => Math.abs(Number(v) - Number(real)) <= 8) : others;
+        const near = t.kind === "year" ? others.filter((v) => Math.abs(Number(v) - Number(real)) <= 8)
+          : t.kind === "count" ? others.filter((v) => Math.abs(Number(v) - Number(real)) <= 4) : others;
         const from = near.length ? near : others;
         if (!from.length) return null;
         shown = pick(from, ctx.rand);
@@ -295,8 +321,6 @@ export const factOrFiction: BreakGame = {
 
 const YEAR_ASK: Record<string, (name: string) => string> = {
   "Debut year": (n) => `What year did ${n} first appear?`,
-  "Mario Kart debut": (n) => `What year did ${n} first race in Mario Kart?`,
-  "Mario Party debut": (n) => `What year did ${n} first join Mario Party?`,
   Released: (n) => `What year did ${n} come to Overwatch?`,
   "Comic debut": (n) => `What year did ${n} first appear in comics?`,
 };

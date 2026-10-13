@@ -65,7 +65,14 @@ export default function Page() {
         <li><strong>Four in a Row:</strong> chat votes a column each move against GameShuffle. A full game can take several minutes, so it&apos;s not in the lineup until you add it.</li>
         <li><strong>Know the Channel:</strong> questions about your channel that you and your mods write (or draft with AI from a short questionnaire and then keep the good ones). Add them under <strong>Know the Channel</strong> on the Break mode screen. It skips itself until there are some.</li>
         <li><strong>Chat Sets the Bounty:</strong> chat votes on a challenge for your next game, like winning the next race without items. If you pull it off, everyone who voted for it splits the bounty, paid in tokens from your monthly allowance. Pick the amount under <strong>Bounty</strong> on the Break mode screen (off until you do). When you&apos;re back, mark it <strong>Did it</strong> or <strong>Didn&apos;t</strong> in your control room.</li>
+        <li><strong>Boss Fight:</strong> chat against a boss with a health bar. Everyone types <code>hit</code> each round; one hit in eight is a critical. The more of chat joins in, the more health the boss has. Beat it in five rounds and everyone who hit it scores.</li>
+        <li><strong>Five Letters:</strong> chat works out a five-letter gaming word together, with a clue like &ldquo;A character&rdquo;. Each round the word most of chat typed is played and every letter shows whether it&apos;s in the right spot, somewhere else in the word, or not in it. Six guesses.</li>
+        <li><strong>Game Trivia:</strong> questions about the game you&apos;re streaming, from packs GameShuffle writes and checks. Until your game has a pack it asks general gaming questions.</li>
+        <li><strong>Kart Derby:</strong> chat picks a lane from 1 to 8 (or types <code>join</code> for any lane), then the race plays out on screen over three laps, with boosts, banana peels and shells. Everyone in the lanes that finish first, second and third scores. In a busy chat each lane is a team.</li>
       </ul>
+      <p>
+        New games join your lineup on their own. To leave one out, untick it on the Break mode screen.
+      </p>
       <p>
         What chat picks or calls for your next game (a build, a roll, a handicap) shows on the break screen and in chat when
         you&apos;re back.
@@ -77,7 +84,7 @@ export default function Page() {
 
       <h2>How viewers play</h2>
       <p>
-        Viewers type their answer in chat while a round is open: no command needed. Their latest answer counts (Zoomed In keeps your first guess, and Roster Rush counts every name), and the bot stays
+        Viewers type their answer in chat while a round is open: no command needed. Their latest answer counts (Zoomed In keeps your first guess, and Roster Rush counts every name; in Boss Fight one hit a round is all it takes), and the bot stays
         quiet until the round ends, then says the answer once. Everyone who&apos;s right scores, so nobody wins just by typing
         fastest, and answers keep counting for a few seconds after the countdown because viewers see your stream a little late.
         Viewers on their phones can also tap their answer on your <code>/live</code>{" "}page.

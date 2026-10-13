@@ -2672,3 +2672,42 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .live-break__c4 span.is-bot { background: #e5486b; }
 .live-break__c4 span.is-last { box-shadow: 0 0 0 3px var(--text-primary); }
 .live-break__c4 span.is-win { box-shadow: 0 0 0 3px #1f9d55; }
+
+/* Kart Derby's kart and lane colours: shared by the overlay (BreakScreenOverlay) and the live page. */
+.is-lane-1 { --lane: #ff6b6b; } .is-lane-2 { --lane: #ffa94d; } .is-lane-3 { --lane: #ffd43b; } .is-lane-4 { --lane: #69db7c; }
+.is-lane-5 { --lane: #38d9a9; } .is-lane-6 { --lane: #4dabf7; } .is-lane-7 { --lane: #9775fa; } .is-lane-8 { --lane: #f783ac; }
+.gs-kart { width: 34px; height: 20px; display: block; }
+.gs-kart__body { fill: var(--lane, #ffd34d); }
+.gs-kart__head { fill: #fff; stroke: #10133a; stroke-width: 1; }
+.gs-kart__wheel { fill: #10133a; stroke: #fff; stroke-width: 1.5; }
+
+/* Break mode wave 3 on the live page: Boss Fight, Five Letters, Kart Derby (pieces shared with the overlay). */
+.live-break__boss { display: flex; align-items: center; gap: var(--spacing-12, 12px); padding: var(--spacing-10, 10px) var(--spacing-12, 12px); border-radius: var(--radius-12, 12px); background: var(--background-secondary); border: 1px solid var(--border-default); }
+.live-break__boss-glyph { flex: none; width: 5.6rem; height: 5.6rem; border-radius: var(--radius-12, 12px); display: grid; place-items: center; background: #2a1030; color: #ff8aa6; }
+.live-break__boss.is-down .live-break__boss-glyph { filter: grayscale(1); opacity: 0.6; }
+.live-break__boss-info { flex: 1; min-width: 0; display: grid; gap: var(--spacing-4, 4px); }
+.live-break__boss-info b { font-size: var(--font-size-16); overflow-wrap: anywhere; }
+.live-break__boss-info small { font-size: var(--font-size-12); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.live-break__boss-hp { display: block; height: 1.2rem; border-radius: 99px; background: var(--border-default); overflow: hidden; }
+.live-break__boss-hp i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #e5486b, #f08c00); transition: width 900ms ease; }
+.live-break__letters-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.live-break__letters-grid li { display: grid; grid-template-columns: repeat(5, 3.6rem); gap: 0.4rem; }
+.live-break__letters-grid span { height: 3.6rem; display: grid; place-items: center; border-radius: var(--radius-6, 6px); border: 1px solid var(--border-default); background: var(--background-primary); font-size: var(--font-size-18); font-weight: 800; color: var(--text-primary); }
+.live-break__letters-grid span.is-g { background: #1a7a43; border-color: #1a7a43; color: #fff; }
+.live-break__letters-grid span.is-y { background: #9a5f00; border-color: #9a5f00; color: #fff; }
+.live-break__letters-grid span.is-x { background: #5f6372; border-color: #5f6372; color: #fff; }
+.live-break__letters-grid li.is-skipped { grid-template-columns: 1fr; }
+.live-break__letters-grid li.is-skipped span { border-style: dashed; font-size: var(--font-size-12); font-weight: 600; color: var(--text-secondary); }
+.live-break__derby { display: grid; gap: var(--spacing-6, 6px); }
+.live-break__derby-lanes { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.live-break__derby-lanes li { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr) minmax(0, 9rem); align-items: center; gap: var(--spacing-6, 6px); }
+.live-break__derby-num { width: 2.2rem; height: 2.2rem; border-radius: var(--radius-6, 6px); display: grid; place-items: center; background: var(--lane); color: #10133a; font-size: var(--font-size-12); font-weight: 800; }
+.live-break__derby-road { position: relative; height: 2.2rem; border-radius: var(--radius-6, 6px); background: var(--background-secondary); box-shadow: inset -3px 0 0 var(--text-primary); }
+.live-break__derby-kart { position: absolute; top: 0.1rem; left: calc((100% - 3.4rem) * var(--pos, 0)); transition: left 500ms linear; }
+.live-break__derby-kart .gs-kart { width: 3rem; height: 1.8rem; }
+.live-break__derby-name { font-size: var(--font-size-12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-break__derby-name small { color: var(--text-secondary); }
+.live-break__derby-place { font-style: normal; font-weight: 800; margin-right: 0.4rem; }
+.live-break__derby-lanes li.is-hot .live-break__derby-road { box-shadow: inset -3px 0 0 var(--text-primary), 0 0 0 2px var(--lane); }
+.live-break__derby-events { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; font-size: var(--font-size-14); color: var(--text-secondary); }
+@media (prefers-reduced-motion: reduce) { .live-break__boss-hp i, .live-break__derby-kart { transition: none; } }

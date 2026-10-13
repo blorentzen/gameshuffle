@@ -84,6 +84,30 @@ export interface RunMeta {
   } | null;
   /** Four in a Row: the board (42 cells), moves made, and the result once it's over. */
   c4?: { board: string; moves: number; over: boolean; result: "chat" | "bot" | "draw" | null; last: number | null } | null;
+  /** Boss Fight: the boss, everyone who's hit it, and how it ended. */
+  boss?: {
+    name: string;
+    glyph: string;
+    hp: number;
+    maxHp: number;
+    fighters: { platform: string; viewer: string; name: string; hits: number; crits: number; damage: number }[];
+    /** Most hitters in one round so far (sets the boss's health). */
+    peak: number;
+    rounds: number;
+    over: boolean;
+    won: boolean;
+  } | null;
+  /** Five Letters: the word, the guesses played, and how it ended. */
+  letters?: { word: string; category: string; rows: { word: string; marks: string }[]; over: boolean; solved: boolean } | null;
+  /** Kart Derby: who's in which lane, and the race, drawn when joining closes. */
+  derby?: {
+    lanes: { lane: number; label: string; racers: { platform: string; viewer: string; name: string }[] }[];
+    /** Where each lane is (0 to 100) after each stretch; stretch 0 is the start. */
+    marks: number[][];
+    events: { at: number; lane: number; text: string }[][];
+    order: number[];
+    shown: number;
+  } | null;
   /** Item Box Royale: who joined and the knockouts, decided when joining closes. */
   royale?: {
     players: { platform: string; viewer: string; name: string }[];

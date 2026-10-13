@@ -35,7 +35,11 @@ export type BreakGameId =
   | "item-box-royale"
   | "four-in-a-row"
   | "know-the-channel"
-  | "chat-bounty";
+  | "chat-bounty"
+  | "boss-fight"
+  | "five-letters"
+  | "kart-derby"
+  | "game-trivia";
 
 /** Shuffle Dice faces (src/lib/originals/shuffleDice.ts). */
 export type DiceFace = "star" | "coin" | "mushroom" | "shell" | "bomb";
@@ -68,7 +72,25 @@ export type BreakRound = (
   | { layout: "royale"; prompt: string; hint: string; stage: "join" | "wave"; alive: string[]; aliveCount: number; tag?: string }
   /** Four in a Row: 42 cells, row by row from the top ("." empty, "c" chat, "b" GameShuffle); options = open columns. */
   | { layout: "connect"; prompt: string; hint: string; board: string; options: BreakOption[]; last: number | null; tag?: string }
+  /** Boss Fight: the boss and its health going into this round. */
+  | { layout: "boss"; prompt: string; hint: string; boss: BossView; fighters: number; tag?: string }
+  /** Five Letters: the guesses played so far and what each letter showed. */
+  | { layout: "letters"; prompt: string; hint: string; rows: LetterRow[]; maxRows: number; category: string; tag?: string }
+  /** Kart Derby: joining (pick a lane), then the race, one stretch per round (karts move from → to over the round). */
+  | { layout: "derby"; prompt: string; hint: string; stage: "join" | "race"; lanes: DerbyLane[]; stretch: number; stretches: number; events: DerbyEvent[]; seconds: number; tag?: string }
 ) & { openedAt?: string };
+
+/** Boss Fight's boss on screen. `glyph` picks its icon on the overlay. */
+export interface BossView { name: string; glyph: string; hp: number; maxHp: number }
+
+/** One played Five Letters guess: `marks` per letter, "g" right spot, "y" in the word, "x" not in it. */
+export interface LetterRow { word: string; marks: string }
+
+/** A Kart Derby kart: its lane (1 to 8), who's driving and where it is (0 to 100) at the start and end of this stretch. */
+export interface DerbyLane { lane: number; label: string; racers: number; from: number; to: number; place?: number }
+
+/** Something that happens during a stretch, `at` = how far through it (0 to 1). */
+export interface DerbyEvent { at: number; lane: number; text: string }
 
 /** Shuffle Dice: what's on the table for chat's next call. */
 export interface ShuffleTable {
@@ -108,6 +130,12 @@ export interface BreakReveal {
   /** Roster Rush: what chat found, and some it missed. */
   found?: string[];
   missed?: string[];
+  /** Boss Fight: the boss after this round's hits. */
+  boss?: BossView;
+  /** Five Letters: every guess so far, including this round's. */
+  rows?: LetterRow[];
+  /** Kart Derby: where everyone finished this stretch (and the places at the end). */
+  lanes?: DerbyLane[];
 }
 
 export interface BreakView {
@@ -190,18 +218,48 @@ export const BREAK_GAMES: Record<BreakGameId, BreakGameInfo> = {
   "four-in-a-row": { name: "Four in a Row", howTo: "Type a column, 1 to 7", blurb: "Chat votes each move against GameShuffle. Up to 4 minutes.", rounds: 21, seconds: 12 },
   "know-the-channel": { name: "Know the Channel", howTo: "Type your answer", blurb: "Questions about this channel, written by the streamer and their mods. Skips itself until some are approved.", rounds: 3, seconds: 20 },
   "chat-bounty": { name: "Chat Sets the Bounty", howTo: "Type 1, 2 or 3", blurb: "Chat votes a challenge for the streamer's next game. Pull it off and the voters split the tokens. Skips itself until a bounty amount is set.", rounds: 1, seconds: 30 },
+  // Wave 3
+  "boss-fight": { name: "Boss Fight", howTo: "Type hit", blurb: "Chat against a boss. Everyone who hits it scores if it goes down in time. More fighters, more health.", rounds: 5, seconds: 12 },
+  "five-letters": { name: "Five Letters", howTo: "Type a five-letter word", blurb: "Chat works out a five-letter gaming word together. The most-typed guess is played each round.", rounds: 6, seconds: 18 },
+  "kart-derby": { name: "Kart Derby", howTo: "Type a lane, 1 to 8", blurb: "Pick a lane and watch the race. Item boxes swing it; the podium lanes score.", rounds: 4, seconds: 30 },
+  "game-trivia": { name: "Game Trivia", howTo: "Type your answer", blurb: "Questions about the game you're streaming, from packs GameShuffle checks. General gaming questions until your game has one.", rounds: 4, seconds: 20 },
 };
 
 export const BREAK_GAME_IDS = Object.keys(BREAK_GAMES) as BreakGameId[];
 /** The lineup a channel starts with: kinds mixed, the "for when you're back" games last. */
 export const DEFAULT_LINEUP: BreakGameId[] = [
-  "higher-lower", "read-the-room", "over-under", "zoomed-in", "odd-one-out", "tier-war-live", "trivia-rounds",
-  "scramble", "item-box-royale", "lucky-number", "emoji-puzzle", "shuffle-dice", "chat-brain", "fact-or-fiction",
-  "roster-rush", "know-the-channel", "closest-guess", "high-roller", "roll-call", "next-build", "handicap-vote", "chat-bounty",
+  "higher-lower", "read-the-room", "over-under", "zoomed-in", "kart-derby", "odd-one-out", "tier-war-live", "trivia-rounds",
+  "scramble", "item-box-royale", "lucky-number", "five-letters", "emoji-puzzle", "game-trivia", "shuffle-dice", "boss-fight", "chat-brain",
+  "fact-or-fiction", "roster-rush", "know-the-channel", "closest-guess", "high-roller", "roll-call", "next-build", "handicap-vote", "chat-bounty",
 ];
 
 export function isBreakGameId(v: unknown): v is BreakGameId {
   return typeof v === "string" && v in BREAK_GAMES;
+}
+
+/**
+ * When each game after the first waves arrived (Pacific). A channel whose
+ * settings were last saved before then gets the game added to its lineup;
+ * one that saved after had the chance to leave it out.
+ */
+export const BREAK_GAME_ADDED: Partial<Record<BreakGameId, string>> = {
+  "boss-fight": "2026-10-12T00:00:00-07:00",
+  "five-letters": "2026-10-12T00:00:00-07:00",
+  "kart-derby": "2026-10-12T00:00:00-07:00",
+  "game-trivia": "2026-10-12T00:00:00-07:00",
+};
+
+/** The "for when you're back" games stay last when new games join a saved lineup. */
+const CLOSERS: BreakGameId[] = ["roll-call", "next-build", "handicap-vote", "chat-bounty"];
+
+/** A saved lineup plus the games that arrived after it was saved. */
+export function withNewGames(lineup: BreakGameId[], savedAt: string | null | undefined): BreakGameId[] {
+  const saved = savedAt ? Date.parse(savedAt) : NaN;
+  if (!Number.isFinite(saved)) return lineup;
+  const fresh = (Object.keys(BREAK_GAME_ADDED) as BreakGameId[]).filter((id) => !lineup.includes(id) && Date.parse(BREAK_GAME_ADDED[id]!) > saved);
+  if (!fresh.length) return lineup;
+  const at = lineup.findIndex((id) => CLOSERS.includes(id));
+  return at < 0 ? [...lineup, ...fresh] : [...lineup.slice(0, at), ...fresh, ...lineup.slice(at)];
 }
 
 /** A lineup with only known games, no repeats, never empty. */
