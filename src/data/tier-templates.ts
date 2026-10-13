@@ -52,8 +52,18 @@ const charsOf = (d: GameData): TemplateItem[] =>
   (d.characters ?? []).map((c) => ({ label: c.name, image: c.img }));
 const vehiclesOf = (d: GameData): TemplateItem[] =>
   (d.vehicles ?? []).map((v) => ({ label: v.name, image: v.img }));
-const tracksOf = (d: GameData): TemplateItem[] =>
-  (d.cups ?? []).flatMap((cup) => (cup.courses ?? []).map((c) => ({ label: c.name, image: c.img })));
+/** Retro tracks that share a name get their console in front, as the game shows them
+ *  ("N64 Rainbow Road"): Tier Wars and break mode key items by name. */
+const tracksOf = (d: GameData): TemplateItem[] => {
+  const courses = (d.cups ?? []).flatMap((cup) => cup.courses ?? []);
+  const uses = new Map<string, number>();
+  for (const c of courses) uses.set(c.name, (uses.get(c.name) ?? 0) + 1);
+  return courses.map((c) => {
+    const type = (c as { type?: string }).type;
+    const label = (uses.get(c.name) ?? 0) > 1 && type && type !== "Standard" ? `${type} ${c.name}` : c.name;
+    return { label, image: c.img };
+  });
+};
 
 const MK8DX = mk8dx as unknown as GameData;
 const MKWORLD = mkworld as unknown as GameData;

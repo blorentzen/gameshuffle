@@ -16,7 +16,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { SITE_URL } from "@/lib/seo";
 import { ephemeralMessage } from "./respond";
 
-export type ActivityTab = "daily" | "weekly" | "brain";
+export type ActivityTab = "daily" | "weekly" | "brain" | "trivia";
 
 export function activityLive(): boolean {
   return process.env.DISCORD_ACTIVITY_LIVE !== "0";

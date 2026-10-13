@@ -40,13 +40,15 @@ export interface TierActivityView {
 
 const MIXED = "mixed";
 
-export function TierWarsPanel({ activity: a, me, seatName, busy, act, gameDone }: {
+export function TierWarsPanel({ activity: a, me, seatName, busy, act, gameDone, inCall = false }: {
   activity: TierActivityView;
   me: { isHost: boolean; seat: number | null };
   seatName: (i: number) => string;
   busy: boolean;
   act: (body: Record<string, unknown>) => Promise<unknown>;
   gameDone: boolean;
+  /** Played in a Discord call (the Activity's Together tab) instead of at a live night. */
+  inCall?: boolean;
 }) {
   const [topic, setTopic] = useState(MIXED);
   // Unsent picks for this round, layered over what's already locked in.
@@ -70,8 +72,8 @@ export function TierWarsPanel({ activity: a, me, seatName, busy, act, gameDone }
         <span className="party-muted">{c ? `Round ${c.round} of ${a.totalRounds}` : `${a.totalRounds} rounds`}</span>
       </div>
 
-      {a.players.length < 3 && <Alert variant="warning" title="Needs three players">Tier Wars needs at least three people in seats. Share the code so more can join.</Alert>}
-      {!c && <p className="party-muted">Everyone ranks the same six things from S to D on their phone. The reveal builds the room&apos;s tier list, and you score a point for every item you put where the room did.</p>}
+      {a.players.length < 3 && <Alert variant="warning" title="Needs three players">{inCall ? "Tier Wars needs at least three people in the room. Ask the call to open the Together tab." : "Tier Wars needs at least three people in seats. Share the code so more can join."}</Alert>}
+      {!c && <p className="party-muted">Everyone ranks the same six things from S to D {inCall ? "on their own screen" : "on their phone"}. The reveal builds the room&apos;s tier list, and you score a point for every item you put where the room did.</p>}
 
       {c && (
         <div className="likely__prompt">
@@ -146,7 +148,7 @@ export function TierWarsPanel({ activity: a, me, seatName, busy, act, gameDone }
         </div>
       )}
 
-      {standings.some((s) => s.points > 0) && (
+      {!inCall && standings.some((s) => s.points > 0) && (
         <div>
           <p className="party-options__label">Tier Wars standings</p>
           <ul className="party-live__scores">

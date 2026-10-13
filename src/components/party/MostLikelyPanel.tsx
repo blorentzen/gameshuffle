@@ -32,13 +32,15 @@ export interface LikelyActivityView {
 
 const MIXED = "mixed";
 
-export function MostLikelyPanel({ activity: a, me, seatName, busy, act, gameDone }: {
+export function MostLikelyPanel({ activity: a, me, seatName, busy, act, gameDone, inCall = false }: {
   activity: LikelyActivityView;
   me: { isHost: boolean; seat: number | null };
   seatName: (i: number) => string;
   busy: boolean;
   act: (body: Record<string, unknown>) => Promise<unknown>;
   gameDone: boolean;
+  /** Played in a Discord call (the Activity's Together tab) instead of at a live night. */
+  inCall?: boolean;
 }) {
   const [pack, setPack] = useState(MIXED);
   if (!a.ready) {
@@ -57,8 +59,8 @@ export function MostLikelyPanel({ activity: a, me, seatName, busy, act, gameDone
         <span className="party-muted">{c ? `Round ${c.round} of ${a.totalRounds}` : `${a.totalRounds} rounds`}</span>
       </div>
 
-      {a.players.length < 3 && <Alert variant="warning" title="Needs three players">Most Likely To needs at least three people in seats. Share the code so more can join.</Alert>}
-      {!c && <p className="party-muted">A prompt goes up on the TV and everyone votes for who fits it best, yourself included. You score a point every time your vote matches the room&apos;s pick.</p>}
+      {a.players.length < 3 && <Alert variant="warning" title="Needs three players">{inCall ? "Most Likely To needs at least three people in the room. Ask the call to open the Together tab." : "Most Likely To needs at least three people in seats. Share the code so more can join."}</Alert>}
+      {!c && <p className="party-muted">{inCall ? "A prompt goes up and everyone votes for who in the call fits it best, yourself included." : "A prompt goes up on the TV and everyone votes for who fits it best, yourself included."} You score a point every time your vote matches the room&apos;s pick.</p>}
 
       {c && (
         <div className="likely__prompt">
@@ -98,7 +100,7 @@ export function MostLikelyPanel({ activity: a, me, seatName, busy, act, gameDone
         </div>
       )}
 
-      {standings.some((s) => s.points > 0) && (
+      {!inCall && standings.some((s) => s.points > 0) && (
         <div>
           <p className="party-options__label">Most Likely To standings</p>
           <ul className="party-live__scores">
