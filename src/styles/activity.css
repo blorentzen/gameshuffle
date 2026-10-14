@@ -256,3 +256,36 @@
 .gs-room__slot-label { min-width: 0; overflow-wrap: anywhere; font-weight: var(--font-weight-semibold); }
 .gs-room__slot-label small { font-weight: var(--font-weight-medium, 500); color: var(--text-secondary); }
 .gs-room__slot-points { text-align: right; font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+
+/* "What is this game?" (GameInfo.tsx): a CDS IconButton beside a game's name opens a CDS Popover.
+   The Popover's own trigger is a hidden anchor laid over the button, so the panel lines up with it
+   and the button stays the one control. */
+.gs-gameinfo { position: relative; display: inline-flex; flex: 0 0 auto; vertical-align: middle; }
+.gs-gameinfo .empac-popover-trigger { position: absolute; inset: 0; visibility: hidden; pointer-events: none; }
+.gs-gameinfo .empac-icon-button { color: var(--text-secondary); }
+.gs-gameinfo .empac-icon-button[aria-expanded="true"] { background-color: var(--background-secondary); color: var(--text-primary); }
+/* Never wider than the frame: Discord's window can be 300px wide. */
+.gs-gameinfo__pop.empac-popover { min-width: 0; width: min(32rem, calc(100vw - 16px)); max-width: calc(100vw - 16px); }
+.gs-gameinfo__pop:focus { outline: none; }
+.gs-gameinfo__pop:focus-visible { outline: 2px solid var(--border-focus, var(--primary-600)); outline-offset: 2px; }
+.gs-gameinfo__card { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.gs-gameinfo__title { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-bold); color: var(--text-primary); }
+.gs-gameinfo__body { display: flex; flex-direction: column; gap: var(--spacing-6); }
+.gs-gameinfo__body p { margin: 0; font-size: var(--font-size-14); line-height: 1.45; color: var(--text-primary); }
+.gs-gameinfo__body .gs-gameinfo__meta { margin-top: var(--spacing-2, 2px); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+
+/* A tab's header line: the game's name and its info button. */
+.gs-gameinfo-head { display: flex; align-items: center; gap: var(--spacing-4); min-width: 0; margin-bottom: var(--spacing-12); }
+.gs-gameinfo-head__title { margin: 0; min-width: 0; font-family: var(--gs-font-display, inherit); font-size: var(--font-size-18); font-weight: var(--font-weight-bold); line-height: 1.25; overflow-wrap: anywhere; }
+.gs-activity__brain > .gs-gameinfo-head { margin-bottom: 0; }
+
+/* Play together: the room's title and each lobby card's title with their buttons, and the named lists. */
+.gs-room__title-row,
+.gs-room__game-head { display: flex; align-items: center; gap: var(--spacing-4); min-width: 0; }
+.gs-gameinfo-list { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
+.gs-gameinfo-list__label { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.gs-gameinfo-list__items { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 var(--spacing-12); }
+.gs-gameinfo-list__item { display: inline-flex; align-items: center; gap: var(--spacing-2, 2px); min-width: 0; font-size: var(--font-size-14); color: var(--text-primary); }
+
+/* The corner window shows no game, so no panel either. */
+@media (max-height: 300px) { .gs-gameinfo__pop { display: none; } }
