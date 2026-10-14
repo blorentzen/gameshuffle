@@ -11,6 +11,7 @@ import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
 import { heroArt } from "@/lib/heroes/art";
 import type { HeroGame } from "@/lib/heroes/types";
 import { OVERWATCH_FACTS, RIVALS_FACTS } from "@/data/originals/daily-facts-heroes";
+import { ALLSTARS_NODS, ALLSTARS_ROSTER, DEBUT_GAME_SAY, DEBUT_PLATFORM, FIRST_KART_OVERRIDE, FIRST_SMASH_OVERRIDE, KART_FACTS_KEY, PLATFORM_GENERATION, PLATFORM_PHRASE, SERIES_GROUP } from "@/data/originals/daily-allstars";
 import { gsDay } from "@/lib/time/gsClock";
 
 /**
@@ -32,6 +33,7 @@ import { gsDay } from "@/lib/time/gsClock";
  * shuffle, so never reorder or filter a roster: it would change past answers.
  */
 
+/** The most guesses any puzzle allows (All-Stars: 5 plus the Last chance). Per puzzle: guessLimits(). */
 export const MAX_GUESSES = 6;
 /** Puzzle #1. */
 export const DAILY_EPOCH = "2026-09-29";
@@ -61,7 +63,11 @@ export interface DailyCharacter {
   traits: TraitValue[];
   /** The written clue that unlocks after guess 3. */
   clue: string | null;
+  /** Hints that unlock as the guesses go (All-Stars): `after` = guesses made before it shows. */
+  ladder?: LadderHint[];
 }
+
+export interface LadderHint { after: number; text: string }
 
 export interface DailyPuzzle {
   id: string;
@@ -84,6 +90,31 @@ export interface DailyPuzzle {
   arrowNote?: string;
   /** The late hint: the answer's silhouette (default), or a blurred portrait when the art fills its square. */
   reveal?: "silhouette" | "blur";
+  /** Guesses in the main game (default 6). */
+  guesses?: number;
+  /** One more guess after the main game, with the silhouette: keeps a streak, isn't a win. */
+  lastChance?: boolean;
+  /** Don't show the game's name to players (one big pool has no single game). */
+  hideGame?: boolean;
+}
+
+/** The main game's guesses, and the total with the Last chance. */
+export function guessLimits(p: DailyPuzzle): { main: number; total: number } {
+  const main = p.guesses ?? MAX_GUESSES;
+  return { main, total: main + (p.lastChance ? 1 : 0) };
+}
+/** The game's name as players see it, or null when the puzzle doesn't show one. */
+export function puzzleLabel(p: DailyPuzzle): string | null {
+  return p.hideGame ? null : p.game;
+}
+/** Guesses made before the silhouette shows: the Last chance, or the last guess. */
+export function silhouetteAfter(p: DailyPuzzle): number {
+  const { main } = guessLimits(p);
+  return p.lastChance ? main : main - 1;
+}
+/** The hints showing after `made` guesses. */
+export function ladderShown(c: DailyCharacter, made: number): LadderHint[] {
+  return (c.ladder ?? []).filter((h) => h.after <= made);
 }
 
 const WEIGHT: TraitDef = { label: "Weight class", short: "Weight", kind: "ordered", order: ["Light", "Medium", "Heavy"], starter: (v) => `Today's character is in the ${v} weight class.` };
@@ -296,6 +327,64 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
  * append an era with a start day that hasn't been played yet: a day's puzzle, and
  * so its answer, must never change once it has run.
  */
+
+// ─── All-Stars: one big pool (src/data/originals/daily-allstars.ts) ─────────────
+const AS_SERIES: TraitDef = { label: "Series", short: "Series", kind: "match" };
+const AS_PLATFORM: TraitDef = {
+  label: "Debut console", short: "Console", kind: "match",
+  near: (g, a) => (PLATFORM_GENERATION[g] ?? []).some((x) => (PLATFORM_GENERATION[a] ?? []).includes(x)),
+};
+const AS_SMASH: TraitDef = { label: "First Smash", short: "First Smash", kind: "ordered", order: ["64", "Melee", "Brawl", "Smash 4", "Ultimate"], within: 1 };
+const AS_KART: TraitDef = { label: "First Mario Kart", short: "First MK", kind: "ordered", order: [...KART_GAMES], within: 1 };
+
+const tidy = (s: string) => s.toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g, "");
+/** The debut game for the last fact hint, unless its title gives the name away. */
+function debutGameHint(name: string, game: string): string {
+  const said = DEBUT_GAME_SAY[game];
+  if (said) return `Debuted in ${said.replace(/\.$/, "")}.`;
+  const n = tidy(name).replace(/s$/, ""), g = tidy(game.replace(/\s*\(.*\)\s*/g, " "));
+  if (n && (g.includes(n) || n.includes(g))) return "Debuted in a game named after them.";
+  return `Debuted in ${game.replace(/\.$/, "")}.`;
+}
+
+function buildAllStars(): DailyPuzzle {
+  const art = (id: string) => new Map(PUZZLES[id].characters.map((c) => [c.name, c.img]));
+  const smashArt = art("smash-fighter"), worldArt = art("mkworld-character"), dxArt = art("mk8dx-character"), partyArt = art("party-character");
+  const characters: DailyCharacter[] = ALLSTARS_ROSTER.map((e) => {
+    const key = e.key ?? e.name;
+    const sm = e.src === "smash" ? SMASH_FACTS[e.name] : null;
+    const kf = e.src === "smash" ? (e.name in KART_FACTS_KEY ? (KART_FACTS_KEY[e.name] ? DAILY_FACTS[KART_FACTS_KEY[e.name]!] : null) : DAILY_FACTS[e.name]) : DAILY_FACTS[key];
+    const series = sm ? sm.series : kf ? (SERIES_GROUP[kf.series] ?? kf.series) : null;
+    const debutGame = sm ? sm.debutGame : kf?.debutGame ?? null;
+    const debutYear = sm ? sm.debutYear : kf?.debutYear ?? null;
+    const platform = debutGame ? DEBUT_PLATFORM[debutGame] ?? null : null;
+    const firstSmash = sm ? sm.firstSmash : FIRST_SMASH_OVERRIDE[e.name] ?? "Never";
+    const kart = FIRST_KART_OVERRIDE[e.name] ?? firstKart(kf?.kartDebutYear ?? null) ?? "Never";
+    // Mario Kart 8 Deluxe's cutouts first: World's newer racers come as framed cards.
+    const img = e.src === "smash" ? smashArt.get(e.name) : dxArt.get(key) ?? worldArt.get(key) ?? partyArt.get(key);
+    const nods = ALLSTARS_NODS[e.name] ?? [];
+    const ladder: LadderHint[] = [
+      ...nods.map((text, i) => ({ after: i, text })),
+      ...(debutYear && platform ? [{ after: 3, text: `Debuted in ${debutYear} ${PLATFORM_PHRASE[platform] ?? `on ${platform}`}.` }] : []),
+      ...(debutGame ? [{ after: 4, text: debutGameHint(e.name, debutGame) }] : []),
+    ];
+    return { name: e.name, img: img ?? "", clue: null, ladder, traits: [series, debutYear, platform, firstSmash, kart] };
+  });
+  return {
+    id: "allstars",
+    game: "All-Stars",
+    hideGame: true,
+    traits: [AS_SERIES, DEBUT, AS_PLATFORM, AS_SMASH, AS_KART],
+    characters,
+    seed: 20261019,
+    starter: [],
+    guesses: 5,
+    lastChance: true,
+    closeNote: "a debut within 3 years, the same console generation, or the game just before or after",
+  };
+}
+PUZZLES["allstars"] = buildAllStars();
+
 const ROTATIONS: { from: string; days: string[] }[] = [
   {
     from: DAILY_EPOCH, // Mario Kart 8 Deluxe gets three days as the flagship.
@@ -306,6 +395,13 @@ const ROTATIONS: { from: string; days: string[] }[] = [
     // day is Thu Oct 15: this must be live before then, or move the date.
     from: "2026-10-12",
     days: ["mk8dx-character", "mk8dx-character", "mkworld-character", "party-character", "smash-fighter", "mkworld-character", "party-character"],
+  },
+  {
+    // All-Stars every day (Britton, 2026-10-14): one pool of 130 characters
+    // instead of a game a day. Starts the day after it shipped, so every
+    // earlier answer stays exactly as it was.
+    from: "2026-10-15",
+    days: ["allstars", "allstars", "allstars", "allstars", "allstars", "allstars", "allstars"],
   },
 ];
 
@@ -458,10 +554,15 @@ export function hintFor(guess: string, answer: DailyCharacter, puzzle: DailyPuzz
 
 /** The shareable result: one row per guess (each column, then the answer). */
 export function shareText(day: string, hints: GuessHint[], solved: boolean): string {
+  const p = puzzleFor(day);
+  const { main } = guessLimits(p);
   const sq = (c: TraitCell) => (c.status === "match" ? "🟩" : c.status === "close" ? "🟨" : "⬛");
-  const rows = hints.map((h) => `${h.cells.map(sq).join("")}${h.correct ? "🏁" : "❌"}`);
+  // The Last chance row ends in a ring buoy instead of the flag.
+  const rows = hints.map((h, i) => `${h.cells.map(sq).join("")}${h.correct ? (i >= main ? "🛟" : "🏁") : "❌"}`);
   const starter = starterFor(day);
-  return [`The Daily Shuffle #${puzzleNumber(day)} · ${puzzleFor(day).game} ${solved ? hints.length : "X"}/${MAX_GUESSES}`, ...(starter ? [`Started from ${starter.tag}`] : []), ...rows, "gameshuffle.co/daily"].join("\n");
+  const label = puzzleLabel(p);
+  const score = !solved ? `X/${main}` : hints.length > main ? "saved on the last chance" : `${hints.length}/${main}`;
+  return [`The Daily Shuffle #${puzzleNumber(day)}${label ? ` · ${label}` : ""} ${score}`, ...(starter ? [`Started from ${starter.tag}`] : []), ...rows, "gameshuffle.co/daily"].join("\n");
 }
 
 /**
@@ -471,7 +572,8 @@ export function shareText(day: string, hints: GuessHint[], solved: boolean): str
  * isn't a finished game.
  */
 export function judgeGame(day: string, guesses: string[]): { guesses: number; solved: boolean } | null {
-  if (!Array.isArray(guesses) || guesses.length < 1 || guesses.length > MAX_GUESSES) return null;
+  const { total } = guessLimits(puzzleFor(day));
+  if (!Array.isArray(guesses) || guesses.length < 1 || guesses.length > total) return null;
   if (new Set(guesses).size !== guesses.length) return null;
   const roster = puzzleFor(day).characters;
   if (!guesses.every((g) => roster.some((c) => c.name === g))) return null;
@@ -479,11 +581,11 @@ export function judgeGame(day: string, guesses: string[]): { guesses: number; so
   const at = guesses.indexOf(answer);
   if (at >= 0 && at !== guesses.length - 1) return null; // nothing after the right answer
   const solved = at >= 0;
-  if (!solved && guesses.length < MAX_GUESSES) return null;
+  if (!solved && guesses.length < total) return null;
   return { guesses: guesses.length, solved };
 }
 
-export interface DailyStats { played: number; won: number; streak: number; best: number; dist: number[] }
+export interface DailyStats { played: number; won: number; streak: number; best: number; dist: number[]; /** Solved on the Last chance: keeps the streak, isn't a win. */ saved?: number }
 
 /**
  * Stats from an account's results, across every puzzle in the rotation. The
@@ -496,7 +598,15 @@ export function statsFrom(rows: { day: string; guesses: number; solved: boolean 
   for (const r of rows) if (!byDay.has(r.day)) byDay.set(r.day, r);
   const dist = Array(MAX_GUESSES).fill(0) as number[];
   const solvedDays = new Set<string>();
-  for (const [day, r] of byDay) if (r.solved) { solvedDays.add(day); if (r.guesses >= 1 && r.guesses <= MAX_GUESSES) dist[r.guesses - 1] += 1; }
+  let won = 0, saved = 0;
+  for (const [day, r] of byDay) {
+    if (!r.solved) continue;
+    solvedDays.add(day);
+    // A Last chance save keeps the streak going but isn't a win.
+    if (r.guesses > guessLimits(puzzleFor(day)).main) { saved += 1; continue; }
+    won += 1;
+    if (r.guesses >= 1 && r.guesses <= MAX_GUESSES) dist[r.guesses - 1] += 1;
+  }
   let streak = 0;
   let d = solvedDays.has(today) ? today : addDays(today, -1);
   while (solvedDays.has(d)) { streak += 1; d = addDays(d, -1); }
@@ -506,5 +616,5 @@ export function statsFrom(rows: { day: string; guesses: number; solved: boolean 
     best = Math.max(best, run);
     last = day;
   }
-  return { played: byDay.size, won: solvedDays.size, streak, best, dist };
+  return { played: byDay.size, won, streak, best, dist, saved };
 }

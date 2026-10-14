@@ -6,20 +6,42 @@
     {
       "sku": "thirty-set",
       "kind": "bundle",
-      "name": "Anniversary Thirty Set",
-      "price_cents": 5999,
-      "max_per_order": 2,
+      "name": "Anniversary Thirty Set (English)",
+      "price_cents": 6999,
+      "max_per_order": 1,
       "ship_weight_oz": 4,
       "sort_order": 10,
       "active": true,
-      "stock_available": 0,
-      "stripe_description": "All 30 Pikachu from Pokémon TCG 30th Celebration plus Pikachu ex 053 and 054. 32 cards, sleeved, in number order, with a digital artist checklist.",
+      "stock_available": 5,
+      "stripe_description": "All 30 Pikachu from Pokémon TCG 30th Celebration (023/128 to 052/128) plus Pikachu ex 053/128 and 054/128. 32 English cards, sleeved, in number order, with a digital artist checklist.",
       "blurb": "All 30 Pikachu from 30th Celebration plus Pikachu ex 053 and 054, sleeved and in order.",
       "contents": [
-        "30th Celebration Pikachu 01 to 30, one of each, each by a different artist",
+        "All 30 Pikachu, 01/30 to 30/30 (set numbers 023/128 to 052/128), each by a different artist",
         "Pikachu ex 053/128 and 054/128",
-        "Every card in a penny sleeve, in number order, in 2 sealed team bags",
-        "Digital artist checklist with the set number"
+        "32 English cards, each in a penny sleeve, in number order, in 2 sealed team bags",
+        "Digital artist checklist"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "thirty-set-jp",
+      "kind": "bundle",
+      "name": "Anniversary Thirty Set (Japanese)",
+      "price_cents": 8999,
+      "max_per_order": 1,
+      "ship_weight_oz": 4,
+      "sort_order": 15,
+      "active": true,
+      "stock_available": 3,
+      "stripe_description": "All 30 Pikachu from the Japanese Pokémon TCG set 30th Celebration (M6a), 017/103 to 046/103, plus Pikachu ex 047/103 and 048/103. 32 Japanese cards, sleeved, in number order, with a digital artist checklist.",
+      "blurb": "All 30 Pikachu from the Japanese 30th Celebration set plus Pikachu ex 047 and 048, sleeved and in order.",
+      "contents": [
+        "All 30 Pikachu, 01/30 to 30/30 (set numbers 017/103 to 046/103), each by a different artist",
+        "Pikachu ex 047/103 and 048/103",
+        "32 Japanese cards, each in a penny sleeve, in number order, in 2 sealed team bags",
+        "Digital artist checklist with the Japanese set numbers",
+        "Card text is in Japanese"
       ],
       "image_url": null,
       "category": "tcg"
@@ -271,7 +293,7 @@
     "_rule": "Britton, 2026-10-09: every checklist and deck list is digital, not printed. Each list shows in the order email and on the order page once it has a url; null keeps it hidden.",
     "lists": [
       { "id": "collect-all-30", "title": "Collect all 30 checklist", "url": "/pokemon-tcg/checklists/30th-celebration-pikachu", "skus": ["thirty-hunt-1", "thirty-hunt-3"] },
-      { "id": "thirty-set-artists", "title": "Artist checklist", "url": "/pokemon-tcg/checklists/30th-celebration-pikachu", "skus": ["thirty-set"] },
+      { "id": "thirty-set-artists", "title": "Artist checklist", "url": "/pokemon-tcg/checklists/30th-celebration-pikachu", "skus": ["thirty-set", "thirty-set-jp"] },
       { "id": "set-builder-checklist", "title": "Set Builder checklist", "url": "/pokemon-tcg/checklists/ascended-heroes-commons-uncommons", "skus": ["set-builder-100"] },
       { "id": "deck-list", "title": "Deck list", "url": null, "skus": ["ready-deck"] }
     ]

@@ -19,35 +19,38 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>The Daily Shuffle</h1>
       <p>
-        <Link href="/daily">The Daily Shuffle</Link>{" "}is a daily puzzle: guess today&apos;s character in six tries. Everyone gets
-        the same character each day, and a new one arrives at midnight Pacific time.
+        <Link href="/daily">The Daily Shuffle</Link>{" "}is a daily puzzle: guess today&apos;s character from 130 across Nintendo,
+        plus Smash&apos;s guests. Everyone gets the same character each day, and a new one arrives at midnight Pacific time.
       </p>
 
-      <h2>A different game each day</h2>
-      <ul>
-        <li><strong>Mario Kart 8 Deluxe:</strong> Sunday and Monday (and Thursday until October 8, 2026).</li>
-        <li><strong>Mario Kart World:</strong> Tuesday and Friday.</li>
-        <li><strong>Mario Party:</strong> Wednesday and Saturday (the Jamboree roster).</li>
-        <li><strong>Smash Ultimate:</strong> Thursday, starting October 15, 2026 (all 86 fighters).</li>
-      </ul>
-      <p>The days follow Pacific time (PT), so depending on where you live the switch can happen during your day rather than at your midnight.</p>
+      <h2>One big pool</h2>
+      <p>
+        Since October 15, 2026, every day draws from the same pool: every Smash Ultimate fighter, plus the Mario Kart and
+        Mario Party characters Smash doesn&apos;t have. (Until then the game changed by the day: Mario Kart 8 Deluxe, Mario
+        Kart World, Mario Party and Smash.) The days follow Pacific time (PT), so depending on where you live the new puzzle
+        can arrive during your day rather than at your midnight.
+      </p>
 
       <h2>How the hints work</h2>
-      <p>Each guess fills a row of facts about your guess, checked against today&apos;s character:</p>
-      <ul>
-        <li><strong>Mario Kart 8 Deluxe days:</strong> weight class, crew, the first Mario Kart they raced in, whether they&apos;re a variant (like Baby or Metal), and their debut year.</li>
-        <li><strong>Mario Kart World days:</strong> weight class, crew, first Mario Kart, home series, and debut year.</li>
-        <li><strong>Mario Party days:</strong> crew, how many Mario Party games they&apos;re playable in, their first Mario Party, and whether they&apos;re in Mario Party Superstars.</li>
-        <li><strong>Smash days:</strong> series, the first Smash game they were playable in, debut year, weight class, and whether they&apos;re a third-party guest.</li>
-      </ul>
       <p>
-        A green cell is a match and a yellow cell is close: a debut within three years, a count within two, or the game just
-        before or after in the series. There are no arrows and no free column, so it takes some working out. On your last guess
-        you also see the answer&apos;s silhouette.
+        A hint shows before your first guess, a nod to today&apos;s character that a fan might catch straight away. Each miss
+        brings a new one, a little more specific: three nods, then the year and platform they debuted on, then the game they
+        debuted in.
+      </p>
+      <p>Each guess also fills a row of facts about your guess, checked against today&apos;s character: their series, debut year, the console they debuted on, the first Smash game they were playable in, and the first Mario Kart they raced in (or Never).</p>
+      <p>
+        A green cell is a match and a yellow cell is close: a debut within three years, the same console generation, or the
+        game just before or after in the series.
+      </p>
+
+      <h2>Five guesses and a last chance</h2>
+      <p>
+        You have five guesses. Miss them all and you get a last chance: the answer&apos;s silhouette and one more guess. Get it
+        then and your streak keeps going, but it doesn&apos;t count as a win, and your stats show it as a save.
       </p>
 
       <h2>Sharing and streaks</h2>
-      <p>When you&apos;re done, <strong>Copy my result</strong> gives you a spoiler-free grid to share. Your streak counts every day you solve, whatever the game. Signed in, your results are saved to your account, so your streak follows you to any device and shows on your profile. Signed out, your streak and stats stay in the browser you play on.</p>
+      <p>When you&apos;re done, <strong>Copy my result</strong> gives you a spoiler-free grid to share; a last-chance save ends with a ring buoy. Your streak counts every day you solve, last-chance saves included. Signed in, your results are saved to your account, so your streak follows you to any device and shows on your profile. Signed out, your streak and stats stay in the browser you play on.</p>
 
       <h2>Play in Discord</h2>
       <p>

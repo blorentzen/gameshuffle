@@ -49,11 +49,13 @@ export interface CardPlayer {
 /** One line of personality per score (mockup decision: words, not numbers only). */
 const VIBES = ["Psychic", "Sharp", "Solid", "Steady", "Close call", "Phew"];
 
+/** `max` is the main game's guesses; a solve after them is a Last chance save. */
 export function vibe(p: CardPlayer, max: number): string {
   if (!p.finished) return p.rows.length ? `Playing… ${p.rows.length} down` : "Just started";
   // Not "Tomorrow's the day": the renderer draws a gap after "Tomorrow" in this font.
   if (!p.solved) return "Better luck tomorrow";
-  return `${VIBES[p.guesses - 1] ?? "Got it"}. ${p.guesses} of ${max}`;
+  if (p.guesses > max) return "Saved on the last chance";
+  return `${p.guesses === max ? "Phew" : VIBES[p.guesses - 1] ?? "Got it"}. ${p.guesses} of ${max}`;
 }
 
 export const clip = (s: string, n: number) => {
@@ -124,16 +126,18 @@ function Squares({ rows, cols }: { rows: CellStatus[][]; cols: number }) {
   );
 }
 
-function Header({ kicker, title, pill }: { kicker: string; title: string; pill: string }) {
+function Header({ kicker, title, pill }: { kicker: string; title: string; pill: string | null }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", height: u(HEADER_H) }}>
       <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, flexShrink: 1, minWidth: 0, marginRight: u(12), overflow: "hidden" }}>
         <div style={{ display: "flex", fontSize: u(10), fontWeight: 600, letterSpacing: u(1.4), color: KICKER }}>{kicker.toUpperCase()}</div>
         <div style={{ display: "flex", marginTop: u(5), fontFamily: "Gabarito", fontSize: u(22), lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
       </div>
-      <div style={{ display: "flex", flexShrink: 0, fontSize: u(12), fontWeight: 600, padding: `${u(6)}px ${u(10)}px`, borderRadius: u(999), background: "rgba(255,255,255,0.12)", border: `${u(1)}px solid rgba(255,255,255,0.2)`, whiteSpace: "nowrap" }}>
-        {pill}
-      </div>
+      {pill ? (
+        <div style={{ display: "flex", flexShrink: 0, fontSize: u(12), fontWeight: 600, padding: `${u(6)}px ${u(10)}px`, borderRadius: u(999), background: "rgba(255,255,255,0.12)", border: `${u(1)}px solid rgba(255,255,255,0.2)`, whiteSpace: "nowrap" }}>
+          {pill}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -187,9 +191,13 @@ export const CARD_MAX_FACES = 12;
 
 export async function renderDailyCard(input: {
   number: number;
-  game: string;
+  /** The game's name for the pill, or null when the puzzle doesn't show one. */
+  game: string | null;
   channel: string | null;
+  /** The main game's guesses. */
   max: number;
+  /** Rows to draw, with the Last chance (default max). */
+  total?: number;
   /** Squares per row (the puzzle's columns). */
   cols: number;
   /** Already sorted; only the first CARD_MAX_FACES are drawn. */
@@ -208,7 +216,7 @@ export async function renderDailyCard(input: {
 
   return draw(
     <Ground h={h}>
-      <Header kicker="The Daily Shuffle" title={where(input.number, input.channel)} pill={clip(input.game, 26)} />
+      <Header kicker="The Daily Shuffle" title={where(input.number, input.channel)} pill={input.game ? clip(input.game, 26) : null} />
       <div style={{ display: "flex", flexWrap: "wrap", marginTop: u(14), width: u(W - PAD * 2) }}>
         {shown.map((p, i) => {
           const ring = p.finished ? (p.solved ? RING.solved : RING.out) : RING.playing;
@@ -219,7 +227,7 @@ export async function renderDailyCard(input: {
                 <Line text={clip(p.name, 24)} width={textW} size={14} />
                 <Line text={vibe(p, input.max)} width={textW} size={12} weight={500} color={SOFT} mt={3} />
               </div>
-              <Squares rows={p.rows.slice(0, input.max)} cols={input.cols} />
+              <Squares rows={p.rows.slice(0, input.total ?? input.max)} cols={input.cols} />
             </div>
           );
         })}
@@ -241,7 +249,7 @@ const STEP = [
 
 export async function renderPodium(input: {
   number: number;
-  game: string;
+  game: string | null;
   channel: string | null;
   /** The best solvers, best first (up to 3). */
   top: CardPlayer[];
@@ -259,7 +267,7 @@ export async function renderPodium(input: {
 
   return draw(
     <Ground h={h}>
-      <Header kicker="Yesterday's Daily" title={where(input.number, input.channel)} pill={clip(input.game, 26)} />
+      <Header kicker="Yesterday's Daily" title={where(input.number, input.channel)} pill={input.game ? clip(input.game, 26) : null} />
       <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", marginTop: u(14), height: u(PODIUM_H) }}>
         {order.map((idx, col) => {
           const step = STEP[idx];

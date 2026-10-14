@@ -29,6 +29,7 @@ import { MostLikelyPanel, type LikelyActivityView } from "@/components/party/Mos
 import { OddOneOutPanel, type OddActivityView } from "@/components/party/OddOneOutPanel";
 import { TierWarsPanel, type TierActivityView } from "@/components/party/TierWarsPanel";
 import { BingoPanel, type BingoActivityView } from "@/components/party/BingoPanel";
+import { GameHeader, GameInfoButton, GameInfoList } from "@/components/activity/GameInfo";
 import {
   PARTY_GAMES, QUICKFIRE_FOCUS, QUICKFIRE_FOCUS_IDS, QUICKFIRE_SETS, QUICKFIRE_SET_IDS, ROOM_ERRORS, ROOM_POLL_MS, ROUND_COUNTS, RUSH_ROUNDS,
   type QuickfireFocus, type QuickfireSetId, type RoomView,
@@ -91,9 +92,9 @@ export function ActivityRoom({ active }: { active: boolean }) {
   }, [api, apply, toast]);
 
   if (load.kind === "loading") return <p className="gs-activity__muted gs-room__status" role="status">Opening the room…</p>;
-  if (load.kind === "not_ready") return <Card variant="outlined" padding="medium" className="gs-room__note"><p>Play together is almost ready. Check back soon.</p></Card>;
-  if (load.kind === "no_call") return <Card variant="outlined" padding="medium" className="gs-room__note"><p>{ROOM_ERRORS.no_room}</p></Card>;
-  if (load.kind === "error") return <Card variant="outlined" padding="medium" className="gs-room__note"><p>{load.message}</p></Card>;
+  if (load.kind === "not_ready") return <><GameHeader game="together" /><Card variant="outlined" padding="medium" className="gs-room__note"><p>Play together is almost ready. Check back soon.</p></Card></>;
+  if (load.kind === "no_call") return <><GameHeader game="together" /><Card variant="outlined" padding="medium" className="gs-room__note"><p>{ROOM_ERRORS.no_room}</p></Card></>;
+  if (load.kind === "error") return <><GameHeader game="together" /><Card variant="outlined" padding="medium" className="gs-room__note"><p>{load.message}</p></Card></>;
 
   const { view, offset } = load;
   const serverNow = now + offset;
@@ -102,7 +103,10 @@ export function ActivityRoom({ active }: { active: boolean }) {
     <section className="gs-room" aria-labelledby="gs-room-title">
       <header className="gs-room__head">
         <div>
-          <h2 id="gs-room-title" className="gs-room__title"><IconUsersGroup size={20} aria-hidden /> Play together</h2>
+          <div className="gs-room__title-row">
+            <h2 id="gs-room-title" className="gs-room__title"><IconUsersGroup size={20} aria-hidden /> Play together</h2>
+            <GameInfoButton game="together" />
+          </div>
           <p className="gs-room__sub">
             {here.length === 1 ? "Just you so far. Everyone in the call who opens this tab joins in." : `${here.length} here`}
             {view.host && here.length > 1 ? ` · ${view.isHost ? "You're running it" : `${view.host.name} is running it`}` : ""}
@@ -150,8 +154,12 @@ function Lobby({ view, act }: { view: RoomView; act: Act }) {
       {!view.isHost && <p className="gs-room__waiting" role="status">{view.host ? `Waiting for ${view.host.name} to pick a game.` : "Waiting for someone to pick a game."}</p>}
       <div className="gs-room__games">
         <Card variant="outlined" padding="medium" className="gs-room__game">
-          <h3 className="gs-room__game-title"><IconBolt size={18} aria-hidden /> Quick-fire rounds</h3>
+          <div className="gs-room__game-head">
+            <h3 className="gs-room__game-title"><IconBolt size={18} aria-hidden /> Quick-fire rounds</h3>
+            <GameInfoButton game="quickfire" />
+          </div>
           <p className="gs-room__game-blurb">Short rounds everyone answers on their own screen. The game judges, the fastest-thinking table wins.</p>
+          <GameInfoList label="Sets" games={QUICKFIRE_SET_IDS.map((id) => `quickfire-${id}` as const)} />
           {view.isHost && (
             <div className="gs-room__form">
               <Select fullWidth floatingLabel="Rounds of" value={set} onChange={(v) => setSet(v as QuickfireSetId)}
@@ -168,7 +176,10 @@ function Lobby({ view, act }: { view: RoomView; act: Act }) {
           )}
         </Card>
         <Card variant="outlined" padding="medium" className="gs-room__game">
-          <h3 className="gs-room__game-title"><IconDice5 size={18} aria-hidden /> Roll for the call</h3>
+          <div className="gs-room__game-head">
+            <h3 className="gs-room__game-title"><IconDice5 size={18} aria-hidden /> Roll for the call</h3>
+            <GameInfoButton game="roll" />
+          </div>
           <p className="gs-room__game-blurb">About to play? Everyone here gets their pick from our randomizers (a kart combo, a fighter, a hero), plus the match setup.</p>
           {view.isHost && games.length > 0 && (
             <div className="gs-room__form">
@@ -184,7 +195,8 @@ function Lobby({ view, act }: { view: RoomView; act: Act }) {
         </Card>
         <Card variant="outlined" padding="medium" className="gs-room__game">
           <h3 className="gs-room__game-title"><IconConfetti size={18} aria-hidden /> Party games</h3>
-          <p className="gs-room__game-blurb">Most Likely To, Odd One Out, Tier Wars and Bingo. Everyone plays on their own screen, then the reveal.</p>
+          <p className="gs-room__game-blurb">Everyone plays on their own screen while you talk in voice.</p>
+          <GameInfoList label="Games" games={PARTY_GAMES.map((g) => g.slug)} />
           {view.isHost && (
             <div className="gs-room__form">
               <Select fullWidth floatingLabel="Game" value={party} onChange={(v) => setParty(String(v))}
@@ -196,7 +208,10 @@ function Lobby({ view, act }: { view: RoomView; act: Act }) {
         </Card>
         {(view.brainBoards ?? 0) > 0 && (
           <Card variant="outlined" padding="medium" className="gs-room__game">
-            <h3 className="gs-room__game-title"><IconBrain size={18} aria-hidden /> Chat Brain boards</h3>
+            <div className="gs-room__game-head">
+              <h3 className="gs-room__game-title"><IconBrain size={18} aria-hidden /> Chat Brain boards</h3>
+              <GameInfoButton game="brain-boards" />
+            </div>
             <p className="gs-room__game-blurb">Name the top answers from real surveys. First to find one takes its points; every find restarts the clock, and three timeouts end the board.</p>
             {view.isHost && (
               <div className="gs-room__form">

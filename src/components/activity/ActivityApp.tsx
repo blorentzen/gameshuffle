@@ -39,6 +39,7 @@ import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { ActivityTrivia } from "@/components/activity/ActivityTrivia";
 import { ActivityRoom } from "@/components/activity/ActivityRoom";
 import { DailyCallStrip } from "@/components/activity/DailyCallStrip";
+import { GameHeader } from "@/components/activity/GameInfo";
 import type { RoomPeek } from "@/lib/activity/roomRules";
 import { OriginalsHostProvider, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { IconField } from "@/components/events/EventHeaderArt";
@@ -327,7 +328,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
             onChange={(id) => setTab(asTab(id) ?? "daily")}
             className="gs-activity__tabs"
             tabs={[
-              { id: "daily", label: "Daily", icon: <IconPuzzle size={16} />, content: <><DailyCallStrip active={tab === "daily"} /><DailyShuffle /></> },
+              { id: "daily", label: "Daily", icon: <IconPuzzle size={16} />, content: <><GameHeader game="daily" /><DailyCallStrip active={tab === "daily"} /><DailyShuffle /></> },
               {
                 id: "room", label: peek?.players && tab !== "room" ? `Together · ${peek.players}` : "Together", icon: <IconUsersGroup size={16} />,
                 content: <ActivityRoom active={tab === "room"} />,
@@ -336,6 +337,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
                 id: "weekly", label: "Weekly", icon: <IconCalendarWeek size={16} />,
                 content: (
                   <>
+                    <GameHeader game="weekly" />
                     {!player.linked && <LinkNote onOpen={startSignup} />}
                     <WeeklyChallenge />
                   </>
@@ -345,12 +347,13 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
                 id: "brain", label: "Chat Brain", icon: <IconBrain size={16} />,
                 content: (
                   <div className="gs-activity__brain">
-                    <ChatBrainAsk source="activity" eyebrow="Chat Brain" title="Say the first thing that comes to mind" headingLevel="h2" />
+                    <GameHeader game="brain" />
+                    <ChatBrainAsk source="activity" eyebrow="Quick survey" title="Say the first thing that comes to mind" headingLevel="h2" />
                     <p className="gs-activity__muted">Once enough people answer a question, the top answers become a board you can play on GameShuffle.</p>
                   </div>
                 ),
               },
-              { id: "trivia", label: "Trivia", icon: <IconBulb size={16} />, content: <ActivityTrivia active={tab === "trivia"} /> },
+              { id: "trivia", label: "Trivia", icon: <IconBulb size={16} />, content: <><GameHeader game="trivia" /><ActivityTrivia active={tab === "trivia"} /></> },
             ]}
           />
           </main>

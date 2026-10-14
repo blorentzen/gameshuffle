@@ -1466,6 +1466,29 @@ html.dark .gs-portrait-bg {
 .daily__legend { margin: 0; padding: var(--spacing-8, 8px) var(--spacing-12); font-size: var(--font-size-12); color: var(--text-secondary); border-top: 1px solid var(--border-default); position: sticky; left: 0; }
 .daily__scroll-hint { display: none; margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); text-align: start; }
 @media (max-width: 40rem) { .daily__scroll-hint { display: block; } }
+/* Before the first guess: two lanes of characters drifting past, then how to play (DailyParade.tsx). */
+.daily-parade { position: relative; overflow: hidden; display: grid; gap: var(--spacing-8, 8px); min-height: 10.4rem; padding-block: var(--spacing-4, 4px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.daily-parade__lane { display: flex; gap: var(--spacing-16, 16px); width: max-content; animation: daily-drift 60s linear infinite; }
+.daily-parade__lane--back { animation-duration: 84s; animation-direction: reverse; }
+.daily-parade__lane img { width: 5.6rem; height: 5.6rem; object-fit: contain; opacity: 0.9; }
+.daily-parade__lane--back img { width: 4.4rem; height: 4.4rem; opacity: 0.55; }
+@keyframes daily-drift { from { transform: translateX(0); } to { transform: translateX(-33.3333%); } }
+@media (prefers-reduced-motion: reduce) { .daily-parade__lane { animation: none; } }
+/* Discord's small corner window has no room for it. */
+@media (max-height: 300px) { .daily-parade { display: none; } }
+.daily-steps { display: grid; gap: var(--spacing-8, 8px); text-align: start; }
+.daily-steps__title { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold, 600); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.daily-steps__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-12, 12px); }
+.daily-step { display: flex; flex-direction: column; gap: var(--spacing-6, 6px); height: 100%; }
+.daily-step__icon { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+.daily-step__name { margin: var(--spacing-2, 2px) 0 0; font-size: var(--font-size-16); }
+.daily-step__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.45; }
+@media (max-width: 40rem) { .daily-steps__grid { grid-template-columns: 1fr; } }
+
+/* All-Stars: the hint ladder (newest last) and the line promising the next one. */
+.daily__ladder { margin: 0; padding-inline-start: 2rem; display: grid; gap: var(--spacing-4, 4px); text-align: start; }
+.daily__next-hint { margin: 0; font-size: var(--font-size-14); text-align: start; }
 .daily__silhouette { display: flex; align-items: center; gap: var(--spacing-12); }
 .daily__silhouette img { width: 7.2rem; height: 7.2rem; object-fit: contain; filter: brightness(0); opacity: 0.85; }
 html.dark .daily__silhouette img { filter: brightness(0) invert(1); }

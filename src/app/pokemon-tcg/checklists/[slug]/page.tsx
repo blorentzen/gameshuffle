@@ -113,7 +113,7 @@ export default async function ChecklistPage({ params }: { params: Promise<{ slug
             <p>
               Checked {fmtDate(c.checked)} against{" "}
               {c.sources.map((s, i) => (
-                <span key={s.url}>{i > 0 ? " and " : ""}<a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a></span>
+                <span key={s.url}>{i === 0 ? "" : i === c.sources.length - 1 ? " and " : ", "}<a href={s.url} target="_blank" rel="noopener noreferrer">{s.title}</a></span>
               ))}
               . Spot a mistake? <Link href="/contact-us">Tell us</Link>.
             </p>
