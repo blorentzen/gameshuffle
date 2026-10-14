@@ -19,7 +19,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { activityApp } from "@/lib/activity/discord";
 import { CARD_MAX_FACES, renderDailyCard, renderPodium, vibe, type CardPlayer, type CellStatus } from "@/lib/discord/cards";
 import { facesFor } from "@/lib/discord/faces";
-import { MAX_GUESSES, answerFor, hintFor, puzzleFor, puzzleNumber } from "@/lib/originals/daily";
+import { MAX_GUESSES, answerFor, hintFor, playColumns, puzzleFor, puzzleNumber } from "@/lib/originals/daily";
 import { gsAddDays, gsDay } from "@/lib/time/gsClock";
 
 const API = "https://discord.com/api/v10";
@@ -146,7 +146,7 @@ async function dailyCardMessage(channelId: string, day: string, players: Player[
   const puzzle = puzzleFor(day);
   const number = puzzleNumber(day);
   const channel = await channelName(channelId);
-  const cols = Math.max(1, ...players.flatMap((p) => p.rows.map((r) => r.length)), puzzle.traits.length);
+  const cols = Math.max(1, ...players.flatMap((p) => p.rows.map((r) => r.length)), playColumns(puzzle).length);
   const buttons = playButtons({ daily: "Play the Daily" });
   const lines = standings(players);
   try {

@@ -8,7 +8,7 @@ import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { OriginalsLink, useArtSrc, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
-  CLUE_AFTER, DEFAULT_ARROW_NOTE, DEFAULT_CLOSE_NOTE, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, previewPuzzle, puzzleFor, puzzleNumber, rotationFor, PUZZLES, shareText, starterFor,
+  CLUE_AFTER, DEFAULT_CLOSE_NOTE, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, playTraits, previewPuzzle, puzzleFor, puzzleNumber, rotationFor, PUZZLES, shareText, starterFor, WRITTEN_CLUE,
   type DailyStats, type GuessHint, type TraitCell, type TraitDef,
 } from "@/lib/originals/daily";
 
@@ -46,15 +46,12 @@ async function saveResult(api: OriginalsHost["api"], day: string, guesses: strin
   } catch { return null; }
 }
 
-/** What a cell says: the guess's value, plus an arrow toward the answer when it isn't a match. */
+/** What a cell says: the guess's value. No arrows since 2026-10-14 (they made the Daily too easy). */
 function cellText(def: TraitDef, c: TraitCell): string {
-  const v = c.value === null ? (def.kind === "year" ? "Never" : "?") : String(c.value);
-  return c.dir ? `${v} ${c.dir === "up" ? "↑" : "↓"}` : v;
+  return c.value === null ? (def.kind === "year" ? "Never" : "?") : String(c.value);
 }
 function cellLabel(def: TraitDef, c: TraitCell): string {
-  const [up, down] = def.dirWords ?? (def.kind === "ordered" ? ["heavier", "lighter"] : ["later", "earlier"]);
-  const way = !c.dir ? "" : `, answer is ${c.dir === "up" ? up : down}`;
-  return `${def.label}: ${c.value ?? "never"}, ${c.status === "match" ? "match" : c.status === "close" ? "close" : "no match"}${way}`;
+  return `${def.label}: ${c.value ?? "never"}, ${c.status === "match" ? "match" : c.status === "close" ? "close" : "no match"}`;
 }
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -88,6 +85,7 @@ export function DailyShuffle() {
   const puzzle = useMemo(() => puzzleFor(day), [day]);
   const answer = useMemo(() => answerFor(day), [day]);
   const starter = useMemo(() => starterFor(day), [day]);
+  const traits = useMemo(() => playTraits(puzzle), [puzzle]);
   const tomorrow = useMemo(() => puzzleFor(new Date(Date.parse(`${day}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)), [day]);
   const [guesses, setGuesses] = useState<string[]>([]);
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
@@ -141,7 +139,7 @@ export function DailyShuffle() {
     const done = won || next.length >= MAX_GUESSES;
     if (guesses.length === 0) track(EVENTS.dailyStarted, { puzzle: puzzle.id });
     if (done) track(EVENTS.dailyFinished, { puzzle: puzzle.id, won, guesses: next.length });
-    else if (next.length === CLUE_AFTER && answer.clue) track(EVENTS.dailyClueRevealed, { puzzle: puzzle.id });
+    else if (WRITTEN_CLUE && next.length === CLUE_AFTER && answer.clue) track(EVENTS.dailyClueRevealed, { puzzle: puzzle.id });
     let s = stats;
     if (done && stats.lastDay !== day) {
       const streak = won ? (stats.lastDay === yesterday(day) ? stats.streak + 1 : 1) : 0;
@@ -183,14 +181,14 @@ export function DailyShuffle() {
         </div>
       )}
 
-      {!over && hints.length >= CLUE_AFTER && answer.clue && (
+      {WRITTEN_CLUE && !over && hints.length >= CLUE_AFTER && answer.clue && (
         <Alert variant="info" title="Clue">{answer.clue}</Alert>
       )}
       {!over && hints.length >= SILHOUETTE_AFTER && (
         <div className={`daily__silhouette${blur ? " daily__silhouette--blur" : ""}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={art(answer.img)} alt={blur ? `Today's ${noun}, blurred` : `Today's ${noun}, as a silhouette`} />
-          <span className="party-muted">{blur ? "Last chances: here's a blurry look." : "Last chances: here's their silhouette."}</span>
+          <span className="party-muted">{blur ? "Last chance: here's a blurry look." : "Last chance: here's their silhouette."}</span>
         </div>
       )}
 
@@ -205,16 +203,16 @@ export function DailyShuffle() {
             <TableHeader>
               <TableRow>
                 <TableHead align="center">Guess</TableHead>
-                {puzzle.traits.map((t) => <TableHead key={t.label} align="center" title={t.label}>{t.short}</TableHead>)}
+                {traits.map((t) => <TableHead key={t.label} align="center" title={t.label}>{t.short}</TableHead>)}
               </TableRow>
             </TableHeader>
             <TableBody>
               {starter && (
                 <TableRow className="daily__row--starter">
                   <TableCell><span className="daily__who-name">Starter clue</span></TableCell>
-                  {puzzle.traits.map((t, i) => (
+                  {traits.map((t) => (
                     <TableCell key={t.label}>
-                      {i === starter.trait
+                      {t === puzzle.traits[starter.trait]
                         ? <span className="daily__cell daily__cell--match" aria-label={`${t.label}: ${starter.value}, given free`}>{starter.value}</span>
                         : <span className="daily__cell daily__cell--blank" aria-label={`${t.label}: unknown`}>?</span>}
                     </TableCell>
@@ -233,8 +231,8 @@ export function DailyShuffle() {
                       </span>
                     </TableCell>
                     {h.cells.map((cell, i) => (
-                      <TableCell key={puzzle.traits[i].label}>
-                        <span className={`daily__cell daily__cell--${cell.status}`} aria-label={cellLabel(puzzle.traits[i], cell)}>{cellText(puzzle.traits[i], cell)}</span>
+                      <TableCell key={traits[i].label}>
+                        <span className={`daily__cell daily__cell--${cell.status}`} aria-label={cellLabel(traits[i], cell)}>{cellText(traits[i], cell)}</span>
                       </TableCell>
                     ))}
                   </TableRow>
@@ -242,7 +240,7 @@ export function DailyShuffle() {
               })}
             </TableBody>
           </Table>
-          <p className="daily__legend">Green: match · Yellow: {puzzle.closeNote ?? DEFAULT_CLOSE_NOTE} · {puzzle.arrowNote ?? DEFAULT_ARROW_NOTE}</p>
+          <p className="daily__legend">Green: match · Yellow: close, {puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}</p>
         </div>
       )}
 
@@ -281,7 +279,7 @@ export function DailyShuffle() {
         title: "How it works",
         content: (
           <>
-            <p>Guess today&apos;s {puzzle.game} {noun}. Each guess fills a row: {puzzle.traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match, yellow is close ({puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}), and arrows point the way ({(puzzle.arrowNote ?? DEFAULT_ARROW_NOTE).replace(/[↑↓] /g, "")}). After {CLUE_AFTER} guesses you get a clue, and on your last two guesses {blur ? "a blurry look at them" : "their silhouette"}. Before your first guess you get one column free, the starter clue. Six guesses, one {noun} a day, the same for everyone.</p>
+            <p>Guess today&apos;s {puzzle.game} {noun}. Each guess fills a row: {traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match and yellow is close ({puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}). {WRITTEN_CLUE ? `After ${CLUE_AFTER} guesses you get a clue, and on` : "On"} your last guess {blur ? "a blurry look at them" : "their silhouette"}. Six guesses, one {noun} a day, the same for everyone.</p>
             <p>The game changes by day of the week: {rotationText(day)}. Your streak counts every day you solve, whatever the game.</p>
           </>
         ),
