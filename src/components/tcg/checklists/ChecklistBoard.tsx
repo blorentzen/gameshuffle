@@ -50,7 +50,7 @@ export function ChecklistBoard({ slug, setName, sections }: { slug: string; setN
 
   const copyMissing = async () => {
     const missing = all.filter((i) => !got.has(i.no));
-    const text = `${setName}, still need (${missing.length}):\n${missing.map((i) => `${i.no} ${i.name}${i.label ? ` ${i.label}` : ""}${i.artist ? ` (${i.artist})` : ""}`).join("\n")}`;
+    const text = `${setName}, still need (${missing.length}):\n${missing.map((i) => `${i.no} ${i.name}${i.label ? ` ${i.label}` : ""}${i.alt ? ` [${i.alt}]` : ""}${i.artist ? ` (${i.artist})` : ""}`).join("\n")}`;
     try { await navigator.clipboard.writeText(text); toast.success("Copied what you still need."); }
     catch { toast.error("Couldn't copy here. Try again from your browser."); }
   };
@@ -85,7 +85,7 @@ export function ChecklistBoard({ slug, setName, sections }: { slug: string; setN
                       aria-label={`${i.name} ${i.no}${i.artist ? `, by ${i.artist}` : ""}`}
                     />
                     <span className="checklist__no">{i.no}</span>
-                    <span className="checklist__name">{i.name}{i.label && <small> {i.label}</small>}{i.rarity && <small className="checklist__rarity"> {i.rarity}</small>}</span>
+                    <span className="checklist__name">{i.name}{i.label && <small> {i.label}</small>}{i.rarity && <small className="checklist__rarity"> {i.rarity}</small>}{i.alt && <small className="checklist__alt">{i.alt}</small>}</span>
                     {i.artist && <span className="checklist__artist">{i.artist}</span>}
                   </li>
                 ))}

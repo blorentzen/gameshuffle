@@ -6,7 +6,10 @@
  *
  * Facts only, each with where it was checked. The 30th Celebration list was
  * checked 2026-10-12: numbers on Serebii's set list, artists on two
- * independent checklists that agree card for card. The Ascended Heroes list
+ * independent checklists that agree card for card. Its Japanese numbers (set
+ * M6a, 103 cards) were checked 2026-10-13 on two Japanese set lists: the same
+ * 30 artists in the same order at 017 to 046, Pikachu ex (Double Rare) at 047
+ * and 048. The Ascended Heroes list
  * (2026-10-12): names and rarities agree across Limitless, PkmnCards and the
  * Pokémon TCG API (Serebii's rarity icons were off on 15 cards) and match our
  * own catalog on all 91 cards it holds; artists from the Pokémon TCG API only.
@@ -20,6 +23,8 @@ export interface ChecklistItem {
   label?: string;
   rarity?: "Common" | "Uncommon";
   artist?: string;
+  /** The same card's number in another printing ("Japanese 017/103"). */
+  alt?: string;
   note?: string;
 }
 
@@ -225,36 +230,39 @@ export const CHECKLISTS: Checklist[] = [
     slug: "30th-celebration-pikachu",
     title: "30th Celebration Pikachu Checklist: All 30 Artists",
     h1: "30th Celebration Pikachu checklist",
-    description: "Every Pikachu in Pokémon TCG 30th Celebration, 023 to 052 of 128, with the artist who drew each one, plus Pikachu ex 053 and 054. Tick them off as you pull them.",
-    lede: "Thirty Pikachu, each drawn by a different artist, numbered 023 to 052 in the 30th Celebration set, plus the two Pikachu ex. Tick each one as you pull it; your ticks stay on this device.",
+    description: "Every Pikachu in Pokémon TCG 30th Celebration, 023 to 052 of 128, with the artist who drew each one, plus Pikachu ex 053 and 054, and the Japanese set numbers. Tick them off as you pull them.",
+    lede: "Thirty Pikachu, each drawn by a different artist, numbered 023 to 052 in the 30th Celebration set, plus the two Pikachu ex. The Japanese numbers are beside each card. Tick each one as you pull it; your ticks stay on this device.",
     set: { name: "30th Celebration", total: "128", released: "2026-09-16" },
-    checked: "2026-10-12",
+    checked: "2026-10-13",
     sources: [
       { title: "Serebii: 30th Celebration set list", url: "https://www.serebii.net/card/30thcelebration/" },
       { title: "Bill's Archive: all 30 Pikachu", url: "https://billsarchive.com/30th-celebration-pikachu.html" },
+      { title: "Pooka: Japanese set M6a", url: "https://pooka.app/list/set/cards/ja-m6a/30th%20Celebration" },
+      { title: "Samurai Sword Tokyo: the 30 Japanese Pikachu", url: "https://samuraiswordtokyo.com/blogs/news/30-pikachu-illustrators-30th-celebration-card-list" },
     ],
     sections: [
       {
         id: "pikachu",
         title: "The 30 Pikachu",
-        blurb: "Numbered 01/30 to 30/30 on the card, 023 to 052 in the set.",
-        items: PIKACHU_30.map(([no, artist], i) => ({ no, name: "Pikachu", label: `${String(i + 1).padStart(2, "0")}/30`, artist })),
+        blurb: "Numbered 01/30 to 30/30 on the card: 023 to 052 in the English set, 017 to 046 in the Japanese set (M6a).",
+        items: PIKACHU_30.map(([no, artist], i) => ({ no, name: "Pikachu", label: `${String(i + 1).padStart(2, "0")}/30`, artist, alt: `Japanese ${String(17 + i).padStart(3, "0")}/103` })),
       },
       {
         id: "pikachu-ex",
         title: "Pikachu ex",
         blurb: "The pair that rounds out the run.",
         items: [
-          { no: "053", name: "Pikachu ex" },
-          { no: "054", name: "Pikachu ex" },
+          { no: "053", name: "Pikachu ex", alt: "Japanese 047/103" },
+          { no: "054", name: "Pikachu ex", alt: "Japanese 048/103" },
         ],
       },
     ],
-    shopSkus: ["thirty-hunt-1", "thirty-hunt-3", "thirty-set"],
-    shopLine: "Every Thirty Hunt pack has a 30th Celebration Pikachu, and the Anniversary Thirty Set has all 30 plus both Pikachu ex.",
+    shopSkus: ["thirty-hunt-1", "thirty-hunt-3", "thirty-set", "thirty-set-jp"],
+    shopLine: "Every Thirty Hunt pack has a 30th Celebration Pikachu, and the Anniversary Thirty Set has all 30 plus both Pikachu ex, in English or Japanese.",
     faq: [
       { q: "How many Pikachu are in 30th Celebration?", a: "Thirty, numbered 01/30 to 30/30 on the card and 023 to 052 in the 128-card set, each drawn by a different artist. Two Pikachu ex, 053 and 054, follow them." },
       { q: "Who drew the 30th Celebration Pikachu?", a: "Thirty different artists, starting with Ken Sugimori at 01/30. The full list is above, card by card." },
+      { q: "What are the Japanese numbers?", a: "The Japanese set, 30th Celebration (M6a), has the same 30 Pikachu by the same artists in the same order, numbered 017 to 046 of 103. Its Pikachu ex are 047 and 048. Each card above shows both numbers." },
       { q: "Where do my ticks go?", a: "They're kept in this browser only. Nothing is sent anywhere, so you don't need an account." },
     ],
   },
