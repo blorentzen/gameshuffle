@@ -104,26 +104,6 @@ function ShopButton({
   );
 }
 
-/** Relative "Sold …" label for FOMO recency. Server-side; exact date past a
- *  month. */
-function soldLabel(iso: string | null): string {
-  if (!iso) return "Sold";
-  const then = new Date(iso).getTime();
-  const days = Math.floor((Date.now() - then) / 86_400_000);
-  if (days <= 0) return "Sold today";
-  if (days === 1) return "Sold yesterday";
-  if (days < 7) return `Sold ${days} days ago`;
-  if (days < 28) {
-    const w = Math.floor(days / 7);
-    return `Sold ${w} week${w > 1 ? "s" : ""} ago`;
-  }
-  return `Sold ${new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })}`;
-}
-
 export default async function Page() {
   // Admin-managed featured shop cards — read-only from the DB (0 credits;
   // never resolves live so an anon page view can't drive credit spend).
@@ -331,9 +311,9 @@ export default async function Page() {
                       </div>
                       <div className="tcg-card__meta">
                         <span className="tcg-card__name">{name}</span>
-                        <span className="tcg-card__set">
-                          {soldLabel(row.sold_at)}
-                        </span>
+                        {/* No dates (Britton, 2026-10-13: too many cards moving to keep sale dates current).
+                            The sale date only orders the carousel, newest first. */}
+                        <span className="tcg-card__set">Recently sold</span>
                       </div>
                     </a>
                   </CarouselItem>

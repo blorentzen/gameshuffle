@@ -63,14 +63,14 @@ const BOARDS = [
 ];
 const PARTY_TURNS = [10, 15, 20, 25, 30];
 
-/* A real Mario Kart 8 Deluxe puzzle, from src/data/originals/daily-facts.ts:
-   the answer is Wario (Heavy, Human, 1992, Mario Kart 64 in 1996). */
+/* A real Mario Kart 8 Deluxe puzzle, from the Daily's facts (src/lib/originals/daily.ts):
+   the answer is Wario (Heavy, Wario & Waluigi, first in Mario Kart 64, debut 1992). */
 type Cell = { v: string; s: "match" | "close" | "miss" };
-const DAILY_COLS = ["Weight", "Species", "Debut", "Kart debut"];
+const DAILY_COLS = ["Weight", "Crew", "First MK", "Debut"];
 const DAILY_ROWS: { name: string; img: string; cells: Cell[] }[] = [
-  { name: "Yoshi", img: `${MK}/characters/yoshi.png`, cells: [{ v: "Medium ↑", s: "miss" }, { v: "Yoshi", s: "miss" }, { v: "1990 ↑", s: "close" }, { v: "1992 ↑", s: "miss" }] },
-  { name: "Donkey Kong", img: `${MK}/characters/donkey-kong.png`, cells: [{ v: "Heavy", s: "match" }, { v: "Kong", s: "miss" }, { v: "1981 ↑", s: "miss" }, { v: "1996", s: "match" }] },
-  { name: "Wario", img: `${MK}/characters/wario.png`, cells: [{ v: "Heavy", s: "match" }, { v: "Human", s: "match" }, { v: "1992", s: "match" }, { v: "1996", s: "match" }] },
+  { name: "Yoshi", img: `${MK}/characters/yoshi.png`, cells: [{ v: "Medium ↑", s: "miss" }, { v: "Mario's crew", s: "miss" }, { v: "Super Mario Kart ↑", s: "close" }, { v: "1990 ↑", s: "close" }] },
+  { name: "Donkey Kong", img: `${MK}/characters/donkey-kong.png`, cells: [{ v: "Heavy", s: "match" }, { v: "Kongs", s: "miss" }, { v: "64", s: "match" }, { v: "1981 ↑", s: "miss" }] },
+  { name: "Wario", img: `${MK}/characters/wario.png`, cells: [{ v: "Heavy", s: "match" }, { v: "Wario & Waluigi", s: "match" }, { v: "64", s: "match" }, { v: "1992", s: "match" }] },
 ];
 
 /* From the "Mario Kart challenges" preset (src/data/wheel-presets.ts), trimmed

@@ -22,8 +22,8 @@ export const SEARCH_RATE_WINDOW_MS = 60_000; // per minute
 /** Don't spend a BGG call on a stub query. */
 export const SEARCH_MIN_CHARS = 3;
 
-/** Cap how many search hits we hydrate to details in one batched `/thing`. */
-export const SEARCH_CACHE_MAX = 25;
+/** Cap how many search hits we hydrate to details in one batched `/thing` (BGG takes at most 20 ids a request). */
+export const SEARCH_CACHE_MAX = 20;
 
 export function computeStaleAfter(now: Date = new Date()): string {
   return new Date(now.getTime() + CACHE_TTL_DAYS * 86_400_000).toISOString();

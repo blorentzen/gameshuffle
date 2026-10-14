@@ -586,7 +586,7 @@
 .league-hero__crumbs a { color: #fff; }
 .league-hero__title { margin: 0; font-size: var(--font-size-fluid-h2, var(--font-size-32)); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); text-wrap: balance; color: #fff; }
 .league-hero__sub { margin: 0; font-size: var(--font-size-16); color: rgba(255, 255, 255, 0.9); }
-.league-body { display: flex; flex-direction: column; gap: var(--spacing-20); padding-block: var(--spacing-24) var(--spacing-48); max-width: 88rem; }
+.league-body { display: flex; flex-direction: column; gap: var(--spacing-20); padding-block: var(--spacing-24) var(--spacing-48); }
 .league-next { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12) var(--spacing-24); }
 .league-next > div:first-child { min-width: 0; flex: 1 1 26rem; display: flex; flex-direction: column; gap: var(--spacing-4); }
 .league-next__when { margin: 0; font-size: var(--font-size-20); font-weight: var(--font-weight-bold); }

@@ -218,7 +218,7 @@
   "/tournament/championship/[id]": "2026-10-10",
   "/tournament/championship/[id]/manage": "2026-10-07",
   "/tournament/create": "2026-10-13",
-  "/tournament/sandbox": "2026-09-25",
+  "/tournament/sandbox": "2026-10-13",
   "/trivia": "2026-10-13",
   "/trivia/[occasion]": "2026-10-13",
   "/trivia/answer-sheet": "2026-10-13",
