@@ -132,7 +132,8 @@ async function daily(): Promise<OriginalsOverview["daily"]> {
   for (const p of Object.values(PUZZLES)) {
     for (const c of p.characters) {
       if (c.traits.some((t) => t === null)) missing.push({ game: p.game, name: c.name, what: "facts" });
-      else if (!c.clue) missing.push({ game: p.game, name: c.name, what: "clue" });
+      // All-Stars hints come from its ladder (written nods + facts), not the old single clue.
+      else if (!c.clue && !(c.ladder ?? []).some((h) => h.after === 0)) missing.push({ game: p.game, name: c.name, what: "clue" });
     }
   }
   return {

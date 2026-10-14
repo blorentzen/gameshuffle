@@ -234,7 +234,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "daily-shuffle",
     title: "The Daily Shuffle",
-    description: "Guess today's character in six tries, rotating through Mario Kart, Mario Party and Smash: the schedule, hints, sharing, streaks and playing in Discord.",
+    description: "Guess today's character from 130 across Nintendo: how the hints work, five guesses and a last chance, sharing, streaks and playing in Discord.",
     href: "/help/apps/daily-shuffle",
     category: "apps",
     keywords: ["daily", "daily shuffle", "puzzle", "guess", "streak", "wordle", "mario party", "mario kart world"],

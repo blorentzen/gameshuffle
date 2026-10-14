@@ -15,7 +15,7 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { MAX_GUESSES, answerFor, dayKey, judgeGame, puzzleFor, statsFrom, type DailyStats } from "@/lib/originals/daily";
+import { answerFor, dayKey, guessLimits, judgeGame, puzzleFor, statsFrom, type DailyStats } from "@/lib/originals/daily";
 import { gsAddDays } from "@/lib/time/gsClock";
 
 export interface DailyRow { day: string; puzzle: string; guesses: number; solved: boolean }
@@ -126,7 +126,7 @@ export async function saveIdentityGame(who: { identityId: string; userId?: strin
   const roster = puzzleFor(day).characters;
   const answer = answerFor(day).name;
   const at = guesses.indexOf(answer);
-  const valid = guesses.length >= 1 && guesses.length <= MAX_GUESSES && new Set(guesses).size === guesses.length
+  const valid = guesses.length >= 1 && guesses.length <= guessLimits(puzzleFor(day)).total && new Set(guesses).size === guesses.length
     && guesses.every((g) => roster.some((c) => c.name === g)) && (at === -1 || at === guesses.length - 1);
   if (!valid) return { ok: false, error: "not_a_finished_game" };
   const result = judgeGame(day, guesses);

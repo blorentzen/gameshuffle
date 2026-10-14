@@ -19,7 +19,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { activityApp } from "@/lib/activity/discord";
 import { CARD_MAX_FACES, renderDailyCard, renderPodium, vibe, type CardPlayer, type CellStatus } from "@/lib/discord/cards";
 import { facesFor } from "@/lib/discord/faces";
-import { MAX_GUESSES, answerFor, hintFor, playColumns, puzzleFor, puzzleNumber } from "@/lib/originals/daily";
+import { answerFor, guessLimits, hintFor, playColumns, puzzleFor, puzzleLabel, puzzleNumber } from "@/lib/originals/daily";
 import { gsAddDays, gsDay } from "@/lib/time/gsClock";
 
 const API = "https://discord.com/api/v10";
@@ -127,8 +127,8 @@ function containerMessage(args: { picture?: { data: Buffer; name: string; alt: s
 }
 
 /** How each player is doing, in words (the picture's description and the text-only fallback). */
-function standings(players: Player[]): string[] {
-  return players.map((p) => `${p.name}: ${vibe(p, MAX_GUESSES)}`);
+function standings(players: Player[], main: number): string[] {
+  return players.map((p) => `${p.name}: ${vibe(p, main)}`);
 }
 
 /** The line under today's card: who leads, and a nudge. */
@@ -148,16 +148,18 @@ async function dailyCardMessage(channelId: string, day: string, players: Player[
   const channel = await channelName(channelId);
   const cols = Math.max(1, ...players.flatMap((p) => p.rows.map((r) => r.length)), playColumns(puzzle).length);
   const buttons = playButtons({ daily: "Play the Daily" });
-  const lines = standings(players);
+  const { main, total } = guessLimits(puzzle);
+  const label = puzzleLabel(puzzle);
+  const lines = standings(players, main);
   try {
-    const data = await renderDailyCard({ number, game: puzzle.game, channel, max: MAX_GUESSES, cols, players });
+    const data = await renderDailyCard({ number, game: label, channel, max: main, total, cols, players });
     const shown = lines.slice(0, CARD_MAX_FACES);
     const more = lines.length - shown.length;
-    const alt = `The Daily #${number}, ${puzzle.game}. ${shown.join(". ")}${more > 0 ? `. And ${more} more.` : "."}`;
+    const alt = `The Daily #${number}${label ? `, ${label}` : ""}. ${shown.join(". ")}${more > 0 ? `. And ${more} more.` : "."}`;
     return containerMessage({ picture: { data, name: `daily-${number}.png`, alt }, text: leadLine(players), buttons });
   } catch (err) {
     console.warn("[channelCard] card picture failed, sending text:", err);
-    const text = [`**The Daily #${number}** · ${puzzle.game}`, ...lines.slice(0, 20).map(md), "", leadLine(players)].join("\n");
+    const text = [`**The Daily #${number}**${label ? ` · ${label}` : ""}`, ...lines.slice(0, 20).map(md), "", leadLine(players)].join("\n");
     return containerMessage({ text, buttons });
   }
 }
@@ -269,22 +271,25 @@ const listNames = (players: Player[], n: number) => {
 /** The morning post: the podium picture (or a ranked list if it didn't render), then today's game. */
 async function summaryMessage(args: { channelId: string; yesterday: string; today: string; players: number; solved: Player[]; out: Player[]; streak: number }): Promise<Outgoing> {
   const number = puzzleNumber(args.yesterday);
-  const game = puzzleFor(args.yesterday).game;
-  const todayGame = puzzleFor(args.today).game;
+  const game = puzzleLabel(puzzleFor(args.yesterday));
+  const todayGame = puzzleLabel(puzzleFor(args.today));
+  const { main } = guessLimits(puzzleFor(args.yesterday));
+  // "in 3", or how a Last chance save reads.
+  const how = (p: Player) => (p.guesses > main ? "on the last chance" : `in ${p.guesses}`);
   const buttons = playButtons({ daily: "Play today's Daily", weekly: "Weekly" });
   const rest = args.solved.slice(3);
   const tail = [
-    rest.length ? `Also solved: ${rest.slice(0, 5).map((p) => `${md(p.name)} in ${p.guesses}`).join(", ")}${rest.length > 5 ? ` and ${rest.length - 5} more` : ""}.` : "",
+    rest.length ? `Also solved: ${rest.slice(0, 5).map((p) => `${md(p.name)} ${how(p)}`).join(", ")}${rest.length > 5 ? ` and ${rest.length - 5} more` : ""}.` : "",
     args.out.length ? `Out of guesses: ${listNames(args.out, 5)}.` : "",
-    `Today it's **${todayGame}**.${args.streak >= 2 ? " Keep the streak going." : ""}`,
+    todayGame ? `Today it's **${todayGame}**.${args.streak >= 2 ? " Keep the streak going." : ""}` : args.streak >= 2 ? "Keep the streak going." : "",
   ].filter(Boolean).join("\n");
 
   if (args.solved.length) {
     try {
       const channel = await channelName(args.channelId);
       const data = await renderPodium({ number, game, channel, top: args.solved, played: args.players, solved: args.solved.length, streak: args.streak });
-      const places = args.solved.slice(0, 3).map((p, i) => `${["First", "Second", "Third"][i]}: ${p.name} in ${p.guesses}`).join(". ");
-      const alt = `Yesterday's Daily #${number}, ${game}. ${places}.${args.streak >= 2 ? ` This channel has solved it ${args.streak} days running.` : ""}`;
+      const places = args.solved.slice(0, 3).map((p, i) => `${["First", "Second", "Third"][i]}: ${p.name} ${how(p)}`).join(". ");
+      const alt = `Yesterday's Daily #${number}${game ? `, ${game}` : ""}. ${places}.${args.streak >= 2 ? ` This channel has solved it ${args.streak} days running.` : ""}`;
       return containerMessage({ picture: { data, name: `daily-${number}-podium.png`, alt }, text: tail, buttons });
     } catch (err) {
       console.warn("[channelCard] podium picture failed, sending text:", err);
@@ -292,8 +297,8 @@ async function summaryMessage(args: { channelId: string; yesterday: string; toda
   }
   const medals = ["🥇", "🥈", "🥉"];
   const lines = [
-    `**Yesterday's Daily #${number}** · ${game}`,
-    ...args.solved.slice(0, 10).map((p, i) => `${medals[i] ?? "•"} ${md(p.name)} in ${p.guesses}`),
+    `**Yesterday's Daily #${number}**${game ? ` · ${game}` : ""}`,
+    ...args.solved.slice(0, 10).map((p, i) => `${medals[i] ?? "•"} ${md(p.name)} ${how(p)}`),
     ...(args.solved.length ? [] : ["Nobody got it yesterday."]),
     ...(args.streak >= 2 ? [`This channel has solved the Daily ${args.streak} days running.`] : []),
     "",

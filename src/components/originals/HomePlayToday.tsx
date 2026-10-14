@@ -12,17 +12,17 @@ import { useEffect, useState } from "react";
 import { Badge, Button } from "@empac/cascadeds";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
-import { dayKey, puzzleFor, puzzleNumber } from "@/lib/originals/daily";
+import { dayKey, puzzleFor, puzzleLabel, puzzleNumber } from "@/lib/originals/daily";
 
 interface WeeklySummary { number: number; kind: "tier" | "survey"; title: string; players: number; leader: string | null }
 
 export function HomePlayToday() {
-  const [daily, setDaily] = useState<{ n: number; game: string } | null>(null);
+  const [daily, setDaily] = useState<{ n: number; game: string | null } | null>(null);
   const [weekly, setWeekly] = useState<WeeklySummary | null>(null);
 
   useEffect(() => {
     const day = dayKey();
-    void Promise.resolve().then(() => setDaily({ n: puzzleNumber(day), game: puzzleFor(day).game }));
+    void Promise.resolve().then(() => setDaily({ n: puzzleNumber(day), game: puzzleLabel(puzzleFor(day)) }));
     let alive = true;
     void fetch("/api/weekly", { cache: "no-store" }).then((r) => r.json()).then((d) => {
       if (!alive || !d?.ok || !d.ready || !d.current) return;
@@ -36,8 +36,8 @@ export function HomePlayToday() {
       <div className="home-play__card">
         <span className="home-play__eyebrow">Every day</span>
         <h3 className="home-play__title">The Daily Shuffle</h3>
-        <p className="home-play__text">Guess today&apos;s character in six tries. The game changes through the week: Mario Kart 8 Deluxe, Mario Kart World and Mario Party.</p>
-        {daily && <span className="home-play__meta"><Badge variant="info" size="small">Puzzle #{daily.n}</Badge> Today: {daily.game}</span>}
+        <p className="home-play__text">{daily && !daily.game ? "Guess today's character from across Nintendo, with a new hint after every miss." : "Guess today's character. The game changes through the week: Mario Kart, Mario Party and Smash."}</p>
+        {daily && <span className="home-play__meta"><Badge variant="info" size="small">Puzzle #{daily.n}</Badge>{daily.game ? ` Today: ${daily.game}` : null}</span>}
         <Link href="/daily"><Button variant="primary">Play today&apos;s puzzle</Button></Link>
       </div>
       <div className="home-play__card">
