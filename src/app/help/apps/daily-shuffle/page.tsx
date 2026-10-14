@@ -35,18 +35,15 @@ export default function Page() {
       <h2>How the hints work</h2>
       <p>Each guess fills a row of facts about your guess, checked against today&apos;s character:</p>
       <ul>
-        <li><strong>Mario Kart days:</strong> weight class, species, the series they first appeared in, their debut year and their Mario Kart debut.</li>
-        <li><strong>Mario Party days:</strong> species, first series, debut year, Mario Party debut, and whether they&apos;re in Mario Party Superstars.</li>
+        <li><strong>Mario Kart 8 Deluxe days:</strong> weight class, crew, the first Mario Kart they raced in, whether they&apos;re a variant (like Baby or Metal), and their debut year.</li>
+        <li><strong>Mario Kart World days:</strong> weight class, crew, first Mario Kart, home series, and debut year.</li>
+        <li><strong>Mario Party days:</strong> crew, how many Mario Party games they&apos;re playable in, their first Mario Party, and whether they&apos;re in Mario Party Superstars.</li>
         <li><strong>Smash days:</strong> series, the first Smash game they were playable in, debut year, weight class, and whether they&apos;re a third-party guest.</li>
       </ul>
       <p>
-        Before your first guess you get one of those columns free: the starter clue. It&apos;s always a broad one (weight class,
-        series, Superstars, or first Smash game), never an exact year, and it&apos;s the same for everyone that day.
-      </p>
-      <p>
-        A green cell is a match. Years within three of the answer show as close, and arrows point toward the answer (an up
-        arrow on weight class means the answer is heavier). After your third guess a written clue unlocks, and for your last
-        two guesses you also see the answer&apos;s silhouette.
+        A green cell is a match and a yellow cell is close: a debut within three years, a count within two, or the game just
+        before or after in the series. There are no arrows and no free column, so it takes some working out. On your last guess
+        you also see the answer&apos;s silhouette.
       </p>
 
       <h2>Sharing and streaks</h2>

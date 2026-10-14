@@ -23,9 +23,11 @@ import { gsDay } from "@/lib/time/gsClock";
  * Rivals puzzles are built but unscheduled until an era adds them (preview
  * with /daily?puzzle=overwatch-hero in dev). Each guess fills a row of real facts (checked against
  * the wikis, src/data/originals/daily-facts.ts): each column says whether it
- * matches the answer, is close, or which way to go (lighter/heavier,
- * earlier/later). After guess 3 a written clue unlocks; on guess 5 the
- * answer's silhouette. Each puzzle walks its own fixed shuffle, so a character
+ * matches the answer or is close. Harder rules from 2026-10-14 (Britton's
+ * picks, https://claude.ai/artifact/DEgSfQBjJGEf6TAxgWfpvT): no free starter
+ * column, no arrows (compareTrait still works out the direction for break
+ * mode, the Daily never shows it), a broad written clue after guess 4 and the
+ * answer's silhouette on the last guess only. Each puzzle walks its own fixed shuffle, so a character
  * doesn't repeat until that roster has cycled. The roster ORDER feeds the
  * shuffle, so never reorder or filter a roster: it would change past answers.
  */
@@ -70,8 +72,10 @@ export interface DailyPuzzle {
   characters: DailyCharacter[];
   /** Seed for this puzzle's answer order. */
   seed: number;
-  /** Columns the free starter clue may give away: broad ones only, never species or exact years. */
+  /** Columns the free starter clue may give away: broad ones only, never species or exact years. Unused while STARTER_CLUE is off. */
   starter: number[];
+  /** The columns the Daily shows, by index into traits (default: all). The rest stay for break mode and trivia. */
+  play?: number[];
   /** What's guessed ("character", "fighter", "hero"). Default "character". */
   noun?: string;
   /** What yellow means, for the legend and How it works. Default "within 3 years". */
@@ -232,7 +236,9 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
     }),
     seed: 20261002,
     starter: [0, 3],
-    closeNote: "within 3 years or 2 games, or the game just before or after",
+    // Debut stays in the facts for break mode; the Daily plays Mario Party on four columns.
+    play: [0, 1, 2, 3],
+    closeNote: "within 2 games, or the game just before or after",
     arrowNote: "↑ more or later · ↓ fewer or earlier",
   },
   "smash-fighter": {
@@ -376,6 +382,7 @@ export interface StarterClue { trait: number; label: string; short: string; valu
  * answer, picked by the day so it's the same for everyone (results stay comparable).
  */
 export function starterFor(day: string): StarterClue | null {
+  if (!STARTER_CLUE) return null;
   const p = puzzleFor(day);
   const a = answerFor(day);
   const n = p.starter.length;
@@ -406,12 +413,24 @@ export interface GuessHint {
   cells: TraitCell[];
 }
 
-/** Guesses after which the clue and the silhouette unlock. */
-export const CLUE_AFTER = 3;
-export const SILHOUETTE_AFTER = 4;
+/** Guesses after which the clue and the silhouette unlock (the silhouette is for the last guess only). */
+export const CLUE_AFTER = 4;
+export const SILHOUETTE_AFTER = MAX_GUESSES - 1;
+/** The free starter column before guess 1 (off since 2026-10-14: it gave away two thirds of the roster). */
+export const STARTER_CLUE = false;
+/** The written clue (off from 2026-10-14 until the clue ladder arrives: the old clues each fit one character). */
+export const WRITTEN_CLUE = false;
 const CLOSE_YEARS = 3;
 export const DEFAULT_CLOSE_NOTE = "within 3 years";
 export const DEFAULT_ARROW_NOTE = "↑ heavier or later · ↓ lighter or earlier";
+
+/** The columns this puzzle shows in the Daily. */
+export function playColumns(puzzle: DailyPuzzle): number[] {
+  return puzzle.play ?? puzzle.traits.map((_, i) => i);
+}
+export function playTraits(puzzle: DailyPuzzle): TraitDef[] {
+  return playColumns(puzzle).map((i) => puzzle.traits[i]);
+}
 
 export function compareTrait(def: TraitDef, guess: TraitValue, answer: TraitValue): TraitCell {
   if (guess === null || answer === null) return { value: guess, status: guess === answer ? "match" : "miss", dir: null };
@@ -433,7 +452,7 @@ export function hintFor(guess: string, answer: DailyCharacter, puzzle: DailyPuzz
   return {
     name: g.name,
     correct: g.name === answer.name,
-    cells: puzzle.traits.map((def, i) => compareTrait(def, g.traits[i], answer.traits[i])),
+    cells: playColumns(puzzle).map((i) => compareTrait(puzzle.traits[i], g.traits[i], answer.traits[i])),
   };
 }
 
