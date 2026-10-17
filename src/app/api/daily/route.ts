@@ -1,6 +1,6 @@
 /**
  * The Daily Shuffle, account results.
- *   GET  → { signedIn, stats, today } for the signed-in account (stats derived from daily_results,
+ *   GET  → { signedIn, stats, today, times } for the signed-in account (times = { seconds, fastest }: today's solve time and the best) (stats derived from daily_results,
  *          across every puzzle in the weekday rotation: one streak, whatever the day's game).
  *          Results played in the Discord Activity by the Discord user this account signs in
  *          with count too (src/lib/daily/results.ts).
@@ -13,7 +13,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { dailyView, saveAccountResult } from "@/lib/daily/results";
-import { SHUFFLE } from "@/lib/originals/daily";
+import { timesFor } from "@/lib/daily/boards";
+import { SHUFFLE, dayKey } from "@/lib/originals/daily";
 import { DEX } from "@/lib/originals/dailyDex";
 
 export const runtime = "nodejs";
@@ -27,8 +28,8 @@ export async function GET(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ signedIn: false });
   try {
-    const { stats, today } = await dailyView({ userId: user.id }, game);
-    return NextResponse.json({ signedIn: true, stats, today });
+    const [{ stats, today }, times] = await Promise.all([dailyView({ userId: user.id }, game), timesFor(`u:${user.id}`, game.id, dayKey()).catch(() => null)]);
+    return NextResponse.json({ signedIn: true, stats, today, times });
   } catch (err) {
     console.error("[daily] stats failed:", err);
     return NextResponse.json({ signedIn: true, stats: null, today: null });
@@ -44,6 +45,6 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as { day?: unknown; guesses?: unknown } | null;
   const saved = await saveAccountResult(user.id, body?.day, body?.guesses, game);
   if (!saved.ok) return NextResponse.json({ error: saved.error }, { status: saved.error === "save_failed" ? 500 : 400 });
-  const { stats, today } = await dailyView({ userId: user.id }, game);
-  return NextResponse.json({ ok: true, stats, today, score: saved.score ?? null });
+  const [{ stats, today }, times] = await Promise.all([dailyView({ userId: user.id }, game), timesFor(`u:${user.id}`, game.id, dayKey()).catch(() => null)]);
+  return NextResponse.json({ ok: true, stats, today, score: saved.score ?? null, times });
 }

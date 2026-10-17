@@ -31,6 +31,9 @@ export interface DisplayIdentityRealUser {
     avatar_options?: Record<string, string> | null;
     discord_avatar?: string | null;
     twitch_avatar?: string | null;
+    /** The GameShuffle names (public.users): what the menu shows. */
+    display_name?: string | null;
+    username?: string | null;
   } | null;
 }
 
@@ -89,10 +92,17 @@ export function useDisplayIdentity(input: {
   // Default: render the real user's identity.
   if (!input.user) return { kind: "unauth" };
 
+  // The account's GameShuffle name, then what the sign-in gave us. Never the
+  // email address: a Twitch/Discord account has no display_name in its sign-in
+  // data, and the email's first part ended up on screen (on stream, 2026-10-16).
+  const meta = input.user.user_metadata ?? {};
   const realDisplayName =
-    (input.user.user_metadata?.display_name as string | undefined) ||
-    input.user.email?.split("@")[0] ||
-    "User";
+    input.profile?.display_name ||
+    input.profile?.username ||
+    (meta.display_name as string | undefined) ||
+    (meta.full_name as string | undefined) ||
+    (meta.name as string | undefined) ||
+    "Your account";
 
   return {
     kind: "real",

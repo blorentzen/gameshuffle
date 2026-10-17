@@ -22,7 +22,7 @@ import {
   DEFAULT_LEVERS, GAME_LABEL, ordinal, parsePlayer, periodRange, playerKey, pointsFor, prizeFor, settlesOn,
   type BoardGame, type BoardLevers, type BoardPeriod, type PlayerKind,
 } from "@/lib/daily/boardRules";
-import type { BoardRow, BoardView, ScoreResult } from "@/lib/daily/boardTypes";
+import type { BoardRow, BoardView, ScoreResult, SolveTimes } from "@/lib/daily/boardTypes";
 
 export type { BoardRow, BoardView, ScoreResult };
 
@@ -84,22 +84,65 @@ export async function recordScore(args: { game: BoardGame; day: string; player: 
   const points = pointsFor(args.guesses, args.solved, args.main);
   const key = playerKey(args.player.kind, args.player.id);
   const admin = createServiceClient();
-  const { data, error } = await admin.from("daily_scores").upsert({
+  const seconds = await secondsSinceStart(key, args.game, args.day);
+  const row = {
     game: args.game, day: args.day, player: key,
     user_id: args.player.kind === "u" ? args.player.id : null,
     identity_id: args.player.kind === "i" ? args.player.id : null,
     guest_key: args.player.kind === "g" ? args.player.id : null,
     points, guesses: args.guesses, solved: args.solved,
-  }, { onConflict: "game,day,player", ignoreDuplicates: true }).select("player");
+  };
+  let { data, error } = await admin.from("daily_scores").upsert({ ...row, seconds }, { onConflict: "game,day,player", ignoreDuplicates: true }).select("player");
+  // Before daily-times-m1 there's no seconds column: record the score without it.
+  if (error && (error.code === "PGRST204" || error.code === "42703")) {
+    ({ data, error } = await admin.from("daily_scores").upsert(row, { onConflict: "game,day,player", ignoreDuplicates: true }).select("player"));
+  }
   if (error) {
     if (boardsMissing(error)) return null;
     console.error("[boards] score failed:", error);
     return null;
   }
-  if (!data?.length) return { points, tokens: 0, recorded: false };
+  if (!data?.length) return { points, tokens: 0, recorded: false, seconds };
   const levers = await boardLevers();
   const tokens = await pay(args.player, points * levers.tokensPerPoint, "play", `daily:${args.game}:${args.day}:${key}`, { game: args.game, day: args.day, points }, levers.holdDays).catch((e) => { console.error("[boards] pay failed:", e); return 0; });
-  return { points, tokens, recorded: true };
+  return { points, tokens, recorded: true, seconds };
+}
+
+/** A clock longer than this (a Start left open for days) isn't a solve time. */
+const MAX_SOLVE_SECONDS = 2 * 86_400;
+
+/**
+ * Starts the clock on a player's game for a day: "Start today's puzzle"
+ * (Britton's pick, 2026-10-16). The first Start stands, so starting again on
+ * another device doesn't reset it. False before daily-times-m1.
+ */
+export async function markStart(key: string, game: BoardGame, day: string): Promise<boolean> {
+  if (!parsePlayer(key)) return false;
+  const { error } = await createServiceClient().from("daily_starts").upsert({ player: key, game, day }, { onConflict: "player,game,day", ignoreDuplicates: true });
+  return !error;
+}
+
+/** Seconds from the player's Start to now, or null without a Start. */
+async function secondsSinceStart(key: string, game: BoardGame, day: string): Promise<number | null> {
+  const { data, error } = await createServiceClient().from("daily_starts").select("started_at").eq("player", key).eq("game", game).eq("day", day).maybeSingle();
+  if (error || !data) return null;
+  const s = Math.round((Date.now() - Date.parse((data as { started_at: string }).started_at)) / 1000);
+  return s >= 0 && s <= MAX_SOLVE_SECONDS ? s : null;
+}
+
+/** A player's solve time for a day and their fastest solve ever in that game (nulls before daily-times-m1). */
+export async function timesFor(key: string, game: BoardGame, day: string): Promise<SolveTimes> {
+  const admin = createServiceClient();
+  const [today, best] = await Promise.all([
+    admin.from("daily_scores").select("seconds").eq("player", key).eq("game", game).eq("day", day).maybeSingle(),
+    admin.from("daily_scores").select("seconds", { count: "exact" }).eq("player", key).eq("game", game).eq("solved", true).not("seconds", "is", null).order("seconds", { ascending: true }).limit(1).maybeSingle(),
+  ]);
+  if (today.error || best.error) return { seconds: null, fastest: null, timed: 0 };
+  return {
+    seconds: (today.data as { seconds: number | null } | null)?.seconds ?? null,
+    fastest: (best.data as { seconds: number | null } | null)?.seconds ?? null,
+    timed: best.count ?? 0,
+  };
 }
 
 /** The player key an account or a Discord identity plays under: a linked identity counts as its account. */
@@ -110,7 +153,7 @@ export async function playerForIdentity(identityId: string, userId?: string | nu
   return account ? { kind: "u", id: account } : { kind: "i", id: identityId };
 }
 
-type RawRow = { place: number; player: string; points: number; days: number; guesses: number; user_id: string | null; identity_id: string | null; guest_key: string | null; total_players: number };
+type RawRow = { place: number; player: string; points: number; days: number; guesses: number; seconds?: number | null; user_id: string | null; identity_id: string | null; guest_key: string | null; total_players: number };
 
 /** Names, pictures and profile links for a board's rows. Private profiles show as "A player". */
 async function describe(rows: RawRow[]): Promise<Map<string, Pick<BoardRow, "name" | "tag" | "avatar" | "profile">>> {
@@ -155,6 +198,7 @@ export async function boardView(args: { game: BoardGame; period: BoardPeriod; da
     place: Number(r.place),
     ...(names.get(r.player) ?? { name: "A player", tag: null, avatar: null, profile: null }),
     points: Number(r.points), days: Number(r.days), guesses: Number(r.guesses),
+    seconds: r.seconds == null ? null : Number(r.seconds),
     you: !!args.me && r.player === args.me,
     // Nobody on 0 points wins a prize (closePeriod skips them too).
     prize: levers && args.period !== "day" && Number(r.points) > 0 ? prizeFor(Number(r.place), args.period, levers) : 0,

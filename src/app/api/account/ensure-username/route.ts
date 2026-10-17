@@ -1,11 +1,14 @@
-/** POST /api/account/ensure-username — assign a handle if the account has none.
- *  Idempotent; called once on sign-in (covers email signups + backfills older
- *  accounts that predate auto-assignment). Returns the resulting username. */
+/** POST /api/account/ensure-username — assign a handle if the account has none,
+ *  and copy a Twitch/Discord sign-in onto the account (syncProfileFromOAuth).
+ *  Idempotent; called once per browser session by AuthProvider (covers email
+ *  signups, older accounts, and OAuth sign-ins that Supabase sent to the Site
+ *  URL instead of /auth/callback). Returns the resulting username. */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { ensureUsername } from "@/lib/social/usernameAssign";
+import { syncProfileFromOAuth } from "@/lib/auth/syncOAuthProfile";
 
 export const runtime = "nodejs";
 
@@ -13,6 +16,11 @@ export async function POST() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+
+  // A Twitch/Discord sign-in that never reached /auth/callback still gets its ids, names and avatar.
+  if ((user.identities ?? []).some((i) => i.provider === "twitch" || i.provider === "discord")) {
+    await syncProfileFromOAuth(supabase, user).catch((err) => console.error("[ensure-username] oauth sync failed:", err));
+  }
 
   const { data: profile } = await createServiceClient()
     .from("users")

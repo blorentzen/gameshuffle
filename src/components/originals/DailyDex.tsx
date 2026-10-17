@@ -13,7 +13,8 @@ import { DexCardOfDay } from "@/components/originals/DexCardOfDay";
 import { DailyHelpPanel, HelpWord, useDailyHelp } from "@/components/originals/DailyHelp";
 import { NO_HELP, type HelpCounts } from "@/lib/originals/dailyHelp";
 import { reportDaily, type DailiesEntry } from "@/lib/originals/dailies";
-import type { BoardRow, BoardView, ScoreResult } from "@/lib/daily/boardTypes";
+import type { BoardRow, BoardView, ScoreResult, SolveTimes } from "@/lib/daily/boardTypes";
+import { DailySolveTime, DailyStartCard, pickTimes, useDailyStart } from "@/components/originals/DailyStart";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { OriginalsLink, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
@@ -38,7 +39,7 @@ const API = "/api/daily?game=dex";
 interface Stats { played: number; won: number; streak: number; best: number; dist: number[]; lastDay: string | null; saved?: number }
 /** `help`: letters and guesses bought today, kept here too so a reload never ends a game early. */
 interface Saved { day: string; guesses: string[]; stats: Stats; help?: HelpCounts }
-interface Account { signedIn: boolean; stats?: DailyStats | null; today?: { puzzle: string; guesses: number; solved: boolean } | null; progress?: string[] | null; score?: ScoreResult | null }
+interface Account { signedIn: boolean; stats?: DailyStats | null; today?: { puzzle: string; guesses: number; solved: boolean } | null; progress?: string[] | null; score?: ScoreResult | null; times?: SolveTimes | null }
 
 const EMPTY_STATS: Stats = { played: 0, won: 0, streak: 0, best: 0, dist: Array(MAX_GUESSES).fill(0), lastDay: null };
 
@@ -108,6 +109,8 @@ export function DailyDex() {
   const [score, setScore] = useState<ScoreResult | null>(null);
   const [mine, setMine] = useState<{ day: BoardRow | null; week: BoardRow | null }>({ day: null, week: null });
   const onViews = useCallback((d: BoardView | null, w: BoardView | null) => setMine({ day: d?.you ?? null, week: w?.you ?? null }), []);
+  // The Start button: the first hint shows and the solve clock starts (Britton's pick, 2026-10-16).
+  const clock = useDailyStart("dex", day, !preview && day === dayKey());
 
   useEffect(() => {
     let alive = true;
@@ -144,10 +147,13 @@ export function DailyDex() {
   const over = solved || hints.length >= total || !!elsewhere;
   const inLastChance = !over && hints.length >= main;
   const savedIt = solved && (elsewhere ? elsewhere.guesses : hints.length) > main;
-  const shownHints = over ? [] : ladderShown(answer, hints.length);
+  // Started: tapped Start today, or already guessing (a game from before the button), or done.
+  const started = !!clock.startedAt || hints.length > 0 || over;
+  const shownHints = over || !started ? [] : ladderShown(answer, hints.length);
   const moreHints = !over && !inLastChance && (answer.ladder ?? []).some((h) => h.after > hints.length);
   const shownStats = account?.signedIn && account.stats ? account.stats : stats;
   const fresh = loaded && !over && hints.length === 0 && !elsewhere;
+  const times = pickTimes(account?.times, clock.local, score?.seconds);
   // The list only offers Pokémon the clues still allow (Britton's pick, 2026-10-16): generation with its
   // arrow, types, stage and color (height and weight stay for the player: with them the list gave the
   // answer away by the second or third guess), and on the last chance the first letter and length. A to Z.
@@ -179,8 +185,8 @@ export function DailyDex() {
   // The today bar, Next up and the streak cards on every daily's page learn where this game stands.
   const report = loaded && !preview && day === dayKey() ? JSON.stringify({
     day, number: dexNumber(day), state: over ? "done" : hints.length ? "playing" : "fresh",
-    result: over ? { guesses: elsewhere ? elsewhere.guesses : hints.length, main, solved, saved: savedIt } : null,
-    stats: { played: shownStats.played, won: shownStats.won, streak: shownStats.streak, best: shownStats.best, saved: shownStats.saved ?? 0 },
+    result: over ? { guesses: elsewhere ? elsewhere.guesses : hints.length, main, solved, saved: savedIt, seconds: times.seconds } : null,
+    stats: { played: shownStats.played, won: shownStats.won, streak: shownStats.streak, best: shownStats.best, saved: shownStats.saved ?? 0, fastest: times.fastest },
   } satisfies DailiesEntry) : "";
   useEffect(() => { if (report) reportDaily("dex", JSON.parse(report) as DailiesEntry); }, [report]);
   // Came from a friend's link: a finished game counts for them once (the server checks it's real).
@@ -216,6 +222,7 @@ export function DailyDex() {
     const save = right && next.length > main;
     const won = right && !save;
     if (guesses.length === 0) track(EVENTS.dailyStarted, { puzzle: puzzle.id });
+    if (done) clock.finish(right);
     if (done) track(EVENTS.dailyFinished, { puzzle: puzzle.id, won, guesses: next.length, ...(save ? { saved: true } : {}) });
     let s = stats;
     if (done && stats.lastDay !== day) {
@@ -238,11 +245,11 @@ export function DailyDex() {
     }
   };
 
-  const copy = () => navigator.clipboard.writeText(withReferral(shareText(day, hints, solved, DEX, help), referral?.code))
+  const copy = () => navigator.clipboard.writeText(withReferral(shareText(day, hints, solved, DEX, help, times.seconds), referral?.code))
     .then(() => { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Result copied"); }, () => toast.error("Couldn't copy the result"));
   const shareToDiscord = async () => {
     if (!activity?.share) return;
-    if (await activity.share(shareText(day, hints, solved, DEX, help))) { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Shared"); }
+    if (await activity.share(shareText(day, hints, solved, DEX, help, times.seconds))) { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Shared"); }
   };
 
   const steps = [
@@ -260,7 +267,8 @@ export function DailyDex() {
         <span className="party-muted">{elsewhere ? Math.min(elsewhere.guesses, main) : Math.min(hints.length, main)} of {main} guesses{inLastChance || savedIt ? " · last chance" : ""}</span>
       </div>
 
-      {!over && loaded && (
+      {!over && loaded && !started && <DailyStartCard onStart={clock.start} what="Pokémon" />}
+      {!over && loaded && started && (
         <div className="daily__guess">
           <LabeledCombobox label="Guess today's Pokémon" value={pick} onChange={setPick} options={options} placeholder="Type a Pokémon" />
           <Button variant="primary" disabled={!pickedName} onClick={guess}>{inLastChance ? "Take my last chance" : "Guess"}</Button>
@@ -337,6 +345,7 @@ export function DailyDex() {
         <div className="daily__done">
           <div className="dex-answer"><TypeCard dex={answerDex} name={answer.name} types={answer.types ?? []} /></div>
           <p className="oddone__verdict">{savedIt ? "Saved it on the last chance." : solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>.</p>
+          <DailySolveTime times={times} solved={solved} />
           {!activity && answerDex > 0 && <DexCardOfDay dex={answerDex} signedIn={!!account?.signedIn} />}
           <DailyScoreChips score={score} guest={!activity && !account?.signedIn} today={mine.day} week={mine.week} />
           {elsewhere && <p className="party-muted">{activity ? "You played today's Pokémon on GameShuffle." : "You played today on another device."}</p>}
@@ -371,7 +380,8 @@ export function DailyDex() {
         content: (
           <>
             <p>Guess today&apos;s Pokémon from all 1,025. Each guess fills a row: {traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match and yellow is close ({puzzle.closeNote}). On generation, height and weight an arrow shows which way the answer is.</p>
-            <p>A hint shows before your first guess and a new one after each miss, each a little more specific. You have {main} guesses. Miss them all and you get a last chance with the first letter of its name and a square for every letter: get it then and your streak keeps going, though it doesn&apos;t count as a win. One Pokémon a day, the same for everyone. Evolution stage: First, Middle or Final in its family, or Doesn&apos;t evolve.</p>
+            <p>A hint shows when you tap Start and a new one after each miss, each a little more specific. You have {main} guesses. Miss them all and you get a last chance with the first letter of its name and a square for every letter: get it then and your streak keeps going, though it doesn&apos;t count as a win. One Pokémon a day, the same for everyone. Evolution stage: First, Middle or Final in its family, or Doesn&apos;t evolve.</p>
+            <p>Your time runs from Start to your last guess. On today&apos;s leaderboard, players level on points are ranked by time, fastest first. Points and tokens don&apos;t depend on time.</p>
           </>
         ),
       }]} />

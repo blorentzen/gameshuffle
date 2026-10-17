@@ -17,6 +17,8 @@ interface ProfileSnapshot {
   discord_avatar: string | null;
   twitch_avatar: string | null;
   role: string | null;
+  display_name: string | null;
+  username: string | null;
 }
 
 /**
@@ -146,7 +148,7 @@ export function UserMenu() {
     const supabase = createClient();
     supabase
       .from("users")
-      .select("avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role")
+      .select("avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, display_name, username")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {

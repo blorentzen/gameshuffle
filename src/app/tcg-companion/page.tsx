@@ -50,12 +50,12 @@ export default async function Page({ searchParams }: PageProps) {
       ? resumeIdRaw
       : null;
 
-  // Best-effort display name — falls back to the email local-part so
-  // there's always something. The full account UI is outside scope.
-  const displayName =
+  // The account's GameShuffle name (set from the profile below), else what the
+  // sign-in gave us. Never the email address.
+  let displayName: string | null =
     (user?.user_metadata?.display_name as string | undefined) ??
-    user?.user_metadata?.full_name ??
-    (user?.email ? user.email.split("@")[0] : null);
+    (user?.user_metadata?.full_name as string | undefined) ??
+    null;
 
   // Resolve effective subscription tier for the Companion's gating
   // surfaces (save state, online play, full customization). Staff
@@ -67,10 +67,11 @@ export default async function Page({ searchParams }: PageProps) {
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("subscription_tier, role, circuit_tier, circuit_status")
+      .select("subscription_tier, role, circuit_tier, circuit_status, display_name, username")
       .eq("id", user.id)
       .maybeSingle();
     role = (profile?.role as string | null) ?? null;
+    displayName = (profile?.display_name as string | null) || (profile?.username as string | null) || displayName;
     resolvedTier = effectiveTier({
       tier: normalizeTier(profile?.subscription_tier as string | null),
       role,

@@ -49,8 +49,17 @@ export function dailiesShown(current?: DailiesId): DailiesId[] {
   return (["shuffle", "dex", "weekly"] as DailiesId[]).filter((id) => id !== "dex" || DAILY_DEX_SHOWN || current === "dex");
 }
 
-export interface DailyResult { guesses: number; main: number; solved: boolean; saved: boolean }
-export interface DailiesStats { played: number; won: number; streak: number; best: number; saved?: number }
+/** `seconds`: the solve time, from Start to the final guess. */
+export interface DailyResult { guesses: number; main: number; solved: boolean; saved: boolean; seconds?: number | null }
+/** `fastest`: the best solve time in that game. */
+export interface DailiesStats { played: number; won: number; streak: number; best: number; saved?: number; fastest?: number | null }
+
+/** A solve time as people say it: "0:42", "12:05", "2h 14m". */
+export function formatTime(seconds: number): string {
+  const s = Math.max(0, Math.round(seconds));
+  if (s >= 3600) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
 
 /** What a game knows about itself today. */
 export interface DailiesEntry {
@@ -192,7 +201,8 @@ export function combinedShareText(entries: DailiesEntries, shown: DailiesId[], a
     // Before a game's first day (a preview) it has no number yet.
     const name = e.number >= 1 ? `${g.short} #${e.number}` : g.short;
     if (id === "weekly") return `${g.square} ${name} · answered`;
-    return `${g.square} ${name} · ${scoreText(e.result!)}${flame(e.stats?.streak)}`;
+    const time = e.result!.solved && e.result!.seconds != null ? ` ⏱ ${formatTime(e.result!.seconds)}` : "";
+    return `${g.square} ${name} · ${scoreText(e.result!)}${time}${flame(e.stats?.streak)}`;
   });
   return [`GameShuffle dailies · ${dateLabel(gsDay(at))}`, ...lines, "gameshuffle.co/daily"].join("\n");
 }

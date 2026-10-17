@@ -8,6 +8,7 @@
 
 import "server-only";
 import { dailyView, type DailyWho } from "@/lib/daily/results";
+import { playerForIdentity, timesFor } from "@/lib/daily/boards";
 import { SHUFFLE, dayKey, guessLimits, puzzleFor, puzzleNumber, type DailySchedule } from "@/lib/originals/daily";
 import { DEX } from "@/lib/originals/dailyDex";
 import { weekNumber, weekOf } from "@/lib/originals/weekly";
@@ -15,16 +16,24 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { topTenFinishes } from "@/lib/weekly/store";
 import type { DailiesEntries, DailiesEntry } from "@/lib/originals/dailies";
 
-async function dailyEntry(who: DailyWho, game: DailySchedule): Promise<DailiesEntry> {
+/** The player the boards (and solve times) use: the account, else the account a Discord identity signs in to, else the identity. */
+async function boardKey(who: DailyWho): Promise<string | null> {
+  if (who.userId) return `u:${who.userId}`;
+  if (!who.identityId) return null;
+  const p = await playerForIdentity(who.identityId).catch(() => ({ kind: "i" as const, id: who.identityId! }));
+  return `${p.kind}:${p.id}`;
+}
+
+async function dailyEntry(who: DailyWho, game: DailySchedule, key: string | null): Promise<DailiesEntry> {
   const day = dayKey();
-  const v = await dailyView(who, game);
+  const [v, times] = await Promise.all([dailyView(who, game), key ? timesFor(key, game.id, day).catch(() => null) : Promise.resolve(null)]);
   const main = guessLimits(puzzleFor(day, game)).main;
   return {
     day,
     number: puzzleNumber(day, game),
     state: v.today ? "done" : v.progress?.length ? "playing" : "fresh",
-    result: v.today ? { guesses: v.today.guesses, main, solved: v.today.solved, saved: v.today.solved && v.today.guesses > main } : null,
-    stats: { played: v.stats.played, won: v.stats.won, streak: v.stats.streak, best: v.stats.best, saved: v.stats.saved ?? 0 },
+    result: v.today ? { guesses: v.today.guesses, main, solved: v.today.solved, saved: v.today.solved && v.today.guesses > main, seconds: times?.seconds ?? null } : null,
+    stats: { played: v.stats.played, won: v.stats.won, streak: v.stats.streak, best: v.stats.best, saved: v.stats.saved ?? 0, fastest: times?.fastest ?? null },
     recent: v.recent,
   };
 }
@@ -45,9 +54,10 @@ async function weeklyEntry(userId: string): Promise<DailiesEntry | null> {
 }
 
 export async function dailiesView(who: DailyWho, opts: { dex?: boolean } = {}): Promise<DailiesEntries> {
+  const key = await boardKey(who);
   const [shuffle, dex, weekly] = await Promise.all([
-    dailyEntry(who, SHUFFLE).catch((e) => { console.error("[dailies] shuffle failed:", e); return undefined; }),
-    opts.dex === false ? Promise.resolve(undefined) : dailyEntry(who, DEX).catch((e) => { console.error("[dailies] dex failed:", e); return undefined; }),
+    dailyEntry(who, SHUFFLE, key).catch((e) => { console.error("[dailies] shuffle failed:", e); return undefined; }),
+    opts.dex === false ? Promise.resolve(undefined) : dailyEntry(who, DEX, key).catch((e) => { console.error("[dailies] dex failed:", e); return undefined; }),
     who.userId ? weeklyEntry(who.userId).catch((e) => { console.error("[dailies] weekly failed:", e); return null; }) : Promise.resolve(null),
   ]);
   return { ...(shuffle ? { shuffle } : {}), ...(dex ? { dex } : {}), ...(weekly ? { weekly } : {}) };

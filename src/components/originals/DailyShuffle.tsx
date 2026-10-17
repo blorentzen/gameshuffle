@@ -11,7 +11,8 @@ import { NO_HELP, type HelpCounts } from "@/lib/originals/dailyHelp";
 import { DailiesInvite, DailiesNext, DailiesShare, DailiesYours, sendReferralFinish, useDailies } from "@/components/originals/Dailies";
 import { withReferral } from "@/lib/originals/referral";
 import { reportDaily, type DailiesEntry } from "@/lib/originals/dailies";
-import type { BoardRow, BoardView, ScoreResult } from "@/lib/daily/boardTypes";
+import type { BoardRow, BoardView, ScoreResult, SolveTimes } from "@/lib/daily/boardTypes";
+import { DailySolveTime, DailyStartCard, pickTimes, useDailyStart } from "@/components/originals/DailyStart";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { OriginalsLink, useArtSrc, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
@@ -46,7 +47,7 @@ function read(): Saved | null {
 function write(s: Saved) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* still playable this visit */ }
 }
-interface Account { signedIn: boolean; stats?: DailyStats | null; today?: { puzzle: string; guesses: number; solved: boolean } | null; progress?: string[] | null; score?: ScoreResult | null }
+interface Account { signedIn: boolean; stats?: DailyStats | null; today?: { puzzle: string; guesses: number; solved: boolean } | null; progress?: string[] | null; score?: ScoreResult | null; times?: SolveTimes | null }
 
 async function saveResult(api: OriginalsHost["api"], day: string, guesses: string[]): Promise<Account | null> {
   try {
@@ -112,6 +113,8 @@ export function DailyShuffle() {
   const [score, setScore] = useState<ScoreResult | null>(null);
   const [mine, setMine] = useState<{ day: BoardRow | null; week: BoardRow | null }>({ day: null, week: null });
   const onViews = useCallback((d: BoardView | null, w: BoardView | null) => setMine({ day: d?.you ?? null, week: w?.you ?? null }), []);
+  // The Start button: the first hint shows and the solve clock starts (Britton's pick, 2026-10-16).
+  const clock = useDailyStart("shuffle", day, !preview && day === dayKey());
 
   useEffect(() => {
     let alive = true;
@@ -152,12 +155,15 @@ export function DailyShuffle() {
   const inLastChance = !!puzzle.lastChance && !over && hints.length >= main;
   const savedIt = solved && (elsewhere ? elsewhere.guesses : hints.length) > main;
   const label = puzzleLabel(puzzle);
-  const shownHints = over ? [] : ladderShown(answer, hints.length);
+  // Started: tapped Start today, or already guessing (a game from before the button), or done.
+  const started = !!clock.startedAt || hints.length > 0 || over;
+  const shownHints = over || !started ? [] : ladderShown(answer, hints.length);
   const moreHints = !over && !inLastChance && (answer.ladder ?? []).some((h) => h.after > hints.length);
   const shown = account?.signedIn && account.stats ? account.stats : stats;
   const noun = puzzle.noun ?? "character";
   // Before the first guess: the characters drift past and three steps say how to play.
   const fresh = loaded && !over && hints.length === 0 && !elsewhere;
+  const times = pickTimes(account?.times, clock.local, score?.seconds);
   const steps = puzzle.lastChance
     ? [
       { icon: "hint" as const, title: "Read the hint", text: "A nod to today's character, with a new one after each miss." },
@@ -193,8 +199,8 @@ export function DailyShuffle() {
   // The today bar, Next up and the streak cards on every daily's page learn where this game stands.
   const report = loaded && !preview && day === dayKey() ? JSON.stringify({
     day, number: puzzleNumber(day), state: over ? "done" : hints.length ? "playing" : "fresh",
-    result: over ? { guesses: elsewhere ? elsewhere.guesses : hints.length, main, solved, saved: savedIt } : null,
-    stats: { played: shown.played, won: shown.won, streak: shown.streak, best: shown.best, saved: shown.saved ?? 0 },
+    result: over ? { guesses: elsewhere ? elsewhere.guesses : hints.length, main, solved, saved: savedIt, seconds: times.seconds } : null,
+    stats: { played: shown.played, won: shown.won, streak: shown.streak, best: shown.best, saved: shown.saved ?? 0, fastest: times.fastest },
   } satisfies DailiesEntry) : "";
   useEffect(() => { if (report) reportDaily("shuffle", JSON.parse(report) as DailiesEntry); }, [report]);
   // Came from a friend's link: a finished game counts for them once (the server checks it's real).
@@ -222,6 +228,7 @@ export function DailyShuffle() {
     const save = right && next.length > main;
     const won = right && !save;
     if (guesses.length === 0) track(EVENTS.dailyStarted, { puzzle: puzzle.id });
+    if (done) clock.finish(right);
     if (done) track(EVENTS.dailyFinished, { puzzle: puzzle.id, won, guesses: next.length, ...(save ? { saved: true } : {}) });
     else if (WRITTEN_CLUE && next.length === CLUE_AFTER && answer.clue) track(EVENTS.dailyClueRevealed, { puzzle: puzzle.id });
     let s = stats;
@@ -244,10 +251,10 @@ export function DailyShuffle() {
     }
   };
 
-  const copy = () => navigator.clipboard.writeText(withReferral(shareText(day, hints, solved, undefined, help), referral?.code)).then(() => { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Result copied"); }, () => toast.error("Couldn't copy the result"));
+  const copy = () => navigator.clipboard.writeText(withReferral(shareText(day, hints, solved, undefined, help, times.seconds), referral?.code)).then(() => { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Result copied"); }, () => toast.error("Couldn't copy the result"));
   const shareToDiscord = async () => {
     if (!activity?.share) return;
-    if (await activity.share(shareText(day, hints, solved, undefined, help))) { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Shared"); }
+    if (await activity.share(shareText(day, hints, solved, undefined, help, times.seconds))) { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Shared"); }
   };
 
   return (
@@ -258,7 +265,8 @@ export function DailyShuffle() {
         <span className="party-muted">{elsewhere ? Math.min(elsewhere.guesses, main) : Math.min(hints.length, main)} of {main} guesses{inLastChance || savedIt ? " · last chance" : ""}</span>
       </div>
 
-      {!over && loaded && (
+      {!over && loaded && !started && <DailyStartCard onStart={clock.start} what={noun} />}
+      {!over && loaded && started && (
         <div className="daily__guess">
           <LabeledCombobox label={`Guess today's ${noun}`} value={pick} onChange={setPick} options={options} placeholder={`Type a ${noun}`} />
           <Button variant="primary" disabled={!pick || !options.some((o) => o.value === pick)} onClick={guess}>{inLastChance ? "Take my last chance" : "Guess"}</Button>
@@ -297,12 +305,12 @@ export function DailyShuffle() {
       {fresh && <DailyParade characters={puzzle.characters} art={art} />}
       {fresh && <DailySteps steps={steps} />}
 
-      {loaded && starter && !over && hints.length === 0 && (
+      {loaded && started && starter && !over && hints.length === 0 && (
         <p className="daily__starter"><strong>Starter clue:</strong> {starter.sentence}</p>
       )}
 
-      {loaded && (hints.length > 0 || (starter && !elsewhere)) && <p className="daily__scroll-hint" aria-hidden>Swipe the grid for every column →</p>}
-      {loaded && (hints.length > 0 || (starter && !elsewhere)) && (
+      {loaded && (hints.length > 0 || (started && starter && !elsewhere)) && <p className="daily__scroll-hint" aria-hidden>Swipe the grid for every column →</p>}
+      {loaded && (hints.length > 0 || (started && starter && !elsewhere)) && (
         <div className="daily__grid" tabIndex={0} role="region" aria-label="Your guesses so far">
           <Table dense>
             <TableHeader>
@@ -354,6 +362,7 @@ export function DailyShuffle() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={art(answer.img)} alt="" className="daily__answer-img" />
           <p className="oddone__verdict">{savedIt ? "Saved it on the last chance." : solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>{answer.name.endsWith(".") ? "" : "."}</p>
+          <DailySolveTime times={times} solved={solved} />
           <DailyScoreChips score={score} guest={!activity && !account?.signedIn} today={mine.day} week={mine.week} />
           {elsewhere && <p className="party-muted">{activity ? "You played today's puzzle on GameShuffle." : "You played today on another device."}</p>}
           <p className="party-muted">A new puzzle at midnight Pacific time.{puzzleLabel(tomorrow) ? ` Tomorrow's game: ${puzzleLabel(tomorrow)}.` : ""}</p>
@@ -389,7 +398,7 @@ export function DailyShuffle() {
             {puzzle.lastChance ? (
               <>
                 <p>Guess today&apos;s {noun} from {puzzle.characters.length} characters across Nintendo, plus Smash&apos;s guests. Each guess fills a row: {traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match and yellow is close ({puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}).</p>
-                <p>A hint shows before your first guess and a new one after each miss, each a little more specific. You have {main} guesses. Miss them all and you get a last chance with their {blur ? "blurry picture" : "silhouette"}: get it then and your streak keeps going, though it doesn&apos;t count as a win. One {noun} a day, the same for everyone.</p>
+                <p>A hint shows when you tap Start and a new one after each miss, each a little more specific. You have {main} guesses. Miss them all and you get a last chance with their {blur ? "blurry picture" : "silhouette"}: get it then and your streak keeps going, though it doesn&apos;t count as a win. One {noun} a day, the same for everyone.</p>
               </>
             ) : (
               <>
@@ -397,6 +406,7 @@ export function DailyShuffle() {
                 <p>The game changes by day of the week: {rotationText(day)}. Your streak counts every day you solve, whatever the game.</p>
               </>
             )}
+            <p>Your time runs from Start to your last guess. On today&apos;s leaderboard, players level on points are ranked by time, fastest first. Points and tokens don&apos;t depend on time.</p>
           </>
         ),
       }]} />

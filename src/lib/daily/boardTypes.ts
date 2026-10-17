@@ -5,7 +5,8 @@
 
 import type { BoardGame, BoardPeriod } from "@/lib/daily/boardRules";
 
-export interface ScoreResult { points: number; tokens: number; recorded: boolean }
+/** `seconds`: the solve time, from Start to the final guess (null without a Start or before daily-times-m1). */
+export interface ScoreResult { points: number; tokens: number; recorded: boolean; seconds?: number | null }
 
 export interface BoardRow {
   place: number;
@@ -18,6 +19,8 @@ export interface BoardRow {
   points: number;
   days: number;
   guesses: number;
+  /** The day board's solve time (it breaks ties on points); null without one, and on week and month boards. */
+  seconds: number | null;
   you: boolean;
   /** The prize this place earns when the period ends (weeks and months). */
   prize: number;
@@ -35,3 +38,6 @@ export interface BoardView {
   /** When the prizes are paid (weeks and months). */
   settles: string | null;
 }
+
+/** A player's solve times in one game: today's (null until finished, or untimed), their best solved time, and how many solved days have a time. */
+export interface SolveTimes { seconds: number | null; fastest: number | null; timed: number }

@@ -13,7 +13,8 @@ import { NextResponse, after } from "next/server";
 import { updateDailyCard } from "@/lib/activity/channelCard";
 import { sessionFrom } from "@/lib/activity/session";
 import { dailyView, saveIdentityGame } from "@/lib/daily/results";
-import { SHUFFLE } from "@/lib/originals/daily";
+import { playerForIdentity, timesFor } from "@/lib/daily/boards";
+import { SHUFFLE, dayKey } from "@/lib/originals/daily";
 import { DEX } from "@/lib/originals/dailyDex";
 
 export const runtime = "nodejs";
@@ -21,12 +22,19 @@ export const runtime = "nodejs";
 const NO_STORE = { "Cache-Control": "private, no-store" };
 /** `?game=dex` for the Daily Dex, else the Daily Shuffle. */
 const gameOf = (req: Request) => (new URL(req.url).searchParams.get("game") === "dex" ? DEX : SHUFFLE);
+/** Today's solve time and the best, under the same player the boards use. */
+async function timesOf(iid: string, uid: string | null | undefined, game: typeof SHUFFLE) {
+  const p = await playerForIdentity(iid, uid).catch(() => ({ kind: "i" as const, id: iid }));
+  return timesFor(`${p.kind}:${p.id}`, game.id, dayKey()).catch(() => null);
+}
 
 export async function GET(req: Request) {
   const s = sessionFrom(req);
   if (!s) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   try {
-    return NextResponse.json({ signedIn: true, ...(await dailyView({ identityId: s.iid, userId: s.uid }, gameOf(req))) }, { headers: NO_STORE });
+    const game = gameOf(req);
+    const [view, times] = await Promise.all([dailyView({ identityId: s.iid, userId: s.uid }, game), timesOf(s.iid, s.uid, game)]);
+    return NextResponse.json({ signedIn: true, ...view, times }, { headers: NO_STORE });
   } catch (err) {
     console.error("[activity/daily] read failed:", err);
     return NextResponse.json({ signedIn: true, stats: null, today: null, progress: null }, { headers: NO_STORE });
@@ -45,7 +53,8 @@ async function save(req: Request) {
     const day = saved.day;
     after(() => updateDailyCard({ ...where, day, game }).catch((err) => console.warn("[activity/daily] card update failed:", err)));
   }
-  return NextResponse.json({ ok: true, ...(await dailyView({ identityId: s.iid, userId: s.uid }, game)), score: saved.score ?? null }, { headers: NO_STORE });
+  const [view, times] = await Promise.all([dailyView({ identityId: s.iid, userId: s.uid }, game), timesOf(s.iid, s.uid, game)]);
+  return NextResponse.json({ ok: true, ...view, score: saved.score ?? null, times }, { headers: NO_STORE });
 }
 
 export const PUT = save;

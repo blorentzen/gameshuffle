@@ -1437,6 +1437,12 @@ html.dark .gs-portrait-bg {
 .daily__meta { display: flex; align-items: center; gap: var(--spacing-12); }
 .daily__guess { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
 .daily__guess > :first-child { flex: 1 1 24rem; }
+/* Start today's puzzle (DailyStart.tsx): the first hint and the clock wait for this tap. */
+.daily-start { display: flex; align-items: center; gap: var(--spacing-12, 12px); flex-wrap: wrap; padding: var(--spacing-16, 16px); border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: var(--surface-default); }
+.daily-start__note { flex: 1 1 26rem; margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); text-align: start; }
+/* Solved in 0:42 on the end screen. */
+.daily-time { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); margin: 0; font-size: var(--font-size-16); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.daily-time svg { color: var(--brand-ink, var(--text-secondary)); flex: none; }
 .daily__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
 /* Fact grid (one row per guess). Legibility first: columns keep a readable
    width and the grid scrolls sideways on phones, with the guess column pinned. */
@@ -1885,6 +1891,7 @@ html.dark .daily-board__tag--discord { color: #b4bcff; }
 .daily-board__prize { font-weight: 600; color: var(--color-warning-800, #7a5306); }
 html.dark .daily-board__prize { color: var(--color-warning-300, #f2c96b); }
 .daily-board__dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+.daily-board__time { font-variant-numeric: tabular-nums; color: var(--text-secondary); white-space: nowrap; }
 .daily-board__dot { width: 1rem; height: 1rem; border-radius: 50%; border: 1.5px solid var(--border-strong, #b9bccc); }
 .daily-board__dot--miss { background: var(--border-strong, #b9bccc); }
 .daily-board__dot--win { background: var(--color-success-500, #1a8a57); border-color: var(--color-success-500, #1a8a57); }
