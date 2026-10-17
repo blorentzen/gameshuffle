@@ -63,7 +63,7 @@ check(judgeGame(day, others.slice(0, 5), DEX) === null, "five misses isn't finis
 check(judgeGame(day, ["Not a Pokémon"], DEX) === null, "made-up names are refused");
 check(guessLimits(DEX_PUZZLE).main === 5 && guessLimits(DEX_PUZZLE).total === 6, "five guesses and a last chance");
 const hints = [others[0], answer].map((g) => hintFor(g, dexAnswer(day), DEX_PUZZLE)).filter((h): h is GuessHint => !!h);
-check(shareText(day, hints, true, DEX).startsWith(`The Daily Dex #${dexNumber(day)} 2/5`) && shareText(day, hints, true, DEX).endsWith("gameshuffle.co/daily-dex"), "share text names the Dex");
+check(shareText(day, hints, true, DEX).startsWith(`The Daily Dex #${dexNumber(day)} 2/5`) && shareText(day, hints, true, DEX).endsWith("https://www.gameshuffle.co/daily-dex"), "share text names the Dex");
 check(statsFrom([{ day, guesses: 6, solved: true }], day, DEX).saved === 1, "a last-chance solve is a save");
 
 // Ladder

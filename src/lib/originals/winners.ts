@@ -84,5 +84,5 @@ export function winnersCaption(sections: WinnersSection[]): string {
     return `${s.title} #${s.number}: ${named.length ? named.join(" · ") : "our top 5"}`;
   });
   const tags = ["#DailyPuzzle", "#GameShuffle", ...(sections.some((s) => s.game === "shuffle") ? ["#Nintendo"] : []), ...(sections.some((s) => s.game === "dex") ? ["#Pokemon"] : [])];
-  return [`Congrats to yesterday's top 5! 🏆`, "", ...lines, "", "Make today's top 5 at gameshuffle.co/daily", "", tags.join(" ")].join("\n");
+  return [`Congrats to yesterday's top 5! 🏆`, "", ...lines, "", "Make today's top 5 at https://www.gameshuffle.co/daily", "", tags.join(" ")].join("\n");
 }
