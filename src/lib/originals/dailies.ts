@@ -204,7 +204,7 @@ export function combinedShareText(entries: DailiesEntries, shown: DailiesId[], a
     const time = e.result!.solved && e.result!.seconds != null ? ` ⏱ ${formatTime(e.result!.seconds)}` : "";
     return `${g.square} ${name} · ${scoreText(e.result!)}${time}${flame(e.stats?.streak)}`;
   });
-  return [`GameShuffle dailies · ${dateLabel(gsDay(at))}`, ...lines, "gameshuffle.co/daily"].join("\n");
+  return [`GameShuffle dailies · ${dateLabel(gsDay(at))}`, ...lines, "https://www.gameshuffle.co/daily"].join("\n");
 }
 
 /** The next game to play after `current`: the first shown one not done yet. */

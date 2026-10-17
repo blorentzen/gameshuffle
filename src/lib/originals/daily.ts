@@ -633,6 +633,11 @@ export function hintFor(guess: string, answer: DailyCharacter, puzzle: DailyPuzz
 }
 
 /** The shareable result: one row per guess (each column, then the answer). */
+/** "gameshuffle.co/daily" → "https://www.gameshuffle.co/daily": shares need the full address to become a link. */
+export function shareUrl(link: string): string {
+  return `https://www.${link.replace(/^https?:\/\/(www\.)?/, "")}`;
+}
+
 export function shareText(day: string, hints: GuessHint[], solved: boolean, s: DailySchedule = SHUFFLE, help?: { letters: number; guesses: number } | null, seconds?: number | null): string {
   const p = puzzleFor(day, s);
   const { main } = guessLimits(p);
@@ -646,7 +651,8 @@ export function shareText(day: string, hints: GuessHint[], solved: boolean, s: D
   const helped = help && (help.letters || help.guesses) ? [[`${"💡".repeat(help.letters)}`, `${"➕".repeat(help.guesses)}`].filter(Boolean).join(" ")] : [];
   // A solved game carries its time (Britton, 2026-10-16): Start to the final guess.
   const time = solved && seconds != null ? ` ⏱ ${formatTime(seconds)}` : "";
-  return [`${s.title} #${puzzleNumber(day, s)}${label ? ` · ${label}` : ""} ${score}${time}`, ...(starter ? [`Started from ${starter.tag}`] : []), ...rows, ...helped, s.link].join("\n");
+  // A full address (Discord and others only link one with https://), the page people land on.
+  return [`${s.title} #${puzzleNumber(day, s)}${label ? ` · ${label}` : ""} ${score}${time}`, ...(starter ? [`Started from ${starter.tag}`] : []), ...rows, ...helped, shareUrl(s.link)].join("\n");
 }
 
 /**
