@@ -215,6 +215,31 @@ export async function boardView(args: { game: BoardGame; period: BoardPeriod; da
 }
 
 /** Takes a player off the boards (their own choice, or staff), or puts them back. */
+/**
+ * One day's standings with each row's player key (`u:`/`i:`/`g:`), for the
+ * winners video and notes (src/lib/daily/winners.ts). Names, avatars and the
+ * private-profile rule are the board's own. Null when the boards are missing.
+ */
+export async function dayStandings(game: BoardGame, day: string, limit = 25): Promise<{ player: string; row: BoardRow }[] | null> {
+  const { data, error } = await createServiceClient().rpc("gs_daily_board", { p_game: game, p_from: day, p_to: day, p_limit: limit, p_player: null });
+  if (error) {
+    if (!boardsMissing(error)) console.error("[boards] day standings failed:", error);
+    return null;
+  }
+  const raw = ((data ?? []) as RawRow[]).slice(0, limit);
+  const names = await describe(raw);
+  return raw.map((r) => ({
+    player: r.player,
+    row: {
+      place: Number(r.place),
+      ...(names.get(r.player) ?? { name: "A player", tag: null, avatar: null, profile: null }),
+      points: Number(r.points), days: Number(r.days), guesses: Number(r.guesses),
+      seconds: r.seconds == null ? null : Number(r.seconds),
+      you: false, prize: 0,
+    },
+  }));
+}
+
 export async function setHidden(player: string, hidden: boolean, by: { staff: boolean; userId: string | null }): Promise<boolean> {
   if (!parsePlayer(player)) return false;
   const admin = createServiceClient();

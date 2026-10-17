@@ -95,6 +95,23 @@ export async function dailyView(who: DailyWho, game: DailySchedule = SHUFFLE): P
   return { stats: statsFrom(rows, today, game), today: rows.find((r) => r.day === today) ?? null, progress: saved?.guess_list.length ? saved.guess_list : null, recent: recentMarks(rows, today, game) };
 }
 
+/**
+ * The days a player solved this game (last-chance saves count, as for streaks),
+ * with the account's rows first and a linked Discord identity's finished games
+ * filling the rest, the way the streak cards count them.
+ */
+export async function solvedDays(who: DailyWho, game: DailySchedule = SHUFFLE): Promise<Set<string>> {
+  const identityId = who.identityId ?? (who.userId ? await discordIdentityFor(who.userId).catch(() => null) : null);
+  const [acct, ident] = await Promise.all([
+    who.userId ? accountRows(who.userId, game) : Promise.resolve([] as DailyRow[]),
+    identityId ? identityRows(identityId) : Promise.resolve([]),
+  ]);
+  const byDay = new Map<string, boolean>();
+  for (const r of acct) if (!byDay.has(r.day)) byDay.set(r.day, r.solved);
+  for (const r of ident) if (r.finished && ofGame(game, r.puzzle) && !byDay.has(r.day)) byDay.set(r.day, r.solved);
+  return new Set([...byDay].filter(([, solved]) => solved).map(([day]) => day));
+}
+
 /** The last `n` days for a streak card, oldest first: the first result per day stands. */
 function recentMarks(rows: DailyRow[], today: string, game: DailySchedule, n = 14): DayMark[] {
   const byDay = new Map<string, DailyRow>();
