@@ -22,7 +22,7 @@ function statusLine(p: CallDailyPlayer): string {
   return "Not started";
 }
 
-export function DailyCallStrip({ active }: { active: boolean }) {
+export function DailyCallStrip({ active, game = "shuffle" }: { active: boolean; game?: "shuffle" | "dex" }) {
   const { api } = useOriginalsHost();
   const [players, setPlayers] = useState<CallDailyPlayer[]>([]);
 
@@ -30,14 +30,14 @@ export function DailyCallStrip({ active }: { active: boolean }) {
     if (!active) return;
     let live = true;
     const read = async () => {
-      const r = await api("/api/activity/daily/call", { cache: "no-store" }).catch(() => null);
+      const r = await api(`/api/activity/daily/call${game === "dex" ? "?game=dex" : ""}`, { cache: "no-store" }).catch(() => null);
       const j = (await r?.json().catch(() => null)) as { ok?: boolean; players?: CallDailyPlayer[] } | null;
       if (live && j?.ok && j.players) setPlayers(j.players);
     };
     void read();
     const iv = window.setInterval(() => void read(), POLL_MS);
     return () => { live = false; window.clearInterval(iv); };
-  }, [active, api]);
+  }, [active, api, game]);
 
   if (players.length < 2) return null;
   return (

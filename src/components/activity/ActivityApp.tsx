@@ -34,6 +34,8 @@ import { Alert, Button, Card, Modal, Tabs } from "@empac/cascadeds";
 import { IconBrain, IconBulb, IconCalendarWeek, IconCheck, IconPuzzle, IconUsersGroup } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { DailyShuffle } from "@/components/originals/DailyShuffle";
+import { DailyDex } from "@/components/originals/DailyDex";
+import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { WeeklyChallenge } from "@/components/originals/WeeklyChallenge";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { ActivityTrivia } from "@/components/activity/ActivityTrivia";
@@ -57,14 +59,17 @@ const PEEK_MS = 6_000;
 function Field({ seed, opacity = 0.12 }: { seed: string; opacity?: number }) {
   return <IconField category="originals" seed={seed} opacity={opacity} className="gs-activity__field" />;
 }
-const asTab = (x: string | null | undefined): TabId | null => (TAB_IDS.includes(x as TabId) ? (x as TabId) : null);
+const asTab = (x: string | null | undefined): TabId | null => (x === "dex" ? "daily" : TAB_IDS.includes(x as TabId) ? (x as TabId) : null);
+/** The Daily tab plays both dailies: a "Play the Dex" button (or ?tab=dex) opens it on the Dex. */
+type DailyGame = "shuffle" | "dex";
+const asDailyGame = (x: string | null | undefined): DailyGame => (x === "dex" ? "dex" : "shuffle");
 
 interface Player { id: string; name: string; avatar: string | null; linked: boolean }
 type Phase =
   | { kind: "starting" }
   | { kind: "outside" }
   | { kind: "error"; message: string }
-  | { kind: "ready"; session: string; player: Player; startTab: TabId };
+  | { kind: "ready"; session: string; player: Player; startTab: TabId; startGame: DailyGame };
 
 const ERRORS: Record<string, string> = {
   not_configured: "GameShuffle isn't set up for Discord yet. Try again later.",
@@ -107,8 +112,8 @@ async function startPreview(as: "linked" | "guest"): Promise<Phase> {
   const room = q.get("room");
   const j = (await fetch(`/api/activity/dev-session?as=${as}${name ? `&name=${encodeURIComponent(name)}` : ""}${room ? `&room=${encodeURIComponent(room)}` : ""}`).then((r) => r.json()).catch(() => null)) as { ok?: boolean; session?: string; user?: Player } | null;
   if (!j?.ok || !j.session || !j.user) return { kind: "error", message: "Preview sign-in failed. Is the dev server using the dev database?" };
-  const tab = asTab(new URLSearchParams(window.location.search).get("tab")) ?? "daily";
-  return { kind: "ready", session: j.session, player: j.user, startTab: tab };
+  const asked = new URLSearchParams(window.location.search).get("tab");
+  return { kind: "ready", session: j.session, player: j.user, startTab: asTab(asked) ?? "daily", startGame: asDailyGame(asked) };
 }
 
 function inDiscord(): boolean {
@@ -125,14 +130,14 @@ async function start(clientId: string): Promise<Phase> {
   if (!j?.ok || !j.accessToken || !j.session || !j.user) return { kind: "error", message: ERRORS[j?.error ?? ""] ?? ERRORS.discord_unavailable };
   await sdk.commands.authenticate({ access_token: j.accessToken });
   // A Play button's choice, else a shared link's (custom_id), else today's Daily.
-  return { kind: "ready", session: j.session, player: j.user, startTab: asTab(j.startTab) ?? asTab(sdk.customId) ?? "daily" };
+  return { kind: "ready", session: j.session, player: j.user, startTab: asTab(j.startTab) ?? asTab(sdk.customId) ?? "daily", startGame: asDailyGame(j.startTab ?? sdk.customId) };
 }
 
 /** The Activity twin of a site API path. */
 function activityPath(path: string): string {
   return path
     .replace(/^\/api\/chat-brain(?=[/?]|$)/, "/api/activity/brain")
-    .replace(/^\/api\/(daily|weekly)(?=[/?]|$)/, "/api/activity/$1");
+    .replace(/^\/api\/(dailies|daily|weekly)(?=[/?]|$)/, "/api/activity/$1");
 }
 
 function avatarUrl(p: Player): string | null {
@@ -142,6 +147,7 @@ function avatarUrl(p: Player): string | null {
 export function ActivityApp({ clientId }: { clientId: string | null }) {
   const [phase, setPhase] = useState<Phase>({ kind: "starting" });
   const [tab, setTab] = useState<TabId>("daily");
+  const [dailyGame, setDailyGame] = useState<DailyGame>("shuffle");
   const toast = useToast();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   /** When "Sign up free" was tapped; null when we're not watching for a new account. */
@@ -151,7 +157,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
     const preview = previewMode();
     if (preview) {
       void startPreview(preview).then((p) => {
-        if (p.kind === "ready") { setTab(p.startTab); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
+        if (p.kind === "ready") { setTab(p.startTab); setDailyGame(p.startGame); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
         setPhase(p);
       });
       return;
@@ -164,7 +170,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
     });
     void signIn.then((p) => {
       if (p.kind === "error") signIn = null; // Try again starts a fresh sign-in.
-      if (p.kind === "ready") { setTab(p.startTab); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
+      if (p.kind === "ready") { setTab(p.startTab); setDailyGame(p.startGame); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
       setPhase(p);
     });
   }, [clientId]);
@@ -256,6 +262,11 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
           }
         },
         showTab: (t) => { setTab(t); window.scrollTo({ top: 0 }); },
+        pickDaily: (g) => {
+          if (g === "weekly") setTab("weekly");
+          else { setDailyGame(g); setTab("daily"); }
+          window.scrollTo({ top: 0 });
+        },
         signUp: startSignup,
       },
     };
@@ -328,7 +339,17 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
             onChange={(id) => setTab(asTab(id) ?? "daily")}
             className="gs-activity__tabs"
             tabs={[
-              { id: "daily", label: "Daily", icon: <IconPuzzle size={16} />, content: <><GameHeader game="daily" /><DailyCallStrip active={tab === "daily"} /><DailyShuffle /></> },
+              {
+                id: "daily", label: "Daily", icon: <IconPuzzle size={16} />,
+                content: (
+                  <DailiesProvider current={dailyGame}>
+                    <GameHeader game={dailyGame === "dex" ? "dex" : "daily"} />
+                    <DailiesBar current={dailyGame} onPick={host.activity?.pickDaily} />
+                    <DailyCallStrip active={tab === "daily"} game={dailyGame} />
+                    {dailyGame === "dex" ? <DailyDex key="dex" /> : <DailyShuffle key="shuffle" />}
+                  </DailiesProvider>
+                ),
+              },
               {
                 id: "room", label: peek?.players && tab !== "room" ? `Together · ${peek.players}` : "Together", icon: <IconUsersGroup size={16} />,
                 content: <ActivityRoom active={tab === "room"} />,
@@ -336,11 +357,12 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
               {
                 id: "weekly", label: "Weekly", icon: <IconCalendarWeek size={16} />,
                 content: (
-                  <>
+                  <DailiesProvider current="weekly">
                     <GameHeader game="weekly" />
+                    <DailiesBar current="weekly" onPick={host.activity?.pickDaily} />
                     {!player.linked && <LinkNote onOpen={startSignup} />}
                     <WeeklyChallenge />
-                  </>
+                  </DailiesProvider>
                 ),
               },
               {

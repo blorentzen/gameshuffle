@@ -33,11 +33,17 @@ const FREE_MINT_TYPES = [
   "earn_t1",
   "earn_t2",
   "earn_newcommunity",
+  // GameShuffle's own payouts: the dailies, their board prizes, invite links and the Idea Board.
+  "earn_daily",
+  "award_board",
+  "earn_referral",
+  "idea_accept",
+  "idea_ship",
 ] as const;
 
 const PAID_MINT_TYPES = ["award_mint"] as const;
 
-const BURN_TYPES = ["chaos_burn", "shop_purchase"] as const;
+const BURN_TYPES = ["chaos_burn", "shop_purchase", "daily_help"] as const;
 
 const WAGER_TYPES = ["bet"] as const;
 

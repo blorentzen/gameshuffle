@@ -1,6 +1,6 @@
 /* Trivia Nights (src/components/trivia). Root font is 10px: sizes use the tokens. */
 
-.trivia-page { background: var(--surface-sunken, color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))); min-height: 100vh; padding-bottom: var(--spacing-64); }
+.trivia-page { --browse-hero-curve: var(--surface-sunken, color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))); background: var(--browse-hero-curve); min-height: 100vh; padding-bottom: var(--spacing-64); }
 .trivia-page__body { max-width: 112rem; margin: 0 auto; padding: var(--spacing-24) var(--spacing-16) 0; display: flex; flex-direction: column; gap: var(--spacing-16); }
 .trivia-crumb { margin: 0; font-size: var(--font-size-14); }
 .trivia-card { background: var(--surface-default); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); padding: var(--spacing-16); display: flex; flex-direction: column; gap: var(--spacing-12); }

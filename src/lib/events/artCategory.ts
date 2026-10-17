@@ -24,6 +24,10 @@ export type ArtCategory =
   | "heroes"
   /* The Daily Shuffle: a calendar day, a guess, the racing wheel, a streak flame. */
   | "daily"
+  /* The Daily Dex: a Poké Ball and type icons. */
+  | "dex"
+  /* Support GameShuffle: hearts, a coffee, the servers it keeps on. */
+  | "support"
   /* The Weekly Challenge: trophies, a week on the calendar, a ranked list. */
   | "weekly"
   /* Communities: people, conversations, a home base. */

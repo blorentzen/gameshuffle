@@ -25,6 +25,7 @@ export default function robots(): MetadataRoute.Robots {
         "/stream/",
         "/stream-card",
         "/stream-card/",
+        "/social/",
         "/tournament/create",
         "/tournament/*/manage",
         "/login",

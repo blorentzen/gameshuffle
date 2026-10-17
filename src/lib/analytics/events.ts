@@ -24,11 +24,35 @@ export const EVENTS = {
   brainShareCopied: "Brain Share Copied",
   brainUpdatesSignup: "Brain Updates Signup",
 
+  /** A guest put their name on the Daily leaderboards. {game} */
+  dailyBoardJoined: "Daily Board Joined",
+  /** "Copy today's results": every daily played today in one post. {games: count, from} */
+  dailiesShared: "Dailies Shared",
+  /** The today bar or Next up took someone to another daily. {to, from, via: bar|next} */
+  dailiesSwitched: "Dailies Switched",
+  /** "Copy link" on the dailies' Invite friends card or Account ▸ Invite friends. {from} */
+  referralLinkCopied: "Referral Link Copied",
+  /** Tokens spent on help at a daily's last chance. {game, kind: letter|guess} */
+  dailyHelpBought: "Daily Help Bought",
+
+  /** A homepage section's card or button (Run the night, Pokémon, the plans band). {to} */
+  homeSectionClicked: "Home Section Clicked",
+
+  // Support GameShuffle (/support)
+  /** A quiet "help keep it free" link or the footer link. {from} */
+  supportClicked: "Support Clicked",
+  /** Checkout opened. {kind: once | monthly, amount} (whole dollars) */
+  supportCheckoutStarted: "Support Checkout Started",
+  /** Back on the thanks page with a paid session. {kind, amount} */
+  supportCompleted: "Support Completed",
+
   // Shop
   /** "Notify me" on the shop's Coming soon page. {signedIn} */
   shopUpdatesJoined: "Shop Updates Joined",
   /** A link into the shop from around the site (props: { from: nav | home-band | tcg | game-nights }). */
   shopLinkClicked: "Shop Link Clicked",
+  /** A link out to our TCGplayer store (singles). {from: daily-dex|...} */
+  tcgStoreClicked: "TCG Store Clicked",
   /** A shop order was paid (server event; props: { placement, source }). Revenue rides along. */
   shopOrderPlaced: "Shop Order Placed",
 

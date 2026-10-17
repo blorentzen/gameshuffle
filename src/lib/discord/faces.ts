@@ -33,13 +33,13 @@ export async function rememberAvatar(identityId: string, url: string): Promise<v
 
 export interface Face { name: string; avatar: string | null }
 
-interface AccountRow {
+export interface AccountRow {
   id: string; avatar_source: string | null; avatar_seed: string | null; avatar_options: AvatarOptions | null;
   discord_avatar: string | null; twitch_avatar: string | null;
 }
 
 /** Same rule as the rest of the site (messaging's member profiles). */
-function accountAvatar(u: AccountRow): string {
+export function accountAvatar(u: AccountRow): string {
   if (u.avatar_source === "twitch" && u.twitch_avatar) return u.twitch_avatar;
   if (u.avatar_source === "discord" && u.discord_avatar) return u.discord_avatar;
   if (!u.avatar_source && (u.discord_avatar || u.twitch_avatar)) return (u.discord_avatar || u.twitch_avatar)!;

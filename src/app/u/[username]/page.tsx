@@ -50,6 +50,8 @@ import { getCommunityBySlug } from "@/lib/communities/membership";
 import { getUserCrews } from "@/lib/communities/crews";
 import { formatCompact } from "@/lib/format/number";
 import { resolveProfileLayout, visibleSections, type ProfileSectionKey } from "@/lib/profile/layout";
+import { DailiesCards } from "@/components/originals/DailiesCards";
+import { dailiesShown } from "@/lib/originals/dailies";
 import { resolveProfileSkin, skinBackground, skinBackgroundLayout, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
 import { resolveProfileLinks, resolveProfileSpotlight, spotlightEmbedUrl } from "@/lib/profile/links";
 import { resolveProfileStatus, resolveNowPlaying } from "@/lib/profile/status";
@@ -351,7 +353,6 @@ export default async function PublicProfilePage({
   if (enrichment.configCount)
     stats.push({ num: formatCompact(enrichment.configCount), label: "Configs" });
   if (tournamentTotal) stats.push({ num: formatCompact(tournamentTotal), label: "Tournaments" });
-  if (enrichment.dailyStreak) stats.push({ num: formatCompact(enrichment.dailyStreak), label: "Daily streak" });
   if (enrichment.triviaNights) stats.push({ num: formatCompact(enrichment.triviaNights), label: "Trivia nights" });
 
   // Identity badges: Staff / GS Pro + a streamer "Watch live" link.
@@ -374,6 +375,9 @@ export default async function PublicProfilePage({
       badges.push({ key: "community", label: "Community", href: `/c/${profile.username}` });
     }
   }
+
+  // Supports GameShuffle (once in the last year, or monthly).
+  if (enrichment.supporter) badges.push({ key: "supporter", label: "Supporter", href: "/support" });
 
   // Weekly Challenge: a top-10 week (the count shows once there's more than one).
   if (enrichment.weeklyTopTen) {
@@ -439,6 +443,15 @@ export default async function PublicProfilePage({
     </div>
   );
 
+  // The dailies: a streak card per game they've played (Britton's pick, 2026-10-16).
+  const dl = enrichment.dailies;
+  const dailiesWidget = (dl.shuffle?.stats?.played || dl.dex?.stats?.played || dl.weekly?.weeks?.played) ? (
+    <div className="pcard">
+      <h3 className="pcard__title">Dailies</h3>
+      <DailiesCards entries={dl} shown={dailiesShown()} heading={null} />
+    </div>
+  ) : null;
+
   const topFriendsWidget = topFriends.length > 0 && (
     <div className="pcard">
       <h3 className="pcard__title">Top Friends</h3>
@@ -493,6 +506,7 @@ export default async function PublicProfilePage({
     featuredCard: featuredCardWidget,
     crews: crewsWidget,
     favGames: favGamesWidget,
+    dailies: dailiesWidget,
     topFriends: topFriendsWidget,
     communities: communitiesWidget,
   };

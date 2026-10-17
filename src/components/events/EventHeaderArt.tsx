@@ -38,6 +38,7 @@ import {
   IconQuestionMark, IconHelpCircle, IconMushroom, IconConfetti,
   IconBrain, IconMessages, IconChartBar, IconUsersGroup, IconBulb,
   IconCalendarEvent, IconSteeringWheel, IconShield, IconSword, IconHeart, IconTarget, IconFlame, IconCalendarWeek, IconAward, IconUsers, IconHeartHandshake, IconHome,
+  IconPokeball, IconDroplet, IconLeaf, IconCoffee, IconServer,
 } from "@tabler/icons-react";
 
 /**
@@ -99,6 +100,11 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
   /* The Originals share the violet band; their glyphs say which game it is. */
   daily: { feature: IconCalendarEvent, ramp: ["#1b2a6b", "#4b5cf5"],
     glyphs: [IconCalendarEvent, IconHelpCircle, IconSteeringWheel, IconFlame, IconStar] },
+  /* The Daily Dex: a Poké Ball among the type icons the Dex's tiles use (TypeCard.tsx). */
+  dex: { feature: IconPokeball, ramp: ["#1b2a6b", "#4b5cf5"],
+    glyphs: [IconPokeball, IconBolt, IconFlame, IconDroplet, IconLeaf] },
+  support: { feature: IconHeart, ramp: ["#1b2a6b", "#4b5cf5"],
+    glyphs: [IconHeart, IconCoffee, IconServer, IconSparkles, IconStar] },
   weekly: { feature: IconTrophy, ramp: ["#1b2a6b", "#4b5cf5"],
     glyphs: [IconTrophy, IconCalendarWeek, IconListNumbers, IconAward, IconUsersGroup] },
   community: { feature: IconUsers, ramp: ["#0d3b46", "#0ea5e9"],

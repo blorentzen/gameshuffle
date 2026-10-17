@@ -3119,3 +3119,14 @@ html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
 .bingo-steps__n { display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--border-default); font-weight: 700; font-size: var(--font-size-12); color: var(--text-secondary); }
 .bingo-steps li.is-now .bingo-steps__n { background: var(--brand-ink, var(--primary-600)); border-color: transparent; color: #fff; }
 .bingo-steps li.is-done .bingo-steps__n { border-color: var(--brand-ink, var(--primary-600)); color: var(--brand-ink, var(--primary-600)); }
+
+/* Phones (iOS) zoom the whole page into any text field under 16px when it's tapped, which made the
+   Daily's guess box jump on every guess (Britton, 2026-10-16). On touch screens every text field is
+   16px, so nothing zooms; pinch zoom still works. CDS medium fields are 14px. */
+@media (pointer: coarse) {
+  html:root :is(.empac-input, .empac-input input, .empac-combobox__input, .empac-textarea, .empac-textarea textarea,
+  input[type="text"], input[type="search"], input[type="email"], input[type="tel"], input[type="url"],
+  input[type="number"], input[type="password"], input:not([type]), textarea, select) {
+    font-size: var(--font-size-16); /* html:root outranks CDS's size rules (.empac-combobox--medium .empac-combobox__input) */
+  }
+}

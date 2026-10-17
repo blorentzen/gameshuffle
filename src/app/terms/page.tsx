@@ -111,7 +111,16 @@ const SECTIONS: LegalSection[] = [
         <CircuitTerms />
         <LegalSubSection number="3.5" title="Arcade Tokens">
           <p>Arcade Tokens are earned through activity on GameShuffle and in communities that use it. They have no cash value. They cannot be bought, sold, transferred for money or redeemed for money or anything of monetary value from GameShuffle. We may change how tokens are earned or used, or reset balances, at any time.</p>
+          <p>Tokens awarded for our daily games, including leaderboard prizes, are Arcade Tokens on these same terms. If you play without an account, tokens you earn are held for you for 30 days and move to your account if you sign in or create one within that time; after that, they expire. We may remove scores or withhold tokens that we reasonably believe were earned unfairly, for example through automated play or many guest names.</p>
+          <p>Accounts can share our daily games with a personal invite link. When someone new plays from your link, and again if they create an account, you may receive Arcade Tokens, and their new account may receive extra tokens to start; the amounts and daily limits are shown on your account&apos;s Invite friends page and may change. Each person counts once, for the first invite link they used, and your own accounts, browsers and network never count. We may withhold or remove tokens from invites we reasonably believe are not genuine, for example made-up players or many browsers or accounts used by one person.</p>
+          <p>On the last chance of a daily game you can spend Arcade Tokens on help, such as another letter of the answer or one more guess. Help is used up when you get it, whatever the result, and tokens spent on help are not refunded. A game solved with help counts as a save, not a win, on your stats and the leaderboards.</p>
           <p>Community owners who offer prizes for tokens, raffles or other activities in their communities are responsible for those prizes.</p>
+        </LegalSubSection>
+        <LegalSubSection number="3.6" title="Supporting GameShuffle">
+          <p>You can choose to support GameShuffle with a one-time or monthly payment from our <a href="/support">support page</a>. Support is a voluntary payment to Britton Lorentzen, doing business as Empac and GameShuffle. GameShuffle is not a charity, and support is not a charitable donation or tax-deductible.</p>
+          <p>Support does not purchase a subscription plan, Arcade Tokens, or access to any feature. As a thank-you, supporters may receive a Supporter badge on their profile, shown for one year after a one-time payment or while monthly support is active, and may choose to have a name and short note shown on our public supporters wall. Names and notes must follow our content standards (section 6.3), and we may remove any of them at any time.</p>
+          <p>Support payments are processed in US dollars by Stripe and are currently available only with a billing address in the United States. If support is started with a billing address outside the United States, we will refund it and cancel any monthly support. Monthly support renews each month until you cancel it, which you can do at any time from your account settings or the Stripe Customer Portal; cancellation takes effect at the end of the current monthly period and no further payments are taken. Monthly support requires a GameShuffle account.</p>
+          <p>Because support is voluntary, payments are generally not refundable. If you made a mistake, such as choosing the wrong amount, contact us at billing@gameshuffle.co within 30 days of the payment and we will refund it. We may change or stop offering support at any time; if we stop, monthly support is cancelled and no further payments are taken.</p>
         </LegalSubSection>
       </>
     ),
@@ -434,7 +443,7 @@ export default function TermsPage() {
     <LegalPage
       title="Terms of Service"
       intro="The rules for using GameShuffle: accounts, subscriptions, tournaments, and your rights."
-      effectiveDate="September 23, 2026"
+      effectiveDate="October 16, 2026"
       sections={SECTIONS}
       current="terms"
     />

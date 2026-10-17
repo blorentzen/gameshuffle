@@ -14,7 +14,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import type { ActivitySession } from "@/lib/activity/session";
 import { activityApp } from "@/lib/activity/discord";
 import { facesFor } from "@/lib/discord/faces";
-import { answerFor, hintFor, puzzleFor } from "@/lib/originals/daily";
+import { DEX_PUZZLE_ID, SHUFFLE, answerFor, hintFor, puzzleFor, type DailySchedule } from "@/lib/originals/daily";
 import { gsDay } from "@/lib/time/gsClock";
 
 const API = "https://discord.com/api/v10";
@@ -67,12 +67,12 @@ async function callIdentities(s: ActivitySession): Promise<string[]> {
 
 const cell = (s: string): "match" | "close" | "miss" => (s === "match" ? "match" : s === "close" ? "close" : "miss");
 
-/** Everyone in this call and their Daily today, you first, then solved, playing, out, not started. */
-export async function callDaily(s: ActivitySession, day: string = gsDay()): Promise<CallDailyPlayer[]> {
+/** Everyone in this call and their daily today (the Shuffle, or the Dex), you first, then solved, playing, out, not started. */
+export async function callDaily(s: ActivitySession, day: string = gsDay(), game: DailySchedule = SHUFFLE): Promise<CallDailyPlayer[]> {
   const ids = await callIdentities(s);
   const admin = createServiceClient();
   const [{ data }, faces] = await Promise.all([
-    admin.from("daily_identity_results").select("identity_id, guess_list, guesses, solved, finished_at").eq("day", day).in("identity_id", ids),
+    admin.from("daily_identity_results").select("identity_id, guess_list, guesses, solved, finished_at").eq("day", day).eq("puzzle", puzzleFor(day, game).id).in("identity_id", ids),
     facesFor(ids),
   ]);
   const rows = new Map(((data ?? []) as { identity_id: string; guess_list: string[] | null; guesses: number | null; solved: boolean | null; finished_at: string | null }[]).map((r) => [r.identity_id, r]));
@@ -83,15 +83,16 @@ export async function callDaily(s: ActivitySession, day: string = gsDay()): Prom
     const { data: linked } = await admin.from("gs_identities").select("id, gs_account_id").in("id", missing).not("gs_account_id", "is", null);
     const byUser = new Map(((linked ?? []) as { id: string; gs_account_id: string }[]).map((r) => [r.gs_account_id, r.id]));
     if (byUser.size) {
-      const { data: results } = await admin.from("daily_results").select("user_id, guesses, solved").eq("day", day).in("user_id", [...byUser.keys()]);
+      const base = admin.from("daily_results").select("user_id, guesses, solved").eq("day", day);
+      const { data: results } = await (game.id === "dex" ? base.eq("puzzle", DEX_PUZZLE_ID) : base.neq("puzzle", DEX_PUZZLE_ID)).in("user_id", [...byUser.keys()]);
       for (const r of (results ?? []) as { user_id: string; guesses: number; solved: boolean }[]) {
         const id = byUser.get(r.user_id);
         if (id) site.set(id, { guesses: r.guesses, solved: r.solved });
       }
     }
   }
-  const puzzle = puzzleFor(day);
-  const answer = answerFor(day);
+  const puzzle = puzzleFor(day, game);
+  const answer = answerFor(day, game);
   const players: CallDailyPlayer[] = ids.map((id) => {
     const r = rows.get(id);
     const face = faces.get(id);

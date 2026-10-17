@@ -24,10 +24,23 @@ const W = 560;
 const PAD = 18;
 const HEADER_H = 44;
 const FOOTER_H = 14;
-/** The Originals glyph field, same five as the Activity (EventHeaderArt's "originals"). */
-const FIELD: GlyphName[] = ["puzzle", "calendar-week", "brain", "trophy", "sparkles"];
-const KICKER = "#aab4ff";
-const SOFT = "#c4c9ff";
+/**
+ * Each daily's own look, matching its share image and page header (Britton,
+ * 2026-10-16: "the visual language is unique to each daily/weekly game"):
+ * the Daily Shuffle violet with its Nintendo glyphs, the Daily Dex warm with
+ * a Poké Ball and type glyphs.
+ */
+export type CardGame = "shuffle" | "dex";
+const THEMES: Record<CardGame, { name: string; base: string; glow: string; field: GlyphName[]; kicker: string; soft: string; podiumIn: string }> = {
+  shuffle: {
+    name: "The Daily Shuffle", base: "#150f45", glow: "radial-gradient(circle at 0% 0%, #6b4ee6 0%, #2b1d84 48%, #150f45 100%)",
+    field: ["star", "steering-wheel", "mushroom", "question-mark", "flame"], kicker: "#c9bcff", soft: "#d8cfff", podiumIn: "Yesterday's Daily",
+  },
+  dex: {
+    name: "The Daily Dex", base: "#2a0f07", glow: "radial-gradient(circle at 0% 0%, #d9622a 0%, #7d2412 50%, #2a0f07 100%)",
+    field: ["pokeball", "bolt", "flame", "droplet", "leaf"], kicker: "#ffc89a", soft: "#ffdcc2", podiumIn: "Yesterday's Daily Dex",
+  },
+};
 const RING = { solved: "#3bd17f", playing: "#f6c34a", out: "#7d8099" } as const;
 const CELL = { match: "#3bd17f", close: "#f6c34a", miss: "#3a3f63" } as const;
 const TINTS = ["#4f6bf5", "#8a5cf6", "#e0569b", "#1fa37a", "#e08a2e", "#2f9fd8"];
@@ -126,11 +139,11 @@ function Squares({ rows, cols }: { rows: CellStatus[][]; cols: number }) {
   );
 }
 
-function Header({ kicker, title, pill }: { kicker: string; title: string; pill: string | null }) {
+function Header({ kicker, title, pill, color }: { kicker: string; title: string; pill: string | null; color: string }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", height: u(HEADER_H) }}>
       <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, flexShrink: 1, minWidth: 0, marginRight: u(12), overflow: "hidden" }}>
-        <div style={{ display: "flex", fontSize: u(10), fontWeight: 600, letterSpacing: u(1.4), color: KICKER }}>{kicker.toUpperCase()}</div>
+        <div style={{ display: "flex", fontSize: u(10), fontWeight: 600, letterSpacing: u(1.4), color }}>{kicker.toUpperCase()}</div>
         <div style={{ display: "flex", marginTop: u(5), fontFamily: "Gabarito", fontSize: u(22), lineHeight: 1.05, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
       </div>
       {pill ? (
@@ -142,21 +155,22 @@ function Header({ kicker, title, pill }: { kicker: string; title: string; pill: 
   );
 }
 
-function Footer({ left }: { left: string }) {
+function Footer({ left, color, link }: { left: string; color: string; link: string }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", height: u(FOOTER_H), marginTop: u(14), fontSize: u(11.5), fontWeight: 500, color: KICKER, whiteSpace: "nowrap" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", height: u(FOOTER_H), marginTop: u(14), fontSize: u(11.5), fontWeight: 500, color, whiteSpace: "nowrap" }}>
       <div style={{ display: "flex" }}>{left}</div>
-      <div style={{ display: "flex" }}>gameshuffle.co/daily</div>
+      <div style={{ display: "flex" }}>{link}</div>
     </div>
   );
 }
 
-function Ground({ h, children }: { h: number; children: ReactNode }) {
+function Ground({ h, game, children }: { h: number; game: CardGame; children: ReactNode }) {
+  const t = THEMES[game];
   return (
-    <div style={{ width: u(W), height: u(h), display: "flex", position: "relative", color: "#ffffff", fontFamily: "Outfit", background: "#12153f" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, width: u(W), height: u(h), display: "flex", background: "radial-gradient(circle at 0% 0%, #2a3fb8 0%, #1a2063 48%, #12153f 100%)" }} />
+    <div style={{ width: u(W), height: u(h), display: "flex", position: "relative", color: "#ffffff", fontFamily: "Outfit", background: t.base }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: u(W), height: u(h), display: "flex", background: t.glow }} />
       {/* eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse */}
-      <img src={svgUri(fieldSvg(FIELD, u(W), u(h), u(56)))} width={u(W)} height={u(h)} style={{ position: "absolute", top: 0, left: 0 }} alt="" />
+      <img src={svgUri(fieldSvg(t.field, u(W), u(h), u(56)))} width={u(W)} height={u(h)} style={{ position: "absolute", top: 0, left: 0 }} alt="" />
       <div style={{ position: "absolute", top: u(PAD), left: u(PAD), width: u(W - PAD * 2), display: "flex", flexDirection: "column" }}>
         {children}
       </div>
@@ -178,7 +192,8 @@ async function draw(el: ReactElement, h: number): Promise<Buffer> {
   return Buffer.from(await res.arrayBuffer());
 }
 
-const where = (number: number, channel: string | null) => (channel ? `#${number} in #${clip(channel, 18)}` : `The Daily #${number}`);
+const where = (number: number, channel: string | null, game: CardGame) => (channel ? `#${number} in #${clip(channel, 18)}` : `${game === "dex" ? "The Daily Dex" : "The Daily"} #${number}`);
+const LINKS: Record<CardGame, string> = { shuffle: "gameshuffle.co/daily", dex: "gameshuffle.co/daily-dex" };
 
 // ---------------------------------------------------------------- today's card
 
@@ -190,9 +205,11 @@ const TILE_W = (W - PAD * 2 - TILE_GAP_X) / 2;
 export const CARD_MAX_FACES = 12;
 
 export async function renderDailyCard(input: {
+  /** Which daily (its colors and glyphs); the Daily Shuffle by default. */
+  game?: CardGame;
   number: number;
   /** The game's name for the pill, or null when the puzzle doesn't show one. */
-  game: string | null;
+  label: string | null;
   channel: string | null;
   /** The main game's guesses. */
   max: number;
@@ -213,10 +230,12 @@ export async function renderDailyCard(input: {
   const h = PAD + HEADER_H + 14 + rows * TILE_H + (rows - 1) * TILE_GAP_Y + 14 + FOOTER_H + PAD;
   const played = input.players.length;
   const left = `${played} played · ${finished} finished${extra > 0 ? ` · ${extra} more not shown` : ""}`;
+  const game = input.game ?? "shuffle";
+  const t = THEMES[game];
 
   return draw(
-    <Ground h={h}>
-      <Header kicker="The Daily Shuffle" title={where(input.number, input.channel)} pill={input.game ? clip(input.game, 26) : null} />
+    <Ground h={h} game={game}>
+      <Header kicker={t.name} title={where(input.number, input.channel, game)} pill={input.label ? clip(input.label, 26) : null} color={t.kicker} />
       <div style={{ display: "flex", flexWrap: "wrap", marginTop: u(14), width: u(W - PAD * 2) }}>
         {shown.map((p, i) => {
           const ring = p.finished ? (p.solved ? RING.solved : RING.out) : RING.playing;
@@ -225,14 +244,14 @@ export async function renderDailyCard(input: {
               <Avatar png={faces[i]} name={p.name} size={42} ring={ring} fire={p.streak >= 3} />
               <div style={{ display: "flex", flexDirection: "column", width: u(textW), margin: `0 ${u(10)}px`, overflow: "hidden" }}>
                 <Line text={clip(p.name, 24)} width={textW} size={14} />
-                <Line text={vibe(p, input.max)} width={textW} size={12} weight={500} color={SOFT} mt={3} />
+                <Line text={vibe(p, input.max)} width={textW} size={12} weight={500} color={t.soft} mt={3} />
               </div>
               <Squares rows={p.rows.slice(0, input.total ?? input.max)} cols={input.cols} />
             </div>
           );
         })}
       </div>
-      <Footer left={left} />
+      <Footer left={left} color={t.kicker} link={LINKS[game]} />
     </Ground>,
     h,
   );
@@ -248,8 +267,9 @@ const STEP = [
 ];
 
 export async function renderPodium(input: {
+  game?: CardGame;
   number: number;
-  game: string | null;
+  label: string | null;
   channel: string | null;
   /** The best solvers, best first (up to 3). */
   top: CardPlayer[];
@@ -264,10 +284,12 @@ export async function renderPodium(input: {
   const h = PAD + HEADER_H + 14 + PODIUM_H + (showStreak ? 14 + 36 : 0) + 14 + FOOTER_H + PAD;
   // Second, first, third, left to right.
   const order = [1, 0, 2];
+  const game = input.game ?? "shuffle";
+  const t = THEMES[game];
 
   return draw(
-    <Ground h={h}>
-      <Header kicker="Yesterday's Daily" title={where(input.number, input.channel)} pill={input.game ? clip(input.game, 26) : null} />
+    <Ground h={h} game={game}>
+      <Header kicker={t.podiumIn} title={where(input.number, input.channel, game)} pill={input.label ? clip(input.label, 26) : null} color={t.kicker} />
       <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", marginTop: u(14), height: u(PODIUM_H) }}>
         {order.map((idx, col) => {
           const step = STEP[idx];
@@ -276,7 +298,7 @@ export async function renderPodium(input: {
             <div key={col} style={{ width: u(step.width), height: u(PODIUM_H), marginLeft: col ? u(12) : 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end" }}>
               {p && <Avatar png={faces[idx]} name={p.name} size={step.face} ring={step.ring} ringWidth={step.ringWidth} fire={p.streak >= 3} />}
               {p && <Line text={clip(p.name, 24)} width={step.width - 8} size={14} center mt={8} />}
-              {p && <Line text={`in ${p.guesses}`} width={step.width - 8} size={12} weight={500} color={SOFT} center mt={2} />}
+              {p && <Line text={`in ${p.guesses}`} width={step.width - 8} size={12} weight={500} color={t.soft} center mt={2} />}
               <div style={{ display: "flex", marginTop: u(8), width: u(step.width), height: u(step.block), alignItems: "center", justifyContent: "center", borderRadius: `${u(10)}px ${u(10)}px ${u(4)}px ${u(4)}px`, background: p ? step.fill : "rgba(255,255,255,0.04)", border: `${u(1)}px solid rgba(255,255,255,${p ? 0.16 : 0.08})`, fontFamily: "Gabarito", fontSize: u(20), color: p ? "#ffffff" : "rgba(255,255,255,0.35)" }}>
                 {String(step.place)}
               </div>
@@ -291,7 +313,7 @@ export async function renderPodium(input: {
           <Line text={`${input.channel ? `#${clip(input.channel, 22)}` : "This channel"} has solved it ${input.streak} days running`} width={W - PAD * 2 - 24 - 24 - 2} size={13} />
         </div>
       )}
-      <Footer left={`${input.played} played · ${input.solved} solved`} />
+      <Footer left={`${input.played} played · ${input.solved} solved`} color={t.kicker} link={LINKS[game]} />
     </Ground>,
     h,
   );

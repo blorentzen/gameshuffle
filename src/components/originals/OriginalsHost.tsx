@@ -25,6 +25,8 @@ export interface OriginalsHost {
     share?: (message: string) => Promise<boolean>;
     /** Switches the Activity to another game's tab (Chat Brain has its own there). */
     showTab?: (tab: "daily" | "weekly" | "brain" | "trivia" | "room") => void;
+    /** The today bar and Next up: the Daily tab's other game, or the Weekly's tab. */
+    pickDaily?: (game: "shuffle" | "dex" | "weekly") => void;
     /** Starts signing up (in the browser) and watches for the new account; sign-in links use it. */
     signUp?: () => void;
   };

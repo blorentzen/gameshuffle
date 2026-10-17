@@ -1,0 +1,85 @@
+/*
+ * /social/daily — the 9:16 stage the Daily's social videos are filmed from
+ * (DailySocialStage.tsx). It reuses the hero's ground (.browse-hero in
+ * events.css: gradient, auroras, glyph field) recomposed for a portrait frame,
+ * and sizes everything in vw/vh so any 9:16 window films the same picture.
+ * Text keeps clear of the top 11% and bottom 20%, where Reels, Shorts and
+ * TikTok put their own buttons.
+ *
+ * Nothing moves until the root has `go`; every step is timed from then.
+ */
+
+.social-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11vh 8vw 20vh;
+  text-align: center;
+  background: radial-gradient(120% 115% at 50% 42%, var(--primary-900, #1c1e5f) 0%, #0b0d14 72%);
+}
+/* The two auroras, moved to opposite corners of the tall frame. */
+.social-stage::before { top: -22vmax; left: -16vmax; width: 72vmax; height: 72vmax; }
+.social-stage::after { top: auto; bottom: -26vmax; right: -18vmax; width: 72vmax; height: 72vmax; }
+.social-stage > div { position: relative; z-index: 1; }
+
+.social-stage__top { display: flex; flex-direction: column; align-items: center; }
+.social-stage__logo { width: 52vw; height: auto; }
+.social-stage__eyebrow { margin: 2.2vh 0 0; font: 600 3.4vw/1.2 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: #aab0ff; }
+
+.social-stage__mid { position: relative; flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.social-stage__label {
+  margin: 0;
+  padding: 0.8vh 3.2vw;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  font: 600 3.2vw/1.2 var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #d6d9f6;
+  background: rgba(255, 255, 255, 0.06);
+}
+.social-stage__hint { margin: 3.2vh 0 0; width: 100%; font: 700 7.6vw/1.2 var(--font-display); color: #fff; text-wrap: balance; }
+.social-stage__line { display: block; overflow: hidden; padding-bottom: 0.12em; }
+.social-stage__line > span { display: inline-block; }
+/* The hidden copy the lines are measured in: same width and type, never seen. */
+.social-stage__measure { position: absolute; left: 0; right: 0; visibility: hidden; pointer-events: none; }
+.social-stage__ask { margin: 3.6vh 0 0; font: 500 4.6vw/1.3 var(--font-body); color: #d6d9f6; }
+
+.social-stage__cta { display: flex; flex-direction: column; align-items: center; }
+.social-stage__pill {
+  display: inline-block;
+  padding: 1.6vh 6vw;
+  border-radius: 999px;
+  font: 700 4.6vw/1.2 var(--font-display);
+  color: #141a4a;
+  background: #fff;
+  box-shadow: 0 1vh 4vh rgba(0, 0, 0, 0.35);
+}
+.social-stage__sub { margin: 1.8vh 0 0; font: 500 3.3vw/1.3 var(--font-body); color: #c3c7ef; }
+
+/* Before `go`: everything waits off. */
+.social-stage:not(.go) :is(.social-stage__logo, .social-stage__eyebrow, .social-stage__label, .social-stage__ask, .social-stage__pill, .social-stage__sub) { opacity: 0; }
+.social-stage:not(.go) .social-stage__line > span { transform: translateY(105%); }
+
+@keyframes social-fade { from { opacity: 0; transform: translateY(1.6vh); } to { opacity: 1; transform: none; } }
+@keyframes social-rise { from { transform: translateY(105%); } to { transform: none; } }
+@keyframes social-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+
+.go .social-stage__logo { animation: social-fade 0.9s 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__eyebrow { animation: social-fade 0.9s 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__label { animation: social-fade 0.8s 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__line > span { animation: social-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__ask { animation: social-fade 0.9s var(--ask-at, 5s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__pill {
+  animation: social-fade 0.9s var(--cta-at, 6s) cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    social-pulse 2.2s calc(var(--cta-at, 6s) + 1.6s) ease-in-out 2;
+}
+.go .social-stage__sub { animation: social-fade 0.9s calc(var(--cta-at, 6s) + 0.25s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .go :is(.social-stage__logo, .social-stage__eyebrow, .social-stage__label, .social-stage__ask, .social-stage__pill, .social-stage__sub, .social-stage__line > span) { animation: none; }
+}

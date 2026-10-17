@@ -115,7 +115,7 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     // "Play" on the Activity's results card, morning summary and trivia posts: open the Activity on that game.
     if (customId.startsWith(ACTIVITY_PLAY_PREFIX)) {
       const tab = customId.slice(ACTIVITY_PLAY_PREFIX.length);
-      return launchActivity(interactionUser.id, (["daily", "weekly", "brain", "trivia"].includes(tab) ? tab : "daily") as ActivityTab);
+      return launchActivity(interactionUser.id, (["daily", "dex", "weekly", "brain", "trivia"].includes(tab) ? tab : "daily") as ActivityTab);
     }
 
     // Weekly Challenge: "weeklyts:" (lock in) checked before "weeklyt:" (a tier pick).
