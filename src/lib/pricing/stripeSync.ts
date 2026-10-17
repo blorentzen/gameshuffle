@@ -195,6 +195,8 @@ export async function reconcile(actorId: string | null): Promise<ReconcileResult
   for (const price of prices) {
     // Shop prices are seeded from src/data/store/shop-seed.json, not the pricing levers.
     if (price.metadata?.gs_kind === "shop") continue;
+    // Support for GameShuffle (src/lib/support/store.ts): one-off amounts people choose, never a lever.
+    if (price.metadata?.gs_kind === "support" || (typeof price.product !== "string" && (price.product as Stripe.Product).metadata?.gs_kind === "support")) continue;
     // A lookup key wins; a price with none that the site sells by id links to its
     // row, unless another Stripe price already carries that row's lookup key.
     const byId = configured.get(price.id);

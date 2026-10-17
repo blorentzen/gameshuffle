@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { Breadcrumb, Container } from "@empac/cascadeds";
+import { SupportNudge } from "@/components/support/SupportNudge";
 
 type TablerIcon = ComponentType<{ size?: number | string; stroke?: number }>;
 
@@ -32,6 +33,7 @@ export function FreeToolShell({ icon: Icon, eyebrow = "Free tool", name, lede, c
         </div>
       </div>
       <div className="free-tool__body">{children}</div>
+      <SupportNudge from="tool" />
     </Container>
   );
 }

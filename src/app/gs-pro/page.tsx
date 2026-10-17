@@ -538,6 +538,7 @@ export default function GsProPage() {
             defaultOpenIds={FAQ_ITEMS.map((_, i) => String(i))}
             items={FAQ_ITEMS.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
           />
+          <p className="pricing-page__support">Don&apos;t need the features but want to help? <Link href="/support">Support GameShuffle</Link> once or monthly.</p>
         </section>
       </Container>
 

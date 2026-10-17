@@ -12,6 +12,11 @@
  *   invoice.payment_failed         → status transitions to past_due
  *   checkout.session.* / charge.refunded with metadata gs_kind "shop" → the
  *                                    GameShuffle Shop (src/lib/store/orders.ts)
+ *   anything with metadata gs_kind "support" (the session, the monthly
+ *                                    subscription and its invoices) → Support
+ *                                    GameShuffle (src/lib/support/store.ts),
+ *                                    handled first so it never reaches the
+ *                                    GS Pro / Circuit subscription sync
  *
  * Signature verified against STRIPE_WEBHOOK_SECRET. Delivery is
  * at-least-once; all handlers are idempotent.
@@ -27,6 +32,7 @@ import {
 import { createServiceClient } from "@/lib/supabase/admin";
 import { intervalForPrice, periodEndOf, subscriptionIdOf } from "@/lib/stripe/payload";
 import { fulfilShopSession, markShopRefund, releaseShopHolds } from "@/lib/store/orders";
+import { fulfilSupportSession, isSupportSubscription, markSupportRefund, recordSupportInvoice, recordSupportSubscription } from "@/lib/support/store";
 import {
   sendTrialStartedEmail,
   sendTrialEndingEmail,
@@ -69,7 +75,7 @@ function formatAmount(cents: number | null | undefined): string | undefined {
 async function syncFromSubscription(
   subscription: Stripe.Subscription,
   explicitUserId?: string
-): Promise<{ userId: string; priorStatus: string | null; priorCancelAtPeriodEnd: boolean | null; product: "pro" | "circuit" } | null> {
+): Promise<{ userId: string; priorStatus: string | null; priorCancelAtPeriodEnd: boolean | null; product: "pro" | "circuit" | "support" } | null> {
   const stripeCustomerId =
     typeof subscription.customer === "string"
       ? subscription.customer
@@ -151,6 +157,11 @@ export async function POST(request: Request) {
           if (!event.account) await fulfilShopSession(session.id);
           break;
         }
+        // Support GameShuffle: never a paid plan, even when it's monthly.
+        if (session.metadata?.gs_kind === "support") {
+          if (!event.account) await fulfilSupportSession(session.id);
+          break;
+        }
         const userId =
           (session.client_reference_id as string | null) ??
           (session.metadata?.gs_user_id as string | undefined) ??
@@ -180,6 +191,7 @@ export async function POST(request: Request) {
 
       case "customer.subscription.created": {
         const sub = event.data.object as Stripe.Subscription;
+        if (isSupportSubscription(sub)) { await recordSupportSubscription(sub); break; }
         const result = await syncFromSubscription(sub);
         // Trial-started welcome — only when this is genuinely the first
         // time we're seeing the sub (priorStatus === null) AND it begins
@@ -200,6 +212,7 @@ export async function POST(request: Request) {
 
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
+        if (isSupportSubscription(sub)) { await recordSupportSubscription(sub); break; }
         const result = await syncFromSubscription(sub);
         if (!result) break;
         // Circuit has no trial and its own lifecycle; skip the Pro-worded emails.
@@ -262,6 +275,7 @@ export async function POST(request: Request) {
 
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
+        if (isSupportSubscription(sub)) { await recordSupportSubscription(sub); break; }
         await syncFromSubscription(sub);
         break;
       }
@@ -271,6 +285,7 @@ export async function POST(request: Request) {
         // reminder). The day-13 (1-day-out) reminder is handled separately by
         // the daily /api/cron/trial-reminder sweep — Stripe has no 1-day event.
         const sub = event.data.object as Stripe.Subscription;
+        if (isSupportSubscription(sub)) break;
         const stripeCustomerId =
           typeof sub.customer === "string" ? sub.customer : sub.customer.id;
         const userId =
@@ -300,6 +315,12 @@ export async function POST(request: Request) {
         const subscriptionId = subscriptionIdOf(invoice);
         if (subscriptionId) {
           const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          // A month of monthly support: recorded for the goal bar, never synced as a plan.
+          if (isSupportSubscription(sub)) {
+            await recordSupportSubscription(sub);
+            if (event.type === "invoice.paid") await recordSupportInvoice(invoice, sub);
+            break;
+          }
           const result = await syncFromSubscription(sub);
 
           // Notify the user once per failure attempt — Stripe Smart Retries
@@ -401,7 +422,10 @@ export async function POST(request: Request) {
       // A full refund on a shop order (from the Dashboard or admin) marks it
       // refunded. Anything that isn't a shop order is ignored.
       case "charge.refunded": {
-        if (!event.account) await markShopRefund(event.data.object as Stripe.Charge);
+        if (!event.account) {
+          await markShopRefund(event.data.object as Stripe.Charge);
+          await markSupportRefund(event.data.object as Stripe.Charge);
+        }
         break;
       }
 

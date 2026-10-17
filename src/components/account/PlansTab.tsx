@@ -24,6 +24,7 @@ import { createClient } from "@/lib/supabase/client";
 import { isStaffRole } from "@/lib/subscription";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
 import { BillingManager } from "./BillingManager";
+import { MonthlySupportCard } from "@/components/support/MonthlySupportCard";
 import { circuitTier as getCircuitTier, type CircuitTierId } from "@/lib/tournaments/circuit";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
@@ -337,6 +338,9 @@ export function PlansTab() {
       {/* In-app plan changes (upgrade/downgrade/add-on/cancel) for accounts that
           hold a paid plan. Renders nothing for free accounts or staff. */}
       <BillingManager />
+
+      {/* Monthly support for GameShuffle (/support): its own subscription, never a plan. */}
+      <MonthlySupportCard />
 
     </div>
   );

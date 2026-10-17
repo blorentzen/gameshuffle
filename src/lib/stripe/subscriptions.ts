@@ -76,9 +76,14 @@ function toIsoOrNull(seconds: number | null | undefined): string | null {
 export async function upsertSubscriptionFromStripe(args: {
   subscription: Stripe.Subscription;
   userId: string;
-}): Promise<{ product: "pro" | "circuit" }> {
+}): Promise<{ product: "pro" | "circuit" | "support" }> {
   const admin = getAdmin();
   const { subscription, userId } = args;
+
+  // Monthly support for GameShuffle is never a plan (src/lib/support/store.ts). The webhook routes
+  // it away before calling this; refusing here too means no other path can make a supporter Pro
+  // (an unknown price would otherwise fall through to the Pro branch below).
+  if (subscription.metadata?.gs_kind === "support") return { product: "support" };
 
   // Determine price_id from the first subscription item (we only ever
   // bill one price per subscription today).
