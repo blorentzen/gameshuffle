@@ -482,7 +482,7 @@
 .browse-hero::before {
   top: -26rem;
   left: -10rem;
-  background: radial-gradient(circle, rgba(39, 102, 236, 0.55), transparent 62%);
+  background: radial-gradient(circle, var(--browse-hero-base, rgba(39, 102, 236, 0.55)), transparent 62%);
   animation: pro-aurora-a 20s ease-in-out infinite alternate;
 }
 .browse-hero::after {
@@ -502,6 +502,12 @@
 /* Hero shooters: Overwatch orange, Marvel Rivals red, matching their randomizer cards. */
 .browse-hero--orange { --browse-hero-accent: rgba(240, 138, 28, 0.32); }
 .browse-hero--red { --browse-hero-accent: rgba(212, 48, 61, 0.34); }
+/* Each GameShuffle game's own colors, matching its share image (scripts/render-originals-og.tsx):
+   both glows take the game's tint, so the header says which game it is. */
+.browse-hero--daily { --browse-hero-base: rgba(90, 63, 214, 0.62); --browse-hero-accent: rgba(201, 73, 233, 0.32); }
+.browse-hero--dex { --browse-hero-base: rgba(217, 80, 42, 0.55); --browse-hero-accent: rgba(232, 162, 28, 0.4); }
+.browse-hero--weekly { --browse-hero-base: rgba(22, 154, 133, 0.55); --browse-hero-accent: rgba(34, 197, 180, 0.32); }
+.browse-hero--brain { --browse-hero-base: rgba(200, 68, 122, 0.55); --browse-hero-accent: rgba(163, 60, 205, 0.34); }
 /* In-page anchors land below the floating nav. */
 #play, #answer, #updates { scroll-margin-top: 96px; }
 /* The glyph field sits above the aurora blobs but under the copy. It is the

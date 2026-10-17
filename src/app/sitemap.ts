@@ -117,6 +117,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      url: `${baseUrl}/daily-dex`,
+      lastModified: lm("/daily-dex"),
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
+    {
       url: `${baseUrl}/weekly`,
       lastModified: lm("/weekly"),
       changeFrequency: "weekly",

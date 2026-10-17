@@ -26,7 +26,7 @@ import { PARTY_GAMES, QUICKFIRE_SETS, type PartyRoomView, type QuickfireSetId } 
 import { dayKey, guessLimits, puzzleFor } from "@/lib/originals/daily";
 
 export type GameInfoId =
-  | "daily" | "together" | "weekly" | "brain" | "trivia"
+  | "daily" | "dex" | "together" | "weekly" | "brain" | "trivia"
   | "quickfire" | `quickfire-${QuickfireSetId}`
   | "roll" | PartyRoomView["slug"] | "brain-boards";
 
@@ -69,6 +69,15 @@ function dailyInfo(): GameInfo {
 export const GAME_INFO: Record<GameInfoId, GameInfo> = {
   // ── The Activity's tabs ──
   get daily() { return dailyInfo(); },
+  dex: {
+    name: "The Daily Dex",
+    lines: [
+      "Guess today's Pokémon from all 1,025.",
+      "A hint shows before your first guess and a new one after each miss. Each guess shows which facts match or come close, with arrows on generation, height and weight.",
+      "Miss all five and you get a last chance with the first letter and a square for every letter: it keeps your streak, but isn't a win. A new Pokémon every midnight Pacific.",
+    ],
+    meta: ["Solo", "5 guesses and a last chance", "One Pokémon a day"],
+  },
   together: {
     name: "Play together",
     lines: [

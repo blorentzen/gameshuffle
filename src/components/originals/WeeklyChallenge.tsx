@@ -21,6 +21,8 @@ import { BADGE_RANK, SURVEY_PREDICTIONS, type WeeklyItem } from "@/lib/originals
 import type { BoardAnswer } from "@/lib/chatbrain/rules";
 import type { BoardRow } from "@/lib/weekly/store";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { DailiesInvite, DailiesNext, DailiesYours, sendReferralFinish } from "@/components/originals/Dailies";
+import { reportDaily } from "@/lib/originals/dailies";
 import { GS_TIME_ZONE } from "@/lib/time/gsClock";
 
 type Ballot = Record<string, number>;
@@ -84,6 +86,15 @@ export function WeeklyChallenge() {
     }).catch(() => {});
     return () => { alive = false; };
   }, [api]);
+
+  // The today bar on every daily's page learns whether this week is answered.
+  const cur = data?.ready && !data.preview ? data.current : undefined;
+  const answered = !!cur && (cur.kind === "survey" ? !!cur.myAnswer : !!cur.myBallot);
+  useEffect(() => {
+    if (cur) reportDaily("weekly", { day: cur.week, number: cur.number, state: answered ? "done" : "fresh" });
+    // Came from a friend's link: answering the week counts for them once.
+    if (cur && answered && !activity) sendReferralFinish(api, "weekly", cur.week, null);
+  }, [cur, answered, activity, api]);
 
   if (!data) return <LoadingLines label="Loading this week&apos;s challenge" />;
   if (!data.ready || !data.current) {
@@ -212,6 +223,10 @@ export function WeeklyChallenge() {
         )}
       </section>
       )}
+
+      {answered && <DailiesNext current="weekly" onPick={activity?.pickDaily} />}
+      {answered && <DailiesInvite current="weekly" />}
+      {answered && <DailiesYours current="weekly" />}
 
       {(!data.signedIn || (c.kind === "survey" ? c.myPredictions : c.myBallot)) && (activity
         ? activity.showTab && <span className="party-row"><Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button></span>

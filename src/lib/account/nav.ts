@@ -71,6 +71,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "privacy", label: "Privacy" },
       ] },
       { id: "plans", label: "Plans & billing", iconName: "credit-card" },
+      { id: "invite", label: "Invite friends", iconName: "user-plus" },
     ],
   },
   {
@@ -197,6 +198,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "platform-staff", label: "Staff & roles" },
       ] },
       { id: "platform-pricing", label: "Pricing", iconName: "credit-card", group: "Money" },
+      { id: "platform-support", label: "Support", iconName: "heart", group: "Money" },
       { id: "platform-snapshot", label: "Token economy", iconName: "currency-dollar", group: "Money", tabs: [
         { id: "platform-snapshot", label: "Overview" },
         { id: "platform-token-streamers", label: "Streamers" },

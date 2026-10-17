@@ -10,6 +10,9 @@
  *   ... --local                 only illustration rares already in tcg_cards (0 credits)
  *   ... --warm                  load the picked cards into THIS database's tcg_cards
  *                               (1 credit per missing card; for production after dev picks)
+ *   ... --dex-days 90           the Daily Dex's card of the day instead: the next 90 days of
+ *                               Dex answers (from today, or from launch before it). Keep it
+ *                               about 90 days ahead, like the hints; Platform ▸ Originals counts.
  *
  * A curated, operator-run request over a fixed list tied to a feature we ship
  * (like the deck marquees), never an expansion pull. Cards already in tcg_cards
@@ -28,6 +31,9 @@ import { searchCardsByQuery, type NormalizedCard } from "../src/lib/scrydex/clie
 import { persistSearchResults, resolveCard } from "../src/lib/scrydex/ingest";
 import { createServiceClient } from "../src/lib/supabase/admin";
 import type { TcgCard } from "../src/lib/scrydex/types";
+import { DEX_EPOCH, dayKey } from "../src/lib/originals/daily";
+import { DEX_PUZZLE, dexAnswer } from "../src/lib/originals/dailyDex";
+import { gsAddDays } from "../src/lib/time/gsClock";
 
 const OUT = "src/data/pokemon/showcase-cards.ts";
 
@@ -48,6 +54,19 @@ function speciesList(): Species[] {
   // The species' usual name: the most common spelling (rentals like "Surfing Pikachu" lose to "Pikachu").
   return [...names.entries()].sort((a, b) => a[0] - b[0])
     .map(([dex, m]) => ({ dex, name: [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].length - b[0].length)[0][0] }));
+}
+
+/** The Daily Dex's coming answers, one entry per Pokémon (card of the day, 2026-10-16). */
+function dexSpecies(days: number): Species[] {
+  const start = dayKey() < DEX_EPOCH ? DEX_EPOCH : dayKey();
+  const seen = new Set<number>();
+  const out: Species[] = [];
+  for (let i = 0; i < days; i++) {
+    const name = dexAnswer(gsAddDays(start, i)).name;
+    const dex = DEX_PUZZLE.characters.findIndex((c) => c.name === name) + 1;
+    if (dex && !seen.has(dex)) { seen.add(dex); out.push({ dex, name }); }
+  }
+  return out;
 }
 
 function existing(): Record<number, string> {
@@ -71,8 +90,12 @@ function rank(n: NormalizedCard): number {
   if (/^rare/i.test(r)) return 4;
   return 5;
 }
+/** No card under the bare name: one whose name ends in it, like "Rapid Strike Urshifu VMAX". */
+const endsNamed = (n: NormalizedCard, s: string) => new RegExp(`(^|\\s)${norm(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( (ex|v|vmax|vstar|gx))?$`).test(norm(n.card.name));
 function best(cards: NormalizedCard[], s: Species): NormalizedCard | null {
-  const pool = cards.filter((n) => english(n) && named(n, s.name) && (n.card.images?.medium || n.card.images?.small));
+  const usable = (n: NormalizedCard) => english(n) && !!(n.card.images?.medium || n.card.images?.small);
+  const exact = cards.filter((n) => usable(n) && named(n, s.name));
+  const pool = exact.length ? exact : cards.filter((n) => usable(n) && endsNamed(n, s.name));
   if (!pool.length) return null;
   return pool.sort((a, b) =>
     rank(a) - rank(b)
@@ -106,7 +129,9 @@ async function main() {
   const limit = Number(args[args.indexOf("--limit") + 1]) || Infinity;
   const only = args.includes("--only") ? new Set(args[args.indexOf("--only") + 1].split(",").map(Number)) : null;
   const picks = existing();
-  const all = speciesList();
+  const dexDays = args.includes("--dex-days") ? Number(args[args.indexOf("--dex-days") + 1]) || 90 : 0;
+  const all = dexDays ? dexSpecies(dexDays) : speciesList();
+  const why = dexDays ? "operator: daily dex card of the day" : "operator: randomizer showcase card";
   const todo = all.filter((s) => (only ? only.has(s.dex) : !picks[s.dex])).slice(0, limit);
   console.log(`${all.length} species · ${Object.keys(picks).length} already picked · ${todo.length} to look up (at most ${todo.length * 2} credits; cards already stored cost nothing)`);
   if (!run) { console.log("Plan only. Add --run to spend credits, or --local for stored cards only."); return; }
@@ -119,13 +144,13 @@ async function main() {
     let pick = best(local, s);
     let stored = !!pick && rank(pick) < TOP.length;
     if (!stored && !localOnly) {
-      const found = await searchCardsByQuery(`name:"${q}" (rarity:"${TOP[0]}" OR rarity:"${TOP[1]}")`, "operator: randomizer showcase card", 25);
+      const found = await searchCardsByQuery(`name:"${q}" (rarity:"${TOP[0]}" OR rarity:"${TOP[1]}")`, why, 25);
       credits++;
       const top = best(found, s);
       if (top) { pick = top; stored = false; } else if (pick) stored = true;
     }
     if (!pick && !localOnly) {
-      const found = await searchCardsByQuery(`name:"${q}"`, "operator: randomizer showcase fallback", 25);
+      const found = await searchCardsByQuery(`name:"${q}"`, `${why} (fallback)`, 25);
       credits++;
       pick = best(found, s);
     } else if (pick && !stored && rank(pick) >= TOP.length) stored = true;

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Account section (/account): Profile · Theming · Settings · Plans & billing,
+ * Account section (/account): Profile · Theming · Settings · Plans & billing · Invite friends,
  * each a view with tabs (src/lib/account/nav.ts). The screens live in
  * src/components/account/{profile,theming,settings}/; ProfileStore loads the
  * profile once and autosaves it for all of them. Old `?tab=` ids still work,
@@ -16,6 +16,7 @@ import { ProfileAboutScreen, ProfileFriendsScreen, ProfileGamesScreen, ProfileHa
 import { ThemingProfilePageScreen, ThemingThemeScreen, ThemingWalkupScreen } from "@/components/account/theming/ThemingScreens";
 import { PlansScreen, SettingsGeneralScreen, SettingsNotificationsScreen, SettingsPrivacyScreen, SettingsSecurityScreen } from "@/components/account/settings/SettingsScreens";
 import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
+import { InviteFriendsScreen } from "@/components/account/invite/InviteFriendsScreen";
 
 const SCREENS: ScreenMap = {
   profile: () => <ProfileAboutScreen />,
@@ -30,6 +31,7 @@ const SCREENS: ScreenMap = {
   notifications: () => <SettingsNotificationsScreen />,
   privacy: () => <SettingsPrivacyScreen />,
   plans: () => <PlansScreen />,
+  invite: () => <InviteFriendsScreen />,
 };
 
 export default function AccountPage() {

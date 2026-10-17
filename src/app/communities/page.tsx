@@ -27,7 +27,7 @@ export default async function CommunitiesPage() {
   ]);
 
   return (
-    <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", paddingBottom: "var(--spacing-64)" }}>
+    <main style={{ "--browse-hero-curve": "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", background: "var(--browse-hero-curve)", minHeight: "100vh", paddingBottom: "var(--spacing-64)" } as React.CSSProperties}>
       <BrowseHero
         eyebrow="Community Hub · New"
         title="Find your people"

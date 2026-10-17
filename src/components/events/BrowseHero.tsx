@@ -22,7 +22,8 @@ export interface BrowseHeroProps {
   title: string;
   sub: ReactNode;
   /** Warm gold for the tabletop half, cyan for the competitive half. */
-  accent: "gold" | "cyan" | "violet" | "blue" | "orange" | "red";
+  /** Pillar tints, plus one per GameShuffle game (daily, dex, weekly, brain: each game's own colors, as on its share image). */
+  accent: "gold" | "cyan" | "violet" | "blue" | "orange" | "red" | "daily" | "dex" | "weekly" | "brain";
   /**
    * Which glyph family drifts behind the copy, when there is no photo. Matches
    * the cards below it.
@@ -104,7 +105,8 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, p
         ) : copy}
       </Container>
       <svg className="browse-hero__curve" viewBox="0 0 1440 72" preserveAspectRatio="none" aria-hidden>
-        <path d="M0,72 H1440 V34 C 940,2 520,70 0,30 Z" fill="var(--background-primary)" />
+        {/* The page's own background: a page that tints the area under the hero sets --browse-hero-curve to match. */}
+        <path d="M0,72 H1440 V34 C 940,2 520,70 0,30 Z" fill="var(--browse-hero-curve, var(--background-primary))" />
       </svg>
     </header>
   );

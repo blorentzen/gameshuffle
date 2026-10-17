@@ -8,6 +8,11 @@
  * that opens the Activity (LAUNCH_ACTIVITY via the `activity:` buttons). The
  * next morning a summary ranks yesterday and counts the channel's streak.
  *
+ * Each daily keeps its own card in its own colors (Britton's pick,
+ * 2026-10-16): the Daily Shuffle and the Daily Dex, keyed by the day's puzzle
+ * (dailies-discord-m1 makes that the key; before it runs, only the first daily
+ * played in a channel that day gets a card).
+ *
  * Needs the GameShuffle bot in that server with permission to post there; if
  * it can't, the card is marked skipped for the day and play carries on.
  * One message per channel: the card row is claimed ("pending") before the
@@ -17,13 +22,20 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { activityApp } from "@/lib/activity/discord";
-import { CARD_MAX_FACES, renderDailyCard, renderPodium, vibe, type CardPlayer, type CellStatus } from "@/lib/discord/cards";
+import { CARD_MAX_FACES, renderDailyCard, renderPodium, vibe, type CardGame, type CardPlayer, type CellStatus } from "@/lib/discord/cards";
 import { facesFor } from "@/lib/discord/faces";
-import { answerFor, guessLimits, hintFor, playColumns, puzzleFor, puzzleLabel, puzzleNumber } from "@/lib/originals/daily";
+import { DEX_PUZZLE_ID, SHUFFLE, answerFor, guessLimits, hintFor, playColumns, puzzleFor, puzzleLabel, puzzleNumber, type DailySchedule } from "@/lib/originals/daily";
+import { DEX } from "@/lib/originals/dailyDex";
 import { gsAddDays, gsDay } from "@/lib/time/gsClock";
 
 const API = "https://discord.com/api/v10";
-const COLOR = 0x2766ec;
+/** Each daily's accent, as on its share image and page header. */
+const COLOR: Record<CardGame, number> = { shuffle: 0x5a3fd6, dex: 0xd9502a };
+const TITLE: Record<CardGame, string> = { shuffle: "The Daily", dex: "The Daily Dex" };
+/** The schedule a stored puzzle id belongs to. */
+const gameOfPuzzle = (puzzle: string): DailySchedule => (puzzle === DEX_PUZZLE_ID ? DEX : SHUFFLE);
+/** Rows for one daily: the Dex's own puzzle id, or every other for the Shuffle (a PostgREST filter). */
+const gameFilter = (game: DailySchedule) => (game.id === "dex" ? `puzzle.eq.${DEX_PUZZLE_ID}` : `puzzle.neq.${DEX_PUZZLE_ID}`);
 /** Discord's newer message layout (containers, media galleries, text displays). */
 const COMPONENTS_V2 = 1 << 15;
 /** A post claimed longer ago than this is treated as abandoned. */
@@ -38,11 +50,11 @@ const cell = (s: string): CellStatus => (s === "match" ? "match" : s === "close"
 const md = (s: string) => s.replace(/([\\*_~`|>])/g, "\\$1");
 
 /** Days in a row each identity has solved, up to `day` (or the day before, if they haven't yet today). */
-async function streaksFor(identityIds: string[], day: string): Promise<Map<string, number>> {
+async function streaksFor(identityIds: string[], day: string, game: DailySchedule): Promise<Map<string, number>> {
   const out = new Map<string, number>();
   if (!identityIds.length) return out;
   const { data } = await createServiceClient().from("daily_identity_results").select("identity_id, day")
-    .in("identity_id", identityIds).eq("solved", true).gte("day", gsAddDays(day, -90)).lte("day", day).limit(5000);
+    .in("identity_id", identityIds).eq("solved", true).gte("day", gsAddDays(day, -90)).lte("day", day).or(gameFilter(game)).limit(5000);
   const days = new Map<string, Set<string>>();
   for (const r of (data ?? []) as { identity_id: string; day: string }[]) {
     if (!days.has(r.identity_id)) days.set(r.identity_id, new Set());
@@ -58,17 +70,17 @@ async function streaksFor(identityIds: string[], day: string): Promise<Map<strin
   return out;
 }
 
-/** Everyone who played the day's Daily from this channel (their latest channel that day). */
-async function playersIn(channelId: string, day: string): Promise<Player[]> {
+/** Everyone who played the day's daily from this channel (their latest channel that day). */
+async function playersIn(channelId: string, day: string, game: DailySchedule): Promise<Player[]> {
   const admin = createServiceClient();
   const { data } = await admin.from("daily_identity_results").select("identity_id, guess_list, guesses, solved, finished_at")
-    .eq("day", day).eq("channel_id", channelId).limit(200);
+    .eq("day", day).eq("channel_id", channelId).eq("puzzle", puzzleFor(day, game).id).limit(200);
   const rows = (data ?? []) as { identity_id: string; guess_list: string[]; guesses: number | null; solved: boolean | null; finished_at: string | null }[];
   if (!rows.length) return [];
   const ids = rows.map((r) => r.identity_id);
-  const [faces, streaks] = await Promise.all([facesFor(ids), streaksFor(ids, day)]);
-  const puzzle = puzzleFor(day);
-  const answer = answerFor(day);
+  const [faces, streaks] = await Promise.all([facesFor(ids), streaksFor(ids, day, game)]);
+  const puzzle = puzzleFor(day, game);
+  const answer = answerFor(day, game);
   const players: Player[] = rows.map((r) => {
     const face = faces.get(r.identity_id);
     return {
@@ -89,10 +101,10 @@ async function playersIn(channelId: string, day: string): Promise<Player[]> {
     || (a.finishedAt ?? "").localeCompare(b.finishedAt ?? "") || a.name.localeCompare(b.name));
 }
 
-const playButtons = (labels: { daily: string; weekly?: string }) => ({
+const playButtons = (labels: { daily: string; game?: CardGame; weekly?: string }) => ({
   type: 1,
   components: [
-    { type: 2, style: 3, label: labels.daily, custom_id: `${ACTIVITY_PLAY_PREFIX}daily` },
+    { type: 2, style: 3, label: labels.daily, custom_id: `${ACTIVITY_PLAY_PREFIX}${labels.game === "dex" ? "dex" : "daily"}` },
     ...(labels.weekly ? [{ type: 2, style: 2, label: labels.weekly, custom_id: `${ACTIVITY_PLAY_PREFIX}weekly` }] : []),
   ],
 });
@@ -104,14 +116,14 @@ interface Outgoing { body: Record<string, unknown>; file?: { name: string; data:
  * buttons. The picture's description says who played, for screen readers;
  * without a picture the text carries everything.
  */
-function containerMessage(args: { picture?: { data: Buffer; name: string; alt: string }; text: string; buttons: ReturnType<typeof playButtons> }): Outgoing {
+function containerMessage(args: { game: CardGame; picture?: { data: Buffer; name: string; alt: string }; text: string; buttons: ReturnType<typeof playButtons> }): Outgoing {
   const pic = args.picture;
   return {
     body: {
       flags: COMPONENTS_V2,
       components: [{
         type: 17,
-        accent_color: COLOR,
+        accent_color: COLOR[args.game],
         components: [
           ...(pic ? [{ type: 12, items: [{ media: { url: `attachment://${pic.name}` }, description: pic.alt.slice(0, 1024) }] }] : []),
           { type: 10, content: args.text.slice(0, 3800) },
@@ -142,25 +154,26 @@ function leadLine(players: Player[]): string {
   return `**${md(best.name)}** leads with ${best.guesses}. Can anyone do it in ${best.guesses - 1}?`;
 }
 
-async function dailyCardMessage(channelId: string, day: string, players: Player[]): Promise<Outgoing> {
-  const puzzle = puzzleFor(day);
-  const number = puzzleNumber(day);
+async function dailyCardMessage(channelId: string, day: string, players: Player[], schedule: DailySchedule): Promise<Outgoing> {
+  const game: CardGame = schedule.id === "dex" ? "dex" : "shuffle";
+  const puzzle = puzzleFor(day, schedule);
+  const number = puzzleNumber(day, schedule);
   const channel = await channelName(channelId);
   const cols = Math.max(1, ...players.flatMap((p) => p.rows.map((r) => r.length)), playColumns(puzzle).length);
-  const buttons = playButtons({ daily: "Play the Daily" });
+  const buttons = playButtons({ daily: game === "dex" ? "Play the Dex" : "Play the Daily", game });
   const { main, total } = guessLimits(puzzle);
   const label = puzzleLabel(puzzle);
   const lines = standings(players, main);
   try {
-    const data = await renderDailyCard({ number, game: label, channel, max: main, total, cols, players });
+    const data = await renderDailyCard({ game, number, label, channel, max: main, total, cols, players });
     const shown = lines.slice(0, CARD_MAX_FACES);
     const more = lines.length - shown.length;
-    const alt = `The Daily #${number}${label ? `, ${label}` : ""}. ${shown.join(". ")}${more > 0 ? `. And ${more} more.` : "."}`;
-    return containerMessage({ picture: { data, name: `daily-${number}.png`, alt }, text: leadLine(players), buttons });
+    const alt = `${TITLE[game]} #${number}${label ? `, ${label}` : ""}. ${shown.join(". ")}${more > 0 ? `. And ${more} more.` : "."}`;
+    return containerMessage({ game, picture: { data, name: `${game === "dex" ? "dex" : "daily"}-${number}.png`, alt }, text: leadLine(players), buttons });
   } catch (err) {
     console.warn("[channelCard] card picture failed, sending text:", err);
-    const text = [`**The Daily #${number}**${label ? ` · ${label}` : ""}`, ...lines.slice(0, 20).map(md), "", leadLine(players)].join("\n");
-    return containerMessage({ text, buttons });
+    const text = [`**${TITLE[game]} #${number}**${label ? ` · ${label}` : ""}`, ...lines.slice(0, 20).map(md), "", leadLine(players)].join("\n");
+    return containerMessage({ game, text, buttons });
   }
 }
 
@@ -201,17 +214,21 @@ async function discord(method: "POST" | "PATCH" | "DELETE", path: string, out?: 
 }
 
 /** Posts or updates the channel's card for the day. Best effort: failures never reach the player. */
-export async function updateDailyCard(args: { channelId: string; guildId: string; day: string }): Promise<void> {
+export async function updateDailyCard(args: { channelId: string; guildId: string; day: string; game?: DailySchedule }): Promise<void> {
   if (!activityApp()?.botToken) return;
+  const game = args.game ?? SHUFFLE;
   const admin = createServiceClient();
-  const key = { channel_id: args.channelId, day: args.day };
-  await admin.from("discord_daily_cards").upsert({ ...key, guild_id: args.guildId, puzzle: puzzleFor(args.day).id }, { onConflict: "channel_id,day", ignoreDuplicates: true });
+  const key = { channel_id: args.channelId, day: args.day, puzzle: puzzleFor(args.day, game).id };
+  // A plain insert: a duplicate (23505) means the card exists. Before dailies-discord-m1 the key is
+  // the channel and day only, so the other daily's card can hold it and this one finds no row below.
+  const { error: insertError } = await admin.from("discord_daily_cards").insert({ ...key, guild_id: args.guildId });
+  if (insertError && insertError.code !== "23505") console.warn("[channelCard] card row failed:", insertError.message);
   const { data } = await admin.from("discord_daily_cards").select("message_id, skipped, updated_at").match(key).maybeSingle();
   const card = data as { message_id: string | null; skipped: boolean; updated_at: string } | null;
   if (!card || card.skipped) return;
-  const players = await playersIn(args.channelId, args.day);
+  const players = await playersIn(args.channelId, args.day, game);
   if (!players.length) return;
-  const message = await dailyCardMessage(args.channelId, args.day, players);
+  const message = await dailyCardMessage(args.channelId, args.day, players, game);
 
   const pending = card.message_id === "pending";
   if (card.message_id && !pending) {
@@ -252,10 +269,10 @@ export async function updateDailyCard(args: { channelId: string; guildId: string
   }
 }
 
-/** Consecutive days, ending `day`, on which someone in this channel solved the Daily. */
-async function channelStreak(channelId: string, day: string): Promise<number> {
+/** Consecutive days, ending `day`, on which someone in this channel solved that daily. */
+async function channelStreak(channelId: string, day: string, game: DailySchedule): Promise<number> {
   const { data } = await createServiceClient().from("daily_identity_results").select("day")
-    .eq("channel_id", channelId).eq("solved", true).gte("day", gsAddDays(day, -120)).lte("day", day).limit(5000);
+    .eq("channel_id", channelId).eq("solved", true).gte("day", gsAddDays(day, -120)).lte("day", day).or(gameFilter(game)).limit(5000);
   const days = new Set(((data ?? []) as { day: string }[]).map((r) => r.day));
   let n = 0;
   for (let d = day; days.has(d); d = gsAddDays(d, -1)) n += 1;
@@ -269,14 +286,17 @@ const listNames = (players: Player[], n: number) => {
 };
 
 /** The morning post: the podium picture (or a ranked list if it didn't render), then today's game. */
-async function summaryMessage(args: { channelId: string; yesterday: string; today: string; players: number; solved: Player[]; out: Player[]; streak: number }): Promise<Outgoing> {
-  const number = puzzleNumber(args.yesterday);
-  const game = puzzleLabel(puzzleFor(args.yesterday));
-  const todayGame = puzzleLabel(puzzleFor(args.today));
-  const { main } = guessLimits(puzzleFor(args.yesterday));
+async function summaryMessage(args: { schedule: DailySchedule; channelId: string; yesterday: string; today: string; players: number; solved: Player[]; out: Player[]; streak: number }): Promise<Outgoing> {
+  const s = args.schedule;
+  const card: CardGame = s.id === "dex" ? "dex" : "shuffle";
+  const number = puzzleNumber(args.yesterday, s);
+  const game = puzzleLabel(puzzleFor(args.yesterday, s));
+  const todayGame = puzzleLabel(puzzleFor(args.today, s));
+  const { main } = guessLimits(puzzleFor(args.yesterday, s));
+  const title = TITLE[card];
   // "in 3", or how a Last chance save reads.
   const how = (p: Player) => (p.guesses > main ? "on the last chance" : `in ${p.guesses}`);
-  const buttons = playButtons({ daily: "Play today's Daily", weekly: "Weekly" });
+  const buttons = playButtons({ daily: card === "dex" ? "Play today's Dex" : "Play today's Daily", game: card, weekly: "Weekly" });
   const rest = args.solved.slice(3);
   const tail = [
     rest.length ? `Also solved: ${rest.slice(0, 5).map((p) => `${md(p.name)} ${how(p)}`).join(", ")}${rest.length > 5 ? ` and ${rest.length - 5} more` : ""}.` : "",
@@ -287,25 +307,25 @@ async function summaryMessage(args: { channelId: string; yesterday: string; toda
   if (args.solved.length) {
     try {
       const channel = await channelName(args.channelId);
-      const data = await renderPodium({ number, game, channel, top: args.solved, played: args.players, solved: args.solved.length, streak: args.streak });
+      const data = await renderPodium({ game: card, number, label: game, channel, top: args.solved, played: args.players, solved: args.solved.length, streak: args.streak });
       const places = args.solved.slice(0, 3).map((p, i) => `${["First", "Second", "Third"][i]}: ${p.name} ${how(p)}`).join(". ");
-      const alt = `Yesterday's Daily #${number}${game ? `, ${game}` : ""}. ${places}.${args.streak >= 2 ? ` This channel has solved it ${args.streak} days running.` : ""}`;
-      return containerMessage({ picture: { data, name: `daily-${number}-podium.png`, alt }, text: tail, buttons });
+      const alt = `Yesterday's ${title.replace(/^The /, "")} #${number}${game ? `, ${game}` : ""}. ${places}.${args.streak >= 2 ? ` This channel has solved it ${args.streak} days running.` : ""}`;
+      return containerMessage({ game: card, picture: { data, name: `${card === "dex" ? "dex" : "daily"}-${number}-podium.png`, alt }, text: tail, buttons });
     } catch (err) {
       console.warn("[channelCard] podium picture failed, sending text:", err);
     }
   }
   const medals = ["🥇", "🥈", "🥉"];
   const lines = [
-    `**Yesterday's Daily #${number}**${game ? ` · ${game}` : ""}`,
+    `**Yesterday's ${title.replace(/^The /, "")} #${number}**${game ? ` · ${game}` : ""}`,
     ...args.solved.slice(0, 10).map((p, i) => `${medals[i] ?? "•"} ${md(p.name)} ${how(p)}`),
     ...(args.solved.length ? [] : ["Nobody got it yesterday."]),
-    ...(args.streak >= 2 ? [`This channel has solved the Daily ${args.streak} days running.`] : []),
+    ...(args.streak >= 2 ? [`This channel has solved the ${title.replace(/^The /, "")} ${args.streak} days running.`] : []),
     "",
     args.out.length ? `Out of guesses: ${listNames(args.out, 5)}.` : "",
-    `Today it's **${todayGame}**.`,
+    todayGame ? `Today it's **${todayGame}**.` : "",
   ].filter((l, i, all) => l !== "" || (i > 0 && all[i - 1] !== ""));
-  return containerMessage({ text: lines.join("\n"), buttons });
+  return containerMessage({ game: card, text: lines.join("\n"), buttons });
 }
 
 /**
@@ -317,19 +337,22 @@ async function summaryMessage(args: { channelId: string; yesterday: string; toda
 export async function postDailySummaries(today: string = gsDay()): Promise<number> {
   const yesterday = gsAddDays(today, -1);
   const admin = createServiceClient();
-  const { data } = await admin.from("discord_daily_cards").select("channel_id")
+  const { data } = await admin.from("discord_daily_cards").select("channel_id, puzzle")
     .eq("day", yesterday).eq("skipped", false).is("summary_posted_at", null).not("message_id", "is", null).limit(1000);
   let posted = 0;
-  for (const { channel_id: channelId } of (data ?? []) as { channel_id: string }[]) {
+  // One summary per daily that had a card in the channel, the Daily Shuffle first.
+  const cards = ((data ?? []) as { channel_id: string; puzzle: string }[]).sort((a, b) => Number(a.puzzle === DEX_PUZZLE_ID) - Number(b.puzzle === DEX_PUZZLE_ID));
+  for (const { channel_id: channelId, puzzle } of cards) {
+    const schedule = gameOfPuzzle(puzzle);
     const { data: claim } = await admin.from("discord_daily_cards").update({ summary_posted_at: new Date().toISOString() })
-      .eq("channel_id", channelId).eq("day", yesterday).is("summary_posted_at", null).select("channel_id").maybeSingle();
+      .eq("channel_id", channelId).eq("day", yesterday).eq("puzzle", puzzle).is("summary_posted_at", null).select("channel_id").maybeSingle();
     if (!claim) continue;
-    const finished = (await playersIn(channelId, yesterday)).filter((p) => p.finished);
+    const finished = (await playersIn(channelId, yesterday, schedule)).filter((p) => p.finished);
     if (!finished.length) continue;
     const solved = finished.filter((p) => p.solved);
     const out = finished.filter((p) => !p.solved);
-    const streak = await channelStreak(channelId, yesterday);
-    const r = await discord("POST", `/channels/${channelId}/messages`, await summaryMessage({ channelId, yesterday, today, players: finished.length, solved, out, streak }));
+    const streak = await channelStreak(channelId, yesterday, schedule);
+    const r = await discord("POST", `/channels/${channelId}/messages`, await summaryMessage({ schedule, channelId, yesterday, today, players: finished.length, solved, out, streak }));
     if (r.ok) posted += 1;
   }
   return posted;

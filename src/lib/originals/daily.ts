@@ -38,8 +38,8 @@ export const MAX_GUESSES = 6;
 /** Puzzle #1. */
 export const DAILY_EPOCH = "2026-09-29";
 
-/** How a column compares: exact match, an ordered scale (lighter/heavier), a year (earlier/later, close within 3), or a count (more/fewer). */
-export type TraitKind = "match" | "ordered" | "year" | "count";
+/** How a column compares: exact match, an ordered scale (lighter/heavier), a year (earlier/later, close within 3), a count (more/fewer), or a measure (taller/heavier, close within a ratio). */
+export type TraitKind = "match" | "ordered" | "year" | "count" | "measure";
 export interface TraitDef {
   label: string; short: string; kind: TraitKind; order?: string[];
   /** How the free starter clue says this column (only broad columns have one); null skips a value. */
@@ -53,6 +53,12 @@ export interface TraitDef {
   within?: number;
   /** Match columns: values that count as close (same region, a related species). */
   near?: (guess: string, answer: string) => boolean;
+  /** Match columns: values that count as the same though spelled differently (types in another order). */
+  same?: (guess: string, answer: string) => boolean;
+  /** Measure columns: close when the bigger is at most this many times the smaller (default 1.25). */
+  ratio?: number;
+  /** How a value reads in its cell (default: as is). */
+  format?: (value: string | number) => string;
 }
 export type TraitValue = string | number | null;
 
@@ -65,6 +71,8 @@ export interface DailyCharacter {
   clue: string | null;
   /** Hints that unlock as the guesses go (All-Stars): `after` = guesses made before it shows. */
   ladder?: LadderHint[];
+  /** Pokémon types, for the type tile that stands in for art (the Daily Dex: no Pokémon art). */
+  types?: string[];
 }
 
 export interface LadderHint { after: number; text: string }
@@ -88,8 +96,10 @@ export interface DailyPuzzle {
   closeNote?: string;
   /** What the arrows mean. Default "↑ heavier or later · ↓ lighter or earlier". */
   arrowNote?: string;
-  /** The late hint: the answer's silhouette (default), or a blurred portrait when the art fills its square. */
-  reveal?: "silhouette" | "blur";
+  /** The late hint: the answer's silhouette (default), a blurred portrait when the art fills its square, or the name's first letter and length (no art at all). */
+  reveal?: "silhouette" | "blur" | "letters";
+  /** Show which way the answer is (↑ ↓) on ordered, year, count and measure columns. */
+  arrows?: boolean;
   /** Guesses in the main game (default 6). */
   guesses?: number;
   /** One more guess after the main game, with the silhouette: keeps a streak, isn't a win. */
@@ -415,6 +425,34 @@ export function rotationFor(day: string): string[] {
 /** Today's rotation (kept for callers that show the week). */
 export const ROTATION: string[] = rotationFor(gsDay());
 
+/**
+ * A daily game's calendar: what it's called, where it's played, its puzzle #1
+ * and which puzzle runs on a day. The Daily Shuffle is the default for every
+ * function below; the Daily Dex (src/lib/originals/dailyDex.ts) passes its own,
+ * so its 1,025 Pokémon never load with the Shuffle.
+ */
+export interface DailySchedule {
+  id: "shuffle" | "dex";
+  title: string;
+  /** The page, as the share text writes it. */
+  link: string;
+  epoch: string;
+  puzzleOn: (day: string) => DailyPuzzle;
+}
+
+/** The Daily Dex's puzzle id, as stored on daily_results (here so readers can tell the games apart without loading it). */
+export const DEX_PUZZLE_ID = "pokemon-dex";
+/** Puzzle #1 of the Daily Dex: launch day, Oct 16, 2026 (answers count from here; never move it now). Here so the homepage can number it without loading the Dex. */
+export const DEX_EPOCH = "2026-10-16";
+
+export const SHUFFLE: DailySchedule = {
+  id: "shuffle",
+  title: "The Daily Shuffle",
+  link: "gameshuffle.co/daily",
+  epoch: DAILY_EPOCH,
+  puzzleOn: (day) => PUZZLES[rotationFor(day)[new Date(`${day}T00:00:00Z`).getUTCDay()]],
+};
+
 /** Today's puzzle day: the Pacific calendar day (a new puzzle at midnight Pacific). */
 export function dayKey(d: Date = new Date()): string {
   return gsDay(d);
@@ -428,8 +466,8 @@ function addDays(day: string, n: number): string {
   return new Date(dayMs(day) + n * 86400000).toISOString().slice(0, 10);
 }
 
-export function puzzleNumber(day: string): number {
-  return Math.floor((dayMs(day) - dayMs(DAILY_EPOCH)) / 86400000) + 1;
+export function puzzleNumber(day: string, s: DailySchedule = SHUFFLE): number {
+  return Math.floor((dayMs(day) - dayMs(s.epoch)) / 86400000) + 1;
 }
 
 /** Dev only: play a puzzle every day (`/daily?puzzle=overwatch-hero`), for trying one before it's scheduled. */
@@ -440,9 +478,9 @@ export function previewPuzzle(id: string | null): boolean {
   return !!previewId;
 }
 
-export function puzzleFor(day: string): DailyPuzzle {
-  if (previewId) return PUZZLES[previewId];
-  return PUZZLES[rotationFor(day)[new Date(dayMs(day)).getUTCDay()]];
+export function puzzleFor(day: string, s: DailySchedule = SHUFFLE): DailyPuzzle {
+  if (previewId && s === SHUFFLE) return PUZZLES[previewId];
+  return s.puzzleOn(day);
 }
 
 function shuffled(p: DailyPuzzle): DailyCharacter[] {
@@ -454,14 +492,14 @@ function shuffled(p: DailyPuzzle): DailyCharacter[] {
 }
 
 /** Today's answer: the nth day this puzzle has run since the epoch picks the nth character of its shuffle. */
-export function answerFor(day: string): DailyCharacter {
-  const p = puzzleFor(day);
-  const days = puzzleNumber(day);
+export function answerFor(day: string, s: DailySchedule = SHUFFLE): DailyCharacter {
+  const p = puzzleFor(day, s);
+  const days = puzzleNumber(day, s);
   // How many days up to and including this one ran the same puzzle.
   // Walked day by day so a later rotation era never renumbers earlier runs.
   let n = 0;
   if (days >= 1) {
-    for (let d = 0; d < days; d++) if (puzzleFor(addDays(DAILY_EPOCH, d)).id === p.id) n += 1;
+    for (let d = 0; d < days; d++) if (puzzleFor(addDays(s.epoch, d), s).id === p.id) n += 1;
   } else {
     n = days; // before launch (only in tests): any stable index will do
   }
@@ -530,7 +568,11 @@ export function playTraits(puzzle: DailyPuzzle): TraitDef[] {
 
 export function compareTrait(def: TraitDef, guess: TraitValue, answer: TraitValue): TraitCell {
   if (guess === null || answer === null) return { value: guess, status: guess === answer ? "match" : "miss", dir: null };
-  if (guess === answer) return { value: guess, status: "match", dir: null };
+  if (guess === answer || (def.same && def.same(String(guess), String(answer)))) return { value: guess, status: "match", dir: null };
+  if (def.kind === "measure" && typeof guess === "number" && typeof answer === "number") {
+    const close = Math.max(guess, answer) <= (def.ratio ?? 1.25) * Math.min(guess, answer);
+    return { value: guess, status: close ? "close" : "miss", dir: answer > guess ? "up" : "down" };
+  }
   if ((def.kind === "year" || def.kind === "count") && typeof guess === "number" && typeof answer === "number") {
     return { value: guess, status: Math.abs(guess - answer) <= (def.within ?? CLOSE_YEARS) ? "close" : "miss", dir: answer > guess ? "up" : "down" };
   }
@@ -540,6 +582,43 @@ export function compareTrait(def: TraitDef, guess: TraitValue, answer: TraitValu
   }
   if (def.near && def.near(String(guess), String(answer))) return { value: guess, status: "close", dir: null };
   return { value: guess, status: "miss", dir: null };
+}
+
+/**
+ * The characters that could still be the answer: every guess so far would have
+ * shown exactly the colors and arrows it did, on every column except the kinds
+ * in `ignore`. The Daily Dex shrinks its list to these (Britton's pick,
+ * 2026-10-16) leaving height and weight out: with them, half of all games were
+ * down to 3 or fewer after two guesses (scripts/.tmp/dex-narrow-sim.ts);
+ * without, about 104, 27 and 10 after one, two and three.
+ */
+export function stillFit(puzzle: DailyPuzzle, hints: GuessHint[], ignore: TraitDef["kind"][] = []): DailyCharacter[] {
+  const cols = playColumns(puzzle);
+  const skip = new Set(ignore);
+  const byName = new Map(puzzle.characters.map((c) => [c.name, c]));
+  const shown = hints.map((h) => ({ h, g: byName.get(h.name) })).filter((x): x is { h: GuessHint; g: DailyCharacter } => !!x.g);
+  return puzzle.characters.filter((cand) => shown.every(({ h, g }) => cols.every((i, k) => {
+    if (skip.has(puzzle.traits[i].kind)) return true;
+    const cell = compareTrait(puzzle.traits[i], g.traits[i], cand.traits[i]);
+    const seen = h.cells[k];
+    return !!seen && cell.status === seen.status && (cell.dir ?? null) === (seen.dir ?? null);
+  })));
+}
+
+/**
+ * What a guess did, in a sentence for a toast (Britton's pick, 2026-10-16):
+ * "Not Yoshi. 2 match, 1 close. A new hint is up." `n` = guesses made now.
+ */
+export function guessFeedback(h: GuessHint, n: number, puzzle: DailyPuzzle, newHint: boolean, extra = 0): { tone: "success" | "info" | "warning"; text: string } {
+  const { main } = guessLimits(puzzle);
+  const total = guessLimits(puzzle).total + extra;
+  if (h.correct) return { tone: "success", text: n > main ? "Saved it on the last chance!" : `You got it in ${n}!` };
+  if (n >= total) return { tone: "info", text: `Not ${h.name}. That was your last guess: the answer is below.` };
+  const m = h.cells.filter((c) => c.status === "match").length;
+  const c = h.cells.filter((x) => x.status === "close").length;
+  const parts = [m ? `${m} match` : "", c ? `${c} close` : ""].filter(Boolean).join(", ") || "Nothing matches";
+  const last = !!puzzle.lastChance && n === main;
+  return { tone: last ? "warning" : "info", text: `Not ${h.name}. ${parts}.${last ? " Last chance next: one more try." : newHint ? " A new hint is up." : ""}` };
 }
 
 export function hintFor(guess: string, answer: DailyCharacter, puzzle: DailyPuzzle): GuessHint | null {
@@ -553,16 +632,18 @@ export function hintFor(guess: string, answer: DailyCharacter, puzzle: DailyPuzz
 }
 
 /** The shareable result: one row per guess (each column, then the answer). */
-export function shareText(day: string, hints: GuessHint[], solved: boolean): string {
-  const p = puzzleFor(day);
+export function shareText(day: string, hints: GuessHint[], solved: boolean, s: DailySchedule = SHUFFLE, help?: { letters: number; guesses: number } | null): string {
+  const p = puzzleFor(day, s);
   const { main } = guessLimits(p);
   const sq = (c: TraitCell) => (c.status === "match" ? "🟩" : c.status === "close" ? "🟨" : "⬛");
   // The Last chance row ends in a ring buoy instead of the flag.
   const rows = hints.map((h, i) => `${h.cells.map(sq).join("")}${h.correct ? (i >= main ? "🛟" : "🏁") : "❌"}`);
-  const starter = starterFor(day);
+  const starter = s === SHUFFLE ? starterFor(day) : null;
   const label = puzzleLabel(p);
   const score = !solved ? `X/${main}` : hints.length > main ? "saved on the last chance" : `${hints.length}/${main}`;
-  return [`The Daily Shuffle #${puzzleNumber(day)}${label ? ` · ${label}` : ""} ${score}`, ...(starter ? [`Started from ${starter.tag}`] : []), ...rows, "gameshuffle.co/daily"].join("\n");
+  // Help bought with tokens: a 💡 per letter, ➕ per extra guess (src/lib/originals/dailyHelp.ts).
+  const helped = help && (help.letters || help.guesses) ? [[`${"💡".repeat(help.letters)}`, `${"➕".repeat(help.guesses)}`].filter(Boolean).join(" ")] : [];
+  return [`${s.title} #${puzzleNumber(day, s)}${label ? ` · ${label}` : ""} ${score}`, ...(starter ? [`Started from ${starter.tag}`] : []), ...rows, ...helped, s.link].join("\n");
 }
 
 /**
@@ -571,13 +652,14 @@ export function shareText(day: string, hints: GuessHint[], solved: boolean): str
  * puzzle, and the game must be over (solved, or out of guesses). Null if it
  * isn't a finished game.
  */
-export function judgeGame(day: string, guesses: string[]): { guesses: number; solved: boolean } | null {
-  const { total } = guessLimits(puzzleFor(day));
+export function judgeGame(day: string, guesses: string[], s: DailySchedule = SHUFFLE, extra = 0): { guesses: number; solved: boolean } | null {
+  // `extra`: guesses the player bought with tokens on the last chance (src/lib/daily/help.ts).
+  const total = guessLimits(puzzleFor(day, s)).total + Math.max(0, extra);
   if (!Array.isArray(guesses) || guesses.length < 1 || guesses.length > total) return null;
   if (new Set(guesses).size !== guesses.length) return null;
-  const roster = puzzleFor(day).characters;
-  if (!guesses.every((g) => roster.some((c) => c.name === g))) return null;
-  const answer = answerFor(day).name;
+  const roster = new Set(puzzleFor(day, s).characters.map((c) => c.name));
+  if (!guesses.every((g) => roster.has(g))) return null;
+  const answer = answerFor(day, s).name;
   const at = guesses.indexOf(answer);
   if (at >= 0 && at !== guesses.length - 1) return null; // nothing after the right answer
   const solved = at >= 0;
@@ -592,7 +674,7 @@ export interface DailyStats { played: number; won: number; streak: number; best:
  * current streak is consecutive solved days ending today, or yesterday if
  * today isn't played yet.
  */
-export function statsFrom(rows: { day: string; guesses: number; solved: boolean }[], today: string = dayKey()): DailyStats {
+export function statsFrom(rows: { day: string; guesses: number; solved: boolean }[], today: string = dayKey(), s: DailySchedule = SHUFFLE): DailyStats {
   // One result per day counts, even if a day somehow holds two puzzles.
   const byDay = new Map<string, { guesses: number; solved: boolean }>();
   for (const r of rows) if (!byDay.has(r.day)) byDay.set(r.day, r);
@@ -603,7 +685,7 @@ export function statsFrom(rows: { day: string; guesses: number; solved: boolean 
     if (!r.solved) continue;
     solvedDays.add(day);
     // A Last chance save keeps the streak going but isn't a win.
-    if (r.guesses > guessLimits(puzzleFor(day)).main) { saved += 1; continue; }
+    if (r.guesses > guessLimits(puzzleFor(day, s)).main) { saved += 1; continue; }
     won += 1;
     if (r.guesses >= 1 && r.guesses <= MAX_GUESSES) dist[r.guesses - 1] += 1;
   }

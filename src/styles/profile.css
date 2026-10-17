@@ -995,6 +995,13 @@ a.friend-tile:hover .friend-tile__name {
   background: transparent;
   border: 1px solid var(--border-default);
 }
+/* Supports GameShuffle (/support): a warm pink, like the supporters wall's heart. */
+.profile-badge--supporter {
+  background: #fdeef4;
+  color: #9c2a5b;
+  border: 1px solid #f6c3d7;
+}
+html.dark .profile-badge--supporter { background: rgba(200, 68, 122, 0.18); color: #f5a9c8; border-color: rgba(200, 68, 122, 0.4); }
 html.dark .profile-badge--weekly { background: rgba(250, 190, 35, 0.14); color: var(--gold-300, #fbd165); border-color: rgba(250, 190, 35, 0.35); }
 html.dark .profile-badge--brain { background: rgba(39, 102, 236, 0.18); color: #a9c3ff; border-color: rgba(39, 102, 236, 0.4); }
 .profile-badge--live {

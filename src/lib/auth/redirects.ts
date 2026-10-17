@@ -40,6 +40,7 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/pokemon-tcg/",      // deck guides' "Sign in to save this deck", checklists
   "/trivia",
   "/daily",
+  "/daily-dex",
   "/weekly",
   "/chat-brain",
   "/arcade",
@@ -55,6 +56,7 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/beta",
   "/gs-circuit",
   "/gs-pro",
+  "/support",
   "/shop",
 ];
 

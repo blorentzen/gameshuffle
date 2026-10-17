@@ -41,8 +41,8 @@ async function save(png: Buffer, name: string) {
 }
 
 async function main() {
-  await save(await renderDailyCard({ number: 9, game: "Mario Party", channel: "game-night", max: 6, cols: 5, players: today }), "daily-card-example.webp");
-  await save(await renderPodium({ number: 8, game: "Mario Kart World", channel: "game-night", top: yesterday, played: 4, solved: 3, streak: 6 }), "daily-podium-example.webp");
+  await save(await renderDailyCard({ number: 9, label: "Mario Party", channel: "game-night", max: 6, cols: 5, players: today }), "daily-card-example.webp");
+  await save(await renderPodium({ number: 8, label: "Mario Kart World", channel: "game-night", top: yesterday, played: 4, solved: 3, streak: 6 }), "daily-podium-example.webp");
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });

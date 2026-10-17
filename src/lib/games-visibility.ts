@@ -29,6 +29,9 @@ export const N64_PARTY_PUBLIC = true;
  */
 export const GUIDES_PUBLIC = false;
 
+/** The Daily Dex (/daily-dex, guess the Pokémon): launched Oct 16, 2026 (DEX_EPOCH in src/lib/originals/daily.ts). */
+export const DAILY_DEX_PUBLIC = true;
+
 /** Hidden randomizers by slug, for lists that loop over every randomizer. */
 const HIDDEN_RANDOMIZERS: Record<string, boolean> = {
   "super-smash-bros-ultimate": !SMASH_PUBLIC,

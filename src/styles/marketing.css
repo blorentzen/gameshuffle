@@ -2492,3 +2492,63 @@
   font-weight: var(--font-weight-semibold);
   color: var(--brand-ink, var(--primary-ink-600));
 }
+
+/* The GS Pro page's line pointing to /support (Support GameShuffle). */
+.pricing-page__support { margin: var(--spacing-16, 16px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); text-align: center; }
+
+/* ── Homepage (reorganized 2026-10-16, src/app/page.tsx + src/components/home/) ── */
+.home-section { margin: var(--spacing-56, 56px) 0 0; display: grid; gap: var(--spacing-16, 16px); }
+.home-section:first-child { margin-top: var(--spacing-48, 48px); }
+.home-section__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-8, 8px) var(--spacing-16, 16px); }
+.home-section__title { margin: 0; font-size: var(--font-size-fluid-h2); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
+.home-section__aside { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.home-section__link { font-weight: 600; font-size: var(--font-size-16); }
+/* Today on GameShuffle: today's top 3 under the cards. */
+.home-today__top { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8, 8px); font-size: var(--font-size-14);
+  padding: var(--spacing-10, 10px) var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.home-today__chip { padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--text-primary) 6%, var(--surface-default)); font-variant-numeric: tabular-nums; }
+.home-today__top a { margin-inline-start: auto; font-weight: 600; }
+/* Run the night */
+.home-next { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label go" "title go" "meta go"; gap: 2px var(--spacing-12, 12px); align-items: center;
+  padding: var(--spacing-14, 14px) var(--spacing-16, 16px); border-radius: var(--radius-12, 12px); text-decoration: none; color: var(--text-primary);
+  background: color-mix(in srgb, var(--color-primary-500, #2766ec) 8%, var(--surface-default)); border: 1px solid color-mix(in srgb, var(--color-primary-500, #2766ec) 30%, var(--border-default)); }
+.home-next__label { grid-area: label; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand-ink, var(--text-secondary)); }
+.home-next__title { grid-area: title; font-size: var(--font-size-18); }
+.home-next__meta { grid-area: meta; font-size: var(--font-size-14); color: var(--text-secondary); }
+.home-next__go { grid-area: go; font-weight: 600; color: var(--brand-ink, var(--color-primary-600, #2766ec)); }
+.home-host { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--spacing-16, 16px); }
+.home-host__card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8, 8px); height: 100%; }
+.home-host__icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; }
+.home-host__icon--blue { background: linear-gradient(135deg, #2f66ec, #1b2a6b); }
+.home-host__icon--violet { background: linear-gradient(135deg, #7c5ce0, #2a2466); }
+.home-host__icon--green { background: linear-gradient(135deg, #2f9e44, #1d3a2e); }
+.home-host__title { margin: var(--spacing-4, 4px) 0 0; font-size: var(--font-size-20); line-height: 1.2; }
+.home-host__title a { color: inherit; text-decoration: none; }
+.home-host__title a:hover { text-decoration: underline; }
+.home-host__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; flex: 1; }
+/* Go further: GS Pro and GS Circuit side by side on the dark band. */
+.home-plans { margin-top: var(--spacing-56, 56px); }
+.home-plans__title { margin: 0 0 var(--spacing-8, 8px); font-size: var(--font-size-fluid-h2); font-weight: var(--font-weight-bold); color: #fff; }
+.home-plans__lede { margin: 0 0 var(--spacing-24, 24px); color: #d6d9f6; font-size: var(--font-size-16); max-width: 60ch; }
+.home-plans__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: var(--spacing-16, 16px); }
+.home-plan { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8, 8px); padding: var(--spacing-20, 20px); border-radius: var(--radius-16, 16px);
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.18); color: #fff; }
+.home-plan__icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.14); color: #fff; }
+.home-plan__name { margin: var(--spacing-4, 4px) 0 0; font-size: var(--font-size-20); color: #fff; }
+.home-plan__name span { font-weight: 500; color: #cfd3ff; font-size: var(--font-size-16); }
+.home-plan__price { margin: 0; font-weight: 700; color: #fff; font-size: var(--font-size-16); }
+.home-plan__text { margin: 0 0 var(--spacing-8, 8px); color: #d6d9f6; font-size: var(--font-size-16); line-height: 1.5; flex: 1; }
+.home-section__lede { margin: 0; max-width: 62ch; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.6; }
+/* The Dex and rules cards: no Pokémon art (the imagery rule), a glyph on the brand gradient. */
+.home-dex-media { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; color: #fff; background: linear-gradient(135deg, #e0a21c, #d9502a); }
+.home-dex-media--rules { background: linear-gradient(135deg, #3d8be0, #5439c4); }
+/* Keep game night free */
+.home-support { margin: var(--spacing-48, 48px) 0 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--spacing-16, 16px); align-items: center;
+  padding: var(--spacing-20, 20px) var(--spacing-24, 24px); border-radius: var(--radius-16, 16px); border: 1px solid var(--border-default); background: var(--surface-default); }
+.home-support__title { margin: 0 0 var(--spacing-4, 4px); font-size: var(--font-size-20); }
+.home-support__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; }
+.home-support__bar { margin-top: var(--spacing-8, 8px); max-width: 32rem; }
+.home-support__bar .empac-progress__label { display: none; }
+@media (max-width: 40rem) { .home-support { grid-template-columns: 1fr; } }
+.home-ideas { margin: var(--spacing-32, 32px) 0 var(--spacing-48, 48px); text-align: center; color: var(--text-secondary); font-size: var(--font-size-14); }
+.home-ideas a { font-weight: 600; }

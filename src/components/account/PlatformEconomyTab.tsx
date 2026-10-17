@@ -14,7 +14,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, Modal } from "@empac/cascadeds";
-import { IconBroadcast, IconCoins, IconConfetti, IconHandStop, IconPencil, IconSparkles, IconUserPlus } from "@tabler/icons-react";
+import { IconBroadcast, IconCoins, IconConfetti, IconHandStop, IconPencil, IconSparkles, IconTrophy, IconUserPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminField, AdminHeader, AdminSection } from "@/components/account/admin/AdminKit";
@@ -25,7 +25,7 @@ interface ConfigRow {
   updated_at: string;
 }
 
-type LeverCategory = "onboarding" | "earns" | "chaos" | "streamer" | "lifecycle";
+type LeverCategory = "onboarding" | "earns" | "dailies" | "chaos" | "streamer" | "lifecycle";
 
 interface LeverMeta {
   key: string;
@@ -56,6 +56,41 @@ const LEVERS: LeverMeta[] = [
     helper: "How many chat earns one viewer can collect in a stream. Stops spam farming without punishing real chatters." },
   { key: "daily_earn_ceiling", label: "Daily earn limit", unit: "tokens", category: "earns",
     helper: "The most a viewer can earn in a day across every kind of earn. Welcome grants don't count. This is the main brake on new tokens." },
+  // ── Daily leaderboards (GameShuffle pays; no streamer allowance) ──
+  { key: "daily_tokens_per_point", label: "Tokens per Daily point", unit: "tokens", category: "dailies",
+    helper: "Tokens for each point a finished Daily Shuffle or Daily Dex earns (10 for guess 1, then 8, 6, 4, 2, and 1 for a last chance). Paid on top of the daily earn limit. 0 turns it off." },
+  { key: "daily_board_places", label: "Prize places", unit: "count", category: "dailies",
+    helper: "How many places win a prize when a week or month ends. Ties share a place, so more people than this can win." },
+  { key: "daily_week_prize_1", label: "Week: 1st place", unit: "tokens", category: "dailies", helper: "Tokens for first place on a week's board, for each game." },
+  { key: "daily_week_prize_2", label: "Week: 2nd place", unit: "tokens", category: "dailies", helper: "Tokens for second place on a week's board." },
+  { key: "daily_week_prize_3", label: "Week: 3rd place", unit: "tokens", category: "dailies", helper: "Tokens for third place on a week's board." },
+  { key: "daily_week_prize_rest", label: "Week: other prize places", unit: "tokens", category: "dailies", helper: "Tokens for each place after third, up to the number of prize places." },
+  { key: "daily_month_prize_1", label: "Month: 1st place", unit: "tokens", category: "dailies", helper: "Tokens for first place on a month's board, for each game." },
+  { key: "daily_month_prize_2", label: "Month: 2nd place", unit: "tokens", category: "dailies", helper: "Tokens for second place on a month's board." },
+  { key: "daily_month_prize_3", label: "Month: 3rd place", unit: "tokens", category: "dailies", helper: "Tokens for third place on a month's board." },
+  { key: "daily_month_prize_rest", label: "Month: other prize places", unit: "tokens", category: "dailies", helper: "Tokens for each place after third, up to the number of prize places." },
+  { key: "daily_guest_hold_days", label: "Days a guest's tokens are held", unit: "count", category: "dailies",
+    helper: "How long tokens a guest earns wait for them to make an account. After this they're gone." },
+  { key: "referral_finish_tokens", label: "Invite: a new player finishes", unit: "tokens", category: "dailies",
+    helper: "Tokens for the account that shared the link when someone new finishes a daily from it." },
+  { key: "referral_signup_tokens", label: "Invite: they make an account", unit: "tokens", category: "dailies",
+    helper: "More tokens for the sharer when that player makes a GameShuffle account." },
+  { key: "referral_welcome_tokens", label: "Invite: the friend's extra", unit: "tokens", category: "dailies",
+    helper: "Added to the new account's welcome tokens when it was made from someone's link." },
+  { key: "referral_paid_per_day", label: "Invite: paid players a day", unit: "count", category: "dailies",
+    helper: "Most new players (and, separately, sign-ups) an account is paid for in a Pacific day." },
+  { key: "referral_new_per_network", label: "Invite: new players a day per network", unit: "count", category: "dailies",
+    helper: "Most new players that can count from one network in a day, so one person can't fake many." },
+  { key: "referral_link_days", label: "Invite: days a link is remembered", unit: "count", category: "dailies",
+    helper: "How long a friend's phone remembers the link they came in on." },
+  { key: "daily_help_letter_tokens", label: "Help: a letter of the name", unit: "tokens", category: "dailies",
+    helper: "What another letter costs on a daily's last chance." },
+  { key: "daily_help_guess_tokens", label: "Help: one more guess", unit: "tokens", category: "dailies",
+    helper: "What an extra guess costs on a daily's last chance." },
+  { key: "daily_help_letters", label: "Help: letters a day", unit: "count", category: "dailies",
+    helper: "Most letters a player can buy for one daily (two always stay hidden, so short names allow fewer). Up to 5." },
+  { key: "daily_help_guesses", label: "Help: extra guesses a day", unit: "count", category: "dailies",
+    helper: "Most extra guesses a player can buy for one daily. Up to 5." },
   // ── Chaos prices ──────────────────────────────────────────────
   { key: "chaos_price_min", label: "Lowest chaos price", unit: "tokens", category: "chaos",
     helper: "The least a streamer can charge for a chaos event in chat. Works with the highest price below." },
@@ -78,6 +113,7 @@ const LEVERS: LeverMeta[] = [
 const CATEGORIES: { id: LeverCategory; title: string; intro: string; icon: typeof IconCoins }[] = [
   { id: "onboarding", title: "Welcome and recovery", intro: "What viewers start with, and what keeps an empty wallet from staying empty.", icon: IconUserPlus },
   { id: "earns", title: "Earning", intro: "How viewers earn tokens by playing and chatting, and the daily limit.", icon: IconSparkles },
+  { id: "dailies", title: "Daily leaderboards", intro: "What the Daily Shuffle and Daily Dex pay: tokens for every game, and prizes when a week or month ends. GameShuffle pays these, not streamers.", icon: IconTrophy },
   { id: "chaos", title: "Chaos prices", intro: "The range streamers can charge when chat spends tokens on a chaos event.", icon: IconConfetti },
   { id: "streamer", title: "Streamer payouts", intro: "Tokens streamers hand out, which come from their monthly allowance.", icon: IconCoins },
   { id: "lifecycle", title: "Streams", intro: "Timing around the end of a stream.", icon: IconBroadcast },

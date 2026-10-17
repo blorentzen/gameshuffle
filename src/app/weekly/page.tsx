@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { DiscordPlug } from "@/components/discord/DiscordPlug";
 import { WeeklyChallenge } from "@/components/originals/WeeklyChallenge";
 
@@ -18,11 +19,14 @@ export default function WeeklyPage() {
         eyebrow="A GameShuffle Original · every Monday"
         title="The Weekly Challenge"
         sub="One challenge for everyone, new every Monday. Answer this week's question, guess what the crowd said, and see how you stack up when the board is revealed."
-        accent="violet"
+        accent="weekly"
         field="weekly"
       />
       <Container className="tool-page">
-        <WeeklyChallenge />
+        <DailiesProvider current="weekly">
+          <DailiesBar current="weekly" />
+          <WeeklyChallenge />
+        </DailiesProvider>
         <DiscordPlug from="weekly" />
       </Container>
     </main>

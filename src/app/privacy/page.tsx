@@ -62,6 +62,7 @@ const SECTIONS: LegalSection[] = [
           <ul>
             <li>If you subscribe to GameShuffle Pro, billing information including your name, billing address, and payment card information is collected and processed by Stripe. We do not store your full payment card number. Stripe handles all payment data directly.</li>
             <li>We store subscription status, plan tier, billing cycle, and trial usage history</li>
+            <li>If you support GameShuffle with a one-time or monthly payment, Stripe collects your name, email address, billing address and payment details in the same way. We store the amount, the date, whether it is monthly, your account if you were signed in, your billing country, and any name and short note you choose to show on our public supporters wall (shown only if you ask for it)</li>
           </ul>
           <p><strong>Contact form submissions:</strong></p>
           <ul>
@@ -101,9 +102,11 @@ const SECTIONS: LegalSection[] = [
         </LegalSubSection>
 
         <LegalSubSection number="2.5" title="Game Answers (Chat Brain, the Daily and the Weekly)">
-          <p>When you answer a Chat Brain question, play the Daily Shuffle, or enter the Weekly Challenge, we store your answer or result with the time it was given. Signed-in answers are tied to your account; signed-out answers are tied to a random ID kept in your browser, which we store only in hashed form. Answers given through our Twitch or Discord bots are tied to that platform account.</p>
+          <p>When you answer a Chat Brain question, play the Daily Shuffle or the Daily Dex, or enter the Weekly Challenge, we store your answer or result with the time it was given. Signed-in answers are tied to your account; signed-out answers are tied to a random ID kept in your browser, which we store only in hashed form. Answers given through our Twitch or Discord bots are tied to that platform account.</p>
           <p><strong>Playing inside Discord:</strong> when you open GameShuffle as a Discord Activity, Discord shares your Discord user ID, username, display name and avatar with us, and we confirm with Discord which server channel the Activity was started in. We use these to save your Daily results and your guesses so far (so a game picks up where you left off), your Chat Brain answers and, if you link a GameShuffle account, your Weekly entries. When you play from a server channel, our bot keeps one results message there for the day showing each player&apos;s display name, profile picture, score and rows as colored squares (never the answer), and posts a short summary of the day&apos;s results the next morning. We keep a link to your Discord avatar for these messages and refresh it each time you open the Activity. When you answer the Weekly or a Chat Brain question from a server (with the bot&apos;s buttons or in the Activity there), the bot&apos;s posts of that question in that server list your display name among the people who answered; your answer itself is never shown. The Activity does not read your messages.</p>
           <p><strong>Optional audience details:</strong> after your first Chat Brain answer we may ask for an age group (13 to 17, 18 to 24, 25 to 34, 35 to 44, 45 to 54, or 55 and up), a gender (woman, man, non-binary) and a country. Each one is optional and has a &quot;prefer not to say&quot; choice. Unless you pick a country or choose not to say, we record the country your connection comes from (country level only) with each answer; we do not store your IP address with your answers. Signed-in choices are saved privately to your account; signed-out choices stay in your browser and are sent with each answer.</p>
+          <p><strong>Daily leaderboards:</strong> your daily results earn points, which appear on public daily, weekly and monthly leaderboards. Accounts appear by display name (or as &quot;A player&quot; if your profile is private), and you can take yourself off the leaderboards in Settings, Privacy. Discord players appear by their Discord display name. If you play without an account and choose to join a leaderboard, we store the name you pick, your results and any tokens held for you, tied to a random ID kept in your browser that we store only in hashed form, along with a hashed form of your network address so we can limit how many new names one network can add. If you later sign in or create an account in that browser, we move these results and tokens to your account.</p>
+          <p><strong>Invite links:</strong> each account has a short invite code. When you open a daily game from someone&apos;s invite link, your browser remembers their code for up to a week. If you then finish a daily, or create an account, we record that you came from that link (tied to your account, or to the random browser ID above in hashed form, with a hashed form of your network address so one network can&apos;t count many times) and tell the person who shared it, by your display name if you have an account or as &quot;A new player&quot; if you don&apos;t. We also keep a hashed form of the network address you last used, so your own network never counts for your own link.</p>
           <p><strong>How answers are shown:</strong> individual answers are never published. We only show answers grouped and counted with everyone else&apos;s, after review, as a game board (for example, &quot;we asked 214 people aged 18 to 24&quot;). A board for a particular audience only appears once at least 30 people in that audience have answered. We do not sell answers or audience details, or use them for advertising.</p>
         </LegalSubSection>
 
@@ -126,6 +129,7 @@ const SECTIONS: LegalSection[] = [
           <li>Provide the features and functionality of the Service, including randomizers, tournament management, sessions, and competitive tools</li>
           <li>Draft text with the AI features you choose to use (see section 2.6)</li>
           <li>Process subscription payments and manage your GameShuffle Pro subscription if applicable</li>
+          <li>Process support payments, show the Supporter badge, and show the supporters wall entries you choose to share</li>
           <li>Authenticate your identity and keep your account secure</li>
           <li>Display your profile information to other users where you have chosen to make it public</li>
           <li>Manage third-party platform integrations (such as Twitch and Discord) on your behalf, including maintaining authenticated connections, executing bot commands you&apos;ve configured, and managing real-time event subscriptions</li>
@@ -273,7 +277,7 @@ const SECTIONS: LegalSection[] = [
           <TableBody>
             <TableRow><TableCell><strong>Supabase</strong></TableCell><TableCell>Auth, database, real-time</TableCell><TableCell><a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">supabase.com/privacy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Vercel</strong></TableCell><TableCell>Hosting and infrastructure</TableCell><TableCell><a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">vercel.com/legal/privacy-policy</a></TableCell></TableRow>
-            <TableRow><TableCell><strong>Stripe</strong></TableCell><TableCell>Payment processing for GameShuffle Pro</TableCell><TableCell><a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">stripe.com/privacy</a></TableCell></TableRow>
+            <TableRow><TableCell><strong>Stripe</strong></TableCell><TableCell>Payment processing for GameShuffle Pro, Circuit plans and support payments</TableCell><TableCell><a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">stripe.com/privacy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>MailerSend</strong></TableCell><TableCell>Transactional email delivery</TableCell><TableCell><a href="https://www.mailersend.com/legal/privacy" target="_blank" rel="noopener noreferrer">mailersend.com/legal/privacy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>MailerLite</strong></TableCell><TableCell>Marketing email delivery (with consent)</TableCell><TableCell><a href="https://www.mailerlite.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">mailerlite.com/legal/privacy-policy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Cloudflare</strong></TableCell><TableCell>Bot protection (Turnstile)</TableCell><TableCell><a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">cloudflare.com/privacypolicy</a></TableCell></TableRow>
@@ -313,7 +317,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <LegalSubSection number="8.1" title="Retention">
           <p>We retain your account data for as long as your account is active. If you delete your account, all associated data is permanently deleted immediately via cascading database constraints.</p>
-          <p>For users who have subscribed to GameShuffle Pro, Stripe retains transaction records for 7 years per their own data retention policy (independent of our account deletion process), in compliance with US tax and financial recordkeeping requirements.</p>
+          <p>For users who have subscribed to GameShuffle Pro or made a support payment, Stripe retains transaction records for 7 years per their own data retention policy (independent of our account deletion process), in compliance with US tax and financial recordkeeping requirements.</p>
         </LegalSubSection>
 
         <LegalSubSection number="8.2" title="Account Deletion">
@@ -395,7 +399,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       intro="What we collect, how we use it, who we share it with, and your rights."
-      effectiveDate="October 7, 2026"
+      effectiveDate="October 16, 2026"
       sections={SECTIONS}
       current="privacy"
     />

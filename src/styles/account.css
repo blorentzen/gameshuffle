@@ -4273,3 +4273,20 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
 .mods-add__row { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: flex-start; }
 .mods-add__row > * { flex: 1 1 16rem; min-width: 0; }
 .mods-add__row > .empac-button { flex: 0 0 auto; }
+
+/* Plans & billing: monthly support for GameShuffle (MonthlySupportCard.tsx). */
+.support-card { display: grid; gap: var(--spacing-8, 8px); }
+.support-card__title { margin: 0; font-size: var(--font-size-16); }
+.support-card__text { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Platform ▸ Support: the goal and its cost lines. */
+.support-admin__goal { max-width: 24rem; }
+.support-admin__costs { display: grid; gap: var(--spacing-8, 8px); margin-top: var(--spacing-12, 12px); }
+.support-admin__cost { display: grid; grid-template-columns: minmax(0, 1fr) 10rem auto; gap: var(--spacing-8, 8px); align-items: center; }
+@media (max-width: 40rem) { .support-admin__cost { grid-template-columns: minmax(0, 1fr) 8rem; } .support-admin__cost > :last-child { grid-column: 1 / -1; justify-self: start; } }
+
+/* ── Account ▸ Invite friends (src/components/account/invite/InviteFriendsScreen.tsx) ── */
+.invite-link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+.invite-link > :first-child { flex: 1 1 28rem; min-width: 0; }
+.invite-link__note { margin: 0; }
+.invite-rules { margin: 0; padding-left: var(--spacing-20); display: grid; gap: var(--spacing-6, 6px); color: var(--text-secondary); }
+.invite-rules strong { color: var(--text-primary); }

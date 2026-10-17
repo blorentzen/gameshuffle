@@ -13,6 +13,7 @@ import { SectionTabs, type ScreenMap } from "@/components/account/SectionTabs";
 import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
 import { PlatformGrowthTab } from "@/components/account/PlatformGrowthTab";
 import { PlatformRevenueTab } from "@/components/account/PlatformRevenueTab";
+import { PlatformSupportTab } from "@/components/account/PlatformSupportTab";
 import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
 import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab";
 import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
@@ -70,6 +71,7 @@ const SCREENS: ScreenMap = {
   "platform-moderation": () => <PlatformModerationTab />,
   "platform-staff": () => <PlatformStaffTab />,
   "platform-pricing": () => <PlatformPricingTab />,
+  "platform-support": () => <PlatformSupportTab />,
   "platform-snapshot": () => <PlatformEconomySnapshotTab part="overview" />,
   "platform-token-streamers": () => <TokenStreamersPanel />,
   "platform-token-history": () => <PlatformEconomySnapshotTab part="history"><TokenActivityPanel embedded /></PlatformEconomySnapshotTab>,

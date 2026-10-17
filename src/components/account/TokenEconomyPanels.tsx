@@ -26,6 +26,7 @@ const EVENT_LABEL: Record<string, string> = {
   bet: "Bets on predictions", chaos_burn: "Chaos burns", award_mint: "Streamer awards", grant_start: "Welcome grants", earn_newcommunity: "New-community bonuses",
   earn_t1: "In-game earns", earn_t2: "Chat earns", give: "Gifts between viewers", transfer_out: "Transfers", bust_recovery: "Bust recovery", grant_bust: "Bust recovery",
   grant_onboarding: "Getting-started rewards", shop_purchase: "Shop purchases", payout: "Prediction payouts", refund: "Refunds",
+  earn_daily: "Daily games", award_board: "Daily board prizes", earn_referral: "Invite links", daily_help: "Help on the dailies", idea_accept: "Idea Board rewards", idea_ship: "Idea Board rewards",
 };
 const eventLabel = (type: string) => EVENT_LABEL[type] ?? (type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, " "));
 

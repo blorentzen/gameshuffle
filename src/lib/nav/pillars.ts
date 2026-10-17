@@ -257,6 +257,7 @@ export const FOOTER_EXTRA: NavGroup[] = [
       { label: "Pricing & features", href: "/gs-pro" },
       { label: "Help", href: "/help" },
       { label: "Idea board", href: "/ideas" },
+      { label: "Support GameShuffle", href: "/support" },
       { label: "Contact", href: "/contact-us" },
     ],
   },

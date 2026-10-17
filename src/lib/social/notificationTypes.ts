@@ -59,6 +59,10 @@ export const NOTIFICATION_TYPES = {
   // Ticket payouts — a failed payout needs the organizer to fix their bank details.
   payout_paid: { cds: "success", invite: false },
   payout_failed: { cds: "warning", invite: false },
+  // A Daily leaderboard prize (src/lib/daily/boards.ts): your place and tokens when a week or month ends.
+  daily_prize: { cds: "success", invite: false },
+  // Referral links (src/lib/referrals/store.ts): tokens when someone new plays or signs up from your link.
+  referral: { cds: "success", invite: false },
 } as const satisfies Record<string, NotificationTypeDef>;
 
 /** The registered GS notification types. New producers must register here. */

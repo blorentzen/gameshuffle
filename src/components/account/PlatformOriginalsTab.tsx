@@ -4,7 +4,8 @@
  * Platform admin ▸ Originals ▸ Overview (staff/admin): one place to check our own games.
  * Chat Brain (launch progress, answers and where they come from, questions
  * furthest from a board, what needs doing), the Daily Shuffle (today, the next
- * week of answers, plays, characters missing facts or a clue) and the Weekly
+ * week of answers, plays, characters missing facts or a clue), the Daily Dex
+ * (launch, the next two weeks, how far ahead the nods are written) and the Weekly
  * (this week, next week, last week's top 3). Each links to its own tab for
  * changes.
  */
@@ -13,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Progress, StatCard, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import {
-  IconBrain, IconCalendarEvent, IconChecklist, IconMessageCircle, IconRefresh, IconTrophy, IconUsers,
+  IconBrain, IconCalendarEvent, IconChecklist, IconMessageCircle, IconPokeball, IconRefresh, IconTrophy, IconUsers,
 } from "@tabler/icons-react";
 import { CategoryIcon } from "@/components/chatbrain/brainIcons";
 import type { OriginalsOverview } from "@/lib/originals/overview";
@@ -52,7 +53,7 @@ export function PlatformOriginalsTab() {
     />
   );
   if (!data) return <div className="account-card admin-screen">{header}{failed ? <Alert variant="error">Couldn&apos;t load the Originals numbers. Try Refresh in a moment.</Alert> : <LoadingLines label="Loading" />}</div>;
-  const cb = data.chatBrain, d = data.daily, w = data.weekly;
+  const cb = data.chatBrain, d = data.daily, x = data.dex, w = data.weekly;
   const maxSource = Math.max(1, ...(cb?.sources.map((s) => s.count) ?? [1]));
   const maxPlays = Math.max(1, ...(d.plays?.map((x) => x.players) ?? [1]));
 
@@ -183,6 +184,60 @@ export function PlatformOriginalsTab() {
           {d.missing.length === 0
             ? <p className="dbot-muted">Every character in every rotation has its facts and a clue.</p>
             : <Alert variant="warning" title={`${d.missing.length} character${d.missing.length === 1 ? " needs" : "s need"} work`}>{d.missing.map((m) => `${m.name} (${m.game}, ${m.what})`).join(", ")}</Alert>}
+        </AdminPanel>
+      </AdminSection>
+
+      {/* ── Daily Dex ──────────────────────────────────────────────── */}
+      <AdminSection
+        title="The Daily Dex"
+        icon={<IconPokeball size={20} stroke={1.75} />}
+        actions={<Button variant="ghost" size="small" onClick={() => window.open("/daily-dex", "_blank", "noopener")}>Open the Dex</Button>}
+      >
+        <div className="admin-cols">
+          <AdminPanel title="Hints written ahead">
+            <p className="dbot-muted">
+              {x.launched ? "Live." : `Hidden until launch. Puzzle #1 is set for ${shortDay(x.epoch)}.`}{" "}
+              Three nods each for {x.ahead.ready} of the next {x.ahead.days} answers.
+            </p>
+            <Progress value={Math.round((x.ahead.ready / x.ahead.days) * 100)} label={`${x.ahead.ready} of ${x.ahead.days} answers have their nods`} className="admin-progress-quiet" />
+          </AdminPanel>
+          <AdminPanel title="Cards of the day ahead">
+            <p className="dbot-muted">
+              A Pokémon TCG card of the answer shows on the end screen. {x.cards.ready} of the next {x.cards.days} answers have one on this site; a day without one just skips it.
+            </p>
+            <Progress value={Math.round((x.cards.ready / x.cards.days) * 100)} label={`${x.cards.ready} of ${x.cards.days} answers have a card`} className="admin-progress-quiet" />
+          </AdminPanel>
+          <AdminPanel title="Plays, last 7 days (signed in)">
+            {!x.plays ? <p className="dbot-muted">Daily results aren&apos;t set up on this database.</p> : x.plays.every((p) => !p.players) ? <p className="dbot-muted">No signed-in plays yet.</p> : (
+              <ul className="originals-admin__bars">
+                {x.plays.map((p) => (
+                  <li key={p.day}>
+                    <span>{shortDay(p.day)}</span>
+                    <span className="originals-admin__bar" aria-hidden><span style={{ width: `${Math.round((p.players / Math.max(1, ...x.plays!.map((q) => q.players))) * 100)}%` }} /></span>
+                    <strong>{p.players}</strong>
+                    <span className="dbot-muted">{p.players ? `${Math.round((p.solved / p.players) * 100)}% solved${p.avgGuesses ? ` · ${p.avgGuesses} guesses` : ""}` : ""}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </AdminPanel>
+        </div>
+        <AdminPanel title="Coming up">
+          <AdminTable label="Upcoming Daily Dex answers">
+            <Table variant="striped" dense>
+              <TableHeader><TableRow><TableHead>Day</TableHead><TableHead>Answer</TableHead><TableHead>Nods</TableHead><TableHead>Card</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {x.upcoming.map((u) => (
+                  <TableRow key={u.day}>
+                    <TableCell>{shortDay(u.day)} · #{u.number}</TableCell>
+                    <TableCell><strong>{u.answer}</strong></TableCell>
+                    <TableCell>{u.nods ? <Badge variant="success" size="small">Ready</Badge> : <Badge variant="warning" size="small">Missing</Badge>}</TableCell>
+                    <TableCell>{u.card ? <Badge variant="success" size="small">Ready</Badge> : <Badge variant="default" size="small">None</Badge>}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </AdminTable>
         </AdminPanel>
       </AdminSection>
 

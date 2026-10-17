@@ -1,15 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Accordion, Alert, Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { DailyParade, DailySteps } from "@/components/originals/DailyParade";
+import { DailyBoard, DailyBoardJoin, DailyScoreChips, useDailyBoards } from "@/components/originals/DailyBoard";
+import { SupportNudge } from "@/components/support/SupportNudge";
+import { DailyHelpPanel, HelpWord, useDailyHelp } from "@/components/originals/DailyHelp";
+import { NO_HELP, type HelpCounts } from "@/lib/originals/dailyHelp";
+import { DailiesInvite, DailiesNext, DailiesShare, DailiesYours, sendReferralFinish, useDailies } from "@/components/originals/Dailies";
+import { withReferral } from "@/lib/originals/referral";
+import { reportDaily, type DailiesEntry } from "@/lib/originals/dailies";
+import type { BoardRow, BoardView, ScoreResult } from "@/lib/daily/boardTypes";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { OriginalsLink, useArtSrc, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
-  CLUE_AFTER, DEFAULT_CLOSE_NOTE, MAX_GUESSES, answerFor, dayKey, guessLimits, hintFor, ladderShown, playTraits, previewPuzzle, puzzleFor, puzzleLabel, puzzleNumber, rotationFor, PUZZLES, shareText, silhouetteAfter, starterFor, WRITTEN_CLUE,
+  CLUE_AFTER, DEFAULT_CLOSE_NOTE, MAX_GUESSES, answerFor, dayKey, guessFeedback, guessLimits, hintFor, ladderShown, playTraits, previewPuzzle, puzzleFor, puzzleLabel, puzzleNumber, rotationFor, PUZZLES, shareText, silhouetteAfter, starterFor, WRITTEN_CLUE,
   type DailyStats, type GuessHint, type TraitCell, type TraitDef,
 } from "@/lib/originals/daily";
 
@@ -27,7 +35,8 @@ const KEY = "gs-daily-shuffle";
 
 interface Stats { played: number; won: number; streak: number; best: number; dist: number[]; lastDay: string | null; /** Last chance saves: kept the streak, not a win. */ saved?: number }
 /** `puzzle` is missing on saves from before the rotation; those were all Mario Kart 8 Deluxe. */
-interface Saved { day: string; puzzle?: string; guesses: string[]; stats: Stats }
+/** `help`: letters and guesses bought today, kept here too so a reload never ends a game early. */
+interface Saved { day: string; puzzle?: string; guesses: string[]; stats: Stats; help?: HelpCounts }
 
 const EMPTY_STATS: Stats = { played: 0, won: 0, streak: 0, best: 0, dist: Array(MAX_GUESSES).fill(0), lastDay: null };
 
@@ -37,7 +46,7 @@ function read(): Saved | null {
 function write(s: Saved) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* still playable this visit */ }
 }
-interface Account { signedIn: boolean; stats?: DailyStats | null; today?: { puzzle: string; guesses: number; solved: boolean } | null; progress?: string[] | null }
+interface Account { signedIn: boolean; stats?: DailyStats | null; today?: { puzzle: string; guesses: number; solved: boolean } | null; progress?: string[] | null; score?: ScoreResult | null }
 
 async function saveResult(api: OriginalsHost["api"], day: string, guesses: string[]): Promise<Account | null> {
   try {
@@ -91,8 +100,18 @@ export function DailyShuffle() {
   const [guesses, setGuesses] = useState<string[]>([]);
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
   const [pick, setPick] = useState("");
+  /** The guess just made: its row lights up and scrolls into view for a moment. */
+  const [flash, setFlash] = useState<string | null>(null);
+  /** Help bought with tokens today (the browser's copy; the server's wins when larger). */
+  const [localHelp, setLocalHelp] = useState<HelpCounts>(NO_HELP);
+  const { info: helpInfo, help, reload: reloadHelp } = useDailyHelp("shuffle", localHelp);
   const [loaded, setLoaded] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
+  // The leaderboards: what this game earned, and where you sit today and this week.
+  const boards = useDailyBoards("shuffle", account ? account.signedIn : null);
+  const [score, setScore] = useState<ScoreResult | null>(null);
+  const [mine, setMine] = useState<{ day: BoardRow | null; week: BoardRow | null }>({ day: null, week: null });
+  const onViews = useCallback((d: BoardView | null, w: BoardView | null) => setMine({ day: d?.you ?? null, week: w?.you ?? null }), []);
 
   useEffect(() => {
     let alive = true;
@@ -103,7 +122,7 @@ export function DailyShuffle() {
     void Promise.resolve().then(() => {
       if (s) {
         setStats({ ...EMPTY_STATS, ...s.stats });
-        if (sameGame) setGuesses(s.guesses);
+        if (sameGame) { setGuesses(s.guesses); setLocalHelp(s.help ?? NO_HELP); }
       }
       setLoaded(true);
     });
@@ -125,10 +144,12 @@ export function DailyShuffle() {
   // (Only for today's puzzle: on the day the rotation shipped, a morning result may be for another game.)
   const elsewhere = hints.length === 0 && account?.today?.puzzle === puzzle.id ? account.today : null;
   const solved = hints.some((h) => h.correct) || !!elsewhere?.solved;
-  const { main, total } = guessLimits(puzzle);
+  // Extra guesses bought with tokens on the last chance add to the total.
+  const { main, total: baseTotal } = guessLimits(puzzle);
+  const total = baseTotal + help.guesses;
   const over = solved || hints.length >= total || !!elsewhere;
   // All-Stars: five guesses make the main game, then one Last chance with the silhouette.
-  const inLastChance = !!puzzle.lastChance && !over && hints.length === main;
+  const inLastChance = !!puzzle.lastChance && !over && hints.length >= main;
   const savedIt = solved && (elsewhere ? elsewhere.guesses : hints.length) > main;
   const label = puzzleLabel(puzzle);
   const shownHints = over ? [] : ladderShown(answer, hints.length);
@@ -149,7 +170,39 @@ export function DailyShuffle() {
       { icon: "colors" as const, title: "Follow the colors", text: `Green matches, yellow is close. ${main} guesses to find them.` },
     ];
   const blur = puzzle.reveal === "blur";
-  const options = puzzle.characters.filter((c) => !guesses.includes(c.name)).map((c) => ({ value: c.name, label: c.name }));
+  const { sendGuestResult, bump } = boards;
+  const guestOnBoard = !!boards.guest?.onBoard;
+
+  // A guest on the boards: their finished game goes up once (also after a reload, or right after joining).
+  useEffect(() => {
+    if (preview || activity || !over || !guestOnBoard || !guesses.length) return;
+    void sendGuestResult(day, guesses).then((sc) => { if (sc) setScore(sc); });
+  }, [preview, activity, over, guestOnBoard, guesses, day, sendGuestResult]);
+  // The new row: into view, then the highlight fades.
+  useEffect(() => {
+    if (!flash) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const raf = requestAnimationFrame(() => document.querySelector(".daily__row--new")?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" }));
+    const t = window.setTimeout(() => setFlash(null), 2400);
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(t); };
+  }, [flash]);
+  // A to Z in the guess list (the roster's own order drives the answers, so it never changes).
+  const options = useMemo(() => puzzle.characters.filter((c) => !guesses.includes(c.name)).map((c) => ({ value: c.name, label: c.name }))
+    .sort((a, b) => a.label.localeCompare(b.label, "en", { sensitivity: "base" })), [puzzle, guesses]);
+
+  // The today bar, Next up and the streak cards on every daily's page learn where this game stands.
+  const report = loaded && !preview && day === dayKey() ? JSON.stringify({
+    day, number: puzzleNumber(day), state: over ? "done" : hints.length ? "playing" : "fresh",
+    result: over ? { guesses: elsewhere ? elsewhere.guesses : hints.length, main, solved, saved: savedIt } : null,
+    stats: { played: shown.played, won: shown.won, streak: shown.streak, best: shown.best, saved: shown.saved ?? 0 },
+  } satisfies DailiesEntry) : "";
+  useEffect(() => { if (report) reportDaily("shuffle", JSON.parse(report) as DailiesEntry); }, [report]);
+  // Came from a friend's link: a finished game counts for them once (the server checks it's real).
+  const { referral } = useDailies("shuffle");
+  const finishedHere = over && !elsewhere && guesses.length > 0;
+  useEffect(() => {
+    if (finishedHere && !preview && !activity && day === dayKey()) sendReferralFinish(api, "shuffle", day, guesses);
+  }, [finishedHere, preview, activity, day, api, guesses]);
 
   const guess = () => {
     if (!pick || over || guesses.includes(pick) || !puzzle.characters.some((c) => c.name === pick)) return;
@@ -158,6 +211,13 @@ export function DailyShuffle() {
     setPick("");
     const right = pick === answer.name;
     const done = right || next.length >= total;
+    // Say what the guess did (Britton's pick, 2026-10-16), and light up its row.
+    const made = hintFor(pick, answer, puzzle);
+    if (made) {
+      const fb = guessFeedback(made, next.length, puzzle, ladderShown(answer, next.length).length > ladderShown(answer, guesses.length).length, help.guesses);
+      toast[fb.tone](fb.text);
+    }
+    if (!done) setFlash(pick);
     // A Last chance save keeps the streak going but isn't a win.
     const save = right && next.length > main;
     const won = right && !save;
@@ -173,10 +233,10 @@ export function DailyShuffle() {
       setStats(s);
     }
     if (preview) return;
-    write({ day, puzzle: puzzle.id, guesses: next, stats: s });
+    write({ day, puzzle: puzzle.id, guesses: next, stats: s, help });
     if (done && account?.signedIn) {
       void saveResult(api, day, next).then((a) => {
-        if (a) setAccount(a);
+        if (a) { setAccount(a); if (a.score) setScore(a.score); bump(); }
         else toast.error(activity ? "Couldn't save today's result" : "Couldn't save today's result to your account");
       });
     } else if (activity) {
@@ -184,10 +244,10 @@ export function DailyShuffle() {
     }
   };
 
-  const copy = () => navigator.clipboard.writeText(shareText(day, hints, solved)).then(() => { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Result copied"); }, () => toast.error("Couldn't copy the result"));
+  const copy = () => navigator.clipboard.writeText(withReferral(shareText(day, hints, solved, undefined, help), referral?.code)).then(() => { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Result copied"); }, () => toast.error("Couldn't copy the result"));
   const shareToDiscord = async () => {
     if (!activity?.share) return;
-    if (await activity.share(shareText(day, hints, solved))) { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Shared"); }
+    if (await activity.share(shareText(day, hints, solved, undefined, help))) { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Shared"); }
   };
 
   return (
@@ -226,6 +286,13 @@ export function DailyShuffle() {
           <span className="party-muted">{blur ? "Last chance: here's a blurry look." : "Last chance: here's their silhouette."}</span>
         </div>
       )}
+      {inLastChance && help.letters > 0 && (
+        <HelpWord name={answer.name} free={0} bought={help.letters} note="The letters you bought, and a square for every letter." />
+      )}
+      {inLastChance && !preview && (
+        <DailyHelpPanel game="shuffle" info={helpInfo} help={help} signupPath="/daily"
+          onBought={(h) => { setLocalHelp(h); write({ day, puzzle: puzzle.id, guesses, stats, help: h }); void reloadHelp(); }} />
+      )}
 
       {fresh && <DailyParade characters={puzzle.characters} art={art} />}
       {fresh && <DailySteps steps={steps} />}
@@ -260,7 +327,7 @@ export function DailyShuffle() {
               {hints.map((h) => {
                 const c = puzzle.characters.find((x) => x.name === h.name)!;
                 return (
-                  <TableRow key={h.name} className={h.correct ? "daily__row--win" : undefined}>
+                  <TableRow key={h.name} className={[h.correct ? "daily__row--win" : "", h.name === flash ? "daily__row--new" : ""].filter(Boolean).join(" ") || undefined}>
                     <TableCell>
                       <span className="daily__who">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -287,27 +354,26 @@ export function DailyShuffle() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={art(answer.img)} alt="" className="daily__answer-img" />
           <p className="oddone__verdict">{savedIt ? "Saved it on the last chance." : solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>{answer.name.endsWith(".") ? "" : "."}</p>
+          <DailyScoreChips score={score} guest={!activity && !account?.signedIn} today={mine.day} week={mine.week} />
           {elsewhere && <p className="party-muted">{activity ? "You played today's puzzle on GameShuffle." : "You played today on another device."}</p>}
           <p className="party-muted">A new puzzle at midnight Pacific time.{puzzleLabel(tomorrow) ? ` Tomorrow's game: ${puzzleLabel(tomorrow)}.` : ""}</p>
           {hints.length > 0 && (
-            <span className="party-row">
-              {activity?.share
-                ? <Button variant="primary" onClick={() => void shareToDiscord()}>Share my result</Button>
-                : <Button variant="primary" onClick={copy}>Copy my result</Button>}
-            </span>
+            <DailiesShare current="shuffle" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} />
           )}
-          <ul className="daily__stats">
-            <li><strong>{shown.played}</strong><span>Played</span></li>
-            <li><strong>{shown.played ? Math.round((shown.won / shown.played) * 100) : 0}%</strong><span>Won</span></li>
-            <li><strong>{shown.streak}</strong><span>Streak</span></li>
-            <li><strong>{shown.best}</strong><span>Best</span></li>
-            {(shown.saved ?? 0) > 0 && <li><strong>{shown.saved}</strong><span>Saves</span></li>}
-          </ul>
+          <DailiesNext current="shuffle" onPick={activity?.pickDaily} />
+          <DailiesInvite current="shuffle" />
+          <DailiesYours current="shuffle" />
+          {account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0 && (
+            <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />
+          )}
           {account && !account.signedIn && (
             <p className="party-muted"><OriginalsLink href="/login?redirect=/daily">Sign in</OriginalsLink> to keep your streak on every device and show it on your profile.</p>
           )}
+          <SupportNudge from="daily" />
         </div>
       )}
+
+      {!preview && <DailyBoard game="shuffle" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews} />}
 
       {over && (activity
         ? activity.showTab && <Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button>

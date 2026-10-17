@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert, Button, Input, Select, Switch } from "@empac/cascadeds";
+import { DailyBoardsSwitch } from "@/components/account/settings/DailyBoardsSwitch";
 import { IconCircleCheck } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -252,6 +253,7 @@ export function SettingsPrivacyScreen() {
             />
             {fields.isPublic && !fields.username.trim() && <Alert variant="warning">Choose a username on <Link href="/account?tab=profile">About you</Link> first.</Alert>}
             <p className="admin-field__help">Who sees your gamertags is set on <Link href="/account?tab=gamertags">Gamertags &amp; socials</Link>.</p>
+            <DailyBoardsSwitch />
           </>
         )}
       </AdminSection>

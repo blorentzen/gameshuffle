@@ -1827,3 +1827,171 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .party-tv__cover { width: 14rem; flex-shrink: 0; }
 .party-tv__cover .game-cover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4); }
 .night-games__name { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+
+/* The Daily Dex (DailyDex.tsx): type tiles stand in for Pokémon art (TypeTile in TypeCard.tsx), two types split on the diagonal. */
+.type-tile { display: inline-grid; place-items: center; flex: 0 0 auto; width: 3.2rem; height: 3.2rem; border-radius: 9px; color: #fff;
+  background: linear-gradient(135deg, var(--type-color) 0 50%, var(--type-color-2) 50% 100%); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.type-tile--dark { color: #1d1600; }
+.type-tile--small { width: 2.4rem; height: 2.4rem; border-radius: 7px; }
+.type-tile--large { width: 5.2rem; height: 5.2rem; border-radius: 14px; }
+.dex-parade { min-height: 8.8rem; }
+.dex-parade .daily-parade__lane { gap: var(--spacing-12, 12px); }
+.dex-parade__mon { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); padding: var(--spacing-4, 4px) var(--spacing-10, 10px) var(--spacing-4, 4px) var(--spacing-4, 4px);
+  border: 1px solid var(--border-default); border-radius: 999px; background: var(--surface-default); white-space: nowrap; }
+.dex-parade__name { font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); }
+.dex-parade .daily-parade__lane--back .dex-parade__mon { opacity: 0.55; }
+.dex-parade .daily-parade__lane--back .dex-parade__name { font-size: var(--font-size-12); }
+/* The last chance: the first letter, then a square per letter; spaces and punctuation as they are. */
+.dex-reveal { display: grid; gap: var(--spacing-8, 8px); justify-items: start; text-align: start; }
+.dex-reveal__word { display: flex; flex-wrap: wrap; gap: var(--spacing-4, 4px); }
+.dex-reveal__cell { display: grid; place-items: center; width: 3.2rem; height: 3.8rem; border-radius: 8px; font-size: var(--font-size-20); font-weight: 700;
+  border: 2px solid var(--border-default); background: var(--surface-default); color: var(--text-primary); }
+.dex-reveal__cell--first { border-color: var(--color-success-500, #1a8a57); background: color-mix(in srgb, var(--color-success-500, #1a8a57) 14%, var(--surface-default)); }
+.dex-reveal__cell--gap { width: 1.2rem; border: 0; background: none; }
+.dex-reveal__cell--mark { width: auto; min-width: 1.2rem; border: 0; background: none; }
+.dex-answer { width: min(100%, 22rem); }
+.daily__who .type-tile { margin-bottom: 2px; }
+
+/* Daily leaderboards (DailyBoard.tsx): score chips under the verdict, the guest join card, and the board. */
+.daily-score { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-6, 6px); }
+.daily-score__chip { font-size: var(--font-size-12); font-weight: 600; padding: var(--spacing-6, 6px) var(--spacing-10, 10px); border-radius: 999px;
+  border: 1px solid var(--border-default); background: var(--surface-default); color: var(--text-primary); }
+.daily-score__chip--points { border-color: transparent; background: color-mix(in srgb, var(--color-success-500, #1a8a57) 14%, var(--surface-default)); color: var(--color-success-700, #11603b); }
+.daily-score__chip--tokens { border-color: transparent; background: color-mix(in srgb, var(--color-warning-500, #e2a336) 18%, var(--surface-default)); color: var(--color-warning-800, #7a5306); }
+html.dark .daily-score__chip--points { color: var(--color-success-300, #6fd6a2); }
+html.dark .daily-score__chip--tokens { color: var(--color-warning-300, #f2c96b); }
+.daily-join { display: grid; gap: var(--spacing-8, 8px); width: min(100%, 44rem); margin-inline: auto; padding: var(--spacing-14, 14px); text-align: start;
+  border: 1px dashed var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.daily-join__title { margin: 0; font-size: var(--font-size-16); }
+.daily-join__text { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; }
+.daily-join__row { display: flex; gap: var(--spacing-8, 8px); align-items: flex-start; }
+.daily-join__row > :first-child { flex: 1; min-width: 0; }
+.daily-join__error { margin: 0; font-size: var(--font-size-14); color: var(--color-error-600, #c0392b); }
+.daily-board { display: grid; gap: var(--spacing-8, 8px); text-align: start; }
+.daily-board__title { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold, 600); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+/* The tabs are a bar here: the board below changes with them. */
+.daily-board__tabs .empac-tabs__content { display: none; }
+.daily-board__table { overflow-x: auto; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.daily-board__table table { font-variant-numeric: tabular-nums; }
+.daily-board__table tr.daily-board__you td { background: color-mix(in srgb, var(--color-warning-500, #e2a336) 12%, var(--surface-default)); }
+.daily-board__who { display: inline-flex; align-items: center; gap: var(--spacing-8, 8px); min-width: 0; }
+.daily-board__tag { font-size: var(--font-size-10); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 6px; border-radius: 5px; }
+.daily-board__tag--guest { background: color-mix(in srgb, #6a4bb5 14%, var(--surface-default)); color: #5a3da6; }
+.daily-board__tag--discord { background: color-mix(in srgb, #5865f2 14%, var(--surface-default)); color: #3c4bc9; }
+html.dark .daily-board__tag--guest { color: #c7b3ff; }
+html.dark .daily-board__tag--discord { color: #b4bcff; }
+.daily-board__prize { font-weight: 600; color: var(--color-warning-800, #7a5306); }
+html.dark .daily-board__prize { color: var(--color-warning-300, #f2c96b); }
+.daily-board__dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+.daily-board__dot { width: 1rem; height: 1rem; border-radius: 50%; border: 1.5px solid var(--border-strong, #b9bccc); }
+.daily-board__dot--miss { background: var(--border-strong, #b9bccc); }
+.daily-board__dot--win { background: var(--color-success-500, #1a8a57); border-color: var(--color-success-500, #1a8a57); }
+.daily-board__dot--saved { background: var(--color-warning-500, #e2a336); border-color: var(--color-warning-500, #e2a336); }
+.daily-board__empty { margin: 0; padding: var(--spacing-12, 12px); font-size: var(--font-size-14); border: 1px dashed var(--border-default); border-radius: var(--radius-12, 12px); }
+.daily-board__foot { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+
+/* The quiet "help keep it free" line (SupportNudge.tsx), after a Daily or a free tool. */
+.support-nudge { margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); text-align: center; }
+.support-nudge a { font-weight: 600; }
+
+/* ── The dailies together: today bar, Next up, streak cards (src/components/originals/Dailies.tsx) ── */
+.dailies--shuffle { --dailies-ink: #5a3fd6; --dailies-tile: linear-gradient(135deg, #2b1d84, #5a3fd6); }
+.dailies--dex { --dailies-ink: #c4471f; --dailies-tile: linear-gradient(135deg, #a3301b, #dd7a1d); }
+.dailies--weekly { --dailies-ink: #12806e; --dailies-tile: linear-gradient(135deg, #0b5a52, #169a85); }
+html.dark .dailies--shuffle { --dailies-ink: #a99bff; }
+html.dark .dailies--dex { --dailies-ink: #f0a070; }
+html.dark .dailies--weekly { --dailies-ink: #5fd3bd; }
+
+.dailies-bar { margin: 0 0 var(--spacing-16); min-width: 0; max-width: 64rem; }
+.dailies-bar .empac-subnav, .dailies-bar .empac-subnav__wrapper { background: transparent; }
+.dailies-bar .empac-subnav--pills .empac-subnav__wrapper { padding: var(--spacing-4) 0; }
+/* Three equal cells, the status under each name, so all of today fits across a phone. */
+.dailies-bar .empac-subnav__container { display: grid; grid-template-columns: repeat(var(--dailies-n, 3), minmax(0, 1fr)); max-width: none; padding: 2px; gap: var(--spacing-8); overflow: visible; }
+.dailies-bar .empac-subnav__item:nth-child(1) { --dailies-ink: #5a3fd6; }
+.dailies-bar--3 .empac-subnav__item:nth-child(2) { --dailies-ink: #c4471f; }
+.dailies-bar--3 .empac-subnav__item:nth-child(3), .dailies-bar--2 .empac-subnav__item:nth-child(2) { --dailies-ink: #12806e; }
+html.dark .dailies-bar .empac-subnav__item:nth-child(1) { --dailies-ink: #a99bff; }
+html.dark .dailies-bar--3 .empac-subnav__item:nth-child(2) { --dailies-ink: #f0a070; }
+html.dark .dailies-bar--3 .empac-subnav__item:nth-child(3), html.dark .dailies-bar--2 .empac-subnav__item:nth-child(2) { --dailies-ink: #5fd3bd; }
+.dailies-bar .empac-subnav--pills .empac-subnav__item { flex-wrap: wrap; align-content: center; justify-content: flex-start; text-align: left; gap: 2px var(--spacing-8); min-width: 0; padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: var(--background-primary); color: var(--text-primary); white-space: normal; }
+.dailies-bar .empac-subnav__item > span:not(.empac-subnav__badge) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.dailies-bar .empac-subnav__badge, .dailies-bar .empac-subnav--pills .empac-subnav__item--active .empac-subnav__badge { flex-basis: 100%; justify-content: flex-start; height: auto; min-width: 0; padding: 0 0 0 18px; background: none; color: var(--text-secondary); font-weight: var(--font-weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subnav--pills .empac-subnav__item--active .empac-subnav__badge { background: none; }
+.dailies-bar .empac-subnav__item::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--dailies-ink); }
+.dailies-bar .empac-subnav--pills .empac-subnav__item--active,
+.dailies-bar .empac-subnav--pills .empac-subnav__item--active:hover { background: var(--background-primary); color: var(--text-primary); border-color: var(--dailies-ink); box-shadow: inset 0 0 0 1px var(--dailies-ink); }
+
+.dailies-next { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: min(100%, 44rem); margin-top: var(--spacing-8); text-align: start; }
+.dailies-next__tile { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--dailies-tile); }
+.dailies-next__eyebrow { margin-top: var(--spacing-4); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.dailies-next__title { margin: 0; font-size: var(--font-size-18); }
+.dailies-next__text { margin: 0 0 var(--spacing-4); color: var(--text-secondary); }
+.dailies-next__link { text-decoration: none; }
+.dailies-next__done { margin: var(--spacing-8) 0 0; }
+
+.dailies-cards { width: 100%; display: grid; gap: var(--spacing-8); margin-top: var(--spacing-8); text-align: start; }
+.dailies-cards__title { margin: 0; font-size: var(--font-size-16); }
+.dailies-cards__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: var(--spacing-12); }
+.dailies-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; padding: var(--spacing-14, 14px) var(--spacing-16); border: 1px solid var(--border-default); border-top: 4px solid var(--dailies-ink); border-radius: var(--radius-12, 12px); background: var(--background-primary); }
+.dailies-card--current { border-color: var(--dailies-ink); }
+.dailies-card__head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); }
+.dailies-card__tile { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: #fff; background: var(--dailies-tile); }
+.dailies-card__name { font-weight: var(--font-weight-semibold); font-size: var(--font-size-15, 1.5rem); }
+.dailies-card__streak { display: flex; align-items: center; gap: 6px; margin: 0; }
+.dailies-card__streak svg { color: var(--dailies-ink); }
+.dailies-card__streak strong { font-size: var(--font-size-28, 2.8rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.dailies-card__streak span { color: var(--text-secondary); font-size: var(--font-size-14); }
+.dailies-card__stats { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-16); margin: 0; }
+.dailies-card__stats div { display: flex; flex-direction: column; }
+.dailies-card__stats dt { order: 2; font-size: var(--font-size-12); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
+.dailies-card__stats dd { order: 1; margin: 0; font-weight: var(--font-weight-bold); font-size: var(--font-size-16); font-variant-numeric: tabular-nums; }
+.dailies-card__recent { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 3px; max-width: 26rem; }
+.dailies-card__day { aspect-ratio: 1; border-radius: 3px; border: 1px solid var(--border-default); }
+.dailies-card__day--won { background: var(--dailies-ink); border-color: transparent; }
+.dailies-card__day--saved { background: color-mix(in srgb, var(--dailies-ink) 35%, transparent); border-color: var(--dailies-ink); }
+.dailies-card__day--missed { background: var(--border-strong, var(--gray-400)); border-color: transparent; }
+
+/* ── The Daily Dex's card of the day (src/components/originals/DexCardOfDay.tsx) ── */
+.dex-cotd { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-16); align-items: center; width: min(100%, 60rem); padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--background-primary); text-align: start; }
+.dex-cotd__card { width: 13.2rem; max-width: 100%; transform: rotate(-3deg); filter: drop-shadow(0 8px 16px rgba(60, 30, 10, 0.25)); }
+.dex-cotd__card img { display: block; width: 100%; height: auto; border-radius: 6px; }
+.dex-cotd__body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-4); min-width: 0; }
+.dex-cotd__kicker { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dailies-ink, #c4471f); }
+html.dark .dex-cotd__kicker { color: #f0a070; }
+.dex-cotd__name { margin: 0; font-size: var(--font-size-18); }
+.dex-cotd__meta { margin: 0 0 var(--spacing-8); color: var(--text-secondary); font-size: var(--font-size-14); }
+.tcg-attribution.dex-cotd__attr { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+@media (max-width: 30rem) {
+  .dex-cotd { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .dex-cotd__body { align-items: center; }
+}
+
+/* ── Referral links on the dailies (Dailies.tsx: InvitedNote, DailiesInvite) ── */
+.dailies-invited { margin: 0 0 var(--spacing-16); max-width: 64rem; }
+.dailies-invite { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: min(100%, 44rem); margin-top: var(--spacing-8); text-align: start; }
+.dailies-invite__tile { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+.dailies-invite__link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); width: 100%; }
+.dailies-invite__link code { flex: 1 1 18rem; min-width: 0; padding: var(--spacing-8) var(--spacing-10, 10px); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--background-secondary); font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dailies-invite__more { font-size: var(--font-size-14); }
+.dailies-invite__nudge { margin: var(--spacing-8) 0 0; }
+
+/* ── What a guess did: the new row lights up (Britton's pick, 2026-10-16) ── */
+@keyframes daily-row-flash { from { background-color: color-mix(in srgb, #f6c34a 45%, transparent); } to { background-color: transparent; } }
+.daily__row--new td { animation: daily-row-flash 2.4s ease-out; }
+.daily__row--new td:first-child { box-shadow: inset 3px 0 0 #e0a400; }
+@media (prefers-reduced-motion: reduce) { .daily__row--new td { animation: none; background-color: color-mix(in srgb, #f6c34a 30%, transparent); } }
+
+/* The Daily Dex's list shrinking to what still fits */
+.dex-fit { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-16); margin-top: calc(var(--spacing-8) * -1); color: var(--text-secondary); font-size: var(--font-size-14); }
+.dex-fit strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* ── Help bought with tokens on the last chance (src/components/originals/DailyHelp.tsx) ── */
+.dex-reveal__cell--bought { border-color: #d99a10; background: color-mix(in srgb, #e8a21c 26%, var(--surface-default)); }
+.daily-help { display: grid; gap: var(--spacing-8); width: min(100%, 52rem); padding: var(--spacing-12) var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-secondary); text-align: start; }
+.daily-help__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-4) var(--spacing-12); }
+.daily-help__title { margin: 0; font-size: var(--font-size-16); }
+.daily-help__balance { color: var(--text-secondary); font-size: var(--font-size-14); font-variant-numeric: tabular-nums; }
+.daily-help__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); padding: var(--spacing-8) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--background-primary); }
+.daily-help__what { display: flex; flex-direction: column; font-weight: var(--font-weight-semibold); min-width: 0; }
+.daily-help__what small { font-weight: var(--font-weight-medium); color: var(--text-secondary); font-size: var(--font-size-12); }
+.daily-help__guest { margin: 0; color: var(--text-secondary); }
