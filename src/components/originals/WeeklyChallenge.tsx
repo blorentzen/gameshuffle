@@ -224,8 +224,12 @@ export function WeeklyChallenge() {
       </section>
       )}
 
-      {answered && <DailiesNext current="weekly" onPick={activity?.pickDaily} />}
-      {answered && <DailiesInvite current="weekly" />}
+      {answered && (
+        <div className="dailies-pair">
+          <DailiesNext current="weekly" onPick={activity?.pickDaily} />
+          <DailiesInvite current="weekly" />
+        </div>
+      )}
       {answered && <DailiesYours current="weekly" />}
 
       {(!data.signedIn || (c.kind === "survey" ? c.myPredictions : c.myBallot)) && (activity

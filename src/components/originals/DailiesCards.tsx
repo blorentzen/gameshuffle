@@ -24,16 +24,18 @@ function Recent({ marks }: { marks: DayMark[] }) {
   );
 }
 
-export function DailiesCards({ entries, shown, current, heading = "Your dailies", signedIn = true }: {
+export function DailiesCards({ entries, shown, current, heading = "Your dailies", signedIn = true, everyDaily = false }: {
   entries: DailiesEntries;
   shown: DailiesId[];
   current?: DailiesId;
   heading?: string | null;
   /** Signed out, the Weekly card says it needs an account. */
   signedIn?: boolean;
+  /** End screens: a card for every daily, played or not, so each game's end screen looks the same. */
+  everyDaily?: boolean;
 }) {
-  // A game shows once it has been played (or it's the page you're on); the Weekly once there's an account.
-  const ids = shown.filter((id) => id === current || (id === "weekly" ? signedIn && !!entries.weekly?.weeks?.played : !!entries[id]?.stats?.played));
+  // A game shows once it has been played (or it's the page you're on, or `everyDaily`); the Weekly once there's an account.
+  const ids = shown.filter((id) => id === current || (id === "weekly" ? signedIn && !!entries.weekly?.weeks?.played : everyDaily || !!entries[id]?.stats?.played));
   if (!ids.length) return null;
   return (
     <section className="dailies-cards" aria-label={heading ?? "Daily streaks"}>

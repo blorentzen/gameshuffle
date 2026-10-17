@@ -8,7 +8,7 @@
  *   ... --run --limit 10        first 10 species still missing a card
  *   ... --run --only 1,4,7      just these dex numbers (re-pick)
  *   ... --local                 only illustration rares already in tcg_cards (0 credits)
- *   ... --warm                  load the picked cards into THIS database's tcg_cards
+ *   ... --warm [--dex-days 90]  load the picked cards (or just the Dex's coming ones) into THIS database's tcg_cards
  *                               (1 credit per missing card; for production after dev picks)
  *   ... --dex-days 90           the Daily Dex's card of the day instead: the next 90 days of
  *                               Dex answers (from today, or from launch before it). Keep it
@@ -123,7 +123,14 @@ async function warm(picks: Record<number, string>) {
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.includes("--warm")) return warm(existing());
+  if (args.includes("--warm")) {
+    // With --dex-days, only the cards the Daily Dex's coming answers need.
+    const picks = existing();
+    const dd = args.includes("--dex-days") ? Number(args[args.indexOf("--dex-days") + 1]) || 90 : 0;
+    if (!dd) return warm(picks);
+    const wanted = new Set(dexSpecies(dd).map((sp) => sp.dex));
+    return warm(Object.fromEntries(Object.entries(picks).filter(([d]) => wanted.has(Number(d)))));
+  }
   const localOnly = args.includes("--local");
   const run = args.includes("--run") || localOnly;
   const limit = Number(args[args.indexOf("--limit") + 1]) || Infinity;

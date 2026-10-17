@@ -344,8 +344,10 @@ export function DailyDex() {
           {hints.length > 0 && (
             <DailiesShare current="dex" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} />
           )}
-          <DailiesNext current="dex" onPick={activity?.pickDaily} />
-          <DailiesInvite current="dex" />
+          <div className="dailies-pair">
+            <DailiesNext current="dex" onPick={activity?.pickDaily} />
+            <DailiesInvite current="dex" />
+          </div>
           <DailiesYours current="dex" />
           {account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0 && (
             <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />
