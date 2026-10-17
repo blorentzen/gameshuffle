@@ -20,6 +20,7 @@ import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { OriginalsLink, useOriginalsHost } from "@/components/originals/OriginalsHost";
 import { ordinal, PERIOD_LABEL, tidyName, type BoardGame, type BoardPeriod } from "@/lib/daily/boardRules";
 import type { BoardRow, BoardView, ScoreResult } from "@/lib/daily/boardTypes";
+import { formatTime } from "@/lib/originals/dailies";
 
 const GUEST_KEY = "gs-daily-guest";
 const SENT_KEY = "gs-daily-guest-sent";
@@ -175,6 +176,8 @@ function ResultDots({ guesses, points, main }: { guesses: number; points: number
 /** `pictures`: off inside the Discord Activity, which only loads images from our own site. */
 function BoardTable({ view, main, pictures }: { view: BoardView; main: number; pictures: boolean }) {
   const day = view.period === "day";
+  // Today's board shows solve times once anyone on it has one (the Start button arrived 2026-10-16).
+  const timed = day && [...view.rows, ...(view.you ? [view.you] : [])].some((r) => r.seconds != null);
   const shown = view.rows;
   const pinned = view.you && !shown.some((r) => r.you) ? view.you : null;
   if (!shown.length) {
@@ -192,6 +195,7 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
         </span>
       </TableCell>
       <TableCell>{day ? <ResultDots guesses={r.guesses} points={r.points} main={main} /> : `${r.days} ${r.days === 1 ? "day" : "days"}`}</TableCell>
+      {timed && <TableCell align="right"><span className="daily-board__time">{r.seconds != null ? formatTime(r.seconds) : ""}</span></TableCell>}
       <TableCell align="right"><strong>{r.points}</strong></TableCell>
       {!day && <TableCell align="right">{r.prize ? <span className="daily-board__prize">{r.prize.toLocaleString("en-US")}</span> : ""}</TableCell>}
     </TableRow>
@@ -204,6 +208,7 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
             <TableHead>#</TableHead>
             <TableHead>Player</TableHead>
             <TableHead>{day ? "Result" : "Played"}</TableHead>
+            {timed && <TableHead align="right">Time</TableHead>}
             <TableHead align="right">Points</TableHead>
             {!day && <TableHead align="right">Prize</TableHead>}
           </TableRow>
@@ -257,7 +262,7 @@ export function DailyBoard({ game, main, guestId, refresh, onViews }: { game: Bo
       {current && <BoardTable view={current} main={main} pictures={!activity} />}
       {current && (
         <p className="daily-board__foot">
-          {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · ties share a place · 10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance
+          {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · {period === "day" ? "level on points, the faster solve ranks higher" : "ties share a place"} · 10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance
           {current.settles ? ` · prizes land ${settleText(current.settles)}` : ""}
         </p>
       )}

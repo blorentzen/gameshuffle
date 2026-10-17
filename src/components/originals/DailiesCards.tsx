@@ -6,7 +6,7 @@
  */
 
 import { IconCalendarWeek, IconFlame, IconPokeball, IconPuzzle } from "@tabler/icons-react";
-import { DAILIES, type DailiesEntries, type DailiesId, type DayMark } from "@/lib/originals/dailies";
+import { DAILIES, formatTime, type DailiesEntries, type DailiesId, type DayMark } from "@/lib/originals/dailies";
 
 export const DAILIES_GLYPHS: Record<DailiesId, typeof IconPuzzle> = { shuffle: IconPuzzle, dex: IconPokeball, weekly: IconCalendarWeek };
 
@@ -69,6 +69,7 @@ export function DailiesCards({ entries, shown, current, heading = "Your dailies"
                     <div><dt>Won</dt><dd>{e?.stats?.played ? Math.round((e.stats.won / e.stats.played) * 100) : 0}%</dd></div>
                     <div><dt>Played</dt><dd>{e?.stats?.played ?? 0}</dd></div>
                     {(e?.stats?.saved ?? 0) > 0 && <div><dt>Saves</dt><dd>{e?.stats?.saved}</dd></div>}
+                    {e?.stats?.fastest != null && <div><dt>Fastest</dt><dd>{formatTime(e.stats.fastest)}</dd></div>}
                   </dl>
                   {e?.recent && <Recent marks={e.recent} />}
                 </>

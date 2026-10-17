@@ -13,6 +13,7 @@ import type { HeroGame } from "@/lib/heroes/types";
 import { OVERWATCH_FACTS, RIVALS_FACTS } from "@/data/originals/daily-facts-heroes";
 import { ALLSTARS_NODS, ALLSTARS_ROSTER, DEBUT_GAME_SAY, DEBUT_PLATFORM, FIRST_KART_OVERRIDE, FIRST_SMASH_OVERRIDE, KART_FACTS_KEY, PLATFORM_GENERATION, PLATFORM_PHRASE, SERIES_GROUP } from "@/data/originals/daily-allstars";
 import { gsDay } from "@/lib/time/gsClock";
+import { formatTime } from "@/lib/originals/dailies";
 
 /**
  * The Daily Shuffle (a GameShuffle Original): guess today's character in six
@@ -632,7 +633,7 @@ export function hintFor(guess: string, answer: DailyCharacter, puzzle: DailyPuzz
 }
 
 /** The shareable result: one row per guess (each column, then the answer). */
-export function shareText(day: string, hints: GuessHint[], solved: boolean, s: DailySchedule = SHUFFLE, help?: { letters: number; guesses: number } | null): string {
+export function shareText(day: string, hints: GuessHint[], solved: boolean, s: DailySchedule = SHUFFLE, help?: { letters: number; guesses: number } | null, seconds?: number | null): string {
   const p = puzzleFor(day, s);
   const { main } = guessLimits(p);
   const sq = (c: TraitCell) => (c.status === "match" ? "🟩" : c.status === "close" ? "🟨" : "⬛");
@@ -643,7 +644,9 @@ export function shareText(day: string, hints: GuessHint[], solved: boolean, s: D
   const score = !solved ? `X/${main}` : hints.length > main ? "saved on the last chance" : `${hints.length}/${main}`;
   // Help bought with tokens: a 💡 per letter, ➕ per extra guess (src/lib/originals/dailyHelp.ts).
   const helped = help && (help.letters || help.guesses) ? [[`${"💡".repeat(help.letters)}`, `${"➕".repeat(help.guesses)}`].filter(Boolean).join(" ")] : [];
-  return [`${s.title} #${puzzleNumber(day, s)}${label ? ` · ${label}` : ""} ${score}`, ...(starter ? [`Started from ${starter.tag}`] : []), ...rows, ...helped, s.link].join("\n");
+  // A solved game carries its time (Britton, 2026-10-16): Start to the final guess.
+  const time = solved && seconds != null ? ` ⏱ ${formatTime(seconds)}` : "";
+  return [`${s.title} #${puzzleNumber(day, s)}${label ? ` · ${label}` : ""} ${score}${time}`, ...(starter ? [`Started from ${starter.tag}`] : []), ...rows, ...helped, s.link].join("\n");
 }
 
 /**
