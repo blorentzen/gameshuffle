@@ -222,7 +222,7 @@ export function DailiesShare({ current, shareOne, oneText }: { current: DailiesI
 export function DailiesYours({ current }: { current: DailiesId }) {
   const { shown, entries, signedIn } = useDailies(current);
   const { activity } = useOriginalsHost();
-  return <DailiesCards entries={entries} shown={shown} current={current} signedIn={!!signedIn || !!activity} />;
+  return <DailiesCards entries={entries} shown={shown} current={current} signedIn={!!signedIn || !!activity} everyDaily />;
 }
 
 /**

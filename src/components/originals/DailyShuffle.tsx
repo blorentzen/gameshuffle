@@ -360,8 +360,10 @@ export function DailyShuffle() {
           {hints.length > 0 && (
             <DailiesShare current="shuffle" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} />
           )}
-          <DailiesNext current="shuffle" onPick={activity?.pickDaily} />
-          <DailiesInvite current="shuffle" />
+          <div className="dailies-pair">
+            <DailiesNext current="shuffle" onPick={activity?.pickDaily} />
+            <DailiesInvite current="shuffle" />
+          </div>
           <DailiesYours current="shuffle" />
           {account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0 && (
             <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />

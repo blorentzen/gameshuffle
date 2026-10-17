@@ -1441,7 +1441,9 @@ html.dark .gs-portrait-bg {
 /* Fact grid (one row per guess). Legibility first: columns keep a readable
    width and the grid scrolls sideways on phones, with the guess column pinned. */
 /* Everything in the Daily reads left, like its header (the tool page centres by default). */
-.daily { min-width: 0; max-width: 100%; text-align: start; }
+/* One fixed column for every daily (Britton, 2026-10-16: the Shuffle and the Dex came out different widths,
+   each sized by its widest card), centred like the today bar and the Weekly. */
+.daily { min-width: 0; width: 100%; max-width: 72rem; margin-inline: auto; text-align: start; }
 .daily .empac-alert, .daily .empac-alert * { text-align: start; }
 /* The grid is the one scroller (the CDS table container inside stays put), and it takes keyboard focus so arrow keys can scroll it (WCAG 2.1.1). */
 .daily__grid > .empac-table-container { overflow: visible; }
@@ -1902,7 +1904,7 @@ html.dark .dailies--shuffle { --dailies-ink: #a99bff; }
 html.dark .dailies--dex { --dailies-ink: #f0a070; }
 html.dark .dailies--weekly { --dailies-ink: #5fd3bd; }
 
-.dailies-bar { margin: 0 0 var(--spacing-16); min-width: 0; max-width: 64rem; }
+.dailies-bar { width: 100%; margin: 0 auto var(--spacing-16); min-width: 0; max-width: 72rem; }
 .dailies-bar .empac-subnav, .dailies-bar .empac-subnav__wrapper { background: transparent; }
 .dailies-bar .empac-subnav--pills .empac-subnav__wrapper { padding: var(--spacing-4) 0; }
 /* Three equal cells, the status under each name, so all of today fits across a phone. */
@@ -1921,18 +1923,22 @@ html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subna
 .dailies-bar .empac-subnav--pills .empac-subnav__item--active,
 .dailies-bar .empac-subnav--pills .empac-subnav__item--active:hover { background: var(--background-primary); color: var(--text-primary); border-color: var(--dailies-ink); box-shadow: inset 0 0 0 1px var(--dailies-ink); }
 
-.dailies-next { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: min(100%, 44rem); margin-top: var(--spacing-8); text-align: start; }
+/* Next up and Invite friends: side by side on a laptop, stacked on a phone, same height, full width. */
+.dailies-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: var(--spacing-12); align-self: stretch; align-items: stretch; width: 100%; margin-top: var(--spacing-8); }
+.dailies-pair > * { min-width: 0; }
+.dailies-next { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: 100%; height: 100%; text-align: start; }
+.dailies-next > .empac-button, .dailies-next__link, .dailies-invite__more { margin-top: auto; }
 .dailies-next__tile { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--dailies-tile); }
 .dailies-next__eyebrow { margin-top: var(--spacing-4); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
 .dailies-next__title { margin: 0; font-size: var(--font-size-18); }
 .dailies-next__text { margin: 0 0 var(--spacing-4); color: var(--text-secondary); }
 .dailies-next__link { text-decoration: none; }
-.dailies-next__done { margin: var(--spacing-8) 0 0; }
+.dailies-next__done { margin: 0; align-self: center; }
 
-.dailies-cards { width: 100%; display: grid; gap: var(--spacing-8); margin-top: var(--spacing-8); text-align: start; }
+.dailies-cards { width: 100%; align-self: stretch; display: grid; gap: var(--spacing-8); margin-top: var(--spacing-8); text-align: start; }
 .dailies-cards__title { margin: 0; font-size: var(--font-size-16); }
-.dailies-cards__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); gap: var(--spacing-12); }
-.dailies-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; padding: var(--spacing-14, 14px) var(--spacing-16); border: 1px solid var(--border-default); border-top: 4px solid var(--dailies-ink); border-radius: var(--radius-12, 12px); background: var(--background-primary); }
+.dailies-cards__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: var(--spacing-12); }
+.dailies-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; padding: var(--spacing-16); border: 1px solid var(--border-default); border-top: 4px solid var(--dailies-ink); border-radius: var(--radius-16, 16px); background: var(--background-primary); }
 .dailies-card--current { border-color: var(--dailies-ink); }
 .dailies-card__head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); }
 .dailies-card__tile { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: #fff; background: var(--dailies-tile); }
@@ -1952,7 +1958,7 @@ html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subna
 .dailies-card__day--missed { background: var(--border-strong, var(--gray-400)); border-color: transparent; }
 
 /* ── The Daily Dex's card of the day (src/components/originals/DexCardOfDay.tsx) ── */
-.dex-cotd { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-16); align-items: center; width: min(100%, 60rem); padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--background-primary); text-align: start; }
+.dex-cotd { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-16); align-items: center; width: 100%; align-self: stretch; padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--background-primary); text-align: start; }
 .dex-cotd__card { width: 13.2rem; max-width: 100%; transform: rotate(-3deg); filter: drop-shadow(0 8px 16px rgba(60, 30, 10, 0.25)); }
 .dex-cotd__card img { display: block; width: 100%; height: auto; border-radius: 6px; }
 .dex-cotd__body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-4); min-width: 0; }
@@ -1967,8 +1973,8 @@ html.dark .dex-cotd__kicker { color: #f0a070; }
 }
 
 /* ── Referral links on the dailies (Dailies.tsx: InvitedNote, DailiesInvite) ── */
-.dailies-invited { margin: 0 0 var(--spacing-16); max-width: 64rem; }
-.dailies-invite { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: min(100%, 44rem); margin-top: var(--spacing-8); text-align: start; }
+.dailies-invited { width: 100%; margin: 0 auto var(--spacing-16); max-width: 72rem; }
+.dailies-invite { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: 100%; height: 100%; text-align: start; }
 .dailies-invite__tile { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
 .dailies-invite__link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); width: 100%; }
 .dailies-invite__link code { flex: 1 1 18rem; min-width: 0; padding: var(--spacing-8) var(--spacing-10, 10px); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--background-secondary); font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1987,7 +1993,7 @@ html.dark .dex-cotd__kicker { color: #f0a070; }
 
 /* ── Help bought with tokens on the last chance (src/components/originals/DailyHelp.tsx) ── */
 .dex-reveal__cell--bought { border-color: #d99a10; background: color-mix(in srgb, #e8a21c 26%, var(--surface-default)); }
-.daily-help { display: grid; gap: var(--spacing-8); width: min(100%, 52rem); padding: var(--spacing-12) var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-secondary); text-align: start; }
+.daily-help { display: grid; gap: var(--spacing-8); width: 100%; padding: var(--spacing-12) var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-secondary); text-align: start; }
 .daily-help__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-4) var(--spacing-12); }
 .daily-help__title { margin: 0; font-size: var(--font-size-16); }
 .daily-help__balance { color: var(--text-secondary); font-size: var(--font-size-14); font-variant-numeric: tabular-nums; }
