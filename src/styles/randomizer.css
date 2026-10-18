@@ -1974,9 +1974,11 @@ html.dark .dex-cotd__kicker { color: #f0a070; }
 .dex-cotd__name { margin: 0; font-size: var(--font-size-18); }
 .dex-cotd__meta { margin: 0 0 var(--spacing-8); color: var(--text-secondary); font-size: var(--font-size-14); }
 .tcg-attribution.dex-cotd__attr { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+.dex-cotd .party-row { gap: var(--spacing-8); }
+/* Phones: one column that reads left like the rest of the end screen (it used to centre the art and text but not the buttons). */
 @media (max-width: 30rem) {
-  .dex-cotd { grid-template-columns: 1fr; justify-items: center; text-align: center; }
-  .dex-cotd__body { align-items: center; }
+  .dex-cotd { grid-template-columns: 1fr; justify-items: start; }
+  .dex-cotd__card { margin-inline-start: var(--spacing-4); }
 }
 
 /* ── Referral links on the dailies (Dailies.tsx: InvitedNote, DailiesInvite) ── */
