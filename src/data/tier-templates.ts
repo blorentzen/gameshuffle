@@ -22,7 +22,8 @@ import type { HeroGame } from "@/lib/heroes/types";
 
 export interface TemplateItem {
   label: string;
-  image: string;
+  /** Left out for words-only templates. */
+  image?: string;
 }
 
 export interface TierTemplate {
@@ -201,6 +202,19 @@ export const TIER_TEMPLATES: TierTemplate[] = [
     title: "Best Party Games",
     description: "Rank the best local-multiplayer and party games for game night.",
     items: FAVORITE_GAME_CATALOG.map((g) => ({ label: g.name, image: g.image })),
+  },
+  {
+    slug: "halloween-treats",
+    group: "Game night",
+    title: "Halloween Treats",
+    description: "Rank every trick-or-treat haul staple, from full-size bars to the house that gives out toothbrushes.",
+    // Words only, and kinds of treat rather than brands.
+    items: [
+      "Full-size candy bars", "Fun-size candy bars", "Peanut butter cups", "Candy corn", "Gummy worms", "Lollipops",
+      "Caramel apples", "Sour candy", "Jelly beans", "Licorice", "Taffy", "Candy necklaces", "Popcorn balls",
+      "Chocolate coins", "Malted milk balls", "Peppermints", "Bubble gum", "Caramels", "Candy straws", "Raisins",
+      "Toothbrushes", "Pennies",
+    ].map((label) => ({ label })),
   },
 ].filter((t) => t.items.length > 0);
 

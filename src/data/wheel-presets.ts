@@ -57,6 +57,18 @@ export const WHEEL_PRESETS: WheelPreset[] = [
     segments: ["Mario Kart", "Mario Party", "Smash", "Splatoon", "Kirby Air Riders", "Jackbox", "Board game", "Card game", "Loser picks", "Winner picks"],
   },
   {
+    id: "halloween-game-night",
+    name: "Halloween game night",
+    blurb: "A spooky rule for the next game.",
+    segments: ["Spooky voices", "Lights off round", "Costume vote", "Monster mash", "Ghost player", "Scary music on", "Candy wager", "Boo! Swap seats", "Whisper only", "Free round"],
+  },
+  {
+    id: "spooky-mario-kart",
+    name: "Spooky Mario Kart",
+    blurb: "A Halloween racer for the next race.",
+    segments: ["King Boo", "Dry Bones", "Dry Bowser", "Petey Piranha", "Kamek", "Shy Guy", "Bowser", "Waluigi"],
+  },
+  {
     id: "truth-dare-lite",
     name: "Party round",
     blurb: "Friendly prompts for a party.",

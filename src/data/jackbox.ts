@@ -9,9 +9,10 @@
  * calls it family friendly by design (no setting needed); "no" = unsuitable by
  * design (horror, adult) or not rated. The kids filter keeps "filter" + "clean".
  *
- * Not yet listed: The Jackbox Party Pack 12 (out 2026-10-15: Idol Factions, We
- * Forgot a Card, Debate and Switch, MegaPals, Hyperface) and Fakin' It XL
- * (2026-11-12). Add them once they're out.
+ * Party Pack 12 (out 2026-10-15) added 2026-10-17: player counts from its
+ * jackboxgames.com pack page; audience play-along and the family-friendly
+ * setting are listed for the pack, so all five carry them. Not yet listed:
+ * Fakin' It XL (2026-11-12). Add it once it's out.
  */
 
 export type JackboxKids = "filter" | "clean" | "no";
@@ -43,6 +44,7 @@ export const JACKBOX_PACKS: JackboxPack[] = [
   { name: "Party Pack 9", year: 2022 },
   { name: "Party Pack 10", year: 2023 },
   { name: "Party Pack 11", year: 2025 },
+  { name: "Party Pack 12", year: 2026 },
   { name: "Survey Scramble", year: 2024 },
   { name: "Naughty Pack", year: 2024, adultsOnly: true },
   { name: "Party Starter", year: 2022, note: "Quiplash 3, Tee K.O. and Trivia Murder Party 2" },
@@ -112,6 +114,11 @@ const ROWS: Row[] = [
   ["Cookie Haus", ["Party Pack 11"], 3, 8, true, "filter", ["drawing", "voting"], "Decorate cookies to match customer orders, then the cookies face off in head-to-head votes."],
   ["Suspectives", ["Party Pack 11"], 4, 8, true, "filter", ["social deduction"], "Survey answers become clues to a crime by one secret player; question the suspects and hold a trial."],
   ["Legends of Trivia", ["Party Pack 11"], 1, 6, true, "filter", ["trivia"], "A cooperative fantasy quest where the team answers trivia to fight monsters and survive."],
+  ["Idol Factions", ["Party Pack 12"], 2, 8, true, "filter", ["trivia"], "Two teams race to sort answers into the right categories, shouting the whole way."],
+  ["Hyperface", ["Party Pack 12"], 3, 8, true, "filter", ["drawing", "voting"], "Warp selfies or stock photos to answer odd prompts, then share the strange results."],
+  ["We Forgot a Card", ["Party Pack 12"], 3, 8, true, "filter", ["writing", "drawing"], "Design ridiculous greeting cards for occasions nobody makes cards for."],
+  ["Debate and Switch", ["Party Pack 12"], 2, 8, true, "filter", ["party", "voting"], "Argue silly opinions on light topics in a town-hall debate and win the room over."],
+  ["MegaPals", ["Party Pack 12"], 3, 8, true, "filter", ["word"], "Quick word matchups that show how well you know the way your friends think."],
   ["The Jackbox Survey Scramble", ["Survey Scramble"], 2, 10, true, "filter", ["trivia", "word"], "A team game built on real survey data, with modes about guessing the most popular answers."],
   ["Fakin' It All Night Long", ["Naughty Pack"], 3, 8, true, "no", ["social deduction", "bluffing"], "An adults-only Fakin' It: one player doesn't know the prompt and has to fake their answers."],
   ["Dirty Drawful", ["Naughty Pack"], 3, 8, false, "no", ["drawing", "bluffing"], "An adults-only Drawful: sketch racy prompts and write fake titles to mislead the group."],

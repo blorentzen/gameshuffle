@@ -42,7 +42,8 @@ export interface OddVote { voter: number; target: number }
 /** `pack` is a pack id, or a pack made on the spot (the pass-the-phone tool's AI pack). */
 export function dealRound(players: number[], pack0: string | WordPack, used: string[], rand: () => number = Math.random): OddRound {
   if (players.length < 3) throw new Error("need_three");
-  const pack = (typeof pack0 === "string" ? wordPack(pack0) : pack0) ?? WORD_PACKS[Math.floor(rand() * WORD_PACKS.length)];
+  const everyday = WORD_PACKS.filter((p) => !p.seasonal);
+  const pack = (typeof pack0 === "string" ? wordPack(pack0) : pack0) ?? everyday[Math.floor(rand() * everyday.length)];
   const fresh = pack.words.filter((w) => !used.includes(w));
   const pool = fresh.length ? fresh : pack.words;
   const word = pool[Math.floor(rand() * pool.length)];

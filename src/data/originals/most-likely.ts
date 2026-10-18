@@ -8,6 +8,8 @@ export interface PromptPack {
   id: string;
   label: string;
   prompts: string[];
+  /** A holiday pack: only when picked, never dealt by "Mixed". */
+  seasonal?: boolean;
 }
 
 export const PROMPT_PACKS: PromptPack[] = [
@@ -96,6 +98,29 @@ export const PROMPT_PACKS: PromptPack[] = [
       "bake something for no reason",
       "give the best advice",
       "still be talking about tonight next year",
+    ],
+  },
+  {
+    id: "halloween", label: "Halloween", seasonal: true,
+    prompts: [
+      "scream at a jump scare",
+      "show up in the best costume",
+      "eat all the candy before the party starts",
+      "hide somewhere to scare everyone",
+      "talk through the whole scary movie",
+      "survive a horror movie",
+      "put a costume together five minutes before leaving",
+      "hand out toothbrushes instead of candy",
+      "swear the house is haunted",
+      "go into the creepy basement alone",
+      "trade away every candy they don't like",
+      "win the costume contest",
+      "wear the same costume two years in a row",
+      "leave the lights on after a ghost story",
+      "carve the most detailed pumpkin",
+      "make friends with the ghost",
+      "run first when something goes bump",
+      "still have Halloween candy at Thanksgiving",
     ],
   },
 ];
