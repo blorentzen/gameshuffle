@@ -58,15 +58,17 @@ export function useMessaging() {
   const typingTimers = useRef<Map<string, number>>(new Map());
   const lastTypingSent = useRef(0);
 
+  // Both keep what's on screen when the connection drops for a moment (a
+  // failed fetch used to surface as an unhandled "Load failed" error).
   const loadConvs = useCallback(async () => {
-    const res = await fetch("/api/messages", { cache: "no-store" });
-    if (res.ok) setConvs(((await res.json()).conversations as ApiConv[]) ?? []);
+    const res = await fetch("/api/messages", { cache: "no-store" }).catch(() => null);
+    if (res?.ok) setConvs(((await res.json().catch(() => ({}))).conversations as ApiConv[]) ?? []);
   }, []);
 
   const loadMessages = useCallback(async (id: string) => {
-    const res = await fetch(`/api/messages/${id}`, { cache: "no-store" });
-    if (res.ok) {
-      const b = (await res.json()) as { messages?: ApiMsg[]; readUpTo?: string | null };
+    const res = await fetch(`/api/messages/${id}`, { cache: "no-store" }).catch(() => null);
+    if (res?.ok) {
+      const b = (await res.json().catch(() => ({}))) as { messages?: ApiMsg[]; readUpTo?: string | null };
       setMessages(b.messages ?? []);
       setReadUpTo(b.readUpTo ?? null);
       // Opening a thread marks it read server-side (no realtime event fires for

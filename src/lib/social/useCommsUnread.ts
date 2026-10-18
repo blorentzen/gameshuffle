@@ -21,14 +21,20 @@ export function useCommsUnread(): CommsUnread {
   const [counts, setCounts] = useState<CommsUnread>({ notifications: 0, messages: 0, total: 0 });
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/comms/unread", { cache: "no-store" });
-    if (res.ok) {
+    // A dropped connection (a phone going to the background, a bad signal) just
+    // keeps the last counts: it ran from the menu on every page and surfaced as
+    // "Load failed" errors (Sentry GAMESHUFFLE-5Q).
+    try {
+      const res = await fetch("/api/comms/unread", { cache: "no-store" });
+      if (!res.ok) return;
       const b = (await res.json()) as Partial<CommsUnread>;
       setCounts({
         notifications: b.notifications ?? 0,
         messages: b.messages ?? 0,
         total: b.total ?? 0,
       });
+    } catch {
+      /* offline for a moment: the next change or page load refreshes the counts */
     }
   }, []);
 
