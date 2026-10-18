@@ -6,7 +6,7 @@
  * password). Pure and client-safe; the callback route uses it too.
  */
 
-export type AuthProvider = "twitch" | "discord" | "email";
+export type AuthProvider = "twitch" | "discord" | "facebook" | "email";
 
 export interface AuthErrorInput {
   /** Supabase's error code (AuthError.code, or `error_code` on a redirect). */
@@ -28,7 +28,7 @@ export interface FriendlyAuthError {
   report: boolean;
 }
 
-const PROVIDER_NAMES: Record<string, string> = { twitch: "Twitch", discord: "Discord", email: "email" };
+const PROVIDER_NAMES: Record<string, string> = { twitch: "Twitch", discord: "Discord", facebook: "Facebook", email: "email" };
 
 export function providerName(p: string | null | undefined): string {
   return (p && PROVIDER_NAMES[p]) || "that account";
@@ -84,7 +84,7 @@ export function describeAuthError(input: AuthErrorInput): FriendlyAuthError {
       return m(`That ${who} account is already connected to a different GameShuffle account. Sign in with that account, or disconnect it there first.`);
     case "user_already_exists":
     case "email_exists":
-      return m("An account already uses that email. Sign in with your password, then connect Twitch or Discord from your account's Connections.");
+      return m("An account already uses that email. Sign in with your password, then connect Twitch, Discord or Facebook from your account's Connections.");
     case "invalid_credentials":
       return m("That email and password don't match. Check them, or reset your password.");
     case "email_not_confirmed":

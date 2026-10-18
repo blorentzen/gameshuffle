@@ -16,7 +16,7 @@
  * change from a half-verified session).
  */
 
-import { describeSupabaseAuthError } from "@/lib/auth/errors";
+import { describeSupabaseAuthError, providerName } from "@/lib/auth/errors";
 import { PASSWORD_HINT, passwordProblem } from "@/lib/auth/passwordRules";
 import { useSecondStep } from "@/lib/auth/useSecondStep";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
@@ -147,6 +147,12 @@ function SetPasswordContent() {
     );
   }
 
+  // The account they signed up with (Supabase keeps it as app_metadata.provider).
+  const via = (() => {
+    const name = providerName(user.app_metadata?.provider as string | undefined);
+    return name === "that account" || name === "email" ? "Twitch, Discord or Facebook" : name;
+  })();
+
   return (
     <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
       <Container>
@@ -155,8 +161,8 @@ function SetPasswordContent() {
 
           <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "1rem", lineHeight: 1.6 }}>
             {canSkip
-              ? <>We recommend it. You signed in with Twitch or Discord, and that keeps working. If you ever can&rsquo;t get in that way (you lose that account, or it&rsquo;s locked), your email and this password still get you in.</>
-              : <>Staff accounts need one. You signed in with Twitch or Discord, and that keeps working; the password is your way back in if it ever doesn&rsquo;t.</>}
+              ? <>We recommend it. You signed in with {via}, and that keeps working. If you ever can&rsquo;t get in that way (you lose that account, or it&rsquo;s locked), your email and this password still get you in.</>
+              : <>Staff accounts need one. You signed in with {via}, and that keeps working; the password is your way back in if it ever doesn&rsquo;t.</>}
           </p>
 
           <div

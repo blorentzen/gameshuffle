@@ -15,12 +15,15 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { passwordFlag } from "@/lib/auth/passwordRules";
+import { getPlatformFlag } from "@/lib/platform/flags";
 
-export type ConnectionProvider = "discord" | "twitch" | "youtube";
+export type ConnectionProvider = "discord" | "twitch" | "facebook" | "youtube";
 
 /** Providers backed by a Supabase auth IDENTITY (sign-in). YouTube is NOT one —
  *  it's a direct Google-OAuth streamer integration, appended separately. */
-export const ALL_CONNECTION_PROVIDERS: ConnectionProvider[] = ["discord", "twitch"];
+export const ALL_CONNECTION_PROVIDERS: ConnectionProvider[] = ["discord", "twitch", "facebook"];
+/** Facebook shows only while its switch is on (Platform ▸ Switches), or when already connected so it can be disconnected. */
+const SWITCHED: Partial<Record<ConnectionProvider, string>> = { facebook: "auth_facebook" };
 
 export interface ConnectionRoles {
   /** Listed in auth.identities — the user can sign in via this provider. */
@@ -109,7 +112,9 @@ export async function getConnections(userId: string): Promise<AccountConnections
   const hasStreamerIntegration = !!twitchConnRes.data?.id;
 
   // For each known provider, build the unified view.
-  const connections: Connection[] = ALL_CONNECTION_PROVIDERS.map((provider) => {
+  const switchedOn = new Map(await Promise.all(Object.entries(SWITCHED).map(async ([p, key]) => [p, await getPlatformFlag(key!, false)] as const)));
+  const shown = ALL_CONNECTION_PROVIDERS.filter((p) => !SWITCHED[p] || switchedOn.get(p) || identities.some((i) => i.provider === p));
+  const connections: Connection[] = shown.map((provider) => {
     const identity = identities.find((i) => i.provider === provider);
     const isLinked = !!identity;
     const data = (identity?.identity_data ?? undefined) as Record<string, unknown> | undefined;
@@ -126,11 +131,14 @@ export async function getConnections(userId: string): Promise<AccountConnections
     const externalAvatarUrl =
       provider === "discord"
         ? profile?.discord_avatar ?? pickName(data, ["avatar_url", "picture"])
-        : profile?.twitch_avatar ?? pickName(data, ["avatar_url", "picture"]);
+        : provider === "twitch"
+          ? profile?.twitch_avatar ?? pickName(data, ["avatar_url", "picture"])
+          : pickName(data, ["avatar_url", "picture"]);
 
     const roles: ConnectionRoles = {
       signIn: isLinked,
-      profileDisplay: !!externalAvatarUrl,
+      // Facebook's picture isn't an avatar choice (picks: name only), so it never counts here.
+      profileDisplay: provider !== "facebook" && !!externalAvatarUrl,
       streamerIntegration: provider === "twitch" ? hasStreamerIntegration : false,
     };
 

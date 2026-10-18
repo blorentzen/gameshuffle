@@ -73,7 +73,7 @@ const SECTIONS: LegalSection[] = [
           <p>You must be at least 13 years of age to use GameShuffle. If you are under 18, you represent that you have your parent or guardian&apos;s permission to use the Service. Certain features may be restricted to users who are 18 or 21 years of age or older. The Services are not directed at children under 13.</p>
         </LegalSubSection>
         <LegalSubSection number="2.2" title="Account Registration">
-          <p>To access certain features, you must create an account. You may register using an email address and password, or by connecting a supported third-party OAuth provider (Discord or Twitch). You agree to:</p>
+          <p>To access certain features, you must create an account. You may register using an email address and password, or by connecting a supported third-party OAuth provider (Discord, Twitch or Facebook). You agree to:</p>
           <ul>
             <li>Provide accurate, current, and complete information during registration</li>
             <li>Maintain the security of your password and account credentials</li>
@@ -145,7 +145,7 @@ const SECTIONS: LegalSection[] = [
           <li>Use the Service to advertise or offer to sell goods and services</li>
           <li>Sell or otherwise transfer your profile or account</li>
           <li>Attempt to bypass subscription tier restrictions, circumvent payment, or access GameShuffle Pro features without an active paid subscription</li>
-          <li>Use the Service to violate the Terms of Service of any integrated third-party platform, including Twitch, Discord, or any other platform to which the Services connect</li>
+          <li>Use the Service to violate the Terms of Service of any integrated third-party platform, including Twitch, Discord, Facebook, or any other platform to which the Services connect</li>
           <li>Use the Service in a manner that violates the rights of any third party, including intellectual property rights, privacy rights, or publicity rights</li>
           <li>Reverse engineer, decompile, or attempt to derive the source code of any part of the Service</li>
         </ul>
@@ -443,7 +443,7 @@ export default function TermsPage() {
     <LegalPage
       title="Terms of Service"
       intro="The rules for using GameShuffle: accounts, subscriptions, tournaments, and your rights."
-      effectiveDate="October 16, 2026"
+      effectiveDate="October 18, 2026"
       sections={SECTIONS}
       current="terms"
     />
