@@ -4,6 +4,7 @@ import { isStaffRequest } from "@/lib/auth/raw";
 import { dayKey } from "@/lib/originals/daily";
 import { gsAddDays } from "@/lib/time/gsClock";
 import { sectionHead, winnersFor } from "@/lib/daily/winners";
+import { generateDicebearAvatarDataUri } from "@/lib/avatar/dicebear";
 import { winnersCaption, winnersDateLabel, type WinnerRow, type WinnersSection } from "@/lib/originals/winners";
 import { WinnersStage } from "@/components/originals/WinnersStage";
 import "../../../styles/social.css";
@@ -35,7 +36,9 @@ type GivenRows = Partial<Record<"shuffle" | "dex", { rows: WinnerRow[]; finisher
 function givenSections(raw: string, day: string): WinnersSection[] | null {
   try {
     const given = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as GivenRows;
-    return (["shuffle", "dex"] as const).flatMap((g) => (given[g] ? [{ ...sectionHead(g, day), rows: given[g]!.rows, finishers: given[g]!.finishers }] : []));
+    // "dicebear:<seed>" stands in for a generated avatar, which is too long for a URL.
+    const face = (r: WinnerRow): WinnerRow => (r.avatar?.startsWith("dicebear:") ? { ...r, avatar: generateDicebearAvatarDataUri(r.avatar.slice(9), null) } : r);
+    return (["shuffle", "dex"] as const).flatMap((g) => (given[g] ? [{ ...sectionHead(g, day), rows: given[g]!.rows.map(face), finishers: given[g]!.finishers }] : []));
   } catch {
     return null;
   }

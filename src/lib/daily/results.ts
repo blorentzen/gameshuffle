@@ -141,8 +141,12 @@ export async function hasFinished(who: DailyWho, day: string, game: DailySchedul
 /** `score` = the game's points and tokens on the boards (null before daily-boards-m1, or when this day was already scored). */
 export type SaveDailyResult = { ok: true; score?: ScoreResult | null } | { ok: false; error: "wrong_day" | "not_a_finished_game" | "save_failed" };
 
-/** Records a finished game for an account (the site). The first result for a day stands, from either surface. */
-export async function saveAccountResult(userId: string, rawDay: unknown, rawGuesses: unknown, game: DailySchedule = SHUFFLE): Promise<SaveDailyResult> {
+/**
+ * Records a finished game for an account (the site). The first result for a day stands, from either surface.
+ * `guestStart` = this browser's guest key, whose Start counts when the account has none (pressed before
+ * sign-in finished loading, or just before signing up).
+ */
+export async function saveAccountResult(userId: string, rawDay: unknown, rawGuesses: unknown, game: DailySchedule = SHUFFLE, guestStart: string | null = null): Promise<SaveDailyResult> {
   const day = playableDay(rawDay);
   if (!day) return { ok: false, error: "wrong_day" };
   const guesses = Array.isArray(rawGuesses) ? rawGuesses.filter((g): g is string => typeof g === "string") : [];
@@ -156,7 +160,7 @@ export async function saveAccountResult(userId: string, rawDay: unknown, rawGues
     return { ok: false, error: "save_failed" };
   }
   // On the boards: points, and tokens into the account's wallet (once per day per game).
-  const score = await recordScore({ game: game.id, day, player: { kind: "u", id: userId }, guesses: result.guesses, solved: result.solved, main: guessLimits(puzzleFor(day, game)).main })
+  const score = await recordScore({ game: game.id, day, player: { kind: "u", id: userId }, guesses: result.guesses, solved: result.solved, main: guessLimits(puzzleFor(day, game)).main, startFallback: guestStart })
     .catch((e) => { console.error("[daily] score failed:", e); return null; });
   return { ok: true, score };
 }
