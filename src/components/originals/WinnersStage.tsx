@@ -170,7 +170,7 @@ export function WinnersStage({ dateLabel, sections, caption, paused }: { dateLab
 
         <section className="winners-scene winners-scene--end" style={vars({ "--at": `${endAt}s` })}>
           <p className="winners-big winners-in" style={vars({ "--at": `${(endAt + 0.15).toFixed(2)}s` })}>Make today&apos;s top 5</p>
-          <span className="social-stage__pill winners-in" style={vars({ "--at": `${(endAt + 0.5).toFixed(2)}s` })}>Play at gameshuffle.co/daily</span>
+          <span className="social-stage__pill winners-in" style={vars({ "--at": `${(endAt + 0.5).toFixed(2)}s` })}>Play at gameshuffle.co/top5</span>
           <p className="social-stage__sub winners-in" style={vars({ "--at": `${(endAt + 0.8).toFixed(2)}s` })}>Two free puzzles every day · new ones at midnight Pacific</p>
         </section>
       </main>

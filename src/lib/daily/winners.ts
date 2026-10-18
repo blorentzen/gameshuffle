@@ -6,7 +6,7 @@ import { solvedDays } from "@/lib/daily/results";
 import { answerFor, guessLimits, puzzleFor, puzzleNumber, SHUFFLE } from "@/lib/originals/daily";
 import { DEX, DEX_PUZZLE, dexAnswer, dexNumber } from "@/lib/originals/dailyDex";
 import { createNotification } from "@/lib/social/notifications";
-import { MIN_FINISHERS, streakEnding, topFinishers, type WinnerRow, type WinnersSection } from "@/lib/originals/winners";
+import { MIN_FINISHERS, renumberPlaces, streakEnding, topFinishers, type WinnerRow, type WinnersSection } from "@/lib/originals/winners";
 
 /**
  * Yesterday's top 5 (Britton's picks, 2026-10-16), from the day boards: the
@@ -29,6 +29,19 @@ async function optedOut(players: string[]): Promise<Set<string>> {
   return new Set(((data ?? []) as { player: string }[]).map((r) => r.player));
 }
 
+/**
+ * Staff and admin accounts see the answers ahead (they schedule the hint
+ * videos), so they're left out of the winners video and its notes (Britton,
+ * 2026-10-18). They stay on the boards.
+ */
+async function staffPlayers(players: string[]): Promise<Set<string>> {
+  const ids = players.map(parsePlayer).filter((p) => p?.kind === "u").map((p) => p!.id);
+  if (!ids.length) return new Set();
+  const { data, error } = await createServiceClient().from("users").select("id").in("id", ids).in("role", ["staff", "admin"]);
+  if (error) { console.error("[winners] staff check failed:", error.message); return new Set(); }
+  return new Set(((data ?? []) as { id: string }[]).map((r) => `u:${r.id}`));
+}
+
 /** The streak a player was on when `day` ended, counted the way their streak card counts it. */
 async function streakFor(player: string, game: BoardGame, day: string): Promise<number> {
   const p = parsePlayer(player);
@@ -46,7 +59,8 @@ type Section = WinnersSection & { keys: { player: string; optedOut: boolean }[] 
 async function loadSection(game: BoardGame, day: string): Promise<Section | null> {
   const standings = await dayStandings(game, day, 25);
   if (!standings) return null;
-  const { top, finishers } = topFinishers(standings);
+  const staff = await staffPlayers(standings.map((s) => s.player));
+  const { top, finishers } = topFinishers(renumberPlaces(standings.filter((s) => !staff.has(s.player))));
   if (finishers < MIN_FINISHERS) return null;
   const hidden = await optedOut(top.map((t) => t.player));
   const streaks = await Promise.all(top.map((t) => streakFor(t.player, game, day)));
@@ -62,20 +76,17 @@ async function loadSection(game: BoardGame, day: string): Promise<Section | null
       streak: streaks[i],
     };
   });
+  return { ...sectionHead(game, day), rows, finishers, keys: top.map((t) => ({ player: t.player, optedOut: hidden.has(t.player) })) };
+}
+
+/** A daily's title, number, guess count, link and answer for a day: everything but the rows. */
+export function sectionHead(game: BoardGame, day: string): Omit<WinnersSection, "rows" | "finishers"> {
   if (game === "dex") {
     const a = dexAnswer(day);
-    return {
-      game, title: DEX.title, number: dexNumber(day), main: guessLimits(DEX_PUZZLE).main, link: DEX.link,
-      answer: { name: a.name, types: a.types ?? [] }, rows, finishers,
-      keys: top.map((t) => ({ player: t.player, optedOut: hidden.has(t.player) })),
-    };
+    return { game, title: DEX.title, number: dexNumber(day), main: guessLimits(DEX_PUZZLE).main, link: DEX.link, answer: { name: a.name, types: a.types ?? [] } };
   }
   const a = answerFor(day);
-  return {
-    game, title: SHUFFLE.title, number: puzzleNumber(day), main: guessLimits(puzzleFor(day)).main, link: SHUFFLE.link,
-    answer: { name: a.name, img: a.img }, rows, finishers,
-    keys: top.map((t) => ({ player: t.player, optedOut: hidden.has(t.player) })),
-  };
+  return { game, title: SHUFFLE.title, number: puzzleNumber(day), main: guessLimits(puzzleFor(day)).main, link: SHUFFLE.link, answer: { name: a.name, img: a.img } };
 }
 
 async function loadSections(day: string): Promise<Section[]> {
