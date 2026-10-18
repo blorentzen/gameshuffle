@@ -133,9 +133,10 @@ const nextConfig: NextConfig = {
       },
 
       // ─── All other API routes ─────────────────────────────────────────
-      // Only gameshuffle.co frontend should call these
+      // Only gameshuffle.co frontend should call these. /api/instant/* sets its
+      // own headers: the Facebook Instant Game calls it from *.fbsbx.com.
       {
-        source: "/api/:path*",
+        source: "/api/:path((?!instant/).*)",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "https://gameshuffle.co" },
           { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },
