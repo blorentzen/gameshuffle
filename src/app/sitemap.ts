@@ -367,6 +367,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.2,
     },
     {
+      url: `${baseUrl}/cookie-policy`,
+      lastModified: lm("/cookie-policy"),
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${baseUrl}/data-request`,
+      lastModified: lm("/data-request"),
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
       url: `${baseUrl}/sms`,
       lastModified: lm("/sms"),
       changeFrequency: "yearly" as const,
