@@ -5,7 +5,7 @@ import { Accordion, Alert, Badge, Button, Switch, Table, TableBody, TableCell, T
 import { useToast } from "@/components/toast/ToastProvider";
 import { DailySteps } from "@/components/originals/DailyParade";
 import { DexParade } from "@/components/originals/DexParade";
-import { DailyBoard, DailyBoardJoin, DailyScoreChips, useDailyBoards } from "@/components/originals/DailyBoard";
+import { DailyBoard, DailyBoardJoin, DailyScoreChips, guestRequestId, useDailyBoards } from "@/components/originals/DailyBoard";
 import { SupportNudge } from "@/components/support/SupportNudge";
 import { DailiesInvite, DailiesNext, DailiesShare, DailiesYours, sendReferralFinish, useDailies } from "@/components/originals/Dailies";
 import { withReferral } from "@/lib/originals/referral";
@@ -51,7 +51,8 @@ function write(s: Saved) {
 }
 async function saveResult(api: OriginalsHost["api"], day: string, guesses: string[]): Promise<Account | null> {
   try {
-    const res = await api(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ day, guesses }) });
+    // The guest id too: a Start pressed before sign-in finished loading was filed under it.
+    const res = await api(API, { method: "POST", headers: { "Content-Type": "application/json", "x-daily-guest": guestRequestId() }, body: JSON.stringify({ day, guesses }) });
     if (!res.ok) return null;
     return { signedIn: true, ...(await res.json()) } as Account;
   } catch { return null; }

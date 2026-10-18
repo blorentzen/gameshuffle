@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Accordion, Alert, Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { DailyParade, DailySteps } from "@/components/originals/DailyParade";
-import { DailyBoard, DailyBoardJoin, DailyScoreChips, useDailyBoards } from "@/components/originals/DailyBoard";
+import { DailyBoard, DailyBoardJoin, DailyScoreChips, guestRequestId, useDailyBoards } from "@/components/originals/DailyBoard";
 import { SupportNudge } from "@/components/support/SupportNudge";
 import { DailyHelpPanel, HelpWord, useDailyHelp } from "@/components/originals/DailyHelp";
 import { NO_HELP, type HelpCounts } from "@/lib/originals/dailyHelp";
@@ -51,7 +51,8 @@ interface Account { signedIn: boolean; stats?: DailyStats | null; today?: { puzz
 
 async function saveResult(api: OriginalsHost["api"], day: string, guesses: string[]): Promise<Account | null> {
   try {
-    const res = await api("/api/daily", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ day, guesses }) });
+    // The guest id too: a Start pressed before sign-in finished loading was filed under it.
+    const res = await api("/api/daily", { method: "POST", headers: { "Content-Type": "application/json", "x-daily-guest": guestRequestId() }, body: JSON.stringify({ day, guesses }) });
     if (!res.ok) return null;
     return { signedIn: true, ...(await res.json()) } as Account;
   } catch { return null; }

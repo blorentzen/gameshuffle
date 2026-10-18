@@ -80,11 +80,13 @@ async function pay(player: ScorePlayer, amount: number, kind: "play" | "prize", 
  * for a day stands: a second call for the same game, day and player changes
  * nothing. Null before the migration.
  */
-export async function recordScore(args: { game: BoardGame; day: string; player: ScorePlayer; guesses: number; solved: boolean; main: number }): Promise<ScoreResult | null> {
+export async function recordScore(args: { game: BoardGame; day: string; player: ScorePlayer; guesses: number; solved: boolean; main: number; startFallback?: string | null }): Promise<ScoreResult | null> {
   const points = pointsFor(args.guesses, args.solved, args.main);
   const key = playerKey(args.player.kind, args.player.id);
   const admin = createServiceClient();
-  const seconds = await secondsSinceStart(key, args.game, args.day);
+  // No Start under the player: use the one this browser made as a guest, if any (see saveAccountResult).
+  const seconds = (await secondsSinceStart(key, args.game, args.day))
+    ?? (args.startFallback && args.startFallback !== key && parsePlayer(args.startFallback)?.kind === "g" ? await secondsSinceStart(args.startFallback, args.game, args.day) : null);
   const row = {
     game: args.game, day: args.day, player: key,
     user_id: args.player.kind === "u" ? args.player.id : null,
