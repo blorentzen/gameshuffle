@@ -77,6 +77,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "How many players does it support?", a: "Up to 12 players per round, each getting their own random character, vehicle, wheels, and glider combo." },
       { q: "Can I randomize tracks and items too?", a: "Yes. You can shuffle tracks (with a tour-only filter and optional cup icons) and randomize item sets alongside the kart combos." },
       { q: "Can I re-roll just one player's combo?", a: "Yes. You can re-roll any individual slot without re-rolling everyone else." },
+      { q: "Does it include the DLC tracks and characters?", a: "Yes. All 96 tracks are in the pool, the 48 base tracks plus all 48 from the Booster Course Pass, along with the characters added during the pass, like Birdo, Petey Piranha, Funky Kong and Pauline. Don't have the pass? Press Choose what I have at the top of the randomizer and switch off any wave, character or part you don't own. Rolls skip everything you switch off, and your choices are saved for next time." },
       { q: "Does it work on mobile?", a: "Yes. The randomizer runs in any modern mobile or desktop browser." },
     ],
   },
@@ -85,7 +86,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     slug: "mario-kart-world",
     path: "/randomizers/mario-kart-world",
     game: "Mario Kart World",
-    metaTitle: "Mario Kart World Randomizer: Characters, Karts & Tracks",
+    metaTitle: "Mario Kart World Randomizer: Random Combos & Tracks",
     metaDescription:
       "Free Mario Kart World randomizer for up to 24 players. Random characters and kart combos, plus track and Knockout Tour shuffles. Save setups for game night.",
     h1: "Mario Kart World Randomizer",
@@ -542,7 +543,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     metaDescription:
       "Free Pokémon Fire Red and Leaf Green run challenge. A random starter, Pokémon to catch before every gym, and a level cap and team size for each leader, all catchable on your version. Share the run as a link.",
     h1: "Pokémon Fire Red & Leaf Green Run Challenge",
-    lead: "A new way through Kanto. You get a starter, a list of Pokémon to catch before every gym, and a level cap and team size for each leader. Every run is a link you can share.",
+    lead: "A Nuzlocke-style run through Kanto. You get a starter, a list of Pokémon to catch before every gym, and a level cap and team size for each leader. Every run is a link you can share.",
     overview:
       "Fire Red and Leaf Green are back on Nintendo Switch as standalone eShop releases. This run challenge builds a fresh playthrough from a seed: the starter you must take, one or two Pokémon to catch before each gym (always ones you can reach and catch by then on your version, at a level you can use), a level cap at the leader's strongest Pokémon, a team-size limit and an optional twist. Trade evolutions are flagged, since most people can't trade on Switch. Tick things off as you go; the checklist is saved in your browser.",
     featuresHeading: "What the run challenge does",
@@ -560,6 +561,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Is the run challenge free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Does it work for both versions?", a: "Yes. Pick Fire Red or Leaf Green and the catches only use Pokémon found in that version." },
       { q: "What does the level cap mean?", a: "It's the level of the leader's strongest Pokémon. Don't take anything higher into that fight." },
+      { q: "Is this a Nuzlocke?", a: "It's a Nuzlocke-style run: set catches before every gym, a level cap for each leader and a limit on your team size. You play it on your own copy of the game, and you can add your own Nuzlocke rules on top, like catching only the first Pokémon you meet in each area or releasing any Pokémon that faints." },
       { q: "Why are there no Pokémon pictures?", a: "The challenge is in beta and uses type cards: the Pokémon's number, name and type colors." },
     ],
   },

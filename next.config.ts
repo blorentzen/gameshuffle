@@ -1,6 +1,32 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
+/**
+ * Short addresses shown on our social videos (gameshuffle.co/dex, /wheel, …).
+ * Captions can't hold links on TikTok or Instagram, so people type what's on
+ * screen; each address lands on its page tagged `src=video-<code>` (the lead
+ * capture sends Plausible a "Lead" event and carries the tag to sign-up) and
+ * utm_source=video (Vercel and Plausible list it under sources). Temporary
+ * redirects, so an address can move to a new page later.
+ */
+const VIDEO_LINKS: [code: string, page: string][] = [
+  ["dex", "/daily-dex"],
+  ["shuffle", "/daily"],
+  ["top5", "/daily"],
+  ["jamboree", "/randomizers/super-mario-party-jamboree"],
+  ["superstars", "/randomizers/mario-party-superstars"],
+  ["mkw", "/randomizers/mario-kart-world"],
+  ["smash", "/randomizers/super-smash-bros-ultimate"],
+  ["ow", "/randomizers/overwatch"],
+  ["nuzlocke", "/randomizers/pokemon-firered-leafgreen"],
+  ["jackbox", "/game-nights/tools/jackbox-picker"],
+  ["tiers", "/tier-list-maker"],
+  ["wheel", "/wheel-spinner"],
+  ["8ball", "/magic-8-ball"],
+  ["tod", "/truth-or-dare"],
+  ["tcg", "/pokemon-tcg-companion"],
+];
+
 // Base CSP directives (excluding frame-ancestors — set per-route)
 const baseCspDirectives = [
   "default-src 'self'",
@@ -200,6 +226,11 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      ...VIDEO_LINKS.map(([code, page]) => ({
+        source: `/${code}`,
+        destination: `${page}?src=video-${code}&utm_source=video&utm_medium=short-link&utm_campaign=${code}`,
+        permanent: false,
+      })),
       // `/competitive` on its own used to 404; send it to the only competitive
       // hub that exists rather than leaving a guessable path dead.
       { source: "/competitive", destination: "/competitive/mario-kart-8-deluxe", permanent: false },

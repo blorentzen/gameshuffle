@@ -298,8 +298,8 @@ export const FAQ: { q: string; a: string }[] = [
 ];
 
 export const META = {
-  // The layout template adds " | GameShuffle", so the brand stays out of here.
-  title: "Pokémon TCG Singles, Decks and a Companion App",
+  // Rendered absolute (no " | GameShuffle" suffix): the brand leads the title instead.
+  title: "GameShuffle TCG: Pokémon Singles, Decks + Companion App",
   description:
     "Pokémon singles and ready-to-run decks (competitive, beginner, and meme) from GameShuffle TCG, shipped fast and protected, backed by a free companion app for running your games.",
   ogImage: "https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg",

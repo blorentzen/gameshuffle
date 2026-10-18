@@ -65,7 +65,7 @@ import { ShopLine } from "@/components/store/ShopEntry";
  */
 
 export const metadata: Metadata = {
-  title: META.title,
+  title: { absolute: META.title },
   description: META.description,
   openGraph: {
     title: META.title,

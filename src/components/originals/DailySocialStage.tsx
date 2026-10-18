@@ -22,8 +22,8 @@ const LINE_GAP = 0.42;
 
 /** What changes between the games: each keeps its own colors, glyphs and link (as on its share image). */
 const GAMES = {
-  shuffle: { accent: "daily", field: "daily", title: "The Daily Shuffle", noun: "character", link: "gameshuffle.co/daily" },
-  dex: { accent: "dex", field: "dex", title: "The Daily Dex", noun: "Pokémon", link: "gameshuffle.co/daily-dex" },
+  shuffle: { accent: "daily", field: "daily", title: "The Daily Shuffle", noun: "character", link: "gameshuffle.co/shuffle" },
+  dex: { accent: "dex", field: "dex", title: "The Daily Dex", noun: "Pokémon", link: "gameshuffle.co/dex" },
 } as const;
 
 export function DailySocialStage({ game = "shuffle", number, hint, guesses, paused }: { game?: keyof typeof GAMES; number: number; hint: string; guesses: number; paused: boolean }) {

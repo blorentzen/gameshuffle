@@ -45,6 +45,17 @@ export interface WinnersSection {
   finishers: number;
 }
 
+/** Places again after rows were left out (staff): 1, 2, 3 in board order, ties still sharing a place. */
+export function renumberPlaces<T extends { row: { place: number } }>(rows: T[]): T[] {
+  let place = 0;
+  let last: number | null = null;
+  return rows.map((r, i) => {
+    if (r.row.place !== last) place = i + 1;
+    last = r.row.place;
+    return { ...r, row: { ...r.row, place } };
+  });
+}
+
 /** The board rows that make the video: solved, in board order, the first five. */
 export function topFinishers<T extends { row: { points: number } }>(rows: T[]): { top: T[]; finishers: number } {
   const solved = rows.filter((r) => r.row.points > 0);
@@ -84,5 +95,5 @@ export function winnersCaption(sections: WinnersSection[]): string {
     return `${s.title} #${s.number}: ${named.length ? named.join(" · ") : "our top 5"}`;
   });
   const tags = ["#DailyPuzzle", "#GameShuffle", ...(sections.some((s) => s.game === "shuffle") ? ["#Nintendo"] : []), ...(sections.some((s) => s.game === "dex") ? ["#Pokemon"] : [])];
-  return [`Congrats to yesterday's top 5! 🏆`, "", ...lines, "", "Make today's top 5 at https://www.gameshuffle.co/daily", "", tags.join(" ")].join("\n");
+  return [`Congrats to yesterday's top 5! 🏆`, "", ...lines, "", "Make today's top 5 at https://gameshuffle.co/top5", "", tags.join(" ")].join("\n");
 }
