@@ -9,6 +9,7 @@ import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { authContextFor } from "@/lib/auth/auth-context";
 import { describeAuthError } from "@/lib/auth/errors";
 import { startOAuth } from "@/lib/auth/oauth";
+import { useSignInProviders } from "@/lib/auth/providers";
 import { safeRedirect } from "@/lib/auth/redirects";
 import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
 
@@ -28,6 +29,7 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const providers = useSignInProviders();
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [needsMfa, setNeedsMfa] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -251,7 +253,7 @@ function LoginForm() {
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {(["discord", "twitch"] as const).map((provider) => (
+                {providers.map(({ id: provider, label, icon }) => (
                   <Button
                     key={provider}
                     variant="secondary"
@@ -265,8 +267,8 @@ function LoginForm() {
                     disabled={isLockedOut}
                   >
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                      <img src={`/images/icons/${provider}.svg`} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
-                      Continue with {provider === "discord" ? "Discord" : "Twitch"}
+                      <img src={icon} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
+                      Continue with {label}
                     </span>
                   </Button>
                 ))}

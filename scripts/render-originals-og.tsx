@@ -1,6 +1,6 @@
 /**
  * Share images (1200x630) for GameShuffle's own games: each game keeps the
- * site's frame (the GameShuffle wordmark, Gabarito, a Tabler glyph field) but
+ * site's frame (the GameShuffle logo, Gabarito, a Tabler glyph field) but
  * has its own colors and a motif from the game itself, so a link preview says
  * which game it is at a glance. No word may repeat across the three lines.
  *
@@ -21,16 +21,18 @@ import { ImageResponse } from "next/dist/compiled/@vercel/og/index.node.js";
 import sharp from "sharp";
 
 type Motif = "grid" | "dex" | "podium" | "board";
-interface Spec { slug: string; route: string; title: string; sub: string; colors: [string, string]; glyphs: string[]; motif: Motif }
+interface Spec { slug: string; route: string; title: string; /** "" = no line under the title. */ sub: string; colors: [string, string]; glyphs: string[]; motif: Motif }
 
 const SPECS: Spec[] = [
   { slug: "daily", route: "daily", title: "Guess today's character", sub: "A new Nintendo puzzle every day", colors: ["#1f1760", "#5a3fd6"], glyphs: ["Star", "SteeringWheel", "Mushroom", "QuestionMark", "Flame"], motif: "grid" },
-  { slug: "daily-dex", route: "daily-dex", title: "Guess today's Pokémon", sub: "All 1,025, one a day", colors: ["#a3301b", "#e8a21c"], glyphs: ["Pokeball", "Bolt", "Flame", "Droplet", "Leaf"], motif: "dex" },
+  { slug: "daily-dex", route: "daily-dex", title: "Guess today's Pokémon", sub: "", colors: ["#a3301b", "#e8a21c"], glyphs: ["Pokeball", "Bolt", "Flame", "Droplet", "Leaf"], motif: "dex" },
   { slug: "weekly", route: "weekly", title: "The Weekly Challenge", sub: "Guess what everyone said", colors: ["#083f3b", "#169a85"], glyphs: ["Trophy", "ListNumbers", "UsersGroup", "CalendarWeek", "Award"], motif: "podium" },
   { slug: "chat-brain", route: "chat-brain", title: "Chat Brain", sub: "Name the top answers", colors: ["#4a1243", "#c8447a"], glyphs: ["Brain", "Messages", "ChartBar", "Users", "Bulb"], motif: "board" },
 ];
 
 const font = readFileSync("src/app/fonts/gabarito-bold.ttf");
+/** The official white logo (public/images/fg/logos), never the name typed out. */
+const LOGO = `data:image/svg+xml;base64,${readFileSync("public/images/fg/logos/gameshuffle-wht.svg").toString("base64")}`;
 const ICONS = "node_modules/@tabler/icons-react/dist/esm/icons";
 
 /** A Tabler outline icon's path data, read from its module. */
@@ -154,9 +156,10 @@ async function render(s: Spec): Promise<Buffer> {
         <img src={glyphField(s.glyphs)} width={1200} height={630} style={{ position: "absolute", top: 0, left: 0 }} alt="" />
         <div style={{ position: "absolute", top: 0, left: 0, width: 1200, height: 630, display: "flex", alignItems: "center", padding: "0 64px", gap: 40 }}>
           <div style={{ display: "flex", flexDirection: "column", color: "#fff", width: 640 }}>
-            <div style={{ fontSize: 46, letterSpacing: -1, opacity: 0.95 }}>GameShuffle</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={LOGO} width={335} height={46} style={{ objectFit: "contain", objectPosition: "left", marginBottom: 8 }} alt="" />
             <div style={{ fontSize: s.title.length > 14 ? 92 : 120, lineHeight: 1.02, letterSpacing: -2.5, marginTop: 10 }}>{s.title}</div>
-            <div style={{ fontSize: 40, marginTop: 20, opacity: 0.92 }}>{s.sub}</div>
+            {s.sub ? <div style={{ fontSize: 40, marginTop: 20, opacity: 0.92 }}>{s.sub}</div> : null}
           </div>
           <div style={{ display: "flex", flex: 1, justifyContent: "center" }}>
             <div style={{ display: "flex", padding: 22, borderRadius: 24, background: "rgba(0,0,0,0.18)", border: "2px solid rgba(255,255,255,0.14)" }}>{Motif()}</div>
@@ -173,7 +176,6 @@ async function render(s: Spec): Promise<Buffer> {
 async function renderHome(): Promise<Buffer> {
   const sub = "Randomizers, daily puzzles, tournaments and trivia nights";
   checkWords({ slug: "home", route: "", title: "", sub, colors: ["", ""], glyphs: [], motif: "grid" });
-  const logo = `data:image/svg+xml;base64,${readFileSync("public/images/fg/logos/gameshuffle-wht.svg").toString("base64")}`;
   const tiles: { colors: [string, string]; icon: string }[] = [
     { colors: ["#1f1760", "#5a3fd6"], icon: "LayoutGrid" },
     { colors: ["#a3301b", "#e8a21c"], icon: "Pokeball" },
@@ -188,7 +190,7 @@ async function renderHome(): Promise<Buffer> {
         <div style={{ position: "absolute", top: 0, left: 0, width: 1200, height: 630, display: "flex", alignItems: "center", padding: "0 70px", gap: 50 }}>
           <div style={{ display: "flex", flexDirection: "column", color: "#fff", width: 640 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo} width={600} height={98} style={{ objectFit: "contain", objectPosition: "left" }} alt="" />
+            <img src={LOGO} width={600} height={98} style={{ objectFit: "contain", objectPosition: "left" }} alt="" />
             <div style={{ fontSize: 46, lineHeight: 1.2, marginTop: 30, opacity: 0.95 }}>{sub}</div>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", width: 340, gap: 20 }}>

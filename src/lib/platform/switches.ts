@@ -4,7 +4,7 @@
  * row. Add a switch here when code starts reading a new flag. Client-safe.
  */
 
-export type SwitchGroup = "Shop" | "Events" | "Circuit";
+export type SwitchGroup = "Shop" | "Events" | "Circuit" | "Sign-in";
 
 export interface SwitchDef {
   key: string;
@@ -53,6 +53,12 @@ export const SWITCHES: SwitchDef[] = [
     description: "Lets Circuit subscribers switch plans themselves. Off: they see what would change, but nothing is charged.",
     turnOn: "Circuit subscribers can change plans, and Stripe charges or credits them.",
     turnOff: "Plan changes show a preview only. Nothing is charged.",
+  },
+  {
+    key: "auth_facebook", group: "Sign-in", name: "Sign in with Facebook",
+    description: "Shows Continue with Facebook on sign-in and sign-up, and Facebook in Settings ▸ Sign-in & security. Needs Facebook turned on in Supabase ▸ Authentication ▸ Providers (live and dev) with the Meta app's ID and secret.",
+    turnOn: "Everyone sees Continue with Facebook on sign-in and sign-up, and can connect Facebook in Settings.",
+    turnOff: "The Facebook buttons disappear. People who already connected Facebook can still see and disconnect it in Settings.",
   },
 ];
 

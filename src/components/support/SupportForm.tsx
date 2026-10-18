@@ -5,13 +5,18 @@
  * $3 / $5 / $10 / $25 or any other amount, an optional name and note for the
  * supporters wall, then Stripe Checkout (/api/support/checkout). Monthly needs
  * an account so it can be managed in Plans & billing. Outside the US the form
- * says support is open in the US for now.
+ * says support is open in the US for now. A Turnstile check comes before
+ * checkout, so bots can't use the page to test stolen cards.
  */
 
 import { useEffect, useState } from "react";
 import { Alert, Button, Checkbox, Input, Tabs, Textarea } from "@empac/cascadeds";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { SUPPORT_AMOUNTS, SUPPORT_DEFAULT, WALL_NAME_MAX, WALL_NOTE_MAX, amountProblem, centsFromInput, dollars, type SupportKind } from "@/lib/support/rules";
+
+/** The check only shows (and is only required) where a Turnstile site key is set. */
+const CAPTCHA_ON = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 interface Status { available: boolean; signedIn: boolean; supporter: boolean; pro: boolean }
 
@@ -25,6 +30,8 @@ export function SupportForm({ canceled }: { canceled: boolean }) {
   const [onWall, setOnWall] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaRound, setCaptchaRound] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -39,11 +46,12 @@ export function SupportForm({ canceled }: { canceled: boolean }) {
   const give = async () => {
     const p = amountProblem(cents);
     if (p) { setError(p); return; }
+    if (CAPTCHA_ON && !captcha) { setError("Finish the quick check above the button first."); return; }
     setBusy(true);
     setError(null);
     const res = await fetch("/api/support/checkout", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, cents, wallName: name, wallNote: note, showOnWall: onWall && !!name.trim() }),
+      body: JSON.stringify({ kind, cents, wallName: name, wallNote: note, showOnWall: onWall && !!name.trim(), turnstileToken: captcha }),
     }).catch(() => null);
     const body = res ? ((await res.json().catch(() => ({}))) as { url?: string; error?: string; message?: string }) : null;
     if (res?.ok && body?.url) {
@@ -52,7 +60,9 @@ export function SupportForm({ canceled }: { canceled: boolean }) {
       return;
     }
     setBusy(false);
-    setError(body?.message ?? (body?.error === "sign_in" ? "Sign in to give monthly." : "Couldn't open checkout. Try again in a moment."));
+    // The check's token is spent either way, so the next try gets a fresh one.
+    setCaptchaRound((n) => n + 1);
+    setError(body?.message ?? (body?.error === "sign_in" ? "Sign in to give monthly." : body?.error === "captcha" ? "The quick check didn't go through. Try it again." : "Couldn't open checkout. Try again in a moment."));
   };
 
   if (status && !status.available) {
@@ -98,9 +108,12 @@ export function SupportForm({ canceled }: { canceled: boolean }) {
       {needsSignIn ? (
         <Button type="button" variant="primary" onClick={() => { window.location.href = "/login?redirect=/support"; }}>Sign in to give monthly</Button>
       ) : (
-        <Button type="submit" variant="primary" disabled={busy || !cents || !!problem}>
-          {busy ? "Opening checkout…" : `Give ${cents && !problem ? dollars(cents) : ""}${kind === "monthly" ? " a month" : ""} with Stripe`}
-        </Button>
+        <>
+          <TurnstileWidget onToken={setCaptcha} size="flexible" resetKey={captchaRound} />
+          <Button type="submit" variant="primary" disabled={busy || !cents || !!problem || (CAPTCHA_ON && !captcha)}>
+            {busy ? "Opening checkout…" : `Give ${cents && !problem ? dollars(cents) : ""}${kind === "monthly" ? " a month" : ""} with Stripe`}
+          </Button>
+        </>
       )}
       {error && <p className="support-form__error" role="alert">{error}</p>}
       <p className="support-form__fine">

@@ -4,7 +4,7 @@ import { mergeIdentityAcrossSurfaces } from "@/lib/identity/merge";
 import { ensureUsername } from "@/lib/social/usernameAssign";
 
 /**
- * Copies a Twitch/Discord sign-in onto the account (`public.users`): the
+ * Copies a Twitch/Discord/Facebook sign-in onto the account (`public.users`): the
  * provider ids, names and avatars, the gamertags, a display name when there
  * is none, a handle, and the cross-surface identity merge. Idempotent.
  *
@@ -23,9 +23,10 @@ export async function syncProfileFromOAuth(supabase: SupabaseClient, user: User)
   const identities = user.identities || [];
   const discordIdentity = identities.find((i) => i.provider === "discord");
   const twitchIdentity = identities.find((i) => i.provider === "twitch");
+  const facebookIdentity = identities.find((i) => i.provider === "facebook");
 
   // Nothing to sync if no OAuth providers linked
-  if (!discordIdentity && !twitchIdentity) return;
+  if (!discordIdentity && !twitchIdentity && !facebookIdentity) return;
 
   const { data } = await supabase
     .from("users")
@@ -40,10 +41,17 @@ export async function syncProfileFromOAuth(supabase: SupabaseClient, user: User)
   let discordId: string | null = null, discordUsername: string | null = null;
   let twitchId: string | null = null, twitchUsername: string | null = null;
 
-  // Set display name if not already set (prefer Discord, then Twitch)
+  // Set display name if not already set (prefer Discord, then Twitch, then
+  // Facebook). Display names are public, and Facebook's name is usually a
+  // person's real full name, so from Facebook only the first name is used.
   if (!existing?.display_name) {
-    const meta = (discordIdentity?.identity_data || twitchIdentity?.identity_data || {}) as IdentityData;
-    displayName = meta.full_name || meta.custom_claims?.global_name || meta.name || null;
+    const meta = (discordIdentity?.identity_data || twitchIdentity?.identity_data || null) as IdentityData | null;
+    if (meta) {
+      displayName = meta.full_name || meta.custom_claims?.global_name || meta.name || null;
+    } else {
+      const fb = (facebookIdentity?.identity_data || {}) as IdentityData;
+      displayName = (fb.full_name || fb.name || "").trim().split(/\s+/)[0]?.slice(0, 40) || null;
+    }
     updates.display_name = displayName;
   }
 

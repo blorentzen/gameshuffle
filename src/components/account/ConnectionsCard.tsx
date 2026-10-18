@@ -2,7 +2,7 @@
 
 /**
  * Connections card — single source of truth for linking/unlinking
- * external OAuth providers (Discord, Twitch today; YouTube/Kick later).
+ * external OAuth providers (Discord, Twitch, Facebook; YouTube as a streamer integration).
  *
  * Per gs-connections-architecture.md §3 + §4. The Sign-in Methods
  * section on Security and the Integrations tab cards both READ from
@@ -37,7 +37,7 @@ interface ConnectionRoles {
   streamerIntegration: boolean;
 }
 
-type ProviderId = "discord" | "twitch" | "youtube";
+type ProviderId = "discord" | "twitch" | "facebook" | "youtube";
 
 interface Connection {
   provider: ProviderId;
@@ -59,12 +59,14 @@ interface ConnectionsViewResponse {
 const PROVIDER_LABELS: Record<string, string> = {
   discord: "Discord",
   twitch: "Twitch",
+  facebook: "Facebook",
   youtube: "YouTube",
 };
 
 const PROVIDER_ICONS: Record<string, string> = {
   discord: "/images/icons/discord.svg",
   twitch: "/images/icons/twitch.svg",
+  facebook: "/images/icons/facebook.svg",
   youtube: "/images/icons/youtube.svg",
 };
 
@@ -140,7 +142,7 @@ export function ConnectionsCard() {
       // to work. Use the `?redirect=` param the existing callback already
       // honors so the user lands on Profile after the link completes.
       const redirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent("/account?tab=profile")}`;
-      rememberAttempt(provider as "twitch" | "discord", "connections");
+      rememberAttempt(provider, "connections");
       const { data: linkRes, error: linkErr } = await supabase.auth.linkIdentity({
         provider,
         options: { redirectTo },

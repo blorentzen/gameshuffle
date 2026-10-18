@@ -35,6 +35,38 @@ function wallText(raw: unknown, max: number, name = false): string | null {
   return s;
 }
 
+/**
+ * One Stripe product holds every support price (one-time and monthly), so gifts roll up
+ * under "Support GameShuffle" in Stripe instead of a new product per checkout. Made on first
+ * use with a fixed id (like the shop's gs_shop_<sku>); if Stripe can't be reached for it, the
+ * checkout falls back to an inline product so giving never breaks.
+ */
+export const SUPPORT_PRODUCT_ID = "gs_support";
+let supportProductReady: Promise<string> | null = null;
+function supportProduct(stripe: Stripe): Promise<string> {
+  supportProductReady ??= (async () => {
+    const existing = await stripe.products.retrieve(SUPPORT_PRODUCT_ID).catch((err: { code?: string }) => {
+      if (err?.code === "resource_missing") return null;
+      throw err;
+    });
+    if (!existing) {
+      await stripe.products.create({
+        id: SUPPORT_PRODUCT_ID,
+        name: "Support GameShuffle",
+        description: "One-time or monthly support that keeps GameShuffle free. Not tax-deductible.",
+        metadata: { gs_kind: "support" },
+      }).catch((err: { code?: string }) => {
+        // Another server made it a moment ago.
+        if (err?.code !== "resource_already_exists") throw err;
+      });
+    } else if (!existing.active) {
+      await stripe.products.update(SUPPORT_PRODUCT_ID, { active: true });
+    }
+    return SUPPORT_PRODUCT_ID;
+  })().catch((err) => { supportProductReady = null; throw err; });
+  return supportProductReady;
+}
+
 export type CheckoutResult = { ok: true; url: string } | { ok: false; error: "bad_amount" | "sign_in" | "failed"; message?: string };
 
 /** Opens Stripe Checkout for one-time or monthly support. */
@@ -75,15 +107,18 @@ export async function startSupportCheckout(args: {
     }
   }
 
-  const product_data = { name: args.kind === "monthly" ? "Monthly support for GameShuffle" : "Support for GameShuffle", metadata: { gs_kind: "support" } };
+  const product = await supportProduct(stripe).catch((err) => { console.error("[support] product setup failed, using an inline product:", err); return null; });
+  const productRef = product
+    ? { product }
+    : { product_data: { name: args.kind === "monthly" ? "Monthly support for GameShuffle" : "Support for GameShuffle", metadata: { gs_kind: "support" } } };
   try {
     const session = await stripe.checkout.sessions.create({
       mode: args.kind === "monthly" ? "subscription" : "payment",
       line_items: [{
         quantity: 1,
         price_data: args.kind === "monthly"
-          ? { currency: "usd", unit_amount: args.cents, recurring: { interval: "month" }, product_data }
-          : { currency: "usd", unit_amount: args.cents, product_data },
+          ? { currency: "usd", unit_amount: args.cents, recurring: { interval: "month" as const }, ...productRef }
+          : { currency: "usd", unit_amount: args.cents, ...productRef },
       }],
       ...(customer ? { customer, customer_update: { address: "auto", name: "auto" } } : args.user?.email ? { customer_email: args.user.email } : {}),
       ...(args.user ? { client_reference_id: args.user.id } : {}),

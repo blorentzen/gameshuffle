@@ -12,6 +12,7 @@ import { authContextFor, type AuthContext } from "@/lib/auth/auth-context";
 import { describeAuthError } from "@/lib/auth/errors";
 import { PASSWORD_HINT, passwordProblem } from "@/lib/auth/passwordRules";
 import { startOAuth } from "@/lib/auth/oauth";
+import { providerList, useSignInProviders } from "@/lib/auth/providers";
 import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
 
 /** Signup event props, tagged with the campaign lead source when the visitor
@@ -53,6 +54,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const providers = useSignInProviders();
   const [success, setSuccess] = useState(false);
   // Supabase obfuscates a repeat signup of an existing email: no error, no
   // email, and an empty `identities` array. We detect that and route the user
@@ -253,7 +255,7 @@ export default function SignupPage() {
 
 
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {(["discord", "twitch"] as const).map((provider) => (
+                {providers.map(({ id: provider, label, icon }) => (
                   <Button
                     key={provider}
                     variant="secondary"
@@ -267,8 +269,8 @@ export default function SignupPage() {
                     }}
                   >
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                      <img src={`/images/icons/${provider}.svg`} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
-                      Sign up with {provider === "discord" ? "Discord" : "Twitch"}
+                      <img src={icon} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
+                      Sign up with {label}
                     </span>
                   </Button>
                 ))}
@@ -277,7 +279,7 @@ export default function SignupPage() {
                   Twitch already age-verify, and blocking it just loses signups).
                   Consent is still captured via this continue-notice. */}
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", lineHeight: 1.5, margin: "0.25rem 0 0", textAlign: "center" }}>
-                By continuing with Discord or Twitch, you confirm you&apos;re at least 13 and agree to our{" "}
+                By continuing with {providerList(providers)}, you confirm you&apos;re at least 13 and agree to our{" "}
                 <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Terms of Service</a>{" "}
                 and{" "}
                 <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Privacy Policy</a>.

@@ -71,10 +71,11 @@ const SECTIONS: LegalSection[] = [
         </LegalSubSection>
 
         <LegalSubSection number="2.2" title="Information From Third-Party Sign-In Providers">
-          <p>If you sign in or link your account using Discord or Twitch, we receive the following from those providers:</p>
+          <p>If you sign in or link your account using Discord, Twitch or Facebook, we receive the following from those providers:</p>
           <ul>
             <li><strong>Discord:</strong> User ID, username, email address, and avatar URL</li>
             <li><strong>Twitch:</strong> User ID, username, email address, and avatar URL</li>
+            <li><strong>Facebook:</strong> a user ID that Facebook issues for GameShuffle only, your name, your email address, and a link to your profile picture. We ask Facebook only for your public profile and email address; we never receive your friends list, your posts or your password, and we never post anything on your behalf. We use this information to sign you in, to recognize your account the next time you sign in, and to fill in a display name when you don&apos;t have one.</li>
           </ul>
           <p>We do not receive your password from these providers. Their collection and handling of your data is governed by their own privacy policies.</p>
         </LegalSubSection>
@@ -104,6 +105,7 @@ const SECTIONS: LegalSection[] = [
         <LegalSubSection number="2.5" title="Game Answers (Chat Brain, the Daily and the Weekly)">
           <p>When you answer a Chat Brain question, play the Daily Shuffle or the Daily Dex, or enter the Weekly Challenge, we store your answer or result with the time it was given. Signed-in answers are tied to your account; signed-out answers are tied to a random ID kept in your browser, which we store only in hashed form. Answers given through our Twitch or Discord bots are tied to that platform account.</p>
           <p><strong>Playing inside Discord:</strong> when you open GameShuffle as a Discord Activity, Discord shares your Discord user ID, username, display name and avatar with us, and we confirm with Discord which server channel the Activity was started in. We use these to save your Daily results and your guesses so far (so a game picks up where you left off), your Chat Brain answers and, if you link a GameShuffle account, your Weekly entries. When you play from a server channel, our bot keeps one results message there for the day showing each player&apos;s display name, profile picture, score and rows as colored squares (never the answer), and posts a short summary of the day&apos;s results the next morning. We keep a link to your Discord avatar for these messages and refresh it each time you open the Activity. When you answer the Weekly or a Chat Brain question from a server (with the bot&apos;s buttons or in the Activity there), the bot&apos;s posts of that question in that server list your display name among the people who answered; your answer itself is never shown. The Activity does not read your messages.</p>
+          <p><strong>Playing on Facebook:</strong> GameShuffle&apos;s Instant Game runs inside Facebook and is hosted by Meta. Facebook does not share your Facebook ID, name or picture with us, and the game never sends them to us. The game keeps a random ID it makes for you, your streak and your recent results in Facebook&apos;s storage for the game. When you answer a question there, we receive your answer, that random ID (which we store only in hashed form) and the country your connection comes from, and your answer counts toward Chat Brain boards like any other (see &quot;How answers are shown&quot; below). Because we can&apos;t tie these answers to you, they are not part of a GameShuffle account. When you share a result from the game, Facebook handles the share under Meta&apos;s own policies.</p>
           <p><strong>Optional audience details:</strong> after your first Chat Brain answer we may ask for an age group (13 to 17, 18 to 24, 25 to 34, 35 to 44, 45 to 54, or 55 and up), a gender (woman, man, non-binary) and a country. Each one is optional and has a &quot;prefer not to say&quot; choice. Unless you pick a country or choose not to say, we record the country your connection comes from (country level only) with each answer; we do not store your IP address with your answers. Signed-in choices are saved privately to your account; signed-out choices stay in your browser and are sent with each answer.</p>
           <p><strong>Daily leaderboards:</strong> your daily results earn points, which appear on public daily, weekly and monthly leaderboards. Accounts appear by display name (or as &quot;A player&quot; if your profile is private), and you can take yourself off the leaderboards in Settings, Privacy. Discord players appear by their Discord display name. If you play without an account and choose to join a leaderboard, we store the name you pick, your results and any tokens held for you, tied to a random ID kept in your browser that we store only in hashed form, along with a hashed form of your network address so we can limit how many new names one network can add. If you later sign in or create an account in that browser, we move these results and tokens to your account. Each morning we may post the previous day&apos;s top 5 on each daily leaderboard to GameShuffle&apos;s social media accounts, showing each player&apos;s leaderboard name, picture, guesses, solve time and streak; you can leave yourself out of these posts in Settings, Privacy, and you will appear as &quot;A player&quot;.</p>
           <p><strong>Invite links:</strong> each account has a short invite code. When you open a daily game from someone&apos;s invite link, your browser remembers their code for up to a week. If you then finish a daily, or create an account, we record that you came from that link (tied to your account, or to the random browser ID above in hashed form, with a hashed form of your network address so one network can&apos;t count many times) and tell the person who shared it, by your display name if you have an account or as &quot;A new player&quot; if you don&apos;t. We also keep a hashed form of the network address you last used, so your own network never counts for your own link.</p>
@@ -284,6 +286,7 @@ const SECTIONS: LegalSection[] = [
             <TableRow><TableCell><strong>Google Analytics</strong></TableCell><TableCell>Usage analytics (with consent)</TableCell><TableCell><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">policies.google.com/privacy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Plausible</strong></TableCell><TableCell>Cookieless analytics</TableCell><TableCell><a href="https://plausible.io/privacy" target="_blank" rel="noopener noreferrer">plausible.io/privacy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Discord</strong></TableCell><TableCell>OAuth sign-in, account linking, bot integration</TableCell><TableCell><a href="https://discord.com/privacy" target="_blank" rel="noopener noreferrer">discord.com/privacy</a></TableCell></TableRow>
+            <TableRow><TableCell><strong>Meta (Facebook)</strong></TableCell><TableCell>Facebook sign-in, account linking, and hosting the GameShuffle Instant Game</TableCell><TableCell><a href="https://www.facebook.com/privacy/policy/" target="_blank" rel="noopener noreferrer">facebook.com/privacy/policy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Twitch</strong></TableCell><TableCell>OAuth sign-in, account linking, streamer integration</TableCell><TableCell><a href="https://www.twitch.tv/p/legal/privacy-notice/" target="_blank" rel="noopener noreferrer">twitch.tv/p/legal/privacy-notice</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Anthropic</strong></TableCell><TableCell>AI drafting for the features in section 2.6</TableCell><TableCell><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener noreferrer">anthropic.com/legal/privacy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Sentry</strong></TableCell><TableCell>Error monitoring (where applicable)</TableCell><TableCell><a href="https://sentry.io/privacy/" target="_blank" rel="noopener noreferrer">sentry.io/privacy</a></TableCell></TableRow>
@@ -330,7 +333,18 @@ const SECTIONS: LegalSection[] = [
           <p><strong>Exception:</strong> Tournament data you created persists for other participants even after your account is deleted. Your organizer reference becomes null, but participant registrations submitted by others remain accessible to those participants.</p>
         </LegalSubSection>
 
-        <LegalSubSection number="8.3" title="Supabase Auth Logs">
+        <LegalSubSection number="8.3" title="Deleting Data From Facebook and Other Sign-In Providers">
+          <p>To delete the information we received from Facebook (or Discord or Twitch):</p>
+          <ul>
+            <li><strong>Delete everything:</strong> sign in, open Settings, Privacy, and choose Delete account. Your account and everything tied to it, including your Facebook ID, name, email address and picture link, is deleted right away.</li>
+            <li><strong>Keep your account, remove Facebook:</strong> open Settings, Sign-in &amp; security, and choose Disconnect next to Facebook. We delete the Facebook link and stop receiving anything from Facebook. (You&apos;ll need another way to sign in first, such as a password.)</li>
+            <li><strong>From Facebook:</strong> in Facebook, go to Settings &amp; privacy, Settings, Apps and websites, and remove GameShuffle. Facebook stops sharing information with us. To also have us delete what we already have, use one of the options above or the next one.</li>
+            <li><strong>Can&apos;t sign in?</strong> Submit a deletion request through our <a href="/data-request">Data Request Form</a> or email privacy@gameshuffle.co, and we&apos;ll delete your account and data within 30 days.</li>
+          </ul>
+          <p>Your progress in the GameShuffle Instant Game on Facebook is kept by Facebook and is removed when you remove the game from Facebook. Answers you gave in the game are tied only to a random ID, not to you, so we can&apos;t look them up by person; they are only ever shown grouped with everyone else&apos;s.</p>
+        </LegalSubSection>
+
+        <LegalSubSection number="8.4" title="Supabase Auth Logs">
           <p>Supabase retains authentication audit logs per their own data retention policy, independent of our account deletion process.</p>
         </LegalSubSection>
       </>
@@ -348,7 +362,7 @@ const SECTIONS: LegalSection[] = [
           <li><strong>Deletion</strong>: permanently delete your account and all associated data via self-service</li>
           <li><strong>Portability</strong>: request a copy of your data in a portable format</li>
           <li><strong>Withdraw consent</strong>: decline or withdraw analytics cookie consent at any time</li>
-          <li><strong>Unlink OAuth providers</strong>: disconnect Discord or Twitch from your account at any time</li>
+          <li><strong>Unlink OAuth providers</strong>: disconnect Discord, Twitch or Facebook from your account at any time</li>
           <li><strong>Opt out of marketing</strong>: unsubscribe from marketing emails at any time via the link in every marketing email or via account settings</li>
           <li><strong>Right to appeal</strong>: if we decline a privacy request, you may appeal by emailing privacy@gameshuffle.co</li>
         </ul>
@@ -357,6 +371,23 @@ const SECTIONS: LegalSection[] = [
         <p><strong>Other US state residents:</strong> Residents of Colorado, Connecticut, Delaware, Florida, Indiana, Iowa, Kentucky, Maryland, Minnesota, Montana, Nebraska, New Hampshire, New Jersey, Oregon, Rhode Island, Tennessee, Texas, Utah, and Virginia have similar rights under their respective state privacy laws.</p>
         <p><strong>EEA/UK residents (GDPR):</strong> Our legal basis for processing your data is performance of a contract (providing the Service you signed up for), legitimate interests (security, analytics, integration health), legal obligations (tax records, legal compliance), and where applicable, your consent (analytics cookies, marketing emails). You have the right to lodge a complaint with your local supervisory authority.</p>
         <p>We do not currently have an EU/UK Article 27 representative as our processing of EU/UK personal data is occasional and does not involve high-risk processing. We will appoint a representative if our EU/UK presence grows to meet the threshold.</p>
+      </>
+    ),
+  },
+  {
+    id: "authority-requests",
+    title: "Requests From Public Authorities",
+    content: (
+      <>
+        <p>We only disclose personal data to a government, court or law enforcement agency when the law requires it. For every request we:</p>
+        <ul>
+          <li>Review whether it is legally valid and properly issued before acting on it</li>
+          <li>Push back on, or challenge, a request we believe is unlawful, overly broad or not properly issued</li>
+          <li>Disclose only the minimum information the request legally requires</li>
+          <li>Keep a record of the request, our response and the legal reasoning behind it</li>
+          <li>Tell the affected person before disclosing, unless the law or the request forbids it</li>
+        </ul>
+        <p>In the past 12 months we have not disclosed anyone&apos;s personal data in response to a national security request.</p>
       </>
     ),
   },
@@ -399,7 +430,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       intro="What we collect, how we use it, who we share it with, and your rights."
-      effectiveDate="October 16, 2026"
+      effectiveDate="October 18, 2026"
       sections={SECTIONS}
       current="privacy"
     />

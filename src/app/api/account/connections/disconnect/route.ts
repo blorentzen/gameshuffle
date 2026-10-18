@@ -1,7 +1,7 @@
 /**
  * POST /api/account/connections/disconnect
  *
- * Body: { provider: "discord" | "twitch" }
+ * Body: { provider: "discord" | "twitch" | "facebook" }
  *
  * Unified disconnect endpoint for the Profile-tab Connections card.
  * Per gs-connections-architecture.md §4.2 — replaces the older
