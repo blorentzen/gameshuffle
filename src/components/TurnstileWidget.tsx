@@ -24,9 +24,12 @@ export function TurnstileWidget({
   onToken,
   theme = "light",
   size = "normal",
+  resetKey,
 }: {
   onToken: (token: string | null) => void;
   theme?: "light" | "dark";
+  /** Change it to get a fresh challenge (a token works once, so forms that can be sent again bump this after each try). */
+  resetKey?: number;
   /** "flexible" fills the container width (min 300px) — use in narrow columns
    *  like the tournament sign-up rail so the widget doesn't overflow. */
   size?: "normal" | "flexible" | "compact";
@@ -50,6 +53,13 @@ export function TurnstileWidget({
     // onToken/theme are stable for our callers; render once when ready.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
+
+  useEffect(() => {
+    if (resetKey === undefined || !widgetIdRef.current) return;
+    getTurnstile()?.reset(widgetIdRef.current);
+    onToken(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
 
   if (!TURNSTILE_SITE_KEY) return null;
 

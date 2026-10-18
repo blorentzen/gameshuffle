@@ -1,8 +1,10 @@
 /**
- * POST /api/support/checkout { kind: "once" | "monthly", cents, wallName?, wallNote?, showOnWall? }
+ * POST /api/support/checkout { kind: "once" | "monthly", cents, wallName?, wallNote?, showOnWall?, turnstileToken }
  * → { url } for Stripe Checkout (src/lib/support/store.ts). Anyone can give
  * once; monthly needs an account (managed in Plans & billing). US only for
- * now, like GS Pro: other countries get { error: "us_only" }.
+ * now, like GS Pro: other countries get { error: "us_only" }. A passed
+ * Turnstile check is required ({ error: "captcha" } otherwise): an open
+ * checkout with a small amount is what card testers look for.
  */
 
 import { NextResponse } from "next/server";
@@ -10,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { paidPlanAvailability } from "@/lib/billing/availability";
 import { rateLimit } from "@/lib/ratelimit";
 import { startSupportCheckout } from "@/lib/support/store";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 
@@ -20,7 +23,9 @@ export async function POST(req: Request) {
   const where = paidPlanAvailability(req);
   if (!where.available) return NextResponse.json({ error: "us_only", message: "Support is open in the US for now. Thank you for wanting to help!" }, { status: 403 });
 
-  const body = (await req.json().catch(() => ({}))) as { kind?: unknown; cents?: unknown; wallName?: unknown; wallNote?: unknown; showOnWall?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { kind?: unknown; cents?: unknown; wallName?: unknown; wallNote?: unknown; showOnWall?: unknown; turnstileToken?: unknown };
+  const token = typeof body.turnstileToken === "string" ? body.turnstileToken : null;
+  if (!(await verifyTurnstileToken(token, ip === "unknown" ? undefined : ip))) return NextResponse.json({ error: "captcha" }, { status: 400 });
   const kind = body.kind === "monthly" ? "monthly" : "once";
   const cents = typeof body.cents === "number" && Number.isFinite(body.cents) ? Math.round(body.cents) : null;
   const supabase = await createClient();

@@ -17,6 +17,9 @@
  *                                    GameShuffle (src/lib/support/store.ts),
  *                                    handled first so it never reaches the
  *                                    GS Pro / Circuit subscription sync
+ *   radar.early_fraud_warning.created → refund + stop any subscription + alert
+ *   charge.dispute.created / .closed   → alert with the deadline / outcome
+ *                                    (src/lib/stripe/fraud.ts)
  *
  * Signature verified against STRIPE_WEBHOOK_SECRET. Delivery is
  * at-least-once; all handlers are idempotent.
@@ -32,6 +35,7 @@ import {
 import { createServiceClient } from "@/lib/supabase/admin";
 import { intervalForPrice, periodEndOf, subscriptionIdOf } from "@/lib/stripe/payload";
 import { fulfilShopSession, markShopRefund, releaseShopHolds } from "@/lib/store/orders";
+import { handleDisputeClosed, handleDisputeCreated, handleEarlyFraudWarning } from "@/lib/stripe/fraud";
 import { fulfilSupportSession, isSupportSubscription, markSupportRefund, recordSupportInvoice, recordSupportSubscription } from "@/lib/support/store";
 import {
   sendTrialStartedEmail,
@@ -426,6 +430,21 @@ export async function POST(request: Request) {
           await markShopRefund(event.data.object as Stripe.Charge);
           await markSupportRefund(event.data.object as Stripe.Charge);
         }
+        break;
+      }
+
+      // Stolen card, says the bank: refund before it becomes a dispute. Platform
+      // account only (connected accounts handle their own).
+      case "radar.early_fraud_warning.created": {
+        if (!event.account) await handleEarlyFraudWarning(event.data.object as Stripe.Radar.EarlyFraudWarning);
+        break;
+      }
+      case "charge.dispute.created": {
+        if (!event.account) await handleDisputeCreated(event.data.object as Stripe.Dispute);
+        break;
+      }
+      case "charge.dispute.closed": {
+        if (!event.account) await handleDisputeClosed(event.data.object as Stripe.Dispute);
         break;
       }
 
