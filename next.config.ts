@@ -17,7 +17,8 @@ const baseCspDirectives = [
   // Connect: API calls to Supabase, analytics, Sentry, Turnstile, Google Maps (Places)
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com https://discord.com https://maps.googleapis.com https://maps.gstatic.com https://places.googleapis.com",
   // Frames: JotForm contact form, Turnstile widget, Twitch player/clips embeds, map embeds (OSM + Google Maps Embed)
-  "frame-src https://form.jotform.com https://challenges.cloudflare.com https://player.twitch.tv https://clips.twitch.tv https://embed.twitch.tv https://www.twitch.tv https://www.openstreetmap.org https://www.google.com https://www.youtube-nocookie.com https://www.youtube.com",
+  // 'self': our own pages may show our pages (the /social/clip stage films a tool inside one).
+  "frame-src 'self' https://form.jotform.com https://challenges.cloudflare.com https://player.twitch.tv https://clips.twitch.tv https://embed.twitch.tv https://www.twitch.tv https://www.openstreetmap.org https://www.google.com https://www.youtube-nocookie.com https://www.youtube.com",
   // Workers: self + blob (Sentry uses blob workers)
   "worker-src 'self' blob:",
   // Object/base: none

@@ -22,7 +22,8 @@
  *    structural (the glyph), colour is the personal layer.
  */
 
-import type { ComponentType, CSSProperties } from "react";
+import { useSyncExternalStore, type ComponentType, type CSSProperties } from "react";
+import { gsDay } from "@/lib/time/gsClock";
 // Re-exported so the many existing imports from this file keep working; the
 // definitions live in a client-safe module because server components call them.
 import { artCategoryFor, type ArtCategory } from "@/lib/events/artCategory";
@@ -39,6 +40,7 @@ import {
   IconBrain, IconMessages, IconChartBar, IconUsersGroup, IconBulb,
   IconCalendarEvent, IconSteeringWheel, IconShield, IconSword, IconHeart, IconTarget, IconFlame, IconCalendarWeek, IconAward, IconUsers, IconHeartHandshake, IconHome,
   IconPokeball, IconDroplet, IconLeaf, IconCoffee, IconServer,
+  IconGhost, IconPumpkinScary, IconBat, IconSpider, IconCandy, IconMoonStars,
 } from "@tabler/icons-react";
 
 /**
@@ -109,7 +111,30 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
     glyphs: [IconTrophy, IconCalendarWeek, IconListNumbers, IconAward, IconUsersGroup] },
   community: { feature: IconUsers, ramp: ["#0d3b46", "#0ea5e9"],
     glyphs: [IconUsers, IconMessages, IconHeartHandshake, IconHome, IconMessageCircle] },
+  spooky: { feature: IconGhost, ramp: ["#2a1450", "#f08a1c"],
+    glyphs: [IconGhost, IconPumpkinScary, IconBat, IconCandy, IconSpider, IconMoonStars] },
 };
+
+const noopSubscribe = () => () => {};
+
+/**
+ * Halloween week: from Oct 24 to Oct 31 (Pacific) every glyph field turns
+ * spooky, the site's headers and the video stages alike. Game cards that use a
+ * field for meaning (minigames, an unrolled board) keep theirs. `?season=spooky`
+ * previews it any day, `?season=none` turns it off.
+ * Read after hydration (server snapshot null), so a page built before the week
+ * still swaps, and the server and browser never disagree.
+ */
+function seasonNow(): ArtCategory | null {
+  try {
+    const q = new URLSearchParams(window.location.search).get("season");
+    if (q === "spooky") return "spooky";
+    if (q === "none") return null;
+  } catch { /* no window */ }
+  const md = gsDay().slice(5);
+  return md >= "10-24" && md <= "10-31" ? "spooky" : null;
+}
+const KEEPS_ITS_GLYPHS: ArtCategory[] = ["minigame", "mystery"];
 
 
 /** FNV-1a. Small, stable, and we only need spread — not cryptographic quality. */
@@ -180,7 +205,9 @@ export function IconField({
   opacity?: number;
   className?: string;
 }) {
-  const { cells, patternId, drift } = buildField(category, seed);
+  const season = useSyncExternalStore(noopSubscribe, seasonNow, () => null);
+  const shown = season && !KEEPS_ITS_GLYPHS.includes(category) ? season : category;
+  const { cells, patternId, drift } = buildField(shown, seed);
   return (
     <span
       className={`evart evart--field${motion !== "none" ? ` evart--${motion}` : ""}${className ? ` ${className}` : ""}`}

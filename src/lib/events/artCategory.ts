@@ -34,7 +34,9 @@ export type ArtCategory =
   | "community"
   /* GameShuffle Originals together (the Discord Activity): the Daily's puzzle,
      the Weekly's calendar, Chat Brain's brain, a trophy and sparkles. */
-  | "originals";
+  | "originals"
+  /* Halloween week: ghosts, pumpkins, bats, candy (the glyph fields swap to it, see IconField). */
+  | "spooky";
 
 /** Map an event onto its art family. */
 export function artCategoryFor(type: "tournament" | "game-night", kind?: string | null): ArtCategory {
