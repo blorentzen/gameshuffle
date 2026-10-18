@@ -65,4 +65,5 @@ export const SWITCHES: SwitchDef[] = [
 /** Rows in gs_platform_flags that aren't switches (internal markers). */
 export const NOT_SWITCHES = new Set(["organizer_billing_enabled_at", "organizer_circuit_notice_at", "organizer_circuit_notice_sent"]);
 
-export const SWITCH_GROUPS: SwitchGroup[] = ["Shop", "Events", "Circuit"];
+/** The Switches screen's sections, in the order switches first appear above (so a new group can't be left off the screen, as Sign-in was on 2026-10-18). */
+export const SWITCH_GROUPS: SwitchGroup[] = [...new Set(SWITCHES.map((s) => s.group))];
