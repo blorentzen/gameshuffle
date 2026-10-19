@@ -19,6 +19,7 @@ import "../../../styles/social.css";
  *   ?accent=…             the ground's colors (a browse-hero accent: daily, dex, gold, red…)
  *   ?field=…              the glyph field's category (video, board, heroes, tools…)
  *   ?cta_at=16            when the pill appears, in seconds
+ *   ?pw=330               the width the page renders at (320 to 430, default 390): narrower = bigger in the window
  *   ?paused=1             hold until the recorder adds `go`
  */
 
@@ -38,6 +39,7 @@ export default async function SocialClipPage({ searchParams }: { searchParams: P
   const src = sp.src && sp.src.startsWith("/") && !sp.src.startsWith("//") ? sp.src : null;
   if (!src) notFound();
   const ctaAt = Number(sp.cta_at);
+  const pw = Number(sp.pw);
   return (
     <ClipStage
       src={src}
@@ -47,6 +49,7 @@ export default async function SocialClipPage({ searchParams }: { searchParams: P
       accent={sp.accent && ACCENTS.has(sp.accent) ? sp.accent : "blue"}
       field={(sp.field && FIELDS.has(sp.field) ? sp.field : "video") as ArtCategory}
       ctaAt={Number.isFinite(ctaAt) && ctaAt > 0 ? ctaAt : 16}
+      pageWidth={Number.isFinite(pw) && pw >= 320 && pw <= 430 ? pw : undefined}
       paused={sp.paused === "1"}
     />
   );

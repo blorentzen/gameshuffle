@@ -22,6 +22,7 @@ import type { BoardAnswer } from "@/lib/chatbrain/rules";
 import type { BoardRow } from "@/lib/weekly/store";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { DailiesInvite, DailiesNext, DailiesYours, sendReferralFinish } from "@/components/originals/Dailies";
+import { ShareButton } from "@/components/share/ShareButton";
 import { reportDaily } from "@/lib/originals/dailies";
 import { GS_TIME_ZONE } from "@/lib/time/gsClock";
 
@@ -224,6 +225,18 @@ export function WeeklyChallenge() {
       </section>
       )}
 
+      {/* Share it with a picture (src/components/share); Discord's Activity has its own sharing. */}
+      {answered && !activity && (
+        <span className="party-row">
+          <ShareButton
+            request={{ kind: "weekly" }}
+            text={(url) => `I answered this week's GameShuffle Weekly Challenge: "${c.title}". What would you say?\n${url}`}
+            game="weekly"
+            fallbackUrl="https://www.gameshuffle.co/weekly"
+            title="The Weekly Challenge"
+          />
+        </span>
+      )}
       {answered && (
         <div className="dailies-pair">
           <DailiesNext current="weekly" onPick={activity?.pickDaily} />

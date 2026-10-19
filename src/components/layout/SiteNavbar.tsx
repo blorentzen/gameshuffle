@@ -98,6 +98,8 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   { prefix: "/competitive/", notIds: new Set() },
   // A shared Chat Brain question (/chat-brain/q/<id>) opens on the same band.
   { prefix: "/chat-brain/q/", notIds: new Set() },
+  // A shared result (/r/<code>) opens on its game's band.
+  { prefix: "/r/", notIds: new Set() },
 ];
 
 function isHeroPath(pathname: string): boolean {

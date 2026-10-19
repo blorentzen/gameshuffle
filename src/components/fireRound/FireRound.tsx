@@ -18,10 +18,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Chip } from "@empac/cascadeds";
-import { IconCalendarEvent, IconCopy, IconFlameFilled, IconTrophy } from "@tabler/icons-react";
+import { IconCalendarEvent, IconFlameFilled, IconTrophy } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { DailyBoard, DailyBoardJoin, guestRequestId, storedGuestId, useDailyBoards } from "@/components/originals/DailyBoard";
 import { DailiesNextButton, DailiesShare, DailiesYours } from "@/components/originals/Dailies";
+import { ShareButton } from "@/components/share/ShareButton";
 import { DailyStartCard } from "@/components/originals/DailyStart";
 import { DailySteps } from "@/components/originals/DailyParade";
 import { EVENTS, track } from "@/lib/analytics/events";
@@ -206,6 +207,7 @@ export function FireRound() {
         place={run.mode === "daily" && run.counts ? today.day?.you?.place ?? null : null}
         players={today.day?.total ?? 0}
         signedIn={home.signedIn}
+        shareFor={(url) => fireShareText(run.result!.totals, { daily: run.mode === "daily", number: run.number, lengthLabel: LENGTHS[run.length].label, categoryLabel: run.categoryLabel, url })}
         onAgain={() => { setRun(null); start("free", { category: run.category, length: run.length }); }}
         onHome={() => setRun(null)}
         onCopy={() => {
@@ -298,8 +300,10 @@ function FireStart({ home, category, length, onCategory, onLength, onStart, boar
   );
 }
 
-function FireResults({ run, board, place, players, signedIn, onAgain, onHome, onCopy }: {
+function FireResults({ run, board, place, players, signedIn, shareFor, onAgain, onHome, onCopy }: {
   run: FireRunView; board: React.ReactNode; place: number | null; players: number; signedIn: boolean;
+  /** The score line ending in the link it's given (the card's, else /fire). */
+  shareFor: (url: string) => string;
   onAgain: () => void; onHome: () => void; onCopy: () => void;
 }) {
   const r = run.result!;
@@ -327,9 +331,10 @@ function FireResults({ run, board, place, players, signedIn, onAgain, onHome, on
         {!daily && r.newBest && <p className="fire-result__line"><IconTrophy size={18} aria-hidden />A new best for {run.categoryLabel.toLowerCase()}, {LENGTHS[run.length].label.toLowerCase()}{r.best !== null ? ` (was ${r.best.toLocaleString("en-US")})` : ""}</p>}
         {!daily && !r.newBest && r.best !== null && <p className="fire-small">Your best here: {r.best.toLocaleString("en-US")}.</p>}
         <div className="fire-today__actions">
+          {/* Share with a picture of the round (src/components/share); today's counting round joins the day card. */}
           {daily && run.counts
-            ? <DailiesShare current="fire" shareOne={onCopy} oneText="Copy my score" />
-            : <Button variant="primary" iconBefore={IconCopy} onClick={onCopy}>Copy my score</Button>}
+            ? <DailiesShare current="fire" shareOne={onCopy} oneText="Copy my score" one={{ request: { kind: "fire", fireRun: run.id }, text: shareFor, fallbackUrl: SHARE_URL }} />
+            : <ShareButton request={{ kind: "fire", fireRun: run.id }} text={shareFor} game="fire" fallbackUrl={SHARE_URL} title="My Fire Round" />}
           {daily ? <Button variant="secondary" onClick={onHome}>More rounds</Button> : <Button variant="secondary" onClick={onAgain}>Play again</Button>}
         </div>
         {!daily && <Button variant="ghost" size="small" onClick={onHome}>Change category or length</Button>}

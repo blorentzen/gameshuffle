@@ -8,7 +8,7 @@ import { DailyBoard, DailyBoardJoin, DailyScoreChips, guestRequestId, useDailyBo
 import { SupportNudge } from "@/components/support/SupportNudge";
 import { DailyHelpPanel, HelpWord, useDailyHelp } from "@/components/originals/DailyHelp";
 import { NO_HELP, type HelpCounts } from "@/lib/originals/dailyHelp";
-import { DailiesInvite, DailiesNextButton, DailiesShare, DailiesYours, sendReferralFinish, useDailies } from "@/components/originals/Dailies";
+import { DailiesInvite, DailiesNextButton, DailiesShare, DailiesYours, sendReferralFinish, useDailies, withLink } from "@/components/originals/Dailies";
 import { withReferral } from "@/lib/originals/referral";
 import { reportDaily, type DailiesEntry } from "@/lib/originals/dailies";
 import type { BoardRow, BoardView, ScoreResult, SolveTimes } from "@/lib/daily/boardTypes";
@@ -372,8 +372,12 @@ export function DailyShuffle() {
             </div>
           </div>
           <div className="daily-actions">
-            {hints.length > 0 && (
-              <DailiesShare current="shuffle" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} />
+            {(hints.length > 0 || (!activity && !!elsewhere)) && (
+              <DailiesShare current="shuffle" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} one={{
+                request: { kind: "shuffle", ...(guesses.length ? { shuffle: guesses } : {}) },
+                text: (url) => withLink(shareText(day, hints, solved, undefined, help, times.seconds), url),
+                fallbackUrl: withReferral("https://www.gameshuffle.co/daily", referral?.code),
+              }} />
             )}
             <DailiesNextButton current="shuffle" onPick={activity?.pickDaily} />
           </div>

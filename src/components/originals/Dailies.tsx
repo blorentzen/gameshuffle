@@ -21,6 +21,8 @@ import { DAILIES_GLYPHS, DailiesCards } from "@/components/originals/DailiesCard
 import { guestRequestId } from "@/components/originals/DailyBoard";
 import { OriginalsLink } from "@/components/originals/OriginalsHost";
 import { captureReferral, referralLink, storedReferral, updateReferral, withReferral, type StoredReferral } from "@/lib/originals/referral";
+import { ShareButton } from "@/components/share/ShareButton";
+import type { ShareRequest } from "@/lib/share/types";
 import type { ReferralGame, ReferralInfo } from "@/lib/referrals/types";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
@@ -234,18 +236,50 @@ export function DailiesNextButton({ current, onPick }: { current: DailiesId; onP
     : <Link href={g.href} onClick={go} className="dailies-next__link"><Button variant="secondary" iconAfter={IconArrowRight}>{label}</Button></Link>;
 }
 
+/** Today's guesses a daily saved in this browser (the day card judges them again on the server). */
+function localGuesses(key: string, day: string): string[] | undefined {
+  try {
+    const s = JSON.parse(localStorage.getItem(key) ?? "null") as { day?: string; guesses?: string[] } | null;
+    return s?.day === day && Array.isArray(s.guesses) && s.guesses.length ? s.guesses : undefined;
+  } catch {
+    return undefined;
+  }
+}
+/** A shared text with its last line (the link) swapped for the card's link. */
+export const withLink = (text: string, url: string) => [...text.split("\n").slice(0, -1), url].join("\n");
+
+/** One game's share, from its own page: the card request, its text (ending in the link it's given) and the plain link. */
+export interface ShareOne { request: ShareRequest; text: (url: string) => string; fallbackUrl: string }
+
 /**
- * The share buttons on an end screen. Once more than one daily is done today:
- * "Copy today's results" (a line per game) and "Copy just this one" (this
- * game's full grid). Otherwise the game's own single button, as before.
+ * The share buttons on an end screen. On the site (Britton's picks, 2026-10-19): one Share
+ * button with a picture of the result (src/components/share); once more than one daily is done
+ * today, "Share today's results" (the day card) and "Share just this one". Inside the Discord
+ * Activity, Discord's own share as before ("Share today's results" / "Share just this one").
  */
-export function DailiesShare({ current, shareOne, oneText }: { current: DailiesId; shareOne: () => void; oneText: string }) {
+export function DailiesShare({ current, shareOne, oneText, one }: { current: DailiesId; shareOne: () => void; oneText: string; one?: ShareOne }) {
   const toast = useToast();
   const { activity } = useOriginalsHost();
   const { shown, entries, referral } = useDailies(current);
   const ids = sharedToday(entries, shown);
   const combined = ids.length >= 2 && ids.includes(current);
   const verb = activity?.share ? "Share" : "Copy";
+  if (!activity && one) {
+    if (!combined) return <span className="party-row"><ShareButton request={one.request} text={one.text} game={current} fallbackUrl={one.fallbackUrl} /></span>;
+    const day = currentDay("shuffle");
+    const dayRequest: ShareRequest = {
+      kind: "day",
+      shuffle: current === "shuffle" ? one.request.shuffle : localGuesses("gs-daily-shuffle", day),
+      dex: current === "dex" ? one.request.dex : localGuesses("gs-daily-dex", day),
+    };
+    const dailyLink = withReferral("https://www.gameshuffle.co/daily", referral?.code);
+    return (
+      <span className="party-row">
+        <ShareButton request={dayRequest} text={(url) => withLink(combinedShareText(entries, shown), url)} game="day" fallbackUrl={dailyLink} label="Share today's results" title="My GameShuffle dailies" />
+        <ShareButton request={one.request} text={one.text} game={current} fallbackUrl={one.fallbackUrl} label="Share just this one" variant="secondary" />
+      </span>
+    );
+  }
   if (!combined) return <span className="party-row"><Button variant="primary" onClick={shareOne}>{oneText}</Button></span>;
 
   const shareAll = async () => {

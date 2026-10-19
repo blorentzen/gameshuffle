@@ -1,0 +1,19 @@
+/*
+ * Sharing a result (Britton's picks, 2026-10-19): the result page /r/<code> (the card, then
+ * Can you beat it?) and the share window (ShareWindow.tsx) where there's no share sheet.
+ */
+
+.share-result { display: grid; justify-items: center; gap: var(--spacing-20); max-width: 72rem; margin-inline: auto; text-align: center; }
+.share-result__card { width: 100%; max-width: 72rem; height: auto; aspect-ratio: 1200 / 630; border-radius: var(--radius-16, 16px); border: 1px solid var(--border-default); box-shadow: 0 1.2rem 3.2rem rgba(20, 10, 40, 0.18); background: #16133a; }
+.share-result__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--spacing-12) var(--spacing-20); }
+.share-result__more, .share-result__who a { font-weight: var(--font-weight-semibold, 600); }
+.share-result__who { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+
+/* The share window: the card, then a button per place. */
+.share-window { display: grid; gap: var(--spacing-16); }
+.share-window__card { width: 100%; height: auto; aspect-ratio: 1200 / 630; border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: #16133a; }
+.share-window__card--loading { display: grid; place-items: center; color: #fff; font-size: var(--font-size-14); }
+.share-window__places { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-8); }
+.share-window__places .empac-button { width: 100%; justify-content: center; }
+.share-window__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-12); }
+@media (max-width: 30rem) { .share-window__places { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

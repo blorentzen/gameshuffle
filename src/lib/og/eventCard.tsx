@@ -80,7 +80,7 @@ export async function coverArt(path: string | null | undefined): Promise<CardArt
 }
 
 /** Uploaded banners live on our own storage; nothing else is fetched. */
-function allowedImageHost(url: URL): boolean {
+export function allowedImageHost(url: URL): boolean {
   if (url.protocol !== "https:") return false;
   const hosts = new Set(["gs-ugc.empac.co", "cdn.empac.co"]);
   const r2 = process.env.R2_PUBLIC_BASE_URL ?? process.env.R2_PUBLIC_BASE;
