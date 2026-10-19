@@ -15,7 +15,7 @@ import { DiscordPlug } from "@/components/discord/DiscordPlug";
 import { HomeToday } from "@/components/home/HomeToday";
 import { HomeHost } from "@/components/home/HomeHost";
 import { PlansBand } from "@/components/home/PlansBand";
-import { SupportBand } from "@/components/home/SupportBand";
+import { paidPlansHere } from "@/lib/billing/availability";
 import { homeViewer } from "@/lib/home/viewer";
 import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
@@ -131,7 +131,7 @@ export default async function HomePage() {
   ];
   // Featured shop cards for the Pokémon section (read-only, 0 Scrydex credits;
   // FPO fallback inside the component if none configured).
-  const [shopCards, shopVisible, viewer] = await Promise.all([getPublicFeaturedShopCards(), shopVisibleToVisitors(), homeViewer().catch(() => null)]);
+  const [shopCards, shopVisible, viewer, paidHere] = await Promise.all([getPublicFeaturedShopCards(), shopVisibleToVisitors(), homeViewer().catch(() => null), paidPlansHere().catch(() => true)]);
   return (
     <>
       <script
@@ -188,7 +188,7 @@ export default async function HomePage() {
           <HomeHost next={viewer?.next ?? null} />
         </Container>
 
-        <PlansBand pro={!!viewer?.pro} circuit={!!viewer?.circuit} />
+        <PlansBand pro={!!viewer?.pro} circuit={!!viewer?.circuit} trialUsed={!!viewer?.trialUsed} supporter={!!viewer?.supporter} paidHere={paidHere} />
 
         <Container>
           <section className="home-section" aria-labelledby="home-tools-title">
@@ -241,7 +241,6 @@ export default async function HomePage() {
             </ul>
           </nav>
 
-          <SupportBand />
 
           <p className="home-ideas">Got an idea for GameShuffle? <Link href="/ideas">Share it on the Idea Board →</Link></p>
         </Container>

@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Avatar, Button, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs } from "@empac/cascadeds";
-import { IconBrandDiscordFilled } from "@tabler/icons-react";
+import { IconBrandDiscordFilled, IconHeartFilled } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { OriginalsLink, useOriginalsHost } from "@/components/originals/OriginalsHost";
@@ -223,7 +223,8 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
         <span className="daily-board__who">
           <PlayerAvatar name={r.name} src={pictures ? r.avatar ?? undefined : undefined} place={placeOf(r)} />
           {r.profile ? <OriginalsLink href={r.profile}>{r.you ? "You" : r.name}</OriginalsLink> : <span>{r.you ? "You" : r.name}</span>}
-          <span className="sr-only"> ({PLACES[placeOf(r)].said})</span>
+          {r.supporter && <IconHeartFilled size={13} className="daily-board__heart" aria-hidden="true" />}
+          <span className="sr-only"> ({PLACES[placeOf(r)].said}{r.supporter ? ", supports GameShuffle" : ""})</span>
         </span>
       </TableCell>
       <TableCell>{fire && day ? r.guesses : day ? <ResultDots guesses={r.guesses} points={r.points} main={main} /> : `${r.days} ${r.days === 1 ? "day" : "days"}`}</TableCell>

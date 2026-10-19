@@ -41,3 +41,50 @@
 .support-page__fine { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
 .support-thanks__lead { margin: 0; font-size: var(--font-size-18); line-height: 1.5; }
 .support-thanks__list { margin: 0; padding-inline-start: 2rem; display: grid; gap: var(--spacing-6, 6px); color: var(--text-secondary); }
+
+/* ── Support beside GS Pro (Britton's picks, 2026-10-19) ─────────────────────── */
+/* The heart tile: the site's gradient icon tile in Support's rose. */
+.support-tile { width: 4.4rem; height: 4.4rem; border-radius: var(--radius-12, 12px); display: inline-grid; place-items: center; flex: none; color: #fff;
+  background: linear-gradient(135deg, #e2457a, #a81e57); }
+.support-tile--small { width: 3.4rem; height: 3.4rem; border-radius: var(--radius-10, 10px); }
+/* After something fun finishes (SupportMoment): flat under a thin line, a prompt rather than a card. */
+.support-moment { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-12, 12px); align-items: start;
+  border-top: 1px solid var(--border-default); padding-top: var(--spacing-20, 20px); margin-top: var(--spacing-8, 8px); }
+.support-moment__body { display: grid; gap: var(--spacing-4, 4px); min-width: 0; }
+.support-moment__title { margin: 0; font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.support-moment__text { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.support-moment__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); margin-top: var(--spacing-8, 8px); }
+/* A supporter gets this instead of the ask. */
+.support-thanks { display: flex; align-items: center; gap: var(--spacing-6, 6px); margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--support-ink); }
+.support-thanks svg { flex: none; }
+/* Under a GS Pro wall's buttons (SupportInstead). */
+.support-instead { margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.support-instead a { font-weight: 600; color: var(--support-ink); display: inline-flex; align-items: center; gap: var(--spacing-4, 4px); }
+.support-instead a svg { flex: none; }
+/* GS Pro and Support side by side (BackingPair): same size, same weight. */
+.backing-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr)); gap: var(--spacing-16, 16px); }
+.backing-card { display: grid; gap: var(--spacing-8, 8px); align-content: start; }
+.backing-card > .empac-card__body, .backing-card .empac-card__content { display: grid; gap: var(--spacing-8, 8px); }
+.backing-tile { width: 4.4rem; height: 4.4rem; border-radius: var(--radius-12, 12px); display: inline-grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, #2f66ec, #5a3fd6); }
+.backing-card__tiles { display: flex; gap: var(--spacing-8, 8px); margin-bottom: var(--spacing-8, 8px); }
+.backing-card__name { margin: var(--spacing-4, 4px) 0 0; font-size: var(--font-size-20); line-height: 1.2; }
+.backing-card__price { margin: 0; font-size: var(--font-size-14); font-weight: 600; color: var(--brand-ink, #2b46c4); }
+.backing-card__price--support { color: var(--support-ink); }
+.backing-card__text { margin: 0; font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); max-width: 48ch; }
+.backing-card__cta { margin-top: var(--spacing-8, 8px); }
+.backing-card__goal { display: grid; gap: var(--spacing-6, 6px); margin-top: var(--spacing-8, 8px); font-size: var(--font-size-13, 1.3rem); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.backing-card__goal .empac-progress__label { display: none; }
+/* Account ▸ Support GameShuffle (SupportScreen). */
+.support-account__you { display: flex; gap: var(--spacing-12, 12px); align-items: center; }
+.support-account__you-text { display: grid; gap: var(--spacing-4, 4px); min-width: 0; }
+.support-account__you-title { margin: 0; font-size: var(--font-size-18); font-weight: 700; }
+.support-account__you-line { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.support-account__row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--spacing-12, 12px);
+  border-top: 1px solid var(--border-default); padding-top: var(--spacing-12, 12px); margin-top: var(--spacing-12, 12px); }
+.support-account__row p { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); min-width: 0; flex: 1 1 24rem; }
+.support-account__wall { display: grid; gap: var(--spacing-12, 12px); max-width: 56rem; }
+.support-account__give { max-width: 56rem; }
+/* The thank-you page's share (SupporterShare). */
+.support-thanks__share { display: grid; gap: var(--spacing-12, 12px); justify-items: start; padding: var(--spacing-16, 16px) 0; border-top: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); }
+.support-thanks__share p { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); }

@@ -33,6 +33,7 @@ import { CHOICE_POINTS, LENGTH_ORDER, LENGTHS, MIXED, TYPED_POINTS, fireShareTex
 import type { FireHome, FireOutcome, FireRunView } from "@/lib/fireRound/store";
 import { FirePlay, type FireMove } from "./FirePlay";
 import { FireGlyph } from "./fireIcons";
+import { SupportMoment } from "@/components/support/SupportMoment";
 
 type Home = FireHome & { signedIn: boolean };
 
@@ -352,6 +353,7 @@ function FireResults({ run, board, place, players, signedIn, shareFor, onAgain, 
           <p className="fire-next">Try another category, or <Link href="/trivia">host a trivia night</Link> for your group.</p>
         )}
       </section>
+      <SupportMoment from="fire" title="Enjoying Fire Round?" />
     </div>
   );
 }

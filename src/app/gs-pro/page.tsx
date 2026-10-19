@@ -28,6 +28,7 @@ import type { IconName } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
 import { PaidPlansWaitlist } from "@/components/billing/PaidPlansWaitlist";
+import { BackingPair } from "@/components/support/BackingPair";
 import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
@@ -542,11 +543,17 @@ export default function GsProPage() {
       </DarkBand>
 
       <Container>
+        {/* GS Pro and Support, the two ways to back GameShuffle, side by side (Britton's picks, 2026-10-19). */}
+        <section className="pricing-page__backing" aria-labelledby="backing-title">
+          <h2 id="backing-title" className="pricing-page__section-title">Two ways to back GameShuffle</h2>
+          <p className="pricing-page__backing-lede">GS Pro gets you tools. Support is for anyone who enjoys GameShuffle and wants to keep it going.</p>
+          <BackingPair from="gs-pro" proHref="#pricing" />
+        </section>
+
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="pricing-page__section-title">Common questions</h2>
           <FaqList items={FAQ_ITEMS} />
-          <p className="pricing-page__support">Don&apos;t need the features but want to help? <Link href="/support">Support GameShuffle</Link> once or monthly.</p>
         </section>
       </Container>
 

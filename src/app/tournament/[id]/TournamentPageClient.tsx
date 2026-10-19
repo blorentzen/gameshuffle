@@ -57,6 +57,7 @@ import { SwissPublicPanel } from "@/components/tournament/swiss/SwissPublicPanel
 import { DeckListPicker } from "@/components/tournament/decks/DeckListPicker";
 import { MyDeckListCard, PublicDeckLists } from "@/components/tournament/decks/TournamentDeckLists";
 import { deckListSettingsOf, deckListsOn, deckNeededToJoin } from "@/lib/tournaments/deckLists";
+import { SupportMoment } from "@/components/support/SupportMoment";
 
 export interface Tournament {
   id: string;
@@ -818,6 +819,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
 
           {/* After the event: the deck lists the organizer chose to share. */}
           {decksOn && tournament.status === "complete" && <PublicDeckLists tournamentId={tournamentId} signedIn={!!user} />}
+          {tournament.status === "complete" && <SupportMoment from="tournament" title="Enjoyed the tournament?" />}
 
           {/* Live "Now racing" — the tournament's own real-time board (works with
               or without a stream; rides the existing tournaments realtime sub). */}

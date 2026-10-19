@@ -17,6 +17,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { ensureAccountWallet, walletIdentityFor } from "@/lib/economy/accountWallet";
 import { createNotification } from "@/lib/social/notifications";
 import { accountAvatar, type AccountRow } from "@/lib/discord/faces";
+import { supportersAmong } from "@/lib/support/store";
 import { gsAddDays, gsDay, gsMonthStart, gsWeekStart } from "@/lib/time/gsClock";
 import {
   DEFAULT_LEVERS, GAME_LABEL, ordinal, parsePlayer, periodRange, playerKey, pointsFor, prizeFor, settlesOn,
@@ -220,7 +221,10 @@ export async function boardView(args: { game: BoardGame; period: BoardPeriod; da
     return empty;
   }
   const raw = (data ?? []) as RawRow[];
-  const names = await describe(raw);
+  const [names, supporters] = await Promise.all([
+    describe(raw),
+    supportersAmong(raw.filter((r) => r.player.startsWith("u:")).map((r) => r.player.slice(2))).catch(() => new Set<string>()),
+  ]);
   const levers = args.period === "day" ? null : await boardLevers();
   const toRow = (r: RawRow): BoardRow => ({
     place: Number(r.place),
@@ -231,6 +235,7 @@ export async function boardView(args: { game: BoardGame; period: BoardPeriod; da
     you: !!args.me && r.player === args.me,
     // Nobody on 0 points wins a prize (closePeriod skips them too).
     prize: levers && args.period !== "day" && Number(r.points) > 0 ? prizeFor(Number(r.place), args.period, levers) : 0,
+    supporter: r.player.startsWith("u:") && supporters.has(r.player.slice(2)),
   });
   const rows = raw.map(toRow);
   const limit = args.limit ?? 25;

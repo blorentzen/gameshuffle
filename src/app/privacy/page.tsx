@@ -62,7 +62,7 @@ const SECTIONS: LegalSection[] = [
           <ul>
             <li>If you subscribe to GameShuffle Pro, billing information including your name, billing address, and payment card information is collected and processed by Stripe. We do not store your full payment card number. Stripe handles all payment data directly.</li>
             <li>We store subscription status, plan tier, billing cycle, and trial usage history</li>
-            <li>If you support GameShuffle with a one-time or monthly payment, Stripe collects your name, email address, billing address and payment details in the same way. We store the amount, the date, whether it is monthly, your account if you were signed in, your billing country, and any name and short note you choose to show on our public supporters wall (shown only if you ask for it)</li>
+            <li>If you support GameShuffle with a one-time or monthly payment, Stripe collects your name, email address, billing address and payment details in the same way. We store the amount, the date, whether it is monthly, your account if you were signed in, your billing country, and any name and short note you choose to show on our public supporters wall (shown only if you ask for it). If you give without signing in, we also keep a one-way fingerprint (a hash) of the email address you paid with, never the address itself, so the support counts as yours if you later sign in with that same confirmed email</li>
           </ul>
           <p><strong>Contact form submissions:</strong></p>
           <ul>
@@ -131,7 +131,7 @@ const SECTIONS: LegalSection[] = [
           <li>Provide the features and functionality of the Service, including randomizers, tournament management, sessions, and competitive tools</li>
           <li>Draft text with the AI features you choose to use (see section 2.6)</li>
           <li>Process subscription payments and manage your GameShuffle Pro subscription if applicable</li>
-          <li>Process support payments, show the Supporter badge, and show the supporters wall entries you choose to share</li>
+          <li>Process support payments, show the Supporter badge (on your profile and as a small heart beside your name on daily leaderboards), make the supporter card you choose to share, and show the supporters wall entries you choose to share</li>
           <li>Authenticate your identity and keep your account secure</li>
           <li>Display your profile information to other users where you have chosen to make it public</li>
           <li>Manage third-party platform integrations (such as Twitch and Discord) on your behalf, including maintaining authenticated connections, executing bot commands you&apos;ve configured, and managing real-time event subscriptions</li>
@@ -430,7 +430,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       intro="What we collect, how we use it, who we share it with, and your rights."
-      effectiveDate="October 18, 2026"
+      effectiveDate="October 19, 2026"
       sections={SECTIONS}
       current="privacy"
     />

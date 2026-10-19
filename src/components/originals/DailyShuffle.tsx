@@ -5,7 +5,7 @@ import { Accordion, Alert, Badge, Button, Table, TableBody, TableCell, TableHead
 import { useToast } from "@/components/toast/ToastProvider";
 import { DailyParade, DailySteps } from "@/components/originals/DailyParade";
 import { DailyBoard, DailyBoardJoin, DailyScoreChips, guestRequestId, useDailyBoards } from "@/components/originals/DailyBoard";
-import { SupportNudge } from "@/components/support/SupportNudge";
+import { SupportMoment } from "@/components/support/SupportMoment";
 import { DailyHelpPanel, HelpWord, useDailyHelp } from "@/components/originals/DailyHelp";
 import { NO_HELP, type HelpCounts } from "@/lib/originals/dailyHelp";
 import { DailiesInvite, DailiesNextButton, DailiesShare, DailiesYours, sendReferralFinish, useDailies, withLink } from "@/components/originals/Dailies";
@@ -424,7 +424,7 @@ export function DailyShuffle() {
           </>
         ),
       }]} />
-      {over && <SupportNudge from="daily" />}
+      {over && <SupportMoment from="daily" title="Enjoying the dailies?" />}
     </div>
   );
 }

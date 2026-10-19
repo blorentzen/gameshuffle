@@ -25,6 +25,7 @@ import { DailiesInvite, DailiesNext, DailiesYours, sendReferralFinish } from "@/
 import { ShareButton } from "@/components/share/ShareButton";
 import { reportDaily } from "@/lib/originals/dailies";
 import { GS_TIME_ZONE } from "@/lib/time/gsClock";
+import { SupportMoment } from "@/components/support/SupportMoment";
 
 type Ballot = Record<string, number>;
 
@@ -244,6 +245,7 @@ export function WeeklyChallenge() {
         </div>
       )}
       {answered && <DailiesYours current="weekly" />}
+      {answered && <SupportMoment from="weekly" title="Enjoying the Weekly?" />}
 
       {(!data.signedIn || (c.kind === "survey" ? c.myPredictions : c.myBallot)) && (activity
         ? activity.showTab && <span className="party-row"><Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button></span>

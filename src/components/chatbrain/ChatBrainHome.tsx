@@ -30,6 +30,7 @@ import { AudienceStep, useAudienceStep } from "@/components/chatbrain/AudienceSt
 import { brainAnonId } from "@/lib/chatbrain/anon";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { FOUNDING_BRAIN_ANSWERS, sameLine } from "@/lib/chatbrain/rules";
+import { SupportMoment } from "@/components/support/SupportMoment";
 
 interface Category { slug: string; name: string; description: string | null; openPrompts: number }
 interface Prompt { id: string; text: string; category: string; minAnswers: number; answers: number; answered: boolean }
@@ -214,6 +215,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
                   })}
                 </ul>
               )}
+              {Object.keys(said).length > 0 && <SupportMoment from="chat-brain" title="Enjoying Chat Brain?" />}
               <p className="chat-brain__fine">Answers are anonymous and only ever shown grouped with everyone else&apos;s, after review.</p>
             </>
           )}

@@ -29,8 +29,9 @@ import { getEntry, getWeek } from "@/lib/weekly/store";
 import { accountAvatar, type AccountRow } from "@/lib/discord/faces";
 import { BRAND_THEMES } from "@/lib/theme/brand";
 import { codeFor } from "@/lib/referrals/store";
+import { supporterInfo } from "@/lib/support/store";
 import { SITE_URL } from "@/lib/seo";
-import { shareAlt, type FirePart, type PuzzlePart, type ShareBackground, type ShareCell, type ShareData, type ShareKind, type ShareMade, type SharePart, type SharePlayer, type ShareRequest, type WeeklyPart } from "./types";
+import { shareAlt, type FirePart, type PuzzlePart, type ShareBackground, type ShareCell, type ShareData, type ShareKind, type ShareMade, type SharePart, type SharePlayer, type ShareRequest, type SupporterPart, type WeeklyPart } from "./types";
 
 type DbError = { code?: string; message?: string } | null;
 const missing = (e: DbError) => !!e && (["42P01", "PGRST205"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
@@ -167,10 +168,28 @@ async function who(key: string): Promise<{ player: SharePlayer | null; backgroun
 const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 const newCode = () => Array.from({ length: 7 }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
 
+/**
+ * A supporter's card: an account that supports GameShuffle now, or (from the thank-you page) the
+ * paid Checkout session of a gift made signed out. Since when and whether monthly; never an amount.
+ */
+async function supporterPart(key: string, session: string | undefined): Promise<SupporterPart | null> {
+  const p = parsePlayer(key);
+  if (p?.kind === "u") {
+    const info = await supporterInfo(p.id).catch(() => null);
+    if (info?.supporter && info.since) return { kind: "supporter", since: info.since, monthly: !!info.monthly };
+  }
+  if (session && /^cs_[A-Za-z0-9_]{10,200}$/.test(session)) {
+    const { data } = await createServiceClient().from("support_gifts").select("paid_at, kind, status").eq("checkout_session_id", session).maybeSingle();
+    const g = data as { paid_at: string; kind: string; status: string } | null;
+    if (g?.status === "paid") return { kind: "supporter", since: g.paid_at, monthly: g.kind === "monthly" };
+  }
+  return null;
+}
+
 /** Makes (or refreshes) this player's card for a request and returns its link. */
 export async function makeShare(key: string, req: ShareRequest): Promise<ShareMade | ShareError> {
   const kind = req.kind;
-  if (!["shuffle", "dex", "fire", "weekly", "day"].includes(kind)) return "bad_request";
+  if (!["shuffle", "dex", "fire", "weekly", "day", "supporter"].includes(kind)) return "bad_request";
   const day = dayKey();
   const parts: SharePart[] = [];
   let ref = "";
@@ -185,6 +204,12 @@ export async function makeShare(key: string, req: ShareRequest): Promise<ShareMa
     if (!part) return "no_result";
     parts.push(part);
     ref = part.daily ? "" : runId ?? "";
+  } else if (kind === "supporter") {
+    const part = await supporterPart(key, req.session);
+    if (!part) return "no_result";
+    parts.push(part);
+    // A gift made signed out gets its own card per gift.
+    ref = parsePlayer(key)?.kind === "u" ? "" : (req.session ?? "");
   } else if (kind === "weekly") {
     const part = await weeklyPart(key);
     if (!part) return "no_result";
@@ -203,7 +228,9 @@ export async function makeShare(key: string, req: ShareRequest): Promise<ShareMa
     if (parts.length < 2) return "no_result";
   }
 
-  const { player, background, referral } = await who(key);
+  const found = await who(key);
+  // A supporter card from a signed-out gift never carries a guest's leaderboard name.
+  const { player, background, referral } = kind === "supporter" && parsePlayer(key)?.kind !== "u" ? { player: null, background: null, referral: null } : found;
   const data: ShareData = { v: 1, kind, day, player, background, parts, referral };
   const svc = createServiceClient();
   const { data: had, error } = await svc.from("gs_share_cards").select("code").eq("player", key).eq("kind", kind).eq("day", day).eq("ref", ref).maybeSingle();

@@ -47,6 +47,7 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { shopVisibleToVisitors } from "@/lib/store/visibility";
 import { ShopLine } from "@/components/store/ShopEntry";
+import { TrialNote } from "@/components/billing/TrialNote";
 
 /**
  * GameShuffle TCG hub (`/pokemon-tcg`) — dual-purpose brand page: sells
@@ -373,7 +374,7 @@ export default async function Page() {
           </div>
 
           <p className="tcg-companion__pro">
-            Playing on a call? <Link href="/gs-pro">Play together on two phones with GS Pro</Link>, free for 14 days.
+            Playing on a call? <Link href="/gs-pro">Play together on two phones with GS Pro</Link><TrialNote trial=", free for 14 days." otherwise="." outside=", in the US for now." />
           </p>
 
           <CompanionCTAs

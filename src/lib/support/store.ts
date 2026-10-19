@@ -14,6 +14,7 @@
  */
 
 import "server-only";
+import { createHash } from "node:crypto";
 import type Stripe from "stripe";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe/client";
@@ -27,6 +28,16 @@ import { SUPPORTER_BADGE_DAYS, WALL_NAME_MAX, WALL_NOTE_MAX, amountProblem, doll
 
 type DbError = { code?: string; message?: string } | null;
 export const supportMissing = (e: DbError) => !!e && (["42P01", "PGRST205"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
+
+/**
+ * The paying email, hashed (sha256 of the lowercased address). Kept on a gift made while signed out
+ * so it counts once someone signs in with the same confirmed email (Britton's pick, 2026-10-19);
+ * the address itself is never stored.
+ */
+export function emailHash(email: string | null | undefined): string | null {
+  const e = (email ?? "").trim().toLowerCase();
+  return e.includes("@") ? createHash("sha256").update(e).digest("hex") : null;
+}
 
 /** A wall name or note that passes the word filter and doesn't pass as GameShuffle. */
 function wallText(raw: unknown, max: number, name = false): string | null {
@@ -177,7 +188,7 @@ const meta = (m: Stripe.Metadata | null | undefined) => ({
   showOnWall: m?.show_on_wall === "1",
 });
 
-async function thank(userId: string | null, email: string | null, name: string | null, cents: number, monthly: boolean, onWall: boolean) {
+async function thank(userId: string | null, email: string | null, name: string | null, cents: number, monthly: boolean, onWall: boolean, sessionId: string) {
   let to = email;
   let greet = name;
   if (userId) {
@@ -187,7 +198,8 @@ async function thank(userId: string | null, email: string | null, name: string |
     const { data: row } = await admin.from("users").select("display_name").eq("id", userId).maybeSingle();
     greet = (row?.display_name as string | null) ?? greet;
   }
-  if (to) await sendSupportThanksEmail({ to, name: greet, amount: dollars(cents), monthly, onWall }).catch((e) => console.error("[support] thanks email failed:", e));
+  const shareUrl = userId ? "https://www.gameshuffle.co/account?tab=support" : `https://www.gameshuffle.co/support/thanks?session_id=${encodeURIComponent(sessionId)}`;
+  if (to) await sendSupportThanksEmail({ to, name: greet, amount: dollars(cents), monthly, onWall, shareUrl }).catch((e) => console.error("[support] thanks email failed:", e));
 }
 
 /**
@@ -210,14 +222,18 @@ export async function fulfilSupportSession(sessionId: string): Promise<{ ok: boo
 
   if (kind === "once") {
     const intent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null;
-    const { data, error } = await admin.from("support_gifts").upsert({
+    const row = {
       kind, amount_cents: cents, currency: session.currency ?? "usd", user_id: m.userId, checkout_session_id: session.id,
       stripe_payment_intent: intent, stripe_customer_id: customerId, country: session.customer_details?.address?.country ?? null,
       wall_name: m.wallName, wall_note: m.wallNote, show_on_wall: m.showOnWall,
-    }, { onConflict: "checkout_session_id", ignoreDuplicates: true }).select("id");
+    };
+    const save = (r: Record<string, unknown>) => admin.from("support_gifts").upsert(r, { onConflict: "checkout_session_id", ignoreDuplicates: true }).select("id");
+    let { data, error } = await save(m.userId ? row : { ...row, email_hash: emailHash(session.customer_details?.email) });
+    // Before support-m2.sql there's no email_hash column: save the gift without it rather than fail the webhook.
+    if (error && ["PGRST204", "42703"].includes(error.code ?? "")) ({ data, error } = await save(row));
     // A failed save throws so Stripe retries the webhook; before the migration there's nowhere to save.
     if (error) { if (supportMissing(error)) return { ok: true, kind, cents }; throw new Error(`support gift save failed: ${error.message}`); }
-    if (data?.length) await thank(m.userId, session.customer_details?.email ?? null, session.customer_details?.name ?? null, cents, false, m.showOnWall);
+    if (data?.length) await thank(m.userId, session.customer_details?.email ?? null, session.customer_details?.name ?? null, cents, false, m.showOnWall, session.id);
     return { ok: true, kind, cents, onWall: m.showOnWall };
   }
 
@@ -225,7 +241,7 @@ export async function fulfilSupportSession(sessionId: string): Promise<{ ok: boo
   if (subId) {
     const sub = await stripe.subscriptions.retrieve(subId);
     const created = await recordSupportSubscription(sub);
-    if (created) await thank(m.userId, session.customer_details?.email ?? null, session.customer_details?.name ?? null, cents, true, m.showOnWall);
+    if (created) await thank(m.userId, session.customer_details?.email ?? null, session.customer_details?.name ?? null, cents, true, m.showOnWall, session.id);
   }
   return { ok: true, kind, cents, onWall: m.showOnWall };
 }
@@ -339,6 +355,95 @@ export async function isSupporter(userId: string): Promise<boolean> {
     admin.from("support_subscriptions").select("stripe_subscription_id").eq("user_id", userId).in("status", ["active", "trialing", "past_due"]).limit(1),
   ]);
   return !!(g.data?.length || s.data?.length);
+}
+
+/**
+ * Gifts made while signed out with this account's confirmed email become the account's, so the
+ * badge, Account ▸ Support and the asks know about them. Returns how many were claimed.
+ */
+export async function claimSupportGifts(userId: string, email: string | null | undefined): Promise<number> {
+  const hash = emailHash(email);
+  if (!hash) return 0;
+  const { data, error } = await createServiceClient().from("support_gifts").update({ user_id: userId }).is("user_id", null).eq("email_hash", hash).select("id");
+  if (error) { if (!supportMissing(error) && error.code !== "42703") console.error("[support] claim failed:", error); return 0; }
+  return data?.length ?? 0;
+}
+
+const LIVE_MONTHLY = ["active", "trialing", "past_due"];
+
+/** Which of these accounts are supporters right now (for the heart on leaderboards). */
+export async function supportersAmong(userIds: string[]): Promise<Set<string>> {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (!ids.length) return new Set();
+  const admin = createServiceClient();
+  const since = new Date(Date.now() - SUPPORTER_BADGE_DAYS * 86_400_000).toISOString();
+  const [g, s] = await Promise.all([
+    admin.from("support_gifts").select("user_id").in("user_id", ids).eq("status", "paid").gte("paid_at", since),
+    admin.from("support_subscriptions").select("user_id").in("user_id", ids).in("status", LIVE_MONTHLY),
+  ]);
+  return new Set([...(g.data ?? []), ...(s.data ?? [])].map((r) => (r as { user_id: string | null }).user_id).filter((x): x is string => !!x));
+}
+
+export interface MyGift { kind: SupportKind; cents: number; paidAt: string; refunded: boolean }
+export interface SupporterInfo {
+  supporter: boolean;
+  /** The first time they gave (ISO), for "Supporter since". */
+  since: string | null;
+  /** When a one-time supporter's badge ends (null while monthly support is on). */
+  badgeUntil: string | null;
+  monthly: { amountCents: number; status: string; cancelAtPeriodEnd: boolean; renewsAt: string | null } | null;
+  gifts: MyGift[];
+  wall: { name: string | null; note: string | null; show: boolean };
+}
+
+/** Everything Account ▸ Support shows about an account's support. */
+export async function supporterInfo(userId: string): Promise<SupporterInfo | null> {
+  const admin = createServiceClient();
+  const [g, s] = await Promise.all([
+    admin.from("support_gifts").select("kind, amount_cents, paid_at, status, wall_name, wall_note, show_on_wall").eq("user_id", userId).order("paid_at", { ascending: false }).limit(200),
+    admin.from("support_subscriptions").select("amount_cents, status, cancel_at_period_end, current_period_end, created_at, wall_name, wall_note, show_on_wall").eq("user_id", userId).order("created_at", { ascending: false }),
+  ]);
+  if (g.error && supportMissing(g.error)) return null;
+  type G = { kind: SupportKind; amount_cents: number; paid_at: string; status: string; wall_name: string | null; wall_note: string | null; show_on_wall: boolean };
+  type S = { amount_cents: number; status: string; cancel_at_period_end: boolean; current_period_end: string | null; created_at: string; wall_name: string | null; wall_note: string | null; show_on_wall: boolean };
+  const gifts = (g.data ?? []) as G[];
+  const subs = (s.data ?? []) as S[];
+  const paid = gifts.filter((x) => x.status === "paid");
+  const live = subs.find((x) => LIVE_MONTHLY.includes(x.status)) ?? null;
+  // The badge lasts a year from the last payment (one-time, or a month of support that has since stopped).
+  const lastPaid = paid[0] ?? null;
+  const yearAgo = Date.now() - SUPPORTER_BADGE_DAYS * 86_400_000;
+  const recent = paid.some((x) => Date.parse(x.paid_at) >= yearAgo);
+  const firsts = [...paid.map((x) => x.paid_at), ...subs.map((x) => x.created_at)].sort();
+  const latestWall = [...gifts, ...subs].find((x) => x.wall_name) ?? null;
+  return {
+    supporter: !!live || recent,
+    since: firsts[0] ?? null,
+    badgeUntil: live || !lastPaid ? null : new Date(Date.parse(lastPaid.paid_at) + SUPPORTER_BADGE_DAYS * 86_400_000).toISOString(),
+    monthly: live ? { amountCents: live.amount_cents, status: live.status, cancelAtPeriodEnd: live.cancel_at_period_end, renewsAt: live.current_period_end } : null,
+    gifts: gifts.map((x) => ({ kind: x.kind, cents: x.amount_cents, paidAt: x.paid_at, refunded: x.status !== "paid" })),
+    wall: { name: latestWall?.wall_name ?? null, note: latestWall?.wall_note ?? null, show: [...gifts, ...subs].some((x) => x.show_on_wall && x.wall_name) },
+  };
+}
+
+export type WallSave = { ok: true } | { ok: false; error: "name_needed" | "not_allowed" | "failed" };
+
+/** An account's place on the wall: one name and note across all their support, shown or not. */
+export async function saveMyWall(userId: string, input: { name: unknown; note: unknown; show: boolean }): Promise<WallSave> {
+  const rawName = tidyWall(input.name, WALL_NAME_MAX);
+  const name = wallText(input.name, WALL_NAME_MAX, true);
+  if (rawName && !name) return { ok: false, error: "not_allowed" };
+  const rawNote = tidyWall(input.note, WALL_NOTE_MAX);
+  const note = wallText(input.note, WALL_NOTE_MAX);
+  if (rawNote && !note) return { ok: false, error: "not_allowed" };
+  if (input.show && !name) return { ok: false, error: "name_needed" };
+  const row = { wall_name: name, wall_note: note, show_on_wall: input.show && !!name };
+  const admin = createServiceClient();
+  const [a, b] = await Promise.all([
+    admin.from("support_gifts").update(row).eq("user_id", userId),
+    admin.from("support_subscriptions").update({ ...row, updated_at: new Date().toISOString() }).eq("user_id", userId),
+  ]);
+  return a.error || b.error ? { ok: false, error: "failed" } : { ok: true };
 }
 
 /** An account's monthly support, for Plans & billing. */

@@ -17,6 +17,7 @@ import { Standings } from "./TriviaConsole";
 import { TriviaJoinChoices, type JoinedTeam } from "./TriviaJoinChoices";
 import type { TeamView } from "@/lib/trivia/store";
 import "@/styles/trivia.css";
+import { SupportMoment } from "@/components/support/SupportMoment";
 
 const POLL_MS = 2500;
 const storeKey = (code: string) => `gs-trivia-team:${code}`;
@@ -262,6 +263,7 @@ export function TriviaPhone({ code }: { code: string }) {
             <Standings rows={view.standings} />
           </div>
         )}
+        {view.phase === "done" && <SupportMoment from="trivia" title="Fun night?" />}
 
         {view.phase !== "done" && <Button variant="ghost" size="small" onClick={() => void shareTeam()}>Add a teammate&apos;s phone</Button>}
       </div>

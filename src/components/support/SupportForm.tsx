@@ -4,24 +4,32 @@
  * The give form on /support (Britton's picks, 2026-10-16): once or monthly,
  * $3 / $5 / $10 / $25 or any other amount, an optional name and note for the
  * supporters wall, then Stripe Checkout (/api/support/checkout). Monthly needs
- * an account so it can be managed in Plans & billing. Outside the US the form
- * says support is open in the US for now. A Turnstile check comes before
+ * an account so it can be managed from Account ▸ Support. Outside the US the form
+ * becomes the waitlist (support is US only for now). A Turnstile check comes before
  * checkout, so bots can't use the page to test stolen cards.
  */
 
 import { useEffect, useState } from "react";
 import { Alert, Button, Checkbox, Input, Tabs, Textarea } from "@empac/cascadeds";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { PaidPlansWaitlist } from "@/components/billing/PaidPlansWaitlist";
+import { useSupportStatus } from "@/components/support/useSupportStatus";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { SUPPORT_AMOUNTS, SUPPORT_DEFAULT, WALL_NAME_MAX, WALL_NOTE_MAX, amountProblem, centsFromInput, dollars, type SupportKind } from "@/lib/support/rules";
 
 /** The check only shows (and is only required) where a Turnstile site key is set. */
 const CAPTCHA_ON = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
-interface Status { available: boolean; signedIn: boolean; supporter: boolean; pro: boolean }
-
-export function SupportForm({ canceled }: { canceled: boolean }) {
-  const [status, setStatus] = useState<Status | null>(null);
+export function SupportForm({ canceled = false, back = "/support", thanks = true, wall }: {
+  canceled?: boolean;
+  /** Where "Sign in to give monthly" comes back to. */
+  back?: string;
+  /** The "You're a supporter" note (Account ▸ Support shows its own). */
+  thanks?: boolean;
+  /** A supporter's saved wall settings: the form leaves out its wall fields and sends these (Account ▸ Support). */
+  wall?: { name: string | null; note: string | null; show: boolean };
+}) {
+  const status = useSupportStatus();
   const [kind, setKind] = useState<SupportKind>("once");
   const [preset, setPreset] = useState<number | null>(SUPPORT_DEFAULT);
   const [other, setOther] = useState("");
@@ -33,11 +41,14 @@ export function SupportForm({ canceled }: { canceled: boolean }) {
   const [captcha, setCaptcha] = useState<string | null>(null);
   const [captchaRound, setCaptchaRound] = useState(0);
 
+  // Signed in: their display name starts as the wall name (they can change or clear it).
+  const [named, setNamed] = useState(false);
   useEffect(() => {
-    let alive = true;
-    void fetch("/api/support/status").then((r) => (r.ok ? r.json() : null)).then((s: Status | null) => { if (alive && s) setStatus(s); }).catch(() => { /* the form still works */ });
-    return () => { alive = false; };
-  }, []);
+    if (named || !status?.name) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- filled once, when the status arrives
+    setName((n) => n || status.name!.slice(0, WALL_NAME_MAX));
+    setNamed(true);
+  }, [status, named]);
 
   const cents = preset ?? centsFromInput(other);
   const problem = preset ? null : other.trim() ? amountProblem(cents) : null;
@@ -51,7 +62,9 @@ export function SupportForm({ canceled }: { canceled: boolean }) {
     setError(null);
     const res = await fetch("/api/support/checkout", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, cents, wallName: name, wallNote: note, showOnWall: onWall && !!name.trim(), turnstileToken: captcha }),
+      body: JSON.stringify(wall
+        ? { kind, cents, wallName: wall.name ?? "", wallNote: wall.note ?? "", showOnWall: wall.show && !!wall.name, turnstileToken: captcha }
+        : { kind, cents, wallName: name, wallNote: note, showOnWall: onWall && !!name.trim(), turnstileToken: captcha }),
     }).catch(() => null);
     const body = res ? ((await res.json().catch(() => ({}))) as { url?: string; error?: string; message?: string }) : null;
     if (res?.ok && body?.url) {
@@ -65,17 +78,11 @@ export function SupportForm({ canceled }: { canceled: boolean }) {
     setError(body?.message ?? (body?.error === "sign_in" ? "Sign in to give monthly." : body?.error === "captcha" ? "The quick check didn't go through. Try it again." : "Couldn't open checkout. Try again in a moment."));
   };
 
-  if (status && !status.available) {
-    return (
-      <Alert variant="info" title="Support is open in the US for now">
-        Thank you for wanting to help. We&apos;ll open support in more countries soon; until then, playing and sharing GameShuffle helps just as much.
-      </Alert>
-    );
-  }
+  if (status && !status.available) return <PaidPlansWaitlist product="support" />;
 
   return (
     <form className="support-form" onSubmit={(e) => { e.preventDefault(); void give(); }}>
-      {status?.supporter && <Alert variant="success" title="You're a supporter">Thank you for keeping GameShuffle running. You can give again any time.</Alert>}
+      {thanks && status?.supporter && <Alert variant="success" title="You're a supporter">Thank you for keeping GameShuffle running. You can give again any time.</Alert>}
       {canceled && <p className="support-form__note">No payment was made. You can try again whenever you like.</p>}
       <Tabs
         variant="pills"
@@ -102,11 +109,15 @@ export function SupportForm({ canceled }: { canceled: boolean }) {
         variant={problem ? "error" : "default"}
       />
       {problem && <p className="support-form__error">{problem}</p>}
-      <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name for the supporters wall (optional)" aria-label="Your name for the supporters wall" maxLength={WALL_NAME_MAX} />
-      <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note (optional)" aria-label="A short note for the supporters wall" maxLength={WALL_NOTE_MAX} rows={2} />
-      <Checkbox checked={onWall && !!name.trim()} onChange={(e) => setOnWall(e.target.checked)} label="Show my name and note on the supporters wall" disabled={!name.trim()} helperText={name.trim() ? undefined : "Add a name to go on the wall."} />
+      {!wall && (
+        <>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name for the supporters wall (optional)" aria-label="Your name for the supporters wall" maxLength={WALL_NAME_MAX} />
+          <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note (optional)" aria-label="A short note for the supporters wall" maxLength={WALL_NOTE_MAX} rows={2} />
+          <Checkbox checked={onWall && !!name.trim()} onChange={(e) => setOnWall(e.target.checked)} label="Show my name and note on the supporters wall" disabled={!name.trim()} helperText={name.trim() ? undefined : "Add a name to go on the wall."} />
+        </>
+      )}
       {needsSignIn ? (
-        <Button type="button" variant="primary" onClick={() => { window.location.href = "/login?redirect=/support"; }}>Sign in to give monthly</Button>
+        <Button type="button" variant="primary" onClick={() => { window.location.href = `/login?redirect=${encodeURIComponent(back)}`; }}>Sign in to give monthly</Button>
       ) : (
         <>
           <TurnstileWidget onToken={setCaptcha} size="flexible" resetKey={captchaRound} />
@@ -117,7 +128,7 @@ export function SupportForm({ canceled }: { canceled: boolean }) {
       )}
       {error && <p className="support-form__error" role="alert">{error}</p>}
       <p className="support-form__fine">
-        GameShuffle isn&apos;t a charity, so support isn&apos;t tax-deductible. {kind === "monthly" ? "Change or stop monthly support any time from Plans & billing. " : ""}Support is processed by Empac, the studio behind GameShuffle.
+        GameShuffle isn&apos;t a charity, so support isn&apos;t tax-deductible. {kind === "monthly" ? "Change or stop monthly support any time from Account ▸ Support. " : ""}Support is processed by Empac, the studio behind GameShuffle.
       </p>
     </form>
   );

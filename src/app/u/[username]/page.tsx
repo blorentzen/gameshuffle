@@ -62,7 +62,8 @@ import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
 import { headers } from "next/headers";
 import { getInventory } from "@/lib/economy/arcade";
 import { ARCADE_ITEM_BY_ID, resolveNameColor } from "@/data/arcade-items";
-import { IconDeviceGamepad2, IconMessageCircle, IconMusic, IconPin } from "@tabler/icons-react";
+import { IconDeviceGamepad2, IconHeart, IconMessageCircle, IconMusic, IconPin } from "@tabler/icons-react";
+import { SupporterBadge } from "@/components/support/SupporterBadge";
 
 export async function generateMetadata({
   params,
@@ -377,7 +378,10 @@ export default async function PublicProfilePage({
   }
 
   // Supports GameShuffle (once in the last year, or monthly).
-  if (enrichment.supporter) badges.push({ key: "supporter", label: "Supporter", href: "/support" });
+  const supporterLabel = enrichment.supporterSince
+    ? `Supporter since ${new Date(enrichment.supporterSince).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Los_Angeles" })}`
+    : "Supporter";
+  if (enrichment.supporter) badges.push({ key: "supporter", label: supporterLabel, href: "/support" });
 
   // Weekly Challenge: a top-10 week (the count shows once there's more than one).
   if (enrichment.weeklyTopTen) {
@@ -719,7 +723,7 @@ export default async function PublicProfilePage({
       <Container>
         <div className={`profile-shell${customCss ? ` ${CUSTOM_CSS_SCOPE}` : ""}`}>
           <header className="profile-hero">
-            <span className="profile-hero__avatar">
+            <span className={`profile-hero__avatar${enrichment.supporter ? " profile-hero__avatar--supporter" : ""}`}>
               <UserAvatar
                 user={{
                   id: profile.id as string,
@@ -733,6 +737,7 @@ export default async function PublicProfilePage({
                 alt={displayName}
               />
               <LivePresenceDot userId={profile.id as string} fallback={enrichment.isOnline} className="profile-online-dot" />
+              {enrichment.supporter && <span className="profile-hero__heart" aria-hidden="true"><IconHeart size={14} stroke={2.5} /></span>}
             </span>
             <div className="profile-hero__meta">
               <h1 className="profile-hero__name">
@@ -767,7 +772,10 @@ export default async function PublicProfilePage({
               {badges.length > 0 && (
                 <div className="profile-badges">
                   {badges.map((b) =>
-                    b.href ? (
+                    // Your own Supporter badge shares your supporter card.
+                    b.key === "supporter" && viewer?.id === profile.id ? (
+                      <SupporterBadge key={b.key} label={b.label} />
+                    ) : b.href ? (
                       <a key={b.key} href={b.href} className={`profile-badge profile-badge--${b.key}`}>{b.label}</a>
                     ) : (
                       <span key={b.key} className={`profile-badge profile-badge--${b.key}`}>{b.label}</span>

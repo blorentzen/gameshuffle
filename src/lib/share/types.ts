@@ -9,7 +9,7 @@
  * never the answer.
  */
 
-export type ShareKind = "shuffle" | "dex" | "fire" | "weekly" | "day";
+export type ShareKind = "shuffle" | "dex" | "fire" | "weekly" | "day" | "supporter";
 export type ShareCell = "match" | "close" | "miss";
 
 /** Who's on the card: an account with a public profile, or a guest's leaderboard name. Null = the guest card with no name. */
@@ -64,7 +64,15 @@ export interface WeeklyPart {
   title: string;
 }
 
-export type SharePart = PuzzlePart | FirePart | WeeklyPart;
+/** A supporter's card (picks 2026-10-19): since when, and whether monthly. Never an amount. */
+export interface SupporterPart {
+  kind: "supporter";
+  /** The first time they gave (ISO). */
+  since: string;
+  monthly: boolean;
+}
+
+export type SharePart = PuzzlePart | FirePart | WeeklyPart | SupporterPart;
 
 export interface ShareData {
   v: 1;
@@ -83,6 +91,8 @@ export interface ShareRequest {
   shuffle?: string[];
   dex?: string[];
   fireRun?: string;
+  /** Supporter card for someone who gave signed out: the Checkout session from the thank-you page. */
+  session?: string;
 }
 
 /** POST /api/share's answer. */
@@ -137,8 +147,15 @@ export function puzzleVibe(p: PuzzlePart): string {
   return VIBES[Math.min(VIBES.length - 1, p.guesses - 1)];
 }
 
+/** "Supporter since October 2026" / "Monthly supporter since October 2026". */
+export function supporterSince(p: SupporterPart): string {
+  const when = new Date(p.since).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "America/Los_Angeles" });
+  return `${p.monthly ? "Monthly supporter" : "Supporter"} since ${when}`;
+}
+
 /** The card's game line: "The Daily Shuffle #22", "Fire Round #1", "Fire Round · Geography, 3 minutes". */
 export function partTitle(p: SharePart): string {
+  if (p.kind === "supporter") return "Supporter";
   if (p.kind === "fire") return p.daily ? `Fire Round${p.number >= 1 ? ` #${p.number}` : ""}` : `Fire Round · ${p.categoryLabel}, ${p.lengthLabel.toLowerCase()}`;
   if (p.kind === "weekly") return `The Weekly Challenge${p.number >= 1 ? ` · week ${p.number}` : ""}`;
   return `${GAME_NAME[p.kind]}${p.number >= 1 ? ` #${p.number}` : ""}`;
@@ -146,6 +163,7 @@ export function partTitle(p: SharePart): string {
 
 /** One line for a part, used on the day card and in descriptions. */
 export function partLine(p: SharePart): string {
+  if (p.kind === "supporter") return supporterSince(p);
   if (p.kind === "fire") return `${p.score.toLocaleString("en-US")} · ${p.right} right`;
   if (p.kind === "weekly") return "Answered";
   const score = !p.solved ? `X/${p.main}` : p.saved ? "last chance" : `${p.guesses}/${p.main}`;
@@ -156,6 +174,7 @@ export function partLine(p: SharePart): string {
 export function shareTitle(d: ShareData): string {
   const who = d.player?.name ?? "Someone";
   const p = d.parts[0];
+  if (p?.kind === "supporter") return `${d.player?.name ?? "A supporter"} keeps game night free`;
   if (d.kind === "day" || !p) return `${who}'s dailies today`;
   if (p.kind === "fire") return `${who} scored ${p.score.toLocaleString("en-US")} in ${partTitle(p)}`;
   if (p.kind === "weekly") return `${who} answered this week's Weekly Challenge`;
@@ -167,7 +186,9 @@ export function shareTitle(d: ShareData): string {
 
 /** A full text description of the card, for the result page's picture (accessibility). */
 export function shareAlt(d: ShareData): string {
+  if (d.parts[0]?.kind === "supporter") return `${d.player ? `${d.player.name} supports GameShuffle` : "Someone supports GameShuffle"}: keeping game night free. ${supporterSince(d.parts[0])}.`;
   const lines = d.parts.map((p) => {
+    if (p.kind === "supporter") return supporterSince(p);
     if (p.kind === "fire") return `${partTitle(p)}: ${p.score.toLocaleString("en-US")} points, ${p.right} right, best streak ${p.bestStreak}${p.place ? `, ${ordinalPlace(p.place)} today` : ""}.`;
     if (p.kind === "weekly") return `${partTitle(p)}: answered "${p.title}".`;
     return `${partTitle(p)}: ${puzzleHeadline(p)}${p.solved && p.seconds != null ? ` in ${shareTime(p.seconds)}` : ""}${p.streak > 1 ? `, a ${p.streak}-day streak` : ""}${p.place ? `, ${ordinalPlace(p.place)} today` : ""}.`;

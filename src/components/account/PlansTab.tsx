@@ -25,7 +25,9 @@ import { createClient } from "@/lib/supabase/client";
 import { isStaffRole } from "@/lib/subscription";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
 import { BillingManager } from "./BillingManager";
-import { MonthlySupportCard } from "@/components/support/MonthlySupportCard";
+import Link from "next/link";
+import { useSupportStatus } from "@/components/support/useSupportStatus";
+import { dollars } from "@/lib/support/rules";
 import { circuitTier as getCircuitTier, type CircuitTierId } from "@/lib/tournaments/circuit";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
@@ -304,6 +306,9 @@ export function PlansTab() {
         )}
       </PlanCard>
 
+      {/* Support GameShuffle: beside GS Pro, the same weight (Britton's picks, 2026-10-19). */}
+      <SupportPlanCard />
+
       {/* GameShuffle Circuit */}
       <PlanCard
         name="GameShuffle Circuit"
@@ -343,14 +348,32 @@ export function PlansTab() {
           hold a paid plan. Renders nothing for free accounts or staff. */}
       <BillingManager />
 
-      {/* Monthly support for GameShuffle (/support): its own subscription, never a plan. */}
-      <MonthlySupportCard />
-
     </div>
   );
 }
 
 const mutedNote: React.CSSProperties = { color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 };
+
+/** Support GameShuffle in Plans & billing: where you stand, and the way to Account ▸ Support. */
+function SupportPlanCard() {
+  const s = useSupportStatus();
+  if (!s) return null;
+  const rows = [
+    ...(s.supporter && s.since ? [{ label: "Supporter since", value: new Date(s.since).toLocaleDateString(undefined, { month: "long", year: "numeric" }) }] : []),
+    ...(s.monthly ? [{ label: "Monthly", value: `${dollars(s.monthly.amountCents)}${s.monthly.renewsAt ? ` · ${s.monthly.cancelAtPeriodEnd ? "stops after" : "next"} ${formatDate(s.monthly.renewsAt)}` : ""}` }] : []),
+  ];
+  return (
+    <PlanCard
+      name="Support GameShuffle"
+      subtitle="For everyone: chip in once or monthly to keep the free games free. You get the Supporter badge."
+      status={s.supporter ? { label: s.monthly ? "Monthly supporter" : "Supporter", tone: "active" } : { label: "Not yet", tone: "muted" }}
+      rows={rows}
+      learnMore={{ href: "/support", label: "See the supporters wall" }}
+    >
+      <div><Link href="/account?tab=support"><Button variant={s.supporter ? "secondary" : "primary"}>{s.supporter ? "Your support" : "Support GameShuffle"}</Button></Link></div>
+    </PlanCard>
+  );
+}
 
 type PillTone = "active" | "trial" | "warn" | "muted";
 interface PlanStatus { label: string; tone: PillTone; }

@@ -5,13 +5,15 @@ import { Card, Icon } from "@empac/cascadeds";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
 import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
 import { ProTerms } from "@/components/billing/ProTerms";
+import { SupportInstead } from "@/components/support/SupportMoment";
 import { useToast } from "@/components/toast/ToastProvider";
 
 /**
  * The one "this is GS Pro" moment, used wherever a free account reaches a Pro
  * feature (brand themes, a full My Cards, past seasons, more Discord servers,
  * Twitch). It names what's locked, offers the 14-day trial when the account
- * still has one (the checkout buttons start it), and links to the full plan.
+ * still has one (the checkout buttons start it), offers Support as the quiet second choice
+ * (Britton's pick, 2026-10-19), and links to the full plan.
  * Renders nothing for Pro accounts.
  */
 export function ProTrialPrompt({ title, children, from, compact = false }: {
@@ -42,6 +44,7 @@ export function ProTrialPrompt({ title, children, from, compact = false }: {
       ) : (
         <p className="pro-trial__terms"><Link href="/signup?redirect=/account?tab=plans">Create a free account</Link> to start your 14-day GS Pro trial.</p>
       )}
+      <SupportInstead from={from} />
       <Link href={`/gs-pro?from=${encodeURIComponent(from)}`} className="pro-trial__more">See everything in GS Pro</Link>
     </Card>
   );

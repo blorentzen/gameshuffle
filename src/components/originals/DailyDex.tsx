@@ -6,7 +6,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { DailySteps } from "@/components/originals/DailyParade";
 import { DexParade } from "@/components/originals/DexParade";
 import { DailyBoard, DailyBoardJoin, DailyScoreChips, guestRequestId, useDailyBoards } from "@/components/originals/DailyBoard";
-import { SupportNudge } from "@/components/support/SupportNudge";
+import { SupportMoment } from "@/components/support/SupportMoment";
 import { DailiesInvite, DailiesNextButton, DailiesShare, DailiesYours, sendReferralFinish, useDailies, withLink } from "@/components/originals/Dailies";
 import { withReferral } from "@/lib/originals/referral";
 import { DexCardOfDay } from "@/components/originals/DexCardOfDay";
@@ -403,7 +403,7 @@ export function DailyDex() {
           </>
         ),
       }]} />
-      {over && <SupportNudge from="dex" />}
+      {over && <SupportMoment from="dex" title="Enjoying the dailies?" />}
     </div>
     {/* The foot of the page: the card credits once a card of the day shows (they cover the fan-made line too), else the fan-made line. */}
     {!activity && (cardShown ? <TcgAttribution className="daily-credits" /> : <PokemonDisclaimer />)}

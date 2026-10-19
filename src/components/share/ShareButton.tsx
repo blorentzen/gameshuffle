@@ -10,7 +10,7 @@
  * the wide one.
  */
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button, Modal } from "@empac/cascadeds";
 import {
   IconBrandBluesky, IconBrandDiscord, IconBrandFacebook, IconBrandReddit, IconBrandThreads, IconBrandWhatsapp, IconBrandX, IconCopy, IconDownload, IconShare,
@@ -48,7 +48,7 @@ function useShareCard(request: ShareRequest | null): Card | null {
   return card?.key === key ? card.card : null;
 }
 
-export function ShareButton({ request, text, game, fallbackUrl, title = "My GameShuffle result", label = "Share", variant = "primary" }: {
+export function ShareButton({ request, text, game, fallbackUrl, title = "My GameShuffle result", label = "Share", variant = "primary", trigger }: {
   /** What to make the card from; null while the game isn't finished. */
   request: ShareRequest | null;
   /** The squares and words to go with it, ending in the link it's given. */
@@ -60,6 +60,8 @@ export function ShareButton({ request, text, game, fallbackUrl, title = "My Game
   title?: string;
   label?: string;
   variant?: "primary" | "secondary";
+  /** Draws its own control in place of the Share button (the profile's Supporter badge). */
+  trigger?: (share: () => void) => ReactNode;
 }) {
   const toast = useToast();
   const card = useShareCard(request);
@@ -92,7 +94,7 @@ export function ShareButton({ request, text, game, fallbackUrl, title = "My Game
 
   return (
     <>
-      <Button variant={variant} iconBefore={IconShare} onClick={() => void share()}>{label}</Button>
+      {trigger ? trigger(() => void share()) : <Button variant={variant} iconBefore={IconShare} onClick={() => void share()}>{label}</Button>}
       <ShareWindow open={open} onClose={() => setOpen(false)} card={card} url={url} text={fullText} title={title} game={game} onCopied={(m) => toast.success(m)} onFailed={(m) => toast.error(m)} />
     </>
   );

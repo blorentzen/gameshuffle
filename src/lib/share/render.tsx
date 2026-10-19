@@ -14,17 +14,19 @@ import sharp from "sharp";
 import { allowedImageHost, fieldSvg, fonts, logo, svgUri } from "@/lib/og/eventCard";
 import { GLYPHS, type GlyphName } from "@/lib/og/glyphs";
 import { facePng } from "@/lib/discord/faces";
-import { ordinalPlace, partLine, partTitle, puzzleHeadline, puzzleVibe, shareTime, type FirePart, type PuzzlePart, type ShareCell, type ShareData, type SharePart, type WeeklyPart } from "./types";
+import { ordinalPlace, partLine, partTitle, puzzleHeadline, puzzleVibe, shareTime, supporterSince, type FirePart, type PuzzlePart, type ShareCell, type ShareData, type SharePart, type SupporterPart, type WeeklyPart } from "./types";
 
-type Look = "shuffle" | "dex" | "fire" | "weekly" | "day";
+type Look = "shuffle" | "dex" | "fire" | "weekly" | "day" | "supporter";
 const LOOK: Record<Look, { base: string; glow: string; field: GlyphName[]; kicker: string; link: string; cta: string }> = {
   shuffle: { base: "#150f45", glow: "radial-gradient(circle at 0% 0%, #6b4ee6 0%, #2b1d84 48%, #150f45 100%)", field: ["star", "steering-wheel", "mushroom", "question-mark", "flame"], kicker: "#d3c8ff", link: "gameshuffle.co/daily", cta: "Can you beat it? Play today's, free." },
   dex: { base: "#2a0f07", glow: "radial-gradient(circle at 0% 0%, #d9622a 0%, #7d2412 50%, #2a0f07 100%)", field: ["pokeball", "bolt", "flame", "droplet", "leaf"], kicker: "#ffcfa8", link: "gameshuffle.co/daily-dex", cta: "Can you beat it? Play today's, free." },
   fire: { base: "#2c0610", glow: "radial-gradient(circle at 0% 0%, #e2453a 0%, #8f1428 50%, #2c0610 100%)", field: ["flame", "bolt", "trophy", "sparkles", "star"], kicker: "#ffc2a6", link: "gameshuffle.co/daily-trivia", cta: "How many can you get in 60 seconds?" },
   weekly: { base: "#062a27", glow: "radial-gradient(circle at 0% 0%, #1fae96 0%, #0b5a52 50%, #062a27 100%)", field: ["trophy", "calendar-week", "users-group", "award", "star"], kicker: "#b6f0e4", link: "gameshuffle.co/weekly", cta: "What would you say? Answer this week's." },
+  supporter: { base: "#26101f", glow: "radial-gradient(circle at 100% 0%, #c2386e 0%, #5a1838 45%, #26101f 100%)", field: ["sparkles", "star", "puzzle", "trophy", "heart"], kicker: "#ffd2e2", link: "gameshuffle.co/support", cta: "Come play, or chip in too." },
   day: { base: "#0f1d5c", glow: "linear-gradient(135deg, #1b3db0, #2f66ec 48%, #4b5cf5)", field: ["puzzle", "pokeball", "flame", "calendar-week", "trophy"], kicker: "#dbe4ff", link: "gameshuffle.co/daily", cta: "Play today's dailies, free." },
 };
-const PART_GLOW: Record<SharePart["kind"], string> = { shuffle: LOOK.shuffle.glow, dex: LOOK.dex.glow, fire: LOOK.fire.glow, weekly: LOOK.weekly.glow };
+const PART_GLOW: Record<SharePart["kind"], string> = { shuffle: LOOK.shuffle.glow, dex: LOOK.dex.glow, fire: LOOK.fire.glow, weekly: LOOK.weekly.glow, supporter: LOOK.supporter.glow };
+const ROSE = "#ff8db6";
 const CELL: Record<ShareCell, string> = { match: "#3bd17f", close: "#f6c34a", miss: "rgba(255,255,255,0.18)" };
 
 /** A Tabler outline icon as an SVG picture (path data kept in glyphs.ts, never read from node_modules at request time). */
@@ -51,6 +53,29 @@ async function bannerPng(src: string, w: number, h: number): Promise<string | nu
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
 interface Assets { logo: string; face: string | null; banner: string | null; icons: Record<string, string> }
+
+/** A supporter's card: keeping game night free, since when (never an amount). */
+function SupporterBlock({ p, a, big, px, center = false }: { p: SupporterPart; a: Assets; big: boolean; px: number; center?: boolean }) {
+  const tall = px > 30;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: tall ? 26 : 16, alignItems: center ? "center" : "flex-start" }}>
+      <div style={{ display: "flex", fontFamily: "Gabarito", fontSize: tall ? 104 : big ? 84 : 66, lineHeight: 1.04, textAlign: center ? "center" : "left" }}>Keeping game night free</div>
+      <div style={{ display: "flex" }}><Chip src={a.icons.heart} text={supporterSince(p)} px={px} /></div>
+      <div style={{ display: "flex", fontSize: tall ? 36 : 26, color: "rgba(255,255,255,0.86)", lineHeight: 1.35, textAlign: center ? "center" : "left", maxWidth: tall ? 880 : 760 }}>Daily puzzles, randomizers and party tools, backed by players.</div>
+    </div>
+  );
+}
+
+/** The heart in place of a picture when a supporter card has no name. */
+function HeartTile({ size }: { size: number }) {
+  const inner = Math.round(size * 0.5);
+  return (
+    <div style={{ width: size, height: size, borderRadius: size, display: "flex", alignItems: "center", justifyContent: "center", backgroundImage: "linear-gradient(135deg, #e2457a, #a81e57)" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse */}
+      <img src={svgUri(`<svg xmlns="http://www.w3.org/2000/svg" width="${inner}" height="${inner}" viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${GLYPHS.heart[0]}"/></svg>`)} width={inner} height={inner} alt="" />
+    </div>
+  );
+}
 
 function Ground({ look, data, a, w, h }: { look: Look; data: ShareData; a: Assets; w: number; h: number }): ReactNode {
   const t = LOOK[look];
@@ -141,7 +166,7 @@ function FireChips({ p, a, px }: { p: FirePart; a: Assets; px: number }) {
 function PlayerLine({ data, a, size, look }: { data: ShareData; a: Assets; size: number; look: Look }) {
   const p = data.player;
   if (!p) return null;
-  const ring = look === "fire" ? "#ff8a3d" : look === "weekly" ? "#5fd3bd" : "#3bd17f";
+  const ring = look === "fire" ? "#ff8a3d" : look === "weekly" ? "#5fd3bd" : look === "supporter" ? ROSE : "#3bd17f";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: Math.round(size * 0.22) }}>
       <Face src={a.face} name={p.name} size={size} ring={ring} />
@@ -183,8 +208,11 @@ function Wide({ data, a, look }: { data: ShareData; a: Assets; look: Look }) {
         ) : (
           <div style={{ display: "flex", flex: 1, alignItems: "center", gap: 48 }}>
             <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 18 }}>
+              {part.kind === "supporter" && !data.player && <HeartTile size={120} />}
               <PlayerLine data={data} a={a} size={92} look={look} />
-              {part.kind === "fire" ? (
+              {part.kind === "supporter" ? (
+                <SupporterBlock p={part} a={a} big={!data.player} px={26} />
+              ) : part.kind === "fire" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
                     <div style={{ display: "flex", fontFamily: "Gabarito", fontSize: data.player ? 110 : 132, lineHeight: 1 }}>{part.score.toLocaleString("en-US")}</div>
@@ -244,7 +272,8 @@ function Tall({ data, a, look }: { data: ShareData; a: Assets; look: Look }) {
         <div style={{ display: "flex", fontSize: 40, fontWeight: 600, color: t.kicker }}>{day ? "Today's dailies" : clip(partTitle(part), 34)}</div>
         {/* The middle, centred between the title and the link. */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 34, flex: 1 }}>
-        {data.player && <Face src={a.face} name={data.player.name} size={170} ring={look === "fire" ? "#ff8a3d" : "#3bd17f"} />}
+        {data.player && <Face src={a.face} name={data.player.name} size={part?.kind === "supporter" ? 240 : 170} ring={look === "fire" ? "#ff8a3d" : look === "supporter" ? ROSE : "#3bd17f"} />}
+        {!data.player && part?.kind === "supporter" && <HeartTile size={220} />}
         {data.player && <div style={{ display: "flex", fontFamily: "Gabarito", fontSize: 68 }}>{clip(data.player.name, 18)}</div>}
         {day ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 18, width: 900 }}>
@@ -258,6 +287,8 @@ function Tall({ data, a, look }: { data: ShareData; a: Assets; look: Look }) {
               </div>
             ))}
           </div>
+        ) : part.kind === "supporter" ? (
+          <SupporterBlock p={part} a={a} big px={36} center />
         ) : part.kind === "fire" ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
             <div style={{ display: "flex", fontFamily: "Gabarito", fontSize: 200, lineHeight: 1 }}>{part.score.toLocaleString("en-US")}</div>
@@ -300,10 +331,10 @@ export async function renderShareCard(data: ShareData, size: "wide" | "tall"): P
     data.background?.banner ? bannerPng(data.background.banner, W, H) : Promise.resolve(null),
   ]);
   const ip = tall ? 36 : 26;
-  const [time, streak, place, bolt, calendar] = [
-    icon("stopwatch", "#ffffff", ip), icon("flame", "#ffd2a6", ip), icon("trophy", "#ffe08a", ip), icon("bolt", "#ffd2a6", ip), icon("calendar-week", "#ffffff", ip),
+  const [time, streak, place, bolt, calendar, heart] = [
+    icon("stopwatch", "#ffffff", ip), icon("flame", "#ffd2a6", ip), icon("trophy", "#ffe08a", ip), icon("bolt", "#ffd2a6", ip), icon("calendar-week", "#ffffff", ip), icon("heart", ROSE, ip),
   ];
-  const a: Assets = { logo: logoSrc, face, banner, icons: { time, streak, place, bolt, calendar } };
+  const a: Assets = { logo: logoSrc, face, banner, icons: { time, streak, place, bolt, calendar, heart } };
   const el = tall ? <Tall data={data} a={a} look={look} /> : <Wide data={data} a={a} look={look} />;
   const res = new ImageResponse(el, {
     width: W,

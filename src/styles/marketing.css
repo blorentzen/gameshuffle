@@ -2507,7 +2507,9 @@
 }
 
 /* The GS Pro page's line pointing to /support (Support GameShuffle). */
-.pricing-page__support { margin: var(--spacing-16, 16px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); text-align: center; }
+.pricing-page__backing { display: grid; gap: var(--spacing-12, 12px); margin: var(--spacing-48, 48px) auto 0; max-width: 96rem; }
+.pricing-page__backing .pricing-page__section-title { margin-bottom: 0; }
+.pricing-page__backing-lede { margin: 0 0 var(--spacing-8, 8px); font-size: var(--font-size-16); color: var(--text-secondary); text-align: center; }
 
 /* ── Homepage (reorganized 2026-10-16, src/app/page.tsx + src/components/home/) ── */
 .home-section { margin: var(--spacing-56, 56px) 0 0; display: grid; gap: var(--spacing-16, 16px); }
@@ -2537,6 +2539,7 @@
 .home-plan { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8, 8px); padding: var(--spacing-20, 20px); border-radius: var(--radius-16, 16px);
   background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.18); color: #fff; }
 .home-plan__icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.14); color: #fff; }
+.home-plan__icon--support { background: linear-gradient(135deg, #e2457a, #a81e57); }
 .home-plan__name { margin: var(--spacing-4, 4px) 0 0; font-size: var(--font-size-20); color: #fff; }
 .home-plan__name span { font-weight: 500; color: #cfd3ff; font-size: var(--font-size-16); }
 .home-plan__price { margin: 0; font-weight: 700; color: #fff; font-size: var(--font-size-16); }
@@ -2551,14 +2554,6 @@
 .home-popular__link:hover { text-decoration: underline; }
 .home-popular__sub { font-size: var(--font-size-14); font-weight: 400; color: var(--text-secondary); }
 @media (max-width: 640px) { .home-popular__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-16) var(--spacing-16); } }
-/* Keep game night free */
-.home-support { margin: var(--spacing-48, 48px) 0 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--spacing-16, 16px); align-items: center;
-  padding: var(--spacing-20, 20px) var(--spacing-24, 24px); border-radius: var(--radius-16, 16px); border: 1px solid var(--border-default); background: var(--surface-default); }
-.home-support__title { margin: 0 0 var(--spacing-4, 4px); font-size: var(--font-size-20); }
-.home-support__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; }
-.home-support__bar { margin-top: var(--spacing-8, 8px); max-width: 32rem; }
-.home-support__bar .empac-progress__label { display: none; }
-@media (max-width: 40rem) { .home-support { grid-template-columns: 1fr; } }
 .home-ideas { margin: var(--spacing-32, 32px) 0 var(--spacing-48, 48px); text-align: center; color: var(--text-secondary); font-size: var(--font-size-14); }
 .home-ideas a { font-weight: 600; }
 

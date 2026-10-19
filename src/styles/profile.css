@@ -1002,6 +1002,13 @@ a.friend-tile:hover .friend-tile__name {
   border: 1px solid #f6c3d7;
 }
 html.dark .profile-badge--supporter { background: rgba(200, 68, 122, 0.18); color: #f5a9c8; border-color: rgba(200, 68, 122, 0.4); }
+/* Your own badge is a button that shares your supporter card. */
+.profile-badge--button { cursor: pointer; font-family: inherit; }
+.profile-badge--button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+/* A supporter's picture gets a rose ring and a small heart (picks 2026-10-19). */
+.profile-hero__avatar--supporter { box-shadow: 0 0 0 3px #e2457a, 0 8px 22px rgba(0, 0, 0, 0.22); }
+.profile-hero__heart { position: absolute; left: 4px; bottom: 4px; width: 26px; height: 26px; border-radius: 999px; display: grid; place-items: center;
+  color: #fff; background: linear-gradient(135deg, #e2457a, #a81e57); box-shadow: 0 0 0 3px var(--background-elevated, #ffffff); }
 html.dark .profile-badge--weekly { background: rgba(250, 190, 35, 0.14); color: var(--gold-300, #fbd165); border-color: rgba(250, 190, 35, 0.35); }
 html.dark .profile-badge--brain { background: rgba(39, 102, 236, 0.18); color: #a9c3ff; border-color: rgba(39, 102, 236, 0.4); }
 .profile-badge--live {

@@ -20,6 +20,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import { AiRecapButton } from "@/components/ai/AiRecapButton";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { GameChipIcon, GameCover } from "@/components/games/GameCover";
+import { SupportMoment } from "@/components/support/SupportMoment";
 
 /**
  * A live party night on one person's phone (or the host's screen). Polls the
@@ -355,6 +356,7 @@ export function LivePartyNight({ code }: { code: string }) {
       )}
 
       {ended && <ChatBrainAsk source="night" eyebrow="Before you go" title="Help write a new party game" />}
+      {ended && <SupportMoment from="night" title="Fun night?" />}
 
       {!ended && me.seat === null && !me.isHost && (
         <section className="party-section">
