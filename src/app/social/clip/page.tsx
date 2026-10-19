@@ -28,8 +28,8 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const ACCENTS = new Set(["gold", "cyan", "violet", "blue", "orange", "red", "daily", "dex", "weekly", "brain"]);
-const FIELDS = new Set<string>(["compete", "board", "video", "tcg", "mixed", "stream", "series", "tools", "mystery", "minigame", "brain", "originals", "heroes", "daily", "dex", "weekly", "community"]);
+const ACCENTS = new Set(["gold", "cyan", "violet", "blue", "orange", "red", "daily", "dex", "weekly", "brain", "fire"]);
+const FIELDS = new Set<string>(["compete", "board", "video", "tcg", "mixed", "stream", "series", "tools", "mystery", "minigame", "brain", "originals", "heroes", "daily", "dex", "weekly", "community", "fire"]);
 
 export default async function SocialClipPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   if (process.env.NODE_ENV === "production" && !(await isStaffRequest())) notFound();

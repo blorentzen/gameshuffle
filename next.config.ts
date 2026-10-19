@@ -12,6 +12,7 @@ import type { NextConfig } from "next";
 const VIDEO_LINKS: [code: string, page: string][] = [
   ["dex", "/daily-dex"],
   ["shuffle", "/daily"],
+  ["quiz", "/daily-trivia"],
   ["top5", "/daily"],
   ["jamboree", "/randomizers/super-mario-party-jamboree"],
   ["superstars", "/randomizers/mario-party-superstars"],
