@@ -508,6 +508,8 @@
 .browse-hero--dex { --browse-hero-base: rgba(217, 80, 42, 0.55); --browse-hero-accent: rgba(232, 162, 28, 0.4); }
 .browse-hero--weekly { --browse-hero-base: rgba(22, 154, 133, 0.55); --browse-hero-accent: rgba(34, 197, 180, 0.32); }
 .browse-hero--brain { --browse-hero-base: rgba(200, 68, 122, 0.55); --browse-hero-accent: rgba(163, 60, 205, 0.34); }
+/* Fire Round: ember, a deeper red than the Dex's orange. */
+.browse-hero--fire { --browse-hero-base: rgba(196, 30, 58, 0.58); --browse-hero-accent: rgba(255, 112, 48, 0.36); }
 /* In-page anchors land below the floating nav. */
 #play, #answer, #updates { scroll-margin-top: 96px; }
 /* The glyph field sits above the aurora blobs but under the copy. It is the
@@ -595,6 +597,16 @@
   max-width: 46rem;
   margin: 0 0 var(--spacing-28, 2.8rem);
 }
+/* Compact on phones (the dailies): the tool starts on the first screen. */
+.browse-hero__sub-short { display: none; }
+@media (max-width: 40rem) {
+  .browse-hero--compact .browse-hero__inner { padding: calc(64px + var(--spacing-16)) 0 var(--spacing-32); }
+  .browse-hero--compact .browse-hero__title { margin-bottom: var(--spacing-8); }
+  .browse-hero--compact .browse-hero__sub { font-size: var(--font-size-16); margin-bottom: var(--spacing-8); }
+  .browse-hero--compact .browse-hero__sub-full { display: none; }
+  .browse-hero--compact .browse-hero__sub-short { display: inline; }
+  .browse-hero--compact .browse-hero__curve { height: 26px; }
+}
 .browse-hero__cta {
   display: flex;
   align-items: center;
@@ -665,3 +677,4 @@
   font-variant-numeric: tabular-nums;
 }
 .bgn-more { display: flex; justify-content: center; margin-top: var(--spacing-32); }
+.bgn-group__more { display: flex; justify-content: flex-start; margin-top: var(--spacing-12); }

@@ -771,6 +771,13 @@ html.dark .gs-portrait-bg {
     transform: none;
   }
 }
+/* Cards in a row line up (Britton, 2026-10-19: "keep them consistent sizes
+   ... so they don't stagger"): the picture is always 16:9, the card fills its
+   grid cell or carousel slide, and the buttons sit at the bottom however long
+   the title and description run. */
+.app-card { display: flex; flex-direction: column; height: 100%; }
+.app-card > .empac-card__content { flex: 1; display: flex; flex-direction: column; }
+.app-card__actions { margin-top: auto; padding-top: var(--spacing-16); }
 /* "Learn more" — a text link beside the single primary CTA (not a 2nd button). */
 /* Card title as a link to the tool (exact-match anchor text). Reads as a heading. */
 .app-card__title-link { color: inherit; text-decoration: none; }
@@ -1106,6 +1113,8 @@ html.dark .gs-portrait-bg {
 .party-rules dt { font-size: var(--font-size-13, 1.3rem); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
 .party-rules dd { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-8); }
 .party-rules dd .party-muted { flex-basis: 100%; }
+/* The lock button sits in its own dd: a dl row may only hold dt and dd (axe definition-list). */
+.party-rules dd.party-rules__lock { display: block; }
 
 .party-seats { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-12); }
 .party-seat { display: grid; grid-template-columns: auto 1fr auto; gap: var(--spacing-12); align-items: center; padding: var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); }
@@ -1318,6 +1327,13 @@ html.dark .gs-portrait-bg {
 .party-ref__char-art img { max-width: 84%; max-height: 84%; object-fit: contain; }
 .party-ref__char-name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); }
 .party-ref__char .party-ref__flag { margin: 0; }
+/* Phones (Britton's picks, 2026-10-19): two columns of minigame names, four characters across. */
+@media (max-width: 640px) {
+  .party-ref__names { columns: 2; column-gap: var(--spacing-16); }
+  .party-ref__names li { font-size: var(--font-size-14); }
+  .party-ref__roster { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--spacing-12) var(--spacing-8); }
+  .party-ref__char-name { font-size: var(--font-size-12); }
+}
 
 /* ── Odd One Out (GameShuffle Original) on a phone ─────────────────────────── */
 .oddone { display: flex; flex-direction: column; gap: var(--spacing-16); }
@@ -1438,7 +1454,8 @@ html.dark .gs-portrait-bg {
 .daily__guess { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
 .daily__guess > :first-child { flex: 1 1 24rem; }
 /* Start today's puzzle (DailyStart.tsx): the first hint and the clock wait for this tap. */
-.daily-start { display: flex; align-items: center; gap: var(--spacing-12, 12px); flex-wrap: wrap; padding: var(--spacing-16, 16px); border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: var(--surface-default); }
+.daily-start { display: grid; gap: var(--spacing-16, 16px); padding: var(--spacing-20, 20px); border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: var(--surface-default); }
+.daily-start__go { display: flex; align-items: center; gap: var(--spacing-12, 12px); flex-wrap: wrap; }
 .daily-start__note { flex: 1 1 26rem; margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); text-align: start; }
 /* Solved in 0:42 on the end screen. */
 .daily-time { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); margin: 0; font-size: var(--font-size-16); color: var(--text-primary); font-variant-numeric: tabular-nums; }
@@ -1485,14 +1502,21 @@ html.dark .gs-portrait-bg {
 @media (prefers-reduced-motion: reduce) { .daily-parade__lane { animation: none; } }
 /* Discord's small corner window has no room for it. */
 @media (max-height: 300px) { .daily-parade { display: none; } }
-.daily-steps { display: grid; gap: var(--spacing-8, 8px); text-align: start; }
-.daily-steps__title { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold, 600); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
-.daily-steps__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-12, 12px); }
-.daily-step { display: flex; flex-direction: column; gap: var(--spacing-6, 6px); height: 100%; }
-.daily-step__icon { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
-.daily-step__name { margin: var(--spacing-2, 2px) 0 0; font-size: var(--font-size-16); }
-.daily-step__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.45; }
-@media (max-width: 40rem) { .daily-steps__grid { grid-template-columns: 1fr; } }
+/* How to play inside the Start card: three short lines, side by side when there's room. */
+.daily-steps { list-style: none; margin: 0; padding: var(--spacing-16, 16px) 0 0; border-top: 1px solid var(--border-default); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--spacing-12, 12px) var(--spacing-20, 20px); text-align: start; }
+.daily-step { display: flex; align-items: flex-start; gap: var(--spacing-10, 10px); min-width: 0; }
+.daily-step__icon { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+.daily-step__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.4; }
+.daily-step__text strong { color: var(--text-primary); }
+/* Phones (Britton's picks, 2026-10-19): tighter page, one lane of characters. */
+@media (max-width: 40rem) {
+  .daily-page.tool-page { padding-block: var(--spacing-16) var(--spacing-32); gap: var(--spacing-12); }
+  .daily-page .dailies-bar { margin-bottom: var(--spacing-8); }
+  .daily-page .daily { gap: var(--spacing-16); margin-bottom: var(--spacing-16); }
+  .daily-start { padding: var(--spacing-16); }
+  .daily-parade { min-height: 6.4rem; }
+  .daily-parade__lane--back { display: none; }
+}
 
 /* All-Stars: the hint ladder (newest last) and the line promising the next one. */
 .daily__ladder { margin: 0; padding-inline-start: 2rem; display: grid; gap: var(--spacing-4, 4px); text-align: start; }
@@ -1510,6 +1534,30 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .daily__hints { grid-area: hints; display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
 .daily__done { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); padding: var(--spacing-20); border-radius: var(--radius-16, 16px); background: color-mix(in srgb, var(--bg-primary, #4b5cf5) 8%, var(--surface-default)); }
 .daily__answer-img { width: 9.6rem; height: 9.6rem; object-fit: contain; }
+/* The result (Britton's picks, 2026-10-19): the answer beside the verdict, then Copy and Next on one row. */
+.daily-result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-14, 14px); width: 100%; }
+.daily-result .daily__answer-img, .daily-result .dex-answer { flex: none; }
+.daily-result__text { flex: 1 1 16rem; display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); min-width: 0; }
+.daily-result__text .oddone__verdict { line-height: 1.3; }
+.daily-result__text .daily-score { justify-content: flex-start; margin-block: var(--spacing-4); }
+.daily-result__next, .daily-result__signin { margin: 0; font-size: var(--font-size-14); }
+.daily-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+.daily-actions > .party-row { display: contents; }
+.daily-actions .dailies-next__done { flex-basis: 100%; margin: 0; align-self: auto; }
+/* Containers and gaps (Britton's picks, 2026-10-19, https://claude.ai/artifact/SGrYdQmo7MKyFHoL7mYefK):
+   the result is the page's one panel and everything in it sits flat on it; the sections below sit flat
+   on the page between thin lines, 24px+ apart. */
+.daily__done { gap: var(--spacing-16); }
+.daily__done { --daily-panel-line: color-mix(in srgb, var(--text-primary) 12%, transparent); }
+.daily > .daily-board, .daily > .brain-ask-flat { border-top: 1px solid var(--border-default); padding-top: var(--spacing-24); margin-top: var(--spacing-8); }
+.daily > .daily-accordion { border-top: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); margin-top: var(--spacing-8); }
+.daily-accordion .empac-accordion__trigger { padding-inline: 0; }
+.daily-accordion .empac-accordion__content-inner { padding-inline: 0; }
+@media (max-width: 40rem) {
+  .daily__done { padding: var(--spacing-16); }
+  .daily-result .daily__answer-img { width: 8.8rem; height: 8.8rem; }
+  .daily-result .dex-answer { width: 13rem; }
+}
 .daily__stats { list-style: none; margin: var(--spacing-8) 0 0; padding: 0; display: flex; gap: var(--spacing-24); }
 .daily__stats li { display: flex; flex-direction: column; align-items: center; }
 .daily__stats strong { font-size: var(--font-size-24); font-variant-numeric: tabular-nums; }
@@ -1732,9 +1780,12 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 
 /* What each Bonus Star rewards: a grid of small cards, not an accordion. */
 .party-bonus { display: grid; gap: var(--spacing-12); }
-.party-bonus__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-12); }
-.party-bonus__grid > li { display: flex; }
-.party-bonus__card.empac-card { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--spacing-10); align-content: start; width: 100%; text-align: start; }
+/* One framed list (containers rule), two columns where there's room; ShowAll cuts it on phones. */
+.party-bonus__list { list-style: none; margin: 0; padding: 0 var(--spacing-16); display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); column-gap: var(--spacing-24);
+  border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.party-bonus__row { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--spacing-12); align-content: start; padding: var(--spacing-12) 0; border-top: 1px solid var(--border-default); text-align: start; }
+.party-bonus__row:first-child { border-top: 0; }
+@media (min-width: 640px) { .party-bonus__row:nth-child(2) { border-top: 0; } }
 .party-bonus__icon { grid-row: span 2; display: grid; place-items: center; width: 3.2rem; height: 3.2rem; border-radius: 50%; background: #fff4cc; color: #c98a00; }
 .party-bonus__name { font-size: var(--font-size-16); }
 .party-bonus__rewards { font-size: var(--font-size-14); color: var(--text-secondary, #5b6080); }
@@ -1750,6 +1801,9 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 /* Narrow cards (phones) always hold two lines, so every page's carousel spaces the same. */
 @container (max-width: 24rem) { .more-rand__title { min-height: calc(2 * 1.3em + 2 * var(--spacing-10, 10px)); box-sizing: border-box; } }
 .more-rand__new { position: absolute; top: var(--spacing-8, 8px); left: var(--spacing-8, 8px); }
+/* The last card: all the randomizers. */
+.more-rand__media--all { display: grid; place-items: center; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+.more-rand__all-tile { display: grid; place-items: center; width: 5.6rem; height: 5.6rem; border-radius: 16px; color: #fff; background: rgba(255, 255, 255, 0.16); }
 /* The run deck shows up to three cards at once; catches fit the card's own width. */
 .frlg-seg.empac-card { container-type: inline-size; height: 100%; }
 @container (max-width: 40rem) {
@@ -1849,6 +1903,7 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .dex-parade__name { font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); }
 .dex-parade .daily-parade__lane--back .dex-parade__mon { opacity: 0.55; }
 .dex-parade .daily-parade__lane--back .dex-parade__name { font-size: var(--font-size-12); }
+@media (max-width: 40rem) { .dex-parade { min-height: 4.4rem; } }
 /* The last chance: the first letter, then a square per letter; spaces and punctuation as they are. */
 .dex-reveal { display: grid; gap: var(--spacing-8, 8px); justify-items: start; text-align: start; }
 .dex-reveal__word { display: flex; flex-wrap: wrap; gap: var(--spacing-4, 4px); }
@@ -1875,19 +1930,26 @@ html.dark .daily-score__chip--tokens { color: var(--color-warning-300, #f2c96b);
 .daily-join__row { display: flex; gap: var(--spacing-8, 8px); align-items: flex-start; }
 .daily-join__row > :first-child { flex: 1; min-width: 0; }
 .daily-join__error { margin: 0; font-size: var(--font-size-14); color: var(--color-error-600, #c0392b); }
-.daily-board { display: grid; gap: var(--spacing-8, 8px); text-align: start; }
+.daily-board .daily-join { width: 100%; margin: 0 0 var(--spacing-12); padding: 0; border: 0; border-radius: 0; background: none; }
+.daily-join__row { margin-top: var(--spacing-4); }
+.daily-board { display: grid; gap: var(--spacing-12, 12px); text-align: start; }
 .daily-board__title { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold, 600); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
 /* The tabs are a bar here: the board below changes with them. */
 .daily-board__tabs .empac-tabs__content { display: none; }
-.daily-board__table { overflow-x: auto; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.daily-board__table { position: relative; overflow-x: auto; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+/* The board is the one scroller (it takes keyboard focus); the CDS table container inside stays put, or axe flags a scroller nobody can reach. */
+.daily-board__table > .empac-table-container { overflow: visible; }
 .daily-board__table table { font-variant-numeric: tabular-nums; }
 .daily-board__table tr.daily-board__you td { background: color-mix(in srgb, var(--color-warning-500, #e2a336) 12%, var(--surface-default)); }
-.daily-board__who { display: inline-flex; align-items: center; gap: var(--spacing-8, 8px); min-width: 0; }
-.daily-board__tag { font-size: var(--font-size-10); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 6px; border-radius: 5px; }
-.daily-board__tag--guest { background: color-mix(in srgb, #6a4bb5 14%, var(--surface-default)); color: #5a3da6; }
-.daily-board__tag--discord { background: color-mix(in srgb, #5865f2 14%, var(--surface-default)); color: #3c4bc9; }
-html.dark .daily-board__tag--guest { color: #c7b3ff; }
-html.dark .daily-board__tag--discord { color: #b4bcff; }
+.daily-board__who { display: inline-flex; align-items: center; gap: var(--spacing-12, 12px); min-width: 0; }
+/* Where someone played, on their picture (DailyBoard.tsx PLACES): a badge per place, a dashed ring for guests, a key under the board. */
+.daily-board__av { flex: none; }
+.daily-board__av .empac-avatar__badge { min-width: 14px; height: 14px; bottom: -5px; right: -8px; padding: 0 2px; box-shadow: 0 0 0 1.5px var(--surface-default); }
+.daily-board__av .empac-avatar__badge svg { width: 9px; height: 9px; }
+.daily-board__av--guest.empac-avatar { background: var(--surface-default); color: var(--text-secondary); outline: 1.5px dashed var(--text-secondary); outline-offset: -1.5px; }
+.daily-board__key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-20); margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+.daily-board__key > span { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+.daily-board__short { display: none; text-decoration: none; }
 .daily-board__prize { font-weight: 600; color: var(--color-warning-800, #7a5306); }
 html.dark .daily-board__prize { color: var(--color-warning-300, #f2c96b); }
 .daily-board__dots { display: inline-flex; gap: 3px; vertical-align: middle; }
@@ -1898,6 +1960,15 @@ html.dark .daily-board__prize { color: var(--color-warning-300, #f2c96b); }
 .daily-board__dot--saved { background: var(--color-warning-500, #e2a336); border-color: var(--color-warning-500, #e2a336); }
 .daily-board__empty { margin: 0; padding: var(--spacing-12, 12px); font-size: var(--font-size-14); border: 1px dashed var(--border-default); border-radius: var(--radius-12, 12px); }
 .daily-board__foot { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+/* Phones: room for the name (smaller dots, tighter cells, "Pts"). */
+@media (max-width: 40rem) {
+  .daily-board__table th, .daily-board__table td { padding-inline: var(--spacing-6, 6px) !important; }
+  .daily-board__table th:first-child, .daily-board__table td:first-child { padding-left: var(--spacing-10, 10px) !important; }
+  .daily-board__dot { width: 0.8rem; height: 0.8rem; }
+  .daily-board__dots { gap: 2px; }
+  .daily-board__long { display: none; }
+  .daily-board__short { display: inline; }
+}
 
 /* The quiet "help keep it free" line (SupportNudge.tsx), after a Daily or a free tool. */
 .support-nudge { margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); text-align: center; }
@@ -1907,9 +1978,11 @@ html.dark .daily-board__prize { color: var(--color-warning-300, #f2c96b); }
 .dailies--shuffle { --dailies-ink: #5a3fd6; --dailies-tile: linear-gradient(135deg, #2b1d84, #5a3fd6); }
 .dailies--dex { --dailies-ink: #c4471f; --dailies-tile: linear-gradient(135deg, #a3301b, #dd7a1d); }
 .dailies--weekly { --dailies-ink: #12806e; --dailies-tile: linear-gradient(135deg, #0b5a52, #169a85); }
+.dailies--fire { --dailies-ink: #b42318; --dailies-tile: linear-gradient(135deg, #d9363e, #ff7a2f); }
 html.dark .dailies--shuffle { --dailies-ink: #a99bff; }
 html.dark .dailies--dex { --dailies-ink: #f0a070; }
 html.dark .dailies--weekly { --dailies-ink: #5fd3bd; }
+html.dark .dailies--fire { --dailies-ink: #ff9a7a; }
 
 .dailies-bar { width: 100%; margin: 0 auto var(--spacing-16); min-width: 0; max-width: 72rem; }
 .dailies-bar .empac-subnav, .dailies-bar .empac-subnav__wrapper { background: transparent; }
@@ -1948,6 +2021,12 @@ html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subna
 .dailies-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; padding: var(--spacing-16); border: 1px solid var(--border-default); border-top: 4px solid var(--dailies-ink); border-radius: var(--radius-16, 16px); background: var(--background-primary); }
 .dailies-card--current { border-color: var(--dailies-ink); }
 .dailies-card__head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); }
+.dailies-card__line { display: contents; }
+/* One game's streak as a strip inside its result (the Shuffle and the Dex): streak and stats on one line, the 14 days under. */
+.dailies-cards--strip { margin-top: 0; }
+.dailies-cards--strip .dailies-cards__grid { grid-template-columns: minmax(0, 1fr); }
+.dailies-cards--strip .dailies-card { gap: var(--spacing-10, 10px); padding: var(--spacing-2, 2px) 0 var(--spacing-2, 2px) var(--spacing-14, 14px); border: 0; border-left: 4px solid var(--dailies-ink); border-radius: 0; background: none; }
+.dailies-cards--strip .dailies-card__line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-20); }
 .dailies-card__tile { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: #fff; background: var(--dailies-tile); }
 .dailies-card__name { font-weight: var(--font-weight-semibold); font-size: var(--font-size-15, 1.5rem); }
 .dailies-card__streak { display: flex; align-items: center; gap: 6px; margin: 0; }
@@ -1965,21 +2044,26 @@ html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subna
 .dailies-card__day--missed { background: var(--border-strong, var(--gray-400)); border-color: transparent; }
 
 /* ── The Daily Dex's card of the day (src/components/originals/DexCardOfDay.tsx) ── */
-.dex-cotd { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-16); align-items: center; width: 100%; align-self: stretch; padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--background-primary); text-align: start; }
+.dex-cotd { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-20); align-items: center; width: 100%; align-self: stretch; padding: var(--spacing-16) 0 0; border-top: 1px solid var(--daily-panel-line, var(--border-default)); text-align: start; }
 .dex-cotd__card { width: 13.2rem; max-width: 100%; transform: rotate(-3deg); filter: drop-shadow(0 8px 16px rgba(60, 30, 10, 0.25)); }
 .dex-cotd__card img { display: block; width: 100%; height: auto; border-radius: 6px; }
 .dex-cotd__body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-4); min-width: 0; }
 .dex-cotd__kicker { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dailies-ink, #c4471f); }
 html.dark .dex-cotd__kicker { color: #f0a070; }
 .dex-cotd__name { margin: 0; font-size: var(--font-size-18); }
-.dex-cotd__meta { margin: 0 0 var(--spacing-8); color: var(--text-secondary); font-size: var(--font-size-14); }
+.dex-cotd__meta { margin: 0 0 var(--spacing-12); color: var(--text-secondary); font-size: var(--font-size-14); }
 .tcg-attribution.dex-cotd__attr { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); }
-.dex-cotd .party-row { gap: var(--spacing-8); }
-/* Phones: one column that reads left like the rest of the end screen (it used to centre the art and text but not the buttons). */
-@media (max-width: 30rem) {
-  .dex-cotd { grid-template-columns: 1fr; justify-items: start; }
-  .dex-cotd__card { margin-inline-start: var(--spacing-4); }
+.dex-cotd .party-row { gap: var(--spacing-12); }
+/* Phones (Britton's pick, 2026-10-19): a smaller card beside its name, the buttons stacked (they may wrap on the narrowest phones). */
+@media (max-width: 40rem) {
+  .dex-cotd { grid-template-columns: 8.4rem minmax(0, 1fr); gap: var(--spacing-16); }
+  .dex-cotd__card { width: 8.4rem; }
+  .dex-cotd .party-row { flex-direction: column; align-items: flex-start; gap: var(--spacing-8); }
+  .dex-cotd .party-row > * { max-width: 100%; }
+  .dex-cotd .party-row .empac-button { white-space: normal; text-align: start; }
 }
+/* The card credits at the foot of the Daily Dex, in place of the fan-made line. */
+.tcg-attribution.daily-credits { margin: var(--spacing-24, 24px) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); max-width: 70ch; }
 
 /* ── Referral links on the dailies (Dailies.tsx: InvitedNote, DailiesInvite) ── */
 .dailies-invited { width: 100%; margin: 0 auto var(--spacing-16); max-width: 72rem; }

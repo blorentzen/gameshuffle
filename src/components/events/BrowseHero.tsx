@@ -23,7 +23,7 @@ export interface BrowseHeroProps {
   sub: ReactNode;
   /** Warm gold for the tabletop half, cyan for the competitive half. */
   /** Pillar tints, plus one per GameShuffle game (daily, dex, weekly, brain: each game's own colors, as on its share image). */
-  accent: "gold" | "cyan" | "violet" | "blue" | "orange" | "red" | "daily" | "dex" | "weekly" | "brain";
+  accent: "gold" | "cyan" | "violet" | "blue" | "orange" | "red" | "daily" | "dex" | "weekly" | "brain" | "fire";
   /**
    * Which glyph family drifts behind the copy, when there is no photo. Matches
    * the cards below it.
@@ -43,15 +43,24 @@ export interface BrowseHeroProps {
   aside?: ReactNode;
   /** Buttons of your own in place of primary/secondary (e.g. links that must not be prefetched). */
   actions?: ReactNode;
+  /**
+   * Phones only: less padding, a smaller curve and `subShort` in place of `sub`,
+   * for tool pages where the tool should start on the first screen (the dailies).
+   */
+  compact?: boolean;
+  /** The one-line description a `compact` hero shows on phones. */
+  subShort?: ReactNode;
 }
 
-export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary, aside, actions }: BrowseHeroProps) {
+export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary, aside, actions, compact, subShort }: BrowseHeroProps) {
   const shot = image ?? (photo ? lifestyle(photo) : null);
   const copy = (
     <div className="browse-hero__inner">
       <p className="marketing-eyebrow">{eyebrow}</p>
       <h1 className="browse-hero__title">{title}</h1>
-      <p className="browse-hero__sub">{sub}</p>
+      <p className="browse-hero__sub">
+        {compact && subShort ? <><span className="browse-hero__sub-full">{sub}</span><span className="browse-hero__sub-short">{subShort}</span></> : sub}
+      </p>
       {actions && <div className="browse-hero__cta">{actions}</div>}
       {!actions && (primary || secondary) && (
         <div className="browse-hero__cta">
@@ -70,7 +79,7 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, p
     </div>
   );
   return (
-    <header className={`browse-hero browse-hero--${accent}${aside ? " browse-hero--split" : ""}`}>
+    <header className={`browse-hero browse-hero--${accent}${aside ? " browse-hero--split" : ""}${compact ? " browse-hero--compact" : ""}`}>
       {shot && (
         /* Under the aurora and the glyph field, not over them: the photo is
            ground for the brand layers, so the band stays recognisably ours

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { IconCheck } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -64,12 +64,11 @@ export default function SignupPage() {
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [turnstileReady, setTurnstileReady] = useState(false);
+  // Bumped after each try: a token works once, so the widget fetches a new challenge.
+  const [captchaRound, setCaptchaRound] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   // Marketing emails — opt-in (default OFF). Honors privacy policy commitment.
   const [marketingOptIn, setMarketingOptIn] = useState(false);
-  const turnstileRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<string | null>(null);
   const router = useRouter();
 
   // Prefill from a soft-signup link (e.g. tournament guest join): ?prefillName / ?prefillEmail.
@@ -81,27 +80,7 @@ export default function SignupPage() {
     if (e) setEmail(e);
   }, []);
 
-  // Render Turnstile widget once the script is loaded and the ref is available
-  useEffect(() => {
-    if (!turnstileReady || !turnstileRef.current || !TURNSTILE_SITE_KEY) return;
-    if (widgetIdRef.current) return; // already rendered
-
-    const id = (window as any).turnstile.render(turnstileRef.current, {
-      sitekey: TURNSTILE_SITE_KEY,
-      callback: (token: string) => setCaptchaToken(token),
-      "expired-callback": () => setCaptchaToken(null),
-      "error-callback": () => setCaptchaToken(null),
-      theme: "light",
-    });
-    widgetIdRef.current = id;
-  }, [turnstileReady]);
-
-  const resetTurnstile = () => {
-    if ((window as any).turnstile && widgetIdRef.current) {
-      (window as any).turnstile.reset(widgetIdRef.current);
-      setCaptchaToken(null);
-    }
-  };
+  const resetTurnstile = () => setCaptchaRound((n) => n + 1);
 
   // Resend the signup confirmation — the recovery path for an unconfirmed
   // account. For an already-confirmed account Supabase returns an error; we
@@ -316,16 +295,7 @@ export default function SignupPage() {
               />
               <p className="auth-page__hint">{PASSWORD_HINT}</p>
 
-              {TURNSTILE_SITE_KEY && (
-                <>
-                  <Script
-                    src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-                    strategy="afterInteractive"
-                    onReady={() => setTurnstileReady(true)}
-                  />
-                  <div ref={turnstileRef} style={{ display: "flex", justifyContent: "center" }} />
-                </>
-              )}
+              <TurnstileWidget onToken={setCaptchaToken} resetKey={captchaRound} center />
 
               <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "var(--font-size-12)", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
                 <input

@@ -10,29 +10,16 @@
  * outside production, for the test build). No cookies or Facebook data: the
  * game sends a random id it keeps in Facebook's player storage.
  */
-import { NextResponse, type NextRequest } from "next/server";
-import { isProduction } from "@/lib/env";
+import type { NextRequest } from "next/server";
 import { rateLimit } from "@/lib/ratelimit";
+import { instantIp as ipOf, instantJson as json, instantPreflight } from "@/lib/instant/cors";
 import { isCountry } from "@/lib/chatbrain/audience";
 import { ChatBrainNotReady } from "@/lib/chatbrain/store";
 import { instantAnswer, instantGuess, instantReveal, instantView } from "@/lib/chatbrain/instant";
 
 export const runtime = "nodejs";
 
-const FB_ORIGIN = /^https:\/\/([a-z0-9-]+\.)*fbsbx\.com$/i;
-const DEV_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
 const ANON = /^[0-9a-f-]{16,64}$/i;
-
-function cors(req: NextRequest): Record<string, string> {
-  const origin = req.headers.get("origin") ?? "";
-  const ok = FB_ORIGIN.test(origin) || (!isProduction && DEV_ORIGIN.test(origin));
-  return ok
-    ? { "Access-Control-Allow-Origin": origin, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "600", Vary: "Origin" }
-    : { Vary: "Origin" };
-}
-
-const json = (req: NextRequest, body: unknown, status = 200) => NextResponse.json(body, { status, headers: cors(req) });
-const ipOf = (req: NextRequest) => req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 
 const MESSAGES: Record<string, string> = {
   empty: "Type an answer first.",
@@ -45,7 +32,7 @@ const MESSAGES: Record<string, string> = {
 };
 
 export async function OPTIONS(req: NextRequest) {
-  return new NextResponse(null, { status: 204, headers: cors(req) });
+  return instantPreflight(req);
 }
 
 export async function GET(req: NextRequest) {

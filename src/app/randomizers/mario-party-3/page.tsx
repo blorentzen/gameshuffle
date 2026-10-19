@@ -27,10 +27,10 @@ export default function MarioParty3RandomizerPage() {
       <Suspense>
         <PartyRandomizer game={MARIO_PARTY_3} hero={{ title: landing.h1, lead: landing.lead, isNew: true, image: GAME_ART["mario-party-3"].hero.src, imagePosition: GAME_ART["mario-party-3"].hero.focus }} />
       </Suspense>
+      <RandomizerNudge gameName={MARIO_PARTY_3.label} saves="your party setups" />
       <RandomizerLanding landing={landing} itemLists={partyItemLists(MARIO_PARTY_3, headings)}>
         <PartyReference game={MARIO_PARTY_3} headings={headings} />
       </RandomizerLanding>
-      <RandomizerNudge gameName={MARIO_PARTY_3.label} saves="your party setups" />
     </>
   );
 }

@@ -111,6 +111,9 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
     glyphs: [IconTrophy, IconCalendarWeek, IconListNumbers, IconAward, IconUsersGroup] },
   community: { feature: IconUsers, ramp: ["#0d3b46", "#0ea5e9"],
     glyphs: [IconUsers, IconMessages, IconHeartHandshake, IconHome, IconMessageCircle] },
+  /* Fire Round: solo trivia against the clock. */
+  fire: { feature: IconFlame, ramp: ["#3a0f1c", "#d9363e"],
+    glyphs: [IconFlame, IconClock, IconBolt, IconBulb, IconTrophy] },
   spooky: { feature: IconGhost, ramp: ["#2a1450", "#f08a1c"],
     glyphs: [IconGhost, IconPumpkinScary, IconBat, IconCandy, IconSpider, IconMoonStars] },
 };

@@ -124,15 +124,13 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
         </section>
       )}
 
-      <section className="current-settings__section">
-        <p className="current-settings__label">
-          Races this round{races.length > 0 && (
-            <span className="current-settings__sub">
-              {" "}· {races.length}
-            </span>
-          )}
-        </p>
-        {races.length > 0 ? (
+      {/* Races and items show once they're rolled; an empty "Not yet rolled"
+          row is left out (Britton's pick, 2026-10-19). */}
+      {races.length > 0 && (
+        <section className="current-settings__section">
+          <p className="current-settings__label">
+            Races this round<span className="current-settings__sub"> · {races.length}</span>
+          </p>
           <div className="current-settings__scroller" role="region" aria-label="Races this round" tabIndex={0}>
             <ul className="current-settings__race-tiles">
               {races.map((race) => (
@@ -142,38 +140,36 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
               ))}
             </ul>
           </div>
-        ) : (
-          <p className="current-settings__empty">
-            <em>Not yet rolled</em>
-          </p>
-        )}
-      </section>
+        </section>
+      )}
 
-      <section className="current-settings__section">
-        <p className="current-settings__label">
-          Current items
-          {currentItems.presetName && (
-            <span className="current-settings__sub">
-              {" "}· {currentItems.presetName}
-            </span>
-          )}
-        </p>
-        {currentItems.items.length > 0 ? (
-          <div className="current-settings__scroller" role="region" aria-label="Current items" tabIndex={0}>
-            <ul className="current-settings__item-tiles">
-              {currentItems.items.map((item) => (
-                <li key={item.id}>
-                  <ItemTileItem item={item} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="current-settings__empty">
-            <em>{currentItems.presetName ? "No catalog for this mode" : "Not yet rolled"}</em>
+      {(currentItems.items.length > 0 || currentItems.presetName) && (
+        <section className="current-settings__section">
+          <p className="current-settings__label">
+            Current items
+            {currentItems.presetName && (
+              <span className="current-settings__sub">
+                {" "}· {currentItems.presetName}
+              </span>
+            )}
           </p>
-        )}
-      </section>
+          {currentItems.items.length > 0 ? (
+            <div className="current-settings__scroller" role="region" aria-label="Current items" tabIndex={0}>
+              <ul className="current-settings__item-tiles">
+                {currentItems.items.map((item) => (
+                  <li key={item.id}>
+                    <ItemTileItem item={item} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="current-settings__empty">
+              <em>No catalog for this mode</em>
+            </p>
+          )}
+        </section>
+      )}
     </aside>
   );
 }

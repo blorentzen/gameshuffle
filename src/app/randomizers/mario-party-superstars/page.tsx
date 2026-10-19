@@ -27,10 +27,10 @@ export default function SuperstarsRandomizerPage() {
           hero={{ title: landing.h1, lead: landing.lead, image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imagePosition: "center 25%" }}
         />
       </Suspense>
+      <RandomizerNudge gameName={SUPERSTARS.label} saves="your party setups" />
       <RandomizerLanding landing={landing} itemLists={partyItemLists(SUPERSTARS, headings)}>
         <PartyReference game={SUPERSTARS} headings={headings} />
       </RandomizerLanding>
-      <RandomizerNudge gameName={SUPERSTARS.label} saves="your party setups" />
     </>
   );
 }

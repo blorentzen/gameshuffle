@@ -21,7 +21,6 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { Alert, Button, Modal } from "@empac/cascadeds";
 import {
   listTracksForGame,
@@ -416,6 +415,9 @@ export function PicksBansPicker({
     });
   };
 
+  const yourPicks = ballot.picksTracks.length + ballot.picksRallies.length + ballot.picksModes.length + ballot.picksItems.length;
+  const yourBans = ballot.bansTracks.length + ballot.bansRallies.length + ballot.bansModes.length + ballot.bansItems.length;
+
   if (!hydrated) {
     return (
       <div className="live-tab live-pb">
@@ -426,21 +428,6 @@ export function PicksBansPicker({
 
   return (
     <div className="live-tab live-pb">
-      {!isAuthenticated && onSignInClick && (
-        <Alert variant="info">
-          Voting anonymously. Your draft lives in this browser tab and
-          persists across rounds for this session.{" "}
-          <button
-            type="button"
-            className="live-pb__signin-link"
-            onClick={onSignInClick}
-          >
-            Sign in with Twitch
-          </button>{" "}
-          to keep your picks across future sessions too.
-        </Alert>
-      )}
-
       <div className="live-pb__status">
         <div>
           {isConfigMode ? (
@@ -459,6 +446,11 @@ export function PicksBansPicker({
             <span> · {inProgressCount} in progress</span>
           </div>
         )}
+        {/* Your own counts live here, not in the tab labels (they wrapped to
+            three lines on phones; Britton's pick, 2026-10-19). */}
+        <div className="live-pb__yours">
+          Your picks {yourPicks} · bans {yourBans}
+        </div>
       </div>
 
       <div className="live-pb__tabs" role="tablist">
@@ -469,7 +461,7 @@ export function PicksBansPicker({
           className={`live-pb__tab${activePool === "tracks" ? " live-pb__tab--active" : ""}`}
           onClick={() => setActivePool("tracks")}
         >
-          Tracks ({ballot.picksTracks.length}✓ / {ballot.bansTracks.length}✗)
+          Tracks
         </button>
         {hasRallies && (
           <button
@@ -479,8 +471,7 @@ export function PicksBansPicker({
             className={`live-pb__tab${activePool === "rallies" ? " live-pb__tab--active" : ""}`}
             onClick={() => setActivePool("rallies")}
           >
-            Rallies ({ballot.picksRallies.length}✓ /{" "}
-            {ballot.bansRallies.length}✗)
+            Rallies
           </button>
         )}
         <button
@@ -490,7 +481,7 @@ export function PicksBansPicker({
           className={`live-pb__tab${activePool === "modes" ? " live-pb__tab--active" : ""}`}
           onClick={() => setActivePool("modes")}
         >
-          Item Modes ({ballot.picksModes.length}✓ / {ballot.bansModes.length}✗)
+          Item modes
         </button>
         <button
           type="button"
@@ -499,7 +490,7 @@ export function PicksBansPicker({
           className={`live-pb__tab${activePool === "items" ? " live-pb__tab--active" : ""}`}
           onClick={() => setActivePool("items")}
         >
-          Items ({ballot.picksItems.length}✓ / {ballot.bansItems.length}✗)
+          Items
         </button>
       </div>
 
@@ -601,10 +592,14 @@ export function PicksBansPicker({
         </div>
       )}
 
+      {/* One sign-in line (it used to be an info box on top and a line here). */}
       {!isAuthenticated && onSignInClick && (
         <p className="live-pb__footer-hint">
-          Want your picks to follow you across future sessions?{" "}
-          <Link href="/login">Sign in</Link>.
+          Voting as a guest in this browser.{" "}
+          <button type="button" className="live-pb__signin-link" onClick={onSignInClick}>
+            Sign in with Twitch
+          </button>{" "}
+          to keep your picks across streams.
         </p>
       )}
     </div>

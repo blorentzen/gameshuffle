@@ -4,9 +4,12 @@
  * "More game randomizers" under each randomizer: a small CDS Carousel of
  * picture cards (four across on desktop, two on phones) instead of a row of
  * text links. The server passes the entries, so hidden games never reach it.
+ * It shows a handful picked for this page and ends on a card for all of them
+ * (`allCount`), rather than every randomizer and a long row of dots.
  */
 
 import { Badge, Card } from "@empac/cascadeds";
+import { IconLayoutGrid } from "@tabler/icons-react";
 import { LabeledCarousel } from "@/components/ui/LabeledCarousel";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
 import { EventHeaderArt, type ArtCategory } from "@/components/events/EventHeaderArt";
@@ -14,7 +17,7 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 
 export interface MoreRandomizerEntry { slug: string; href: string; title: string; image?: string; art?: { category: ArtCategory; ramp?: [string, string] }; isNew?: boolean }
 
-export function MoreRandomizers({ entries }: { entries: MoreRandomizerEntry[] }) {
+export function MoreRandomizers({ entries, allCount }: { entries: MoreRandomizerEntry[]; /** Adds the last card, "All N randomizers". */ allCount?: number }) {
   if (!entries.length) return null;
   return (
     <div className="more-rand">
@@ -29,6 +32,14 @@ export function MoreRandomizers({ entries }: { entries: MoreRandomizerEntry[] })
             <span className="more-rand__title">{e.title}</span>
           </Card>
         ))}
+        {allCount ? (
+          <Card key="all" variant="outlined" padding="none" href="/randomizers" className={`more-rand__card more-rand__card--all ${tagged(EVENTS.randomizerCardClicked, { to: "all", from: "more" })}`}>
+            <span className="more-rand__media more-rand__media--all">
+              <span className="more-rand__all-tile" aria-hidden><IconLayoutGrid size={28} stroke={2} /></span>
+            </span>
+            <span className="more-rand__title">Check out all {allCount} randomizers</span>
+          </Card>
+        ) : null}
       </LabeledCarousel>
     </div>
   );

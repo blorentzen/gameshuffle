@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState, useRef, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Script from "next/script";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
@@ -34,9 +34,8 @@ function LoginForm() {
   const [needsMfa, setNeedsMfa] = useState(false);
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [turnstileReady, setTurnstileReady] = useState(false);
-  const turnstileRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<string | null>(null);
+  // Bumped after each try: a token works once, so the widget fetches a new challenge.
+  const [captchaRound, setCaptchaRound] = useState(0);
   const searchParams = useSearchParams();
   const router = useRouter();
   // Only our own pages (the same allowlist the sign-in callback uses), so a crafted link can't send someone off-site.
@@ -78,26 +77,7 @@ function LoginForm() {
      control depend on when React happened to re-render. */
   const isLockedOut = lockoutEnd !== null;
 
-  useEffect(() => {
-    if (!turnstileReady || !turnstileRef.current || !TURNSTILE_SITE_KEY) return;
-    if (widgetIdRef.current) return;
-
-    const id = (window as any).turnstile.render(turnstileRef.current, {
-      sitekey: TURNSTILE_SITE_KEY,
-      callback: (token: string) => setCaptchaToken(token),
-      "expired-callback": () => setCaptchaToken(null),
-      "error-callback": () => setCaptchaToken(null),
-      theme: "light",
-    });
-    widgetIdRef.current = id;
-  }, [turnstileReady]);
-
-  const resetTurnstile = () => {
-    if ((window as any).turnstile && widgetIdRef.current) {
-      (window as any).turnstile.reset(widgetIdRef.current);
-      setCaptchaToken(null);
-    }
-  };
+  const resetTurnstile = () => setCaptchaRound((n) => n + 1);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,16 +199,7 @@ function LoginForm() {
                 </a>
               </div>
 
-              {TURNSTILE_SITE_KEY && (
-                <>
-                  <Script
-                    src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-                    strategy="afterInteractive"
-                    onReady={() => setTurnstileReady(true)}
-                  />
-                  <div ref={turnstileRef} style={{ display: "flex", justifyContent: "center" }} />
-                </>
-              )}
+              <TurnstileWidget onToken={setCaptchaToken} resetKey={captchaRound} center />
 
               <Button variant="primary" type="submit" fullWidth disabled={loading || isLockedOut}>
                 {loading ? "Logging in..." : "Log In"}

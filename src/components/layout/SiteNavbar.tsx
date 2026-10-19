@@ -36,6 +36,7 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
  *  forward-facing marketing + app/tool landing pages, for one consistent nav. */
 const HERO_ROUTES = new Set([
   "/",
+  "/trivia/fire-round",
   "/apps",
   "/tools",
   "/gs-pro",
@@ -75,10 +76,15 @@ const HERO_ROUTES = new Set([
   "/communities",
   // The Originals all open on the violet brand band.
   "/daily",
+  "/daily-dex",
   "/weekly",
   "/chat-brain",
   "/trivia",
   "/shop",
+  // Also open on BrowseHero (they rendered a solid bar above it until 2026-10-19).
+  "/discord",
+  "/support",
+  "/support/thanks",
 ]);
 
 /** Detail routes that lead with a full-bleed hero but cannot be listed in

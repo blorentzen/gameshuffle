@@ -928,7 +928,10 @@
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bingo-accent) 65%, transparent);
   pointer-events: none;
 }
-.bingo-cell--free {
+/* Two classes, so it outranks .bingo-cell.is-marked (dark text: the free space is
+   always marked) and .bingo-cell:hover (light background). */
+.bingo-cell.bingo-cell--free,
+.bingo-cell.bingo-cell--free:hover {
   background: var(--bingo-accent);
   color: #fff;
   font-family: var(--font-display, sans-serif);

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Accordion,
   Badge,
   Button,
   CarouselItem,
@@ -10,7 +9,9 @@ import {
   Stack,
 } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
+import { IconStarFilled } from "@tabler/icons-react";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
+import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import {
   COMPANION,
@@ -110,6 +111,7 @@ export default async function Page() {
   // Falls back to FPO cards if none are configured yet.
   const [shopCards, shopVisible] = await Promise.all([getPublicFeaturedShopCards(), shopVisibleToVisitors()]);
   const recentlySold = await getRecentlySoldCards(12);
+  const topReview = REVIEWS.find((r) => r.featured) ?? REVIEWS[0];
 
   // Top pick per tier, pulled from the real deck cluster (content/decks).
   // For a beginner featured deck that's half of a Battle Box, surface BOTH
@@ -184,6 +186,7 @@ export default async function Page() {
           cards={shopCards}
           heading="Featured cards in the shop"
           intro="Our highest-value singles, straight from the GameShuffle TCG store. Tap a card to grab it on TCGplayer."
+          credits={false}
         />
         {shopVisible && <ShopLine placement="tcg" />}
 
@@ -320,61 +323,24 @@ export default async function Page() {
                 );
               })}
             </AutoplayCarousel>
-            <TcgAttribution className="tcg-featured__attr" />
+            {/* Buyer reviews as one line here instead of their own band (Britton's pick, 2026-10-19). */}
+            {topReview && (
+              <figure className="tcg-sold-review">
+                {topReview.rating ? (
+                  <span className="tcg-sold-review__stars" role="img" aria-label={`${topReview.rating} out of 5 stars`}>
+                    {Array.from({ length: topReview.rating }, (_, i) => <IconStarFilled key={i} size={16} aria-hidden />)}
+                  </span>
+                ) : null}
+                <span className="tcg-sold-review__src">Verified buyers on TCGplayer</span>
+                <blockquote className="tcg-sold-review__quote">&ldquo;{topReview.quote}&rdquo;</blockquote>
+                <figcaption className="tcg-sold-review__by">
+                  {topReview.author} · <a href={TCG_SHOP_URL} target="_blank" rel="noopener noreferrer">Read more reviews</a>
+                </figcaption>
+              </figure>
+            )}
           </section>
         )}
       </Container>
-
-      {/* Reviews — carousel, wide cards. Sits right below Recently sold. */}
-      {REVIEWS.length > 0 && (
-        <section className="tcg-reviews-band">
-          <Container>
-            <h2 className="tcg-h2" style={{ marginBottom: "var(--spacing-8)" }}>
-              What buyers are saying
-            </h2>
-            <p className="tcg-reviews__source">
-              Verified buyer reviews from our TCGplayer store.
-            </p>
-            <AutoplayCarousel
-            label="What buyers are saying"
-              slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }}
-              gap={20}
-              showArrows
-              showDots
-              loop
-              arrowPosition="bottom"
-            >
-              {[...REVIEWS]
-                .sort((a, b) => Number(b.featured ?? false) - Number(a.featured ?? false))
-                .map((r) => (
-                <CarouselItem key={r.quote.slice(0, 24)}>
-                  <figure className="tcg-review">
-                    <div className="tcg-review__top">
-                      {r.rating ? (
-                        <div
-                          className="tcg-review__stars"
-                          aria-label={`${r.rating} out of 5 stars`}
-                        >
-                          {"★".repeat(r.rating)}
-                        </div>
-                      ) : null}
-                      <blockquote className="tcg-review__quote">
-                        &ldquo;{r.quote}&rdquo;
-                      </blockquote>
-                    </div>
-                    <figcaption className="tcg-review__by">
-                      {r.author}
-                      {r.source ? (
-                        <span className="tcg-review__src"> · {r.source}</span>
-                      ) : null}
-                    </figcaption>
-                  </figure>
-                </CarouselItem>
-              ))}
-            </AutoplayCarousel>
-          </Container>
-        </section>
-      )}
 
       {/* Companion module — the centerpiece. Same treatment as the CTA modules:
           a curved premium dark band. `dark` keeps CDS component variants dark
@@ -389,6 +355,8 @@ export default async function Page() {
               <Link href={COMPANION.learnMore.href}>{COMPANION.learnMore.label} →</Link>
               {" · "}
               <Link href="/pokemon-tcg/rules">Pokémon TCG rules in plain words →</Link>
+              {" · "}
+              <Link href="/pokemon-tcg/checklists">Card checklists →</Link>
             </p>
           </div>
 
@@ -403,6 +371,10 @@ export default async function Page() {
               </div>
             ))}
           </div>
+
+          <p className="tcg-companion__pro">
+            Playing on a call? <Link href="/gs-pro">Play together on two phones with GS Pro</Link>, free for 14 days.
+          </p>
 
           <CompanionCTAs
             openHref={COMPANION.cta.href}
@@ -431,15 +403,10 @@ export default async function Page() {
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="tcg-h2">Frequently asked questions</h2>
-          {/* Open by default: CDS Accordion only mounts an item once it's opened,
-              so collapsed answers would be missing from the HTML (and from search). */}
-          <Accordion
-            variant="bordered"
-            allowMultiple
-            defaultOpenIds={FAQ.map((_, i) => String(i))}
-            items={FAQ.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
-          />
+          <FaqList items={FAQ} />
         </section>
+        {/* The card credits once, at the foot of the page. */}
+        <TcgAttribution className="tcg-hub__credits" />
       </Container>
     </main>
   );

@@ -31,7 +31,7 @@ type DbError = { code?: string; message?: string } | null;
 export const boardsMissing = (e: DbError) => !!e && (["42P01", "PGRST205", "42883", "PGRST202"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
 const duplicate = (e: DbError) => !!e && (e.code === "23505" || /duplicate key|unique/i.test(e.message ?? ""));
 
-const GAME_PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex" };
+const GAME_PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/trivia/fire-round" };
 
 /** The payout levers (Platform ▸ Token economy), falling back to the seeded defaults. */
 export async function boardLevers(): Promise<BoardLevers> {
@@ -110,6 +110,32 @@ export async function recordScore(args: { game: BoardGame; day: string; player: 
   return { points, tokens, recorded: true, seconds };
 }
 
+/**
+ * Today's Fire Round on the boards: the first round a player started today,
+ * once finished. Board points are 1 per 200 scored, at most 10
+ * (boardPoints); the score itself ranks the day. Pays tokens like a daily, once.
+ * Null before the migrations.
+ */
+export async function recordFireScore(args: { day: string; player: ScorePlayer; score: number; right: number; points: number }): Promise<ScoreResult | null> {
+  const key = playerKey(args.player.kind, args.player.id);
+  const row = {
+    game: "fire", day: args.day, player: key,
+    user_id: args.player.kind === "u" ? args.player.id : null,
+    identity_id: args.player.kind === "i" ? args.player.id : null,
+    guest_key: args.player.kind === "g" ? args.player.id : null,
+    points: args.points, guesses: Math.min(999, Math.max(0, args.right)), solved: args.right > 0, score: Math.max(0, args.score),
+  };
+  const { data, error } = await createServiceClient().from("daily_scores").upsert(row, { onConflict: "game,day,player", ignoreDuplicates: true }).select("player");
+  if (error) {
+    if (!boardsMissing(error) && error.code !== "PGRST204" && error.code !== "42703" && error.code !== "23514") console.error("[boards] fire score failed:", error);
+    return null;
+  }
+  if (!data?.length) return { points: args.points, tokens: 0, recorded: false };
+  const levers = await boardLevers();
+  const tokens = await pay(args.player, args.points * levers.tokensPerPoint, "play", `daily:fire:${args.day}:${key}`, { game: "fire", day: args.day, points: args.points, score: args.score }, levers.holdDays).catch((e) => { console.error("[boards] fire pay failed:", e); return 0; });
+  return { points: args.points, tokens, recorded: true };
+}
+
 /** A clock longer than this (a Start left open for days) isn't a solve time. */
 const MAX_SOLVE_SECONDS = 2 * 86_400;
 
@@ -155,7 +181,7 @@ export async function playerForIdentity(identityId: string, userId?: string | nu
   return account ? { kind: "u", id: account } : { kind: "i", id: identityId };
 }
 
-type RawRow = { place: number; player: string; points: number; days: number; guesses: number; seconds?: number | null; user_id: string | null; identity_id: string | null; guest_key: string | null; total_players: number };
+type RawRow = { place: number; player: string; points: number; days: number; guesses: number; seconds?: number | null; score?: number | null; user_id: string | null; identity_id: string | null; guest_key: string | null; total_players: number };
 
 /** Names, pictures and profile links for a board's rows. Private profiles show as "A player". */
 async function describe(rows: RawRow[]): Promise<Map<string, Pick<BoardRow, "name" | "tag" | "avatar" | "profile">>> {
@@ -201,6 +227,7 @@ export async function boardView(args: { game: BoardGame; period: BoardPeriod; da
     ...(names.get(r.player) ?? { name: "A player", tag: null, avatar: null, profile: null }),
     points: Number(r.points), days: Number(r.days), guesses: Number(r.guesses),
     seconds: r.seconds == null ? null : Number(r.seconds),
+    score: r.score == null ? null : Number(r.score),
     you: !!args.me && r.player === args.me,
     // Nobody on 0 points wins a prize (closePeriod skips them too).
     prize: levers && args.period !== "day" && Number(r.points) > 0 ? prizeFor(Number(r.place), args.period, levers) : 0,
@@ -237,6 +264,7 @@ export async function dayStandings(game: BoardGame, day: string, limit = 25): Pr
       ...(names.get(r.player) ?? { name: "A player", tag: null, avatar: null, profile: null }),
       points: Number(r.points), days: Number(r.days), guesses: Number(r.guesses),
       seconds: r.seconds == null ? null : Number(r.seconds),
+      score: r.score == null ? null : Number(r.score),
       you: false, prize: 0,
     },
   }));
@@ -270,7 +298,8 @@ export async function closePeriod(game: BoardGame, period: "week" | "month", sta
   if (today < settlesOn(period, start)) return { closed: false, paid: 0 };
   const admin = createServiceClient();
   const claim = await admin.from("daily_board_closings").upsert({ game, period, period_start: start }, { onConflict: "game,period,period_start", ignoreDuplicates: true }).select("game");
-  if (claim.error) { if (!boardsMissing(claim.error)) console.error("[boards] close failed:", claim.error); return { closed: false, paid: 0 }; }
+  // 23514: Fire Round's board before fire-round-m1 widens the game list.
+  if (claim.error) { if (!boardsMissing(claim.error) && claim.error.code !== "23514") console.error("[boards] close failed:", claim.error); return { closed: false, paid: 0 }; }
   if (!claim.data?.length) return { closed: false, paid: 0 };
 
   const levers = await boardLevers();
@@ -309,7 +338,7 @@ export async function closeDue(now = Date.now()): Promise<{ game: BoardGame; per
   const lastWeek = gsAddDays(gsWeekStart(now), -7);
   const lastMonth = gsMonthStart(Date.parse(`${gsAddDays(gsMonthStart(now), -1)}T12:00:00Z`));
   const out = [];
-  for (const game of ["shuffle", "dex"] as BoardGame[]) {
+  for (const game of ["shuffle", "dex", "fire"] as BoardGame[]) {
     for (const [period, start] of [["week", lastWeek], ["month", lastMonth]] as const) {
       out.push({ game, period, start, ...(await closePeriod(game, period, start, today)) });
     }

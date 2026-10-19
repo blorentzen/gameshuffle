@@ -60,3 +60,54 @@ body { margin: 0; background: var(--ig-ground); color: var(--ig-ink); font-famil
 .ig-note--bad { color: #a3261b; }
 .ig-note--plain { color: var(--ig-ink-2); }
 .ig-share { display: grid; }
+
+/* The tabs: Daily, Dex, Chat Brain. */
+.ig-tabs .empac-tabs__content { padding: 0; }
+.ig-tabs .empac-tabs__list { background: var(--ig-ground); position: sticky; top: 0; z-index: 2; }
+.ig-tab, .ig-daily { display: grid; gap: var(--spacing-12, 12px); padding-top: var(--spacing-12, 12px); }
+/* Grid children default to their content's width; the guess table scrolls inside its card instead of widening the page. */
+.ig > *, .ig-tab > *, .ig-daily > *, .ig-card > *, .ig-tabs .empac-tabs__content { min-width: 0; }
+
+/* The dailies: each game in its own colors (the site's share images). */
+.ig-band--daily { background: linear-gradient(135deg, var(--ig-d1), var(--ig-d2)); }
+.ig-start { display: grid; gap: var(--spacing-12, 12px); }
+.ig-hints { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ig-hints li { background: #f6f3f9; border-left: 4px solid var(--ig-d2); border-radius: 8px; padding: 8px 10px; font-size: var(--font-size-14); }
+
+.ig-reveal { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.ig-reveal__cell { width: 28px; height: 34px; border-radius: 6px; border: 2px solid var(--ig-line); display: grid; place-items: center; font: 700 var(--font-size-18) / 1 var(--font-display); }
+.ig-reveal__cell--shown { border-color: var(--ig-d2); color: var(--ig-d1); }
+.ig-reveal__gap { width: 10px; }
+
+/* The guesses: a sideways-scrolling table with the name column pinned (legible over squeezed). */
+.ig-grid-wrap { position: relative; overflow-x: auto; margin-inline: calc(var(--spacing-16, 16px) * -1); padding: 0 var(--spacing-16, 16px) 8px;
+  scrollbar-width: thin; scrollbar-color: var(--ig-line) transparent; }
+.ig-grid-wrap::-webkit-scrollbar { height: 6px; }
+.ig-grid-wrap::-webkit-scrollbar-thumb { background: var(--ig-line); border-radius: 3px; }
+.ig-grid-wrap::-webkit-scrollbar-track { background: transparent; }
+.ig-grid { border-collapse: separate; border-spacing: 4px; font-size: var(--font-size-13, 13px); min-width: 100%; }
+.ig-grid th { font-weight: 700; color: var(--ig-ink-2); font-size: var(--font-size-12); text-align: center; white-space: nowrap; }
+/* The name column stays put, header included. Its white shadow covers the scroller's padding and the gap before it,
+   so cells sliding underneath never peek out on the left; a faint edge on the right shows there's more to scroll. */
+.ig-grid thead th:first-child, .ig-grid tbody th { position: sticky; left: 4px; background: #fff; text-align: left; z-index: 1; padding-right: 12px;
+  box-shadow: -20px 0 0 #fff, 6px 0 6px -6px rgba(31, 23, 38, 0.18); }
+.ig-grid thead th:first-child { z-index: 2; }
+.ig-who { display: flex; align-items: center; gap: 6px; max-width: 130px; }
+.ig-tile { flex: none; width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; color: #fff; font: 700 var(--font-size-14) / 1 var(--font-display); }
+.ig-who__name { font-weight: 600; color: var(--ig-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ig-cell { display: grid; place-items: center; min-width: 64px; min-height: 40px; padding: 4px 6px; border-radius: 8px; text-align: center; font-weight: 600; line-height: 1.2; }
+.ig-cell--match { background: #2f9a5c; color: #fff; }
+.ig-cell--close { background: #f2c14e; color: #3b2a00; }
+.ig-cell--miss { background: #ece8ef; color: var(--ig-ink-2); }
+.ig-grid__win .ig-who__name { color: #17633a; }
+
+/* Today's leaderboard (the site's daily board). */
+.ig-board { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-variant-numeric: tabular-nums; }
+.ig-board__row { display: grid; grid-template-columns: 28px 1fr auto 36px; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 8px; background: #f8f6f9; }
+.ig-board__row--you { background: #ece6fb; font-weight: 700; }
+.ig-board__place { font-weight: 700; color: var(--ig-ink-2); text-align: center; }
+.ig-board__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ig-board__time { color: var(--ig-ink-2); font-size: var(--font-size-13, 13px); }
+.ig-board__pts { font-weight: 700; text-align: right; }
+.ig-fit { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: var(--font-size-14); color: var(--ig-ink-2); }
+.ig-daily .ig-kicker--dark { color: var(--ig-d1); }

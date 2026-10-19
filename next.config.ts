@@ -235,6 +235,8 @@ const nextConfig: NextConfig = {
       // `/competitive` on its own used to 404; send it to the only competitive
       // hub that exists rather than leaving a guessable path dead.
       { source: "/competitive", destination: "/competitive/mario-kart-8-deluxe", permanent: false },
+      // Fire Round's share link (the "Copy my score" line): a short address for the page.
+      { source: "/fire", destination: "/trivia/fire-round?src=share-fire", permanent: false },
       // Nav IA (Play/Stream): "Features" folded into the GS Pro page, which
       // already carries the full Pro feature breakdown.
       {

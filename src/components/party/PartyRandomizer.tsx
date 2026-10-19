@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Badge, Button, Card, Chip, Container, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
+  Badge, Button, Chip, Container, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
 import { IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconStarFilled } from "@tabler/icons-react";
+import { ShowAll } from "@/components/ui/ShowAll";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -382,33 +383,34 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         <div className="party-rules__row">
           <dt>Rules</dt>
           <dd>{ruleset ? <><strong>{roller("rulesetId", ruleset.label, rulesetNames)}</strong>{ruleset.edition === "switch2" && <Badge variant="info" size="small">Switch 2</Badge>}<span className="party-muted">{ruleset.blurb}</span></> : <span className="party-muted">Not rolled yet</span>}</dd>
-          {lockButton("rulesetId", "ruleset")}
+          <dd className="party-rules__lock">{lockButton("rulesetId", "ruleset")}</dd>
         </div>
         <div className="party-rules__row">
           <dt>Turns</dt>
           <dd>{setup ? <><strong>{roller("turns", String(setup.turns), (ruleset?.turns ?? [setup.turns]).map(String))}</strong>{ruleset?.turnLabels?.[String(setup.turns)] && <span className="party-muted">{ruleset.turnLabels[String(setup.turns)]}</span>}</> : <span className="party-muted">Not rolled yet</span>}{ruleset && ruleset.turns.length === 1 && <span className="party-muted">Fixed by {ruleset.label}</span>}</dd>
-          {lockButton("turns", "turn count")}
+          <dd className="party-rules__lock">{lockButton("turns", "turn count")}</dd>
         </div>
         <div className="party-rules__row">
           <dt>Bonus Stars</dt>
           <dd>{bonusMode ? <><strong>{roller("bonusModeId", bonusMode.label, bonusNames)}</strong><span className="party-muted">{bonusMode.blurb}</span></> : <span className="party-muted">Not rolled yet</span>}</dd>
-          {lockButton("bonusModeId", "Bonus Star mode")}
+          <dd className="party-rules__lock">{lockButton("bonusModeId", "Bonus Star mode")}</dd>
         </div>
       </dl>
 
       <section className="party-bonus" aria-labelledby="party-bonus-h">
         <h3 id="party-bonus-h" className="party-h3">What each Bonus Star rewards</h3>
-        <ul className="party-bonus__grid">
-          {game.bonusStars.map((b) => (
-            <li key={b.name}>
-              <Card variant="outlined" padding="medium" className="party-bonus__card">
+        {/* One framed list, not a card per star (containers rule), cut after four (Britton's picks, 2026-10-19). */}
+        <ShowAll height="28rem" label={`Show all ${game.bonusStars.length} Bonus Stars`}>
+          <ul className="party-bonus__list">
+            {game.bonusStars.map((b) => (
+              <li key={b.name} className="party-bonus__row">
                 <span className="party-bonus__icon" aria-hidden><IconStarFilled size={18} /></span>
                 <strong className="party-bonus__name">{b.name}</strong>
                 <span className="party-bonus__rewards">{b.rewards}</span>
-              </Card>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </ShowAll>
       </section>
     </div>
   );

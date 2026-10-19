@@ -18,7 +18,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Accordion,
   Button,
   Card,
   CarouselItem,
@@ -37,6 +36,8 @@ import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { Reveal } from "@/components/marketing/Reveal";
+import { FaqList } from "@/components/marketing/FaqList";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { proContextFor, type ProContext } from "@/lib/marketing/pro-context";
@@ -300,6 +301,11 @@ export default function GsProPage() {
   const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
   const { user } = useAuth();
   const availability = usePaidAvailability();
+  // GS Circuit's row says "free during preview" until its billing switch launches it.
+  const [circuitLive, setCircuitLive] = useState(false);
+  useEffect(() => {
+    fetch("/api/tournaments/billing-status").then((r) => r.json()).then((j: { billingEnabled?: boolean }) => setCircuitLive(!!j.billingEnabled)).catch(() => {});
+  }, []);
 
   return (
     <main className="pricing-page-main" style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
@@ -328,6 +334,8 @@ export default function GsProPage() {
                 <Button variant="secondary" size="large">See pricing</Button>
               </Link>
             </div>
+            {/* The price up front (Britton's pick, 2026-10-19): the header never said what Pro costs. */}
+            <p className="pro-hero__price">14 days free, then {usd(pro.monthly)} a month or {usd(pro.annual)} a year. Cancel any time from your account.</p>
           </div>
         </Container>
         <MarketingHeroCurve />
@@ -343,7 +351,8 @@ export default function GsProPage() {
           {/* Marquee features — hand-built representations, alternating sides.
               Wrapped so the between-module gap is a flex gap (they're animated
               and need room to breathe), independent of the top gap. */}
-          <div className="pro-spotlights">
+          {/* Phones swipe through them one at a time; wider screens keep them alternating down the page. */}
+          <ResponsiveCarousel className="pro-spotlights" label="What Pro unlocks">
           <Reveal>
             <ProSpotlight
               eyebrow="Cross-platform"
@@ -386,11 +395,11 @@ export default function GsProPage() {
               media={<MarketShot />}
             />
           </Reveal>
-          </div>
+          </ResponsiveCarousel>
         </section>
 
         {/* Everything else in Pro — the remaining features as a compact row. */}
-        <section style={{ margin: "var(--spacing-80) 0" }}>
+        <section id="everything-in-pro" style={{ margin: "var(--spacing-80) 0", scrollMarginTop: "8rem" }}>
           <h2 className="pricing-page__section-title" style={{ marginBottom: "var(--spacing-24)" }}>
             Everything else in Pro
           </h2>
@@ -458,18 +467,10 @@ export default function GsProPage() {
                 <Button variant="secondary" fullWidth>Get started</Button>
               </Link>
             </div>
-            <div className="pricing-card__included">
-              <p className="pricing-card__included-title">What&rsquo;s included</p>
-              <ul className="pricing-card__list">
-                <li>Every randomizer: Mario Kart, Smash, Mario Party, Splatoon, Kirby Air Riders, Overwatch, Marvel Rivals, GoldenEye, Pokémon and more</li>
-                <li>The Daily and the Weekly, with streaks on your profile</li>
-                <li>Game night tools, live nights on everyone&apos;s phones and the GameShuffle Originals</li>
-                <li>Tournaments &amp; championships, plus competitive lounge scoring</li>
-                <li>AI setup, the night planner and the tournament helper, a few times a day</li>
-                <li>TCG Companion + card collection</li>
-                <li>Public profile, follows &amp; messaging, and the Discord bot</li>
-              </ul>
-            </div>
+            <p className="pricing-card__free-line">
+              Every randomizer, the dailies, game night tools, tournaments and the TCG Companion.{" "}
+              <Link href="/features">See everything that&apos;s free</Link>
+            </p>
           </Card>
 
           <Card variant="elevated" padding="large" className="pricing-card pricing-card--featured">
@@ -503,41 +504,27 @@ export default function GsProPage() {
                 <li>Live polls, Stream Bingo, Chat Draft and Who Said It?</li>
                 <li>Stream tools on your overlay (wheels, timers, 8-ball, tier lists) + channel point rewards</li>
                 <li>Live tournament control and picks &amp; bans</li>
-                <li>Arcade Token economy: prediction markets, awards, bounties, leaderboards</li>
-                <li>AI tools with a monthly allowance, and brand theming for your channel</li>
               </ul>
+              <Link href="#everything-in-pro" className="pricing-card__more">See everything in Pro</Link>
             </div>
           </Card>
+        </div>
+        {/* GS Circuit right under the plans (Britton's pick, 2026-10-19), worded by its launch state. */}
+        <div className="pro-circuit-row">
+          <p className="pro-circuit-row__eyebrow">For organizers · GS Circuit{circuitLive ? "" : " · free during preview"}</p>
+          <h3 className="pro-circuit-row__title">Running tournaments too?</h3>
+          <p className="pro-circuit-row__body">GS Circuit raises your field to 64 or 256 players, with championship seasons, co-organizers and your branding. Circuit 256 includes GS Pro.</p>
+          <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
+            <Button variant="secondary" size="small">Compare GS Circuit plans</Button>
+          </Link>
         </div>
       </DarkBand>
 
       <Container>
-        {/* Cross-link: organizers get Pro bundled at the top Circuit tier. */}
-        <section className="beta-section" style={{ marginTop: "var(--spacing-64)" }}>
-          <div style={{ maxWidth: 780, margin: "0 auto", border: "1px solid var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 6%, var(--surface-default))", borderRadius: "1.1rem", padding: "2rem 1.75rem", textAlign: "center" }}>
-            <p className="marketing-eyebrow" style={{ marginBottom: "var(--spacing-8)" }}>Running tournaments too?</p>
-            <h2 className="beta-section__title" style={{ marginBottom: "var(--spacing-12)" }}>Circuit 256 includes GameShuffle Pro</h2>
-            <p style={{ margin: "0 auto var(--spacing-20)", maxWidth: "44rem", lineHeight: "var(--line-height-relaxed)" }}>
-              If you also organize bigger events, <strong>GameShuffle Circuit</strong> raises your field to 64 or
-              256 players, and Circuit 256 bundles Pro at no extra cost.
-            </p>
-            <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
-              <Button variant="secondary" size="large">Explore GameShuffle Circuit</Button>
-            </Link>
-          </div>
-        </section>
-
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="pricing-page__section-title">Common questions</h2>
-          {/* Open by default: CDS Accordion only mounts an item once it's opened,
-              so collapsed answers would be missing from the HTML (and from search). */}
-          <Accordion
-            variant="bordered"
-            allowMultiple
-            defaultOpenIds={FAQ_ITEMS.map((_, i) => String(i))}
-            items={FAQ_ITEMS.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
-          />
+          <FaqList items={FAQ_ITEMS} />
           <p className="pricing-page__support">Don&apos;t need the features but want to help? <Link href="/support">Support GameShuffle</Link> once or monthly.</p>
         </section>
       </Container>

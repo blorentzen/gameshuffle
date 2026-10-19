@@ -1,7 +1,7 @@
 import { CHECKLISTS, CHECKLISTS_PATH, checklistUrl } from "@/data/tcg-checklists";
 import type { MetadataRoute } from "next";
 import { publishedGuidesAsync } from "@/lib/guides/store";
-import { GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
+import { FIRE_ROUND_PUBLIC, GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 import { createPublicClient } from "@/lib/supabase/public";
 import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
@@ -137,6 +137,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Trivia pages written for search: occasions, the hosting guide, the free tools.
     ...OCCASIONS.map((o) => ({ url: `${baseUrl}${occasionUrl(o.slug)}`, lastModified: lm(`${TRIVIA_PATH}/[occasion]`), changeFrequency: "monthly" as const, priority: 0.6 })),
     ...["how-to-host", "team-names", "answer-sheet"].map((p) => ({ url: `${baseUrl}${TRIVIA_PATH}/${p}`, lastModified: lm(`${TRIVIA_PATH}/${p}`), changeFrequency: "monthly" as const, priority: 0.6 })),
+    // Fire Round: solo trivia, a new shared round every day.
+    ...(FIRE_ROUND_PUBLIC ? [{ url: `${baseUrl}${TRIVIA_PATH}/fire-round`, lastModified: lm(`${TRIVIA_PATH}/fire-round`), changeFrequency: "daily" as const, priority: 0.7 }] : []),
     {
       url: `${baseUrl}/wheel-spinner`,
       lastModified: lm("/wheel-spinner"),

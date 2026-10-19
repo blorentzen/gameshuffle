@@ -21,6 +21,8 @@ export interface BoardRow {
   guesses: number;
   /** The day board's solve time (it breaks ties on points); null without one, and on week and month boards. */
   seconds: number | null;
+  /** Fire Round: the score added up over the period (null for the dailies). */
+  score: number | null;
   you: boolean;
   /** The prize this place earns when the period ends (weeks and months). */
   prize: number;

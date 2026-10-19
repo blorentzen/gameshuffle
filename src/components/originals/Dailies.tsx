@@ -13,7 +13,8 @@
 import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Alert, Button, Card, SubNav } from "@empac/cascadeds";
-import { IconUserPlus } from "@tabler/icons-react";
+import { IconArrowRight, IconFlame, IconUserPlus } from "@tabler/icons-react";
+import { FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useOriginalsHost } from "@/components/originals/OriginalsHost";
 import { DAILIES_GLYPHS, DailiesCards } from "@/components/originals/DailiesCards";
@@ -163,7 +164,20 @@ export function DailiesBar({ current, onPick }: { current: DailiesId; onPick?: (
 export function DailiesNext({ current, onPick }: { current: DailiesId; onPick?: (id: DailiesId) => void }) {
   const { shown, entries } = useDailies(current);
   const next = nextUp(entries, shown, current);
+  const { activity } = useOriginalsHost();
   if (!next) {
+    // Every daily done: keep playing with today's Fire Round (not in the Discord Activity, which only has the dailies).
+    if (FIRE_ROUND_PUBLIC && !activity) {
+      return (
+        <Card variant="outlined" padding="medium" className="dailies-next dailies--fire">
+          <span className="dailies-next__tile" aria-hidden><IconFlame size={24} stroke={2} /></span>
+          <span className="dailies-next__eyebrow">Next up</span>
+          <h2 className="dailies-next__title">Fire Round</h2>
+          <p className="dailies-next__text">That&apos;s every daily for today. Keep going: 60 seconds of trivia, the same questions for everyone.</p>
+          <Link href="/trivia/fire-round" onClick={() => track(EVENTS.dailiesSwitched, { to: "fire", from: current, via: "next" })} className="dailies-next__link"><Button variant="secondary">Play today&apos;s round</Button></Link>
+        </Card>
+      );
+    }
     if (shown.length < 2) return null;
     return <p className="party-muted dailies-next__done">That&apos;s every daily for today. New puzzles at midnight Pacific.</p>;
   }
@@ -183,6 +197,35 @@ export function DailiesNext({ current, onPick }: { current: DailiesId; onPick?: 
         : <Link href={g.href} onClick={go} className="dailies-next__link"><Button variant="secondary">{label}</Button></Link>}
     </Card>
   );
+}
+
+/**
+ * Next up as one button beside the share button (the Shuffle and the Dex,
+ * Britton's pick 2026-10-19: the card took 250px on a phone). The today bar
+ * above still shows every daily. When they're all done, a short line instead.
+ */
+export function DailiesNextButton({ current, onPick }: { current: DailiesId; onPick?: (id: DailiesId) => void }) {
+  const { shown, entries } = useDailies(current);
+  const { activity } = useOriginalsHost();
+  const next = nextUp(entries, shown, current);
+  if (!next) {
+    // Every daily done: today's Fire Round is next (outside the Discord Activity).
+    if (FIRE_ROUND_PUBLIC && !activity) {
+      return (
+        <Link href="/trivia/fire-round" onClick={() => track(EVENTS.dailiesSwitched, { to: "fire", from: current, via: "next" })} className="dailies-next__link">
+          <Button variant="secondary" iconAfter={IconArrowRight}>Next: today&apos;s Fire Round</Button>
+        </Link>
+      );
+    }
+    if (shown.length < 2) return null;
+    return <p className="party-muted dailies-next__done">That&apos;s every daily for today. New puzzles at midnight Pacific.</p>;
+  }
+  const g = DAILIES[next];
+  const go = () => track(EVENTS.dailiesSwitched, { to: next, from: current, via: "next" });
+  const label = next === "weekly" ? "Next: this week's Weekly" : `Next: ${g.short}`;
+  return onPick
+    ? <Button variant="secondary" iconAfter={IconArrowRight} onClick={() => { go(); onPick(next); }}>{label}</Button>
+    : <Link href={g.href} onClick={go} className="dailies-next__link"><Button variant="secondary" iconAfter={IconArrowRight}>{label}</Button></Link>;
 }
 
 /**
@@ -218,10 +261,11 @@ export function DailiesShare({ current, shareOne, oneText }: { current: DailiesI
   );
 }
 
-/** The streak cards on an end screen. */
-export function DailiesYours({ current }: { current: DailiesId }) {
+/** The streak cards on an end screen; `only` = just this game's, as a strip (the Shuffle and the Dex). */
+export function DailiesYours({ current, only = false }: { current: DailiesId; only?: boolean }) {
   const { shown, entries, signedIn } = useDailies(current);
   const { activity } = useOriginalsHost();
+  if (only) return <DailiesCards entries={entries} shown={[current]} current={current} heading={null} strip />;
   return <DailiesCards entries={entries} shown={shown} current={current} signedIn={!!signedIn || !!activity} everyDaily />;
 }
 
@@ -229,13 +273,13 @@ export function DailiesYours({ current }: { current: DailiesId }) {
  * On an end screen: your invite link and what it earns (signed in), or a nudge
  * to sign in for one. Not inside Discord.
  */
-export function DailiesInvite({ current }: { current: DailiesId }) {
+export function DailiesInvite({ current, nudge = true }: { current: DailiesId; /** Signed out: the "sign in for a link" line (the dailies fold it into their own sign-in line). */ nudge?: boolean }) {
   const toast = useToast();
   const { activity } = useOriginalsHost();
   const { referral, signedIn } = useDailies(current);
   if (activity || signedIn === null) return null;
   if (!referral?.code) {
-    if (signedIn) return null;
+    if (signedIn || !nudge) return null;
     return (
       <p className="party-muted dailies-invite__nudge">
         <OriginalsLink href={`/login?redirect=${DAILIES[current].href}`}>Sign in</OriginalsLink> to get your own invite link: you earn tokens when friends play from it.

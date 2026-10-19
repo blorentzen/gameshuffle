@@ -31,9 +31,9 @@ export default function Page() {
             <HeroRoulette game={liveRoster(MARVEL_RIVALS)} />
           </Container>
         </div>
+        <RandomizerNudge gameName="Marvel Rivals" saves="your tournaments and game nights" />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Marvel Rivals" saves="your tournaments and game nights" />
     </>
   );
 }

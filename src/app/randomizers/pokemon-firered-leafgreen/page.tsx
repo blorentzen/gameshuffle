@@ -35,9 +35,9 @@ export default async function FrlgRunChallengePage() {
             </Suspense>
           </Container>
         </div>
+        <RandomizerNudge gameName="Pokémon Fire Red and Leaf Green" saves="your runs" streamReady={false} tournament={false} />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Pokémon Fire Red and Leaf Green" saves="your runs" streamReady={false} />
     </>
   );
 }

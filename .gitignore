@@ -64,3 +64,5 @@ next-env.d.ts
 # Facebook Instant Game build output (scripts/build-instant-game.ts)
 instant-game/dist/
 instant-game/*.zip
+instant-game/facebook-kit/
+instant-game/listing/*.mp4

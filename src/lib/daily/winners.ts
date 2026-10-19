@@ -6,7 +6,7 @@ import { solvedDays } from "@/lib/daily/results";
 import { answerFor, guessLimits, puzzleFor, puzzleNumber, SHUFFLE } from "@/lib/originals/daily";
 import { DEX, DEX_PUZZLE, dexAnswer, dexNumber } from "@/lib/originals/dailyDex";
 import { createNotification } from "@/lib/social/notifications";
-import { MIN_FINISHERS, renumberPlaces, streakEnding, topFinishers, type WinnerRow, type WinnersSection } from "@/lib/originals/winners";
+import { MIN_FINISHERS, renumberPlaces, streakEnding, topFinishers, type WinnerRow, type WinnersGame, type WinnersSection } from "@/lib/originals/winners";
 
 /**
  * Yesterday's top 5 (Britton's picks, 2026-10-16), from the day boards: the
@@ -18,8 +18,8 @@ import { MIN_FINISHERS, renumberPlaces, streakEnding, topFinishers, type WinnerR
 
 const missing = (e: { code?: string; message?: string } | null) => !!e && (["42P01", "PGRST205"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
 
-const SHORT: Record<BoardGame, string> = { shuffle: "Daily Shuffle", dex: "Daily Dex" };
-const PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex" };
+const SHORT: Record<BoardGame, string> = { shuffle: "Daily Shuffle", dex: "Daily Dex", fire: "Fire Round" };
+const PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/trivia/fire-round" };
 
 /** Players who chose to be left out of winners videos (none when the table is missing). */
 async function optedOut(players: string[]): Promise<Set<string>> {
@@ -56,7 +56,7 @@ async function streakFor(player: string, game: BoardGame, day: string): Promise<
 
 type Section = WinnersSection & { keys: { player: string; optedOut: boolean }[] };
 
-async function loadSection(game: BoardGame, day: string): Promise<Section | null> {
+async function loadSection(game: WinnersGame, day: string): Promise<Section | null> {
   const standings = await dayStandings(game, day, 25);
   if (!standings) return null;
   const staff = await staffPlayers(standings.map((s) => s.player));
@@ -80,7 +80,7 @@ async function loadSection(game: BoardGame, day: string): Promise<Section | null
 }
 
 /** A daily's title, number, guess count, link and answer for a day: everything but the rows. */
-export function sectionHead(game: BoardGame, day: string): Omit<WinnersSection, "rows" | "finishers"> {
+export function sectionHead(game: WinnersGame, day: string): Omit<WinnersSection, "rows" | "finishers"> {
   if (game === "dex") {
     const a = dexAnswer(day);
     return { game, title: DEX.title, number: dexNumber(day), main: guessLimits(DEX_PUZZLE).main, link: DEX.link, answer: { name: a.name, types: a.types ?? [] } };
@@ -90,7 +90,7 @@ export function sectionHead(game: BoardGame, day: string): Omit<WinnersSection, 
 }
 
 async function loadSections(day: string): Promise<Section[]> {
-  const out = await Promise.all((["shuffle", "dex"] as BoardGame[]).map((g) => loadSection(g, day).catch((e) => { console.error("[winners] section failed:", g, e); return null; })));
+  const out = await Promise.all((["shuffle", "dex"] as WinnersGame[]).map((g) => loadSection(g, day).catch((e) => { console.error("[winners] section failed:", g, e); return null; })));
   return out.filter((s): s is Section => !!s);
 }
 

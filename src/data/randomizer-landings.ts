@@ -59,7 +59,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       "Free Mario Kart 8 Deluxe randomizer. Random character, kart, wheels and glider combos for up to 12 players, plus track and item shuffles. No account needed.",
     h1: "Mario Kart 8 Deluxe Randomizer",
     lead: "A free Mario Kart 8 Deluxe randomizer for up to 12 players. Roll a kart combo for one player or the whole lobby, then shuffle the tracks and items.",
-    ogImage: "https://cdn.empac.co/gameshuffle/images/opengraph/mk8dx-randomizer-og.jpg",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-kart-8-deluxe-og.jpg",
     overview:
       "This Mario Kart 8 Deluxe randomizer builds a random four-part kart combo (character, vehicle, wheels and glider) for everyone at the table, then shuffles the tracks and items for your races. Whether you call it a Mario Kart 8 randomizer or an MK8DX randomizer, it handles up to 12 players, a tour-only track filter, drift and weight filters, and race counts up to 48. Open it in any browser, hit randomize, and play.",
     featuresHeading: "What the Mario Kart 8 Deluxe randomizer does",
@@ -91,7 +91,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       "Free Mario Kart World randomizer for up to 24 players. Random characters and kart combos, plus track and Knockout Tour shuffles. Save setups for game night.",
     h1: "Mario Kart World Randomizer",
     lead: "A free Mario Kart World randomizer for up to 24 players. Roll a character and kart for everyone, then shuffle the tracks, items and Knockout Tour rallies.",
-    ogImage: "https://cdn.empac.co/gameshuffle/images/opengraph/mkworld-randomizer-og.jpg",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-kart-world-og.jpg",
     overview:
       "This Mario Kart World randomizer creates random character-and-kart pairings for up to 24 players, then shuffles tracks, items, and Knockout Tour rallies. It supports vehicle-type filters (Kart, Bike, and ATV), overworld map icons for tracks, and race counts of 4, 6, 8, 12, 16, or 32. Open it, randomize, and race.",
     featuresHeading: "What the Mario Kart World randomizer does",

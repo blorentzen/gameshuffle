@@ -9,7 +9,7 @@
  * finished time once the game is over.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Button } from "@empac/cascadeds";
 import { IconPlayerPlay, IconStopwatch } from "@tabler/icons-react";
 import { formatTime } from "@/lib/originals/dailies";
@@ -99,12 +99,15 @@ export function DailySolveTime({ times, solved }: { times: SolveTimes; solved: b
   );
 }
 
-/** The Start button, where the guess box goes until the player starts. */
-export function DailyStartCard({ onStart, what }: { onStart: () => void; what: string }) {
+/** The Start button, where the guess box goes until the player starts; `children` (how to play) sits under it. */
+export function DailyStartCard({ onStart, children }: { onStart: () => void; children?: ReactNode }) {
   return (
     <div className="daily-start">
-      <Button variant="primary" size="large" onClick={onStart} iconBefore={IconPlayerPlay}>Start today&apos;s puzzle</Button>
-      <p className="daily-start__note">The first hint shows when you start, and your time starts too. Name today&apos;s {what} as fast as you can: a quicker solve breaks ties on today&apos;s leaderboard.</p>
+      <div className="daily-start__go">
+        <Button variant="primary" size="large" onClick={onStart} iconBefore={IconPlayerPlay}>Start today&apos;s puzzle</Button>
+        <p className="daily-start__note">Your first hint and your clock start when you tap Start. A faster solve breaks ties on today&apos;s leaderboard.</p>
+      </div>
+      {children}
     </div>
   );
 }

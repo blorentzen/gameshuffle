@@ -1230,6 +1230,19 @@
 .marketing-dark-band .pricing-page__cards {
   margin-bottom: 0;
 }
+/* GS Pro (Britton's picks, 2026-10-19): the price under the header buttons, Pro's card first on phones,
+   the Free card as one line, Pro's list cut with a link to everything, GS Circuit under the plans. */
+.pro-hero__price { margin: var(--spacing-16) 0 0; color: rgba(255, 255, 255, 0.86); font-size: var(--font-size-14); line-height: 1.5; }
+@media (max-width: 767px) { .pricing-page__cards .pricing-card--featured { order: -1; } }
+.pricing-card__free-line { margin: var(--spacing-20) 0 0; font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); }
+.marketing-dark-band .pricing-card__free-line { color: var(--gray-300, #c2c8d2); }
+.marketing-dark-band .pricing-card__free-line a, .marketing-dark-band .pricing-card__more { color: #c9b8ff; font-weight: 600; }
+.pricing-card__more { display: inline-block; margin-top: var(--spacing-12); font-size: var(--font-size-14); font-weight: 600; }
+.pro-circuit-row { display: grid; justify-items: start; gap: var(--spacing-6, 6px); max-width: 88rem; margin: var(--spacing-24) auto 0; padding: var(--spacing-20) var(--spacing-24);
+  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: var(--radius-16, 16px); color: #fff; text-align: start; }
+.pro-circuit-row__eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-bold, 700); letter-spacing: 0.08em; text-transform: uppercase; color: #9ee6d6; }
+.pro-circuit-row__title { margin: 0; font-size: var(--font-size-20); }
+.pro-circuit-row__body { margin: 0 0 var(--spacing-8); color: var(--gray-300, #c2c8d2); font-size: var(--font-size-16); line-height: 1.5; max-width: 66ch; }
 
 /* Autoplay carousel progress timer ------------------------------ */
 .autoplay-carousel {
@@ -2516,16 +2529,6 @@
 .home-next__title { grid-area: title; font-size: var(--font-size-18); }
 .home-next__meta { grid-area: meta; font-size: var(--font-size-14); color: var(--text-secondary); }
 .home-next__go { grid-area: go; font-weight: 600; color: var(--brand-ink, var(--color-primary-600, #2766ec)); }
-.home-host { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--spacing-16, 16px); }
-.home-host__card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8, 8px); height: 100%; }
-.home-host__icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; }
-.home-host__icon--blue { background: linear-gradient(135deg, #2f66ec, #1b2a6b); }
-.home-host__icon--violet { background: linear-gradient(135deg, #7c5ce0, #2a2466); }
-.home-host__icon--green { background: linear-gradient(135deg, #2f9e44, #1d3a2e); }
-.home-host__title { margin: var(--spacing-4, 4px) 0 0; font-size: var(--font-size-20); line-height: 1.2; }
-.home-host__title a { color: inherit; text-decoration: none; }
-.home-host__title a:hover { text-decoration: underline; }
-.home-host__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; flex: 1; }
 /* Go further: GS Pro and GS Circuit side by side on the dark band. */
 .home-plans { margin-top: var(--spacing-56, 56px); }
 .home-plans__title { margin: 0 0 var(--spacing-8, 8px); font-size: var(--font-size-fluid-h2); font-weight: var(--font-weight-bold); color: #fff; }
@@ -2540,8 +2543,14 @@
 .home-plan__text { margin: 0 0 var(--spacing-8, 8px); color: #d6d9f6; font-size: var(--font-size-16); line-height: 1.5; flex: 1; }
 .home-section__lede { margin: 0; max-width: 62ch; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.6; }
 /* The Dex and rules cards: no Pokémon art (the imagery rule), a glyph on the brand gradient. */
-.home-dex-media { display: grid; place-items: center; width: 100%; aspect-ratio: 16 / 9; color: #fff; background: linear-gradient(135deg, #e0a21c, #d9502a); }
-.home-dex-media--rules { background: linear-gradient(135deg, #3d8be0, #5439c4); }
+/* Popular on GameShuffle: plain links to the pages people search for (2026-10-19). */
+.home-popular { display: grid; gap: var(--spacing-16); margin: var(--spacing-48, 48px) 0 0; }
+.home-popular__title { margin: 0; font-size: var(--font-size-24); line-height: 1.2; }
+.home-popular__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-16) var(--spacing-24); }
+.home-popular__link { display: grid; gap: var(--spacing-4); font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); color: var(--brand-ink, var(--primary-700)); text-decoration: none; }
+.home-popular__link:hover { text-decoration: underline; }
+.home-popular__sub { font-size: var(--font-size-14); font-weight: 400; color: var(--text-secondary); }
+@media (max-width: 640px) { .home-popular__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-16) var(--spacing-16); } }
 /* Keep game night free */
 .home-support { margin: var(--spacing-48, 48px) 0 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--spacing-16, 16px); align-items: center;
   padding: var(--spacing-20, 20px) var(--spacing-24, 24px); border-radius: var(--radius-16, 16px); border: 1px solid var(--border-default); background: var(--surface-default); }
@@ -2552,3 +2561,57 @@
 @media (max-width: 40rem) { .home-support { grid-template-columns: 1fr; } }
 .home-ideas { margin: var(--spacing-32, 32px) 0 var(--spacing-48, 48px); text-align: center; color: var(--text-secondary); font-size: var(--font-size-14); }
 .home-ideas a { font-weight: 600; }
+
+/* ── FaqList (src/components/marketing/FaqList.tsx): questions only, answers in the HTML.
+   Matches the CDS bordered accordion until it can keep closed items mounted. ── */
+.faq-list { border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); overflow: hidden; text-align: start; }
+.faq-list__item + .faq-list__item { border-top: 1px solid var(--border-default); }
+.faq-list__q { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-16); padding: var(--spacing-16) var(--spacing-20); cursor: pointer; list-style: none;
+  font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); color: var(--text-primary); line-height: 1.35; }
+.faq-list__q::-webkit-details-marker { display: none; }
+.faq-list__q:hover { color: var(--brand-ink, var(--primary-600)); }
+.faq-list__q:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: -2px; }
+.faq-list__icon { flex: none; color: var(--text-secondary); transition: transform 0.2s ease; }
+.faq-list__item[open] .faq-list__icon { transform: rotate(180deg); }
+.faq-list__a { padding: 0 var(--spacing-20) var(--spacing-20); color: var(--text-secondary); font-size: var(--font-size-16); line-height: var(--line-height-relaxed, 1.6); }
+.faq-list__a > :first-child { margin-top: 0; }
+.faq-list__a > :last-child { margin-bottom: 0; }
+@media (prefers-reduced-motion: reduce) { .faq-list__icon { transition: none; } }
+
+/* ── PlansPanel (src/components/marketing/PlansPanel.tsx): Free / GS Circuit / GS Pro, one surface. ── */
+.plans-panel { display: grid; gap: var(--spacing-8); width: 100%; max-width: 120rem; margin: var(--spacing-32) auto 0; padding: var(--spacing-24) var(--spacing-24) var(--spacing-8);
+  border-radius: var(--radius-16, 16px); background: color-mix(in srgb, var(--bg-primary, #4b5cf5) 8%, var(--surface-default)); text-align: start; }
+.plans-panel__head { display: grid; gap: var(--spacing-6, 6px); }
+.plans-panel__title { margin: 0; font-size: var(--font-size-24); line-height: 1.2; text-wrap: balance; }
+.plans-panel__intro { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); max-width: 66ch; }
+/* RowPanel: one surface, a row per thing (src/components/marketing/RowPanel.tsx). */
+.row-panel { display: grid; }
+.row-panel__row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-16); padding: var(--spacing-20) 0; border-top: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent); }
+.row-panel__tile { display: grid; place-items: center; width: 4.4rem; height: 4.4rem; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+.row-panel__tile--violet { background: linear-gradient(135deg, #5a3fd6, #8b5cf6); }
+.row-panel__tile--magenta { background: linear-gradient(135deg, #5a3fd6, #c949e9); }
+.row-panel__tile--teal { background: linear-gradient(135deg, #0b5a52, #169a85); }
+.row-panel__tile--green { background: linear-gradient(135deg, #1d7a3a, #2f9e44); }
+.row-panel__tile--orange { background: linear-gradient(135deg, #b4421d, #e0861c); }
+.row-panel__tile--red { background: linear-gradient(135deg, #b42318, #e5533c); }
+.row-panel__copy { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-4); min-width: 0; }
+.row-panel__eyebrow { font-size: var(--font-size-12); font-weight: var(--font-weight-bold, 700); letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand-ink, var(--primary-700)); }
+.row-panel__name { margin: 0; font-size: var(--font-size-18); line-height: 1.3; }
+.row-panel__name a { color: inherit; text-decoration: none; }
+.row-panel__name a:hover { text-decoration: underline; }
+.row-panel__body { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; }
+.row-panel__go { margin-top: var(--spacing-12); }
+.row-panel__link { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); color: var(--brand-ink, var(--primary-700)); text-decoration: none; }
+.row-panel__link:hover { text-decoration: underline; }
+@media (min-width: 900px) {
+  .row-panel--across { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0 var(--spacing-32); }
+  .row-panel--across .row-panel__row { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; align-content: start; }
+  .row-panel--across .row-panel__go { margin-top: auto; padding-top: var(--spacing-12); }
+  .row-panel--across .row-panel__copy { height: 100%; }
+}
+/* A RowPanel on its own (not inside PlansPanel): the tinted surface. */
+.row-panel--surface { padding: var(--spacing-4) var(--spacing-24); border-radius: var(--radius-16, 16px); background: color-mix(in srgb, var(--bg-primary, #4b5cf5) 6%, var(--surface-default)); }
+.row-panel--surface > .row-panel__row:first-child { border-top: 0; }
+@media (min-width: 900px) { .row-panel--surface.row-panel--across > .row-panel__row { border-top: 0; } }
+@media (max-width: 640px) { .row-panel--surface { padding: var(--spacing-4) var(--spacing-16); } }
+@media (max-width: 640px) { .plans-panel { padding: var(--spacing-20) var(--spacing-16) var(--spacing-4); } }

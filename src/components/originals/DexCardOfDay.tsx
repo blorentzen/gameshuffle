@@ -23,7 +23,12 @@ import type { TcgCardImages } from "@/lib/scrydex/types";
 
 interface ShowcaseCard { id: string; name: string; set: string | null; number: string | null; rarity: string | null; images: TcgCardImages | null }
 
-export function DexCardOfDay({ dex, signedIn }: { dex: number; signedIn: boolean }) {
+/**
+ * `credits={false}`: the page shows the card credits at its foot instead (the
+ * Daily Dex, so they replace its fan-made line rather than sit in the card).
+ * `onCard` says whether today has a card, so the page knows which line to show.
+ */
+export function DexCardOfDay({ dex, signedIn, credits = true, onCard }: { dex: number; signedIn: boolean; credits?: boolean; onCard?: (has: boolean) => void }) {
   const toast = useToast();
   const [card, setCard] = useState<ShowcaseCard | null>(null);
   const [added, setAdded] = useState(false);
@@ -32,10 +37,12 @@ export function DexCardOfDay({ dex, signedIn }: { dex: number; signedIn: boolean
   useEffect(() => {
     let alive = true;
     void fetch(`/api/tcg/showcase?dex=${dex}`).then((r) => (r.ok ? r.json() : null)).then((d: { card?: ShowcaseCard | null } | null) => {
-      if (alive && d?.card) setCard(d.card);
+      if (!alive) return;
+      if (d?.card) setCard(d.card);
+      onCard?.(!!d?.card);
     }).catch(() => { /* no card today */ });
     return () => { alive = false; };
-  }, [dex]);
+  }, [dex, onCard]);
 
   if (!card) return null;
 
@@ -71,7 +78,7 @@ export function DexCardOfDay({ dex, signedIn }: { dex: number; signedIn: boolean
             <Button variant="secondary" size="small">Shop our Pokémon cards</Button>
           </a>
         </span>
-        <TcgAttribution className="dex-cotd__attr" />
+        {credits && <TcgAttribution className="dex-cotd__attr" />}
       </div>
     </section>
   );

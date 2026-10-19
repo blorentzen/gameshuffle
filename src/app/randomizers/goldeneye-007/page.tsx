@@ -27,9 +27,9 @@ export default function GoldenEyeRandomizerPage() {
             <GoldenEyeRandomizer />
           </Container>
         </div>
+        <RandomizerNudge gameName="GoldenEye 007" saves="your match setups" />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="GoldenEye 007" saves="your match setups" />
     </>
   );
 }

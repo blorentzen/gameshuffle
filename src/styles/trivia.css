@@ -166,3 +166,21 @@
 .league-nights__kit { padding: var(--spacing-12) var(--spacing-16); }
 .league-manage__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6) var(--spacing-8); }
 .league-form__place, .league-form__place .place-ac, .league-form__place .empac-input-wrapper, .league-form__place .empac-input { width: 100%; max-width: none; }
+
+/* Platform ▸ Trivia ▸ Four choices (FireChoicesPanel): Fire Round's wrong answers. */
+.fire-choices-admin { display: grid; gap: var(--spacing-16); }
+.fire-choices-admin .trivia-admin__bar > * { flex: none; max-width: none; }
+.fire-choices-admin__line { margin: 0; font-size: var(--font-size-14); }
+.fire-choices-admin__fill { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
+.fire-choices-admin__fill li { display: grid; grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-12); font-size: var(--font-size-14); }
+.fire-choices-admin__n { font-variant-numeric: tabular-nums; color: var(--text-secondary); white-space: nowrap; }
+@media (max-width: 640px) {
+  .fire-choices-admin__fill li { grid-template-columns: minmax(0, 1fr) auto; }
+  .fire-choices-admin__fill li > :nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* /trivia: the Fire Round card beside hosting (icon tile above the title, as on the site's other cards). */
+.trivia-solo { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-12); }
+.trivia-solo__tile { width: 4.4rem; height: 4.4rem; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #d9363e, #ff7a2f); }
+.trivia-solo__copy { display: grid; gap: var(--spacing-4); min-width: 0; }
+.trivia-solo__copy .trivia-h2 { margin: 0; }

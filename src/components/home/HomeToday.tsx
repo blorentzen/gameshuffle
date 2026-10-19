@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { Badge, Button } from "@empac/cascadeds";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { DEX_EPOCH, dayKey, puzzleNumber } from "@/lib/originals/daily";
+import { fireNumber } from "@/lib/originals/fireRound";
 import { ordinal } from "@/lib/daily/boardRules";
 import type { BoardRow, BoardView } from "@/lib/daily/boardTypes";
 
@@ -37,11 +38,13 @@ function standing(m: Mine | null | undefined, fresh: string): string | null {
   return parts.join(" · ");
 }
 
-export function HomeToday({ dexPublic }: { dexPublic: boolean }) {
+/** `firePublic`: Fire Round's card (solo trivia, today's round on the boards). */
+export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolean; firePublic?: boolean }) {
   const [day, setDay] = useState<string | null>(null);
   const [weekly, setWeekly] = useState<WeeklySummary | null>(null);
   const [top, setTop] = useState<BoardRow[] | null>(null);
   const [me, setMe] = useState<{ shuffle: Mine | null; dex: Mine | null } | null>(null);
+  const [fire, setFire] = useState<{ score: number; streak: number } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -55,8 +58,13 @@ export function HomeToday({ dexPublic }: { dexPublic: boolean }) {
       if (alive && v?.ready && v.rows.length) setTop(v.rows.slice(0, 3));
     }).catch(() => {});
     void Promise.all([mine("shuffle"), dexPublic ? mine("dex") : Promise.resolve(null)]).then(([shuffle, dex]) => { if (alive) setMe({ shuffle, dex }); });
+    if (firePublic) {
+      void fetch("/api/fire-round", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((h: { signedIn?: boolean; today?: { score: number } | null; streak?: number } | null) => {
+        if (alive && h?.signedIn && (h.today || h.streak)) setFire({ score: h.today?.score ?? -1, streak: h.streak ?? 0 });
+      }).catch(() => {});
+    }
     return () => { alive = false; };
-  }, [dexPublic]);
+  }, [dexPublic, firePublic]);
 
   return (
     <>
@@ -81,6 +89,18 @@ export function HomeToday({ dexPublic }: { dexPublic: boolean }) {
               {standing(me?.dex, "Start a streak today")}
             </span>
             <Link href="/daily-dex"><Button variant="primary">Play today&apos;s Pokémon</Button></Link>
+          </div>
+        )}
+        {firePublic && (
+          <div className="home-play__card">
+            <span className="home-play__eyebrow">Every day · New</span>
+            <h3 className="home-play__title">Fire Round</h3>
+            <p className="home-play__text">60 seconds of trivia, the same questions for everyone. Type the answer, or take four choices when you&apos;re stuck.</p>
+            <span className="home-play__meta">
+              {day && fireNumber(day) >= 1 && <Badge variant="info" size="small">Round #{fireNumber(day)}</Badge>}
+              {fire ? [fire.score >= 0 ? `You scored ${fire.score.toLocaleString("en-US")} today` : null, fire.streak ? `${fire.streak} ${fire.streak === 1 ? "day" : "days"} in a row` : null].filter(Boolean).join(" · ") : null}
+            </span>
+            <Link href="/trivia/fire-round"><Button variant="primary">Play today&apos;s round</Button></Link>
           </div>
         )}
         <div className="home-play__card">

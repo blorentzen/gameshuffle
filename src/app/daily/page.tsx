@@ -19,10 +19,12 @@ export default function DailyPage() {
         eyebrow="A GameShuffle Original · every day"
         title="The Daily Shuffle"
         sub="Guess today's character from 130 across Nintendo, with a new hint after every miss. Same puzzle for everyone, new one every day."
+        subShort="Guess today's character from 130 across Nintendo."
         accent="daily"
         field="daily"
+        compact
       />
-      <Container className="tool-page">
+      <Container className="tool-page daily-page">
         <DailiesProvider current="shuffle">
           <DailiesBar current="shuffle" />
           <DailyShuffle />

@@ -1970,6 +1970,23 @@ html.dark .gs-platform-icon {
   display: block !important;
 }
 
+/* Phones: the link lists fold into rows (SiteFooter.tsx FOLDED_SECTIONS, a CDS
+   Accordion in the footer's spare slot). Wider screens keep the columns. */
+.site-footer .empac-marketing-footer__trust { display: none; }
+@media (max-width: 40rem) {
+  .site-footer .empac-marketing-footer__sections,
+  .site-footer .empac-marketing-footer__description { display: none; }
+  .site-footer .empac-marketing-footer__trust { display: block; margin-top: var(--spacing-24); padding: 0; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+  .site-footer__fold.empac-accordion--flush .empac-accordion__item { border-bottom-color: rgba(255, 255, 255, 0.12); }
+  .site-footer__fold.empac-accordion--flush .empac-accordion__item:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+  .site-footer__fold .empac-accordion__trigger { padding: var(--spacing-14, 14px) 0; color: #fff; min-height: 44px; }
+  .site-footer__fold.empac-accordion--flush .empac-accordion__trigger:hover { color: #fff; }
+  .site-footer__fold .empac-accordion__trigger-title { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); letter-spacing: 0.05em; text-transform: uppercase; color: inherit; }
+  .site-footer__fold .empac-accordion__icon { color: rgba(255, 255, 255, 0.7); }
+  .site-footer__fold .empac-accordion__content-inner { padding: 0 0 var(--spacing-14, 14px); }
+  .site-footer__fold-links { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); }
+}
+
 /* The footer is always dark, so the wordmark is always the white variant
    (forced above). */
 .site-footer__logo-img {

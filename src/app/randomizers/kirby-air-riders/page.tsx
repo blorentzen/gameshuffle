@@ -31,9 +31,9 @@ export default function KirbyRandomizerPage() {
           </Suspense>
         </Container>
         </div>
+        <RandomizerNudge gameName={AIR_RIDERS.label} saves="your Kirby Air Riders setups" />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName={AIR_RIDERS.label} saves="your Kirby Air Riders setups" />
     </>
   );
 }

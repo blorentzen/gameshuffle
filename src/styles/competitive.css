@@ -194,6 +194,8 @@
   vertical-align: middle;
   margin-left: 0.35rem;
 }
+/* On the light --success-100 pill, --success-ink was 3.95:1 at 12px; a darker shade passes. */
+html:not(.dark) .verified-badge { color: color-mix(in srgb, var(--success-ink) 72%, #000); }
 /* --success-100 stays light in dark mode while --success-ink turns light: use the dark surface tint. */
 html.dark .verified-badge { background: var(--surface-success); color: var(--success-300); }
 

@@ -22,8 +22,8 @@ export default function MK64RandomizerPage() {
       <Suspense>
         <RandomizerClient gameConfig={mk64Config} gameData={gameData} heroProps={mk64Hero} />
       </Suspense>
-      <RandomizerLanding landing={RANDOMIZER_LANDINGS["mario-kart-64"]} />
       <RandomizerNudge gameName="Mario Kart 64" saves="your racers and game-night setups" />
+      <RandomizerLanding landing={RANDOMIZER_LANDINGS["mario-kart-64"]} />
     </>
   );
 }

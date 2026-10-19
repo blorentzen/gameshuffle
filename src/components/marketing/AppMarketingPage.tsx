@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Accordion, Button, CardGroup, Container, Stack } from "@empac/cascadeds";
+import { Button, Container, Stack } from "@empac/cascadeds";
+import { FaqList } from "@/components/marketing/FaqList";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
@@ -75,11 +77,12 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
             {c.featuresHeading}
           </h2>
           <Reveal>
-            <CardGroup columns={3} gap="md">
+            {/* CDS CardGroup's classes keep the desktop grid; phones swipe (Britton's picks, 2026-10-19). */}
+            <ResponsiveCarousel className="empac-card-group empac-card-group--cols-3 empac-card-group--gap-md" label={c.featuresHeading}>
               {c.features.map((f) => (
                 <FeatureCard key={f.title} variant="compact" icon={f.icon} title={f.title} description={f.description} />
               ))}
-            </CardGroup>
+            </ResponsiveCarousel>
           </Reveal>
         </section>
 
@@ -134,14 +137,7 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
           <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-24)", lineHeight: "var(--line-height-tight)" }}>
             {c.faqHeading}
           </h2>
-          {/* Open by default: CDS Accordion only mounts an item once it's opened,
-              so collapsed answers would be missing from the HTML (and from search). */}
-          <Accordion
-            variant="bordered"
-            allowMultiple
-            defaultOpenIds={c.faq.map((_, i) => String(i))}
-            items={c.faq.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
-          />
+          <FaqList items={c.faq} />
         </section>
       </Container>
 

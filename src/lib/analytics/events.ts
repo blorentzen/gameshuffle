@@ -66,6 +66,14 @@ export const EVENTS = {
 
   // GS Pro and billing
   upgradeClicked: "Upgrade Clicked",
+  /** A "See GS Circuit" link in a plans panel (PlansPanel). {from} */
+  circuitClicked: "Circuit Clicked",
+  /** Fire Round (solo trivia): a round started {mode: daily|free, length, category}. */
+  fireRoundStarted: "Fire Round Started",
+  /** A round ended {mode, length, category, score: 0 | 1+ | 500+ | 1000+}. */
+  fireRoundFinished: "Fire Round Finished",
+  /** "Copy my score" {mode}. */
+  fireRoundShared: "Fire Round Shared",
   checkoutStarted: "Checkout Started",
   checkoutCompleted: "Checkout Completed",
   checkoutCanceled: "Checkout Canceled",
