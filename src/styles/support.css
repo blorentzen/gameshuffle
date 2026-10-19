@@ -55,8 +55,8 @@
 .support-moment__text { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .support-moment__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); margin-top: var(--spacing-8, 8px); }
 /* A supporter gets this instead of the ask. */
-.support-thanks { display: flex; align-items: center; gap: var(--spacing-6, 6px); margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--support-ink); }
-.support-thanks svg { flex: none; }
+.support-thankline { display: flex; align-items: center; gap: var(--spacing-6, 6px); margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--support-ink); }
+.support-thankline svg { flex: none; }
 /* Under a GS Pro wall's buttons (SupportInstead). */
 .support-instead { margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .support-instead a { font-weight: 600; color: var(--support-ink); display: inline-flex; align-items: center; gap: var(--spacing-4, 4px); }
