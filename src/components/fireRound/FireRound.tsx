@@ -2,29 +2,33 @@
 
 /**
  * Fire Round, the page (Britton's picks, 2026-10-19,
- * https://claude.ai/artifact/N8ZZzJUvEkJcBf3J3eEeDT). Three screens:
- *   start    Today's Fire Round (the one boxed thing: 60 seconds, mixed, the
- *            same questions for everyone, your first try counts), then free
- *            play sitting flat (category and length chips, Start), your bests
- *            and today's leaderboard.
+ * https://claude.ai/artifact/N8ZZzJUvEkJcBf3J3eEeDT, and beside the dailies
+ * the same day, https://claude.ai/artifact/WhFgrMQv8oVHQ4e5cvfXRx). Three screens:
+ *   start    Today's Fire Round in the dailies' Start card (the one boxed
+ *            thing), then More rounds sitting flat (category and length chips,
+ *            Start), your bests and today's leaderboard.
  *   play     FirePlay: a 3, 2, 1 first, then the questions.
  *   results  the score, four numbers, a new best or what today's round earned,
  *            Copy my score, the leaderboard, and what to play next.
  * The server (/api/fire-round) holds the clock and judges every answer. Guests
- * play as the browser's daily guest id and join the boards with a name.
+ * play as the browser's daily guest id and join the boards with a name. Today's
+ * round reports itself to the dailies' today bar like the puzzles do.
  */
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button, Chip } from "@empac/cascadeds";
-import { IconCalendarEvent, IconCopy, IconFlameFilled, IconPlayerPlay, IconTrophy } from "@tabler/icons-react";
+import { IconCalendarEvent, IconCopy, IconFlameFilled, IconTrophy } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { DailyBoard, DailyBoardJoin, guestRequestId, storedGuestId, useDailyBoards } from "@/components/originals/DailyBoard";
+import { DailiesNextButton, DailiesShare, DailiesYours } from "@/components/originals/Dailies";
+import { DailyStartCard } from "@/components/originals/DailyStart";
+import { DailySteps } from "@/components/originals/DailyParade";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { ordinal } from "@/lib/daily/boardRules";
 import type { BoardView } from "@/lib/daily/boardTypes";
-import { currentDay, readDailiesStore } from "@/lib/originals/dailies";
-import { LENGTH_ORDER, LENGTHS, MIXED, fireCategory, fireShareText, type FireLength } from "@/lib/originals/fireRound";
+import { reportDaily, type DailiesEntry } from "@/lib/originals/dailies";
+import { CHOICE_POINTS, LENGTH_ORDER, LENGTHS, MIXED, TYPED_POINTS, fireShareText, type FireLength } from "@/lib/originals/fireRound";
 import type { FireHome, FireOutcome, FireRunView } from "@/lib/fireRound/store";
 import { FirePlay, type FireMove } from "./FirePlay";
 import { FireGlyph } from "./fireIcons";
@@ -32,6 +36,18 @@ import { FireGlyph } from "./fireIcons";
 type Home = FireHome & { signedIn: boolean };
 
 const SHARE_URL = "https://www.gameshuffle.co/fire";
+
+/** Today's round for the dailies' today bar, Next up, combined share and streak card. */
+function fireEntry(h: Home): DailiesEntry {
+  return {
+    day: h.day,
+    number: h.number,
+    state: h.today ? "done" : h.current?.mode === "daily" ? "playing" : "fresh",
+    fire: h.today ? { score: h.today.score, right: h.today.right } : null,
+    stats: { played: h.history.played, won: h.history.played, streak: h.history.streak, best: h.history.best, top: h.history.top },
+    recent: h.history.recent,
+  };
+}
 
 /** Fetch with this browser's guest id (made when a round starts, read-only otherwise). */
 function fireFetch(path: string, init: RequestInit & { makeGuest?: boolean } = {}) {
@@ -59,6 +75,7 @@ export function FireRound() {
     if (!res?.ok) { setFailed(true); return; }
     const h = (await res.json()) as Home;
     setHome(h);
+    if (h.ready) reportDaily("fire", fireEntry(h));
     // A round still running picks back up.
     if (h.current) {
       setRun(h.current);
@@ -66,6 +83,13 @@ export function FireRound() {
     }
   }, []);
   useEffect(() => { void Promise.resolve().then(loadHome); }, [loadHome]);
+
+  // A link from a trivia questions page (?category=mario-kart) picks that category for More rounds, when it has questions.
+  const ids = home?.categories.map((c) => c.id).join(",") ?? "";
+  useEffect(() => {
+    const want = new URLSearchParams(window.location.search).get("category");
+    if (want && ids.split(",").includes(want)) void Promise.resolve().then(() => setCategory(want));
+  }, [ids]);
 
   const boards = useDailyBoards("fire", home ? home.signedIn : null);
 
@@ -215,33 +239,36 @@ function FireStart({ home, category, length, onCategory, onLength, onStart, boar
   const played = home.today;
   return (
     <div className="fire-home">
-      <section className="fire-today" aria-labelledby="fire-today-title">
-        <div className="fire-today__head">
-          <span className="fire-tile" aria-hidden><IconCalendarEvent size={22} stroke={2} /></span>
-          <div>
-            <h2 id="fire-today-title" className="fire-today__title">Today&apos;s Fire Round{home.number >= 1 ? ` #${home.number}` : ""}</h2>
-            <p className="fire-today__sub">60 seconds · mixed · the same questions for everyone</p>
-          </div>
-        </div>
-        {played ? (
-          <>
-            <p className="fire-today__done"><IconTrophy size={18} aria-hidden /><span>You scored <strong>{played.score.toLocaleString("en-US")}</strong> today with {played.right} right.</span></p>
-            <div className="fire-today__actions">
-              <Button variant="secondary" onClick={() => onStart("daily")}>Practice today&apos;s round</Button>
+      <section aria-labelledby="fire-today-title">
+        <DailyStartCard
+          className="daily-start--fire"
+          onStart={() => onStart("daily")}
+          label={played ? "Practice today's round" : "Play today's round"}
+          primary={!played}
+          note={played ? "Practice rounds don't change your score on the board. A new round at midnight Pacific." : null}
+          head={
+            <div className="fire-today__head">
+              <span className="fire-tile" aria-hidden><IconCalendarEvent size={22} stroke={2} /></span>
+              <h2 id="fire-today-title" className="fire-today__title">Today&apos;s Fire Round{home.number >= 1 ? ` #${home.number}` : ""}</h2>
+              <p className="fire-today__sub">60 seconds · mixed · the same questions for everyone</p>
+              {played && <p className="fire-today__done"><IconTrophy size={18} aria-hidden /><span>You scored <strong>{played.score.toLocaleString("en-US")}</strong> today with {played.right} right.</span></p>}
+              {home.streak > 0 && <p className="fire-today__streak"><IconFlameFilled size={16} aria-hidden /> {home.streak} {home.streak === 1 ? "day" : "days"} in a row</p>}
             </div>
-            <p className="fire-small">Practice rounds don&apos;t change your score on the board. A new round at midnight Pacific.</p>
-          </>
-        ) : (
-          <>
-            <p className="fire-small">Your first try counts on today&apos;s leaderboard.</p>
-            <Button variant="primary" iconBefore={IconPlayerPlay} fullWidth onClick={() => onStart("daily")}>Play today&apos;s round</Button>
-          </>
-        )}
-        {home.streak > 0 && <p className="fire-today__streak"><IconFlameFilled size={16} aria-hidden /> {home.streak} {home.streak === 1 ? "day" : "days"} in a row</p>}
+          }
+        >
+          {!played && (
+            <DailySteps steps={[
+              { icon: "type", title: `Type it for ${TYPED_POINTS}`, text: `A close answer opens four choices for ${CHOICE_POINTS}.` },
+              { icon: "heat", title: "Heat builds", text: "3 right in a row is ×1.5, 6 is ×2." },
+              { icon: "board", title: "First try counts", text: "Your first round today goes on the leaderboard." },
+            ]} />
+          )}
+        </DailyStartCard>
       </section>
 
       <section className="fire-flat" aria-labelledby="fire-free-title">
-        <h2 id="fire-free-title" className="fire-flat__title">Free play</h2>
+        <h2 id="fire-free-title" className="fire-flat__title">More rounds, any time</h2>
+        <p className="fire-small">Speed trivia by category: 1, 3 or 5 minutes, or until three misses. Rapid fire questions on geography, science, movies, music, sports, game characters, Overwatch heroes and more, with no repeats for 30 days while fresh ones are left.</p>
         <p className="fire-label" id="fire-cat-label">Pick a category</p>
         <div className="fire-chips" role="group" aria-labelledby="fire-cat-label">
           {home.categories.map((c) => (
@@ -252,7 +279,7 @@ function FireStart({ home, category, length, onCategory, onLength, onStart, boar
         <div className="fire-chips" role="group" aria-labelledby="fire-len-label">
           {LENGTH_ORDER.map((l) => <Chip key={l} label={LENGTHS[l].label} clickable selected={length === l} aria-pressed={length === l} onClick={() => onLength(l)} />)}
         </div>
-        <div><Button variant="secondary" onClick={() => onStart("free")}>Start free play</Button></div>
+        <div><Button variant="secondary" onClick={() => onStart("free")}>Start a round</Button></div>
       </section>
 
       {home.bests.length > 0 && (
@@ -279,13 +306,6 @@ function FireResults({ run, board, place, players, signedIn, onAgain, onHome, on
   const t = r.totals;
   const daily = run.mode === "daily";
   const why = run.lives !== null ? (run.lives <= 0 ? "Out of hearts" : "Round over") : "Time!";
-  // The dailies left to play today, read from this browser.
-  const nextDaily = useMemo(() => {
-    const e = readDailiesStore().entries;
-    if (e.shuffle?.day !== currentDay("shuffle") || e.shuffle.state !== "done") return { href: "/daily", label: "Play today's Daily Shuffle" };
-    if (e.dex && e.dex.day === currentDay("dex") && e.dex.state === "done") return null;
-    return { href: "/daily-dex", label: "Play today's Daily Dex" };
-  }, []);
 
   return (
     <div className="fire-results">
@@ -307,20 +327,22 @@ function FireResults({ run, board, place, players, signedIn, onAgain, onHome, on
         {!daily && r.newBest && <p className="fire-result__line"><IconTrophy size={18} aria-hidden />A new best for {run.categoryLabel.toLowerCase()}, {LENGTHS[run.length].label.toLowerCase()}{r.best !== null ? ` (was ${r.best.toLocaleString("en-US")})` : ""}</p>}
         {!daily && !r.newBest && r.best !== null && <p className="fire-small">Your best here: {r.best.toLocaleString("en-US")}.</p>}
         <div className="fire-today__actions">
-          <Button variant="primary" iconBefore={IconCopy} onClick={onCopy}>Copy my score</Button>
-          {daily ? <Button variant="secondary" onClick={onHome}>Free play</Button> : <Button variant="secondary" onClick={onAgain}>Play again</Button>}
+          {daily && run.counts
+            ? <DailiesShare current="fire" shareOne={onCopy} oneText="Copy my score" />
+            : <Button variant="primary" iconBefore={IconCopy} onClick={onCopy}>Copy my score</Button>}
+          {daily ? <Button variant="secondary" onClick={onHome}>More rounds</Button> : <Button variant="secondary" onClick={onAgain}>Play again</Button>}
         </div>
         {!daily && <Button variant="ghost" size="small" onClick={onHome}>Change category or length</Button>}
       </section>
+
+      {daily && run.counts && <div className="fire-streak"><DailiesYours current="fire" only /></div>}
 
       {daily && board}
 
       <section className="fire-flat" aria-labelledby="fire-next-title">
         <h2 id="fire-next-title" className="fire-flat__title">Next up</h2>
-        {nextDaily ? (
-          <p className="fire-next"><Link href={nextDaily.href}>{nextDaily.label}</Link>, then come back for another round.</p>
-        ) : daily ? (
-          <p className="fire-next">Every daily is done for today. Try a category in free play: {fireCategory("video-games").label.toLowerCase()} for 3 minutes is a good one.</p>
+        {daily ? (
+          <div className="fire-next"><DailiesNextButton current="fire" /></div>
         ) : (
           <p className="fire-next">Try another category, or <Link href="/trivia">host a trivia night</Link> for your group.</p>
         )}

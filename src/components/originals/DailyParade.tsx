@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useState, type ComponentType } from "react";
-import { IconBulb, IconColorSwatch, IconSearch } from "@tabler/icons-react";
+import { IconBulb, IconColorSwatch, IconFlame, IconKeyboard, IconSearch, IconTrophy } from "@tabler/icons-react";
 
 /** Characters per lane: enough to fill a wide screen, few enough to load quickly. */
 const PER_LANE = 16;
@@ -49,8 +49,8 @@ type TablerIcon = ComponentType<{ size?: number | string; stroke?: number }>;
  * 2026-10-19: as three cards they took half a phone screen). The icon tiles
  * keep the site's gradient.
  */
-export function DailySteps({ steps }: { steps: { title: string; text: string; icon: "hint" | "guess" | "colors" }[] }) {
-  const icons: Record<string, TablerIcon> = { hint: IconBulb, guess: IconSearch, colors: IconColorSwatch };
+export function DailySteps({ steps }: { steps: { title: string; text: string; icon: "hint" | "guess" | "colors" | "type" | "heat" | "board" }[] }) {
+  const icons: Record<string, TablerIcon> = { hint: IconBulb, guess: IconSearch, colors: IconColorSwatch, type: IconKeyboard, heat: IconFlame, board: IconTrophy };
   return (
     <ul className="daily-steps" aria-label="How to play">
       {steps.map((s) => {

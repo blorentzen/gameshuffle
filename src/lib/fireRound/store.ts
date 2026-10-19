@@ -25,6 +25,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { judgeAnswer, type TriviaQuestion } from "@/lib/trivia/rules";
 import { gsAddDays, gsDay } from "@/lib/time/gsClock";
+import type { DailiesEntry, DayMark } from "@/lib/originals/dailies";
 import { playerKey, type PlayerKind } from "@/lib/daily/boardRules";
 import { recordFireScore } from "@/lib/daily/boards";
 import {
@@ -503,6 +504,8 @@ export interface FireHome {
   today: { score: number; right: number; bestStreak: number } | null;
   /** Days in a row with today's round played (today, or up to yesterday while today's is still open). */
   streak: number;
+  /** Today's round over time, for the streak card. */
+  history: FireHistory;
   bests: FireBest[];
   /** A round still running (pick it back up). */
   current: FireRunView | null;
@@ -511,7 +514,7 @@ export interface FireHome {
 /** The page's opening state for a player (or a visitor with no id yet). */
 export async function fireHome(player: FirePlayer | null): Promise<FireHome> {
   const day = gsDay();
-  const empty: FireHome = { ready: false, day, number: fireNumber(day), categories: [], today: null, streak: 0, bests: [], current: null };
+  const empty: FireHome = { ready: false, day, number: fireNumber(day), categories: [], today: null, streak: 0, history: NO_HISTORY, bests: [], current: null };
   const pool = await loadPool();
   const categories = await fireCategories();
   if (!pool || !categories) return empty;
@@ -532,11 +535,7 @@ export async function fireHome(player: FirePlayer | null): Promise<FireHome> {
     if (!current) current = viewOf(r, pool);
   }
 
-  const daily = (dailies ?? []) as { day: string; score: number; right_count: number; best_streak: number; status: string }[];
-  const todays = daily.find((d) => d.day === day && d.status === "done");
-  const played = new Set(daily.filter((d) => d.status === "done").map((d) => d.day));
-  let streak = 0;
-  for (let d = played.has(day) ? day : gsAddDays(day, -1); played.has(d); d = gsAddDays(d, -1)) streak++;
+  const days = fireDays((dailies ?? []) as DailyRunRow[], day);
 
   const bestMap = new Map<string, FireBest>();
   for (const r of (done ?? []) as { category: string; length: FireLength; score: number; right_count: number }[]) {
@@ -546,10 +545,65 @@ export async function fireHome(player: FirePlayer | null): Promise<FireHome> {
 
   return {
     ...base,
-    today: todays ? { score: todays.score, right: todays.right_count, bestStreak: todays.best_streak } : null,
-    streak,
+    today: days.today,
+    streak: days.history.streak,
+    history: days.history,
     bests: [...bestMap.values()].slice(0, 6),
     current,
+  };
+}
+
+/** Today's round over time: days in a row, the longest run, days played, the best score and the last two weeks. */
+export interface FireHistory { streak: number; best: number; played: number; top: number | null; recent: DayMark[] }
+const NO_HISTORY: FireHistory = { streak: 0, best: 0, played: 0, top: null, recent: Array.from({ length: 14 }, () => null) };
+
+type DailyRunRow = { day: string; score: number; right_count: number; best_streak: number; status: string };
+
+/** A player's counting daily runs (newest first) as today's result and their history. */
+function fireDays(rows: DailyRunRow[], day: string): { today: FireHome["today"]; history: FireHistory } {
+  const done = rows.filter((d) => d.status === "done");
+  const todays = done.find((d) => d.day === day);
+  const played = new Set(done.map((d) => d.day));
+  let streak = 0;
+  for (let d = played.has(day) ? day : gsAddDays(day, -1); played.has(d); d = gsAddDays(d, -1)) streak++;
+  let best = 0;
+  let run = 0;
+  for (const d of [...played].sort()) {
+    run = played.has(gsAddDays(d, -1)) ? run + 1 : 1;
+    best = Math.max(best, run);
+  }
+  return {
+    today: todays ? { score: todays.score, right: todays.right_count, bestStreak: todays.best_streak } : null,
+    history: {
+      streak,
+      best,
+      played: played.size,
+      top: done.length ? Math.max(...done.map((d) => d.score)) : null,
+      recent: Array.from({ length: 14 }, (_, i) => (played.has(gsAddDays(day, i - 13)) ? "played" : null)),
+    },
+  };
+}
+
+/**
+ * Fire Round's entry for the dailies' today bar, Next up, combined share and
+ * streak cards (src/lib/originals/dailies.ts), for a signed-in account.
+ */
+export async function fireDailiesEntry(player: FirePlayer): Promise<DailiesEntry> {
+  const day = gsDay();
+  const svc = createServiceClient();
+  const key = keyOf(player);
+  const [{ data: dailies }, { data: open }] = await Promise.all([
+    svc.from("fire_runs").select("day, score, right_count, best_streak, status").eq("player", key).eq("mode", "daily").eq("counts", true).gte("day", gsAddDays(day, -400)).order("day", { ascending: false }).limit(400),
+    svc.from("fire_runs").select("id").eq("player", key).eq("mode", "daily").eq("day", day).eq("status", "playing").limit(1),
+  ]);
+  const { today, history } = fireDays((dailies ?? []) as DailyRunRow[], day);
+  return {
+    day,
+    number: fireNumber(day),
+    state: today ? "done" : (open ?? []).length ? "playing" : "fresh",
+    fire: today ? { score: today.score, right: today.right } : null,
+    stats: { played: history.played, won: history.played, streak: history.streak, best: history.best, top: history.top },
+    recent: history.recent,
   };
 }
 

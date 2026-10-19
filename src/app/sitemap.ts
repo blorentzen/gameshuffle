@@ -138,7 +138,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...OCCASIONS.map((o) => ({ url: `${baseUrl}${occasionUrl(o.slug)}`, lastModified: lm(`${TRIVIA_PATH}/[occasion]`), changeFrequency: "monthly" as const, priority: 0.6 })),
     ...["how-to-host", "team-names", "answer-sheet"].map((p) => ({ url: `${baseUrl}${TRIVIA_PATH}/${p}`, lastModified: lm(`${TRIVIA_PATH}/${p}`), changeFrequency: "monthly" as const, priority: 0.6 })),
     // Fire Round: solo trivia, a new shared round every day.
-    ...(FIRE_ROUND_PUBLIC ? [{ url: `${baseUrl}${TRIVIA_PATH}/fire-round`, lastModified: lm(`${TRIVIA_PATH}/fire-round`), changeFrequency: "daily" as const, priority: 0.7 }] : []),
+    ...(FIRE_ROUND_PUBLIC ? [{ url: `${baseUrl}/daily-trivia`, lastModified: lm("/daily-trivia"), changeFrequency: "daily" as const, priority: 0.8 }] : []),
     {
       url: `${baseUrl}/wheel-spinner`,
       lastModified: lm("/wheel-spinner"),

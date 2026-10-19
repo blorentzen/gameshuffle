@@ -445,7 +445,7 @@ export default async function PublicProfilePage({
 
   // The dailies: a streak card per game they've played (Britton's pick, 2026-10-16).
   const dl = enrichment.dailies;
-  const dailiesWidget = (dl.shuffle?.stats?.played || dl.dex?.stats?.played || dl.weekly?.weeks?.played) ? (
+  const dailiesWidget = (dl.shuffle?.stats?.played || dl.dex?.stats?.played || dl.fire?.stats?.played || dl.weekly?.weeks?.played) ? (
     <div className="pcard">
       <h3 className="pcard__title">Dailies</h3>
       <DailiesCards entries={dl} shown={dailiesShown()} heading={null} />

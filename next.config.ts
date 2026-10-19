@@ -236,7 +236,9 @@ const nextConfig: NextConfig = {
       // hub that exists rather than leaving a guessable path dead.
       { source: "/competitive", destination: "/competitive/mario-kart-8-deluxe", permanent: false },
       // Fire Round's share link (the "Copy my score" line): a short address for the page.
-      { source: "/fire", destination: "/trivia/fire-round?src=share-fire", permanent: false },
+      { source: "/fire", destination: "/daily-trivia?src=share-fire", permanent: false },
+      // Fire Round moved beside the dailies on 2026-10-19 (it opened at /trivia/fire-round that morning).
+      { source: "/trivia/fire-round", destination: "/daily-trivia", permanent: true },
       // Nav IA (Play/Stream): "Features" folded into the GS Pro page, which
       // already carries the full Pro feature breakdown.
       {

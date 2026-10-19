@@ -36,7 +36,6 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
  *  forward-facing marketing + app/tool landing pages, for one consistent nav. */
 const HERO_ROUTES = new Set([
   "/",
-  "/trivia/fire-round",
   "/apps",
   "/tools",
   "/gs-pro",
@@ -77,6 +76,7 @@ const HERO_ROUTES = new Set([
   // The Originals all open on the violet brand band.
   "/daily",
   "/daily-dex",
+  "/daily-trivia",
   "/weekly",
   "/chat-brain",
   "/trivia",

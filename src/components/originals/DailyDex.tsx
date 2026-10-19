@@ -17,6 +17,7 @@ import type { BoardRow, BoardView, ScoreResult, SolveTimes } from "@/lib/daily/b
 import { DailySolveTime, DailyStartCard, pickTimes, useDailyStart } from "@/components/originals/DailyStart";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
+import { FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import { OriginalsLink, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { PokemonDisclaimer, TypeCard, TypeTile } from "@/components/pokemon/TypeCard";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
@@ -394,6 +395,7 @@ export function DailyDex() {
             <p>Guess today&apos;s Pokémon from all 1,025. Each guess fills a row: {traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match and yellow is close ({puzzle.closeNote}). On generation, height and weight an arrow shows which way the answer is.</p>
             <p>A hint shows when you tap Start and a new one after each miss, each a little more specific. You have {main} guesses. Miss them all and you get a last chance with the first letter of its name and a square for every letter: get it then and your streak keeps going, though it doesn&apos;t count as a win. One Pokémon a day, the same for everyone. Evolution stage: First, Middle or Final in its family, or Doesn&apos;t evolve.</p>
             <p>Your time runs from Start to your last guess. On today&apos;s leaderboard, players level on points are ranked by time, fastest first. Points and tokens don&apos;t depend on time.</p>
+            {!activity && FIRE_ROUND_PUBLIC && <p>Done for today? <OriginalsLink href="/daily-trivia">Today&apos;s Fire Round</OriginalsLink> is 60 seconds of daily trivia, the same questions for everyone.</p>}
           </>
         ),
       }]} />

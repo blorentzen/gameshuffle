@@ -68,7 +68,7 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
 
   return (
     <>
-      <ResponsiveCarousel className="home-play" label="Today's games">
+      <ResponsiveCarousel className={`home-play${dexPublic && firePublic ? " home-play--wide-week" : ""}`} label="Today's games">
         <div className="home-play__card">
           <span className="home-play__eyebrow">Every day</span>
           <h3 className="home-play__title">The Daily Shuffle</h3>
@@ -100,10 +100,11 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
               {day && fireNumber(day) >= 1 && <Badge variant="info" size="small">Round #{fireNumber(day)}</Badge>}
               {fire ? [fire.score >= 0 ? `You scored ${fire.score.toLocaleString("en-US")} today` : null, fire.streak ? `${fire.streak} ${fire.streak === 1 ? "day" : "days"} in a row` : null].filter(Boolean).join(" · ") : null}
             </span>
-            <Link href="/trivia/fire-round"><Button variant="primary">Play today&apos;s round</Button></Link>
+            <Link href="/daily-trivia"><Button variant="primary">Play today&apos;s round</Button></Link>
           </div>
         )}
-        <div className="home-play__card">
+        {/* The Weekly: a wide row under the three dailies on a laptop (Britton, 2026-10-19). */}
+        <div className="home-play__card home-play__card--wide">
           <span className="home-play__eyebrow">Every week</span>
           <h3 className="home-play__title">The Weekly Challenge</h3>
           <p className="home-play__text">

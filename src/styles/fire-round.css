@@ -33,7 +33,11 @@ html.dark .fire-page, [data-theme="dark"] .fire-page { --fire-ink: #ff9a7a; }
   border: 1px solid color-mix(in srgb, var(--fire-ember-1) 32%, transparent);
   background: linear-gradient(180deg, color-mix(in srgb, var(--fire-ember-2) 9%, var(--surface-default)), var(--surface-default) 70%);
 }
-.fire-today__head { display: flex; align-items: center; gap: var(--spacing-12); }
+/* Today's round sits in the dailies' Start card (.daily-start): the tile above the title, then the button and the three steps. */
+.daily-start--fire { border-color: color-mix(in srgb, var(--fire-ember-1) 32%, var(--border-default)); }
+.daily-start--fire .daily-step__icon { background: linear-gradient(135deg, var(--fire-ember-1), var(--fire-ember-2)); }
+.fire-today__head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); text-align: start; }
+.fire-today__head .fire-today__sub { margin: 0; }
 .fire-tile { flex: none; width: 4.4rem; height: 4.4rem; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--fire-ember-1), var(--fire-ember-2)); }
 .fire-today__title { margin: 0; font-size: var(--font-size-20); line-height: 1.2; }
 .fire-today__sub { margin: var(--spacing-4) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); }
@@ -43,8 +47,12 @@ html.dark .fire-page, [data-theme="dark"] .fire-page { --fire-ink: #ff9a7a; }
 .fire-today__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-12); }
 .fire-today__streak { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); color: var(--fire-ink); }
 
-/* While a round runs (and its 3, 2, 1), the page's own copy steps aside. */
-.fire-page:has(.fire-play, .fire-countdown) .fire-about { display: none; }
+/* While a round runs (and its 3, 2, 1), the page's own copy and the today bar step aside. */
+.fire-page:has(.fire-play, .fire-countdown) .fire-about,
+.fire-page:has(.fire-play, .fire-countdown) .dailies-bar { display: none; }
+
+/* Today's streak under the result (the dailies' strip). */
+.fire-streak { display: grid; }
 
 /* Flat sections under a thin line. */
 .fire-flat { display: grid; gap: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }

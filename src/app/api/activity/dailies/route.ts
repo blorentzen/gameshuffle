@@ -13,5 +13,5 @@ export const runtime = "nodejs";
 export async function GET(req: Request) {
   const s = sessionFrom(req);
   if (!s) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-  return NextResponse.json({ signedIn: true, entries: await dailiesView({ identityId: s.iid, userId: s.uid }) }, { headers: { "Cache-Control": "private, no-store" } });
+  return NextResponse.json({ signedIn: true, entries: await dailiesView({ identityId: s.iid, userId: s.uid }, { fire: false }) }, { headers: { "Cache-Control": "private, no-store" } });
 }
