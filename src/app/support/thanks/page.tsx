@@ -27,7 +27,7 @@ export default async function SupportThanksPage({ searchParams }: { searchParams
   return (
     <main>
       <BrowseHero eyebrow="Support GameShuffle" title={paid ? "Thank you" : "Thanks for stopping by"} sub={paid ? "You're helping keep game night free for everyone." : "We couldn't find a finished payment for this page."} accent="violet" field="support" />
-      <Container className="support-page support-thanks">
+      <Container className="support-page">
         {result?.refunded ? (
           <Alert variant="info" title="Support is open in the US for now">Your billing address is outside the US, so we refunded it in full. Thank you for wanting to help: we&apos;ll open support in more countries soon.</Alert>
         ) : paid ? (

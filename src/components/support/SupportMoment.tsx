@@ -58,7 +58,7 @@ export function SupportMoment({ from, title = "Enjoying GameShuffle?", ready = t
   if (activity || !status || !status.available) return null;
   if (status.supporter && used) {
     return (
-      <p className="support-thanks">
+      <p className="support-thankline">
         <IconHeart size={16} stroke={2} aria-hidden="true" />
         Thanks for supporting GameShuffle{status.name ? `, ${status.name}` : ""}.
       </p>
