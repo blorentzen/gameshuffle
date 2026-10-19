@@ -74,6 +74,9 @@ export const EVENTS = {
   fireRoundFinished: "Fire Round Finished",
   /** "Copy my score" {mode}. */
   fireRoundShared: "Fire Round Shared",
+  /** The Share button on any result (src/components/share): {game, via: sheet|window}, then where it went {game, place}. */
+  shareOpened: "Share Opened",
+  shareSent: "Share Sent",
   checkoutStarted: "Checkout Started",
   checkoutCompleted: "Checkout Completed",
   checkoutCanceled: "Checkout Canceled",

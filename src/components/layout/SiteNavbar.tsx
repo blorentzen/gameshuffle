@@ -98,6 +98,8 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   { prefix: "/competitive/", notIds: new Set() },
   // A shared Chat Brain question (/chat-brain/q/<id>) opens on the same band.
   { prefix: "/chat-brain/q/", notIds: new Set() },
+  // A shared result (/r/<code>) opens on its game's band.
+  { prefix: "/r/", notIds: new Set() },
 ];
 
 function isHeroPath(pathname: string): boolean {
@@ -256,6 +258,10 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
       ...primaryItems(p, navCtx).flatMap((g) => g.items.map((i) => ({ label: i.label, href: i.href }))),
     ]),
     ...(shop ? [hdr("Shop"), { label: "GameShuffle shop", href: shopHref("nav") }] : []),
+    // GS Pro (the Go Pro button hides on phones) and Support, side by side (picks 2026-10-19).
+    hdr("GS Pro and Support"),
+    ...(!isPaid ? [{ label: "GS Pro", href: "/gs-pro" }] : []),
+    { label: "Support GameShuffle", href: "/support" },
   ];
 
   const floating = isHeroPage && !scrolled;

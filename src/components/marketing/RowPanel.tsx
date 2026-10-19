@@ -18,7 +18,7 @@ export interface PanelRow {
   Icon: Icon;
   tone?: RowTone;
   /** A small label over the name ("GS Pro · 14 days free"). */
-  eyebrow?: string;
+  eyebrow?: ReactNode;
   title: string;
   /** Links the name; leave out when the action already goes there. */
   titleHref?: string;

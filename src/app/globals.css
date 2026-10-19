@@ -87,6 +87,8 @@
      --brand-primary) wherever the brand color is a foreground/text color so
      light brands (candy/sunset) stay readable. */
   --brand-ink: var(--brand-ink-light, color-mix(in srgb, var(--brand-primary) 74%, black));
+  /* Support's rose for text and icons (6.9:1 on white). */
+  --support-ink: #a81e57;
   /* A brand used as a FILL has to separate from the page, which differs per
      mode: the same navy that reads fine on white is invisible on the dark page.
      `--brand-fill` is the mode-correct one; `--brand-primary` stays the raw
@@ -151,6 +153,7 @@ a:hover {
 /* Brand ink flips lighter on dark surfaces so it stays readable. */
 :root[data-theme="dark"] {
   --brand-ink: var(--brand-ink-dark, color-mix(in srgb, var(--brand-primary) 68%, white));
+  --support-ink: #ff8db6;
   --brand-fill: var(--brand-fill-dark);
   --brand-on: var(--brand-on-dark);
   --profile-accent-fill: var(--profile-accent-fill-dark);
@@ -171,6 +174,7 @@ a:hover {
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     --brand-ink: var(--brand-ink-dark, color-mix(in srgb, var(--brand-primary) 68%, white));
+    --support-ink: #ff8db6;
   --brand-fill: var(--brand-fill-dark);
   --brand-on: var(--brand-on-dark);
   --profile-accent-fill: var(--profile-accent-fill-dark);

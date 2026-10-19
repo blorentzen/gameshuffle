@@ -661,3 +661,26 @@ export async function sweepFireRuns(limit = 50): Promise<number> {
   }
   return ended;
 }
+
+/**
+ * A finished round's facts for a share card (src/lib/share/store.ts): the run asked for (it must be
+ * this player's), else today's counting run. Null when there's no finished round to share.
+ */
+export async function fireShareFacts(player: FirePlayer, runId?: string | null): Promise<{
+  daily: boolean; day: string; number: number; score: number; right: number; bestStreak: number;
+  category: string; categoryLabel: string; lengthLabel: string; streak: number; counts: boolean;
+} | null> {
+  const svc = createServiceClient();
+  const key = keyOf(player);
+  const day = gsDay();
+  const q = svc.from("fire_runs").select("id, mode, day, category, length, score, right_count, best_streak, counts, status").eq("player", key).eq("status", "done");
+  const { data } = runId ? await q.eq("id", runId).maybeSingle() : await q.eq("mode", "daily").eq("counts", true).eq("day", day).maybeSingle();
+  const r = data as { mode: "daily" | "free"; day: string; category: string; length: FireLength; score: number; right_count: number; best_streak: number; counts: boolean } | null;
+  if (!r) return null;
+  const { data: dailies } = await svc.from("fire_runs").select("day, score, right_count, best_streak, status").eq("player", key).eq("mode", "daily").eq("counts", true).gte("day", gsAddDays(r.day, -400)).lte("day", r.day).order("day", { ascending: false }).limit(400);
+  const { history } = fireDays((dailies ?? []) as DailyRunRow[], r.day);
+  return {
+    daily: r.mode === "daily", day: r.day, number: fireNumber(r.day), score: r.score, right: r.right_count, bestStreak: r.best_streak,
+    category: r.category, categoryLabel: fireCategory(r.category).label, lengthLabel: LENGTHS[r.length].label, streak: history.streak, counts: r.counts,
+  };
+}

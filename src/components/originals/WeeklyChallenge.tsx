@@ -22,8 +22,10 @@ import type { BoardAnswer } from "@/lib/chatbrain/rules";
 import type { BoardRow } from "@/lib/weekly/store";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { DailiesInvite, DailiesNext, DailiesYours, sendReferralFinish } from "@/components/originals/Dailies";
+import { ShareButton } from "@/components/share/ShareButton";
 import { reportDaily } from "@/lib/originals/dailies";
 import { GS_TIME_ZONE } from "@/lib/time/gsClock";
+import { SupportMoment } from "@/components/support/SupportMoment";
 
 type Ballot = Record<string, number>;
 
@@ -224,6 +226,18 @@ export function WeeklyChallenge() {
       </section>
       )}
 
+      {/* Share it with a picture (src/components/share); Discord's Activity has its own sharing. */}
+      {answered && !activity && (
+        <span className="party-row">
+          <ShareButton
+            request={{ kind: "weekly" }}
+            text={(url) => `I answered this week's GameShuffle Weekly Challenge: "${c.title}". What would you say?\n${url}`}
+            game="weekly"
+            fallbackUrl="https://www.gameshuffle.co/weekly"
+            title="The Weekly Challenge"
+          />
+        </span>
+      )}
       {answered && (
         <div className="dailies-pair">
           <DailiesNext current="weekly" onPick={activity?.pickDaily} />
@@ -231,6 +245,7 @@ export function WeeklyChallenge() {
         </div>
       )}
       {answered && <DailiesYours current="weekly" />}
+      {answered && <SupportMoment from="weekly" title="Enjoying the Weekly?" />}
 
       {(!data.signedIn || (c.kind === "survey" ? c.myPredictions : c.myBallot)) && (activity
         ? activity.showTab && <span className="party-row"><Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button></span>

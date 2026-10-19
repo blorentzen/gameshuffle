@@ -27,6 +27,7 @@ import {
 import { IconCheck } from "@tabler/icons-react";
 import { hasAllCurrentScopes, missingScopes } from "@/lib/twitch/scopes";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
+import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
@@ -109,6 +110,8 @@ export function TwitchHubTab() {
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
+  // GS Pro is US-only for now: no trial wording until we know the visitor can start one.
+  const paidHere = usePaidAvailability()?.paidPlans.available === true;
   // Bumped after a change that the server writes (the channel points reward), to reload the connection.
   const [reloadKey, setReloadKey] = useState(0);
   const [connection, setConnection] = useState<TwitchConnection | null>(null);
@@ -324,9 +327,9 @@ export function TwitchHubTab() {
           {!isPro ? (
             <>
               <p style={{ color: "var(--text-secondary)", marginBottom: "var(--spacing-16)", fontSize: "var(--font-size-14)" }}>
-                The bot, overlay, and channel point flow are Pro features. Start a 14-day
-                trial (or skip to paid if you&rsquo;ve trialed before) to unlock. Your
-                Twitch link from step 1 stays exactly as it is.
+                {paidHere
+                  ? <>The bot, overlay, and channel point flow are Pro features. Start a 14-day trial (or skip to paid if you&rsquo;ve trialed before) to unlock. Your Twitch link from step 1 stays exactly as it is.</>
+                  : <>The bot, overlay, and channel point flow are GS Pro features. Your Twitch link from step 1 stays exactly as it is.</>}
               </p>
               {upgradeError && (
                 <div style={{ marginBottom: "var(--spacing-12)" }}>
@@ -336,11 +339,11 @@ export function TwitchHubTab() {
                 </div>
               )}
               <ProUpgradeCtaButtons hasUsedTrial={userHasUsedTrial} onError={setUpgradeError} from="twitch-hub" />
-              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-16)", marginBottom: 0 }}>
+              {paidHere && <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-16)", marginBottom: 0 }}>
                 {userHasUsedTrial
                   ? "Your card is charged immediately. Cancel anytime from the billing portal."
                   : "Credit card required to start trial. Cancel anytime in the 14-day window and you won't be charged."}
-              </p>
+              </p>}
             </>
           ) : !isTwitchLinked ? (
             <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>

@@ -1,7 +1,7 @@
 import "server-only";
 import { dailiesView } from "@/lib/daily/dailies";
 import { DAILY_DEX_SHOWN, type DailiesEntries } from "@/lib/originals/dailies";
-import { isSupporter } from "@/lib/support/store";
+import { supporterInfo } from "@/lib/support/store";
 import { topTenFinishes } from "@/lib/weekly/store";
 import { brainAnswerCount } from "@/lib/chatbrain/store";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -57,6 +57,8 @@ export interface ProfileEnrichment {
   triviaNights: number;
   /** Supports GameShuffle: a one-time gift in the last year or monthly support that's on (src/lib/support/store.ts). */
   supporter: boolean;
+  /** The first time they gave (ISO), for "Supporter since". */
+  supporterSince: string | null;
 }
 
 const EMPTY: ProfileEnrichment = {
@@ -74,6 +76,7 @@ const EMPTY: ProfileEnrichment = {
   brainAnswers: 0,
   triviaNights: 0,
   supporter: false,
+  supporterSince: null,
 };
 
 function oneCard(value: unknown): TcgCard | null {
@@ -102,7 +105,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       showcaseRes,
       dailies,
       weeklyTopTen,
-      supporter,
+      support,
     ] = await Promise.all([
       admin.from("gs_identities").select("id").eq("gs_account_id", userId),
       admin
@@ -138,7 +141,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       // The dailies (streak, best, the last two weeks per game) for the profile's Dailies card.
       dailiesView({ userId }, { dex: DAILY_DEX_SHOWN }).catch(() => ({}) as DailiesEntries),
       topTenFinishes(userId).catch(() => 0),
-      isSupporter(userId).catch(() => false),
+      supporterInfo(userId).catch(() => null),
     ]);
     const isStreamer = !!streamerRes.data;
     const isLive = !!(streamerRes.data as { is_live?: boolean } | null)?.is_live;
@@ -217,7 +220,8 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       weeklyTopTen,
       brainAnswers,
       triviaNights,
-      supporter,
+      supporter: !!support?.supporter,
+      supporterSince: support?.supporter ? support.since : null,
       dailies,
     };
   } catch {

@@ -252,15 +252,29 @@
   box-shadow: 0 2vh 6vh rgba(0, 0, 0, 0.45);
 }
 .clip-stage__page { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; background: #fff; }
-/* The pill lands over the bottom of the window at the end, so the window can use the whole frame above the platforms' buttons. */
-.clip-stage > .clip-stage__cta { position: absolute; z-index: 2; left: 0; right: 0; bottom: 23vh; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
-.clip-stage__cta::before { content: ""; position: absolute; z-index: -1; left: 8vw; right: 8vw; bottom: -2vh; height: 16vh; border-radius: 0 0 5vw 5vw; background: linear-gradient(to top, rgba(11, 13, 20, 0.7), transparent); opacity: 0; }
-.go .clip-stage__cta::before { animation: social-fade 0.6s var(--cta-at, 16s) ease both; }
+/*
+ * At the end the window shrinks up and the pill lands on the ground under it,
+ * still above the platforms' buttons (Britton's pick, 2026-10-19: nothing
+ * covers the page; it used to float over the window's bottom).
+ */
+.clip-stage > .clip-stage__cta { position: absolute; z-index: 2; left: 0; right: 0; bottom: 20.5vh; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+@keyframes clip-dock { to { margin-bottom: 13vh; } }
 
 .clip-stage:not(.go) :is(.clip-stage__hook, .clip-stage__window) { opacity: 0; }
+/* The recorder's tap dot and captions (scripts/.tmp/rec/social-clip.cjs): a finger to follow, and what's happening in words, in the hook's place. */
+.clip-finger { position: absolute; z-index: 3; left: 50%; top: 60%; width: 7.5vw; height: 7.5vw; margin: -3.75vw 0 0 -3.75vw; border-radius: 50%; background: rgba(255, 255, 255, 0.5); border: 0.5vw solid #fff; box-shadow: 0 0.6vh 2vh rgba(0, 0, 0, 0.35); opacity: 0; pointer-events: none; transition: left 0.38s cubic-bezier(0.3, 0.7, 0.2, 1), top 0.38s cubic-bezier(0.3, 0.7, 0.2, 1), opacity 0.25s ease; }
+.clip-finger.is-on { opacity: 1; }
+.clip-finger.is-tap { animation: clip-tap 0.45s ease; }
+@keyframes clip-tap { 0% { transform: scale(1); } 35% { transform: scale(0.7); background: rgba(255, 255, 255, 0.9); } 100% { transform: scale(1); } }
+.clip-stage__top { position: relative; }
+.clip-stage__top.has-caption .clip-stage__hook { animation: clip-hook-out 0.3s ease forwards !important; }
+@keyframes clip-hook-out { to { opacity: 0; } }
+.clip-caption { position: absolute; left: 50%; top: calc(34vw * 46 / 335 + 1.6vh); width: 88vw; margin: 0; transform: translateX(-50%); font: 800 6.6vw/1.12 var(--font-display); color: #fff; text-wrap: balance; opacity: 0; }
+.clip-caption.is-in { animation: clip-caption-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes clip-caption-in { from { opacity: 0; transform: translate(-50%, 1.2vh); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes clip-rise { from { opacity: 0; transform: translateY(4vh) scale(0.97); } to { opacity: 1; transform: none; } }
 .go .clip-stage__logo { animation: social-fade 0.7s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .go .clip-stage__hook { animation: social-fade 0.8s 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.go .clip-stage__window { animation: clip-rise 0.8s 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .clip-stage__window { animation: clip-rise 0.8s 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both, clip-dock 0.7s var(--cta-at, 16s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .go .clip-stage__cta .social-stage__pill { animation: social-fade 0.8s var(--cta-at, 16s) cubic-bezier(0.2, 0.8, 0.2, 1) both, social-pulse 2.2s calc(var(--cta-at, 16s) + 1.2s) ease-in-out 1; }
 .go .clip-stage__cta .social-stage__sub { animation: social-fade 0.8s calc(var(--cta-at, 16s) + 0.25s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }

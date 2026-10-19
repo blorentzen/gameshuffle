@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Card, Container, Progress } from "@empac/cascadeds";
+import { IconHeart } from "@tabler/icons-react";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { SupportForm } from "@/components/support/SupportForm";
+import { BackingPair } from "@/components/support/BackingPair";
 import { monthProgress, supportSettings, supportersWall } from "@/lib/support/store";
 import { dollars, goalPercent } from "@/lib/support/rules";
 import "../../styles/support.css";
@@ -21,8 +22,8 @@ const GENERIC_COSTS = ["Servers and the database", "Game and card data", "Email 
  * /support — Support GameShuffle (Britton's picks, 2026-10-16,
  * https://claude.ai/artifact/Aq45TevdtaE5nqiUhFJNSz): why it matters, the give
  * form, this month's goal and what it covers (staff set both on Platform ▸
- * Support; a goal of 0 hides the bar), the supporters wall, and GS Pro as the
- * other way to support. Works before support-m1 runs: no goal, no wall.
+ * Support; a goal of 0 hides the bar), the supporters wall, and GS Pro beside Support as the two
+ * ways to back GameShuffle (picks 2026-10-19). Works before support-m1 runs: no goal, no wall.
  */
 export default async function SupportPage({ searchParams }: { searchParams: Promise<{ canceled?: string }> }) {
   const sp = await searchParams;
@@ -64,7 +65,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
             </ul>
           </section>
           <Card variant="outlined" padding="medium" className="support-page__give">
-            <h2 className="support-page__give-title">Chip in</h2>
+            <h2 className="support-page__give-title" id="give">Chip in</h2>
             <SupportForm canceled={sp.canceled === "1"} />
           </Card>
         </div>
@@ -75,7 +76,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
             <ul className="support-wall__list">
               {wall.map((w, i) => (
                 <li key={`${w.name}-${i}`} className="support-wall__item">
-                  <span aria-hidden className="support-wall__heart">♥</span>
+                  <IconHeart size={14} stroke={2.25} aria-hidden="true" className="support-wall__heart" />
                   <span className="support-wall__name">{w.name}</span>
                   {w.monthly && <span className="support-wall__monthly">Monthly</span>}
                   {w.note && <span className="support-wall__note">{w.note}</span>}
@@ -85,11 +86,11 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
           </section>
         )}
 
-        <Card variant="flat" padding="medium" className="support-pro">
-          <h2>Want features too?</h2>
-          <p>GS Pro is the other way to support GameShuffle: the Twitch tools, the Discord bot, your own themes and more. 14 days free.</p>
-          <Link href="/gs-pro" className="support-pro__link">See GS Pro</Link>
-        </Card>
+        <section className="support-pro" aria-labelledby="support-two">
+          <h2 id="support-two">Two ways to back GameShuffle</h2>
+          <p>GS Pro gets you tools. Support is for anyone who enjoys GameShuffle and wants to keep it going.</p>
+          <BackingPair from="support-page" supportHref="#give" />
+        </section>
 
         <p className="support-page__fine">Gave the wrong amount? Email <a href="mailto:billing@gameshuffle.co">billing@gameshuffle.co</a> within 30 days and we&apos;ll refund it. See <a href="/terms#use-of-service">section 3.6 of our Terms</a>.</p>
       </Container>

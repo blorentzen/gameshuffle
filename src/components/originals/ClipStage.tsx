@@ -10,7 +10,9 @@
  * page through `iframe.contentWindow` while it films: taps, rolls, scrolls.
  *
  * Timing is CSS from `go`, like the other stages: the hook, then the window,
- * then the pill at --cta-at. `data-ready` = the page inside has loaded and
+ * then the pill at --cta-at: the window shrinks up and the pill lands under it
+ * (Britton's pick, 2026-10-19: nothing covers the page). `pageWidth` renders
+ * the page narrower so it shows bigger. `data-ready` = the page inside has loaded and
  * been tidied, so the recorder can prepare it before filming.
  */
 
@@ -23,8 +25,8 @@ const PAGE_WIDTH = 390;
 /** Hidden inside the framed page: the site's chrome. */
 const TIDY = ".gs-nav-shell, .site-footer, .cookie-banner, nextjs-portal, .policy-banner { display: none !important; } html { scroll-behavior: auto !important; }";
 
-export function ClipStage({ src, hook, cta, sub, accent, field, ctaAt, paused }: {
-  src: string; hook: string; cta: string; sub?: string | null; accent: string; field: ArtCategory; ctaAt: number; paused: boolean;
+export function ClipStage({ src, hook, cta, sub, accent, field, ctaAt, paused, pageWidth = PAGE_WIDTH }: {
+  src: string; hook: string; cta: string; sub?: string | null; accent: string; field: ArtCategory; ctaAt: number; paused: boolean; pageWidth?: number;
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -37,7 +39,7 @@ export function ClipStage({ src, hook, cta, sub, accent, field, ctaAt, paused }:
     const box = boxRef.current;
     if (!box) return;
     const fit = () => {
-      const s = box.clientWidth / PAGE_WIDTH;
+      const s = box.clientWidth / pageWidth;
       setScale(s);
       setHeight(Math.round(box.clientHeight / s));
     };
@@ -45,7 +47,7 @@ export function ClipStage({ src, hook, cta, sub, accent, field, ctaAt, paused }:
     const ro = new ResizeObserver(fit);
     ro.observe(box);
     return () => ro.disconnect();
-  }, []);
+  }, [pageWidth]);
 
   // Hide the site's chrome inside the page once it loads. The page can finish loading before
   // React hydrates (it's in the server HTML), so listen natively and also tidy one that's
@@ -88,7 +90,7 @@ export function ClipStage({ src, hook, cta, sub, accent, field, ctaAt, paused }:
           className="clip-stage__page"
           src={src}
           title="GameShuffle"
-          style={{ width: PAGE_WIDTH, height, transform: `scale(${scale})` }}
+          style={{ width: pageWidth, height, transform: `scale(${scale})` }}
         />
       </div>
       <div className="clip-stage__cta">

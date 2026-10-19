@@ -5,6 +5,7 @@ import { RowPanel, type RowTone } from "@/components/marketing/RowPanel";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { circuitLaunchState } from "@/lib/tournaments/circuit-resolve";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { TrialNote } from "@/components/billing/TrialNote";
 
 /**
  * One panel for what comes after the free tools: a free account, GS Circuit
@@ -40,10 +41,10 @@ export async function PlansPanel({ title, intro, rows, copy = {}, cta = {}, from
   id?: string;
 }) {
   const launched = rows.includes("circuit") ? !!(await circuitLaunchState()).launchedAt : false;
-  const eyebrow: Record<PlanRow, string> = {
+  const eyebrow: Record<PlanRow, React.ReactNode> = {
     account: "Free account",
     circuit: launched ? "GS Circuit" : "GS Circuit · free during preview",
-    pro: "GS Pro · 14 days free",
+    pro: <>GS Pro<TrialNote trial=" · 14 days free" outside=" · in the US for now" /></>,
   };
   const action = (row: PlanRow) => {
     const own = cta[row];

@@ -118,8 +118,8 @@ const SECTIONS: LegalSection[] = [
         </LegalSubSection>
         <LegalSubSection number="3.6" title="Supporting GameShuffle">
           <p>You can choose to support GameShuffle with a one-time or monthly payment from our <a href="/support">support page</a>. Support is a voluntary payment to Britton Lorentzen, doing business as Empac and GameShuffle. GameShuffle is not a charity, and support is not a charitable donation or tax-deductible.</p>
-          <p>Support does not purchase a subscription plan, Arcade Tokens, or access to any feature. As a thank-you, supporters may receive a Supporter badge on their profile, shown for one year after a one-time payment or while monthly support is active, and may choose to have a name and short note shown on our public supporters wall. Names and notes must follow our content standards (section 6.3), and we may remove any of them at any time.</p>
-          <p>Support payments are processed in US dollars by Stripe and are currently available only with a billing address in the United States. If support is started with a billing address outside the United States, we will refund it and cancel any monthly support. Monthly support renews each month until you cancel it, which you can do at any time from your account settings or the Stripe Customer Portal; cancellation takes effect at the end of the current monthly period and no further payments are taken. Monthly support requires a GameShuffle account.</p>
+          <p>Support does not purchase a subscription plan, Arcade Tokens, or access to any feature. As a thank-you, supporters may receive a Supporter badge on their profile and a small heart beside their name on our leaderboards, shown for one year after a one-time payment or while monthly support is active, a card they can choose to share, and may choose to have a name and short note shown on our public supporters wall. These are thank-yous only: support never adds features, items or Arcade Tokens. Names and notes must follow our content standards (section 6.3), and we may remove any of them at any time.</p>
+          <p>Support payments are processed in US dollars by Stripe and are currently available only with a billing address in the United States. If support is started with a billing address outside the United States, we will refund it and cancel any monthly support. Monthly support renews each month until you cancel it, which you can do at any time from Account ▸ Support or the Stripe Customer Portal; cancellation takes effect at the end of the current monthly period and no further payments are taken. Monthly support requires a GameShuffle account.</p>
           <p>Because support is voluntary, payments are generally not refundable. If you made a mistake, such as choosing the wrong amount, contact us at billing@gameshuffle.co within 30 days of the payment and we will refund it. We may change or stop offering support at any time; if we stop, monthly support is cancelled and no further payments are taken.</p>
         </LegalSubSection>
       </>
@@ -443,7 +443,7 @@ export default function TermsPage() {
     <LegalPage
       title="Terms of Service"
       intro="The rules for using GameShuffle: accounts, subscriptions, tournaments, and your rights."
-      effectiveDate="October 18, 2026"
+      effectiveDate="October 19, 2026"
       sections={SECTIONS}
       current="terms"
     />

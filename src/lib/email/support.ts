@@ -9,13 +9,15 @@ import { sendTransactionalEmail } from "./mailersend";
 
 const SUPPORT_INBOX = "support@gameshuffle.co";
 
-export async function sendSupportThanksEmail({ to, name, amount, monthly, onWall }: {
+export async function sendSupportThanksEmail({ to, name, amount, monthly, onWall, shareUrl }: {
   to: string;
   name?: string | null;
   /** "$5" */
   amount: string;
   monthly: boolean;
   onWall: boolean;
+  /** Where they can share their supporter card (Account ▸ Support, or the thank-you page). */
+  shareUrl?: string | null;
 }) {
   const hi = name?.trim() || "there";
   const text = [
@@ -27,7 +29,8 @@ export async function sendSupportThanksEmail({ to, name, amount, monthly, onWall
     "",
     onWall ? "Your name is on the supporters wall at https://www.gameshuffle.co/support." : "You asked to stay off the supporters wall, so your name isn't shown.",
     "If you have a GameShuffle account, a Supporter badge now shows on your profile.",
-    ...(monthly ? ["", "Change or stop your monthly support any time from Plans & billing: https://www.gameshuffle.co/account?tab=plans"] : []),
+    ...(shareUrl ? ["", `Want to spread the word? Share a card that says you back GameShuffle: ${shareUrl}`] : []),
+    ...(monthly ? ["", "Change or stop your monthly support any time from Account > Support: https://www.gameshuffle.co/account?tab=support"] : []),
     "",
     "GameShuffle isn't a charity, so support isn't tax-deductible. Stripe sends your receipt separately.",
     "Support is processed by Empac, the studio behind GameShuffle.",

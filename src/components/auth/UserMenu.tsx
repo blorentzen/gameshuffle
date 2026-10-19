@@ -9,6 +9,7 @@ import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { useDisplayIdentity } from "@/lib/capabilities/useDisplayIdentity";
 import { isStaffRole } from "@/lib/subscription";
 import { ACCOUNT_SECTIONS } from "@/lib/account/nav";
+import { IconHeart } from "@tabler/icons-react";
 
 interface ProfileSnapshot {
   avatar_source: AvatarSource | string | null;
@@ -73,9 +74,12 @@ function buildMenuSections(args: {
     })),
   });
 
+  // Support GameShuffle (heart) and Help, apart so the two can't be mixed up (picks 2026-10-19).
   sections.push({
-    label: "Help",
-    items: [{ label: "Help & Support", onClick: go("/help") }],
+    items: [
+      { label: "Support GameShuffle", icon: <IconHeart size={16} stroke={2} aria-hidden="true" />, onClick: go("/account?tab=support") },
+      { label: "Help", onClick: go("/help") },
+    ],
   });
 
   // No section label on the sign-out group — danger styling handles

@@ -71,6 +71,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "privacy", label: "Privacy" },
       ] },
       { id: "plans", label: "Plans & billing", iconName: "credit-card" },
+      { id: "support", label: "Support GameShuffle", iconName: "heart" },
       { id: "invite", label: "Invite friends", iconName: "user-plus" },
     ],
   },

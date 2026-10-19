@@ -6,8 +6,8 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { DailySteps } from "@/components/originals/DailyParade";
 import { DexParade } from "@/components/originals/DexParade";
 import { DailyBoard, DailyBoardJoin, DailyScoreChips, guestRequestId, useDailyBoards } from "@/components/originals/DailyBoard";
-import { SupportNudge } from "@/components/support/SupportNudge";
-import { DailiesInvite, DailiesNextButton, DailiesShare, DailiesYours, sendReferralFinish, useDailies } from "@/components/originals/Dailies";
+import { SupportMoment } from "@/components/support/SupportMoment";
+import { DailiesInvite, DailiesNextButton, DailiesShare, DailiesYours, sendReferralFinish, useDailies, withLink } from "@/components/originals/Dailies";
 import { withReferral } from "@/lib/originals/referral";
 import { DexCardOfDay } from "@/components/originals/DexCardOfDay";
 import { DailyHelpPanel, HelpWord, useDailyHelp } from "@/components/originals/DailyHelp";
@@ -359,8 +359,12 @@ export function DailyDex() {
             </div>
           </div>
           <div className="daily-actions">
-            {hints.length > 0 && (
-              <DailiesShare current="dex" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} />
+            {(hints.length > 0 || (!activity && !!elsewhere)) && (
+              <DailiesShare current="dex" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} one={{
+                request: { kind: "dex", ...(guesses.length ? { dex: guesses } : {}) },
+                text: (url) => withLink(shareText(day, hints, solved, DEX, help, times.seconds), url),
+                fallbackUrl: withReferral("https://www.gameshuffle.co/daily-dex", referral?.code),
+              }} />
             )}
             <DailiesNextButton current="dex" onPick={activity?.pickDaily} />
           </div>
@@ -399,7 +403,7 @@ export function DailyDex() {
           </>
         ),
       }]} />
-      {over && <SupportNudge from="dex" />}
+      {over && <SupportMoment from="dex" title="Enjoying the dailies?" />}
     </div>
     {/* The foot of the page: the card credits once a card of the day shows (they cover the fan-made line too), else the fan-made line. */}
     {!activity && (cardShown ? <TcgAttribution className="daily-credits" /> : <PokemonDisclaimer />)}

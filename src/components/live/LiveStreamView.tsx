@@ -60,6 +60,7 @@ import { LiveTournamentRace } from "./LiveTournamentRace";
 import type { RecapHighlight } from "@/lib/sessions/recap";
 import { UserAvatar, type UserAvatarUser } from "@/components/UserAvatar";
 import { GameCover } from "@/components/games/GameCover";
+import { TrialNote } from "@/components/billing/TrialNote";
 
 /** Map a `RaceGame` enum back to the kebab slug stored in
  *  `gs_sessions.config.game` / `configured_games`. */
@@ -730,7 +731,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
             <Link href="/gs-pro" className={tagged(EVENTS.upgradeClicked, { from: "live-footer" })}>
               Bring chat rolls, picks and bans to your channel with GS Pro
             </Link>
-            , free for 14 days.
+            <TrialNote trial=", free for 14 days." otherwise="." outside=", in the US for now." />
           </p>
         </footer>
       </div>

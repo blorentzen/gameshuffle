@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { ensureUsername } from "@/lib/social/usernameAssign";
 import { syncProfileFromOAuth } from "@/lib/auth/syncOAuthProfile";
+import { claimSupportGifts } from "@/lib/support/store";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,9 @@ export async function POST() {
   if ((user.identities ?? []).some((i) => i.provider === "twitch" || i.provider === "discord")) {
     await syncProfileFromOAuth(supabase, user).catch((err) => console.error("[ensure-username] oauth sync failed:", err));
   }
+
+  // Support given while signed out with this confirmed email counts as theirs from now on.
+  if (user.email_confirmed_at) await claimSupportGifts(user.id, user.email).catch(() => 0);
 
   const { data: profile } = await createServiceClient()
     .from("users")

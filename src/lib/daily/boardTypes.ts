@@ -26,6 +26,8 @@ export interface BoardRow {
   you: boolean;
   /** The prize this place earns when the period ends (weeks and months). */
   prize: number;
+  /** Supports GameShuffle (a small heart by the name, picks 2026-10-19). */
+  supporter?: boolean;
 }
 
 export interface BoardView {

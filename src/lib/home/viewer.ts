@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import { safeTimeZone, GS_TIME_ZONE } from "@/lib/time/gsClock";
+import { isSupporter } from "@/lib/support/store";
 
 export interface NextEvent {
   kind: "tournament" | "game-night";
@@ -22,7 +23,7 @@ export interface NextEvent {
   when: string;
 }
 
-export interface HomeViewer { userId: string; pro: boolean; circuit: boolean; next: NextEvent | null }
+export interface HomeViewer { userId: string; pro: boolean; circuit: boolean; trialUsed: boolean; supporter: boolean; next: NextEvent | null }
 
 /** Tournaments still running count as now for a few hours after their start. */
 const RUNNING_GRACE_MS = 6 * 3_600_000;
@@ -35,12 +36,15 @@ export async function homeViewer(): Promise<HomeViewer | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const admin = createServiceClient();
-  const { data: row } = await admin.from("users").select("subscription_tier, role, circuit_tier, circuit_status, timezone").eq("id", user.id).maybeSingle();
-  const r = (row ?? {}) as { subscription_tier?: string | null; role?: string | null; circuit_tier?: string | null; circuit_status?: string | null; timezone?: string | null };
+  const { data: row } = await admin.from("users").select("subscription_tier, role, circuit_tier, circuit_status, timezone, has_used_trial").eq("id", user.id).maybeSingle();
+  const r = (row ?? {}) as { subscription_tier?: string | null; role?: string | null; circuit_tier?: string | null; circuit_status?: string | null; timezone?: string | null; has_used_trial?: boolean | null };
   const pro = effectiveTier({ tier: (r.subscription_tier as SubscriptionTier | null) ?? "free", role: r.role ?? null, circuitTier: r.circuit_tier ?? null, circuitStatus: r.circuit_status ?? null }) === "pro";
   const circuit = !!r.circuit_tier && ["active", "trialing", "past_due"].includes(r.circuit_status ?? "");
-  const next = await nextEvent(user.id, safeTimeZone(r.timezone ?? GS_TIME_ZONE)).catch(() => null);
-  return { userId: user.id, pro, circuit, next };
+  const [next, supporter] = await Promise.all([
+    nextEvent(user.id, safeTimeZone(r.timezone ?? GS_TIME_ZONE)).catch(() => null),
+    isSupporter(user.id).catch(() => false),
+  ]);
+  return { userId: user.id, pro, circuit, trialUsed: !!r.has_used_trial, supporter, next };
 }
 
 async function nextEvent(userId: string, tz: string): Promise<NextEvent | null> {

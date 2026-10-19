@@ -12,10 +12,14 @@
  * Checkout; the router never mounts a paywall UI on our side.
  *
  * Outside the US (paid plans are US-only for now) the buttons become a
- * waitlist signup, including when checkout itself answers "us_only".
+ * waitlist signup, including when checkout itself answers "us_only". They stay
+ * hidden (space kept) until the country is known, so nobody outside the US sees
+ * them flash. Accounts that already have GS Pro get "You have GS Pro" and a
+ * link to their plan instead, as does a checkout that answers "already_pro".
  */
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
@@ -43,6 +47,7 @@ export function ProUpgradeCtaButtons({ hasUsedTrial: given, onError, from = "pla
   const [working, setWorking] = useState(false);
   const availability = usePaidAvailability();
   const [usOnly, setUsOnly] = useState(false);
+  const [already, setAlready] = useState(false);
 
   const checkout = async (interval: "monthly" | "annual") => {
     setWorking(true);
@@ -55,6 +60,7 @@ export function ProUpgradeCtaButtons({ hasUsedTrial: given, onError, from = "pla
       });
       const body = await res.json();
       if (body.error === "us_only") { setUsOnly(true); setWorking(false); return; }
+      if (body.error === "already_pro") { setAlready(true); setWorking(false); return; }
       if (!res.ok || !body.url) {
         onError?.(body.error || body.message || res.statusText || "Couldn't start checkout.");
         setWorking(false);
@@ -70,9 +76,17 @@ export function ProUpgradeCtaButtons({ hasUsedTrial: given, onError, from = "pla
   };
 
   if (usOnly || (availability && !availability.paidPlans.available)) return <PaidPlansWaitlist product="pro" />;
+  if (already || looked?.isPro) {
+    return (
+      <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+        You have GS Pro. <Link href="/account?tab=plans">Manage your plan</Link>
+      </p>
+    );
+  }
 
+  const ready = !!availability;
   return (
-    <div style={{ display: "flex", gap: "var(--spacing-12)", flexWrap: "wrap", alignItems: "center" }}>
+    <div style={{ display: "flex", gap: "var(--spacing-12)", flexWrap: "wrap", alignItems: "center", visibility: ready ? undefined : "hidden" }} aria-hidden={ready ? undefined : true}>
       <Button
         variant="primary"
         onClick={() => checkout("monthly")}

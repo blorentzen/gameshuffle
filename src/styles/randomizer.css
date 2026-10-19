@@ -1950,6 +1950,8 @@ html.dark .daily-score__chip--tokens { color: var(--color-warning-300, #f2c96b);
 .daily-board__table table { font-variant-numeric: tabular-nums; }
 .daily-board__table tr.daily-board__you td { background: color-mix(in srgb, var(--color-warning-500, #e2a336) 12%, var(--surface-default)); }
 .daily-board__who { display: inline-flex; align-items: center; gap: var(--spacing-12, 12px); min-width: 0; }
+/* A supporter's heart, right after the name (picks 2026-10-19). */
+.daily-board__heart { flex: none; margin-left: calc(-1 * var(--spacing-8, 8px)); color: var(--support-ink); }
 /* Where someone played, on their picture (DailyBoard.tsx PLACES): a badge per place, a dashed ring for guests, a key under the board. */
 .daily-board__av { flex: none; }
 .daily-board__av .empac-avatar__badge { min-width: 14px; height: 14px; bottom: -5px; right: -8px; padding: 0 2px; box-shadow: 0 0 0 1.5px var(--surface-default); }
@@ -1978,9 +1980,6 @@ html.dark .daily-board__prize { color: var(--color-warning-300, #f2c96b); }
   .daily-board__short { display: inline; }
 }
 
-/* The quiet "help keep it free" line (SupportNudge.tsx), after a Daily or a free tool. */
-.support-nudge { margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); text-align: center; }
-.support-nudge a { font-weight: 600; }
 
 /* ── The dailies together: today bar, Next up, streak cards (src/components/originals/Dailies.tsx) ── */
 .dailies--shuffle { --dailies-ink: #5a3fd6; --dailies-tile: linear-gradient(135deg, #2b1d84, #5a3fd6); }

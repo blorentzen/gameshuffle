@@ -4291,10 +4291,6 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
 .mods-add__row > * { flex: 1 1 16rem; min-width: 0; }
 .mods-add__row > .empac-button { flex: 0 0 auto; }
 
-/* Plans & billing: monthly support for GameShuffle (MonthlySupportCard.tsx). */
-.support-card { display: grid; gap: var(--spacing-8, 8px); }
-.support-card__title { margin: 0; font-size: var(--font-size-16); }
-.support-card__text { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 /* Platform ▸ Support: the goal and its cost lines. */
 .support-admin__goal { max-width: 24rem; }
 .support-admin__costs { display: grid; gap: var(--spacing-8, 8px); margin-top: var(--spacing-12, 12px); }
