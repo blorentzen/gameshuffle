@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { sweepDuePolls } from "@/lib/polls/store";
 import { sweepStreamWindows } from "@/lib/chatbrain/stream";
 import { sweepBreaks } from "@/lib/break/store";
+import { sweepFireRuns } from "@/lib/fireRound/store";
 
 export const runtime = "nodejs";
 
@@ -34,5 +35,10 @@ export async function GET(request: Request) {
     console.error("[cron/polls-sweep] break sweep failed:", err);
     return 0;
   });
-  return NextResponse.json({ ok: true, closed, brainWindows, breaks });
+  // Fire Round: rounds whose clock ran out after the player left (today's round still goes on the board).
+  const fireRuns = await sweepFireRuns().catch((err) => {
+    console.error("[cron/polls-sweep] fire round sweep failed:", err);
+    return 0;
+  });
+  return NextResponse.json({ ok: true, closed, brainWindows, breaks, fireRuns });
 }

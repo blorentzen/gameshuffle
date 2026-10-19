@@ -53,7 +53,7 @@ export function AppCard({
   linkClassName,
 }: AppCardProps) {
   return (
-    <Card variant="elevated" padding="none">
+    <Card variant="elevated" padding="none" className="app-card">
       <div style={{ position: "relative" }}>
         {media ? (
           <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", overflow: "hidden" }}>{media}</div>
@@ -96,8 +96,8 @@ export function AppCard({
         <p style={{ fontWeight: 500 }}>{description}</p>
         {href ? (
           <div
+            className="app-card__actions"
             style={{
-              marginTop: "var(--spacing-16)",
               display: "flex",
               alignItems: "center",
               gap: "var(--spacing-16)",

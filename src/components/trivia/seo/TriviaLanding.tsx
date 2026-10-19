@@ -6,7 +6,8 @@
  */
 
 import Link from "next/link";
-import { Accordion, CardGroup } from "@empac/cascadeds";
+import { CardGroup } from "@empac/cascadeds";
+import { FaqList } from "@/components/marketing/FaqList";
 import type { IconName } from "@empac/cascadeds";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
@@ -100,14 +101,8 @@ export function TriviaLanding({ topics }: { topics: QuestionTopic[] }) {
 
       <section className="trivia-landing__section pricing-page__faq" aria-labelledby="trivia-faq">
         <h2 id="trivia-faq" className="trivia-landing__h2">Questions hosts ask</h2>
-        {/* Open by default: CDS Accordion only mounts an item once opened, so
-            collapsed answers would be missing from the HTML. */}
-        <Accordion
-          variant="bordered"
-          allowMultiple
-          defaultOpenIds={LANDING_FAQ.map((_, i) => String(i))}
-          items={LANDING_FAQ.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
-        />
+        {/* Questions only; FaqList keeps every answer in the HTML for search. */}
+        <FaqList items={LANDING_FAQ} />
       </section>
     </div>
   );

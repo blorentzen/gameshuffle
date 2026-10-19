@@ -384,7 +384,8 @@
 }
 a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-decoration: underline; }
 .bgn-attendee__name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bgn-live-dot { font-size: var(--font-size-12); font-weight: 700; color: #16a34a; letter-spacing: 0.02em; }
+/* --success-ink: #16a34a was 3.3:1 on white at 12px. */
+.bgn-live-dot { font-size: var(--font-size-12); font-weight: 700; color: var(--success-ink, #15803d); letter-spacing: 0.02em; }
 
 /* ── In-person display mode (chrome-free big screen) ─────────────────────── */
 .bgn-display {
@@ -671,11 +672,24 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   display: grid;
   gap: var(--spacing-24);
   /* Mobile: Players full width on top, then Turn order + Teams 50/50 below. */
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr): a column never grows past its share (the Teams picker's
+     width pushed the page to 412px on a 375px phone). */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     "players players"
     "turn    teams";
   align-items: start;
+}
+.bgn-tools > * { min-width: 0; }
+/* "Teams [2]": the picker keeps a sensible width and never runs into the card's padding. */
+.bgn-tools__count { display: flex; align-items: center; gap: var(--spacing-8); margin-bottom: var(--spacing-12); min-width: 0; }
+.bgn-tools__count .empac-select { flex: 0 1 9rem; min-width: 0; }
+/* Narrow phones: one column, so neither tool is squeezed. */
+@media (max-width: 26rem) {
+  .bgn-tools {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "players" "turn" "teams";
+  }
 }
 /* Grid gap owns the spacing here; cancel the global stacked-card margin so
    adjacent cells aren't pushed apart by an extra margin on top of the gap. */
@@ -687,7 +701,7 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   .bgn-tools {
     /* Desktop: 50/50 columns. Players stretches the full height on the left;
        Turn order + Teams stack on the right. */
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "players turn"
       "players teams";
@@ -1386,6 +1400,21 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
 }
 @media (max-width: 640px) {
   .bgn-grid { grid-template-columns: 1fr; }
+}
+/* Compact cards on phones (game nights, Britton's pick 2026-10-19): a square
+   of the art beside the text instead of a 128px band on top, so a group of
+   three fits on one screen. The price and Good match chips stay; the count and extra tags go. */
+@media (max-width: 640px) {
+  .bgn-grid--compact { gap: var(--spacing-12); }
+  .bgn-grid--compact .bgn-card { display: grid; grid-template-columns: 9.6rem minmax(0, 1fr); }
+  .bgn-grid--compact .bgn-card__hero { height: auto; min-height: 9.6rem; }
+  .bgn-grid--compact .bgn-card__hero-count { display: none; }
+  .bgn-grid--compact .bgn-card__hero-match { left: var(--spacing-8); right: auto; top: var(--spacing-8); }
+  .bgn-grid--compact .bgn-card__hero-price { left: var(--spacing-8); right: auto; bottom: var(--spacing-8); }
+  .bgn-grid--compact .bgn-card__body { padding: var(--spacing-12) var(--spacing-16); gap: var(--spacing-4); }
+  .bgn-grid--compact .bgn-card__title { font-size: var(--font-size-16); }
+  .bgn-grid--compact .bgn-card__tags { margin-top: var(--spacing-4); }
+  .bgn-grid--compact .bgn-card__tags > :nth-child(n + 3) { display: none; }
 }
 .bgn-card {
   display: flex;

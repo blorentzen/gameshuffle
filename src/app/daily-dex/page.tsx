@@ -4,7 +4,6 @@ import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { DailyDex } from "@/components/originals/DailyDex";
-import { PokemonDisclaimer } from "@/components/pokemon/TypeCard";
 import { isStaffRequest } from "@/lib/auth/raw";
 import { DAILY_DEX_PUBLIC } from "@/lib/games-visibility";
 
@@ -24,15 +23,16 @@ export default async function DailyDexPage() {
         eyebrow="A GameShuffle Original · every day"
         title="The Daily Dex"
         sub="Guess today's Pokémon from all 1,025, with a new hint after every miss. Same Pokémon for everyone, a new one every day."
+        subShort="Guess today's Pokémon from all 1,025."
         accent="dex"
         field="dex"
+        compact
       />
-      <Container className="tool-page">
+      <Container className="tool-page daily-page">
         <DailiesProvider current="dex">
           <DailiesBar current="dex" />
           <DailyDex />
         </DailiesProvider>
-        <PokemonDisclaimer />
       </Container>
     </main>
   );

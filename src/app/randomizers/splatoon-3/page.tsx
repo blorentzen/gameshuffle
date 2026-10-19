@@ -31,9 +31,9 @@ export default function SplatoonRandomizerPage() {
           </Suspense>
         </Container>
         </div>
+        <RandomizerNudge gameName={SPLATOON3.label} saves="your Splatoon setups" />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName={SPLATOON3.label} saves="your Splatoon setups" />
     </>
   );
 }

@@ -2,9 +2,9 @@
 
 /**
  * The Daily before the first guess (Britton's pick, 2026-10-14): two lanes of
- * the puzzle's characters drifting past, so the page isn't an empty white
- * space, and three steps on how to play. Both step aside once you've guessed;
- * the steps live on in How it works.
+ * the puzzle's characters drifting past (one on phones), so the page isn't an
+ * empty white space, and three steps on how to play inside the Start card. The
+ * lanes step aside once you've guessed; the steps live on in How it works.
  *
  * The lanes are decoration (hidden from screen readers) and are shuffled on
  * each visit in the browser, never on the server: every character takes a
@@ -13,7 +13,6 @@
  */
 
 import { useEffect, useState, type ComponentType } from "react";
-import { Card } from "@empac/cascadeds";
 import { IconBulb, IconColorSwatch, IconSearch } from "@tabler/icons-react";
 
 /** Characters per lane: enough to fill a wide screen, few enough to load quickly. */
@@ -45,24 +44,24 @@ export function DailyParade({ characters, art }: { characters: { name: string; i
 
 type TablerIcon = ComponentType<{ size?: number | string; stroke?: number }>;
 
-/** How to play, in three cards with the icon tile above each title (the site's card pattern). */
+/**
+ * How to play, as three short lines inside the Start card (Britton's pick,
+ * 2026-10-19: as three cards they took half a phone screen). The icon tiles
+ * keep the site's gradient.
+ */
 export function DailySteps({ steps }: { steps: { title: string; text: string; icon: "hint" | "guess" | "colors" }[] }) {
   const icons: Record<string, TablerIcon> = { hint: IconBulb, guess: IconSearch, colors: IconColorSwatch };
   return (
-    <section className="daily-steps" aria-labelledby="daily-steps-title">
-      <h2 id="daily-steps-title" className="daily-steps__title">How to play</h2>
-      <div className="daily-steps__grid">
-        {steps.map((s) => {
-          const Icon = icons[s.icon];
-          return (
-            <Card key={s.title} variant="outlined" padding="small" className="daily-step">
-              <span className="daily-step__icon" aria-hidden><Icon size={22} stroke={1.75} /></span>
-              <h3 className="daily-step__name">{s.title}</h3>
-              <p className="daily-step__text">{s.text}</p>
-            </Card>
-          );
-        })}
-      </div>
-    </section>
+    <ul className="daily-steps" aria-label="How to play">
+      {steps.map((s) => {
+        const Icon = icons[s.icon];
+        return (
+          <li key={s.title} className="daily-step">
+            <span className="daily-step__icon" aria-hidden><Icon size={16} stroke={2} /></span>
+            <p className="daily-step__text"><strong>{s.title}.</strong> {s.text}</p>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

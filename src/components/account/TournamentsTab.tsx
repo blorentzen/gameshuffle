@@ -16,7 +16,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
 import { formatEventShort } from "@/lib/time/format";
-import { isStaleOpen } from "@/lib/events/lifecycle";
+import { isStaleOpen, isStuckLive } from "@/lib/events/lifecycle";
 import { AdminScreen } from "@/components/account/admin/AdminKit";
 import { StuffGroup, StuffRow, StuffThumb, viewerTimeZone } from "@/components/account/stuff/StuffList";
 import { LoadingLines } from "@/components/loading/LoadingLines";
@@ -86,12 +86,13 @@ export function TournamentsTab({ timeZone }: { timeZone?: string | null } = {}) 
   }, [user]);
 
   const groups = useMemo(() => {
-    const live = tournaments.filter((t) => !t.archived_at && t.status === "in_progress");
+    const live = tournaments.filter((t) => !t.archived_at && t.status === "in_progress" && !isStuckLive(t));
+    const stuck = tournaments.filter((t) => !t.archived_at && isStuckLive(t)).sort(byDate(-1));
     const stale = tournaments.filter((t) => !t.archived_at && isStaleOpen(t)).sort(byDate(-1));
     const upcoming = tournaments.filter((t) => !t.archived_at && (t.status === "draft" || t.status === "open") && !isStaleOpen(t)).sort(byDate(1));
     const finished = tournaments.filter((t) => !t.archived_at && t.status === "complete").sort(byDate(-1));
     const archived = tournaments.filter((t) => t.archived_at || t.status === "cancelled");
-    return { live, stale, upcoming, finished, archived };
+    return { live, stuck, stale, upcoming, finished, archived };
   }, [tournaments]);
 
   const tz = viewerTimeZone(timeZone);
@@ -166,6 +167,12 @@ export function TournamentsTab({ timeZone }: { timeZone?: string | null } = {}) 
                 action={{ label: "Manage", href: `/tournament/championship/${c.id}/manage` }}
               />
             )}
+          />
+          <StuffGroup
+            title="Still marked as running"
+            intro="Their date was more than a few days ago, so they're no longer listed. If one is yours, enter the last results and finish it, or cancel it, from its manage page."
+            items={groups.stuck}
+            row={(t) => row(t)}
           />
           <StuffGroup title="Coming up" items={groups.upcoming} row={(t) => row(t, { status: true })} />
           <StuffGroup

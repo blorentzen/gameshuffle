@@ -35,6 +35,7 @@ import { LiveActivityTab } from "./tabs/LiveActivityTab";
 import { LiveHowToPlayTab } from "./tabs/LiveHowToPlayTab";
 import { LivePicksBansTab } from "./tabs/LivePicksBansTab";
 import { LiveVotingTab } from "./tabs/LiveVotingTab";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 import { LiveLobbyTab, YourRoll } from "./tabs/LiveLobbyTab";
 import { LiveRacesTab } from "./tabs/LiveRacesTab";
 import { LiveLeaderboardTab } from "./tabs/LiveLeaderboardTab";
@@ -722,6 +723,14 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
         <footer className="live-page__footer">
           <p>
             Runs on <Link href="/">GameShuffle</Link>: randomizers, chat games and live votes for streams.
+          </p>
+          {/* Viewers who stream are the next streamers (Britton's pick, 2026-10-19). */}
+          <p className="live-page__footer-pro">
+            Streaming yourself?{" "}
+            <Link href="/gs-pro" className={tagged(EVENTS.upgradeClicked, { from: "live-footer" })}>
+              Bring chat rolls, picks and bans to your channel with GS Pro
+            </Link>
+            , free for 14 days.
           </p>
         </footer>
       </div>

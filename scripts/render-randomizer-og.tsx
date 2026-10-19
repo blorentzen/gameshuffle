@@ -1,6 +1,6 @@
 /**
  * Renders randomizer share images (1200x630) in the site's style: the
- * GameShuffle wordmark, a big title and a subtitle in Gabarito, centred over
+ * official GameShuffle logo file (never the name typed out), a big title and a subtitle in Gabarito, centred over
  * game art under the blue wash. No word may repeat across the three lines.
  * Writes public/images/opengraph/<slug>-og.jpg; set the landing's ogImage to it.
  *
@@ -12,8 +12,12 @@ import { ImageResponse } from "next/dist/compiled/@vercel/og/index.node.js";
 import sharp from "sharp";
 
 const CDN = "https://cdn.empac.co/gameshuffle/images";
+/** The official white logo (3829x526), never the name typed out. */
+const LOGO = `data:image/svg+xml;base64,${readFileSync("public/images/fg/logos/gameshuffle-wht.svg").toString("base64")}`;
 /** `crop` = [left, top, width, height] as fractions of the art, to keep baked-in logos out. */
 const SPECS: { slug: string; title: string; sub: string; art: string; size?: number; crop?: [number, number, number, number] }[] = [
+  { slug: "mario-kart-8-deluxe", title: "Mario Kart 8 Deluxe", sub: "Racer & Track Randomizer", art: "public/images/bg/MK8DX_Background_Music.jpg", size: 112 },
+  { slug: "mario-kart-world", title: "Mario Kart World", sub: "Racer & Track Randomizer", art: "public/images/bg/mkw-main-image.jpg", size: 124 },
   { slug: "mario-kart-64", title: "Mario Kart 64", sub: "Racer & Track Randomizer", art: "public/images/mario-kart-64/mario-kart-64-keyart.webp" },
   { slug: "perfect-dark", title: "Perfect Dark", sub: "Combat Simulator Randomizer", art: "public/images/perfect-dark/perfect-dark-header.webp", crop: [0, 0, 1, 0.82] },
   { slug: "overwatch", title: "Overwatch", sub: "Hero Randomizer", art: "public/images/overwatch/overwatch-keyart.webp" },
@@ -24,6 +28,8 @@ const SPECS: { slug: string; title: string; sub: string; art: string; size?: num
   { slug: "goldeneye-007", title: "GoldenEye 007", sub: "Match Randomizer", art: "public/images/goldeneye/maps/facility.webp" },
   { slug: "pokemon-stadium", title: "Pokémon Stadium", sub: "Rental Randomizer", art: `${CDN}/pokemon-apps/pokemon-stadium-thumb.jpg`, size: 126, crop: [0, 0.45, 1, 0.55] },
   { slug: "pokemon-firered-leafgreen", title: "Fire Red & Leaf Green", sub: "Run Challenge", art: `${CDN}/pokemon-apps/pokemon-firered-leafgreen-thumb.webp`, size: 118 },
+  { slug: "mario-party-jamboree", title: "Jamboree", sub: "Party Randomizer", art: `${CDN}/mario-party-jamboree/boards/rainbow-galleria.png` },
+  { slug: "mario-party-superstars", title: "Superstars", sub: "Party Randomizer", art: `${CDN}/mario-party-superstars/boards/yoshis-tropical-island.jpg`, crop: [0, 0, 0.78, 0.78] },
   { slug: "mario-party", title: "Mario Party", sub: "N64 Randomizer", art: `${CDN}/legacy-mario-party/mario-party/boards/peachs-birthday-cake.png` },
   { slug: "mario-party-2", title: "Mario Party 2", sub: "N64 Randomizer", art: `${CDN}/legacy-mario-party/mario-party-2/boards/pirate-land.png` },
   { slug: "mario-party-3", title: "Mario Party 3", sub: "N64 Randomizer", art: `${CDN}/legacy-mario-party/mario-party-3/boards/chilly-waters.webp` },
@@ -60,7 +66,8 @@ async function artDataUrl(src: string, crop?: [number, number, number, number]):
           <img src={bg} width={1200} height={630} style={{ position: "absolute", top: 0, left: 0, width: 1200, height: 630, objectFit: "cover" }} alt="" />
           <div style={{ position: "absolute", top: 0, left: 0, width: 1200, height: 630, display: "flex", backgroundImage: "linear-gradient(135deg, rgba(47,102,236,0.86), rgba(75,92,245,0.86))" }} />
           <div style={{ position: "absolute", top: 0, left: 0, width: 1200, height: 630, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", textAlign: "center", padding: "0 60px" }}>
-            <div style={{ fontSize: 56, fontWeight: 700, letterSpacing: -1 }}>GameShuffle</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={LOGO} width={400} height={55} alt="" />
             <div style={{ fontSize: titleSize, fontWeight: 700, lineHeight: 1.05, letterSpacing: -3, marginTop: 8 }}>{s.title}</div>
             <div style={{ fontSize: 64, fontWeight: 700, marginTop: 18 }}>{s.sub}</div>
           </div>

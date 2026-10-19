@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Accordion, Button, CardGroup, Container } from "@empac/cascadeds";
+import { Button, Container } from "@empac/cascadeds";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
+import { FaqList } from "@/components/marketing/FaqList";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { MoreRandomizers } from "@/components/marketing/MoreRandomizers";
 import { type RandomizerLanding as Landing } from "@/data/randomizer-landings";
@@ -11,10 +13,9 @@ import { SITE_URL } from "@/lib/seo";
  * reference sections (children), FAQ, a next step and cross-links to the other
  * randomizers. Server component, so everything here is in the initial HTML.
  *
- * The FAQ opens fully: CDS Accordion only mounts an item's content once it has
- * been opened, so collapsed answers would be missing from the server HTML (and
- * would no longer match the FAQPage JSON-LD). Pending an upstream keep-mounted
- * option in CascadeDS.
+ * The FAQ shows questions only (FaqList keeps every answer in the server HTML,
+ * so it still matches the FAQPage JSON-LD), and the feature cards swipe on
+ * phones (Britton's picks, 2026-10-19).
  */
 export function RandomizerLanding({
   landing,
@@ -27,7 +28,15 @@ export function RandomizerLanding({
   children?: React.ReactNode;
 }) {
   const l = landing;
-  const others = randomizerCatalog().flatMap((g) => g.entries).filter((e) => e.slug !== l.slug)
+  // Five related randomizers, then an "all randomizers" card (Britton, 2026-10-19: not a long run of
+  // dots): up to three from this game's series, then the first of each other series.
+  const groups = randomizerCatalog();
+  const mine = groups.find((g) => g.entries.some((e) => e.slug === l.slug));
+  const total = groups.reduce((n, g) => n + g.entries.length, 0);
+  const others = [
+    ...(mine ? mine.entries.filter((e) => e.slug !== l.slug).slice(0, 3) : []),
+    ...groups.filter((g) => g !== mine).map((g) => g.entries[0]),
+  ].filter(Boolean).slice(0, 5)
     .map((e) => ({ slug: e.slug, href: e.href, title: e.short ?? e.title, image: e.image, art: e.art, isNew: e.isNew }));
 
   return (
@@ -38,38 +47,34 @@ export function RandomizerLanding({
           <section aria-labelledby="about-randomizer">
             <h2 id="about-randomizer" className="rand-landing__h2">{l.featuresHeading}</h2>
             <p className="rand-landing__overview">{l.overview}</p>
-            <CardGroup columns={3} gap="md">
+            {/* CDS CardGroup's own classes keep the desktop grid; phones swipe. */}
+            <ResponsiveCarousel className="empac-card-group empac-card-group--cols-3 empac-card-group--gap-md" label={l.featuresHeading}>
               {l.features.map((f) => (
                 <FeatureCard key={f.title} variant="compact" icon={f.icon} title={f.title} description={f.description} />
               ))}
-            </CardGroup>
+            </ResponsiveCarousel>
           </section>
 
           {children}
 
           <section aria-labelledby="randomizer-faq" className="rand-landing__faq">
             <h2 id="randomizer-faq" className="rand-landing__h2">{l.faqHeading}</h2>
-            <Accordion
-              variant="bordered"
-              allowMultiple
-              defaultOpenIds={l.faq.map((_, i) => String(i))}
-              items={l.faq.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
-            />
+            <FaqList items={l.faq} />
           </section>
 
           {l.nextStep ? (
-            <div className="randomizer-crosslink">
+            <aside className="randomizer-crosslink" aria-label={l.nextStep.title}>
               <div>
                 <p className="randomizer-crosslink__title">{l.nextStep.title}</p>
                 <p className="randomizer-crosslink__sub">{l.nextStep.body}</p>
               </div>
               <Link href={l.nextStep.ctaHref}><Button variant="secondary">{l.nextStep.ctaLabel}</Button></Link>
-            </div>
+            </aside>
           ) : null}
 
           <nav aria-labelledby="more-randomizers" className="rand-landing__more">
             <h2 id="more-randomizers" className="rand-landing__h3">More game randomizers</h2>
-            <MoreRandomizers entries={others} />
+            <MoreRandomizers entries={others} allCount={total} />
           </nav>
         </div>
       </Container>

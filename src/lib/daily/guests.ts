@@ -23,6 +23,7 @@ import { judgeGame, puzzleFor, guessLimits, type DailySchedule } from "@/lib/ori
 import { playableDay } from "@/lib/daily/results";
 import { boardsMissing, recordScore, type ScoreResult } from "@/lib/daily/boards";
 import { tidyName, type BoardGame } from "@/lib/daily/boardRules";
+import { moveFireRuns } from "@/lib/fireRound/store";
 
 const SECRET = process.env.CRON_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "gameshuffle";
 /** New guests a network may add in a day. */
@@ -145,7 +146,7 @@ export async function claimGuest(secret: string, userId: string): Promise<ClaimR
   const wallet = (await ensureAccountWallet(userId))?.identityId ?? null;
   let tokens = 0;
   for (const r of (rewards ?? []) as { id: string; kind: "play" | "prize"; amount: number; ref: string }[]) {
-    const m = /^daily:(shuffle|dex):(\d{4}-\d{2}-\d{2}):/.exec(r.ref);
+    const m = /^daily:(shuffle|dex|fire):(\d{4}-\d{2}-\d{2}):/.exec(r.ref);
     const twice = r.kind === "play" && m && accountHas.has(`${m[1]}:${m[2]}`);
     if (!twice && wallet) {
       const { error } = await admin.from("token_events").insert({
@@ -157,6 +158,9 @@ export async function claimGuest(secret: string, userId: string): Promise<ClaimR
     }
     await admin.from("daily_guest_rewards").update({ claimed_at: now, claimed_by: userId }).eq("id", r.id).is("claimed_at", null);
   }
+
+  // Fire Round runs (personal bests, today's round) move too.
+  await moveFireRuns(guest.key, userId).catch((e) => console.error("[boards] fire runs move failed:", e));
 
   await admin.from("daily_guests").update({ claimed_by: userId, claimed_at: now, updated_at: now }).eq("guest_key", guest.key);
   return { ok: true, tokens, days };

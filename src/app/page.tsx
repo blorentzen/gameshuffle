@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/seo";
 import { Container, Icon } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
-import { IconCards, IconPokeball } from "@tabler/icons-react";
+import { IconBook2, IconCards, IconPokeball } from "@tabler/icons-react";
+import { RowLink, RowPanel, type PanelRow } from "@/components/marketing/RowPanel";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { HeroShowcase } from "@/components/home/HeroShowcase";
 import Link from "next/link";
@@ -16,7 +17,7 @@ import { HomeHost } from "@/components/home/HomeHost";
 import { PlansBand } from "@/components/home/PlansBand";
 import { SupportBand } from "@/components/home/SupportBand";
 import { homeViewer } from "@/lib/home/viewer";
-import { DAILY_DEX_PUBLIC } from "@/lib/games-visibility";
+import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
 import { getPublicFeaturedShopCards } from "@/lib/shop/featuredCards";
 import { shopVisibleToVisitors } from "@/lib/store/visibility";
@@ -84,6 +85,22 @@ const TOP_RANDOMIZERS = [
 ];
 
 /**
+ * Pages people search for, linked from the homepage so search engines find
+ * them (Britton's pick, 2026-10-19). Short plain names; the line under says
+ * what's there.
+ */
+const POPULAR_PAGES: { label: string; sub: string; href: string }[] = [
+  { label: "Mario Kart tournaments", sub: "Run one with random rounds", href: "/mario-kart-tournaments" },
+  { label: "Competitive Mario Kart", sub: "Live lounge scoring", href: "/competitive-mario-kart" },
+  { label: "How to host a trivia night", sub: "Rounds, rules and scoring", href: "/trivia/how-to-host" },
+  { label: "Trivia team names", sub: "127 names in five themes", href: "/trivia/team-names" },
+  { label: "Pokémon TCG rules", sub: "Damage, conditions, prizes", href: "/pokemon-tcg/rules" },
+  { label: "Pokémon card checklists", sub: "Tick off the cards you have", href: "/pokemon-tcg/checklists" },
+  { label: "Jackbox game picker", sub: "A game that fits your group", href: "/game-nights/tools/jackbox-picker" },
+  { label: "Tier list maker", sub: "Rank anything, then share it", href: "/tier-list-maker" },
+];
+
+/**
  * The homepage (reorganized 2026-10-16, Britton's picks:
  * https://claude.ai/artifact/PjULC3d4viTX3Tn4oYmLTe). Grouped by what people
  * came to do, with what brings them back near the top and the paid plans in
@@ -94,6 +111,24 @@ const TOP_RANDOMIZERS = [
  * your way in.
  */
 export default async function HomePage() {
+  // Pokémon: one panel (Britton's pick, 2026-10-19), then the store's cards.
+  const pokemonRows: PanelRow[] = [
+    {
+      key: "companion", Icon: IconCards, tone: "red", title: "TCG Companion", titleHref: "/pokemon-tcg-companion",
+      text: "Damage, conditions, prizes, coin flips and dice for real cards at the table.",
+      action: <RowLink href="/tcg-companion" className={tagged(EVENTS.homeSectionClicked, { to: "tcg-companion" })}>Open the companion</RowLink>,
+    },
+    ...(DAILY_DEX_PUBLIC ? [{
+      key: "dex", Icon: IconPokeball, tone: "orange" as const, title: "The Daily Dex",
+      text: "Guess today's Pokémon from all 1,025, with a new hint after every miss.",
+      action: <RowLink href="/daily-dex" className={tagged(EVENTS.homeSectionClicked, { to: "daily-dex" })}>Play today&apos;s Pokémon</RowLink>,
+    }] : []),
+    {
+      key: "rules", Icon: IconBook2, tone: "blue", title: "Rules and checklists",
+      text: "Damage counters, Special Conditions and prize cards in plain words, plus set checklists to tick off.",
+      action: <RowLink href="/pokemon-tcg/rules" className={tagged(EVENTS.homeSectionClicked, { to: "tcg-rules" })}>Read the rules</RowLink>,
+    },
+  ];
   // Featured shop cards for the Pokémon section (read-only, 0 Scrydex credits;
   // FPO fallback inside the component if none configured).
   const [shopCards, shopVisible, viewer] = await Promise.all([getPublicFeaturedShopCards(), shopVisibleToVisitors(), homeViewer().catch(() => null)]);
@@ -123,7 +158,7 @@ export default async function HomePage() {
               <h2 id="home-today-title" className="home-section__title">Today on GameShuffle</h2>
               <p className="home-section__aside">A new puzzle at midnight Pacific</p>
             </div>
-            <HomeToday dexPublic={DAILY_DEX_PUBLIC} />
+            <HomeToday dexPublic={DAILY_DEX_PUBLIC} firePublic={FIRE_ROUND_PUBLIC} />
             <DiscordPlug from="home" text="Play the Daily, the Weekly and Chat Brain with your server, right in Discord." />
           </section>
 
@@ -178,51 +213,33 @@ export default async function HomePage() {
           <section className="home-section" aria-labelledby="home-pokemon-title">
             <div className="home-section__head">
               <h2 id="home-pokemon-title" className="home-section__title">For Pokémon players</h2>
+              <Link href="/pokemon-tcg" className="home-section__link">Pokémon TCG →</Link>
             </div>
-            <ResponsiveCarousel className="app-card-grid" label="Pokémon apps">
-              <AppCard
-                title="TCG Companion"
-                description="A digital game-night kit for Pokémon TCG: damage, conditions, prizes, coin flips, and dice without breaking up the table."
-                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
-                imageAlt="Pokémon TCG cards spread on a table"
-                href="/tcg-companion"
-                ctaLabel="Open TCG Companion"
-                learnMoreHref="/pokemon-tcg-companion"
-                linkClassName={tagged(EVENTS.homeSectionClicked, { to: "tcg-companion" })}
-              />
-              {DAILY_DEX_PUBLIC ? (
-                <AppCard
-                  title="The Daily Dex"
-                  description="Guess today's Pokémon from all 1,025, with a new hint after every miss and a streak to keep."
-                  media={<span className="home-dex-media" aria-hidden><IconPokeball size={64} stroke={1.5} /></span>}
-                  href="/daily-dex"
-                  ctaLabel="Play today's Pokémon"
-                  isNew
-                  linkTitle
-                  linkClassName={tagged(EVENTS.homeSectionClicked, { to: "daily-dex" })}
-                />
-              ) : (
-                <AppCard
-                  title="Pokémon TCG rules"
-                  description="Damage counters, Special Conditions, Weakness and Resistance, and prize cards, explained with tools you can use at the table."
-                  media={<span className="home-dex-media home-dex-media--rules" aria-hidden><IconCards size={64} stroke={1.5} /></span>}
-                  href="/pokemon-tcg/rules"
-                  ctaLabel="Read the rules"
-                  linkTitle
-                  linkClassName={tagged(EVENTS.homeSectionClicked, { to: "tcg-rules" })}
-                />
-              )}
-            </ResponsiveCarousel>
+            <RowPanel className="row-panel--surface" rows={pokemonRows} />
           </section>
+
+          <FeaturedShopCards
+            cards={shopCards}
+            heading="From our card store"
+            intro="Real Pokémon singles from the GameShuffle TCG store, shipped fast and protected. Tap a card to grab it on TCGplayer."
+          />
 
           {/* The holiday drop (shop build G): only while visitors can see the shop. */}
           {shopVisible && <ShopBand />}
 
-          <FeaturedShopCards
-            cards={shopCards}
-            heading="Featured Pokémon cards"
-            intro="Real Pokémon singles from the GameShuffle TCG store, shipped fast and protected. Tap a card to grab it on TCGplayer."
-          />
+          <nav className="home-popular" aria-labelledby="home-popular-title">
+            <h2 id="home-popular-title" className="home-popular__title">Popular on GameShuffle</h2>
+            <ul className="home-popular__list">
+              {POPULAR_PAGES.map((p) => (
+                <li key={p.href}>
+                  <Link href={p.href} className={`home-popular__link ${tagged(EVENTS.homeSectionClicked, { to: p.href.split("/").pop() ?? p.href })}`}>
+                    {p.label}
+                    <span className="home-popular__sub">{p.sub}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
 
           <SupportBand />
 

@@ -35,9 +35,9 @@ export default async function StadiumRandomizerPage() {
             </Suspense>
           </Container>
         </div>
+        <RandomizerNudge gameName="Pokémon Stadium" saves="your rental teams" streamReady={false} />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Pokémon Stadium" saves="your rental teams" streamReady={false} />
     </>
   );
 }

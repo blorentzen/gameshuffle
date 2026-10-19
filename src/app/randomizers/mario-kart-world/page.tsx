@@ -22,8 +22,8 @@ export default function MKWorldRandomizerPage() {
           heroProps={mkworldHero}
         />
       </Suspense>
-      <RandomizerLanding landing={RANDOMIZER_LANDINGS["mario-kart-world"]} />
       <RandomizerNudge gameName="Mario Kart World" />
+      <RandomizerLanding landing={RANDOMIZER_LANDINGS["mario-kart-world"]} />
     </>
   );
 }

@@ -35,6 +35,8 @@ export type ArtCategory =
   /* GameShuffle Originals together (the Discord Activity): the Daily's puzzle,
      the Weekly's calendar, Chat Brain's brain, a trophy and sparkles. */
   | "originals"
+  /* Fire Round: a flame, the clock, a lightning bolt, a bright idea, a trophy. */
+  | "fire"
   /* Halloween week: ghosts, pumpkins, bats, candy (the glyph fields swap to it, see IconField). */
   | "spooky";
 

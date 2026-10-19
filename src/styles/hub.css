@@ -1547,15 +1547,14 @@
   gap: var(--spacing-20);
 }
 
+/* Flat: a rule above, no green box (the round bar above is already green;
+   the containers rule, 2026-10-19). */
 .live-voting__header {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
-  padding: var(--spacing-12) var(--spacing-14);
-  background: var(--success-100);
-  border: 1px solid var(--success-700);
-  color: var(--success-ink);
-  border-radius: var(--radius-8);
+  padding-top: var(--spacing-16);
+  border-top: 1px solid var(--border-default);
 }
 
 .live-voting__title {
@@ -1567,6 +1566,7 @@
 .live-voting__counts {
   margin: 0;
   font-size: var(--font-size-14);
+  color: var(--text-secondary);
 }
 
 .live-voting__pool {
@@ -1719,8 +1719,10 @@
 
 .live-pb__status {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: var(--spacing-4) var(--spacing-12);
   padding: var(--spacing-10) var(--spacing-16);
   border-radius: var(--radius-8);
   background: var(--background-secondary);
@@ -1745,11 +1747,19 @@
   font-size: var(--font-size-12);
   color: var(--text-tertiary);
 }
+.live-pb__yours {
+  flex-basis: 100%;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
 
 .live-pb__tabs {
   display: flex;
   gap: var(--spacing-4);
   border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .live-pb__tab {
@@ -1762,6 +1772,7 @@
   color: var(--text-tertiary);
   cursor: pointer;
   margin-bottom: -1px;
+  white-space: nowrap;
 }
 
 .live-pb__tab--active {
@@ -1928,8 +1939,8 @@
 
 .live-pb__footer-hint {
   margin: 0;
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
   text-align: center;
 }
 

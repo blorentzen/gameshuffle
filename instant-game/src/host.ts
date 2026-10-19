@@ -5,7 +5,10 @@
  *
  * Saved per player in Facebook's own storage (player.setDataAsync), never on
  * our servers: a random id the game makes (sent with answers so one person
- * answers once), the streak, and the last week of days played.
+ * answers once), the streaks, the last week of days played, and for the
+ * dailies a second random id, the daily leaderboard's: sent when a puzzle
+ * starts (so the solve time can count) and, only if the player joins the
+ * board with a nickname, with each finished game. Neither id is a Facebook id.
  */
 
 export interface DayRecord {
@@ -14,7 +17,21 @@ export interface DayRecord {
   board?: { id: string; found: Found[]; strikes: number; done: boolean; reveal?: Found[] };
 }
 export interface Found { rank: number; label: string; points: number }
-export interface SaveData { anon: string; streak: { last: string | null; count: number }; days: Record<string, DayRecord> }
+export type DailyId = "shuffle" | "dex";
+/** One day of a daily: the guesses so far and the clock (Start to the last guess). */
+export interface DailyDay { guesses: string[]; startedAt?: number; finishedAt?: number; sent?: boolean }
+export interface Streak { last: string | null; count: number }
+export interface SaveData {
+  anon: string;
+  /** Chat Brain's streak (days played). */
+  streak: Streak;
+  days: Record<string, DayRecord>;
+  daily?: Partial<Record<DailyId, Record<string, DailyDay>>>;
+  /** The dailies' streaks (days solved, a save on the last chance included). */
+  streaks?: Partial<Record<DailyId, Streak>>;
+  /** The daily leaderboard id (the site's guest id format); only sent to us when the player joins with a nickname. */
+  guest?: string;
+}
 
 interface FBInstantApi {
   initializeAsync(): Promise<void>;
@@ -22,6 +39,7 @@ interface FBInstantApi {
   startGameAsync(): Promise<void>;
   player: { getDataAsync(keys: string[]): Promise<Record<string, unknown>>; setDataAsync(d: Record<string, unknown>): Promise<void> };
   shareAsync(payload: { intent?: string; image: string; text: string; data?: Record<string, unknown> }): Promise<void>;
+  getEntryPointData(): Record<string, unknown> | null;
 }
 
 declare global {
@@ -33,8 +51,14 @@ export interface GameHost {
   start(): Promise<void>;
   load(): Promise<SaveData>;
   save(d: SaveData): Promise<void>;
-  share(image: string, text: string): Promise<void>;
+  /** `game` rides with the share, so a friend who opens it lands on that game's tab. */
+  share(image: string, text: string, game: GameTab): Promise<void>;
+  /** The game a shared post came from (null when opened any other way). */
+  entry(): GameTab | null;
 }
+
+export type GameTab = "daily" | "dex" | "brain";
+const isTab = (v: unknown): v is GameTab => v === "daily" || v === "dex" || v === "brain";
 
 const KEY = "gs";
 
@@ -46,13 +70,28 @@ function freshSave(): SaveData {
 function readSave(raw: unknown): SaveData {
   const d = raw as Partial<SaveData> | null;
   if (!d || typeof d.anon !== "string" || !/^[0-9a-f-]{16,64}$/i.test(d.anon)) return freshSave();
-  return { anon: d.anon, streak: d.streak ?? { last: null, count: 0 }, days: d.days ?? {} };
+  return { anon: d.anon, streak: d.streak ?? { last: null, count: 0 }, days: d.days ?? {}, daily: d.daily ?? {}, streaks: d.streaks ?? {}, guest: typeof d.guest === "string" && /^[A-Za-z0-9_-]{20,64}$/.test(d.guest) ? d.guest : undefined };
 }
 
-/** Keeps the last 7 days so the saved record stays small. */
+const lastWeek = <T,>(rec: Record<string, T> | undefined): Record<string, T> => {
+  const keys = Object.keys(rec ?? {}).sort().slice(-7);
+  return Object.fromEntries(keys.map((k) => [k, rec![k]]));
+};
+
+/** Keeps the last 7 days of everything so the saved record stays small. */
 function trim(d: SaveData): SaveData {
-  const days = Object.keys(d.days).sort().slice(-7);
-  return { ...d, days: Object.fromEntries(days.map((k) => [k, d.days[k]])) };
+  return {
+    ...d,
+    days: lastWeek(d.days),
+    daily: Object.fromEntries(Object.entries(d.daily ?? {}).map(([g, rec]) => [g, lastWeek(rec)])),
+  };
+}
+
+/** A new daily leaderboard id: 32 url-safe characters, like the site's guest ids. */
+export function newGuestId(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 function facebookHost(fb: FBInstantApi): GameHost {
@@ -70,8 +109,11 @@ function facebookHost(fb: FBInstantApi): GameHost {
     async save(d) {
       await fb.player.setDataAsync({ [KEY]: trim(d) }).catch(() => {});
     },
-    async share(image, text) {
-      await fb.shareAsync({ intent: "SHARE", image, text, data: { from: "share" } });
+    async share(image, text, game) {
+      await fb.shareAsync({ intent: "SHARE", image, text, data: { from: "share", game } });
+    },
+    entry() {
+      try { const g = fb.getEntryPointData()?.game; return isTab(g) ? g : null; } catch { return null; }
     },
   };
 }
@@ -87,11 +129,16 @@ function localHost(): GameHost {
     async save(d) {
       try { localStorage.setItem(LS, JSON.stringify(trim(d))); } catch { /* fine */ }
     },
-    async share(image, text) {
+    async share(image, text, game) {
       // Outside Facebook there's no share sheet: show what would be shared.
-      console.info("[instant] share:", text);
+      console.info("[instant] share:", game, text);
       const w = window.open();
       if (w) w.document.write(`<title>Share preview</title><p style="font:16px system-ui">${text.replace(/</g, "&lt;")}</p><img src="${image}" style="max-width:100%">`);
+    },
+    entry() {
+      // ?game=dex stands in for a shared post's data when testing.
+      const g = new URLSearchParams(location.search).get("game");
+      return isTab(g) ? g : null;
     },
   };
 }
@@ -108,9 +155,20 @@ export function dayBefore(day: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Today counted once: the streak goes up when yesterday was played, else starts again. */
+/** A streak with today counted once: it goes up when yesterday counted too, else starts again. */
+export function nextStreak(st: Streak | undefined, day: string): Streak {
+  const cur = st ?? { last: null, count: 0 };
+  if (cur.last === day) return cur;
+  return { last: day, count: cur.last === dayBefore(day) ? cur.count + 1 : 1 };
+}
+
+/** Chat Brain's streak: today counted once. */
 export function bumpStreak(s: SaveData, day: string): SaveData {
-  if (s.streak.last === day) return s;
-  const count = s.streak.last === dayBefore(day) ? s.streak.count + 1 : 1;
-  return { ...s, streak: { last: day, count } };
+  const streak = nextStreak(s.streak, day);
+  return streak === s.streak ? s : { ...s, streak };
+}
+
+/** A streak as shown today: still alive if it last counted today or yesterday. */
+export function liveStreak(st: Streak | undefined, today: string): number {
+  return st && (st.last === today || st.last === dayBefore(today)) ? st.count : 0;
 }

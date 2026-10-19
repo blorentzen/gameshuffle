@@ -8,7 +8,7 @@ import { DailyBoard, DailyBoardJoin, DailyScoreChips, guestRequestId, useDailyBo
 import { SupportNudge } from "@/components/support/SupportNudge";
 import { DailyHelpPanel, HelpWord, useDailyHelp } from "@/components/originals/DailyHelp";
 import { NO_HELP, type HelpCounts } from "@/lib/originals/dailyHelp";
-import { DailiesInvite, DailiesNext, DailiesShare, DailiesYours, sendReferralFinish, useDailies } from "@/components/originals/Dailies";
+import { DailiesInvite, DailiesNextButton, DailiesShare, DailiesYours, sendReferralFinish, useDailies } from "@/components/originals/Dailies";
 import { withReferral } from "@/lib/originals/referral";
 import { reportDaily, type DailiesEntry } from "@/lib/originals/dailies";
 import type { BoardRow, BoardView, ScoreResult, SolveTimes } from "@/lib/daily/boardTypes";
@@ -266,10 +266,10 @@ export function DailyShuffle() {
         <span className="party-muted">{elsewhere ? Math.min(elsewhere.guesses, main) : Math.min(hints.length, main)} of {main} guesses{inLastChance || savedIt ? " · last chance" : ""}</span>
       </div>
 
-      {!over && loaded && !started && <DailyStartCard onStart={clock.start} what={noun} />}
+      {!over && loaded && !started && <DailyStartCard onStart={clock.start}>{fresh && <DailySteps steps={steps} />}</DailyStartCard>}
       {!over && loaded && started && (
         <div className="daily__guess">
-          <LabeledCombobox label={`Guess today's ${noun}`} value={pick} onChange={setPick} options={options} placeholder={`Type a ${noun}`} />
+          <LabeledCombobox label={`Guess today's ${noun}`} value={pick} onChange={setPick} options={options} placeholder={`Type a ${noun}`} allowCreate={false} />
           <Button variant="primary" disabled={!pick || !options.some((o) => o.value === pick)} onClick={guess}>{inLastChance ? "Take my last chance" : "Guess"}</Button>
         </div>
       )}
@@ -304,7 +304,6 @@ export function DailyShuffle() {
       )}
 
       {fresh && <DailyParade characters={puzzle.characters} art={art} />}
-      {fresh && <DailySteps steps={steps} />}
 
       {loaded && started && starter && !over && hints.length === 0 && (
         <p className="daily__starter"><strong>Starter clue:</strong> {starter.sentence}</p>
@@ -360,38 +359,46 @@ export function DailyShuffle() {
 
       {over && (
         <div className="daily__done">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={art(answer.img)} alt="" className="daily__answer-img" />
-          <p className="oddone__verdict">{savedIt ? "Saved it on the last chance." : solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>{answer.name.endsWith(".") ? "" : "."}</p>
-          <DailySolveTime times={times} solved={solved} />
-          <DailyScoreChips score={score} guest={!activity && !account?.signedIn} today={mine.day} week={mine.week} />
-          {elsewhere && <p className="party-muted">{activity ? "You played today's puzzle on GameShuffle." : "You played today on another device."}</p>}
-          <p className="party-muted">A new puzzle at midnight Pacific time.{puzzleLabel(tomorrow) ? ` Tomorrow's game: ${puzzleLabel(tomorrow)}.` : ""}</p>
-          {hints.length > 0 && (
-            <DailiesShare current="shuffle" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} />
-          )}
-          <div className="dailies-pair">
-            <DailiesNext current="shuffle" onPick={activity?.pickDaily} />
-            <DailiesInvite current="shuffle" />
+          <div className="daily-result">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={art(answer.img)} alt="" className="daily__answer-img" />
+            <div className="daily-result__text">
+              <p className="oddone__verdict">{savedIt ? "Saved it on the last chance." : solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>{answer.name.endsWith(".") ? "" : "."}</p>
+              <DailySolveTime times={times} solved={solved} />
+              <DailyScoreChips score={score} guest={!activity && !account?.signedIn} today={mine.day} week={mine.week} />
+              {elsewhere && <p className="party-muted">{activity ? "You played today's puzzle on GameShuffle." : "You played today on another device."}</p>}
+              <p className="party-muted daily-result__next">A new puzzle at midnight Pacific time.{puzzleLabel(tomorrow) ? ` Tomorrow's game: ${puzzleLabel(tomorrow)}.` : ""}</p>
+            </div>
           </div>
-          <DailiesYours current="shuffle" />
-          {account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0 && (
-            <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />
-          )}
+          <div className="daily-actions">
+            {hints.length > 0 && (
+              <DailiesShare current="shuffle" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} />
+            )}
+            <DailiesNextButton current="shuffle" onPick={activity?.pickDaily} />
+          </div>
+          <DailiesYours current="shuffle" only />
+          <DailiesInvite current="shuffle" nudge={false} />
           {account && !account.signedIn && (
-            <p className="party-muted"><OriginalsLink href="/login?redirect=/daily">Sign in</OriginalsLink> to keep your streak on every device and show it on your profile.</p>
+            <p className="party-muted daily-result__signin">
+              <OriginalsLink href="/login?redirect=/daily">Sign in</OriginalsLink>
+              {activity ? " to keep your streak on every device and show it on your profile." : " to keep your streak on every device and get an invite link that earns tokens."}
+            </p>
           )}
-          <SupportNudge from="daily" />
         </div>
       )}
 
-      {!preview && <DailyBoard game="shuffle" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews} />}
+      {!preview && (
+        <DailyBoard game="shuffle" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews}
+          join={over && account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0
+            ? <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />
+            : null} />
+      )}
 
       {over && (activity
         ? activity.showTab && <Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button>
-        : <ChatBrainAsk source="daily" />)}
+        : <ChatBrainAsk source="daily" eyebrow={null} flat />)}
 
-      <Accordion variant="bordered" items={[{
+      <Accordion variant="flush" className="daily-accordion" items={[{
         id: "how",
         title: "How it works",
         content: (
@@ -411,6 +418,7 @@ export function DailyShuffle() {
           </>
         ),
       }]} />
+      {over && <SupportNudge from="daily" />}
     </div>
   );
 }

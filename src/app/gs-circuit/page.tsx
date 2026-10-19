@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Accordion, Button, Container, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@empac/cascadeds";
+import { Button, Container, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@empac/cascadeds";
+import { IconSparkles } from "@tabler/icons-react";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
@@ -9,7 +10,9 @@ import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { GamesShot, OverlayShot } from "@/components/marketing/ProFeatureShots";
 import { BracketShot, StandingsShot } from "@/components/marketing/CircuitFeatureShots";
 import { CircuitPricing } from "@/components/marketing/CircuitPricing";
-import { FeatureCard } from "@/components/marketing/FeatureCard";
+import { FaqList } from "@/components/marketing/FaqList";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
+import { ShowAll } from "@/components/ui/ShowAll";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { circuitLaunch } from "@/lib/tournaments/circuit";
 import { circuitLaunchState } from "@/lib/tournaments/circuit-resolve";
@@ -147,7 +150,7 @@ export default async function GsCircuitPage() {
         {/* Free in preview (or free until launch day) banner */}
         {copy.banner && <section className="beta-section">
           <div style={{ border: "1px solid var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 8%, var(--surface-default))", borderRadius: "1rem", padding: "1.25rem 1.5rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap", justifyContent: "center", textAlign: "center" }}>
-            <span style={{ fontSize: "var(--font-size-24)" }}>✨</span>
+            <IconSparkles size={24} stroke={2} aria-hidden style={{ color: "var(--brand-ink, var(--primary-600))" }} />
             <p style={{ margin: 0, fontSize: "var(--font-size-16)", fontWeight: 600 }}>
               {copy.banner}
             </p>
@@ -155,8 +158,12 @@ export default async function GsCircuitPage() {
         </section>}
 
         {/* Marquee feature spotlights */}
-        <section className="beta-section">
-          <div className="pro-spotlights">
+        <section className="beta-section" aria-labelledby="circuit-does">
+          <h2 id="circuit-does" className="pricing-page__section-title" style={{ marginBottom: "var(--spacing-24)" }}>
+            What GS Circuit does
+          </h2>
+          {/* Phones swipe through them; wider screens keep them alternating (Britton's picks, 2026-10-19). */}
+          <ResponsiveCarousel className="pro-spotlights" label="What GS Circuit does">
             <Reveal>
               <ProSpotlight
                 eyebrow="Any size"
@@ -192,8 +199,21 @@ export default async function GsCircuitPage() {
                 cta={{ label: "Explore GameShuffle Pro", href: "/gs-pro" }}
               />
             </Reveal>
-          </div>
+          </ResponsiveCarousel>
         </section>
+      </Container>
+
+      {/* Pricing first, then the full comparison under it (Britton's pick, 2026-10-19: the page showed prices twice). */}
+      <DarkBand premium id="tiers" curved curveEdges="both" curveColor={PAGE_BG}>
+        <p className="marketing-eyebrow" style={{ color: "var(--primary-300)", textAlign: "center" }}>Pick your scale</p>
+        <h2 className="pricing-page__section-title pro-band__title" style={{ marginBottom: "var(--spacing-8)" }}>Plans by field size</h2>
+        <p style={{ textAlign: "center", color: "var(--gray-300, #c2c8d2)", maxWidth: "40rem", margin: "0 auto var(--spacing-24)", lineHeight: "var(--line-height-relaxed)" }}>
+          Player count sets the tier: pick the one that fits your largest event. {copy.short}
+        </p>
+        <CircuitPricing launchedAt={copy.launchedAt} />
+      </DarkBand>
+
+      <Container>
 
         {/* Comparison table */}
         <section className="beta-section" style={{ marginTop: "var(--spacing-64)" }}>
@@ -202,6 +222,7 @@ export default async function GsCircuitPage() {
             <h2 className="pricing-page__section-title">Every format is free. Pay for scale.</h2>
             <p className="beta-section__sub">Player count is the meter that sets the tier. The paid value is a real multi-lobby event plus four organizer features.</p>
           </div>
+          <ShowAll height="40rem" label="Compare every feature" className="circuit-compare">
           <div style={{ overflowX: "auto", maxWidth: 880, margin: "0 auto" }}>
             <Table variant="striped" hoverable>
               <TableHeader>
@@ -224,58 +245,22 @@ export default async function GsCircuitPage() {
               </TableBody>
             </Table>
           </div>
+          </ShowAll>
         </section>
 
-        {/* In the works: the business side, held back on purpose (specs/monetization-launch-plan.md) */}
-        <section className="beta-section" style={{ marginTop: "var(--spacing-64)" }}>
-          <div className="beta-section__head">
-            <p className="marketing-eyebrow">In the works</p>
-            <h2 className="pricing-page__section-title">What&rsquo;s coming for organizers and venues</h2>
-            <p className="beta-section__sub">The tournament side is ready today. The money side is built but switched off while we get the tax and organizer details right, and we&rsquo;d rather shape it with organizers than guess.</p>
-          </div>
-          <div className="circuit-works">
-            <FeatureCard variant="full" icon="currency-dollar" availability="In the works" title="Paid entry"
-              description="Sell entries to your tournament or game night, with payouts straight to your bank through Stripe. For now, every event is free to enter." />
-            <FeatureCard variant="full" icon="calendar" availability="In the works" title="Circuit Events"
-              description="A pass for larger in-person or commercial events: custom branding, more capacity, and help with setup on the day." />
-            <FeatureCard variant="full" icon="building" availability="In the works" title="Venue partners"
-              description="Run game nights or tournaments at a bar, game store, LAN center or convention? We're looking for a few venues to build this with." />
-          </div>
-          <p className="circuit-works__cta">
-            Interested in any of these? <Link href="/contact-us">Tell us about your events</Link>.
-          </p>
-        </section>
+        {/* In the works (specs/monetization-launch-plan.md): one line, not a section of features that aren't built (Britton's pick, 2026-10-19). */}
+        <p className="circuit-soon"><strong>Coming later:</strong> paid entry, Circuit Events for bigger in-person events, and venue partners. <Link href="/contact-us">Tell us about your events</Link></p>
 
-      </Container>
-
-      {/* Pricing — dark module, matching the GS Pro pricing band */}
-      <DarkBand premium id="tiers" curved curveEdges="both" curveColor={PAGE_BG}>
-        <p className="marketing-eyebrow" style={{ color: "var(--primary-300)", textAlign: "center" }}>Pick your scale</p>
-        <h2 className="pricing-page__section-title pro-band__title" style={{ marginBottom: "var(--spacing-8)" }}>Plans by field size</h2>
-        <p style={{ textAlign: "center", color: "var(--gray-300, #c2c8d2)", maxWidth: "40rem", margin: "0 auto var(--spacing-24)", lineHeight: "var(--line-height-relaxed)" }}>
-          Player count sets the tier: pick the one that fits your largest event. {copy.short}
-        </p>
-        <CircuitPricing launchedAt={copy.launchedAt} />
-      </DarkBand>
-
-      <Container>
-        {/* FAQ — matching the GS Pro treatment (bordered accordion) */}
+        {/* FAQ: questions only, answers kept in the HTML (FaqList). */}
         <section className="pricing-page__faq">
           <h2 className="pricing-page__section-title">Common questions</h2>
-          {/* Open by default: CDS Accordion only mounts an item once it's opened,
-              so collapsed answers would be missing from the HTML (and from search). */}
-          <Accordion
-            variant="bordered"
-            allowMultiple
-            defaultOpenIds={["cost", "free", "adds", "bundle", "vs-pro"]}
-            items={[
-              { id: "cost", title: "How much does GameShuffle Circuit cost?", content: copy.cost },
-              { id: "free", title: "What's free?", content: "Every format (single/double elimination, points, Swiss with a top cut, Heat to Mains, team modes), Pokémon TCG deck lists, multi-flight points, live scoring, a public join page, picks & bans and a waitlist, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
-              { id: "adds", title: "What does Circuit add?", content: "A bigger field (Circuit 64 or Circuit 256) plus four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
-              { id: "bundle", title: "Does Circuit 256 really include GameShuffle Pro?", content: "Yes. Circuit 256 bundles a GameShuffle Pro subscription, so if you also stream your events you get the OBS overlay, Twitch and Discord integration, chat commands, and the token economy at no extra cost." },
-              { id: "vs-pro", title: "Is it the same as GameShuffle Pro?", content: "No. GameShuffle Pro is for streamers (Twitch/Discord integration, overlay, chat commands, token economy). GameShuffle Circuit is for organizers running bigger tournaments. They're separate plans, and Circuit 256 includes Pro." },
-            ]}
-          />
+          <FaqList items={[
+            { q: "How much does GameShuffle Circuit cost?", a: copy.cost },
+            { q: "What's free?", a: "Every format (single/double elimination, points, Swiss with a top cut, Heat to Mains, team modes), Pokémon TCG deck lists, multi-flight points, live scoring, a public join page, picks & bans and a waitlist, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
+            { q: "What does Circuit add?", a: "A bigger field (Circuit 64 or Circuit 256) plus four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
+            { q: "Does Circuit 256 really include GameShuffle Pro?", a: "Yes. Circuit 256 bundles a GameShuffle Pro subscription, so if you also stream your events you get the OBS overlay, Twitch and Discord integration, chat commands, and the token economy at no extra cost." },
+            { q: "Is it the same as GameShuffle Pro?", a: "No. GameShuffle Pro is for streamers (Twitch/Discord integration, overlay, chat commands, token economy). GameShuffle Circuit is for organizers running bigger tournaments. They're separate plans, and Circuit 256 includes Pro." },
+          ]} />
         </section>
       </Container>
 

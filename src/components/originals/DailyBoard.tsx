@@ -13,8 +13,9 @@
  * no guest step. Nothing shows until supabase/daily-boards-m1.sql has run.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Avatar, Button, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs } from "@empac/cascadeds";
+import { IconBrandDiscordFilled } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { OriginalsLink, useOriginalsHost } from "@/components/originals/OriginalsHost";
@@ -32,6 +33,10 @@ function newGuestId(): string {
   const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID().replace(/-/g, "") : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
   try { localStorage.setItem(GUEST_KEY, JSON.stringify({ id })); } catch { /* this visit only */ }
   return id;
+}
+/** This browser's guest id if it has one (never makes one): Fire Round's opening read. */
+export function storedGuestId(): string | null {
+  return readGuestId();
 }
 /** This browser's guest id for a request (made the first time): referrals use it too. */
 export function guestRequestId(): string {
@@ -148,13 +153,14 @@ export function DailyBoardJoin({ onJoin, onJoined, tokens }: { onJoin: (name: st
   };
   return (
     <form className="daily-join" onSubmit={(e) => void submit(e)}>
-      <h3 className="daily-join__title">Put me on the leaderboard</h3>
-      <p className="daily-join__text">Pick a name for the boards. {tokens > 0 ? `This game earned ${tokens} tokens: they` : "Tokens you earn"} wait in this browser for 30 days, and move to your wallet when you <OriginalsLink href="/signup?redirect=/daily">make a free account</OriginalsLink>.</p>
+      <h3 className="daily-join__title">Put me on the board</h3>
+      <p className="daily-join__text">{tokens > 0 ? `This game earned ${tokens} tokens. They` : "Tokens you earn"} wait 30 days for a <OriginalsLink href="/signup?redirect=/daily">free account</OriginalsLink>.</p>
       <div className="daily-join__row">
         <Input value={name} onChange={(e) => { setName(e.target.value); setError(null); }} placeholder="A name for the board" aria-label="A name for the board" maxLength={24} />
         <Button type="submit" variant="primary" disabled={busy || tidyName(name).length < 2}>Add me</Button>
       </div>
-      <TurnstileWidget onToken={setToken} size="flexible" />
+      {/* Only once a name is started: until then it held a blank space in the form. */}
+      {name.trim() && <TurnstileWidget onToken={setToken} size="flexible" />}
       {error && <p className="daily-join__error" role="alert">{error}</p>}
     </form>
   );
@@ -173,43 +179,72 @@ function ResultDots({ guesses, points, main }: { guesses: number; points: number
   );
 }
 
+/**
+ * Where someone played, marked on their picture so names keep their room
+ * (Britton's pick, 2026-10-19, https://claude.ai/artifact/WEZM2GLEQWxbLA4hDtgCaQ):
+ * a signed-in player's plain picture is the default (no badge: the filled
+ * bubble already says it), players from another place get that place's badge,
+ * and a guest's initial a dashed ring; a key under the board says what each
+ * means and screen readers hear it with the name. It doubles as a race between
+ * the places people play. A new place (Facebook) is one entry here.
+ */
+type Place = "site" | Exclude<BoardRow["tag"], null>;
+const PLACES: Record<Place, { said: string; key: string; badge?: { icon: ReactNode; color: string } }> = {
+  site: { said: "on GameShuffle", key: "Signed in on GameShuffle" },
+  guest: { said: "guest", key: "Guest: no account yet" },
+  discord: { said: "played in Discord", key: "Played in Discord", badge: { icon: <IconBrandDiscordFilled aria-hidden />, color: "#5865f2" } },
+};
+const placeOf = (r: BoardRow): Place => r.tag ?? "site";
+
+function PlayerAvatar({ name, src, place }: { name: string; src?: string; place: Place }) {
+  const guest = place === "guest";
+  return (
+    <Avatar size="xsmall" src={src} initials={name.slice(0, 1).toUpperCase()} alt="" color={guest ? "neutral" : "primary"}
+      className={`daily-board__av${guest ? " daily-board__av--guest" : ""}`} badge={PLACES[place].badge} />
+  );
+}
+
 /** `pictures`: off inside the Discord Activity, which only loads images from our own site. */
 function BoardTable({ view, main, pictures }: { view: BoardView; main: number; pictures: boolean }) {
   const day = view.period === "day";
+  // Fire Round's board: right answers and the score on the day, points over a week or month.
+  const fire = view.game === "fire";
   // Today's board shows solve times once anyone on it has one (the Start button arrived 2026-10-16).
-  const timed = day && [...view.rows, ...(view.you ? [view.you] : [])].some((r) => r.seconds != null);
+  const timed = !fire && day && [...view.rows, ...(view.you ? [view.you] : [])].some((r) => r.seconds != null);
   const shown = view.rows;
   const pinned = view.you && !shown.some((r) => r.you) ? view.you : null;
   if (!shown.length) {
-    return <p className="party-muted daily-board__empty">{day ? "Nobody's on the board yet today. Finish today's puzzle to be first." : "Nobody's on this board yet."}</p>;
+    return <p className="party-muted daily-board__empty">{day ? (fire ? "Nobody's played today's round yet. Be the first." : "Nobody's on the board yet today. Finish today's puzzle to be first.") : "Nobody's on this board yet."}</p>;
   }
   const row = (r: BoardRow, key: string) => (
     <TableRow key={key} className={r.you ? "daily-board__you" : undefined}>
       <TableCell><strong>{r.place}</strong></TableCell>
       <TableCell>
         <span className="daily-board__who">
-          <Avatar size="xsmall" src={pictures ? r.avatar ?? undefined : undefined} initials={r.name.slice(0, 1).toUpperCase()} alt="" color="primary" />
+          <PlayerAvatar name={r.name} src={pictures ? r.avatar ?? undefined : undefined} place={placeOf(r)} />
           {r.profile ? <OriginalsLink href={r.profile}>{r.you ? "You" : r.name}</OriginalsLink> : <span>{r.you ? "You" : r.name}</span>}
-          {r.tag === "guest" && <span className="daily-board__tag daily-board__tag--guest">Guest</span>}
-          {r.tag === "discord" && <span className="daily-board__tag daily-board__tag--discord">Discord</span>}
+          <span className="sr-only"> ({PLACES[placeOf(r)].said})</span>
         </span>
       </TableCell>
-      <TableCell>{day ? <ResultDots guesses={r.guesses} points={r.points} main={main} /> : `${r.days} ${r.days === 1 ? "day" : "days"}`}</TableCell>
+      <TableCell>{fire && day ? r.guesses : day ? <ResultDots guesses={r.guesses} points={r.points} main={main} /> : `${r.days} ${r.days === 1 ? "day" : "days"}`}</TableCell>
       {timed && <TableCell align="right"><span className="daily-board__time">{r.seconds != null ? formatTime(r.seconds) : ""}</span></TableCell>}
-      <TableCell align="right"><strong>{r.points}</strong></TableCell>
+      <TableCell align="right"><strong>{fire && day ? (r.score ?? 0).toLocaleString("en-US") : r.points}</strong></TableCell>
       {!day && <TableCell align="right">{r.prize ? <span className="daily-board__prize">{r.prize.toLocaleString("en-US")}</span> : ""}</TableCell>}
     </TableRow>
   );
+  // The key only names the marks this board shows.
+  const places = (["site", "discord", "guest"] as Place[]).filter((p) => [...shown, ...(pinned ? [pinned] : [])].some((r) => placeOf(r) === p));
   return (
+    <>
     <div className="daily-board__table" tabIndex={0} role="region" aria-label={`${PERIOD_LABEL[view.period]} leaderboard`}>
       <Table dense>
         <TableHeader>
           <TableRow>
             <TableHead>#</TableHead>
             <TableHead>Player</TableHead>
-            <TableHead>{day ? "Result" : "Played"}</TableHead>
+            <TableHead>{fire && day ? "Right" : day ? "Result" : "Played"}</TableHead>
             {timed && <TableHead align="right">Time</TableHead>}
-            <TableHead align="right">Points</TableHead>
+            <TableHead align="right">{fire && day ? "Score" : <><span className="daily-board__long">Points</span><abbr className="daily-board__short" title="Points">Pts</abbr></>}</TableHead>
             {!day && <TableHead align="right">Prize</TableHead>}
           </TableRow>
         </TableHeader>
@@ -219,13 +254,22 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
         </TableBody>
       </Table>
     </div>
+    {places.length > 0 && (
+      <p className="daily-board__key">
+        {places.map((p) => (
+          <span key={p}><span aria-hidden><PlayerAvatar name={p === "guest" ? "G" : p === "discord" ? "D" : "S"} place={p} /></span>{PLACES[p].key}</span>
+        ))}
+      </p>
+    )}
+    </>
   );
 }
 
 const settleText = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" });
 
 /** The leaderboards for one game: Today, This week, This month. */
-export function DailyBoard({ game, main, guestId, refresh, onViews }: { game: BoardGame; main: number; guestId: string | null; refresh: number; onViews?: (day: BoardView | null, week: BoardView | null) => void }) {
+/** `join`: the guest's "Put me on the board" form, shown above the board it joins. */
+export function DailyBoard({ game, main, guestId, refresh, onViews, join }: { game: BoardGame; main: number; guestId: string | null; refresh: number; onViews?: (day: BoardView | null, week: BoardView | null) => void; join?: ReactNode }) {
   const { api, activity } = useOriginalsHost();
   const [period, setPeriod] = useState<BoardPeriod>("day");
   const [views, setViews] = useState<Partial<Record<BoardPeriod, BoardView>>>({});
@@ -251,6 +295,7 @@ export function DailyBoard({ game, main, guestId, refresh, onViews }: { game: Bo
   return (
     <section className="daily-board" aria-labelledby={`daily-board-${game}`}>
       <h2 id={`daily-board-${game}`} className="daily-board__title">Leaderboard</h2>
+      {join}
       <Tabs
         variant="underline"
         size="small"
@@ -262,7 +307,9 @@ export function DailyBoard({ game, main, guestId, refresh, onViews }: { game: Bo
       {current && <BoardTable view={current} main={main} pictures={!activity} />}
       {current && (
         <p className="daily-board__foot">
-          {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · {period === "day" ? "level on points, the faster solve ranks higher" : "ties share a place"} · 10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance
+          {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · {game === "fire"
+            ? "ties share a place · your first round each day earns up to 10 points, 1 for every 200 you score"
+            : `${period === "day" ? "level on points, the faster solve ranks higher" : "ties share a place"} · 10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance`}
           {current.settles ? ` · prizes land ${settleText(current.settles)}` : ""}
         </p>
       )}

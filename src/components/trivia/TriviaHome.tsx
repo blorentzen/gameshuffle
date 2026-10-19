@@ -15,6 +15,8 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { TEMPLATES } from "@/lib/trivia/rules";
 import { TriviaLeaguesSection } from "./leagues/TriviaLeaguesSection";
+import { IconFlame } from "@tabler/icons-react";
+import { FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import "@/styles/trivia.css";
 
 interface GameSummary { id: string; title: string; code: string; status: "draft" | "live" | "done" | "cancelled"; template: string | null; createdAt: string; questions: number }
@@ -77,6 +79,17 @@ export function TriviaHome({ signedIn, children }: { signedIn: boolean; children
       />
 
       <div className="trivia-page__body">
+        {/* Solo play beside hosting (Fire Round, Britton's pick 2026-10-19). */}
+        {FIRE_ROUND_PUBLIC && (
+          <div className="trivia-card trivia-solo">
+            <span className="trivia-solo__tile" aria-hidden><IconFlame size={22} stroke={2} /></span>
+            <div className="trivia-solo__copy">
+              <h2 className="trivia-h2">Play solo: Fire Round</h2>
+              <p className="trivia-muted">Answer as many as you can against the clock, then take on today&apos;s round with everyone else.</p>
+            </div>
+            <Link href="/trivia/fire-round"><Button variant="secondary">Play Fire Round</Button></Link>
+          </div>
+        )}
         {!signedIn ? (
           <div className="trivia-card">
             <h2 className="trivia-h2">Host a trivia night</h2>

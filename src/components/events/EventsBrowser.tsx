@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { IconAdjustments } from "@tabler/icons-react";
 import { boardGameLevelLabel, BOARD_GAME_LEVELS } from "@/data/board-games";
 import { EventCard } from "./EventCard";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { artCategoryFor } from "./EventHeaderArt";
 import { NIGHT_KINDS, nightKindLabel } from "@/lib/game-nights/types";
 import { matchScore, isGoodMatch, haversineMiles, formatMiles, type ViewerPrefs } from "@/lib/game-nights/match";
@@ -85,8 +86,16 @@ export interface EventsBrowserConfig {
   statusTabs?: boolean;
   /** Default When when the URL has none. */
   defaultWhen?: When;
-  /** Optional cross-rail to the other hub, rendered under the grid. */
+  /** Optional cross-rail to the other hub, rendered under the grid. It swipes on phones. */
   crossRail?: { heading: string; href: string; linkLabel: string; items: BrowseEvent[] } | null;
+  /** Show this many events per time group, then "Show N more this week"
+   *  (Britton's pick for /game-nights, 2026-10-19). Unset shows every one. */
+  groupCap?: number;
+  /** Leave the create button out of the list heading when the page's header
+   *  already has it (game nights: the hero's "Host a night"). Default true. */
+  createInHead?: boolean;
+  /** Event cards turn into a small picture beside the text on phones. */
+  compactOnPhones?: boolean;
 }
 
 type Sort = "soon" | "near" | "match";
@@ -130,6 +139,15 @@ const WHEN_OPTIONS: { value: When; label: string }[] = [
   { value: "past", label: "Past" },
   { value: "all", label: "Everything" },
 ];
+
+/** The group's own words after "Show 4 more": "this week", "tonight", "later on". */
+const GROUP_MORE: Record<string, string> = {
+  Tonight: "tonight", Tomorrow: "tomorrow", "This week": "this week", "This month": "this month",
+  Later: "later on", "Date to be announced": "without a date yet", "Recent results": "results",
+};
+function groupMoreLabel(label: string): string {
+  return GROUP_MORE[label] ?? "";
+}
 
 function fmtDate(iso: string | null, tz: string | null): string {
   if (!iso) return "Date TBA";
@@ -366,8 +384,11 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
      different query. */
   const resultKey = `${query}|${genre}|${level}|${kind}|${game}|${online}|${price}|${format}|${openSpots}|${when}|${radius}|${status}|${sort}`;
   const [shown, setShown] = useState(PAGE);
+  // Groups opened past the cap ("Show 4 more this week").
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
   useEffect(() => {
     setShown(PAGE);
+    setOpenGroups([]);
   }, [resultKey]);
 
   /* ── Server paging ────────────────────────────────────────────────────────
@@ -485,15 +506,20 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
       </div>
     ) : (
       <>
-      {groups.map((g) => (
+      {groups.map((g) => {
+        const cap = config.groupCap && g.label && !openGroups.includes(g.key) ? config.groupCap : 0;
+        // A button for one more event costs as much room as the event, so a group one over the cap shows whole.
+        const hidden = cap && g.rows.length > cap + 1 ? g.rows.length - cap : 0;
+        const groupRows = hidden ? g.rows.slice(0, cap) : g.rows;
+        return (
         <section key={g.key} className="bgn-group">
           {g.label && (
             <h2 className="bgn-group__title">
               {g.label} <span className="bgn-group__count">{g.rows.length}</span>
             </h2>
           )}
-          <div className="bgn-grid">
-        {g.rows.map(({ event: e, score, distance }) => {
+          <div className={`bgn-grid${config.compactOnPhones ? " bgn-grid--compact" : ""}`}>
+        {groupRows.map(({ event: e, score, distance }) => {
           const lvl = boardGameLevelLabel(e.level);
           return (
             <EventCard
@@ -531,8 +557,16 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
           );
         })}
           </div>
+          {hidden > 0 && (
+            <div className="bgn-group__more">
+              <Button variant="ghost" size="small" onClick={() => setOpenGroups((o) => [...o, g.key])}>
+                {`Show ${hidden} more ${groupMoreLabel(g.label)}`.trim()}
+              </Button>
+            </div>
+          )}
         </section>
-      ))}
+        );
+      })}
       {remaining > 0 && (
         <div className="bgn-more">
           <Button
@@ -573,7 +607,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", lineHeight: "var(--line-height-tight)", margin: 0 }}>
           {config.heading}
         </h2>
-        {config.createHref && (
+        {config.createHref && config.createInHead !== false && (
           <Link href={config.createHref} style={{ textDecoration: "none" }}>
             <Button variant="secondary">{config.createLabel ?? "Create"}</Button>
           </Link>
@@ -722,7 +756,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
             <h2 className="events-browser__cross-heading">{config.crossRail.heading}</h2>
             <Link href={config.crossRail.href} className="events-browser__cross-link">{config.crossRail.linkLabel} →</Link>
           </div>
-          <div className="bgn-foryou__row">
+          <ResponsiveCarousel className="bgn-foryou__row" label={config.crossRail.heading}>
             {config.crossRail.items.map((e) => (
               <EventCard
                 key={`${e.type}-${e.id}`} href={e.href} title={e.title} seed={e.id} cover={e.cover}
@@ -733,7 +767,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
                 countLabel={e.goingCount != null ? `${e.goingCount} going` : null}
               />
             ))}
-          </div>
+          </ResponsiveCarousel>
         </section>
       )}
     </>

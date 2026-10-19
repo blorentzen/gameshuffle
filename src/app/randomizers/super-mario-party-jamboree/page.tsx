@@ -26,10 +26,10 @@ export default function JamboreeRandomizerPage() {
           hero={{ title: landing.h1, lead: landing.lead, image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif", imagePosition: "center" }}
         />
       </Suspense>
+      <RandomizerNudge gameName={JAMBOREE.label} saves="your party setups" />
       <RandomizerLanding landing={landing} itemLists={partyItemLists(JAMBOREE, headings)}>
         <PartyReference game={JAMBOREE} headings={headings} />
       </RandomizerLanding>
-      <RandomizerNudge gameName={JAMBOREE.label} saves="your party setups" />
     </>
   );
 }

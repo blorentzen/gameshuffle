@@ -77,6 +77,11 @@ export default async function GameNightsPage() {
               // Price and availability apply just as much here: every card already
               // states a price, and a full night is the one result nobody wants.
               filters: { when: true, kind: true, genre: true, level: true, price: true, openSpots: true },
+              // Phones: 3 a group, compact cards, the hero already says Host a night
+              // (Britton's picks, 2026-10-19).
+              groupCap: 3,
+              createInHead: false,
+              compactOnPhones: true,
               crossRail: {
                 heading: "Also happening: tournaments",
                 href: "/tournament",

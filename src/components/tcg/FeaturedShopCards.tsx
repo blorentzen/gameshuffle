@@ -19,9 +19,12 @@ export function FeaturedShopCards({
   cards,
   heading = "Featured cards in the shop",
   intro,
+  credits = true,
 }: {
   cards: FeaturedShopCard[];
   heading?: string;
+  /** False when the page prints the card credits once at its foot (the Pokémon hub). */
+  credits?: boolean;
   /** Optional lead paragraph, shown only when real cards are configured. */
   intro?: string;
 }) {
@@ -107,7 +110,7 @@ export function FeaturedShopCards({
               </a>
             </CarouselItem>
           </AutoplayCarousel>
-          <TcgAttribution className="tcg-featured__attr" />
+          {credits && <TcgAttribution className="tcg-featured__attr" />}
         </>
       ) : (
         <AutoplayCarousel

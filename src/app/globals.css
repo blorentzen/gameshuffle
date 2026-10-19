@@ -2312,6 +2312,9 @@ ul {
   transition: background .12s ease, border-color .12s ease;
 }
 .post-topic-chip:hover { background: color-mix(in srgb, var(--primary-500) 10%, transparent); border-color: var(--primary-300, var(--border-strong)); }
+/* A bright owner accent as 14px text on the chip's near-white is under 4.5:1
+   (#d6409f measured 3.95:1); a fifth darker keeps the colour and passes. */
+html:not(.dark) .post-topic-chip { color: color-mix(in srgb, var(--bg-primary, var(--primary-600)) 78%, #000); }
 
 /* Community create — auto URL preview + availability status */
 .community-url-preview {
@@ -3001,10 +3004,17 @@ html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
   .empac-carousel--arrows-overlay .empac-carousel__arrow--next { right: 6px; }
 }
 @media (max-width: 640px) {
-  /* Long carousels: dots wrap rather than push the bottom arrows off the screen. */
-  .empac-carousel__nav { flex-wrap: wrap; max-width: 100%; }
-  .empac-carousel__dots { flex-wrap: wrap; max-width: 100%; justify-content: center; }
+  /* Long carousels: the dots wrap between the arrows, so the arrows stay beside
+     them instead of landing above and below (fixed 2026-10-19). */
+  .empac-carousel__nav { flex-wrap: nowrap; max-width: 100%; }
+  .empac-carousel__dots { flex: 0 1 auto; min-width: 0; flex-wrap: wrap; justify-content: center; }
 }
+
+/* ShowAll (src/components/ui/ShowAll.tsx): a long list cut with a fade, then "Show all N". */
+.show-all { display: grid; justify-items: start; gap: var(--spacing-12, 12px); min-width: 0; }
+.show-all__body { position: relative; width: 100%; min-width: 0; overflow: hidden; }
+.show-all:not(.show-all--open) .show-all__body::after { content: ""; position: absolute; inset: auto 0 0; height: 9.6rem; pointer-events: none;
+  background: linear-gradient(transparent, var(--show-all-fade, var(--background-primary, #fff))); }
 /* Chat Brain's launch panel and the cookie banner text must shrink with the phone. */
 .chat-brain__launch, .chat-brain__launch > *, .cb-launch__head > * { min-width: 0; }
 .cookie-banner__text { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }

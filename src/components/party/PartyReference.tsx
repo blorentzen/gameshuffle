@@ -1,4 +1,6 @@
 import { Badge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
+import { ShowAll } from "@/components/ui/ShowAll";
 import { characterArt, type PartyGame } from "@/lib/party/types";
 
 /**
@@ -6,9 +8,9 @@ import { characterArt, type PartyGame } from "@/lib/party/types";
  * and the roster, rendered on the server from the same game data the
  * randomizer rolls from (so there's no second list to keep in sync).
  *
- * Lists stay expanded rather than collapsing into an Accordion: CDS Accordion
- * doesn't mount closed items, so collapsed lists would be missing from the
- * server HTML. Dense columns keep them short instead.
+ * Lists stay in the server HTML (CDS Accordion doesn't mount closed items), so
+ * long ones are cut with ShowAll instead, and the boards swipe on phones
+ * (Britton's picks, 2026-10-19, https://claude.ai/artifact/QaSjiFxbYHkNBAQq53xvpq).
  */
 
 export interface PartyReferenceHeadings {
@@ -38,9 +40,9 @@ export function PartyReference({ game, headings }: { game: PartyGame; headings: 
     <>
       <section aria-labelledby="party-boards" className="party-ref">
         <h2 id="party-boards" className="rand-landing__h2">{headings.boards}</h2>
-        <ul className="party-ref__boards">
+        <ResponsiveCarousel className="party-ref__boards" label={headings.boards}>
           {game.boards.map((b) => (
-            <li key={b.id} className="party-ref__board">
+            <article key={b.id} className="party-ref__board">
               <div className="party-ref__board-art" style={{ background: b.color }}>
                 {game.artReady ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -52,9 +54,9 @@ export function PartyReference({ game, headings }: { game: PartyGame; headings: 
                 <p className="party-ref__meta">Difficulty {b.difficulty} of 5{b.unlockable && b.unlockHint ? ` · Unlocks at ${b.unlockHint}` : ""}</p>
                 <p className="party-ref__blurb">{b.blurb}</p>
               </div>
-            </li>
+            </article>
           ))}
-        </ul>
+        </ResponsiveCarousel>
       </section>
 
       {headings.rules && party && pro ? (
@@ -107,6 +109,7 @@ export function PartyReference({ game, headings }: { game: PartyGame; headings: 
           {game.minigames.length > base ? `, plus ${game.minigames.length - base} more in the ${editionLabel}` : ""}, grouped by type.</>}
           {game.minigames.some((m) => m.noPro) ? " Minigames marked Party only can't come up under Pro Rules." : ""}
         </p>
+        <ShowAll height="64rem" label={`Show all ${game.minigames.length} minigames`}>
         {groups.map(({ cat, games }) => (
           <div key={cat.id} className="party-ref__group">
             <h3 className="party-ref__group-title">
@@ -125,6 +128,7 @@ export function PartyReference({ game, headings }: { game: PartyGame; headings: 
             </ul>
           </div>
         ))}
+        </ShowAll>
       </section>
 
       <section aria-labelledby="party-roster" className="party-ref">
@@ -133,6 +137,7 @@ export function PartyReference({ game, headings }: { game: PartyGame; headings: 
           {game.characters.length} characters
           {game.characters.some((c) => c.unlockable) ? `, ${game.characters.filter((c) => c.unlockable).length} of them unlocked by playing` : ", all playable from the start"}.
         </p>
+        <ShowAll height="44rem" label={`Show all ${game.characters.length} characters`}>
         <ul className="party-ref__roster">
           {game.characters.map((c) => (
             <li key={c.name} className="party-ref__char">
@@ -147,6 +152,7 @@ export function PartyReference({ game, headings }: { game: PartyGame; headings: 
             </li>
           ))}
         </ul>
+        </ShowAll>
       </section>
     </>
   );

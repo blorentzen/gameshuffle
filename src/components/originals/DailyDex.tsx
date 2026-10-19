@@ -7,7 +7,7 @@ import { DailySteps } from "@/components/originals/DailyParade";
 import { DexParade } from "@/components/originals/DexParade";
 import { DailyBoard, DailyBoardJoin, DailyScoreChips, guestRequestId, useDailyBoards } from "@/components/originals/DailyBoard";
 import { SupportNudge } from "@/components/support/SupportNudge";
-import { DailiesInvite, DailiesNext, DailiesShare, DailiesYours, sendReferralFinish, useDailies } from "@/components/originals/Dailies";
+import { DailiesInvite, DailiesNextButton, DailiesShare, DailiesYours, sendReferralFinish, useDailies } from "@/components/originals/Dailies";
 import { withReferral } from "@/lib/originals/referral";
 import { DexCardOfDay } from "@/components/originals/DexCardOfDay";
 import { DailyHelpPanel, HelpWord, useDailyHelp } from "@/components/originals/DailyHelp";
@@ -18,7 +18,8 @@ import { DailySolveTime, DailyStartCard, pickTimes, useDailyStart } from "@/comp
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { OriginalsLink, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
-import { TypeCard, TypeTile } from "@/components/pokemon/TypeCard";
+import { PokemonDisclaimer, TypeCard, TypeTile } from "@/components/pokemon/TypeCard";
+import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { MAX_GUESSES, dayKey, guessFeedback, guessLimits, hintFor, ladderShown, playTraits, shareText, stillFit, type DailyStats, type GuessHint, type TraitCell, type TraitDef } from "@/lib/originals/daily";
 import { DEX, DEX_PUZZLE, dexAnswer, dexNumber, dexSearchValue, letterCount } from "@/lib/originals/dailyDex";
@@ -101,6 +102,8 @@ export function DailyDex() {
   const [flash, setFlash] = useState<string | null>(null);
   /** The list normally shrinks to what still fits; this brings back all 1,025. */
   const [showAll, setShowAll] = useState(false);
+  /** Today's card of the day showed (its credits then take the page's foot). */
+  const [cardShown, setCardShown] = useState(false);
   /** Help bought with tokens today (the browser's copy; the server's wins when larger). */
   const [localHelp, setLocalHelp] = useState<HelpCounts>(NO_HELP);
   const { info: helpInfo, help, reload: reloadHelp } = useDailyHelp("dex", localHelp);
@@ -261,6 +264,7 @@ export function DailyDex() {
   const answerDex = byName.get(answer.name)?.dex ?? 0;
 
   return (
+    <>
     <div className="daily">
       <div className="daily__meta">
         {/* After load: a dev ?day= preview differs from the server's day, and before launch the number is below 1. */}
@@ -268,10 +272,10 @@ export function DailyDex() {
         <span className="party-muted">{elsewhere ? Math.min(elsewhere.guesses, main) : Math.min(hints.length, main)} of {main} guesses{inLastChance || savedIt ? " · last chance" : ""}</span>
       </div>
 
-      {!over && loaded && !started && <DailyStartCard onStart={clock.start} what="Pokémon" />}
+      {!over && loaded && !started && <DailyStartCard onStart={clock.start}>{fresh && <DailySteps steps={steps} />}</DailyStartCard>}
       {!over && loaded && started && (
         <div className="daily__guess">
-          <LabeledCombobox label="Guess today's Pokémon" value={pick} onChange={setPick} options={options} placeholder="Type a Pokémon" />
+          <LabeledCombobox label="Guess today's Pokémon" value={pick} onChange={setPick} options={options} placeholder="Type a Pokémon" allowCreate={false} />
           <Button variant="primary" disabled={!pickedName} onClick={guess}>{inLastChance ? "Take my last chance" : "Guess"}</Button>
         </div>
       )}
@@ -304,7 +308,6 @@ export function DailyDex() {
       )}
 
       {fresh && <DexParade names={puzzle.characters} />}
-      {fresh && <DailySteps steps={steps} />}
 
       {loaded && hints.length > 0 && <p className="daily__scroll-hint" aria-hidden>Swipe the grid for every column →</p>}
       {loaded && hints.length > 0 && (
@@ -344,38 +347,46 @@ export function DailyDex() {
 
       {over && (
         <div className="daily__done">
-          <div className="dex-answer"><TypeCard dex={answerDex} name={answer.name} types={answer.types ?? []} /></div>
-          <p className="oddone__verdict">{savedIt ? "Saved it on the last chance." : solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>.</p>
-          <DailySolveTime times={times} solved={solved} />
-          {!activity && answerDex > 0 && <DexCardOfDay dex={answerDex} signedIn={!!account?.signedIn} />}
-          <DailyScoreChips score={score} guest={!activity && !account?.signedIn} today={mine.day} week={mine.week} />
-          {elsewhere && <p className="party-muted">{activity ? "You played today's Pokémon on GameShuffle." : "You played today on another device."}</p>}
-          <p className="party-muted">A new Pokémon at midnight Pacific time.</p>
-          {hints.length > 0 && (
-            <DailiesShare current="dex" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} />
-          )}
-          <div className="dailies-pair">
-            <DailiesNext current="dex" onPick={activity?.pickDaily} />
-            <DailiesInvite current="dex" />
+          <div className="daily-result">
+            <div className="dex-answer"><TypeCard dex={answerDex} name={answer.name} types={answer.types ?? []} /></div>
+            <div className="daily-result__text">
+              <p className="oddone__verdict">{savedIt ? "Saved it on the last chance." : solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>.</p>
+              <DailySolveTime times={times} solved={solved} />
+              <DailyScoreChips score={score} guest={!activity && !account?.signedIn} today={mine.day} week={mine.week} />
+              {elsewhere && <p className="party-muted">{activity ? "You played today's Pokémon on GameShuffle." : "You played today on another device."}</p>}
+              <p className="party-muted daily-result__next">A new Pokémon at midnight Pacific time.</p>
+            </div>
           </div>
-          <DailiesYours current="dex" />
-          {account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0 && (
-            <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />
-          )}
+          <div className="daily-actions">
+            {hints.length > 0 && (
+              <DailiesShare current="dex" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} />
+            )}
+            <DailiesNextButton current="dex" onPick={activity?.pickDaily} />
+          </div>
+          <DailiesYours current="dex" only />
+          {!activity && answerDex > 0 && <DexCardOfDay dex={answerDex} signedIn={!!account?.signedIn} credits={false} onCard={setCardShown} />}
+          <DailiesInvite current="dex" nudge={false} />
           {account && !account.signedIn && (
-            <p className="party-muted"><OriginalsLink href="/login?redirect=/daily-dex">Sign in</OriginalsLink> to keep your streak on every device and show it on your profile.</p>
+            <p className="party-muted daily-result__signin">
+              <OriginalsLink href="/login?redirect=/daily-dex">Sign in</OriginalsLink>
+              {activity ? " to keep your streak on every device and show it on your profile." : " to keep your streak on every device and get an invite link that earns tokens."}
+            </p>
           )}
-          <SupportNudge from="dex" />
         </div>
       )}
 
-      {!preview && <DailyBoard game="dex" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews} />}
+      {!preview && (
+        <DailyBoard game="dex" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews}
+          join={over && account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0
+            ? <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />
+            : null} />
+      )}
 
       {over && (activity
         ? activity.showTab && <Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button>
-        : <ChatBrainAsk source="daily" />)}
+        : <ChatBrainAsk source="daily" eyebrow={null} flat />)}
 
-      <Accordion variant="bordered" items={[{
+      <Accordion variant="flush" className="daily-accordion" items={[{
         id: "how",
         title: "How it works",
         content: (
@@ -386,6 +397,10 @@ export function DailyDex() {
           </>
         ),
       }]} />
+      {over && <SupportNudge from="dex" />}
     </div>
+    {/* The foot of the page: the card credits once a card of the day shows (they cover the fan-made line too), else the fan-made line. */}
+    {!activity && (cardShown ? <TcgAttribution className="daily-credits" /> : <PokemonDisclaimer />)}
+    </>
   );
 }

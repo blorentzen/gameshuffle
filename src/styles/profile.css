@@ -2206,7 +2206,7 @@ a.ct__name:hover { text-decoration: underline; }
 .chero__handle {
   font-size: var(--font-size-14);
   margin: 0 0 var(--spacing-8);
-  color: var(--skin-on-muted, var(--text-tertiary));
+  color: var(--skin-on-muted, var(--text-secondary));
 }
 .chero__tagline {
   font-size: var(--font-size-16);
@@ -2214,11 +2214,12 @@ a.ct__name:hover { text-decoration: underline; }
   margin: 0 0 var(--spacing-8);
   color: var(--skin-on, var(--text-secondary));
 }
+/* --text-tertiary on the page's #efefef was 4.24:1 at 14px; secondary passes. */
 .chero__descriptor,
 .chero__crews {
   font-size: var(--font-size-14);
   margin: 0 0 var(--spacing-8);
-  color: var(--skin-on-muted, var(--text-tertiary));
+  color: var(--skin-on-muted, var(--text-secondary));
 }
 .chero__crews { margin-bottom: var(--spacing-20); }
 .chero__blurb {
@@ -2269,6 +2270,12 @@ a.ct__name:hover { text-decoration: underline; }
 .profile-tabs .empac-tabs__tab--active:hover:not(.empac-tabs__tab--disabled) {
   background: color-mix(in srgb, var(--bg-primary, var(--primary-600)) 14%, var(--surface-default));
   color: var(--brand-ink, var(--bg-primary, var(--primary-700)));
+}
+/* On the 14% tint the ink lands just under 4.5:1 for a light accent (candy
+   #995667 on #f7dee2 measured 4.25:1); a fifth darker keeps the hue and passes. */
+html:not(.dark) .profile-tabs .empac-tabs__tab--active,
+html:not(.dark) .profile-tabs .empac-tabs__tab--active:hover:not(.empac-tabs__tab--disabled) {
+  color: color-mix(in srgb, var(--brand-ink, var(--primary-700)) 80%, #000);
 }
 
 /* ── Buttons on a skinned surface ─────────────────────────────────────────

@@ -66,11 +66,11 @@ export function CommunityMarkets({
   return (
     <>
       {isMember ? (
-        <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>
+        <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
           Your balance: <strong style={{ color: "var(--text-secondary)" }}>{balance.toLocaleString()} 🪙</strong> · leave the stake empty to just predict.
         </p>
       ) : (
-        <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>Join the community to predict and bet.</p>
+        <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>Join the community to predict and bet.</p>
       )}
 
       {markets.map((m) => {

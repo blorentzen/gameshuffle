@@ -24,7 +24,7 @@ function Recent({ marks }: { marks: DayMark[] }) {
   );
 }
 
-export function DailiesCards({ entries, shown, current, heading = "Your dailies", signedIn = true, everyDaily = false }: {
+export function DailiesCards({ entries, shown, current, heading = "Your dailies", signedIn = true, everyDaily = false, strip = false }: {
   entries: DailiesEntries;
   shown: DailiesId[];
   current?: DailiesId;
@@ -33,12 +33,14 @@ export function DailiesCards({ entries, shown, current, heading = "Your dailies"
   signedIn?: boolean;
   /** End screens: a card for every daily, played or not, so each game's end screen looks the same. */
   everyDaily?: boolean;
+  /** One game as a strip inside its result: no name or tile, the streak and stats on one line. */
+  strip?: boolean;
 }) {
   // A game shows once it has been played (or it's the page you're on, or `everyDaily`); the Weekly once there's an account.
   const ids = shown.filter((id) => id === current || (id === "weekly" ? signedIn && !!entries.weekly?.weeks?.played : everyDaily || !!entries[id]?.stats?.played));
   if (!ids.length) return null;
   return (
-    <section className="dailies-cards" aria-label={heading ?? "Daily streaks"}>
+    <section className={`dailies-cards${strip ? " dailies-cards--strip" : ""}`} aria-label={heading ?? (strip ? "Your streak" : "Daily streaks")}>
       {heading && <h2 className="dailies-cards__title">{heading}</h2>}
       <div className="dailies-cards__grid">
         {ids.map((id) => {
@@ -47,10 +49,10 @@ export function DailiesCards({ entries, shown, current, heading = "Your dailies"
           const Glyph = DAILIES_GLYPHS[id];
           return (
             <div key={id} className={`dailies-card dailies--${id}${id === current ? " dailies-card--current" : ""}`}>
-              <span className="dailies-card__head">
+              {!strip && <span className="dailies-card__head">
                 <span className="dailies-card__tile" aria-hidden><Glyph size={18} stroke={2} /></span>
                 <span className="dailies-card__name">{g.short}</span>
-              </span>
+              </span>}
               {id === "weekly" ? (
                 <dl className="dailies-card__stats">
                   <div><dt>Weeks</dt><dd>{e?.weeks?.played ?? 0}</dd></div>
@@ -59,18 +61,20 @@ export function DailiesCards({ entries, shown, current, heading = "Your dailies"
                 </dl>
               ) : (
                 <>
-                  <p className="dailies-card__streak">
-                    <IconFlame size={18} stroke={2} aria-hidden />
-                    <strong>{e?.stats?.streak ?? 0}</strong>
-                    <span>day streak</span>
-                  </p>
-                  <dl className="dailies-card__stats">
-                    <div><dt>Best</dt><dd>{e?.stats?.best ?? 0}</dd></div>
-                    <div><dt>Won</dt><dd>{e?.stats?.played ? Math.round((e.stats.won / e.stats.played) * 100) : 0}%</dd></div>
-                    <div><dt>Played</dt><dd>{e?.stats?.played ?? 0}</dd></div>
-                    {(e?.stats?.saved ?? 0) > 0 && <div><dt>Saves</dt><dd>{e?.stats?.saved}</dd></div>}
-                    {e?.stats?.fastest != null && <div><dt>Fastest</dt><dd>{formatTime(e.stats.fastest)}</dd></div>}
-                  </dl>
+                  <div className="dailies-card__line">
+                    <p className="dailies-card__streak">
+                      <IconFlame size={18} stroke={2} aria-hidden />
+                      <strong>{e?.stats?.streak ?? 0}</strong>
+                      <span>day streak</span>
+                    </p>
+                    <dl className="dailies-card__stats">
+                      <div><dt>Best</dt><dd>{e?.stats?.best ?? 0}</dd></div>
+                      <div><dt>Won</dt><dd>{e?.stats?.played ? Math.round((e.stats.won / e.stats.played) * 100) : 0}%</dd></div>
+                      <div><dt>Played</dt><dd>{e?.stats?.played ?? 0}</dd></div>
+                      {(e?.stats?.saved ?? 0) > 0 && <div><dt>Saves</dt><dd>{e?.stats?.saved}</dd></div>}
+                      {e?.stats?.fastest != null && <div><dt>Fastest</dt><dd>{formatTime(e.stats.fastest)}</dd></div>}
+                    </dl>
+                  </div>
                   {e?.recent && <Recent marks={e.recent} />}
                 </>
               )}

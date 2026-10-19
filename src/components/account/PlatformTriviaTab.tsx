@@ -10,24 +10,29 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, EmptyState, Input, Modal, Select, StatCard, Tabs, Textarea } from "@empac/cascadeds";
-import { IconArchive, IconBulb, IconChecklist, IconCircleCheck, IconDeviceGamepad2, IconLibraryPlus } from "@tabler/icons-react";
+import { IconArchive, IconBulb, IconChecklist, IconCircleCheck, IconDeviceGamepad2, IconLibraryPlus, IconSparkles } from "@tabler/icons-react";
 import { AdminHeader, AdminRowMenu, AdminStats } from "@/components/account/admin/AdminKit";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AnswerLine } from "@/components/trivia/TriviaStudio";
 import type { LibraryQuestion, PackCounts } from "@/lib/trivia/store";
+import type { ChoicesAdmin } from "@/lib/fireRound/choices";
+import { DraftCategory, FireChoicesPanel } from "@/components/account/FireChoicesPanel";
 import "@/styles/trivia.css";
 
 type Status = "draft" | "approved" | "retired";
+/** The question lanes, plus Fire Round's four choices. */
+type Lane = Status | "choices";
 interface Games { ready: boolean; list: { slug: string; title: string }[]; tags: Record<string, string> }
-interface Data { ready: boolean; questions: LibraryQuestion[]; counts: PackCounts; bank: { total: number; missing: number }; games: Games }
+interface Data { ready: boolean; questions: LibraryQuestion[]; counts: PackCounts; bank: { total: number; missing: number }; games: Games; choices: ChoicesAdmin | null }
 const NO_GAMES: Games = { ready: false, list: [], tags: {} };
 
-const LANES: { id: Status; label: string }[] = [
+const LANES: { id: Lane; label: string }[] = [
   { id: "draft", label: "To check" },
   { id: "approved", label: "Approved" },
   { id: "retired", label: "Retired" },
+  { id: "choices", label: "Four choices" },
 ];
 /** The pack runs to hundreds of questions; show them a page at a time. */
 const PAGE = 25;
@@ -37,7 +42,8 @@ export function PlatformTriviaTab() {
   const toast = useToast();
   const confirm = useConfirm();
   const [data, setData] = useState<Data | null>(null);
-  const [lane, setLane] = useState<Status>("draft");
+  const [lane, setLane] = useState<Lane>("draft");
+  const [growing, setGrowing] = useState(false);
   const [cat, setCat] = useState("all");
   const [game, setGame] = useState("all");
   const [drafting, setDrafting] = useState(false);
@@ -52,9 +58,9 @@ export function PlatformTriviaTab() {
       // First load with nothing to check: open on the approved list.
       if (firstLoad.current && j.counts.draft === 0 && j.counts.approved > 0) setLane("approved");
       firstLoad.current = false;
-      setData({ ready: true, questions: j.questions, counts: j.counts, bank: j.bank, games: j.games ?? NO_GAMES });
+      setData({ ready: true, questions: j.questions, counts: j.counts, bank: j.bank, games: j.games ?? NO_GAMES, choices: j.choices ?? null });
     }
-    else setData({ ready: j?.error !== "not_ready", questions: [], counts: { draft: 0, approved: 0, retired: 0 }, bank: { total: 0, missing: 0 }, games: NO_GAMES });
+    else setData({ ready: j?.error !== "not_ready", questions: [], counts: { draft: 0, approved: 0, retired: 0 }, bank: { total: 0, missing: 0 }, games: NO_GAMES, choices: null });
   }, []);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
@@ -107,6 +113,7 @@ export function PlatformTriviaTab() {
       actions={data?.ready ? (
         <>
           <Button variant="secondary" size="small" iconBefore={IconDeviceGamepad2} disabled={busy} onClick={() => setDrafting(true)}>Draft a game pack</Button>
+          <Button variant="secondary" size="small" iconBefore={IconSparkles} disabled={busy} onClick={() => setGrowing(true)}>Draft for a category</Button>
           <Button variant="secondary" size="small" iconBefore={IconLibraryPlus} disabled={busy || data.bank.missing === 0} onClick={() => void importBank()}>
             {data.bank.missing === 0 ? "Starter pack added" : `Add the starter pack (${data.bank.missing} new)`}
           </Button>
@@ -185,8 +192,15 @@ export function PlatformTriviaTab() {
         <StatCard label="Retired" value={String(data.counts.retired)} icon={<IconArchive size={20} />} />
       </AdminStats>
 
-      <Tabs variant="underline" activeTab={lane} onChange={(id) => { setLane(id as Status); setLimit(PAGE); }}
-        tabs={LANES.map((l) => ({ id: l.id, label: l.label, badge: data.counts[l.id] || undefined, content: lane === l.id ? list : null }))} />
+      <Tabs variant="underline" activeTab={lane} onChange={(id) => { setLane(id as Lane); setLimit(PAGE); }}
+        tabs={LANES.map((l) => ({
+          id: l.id,
+          label: l.label,
+          badge: (l.id === "choices" ? data.choices?.waiting.length : data.counts[l.id]) || undefined,
+          content: lane !== l.id ? null : l.id === "choices"
+            ? (data.choices ? <FireChoicesPanel choices={data.choices} busy={busy} post={post} reload={load} /> : null)
+            : list,
+        }))} />
 
       {drafting && (
         <DraftGamePack games={data.games} onClose={() => setDrafting(false)}
@@ -196,6 +210,16 @@ export function PlatformTriviaTab() {
             await load();
             setLane("draft");
             setGame(slug);
+          }} />
+      )}
+      {growing && (
+        <DraftCategory categories={data.choices?.growable ?? []} onClose={() => setGrowing(false)}
+          onDrafted={async (category, added) => {
+            setGrowing(false);
+            toast.success(added ? `${added} question${added === 1 ? "" : "s"} to check` : "Nothing new this time. Try again for more.");
+            await load();
+            setLane("draft");
+            setCat(category);
           }} />
       )}
       {editing && <EditQuestion q={editing} busy={busy} onClose={() => setEditing(null)}
