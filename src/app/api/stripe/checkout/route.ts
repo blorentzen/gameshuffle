@@ -10,6 +10,11 @@
  *
  * Returns { url } — the client redirects to Stripe's hosted Checkout.
  *
+ * An account that already has GS Pro through a subscription, a trial or GS
+ * Circuit 256 gets { error: "already_pro" } (409): a second checkout would bill
+ * them twice (audit, 2026-10-19). Staff and beta keep their role grant and can
+ * still subscribe.
+ *
  * US-only for now (specs/international-payments-plan.md): a visitor outside
  * the US gets { error: "us_only" } and the waitlist instead. Sales tax is
  * calculated by Stripe Tax from the required billing address (Terms §5.4).
@@ -22,6 +27,7 @@ import { createClient as createAdminSupabase } from "@supabase/supabase-js";
 import { getStripe, getStripePriceId } from "@/lib/stripe/client";
 import { resolveStripePriceId } from "@/lib/pricing/catalog";
 import { paidPlanAvailability } from "@/lib/billing/availability";
+import { getProAccess } from "@/lib/subscription-server";
 
 export const runtime = "nodejs";
 
@@ -63,6 +69,15 @@ export async function POST(request: Request) {
   }
 
   const admin = getAdmin();
+  // Already paying for Pro somewhere: never open a second subscription.
+  const access = await getProAccess(user.id, admin);
+  if (access.sources.length > 0) {
+    const message = access.sources[0] === "circuit_256"
+      ? "Your GS Circuit 256 plan already includes GS Pro."
+      : "You already have GS Pro. Manage it from Plans & billing.";
+    return NextResponse.json({ error: "already_pro", source: access.sources[0], message }, { status: 409 });
+  }
+
   const { data: userRow } = await admin
     .from("users")
     .select("stripe_customer_id, has_used_trial, display_name")

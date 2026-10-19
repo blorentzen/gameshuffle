@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card, Icon } from "@empac/cascadeds";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
 import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
+import { ProTerms } from "@/components/billing/ProTerms";
 import { useToast } from "@/components/toast/ToastProvider";
 
 /**
@@ -35,9 +36,7 @@ export function ProTrialPrompt({ title, children, from, compact = false }: {
       {children && <div className="pro-trial__body">{children}</div>}
       {who.signedIn ? (
         <>
-          <p className="pro-trial__terms">
-            {who.hasUsedTrial ? "Upgrade any time, and cancel whenever you like." : "14 days free, then $9 a month. Cancel any time before it ends."}
-          </p>
+          <ProTerms className="pro-trial__terms" hasUsedTrial={who.hasUsedTrial} />
           <ProUpgradeCtaButtons hasUsedTrial={who.hasUsedTrial} from={from} onError={(m) => toast.error(m)} />
         </>
       ) : (

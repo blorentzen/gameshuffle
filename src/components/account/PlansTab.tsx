@@ -10,6 +10,7 @@
  *   Pro trialing → Trial end date + Manage Billing
  *   Pro ending   → cancel_at_period_end = true, "Access through {date}"
  *   Pro past_due → Payment failure banner + Manage Billing
+ *   Circuit 256  → "Included with GS Circuit 256" (it carries Pro), no checkout
  *   Free         → Start 14-day Pro trial / Go Pro (monthly vs annual)
  *
  * Checkout + portal flows are handled via the /api/stripe/* endpoints,
@@ -59,6 +60,7 @@ type BillingStatus =
   | "pro_active"
   | "pro_ending"
   | "pro_past_due"
+  | "circuit_pro"
   | "free";
 
 function formatDate(iso: string | null): string {
@@ -129,6 +131,8 @@ export function PlansTab() {
           .from("subscriptions")
           .select("status, tier, price_id, current_period_end, cancel_at_period_end, trial_end")
           .eq("user_id", user.id)
+          // Pro rows only: GS Circuit plans live in the same table and were read as Pro.
+          .eq("product", "pro")
           .order("updated_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -362,6 +366,8 @@ function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | nu
       return { status: { label: "Active", tone: "active" }, rows: sub?.current_period_end ? [{ label: "Renews", value: formatDate(sub.current_period_end) }] : [] };
     case "pro_ending":
       return { status: { label: "Canceling", tone: "warn" }, rows: sub?.current_period_end ? [{ label: "Access through", value: formatDate(sub.current_period_end) }] : [], reactivate: true };
+    case "circuit_pro":
+      return { status: { label: "Included with GS Circuit 256", tone: "active" }, rows: [] };
     case "pro_past_due":
       return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues while Stripe retries the payment. Update your card to keep it going." };
     default:
@@ -427,13 +433,15 @@ function resolveBillingStatus(
   u: UserBillingRow | null
 ): BillingStatus {
   if (isStaffRole(u?.role ?? null)) return "staff";
-  if (!sub) return "free";
+  // GS Circuit 256 includes Pro, so it's never offered Pro again.
+  const circuitPro = u?.circuit_tier === "circuit_256" && !!u?.circuit_status && ["active", "trialing", "past_due"].includes(u.circuit_status);
+  if (!sub) return circuitPro ? "circuit_pro" : "free";
   if (sub.status === "trialing") return "pro_trialing";
   if (sub.status === "past_due") return "pro_past_due";
   if (sub.status === "active") {
     return sub.cancel_at_period_end ? "pro_ending" : "pro_active";
   }
   // canceled / incomplete_expired / unpaid / incomplete
-  return "free";
+  return circuitPro ? "circuit_pro" : "free";
 }
 

@@ -25,6 +25,7 @@ import { AdminScreen, AdminSection } from "@/components/account/admin/AdminKit";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
+import { ProTerms } from "@/components/billing/ProTerms";
 import { TwitchHubTab } from "@/components/account/TwitchHubTab";
 import { DiscordBotRoutingCard } from "@/components/account/DiscordBotRoutingCard";
 import { YouTubeConnectCard } from "@/components/account/YouTubeConnectCard";
@@ -151,7 +152,7 @@ function GetStartedScreen() {
     <AdminScreen title="Stream with GameShuffle" intro="Turn your stream into game night: viewers join from chat, roll their own picks, vote, play bingo and drafts, and it all shows on your overlay.">
       <div className="streaming-hero">
         <span className="streaming-hero__badge">GS Pro</span>
-        <p className="streaming-hero__terms">{who?.hasUsedTrial ? "Upgrade any time, and cancel whenever you like." : "14 days free, then $9 a month. Cancel any time before it ends and you won't be charged."}</p>
+        <ProTerms className="streaming-hero__terms" hasUsedTrial={who?.hasUsedTrial} reassure />
         <ProUpgradeCtaButtons hasUsedTrial={who?.hasUsedTrial} from="streaming-get-started" onError={(m) => toast.error(m)} />
         <Link href="/gs-pro?from=streaming-get-started" className="streaming-hero__more">See everything in GS Pro</Link>
       </div>

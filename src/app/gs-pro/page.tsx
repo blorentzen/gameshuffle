@@ -29,6 +29,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
 import { PaidPlansWaitlist } from "@/components/billing/PaidPlansWaitlist";
 import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
+import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
@@ -301,6 +302,26 @@ export default function GsProPage() {
   const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
   const { user } = useAuth();
   const availability = usePaidAvailability();
+  // Who's looking decides the offer (audit, 2026-10-19): members manage their plan, visitors
+  // outside the US get the waitlist, and a used trial is never offered again. Until we know, the
+  // general trial pitch renders (it's what most arrivals see).
+  const who = useTrialEligibility();
+  const isPro = !!who?.isPro;
+  const outside = !!availability && !availability.paidPlans.available;
+  const trialUsed = !!who?.hasUsedTrial;
+  const plansHref = user ? "/account?tab=plans" : "/signup?redirect=/account?tab=plans";
+  const offer = isPro
+    ? { eyebrow: "GameShuffle Pro", cta: "Manage your plan", href: "/account?tab=plans", band: "You have GS Pro. Thanks for running game nights with us.", bandCta: "Open your plan" }
+    : outside
+      ? { eyebrow: "GameShuffle Pro · US only for now", cta: "Join the waitlist", href: "#pricing", band: "GS Pro is available in the US for now. Join the waitlist and we'll tell you when it opens where you are.", bandCta: "Join the waitlist" }
+      : trialUsed
+        ? { eyebrow: "GameShuffle Pro", cta: "Get GS Pro", href: plansHref, band: "Pick monthly or yearly. Cancel anytime.", bandCta: "Get GS Pro" }
+        : { eyebrow: "GameShuffle Pro · 14-day free trial", cta: "Try Pro free for 14 days", href: plansHref, band: "Start your 14-day Pro trial. Cancel anytime.", bandCta: "Start free trial" };
+  const priceLine = isPro
+    ? "You have GS Pro. Manage it any time from your account."
+    : outside
+      ? "GS Pro is available in the US for now. Everything free on GameShuffle works wherever you are."
+      : `${trialUsed ? "" : "14 days free, then "}${usd(pro.monthly)} a month or ${usd(pro.annual)} a year. Cancel any time from your account.`;
   // GS Circuit's row says "free during preview" until its billing switch launches it.
   const [circuitLive, setCircuitLive] = useState(false);
   useEffect(() => {
@@ -314,7 +335,7 @@ export default function GsProPage() {
         <MarketingHeroField category="stream" />
         <Container>
           <div className="pro-hero__content">
-            <p className="marketing-eyebrow">GameShuffle Pro · 14-day free trial</p>
+            <p className="marketing-eyebrow">{offer.eyebrow}</p>
             {/* When someone arrives from a Pro wall inside the app we know what
                 they were trying to do, so lead with that instead of the general
                 pitch. Every marketing link in stays generic. */}
@@ -327,15 +348,15 @@ export default function GsProPage() {
                 : "Pro adds the platform layer on top of the free tools: chat rolls for every game you stream, an OBS overlay, live polls, Stream Bingo, Chat Draft, AI tools and an Arcade Token economy your chat plays for. One session across Twitch and Discord."}
             </p>
             <div className="pro-hero__ctas">
-              <Link href={user ? "/account?tab=plans" : "/signup?redirect=/account?tab=plans"}>
-                <Button variant="primary" size="large">Try Pro free for 14 days</Button>
+              <Link href={offer.href}>
+                <Button variant="primary" size="large">{offer.cta}</Button>
               </Link>
               <Link href="#pricing">
                 <Button variant="secondary" size="large">See pricing</Button>
               </Link>
             </div>
             {/* The price up front (Britton's pick, 2026-10-19): the header never said what Pro costs. */}
-            <p className="pro-hero__price">14 days free, then {usd(pro.monthly)} a month or {usd(pro.annual)} a year. Cancel any time from your account.</p>
+            <p className="pro-hero__price">{priceLine}</p>
           </div>
         </Container>
         <MarketingHeroCurve />
@@ -556,15 +577,17 @@ export default function GsProPage() {
               lineHeight: "var(--line-height-relaxed)",
             }}
           >
-            Start your 14-day Pro trial. Cancel anytime.
+            {offer.band}
           </p>
           <Stack direction="horizontal" gap={12} justify="center" wrap>
-            <Link href={user ? "/account?tab=plans" : "/signup?redirect=/account?tab=plans"} style={{ textDecoration: "none" }}>
-              <Button variant="primary" size="large">Start free trial</Button>
+            <Link href={offer.href} style={{ textDecoration: "none" }}>
+              <Button variant="primary" size="large">{offer.bandCta}</Button>
             </Link>
-            <Link href="/signup" style={{ textDecoration: "none" }}>
-              <Button variant="secondary" size="large">Start with free</Button>
-            </Link>
+            {!user && (
+              <Link href="/signup" style={{ textDecoration: "none" }}>
+                <Button variant="secondary" size="large">Start with free</Button>
+              </Link>
+            )}
           </Stack>
         </div>
       </DarkBand>

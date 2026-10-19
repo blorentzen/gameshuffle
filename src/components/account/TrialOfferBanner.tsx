@@ -14,6 +14,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { Button } from "@empac/cascadeds";
+import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 
 const DISMISS_KEY = "gs-trial-banner-dismissed-v1";
 
@@ -55,8 +56,10 @@ export function TrialOfferBanner({ isEligible, onLearnMore }: TrialOfferBannerPr
   // Track hover state separately so we don't re-trigger the external
   // store on every render.
   const [, forceUpdate] = useState(0);
+  // GS Pro is US-only for now: no trial offer elsewhere (or before we know).
+  const availability = usePaidAvailability();
 
-  if (!isEligible || dismissed) return null;
+  if (!isEligible || dismissed || !availability?.paidPlans.available) return null;
 
   const handleDismiss = () => {
     if (typeof window !== "undefined") {

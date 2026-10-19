@@ -136,7 +136,8 @@ export function ProfileStoreProvider({ children }: { children: ReactNode }) {
       const [profileRes, twitchRes, subRes, persoRes, postsRes, cardsRes] = await Promise.all([
         supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, bio, pronouns, location, timezone, favorite_games, plays_board_games, board_game_genres, board_game_level, board_game_lengths, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
         supabase.from("twitch_connections").select("id").eq("user_id", user.id).maybeSingle(),
-        supabase.from("subscriptions").select("status").eq("user_id", user.id).in("status", ["trialing", "active", "past_due", "incomplete"]).maybeSingle(),
+        // Pro rows only (Circuit shares the table), and a list so Pro + Circuit together can't error out and show the trial offer to someone who pays.
+        supabase.from("subscriptions").select("status").eq("user_id", user.id).eq("product", "pro").in("status", ["trialing", "active", "past_due", "incomplete"]).limit(1),
         // Personalization columns, guarded: an unapplied migration just hides those fields.
         supabase.from("users").select("profile_pinned_post_id, profile_featured_card_id, profile_accent").eq("id", user.id).maybeSingle(),
         supabase.from("gs_posts").select("id, body, kind").eq("author_id", user.id).is("deleted_at", null).order("created_at", { ascending: false }).limit(25),
@@ -179,7 +180,7 @@ export function ProfileStoreProvider({ children }: { children: ReactNode }) {
         discordAvatar: (p.discord_avatar as string | null) ?? null,
         twitchAvatar: (p.twitch_avatar as string | null) ?? null,
         hasTwitchConnection: !!twitchRes.data,
-        trialEligible: role !== "staff" && role !== "admin" && !p.has_used_trial && !subRes.data,
+        trialEligible: role !== "staff" && role !== "admin" && !p.has_used_trial && !subRes.error && !(subRes.data ?? []).length,
         persoAvailable: perso,
         myPosts: ((postsRes.data ?? []) as { id: string; body: string | null; kind: string }[]).map((x) => ({
           id: x.id,
