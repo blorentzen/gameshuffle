@@ -1590,6 +1590,14 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .home-play__eyebrow { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand-ink, var(--text-secondary)); }
 .home-play__title { margin: 0; font-size: var(--font-size-24); line-height: 1.2; }
 .home-play__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; flex: 1; }
+/* The three dailies in a row, the Weekly as a wide row under them (Britton, 2026-10-19; matches the today bar). Phones keep the carousel. */
+@media (min-width: 900px) {
+  .home-play--wide-week { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .home-play--wide-week > .home-play__card--wide { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--spacing-24, 24px); row-gap: var(--spacing-6, 6px); align-items: center; padding-block: var(--spacing-20, 20px); }
+  .home-play--wide-week > .home-play__card--wide > * { grid-column: 1; }
+  .home-play--wide-week > .home-play__card--wide > a { grid-column: 2; grid-row: 1 / span 4; }
+  .home-play--wide-week > .home-play__card--wide .home-play__title { font-size: var(--font-size-20); }
+}
 .home-play__meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
 
 /* Splatoon 3 randomizer: the kit under each player's weapon, and the battle list. */
@@ -1989,12 +1997,12 @@ html.dark .dailies--fire { --dailies-ink: #ff9a7a; }
 .dailies-bar .empac-subnav--pills .empac-subnav__wrapper { padding: var(--spacing-4) 0; }
 /* Three equal cells, the status under each name, so all of today fits across a phone. */
 .dailies-bar .empac-subnav__container { display: grid; grid-template-columns: repeat(var(--dailies-n, 3), minmax(0, 1fr)); max-width: none; padding: 2px; gap: var(--spacing-8); overflow: visible; }
-.dailies-bar .empac-subnav__item:nth-child(1) { --dailies-ink: #5a3fd6; }
-.dailies-bar--3 .empac-subnav__item:nth-child(2) { --dailies-ink: #c4471f; }
-.dailies-bar--3 .empac-subnav__item:nth-child(3), .dailies-bar--2 .empac-subnav__item:nth-child(2) { --dailies-ink: #12806e; }
-html.dark .dailies-bar .empac-subnav__item:nth-child(1) { --dailies-ink: #a99bff; }
-html.dark .dailies-bar--3 .empac-subnav__item:nth-child(2) { --dailies-ink: #f0a070; }
-html.dark .dailies-bar--3 .empac-subnav__item:nth-child(3), html.dark .dailies-bar--2 .empac-subnav__item:nth-child(2) { --dailies-ink: #5fd3bd; }
+/* Each cell's colour comes from the bar (CDS SubNav items take no class): --dailies-c1..c3 name a game's ink, set inline by DailiesBar. */
+.dailies-bar { --ink-shuffle: #5a3fd6; --ink-dex: #c4471f; --ink-fire: #b42318; --ink-weekly: #12806e; }
+html.dark .dailies-bar { --ink-shuffle: #a99bff; --ink-dex: #f0a070; --ink-fire: #ff9a7a; --ink-weekly: #5fd3bd; }
+.dailies-bar .empac-subnav__item:nth-child(1) { --dailies-ink: var(--dailies-c1, var(--ink-shuffle)); }
+.dailies-bar .empac-subnav__item:nth-child(2) { --dailies-ink: var(--dailies-c2, var(--ink-dex)); }
+.dailies-bar .empac-subnav__item:nth-child(3) { --dailies-ink: var(--dailies-c3, var(--ink-fire)); }
 .dailies-bar .empac-subnav--pills .empac-subnav__item { flex-wrap: wrap; align-content: center; justify-content: flex-start; text-align: left; gap: 2px var(--spacing-8); min-width: 0; padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: var(--background-primary); color: var(--text-primary); white-space: normal; }
 .dailies-bar .empac-subnav__item > span:not(.empac-subnav__badge) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .dailies-bar .empac-subnav__badge, .dailies-bar .empac-subnav--pills .empac-subnav__item--active .empac-subnav__badge { flex-basis: 100%; justify-content: flex-start; height: auto; min-width: 0; padding: 0 0 0 18px; background: none; color: var(--text-secondary); font-weight: var(--font-weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2002,6 +2010,14 @@ html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subna
 .dailies-bar .empac-subnav__item::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--dailies-ink); }
 .dailies-bar .empac-subnav--pills .empac-subnav__item--active,
 .dailies-bar .empac-subnav--pills .empac-subnav__item--active:hover { background: var(--background-primary); color: var(--text-primary); border-color: var(--dailies-ink); box-shadow: inset 0 0 0 1px var(--dailies-ink); }
+
+/* The Weekly under the bar (Britton, 2026-10-19: the three dailies stay together, the Weekly drops below): a plain line, no box. */
+.dailies-week { display: flex; align-items: center; gap: var(--spacing-10, 10px); min-width: 0; margin: var(--spacing-8) 0 0; padding: 0 var(--spacing-4); font-size: var(--font-size-14); color: var(--text-secondary); text-align: start; }
+.dailies-week::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--dailies-ink); }
+.dailies-week__text { flex: 1; min-width: 0; margin: 0; }
+.dailies-week__text b { color: var(--text-primary); font-weight: var(--font-weight-semibold, 600); }
+.dailies-week__go { flex: none; text-decoration: none; }
+.dailies-week__go .empac-button { color: var(--dailies-ink); }
 
 /* Next up and Invite friends: side by side on a laptop, stacked on a phone, same height, full width. */
 .dailies-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: var(--spacing-12); align-self: stretch; align-items: stretch; width: 100%; margin-top: var(--spacing-8); }
@@ -2042,6 +2058,7 @@ html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subna
 .dailies-card__day--won { background: var(--dailies-ink); border-color: transparent; }
 .dailies-card__day--saved { background: color-mix(in srgb, var(--dailies-ink) 35%, transparent); border-color: var(--dailies-ink); }
 .dailies-card__day--missed { background: var(--border-strong, var(--gray-400)); border-color: transparent; }
+.dailies-card__day--played { background: var(--dailies-ink); border-color: transparent; }
 
 /* ── The Daily Dex's card of the day (src/components/originals/DexCardOfDay.tsx) ── */
 .dex-cotd { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-20); align-items: center; width: 100%; align-self: stretch; padding: var(--spacing-16) 0 0; border-top: 1px solid var(--daily-panel-line, var(--border-default)); text-align: start; }

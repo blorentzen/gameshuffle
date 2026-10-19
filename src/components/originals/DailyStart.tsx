@@ -99,13 +99,28 @@ export function DailySolveTime({ times, solved }: { times: SolveTimes; solved: b
   );
 }
 
-/** The Start button, where the guess box goes until the player starts; `children` (how to play) sits under it. */
-export function DailyStartCard({ onStart, children }: { onStart: () => void; children?: ReactNode }) {
+const PUZZLE_NOTE = "Your first hint and your clock start when you tap Start. A faster solve breaks ties on today's leaderboard.";
+
+/**
+ * The Start button, where the guess box goes until the player starts; `children`
+ * (how to play) sits under it. Fire Round uses it too (`head` above the button,
+ * its own label, a secondary button once today's round is played, no note).
+ */
+export function DailyStartCard({ onStart, children, head, label = "Start today's puzzle", note = PUZZLE_NOTE, primary = true, className }: {
+  onStart: () => void;
+  children?: ReactNode;
+  head?: ReactNode;
+  label?: string;
+  note?: string | null;
+  primary?: boolean;
+  className?: string;
+}) {
   return (
-    <div className="daily-start">
+    <div className={`daily-start${className ? ` ${className}` : ""}`}>
+      {head}
       <div className="daily-start__go">
-        <Button variant="primary" size="large" onClick={onStart} iconBefore={IconPlayerPlay}>Start today&apos;s puzzle</Button>
-        <p className="daily-start__note">Your first hint and your clock start when you tap Start. A faster solve breaks ties on today&apos;s leaderboard.</p>
+        <Button variant={primary ? "primary" : "secondary"} size="large" onClick={onStart} iconBefore={primary ? IconPlayerPlay : undefined}>{label}</Button>
+        {note && <p className="daily-start__note">{note}</p>}
       </div>
       {children}
     </div>

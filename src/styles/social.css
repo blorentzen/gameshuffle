@@ -107,6 +107,7 @@
 .winners-scene .social-stage__eyebrow { margin: 0; }
 /* The Dex's part keeps its own warm label (its colors, as on its share image). */
 .winners-scene--dex .social-stage__eyebrow { color: #ffc98f; }
+.winners-scene--fire .social-stage__eyebrow { color: #ffb48a; }
 .winners-big { margin: 0; font: 800 11vw/1.04 var(--font-display); color: #fff; text-wrap: balance; }
 .winners-date { margin: 2.4vh 0 0; font: 500 4.8vw/1.3 var(--font-body); color: #d6d9f6; }
 .winners-scene--end .social-stage__pill { margin-top: 4vh; }
@@ -127,6 +128,9 @@
 .winners-answer__art { width: 10vw; height: 10vw; object-fit: contain; border-radius: 50%; background: rgba(255, 255, 255, 0.1); }
 .winners-answer .type-tile { width: 10vw; height: 10vw; border-radius: 2.4vw; }
 .winners-answer .type-tile svg { width: 6vw; height: 6vw; }
+/* Fire Round has no answer: a flame tile and what the round was. */
+.winners-answer__tile { width: 10vw; height: 10vw; flex: none; border-radius: 2.4vw; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #d9363e, #ff7a2f); }
+.winners-answer__tile svg { width: 6vw; height: 6vw; }
 
 .winners-rows { list-style: none; margin: 3vh 0 0; padding: 0; width: 100%; display: grid; gap: 1.4vh; }
 .winners-row {
@@ -183,8 +187,10 @@
 .winners-row__stats span { display: inline-flex; align-items: center; gap: 1vw; }
 .winners-row__stats svg { width: 4.2vw; height: 4.2vw; }
 .winners-row__streak { color: #ffb36b; }
+.winners-row__fire { font: 600 3.6vw/1.2 var(--font-body); color: #ffd3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.winners-row__score { font: 800 4.8vw/1 var(--font-display); color: #fff; }
 
-/* The Dex's warm ground, faded in over the Shuffle's for its part of the video. */
+/* A later game's ground (the Dex's warm, Fire Round's ember), faded in over the first game's for its part of the video. */
 .winners-stage > .winners-warm { position: absolute; inset: 0; z-index: 0; opacity: 0; pointer-events: none; }
 .winners-stage .winners-warm__in { position: absolute; inset: 0; background: radial-gradient(120% 115% at 50% 42%, var(--primary-900, #1c1e5f) 0%, #0b0d14 72%); }
 .winners-stage .winners-warm__in::before { top: -22vmax; left: -16vmax; width: 72vmax; height: 72vmax; }

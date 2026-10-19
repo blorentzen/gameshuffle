@@ -8,15 +8,18 @@
 import { IconCalendarWeek, IconFlame, IconPokeball, IconPuzzle } from "@tabler/icons-react";
 import { DAILIES, formatTime, type DailiesEntries, type DailiesId, type DayMark } from "@/lib/originals/dailies";
 
-export const DAILIES_GLYPHS: Record<DailiesId, typeof IconPuzzle> = { shuffle: IconPuzzle, dex: IconPokeball, weekly: IconCalendarWeek };
+export const DAILIES_GLYPHS: Record<DailiesId, typeof IconPuzzle> = { shuffle: IconPuzzle, dex: IconPokeball, fire: IconFlame, weekly: IconCalendarWeek };
 
-const MARK_WORD: Record<Exclude<DayMark, null>, string> = { won: "won", saved: "saved on the last chance", missed: "missed" };
+const MARK_WORD: Record<Exclude<DayMark, null>, string> = { won: "won", saved: "saved on the last chance", missed: "missed", played: "played" };
 
 function Recent({ marks }: { marks: DayMark[] }) {
   const won = marks.filter((m) => m === "won").length;
   const saved = marks.filter((m) => m === "saved").length;
   const missed = marks.filter((m) => m === "missed").length;
-  const label = `Last 14 days: ${won} won${saved ? `, ${saved} saved on the last chance` : ""}${missed ? `, ${missed} missed` : ""}, ${14 - won - saved - missed} not played`;
+  const played = marks.filter((m) => m === "played").length;
+  const label = played
+    ? `Last 14 days: ${played} played, ${14 - played} not played`
+    : `Last 14 days: ${won} won${saved ? `, ${saved} saved on the last chance` : ""}${missed ? `, ${missed} missed` : ""}, ${14 - won - saved - missed} not played`;
   return (
     <div className="dailies-card__recent" role="img" aria-label={label}>
       {marks.map((m, i) => <span key={i} className={`dailies-card__day dailies-card__day--${m ?? "none"}`} title={m ? MARK_WORD[m] : "not played"} />)}
@@ -59,6 +62,22 @@ export function DailiesCards({ entries, shown, current, heading = "Your dailies"
                   <div><dt>Top 10</dt><dd>{e?.weeks?.topTen ?? 0}</dd></div>
                   <div><dt>This week</dt><dd>{!signedIn ? "Sign in" : e?.state === "done" ? "Answered" : "Open"}</dd></div>
                 </dl>
+              ) : id === "fire" ? (
+                <>
+                  <div className="dailies-card__line">
+                    <p className="dailies-card__streak">
+                      <IconFlame size={18} stroke={2} aria-hidden />
+                      <strong>{e?.stats?.streak ?? 0}</strong>
+                      <span>day streak</span>
+                    </p>
+                    <dl className="dailies-card__stats">
+                      <div><dt>Best</dt><dd>{e?.stats?.best ?? 0}</dd></div>
+                      <div><dt>Played</dt><dd>{e?.stats?.played ?? 0}</dd></div>
+                      {e?.stats?.top != null && <div><dt>Top score</dt><dd>{e.stats.top.toLocaleString("en-US")}</dd></div>}
+                    </dl>
+                  </div>
+                  {e?.recent && <Recent marks={e.recent} />}
+                </>
               ) : (
                 <>
                   <div className="dailies-card__line">

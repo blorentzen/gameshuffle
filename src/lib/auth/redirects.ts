@@ -41,6 +41,7 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/trivia",
   "/daily",
   "/daily-dex",
+  "/daily-trivia",
   "/weekly",
   "/chat-brain",
   "/arcade",

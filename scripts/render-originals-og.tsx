@@ -20,7 +20,7 @@ import type { ReactNode } from "react";
 import { ImageResponse } from "next/dist/compiled/@vercel/og/index.node.js";
 import sharp from "sharp";
 
-type Motif = "grid" | "dex" | "podium" | "board";
+type Motif = "grid" | "dex" | "podium" | "board" | "choices";
 interface Spec { slug: string; route: string; title: string; /** "" = no line under the title. */ sub: string; colors: [string, string]; glyphs: string[]; motif: Motif }
 
 const SPECS: Spec[] = [
@@ -28,6 +28,8 @@ const SPECS: Spec[] = [
   { slug: "daily-dex", route: "daily-dex", title: "Guess today's Pokémon", sub: "", colors: ["#a3301b", "#e8a21c"], glyphs: ["Pokeball", "Bolt", "Flame", "Droplet", "Leaf"], motif: "dex" },
   { slug: "weekly", route: "weekly", title: "The Weekly Challenge", sub: "Guess what everyone said", colors: ["#083f3b", "#169a85"], glyphs: ["Trophy", "ListNumbers", "UsersGroup", "CalendarWeek", "Award"], motif: "podium" },
   { slug: "chat-brain", route: "chat-brain", title: "Chat Brain", sub: "Name the top answers", colors: ["#4a1243", "#c8447a"], glyphs: ["Brain", "Messages", "ChartBar", "Users", "Bulb"], motif: "board" },
+  // Fire Round (Britton's pick A, 2026-10-19): ember, a deeper red than the Dex's orange, with a glow behind the choices.
+  { slug: "fire", route: "daily-trivia", title: "Fire Round", sub: "Daily trivia against the clock", colors: ["#4a0616", "#d42a3a"], glyphs: ["Flame", "Clock", "Bolt", "Bulb", "Trophy"], motif: "choices" },
 ];
 
 const font = readFileSync("src/app/fonts/gabarito-bold.ttf");
@@ -135,7 +137,39 @@ function Board(): ReactNode {
   );
 }
 
-const MOTIFS: Record<Motif, () => ReactNode> = { grid: Grid, dex: Dex, podium: Podium, board: Board };
+/** Fire Round: the clock and the heat over a question's four choices, C right. */
+function Choices(): ReactNode {
+  const widths = [210, 150, 170, 190];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, width: 380 }}>
+      <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 18px", borderRadius: 999, background: "rgba(255,255,255,0.95)", color: "#7a0f24", fontSize: 34 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={iconSvg("Clock", "#7a0f24", 32)} width={32} height={32} alt="" />0:42
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 18px", borderRadius: 999, backgroundImage: "linear-gradient(135deg, #ff7a2f, #ffb347)", color: "#3d0a00", fontSize: 34 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={iconSvg("Flame", "#3d0a00", 32)} width={32} height={32} alt="" />×2
+        </div>
+      </div>
+      <div style={{ height: 22, borderRadius: 8, background: "rgba(255,255,255,0.5)", width: 340, marginTop: 6 }} />
+      <div style={{ height: 22, borderRadius: 8, background: "rgba(255,255,255,0.3)", width: 250, marginBottom: 6 }} />
+      {["A", "B", "C", "D"].map((k, i) => {
+        const right = k === "C";
+        return (
+          <div key={k} style={{ display: "flex", alignItems: "center", gap: 14, height: 58, borderRadius: 14, paddingLeft: 12, background: right ? GREEN : "rgba(255,255,255,0.14)", border: right ? "2px solid rgba(255,255,255,0.6)" : "2px solid rgba(255,255,255,0.26)" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, background: right ? "#fff" : "rgba(255,255,255,0.22)", color: right ? "#1f6b3e" : "#fff" }}>{k}</div>
+            <div style={{ height: 16, borderRadius: 6, width: widths[i], background: right ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.3)" }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {right ? <img src={iconSvg("Check", "#fff", 34)} width={34} height={34} style={{ marginLeft: "auto", marginRight: 14 }} alt="" /> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const MOTIFS: Record<Motif, () => ReactNode> = { grid: Grid, dex: Dex, podium: Podium, board: Board, choices: Choices };
 
 function checkWords(s: Spec) {
   const words = (t: string) => t.toLowerCase().split(/[^a-z0-9é]+/).filter((w) => w.length > 2);
@@ -154,6 +188,7 @@ async function render(s: Spec): Promise<Buffer> {
       <div style={{ width: 1200, height: 630, display: "flex", position: "relative", fontFamily: "Gabarito", backgroundImage: `linear-gradient(135deg, ${s.colors[0]}, ${s.colors[1]})` }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={glyphField(s.glyphs)} width={1200} height={630} style={{ position: "absolute", top: 0, left: 0 }} alt="" />
+        {s.motif === "choices" ? <div style={{ position: "absolute", right: -120, top: 40, width: 640, height: 640, borderRadius: 320, backgroundImage: "radial-gradient(circle, rgba(255,122,47,0.55), rgba(255,122,47,0) 68%)", display: "flex" }} /> : null}
         <div style={{ position: "absolute", top: 0, left: 0, width: 1200, height: 630, display: "flex", alignItems: "center", padding: "0 64px", gap: 40 }}>
           <div style={{ display: "flex", flexDirection: "column", color: "#fff", width: 640 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}

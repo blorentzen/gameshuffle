@@ -8,11 +8,15 @@ import { TopicQuestionList, type TopicQuestionView } from "@/components/trivia/s
 import { MIN_TOPIC_QUESTIONS, QUESTION_TOPICS, TRIVIA_PATH, topicBySlug, topicUrl } from "@/data/trivia-seo";
 import { liveTopics, topicQuestions } from "@/lib/trivia/topics";
 import { triviaMetadata } from "@/lib/trivia/seoMeta";
+import { FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import "@/styles/trivia-seo.css";
 
 /** Questions come from the approved pack, so refresh once a day. A topic without
  *  enough approved questions is a 404 until it has them. */
 export const revalidate = 86400;
+
+/** The Fire Round category a topic's questions play as (Fire Round falls back to Mixed until a category has enough questions). */
+const FIRE_CATEGORY: Record<string, string> = { "mario-kart": "mario-kart", pokemon: "pokemon", "mario-party": "mario-party", smash: "smash", overwatch: "overwatch" };
 export const dynamicParams = false;
 
 export function generateStaticParams() {
@@ -90,6 +94,7 @@ export default async function TopicQuestionsPage({ params }: { params: Promise<{
             </p>
             <div className="rules-page__actions">
               <TriviaStartButton topic={topic.slug} label="Play these as a trivia night" returnTo={path} />
+              {FIRE_ROUND_PUBLIC && <Link href={`/daily-trivia?category=${FIRE_CATEGORY[topic.slug] ?? "video-games"}`} className="trivia-article__more">Or play them solo in a Fire Round</Link>}
             </div>
           </header>
 

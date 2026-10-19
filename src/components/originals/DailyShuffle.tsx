@@ -15,6 +15,7 @@ import type { BoardRow, BoardView, ScoreResult, SolveTimes } from "@/lib/daily/b
 import { DailySolveTime, DailyStartCard, pickTimes, useDailyStart } from "@/components/originals/DailyStart";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
+import { FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import { OriginalsLink, useArtSrc, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
@@ -415,6 +416,7 @@ export function DailyShuffle() {
               </>
             )}
             <p>Your time runs from Start to your last guess. On today&apos;s leaderboard, players level on points are ranked by time, fastest first. Points and tokens don&apos;t depend on time.</p>
+            {!activity && FIRE_ROUND_PUBLIC && <p>Done for today? <OriginalsLink href="/daily-trivia">Today&apos;s Fire Round</OriginalsLink> is 60 seconds of daily trivia, the same questions for everyone.</p>}
           </>
         ),
       }]} />

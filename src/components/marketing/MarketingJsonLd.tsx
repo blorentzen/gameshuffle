@@ -40,8 +40,8 @@ export function MarketingJsonLd({
   appUrl?: string;
   /** schema.org applicationCategory (GameApplication | UtilitiesApplication). */
   appCategory?: string;
-  /** Breadcrumb trail leaf label (Home is prepended automatically). */
-  breadcrumb?: { label: string; path: string };
+  /** Breadcrumb trail leaf label (Home is prepended automatically; `parent` goes between). */
+  breadcrumb?: { label: string; path: string; parent?: { label: string; path: string } };
   /** FAQ entries — plain text answers (no markup). */
   faq?: JsonLdFaq[];
   /** HowTo steps — must mirror the steps visibly rendered on the page. */
@@ -69,9 +69,10 @@ export function MarketingJsonLd({
       "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "Home", item: BASE },
+        ...(breadcrumb.parent ? [{ "@type": "ListItem", position: 2, name: breadcrumb.parent.label, item: `${BASE}${breadcrumb.parent.path}` }] : []),
         {
           "@type": "ListItem",
-          position: 2,
+          position: breadcrumb.parent ? 3 : 2,
           name: breadcrumb.label,
           item: `${BASE}${breadcrumb.path}`,
         },

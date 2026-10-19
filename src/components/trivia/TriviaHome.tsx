@@ -87,7 +87,7 @@ export function TriviaHome({ signedIn, children }: { signedIn: boolean; children
               <h2 className="trivia-h2">Play solo: Fire Round</h2>
               <p className="trivia-muted">Answer as many as you can against the clock, then take on today&apos;s round with everyone else.</p>
             </div>
-            <Link href="/trivia/fire-round"><Button variant="secondary">Play Fire Round</Button></Link>
+            <Link href="/daily-trivia"><Button variant="secondary">Play Fire Round</Button></Link>
           </div>
         )}
         {!signedIn ? (

@@ -31,7 +31,7 @@ type DbError = { code?: string; message?: string } | null;
 export const boardsMissing = (e: DbError) => !!e && (["42P01", "PGRST205", "42883", "PGRST202"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
 const duplicate = (e: DbError) => !!e && (e.code === "23505" || /duplicate key|unique/i.test(e.message ?? ""));
 
-const GAME_PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/trivia/fire-round" };
+const GAME_PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/daily-trivia" };
 
 /** The payout levers (Platform ▸ Token economy), falling back to the seeded defaults. */
 export async function boardLevers(): Promise<BoardLevers> {

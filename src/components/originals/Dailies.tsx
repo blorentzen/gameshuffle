@@ -4,7 +4,8 @@
  * The dailies together (Britton's picks, 2026-10-16,
  * https://claude.ai/artifact/7AXQ8c8LmnSHHvMAsqQVWZ): the today bar under each
  * daily's header, "Next up" on its end screen, one share for everything
- * played today, and the streak cards. State lives in src/lib/originals/dailies.ts:
+ * played today, and the streak cards. Shuffle, Dex and Fire Round share the bar;
+ * the Weekly sits on a line under it (Britton, 2026-10-19). State lives in src/lib/originals/dailies.ts:
  * each game reports itself to the browser, and signed in /api/dailies fills in
  * games played elsewhere. Inside the Discord Activity the bar switches games
  * instead of navigating (`onPick`).
@@ -13,8 +14,7 @@
 import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Alert, Button, Card, SubNav } from "@empac/cascadeds";
-import { IconArrowRight, IconFlame, IconUserPlus } from "@tabler/icons-react";
-import { FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
+import { IconArrowRight, IconUserPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useOriginalsHost } from "@/components/originals/OriginalsHost";
 import { DAILIES_GLYPHS, DailiesCards } from "@/components/originals/DailiesCards";
@@ -24,7 +24,7 @@ import { captureReferral, referralLink, storedReferral, updateReferral, withRefe
 import type { ReferralGame, ReferralInfo } from "@/lib/referrals/types";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
-  DAILIES, barStatus, combinedShareText, currentDay, dailiesShown, dailiesSnapshot, mergeDailies, nextUp, readDailiesStore, sharedToday, subscribeDailies,
+  DAILIES, barStatus, combinedShareText, currentDay, dailiesShown, dailiesSnapshot, mergeDailies, nextUp, readDailiesStore, sharedToday, subscribeDailies, weeklyLine,
   type DailiesEntries, type DailiesId,
 } from "@/lib/originals/dailies";
 
@@ -41,6 +41,9 @@ interface DailiesState {
 }
 
 const noop = () => () => {};
+/** The games the Discord Activity can switch to (Fire Round isn't in it, so it never reaches `onPick`). */
+type ActivityGame = Exclude<DailiesId, "fire">;
+const pickable = (id: DailiesId): ActivityGame | null => (id === "fire" ? null : id);
 const DailiesContext = createContext<DailiesState | null>(null);
 
 function useDailiesState(current: DailiesId, enabled: boolean): DailiesState {
@@ -54,7 +57,8 @@ function useDailiesState(current: DailiesId, enabled: boolean): DailiesState {
   }, [enabled, activity]);
   const raw = useSyncExternalStore(enabled ? subscribeDailies : noop, dailiesSnapshot, () => "");
   const store = useMemo(() => readDailiesStore(raw || "null"), [raw]);
-  const shown = useMemo(() => dailiesShown(current), [current]);
+  // Fire Round isn't in the Discord Activity (it has only the puzzles).
+  const shown = useMemo(() => dailiesShown(current, { fire: !activity }), [current, activity]);
   const [server, setServer] = useState<{ signedIn: boolean; entries: DailiesEntries | null; referral: ReferralInfo | null } | null>(null);
   // A game finishing here: ask the server again once its save has landed (streaks, the last two weeks).
   const doneKey = shown.filter((id) => store.entries[id]?.state === "done" && store.entries[id]?.day === currentDay(id)).join(",");
@@ -123,7 +127,8 @@ function InvitedNote({ current }: { current: DailiesId }) {
     }).catch(() => {});
     return () => { alive = false; };
   }, [code]);
-  if (!code || !from || entries[current]?.state === "done") return null;
+  // Fire Round doesn't pay referrals (only the puzzles and the Weekly do).
+  if (!code || !from || current === "fire" || entries[current]?.state === "done") return null;
   const game = current === "dex" ? "Daily Dex" : current === "weekly" ? "Weekly" : "Daily";
   return (
     <Alert variant="success" title={`${from.name} sent you today's ${game}`} className="dailies-invited">
@@ -132,16 +137,23 @@ function InvitedNote({ current }: { current: DailiesId }) {
   );
 }
 
-/** The today bar: every daily with done / playing / left, the one you're on outlined in its color. */
-export function DailiesBar({ current, onPick }: { current: DailiesId; onPick?: (id: DailiesId) => void }) {
+/**
+ * The today bar: the dailies (Shuffle, Dex, Fire Round) with done / playing /
+ * new, the one you're on outlined in its color, and the Weekly on a plain line
+ * under it (not on the Weekly's own page).
+ */
+export function DailiesBar({ current, onPick }: { current: DailiesId; onPick?: (id: ActivityGame) => void }) {
   const { shown, entries } = useDailies(current);
+  const cells = shown.filter((id) => id !== "weekly");
+  const vars: Record<string, string | number> = { "--dailies-n": cells.length };
+  cells.forEach((id, i) => { vars[`--dailies-c${i + 1}`] = `var(--ink-${id})`; });
   return (
     <>
-    <div className={`dailies-bar dailies-bar--${shown.length}`} style={{ "--dailies-n": shown.length } as React.CSSProperties}>
+    <div className={`dailies-bar dailies-bar--${cells.length}`} style={vars as React.CSSProperties}>
       <SubNav
         variant="pills"
         className="dailies-bar__nav"
-        items={shown.map((id) => ({
+        items={cells.map((id) => ({
           label: DAILIES[id].tab,
           href: onPick ? "#" : DAILIES[id].href,
           active: id === current,
@@ -150,34 +162,37 @@ export function DailiesBar({ current, onPick }: { current: DailiesId; onPick?: (
             if (onPick) e.preventDefault();
             if (id === current) { e.preventDefault(); return; }
             track(EVENTS.dailiesSwitched, { to: id, from: current, via: "bar" });
-            onPick?.(id);
+            const to = pickable(id);
+            if (to) onPick?.(to);
           },
         }))}
       />
+      {shown.includes("weekly") && current !== "weekly" && <DailiesWeekLine current={current} onPick={onPick} />}
     </div>
     {!onPick && <InvitedNote current={current} />}
     </>
   );
 }
 
+/** The Weekly's line under the bar: what's left of its week, or that you're locked in. */
+function DailiesWeekLine({ current, onPick }: { current: DailiesId; onPick?: (id: ActivityGame) => void }) {
+  const { entries } = useDailies(current);
+  const { status, action } = weeklyLine(entries.weekly);
+  const go = () => track(EVENTS.dailiesSwitched, { to: "weekly", from: current, via: "week-line" });
+  const button = <Button variant="ghost" size="small" iconAfter={IconArrowRight} onClick={onPick ? () => { go(); onPick("weekly"); } : undefined}>{action}<span className="sr-only"> the Weekly Challenge</span></Button>;
+  return (
+    <p className="dailies-week dailies--weekly">
+      <span className="dailies-week__text"><b>Weekly Challenge</b> · {status}</span>
+      {onPick ? button : <Link href={DAILIES.weekly.href} onClick={go} className="dailies-week__go">{button}</Link>}
+    </p>
+  );
+}
+
 /** On an end screen: the next daily you haven't played, or that you've done them all. */
-export function DailiesNext({ current, onPick }: { current: DailiesId; onPick?: (id: DailiesId) => void }) {
+export function DailiesNext({ current, onPick }: { current: DailiesId; onPick?: (id: ActivityGame) => void }) {
   const { shown, entries } = useDailies(current);
   const next = nextUp(entries, shown, current);
-  const { activity } = useOriginalsHost();
   if (!next) {
-    // Every daily done: keep playing with today's Fire Round (not in the Discord Activity, which only has the dailies).
-    if (FIRE_ROUND_PUBLIC && !activity) {
-      return (
-        <Card variant="outlined" padding="medium" className="dailies-next dailies--fire">
-          <span className="dailies-next__tile" aria-hidden><IconFlame size={24} stroke={2} /></span>
-          <span className="dailies-next__eyebrow">Next up</span>
-          <h2 className="dailies-next__title">Fire Round</h2>
-          <p className="dailies-next__text">That&apos;s every daily for today. Keep going: 60 seconds of trivia, the same questions for everyone.</p>
-          <Link href="/trivia/fire-round" onClick={() => track(EVENTS.dailiesSwitched, { to: "fire", from: current, via: "next" })} className="dailies-next__link"><Button variant="secondary">Play today&apos;s round</Button></Link>
-        </Card>
-      );
-    }
     if (shown.length < 2) return null;
     return <p className="party-muted dailies-next__done">That&apos;s every daily for today. New puzzles at midnight Pacific.</p>;
   }
@@ -185,7 +200,7 @@ export function DailiesNext({ current, onPick }: { current: DailiesId; onPick?: 
   const Glyph = DAILIES_GLYPHS[next];
   const streak = entries[next]?.stats?.streak ?? 0;
   const go = () => track(EVENTS.dailiesSwitched, { to: next, from: current, via: "next" });
-  const label = next === "weekly" ? "Play this week" : "Play";
+  const label = next === "weekly" ? "Play this week" : next === "fire" ? "Play today's round" : "Play";
   return (
     <Card variant="outlined" padding="medium" className={`dailies-next dailies--${next}`}>
       <span className="dailies-next__tile" aria-hidden><Glyph size={24} stroke={2} /></span>
@@ -193,7 +208,7 @@ export function DailiesNext({ current, onPick }: { current: DailiesId; onPick?: 
       <h2 className="dailies-next__title">{g.name}</h2>
       <p className="dailies-next__text">{g.pitch}{streak ? ` Your streak: ${streak}.` : ""}</p>
       {onPick
-        ? <Button variant="secondary" onClick={() => { go(); onPick(next); }}>{label}</Button>
+        ? <Button variant="secondary" onClick={() => { go(); const to = pickable(next); if (to) onPick(to); }}>{label}</Button>
         : <Link href={g.href} onClick={go} className="dailies-next__link"><Button variant="secondary">{label}</Button></Link>}
     </Card>
   );
@@ -204,27 +219,18 @@ export function DailiesNext({ current, onPick }: { current: DailiesId; onPick?: 
  * Britton's pick 2026-10-19: the card took 250px on a phone). The today bar
  * above still shows every daily. When they're all done, a short line instead.
  */
-export function DailiesNextButton({ current, onPick }: { current: DailiesId; onPick?: (id: DailiesId) => void }) {
+export function DailiesNextButton({ current, onPick }: { current: DailiesId; onPick?: (id: ActivityGame) => void }) {
   const { shown, entries } = useDailies(current);
-  const { activity } = useOriginalsHost();
   const next = nextUp(entries, shown, current);
   if (!next) {
-    // Every daily done: today's Fire Round is next (outside the Discord Activity).
-    if (FIRE_ROUND_PUBLIC && !activity) {
-      return (
-        <Link href="/trivia/fire-round" onClick={() => track(EVENTS.dailiesSwitched, { to: "fire", from: current, via: "next" })} className="dailies-next__link">
-          <Button variant="secondary" iconAfter={IconArrowRight}>Next: today&apos;s Fire Round</Button>
-        </Link>
-      );
-    }
     if (shown.length < 2) return null;
     return <p className="party-muted dailies-next__done">That&apos;s every daily for today. New puzzles at midnight Pacific.</p>;
   }
   const g = DAILIES[next];
   const go = () => track(EVENTS.dailiesSwitched, { to: next, from: current, via: "next" });
-  const label = next === "weekly" ? "Next: this week's Weekly" : `Next: ${g.short}`;
+  const label = next === "weekly" ? "Next: this week's Weekly" : next === "fire" ? "Next: today's Fire Round" : `Next: ${g.short}`;
   return onPick
-    ? <Button variant="secondary" iconAfter={IconArrowRight} onClick={() => { go(); onPick(next); }}>{label}</Button>
+    ? <Button variant="secondary" iconAfter={IconArrowRight} onClick={() => { go(); const to = pickable(next); if (to) onPick(to); }}>{label}</Button>
     : <Link href={g.href} onClick={go} className="dailies-next__link"><Button variant="secondary" iconAfter={IconArrowRight}>{label}</Button></Link>;
 }
 

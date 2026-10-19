@@ -11,8 +11,8 @@ import "../../../styles/social.css";
 
 /**
  * /social/winners — the hidden 9:16 stage for the morning winners video
- * (Britton's picks, 2026-10-16): yesterday's top 5 on the Daily Shuffle and
- * the Daily Dex, filmed on Britton's phone from the start screen (Play, Copy
+ * (Britton's picks, 2026-10-16): yesterday's top 5 on the Daily Shuffle, the
+ * Daily Dex and today's Fire Round (added 2026-10-19), filmed on Britton's phone from the start screen (Play, Copy
  * caption) or by the recorder (?paused=1). Names come from the day boards as
  * they show them; anyone who opted out in Settings ▸ Privacy is "A player".
  *
@@ -20,7 +20,7 @@ import "../../../styles/social.css";
  * up); open on the dev server. Never in the sitemap or search.
  *   ?day=YYYY-MM-DD  the day to celebrate (default yesterday, Pacific)
  *   ?paused=1        no start screen; hold until the recorder adds `go`
- *   ?rows=…          dev server only: base64url JSON { shuffle?: { rows, finishers }, dex?: … }
+ *   ?rows=…          dev server only: base64url JSON { shuffle?: { rows, finishers }, dex?: …, fire?: … }
  *                    standing in for the boards, so the recorder can film a day read from production
  */
 
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-type GivenRows = Partial<Record<"shuffle" | "dex", { rows: WinnerRow[]; finishers: number }>>;
+type GivenRows = Partial<Record<"shuffle" | "dex" | "fire", { rows: WinnerRow[]; finishers: number }>>;
 
 /** Dev only: sections from rows passed in the URL instead of the boards. */
 function givenSections(raw: string, day: string): WinnersSection[] | null {
@@ -38,7 +38,7 @@ function givenSections(raw: string, day: string): WinnersSection[] | null {
     const given = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as GivenRows;
     // "dicebear:<seed>" stands in for a generated avatar, which is too long for a URL.
     const face = (r: WinnerRow): WinnerRow => (r.avatar?.startsWith("dicebear:") ? { ...r, avatar: generateDicebearAvatarDataUri(r.avatar.slice(9), null) } : r);
-    return (["shuffle", "dex"] as const).flatMap((g) => (given[g] ? [{ ...sectionHead(g, day), rows: given[g]!.rows.map(face), finishers: given[g]!.finishers }] : []));
+    return (["shuffle", "dex", "fire"] as const).flatMap((g) => (given[g] ? [{ ...sectionHead(g, day), rows: given[g]!.rows.map(face), finishers: given[g]!.finishers }] : []));
   } catch {
     return null;
   }

@@ -5,6 +5,8 @@ import { ordinal, parsePlayer, type BoardGame } from "@/lib/daily/boardRules";
 import { solvedDays } from "@/lib/daily/results";
 import { answerFor, guessLimits, puzzleFor, puzzleNumber, SHUFFLE } from "@/lib/originals/daily";
 import { DEX, DEX_PUZZLE, dexAnswer, dexNumber } from "@/lib/originals/dailyDex";
+import { fireNumber } from "@/lib/originals/fireRound";
+import { gsAddDays } from "@/lib/time/gsClock";
 import { createNotification } from "@/lib/social/notifications";
 import { MIN_FINISHERS, renumberPlaces, streakEnding, topFinishers, type WinnerRow, type WinnersGame, type WinnersSection } from "@/lib/originals/winners";
 
@@ -19,7 +21,7 @@ import { MIN_FINISHERS, renumberPlaces, streakEnding, topFinishers, type WinnerR
 const missing = (e: { code?: string; message?: string } | null) => !!e && (["42P01", "PGRST205"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
 
 const SHORT: Record<BoardGame, string> = { shuffle: "Daily Shuffle", dex: "Daily Dex", fire: "Fire Round" };
-const PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/trivia/fire-round" };
+const PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/daily-trivia" };
 
 /** Players who chose to be left out of winners videos (none when the table is missing). */
 async function optedOut(players: string[]): Promise<Set<string>> {
@@ -40,6 +42,23 @@ async function staffPlayers(players: string[]): Promise<Set<string>> {
   const { data, error } = await createServiceClient().from("users").select("id").in("id", ids).in("role", ["staff", "admin"]);
   if (error) { console.error("[winners] staff check failed:", error.message); return new Set(); }
   return new Set(((data ?? []) as { id: string }[]).map((r) => `u:${r.id}`));
+}
+
+/** Fire Round: each player's days with today's round played (up to `day`) and that day's longest run of right answers. */
+async function fireDays(players: string[], day: string): Promise<Map<string, { days: Set<string>; bestStreak: number | null }>> {
+  const out = new Map<string, { days: Set<string>; bestStreak: number | null }>();
+  if (!players.length) return out;
+  const { data, error } = await createServiceClient().from("fire_runs").select("player, day, best_streak")
+    .in("player", players).eq("mode", "daily").eq("counts", true).eq("status", "done")
+    .lte("day", day).gte("day", gsAddDays(day, -400)).limit(5000);
+  if (error) { console.error("[winners] fire days failed:", error.message); return out; }
+  for (const r of (data ?? []) as { player: string; day: string; best_streak: number }[]) {
+    const e = out.get(r.player) ?? { days: new Set<string>(), bestStreak: null };
+    e.days.add(r.day);
+    if (r.day === day) e.bestStreak = r.best_streak;
+    out.set(r.player, e);
+  }
+  return out;
 }
 
 /** The streak a player was on when `day` ended, counted the way their streak card counts it. */
@@ -63,7 +82,10 @@ async function loadSection(game: WinnersGame, day: string): Promise<Section | nu
   const { top, finishers } = topFinishers(renumberPlaces(standings.filter((s) => !staff.has(s.player))));
   if (finishers < MIN_FINISHERS) return null;
   const hidden = await optedOut(top.map((t) => t.player));
-  const streaks = await Promise.all(top.map((t) => streakFor(t.player, game, day)));
+  const fire = game === "fire" ? await fireDays(top.map((t) => t.player), day) : null;
+  const streaks = fire
+    ? top.map((t) => streakEnding(fire.get(t.player)?.days ?? new Set<string>(), day))
+    : await Promise.all(top.map((t) => streakFor(t.player, game, day)));
   const rows: WinnerRow[] = top.map((t, i) => {
     const out = hidden.has(t.player);
     return {
@@ -71,9 +93,10 @@ async function loadSection(game: WinnersGame, day: string): Promise<Section | nu
       name: out ? "A player" : t.row.name,
       avatar: out ? null : t.row.avatar,
       guesses: t.row.guesses,
-      saved: t.row.points === 1,
-      seconds: t.row.seconds,
+      saved: !fire && t.row.points === 1,
+      seconds: fire ? null : t.row.seconds,
       streak: streaks[i],
+      ...(fire ? { score: t.row.score ?? 0, bestStreak: fire.get(t.player)?.bestStreak ?? null } : {}),
     };
   });
   return { ...sectionHead(game, day), rows, finishers, keys: top.map((t) => ({ player: t.player, optedOut: hidden.has(t.player) })) };
@@ -81,6 +104,7 @@ async function loadSection(game: WinnersGame, day: string): Promise<Section | nu
 
 /** A daily's title, number, guess count, link and answer for a day: everything but the rows. */
 export function sectionHead(game: WinnersGame, day: string): Omit<WinnersSection, "rows" | "finishers"> {
+  if (game === "fire") return { game, title: "Fire Round", number: fireNumber(day), main: 0, link: "/daily-trivia" };
   if (game === "dex") {
     const a = dexAnswer(day);
     return { game, title: DEX.title, number: dexNumber(day), main: guessLimits(DEX_PUZZLE).main, link: DEX.link, answer: { name: a.name, types: a.types ?? [] } };
@@ -90,7 +114,8 @@ export function sectionHead(game: WinnersGame, day: string): Omit<WinnersSection
 }
 
 async function loadSections(day: string): Promise<Section[]> {
-  const out = await Promise.all((["shuffle", "dex"] as WinnersGame[]).map((g) => loadSection(g, day).catch((e) => { console.error("[winners] section failed:", g, e); return null; })));
+  const games: WinnersGame[] = fireNumber(day) >= 1 ? ["shuffle", "dex", "fire"] : ["shuffle", "dex"];
+  const out = await Promise.all(games.map((g) => loadSection(g, day).catch((e) => { console.error("[winners] section failed:", g, e); return null; })));
   return out.filter((s): s is Section => !!s);
 }
 
@@ -111,7 +136,8 @@ export async function notifyDailyWinners(day: string): Promise<number> {
     const claim = await admin.from("daily_winner_notes").insert({ game: s.game, day });
     if (claim.error) {
       if (missing(claim.error)) return sent;
-      if (claim.error.code !== "23505") console.error("[winners] claim failed:", claim.error.message);
+      // 23514: the table's game list doesn't have Fire Round yet (supabase/fire-round-m3-winners.sql).
+      if (claim.error.code !== "23505" && claim.error.code !== "23514") console.error("[winners] claim failed:", claim.error.message);
       continue;
     }
     let notes = 0;

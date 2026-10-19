@@ -1,9 +1,11 @@
 /**
  * The dailies together (Britton's picks, 2026-10-16,
  * https://claude.ai/artifact/7AXQ8c8LmnSHHvMAsqQVWZ): the Daily Shuffle, the
- * Daily Dex and the Weekly each keep their own page and streak, and link up
- * through a today bar, "Next up", one share for the day and a streak card per
- * game. Client-safe and light: no game data is imported here (the Dex alone is
+ * Daily Dex, today's Fire Round and the Weekly each keep their own page and
+ * streak, and link up through a today bar, "Next up", one share for the day and
+ * a streak card per game. Fire Round joined the three dailies in the bar on
+ * 2026-10-19 (https://claude.ai/artifact/WhFgrMQv8oVHQ4e5cvfXRx); the Weekly
+ * sits on a line under the bar. Client-safe and light: no game data is imported here (the Dex alone is
  * 1,025 Pokémon), so each game reports its own state.
  *
  * In the browser, each game writes what it knows to localStorage (`gs-dailies`)
@@ -11,14 +13,16 @@
  * played on another device. A new daily joins by adding an entry to DAILIES.
  */
 
-import { DAILY_DEX_PUBLIC } from "@/lib/games-visibility";
+import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import { gsAddDays, gsDay, gsWeekStart, gsWeekday } from "@/lib/time/gsClock";
 
-export type DailiesId = "shuffle" | "dex" | "weekly";
-/** The two that run every day (the Weekly runs by week). */
-export type DailyGameId = "shuffle" | "dex";
-/** One day on a streak card: won, saved on the last chance, missed, or not played. */
-export type DayMark = "won" | "saved" | "missed" | null;
+export type DailiesId = "shuffle" | "dex" | "fire" | "weekly";
+/** The ones that run every day (the Weekly runs by week). */
+export type DailyGameId = "shuffle" | "dex" | "fire";
+/** The guessing dailies (a result in guesses). */
+export type PuzzleDailyId = "shuffle" | "dex";
+/** One day on a streak card: won, saved on the last chance, missed, played (Fire Round: no win or loss), or not played. */
+export type DayMark = "won" | "saved" | "missed" | "played" | null;
 
 export interface DailiesGame {
   id: DailiesId;
@@ -38,21 +42,32 @@ export interface DailiesGame {
 export const DAILIES: Record<DailiesId, DailiesGame> = {
   shuffle: { id: "shuffle", name: "The Daily Shuffle", short: "Daily Shuffle", tab: "Shuffle", href: "/daily", square: "🟪", pitch: "Guess today's Nintendo character." },
   dex: { id: "dex", name: "The Daily Dex", short: "Daily Dex", tab: "Dex", href: "/daily-dex", square: "🟧", pitch: "Guess today's Pokémon from all 1,025." },
+  fire: { id: "fire", name: "Fire Round", short: "Fire Round", tab: "Fire", href: "/daily-trivia", square: "🟥", pitch: "60 seconds of trivia, the same questions for everyone." },
   weekly: { id: "weekly", name: "The Weekly Challenge", short: "Weekly", tab: "Weekly", href: "/weekly", square: "🟩", pitch: "Answer this week's question and guess the crowd's top three." },
 };
 
 /** The Dex joins the bar, Next up and the cards once it launches (and in development, to try it). */
 export const DAILY_DEX_SHOWN = DAILY_DEX_PUBLIC || process.env.NODE_ENV !== "production";
 
-/** The games shown, in order. */
-export function dailiesShown(current?: DailiesId): DailiesId[] {
-  return (["shuffle", "dex", "weekly"] as DailiesId[]).filter((id) => id !== "dex" || DAILY_DEX_SHOWN || current === "dex");
+/** Fire Round joins once it's public (and in development). Never in the Discord Activity, which only has the puzzles. */
+export const FIRE_ROUND_SHOWN = FIRE_ROUND_PUBLIC || process.env.NODE_ENV !== "production";
+
+/** The games shown, in order: Shuffle, Dex, Fire Round, then the Weekly (also Next up's order). */
+export function dailiesShown(current?: DailiesId, opts: { fire?: boolean } = {}): DailiesId[] {
+  return (["shuffle", "dex", "fire", "weekly"] as DailiesId[]).filter((id) => {
+    if (id === "dex") return DAILY_DEX_SHOWN || current === "dex";
+    if (id === "fire") return opts.fire !== false && (FIRE_ROUND_SHOWN || current === "fire");
+    return true;
+  });
 }
 
 /** `seconds`: the solve time, from Start to the final guess. */
 export interface DailyResult { guesses: number; main: number; solved: boolean; saved: boolean; seconds?: number | null }
-/** `fastest`: the best solve time in that game. */
-export interface DailiesStats { played: number; won: number; streak: number; best: number; saved?: number; fastest?: number | null }
+/** `fastest`: the best solve time in that game. `top`: Fire Round's best score on today's round. */
+export interface DailiesStats { played: number; won: number; streak: number; best: number; saved?: number; fastest?: number | null; top?: number | null }
+
+/** Today's Fire Round, once played: the score and the right answers. */
+export interface FireDayResult { score: number; right: number }
 
 /** A solve time as people say it: "0:42", "12:05", "2h 14m". */
 export function formatTime(seconds: number): string {
@@ -70,6 +85,8 @@ export interface DailiesEntry {
   state: "fresh" | "playing" | "done";
   /** A daily's result once it's over. */
   result?: DailyResult | null;
+  /** Fire Round's result once today's round is played. */
+  fire?: FireDayResult | null;
   stats?: DailiesStats | null;
   /** The last 14 days, oldest first (signed in, from the server). */
   recent?: DayMark[] | null;
@@ -102,14 +119,21 @@ export function markOf(r: DailyResult): DayMark {
   return !r.solved ? "missed" : r.saved ? "saved" : "won";
 }
 
+/** A finished entry's mark for the streak card's last two weeks. */
+function entryMark(id: DailiesId, entry: DailiesEntry): DayMark {
+  if (id === "fire") return entry.fire ? "played" : null;
+  return entry.result ? markOf(entry.result) : null;
+}
+
 /** A game reports its state; the bar, Next up and the cards update on every page open in this browser. */
 export function reportDaily(id: DailiesId, entry: DailiesEntry) {
   try {
     const s = readDailiesStore();
     s.entries[id] = entry;
-    if (id !== "weekly" && entry.state === "done" && entry.result) {
+    const mark = id !== "weekly" && entry.state === "done" ? entryMark(id, entry) : null;
+    if (id !== "weekly" && mark) {
       const h = { ...(s.history[id] ?? {}) };
-      h[entry.day] = markOf(entry.result);
+      h[entry.day] = mark;
       const cutoff = gsAddDays(entry.day, -KEEP_DAYS);
       for (const d of Object.keys(h)) if (d < cutoff) delete h[d];
       s.history[id] = h;
@@ -152,7 +176,7 @@ export function recentFromHistory(history: Record<string, DayMark> | undefined, 
  */
 export function mergeDailies(local: DailiesEntries, server: DailiesEntries | null, history: Store["history"], at: Date | number = Date.now()): DailiesEntries {
   const out: DailiesEntries = {};
-  for (const id of ["shuffle", "dex", "weekly"] as DailiesId[]) {
+  for (const id of ["shuffle", "dex", "fire", "weekly"] as DailiesId[]) {
     const day = currentDay(id, at);
     const l = local[id]?.day === day ? local[id] : undefined;
     const sv = server?.[id]?.day === day ? server[id] : undefined;
@@ -161,7 +185,8 @@ export function mergeDailies(local: DailiesEntries, server: DailiesEntries | nul
     const base = done ?? l ?? sv!;
     // Just finished here and the server hasn't caught up: this browser's numbers are newer.
     const ahead = l?.state === "done" && sv?.state !== "done" ? l : null;
-    const serverRecent = sv?.recent && ahead?.result ? [...sv.recent.slice(0, -1), markOf(ahead.result)] : sv?.recent;
+    const aheadMark = ahead ? entryMark(id, ahead) : null;
+    const serverRecent = sv?.recent && aheadMark ? [...sv.recent.slice(0, -1), aheadMark] : sv?.recent;
     out[id] = {
       ...base,
       // Signed in, the account's stats and history are the truth; signed out, the browser's.
@@ -187,7 +212,7 @@ function dateLabel(day: string): string {
 
 /** The games with something to share today, in order. */
 export function sharedToday(entries: DailiesEntries, shown: DailiesId[]): DailiesId[] {
-  return shown.filter((id) => entries[id]?.state === "done" && (id === "weekly" || !!entries[id]?.result));
+  return shown.filter((id) => entries[id]?.state === "done" && (id === "weekly" || (id === "fire" ? !!entries[id]?.fire : !!entries[id]?.result)));
 }
 
 /**
@@ -201,6 +226,7 @@ export function combinedShareText(entries: DailiesEntries, shown: DailiesId[], a
     // Before a game's first day (a preview) it has no number yet.
     const name = e.number >= 1 ? `${g.short} #${e.number}` : g.short;
     if (id === "weekly") return `${g.square} ${name} · answered`;
+    if (id === "fire") return `${g.square} ${name} · ${e.fire!.score.toLocaleString("en-US")} · ${e.fire!.right} right${flame(e.stats?.streak)}`;
     const time = e.result!.solved && e.result!.seconds != null ? ` ⏱ ${formatTime(e.result!.seconds)}` : "";
     return `${g.square} ${name} · ${scoreText(e.result!)}${time}${flame(e.stats?.streak)}`;
   });
@@ -214,10 +240,23 @@ export function nextUp(entries: DailiesEntries, shown: DailiesId[], current: Dai
 
 /** The today bar's word for a game. */
 export function barStatus(id: DailiesId, e: DailiesEntry | undefined, current: boolean, at: Date | number = Date.now()): string {
-  if (e?.state === "done") return id === "weekly" ? "✓ Answered" : !e.result ? "Done" : e.result.solved ? `✓ ${scoreText(e.result)}` : scoreText(e.result);
+  if (e?.state === "done") {
+    if (id === "weekly") return "✓ Answered";
+    if (id === "fire") return e.fire ? `✓ ${e.fire.score.toLocaleString("en-US")}` : "Done";
+    return !e.result ? "Done" : e.result.solved ? `✓ ${scoreText(e.result)}` : scoreText(e.result);
+  }
   if (id === "weekly") {
     const left = weeklyDaysLeft(at);
     return left === 1 ? "Last day" : `${left} days left`;
   }
   return current || e?.state === "playing" ? "Playing" : "New today";
+}
+
+/** The Weekly's line under the today bar: what's left of its week, or that you're locked in. */
+export function weeklyLine(e: DailiesEntry | undefined, at: Date | number = Date.now()): { status: string; action: string } {
+  if (e?.state === "done") return { status: "locked in · results Monday", action: "View" };
+  const left = weeklyDaysLeft(at);
+  // Monday: the new question (one short line on a phone; last week's results are on the Weekly's page).
+  if (left === 7) return { status: "new this week", action: "Play" };
+  return { status: left === 1 ? "last day" : `${left} days left`, action: "Play" };
 }
