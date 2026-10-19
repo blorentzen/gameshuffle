@@ -41,13 +41,16 @@ const SHARE_URL = "https://www.gameshuffle.co/fire";
 
 /** Today's round for the dailies' today bar, Next up, combined share and streak card. */
 function fireEntry(h: Home): DailiesEntry {
+  // A reply without history (a cached copy from before it existed: Facebook's link scanner sent some,
+  // GAMESHUFFLE-5T) counts as nothing played yet rather than breaking the page.
+  const hist = h.history ?? { streak: h.streak ?? 0, best: 0, played: 0, top: null, recent: Array.from({ length: 14 }, () => null) };
   return {
     day: h.day,
     number: h.number,
     state: h.today ? "done" : h.current?.mode === "daily" ? "playing" : "fresh",
     fire: h.today ? { score: h.today.score, right: h.today.right } : null,
-    stats: { played: h.history.played, won: h.history.played, streak: h.history.streak, best: h.history.best, top: h.history.top },
-    recent: h.history.recent,
+    stats: { played: hist.played, won: hist.played, streak: hist.streak, best: hist.best, top: hist.top },
+    recent: hist.recent ?? [],
   };
 }
 
