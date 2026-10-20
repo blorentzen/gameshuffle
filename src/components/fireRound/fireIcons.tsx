@@ -5,7 +5,7 @@
 
 import { createElement } from "react";
 import {
-  IconAbc, IconArrowsShuffle, IconBallFootball, IconBuildingBank, IconBulb, IconDeviceGamepad2, IconDice5, IconFlask, IconMovie, IconMusic,
+  IconAbc, IconArrowsShuffle, IconBallFootball, IconBuildingBank, IconBulb, IconDeviceGamepad2, IconDice5, IconFlask, IconGhost2, IconMovie, IconMusic,
   IconPhoto, IconPokeball, IconShieldHalf, IconSteeringWheel, IconSword, IconToolsKitchen2, IconWorld, type Icon,
 } from "@tabler/icons-react";
 
@@ -27,6 +27,7 @@ export const FIRE_ICONS: Record<string, Icon> = {
   dice: IconDice5,
   sword: IconSword,
   pokeball: IconPokeball,
+  ghost: IconGhost2,
 };
 
 export const fireIcon = (name: string | undefined): Icon => (name && FIRE_ICONS[name]) || IconArrowsShuffle;

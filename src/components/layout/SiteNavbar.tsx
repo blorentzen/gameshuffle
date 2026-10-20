@@ -36,6 +36,8 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
  *  forward-facing marketing + app/tool landing pages, for one consistent nav. */
 const HERO_ROUTES = new Set([
   "/",
+  "/welcome",
+  "/game-nights/halloween-party-games",
   "/apps",
   "/tools",
   "/gs-pro",
@@ -242,6 +244,7 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
     : [
         { label: "Log In", href: "/login" },
         { label: "Sign up", href: "/signup" },
+        { label: "New here? Start here", href: "/welcome" },
       ];
 
   // Mobile hamburger: CDS renders a FLAT link list with no group support, so we

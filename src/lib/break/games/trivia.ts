@@ -11,6 +11,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { judgeAnswer, type TriviaQuestion } from "@/lib/trivia/rules";
+import { categoryInSeason } from "@/lib/trivia/seasons";
 import type { BreakGame } from "./common";
 import { chatLine, tally } from "./common";
 import { typedAnswer } from "./names";
@@ -36,7 +37,7 @@ export const triviaRounds: BreakGame = {
   },
   make: (ctx) => {
     const rows = (ctx.data as PackRow[] | undefined) ?? [];
-    const fresh = rows.filter((r) => !ctx.skip(`trivia:${r.id}`) && (r.kind !== "choice" || (r.options?.length ?? 0) >= 2));
+    const fresh = rows.filter((r) => !ctx.skip(`trivia:${r.id}`) && categoryInSeason(r.category) && (r.kind !== "choice" || (r.options?.length ?? 0) >= 2));
     if (!fresh.length) return null;
     const q = fresh[Math.floor(ctx.rand() * fresh.length)];
     const secret = { q: { prompt: q.prompt, answer: q.answer, accept: q.accept ?? [], askAbout: q.ask_about ?? [], reject: q.reject ?? [], kind: q.kind, options: q.options } satisfies TriviaQuestion };

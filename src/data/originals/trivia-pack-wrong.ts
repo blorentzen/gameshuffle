@@ -12,7 +12,10 @@
  * these in as drafts on questions that have none yet.
  */
 
+import { HALLOWEEN_WRONG } from "@/data/originals/trivia-pack-halloween";
+
 export const PACK_WRONG: Record<string, [string, string, string]> = {
+  ...HALLOWEEN_WRONG,
   // General knowledge
   "Which country gave the Statue of Liberty to the United States?": ["Spain", "Italy", "United Kingdom"],
   "Which artist painted the Mona Lisa?": ["Michelangelo", "Raphael", "Sandro Botticelli"],

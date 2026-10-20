@@ -66,7 +66,14 @@ function specsFor(titles) {
   add("/truth-or-dare", "Truth or Dare", "Endless party prompts", G("flame", "message-question", "mood-happy", "confetti", "bolt"));
   for (const [slug, t] of [["clean", "Clean"], ["party", "Party"], ["couples", "Couples"]])
     add(`/truth-or-dare/${slug}`, t, "Truth or Dare", G("flame", "message-question", "mood-happy", slug === "couples" ? "heart" : "confetti", "bolt"), `public/images/opengraph/truth-or-dare/${slug}.jpg`);
+  // Halloween (2026-10-19): the three Halloween templates, on the spooky glyphs.
+  const SPOOKY = G("ghost", "pumpkin-scary", "bat", "candy", "spider", "moon-stars");
+  add("/truth-or-dare/halloween", "Halloween", "Truth or Dare", SPOOKY, "public/images/opengraph/truth-or-dare/halloween.jpg");
+  add("/bingo-card-generator/halloween-party-bingo", "Halloween Bingo", "Card Generator", SPOOKY, "public/images/opengraph/bingo/halloween-party-bingo.jpg");
+  add("/tier-list-maker/halloween-treats", "Halloween Treats", "Tier List", SPOOKY, "public/images/opengraph/tier-list/halloween-treats.jpg");
+  add("/game-nights/halloween-party-games", "Halloween", "Free party games", SPOOKY);
   // Hubs
+  add("/welcome", "Welcome", "Free tools for every game night", G("calendar", "device-tv", "brand-discord", "broadcast", "trophy", "pokeball"));
   add("/game-nights", "Game Nights", "Find a table near you", A(GN));
   add("/gs-circuit", "Circuit", "Run bigger tournaments", A(TOUR));
   add("/communities", "Communities", "Find your people", G("users-group", "message-circle", "heart-handshake", "home", "star"));

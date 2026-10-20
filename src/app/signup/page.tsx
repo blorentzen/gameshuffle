@@ -34,6 +34,12 @@ function postAuthRedirectSuffix(): string {
   return redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
 }
 
+// Where a new account goes after the sign-up itself: where it was headed, else the welcome page
+// with three first steps (Britton's picks, 2026-10-19). The "Log in instead" link keeps the plain one.
+function signupRedirectSuffix(): string {
+  return postAuthRedirectSuffix() || `?redirect=${encodeURIComponent("/welcome?new=1")}`;
+}
+
 export default function SignupPage() {
   /**
    * The redirect only arrives as a query param, and this file deliberately
@@ -135,7 +141,7 @@ export default function SignupPage() {
         data: {
           display_name: displayName,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback${signupRedirectSuffix()}`,
       },
     });
 
@@ -243,7 +249,7 @@ export default function SignupPage() {
                     onClick={async () => {
                       trackEvent("Signup", signupProps(provider));
                       setError(null);
-                      const problem = await startOAuth(provider, `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}`, { surface: "signup" });
+                      const problem = await startOAuth(provider, `${window.location.origin}/auth/callback${signupRedirectSuffix()}`, { surface: "signup" });
                       if (problem) setError(problem);
                     }}
                   >

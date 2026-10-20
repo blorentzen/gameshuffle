@@ -1,0 +1,33 @@
+/* Seasonal game night pages (Halloween party games; Christmas next). The row
+   panel is each page's one surface; everything else sits flat under a thin
+   line (the containers rule). Root font size is 10px: size type with tokens. */
+
+.seasonal__body {
+  display: flex;
+  flex-direction: column;
+  padding-block: var(--spacing-32) var(--spacing-64);
+}
+.seasonal__body > section { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.seasonal__body > section + section {
+  border-top: 1px solid var(--border-default, #e3e5ee);
+  margin-top: var(--spacing-32);
+  padding-top: var(--spacing-32);
+}
+.seasonal__body h2 { margin: 0; font-size: clamp(2.4rem, 3.4vw, 3rem); line-height: 1.15; text-wrap: balance; }
+.seasonal__body h3 { margin: 0 0 var(--spacing-4); font-size: var(--font-size-18); }
+.seasonal__lede { margin: 0 0 var(--spacing-8); color: var(--text-secondary, #5a5f78); font-size: var(--font-size-16); }
+.seasonal__steps {
+  margin: 0;
+  padding-left: var(--spacing-24);
+  display: grid;
+  gap: var(--spacing-12);
+  font-size: var(--font-size-16);
+  line-height: 1.55;
+  max-width: 72ch;
+}
+.seasonal__two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr));
+  gap: var(--spacing-20) var(--spacing-32);
+}
+.seasonal__two p { margin: 0; color: var(--text-secondary, #5a5f78); font-size: var(--font-size-16); line-height: 1.55; }

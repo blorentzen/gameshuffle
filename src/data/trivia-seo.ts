@@ -200,6 +200,10 @@ export interface QuestionTopic {
   pictureCategories?: string[];
   /** Every approved Video games question counts (the broad page). */
   allVideoGames?: boolean;
+  /** Whole pack categories that count (the holiday pages). */
+  categories?: string[];
+  /** Questions shown on the page, when it should differ from MAX_TOPIC_QUESTIONS. */
+  max?: number;
 }
 
 export const MIN_TOPIC_QUESTIONS = 12;
@@ -214,6 +218,7 @@ export const QUESTION_TOPICS: QuestionTopic[] = [
   { slug: "smash", label: "Super Smash Bros.", h1: "Super Smash Bros. trivia questions (with answers)", title: "Super Smash Bros. Trivia Questions and Answers", description: "Super Smash Bros. Ultimate trivia: name the fighter from their portrait, plus questions about the series, checked by GameShuffle.", gameSlugs: ["super-smash-bros-ultimate"], keywords: ["smash"], pictureCategories: ["Picture: game characters"] },
   { slug: "overwatch", label: "Overwatch", h1: "Overwatch trivia questions (with answers)", title: "Overwatch Trivia Questions and Answers", description: "Overwatch trivia questions with answers: name the hero from their portrait, plus roles, lore and history, checked by GameShuffle.", gameSlugs: ["overwatch"], keywords: ["overwatch"], pictureCategories: ["Picture: Overwatch heroes"] },
   { slug: "marvel-rivals", label: "Marvel Rivals", h1: "Marvel Rivals trivia questions (with answers)", title: "Marvel Rivals Trivia Questions and Answers", description: "Marvel Rivals trivia questions with answers: heroes, roles, teams and seasons, checked by GameShuffle.", gameSlugs: ["marvel-rivals"], keywords: ["marvel rivals"] },
+  { slug: "halloween", label: "Halloween", h1: "Halloween trivia questions (with answers)", title: "Halloween Trivia Questions and Answers", description: "Halloween trivia questions with answers: where Halloween comes from, candy, monsters, movies, music and spooky games, checked by GameShuffle. Play them as a Halloween trivia night.", gameSlugs: [], keywords: [], categories: ["Halloween"], max: 50 },
   { slug: "video-games", label: "Video games", h1: "Video game trivia questions (with answers)", title: "Video Game Trivia Questions and Answers", description: "Video game trivia questions with answers, from Nintendo classics to today's hits, checked by GameShuffle. Play them as a trivia night with friends.", gameSlugs: [], keywords: [], allVideoGames: true },
 ];
 

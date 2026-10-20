@@ -24,6 +24,7 @@ import { SITE_URL } from "@/lib/seo";
 import { deckUrl, shareImage } from "@/lib/decks/seo";
 import { CompanionNote, splitAfterSection } from "@/components/tcg/CompanionNote";
 import { SaveGuideDeck } from "@/components/tcg/decks/SaveGuideDeck";
+import { NewHereLine } from "@/components/welcome/NewHereLine";
 
 /**
  * Deck detail page — `/pokemon-tcg/decks/[deck]`. Renders one deck guide.
@@ -281,6 +282,7 @@ export default async function Page({
             </Link>
           </div>
         </section>
+        <NewHereLine from="deck-guide" />
 
         {/* Related / cluster links */}
         <section className="deck-related">

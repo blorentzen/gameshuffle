@@ -16,6 +16,8 @@
  * answer away.
  */
 
+import { HALLOWEEN_PACK } from "@/data/originals/trivia-pack-halloween";
+
 export type PackCategory =
   | "General knowledge"
   | "Geography"
@@ -27,6 +29,7 @@ export type PackCategory =
   | "Sports"
   | "Food & drink"
   | "Words & numbers"
+  | "Halloween"
   | "Picture: game characters"
   | "Picture: Overwatch heroes";
 
@@ -387,6 +390,7 @@ const pictures = (set: Pic[], category: PackCategory, folder: string, prompt: st
 
 export const TRIVIA_PACK: PackQuestion[] = [
   ...TEXT,
+  ...HALLOWEEN_PACK,
   ...pictures(SMASH, "Picture: game characters", "super-smash-bros-ultimate/fighters", "Name this video game character.",
     { title: "SmashWiki: Super Smash Bros. Ultimate roster", url: "https://www.ssbwiki.com/Super_Smash_Bros._Ultimate#Characters" }),
   ...pictures(OVERWATCH, "Picture: Overwatch heroes", "overwatch/heroes", "Name this Overwatch hero.",

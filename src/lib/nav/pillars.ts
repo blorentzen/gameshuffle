@@ -254,6 +254,7 @@ export const FOOTER_EXTRA: NavGroup[] = [
     items: [
       // One entry, not two: /features redirects here, and listing the same
       // page twice under different labels reads as two destinations.
+      { label: "New here? Start here", href: "/welcome" },
       { label: "Pricing & features", href: "/gs-pro" },
       { label: "Help", href: "/help" },
       { label: "Idea board", href: "/ideas" },

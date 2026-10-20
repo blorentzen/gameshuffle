@@ -148,6 +148,7 @@ export default async function HomePage() {
         primary={{ href: "/daily", label: "Play today's Daily" }}
         secondary={{ href: "#apps", label: "Find a randomizer" }}
         aside={<HeroShowcase />}
+        note={!viewer ? <>New here? <Link href="/welcome" className={tagged(EVENTS.welcomeLineClicked, { from: "home" })}>See what GameShuffle does</Link></> : undefined}
       />
 
       <main>

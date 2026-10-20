@@ -555,3 +555,6 @@ export function HeroShowcase() {
     </section>
   );
 }
+
+/* The welcome page plays these demos inside its own sections (src/components/welcome/WelcomeDemo.tsx). */
+export { KartDemo, SmashDemo, PartyDemo, DailyDemo, WheelDemo, BracketDemo, PollDemo };

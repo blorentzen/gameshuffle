@@ -87,6 +87,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/game-nights/halloween-party-games`,
+      lastModified: lm("/game-nights/halloween-party-games"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/welcome`,
+      lastModified: lm("/welcome"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/discord`,
       lastModified: lm("/discord"),
       changeFrequency: "weekly",

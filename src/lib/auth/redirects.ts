@@ -27,6 +27,8 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/tournament",
   "/claim",
   "/party",
+  // New accounts land on the welcome page (sign-up's default return).
+  "/welcome",
   // Mod pages: invites (/mod/invite/<token>), self-serve join (/mod/join/<slug>)
   // and a mod's view of a streamer (/mod/<slug>) all send people back after sign-in.
   "/mod/",

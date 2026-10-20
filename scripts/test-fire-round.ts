@@ -9,7 +9,7 @@ import { PACK_WRONG } from "../src/data/originals/trivia-pack-wrong";
 import { judgeAnswer, type TriviaQuestion } from "../src/lib/trivia/rules";
 import { isBlockedText } from "../src/lib/text/filter";
 import {
-  boardPoints, choiceIsRight, cleanWrong, fireCategory, fireNumber, fourChoices, heatFor, inCategory, numberDistractors, pointsFor, rosterDistractors,
+  boardPoints, choiceIsRight, cleanWrong, fireCategory, fireNumber, fourChoices, heatFor, inCategory, inSeason, numberDistractors, pointsFor, rosterDistractors,
   FIRE_CATEGORIES, FIRE_EPOCH, LENGTHS, MIXED,
 } from "../src/lib/originals/fireRound";
 
@@ -82,6 +82,21 @@ for (const cat of ["Picture: game characters", "Picture: Overwatch heroes"]) {
     check(d?.length === 3 && !d.includes(q.answer), `roster distractors: ${q.answer}`);
     for (const w of d ?? []) check(judgeAnswer(w, asQuestion(q)) !== "correct", `a roster distractor counts as right: ${q.answer} → ${w}`);
   }
+}
+
+// Seasonal categories: Halloween only in October, and its questions stay out of Mixed the rest of the year.
+{
+  const hall = fireCategory("halloween");
+  const mixed = fireCategory(MIXED);
+  check(hall.id === "halloween" && !!hall.season, "Halloween is a seasonal category");
+  check(inSeason(hall, "2026-10-01") && inSeason(hall, "2026-10-31") && !inSeason(hall, "2026-09-30") && !inSeason(hall, "2026-11-01"), "Halloween season is October");
+  check(inSeason(mixed, "2026-07-04"), "year-round categories are always in season");
+  const spooky = TRIVIA_PACK.filter((q) => q.category === "Halloween");
+  check(spooky.length === 100, `Halloween pack has 100 questions (${spooky.length})`);
+  const qx = { category: "Halloween", gameSlug: null };
+  check(inCategory(hall, qx) && inCategory(mixed, qx, "2026-10-20") && !inCategory(mixed, qx, "2026-07-04"), "Halloween questions in Mixed only in October");
+  check(inCategory(mixed, { category: "Geography", gameSlug: null }, "2026-07-04"), "year-round questions stay in Mixed");
+  check(inCategory(mixed, qx), "without a day, Mixed takes everything (admin counts)");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

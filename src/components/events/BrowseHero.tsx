@@ -50,9 +50,11 @@ export interface BrowseHeroProps {
   compact?: boolean;
   /** The one-line description a `compact` hero shows on phones. */
   subShort?: ReactNode;
+  /** A small line under the buttons (the homepage's "New here?" link). */
+  note?: ReactNode;
 }
 
-export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary, aside, actions, compact, subShort }: BrowseHeroProps) {
+export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary, aside, actions, compact, subShort, note }: BrowseHeroProps) {
   const shot = image ?? (photo ? lifestyle(photo) : null);
   const copy = (
     <div className="browse-hero__inner">
@@ -76,6 +78,7 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, p
           )}
         </div>
       )}
+      {note && <p className="browse-hero__note">{note}</p>}
     </div>
   );
   return (
