@@ -59,6 +59,10 @@ export interface ProfileEnrichment {
   supporter: boolean;
   /** The first time they gave (ISO), for "Supporter since". */
   supporterSince: string | null;
+  /** Their live monthly level (Backer and Champion get their own badge). */
+  supportLevel: "supporter" | "backer" | "champion" | null;
+  /** Their Founding supporter number (the first 100 keep it for good), or null. */
+  foundingSupporter: number | null;
 }
 
 const EMPTY: ProfileEnrichment = {
@@ -77,6 +81,8 @@ const EMPTY: ProfileEnrichment = {
   triviaNights: 0,
   supporter: false,
   supporterSince: null,
+  supportLevel: null,
+  foundingSupporter: null,
 };
 
 function oneCard(value: unknown): TcgCard | null {
@@ -222,6 +228,8 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       triviaNights,
       supporter: !!support?.supporter,
       supporterSince: support?.supporter ? support.since : null,
+      supportLevel: support?.level ?? null,
+      foundingSupporter: support?.founding ?? null,
       dailies,
     };
   } catch {

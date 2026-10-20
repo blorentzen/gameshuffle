@@ -3,23 +3,27 @@
 /**
  * Platform admin ▸ Money ▸ Support (staff/admin): Support GameShuffle
  * (src/lib/support/store.ts, /api/admin/support). This month's support against
- * the goal, the goal and its cost lines as the /support page shows them
- * (autosaved; a goal of $0 hides the bar), and recent payments with the
- * supporters wall controls. Refunds happen in the Stripe Dashboard; a full
+ * the goal, monthly supporters by level, the goal and its cost lines as the
+ * /support page shows them (autosaved; a goal of $0 hides the bar), short
+ * updates for /support, and recent payments with the supporters wall controls. Refunds happen in the Stripe Dashboard; a full
  * refund marks the payment refunded here on its own.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, EmptyState, Input, StatCard, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
-import { IconHeart, IconTarget, IconUsers } from "@tabler/icons-react";
+import { Alert, Badge, Button, EmptyState, Input, StatCard, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from "@empac/cascadeds";
+import { IconCrown, IconHeart, IconTarget, IconUsers } from "@tabler/icons-react";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminHeader, AdminRowMenu, AdminSection, AdminStats, AdminTable, SaveStatus } from "@/components/account/admin/AdminKit";
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { dollars, goalPercent, type SupportCost } from "@/lib/support/rules";
-import type { AdminGift } from "@/lib/support/store";
+import type { AdminGift, SupportUpdate } from "@/lib/support/store";
 
-interface Data { ready: boolean; settings?: { goalCents: number; costs: SupportCost[] }; month?: { raisedCents: number; supporters: number } | null; gifts?: AdminGift[] }
+interface Data {
+  ready: boolean; settings?: { goalCents: number; costs: SupportCost[] }; month?: { raisedCents: number; supporters: number } | null; gifts?: AdminGift[];
+  levels?: { supporter: number; backer: number; champion: number } | null; updates?: SupportUpdate[];
+}
 interface Draft { goal: string; costs: { label: string; amount: string }[] }
 
 const toCents = (s: string) => Math.max(0, Math.round((Number(s.replace(/[$,\s]/g, "")) || 0) * 100));
@@ -27,8 +31,11 @@ const when = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month:
 
 export function PlatformSupportTab() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [data, setData] = useState<Data | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [post, setPost] = useState("");
+  const [posting, setPosting] = useState(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/support").catch(() => null);
@@ -50,6 +57,21 @@ export function PlatformSupportTab() {
     else toast.error("Couldn't change that. Try again.");
   };
 
+  const addUpdate = async () => {
+    if (!post.trim()) return;
+    setPosting(true);
+    const res = await fetch("/api/admin/support", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update_add", body: post }) }).catch(() => null);
+    setPosting(false);
+    if (res?.ok) { setPost(""); toast.success("Posted on the support page"); void load(); }
+    else toast.error(res?.status === 400 ? "That update can't be posted. Check the wording." : "Couldn't post it. Try again.");
+  };
+  const removeUpdate = async (u: SupportUpdate) => {
+    if (!(await confirm({ title: "Remove this update?", body: u.body, confirmLabel: "Remove update" }))) return;
+    const res = await fetch("/api/admin/support", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update_remove", id: u.id }) }).catch(() => null);
+    if (res?.ok) { toast.success("Update removed"); void load(); }
+    else toast.error("Couldn't remove it. Try again.");
+  };
+
   if (!data) return <div className="account-card admin-screen"><LoadingLines label="Loading support" /></div>;
   if (!data.ready || !draft) {
     return (
@@ -65,12 +87,41 @@ export function PlatformSupportTab() {
 
   return (
     <div className="account-card admin-screen">
-      <AdminHeader title="Support" intro={<>One-time and monthly support from players, shown on <a href="/support" target="_blank" rel="noopener">the support page</a>. Never tokens, never a plan.</>} actions={<SaveStatus status={status} />} />
-      <AdminStats columns={3} label="This month">
+      <AdminHeader title="Support" intro={<>One-time and monthly support from players, shown on <a href="/support" target="_blank" rel="noopener">the support page</a>. Never tokens. Backer and Champion include GS Pro (taxed like GS Pro); everything else is thanks only.</>} actions={<SaveStatus status={status} />} />
+      <AdminStats columns={4} label="This month">
         <StatCard label="Support this month" value={dollars(raised)} source="Pacific month, refunds taken off" icon={<IconHeart size={20} />} variant="accent" />
         <StatCard label="Supporters this month" value={String(data.month?.supporters ?? 0)} icon={<IconUsers size={20} />} />
         <StatCard label="Of the goal" value={goalCents ? `${goalPercent(raised, goalCents)}%` : "No goal"} source={goalCents ? `Goal ${dollars(goalCents)}` : "Set one below to show the bar"} icon={<IconTarget size={20} />} />
+        <StatCard
+          label="Monthly supporters"
+          value={data.levels ? String(data.levels.supporter + data.levels.backer + data.levels.champion) : "None yet"}
+          source={data.levels ? `Supporter ${data.levels.supporter} · Backer ${data.levels.backer} · Champion ${data.levels.champion}` : "Levels need supabase/support-m3.sql"}
+          icon={<IconCrown size={20} />}
+        />
       </AdminStats>
+
+      <AdminSection title="Updates" intro="Short posts on the support page about what support paid for. The latest five show there, newest first.">
+        <div className="support-admin__post">
+          <Textarea value={post} onChange={(e) => setPost(e.target.value)} placeholder="e.g. Your support paid for Fire Round's question packs this month. Thank you!" aria-label="New update" maxLength={400} rows={3} />
+          <div><Button variant="primary" size="small" onClick={() => void addUpdate()} disabled={posting || !post.trim()}>{posting ? "Posting…" : "Post update"}</Button></div>
+        </div>
+        {(data.updates ?? []).length > 0 && (
+          <AdminTable label="Updates">
+            <Table dense>
+              <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Update</TableHead><TableHead><span className="sr-only">More</span></TableHead></TableRow></TableHeader>
+              <TableBody>
+                {(data.updates ?? []).map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell>{when(u.postedAt)}</TableCell>
+                    <TableCell>{u.body}</TableCell>
+                    <TableCell><AdminRowMenu label="More for this update" items={[{ label: "Remove", onClick: () => void removeUpdate(u) }]} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </AdminTable>
+        )}
+      </AdminSection>
 
       <AdminSection title="The monthly goal" intro="What the support page shows: the goal bar fills from real support. A goal of $0 hides the bar. The cost lines are what support pays for; leave them empty to show a general list.">
         <div className="support-admin__goal">

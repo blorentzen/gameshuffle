@@ -16,7 +16,7 @@ import { FREE, LETTERS, PATTERNS, letterFor } from "@/lib/originals/bingo";
 import { BingoShape } from "@/components/overlay/NumberBingoOverlay";
 import type { StreamBingoView } from "@/lib/bingo/stream";
 import { EVENTS, track } from "@/lib/analytics/events";
-import { AuthPromptModal } from "./AuthPromptModal";
+import { useLiveHost } from "./LiveHost";
 
 const CLAIM_ERRORS: Record<string, string> = {
   not_yet: "Not a bingo yet: the pattern isn't complete with the numbers called so far.",
@@ -30,14 +30,14 @@ function readMarks(gameId: string): number[] {
   try { return JSON.parse(localStorage.getItem(marksKey(gameId)) ?? "[]") as number[]; } catch { return []; }
 }
 
-export function LiveBingoCard({ communityId, streamerSlug }: { communityId: string | null; streamerSlug: string }) {
+export function LiveBingoCard({ communityId }: { communityId: string | null; streamerSlug?: string }) {
   const toast = useToast();
+  const host = useLiveHost();
   const [game, setGame] = useState<StreamBingoView | null>(null);
   const [card, setCard] = useState<number[] | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [marks, setMarks] = useState<{ gameId: string; squares: number[] } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const closesAt = game?.doorsCloseAt ? Date.parse(game.doorsCloseAt) : 0;
   const doorsOpen = game?.status === "open" && closesAt > now;
@@ -54,7 +54,7 @@ export function LiveBingoCard({ communityId, streamerSlug }: { communityId: stri
     if (!communityId) return;
     let active = true;
     const load = async () => {
-      const d = await fetch(`/api/bingo/community/${communityId}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+      const d = await host.api(`/api/bingo/community/${communityId}`);
       if (!active || !d?.ok) return;
       setGame(d.game ?? null);
       setCard(d.myCard ?? null);
@@ -63,7 +63,7 @@ export function LiveBingoCard({ communityId, streamerSlug }: { communityId: stri
     void load();
     const iv = window.setInterval(load, 3000);
     return () => { active = false; window.clearInterval(iv); };
-  }, [communityId]);
+  }, [communityId, host]);
 
   if (!game) return null;
 
@@ -81,9 +81,9 @@ export function LiveBingoCard({ communityId, streamerSlug }: { communityId: stri
   };
 
   const takeCard = async () => {
-    if (!signedIn) { setAuthOpen(true); return; }
+    if (!signedIn) { host.signIn("get a bingo card"); return; }
     setBusy(true);
-    const d = await fetch(`/api/bingo/${game.id}/card`, { method: "POST" }).then((r) => r.json()).catch(() => null);
+    const d = await host.api(`/api/bingo/${game.id}/card`, { method: "POST" });
     setBusy(false);
     if (d?.ok) {
       setCard(d.card as number[]);
@@ -93,7 +93,7 @@ export function LiveBingoCard({ communityId, streamerSlug }: { communityId: stri
 
   const claim = async () => {
     setBusy(true);
-    const d = await fetch(`/api/bingo/${game.id}/claim`, { method: "POST" }).then((r) => r.json()).catch(() => null);
+    const d = await host.api(`/api/bingo/${game.id}/claim`, { method: "POST" });
     setBusy(false);
     if (d?.ok) {
       setGame(d.game as StreamBingoView);
@@ -196,7 +196,6 @@ export function LiveBingoCard({ communityId, streamerSlug }: { communityId: stri
       </div>
       {open && card && <p className="live-poll__foot">Tap a square to mark it when its number is called. Marks stay in this browser.</p>}
 
-      <AuthPromptModal isOpen={authOpen} onClose={() => setAuthOpen(false)} streamerSlug={streamerSlug} actionLabel="get a bingo card" />
     </section>
   );
 }

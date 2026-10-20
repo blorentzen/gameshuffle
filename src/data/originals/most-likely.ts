@@ -123,6 +123,29 @@ export const PROMPT_PACKS: PromptPack[] = [
       "still have Halloween candy at Thanksgiving",
     ],
   },
+  {
+    id: "christmas", label: "Christmas", seasonal: true,
+    prompts: [
+      "peek at their presents early",
+      "start playing Christmas music in November",
+      "wear an ugly sweater on purpose",
+      "regift something and get caught",
+      "burn the Christmas cookies",
+      "fall asleep before the presents are opened",
+      "get tangled in the Christmas lights",
+      "cry at a Christmas movie",
+      "eat the cookies left out for Santa",
+      "win the gift exchange",
+      "wrap presents five minutes before the party",
+      "forget someone's gift",
+      "know every word of every carol",
+      "build the best snowman",
+      "put the tree up the day after Halloween",
+      "shake every present to guess what's inside",
+      "go overboard with the decorations",
+      "still believe in Santa, just a little",
+    ],
+  },
 ];
 
 export function promptPack(id: string | null | undefined): PromptPack | null {

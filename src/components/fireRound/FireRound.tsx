@@ -34,6 +34,7 @@ import type { FireHome, FireOutcome, FireRunView } from "@/lib/fireRound/store";
 import { FirePlay, type FireMove } from "./FirePlay";
 import { FireGlyph } from "./fireIcons";
 import { SupportMoment } from "@/components/support/SupportMoment";
+import { ChallengeVersus } from "@/components/share/ShareChallenge";
 
 type Home = FireHome & { signedIn: boolean };
 
@@ -274,7 +275,7 @@ function FireStart({ home, category, length, onCategory, onLength, onStart, boar
 
       <section className="fire-flat" aria-labelledby="fire-free-title">
         <h2 id="fire-free-title" className="fire-flat__title">More rounds, any time</h2>
-        <p className="fire-small">Speed trivia by category: 1, 3 or 5 minutes, or until three misses. Rapid fire questions on geography, science, movies, music, sports, game characters, Overwatch heroes and more, with no repeats for 30 days while fresh ones are left.</p>
+        <p className="fire-small">Pick a category and a length. Questions you&apos;ve had in the last 30 days come last.</p>
         <p className="fire-label" id="fire-cat-label">Pick a category</p>
         <div className="fire-chips" role="group" aria-labelledby="fire-cat-label">
           {home.categories.map((c) => (
@@ -334,6 +335,7 @@ function FireResults({ run, board, place, players, signedIn, shareFor, onAgain, 
         {daily && !run.counts && <p className="fire-small">Practice: your first round today is the one on the board.</p>}
         {!daily && r.newBest && <p className="fire-result__line"><IconTrophy size={18} aria-hidden />A new best for {run.categoryLabel.toLowerCase()}, {LENGTHS[run.length].label.toLowerCase()}{r.best !== null ? ` (was ${r.best.toLocaleString("en-US")})` : ""}</p>}
         {!daily && !r.newBest && r.best !== null && <p className="fire-small">Your best here: {r.best.toLocaleString("en-US")}.</p>}
+        {daily && run.counts && <ChallengeVersus game="fire" mine={{ kind: "fire", score: t.score, right: t.right }} />}
         <div className="fire-today__actions">
           {/* Share with a picture of the round (src/components/share); today's counting round joins the day card. */}
           {daily && run.counts

@@ -80,9 +80,9 @@ export async function upsertSubscriptionFromStripe(args: {
   const admin = getAdmin();
   const { subscription, userId } = args;
 
-  // Monthly support for GameShuffle is never a plan (src/lib/support/store.ts). The webhook routes
-  // it away before calling this; refusing here too means no other path can make a supporter Pro
-  // (an unknown price would otherwise fall through to the Pro branch below).
+  // Monthly support is handled by src/lib/support/store.ts (a Backer or Champion level gives GS Pro
+  // there, through syncSupportPro). The webhook routes it away before calling this; refusing here
+  // too means an unknown support price can never fall through to the Pro branch below.
   if (subscription.metadata?.gs_kind === "support") return { product: "support" };
 
   // Determine price_id from the first subscription item (we only ever
@@ -180,15 +180,26 @@ export async function upsertSubscriptionFromStripe(args: {
     throw upsertErr;
   }
 
-  // Flip the user's tier + persist trial usage + cache customer id
-  const tier = tierFromStatus(subscription.status);
+  // Flip the user's tier + persist trial usage + cache customer id. A GS Pro plan that has ended
+  // never takes Pro from someone a live Backer or Champion support level still gives it to.
+  let tier = tierFromStatus(subscription.status);
+  let status: string = subscription.status;
+  if (tier === "free") {
+    const { supportProGrant, markSupportGrant } = await import("@/lib/support/store");
+    const grant = await supportProGrant(userId).catch(() => null);
+    if (grant) {
+      tier = "pro";
+      status = grant.status;
+      await markSupportGrant(grant.id).catch(() => null);
+    }
+  }
   const hasTrialedPatch =
     subscription.trial_start != null ? { has_used_trial: true } : {};
   await admin
     .from("users")
     .update({
       subscription_tier: tier,
-      subscription_status: subscription.status,
+      subscription_status: status,
       stripe_customer_id: row.stripe_customer_id,
       ...hasTrialedPatch,
       updated_at: new Date().toISOString(),

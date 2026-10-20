@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import {
-  IconBolt, IconCandy, IconChartPie2, IconLayoutGrid, IconListNumbers, IconMessageQuestion, IconSteeringWheel, IconUserQuestion, IconUsersGroup,
+  IconBolt, IconCandy, IconChartPie2, IconLayoutGrid, IconMessageQuestion, IconSteeringWheel, IconUserQuestion, IconUsersGroup,
 } from "@tabler/icons-react";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { FaqList } from "@/components/marketing/FaqList";

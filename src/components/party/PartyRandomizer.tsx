@@ -458,7 +458,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         {Array.from({ length: seats }, (_, i) => {
           const c = game.characters.find((x) => x.name === chars[i]);
           return (
-            <div key={i} className="player-card">
+            <div key={i} className={`player-card${c ? "" : " player-card--seat"}`}>
               <div className="player-card__header">
                 <div className="player-card__name">
                   {i < humans ? (

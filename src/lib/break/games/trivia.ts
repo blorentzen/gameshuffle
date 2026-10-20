@@ -4,12 +4,14 @@
  * answers are judged like a trivia night (src/lib/trivia/rules.ts: the
  * answer line's accepts, rejects and typos); a question with choices takes A
  * to D. "Ask the host" answers count as wrong: nobody's there to rule. Picture
- * questions stay out (the file name can give the answer away). Skips itself
- * until the pack is approved.
+ * questions stay out (the file name can give the answer away), and so do the
+ * game packs' questions: Game Trivia asks those, about the game on stream.
+ * Skips itself until the pack is approved.
  */
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { judgeAnswer, type TriviaQuestion } from "@/lib/trivia/rules";
 import { categoryInSeason } from "@/lib/trivia/seasons";
 import type { BreakGame } from "./common";
@@ -23,14 +25,19 @@ const LETTERS = ["A", "B", "C", "D"];
 export const triviaRounds: BreakGame = {
   id: "trivia-rounds",
   load: async () => {
-    const { data, error } = await createServiceClient()
-      .from("trivia_questions")
-      .select("id, prompt, answer, accept, ask_about, reject, kind, options, category")
-      .is("owner_user_id", null)
-      .eq("status", "approved")
-      .eq("family_safe", true)
-      .in("kind", ["text", "number", "choice"])
-      .limit(600);
+    const read = (games: boolean) => readAllPages<PackRow>((from, to) => {
+      const q = createServiceClient()
+        .from("trivia_questions")
+        .select("id, prompt, answer, accept, ask_about, reject, kind, options, category")
+        .is("owner_user_id", null)
+        .eq("status", "approved")
+        .eq("family_safe", true)
+        .in("kind", ["text", "number", "choice"]);
+      return (games ? q : q.is("game_slug", null)).order("id").range(from, to);
+    });
+    let { data, error } = await read(false);
+    // Before trivia-game-packs-m1.sql there's no game_slug to leave out.
+    if (error && /game_slug/.test(error.message)) ({ data, error } = await read(true));
     if (error) return null;
     const rows = (data ?? []) as PackRow[];
     return rows.length ? rows : null;

@@ -23,6 +23,7 @@ import "server-only";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { judgeAnswer, type TriviaQuestion } from "@/lib/trivia/rules";
 import { gsAddDays, gsDay } from "@/lib/time/gsClock";
 import type { DailiesEntry, DayMark } from "@/lib/originals/dailies";
@@ -63,8 +64,8 @@ export async function loadPool(force = false): Promise<Map<string, PoolQuestion>
   if (!force && poolCache && Date.now() - poolCache.at < POOL_TTL) return poolCache.pool;
   const svc = createServiceClient();
   const base = "id, category, kind, difficulty, prompt, answer, accept, ask_about, reject, image_url, wrong_answers, wrong_status";
-  const read = (cols: string) => svc.from("trivia_questions").select(cols).is("owner_user_id", null).eq("status", "approved").eq("family_safe", true)
-    .in("kind", ["text", "number", "picture"]).limit(5000);
+  const read = (cols: string) => readAllPages((from, to) => svc.from("trivia_questions").select(cols).is("owner_user_id", null).eq("status", "approved").eq("family_safe", true)
+    .in("kind", ["text", "number", "picture"]).order("id").range(from, to));
   let { data, error } = await read(`${base}, game_slug`);
   // Before trivia-game-packs-m1 there's no game_slug: read without it.
   if (error && /game_slug/.test(error.message ?? "")) ({ data, error } = await read(base));

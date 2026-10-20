@@ -125,7 +125,11 @@ export const FIRE_CATEGORIES: FireCategory[] = [
   { id: "mario-party", label: "Mario Party", icon: "dice", games: ["mario-party", "super-mario-party"] },
   { id: "smash", label: "Smash Bros.", icon: "sword", games: ["super-smash-bros"] },
   { id: "pokemon", label: "Pokémon", icon: "pokeball", games: ["pokemon"] },
+  { id: "mario", label: "Super Mario", icon: "mushroom", games: ["mario-series"] },
+  { id: "zelda", label: "Zelda", icon: "triangle", games: ["zelda"] },
+  { id: "kirby", label: "Kirby", icon: "stars", games: ["kirby"] },
   { id: "halloween", label: "Halloween", icon: "ghost", categories: ["Halloween"], season: SEASONS.Halloween },
+  { id: "christmas", label: "Christmas", icon: "tree", categories: ["Christmas"], season: SEASONS.Christmas },
 ];
 
 export const fireCategory = (id: string | null | undefined) => FIRE_CATEGORIES.find((c) => c.id === id) ?? FIRE_CATEGORIES[0];

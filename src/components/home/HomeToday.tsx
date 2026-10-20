@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { Badge, Button } from "@empac/cascadeds";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { DEX_EPOCH, dayKey, puzzleNumber } from "@/lib/originals/daily";
-import { fireNumber } from "@/lib/originals/fireRound";
+import { CHOICE_POINTS, TYPED_POINTS, fireNumber } from "@/lib/originals/fireRound";
 import { ordinal } from "@/lib/daily/boardRules";
 import type { BoardRow, BoardView } from "@/lib/daily/boardTypes";
 
@@ -70,9 +70,8 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
     <>
       <ResponsiveCarousel className={`home-play${dexPublic && firePublic ? " home-play--wide-week" : ""}`} label="Today's games">
         <div className="home-play__card">
-          <span className="home-play__eyebrow">Every day</span>
           <h3 className="home-play__title">The Daily Shuffle</h3>
-          <p className="home-play__text">Guess today&apos;s Nintendo character. Five guesses, with a new hint after every miss.</p>
+          <p className="home-play__text">Name today&apos;s Nintendo character in five guesses. Each miss adds a hint.</p>
           <span className="home-play__meta">
             {day && <Badge variant="info" size="small">Puzzle #{puzzleNumber(day)}</Badge>}
             {standing(me?.shuffle, "Start a streak today")}
@@ -81,10 +80,10 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
         </div>
         {dexPublic && (
           <div className="home-play__card">
-            <span className="home-play__eyebrow">Every day · New</span>
             <h3 className="home-play__title">The Daily Dex</h3>
-            <p className="home-play__text">Guess today&apos;s Pokémon from all 1,025, with a new hint after every miss.</p>
+            <p className="home-play__text">One Pokémon a day from all 1,025. Arrows point you toward its generation, height and weight.</p>
             <span className="home-play__meta">
+              <Badge variant="info" size="small">New</Badge>
               {day && dexNumber(day) >= 1 && <Badge variant="info" size="small">Puzzle #{dexNumber(day)}</Badge>}
               {standing(me?.dex, "Start a streak today")}
             </span>
@@ -93,10 +92,10 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
         )}
         {firePublic && (
           <div className="home-play__card">
-            <span className="home-play__eyebrow">Every day · New</span>
             <h3 className="home-play__title">Fire Round</h3>
-            <p className="home-play__text">60 seconds of trivia, the same questions for everyone. Type the answer, or take four choices when you&apos;re stuck.</p>
+            <p className="home-play__text">60 seconds of trivia, the same questions for everyone. Type an answer for {TYPED_POINTS}, or open four choices for {CHOICE_POINTS}.</p>
             <span className="home-play__meta">
+              <Badge variant="info" size="small">New</Badge>
               {day && fireNumber(day) >= 1 && <Badge variant="info" size="small">Round #{fireNumber(day)}</Badge>}
               {fire ? [fire.score >= 0 ? `You scored ${fire.score.toLocaleString("en-US")} today` : null, fire.streak ? `${fire.streak} ${fire.streak === 1 ? "day" : "days"} in a row` : null].filter(Boolean).join(" · ") : null}
             </span>

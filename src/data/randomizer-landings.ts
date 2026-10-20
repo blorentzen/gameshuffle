@@ -360,6 +360,38 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Does it pick City Trial events too?", a: "No. Events happen on their own during City Trial, so it rolls the Stadium you finish in." },
     ],
   },
+  pokemon: {
+    slug: "pokemon",
+    path: "/randomizers/pokemon",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/pokemon-og.jpg",
+    game: "Pokémon",
+    metaTitle: "Random Pokémon Generator: Roll From All 1,025 Pokémon",
+    metaDescription:
+      "Free random Pokémon generator. Roll 1, 3 or 6 from all 1,025 Pokémon, filter by generation and type, and keep a team fully evolved or free of Legendaries.",
+    h1: "Random Pokémon Generator",
+    lead: "A random Pokémon generator for all 1,025 Pokémon. Roll one, three or a team of six, narrow it to a generation or a type, and re-roll any card on its own.",
+    overview:
+      "Use it to pick a team for a Nuzlocke or a challenge run, decide what to draw or build next, or meet a Pokémon you forgot existed. Every Pokémon from Bulbasaur to Pecharunt is in the mix, from Generation 1 (Kanto) to Generation 9 (Paldea). Filter to one generation or one type, keep it to fully evolved Pokémon, leave out Legendaries and Mythicals, or make sure no two share a type. Copy the link and anyone you send it to sees the same roll.",
+    featuresHeading: "What the random Pokémon generator does",
+    features: [
+      { icon: "refresh", title: "All 1,025 Pokémon", description: "Every Pokémon from Generation 1 to 9, Bulbasaur to Pecharunt." },
+      { icon: "filter", title: "Generation and type", description: "Roll from one region, one type, or both at once." },
+      { icon: "checks", title: "Team-ready options", description: "Fully evolved only, no Legendaries or Mythicals, and no repeated types." },
+      { icon: "layout-grid", title: "Re-roll one card", description: "Keep the Pokémon you like and roll the others one at a time." },
+      { icon: "list", title: "Details on every card", description: "Category, height, weight, stage and generation for each Pokémon." },
+      { icon: "share", title: "Share the roll", description: "Copy a link that shows the same Pokémon to anyone you send it to." },
+    ],
+    nextStep: POKEMON_TCG_STEP,
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the random Pokémon generator free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "How many Pokémon are in it?", a: "All 1,025 Pokémon in the National Pokédex, through Scarlet and Violet's downloadable content (Pecharunt is number 1,025)." },
+      { q: "Can I roll a random team of 6?", a: "Yes. Pick 6, then switch on No repeated types for a team that covers more types, or Fully evolved only for a team that's ready to battle." },
+      { q: "Does it include Legendary and Mythical Pokémon?", a: "Yes, unless you switch on No Legendaries or Mythicals in the options." },
+      { q: "Does it roll forms like Alolan or Mega Pokémon?", a: "No. It rolls each species once, by its National Pokédex number." },
+      { q: "Can I use it for a Nuzlocke?", a: "Yes. For Fire Red or Leaf Green, try our run challenge too: it picks catches you can actually find before each gym." },
+    ],
+  },
   "pokemon-stadium": {
     slug: "pokemon-stadium",
     path: "/randomizers/pokemon-stadium",

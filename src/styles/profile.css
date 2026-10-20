@@ -1002,6 +1002,9 @@ a.friend-tile:hover .friend-tile__name {
   border: 1px solid #f6c3d7;
 }
 html.dark .profile-badge--supporter { background: rgba(200, 68, 122, 0.18); color: #f5a9c8; border-color: rgba(200, 68, 122, 0.4); }
+/* One of the first 100 supporters (kept for good): gold, like a founding plaque. */
+.profile-badge--founding-supporter { background: #fbf0d6; color: #7a4a00; border: 1px solid #efd79c; }
+html.dark .profile-badge--founding-supporter { background: rgba(250, 190, 35, 0.14); color: var(--gold-300, #fbd165); border-color: rgba(250, 190, 35, 0.35); }
 /* Your own badge is a button that shares your supporter card. */
 .profile-badge--button { cursor: pointer; font-family: inherit; }
 .profile-badge--button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }

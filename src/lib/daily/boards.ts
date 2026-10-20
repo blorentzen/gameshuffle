@@ -211,7 +211,7 @@ async function describe(rows: RawRow[]): Promise<Map<string, Pick<BoardRow, "nam
 }
 
 /** A board: today, this week or this month for a game, with the viewer's own row. */
-export async function boardView(args: { game: BoardGame; period: BoardPeriod; day?: string; me?: string | null; limit?: number }): Promise<BoardView> {
+export async function boardView(args: { game: BoardGame; period: BoardPeriod; day?: string; me?: string | null; limit?: number; shared?: string | null }): Promise<BoardView> {
   const day = args.day ?? gsDay();
   const { from, to } = periodRange(args.period, day);
   const empty: BoardView = { ready: false, game: args.game, period: args.period, from, to, rows: [], you: null, total: 0, settles: args.period === "day" ? null : settlesOn(args.period, from) };
@@ -236,6 +236,7 @@ export async function boardView(args: { game: BoardGame; period: BoardPeriod; da
     // Nobody on 0 points wins a prize (closePeriod skips them too).
     prize: levers && args.period !== "day" && Number(r.points) > 0 ? prizeFor(Number(r.place), args.period, levers) : 0,
     supporter: r.player.startsWith("u:") && supporters.has(r.player.slice(2)),
+    shared: !!args.shared && r.player === args.shared,
   });
   const rows = raw.map(toRow);
   const limit = args.limit ?? 25;

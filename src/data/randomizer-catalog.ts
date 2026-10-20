@@ -50,6 +50,7 @@ const GROUPS: CatalogGroup[] = [
     id: "pokemon",
     heading: "Pokémon",
     entries: [
+      { slug: "pokemon", href: "/randomizers/pokemon", title: "Random Pokémon Generator", short: "Random Pokémon", blurb: "Roll 1, 3 or 6 from all 1,025, by generation and type.", art: { category: "video", ramp: ["#5a1414", "#e5484d"] }, isNew: true, cta: "Roll Pokémon" },
       { slug: "pokemon-stadium", href: "/randomizers/pokemon-stadium", title: "Pokémon Stadium", blurb: "Rental teams for every Stadium and Stadium 2 cup.", image: GAME_ART["pokemon-stadium"].hero.src, imageAlt: GAME_ART["pokemon-stadium"].hero.alt, isNew: true },
       { slug: "pokemon-firered-leafgreen", href: "/randomizers/pokemon-firered-leafgreen", title: "Fire Red & Leaf Green Run Challenge", short: "Fire Red & Leaf Green", blurb: "A starter, catches before every gym, level caps.", image: GAME_ART["pokemon-firered-leafgreen"].hero.src, imageAlt: GAME_ART["pokemon-firered-leafgreen"].hero.alt, isNew: true, cta: "Start a run" },
     ],

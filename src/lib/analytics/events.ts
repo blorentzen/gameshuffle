@@ -138,6 +138,22 @@ export const EVENTS = {
   // Randomizer extras
   pokemonDetailsOpened: "Pokemon Details Opened",
   pokemonSlotChosen: "Pokemon Slot Chosen",
+  /** The random Pokémon generator rolled (props: { count, gen: all | 1-9, type: any | the type, slot: all | one }). */
+  pokemonRolled: "Pokemon Rolled",
+  /** A generator roll's link was copied. */
+  pokemonLinkCopied: "Pokemon Link Copied",
+  /** A free bracket tool made a bracket, schedule or round 1 (props: { format: single | double | roundrobin | swiss, players }). */
+  bracketMade: "Bracket Made",
+  /** A bracket tool's link was copied (props: { format }). */
+  bracketLinkCopied: "Bracket Link Copied",
+  /** A bracket tool was printed (props: { format }). */
+  bracketPrinted: "Bracket Printed",
+  /** "Run it as a live tournament" from a bracket tool (props: { format, players }). */
+  bracketRunLive: "Bracket Run Live",
+  /** Name every Pokémon started (props: { set: all | 1-9, clock: standard | long | none }). */
+  nameQuizStarted: "Name Quiz Started",
+  /** Name every Pokémon ended (props: { set, clock, count, reason: time | gave-up | done }). */
+  nameQuizFinished: "Name Quiz Finished",
   runPartTicked: "Run Part Ticked",
   runFinished: "Run Finished",
   goldeneyePartRefreshed: "GoldenEye Part Refreshed",

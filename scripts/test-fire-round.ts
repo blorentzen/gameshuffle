@@ -97,6 +97,11 @@ for (const cat of ["Picture: game characters", "Picture: Overwatch heroes"]) {
   check(inCategory(hall, qx) && inCategory(mixed, qx, "2026-10-20") && !inCategory(mixed, qx, "2026-07-04"), "Halloween questions in Mixed only in October");
   check(inCategory(mixed, { category: "Geography", gameSlug: null }, "2026-07-04"), "year-round questions stay in Mixed");
   check(inCategory(mixed, qx), "without a day, Mixed takes everything (admin counts)");
+  const xmas = fireCategory("christmas");
+  const qc = { category: "Christmas", gameSlug: null };
+  check(xmas.id === "christmas" && inSeason(xmas, "2026-12-01") && inSeason(xmas, "2026-12-31") && !inSeason(xmas, "2026-11-30"), "Christmas season is December");
+  check(TRIVIA_PACK.filter((q) => q.category === "Christmas").length === 100, "Christmas pack has 100 questions");
+  check(inCategory(mixed, qc, "2026-12-10") && !inCategory(mixed, qc, "2026-10-20") && !inCategory(mixed, qx, "2026-12-10"), "each holiday only in its own month");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

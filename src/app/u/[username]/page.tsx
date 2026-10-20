@@ -377,11 +377,14 @@ export default async function PublicProfilePage({
     }
   }
 
-  // Supports GameShuffle (once in the last year, or monthly).
+  // Supports GameShuffle (once in the last year, or monthly). Backers and Champions show their level.
+  const levelName = enrichment.supportLevel === "champion" ? "Champion" : enrichment.supportLevel === "backer" ? "Backer" : "Supporter";
   const supporterLabel = enrichment.supporterSince
-    ? `Supporter since ${new Date(enrichment.supporterSince).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Los_Angeles" })}`
-    : "Supporter";
+    ? `${levelName} since ${new Date(enrichment.supporterSince).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Los_Angeles" })}`
+    : levelName;
   if (enrichment.supporter) badges.push({ key: "supporter", label: supporterLabel, href: "/support" });
+  // One of the first 100 supporters keeps this for good, even after their support ends.
+  if (enrichment.foundingSupporter) badges.push({ key: "founding-supporter", label: "Founding supporter", href: "/credits" });
 
   // Weekly Challenge: a top-10 week (the count shows once there's more than one).
   if (enrichment.weeklyTopTen) {

@@ -16,7 +16,7 @@ import "@/styles/trivia-seo.css";
 export const revalidate = 86400;
 
 /** The Fire Round category a topic's questions play as (Fire Round falls back to Mixed until a category has enough questions). */
-const FIRE_CATEGORY: Record<string, string> = { "mario-kart": "mario-kart", pokemon: "pokemon", "mario-party": "mario-party", smash: "smash", overwatch: "overwatch" };
+const FIRE_CATEGORY: Record<string, string> = { "mario-kart": "mario-kart", pokemon: "pokemon", "mario-party": "mario-party", smash: "smash", overwatch: "overwatch", mario: "mario", zelda: "zelda", kirby: "kirby", halloween: "halloween", christmas: "christmas" };
 export const dynamicParams = false;
 
 export function generateStaticParams() {
@@ -95,6 +95,7 @@ export default async function TopicQuestionsPage({ params }: { params: Promise<{
             <div className="rules-page__actions">
               <TriviaStartButton topic={topic.slug} label="Play these as a trivia night" returnTo={path} />
               {FIRE_ROUND_PUBLIC && <Link href={`/daily-trivia?category=${FIRE_CATEGORY[topic.slug] ?? "video-games"}`} className="trivia-article__more">Or play them solo in a Fire Round</Link>}
+              {topic.slug === "pokemon" && <Link href="/name-every-pokemon" className="trivia-article__more">Or name every Pokémon from memory</Link>}
             </div>
           </header>
 

@@ -12,6 +12,7 @@ export type SeasonRange = { from: string; to: string };
 
 export const SEASONS: Record<string, SeasonRange> = {
   Halloween: { from: "10-01", to: "10-31" },
+  Christmas: { from: "12-01", to: "12-31" },
 };
 
 /** Is a Pacific day (YYYY-MM-DD) inside a season? A range may wrap the new year. */

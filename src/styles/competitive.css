@@ -2842,6 +2842,8 @@ html.dark .verified-badge { background: var(--surface-success); color: var(--suc
 /* Tournament create form (2026-10-13): short cards, CDS pick cards for what
    you're running (the site's icon tile on top), and More options folded away. */
 .create-card { display: flex; flex-direction: column; gap: var(--spacing-20, 2rem); margin-bottom: var(--spacing-24); }
+/* From the free bracket tools: the players come along as guests. */
+.create-handoff { margin-bottom: var(--spacing-24); }
 .create-card__head { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
 .create-card__title { margin: 0; font-size: var(--font-size-18); }
 /* Date and max players: side by side when there's room, stacked on a phone. */

@@ -8,6 +8,7 @@
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { challengeTemplates, fillChallengeLine } from "./challenges";
 
 export interface LiveModifier {
   id: string;
@@ -24,6 +25,8 @@ export interface LiveChallenge {
   penalty: number | null;
   /** Display name when the challenge targets one viewer; null = everyone. */
   targetName: string | null;
+  /** What chat has to do, in the event's own words (null when the event has no line). */
+  text: string | null;
 }
 
 export interface LiveEvents {
@@ -45,7 +48,7 @@ export async function listLiveSessionEvents(sessionId: string): Promise<LiveEven
       .order("expires_at", { ascending: true }),
     admin
       .from("gs_event_challenges")
-      .select("id, variable_type, condition, reward, penalty, target_identity_id")
+      .select("id, event_id, community_id, variable_type, condition, reward, penalty, target_identity_id")
       .eq("session_id", sessionId)
       .eq("status", "open")
       .eq("visibility", "public"),
@@ -75,6 +78,8 @@ export async function listLiveSessionEvents(sessionId: string): Promise<LiveEven
     );
   }
 
+  const templates = await challengeTemplates(challenges);
+
   return {
     modifiers,
     challenges: challenges.map((c) => ({
@@ -84,6 +89,7 @@ export async function listLiveSessionEvents(sessionId: string): Promise<LiveEven
       reward: c.reward ?? null,
       penalty: c.penalty ?? null,
       targetName: c.target_identity_id ? (nameById[c.target_identity_id] ?? null) : null,
+      text: fillChallengeLine(templates.get(`${c.event_id}:${c.community_id}`), c.target_identity_id ? (nameById[c.target_identity_id] ?? null) : null),
     })),
   };
 }

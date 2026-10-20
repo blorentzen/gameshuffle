@@ -99,7 +99,7 @@ export function DailySolveTime({ times, solved }: { times: SolveTimes; solved: b
   );
 }
 
-const PUZZLE_NOTE = "Your first hint and your clock start when you tap Start. A faster solve breaks ties on today's leaderboard.";
+const PUZZLE_NOTE = "Your first hint and the clock start when you tap Start.";
 
 /**
  * The Start button, where the guess box goes until the player starts; `children`

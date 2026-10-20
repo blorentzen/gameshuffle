@@ -1,8 +1,9 @@
 "use client";
 
 /**
- * Two ways to back GameShuffle (Britton's picks, 2026-10-19, VDh1QfETVjNTjjzeiKqLNg): GS Pro and
- * Support side by side, the same size and weight, on /gs-pro and /support. GS Pro members see their
+ * Two ways to back GameShuffle (Britton's picks, 2026-10-19, VDh1QfETVjNTjjzeiKqLNg): Support and
+ * GS Pro side by side, the same size and weight, on /gs-pro and /support; Support leads (support
+ * first plan, same day), and its $9 Backer level includes GS Pro. GS Pro members see their
  * plan in the first card and can still support; a supporter sees since when and can give again.
  * Outside the US both are one waitlist (US only for now).
  */
@@ -54,28 +55,15 @@ export function BackingPair({ from, proHref = "/gs-pro", supportHref = "/support
   return (
     <div className="backing-pair">
       <Card variant="outlined" padding="large" className="backing-card">
-        <span className="backing-tile" aria-hidden="true"><IconSparkles size={22} stroke={2} /></span>
-        <h3 className="backing-card__name">GS Pro</h3>
-        <p className="backing-card__price">
-          {isPro ? "You have GS Pro" : trialLeft ? `${usd(pro.monthly)} a month · 14 days free` : `${usd(pro.monthly)} a month or ${usd(pro.annual)} a year`}
-        </p>
-        <p className="backing-card__text">Tools for streamers and hosts: the overlay, chat games, the Discord bot and your own themes.</p>
-        <div className="backing-card__cta">
-          {isPro
-            ? <Link href="/account?tab=plans"><Button variant="secondary">Manage your plan</Button></Link>
-            : <Link href={proHref} onClick={() => track(EVENTS.upgradeClicked, { from: `${from}-pair` })}><Button variant="primary">{trialLeft ? "Start 14 days free" : "Get GS Pro"}</Button></Link>}
-        </div>
-      </Card>
-      <Card variant="outlined" padding="large" className="backing-card">
         <span className="support-tile" aria-hidden="true"><IconHeart size={22} stroke={2} /></span>
         <h3 className="backing-card__name">Support GameShuffle</h3>
         <p className="backing-card__price backing-card__price--support">
-          {support?.supporter && support.since ? `Supporter since ${monthYear(support.since)}` : "From $3, once or monthly"}
+          {support?.supporter && support.since ? `Supporter since ${monthYear(support.since)}` : "From $3, once or monthly. GS Pro included from $9."}
         </p>
         <p className="backing-card__text">
           {support?.supporter
             ? "Thank you for keeping the free games free. You can give again any time."
-            : "Keep the free games free and new ones coming. You get the Supporter badge and, if you like, a spot on the wall."}
+            : "Keep the free games free and new ones coming. You get the Supporter badge and, if you like, a spot on the wall. Back at $9 a month and GS Pro comes with it."}
         </p>
         <div className="backing-card__cta">
           <Link href={supportHref} onClick={() => track(EVENTS.supportClicked, { from: `${from}-pair` })}>
@@ -88,6 +76,19 @@ export function BackingPair({ from, proHref = "/gs-pro", supportHref = "/support
             <Progress value={goalPercent(progress.raisedCents, progress.goalCents)} label="This month's costs covered" />
           </div>
         )}
+      </Card>
+      <Card variant="outlined" padding="large" className="backing-card">
+        <span className="backing-tile" aria-hidden="true"><IconSparkles size={22} stroke={2} /></span>
+        <h3 className="backing-card__name">GS Pro</h3>
+        <p className="backing-card__price">
+          {isPro ? "You have GS Pro" : trialLeft ? `${usd(pro.monthly)} a month · 14 days free` : `${usd(pro.monthly)} a month or ${usd(pro.annual)} a year`}
+        </p>
+        <p className="backing-card__text">Tools for streamers and hosts: the overlay, chat games, the Discord bot and your own themes.</p>
+        <div className="backing-card__cta">
+          {isPro
+            ? <Link href="/account?tab=plans"><Button variant="secondary">Manage your plan</Button></Link>
+            : <Link href={proHref} onClick={() => track(EVENTS.upgradeClicked, { from: `${from}-pair` })}><Button variant="primary">{trialLeft ? "Start 14 days free" : "Get GS Pro"}</Button></Link>}
+        </div>
       </Card>
     </div>
   );

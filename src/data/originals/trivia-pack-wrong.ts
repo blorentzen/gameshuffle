@@ -12,10 +12,24 @@
  * these in as drafts on questions that have none yet.
  */
 
+import { CHRISTMAS_WRONG } from "@/data/originals/trivia-pack-christmas";
 import { HALLOWEEN_WRONG } from "@/data/originals/trivia-pack-halloween";
+import { KIRBY_WRONG } from "@/data/originals/trivia-pack-kirby";
+import { MARIO_WRONG } from "@/data/originals/trivia-pack-mario";
+import { MARIO_KART_WRONG } from "@/data/originals/trivia-pack-mario-kart";
+import { POKEMON_WRONG } from "@/data/originals/trivia-pack-pokemon";
+import { SMASH_WRONG } from "@/data/originals/trivia-pack-smash";
+import { ZELDA_WRONG } from "@/data/originals/trivia-pack-zelda";
 
 export const PACK_WRONG: Record<string, [string, string, string]> = {
   ...HALLOWEEN_WRONG,
+  ...CHRISTMAS_WRONG,
+  ...POKEMON_WRONG,
+  ...MARIO_KART_WRONG,
+  ...SMASH_WRONG,
+  ...MARIO_WRONG,
+  ...ZELDA_WRONG,
+  ...KIRBY_WRONG,
   // General knowledge
   "Which country gave the Statue of Liberty to the United States?": ["Spain", "Italy", "United Kingdom"],
   "Which artist painted the Mona Lisa?": ["Michelangelo", "Raphael", "Sandro Botticelli"],

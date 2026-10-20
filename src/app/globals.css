@@ -643,6 +643,7 @@ ul {
   font-family: inherit;
   font-weight: var(--font-weight-semibold, 600);
   font-size: var(--font-size-14);
+  min-height: 2.4rem;
   opacity: 0.86;
   transition: opacity 0.15s ease;
   white-space: nowrap;
@@ -2542,6 +2543,39 @@ html:not(.dark) .post-topic-chip { color: color-mix(in srgb, var(--bg-primary, v
   .gs-nav__upgrade { display: none; }
 }
 
+/* The heart "Support" button that replaced "Go Pro" (support first plan, 2026-10-19), and the
+   thank-you heart members and supporters see instead (src/components/layout/NavSupport.tsx). */
+.gs-nav__support {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  height: 36px;
+  padding: 0 var(--spacing-14);
+  border-radius: 999px;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #d63a6e, #a81e57);
+  color: #fff;
+  transition: filter 120ms ease;
+}
+.gs-nav__support:hover { filter: brightness(1.08); color: #fff; }
+.gs-nav__support:focus-visible, .gs-nav__thanks:focus-visible { outline: 2px solid #ffb3cd; outline-offset: 2px; }
+.gs-nav__thanks {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  color: #ff8db6;
+  transition: background-color 120ms ease;
+}
+.gs-nav__thanks:hover { background: rgba(255, 255, 255, 0.1); color: #ffb3cd; }
+@media (max-width: 860px) {
+  .gs-nav__support, .gs-nav__thanks { display: none; }
+}
+
 /* The upgrade row inside a pillar dropdown. Separated and weighted so it reads
    as a step up rather than another destination in the list. */
 .gs-navmenu__item--upgrade {
@@ -2927,8 +2961,22 @@ html:not(.dark) .post-topic-chip { color: color-mix(in srgb, var(--bg-primary, v
 }
 .empac-carousel__dot {
   box-sizing: content-box;
-  padding: var(--spacing-8);
+  /* 6px dot + 9px each side = a 24px target (WCAG 2.5.8). */
+  padding: 0.9rem;
   background-clip: content-box;
+}
+
+/* ── CDS bug: below 480px CDS shrinks Table text to 12px (headers to 10px) and
+   Badges to 10px / 12px. Text never shrinks to fit a phone (a cramped table
+   scrolls sideways instead), so phones keep the desktop sizes.
+   Upstream fix belongs in CascadeDS; local override until then. ── */
+@media (max-width: 480px) {
+  .empac-table { font-size: var(--font-size-14); }
+  .empac-table__caption { font-size: var(--font-size-14); }
+  .empac-table__head { font-size: var(--font-size-12); }
+  .empac-table__empty-description { font-size: var(--font-size-14); }
+  .empac-badge--small { font-size: var(--font-size-12); }
+  .empac-badge--default-size { font-size: var(--font-size-14); }
 }
 
 /* ── CDS bug: a selected success / warning / error Chip is white text on the
@@ -3144,3 +3192,11 @@ html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
     font-size: var(--font-size-16); /* html:root outranks CDS's size rules (.empac-combobox--medium .empac-combobox__input) */
   }
 }
+
+/* TableScroll (src/components/ui/TableScroll.tsx): a CDS Table that scrolls sideways
+   inside a box keyboard users can focus. The CDS container sizes to its table
+   (fitting the column when it can, wider when the text needs it) and this box scrolls. */
+.table-scroll { position: relative; max-width: 100%; overflow-x: auto; }
+.table-scroll:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; border-radius: var(--radius-8); }
+.table-scroll > .empac-table-container { display: inline-block; min-width: 100%; overflow: visible; vertical-align: top; }
+.circuit-compare__table { max-width: 88rem; margin: 0 auto; }

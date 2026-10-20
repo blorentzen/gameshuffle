@@ -6,7 +6,7 @@ import { SupportThanksTracker } from "@/components/support/SupportThanksTracker"
 import { SupporterShare } from "@/components/support/SupporterShare";
 import { createClient } from "@/lib/supabase/server";
 import { fulfilSupportSession } from "@/lib/support/store";
-import { dollars } from "@/lib/support/rules";
+import { dollars, levelGrantsPro, supportLevel } from "@/lib/support/rules";
 import "../../../styles/support.css";
 
 export const metadata: Metadata = { title: "Thank you", robots: { index: false, follow: false } };
@@ -34,7 +34,9 @@ export default async function SupportThanksPage({ searchParams }: { searchParams
           <>
             <SupportThanksTracker kind={result!.kind ?? "once"} amount={Math.round((result!.cents ?? 0) / 100)} />
             <p className="support-thanks__lead">
-              {result!.kind === "monthly" ? `You're supporting GameShuffle with ${dollars(result!.cents ?? 0)} a month.` : `You supported GameShuffle with ${dollars(result!.cents ?? 0)}.`}
+              {result!.kind === "monthly"
+                ? `You're supporting GameShuffle${supportLevel(result!.level) ? ` as a ${supportLevel(result!.level)!.name}` : ""} with ${dollars(result!.cents ?? 0)} a month.`
+                : `You supported GameShuffle with ${dollars(result!.cents ?? 0)}.`}
               {" "}A thank-you email is on its way, and Stripe sends your receipt.
             </p>
             <div className="support-thanks__share">
@@ -42,6 +44,7 @@ export default async function SupportThanksPage({ searchParams }: { searchParams
               <SupporterShare session={session_id} />
             </div>
             <ul className="support-thanks__list">
+              {levelGrantsPro(result!.level) && <li>GS Pro is on: the Twitch and Discord tools, themes and the AI features. Start in <Link href="/hub">your stream hub</Link>.</li>}
               {result!.onWall && <li>Your name is on the <Link href="/support">supporters wall</Link>.</li>}
               {user
                 ? <li>A Supporter badge now shows on your profile. See it all in <Link href="/account?tab=support">Account ▸ Support</Link>.</li>

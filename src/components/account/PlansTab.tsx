@@ -27,7 +27,7 @@ import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
 import { BillingManager } from "./BillingManager";
 import Link from "next/link";
 import { useSupportStatus } from "@/components/support/useSupportStatus";
-import { dollars } from "@/lib/support/rules";
+import { dollars, levelGrantsPro, supportLevel } from "@/lib/support/rules";
 import { circuitTier as getCircuitTier, type CircuitTierId } from "@/lib/tournaments/circuit";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
@@ -63,6 +63,7 @@ type BillingStatus =
   | "pro_ending"
   | "pro_past_due"
   | "circuit_pro"
+  | "support_pro"
   | "free";
 
 function formatDate(iso: string | null): string {
@@ -81,6 +82,7 @@ export function PlansTab() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const [billingStatus, setBillingStatus] = useState<BillingStatus>("loading");
+  const supportStatus = useSupportStatus();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [userRow, setUserRow] = useState<UserBillingRow | null>(null);
   const [portalWorking, setPortalWorking] = useState(false);
@@ -233,7 +235,9 @@ export function PlansTab() {
   const limitRows = aiLimits
     ? [...FREE_VS_PRO, { label: "AI uses", free: `${aiLimits.freePerDay} a day (setup, planner, tournament helper)`, pro: `${aiLimits.proPer30d} every 30 days, every AI tool` }]
     : FREE_VS_PRO;
-  const pro = describeProPlan(billingStatus, subscription);
+  // GS Pro from a Backer or Champion support level (no GS Pro plan of its own).
+  const proStatus: BillingStatus = billingStatus === "free" && levelGrantsPro(supportStatus?.level) ? "support_pro" : billingStatus;
+  const pro = describeProPlan(proStatus, subscription);
   const circuit = describeCircuitPlan(userRow);
   const proPrice = pricing.plans.pro ?? { monthly: 9, annual: 99 };
   const proSave =
@@ -272,7 +276,12 @@ export function PlansTab() {
         alert={pro.alert}
         learnMore={{ href: "/gs-pro", label: "Learn more about GameShuffle Pro" }}
       >
-        {pro.free ? (
+        {pro.viaSupport ? (
+          <>
+            <p style={{ ...mutedNote, marginTop: 0 }}>GS Pro comes with your Backer or Champion support and stays on while your support does.</p>
+            <div><Link href="/account?tab=support"><Button variant="secondary">Your support</Button></Link></div>
+          </>
+        ) : pro.free ? (
           <>
             <p className="plan-price">
               {usd(proPrice.monthly)}
@@ -360,13 +369,13 @@ function SupportPlanCard() {
   if (!s) return null;
   const rows = [
     ...(s.supporter && s.since ? [{ label: "Supporter since", value: new Date(s.since).toLocaleDateString(undefined, { month: "long", year: "numeric" }) }] : []),
-    ...(s.monthly ? [{ label: "Monthly", value: `${dollars(s.monthly.amountCents)}${s.monthly.renewsAt ? ` · ${s.monthly.cancelAtPeriodEnd ? "stops after" : "next"} ${formatDate(s.monthly.renewsAt)}` : ""}` }] : []),
+    ...(s.monthly ? [{ label: supportLevel(s.monthly.level)?.name ?? "Monthly", value: `${dollars(s.monthly.amountCents)} a month${s.monthly.renewsAt ? ` · ${s.monthly.cancelAtPeriodEnd ? "stops after" : "next"} ${formatDate(s.monthly.renewsAt)}` : ""}` }] : []),
   ];
   return (
     <PlanCard
       name="Support GameShuffle"
-      subtitle="For everyone: chip in once or monthly to keep the free games free. You get the Supporter badge."
-      status={s.supporter ? { label: s.monthly ? "Monthly supporter" : "Supporter", tone: "active" } : { label: "Not yet", tone: "muted" }}
+      subtitle="For everyone: support once, or monthly as a Supporter, a Backer (GS Pro included) or a Champion, to keep the free games free."
+      status={s.supporter ? { label: s.monthly ? supportLevel(s.monthly.level)?.name ?? "Monthly supporter" : "Supporter", tone: "active" } : { label: "Not yet", tone: "muted" }}
       rows={rows}
       learnMore={{ href: "/support", label: "See the supporters wall" }}
     >
@@ -377,7 +386,7 @@ function SupportPlanCard() {
 
 type PillTone = "active" | "trial" | "warn" | "muted";
 interface PlanStatus { label: string; tone: PillTone; }
-interface PlanDesc { status: PlanStatus; rows: { label: string; value: string }[]; alert?: string; free?: boolean; reactivate?: boolean; subscribed?: boolean; }
+interface PlanDesc { status: PlanStatus; rows: { label: string; value: string }[]; alert?: string; free?: boolean; reactivate?: boolean; subscribed?: boolean; viaSupport?: boolean; }
 
 function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | null): PlanDesc {
   switch (billingStatus) {
@@ -391,6 +400,8 @@ function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | nu
       return { status: { label: "Canceling", tone: "warn" }, rows: sub?.current_period_end ? [{ label: "Access through", value: formatDate(sub.current_period_end) }] : [], reactivate: true };
     case "circuit_pro":
       return { status: { label: "Included with GS Circuit 256", tone: "active" }, rows: [] };
+    case "support_pro":
+      return { status: { label: "Included with your support", tone: "active" }, rows: [], viaSupport: true };
     case "pro_past_due":
       return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues while Stripe retries the payment. Update your card to keep it going." };
     default:

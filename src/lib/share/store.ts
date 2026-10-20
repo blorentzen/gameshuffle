@@ -31,7 +31,8 @@ import { BRAND_THEMES } from "@/lib/theme/brand";
 import { codeFor } from "@/lib/referrals/store";
 import { supporterInfo } from "@/lib/support/store";
 import { SITE_URL } from "@/lib/seo";
-import { shareAlt, type FirePart, type PuzzlePart, type ShareBackground, type ShareCell, type ShareData, type ShareKind, type ShareMade, type SharePart, type SharePlayer, type ShareRequest, type SupporterPart, type WeeklyPart } from "./types";
+import { clockLabel, clockSeconds, isQuizClock, isQuizSet, setLabel, setPool } from "@/lib/pokemon/nameQuiz";
+import { shareAlt, type NamesPart, type FirePart, type PuzzlePart, type ShareBackground, type ShareCell, type ShareData, type ShareKind, type ShareMade, type SharePart, type SharePlayer, type ShareRequest, type SupporterPart, type WeeklyPart } from "./types";
 
 type DbError = { code?: string; message?: string } | null;
 const missing = (e: DbError) => !!e && (["42P01", "PGRST205"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
@@ -186,10 +187,24 @@ async function supporterPart(key: string, session: string | undefined): Promise<
   return null;
 }
 
+/**
+ * Name every Pokémon: a quiz played in the browser, so the score is the player's own word. It's
+ * checked for sense (real Pokémon in the set, each once; the time inside the clock) and carries no
+ * tokens or leaderboard place.
+ */
+function namesPart(raw: ShareRequest["names"]): NamesPart | null {
+  if (!raw || !isQuizSet(raw.set) || !isQuizClock(raw.clock) || !Array.isArray(raw.named) || raw.named.length > 1100) return null;
+  const pool = new Set(setPool(raw.set).map((p) => p.dex));
+  const count = new Set(raw.named.filter((d) => typeof d === "number" && pool.has(d))).size;
+  const limit = clockSeconds(raw.set, raw.clock) ?? 12 * 3600;
+  const seconds = Math.max(0, Math.min(limit, Math.round(Number(raw.seconds) || 0)));
+  return { kind: "names", set: raw.set, setLabel: setLabel(raw.set), count, of: pool.size, seconds, clockLabel: clockLabel(raw.set, raw.clock) };
+}
+
 /** Makes (or refreshes) this player's card for a request and returns its link. */
 export async function makeShare(key: string, req: ShareRequest): Promise<ShareMade | ShareError> {
   const kind = req.kind;
-  if (!["shuffle", "dex", "fire", "weekly", "day", "supporter"].includes(kind)) return "bad_request";
+  if (!["shuffle", "dex", "fire", "weekly", "day", "supporter", "names"].includes(kind)) return "bad_request";
   const day = dayKey();
   const parts: SharePart[] = [];
   let ref = "";
@@ -204,6 +219,12 @@ export async function makeShare(key: string, req: ShareRequest): Promise<ShareMa
     if (!part) return "no_result";
     parts.push(part);
     ref = part.daily ? "" : runId ?? "";
+  } else if (kind === "names") {
+    const part = namesPart(req.names);
+    if (!part) return "bad_request";
+    parts.push(part);
+    // One card per set and clock a day.
+    ref = `${part.set}-${req.names!.clock}`;
   } else if (kind === "supporter") {
     const part = await supporterPart(key, req.session);
     if (!part) return "no_result";
@@ -262,6 +283,13 @@ export async function loadShare(code: string): Promise<{ data: ShareData; update
   if (error || !data) return null;
   const row = data as { data: ShareData; updated_at: string };
   return { data: row.data, updatedAt: row.updated_at };
+}
+
+/** Whose card a code is (`u:`/`i:`/`g:`), for the leaderboard's "shared this". Server only: never sent to a page. */
+export async function sharePlayer(code: string): Promise<string | null> {
+  if (!/^[a-z0-9]{6,12}$/.test(code)) return null;
+  const { data } = await createServiceClient().from("gs_share_cards").select("player").eq("code", code).maybeSingle();
+  return (data as { player: string } | null)?.player ?? null;
 }
 
 export type { ShareKind };

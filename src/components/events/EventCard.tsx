@@ -20,6 +20,7 @@ import type { ReactNode } from "react";
 import { formatEventPrice } from "@/lib/events/price";
 import { EventHeaderArt, type ArtCategory } from "./EventHeaderArt";
 import { GameChipIcon } from "@/components/games/GameCover";
+import { boxArt, findGame } from "@/data/game-catalog";
 
 export interface EventCardProps {
   href: string;
@@ -62,14 +63,19 @@ export function EventCard({
   priceFromCents, countLabel, isLive, highlight, badges, whenSuffix, showPrice = true,
 }: EventCardProps) {
   const price = formatEventPrice(priceFromCents);
+  // No cover of its own: the game's box art on the generated art, so a list of
+  // tournaments isn't the same trophy pattern over and over.
+  const box = !cover && game ? boxArt(findGame(null, game)) : null;
 
   return (
     <Link href={href} className="bgn-card">
-      <span className={`bgn-card__hero${cover ? " bgn-card__hero--img" : ""}`}>
+      <span className={`bgn-card__hero${cover ? " bgn-card__hero--img" : ""}${box ? " bgn-card__hero--box" : ""}`}>
         {cover
           // eslint-disable-next-line @next/next/no-img-element
           ? <img src={cover} alt="" className="bgn-card__hero-photo" loading="lazy" />
           : <EventHeaderArt category={artCategory ?? "board"} seed={seed} motion="hover" />}
+        {/* eslint-disable-next-line @next/next/no-img-element -- local 300x400 webp */}
+        {box && <img src={box} alt="" className="bgn-card__hero-box" width={300} height={400} loading="lazy" />}
         {isLive
           ? <span className="bgn-card__hero-count events-browser__live">Live now</span>
           : countLabel && <span className="bgn-card__hero-count">{countLabel}</span>}

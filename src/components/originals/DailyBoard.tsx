@@ -22,6 +22,7 @@ import { OriginalsLink, useOriginalsHost } from "@/components/originals/Original
 import { ordinal, PERIOD_LABEL, tidyName, type BoardGame, type BoardPeriod } from "@/lib/daily/boardRules";
 import type { BoardRow, BoardView, ScoreResult } from "@/lib/daily/boardTypes";
 import { formatTime } from "@/lib/originals/dailies";
+import { useShareChallenge } from "@/components/share/ShareChallenge";
 
 const GUEST_KEY = "gs-daily-guest";
 const SENT_KEY = "gs-daily-guest-sent";
@@ -224,6 +225,7 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
           <PlayerAvatar name={r.name} src={pictures ? r.avatar ?? undefined : undefined} place={placeOf(r)} />
           {r.profile ? <OriginalsLink href={r.profile}>{r.you ? "You" : r.name}</OriginalsLink> : <span>{r.you ? "You" : r.name}</span>}
           {r.supporter && <IconHeartFilled size={13} className="daily-board__heart" aria-hidden="true" />}
+          {r.shared && !r.you && <span className="daily-board__shared">Shared this</span>}
           <span className="sr-only"> ({PLACES[placeOf(r)].said}{r.supporter ? ", supports GameShuffle" : ""})</span>
         </span>
       </TableCell>
@@ -272,12 +274,14 @@ const settleText = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateStr
 /** `join`: the guest's "Put me on the board" form, shown above the board it joins. */
 export function DailyBoard({ game, main, guestId, refresh, onViews, join }: { game: BoardGame; main: number; guestId: string | null; refresh: number; onViews?: (day: BoardView | null, week: BoardView | null) => void; join?: ReactNode }) {
   const { api, activity } = useOriginalsHost();
+  // On a friend's shared result page the board marks their row (the server looks the code up).
+  const sharedCode = useShareChallenge()?.code ?? null;
   const [period, setPeriod] = useState<BoardPeriod>("day");
   const [views, setViews] = useState<Partial<Record<BoardPeriod, BoardView>>>({});
 
   useEffect(() => {
     let alive = true;
-    const load = (p: BoardPeriod) => api(`/api/daily/board?game=${game}&period=${p}`, { headers: guestId ? { "x-daily-guest": guestId } : {} })
+    const load = (p: BoardPeriod) => api(`/api/daily/board?game=${game}&period=${p}${sharedCode ? `&shared=${sharedCode}` : ""}`, { headers: guestId ? { "x-daily-guest": guestId } : {} })
       .then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<BoardView | null>;
     void Promise.all([load("day"), load("week"), load("month")]).then(([d, w, m]) => {
       if (!alive) return;
@@ -289,7 +293,7 @@ export function DailyBoard({ game, main, guestId, refresh, onViews, join }: { ga
       }
     });
     return () => { alive = false; };
-  }, [api, game, guestId, refresh, onViews]);
+  }, [api, game, guestId, refresh, onViews, sharedCode]);
 
   const current = views[period];
   if (!views.day?.ready) return null;
@@ -310,7 +314,7 @@ export function DailyBoard({ game, main, guestId, refresh, onViews, join }: { ga
         <p className="daily-board__foot">
           {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · {game === "fire"
             ? "ties share a place · your first round each day earns up to 10 points, 1 for every 200 you score"
-            : `${period === "day" ? "level on points, the faster solve ranks higher" : "ties share a place"} · 10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance`}
+            : `10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance · ${period === "day" ? "ties go to the faster solve" : "ties share a place"}`}
           {current.settles ? ` · prizes land ${settleText(current.settles)}` : ""}
         </p>
       )}

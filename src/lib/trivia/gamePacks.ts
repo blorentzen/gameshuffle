@@ -15,6 +15,7 @@ import "server-only";
 
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { draftStructured, type AiResult } from "@/lib/ai/claude";
 import { isBlockedText } from "@/lib/text/filter";
 import { gsDay } from "@/lib/time/gsClock";
@@ -43,8 +44,8 @@ export async function gamePacksReady(): Promise<boolean> {
 
 /** Which pack questions are about which game (id → slug), for Platform ▸ Trivia. Null until the column exists. */
 export async function gameTags(): Promise<Record<string, string> | null> {
-  const { data, error } = await createServiceClient().from("trivia_questions").select("id, game_slug")
-    .is("owner_user_id", null).not("game_slug", "is", null).limit(5000);
+  const { data, error } = await readAllPages((from, to) => createServiceClient().from("trivia_questions").select("id, game_slug")
+    .is("owner_user_id", null).not("game_slug", "is", null).order("id").range(from, to));
   if (error) return null;
   return Object.fromEntries(((data ?? []) as { id: string; game_slug: string }[]).map((r) => [r.id, r.game_slug]));
 }

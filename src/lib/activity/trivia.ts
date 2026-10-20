@@ -10,6 +10,7 @@ import "server-only";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { liveStreamGame } from "@/lib/trivia/stream";
 import { judgeAnswer, type TriviaQuestion } from "@/lib/trivia/rules";
 import { categoryInSeason } from "@/lib/trivia/seasons";
@@ -33,8 +34,8 @@ const COLS = "id, prompt, answer, accept, ask_about, reject, kind, options, cate
 
 /** Five approved pack questions (no pictures), mixed categories, skipping ones this player just saw. */
 export async function practiceSet(skip: Set<string>): Promise<PracticeQuestion[]> {
-  const { data } = await createServiceClient().from("trivia_questions").select(COLS)
-    .is("owner_user_id", null).eq("status", "approved").eq("family_safe", true).in("kind", ["text", "number", "choice"]).limit(800);
+  const { data } = await readAllPages<Row>((from, to) => createServiceClient().from("trivia_questions").select(COLS)
+    .is("owner_user_id", null).eq("status", "approved").eq("family_safe", true).in("kind", ["text", "number", "choice"]).order("id").range(from, to));
   const rows = ((data ?? []) as Row[]).filter((r) => !skip.has(r.id) && categoryInSeason(r.category) && (r.kind !== "choice" || (r.options?.length ?? 0) >= 2));
   // Shuffle, then take one per category first so a round isn't five geography questions.
   for (let i = rows.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [rows[i], rows[j]] = [rows[j], rows[i]]; }

@@ -53,6 +53,7 @@ import { LiveBingoCard } from "./LiveBingoCard";
 import { LiveBreakCard } from "./LiveBreakCard";
 import { LiveTriviaCard } from "./LiveTriviaCard";
 import { LiveChatBrainCard } from "./LiveChatBrainCard";
+import { LiveSiteHost } from "./LiveSiteHost";
 import { LiveDraftCard } from "./LiveDraftCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
@@ -214,11 +215,13 @@ export function LiveStreamView({
           <StreamerHeader streamer={streamer} />
           <LiveTournamentRace ownerUserId={streamer.userId} />
           {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
-          <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-          <LiveTriviaCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-          <LiveChatBrainCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-          <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-          <LiveDraftCard communityId={initialLeaderboard.communityId} />
+          <LiveSiteHost streamerSlug={streamer.slug}>
+            <LiveBreakCard communityId={initialLeaderboard.communityId} />
+            <LiveTriviaCard communityId={initialLeaderboard.communityId} />
+            <LiveChatBrainCard communityId={initialLeaderboard.communityId} />
+            <LiveBingoCard communityId={initialLeaderboard.communityId} />
+            <LiveDraftCard communityId={initialLeaderboard.communityId} />
+          </LiveSiteHost>
           {upcoming && (
             <UpcomingLobbyCard streamerName={streamerName} upcoming={upcoming} />
           )}
@@ -694,12 +697,14 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
           </div>
         </div>
 
-        <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-        <LiveTriviaCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-        <LiveChatBrainCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-        <LivePollCard communityId={initialLeaderboard.communityId} />
-        <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-        <LiveDraftCard communityId={initialLeaderboard.communityId} />
+        <LiveSiteHost streamerSlug={streamer.slug}>
+          <LiveBreakCard communityId={initialLeaderboard.communityId} />
+          <LiveTriviaCard communityId={initialLeaderboard.communityId} />
+          <LiveChatBrainCard communityId={initialLeaderboard.communityId} />
+          <LivePollCard communityId={initialLeaderboard.communityId} />
+          <LiveBingoCard communityId={initialLeaderboard.communityId} />
+          <LiveDraftCard communityId={initialLeaderboard.communityId} />
+        </LiveSiteHost>
 
         {actionStatus && (
           <div

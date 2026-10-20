@@ -14,18 +14,19 @@ import sharp from "sharp";
 import { allowedImageHost, fieldSvg, fonts, logo, svgUri } from "@/lib/og/eventCard";
 import { GLYPHS, type GlyphName } from "@/lib/og/glyphs";
 import { facePng } from "@/lib/discord/faces";
-import { ordinalPlace, partLine, partTitle, puzzleHeadline, puzzleVibe, shareTime, supporterSince, type FirePart, type PuzzlePart, type ShareCell, type ShareData, type SharePart, type SupporterPart, type WeeklyPart } from "./types";
+import { ordinalPlace, partLine, partTitle, puzzleHeadline, puzzleVibe, shareTime, supporterSince, type NamesPart, type FirePart, type PuzzlePart, type ShareCell, type ShareData, type SharePart, type SupporterPart, type WeeklyPart } from "./types";
 
-type Look = "shuffle" | "dex" | "fire" | "weekly" | "day" | "supporter";
+type Look = "shuffle" | "dex" | "fire" | "weekly" | "day" | "supporter" | "names";
 const LOOK: Record<Look, { base: string; glow: string; field: GlyphName[]; kicker: string; link: string; cta: string }> = {
   shuffle: { base: "#150f45", glow: "radial-gradient(circle at 0% 0%, #6b4ee6 0%, #2b1d84 48%, #150f45 100%)", field: ["star", "steering-wheel", "mushroom", "question-mark", "flame"], kicker: "#d3c8ff", link: "gameshuffle.co/daily", cta: "Can you beat it? Play today's, free." },
   dex: { base: "#2a0f07", glow: "radial-gradient(circle at 0% 0%, #d9622a 0%, #7d2412 50%, #2a0f07 100%)", field: ["pokeball", "bolt", "flame", "droplet", "leaf"], kicker: "#ffcfa8", link: "gameshuffle.co/daily-dex", cta: "Can you beat it? Play today's, free." },
   fire: { base: "#2c0610", glow: "radial-gradient(circle at 0% 0%, #e2453a 0%, #8f1428 50%, #2c0610 100%)", field: ["flame", "bolt", "trophy", "sparkles", "star"], kicker: "#ffc2a6", link: "gameshuffle.co/daily-trivia", cta: "How many can you get in 60 seconds?" },
   weekly: { base: "#062a27", glow: "radial-gradient(circle at 0% 0%, #1fae96 0%, #0b5a52 50%, #062a27 100%)", field: ["trophy", "calendar-week", "users-group", "award", "star"], kicker: "#b6f0e4", link: "gameshuffle.co/weekly", cta: "What would you say? Answer this week's." },
   supporter: { base: "#26101f", glow: "radial-gradient(circle at 100% 0%, #c2386e 0%, #5a1838 45%, #26101f 100%)", field: ["sparkles", "star", "puzzle", "trophy", "heart"], kicker: "#ffd2e2", link: "gameshuffle.co/support", cta: "Come play, or chip in too." },
+  names: { base: "#2b0a0e", glow: "radial-gradient(circle at 100% 0%, #e0383e 0%, #8a1622 48%, #2b0a0e 100%)", field: ["pokeball", "bolt", "flame", "droplet", "leaf"], kicker: "#ffc9c4", link: "gameshuffle.co/name-every-pokemon", cta: "How many can you name? Free, no account." },
   day: { base: "#0f1d5c", glow: "linear-gradient(135deg, #1b3db0, #2f66ec 48%, #4b5cf5)", field: ["puzzle", "pokeball", "flame", "calendar-week", "trophy"], kicker: "#dbe4ff", link: "gameshuffle.co/daily", cta: "Play today's dailies, free." },
 };
-const PART_GLOW: Record<SharePart["kind"], string> = { shuffle: LOOK.shuffle.glow, dex: LOOK.dex.glow, fire: LOOK.fire.glow, weekly: LOOK.weekly.glow, supporter: LOOK.supporter.glow };
+const PART_GLOW: Record<SharePart["kind"], string> = { shuffle: LOOK.shuffle.glow, dex: LOOK.dex.glow, fire: LOOK.fire.glow, weekly: LOOK.weekly.glow, supporter: LOOK.supporter.glow, names: LOOK.names.glow };
 const ROSE = "#ff8db6";
 const CELL: Record<ShareCell, string> = { match: "#3bd17f", close: "#f6c34a", miss: "rgba(255,255,255,0.18)" };
 
@@ -62,6 +63,24 @@ function SupporterBlock({ p, a, big, px, center = false }: { p: SupporterPart; a
       <div style={{ display: "flex", fontFamily: "Gabarito", fontSize: tall ? 104 : big ? 84 : 66, lineHeight: 1.04, textAlign: center ? "center" : "left" }}>Keeping game night free</div>
       <div style={{ display: "flex" }}><Chip src={a.icons.heart} text={supporterSince(p)} px={px} /></div>
       <div style={{ display: "flex", fontSize: tall ? 36 : 26, color: "rgba(255,255,255,0.86)", lineHeight: 1.35, textAlign: center ? "center" : "left", maxWidth: tall ? 880 : 760 }}>Daily puzzles, randomizers and party tools, backed by players.</div>
+    </div>
+  );
+}
+
+/** Name every Pokémon: the count out of the set, how long, and which clock. */
+function NamesBlock({ p, a, big, px, center = false }: { p: NamesPart; a: Assets; big: boolean; px: number; center?: boolean }) {
+  const tall = px > 30;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: tall ? 24 : 14, alignItems: center ? "center" : "flex-start" }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
+        <div style={{ display: "flex", fontFamily: "Gabarito", fontSize: tall ? 200 : big ? 132 : 110, lineHeight: 1 }}>{p.count.toLocaleString("en-US")}</div>
+        <div style={{ display: "flex", fontSize: tall ? 46 : 32, fontWeight: 600, color: LOOK.names.kicker }}>of {p.of.toLocaleString("en-US")}</div>
+      </div>
+      <div style={{ display: "flex", fontSize: tall ? 46 : 30, fontWeight: 600 }}>{p.count === p.of ? "Named every one" : "named from memory"}</div>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: center ? "center" : "flex-start" }}>
+        <Chip src={a.icons.time} text={shareTime(p.seconds)} px={px} />
+        <Chip src={a.icons.bolt} text={p.clockLabel} color="#ffd2a6" px={px} />
+      </div>
     </div>
   );
 }
@@ -212,6 +231,8 @@ function Wide({ data, a, look }: { data: ShareData; a: Assets; look: Look }) {
               <PlayerLine data={data} a={a} size={92} look={look} />
               {part.kind === "supporter" ? (
                 <SupporterBlock p={part} a={a} big={!data.player} px={26} />
+              ) : part.kind === "names" ? (
+                <NamesBlock p={part} a={a} big={!data.player} px={26} />
               ) : part.kind === "fire" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 16 }}>
@@ -289,6 +310,8 @@ function Tall({ data, a, look }: { data: ShareData; a: Assets; look: Look }) {
           </div>
         ) : part.kind === "supporter" ? (
           <SupporterBlock p={part} a={a} big px={36} center />
+        ) : part.kind === "names" ? (
+          <NamesBlock p={part} a={a} big px={36} center />
         ) : part.kind === "fire" ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
             <div style={{ display: "flex", fontFamily: "Gabarito", fontSize: 200, lineHeight: 1 }}>{part.score.toLocaleString("en-US")}</div>

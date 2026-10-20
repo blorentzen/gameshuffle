@@ -5,6 +5,9 @@ import { ACTIVITY_PATH, isActivityHost, isActivityPath } from "@/lib/activity/ho
 import { hasPasswordFrom } from "@/lib/auth/passwordRules";
 
 const PROTECTED_ROUTES = ["/account", "/twitch", "/messages", "/comms"];
+/** A protected section and everything under it, by whole path segment: "/twitch" covers
+ *  "/twitch/commands" but not the public "/twitch-chat-games" guide. */
+const underProtected = (path: string) => PROTECTED_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
 
 /** The root layout reads this to decide whether the current request is
  *  a marketing surface (force light) or an app surface (honor theme
@@ -81,7 +84,7 @@ export async function middleware(request: NextRequest) {
   // behavior). For everything else, return early after the header is
   // set — no Supabase round-trip needed just to render a marketing page.
   const path = request.nextUrl.pathname;
-  const isProtectedPath = PROTECTED_ROUTES.some((r) => path.startsWith(r));
+  const isProtectedPath = underProtected(path);
   const isAuthFlow = path === "/login" || path === "/signup";
   if (!isProtectedPath && !isAuthFlow) {
     return supabaseResponse;
@@ -118,9 +121,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protect account routes
-  const isProtected = PROTECTED_ROUTES.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  const isProtected = underProtected(request.nextUrl.pathname);
 
   if (isProtected && !user) {
     const loginUrl = new URL("/login", request.url);

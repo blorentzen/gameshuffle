@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { SupportLevel } from "@/lib/support/rules";
 
 /** /api/support/status: who's looking, for every Support ask and thank-you. */
 export interface SupportStatus {
@@ -14,7 +15,13 @@ export interface SupportStatus {
   /** Their display name, for the thank-you line. */
   name: string | null;
   pro: boolean;
-  monthly: { amountCents: number; status: string; cancelAtPeriodEnd: boolean; renewsAt: string | null } | null;
+  /** GS Pro from a plan, a trial or Circuit 256 (so a level with GS Pro would charge twice). */
+  proElsewhere: boolean;
+  /** Their live monthly level. */
+  level: SupportLevel | null;
+  /** Their Founding supporter number, or null. */
+  founding: number | null;
+  monthly: { amountCents: number; status: string; cancelAtPeriodEnd: boolean; renewsAt: string | null; level: SupportLevel } | null;
   progress: { goalCents: number; raisedCents: number } | null;
   supportersThisMonth: number;
 }

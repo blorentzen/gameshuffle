@@ -200,7 +200,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         {Array.from({ length: players }, (_, i) => {
           const f = fighters[i];
           return (
-            <div key={i} className="player-card">
+            <div key={i} className={`player-card${f ? "" : " player-card--seat"}`}>
               <div className="player-card__header">
                 <div className="player-card__name">
                   <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />

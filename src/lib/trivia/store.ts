@@ -15,6 +15,7 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { normalize, questionKey } from "@/lib/chatbrain/rules";
 import type { PackQuestion } from "@/data/originals/trivia-pack";
 import { isBlockedText } from "@/lib/text/filter";
@@ -102,8 +103,11 @@ export function toQuestion(r: QuestionRow): LibraryQuestion {
 /** The host's own questions (drafts first) and the GameShuffle pack. */
 export async function listLibrary(ownerUserId: string, opts: { pack?: boolean } = {}): Promise<LibraryQuestion[]> {
   const svc = createServiceClient();
-  const q = svc.from("trivia_questions").select(Q_COLS).neq("status", "retired").order("created_at", { ascending: false }).limit(opts.pack ? 2000 : 500);
-  const { data, error } = opts.pack ? await q.is("owner_user_id", null).eq("status", "approved") : await q.eq("owner_user_id", ownerUserId);
+  // The pack can pass 1,000 questions, so it's read a page at a time (a host's own library stays capped at 500).
+  const { data, error } = opts.pack
+    ? await readAllPages((from, to) => svc.from("trivia_questions").select(Q_COLS).is("owner_user_id", null).eq("status", "approved")
+      .order("created_at", { ascending: false }).order("id").range(from, to))
+    : await svc.from("trivia_questions").select(Q_COLS).neq("status", "retired").eq("owner_user_id", ownerUserId).order("created_at", { ascending: false }).limit(500);
   if (notReady(error)) throw new TriviaNotReady();
   return ((data ?? []) as QuestionRow[]).map(toQuestion);
 }
@@ -182,8 +186,8 @@ export interface PackCounts { draft: number; approved: number; retired: number }
 
 /** Every pack question for Platform ▸ Trivia, any status. */
 export async function packAdminList(): Promise<{ questions: LibraryQuestion[]; counts: PackCounts }> {
-  const { data, error } = await createServiceClient().from("trivia_questions").select(Q_COLS).is("owner_user_id", null)
-    .order("category").order("created_at").limit(2000);
+  const { data, error } = await readAllPages((from, to) => createServiceClient().from("trivia_questions").select(Q_COLS).is("owner_user_id", null)
+    .order("category").order("created_at").order("id").range(from, to));
   if (notReady(error)) throw new TriviaNotReady();
   const questions = ((data ?? []) as QuestionRow[]).map(toQuestion);
   const counts: PackCounts = { draft: 0, approved: 0, retired: 0 };
@@ -196,7 +200,7 @@ const packKey = (prompt: string, imageUrl: string | null | undefined) => `${ques
 
 /** How many bank questions aren't in the pack yet. */
 export async function packBankMissing(bank: PackQuestion[]): Promise<number> {
-  const { data } = await createServiceClient().from("trivia_questions").select("prompt, image_url").is("owner_user_id", null).limit(5000);
+  const { data } = await readAllPages((from, to) => createServiceClient().from("trivia_questions").select("prompt, image_url").is("owner_user_id", null).order("id").range(from, to));
   const have = new Set(((data ?? []) as { prompt: string; image_url: string | null }[]).map((r) => packKey(r.prompt, r.image_url)));
   return bank.filter((b) => !have.has(packKey(b.prompt, b.imageUrl))).length;
 }
@@ -204,7 +208,7 @@ export async function packBankMissing(bank: PackQuestion[]): Promise<number> {
 /** Add the bank's questions the pack doesn't have, as drafts for staff to check. Safe to rerun. */
 export async function importPack(bank: PackQuestion[]): Promise<{ added: number; skipped: number; invalid: string[] }> {
   const svc = createServiceClient();
-  const { data, error } = await svc.from("trivia_questions").select("prompt, image_url").is("owner_user_id", null).limit(5000);
+  const { data, error } = await readAllPages((from, to) => svc.from("trivia_questions").select("prompt, image_url").is("owner_user_id", null).order("id").range(from, to));
   if (notReady(error)) throw new TriviaNotReady();
   const have = new Set(((data ?? []) as { prompt: string; image_url: string | null }[]).map((r) => packKey(r.prompt, r.image_url)));
   const rows: Record<string, unknown>[] = [];
@@ -216,7 +220,7 @@ export async function importPack(bank: PackQuestion[]): Promise<{ added: number;
     const v = questionRow({ ...b, familySafe: true });
     if (!v.ok) { invalid.push(`${b.prompt} (${v.error})`); continue; }
     have.add(key);
-    rows.push({ ...v.row, owner_user_id: null, origin: "staff", status: "draft" });
+    rows.push({ ...v.row, owner_user_id: null, origin: "staff", status: "draft", game_slug: b.gameSlug ?? null });
   }
   for (let i = 0; i < rows.length; i += 200) {
     const { error: e } = await svc.from("trivia_questions").insert(rows.slice(i, i + 200));

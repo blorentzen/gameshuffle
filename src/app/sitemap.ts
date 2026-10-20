@@ -87,6 +87,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/game-nights/christmas-party-games`,
+      lastModified: lm("/game-nights/christmas-party-games"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/game-nights/halloween-party-games`,
       lastModified: lm("/game-nights/halloween-party-games"),
       changeFrequency: "weekly",
@@ -97,6 +103,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: lm("/welcome"),
       changeFrequency: "weekly",
       priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/credits`,
+      lastModified: lm("/credits"),
+      changeFrequency: "weekly",
+      priority: 0.4,
     },
     {
       url: `${baseUrl}/discord`,
@@ -172,6 +184,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/name-picker`,
       lastModified: lm("/name-picker"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/twitch-chat-games`,
+      lastModified: lm("/twitch-chat-games"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/name-every-pokemon`,
+      lastModified: lm("/name-every-pokemon"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/bracket-generator`,
+      lastModified: lm("/bracket-generator"),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/round-robin-generator`,
+      lastModified: lm("/round-robin-generator"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/swiss-pairing-generator`,
+      lastModified: lm("/swiss-pairing-generator"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
@@ -271,6 +313,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }] : []),
+    {
+      url: `${baseUrl}/randomizers/pokemon`,
+      lastModified: lm("/randomizers/pokemon"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
     ...(STADIUM_PUBLIC ? [{
       url: `${baseUrl}/randomizers/pokemon-stadium`,
       lastModified: lm("/randomizers/pokemon-stadium"),

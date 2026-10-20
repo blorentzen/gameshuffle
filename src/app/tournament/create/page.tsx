@@ -4,7 +4,7 @@ import { AiTournamentHelper } from "@/components/ai/AiTournamentHelper";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Accordion, Badge, Card, Container, Button, Input, Modal, Switch, Textarea } from "@empac/cascadeds";
+import { Accordion, Alert, Badge, Card, Container, Button, Input, Modal, Switch, Textarea } from "@empac/cascadeds";
 import { Select } from "@/components/ui/Select";
 import { isReservedName, RESERVED_TITLE_MESSAGE, reservedNameError } from "@/lib/reservedName";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
@@ -32,6 +32,8 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 import { SwissSettingsFields, DeckListSettingsFields } from "@/components/tournament/swiss/SwissSettingsFields";
 import { defaultSwissSettings, type SwissSettings } from "@/lib/tournaments/swiss";
 import { DEFAULT_DECK_LISTS, isDeckListGame, type DeckListSettings } from "@/lib/tournaments/deckLists";
+import { HANDOFF_KEY, readHandoff, type Handoff } from "@/lib/brackets/tool";
+import { useToast } from "@/components/toast/ToastProvider";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
 
@@ -161,6 +163,50 @@ export default function CreateTournamentPage() {
     fetch("/api/tournaments/swiss-ready").then((r) => (r.ok ? r.json() : null)).then((d) => setSwissReady(!!d?.ready)).catch(() => {});
   }, []);
   const formats = FORMATS.map((f) => (f.value === "swiss" ? { ...f, available: swissReady } : f));
+  // From the free bracket tools ("Run it live", ?from=bracket): the format and
+  // name come along, and the players are added as guests once the event exists.
+  const toast = useToast();
+  const [handoff, setHandoff] = useState<Handoff | null>(null);
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has("from")) return;
+    let h: Handoff | null = null;
+    try { h = readHandoff(localStorage.getItem(HANDOFF_KEY)); } catch { /* storage blocked */ }
+    if (!h) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- read once from what the bracket tool left */
+    setHandoff(h);
+    setRunMode("single");
+    setFormat(h.format);
+    if (h.title) setTitle(h.title);
+    if (h.format === "swiss") {
+      const rounds = h.swissRounds ?? "auto";
+      setSwissSettings((s) => ({ ...s, rounds, topCut: h.from === "roundrobin" ? 0 : s.topCut }));
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+  const dropHandoff = () => {
+    setHandoff(null);
+    try { localStorage.removeItem(HANDOFF_KEY); } catch { /* storage blocked */ }
+  };
+  const importGuests = async (tournamentId: string) => {
+    if (!handoff) return;
+    const res = await fetch(`/api/tournament/${tournamentId}/import-guests`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ names: handoff.names }),
+    }).catch(() => null);
+    const j = (await res?.json().catch(() => null)) as { ok?: boolean; added?: number; left?: number; cap?: { kind: "plan" | "event"; players: number } | null } | null;
+    if (!res?.ok || !j?.ok) { toast.error("Couldn't add your players. Add them on the Players tab.", { title: "Tournament made" }); return; }
+    try { localStorage.removeItem(HANDOFF_KEY); } catch { /* storage blocked */ }
+    const added = j.added ?? 0;
+    if (j.left && j.cap) {
+      toast.warning(
+        j.cap.kind === "plan"
+          ? `${added} players added as guests. Your plan fits ${j.cap.players} players in a tournament, so ${j.left} weren't added. GS Circuit fits 64 or 256.`
+          : `${added} players added as guests. The tournament's limit is ${j.cap.players}, so ${j.left} weren't added.`,
+        { title: "Tournament made" },
+      );
+    } else {
+      toast.success(`${added} ${added === 1 ? "player" : "players"} added as guests.`, { title: "Tournament made" });
+    }
+  };
   const gkBracketing = format === "double_elim" ? "double" : "single";
   // GS Circuit billing (the admin switch) and this organizer's plan, for the field-size note.
   const [billingEnabled, setBillingEnabled] = useState(false);
@@ -328,7 +374,11 @@ export default function CreateTournamentPage() {
       setSaving(false);
       return;
     }
-    if (data) { trackEvent("Tournament Created", { mode, game: resolvedSlug, format }); router.push(`/tournament/${data.id}/manage`); }
+    if (data) {
+      trackEvent("Tournament Created", { mode, game: resolvedSlug, format });
+      if (handoff) await importGuests(data.id);
+      router.push(`/tournament/${data.id}/manage${handoff ? "?tab=players" : ""}`);
+    }
   };
 
   const handleCreateChampionship = async () => {
@@ -390,6 +440,14 @@ export default function CreateTournamentPage() {
           <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, marginBottom: "1.5rem" }}>Create {runMode === "championship" ? "a Championship" : "a Tournament"}</h1>
 
           {error && <div className="auth-page__error" style={{ marginBottom: "1.5rem" }}>{error}</div>}
+
+          {handoff && (
+            <Alert variant="info" title="From the bracket tool" onClose={dropHandoff} className="create-handoff">
+              Your {handoff.names.length} players are added as guests once the tournament is made, and they can claim their spot later.{" "}
+              {handoff.from === "roundrobin" ? "A round robin runs here as Swiss, with everyone meeting once. " : ""}
+              Pick the game and the details below.
+            </Alert>
+          )}
 
           {/* What are you running? */}
           <div className="comp-card create-card">

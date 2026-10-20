@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { Button, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
-import { AuthPromptModal } from "./AuthPromptModal";
+import { useLiveHost } from "./LiveHost";
 import type { StreamGameView } from "@/lib/chatbrain/streamGame";
 import type { StreamSurveyView } from "@/lib/chatbrain/survey";
 
@@ -28,25 +28,25 @@ interface LiveData {
 const secsUntil = (iso: string, now: number) => Math.max(0, Math.ceil((Date.parse(iso) - now) / 1000));
 const MODE_LABEL: Record<StreamGameView["mode"], string> = { host: "", speed: " · Speed round", versus: " · 1v1", teams: " · Teams", costream: " · Co-stream" };
 
-export function LiveChatBrainCard({ communityId, streamerSlug }: { communityId: string | null; streamerSlug: string }) {
+export function LiveChatBrainCard({ communityId }: { communityId: string | null; streamerSlug?: string }) {
   const toast = useToast();
+  const host = useLiveHost();
   const [data, setData] = useState<LiveData | null>(null);
   const [draft, setDraft] = useState({ key: "", text: "" });
   const [busy, setBusy] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!communityId) return;
     let active = true;
     const load = async () => {
-      const d = await fetch(`/api/chat-brain/live/${communityId}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+      const d = await host.api(`/api/chat-brain/live/${communityId}`);
       if (active && d?.ok) setData(d as LiveData);
     };
     void load();
     const iv = window.setInterval(load, 2000);
     return () => { active = false; window.clearInterval(iv); };
-  }, [communityId]);
+  }, [communityId, host]);
 
   const live = !!data?.open;
   useEffect(() => {
@@ -64,12 +64,11 @@ export function LiveChatBrainCard({ communityId, streamerSlug }: { communityId: 
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data.signedIn) { setAuthOpen(true); return; }
+    if (!data.signedIn) { host.signIn("play Chat Brain"); return; }
     const text = typed.trim();
     if (!text) return;
     setBusy(true);
-    const r = await fetch(`/api/chat-brain/live/${communityId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
-      .then((res) => res.json()).catch(() => null);
+    const r = await host.api(`/api/chat-brain/live/${communityId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
     setBusy(false);
     if (r?.ok) {
       track(EVENTS.brainLiveAnswered, { mode });
@@ -120,7 +119,6 @@ export function LiveChatBrainCard({ communityId, streamerSlug }: { communityId: 
           </ol>
         </>
       )}
-      <AuthPromptModal isOpen={authOpen} onClose={() => setAuthOpen(false)} streamerSlug={streamerSlug} actionLabel="play Chat Brain" />
     </section>
   );
 }

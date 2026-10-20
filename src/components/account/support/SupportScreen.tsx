@@ -2,8 +2,9 @@
 
 /**
  * Account ▸ Support GameShuffle (Britton's picks, 2026-10-19, VDh1QfETVjNTjjzeiKqLNg): give once
- * or monthly from the account, and for supporters, since when, how long the badge lasts, monthly
- * support (changed or stopped in the Stripe portal), every gift (one-time ones too), their place
+ * or monthly from the account, and for supporters, since when, how long the badge lasts, their
+ * level and Founding number, monthly support (a new level from the form replaces the old one;
+ * stopped or the card changed in the Stripe portal), every gift (one-time ones too), their place
  * on the wall (autosaved), and a card to share. Data from /api/account/support.
  */
 
@@ -16,7 +17,7 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminField, AdminScreen, AdminSection, AdminTable, SaveStatus } from "@/components/account/admin/AdminKit";
 import { SupportForm } from "@/components/support/SupportForm";
 import { SupporterShare } from "@/components/support/SupporterShare";
-import { WALL_NAME_MAX, WALL_NOTE_MAX, dollars } from "@/lib/support/rules";
+import { WALL_NAME_MAX, WALL_NOTE_MAX, dollars, levelGrantsPro, supportLevel } from "@/lib/support/rules";
 import type { SupporterInfo } from "@/lib/support/store";
 import "@/styles/support.css";
 
@@ -36,7 +37,7 @@ export function SupportScreen() {
     return () => { alive = false; };
   }, []);
 
-  const intro = "Chip in once or every month. Every bit keeps the servers on, the free games free and new ones coming.";
+  const intro = "Support GameShuffle once or every month. Every bit keeps the servers on, the free games free and new ones coming.";
   if (failed) return <AdminScreen title="Support GameShuffle" intro={intro}><EmptyState title="Couldn't load your support" description="Reload the page to try again." /></AdminScreen>;
   if (!data) return <AdminScreen title="Support GameShuffle" intro={intro}><LoadingLines label="Loading your support" /></AdminScreen>;
   const info = data.info;
@@ -47,8 +48,11 @@ export function SupportScreen() {
       {info?.supporter && <YourSupport info={info} />}
       {gave && info && <Gifts info={info} />}
       {gave && info && <Wall info={info} />}
-      <AdminSection title={info?.supporter ? "Give again" : "Chip in"} intro={info?.supporter ? undefined : "You get the Supporter badge on your profile for a year (or while you give monthly), and a spot on the supporters wall if you like."}>
-        <div className="support-account__give"><SupportForm back={BACK} thanks={false} wall={gave && info ? info.wall : undefined} /></div>
+      <AdminSection
+        title={info?.monthly ? "Change your level or give once" : info?.supporter ? "Give again" : "Support GameShuffle"}
+        intro={info?.supporter ? undefined : "Monthly as a Supporter, a Backer (GS Pro included) or a Champion, or once for any amount. You get the Supporter badge on your profile for a year (or while you give monthly), and a spot on the supporters wall if you like."}
+      >
+        <div className="support-account__give" id="give"><SupportForm back={BACK} thanks={false} wall={gave && info ? info.wall : undefined} startLevel={info?.monthly?.level ?? null} /></div>
       </AdminSection>
     </AdminScreen>
   );
@@ -71,21 +75,23 @@ function YourSupport({ info }: { info: SupporterInfo }) {
       <div className="support-account__you">
         <span className="support-tile" aria-hidden="true"><IconHeart size={22} stroke={2} /></span>
         <div className="support-account__you-text">
-          <p className="support-account__you-title">You&apos;re a supporter</p>
+          <p className="support-account__you-title">{info.level === "champion" ? "You're a Champion" : info.level === "backer" ? "You're a Backer" : "You're a supporter"}</p>
           <p className="support-account__you-line">
             {info.since ? `Supporter since ${monthYear(info.since)}` : "Thank you"}
             {info.badgeUntil ? ` · your badge shows until ${day(info.badgeUntil)}` : m ? " · your badge shows while you give monthly" : ""}
+            {info.founding ? ` · Founding supporter #${info.founding}` : ""}
           </p>
+          {levelGrantsPro(info.level) && <p className="support-account__you-line">GS Pro is included with your level: the Twitch and Discord tools, themes and the AI features.</p>}
         </div>
       </div>
       {m && (
         <div className="support-account__row">
           <p>
-            Monthly · {dollars(m.amountCents)}{" "}
+            {supportLevel(m.level)?.name ?? "Monthly"} · {dollars(m.amountCents)} a month{" "}
             {m.renewsAt ? (m.cancelAtPeriodEnd ? `· stops after ${day(m.renewsAt)}` : `· next payment ${day(m.renewsAt)}`) : ""}
             {m.status === "past_due" ? " · the last payment didn't go through: update your card to keep it going" : ""}
           </p>
-          <Button variant="secondary" size="small" onClick={() => void manage()} disabled={busy}>{busy ? "Opening…" : "Change or stop"}</Button>
+          <Button variant="secondary" size="small" onClick={() => void manage()} disabled={busy}>{busy ? "Opening…" : "Stop or update your card"}</Button>
         </div>
       )}
       <div className="support-account__row">

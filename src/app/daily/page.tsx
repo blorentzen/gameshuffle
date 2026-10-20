@@ -19,7 +19,7 @@ export default function DailyPage() {
       <BrowseHero
         eyebrow="A GameShuffle Original · every day"
         title="The Daily Shuffle"
-        sub="Guess today's character from 130 across Nintendo, with a new hint after every miss. Same puzzle for everyone, new one every day."
+        sub="Guess today's character from 130 across Nintendo. The same one for everyone, new at midnight Pacific."
         subShort="Guess today's character from 130 across Nintendo."
         accent="daily"
         field="daily"

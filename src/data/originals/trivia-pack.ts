@@ -11,12 +11,23 @@
  * room sees it. Rerunning the import only adds questions not already there
  * (same prompt and picture).
  *
+ * The seasonal packs (Halloween, Christmas) and the game packs (Pokémon,
+ * Mario Kart, Smash, Super Mario, Zelda, Kirby; each tagged with its game via
+ * `gameSlug`) live in their own trivia-pack-*.ts files and are spread in below.
+ *
  * Picture questions use art we already serve on the randomizers. Phones and
  * the TV load them through /api/trivia/pic so the file name can't give the
  * answer away.
  */
 
+import { CHRISTMAS_PACK } from "@/data/originals/trivia-pack-christmas";
 import { HALLOWEEN_PACK } from "@/data/originals/trivia-pack-halloween";
+import { KIRBY_PACK } from "@/data/originals/trivia-pack-kirby";
+import { MARIO_PACK } from "@/data/originals/trivia-pack-mario";
+import { MARIO_KART_PACK } from "@/data/originals/trivia-pack-mario-kart";
+import { POKEMON_PACK } from "@/data/originals/trivia-pack-pokemon";
+import { SMASH_PACK } from "@/data/originals/trivia-pack-smash";
+import { ZELDA_PACK } from "@/data/originals/trivia-pack-zelda";
 
 export type PackCategory =
   | "General knowledge"
@@ -30,6 +41,7 @@ export type PackCategory =
   | "Food & drink"
   | "Words & numbers"
   | "Halloween"
+  | "Christmas"
   | "Picture: game characters"
   | "Picture: Overwatch heroes";
 
@@ -47,6 +59,8 @@ export interface PackQuestion {
   sources: { title: string; url: string }[];
   asOf?: string;
   changeable?: boolean;
+  /** The game it's about (a game pack): Fire Round's game categories, the question pages and Game Trivia read it. */
+  gameSlug?: string;
 }
 
 const wiki = (page: string) => ({ title: `Wikipedia: ${page}`, url: `https://en.wikipedia.org/wiki/${encodeURI(page.replace(/ /g, "_"))}` });
@@ -391,6 +405,13 @@ const pictures = (set: Pic[], category: PackCategory, folder: string, prompt: st
 export const TRIVIA_PACK: PackQuestion[] = [
   ...TEXT,
   ...HALLOWEEN_PACK,
+  ...CHRISTMAS_PACK,
+  ...POKEMON_PACK,
+  ...MARIO_KART_PACK,
+  ...SMASH_PACK,
+  ...MARIO_PACK,
+  ...ZELDA_PACK,
+  ...KIRBY_PACK,
   ...pictures(SMASH, "Picture: game characters", "super-smash-bros-ultimate/fighters", "Name this video game character.",
     { title: "SmashWiki: Super Smash Bros. Ultimate roster", url: "https://www.ssbwiki.com/Super_Smash_Bros._Ultimate#Characters" }),
   ...pictures(OVERWATCH, "Picture: Overwatch heroes", "overwatch/heroes", "Name this Overwatch hero.",

@@ -40,7 +40,8 @@ export function PlayerCard({
 }: PlayerCardProps) {
   const who = player.name.trim() || (seat !== undefined ? `Player ${seat + 1}` : "this player");
   return (
-    <div className="player-card">
+    // A short seat until the first roll (refinement round 2); the card grows when it's rolled.
+    <div className={`player-card${player.combo ? "" : " player-card--seat"}`}>
       <div className="player-card__header">
         <div className="player-card__name">
           <Input

@@ -1,7 +1,8 @@
 /**
  * Homepage: Go further (Britton's picks, 2026-10-16; Support joined 2026-10-19,
- * VDh1QfETVjNTjjzeiKqLNg). One dark band, three rows shown to everyone: GS Pro for streamers,
- * GS Circuit for organizers and Support GameShuffle for anyone who enjoys it. Members see their way
+ * VDh1QfETVjNTjjzeiKqLNg). One dark band, three rows shown to everyone: Support GameShuffle for
+ * anyone who enjoys it (first since the support first plan, same day), GS Pro for streamers and
+ * GS Circuit for organizers. Members see their way
  * in instead of the pitch ("Open your hub", "Manage your events"), supporters a thank-you and
  * Give again. Circuit's line follows its launch; GS Pro's follows the trial and the price list;
  * outside the US GS Pro and Support say US only for now (their buttons lead to the waitlist).
@@ -36,8 +37,17 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere }
   return (
     <DarkBand premium curved className="home-plans">
       <h2 className="home-plans__title">Go further</h2>
-      <p className="home-plans__lede">Everything above is free. Add tools for streams and bigger events, or chip in to keep it all free.</p>
+      <p className="home-plans__lede">Everything above is free. Support it to keep it that way, or add tools for streams and bigger events.</p>
       <div className="home-plans__grid">
+        <div className="home-plan home-plan--support">
+          <span className="home-plan__icon home-plan__icon--support" aria-hidden><IconHeart size={22} stroke={1.75} /></span>
+          <h3 className="home-plan__name">Support GameShuffle <span>for everyone</span></h3>
+          <p className="home-plan__price">{supporter ? "Thank you for supporting us" : !paidHere ? "In the US for now" : "From $3 · GS Pro included from $9"}</p>
+          <p className="home-plan__text">No ads, built independently. Support keeps the free games free and new ones coming. You get the Supporter badge, and GS Pro when you back at $9 a month.</p>
+          <Link href="/support" className={tagged(EVENTS.supportClicked, { from: "home" })}>
+            <Button variant="primary">{supporter ? "Give again" : "Support GameShuffle"}</Button>
+          </Link>
+        </div>
         <div className="home-plan">
           <span className="home-plan__icon" aria-hidden><IconBroadcast size={22} stroke={1.75} /></span>
           <h3 className="home-plan__name">GS Pro <span>for streamers</span></h3>
@@ -45,7 +55,7 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere }
           <p className="home-plan__text">Your chat plays along: rolls, polls, bingo, trivia and predictions on your overlay, the Discord bot, break mode and your own themes.</p>
           {pro
             ? <Link href="/hub"><Button variant="secondary">Open your hub</Button></Link>
-            : <Link href="/gs-pro" className={tagged(EVENTS.upgradeClicked, { from: "home-plans" })}><Button variant="primary">{!paidHere ? "See GS Pro" : trialUsed ? "Get GS Pro" : "Try GS Pro free"}</Button></Link>}
+            : <Link href="/gs-pro" className={tagged(EVENTS.upgradeClicked, { from: "home-plans" })}><Button variant="secondary">{!paidHere ? "See GS Pro" : trialUsed ? "Get GS Pro" : "Try GS Pro free"}</Button></Link>}
         </div>
         <div className="home-plan">
           <span className="home-plan__icon" aria-hidden><IconTrophy size={22} stroke={1.75} /></span>
@@ -55,15 +65,6 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere }
           {circuit
             ? <Link href="/account/stuff?tab=tournaments"><Button variant="secondary">Manage your events</Button></Link>
             : <Link href="/gs-circuit" className={tagged(EVENTS.homeSectionClicked, { to: "circuit" })}><Button variant="secondary">See GS Circuit</Button></Link>}
-        </div>
-        <div className="home-plan home-plan--support">
-          <span className="home-plan__icon home-plan__icon--support" aria-hidden><IconHeart size={22} stroke={1.75} /></span>
-          <h3 className="home-plan__name">Support GameShuffle <span>for everyone</span></h3>
-          <p className="home-plan__price">{supporter ? "Thank you for supporting us" : !paidHere ? "In the US for now" : "From $3, once or monthly"}</p>
-          <p className="home-plan__text">No ads, built independently. Chipping in keeps the free games free and new ones coming, and you get the Supporter badge.</p>
-          <Link href="/support" className={tagged(EVENTS.supportClicked, { from: "home" })}>
-            <Button variant="secondary">{supporter ? "Give again" : "Support GameShuffle"}</Button>
-          </Link>
         </div>
       </div>
     </DarkBand>

@@ -240,7 +240,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
 
         <section className="welcome-backing" aria-labelledby="welcome-backing-title">
           <h2 id="welcome-backing-title">Two ways to back GameShuffle</h2>
-          <p className="welcome-path__line">GS Pro gets you tools. Support is for anyone who enjoys GameShuffle and wants to keep it going.</p>
+          <p className="welcome-path__line">Support is for anyone who enjoys GameShuffle and wants to keep it going (GS Pro comes with it from $9 a month). GS Pro is the toolkit for streamers. <Link href="/credits">See who makes it possible</Link>.</p>
           <BackingPair from="welcome" />
         </section>
 

@@ -1,0 +1,93 @@
+/* The GameShuffle Twitch extension. CDS components and tokens plus the live
+   page's own card styles (live.css, overlay.css, tools.css, globals.css), the
+   site's fonts bundled (Twitch's rules keep the extension's files in its own
+   zip), and a light look like /live. Root font size stays 10px (CDS tokens are
+   pixel-named): size type with the tokens. */
+
+@font-face { font-family: "Gabarito"; src: url("../../src/app/fonts/gabarito.woff2") format("woff2"); font-weight: 400 900; font-display: swap; }
+@font-face { font-family: "Outfit"; src: url("../../src/app/fonts/outfit.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }
+
+:root {
+  --gs-font-display: "Gabarito";
+  --gs-font-body: "Outfit";
+  --ext-ground: #f6f6fa;
+  --ext-surface: #ffffff;
+  --ext-ink: #17172b;
+  --ext-ink-2: #4d5266;
+  --ext-line: #e3e3ec;
+  --ext-twitch: #6a1fe0;
+  color-scheme: light;
+}
+
+html, body { height: auto; min-height: 100%; }
+body {
+  display: block;
+  margin: 0;
+  background: var(--ext-ground);
+  color: var(--ext-ink);
+  font-family: var(--font-body);
+  font-size: var(--font-size-14);
+  line-height: 1.45;
+}
+
+.ext { display: grid; gap: var(--spacing-12, 12px); padding: var(--spacing-12, 12px); max-width: 520px; margin: 0 auto; }
+.ext--panel, .ext--config { max-width: none; }
+.ext-center { text-align: center; padding-block: var(--spacing-24, 24px); }
+
+.ext-head { display: flex; align-items: center; gap: var(--spacing-8, 8px); min-height: 28px; }
+.ext-head__logo { height: 18px; width: auto; flex: none; }
+.ext-head__channel { font: 600 var(--font-size-13, 1.3rem) / 1.2 var(--font-body); color: var(--ext-ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ext-head__tokens {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px; flex: none;
+  font: 700 var(--font-size-13, 1.3rem) / 1 var(--font-body); font-variant-numeric: tabular-nums;
+  padding: 5px 9px; border-radius: 999px; background: var(--ext-surface); border: 1px solid var(--ext-line); color: #8a5a00;
+}
+
+.ext-k { margin: 0; display: flex; align-items: center; gap: 6px; font: 600 var(--font-size-12) / 1.3 var(--font-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ext-twitch); }
+.ext-title { margin: 0; display: flex; align-items: center; gap: 8px; font: 700 var(--font-size-16) / 1.25 var(--font-display); color: var(--ext-ink); text-wrap: balance; }
+.ext-s { margin: 0; font-size: var(--font-size-14); color: var(--ext-ink-2); }
+.ext-s b { color: var(--ext-ink); }
+
+/* The live page's cards, stacked, each in the same frame (one surface per card). */
+.ext-cards { display: grid; gap: var(--spacing-12, 12px); }
+.ext-cards:empty { display: none; }
+.ext-cards > *, .ext-empty, .ext-idle {
+  margin: 0; background: var(--ext-surface); border: 1px solid var(--ext-line); border-radius: 14px;
+  padding: var(--spacing-16, 16px); display: grid; gap: var(--spacing-12, 12px);
+}
+.ext-foot { margin: 0; font-size: var(--font-size-13, 1.3rem); color: var(--ext-ink-2); border-top: 1px solid var(--ext-line); padding-top: var(--spacing-12, 12px); }
+
+/* Leaderboard: data keeps its frame. */
+.ext-board { display: grid; gap: var(--spacing-8, 8px); }
+.ext-board__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ext-board__list li {
+  display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; align-items: center;
+  padding: 7px 10px; border: 1px solid var(--ext-line); border-radius: 8px; background: var(--ext-surface); font-size: var(--font-size-14);
+}
+.ext-board__place { font-weight: 700; color: var(--ext-ink-2); font-variant-numeric: tabular-nums; }
+.ext-board__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.ext-board__score { font-variant-numeric: tabular-nums; color: var(--ext-ink-2); }
+
+/* Picks and bans */
+.ext-picks__head { display: grid; gap: 4px; }
+.ext-picks__list { list-style: none; margin: 0; padding: 0; display: grid; max-height: 320px; overflow-y: auto; border: 1px solid var(--ext-line); border-radius: 10px; }
+.ext-picks__list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--ext-line); }
+.ext-picks__list li:last-child { border-bottom: 0; }
+.ext-picks__list li.is-picked { background: #eef3ff; }
+.ext-picks__list li.is-banned { background: #fff1f1; }
+.ext-picks__name { min-width: 0; font-weight: 600; font-size: var(--font-size-14); overflow-wrap: anywhere; }
+.ext-picks__none { display: block !important; color: var(--ext-ink-2); text-align: center; }
+.ext-picks__locked { margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.ext-picks__room { display: grid; gap: 4px; border-top: 1px solid var(--ext-line); padding-top: var(--spacing-12, 12px); }
+
+/* Panel */
+.ext-block { display: grid; gap: 6px; border-top: 1px solid var(--ext-line); padding-top: var(--spacing-12, 12px); }
+.ext-live { margin: 0; display: flex; gap: 6px; align-items: flex-start; font-size: var(--font-size-14); font-weight: 600; color: #b3001b; }
+.ext-live svg { flex: none; margin-top: 2px; }
+
+/* Phones (mobile.html): bigger taps. */
+.ext--mobile .ext { max-width: none; }
+.ext--mobile .ext-picks__list { max-height: 50vh; }
+.ext--mobile .empac-button { min-height: 44px; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

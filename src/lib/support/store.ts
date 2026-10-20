@@ -11,6 +11,14 @@
  * managed in Plans & billing through the Customer Portal); one-time support
  * doesn't. US only for now, like GS Pro: the checkout refuses other countries
  * by IP and a non-US billing address is refunded (unwindNonUsSupport).
+ *
+ * Monthly support comes in three levels (2026-10-19, rules.ts SUPPORT_LEVELS).
+ * Backer and Champion include GS Pro: they're sold under their own products
+ * with GS Pro's tax code and Stripe Tax, and while one is live the account's
+ * subscription_tier is 'pro' (syncSupportPro). The subscription that set it is
+ * marked granted_pro, so only a grant made here is taken back when the support
+ * ends, and the GS Pro sync (src/lib/stripe/subscriptions.ts) asks
+ * supportProGrant before it would downgrade anyone.
  */
 
 import "server-only";
@@ -24,7 +32,14 @@ import { isPaidPlanCountry } from "@/lib/billing/availability";
 import { subscriptionIdOf, periodEndOf } from "@/lib/stripe/payload";
 import { gsMonthStart, gsDayStart } from "@/lib/time/gsClock";
 import { sendSupportThanksEmail } from "@/lib/email/support";
-import { SUPPORTER_BADGE_DAYS, WALL_NAME_MAX, WALL_NOTE_MAX, amountProblem, dollars, tidyWall, type SupportCost, type SupportKind } from "@/lib/support/rules";
+import { resolveStripePriceId } from "@/lib/pricing/catalog";
+import { getProAccess } from "@/lib/subscription-server";
+import { isStaffRole, normalizeTier } from "@/lib/subscription";
+import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
+import {
+  FOUNDING_SUPPORTERS, SUPPORTER_BADGE_DAYS, WALL_NAME_MAX, WALL_NOTE_MAX, amountProblem, dollars, levelRank, supportLevel, tidyWall,
+  type SupportCost, type SupportKind, type SupportLevel, type SupportLevelDef,
+} from "@/lib/support/rules";
 
 type DbError = { code?: string; message?: string } | null;
 export const supportMissing = (e: DbError) => !!e && (["42P01", "PGRST205"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
@@ -78,28 +93,88 @@ function supportProduct(stripe: Stripe): Promise<string> {
   return supportProductReady;
 }
 
-export type CheckoutResult = { ok: true; url: string } | { ok: false; error: "bad_amount" | "sign_in" | "failed"; message?: string };
+/** GS Pro's tax code, read from the GS Pro price's product, so a level with GS Pro is taxed exactly like GS Pro. */
+async function proTaxCode(stripe: Stripe): Promise<string | null> {
+  const priceId = await resolveStripePriceId("pro_monthly").catch(() => null);
+  if (!priceId) return null;
+  const price = await stripe.prices.retrieve(priceId, { expand: ["product"] }).catch(() => null);
+  const product = price?.product;
+  if (!product || typeof product === "string" || product.deleted) return null;
+  return typeof product.tax_code === "string" ? product.tax_code : product.tax_code?.id ?? null;
+}
 
-/** Opens Stripe Checkout for one-time or monthly support. */
+/** Backer and Champion each have a product of their own (gs_support_backer, gs_support_champion) carrying GS Pro's tax code. */
+const levelProducts = new Map<SupportLevel, Promise<string>>();
+function levelProduct(stripe: Stripe, level: SupportLevelDef): Promise<string> {
+  const id = `gs_support_${level.id}`;
+  const ready = levelProducts.get(level.id) ?? (async () => {
+    const existing = await stripe.products.retrieve(id).catch((err: { code?: string }) => {
+      if (err?.code === "resource_missing") return null;
+      throw err;
+    });
+    if (!existing) {
+      const taxCode = await proTaxCode(stripe);
+      await stripe.products.create({
+        id,
+        name: `GameShuffle ${level.name} (includes GS Pro)`,
+        description: `Monthly ${level.name} support for GameShuffle, with GS Pro included.`,
+        ...(taxCode ? { tax_code: taxCode } : {}),
+        metadata: { gs_kind: "support", gs_support_level: level.id },
+      }).catch((err: { code?: string }) => {
+        if (err?.code !== "resource_already_exists") throw err;
+      });
+    } else if (!existing.active) {
+      await stripe.products.update(id, { active: true });
+    }
+    return id;
+  })().catch((err) => { levelProducts.delete(level.id); throw err; });
+  levelProducts.set(level.id, ready);
+  return ready;
+}
+
+export type CheckoutResult = { ok: true; url: string } | { ok: false; error: "bad_amount" | "sign_in" | "already_pro" | "failed"; message?: string };
+
+/**
+ * Opens Stripe Checkout: one-time support (any amount from $3) or a monthly
+ * level. A level with GS Pro needs an account that doesn't already pay for
+ * GS Pro (never two charges for Pro); it collects tax and the Terms like GS
+ * Pro's checkout.
+ */
 export async function startSupportCheckout(args: {
   kind: SupportKind;
   cents: number;
+  level?: SupportLevel | null;
   user: { id: string; email: string | null } | null;
   wallName: unknown;
   wallNote: unknown;
   showOnWall: boolean;
   origin: string;
 }): Promise<CheckoutResult> {
-  const problem = amountProblem(args.cents);
+  // Monthly support is a level; the level sets the amount.
+  const level = args.kind === "monthly" ? supportLevel(args.level ?? "supporter") : null;
+  if (args.kind === "monthly" && !level) return { ok: false, error: "bad_amount", message: "Pick a level." };
+  const cents = level ? level.cents : args.cents;
+  const problem = amountProblem(cents);
   if (problem) return { ok: false, error: "bad_amount", message: problem };
   if (args.kind === "monthly" && !args.user) return { ok: false, error: "sign_in" };
   const stripe = getStripe();
   const admin = createServiceClient();
+  if (level?.pro && args.user) {
+    // Already paying for GS Pro another way (a GS Pro plan, a trial, Circuit 256): Supporter adds the thanks without a second charge.
+    const access = await getProAccess(args.user.id, admin);
+    const other = access.sources.filter((src) => src !== "support_level");
+    if (other.length) {
+      return { ok: false, error: "already_pro", message: other[0] === "circuit_256"
+        ? "Your GS Circuit 256 plan already includes GS Pro. Supporter adds the thank-yous without a second charge."
+        : "You already have GS Pro. Pick Supporter, or cancel GS Pro in Plans & billing first and back at this level instead." };
+    }
+  }
   const name = wallText(args.wallName, WALL_NAME_MAX, true);
   const note = wallText(args.wallNote, WALL_NOTE_MAX);
   const metadata: Record<string, string> = {
     gs_kind: "support",
     gs_support_kind: args.kind,
+    ...(level ? { gs_support_level: level.id } : {}),
     ...(args.user ? { gs_user_id: args.user.id } : {}),
     ...(name ? { wall_name: name } : {}),
     ...(note ? { wall_note: note } : {}),
@@ -118,19 +193,30 @@ export async function startSupportCheckout(args: {
     }
   }
 
-  const product = await supportProduct(stripe).catch((err) => { console.error("[support] product setup failed, using an inline product:", err); return null; });
+  // A level with GS Pro must be taxed like GS Pro, so it never falls back to an untaxed inline product.
+  const product = level?.pro
+    ? await levelProduct(stripe, level).catch((err) => { console.error("[support] level product setup failed:", err); return null; })
+    : await supportProduct(stripe).catch((err) => { console.error("[support] product setup failed, using an inline product:", err); return null; });
+  if (level?.pro && !product) return { ok: false, error: "failed" };
   const productRef = product
     ? { product }
     : { product_data: { name: args.kind === "monthly" ? "Monthly support for GameShuffle" : "Support for GameShuffle", metadata: { gs_kind: "support" } } };
+  const description = level ? `${level.name}: monthly support for GameShuffle${level.pro ? ", GS Pro included" : ""}` : "Monthly support for GameShuffle";
   try {
     const session = await stripe.checkout.sessions.create({
       mode: args.kind === "monthly" ? "subscription" : "payment",
       line_items: [{
         quantity: 1,
         price_data: args.kind === "monthly"
-          ? { currency: "usd", unit_amount: args.cents, recurring: { interval: "month" as const }, ...productRef }
-          : { currency: "usd", unit_amount: args.cents, ...productRef },
+          ? { currency: "usd", unit_amount: cents, recurring: { interval: "month" as const }, ...(level?.pro ? { tax_behavior: "exclusive" as const } : {}), ...productRef }
+          : { currency: "usd", unit_amount: cents, ...productRef },
       }],
+      // A level with GS Pro is a sale: Stripe Tax from the billing address, and the Terms, as on GS Pro's checkout.
+      ...(level?.pro ? {
+        automatic_tax: { enabled: true },
+        consent_collection: { terms_of_service: "required" as const },
+        custom_text: { terms_of_service_acceptance: { message: "I agree to the [Terms of Service](https://www.gameshuffle.co/terms) and [Privacy Policy](https://www.gameshuffle.co/privacy)." } },
+      } : {}),
       ...(customer ? { customer, customer_update: { address: "auto", name: "auto" } } : args.user?.email ? { customer_email: args.user.email } : {}),
       ...(args.user ? { client_reference_id: args.user.id } : {}),
       billing_address_collection: "required",
@@ -139,7 +225,7 @@ export async function startSupportCheckout(args: {
       payment_method_types: ["card"],
       metadata,
       ...(args.kind === "monthly"
-        ? { subscription_data: { metadata, description: "Monthly support for GameShuffle" } }
+        ? { subscription_data: { metadata, description } }
         : { payment_intent_data: { metadata, description: "Support for GameShuffle", statement_descriptor_suffix: "SUPPORT" }, submit_type: "pay" as const }),
       success_url: `${args.origin}/support/thanks?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${args.origin}/support?canceled=1`,
@@ -183,12 +269,14 @@ async function unwindNonUsSupport(session: Stripe.Checkout.Session): Promise<boo
 
 const meta = (m: Stripe.Metadata | null | undefined) => ({
   userId: m?.gs_user_id || null,
+  // Monthly support from before the levels has no level: it was thanks only, so it reads as Supporter.
+  level: (supportLevel(m?.gs_support_level)?.id ?? null) as SupportLevel | null,
   wallName: m?.wall_name || null,
   wallNote: m?.wall_note || null,
   showOnWall: m?.show_on_wall === "1",
 });
 
-async function thank(userId: string | null, email: string | null, name: string | null, cents: number, monthly: boolean, onWall: boolean, sessionId: string) {
+async function thank(userId: string | null, email: string | null, name: string | null, cents: number, monthly: boolean, onWall: boolean, sessionId: string, level: SupportLevel | null = null) {
   let to = email;
   let greet = name;
   if (userId) {
@@ -199,7 +287,8 @@ async function thank(userId: string | null, email: string | null, name: string |
     greet = (row?.display_name as string | null) ?? greet;
   }
   const shareUrl = userId ? "https://www.gameshuffle.co/account?tab=support" : `https://www.gameshuffle.co/support/thanks?session_id=${encodeURIComponent(sessionId)}`;
-  if (to) await sendSupportThanksEmail({ to, name: greet, amount: dollars(cents), monthly, onWall, shareUrl }).catch((e) => console.error("[support] thanks email failed:", e));
+  const def = supportLevel(level);
+  if (to) await sendSupportThanksEmail({ to, name: greet, amount: dollars(cents), monthly, onWall, shareUrl, levelName: def?.name ?? null, pro: !!def?.pro }).catch((e) => console.error("[support] thanks email failed:", e));
 }
 
 /**
@@ -208,7 +297,7 @@ async function thank(userId: string | null, email: string | null, name: string |
  * each month's payment is recorded from its invoice. Returns what happened
  * for the thanks page.
  */
-export async function fulfilSupportSession(sessionId: string): Promise<{ ok: boolean; kind?: SupportKind; cents?: number; onWall?: boolean; refunded?: boolean }> {
+export async function fulfilSupportSession(sessionId: string): Promise<{ ok: boolean; kind?: SupportKind; cents?: number; onWall?: boolean; refunded?: boolean; level?: SupportLevel | null }> {
   const stripe = getStripe();
   const session = await stripe.checkout.sessions.retrieve(sessionId);
   if (session.metadata?.gs_kind !== "support") return { ok: false };
@@ -241,19 +330,24 @@ export async function fulfilSupportSession(sessionId: string): Promise<{ ok: boo
   if (subId) {
     const sub = await stripe.subscriptions.retrieve(subId);
     const created = await recordSupportSubscription(sub);
-    if (created) await thank(m.userId, session.customer_details?.email ?? null, session.customer_details?.name ?? null, cents, true, m.showOnWall, session.id);
+    if (created) await thank(m.userId, session.customer_details?.email ?? null, session.customer_details?.name ?? null, cents, true, m.showOnWall, session.id, m.level);
   }
-  return { ok: true, kind, cents, onWall: m.showOnWall };
+  return { ok: true, kind, cents, onWall: m.showOnWall, level: m.level };
 }
 
-/** Mirrors a monthly supporter from Stripe. Returns true the first time it's seen. */
+/**
+ * Mirrors a monthly supporter from Stripe, then keeps the account's GS Pro in
+ * step with a Backer or Champion level. A new subscription replaces any other
+ * monthly support on the account (changing level is a new checkout). Returns
+ * true the first time it's seen.
+ */
 export async function recordSupportSubscription(sub: Stripe.Subscription): Promise<boolean> {
   const m = meta(sub.metadata);
   const item = sub.items?.data?.[0];
   const end = periodEndOf(sub);
   const admin = createServiceClient();
   const { data: before } = await admin.from("support_subscriptions").select("stripe_subscription_id").eq("stripe_subscription_id", sub.id).maybeSingle();
-  const { error } = await admin.from("support_subscriptions").upsert({
+  const row = {
     stripe_subscription_id: sub.id,
     user_id: m.userId,
     stripe_customer_id: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
@@ -263,9 +357,82 @@ export async function recordSupportSubscription(sub: Stripe.Subscription): Promi
     current_period_end: end ? new Date(end * 1000).toISOString() : null,
     wall_name: m.wallName, wall_note: m.wallNote, show_on_wall: m.showOnWall,
     updated_at: new Date().toISOString(),
-  }, { onConflict: "stripe_subscription_id" });
+  };
+  const save = (r: Record<string, unknown>) => admin.from("support_subscriptions").upsert(r, { onConflict: "stripe_subscription_id" });
+  let { error } = await save({ ...row, level: m.level });
+  // Before support-m3.sql there's no level column: keep the supporter without it.
+  if (error && ["PGRST204", "42703"].includes(error.code ?? "")) ({ error } = await save(row));
   if (error) { if (!supportMissing(error)) console.error("[support] subscription save failed:", error); return false; }
-  return !before;
+  const created = !before;
+  if (m.userId) {
+    if (created && LIVE_MONTHLY.includes(sub.status)) await endOtherMonthly(m.userId, sub.id);
+    await syncSupportPro(m.userId).catch((err) => console.error("[support] GS Pro sync failed:", err));
+  }
+  return created;
+}
+
+/** A new level replaces the old one: other live monthly support on the account ends now, with the unused time credited. */
+async function endOtherMonthly(userId: string, keepId: string): Promise<void> {
+  const { data } = await createServiceClient().from("support_subscriptions").select("stripe_subscription_id")
+    .eq("user_id", userId).in("status", LIVE_MONTHLY).neq("stripe_subscription_id", keepId);
+  for (const r of (data ?? []) as { stripe_subscription_id: string }[]) {
+    await getStripe().subscriptions.cancel(r.stripe_subscription_id, { prorate: true })
+      .catch((err) => console.error("[support] couldn't end the old level:", r.stripe_subscription_id, err));
+  }
+}
+
+const PRO_LIVE = ["trialing", "active", "past_due"];
+
+/** The live Backer or Champion subscription giving this account GS Pro, if any. Null before support-m3.sql. */
+export async function supportProGrant(userId: string): Promise<{ id: string; status: string; level: SupportLevel; renewsAt: string | null } | null> {
+  const { data, error } = await createServiceClient().from("support_subscriptions").select("stripe_subscription_id, status, level, current_period_end")
+    .eq("user_id", userId).in("status", LIVE_MONTHLY).in("level", ["backer", "champion"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (error || !data) return null;
+  const r = data as { stripe_subscription_id: string; status: string; level: SupportLevel; current_period_end: string | null };
+  return { id: r.stripe_subscription_id, status: r.status, level: r.level, renewsAt: r.current_period_end };
+}
+
+/** Marks the support subscription that's giving GS Pro, so ending it takes back only what support gave. */
+export async function markSupportGrant(subscriptionId: string): Promise<void> {
+  await createServiceClient().from("support_subscriptions").update({ granted_pro: true, updated_at: new Date().toISOString() }).eq("stripe_subscription_id", subscriptionId);
+}
+
+/**
+ * Keeps subscription_tier in step with a Backer or Champion level. Live level
+ * and no GS Pro plan: the account is Pro (status from the support). No live
+ * level: if support gave the account Pro and nothing else does, it goes back
+ * to Free with GS Pro's downgrade cleanup (the Twitch disconnect). Staff and
+ * accounts with their own GS Pro plan are left alone.
+ */
+export async function syncSupportPro(userId: string): Promise<void> {
+  const admin = createServiceClient();
+  const [grant, userRes, proRes, grantedRes] = await Promise.all([
+    supportProGrant(userId),
+    admin.from("users").select("subscription_tier, subscription_status, role").eq("id", userId).maybeSingle(),
+    admin.from("subscriptions").select("product, status").eq("user_id", userId).in("status", PRO_LIVE),
+    admin.from("support_subscriptions").select("stripe_subscription_id").eq("user_id", userId).eq("granted_pro", true),
+  ]);
+  if (grantedRes.error) return; // before support-m3.sql: levels don't exist yet
+  const u = userRes.data as { subscription_tier: string | null; subscription_status: string | null; role: string | null } | null;
+  if (!u) return;
+  const ownPro = ((proRes.data ?? []) as { product: string | null }[]).some((r) => (r.product ?? "pro") === "pro");
+  const granted = ((grantedRes.data ?? []) as { stripe_subscription_id: string }[]).map((r) => r.stripe_subscription_id);
+  const now = new Date().toISOString();
+  if (grant) {
+    if (ownPro) return; // their GS Pro plan already gives Pro; the level is thanks on top
+    if (normalizeTier(u.subscription_tier) !== "pro" || u.subscription_status !== grant.status) {
+      await admin.from("users").update({ subscription_tier: "pro", subscription_status: grant.status, updated_at: now }).eq("id", userId);
+    }
+    if (!granted.includes(grant.id)) await markSupportGrant(grant.id);
+    return;
+  }
+  if (!granted.length) return;
+  await admin.from("support_subscriptions").update({ granted_pro: false, updated_at: now }).in("stripe_subscription_id", granted);
+  if (ownPro || normalizeTier(u.subscription_tier) !== "pro") return;
+  await admin.from("users").update({ subscription_tier: "free", subscription_status: "canceled", updated_at: now }).eq("id", userId);
+  if (!isStaffRole(u.role)) {
+    await disconnectTwitchIntegration(userId).catch((err) => console.error(`[support] Twitch disconnect after the level ended failed for ${userId}:`, err));
+  }
 }
 
 /** One month of a monthly supporter, from its paid invoice (once per invoice). */
@@ -323,27 +490,124 @@ export async function monthProgress(now = Date.now()): Promise<{ raisedCents: nu
   return { raisedCents: rows.reduce((s, r) => s + r.amount_cents, 0), supporters: people.size };
 }
 
-export interface WallEntry { name: string; note: string | null; monthly: boolean }
+export interface WallEntry { name: string; note: string | null; monthly: boolean; level: SupportLevel | null }
 
-/** The supporters wall: people who asked to be on it, newest first, each once. */
-export async function supportersWall(limit = 60): Promise<WallEntry[]> {
+/** Live monthly levels by account and by Stripe customer (one read, before support-m3.sql: everyone a Supporter). */
+async function liveLevels(): Promise<Map<string, SupportLevel>> {
   const admin = createServiceClient();
-  const [gifts, subs] = await Promise.all([
-    admin.from("support_gifts").select("wall_name, wall_note, user_id, stripe_customer_id, paid_at").eq("status", "paid").eq("show_on_wall", true).eq("hidden", false).not("wall_name", "is", null).order("paid_at", { ascending: false }).limit(limit * 3),
-    admin.from("support_subscriptions").select("user_id, stripe_customer_id").in("status", ["active", "trialing", "past_due"]),
+  const read = (cols: string) => admin.from("support_subscriptions").select(cols).in("status", LIVE_MONTHLY);
+  let { data, error } = await read("user_id, stripe_customer_id, level");
+  if (error && ["PGRST204", "42703"].includes(error.code ?? "")) ({ data, error } = await read("user_id, stripe_customer_id"));
+  const out = new Map<string, SupportLevel>();
+  for (const r of (data ?? []) as unknown as { user_id: string | null; stripe_customer_id: string | null; level?: SupportLevel | null }[]) {
+    const level = r.level ?? "supporter";
+    for (const k of [r.user_id, r.stripe_customer_id]) if (k && (!out.has(k) || levelRank(level) < levelRank(out.get(k)))) out.set(k, level);
+  }
+  return out;
+}
+
+/** Everyone who asked to be on the wall, each once, newest first, with their live monthly level. */
+async function wallPeople(scan: number): Promise<WallEntry[]> {
+  const admin = createServiceClient();
+  const [gifts, levels] = await Promise.all([
+    admin.from("support_gifts").select("wall_name, wall_note, user_id, stripe_customer_id, paid_at").eq("status", "paid").eq("show_on_wall", true).eq("hidden", false).not("wall_name", "is", null).order("paid_at", { ascending: false }).limit(scan),
+    liveLevels(),
   ]);
   if (gifts.error) return [];
-  const monthly = new Set(((subs.data ?? []) as { user_id: string | null; stripe_customer_id: string | null }[]).flatMap((s) => [s.user_id, s.stripe_customer_id].filter(Boolean) as string[]));
   const seen = new Set<string>();
   const out: WallEntry[] = [];
   for (const g of (gifts.data ?? []) as { wall_name: string; wall_note: string | null; user_id: string | null; stripe_customer_id: string | null }[]) {
     const who = g.user_id ?? g.stripe_customer_id ?? g.wall_name;
     if (seen.has(who)) continue;
     seen.add(who);
-    out.push({ name: g.wall_name, note: g.wall_note, monthly: monthly.has(g.user_id ?? "") || monthly.has(g.stripe_customer_id ?? "") });
-    if (out.length >= limit) break;
+    const level = levels.get(g.user_id ?? "") ?? levels.get(g.stripe_customer_id ?? "") ?? null;
+    out.push({ name: g.wall_name, note: g.wall_note, monthly: !!level, level });
   }
   return out;
+}
+
+/** The supporters wall: Champions first (Britton's pick), then Backers, then everyone else, newest first within each. */
+export async function supportersWall(limit = 60): Promise<WallEntry[]> {
+  const people = await wallPeople(limit * 4);
+  return people.map((p, i) => ({ p, i })).sort((a, b) => levelRank(a.p.level) - levelRank(b.p.level) || a.i - b.i).slice(0, limit).map((x) => x.p);
+}
+
+/** The credits page: every supporter who asked to be named, grouped Champions, Backers, then everyone else. */
+export async function supportCredits(): Promise<{ champions: string[]; backers: string[]; supporters: string[] }> {
+  const people = await wallPeople(5000);
+  const names = (pick: (p: WallEntry) => boolean) => people.filter(pick).map((p) => p.name).sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
+  return {
+    champions: names((p) => p.level === "champion"),
+    backers: names((p) => p.level === "backer"),
+    supporters: names((p) => p.level !== "champion" && p.level !== "backer"),
+  };
+}
+
+/**
+ * The Founding supporters: the first FOUNDING_SUPPORTERS people to support (any level, any
+ * amount), by their first paid gift. Worked out from the gifts each time (a refunded gift
+ * doesn't count). Map of person key (account id, else Stripe customer, else session) to number.
+ */
+let foundingCache: { at: number; keys: Map<string, number> } | null = null;
+export async function foundingSupporters(): Promise<Map<string, number>> {
+  if (foundingCache && Date.now() - foundingCache.at < 60_000) return foundingCache.keys;
+  const { data, error } = await createServiceClient().from("support_gifts").select("user_id, stripe_customer_id, checkout_session_id, paid_at")
+    .eq("status", "paid").order("paid_at", { ascending: true }).limit(FOUNDING_SUPPORTERS * 20);
+  const keys = new Map<string, number>();
+  if (!error) {
+    for (const r of (data ?? []) as { user_id: string | null; stripe_customer_id: string | null; checkout_session_id: string | null }[]) {
+      const who = r.user_id ?? r.stripe_customer_id ?? r.checkout_session_id;
+      if (!who || keys.has(who)) continue;
+      keys.set(who, keys.size + 1);
+      if (keys.size >= FOUNDING_SUPPORTERS) break;
+    }
+  }
+  foundingCache = { at: Date.now(), keys };
+  return keys;
+}
+
+/** An account's Founding number, or null. */
+export async function foundingNumber(userId: string): Promise<number | null> {
+  return (await foundingSupporters()).get(userId) ?? null;
+}
+
+/** How many Founding places are taken (for "N of 100" on /support). */
+export async function foundingTaken(): Promise<number> {
+  return (await foundingSupporters()).size;
+}
+
+/** Live monthly supporters by level (Platform ▸ Support). */
+export async function levelCounts(): Promise<Record<SupportLevel, number>> {
+  const levels = await liveLevels();
+  // liveLevels keys each subscription by account and by customer: count each customer once.
+  const { data } = await createServiceClient().from("support_subscriptions").select("stripe_customer_id").in("status", LIVE_MONTHLY);
+  const out: Record<SupportLevel, number> = { supporter: 0, backer: 0, champion: 0 };
+  for (const c of new Set(((data ?? []) as { stripe_customer_id: string | null }[]).map((r) => r.stripe_customer_id).filter((x): x is string => !!x))) {
+    out[levels.get(c) ?? "supporter"] += 1;
+  }
+  return out;
+}
+
+export interface SupportUpdate { id: string; body: string; postedAt: string }
+
+/** Staff's short posts on what support paid for, newest first. Empty before support-m3.sql. */
+export async function supportUpdates(limit = 5): Promise<SupportUpdate[]> {
+  const { data, error } = await createServiceClient().from("support_updates").select("id, body, posted_at").order("posted_at", { ascending: false }).limit(limit);
+  if (error) return [];
+  return ((data ?? []) as { id: string; body: string; posted_at: string }[]).map((r) => ({ id: r.id, body: r.body, postedAt: r.posted_at }));
+}
+
+export async function addSupportUpdate(body: string, by: string): Promise<{ ok: true } | { ok: false; error: "empty" | "not_allowed" | "failed" }> {
+  const text = body.replace(/\s+/g, " ").trim().slice(0, 400);
+  if (!text) return { ok: false, error: "empty" };
+  if (isBlockedText(text)) return { ok: false, error: "not_allowed" };
+  const { error } = await createServiceClient().from("support_updates").insert({ body: text, posted_by: by });
+  return error ? { ok: false, error: "failed" } : { ok: true };
+}
+
+export async function removeSupportUpdate(id: string): Promise<boolean> {
+  const { error } = await createServiceClient().from("support_updates").delete().eq("id", id);
+  return !error;
 }
 
 /** The Supporter badge: a one-time gift in the last year, or monthly support that's still on. */
@@ -387,11 +651,15 @@ export async function supportersAmong(userIds: string[]): Promise<Set<string>> {
 export interface MyGift { kind: SupportKind; cents: number; paidAt: string; refunded: boolean }
 export interface SupporterInfo {
   supporter: boolean;
+  /** The live monthly level (monthly support from before the levels reads as Supporter). */
+  level: SupportLevel | null;
+  /** Their Founding supporter number (1 to 100), or null. */
+  founding: number | null;
   /** The first time they gave (ISO), for "Supporter since". */
   since: string | null;
   /** When a one-time supporter's badge ends (null while monthly support is on). */
   badgeUntil: string | null;
-  monthly: { amountCents: number; status: string; cancelAtPeriodEnd: boolean; renewsAt: string | null } | null;
+  monthly: { amountCents: number; status: string; cancelAtPeriodEnd: boolean; renewsAt: string | null; level: SupportLevel } | null;
   gifts: MyGift[];
   wall: { name: string | null; note: string | null; show: boolean };
 }
@@ -399,13 +667,19 @@ export interface SupporterInfo {
 /** Everything Account ▸ Support shows about an account's support. */
 export async function supporterInfo(userId: string): Promise<SupporterInfo | null> {
   const admin = createServiceClient();
-  const [g, s] = await Promise.all([
+  const subCols = "amount_cents, status, cancel_at_period_end, current_period_end, created_at, wall_name, wall_note, show_on_wall";
+  const [g, s0, founding] = await Promise.all([
     admin.from("support_gifts").select("kind, amount_cents, paid_at, status, wall_name, wall_note, show_on_wall").eq("user_id", userId).order("paid_at", { ascending: false }).limit(200),
-    admin.from("support_subscriptions").select("amount_cents, status, cancel_at_period_end, current_period_end, created_at, wall_name, wall_note, show_on_wall").eq("user_id", userId).order("created_at", { ascending: false }),
+    admin.from("support_subscriptions").select(`${subCols}, level`).eq("user_id", userId).order("created_at", { ascending: false }),
+    foundingNumber(userId),
   ]);
+  // Before support-m3.sql there's no level column.
+  const s = s0.error && ["PGRST204", "42703"].includes(s0.error.code ?? "")
+    ? await admin.from("support_subscriptions").select(subCols).eq("user_id", userId).order("created_at", { ascending: false })
+    : s0;
   if (g.error && supportMissing(g.error)) return null;
   type G = { kind: SupportKind; amount_cents: number; paid_at: string; status: string; wall_name: string | null; wall_note: string | null; show_on_wall: boolean };
-  type S = { amount_cents: number; status: string; cancel_at_period_end: boolean; current_period_end: string | null; created_at: string; wall_name: string | null; wall_note: string | null; show_on_wall: boolean };
+  type S = { amount_cents: number; status: string; cancel_at_period_end: boolean; current_period_end: string | null; created_at: string; wall_name: string | null; wall_note: string | null; show_on_wall: boolean; level?: SupportLevel | null };
   const gifts = (g.data ?? []) as G[];
   const subs = (s.data ?? []) as S[];
   const paid = gifts.filter((x) => x.status === "paid");
@@ -418,9 +692,11 @@ export async function supporterInfo(userId: string): Promise<SupporterInfo | nul
   const latestWall = [...gifts, ...subs].find((x) => x.wall_name) ?? null;
   return {
     supporter: !!live || recent,
+    level: live ? live.level ?? "supporter" : null,
+    founding,
     since: firsts[0] ?? null,
     badgeUntil: live || !lastPaid ? null : new Date(Date.parse(lastPaid.paid_at) + SUPPORTER_BADGE_DAYS * 86_400_000).toISOString(),
-    monthly: live ? { amountCents: live.amount_cents, status: live.status, cancelAtPeriodEnd: live.cancel_at_period_end, renewsAt: live.current_period_end } : null,
+    monthly: live ? { amountCents: live.amount_cents, status: live.status, cancelAtPeriodEnd: live.cancel_at_period_end, renewsAt: live.current_period_end, level: live.level ?? "supporter" } : null,
     gifts: gifts.map((x) => ({ kind: x.kind, cents: x.amount_cents, paidAt: x.paid_at, refunded: x.status !== "paid" })),
     wall: { name: latestWall?.wall_name ?? null, note: latestWall?.wall_note ?? null, show: [...gifts, ...subs].some((x) => x.show_on_wall && x.wall_name) },
   };
@@ -447,12 +723,15 @@ export async function saveMyWall(userId: string, input: { name: unknown; note: u
 }
 
 /** An account's monthly support, for Plans & billing. */
-export async function myMonthlySupport(userId: string): Promise<{ amountCents: number; status: string; cancelAtPeriodEnd: boolean; renewsAt: string | null } | null> {
-  const { data } = await createServiceClient().from("support_subscriptions").select("amount_cents, status, cancel_at_period_end, current_period_end")
-    .eq("user_id", userId).in("status", ["active", "trialing", "past_due"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
+export async function myMonthlySupport(userId: string): Promise<{ amountCents: number; status: string; cancelAtPeriodEnd: boolean; renewsAt: string | null; level: SupportLevel } | null> {
+  const admin = createServiceClient();
+  const cols = "amount_cents, status, cancel_at_period_end, current_period_end";
+  const read = (c: string) => admin.from("support_subscriptions").select(c).eq("user_id", userId).in("status", LIVE_MONTHLY).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const first = await read(`${cols}, level`);
+  const data = first.error && ["PGRST204", "42703"].includes(first.error.code ?? "") ? (await read(cols)).data : first.data;
   if (!data) return null;
-  const r = data as { amount_cents: number; status: string; cancel_at_period_end: boolean; current_period_end: string | null };
-  return { amountCents: r.amount_cents, status: r.status, cancelAtPeriodEnd: r.cancel_at_period_end, renewsAt: r.current_period_end };
+  const r = data as unknown as { amount_cents: number; status: string; cancel_at_period_end: boolean; current_period_end: string | null; level?: SupportLevel | null };
+  return { amountCents: r.amount_cents, status: r.status, cancelAtPeriodEnd: r.cancel_at_period_end, renewsAt: r.current_period_end, level: r.level ?? "supporter" };
 }
 
 export interface AdminGift { id: string; kind: SupportKind; cents: number; name: string | null; note: string | null; onWall: boolean; hidden: boolean; status: string; paidAt: string; account: boolean }

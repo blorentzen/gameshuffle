@@ -538,15 +538,13 @@
 }
 
 /* New Banner (just-launched tools) */
+/* Flat, like every note above a tool (refinement round 2): no box, and 14px text. */
 .new-banner {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  background: var(--surface-selected);
-  border: 1px solid var(--primary-300);
-  border-radius: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: var(--spacing-8, 8px);
+  padding: 0;
+  margin-bottom: var(--spacing-16, 16px);
 }
 
 /* The New badge is a CDS <Badge variant="info"> — keep it from
@@ -556,8 +554,8 @@
 }
 
 .new-banner__text {
-  font-size: var(--font-size-12);
-  color: var(--primary-ink-700);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 

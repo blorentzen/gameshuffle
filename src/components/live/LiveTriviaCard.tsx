@@ -11,26 +11,26 @@
 import { useEffect, useState } from "react";
 import { Button, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
-import { AuthPromptModal } from "./AuthPromptModal";
+import { useLiveHost } from "./LiveHost";
 import type { TriviaStreamView } from "@/lib/trivia/stream";
 
 const LETTERS = ["A", "B", "C", "D", "E", "F"];
 const secsUntil = (iso: string | null, now: number) => (iso ? Math.max(0, Math.ceil((Date.parse(iso) - now) / 1000)) : 0);
 
-export function LiveTriviaCard({ communityId, streamerSlug }: { communityId: string | null; streamerSlug: string }) {
+export function LiveTriviaCard({ communityId }: { communityId: string | null; streamerSlug?: string }) {
   const toast = useToast();
+  const host = useLiveHost();
   const [view, setView] = useState<TriviaStreamView | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [draft, setDraft] = useState({ key: "", text: "" });
   const [busy, setBusy] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!communityId) return;
     let active = true;
     const load = async () => {
-      const d = await fetch(`/api/trivia/live/${communityId}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+      const d = await host.api(`/api/trivia/live/${communityId}`);
       if (!active || !d?.ok) return;
       setView(d.view ?? null);
       setSignedIn(!!d.signedIn);
@@ -38,7 +38,7 @@ export function LiveTriviaCard({ communityId, streamerSlug }: { communityId: str
     void load();
     const iv = window.setInterval(load, 2000);
     return () => { active = false; window.clearInterval(iv); };
-  }, [communityId]);
+  }, [communityId, host]);
 
   const open = view?.phase === "question";
   useEffect(() => {
@@ -54,11 +54,10 @@ export function LiveTriviaCard({ communityId, streamerSlug }: { communityId: str
   const mine = view.you?.answer ?? null;
 
   const answer = async (text: string) => {
-    if (!signedIn) { setAuthOpen(true); return; }
+    if (!signedIn) { host.signIn("play along"); return; }
     if (!text.trim()) return;
     setBusy(true);
-    const d = await fetch(`/api/trivia/live/${communityId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
-      .then((r) => r.json()).catch(() => null);
+    const d = await host.api(`/api/trivia/live/${communityId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
     setBusy(false);
     if (d?.ok) {
       setView((v) => (v ? { ...v, you: { ...(v.you ?? { name: "You", score: 0, rank: null, verdict: null }), answer: text.trim() } } : v));
@@ -124,7 +123,6 @@ export function LiveTriviaCard({ communityId, streamerSlug }: { communityId: str
         </ol>
       )}
       {view.you && view.you.score > 0 && <p className="live-break__mine">You: {view.you.score} point{view.you.score === 1 ? "" : "s"}{view.you.rank ? `, #${view.you.rank}` : ""}</p>}
-      <AuthPromptModal isOpen={authOpen} onClose={() => setAuthOpen(false)} streamerSlug={streamerSlug} actionLabel="play along" />
     </section>
   );
 }

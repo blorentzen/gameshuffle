@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { CommsIcons } from "@/components/social/CommsIcons";
+import { NavSupport } from "@/components/layout/NavSupport";
 import { NavMenu, type NavItem, type NavSection } from "@/components/layout/NavMenu";
 import { PILLARS, primaryItems, type Pillar } from "@/lib/nav/pillars";
 import { shopHref } from "@/lib/store/links";
@@ -38,6 +39,7 @@ const HERO_ROUTES = new Set([
   "/",
   "/welcome",
   "/game-nights/halloween-party-games",
+  "/game-nights/christmas-party-games",
   "/apps",
   "/tools",
   "/gs-pro",
@@ -86,6 +88,7 @@ const HERO_ROUTES = new Set([
   // Also open on BrowseHero (they rendered a solid bar above it until 2026-10-19).
   "/discord",
   "/support",
+  "/credits",
   "/support/thanks",
 ]);
 
@@ -261,10 +264,10 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
       ...primaryItems(p, navCtx).flatMap((g) => g.items.map((i) => ({ label: i.label, href: i.href }))),
     ]),
     ...(shop ? [hdr("Shop"), { label: "GameShuffle shop", href: shopHref("nav") }] : []),
-    // GS Pro (the Go Pro button hides on phones) and Support, side by side (picks 2026-10-19).
-    hdr("GS Pro and Support"),
-    ...(!isPaid ? [{ label: "GS Pro", href: "/gs-pro" }] : []),
+    // Support first, then GS Pro (support first plan, 2026-10-19; the bar's heart hides on phones).
+    hdr("Support and GS Pro"),
     { label: "Support GameShuffle", href: "/support" },
+    ...(!isPaid ? [{ label: "GS Pro", href: "/gs-pro" }] : []),
   ];
 
   const floating = isHeroPage && !scrolled;
@@ -317,17 +320,11 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
                   <CommsIcons />
                 </span>
               )}
-              {/* Paid gets a standing affordance rather than a nav bucket: a
-                  pricing page is not a destination people seek out, it is a
-                  thing they want when they hit a wall. Signed-in free accounts
-                  only — a signed-out visitor cannot buy Pro without an account,
-                  so this would just compete with Sign up, and /gs-pro is
-                  already the Stream pillar's own entry. */}
-              {user && !isPaid && (
-                <Link href="/gs-pro" className={`gs-nav__upgrade ${tagged(EVENTS.upgradeClicked, { from: "navbar" })}`}>
-                  Go Pro
-                </Link>
-              )}
+              {/* Support leads (support first plan, 2026-10-19): a heart "Support"
+                  button for visitors and free accounts where "Go Pro" used to be,
+                  a thank-you heart for members and supporters. GS Pro keeps its
+                  row in the Stream pillar and its walls. */}
+              <NavSupport signedIn={!!user} paid={isPaid} />
               <span className="navbar-usermenu">
                 <UserMenu />
               </span>

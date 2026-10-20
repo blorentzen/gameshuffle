@@ -158,7 +158,7 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
           const r = c ? game.riders.find((x) => x.name === c.rider) : undefined;
           const m = c ? game.machines.find((x) => x.name === c.machine) : undefined;
           return (
-            <div key={i} className="player-card">
+            <div key={i} className={`player-card${c ? "" : " player-card--seat"}`}>
               <div className="player-card__header">
                 <div className="player-card__name">
                   <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />

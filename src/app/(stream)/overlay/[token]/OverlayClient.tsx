@@ -92,6 +92,8 @@ interface EventsOverlayPayload {
     reward: number | null;
     penalty: number | null;
     targetName: string | null;
+    /** The event's own line (newer payloads). */
+    text?: string | null;
   }>;
 }
 
@@ -228,6 +230,7 @@ function tidyLabel(s: string): string {
 }
 
 function describeChallenge(c: EventsOverlayPayload["challenges"][number]): string {
+  if (c.text) return c.text;
   const cond = c.condition
     ? Object.values(c.condition)
         .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))

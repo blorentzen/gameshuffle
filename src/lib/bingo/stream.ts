@@ -250,9 +250,19 @@ export async function closeGame(gameId: string): Promise<BingoResult<StreamBingo
   return data ? { ok: true, value: toGame(data as Row) } : { ok: false, error: "not_open" };
 }
 
-export async function getCard(gameId: string, userId: string): Promise<number[] | null> {
+/**
+ * Who holds a card: a GameShuffle account (/live), or a chat identity (a Twitch
+ * viewer playing from the extension without an account; stream-bingo-m3.sql).
+ * A plain string is an account id, as before.
+ */
+export type BingoHolder = string | { userId: string } | { identityId: string };
+const holderCol = (h: BingoHolder): { col: "user_id" | "identity_id"; id: string } =>
+  typeof h === "string" ? { col: "user_id", id: h } : "userId" in h ? { col: "user_id", id: h.userId } : { col: "identity_id", id: h.identityId };
+
+export async function getCard(gameId: string, holder: BingoHolder): Promise<number[] | null> {
+  const { col, id } = holderCol(holder);
   const { data } = await createServiceClient().from("stream_bingo_cards").select("numbers")
-    .eq("game_id", gameId).eq("user_id", userId).maybeSingle();
+    .eq("game_id", gameId).eq(col, id).maybeSingle();
   return (data as { numbers: number[] } | null)?.numbers ?? null;
 }
 
@@ -263,16 +273,17 @@ export async function cardCount(gameId: string): Promise<number> {
 }
 
 /** The viewer's card for this game, dealing one if they don't have it yet. */
-export async function takeCard(game: StreamBingoGame, userId: string): Promise<BingoResult<number[]>> {
+export async function takeCard(game: StreamBingoGame, holder: BingoHolder): Promise<BingoResult<number[]>> {
   if (game.status !== "open") return { ok: false, error: "not_open" };
-  const have = await getCard(game.id, userId);
+  const have = await getCard(game.id, holder);
   if (have) return { ok: true, value: have };
   if (game.doorsCloseAt && !doorsOpen(game)) return { ok: false, error: "doors_closed" };
   const numbers = makeCard();
-  const { error } = await createServiceClient().from("stream_bingo_cards").insert({ game_id: game.id, user_id: userId, numbers });
+  const { col, id } = holderCol(holder);
+  const { error } = await createServiceClient().from("stream_bingo_cards").insert({ game_id: game.id, [col]: id, numbers });
   if (error) {
     // Two tabs dealing at once: the other insert won, use its card.
-    const again = await getCard(game.id, userId);
+    const again = await getCard(game.id, holder);
     return again ? { ok: true, value: again } : { ok: false, error: "card_failed" };
   }
   return { ok: true, value: numbers };
@@ -288,15 +299,16 @@ export type ClaimOutcome =
  * minted from the streamer's award allowance; if that fails the win still
  * stands and the reason comes back for the announcement.
  */
-export async function claimBingo(game: StreamBingoGame, userId: string, name: string): Promise<ClaimOutcome> {
+export async function claimBingo(game: StreamBingoGame, holder: BingoHolder, name: string): Promise<ClaimOutcome> {
   if (game.status !== "open") return { ok: false, error: game.status === "won" ? "too_late" : "not_open" };
-  const card = await getCard(game.id, userId);
+  const card = await getCard(game.id, holder);
+  const { col, id: holderId } = holderCol(holder);
   if (!card) return { ok: false, error: "no_card" };
   const hit = game.pattern === "custom" ? cellsHit(card, game.called, game.patternCells ?? []) : patternHit(card, game.called, game.pattern);
   if (!hit) return { ok: false, error: "not_yet" };
 
   const { data } = await createServiceClient().from("stream_bingo_games")
-    .update({ status: "won", winner_user_id: userId, winner_name: name.slice(0, 40), won_at: new Date().toISOString() })
+    .update({ status: "won", ...(col === "user_id" ? { winner_user_id: holderId } : { winner_identity_id: holderId }), winner_name: name.slice(0, 40), won_at: new Date().toISOString() })
     .eq("id", game.id).eq("status", "open").select(COLS).maybeSingle();
   if (!data) return { ok: false, error: "too_late" };
   const won = toGame(data as Row);
@@ -305,7 +317,8 @@ export async function claimBingo(game: StreamBingoGame, userId: string, name: st
   let tokenError: string | null = null;
   if (won.prizeTokens > 0) {
     try {
-      const wallet = await ensureAccountWallet(userId, name);
+      // An identity is its own wallet; an account gets (or reuses) its own.
+      const wallet = col === "identity_id" ? { identityId: holderId } : await ensureAccountWallet(holderId, name);
       if (!wallet) throw new Error("no_wallet");
       const minted = await awardMint({
         communityId: won.communityId, toIdentityId: wallet.identityId, amount: won.prizeTokens,

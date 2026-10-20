@@ -74,7 +74,9 @@ export async function POST(request: Request) {
   if (access.sources.length > 0) {
     const message = access.sources[0] === "circuit_256"
       ? "Your GS Circuit 256 plan already includes GS Pro."
-      : "You already have GS Pro. Manage it from Plans & billing.";
+      : access.sources[0] === "support_level"
+        ? "Your support level already includes GS Pro. Manage it from Account ▸ Support GameShuffle."
+        : "You already have GS Pro. Manage it from Plans & billing.";
     return NextResponse.json({ error: "already_pro", source: access.sources[0], message }, { status: 409 });
   }
 

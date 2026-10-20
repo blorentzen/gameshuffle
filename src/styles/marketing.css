@@ -1726,6 +1726,14 @@
     grid-template-columns: 1fr;
   }
 }
+/* Overlay pieces over the toolkit on /for-streamers (refinement round 2). Two across, four on wide screens; phones swipe. */
+.strm-shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-16); }
+@media (min-width: 1000px) { .strm-shots { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.strm-shot { margin: 0; display: grid; gap: var(--spacing-8); }
+.strm-shot img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: contain; border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: #121433; }
+.strm-shot figcaption { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); color: var(--text-secondary); }
+.strm-shots__more { margin: var(--spacing-12) 0 var(--spacing-24); font-size: var(--font-size-16); color: var(--text-secondary); }
+.strm-shots__more a { color: var(--brand-ink, var(--primary-700)); font-weight: var(--font-weight-semibold, 600); }
 .strm-finalcta {
   display: flex;
   flex-wrap: wrap;
@@ -2327,11 +2335,19 @@
   .cover-marquee__controls { display: none; }
 }
 
-.dpage-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); gap: var(--spacing-20); align-items: stretch; }
-.dpage-plan { display: flex; flex-direction: column; gap: var(--spacing-12); }
-.dpage-plan__name { display: flex; align-items: center; gap: var(--spacing-8); margin: 0; font-size: var(--font-size-24); }
-.dpage-plan__tag { margin: 0 0 var(--spacing-4); color: var(--text-secondary); font-size: var(--font-size-16); }
-.dpage-plan__cta { margin-top: auto; padding-top: var(--spacing-16); }
+/* Free and GS Pro as one table (refinement round 2): data keeps its frame. */
+.dpage-compare { display: grid; border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); overflow: hidden; background: var(--surface-default); }
+.dpage-compare table { margin: 0; font-size: var(--font-size-16); }
+.dpage-compare th { font-size: var(--font-size-14); }
+.dpage-compare th:first-child { white-space: normal; }
+@media (max-width: 480px) {
+  /* Three columns fit a phone when the first header can wrap and the tick columns keep tight padding. */
+  .dpage-compare th:not(:first-child), .dpage-compare td:not(:first-child) { padding-inline: var(--spacing-8); }
+  .dpage-compare table { font-size: var(--font-size-14); }
+}
+.dpage-compare th:not(:first-child), .dpage-compare td:not(:first-child) { width: 7.2rem; }
+.dpage-compare__tick { display: inline-flex; color: var(--success-700, #1d7a3a); }
+.dpage-compare__cta { display: flex; flex-wrap: wrap; gap: var(--spacing-12); padding: var(--spacing-16); border-top: 1px solid var(--border-default); }
 .dpage-plan--pro { box-shadow: 0 0 0 2px var(--primary-500, #3d5afe), 0 18px 40px rgba(30, 40, 120, 0.14); }
 
 .dpage-spotlight { margin-top: var(--spacing-48, 4.8rem); }
@@ -2595,7 +2611,7 @@
 .row-panel__name { margin: 0; font-size: var(--font-size-18); line-height: 1.3; }
 .row-panel__name a { color: inherit; text-decoration: none; }
 .row-panel__name a:hover { text-decoration: underline; }
-.row-panel__body { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; }
+.row-panel__body { margin: 0; max-width: 68ch; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; }
 .row-panel__go { margin-top: var(--spacing-12); }
 .row-panel__link { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); color: var(--brand-ink, var(--primary-700)); text-decoration: none; }
 .row-panel__link:hover { text-decoration: underline; }
@@ -2611,3 +2627,29 @@
 @media (min-width: 900px) { .row-panel--surface.row-panel--across > .row-panel__row { border-top: 0; } }
 @media (max-width: 640px) { .row-panel--surface { padding: var(--spacing-4) var(--spacing-16); } }
 @media (max-width: 640px) { .plans-panel { padding: var(--spacing-20) var(--spacing-16) var(--spacing-4); } }
+
+/* ── App marketing pages, refinement round 2 (2026-10-20) ─────────────────────
+   A look at the tool under the hero, a line under the plans, About before the FAQ. */
+.app-look { margin: var(--spacing-32) 0 0; max-width: 56rem; }
+.app-look__note { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.app-look .rules-tool { margin: 0; }
+.app-after-plans { margin: var(--spacing-16) 0 0; font-size: var(--font-size-16); color: var(--text-secondary); }
+.app-after-plans a { color: var(--brand-ink, var(--primary-700)); font-weight: var(--font-weight-semibold, 600); }
+.app-about { margin: var(--spacing-64) 0 var(--spacing-48); max-width: 70rem; }
+/* Every section on these pages reads from the left edge, so the FAQ does too (the shared FAQ style centres it). */
+.app-faq.pricing-page__faq { margin-inline: 0; }
+.app-about__text { margin: 0; font-size: var(--font-size-18); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+
+.lounge-art { margin: 0; display: grid; gap: var(--spacing-12); padding: var(--spacing-16) var(--spacing-20); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--surface-default); }
+.lounge-art__bar { display: flex; justify-content: space-between; gap: var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.lounge-art__live { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); font-weight: var(--font-weight-semibold, 600); color: var(--success-700, #1d7a3a); }
+.lounge-art__dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.lounge-art__rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.lounge-art__row { display: grid; grid-template-columns: 2.4rem 6px minmax(0, 1fr) auto; gap: var(--spacing-12); align-items: center; padding: var(--spacing-12) 0; border-top: 1px solid var(--border-default); }
+.lounge-art__row:first-child { border-top: 0; }
+.lounge-art__place { font-weight: 700; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.lounge-art__stripe { width: 6px; height: 3.2rem; border-radius: 3px; }
+.lounge-art__team { display: grid; gap: 2px; min-width: 0; font-size: var(--font-size-16); }
+.lounge-art__team > span { font-size: var(--font-size-14); color: var(--text-secondary); }
+.lounge-art__score { font-size: var(--font-size-20); font-variant-numeric: tabular-nums; }
+.lounge-art__note { font-size: var(--font-size-14); color: var(--text-secondary); }

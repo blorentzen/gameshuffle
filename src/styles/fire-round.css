@@ -63,8 +63,6 @@ html.dark .fire-page, [data-theme="dark"] .fire-page { --fire-ink: #ff9a7a; }
 .fire-bests li { display: flex; justify-content: space-between; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle, var(--border-default)); font-size: var(--font-size-14); }
 .fire-bests li:first-child { border-top: 0; }
 .fire-bests strong { font-variant-numeric: tabular-nums; }
-.fire-steps { margin: 0; padding-inline-start: 2rem; display: grid; gap: var(--spacing-8); color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; }
-.fire-steps strong { color: var(--text-primary); }
 .fire-next { margin: 0; font-size: var(--font-size-16); }
 .fire-next a, .fire-small a { font-weight: var(--font-weight-semibold, 600); }
 
@@ -117,6 +115,12 @@ html.dark .fire-page, [data-theme="dark"] .fire-page { --fire-ink: #ff9a7a; }
 .fire-result__line { margin: 0; text-align: center; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); text-wrap: balance; }
 .fire-result__line svg { vertical-align: -0.3rem; margin-inline-end: var(--spacing-6, 6px); }
 .fire-today--result .fire-today__actions { justify-content: center; }
+@media (max-width: 40rem) {
+  /* Phones: Share and More rounds take the result's width, one per line. */
+  .fire-today--result .fire-today__actions { align-self: stretch; justify-self: stretch; width: 100%; }
+  .fire-today--result .fire-today__actions > *, .fire-today--result .fire-today__actions > .party-row > * { flex: 1 1 100%; }
+  .fire-today--result .fire-today__actions .empac-button { width: 100%; justify-content: center; }
+}
 
 @media (max-width: 640px) {
   .fire-page { gap: var(--spacing-24); }

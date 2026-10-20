@@ -86,17 +86,18 @@ export function SupportMoment({ from, title = "Enjoying GameShuffle?", ready = t
 }
 
 /**
- * The quiet second choice under a GS Pro wall's buttons: "Not ready for GS Pro? Support
- * GameShuffle instead." In the US only, and not for someone who already supports us.
+ * The quiet second choice under a GS Pro wall's buttons. Since the levels (2026-10-19) it
+ * says the Backer level includes GS Pro and lands on that level; it used to be "Support
+ * GameShuffle instead". In the US only, and not for someone who already supports us.
  */
 export function SupportInstead({ from }: { from: string }) {
   const status = useSupportStatus();
   if (!status || !status.available || status.supporter) return null;
   return (
     <p className="support-instead">
-      Not ready for GS Pro?{" "}
-      <Link href={`/support?from=${encodeURIComponent(`wall-${from}`)}`} onClick={() => track(EVENTS.supportClicked, { from: `wall-${from}` })}>
-        <IconHeart size={15} stroke={2} aria-hidden="true" /> Support GameShuffle instead
+      Or back GameShuffle:{" "}
+      <Link href={`/support?level=backer&from=${encodeURIComponent(`wall-${from}`)}#give`} onClick={() => track(EVENTS.supportClicked, { from: `wall-${from}` })}>
+        <IconHeart size={15} stroke={2} aria-hidden="true" /> GS Pro comes with the $9 Backer level
       </Link>
     </p>
   );

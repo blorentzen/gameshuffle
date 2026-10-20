@@ -165,7 +165,7 @@ export function WeeklyChallenge() {
           </div>
           <span className="weekly__eyebrow">This week&apos;s survey</span>
           <h2 className="weekly__title">{c.title}</h2>
-          <p className="party-muted">Give your own answer. Then, if you like, guess up to three of the crowd&apos;s top answers: on Monday the board is revealed, and each guess that&apos;s on it scores that answer&apos;s points. You can change everything until the week ends.</p>
+          <p className="party-muted">Give your answer, then guess up to three of the crowd&apos;s top answers. On Monday the board is revealed and each guess on it scores that answer&apos;s points. You can change anything until the week ends.</p>
           {data.signedIn ? (
             <div className="weekly__survey">
               {!c.myAnswer && c.answeredInBrain && (
@@ -249,7 +249,7 @@ export function WeeklyChallenge() {
 
       {(!data.signedIn || (c.kind === "survey" ? c.myPredictions : c.myBallot)) && (activity
         ? activity.showTab && <span className="party-row"><Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button></span>
-        : <ChatBrainAsk source="weekly" eyebrow="While you wait for Monday" title="Answer one more question?" />
+        : <ChatBrainAsk source="weekly" eyebrow="While you wait for Monday" title="Answer a Chat Brain question" />
       )}
 
       {c.agenda && (

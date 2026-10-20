@@ -276,6 +276,7 @@ export function roundCategories(round: { title: string; style: RoundStyle }): st
   const t = round.title.toLowerCase();
   if (round.style === "picture") return null;
   if (/halloween|spooky/.test(t)) return ["Halloween"];
+  if (/christmas|holiday|xmas|festive/.test(t)) return ["Christmas"];
   if (/world|geograph|capital|map/.test(t)) return ["Geography"];
   if (/pop culture|entertainment/.test(t)) return ["Movies & TV", "Music", "Video games"];
   if (/video game|gaming|games/.test(t)) return ["Video games"];

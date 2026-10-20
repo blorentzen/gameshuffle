@@ -14,7 +14,9 @@
     "instant:dev": "tsx scripts/build-instant-game.ts --dev",
     "instant:kit": "tsx scripts/build-instant-game.ts --kit",
     "instant:upload": "tsx scripts/build-instant-game.ts --upload",
-    "instant:art": "tsx scripts/render-instant-game-art.tsx"
+    "instant:art": "tsx scripts/render-instant-game-art.tsx",
+    "ext:build": "tsx scripts/build-twitch-extension.ts",
+    "ext:dev": "tsx scripts/build-twitch-extension.ts --dev"
   },
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",

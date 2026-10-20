@@ -13,6 +13,7 @@ import { CircuitPricing } from "@/components/marketing/CircuitPricing";
 import { FaqList } from "@/components/marketing/FaqList";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { ShowAll } from "@/components/ui/ShowAll";
+import { TableScroll } from "@/components/ui/TableScroll";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { circuitLaunch } from "@/lib/tournaments/circuit";
 import { circuitLaunchState } from "@/lib/tournaments/circuit-resolve";
@@ -223,7 +224,7 @@ export default async function GsCircuitPage() {
             <p className="beta-section__sub">Player count is the meter that sets the tier. The paid value is a real multi-lobby event plus four organizer features.</p>
           </div>
           <ShowAll height="40rem" label="Compare every feature" className="circuit-compare">
-          <div style={{ overflowX: "auto", maxWidth: 880, margin: "0 auto" }}>
+          <TableScroll label="Compare every feature" className="circuit-compare__table">
             <Table variant="striped" hoverable>
               <TableHeader>
                 <TableRow>
@@ -244,7 +245,7 @@ export default async function GsCircuitPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </TableScroll>
           </ShowAll>
         </section>
 

@@ -15,5 +15,67 @@
 .share-window__card--loading { display: grid; place-items: center; color: #fff; font-size: var(--font-size-14); }
 .share-window__places { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-8); }
 .share-window__places .empac-button { width: 100%; justify-content: center; }
-.share-window__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-12); }
+.share-window__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
 @media (max-width: 30rem) { .share-window__places { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/*
+ * The result page as a challenge (picks 2026-10-20): the friend's result drawn on the page
+ * (ShareFriendCard), then today's game, with their row marked on the board and You vs them
+ * on the end screen (ShareChallenge.tsx).
+ */
+.share-friend {
+  /* + the page column's 12px gap = 24px down to the game. */
+  position: relative; display: grid; gap: var(--spacing-12); margin-bottom: var(--spacing-12);
+  justify-self: stretch; width: 100%; box-sizing: border-box; text-align: start;
+  padding: var(--spacing-20) var(--spacing-20) var(--spacing-16);
+  border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px);
+  background: var(--surface-default, var(--background-primary)); overflow: hidden;
+}
+.share-friend::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 6px; background: var(--share-band); }
+.share-friend__head { display: flex; align-items: center; gap: var(--spacing-12); }
+.share-friend__who { display: grid; gap: 2px; min-width: 0; }
+.share-friend__name { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-bold); color: var(--text-primary); line-height: 1.25; }
+a.share-friend__name { text-decoration: none; }
+a.share-friend__name:hover { text-decoration: underline; }
+.share-friend__sub { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.share-friend__result { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-12); }
+.share-friend__big { font-family: var(--font-family-heading, inherit); font-size: var(--font-size-28); font-weight: var(--font-weight-bold); line-height: 1.15; color: var(--text-primary); }
+.share-friend__vibe { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+.share-friend__question { margin: 0; font-size: var(--font-size-16); color: var(--text-primary); }
+.share-friend__stats { margin: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-16); }
+.share-friend__stat { display: inline-flex; align-items: center; gap: var(--spacing-6); font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.share-friend__stat svg { flex: none; color: var(--text-tertiary); }
+.share-friend__parts { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
+.share-friend__parts li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--spacing-4) var(--spacing-12); font-size: var(--font-size-16); padding-bottom: var(--spacing-8); border-bottom: 1px solid var(--border-subtle, var(--border-default)); }
+.share-friend__parts li:last-child { border-bottom: 0; padding-bottom: 0; }
+.share-friend__parts span { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.share-friend__note { margin: 0; display: flex; align-items: flex-start; gap: var(--spacing-6); font-size: var(--font-size-14); line-height: 1.45; color: var(--text-secondary); }
+.share-friend__note svg { flex: none; margin-top: 2px; }
+
+/* Squares: the share card's colors (match green, close amber, miss grey). */
+/* The squares fill their space (up to 40px each on the friend's card, 24px in the head-to-head). */
+.share-squares { display: grid; gap: 6px; width: 100%; max-width: calc(var(--share-cols, 6) * 4.6rem); }
+.share-squares__row { display: grid; grid-template-columns: repeat(var(--share-cols, 6), minmax(0, 1fr)); gap: 6px; }
+.share-squares__cell { aspect-ratio: 1; border-radius: 6px; background: color-mix(in srgb, var(--text-primary) 16%, transparent); }
+.share-squares__cell--match { background: #2bb36b; }
+.share-squares__cell--close { background: #e9a91b; }
+/* Small squares fill their column (up to 24px each), so the head-to-head uses the room it has. */
+.share-squares--small { max-width: calc(var(--share-cols, 6) * 2.8rem); gap: 4px; }
+.share-squares--small .share-squares__row { gap: 4px; }
+.share-squares--small .share-squares__cell { border-radius: 4px; }
+
+/* You vs them, on the end screen. */
+/* The end panels line their children up at their own width; this one spans the panel. */
+.share-vs { align-self: stretch; justify-self: stretch; width: 100%; box-sizing: border-box; display: grid; gap: var(--spacing-16); padding-block: var(--spacing-20); border-top: 1px solid var(--daily-panel-line, var(--border-default)); border-bottom: 1px solid var(--daily-panel-line, var(--border-default)); text-align: center; }
+.share-vs__verdict { margin: 0; font-family: var(--font-family-heading, inherit); font-size: var(--font-size-20); font-weight: var(--font-weight-bold); line-height: 1.25; color: var(--text-primary); }
+.share-vs__sides { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: start; gap: var(--spacing-12); }
+.share-vs__side { display: grid; justify-items: center; align-content: start; gap: var(--spacing-8); min-width: 0; }
+/* Room for the Wins badge on both names, so the lines under them stay level. */
+.share-vs__side strong { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--spacing-6); min-height: 2.6rem; font-size: var(--font-size-16); }
+.share-vs__line { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.share-vs__mid { align-self: center; font-size: var(--font-size-14); font-weight: var(--font-weight-bold); color: var(--text-tertiary); }
+.share-vs .share-squares--small { margin-top: var(--spacing-4); }
+.fire-today .share-vs { margin-block: var(--spacing-4); }
+
+/* Their row on the leaderboard. */
+.daily-board__shared { flex: none; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--brand-ink, var(--primary-700)); }

@@ -9,7 +9,7 @@
  * never the answer.
  */
 
-export type ShareKind = "shuffle" | "dex" | "fire" | "weekly" | "day" | "supporter";
+export type ShareKind = "shuffle" | "dex" | "fire" | "weekly" | "day" | "supporter" | "names";
 export type ShareCell = "match" | "close" | "miss";
 
 /** Who's on the card: an account with a public profile, or a guest's leaderboard name. Null = the guest card with no name. */
@@ -72,7 +72,20 @@ export interface SupporterPart {
   monthly: boolean;
 }
 
-export type SharePart = PuzzlePart | FirePart | WeeklyPart | SupporterPart;
+/** Name every Pokémon: how many of the set, and how long (search pages round, 2026-10-20). */
+export interface NamesPart {
+  kind: "names";
+  set: string;
+  /** "All 1,025 Pokémon", "Gen 1 · Kanto". */
+  setLabel: string;
+  count: number;
+  of: number;
+  seconds: number;
+  /** "15 minutes", "No time limit". */
+  clockLabel: string;
+}
+
+export type SharePart = PuzzlePart | FirePart | WeeklyPart | SupporterPart | NamesPart;
 
 export interface ShareData {
   v: 1;
@@ -93,6 +106,8 @@ export interface ShareRequest {
   fireRun?: string;
   /** Supporter card for someone who gave signed out: the Checkout session from the thank-you page. */
   session?: string;
+  /** Name every Pokémon: the set, the clock, the dex numbers named and the seconds used (a quiz score, self-reported). */
+  names?: { set: string; clock: string; named: number[]; seconds: number };
 }
 
 /** POST /api/share's answer. */
@@ -105,19 +120,21 @@ export interface ShareMade {
   alt: string;
 }
 
-export const GAME_NAME: Record<"shuffle" | "dex" | "fire" | "weekly", string> = {
+export const GAME_NAME: Record<"shuffle" | "dex" | "fire" | "weekly" | "names", string> = {
   shuffle: "The Daily Shuffle",
   dex: "The Daily Dex",
   fire: "Fire Round",
   weekly: "The Weekly Challenge",
+  names: "Name every Pokémon",
 };
 
 /** Where each game is played (the result page's Play button and the card's link pill). */
-export const GAME_PATH: Record<"shuffle" | "dex" | "fire" | "weekly", string> = {
+export const GAME_PATH: Record<"shuffle" | "dex" | "fire" | "weekly" | "names", string> = {
   shuffle: "/daily",
   dex: "/daily-dex",
   fire: "/daily-trivia",
   weekly: "/weekly",
+  names: "/name-every-pokemon",
 };
 
 /** One word per score, like the Discord results card. */
@@ -156,6 +173,7 @@ export function supporterSince(p: SupporterPart): string {
 /** The card's game line: "The Daily Shuffle #22", "Fire Round #1", "Fire Round · Geography, 3 minutes". */
 export function partTitle(p: SharePart): string {
   if (p.kind === "supporter") return "Supporter";
+  if (p.kind === "names") return p.set === "all" ? "Name every Pokémon" : `Name every Pokémon · ${p.setLabel}`;
   if (p.kind === "fire") return p.daily ? `Fire Round${p.number >= 1 ? ` #${p.number}` : ""}` : `Fire Round · ${p.categoryLabel}, ${p.lengthLabel.toLowerCase()}`;
   if (p.kind === "weekly") return `The Weekly Challenge${p.number >= 1 ? ` · week ${p.number}` : ""}`;
   return `${GAME_NAME[p.kind]}${p.number >= 1 ? ` #${p.number}` : ""}`;
@@ -164,6 +182,7 @@ export function partTitle(p: SharePart): string {
 /** One line for a part, used on the day card and in descriptions. */
 export function partLine(p: SharePart): string {
   if (p.kind === "supporter") return supporterSince(p);
+  if (p.kind === "names") return `${p.count.toLocaleString("en-US")} of ${p.of.toLocaleString("en-US")}`;
   if (p.kind === "fire") return `${p.score.toLocaleString("en-US")} · ${p.right} right`;
   if (p.kind === "weekly") return "Answered";
   const score = !p.solved ? `X/${p.main}` : p.saved ? "last chance" : `${p.guesses}/${p.main}`;
@@ -175,6 +194,7 @@ export function shareTitle(d: ShareData): string {
   const who = d.player?.name ?? "Someone";
   const p = d.parts[0];
   if (p?.kind === "supporter") return `${d.player?.name ?? "A supporter"} keeps game night free`;
+  if (p?.kind === "names") return `${who} named ${p.count.toLocaleString("en-US")} of ${p.of.toLocaleString("en-US")} Pokémon`;
   if (d.kind === "day" || !p) return `${who}'s dailies today`;
   if (p.kind === "fire") return `${who} scored ${p.score.toLocaleString("en-US")} in ${partTitle(p)}`;
   if (p.kind === "weekly") return `${who} answered this week's Weekly Challenge`;
@@ -189,9 +209,62 @@ export function shareAlt(d: ShareData): string {
   if (d.parts[0]?.kind === "supporter") return `${d.player ? `${d.player.name} supports GameShuffle` : "Someone supports GameShuffle"}: keeping game night free. ${supporterSince(d.parts[0])}.`;
   const lines = d.parts.map((p) => {
     if (p.kind === "supporter") return supporterSince(p);
+    if (p.kind === "names") return `${partTitle(p)}: ${partLine(p)} named in ${shareTime(p.seconds)} (${p.clockLabel.toLowerCase()}).`;
     if (p.kind === "fire") return `${partTitle(p)}: ${p.score.toLocaleString("en-US")} points, ${p.right} right, best streak ${p.bestStreak}${p.place ? `, ${ordinalPlace(p.place)} today` : ""}.`;
     if (p.kind === "weekly") return `${partTitle(p)}: answered "${p.title}".`;
     return `${partTitle(p)}: ${puzzleHeadline(p)}${p.solved && p.seconds != null ? ` in ${shareTime(p.seconds)}` : ""}${p.streak > 1 ? `, a ${p.streak}-day streak` : ""}${p.place ? `, ${ordinalPlace(p.place)} today` : ""}.`;
   });
   return `${d.player ? `${d.player.name} on GameShuffle. ` : "A GameShuffle result. "}${lines.join(" ")}`;
+}
+
+/**
+ * The shared result page as a challenge (picks 2026-10-20): its header and the line under it.
+ * A result from today says "Your turn."; an older one names its day ("Nova got Monday's in 2.").
+ */
+export function challengeWho(d: ShareData): string {
+  return d.player?.name ?? "A friend";
+}
+
+/** "Monday" for a day in the last week, else "Oct 12". Days are Pacific dates (YYYY-MM-DD). */
+export function dayName(day: string, today: string): string {
+  const at = (s: string) => Date.parse(`${s}T12:00:00Z`);
+  const ago = Math.round((at(today) - at(day)) / 86_400_000);
+  if (ago === 1) return "yesterday";
+  const d = new Date(at(day));
+  return ago > 1 && ago < 7
+    ? d.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" })
+    : d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+const possessive = (when: string) => (when === "yesterday" ? "yesterday's" : `${when}'s`);
+
+export function challengeTitle(d: ShareData, today: string): string {
+  const who = challengeWho(d);
+  const p = d.parts[0];
+  const now = d.day === today;
+  const when = dayName(d.day, today);
+  if (!p) return `${who} played the dailies`;
+  if (p.kind === "names") return `${who} named ${p.count.toLocaleString("en-US")} of ${p.of.toLocaleString("en-US")}. Your turn.`;
+  if (d.kind === "day") return now ? `${who} played today's dailies. Your turn.` : `${who} played ${possessive(when)} dailies.`;
+  if (p.kind === "fire") {
+    const score = p.score.toLocaleString("en-US");
+    if (!p.daily) return `${who} scored ${score} in ${p.categoryLabel}. Your turn.`;
+    return now ? `${who} scored ${score}. Your turn.` : `${who} scored ${score} ${when === "yesterday" ? "yesterday" : `on ${when}`}.`;
+  }
+  if (p.kind === "weekly") return `${who} answered the Weekly Challenge. Your turn.`;
+  if (p.kind === "supporter") return shareTitle(d);
+  if (now) return !p.solved ? `${who} didn't get today's. Your turn.` : p.saved ? `${who} saved it on the last chance. Your turn.` : `${who} got it in ${p.guesses}. Your turn.`;
+  const day = possessive(when);
+  return !p.solved ? `${who} missed ${day}.` : p.saved ? `${who} saved ${day} on the last chance.` : `${who} got ${day} in ${p.guesses}.`;
+}
+
+export function challengeSub(d: ShareData, today: string): string {
+  const p = d.parts[0];
+  const now = d.day === today;
+  if (p?.kind === "names") return "Type as many Pokémon as you can before the clock runs out.";
+  if (d.kind === "day") return now ? "Start with the Daily Shuffle. The same puzzles for everyone today." : "Today's puzzles are new, and the same for everyone. Start with the Daily Shuffle.";
+  if (p?.kind === "fire") return p.daily && !now ? "Today's round is new: 60 seconds, the same questions for everyone. Your turn." : "Today's round: 60 seconds of trivia, the same questions for everyone.";
+  if (p?.kind === "weekly") return "One question for everyone this week. The crowd's answers are revealed on Monday.";
+  const thing = p?.kind === "dex" ? "Pokémon" : "character";
+  return now ? `Same ${thing} for everyone today.` : `Today's ${thing} is new, and the same for everyone. Your turn.`;
 }
