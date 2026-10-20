@@ -1,5 +1,6 @@
 import { Container } from "@empac/cascadeds";
 import { PlansPanel, type PlanRow } from "@/components/marketing/PlansPanel";
+import { NewHereLine } from "@/components/welcome/NewHereLine";
 
 /**
  * "Take {game} further", right under every randomizer (Britton's picks,
@@ -26,6 +27,7 @@ export function RandomizerNudge({
   const rows: PlanRow[] = ["account", ...(streamReady ? (["pro"] as const) : []), ...(tournament ? (["circuit"] as const) : [])];
   return (
     <Container>
+      <NewHereLine from="randomizer" />
       <PlansPanel
         id="take-it-further"
         title={`Take ${gameName} further`}

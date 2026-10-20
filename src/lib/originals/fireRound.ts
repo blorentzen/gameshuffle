@@ -11,6 +11,7 @@
  * judges every answer with these rules; the page only shows them.
  */
 
+import { SEASONS, inSeasonRange } from "@/lib/trivia/seasons";
 import { normalize } from "@/lib/chatbrain/rules";
 import { gsAddDays } from "@/lib/time/gsClock";
 
@@ -96,6 +97,11 @@ export interface FireCategory {
   categories?: string[];
   /** Game pack slugs it draws from (any game_slug starting with one of these). */
   games?: string[];
+  /**
+   * Seasonal: shown only between these Pacific dates (MM-DD, inclusive), and its
+   * questions stay out of Mixed rounds (today's round too) the rest of the year.
+   */
+  season?: { from: string; to: string };
 }
 
 export const MIXED = "mixed";
@@ -119,16 +125,28 @@ export const FIRE_CATEGORIES: FireCategory[] = [
   { id: "mario-party", label: "Mario Party", icon: "dice", games: ["mario-party", "super-mario-party"] },
   { id: "smash", label: "Smash Bros.", icon: "sword", games: ["super-smash-bros"] },
   { id: "pokemon", label: "Pokémon", icon: "pokeball", games: ["pokemon"] },
+  { id: "halloween", label: "Halloween", icon: "ghost", categories: ["Halloween"], season: SEASONS.Halloween },
 ];
 
 export const fireCategory = (id: string | null | undefined) => FIRE_CATEGORIES.find((c) => c.id === id) ?? FIRE_CATEGORIES[0];
 
-/** Does a question belong to a category? Mixed takes everything. */
-export function inCategory(cat: FireCategory, q: { category: string | null; gameSlug?: string | null }): boolean {
-  if (cat.id === MIXED) return true;
-  if (cat.categories?.includes(q.category ?? "")) return true;
-  if (cat.games && q.gameSlug) return cat.games.some((g) => q.gameSlug!.startsWith(g));
-  return false;
+/** Is a category in season on this Pacific day (YYYY-MM-DD)? Year-round categories always are. */
+export function inSeason(cat: FireCategory, day: string): boolean {
+  return !cat.season || inSeasonRange(cat.season, day);
+}
+
+type CategoryQuestion = { category: string | null; gameSlug?: string | null };
+const matches = (cat: FireCategory, q: CategoryQuestion): boolean =>
+  !!cat.categories?.includes(q.category ?? "") || (!!cat.games && !!q.gameSlug && cat.games.some((g) => q.gameSlug!.startsWith(g)));
+
+/**
+ * Does a question belong to a category? Mixed takes everything, except, when
+ * a day is given, questions from a seasonal category that's out of season
+ * (no Halloween questions in a July round).
+ */
+export function inCategory(cat: FireCategory, q: CategoryQuestion, day?: string): boolean {
+  if (cat.id === MIXED) return !day || !FIRE_CATEGORIES.some((c) => c.season && !inSeason(c, day) && matches(c, q));
+  return matches(cat, q);
 }
 
 // ─── the four choices ────────────────────────────────────────────────────────

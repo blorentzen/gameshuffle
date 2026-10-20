@@ -31,6 +31,7 @@ async function approvedPack(): Promise<(LibraryQuestion & { gameSlug: string | n
 function matches(topic: QuestionTopic, q: LibraryQuestion & { gameSlug: string | null }): boolean {
   if (q.gameSlug && topic.gameSlugs.includes(q.gameSlug)) return true;
   if (q.category && topic.pictureCategories?.includes(q.category)) return true;
+  if (q.category && topic.categories?.includes(q.category)) return true;
   if (q.category !== "Video games") return false;
   if (topic.allVideoGames) return true;
   const text = `${q.prompt} ${q.answer}`.toLowerCase();
@@ -43,7 +44,7 @@ const byDifficulty = (a: LibraryQuestion, b: LibraryQuestion) => DIFFICULTY_ORDE
 export async function topicQuestions(topic: QuestionTopic): Promise<LibraryQuestion[]> {
   const pack = await approvedPack();
   if (!pack) return [];
-  return pack.filter((q) => matches(topic, q)).sort(byDifficulty).slice(0, MAX_TOPIC_QUESTIONS);
+  return pack.filter((q) => matches(topic, q)).sort(byDifficulty).slice(0, topic.max ?? MAX_TOPIC_QUESTIONS);
 }
 
 /** How many approved questions each topic has (for the index page and the sitemap). */

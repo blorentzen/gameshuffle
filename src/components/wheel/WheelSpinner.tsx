@@ -81,6 +81,9 @@ export function WheelSpinner() {
     } catch {
       /* ignore */
     }
+    // A link can open a ready-made wheel (?preset=halloween-game-night) over the saved one.
+    const preset = wheelPreset(new URLSearchParams(window.location.search).get("preset") ?? "");
+    if (preset) savedText = preset.segments.join("\n");
     if (savedText == null && savedTheme == null && savedFill == null) return;
     const t = window.setTimeout(() => {
       if (savedText != null) setText(savedText);

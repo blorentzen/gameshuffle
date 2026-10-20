@@ -29,7 +29,7 @@ import type { DailiesEntry, DayMark } from "@/lib/originals/dailies";
 import { playerKey, type PlayerKind } from "@/lib/daily/boardRules";
 import { recordFireScore } from "@/lib/daily/boards";
 import {
-  boardPoints, choiceIsRight, cleanWrong, fireCategory, fireNumber, fourChoices, heatFor, inCategory, numberDistractors, pointsFor, rosterDistractors, seeded, shuffled,
+  boardPoints, choiceIsRight, cleanWrong, fireCategory, fireNumber, fourChoices, heatFor, inCategory, inSeason, numberDistractors, pointsFor, rosterDistractors, seeded, shuffled,
   DAILY_LENGTH, DAILY_SEEN, DAILY_SET_SIZE, FIRE_CATEGORIES, GRACE_MS, LENGTHS, LIVES, MIN_CATEGORY, MIXED,
   type FireLength, type FireTotals,
 } from "@/lib/originals/fireRound";
@@ -95,8 +95,10 @@ export async function fireCategories(): Promise<{ id: string; label: string; ico
   const pool = await loadPool();
   if (!pool) return null;
   const all = [...pool.values()];
+  const day = gsDay();
   return FIRE_CATEGORIES
-    .map((c) => ({ id: c.id, label: c.label, icon: c.icon, count: all.filter((q) => inCategory(c, q)).length }))
+    .filter((c) => inSeason(c, day))
+    .map((c) => ({ id: c.id, label: c.label, icon: c.icon, count: all.filter((q) => inCategory(c, q, day)).length }))
     .filter((c) => c.count >= MIN_CATEGORY);
 }
 
@@ -147,7 +149,8 @@ export async function todaySet(day = gsDay()): Promise<string[] | null> {
 
   const { data: recent } = await svc.from("fire_days").select("day, question_ids").gte("day", gsAddDays(day, -30)).lt("day", day);
   const byAge = ((recent ?? []) as { day: string; question_ids: string[] }[]).sort((a, b) => b.day.localeCompare(a.day));
-  const all = [...pool.values()];
+  // Today's round is a Mixed round: seasonal questions only in their season.
+  const all = [...pool.values()].filter((q) => inCategory(fireCategory(MIXED), q, day));
   // Skip as many recent days as still leaves a full set.
   let candidates = all;
   for (let keep = byAge.length; keep >= 0; keep--) {
@@ -174,7 +177,7 @@ async function freeQueue(player: FirePlayer, categoryId: string, length: FireLen
   const pool = await loadPool();
   if (!pool) return [];
   const cat = fireCategory(categoryId);
-  const all = [...pool.values()].filter((q) => inCategory(cat, q));
+  const all = [...pool.values()].filter((q) => inCategory(cat, q, gsDay()));
   const { data } = await createServiceClient().from("fire_seen").select("question_id, seen_at").eq("player", keyOf(player)).gte("seen_at", new Date(Date.now() - 30 * 86_400_000).toISOString()).limit(5000);
   const seenAt = new Map(((data ?? []) as { question_id: string; seen_at: string }[]).map((r) => [r.question_id, r.seen_at]));
   const fresh = all.filter((q) => !seenAt.has(q.id));
@@ -371,7 +374,9 @@ export async function startRun(player: FirePlayer, input: { mode: "daily" | "fre
   }
 
   const daily = input.mode === "daily";
-  const category = daily ? MIXED : fireCategory(input.category).id;
+  // A seasonal category out of season (an old link) plays as Mixed.
+  const picked = fireCategory(input.category);
+  const category = daily || !inSeason(picked, day) ? MIXED : picked.id;
   const length: FireLength = daily ? DAILY_LENGTH : input.length && input.length in LENGTHS ? input.length : "sprint";
   const queue = daily ? await todaySet(day) : await freeQueue(player, category, length);
   if (!queue) return { ok: false, error: "not_ready" };

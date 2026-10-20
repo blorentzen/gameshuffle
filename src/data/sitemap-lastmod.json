@@ -53,6 +53,7 @@
   "/game-nights/[id]/manage": "2026-09-28",
   "/game-nights/[id]/manage/check-in": "2026-09-21",
   "/game-nights/create": "2026-10-06",
+  "/game-nights/halloween-party-games": "2026-10-19",
   "/game-nights/tools": "2026-10-08",
   "/game-nights/tools/chaos-cup": "2026-09-28",
   "/game-nights/tools/counters": "2026-10-06",
@@ -160,8 +161,8 @@
   "/pokemon-tcg-companion": "2026-10-13",
   "/pokemon-tcg/checklists": "2026-10-14",
   "/pokemon-tcg/checklists/[slug]": "2026-10-14",
-  "/pokemon-tcg/decks": "2026-10-13",
-  "/pokemon-tcg/decks/[deck]": "2026-10-13",
+  "/pokemon-tcg/decks": "2026-10-19",
+  "/pokemon-tcg/decks/[deck]": "2026-10-19",
   "/pokemon-tcg/decks/battle-box/[slug]": "2026-10-11",
   "/pokemon-tcg/rules": "2026-10-11",
   "/pokemon-tcg/rules/damage-counters": "2026-10-11",
@@ -250,6 +251,7 @@
   "/unsubscribe": "2026-10-10",
   "/waitlist/[token]": "2026-10-06",
   "/weekly": "2026-10-16",
+  "/welcome": "2026-10-19",
   "/wheel-spinner": "2026-10-06",
   "/yes-no": "2026-10-06"
 }

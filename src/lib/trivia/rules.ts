@@ -11,6 +11,8 @@
  *   templates     a night set up in one tap for the occasion
  */
 
+import { categoryInSeason } from "@/lib/trivia/seasons";
+import { gsDay } from "@/lib/time/gsClock";
 import { isNear, normalize } from "@/lib/chatbrain/rules";
 
 export type RoundStyle = "classic" | "picture" | "confidence" | "final";
@@ -273,6 +275,7 @@ const diffOf = (q: PoolQuestion): Difficulty => q.difficulty ?? "medium";
 export function roundCategories(round: { title: string; style: RoundStyle }): string[] | null {
   const t = round.title.toLowerCase();
   if (round.style === "picture") return null;
+  if (/halloween|spooky/.test(t)) return ["Halloween"];
   if (/world|geograph|capital|map/.test(t)) return ["Geography"];
   if (/pop culture|entertainment/.test(t)) return ["Movies & TV", "Music", "Video games"];
   if (/video game|gaming|games/.test(t)) return ["Video games"];
@@ -303,7 +306,7 @@ export function pickForRound<T extends PoolQuestion>(
   pool: T[],
   round: { title: string; style: RoundStyle },
   need: number,
-  opts: { taken: Set<string>; avoid?: Set<string>; familySafe?: boolean; random?: () => number } = { taken: new Set() },
+  opts: { taken: Set<string>; avoid?: Set<string>; familySafe?: boolean; random?: () => number; day?: string } = { taken: new Set() },
 ): T[] {
   if (need <= 0) return [];
   const random = opts.random ?? Math.random;
@@ -311,6 +314,9 @@ export function pickForRound<T extends PoolQuestion>(
   const lightning = /lightning|quick|speed/.test(round.title.toLowerCase());
   let fits = pool.filter((q) => !opts.taken.has(q.id) && (round.style === "picture" ? q.kind === "picture" : q.kind !== "picture") && (!opts.familySafe || q.familySafe !== false));
   const cats = roundCategories(round);
+  // Holiday packs only in their season, unless the round asks for that holiday by name.
+  const day = opts.day ?? gsDay();
+  fits = fits.filter((q) => categoryInSeason(catOf(q), day) || !!cats?.includes(catOf(q)));
   if (cats) {
     const inCat = fits.filter((q) => cats.includes(catOf(q)));
     if (inCat.length >= need) fits = inCat;

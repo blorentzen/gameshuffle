@@ -400,12 +400,12 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
      `serverRows` is null while we have not fetched, which is also the state on
      first paint, so the server-rendered rows are what a crawler sees. */
   const [serverRows, setServerRows] = useState<BrowseEvent[] | null>(null);
-  const [serverCursor, setServerCursor] = useState<{ startsAt: string | null; id: string } | null>(null);
+  const [serverCursor, setServerCursor] = useState<{ startsAt: string | null; id: string; seg?: string } | null>(null);
   const [serverTotal, setServerTotal] = useState(0);
   const [serverMode, setServerMode] = useState(true);
   const [fetching, setFetching] = useState(false);
 
-  const queryString = useCallback((cursor?: { startsAt: string | null; id: string } | null) => {
+  const queryString = useCallback((cursor?: { startsAt: string | null; id: string; seg?: string } | null) => {
     const sp = new URLSearchParams({ type: config.type });
     if (query.trim()) sp.set("q", query.trim());
     if (genre) sp.set("genre", genre);
@@ -419,7 +419,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     if (status) sp.set("status", status);
     if (!config.statusTabs && when) sp.set("when", when);
     if (coords && radius > 0) { sp.set("lat", String(coords.lat)); sp.set("lng", String(coords.lng)); sp.set("radius", String(radius)); }
-    if (cursor) { sp.set("cursorId", cursor.id); if (cursor.startsAt) sp.set("cursorAt", cursor.startsAt); }
+    if (cursor) { sp.set("cursorId", cursor.id); if (cursor.startsAt) sp.set("cursorAt", cursor.startsAt); if (cursor.seg) sp.set("cursorSeg", cursor.seg); }
     return sp.toString();
   }, [config.type, config.statusTabs, query, genre, level, kind, game, online, price, format, openSpots, status, when, coords, radius]);
 

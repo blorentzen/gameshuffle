@@ -613,6 +613,13 @@
   gap: var(--spacing-20);
   flex-wrap: wrap;
 }
+.browse-hero__note {
+  margin: var(--spacing-20) 0 0;
+  font-size: var(--font-size-16);
+  color: rgba(255, 255, 255, 0.82);
+}
+.browse-hero__note a { color: #fff; font-weight: 600; text-underline-offset: 0.3rem; }
+.browse-hero__note a:focus-visible { outline: 3px solid #fff; outline-offset: 2px; border-radius: 0.4rem; }
 .browse-hero__ghost {
   color: #fff;
   font-weight: 600;

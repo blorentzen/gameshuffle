@@ -8,6 +8,7 @@ import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { CHOICE_POINTS, TYPED_POINTS } from "@/lib/originals/fireRound";
 import { TRIVIA_PATH, topicUrl } from "@/data/trivia-seo";
+import { NewHereLine } from "@/components/welcome/NewHereLine";
 import "@/styles/fire-round.css";
 
 /**
@@ -71,6 +72,7 @@ export default function DailyTriviaPage() {
           <DailiesBar current="fire" />
           <FireRound />
         </DailiesProvider>
+        <NewHereLine from="daily-fire" />
 
         <section className="fire-flat fire-about" aria-labelledby="fire-how-title">
           <h2 id="fire-how-title" className="fire-flat__title">How the daily trivia quiz works</h2>

@@ -6,6 +6,7 @@ import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { DailyDex } from "@/components/originals/DailyDex";
 import { isStaffRequest } from "@/lib/auth/raw";
 import { DAILY_DEX_PUBLIC } from "@/lib/games-visibility";
+import { NewHereLine } from "@/components/welcome/NewHereLine";
 
 export const metadata: Metadata = {
   title: "The Daily Dex: guess the Pokémon",
@@ -33,6 +34,7 @@ export default async function DailyDexPage() {
           <DailiesBar current="dex" />
           <DailyDex />
         </DailiesProvider>
+        <NewHereLine from="daily-dex" />
       </Container>
     </main>
   );

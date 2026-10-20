@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Chip, Select } from "@empac/cascadeds";
@@ -32,6 +32,13 @@ export function OddOneOut() {
   const seats = players.map((_, i) => i);
 
   const [pack, setPack] = useState(MIXED);
+  // A link can open a pack (?pack=halloween, from the Halloween party games page).
+  useEffect(() => {
+    const want = new URLSearchParams(window.location.search).get("pack");
+    if (!want || !WORD_PACKS.some((p) => p.id === want)) return;
+    const t = window.setTimeout(() => setPack(want), 0);
+    return () => window.clearTimeout(t);
+  }, []);
   const [aiPack, setAiPack] = useState<WordPack | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("setup");

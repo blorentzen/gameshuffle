@@ -122,6 +122,10 @@ export const EVENTS = {
 
   // Free tools and game-night companion tools (props: { tool })
   toolUsed: "Tool Used",
+  // The welcome page (/welcome): a door picked, a section's button, the "New to GameShuffle?" line.
+  welcomeDoorClicked: "Welcome Door Clicked",
+  welcomePathStarted: "Welcome Path Started",
+  welcomeLineClicked: "Welcome Line Clicked",
 
   // /live viewer actions
   pollVoted: "Poll Voted",

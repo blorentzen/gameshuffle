@@ -2178,7 +2178,8 @@
 .hero-demo__seat + .hero-demo__seat { border-top: 1px solid var(--border-default, #d6d9e6); }
 .hero-demo__seat b { font-variant-numeric: tabular-nums; }
 .hero-demo__seat.is-win { background: color-mix(in srgb, var(--color-success-500, #1a8a57) 16%, transparent); color: var(--color-success-700, #11603c); }
-.hero-demo__seat.is-out { opacity: 0.55; }
+/* Knocked out: lighter weight and the secondary ink (opacity made the name fail contrast). */
+.hero-demo__seat.is-out { color: var(--text-secondary, #5a5f78); font-weight: 500; }
 .hero-demo__seat.is-tbd { color: var(--text-secondary, #5a5f78); font-weight: 500; }
 .hero-demo--bracket .hero-demo__result { color: var(--color-success-700, #11603c); }
 

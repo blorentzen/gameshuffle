@@ -4,6 +4,7 @@ import { BrowseHero } from "@/components/events/BrowseHero";
 import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { DiscordPlug } from "@/components/discord/DiscordPlug";
 import { DailyShuffle } from "@/components/originals/DailyShuffle";
+import { NewHereLine } from "@/components/welcome/NewHereLine";
 
 export const metadata: Metadata = {
   title: "The Daily Shuffle: guess the Nintendo character",
@@ -29,6 +30,7 @@ export default function DailyPage() {
           <DailiesBar current="shuffle" />
           <DailyShuffle />
         </DailiesProvider>
+        <NewHereLine from="daily-shuffle" />
         <DiscordPlug from="daily" />
       </Container>
     </main>
