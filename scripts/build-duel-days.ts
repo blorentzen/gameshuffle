@@ -68,7 +68,7 @@ function print(day: string, b: NonNullable<ReturnType<typeof buildDay>>, data: {
   const t = data.trainers.find((x) => x.id === b.trainerId)!;
   const pack = b.pack.map((id) => data.cards[id]?.short ?? id).join(", ");
   const team = t.team.map((id) => data.cards[id]?.short ?? id).join(", ");
-  console.log(`${day} #${b.number} ${b.tier.padEnd(8)} ${t.name} (${t.team.length}) par ${b.par}${b.inBand ? "" : " (outside the band)"} · obvious lost on ${b.obviousTurns} · ${b.attempts} ${b.attempts === 1 ? "try" : "tries"} · ${ms}ms`);
+  console.log(`${day} #${b.number} ${b.tier.padEnd(8)} ${t.name} (${t.team.length}) par ${b.par}${b.inBand ? "" : " (outside the band)"} · obvious lost on ${b.obviousTurns} · findable from ${b.fair} · ${b.attempts} ${b.attempts === 1 ? "try" : "tries"} · ${ms}ms`);
   console.log(`    team: ${team}`);
   console.log(`    pack: ${pack}`);
   console.log(`    events: ${b.events.filter((e) => e.turn <= b.par + 2).map((e) => `${e.turn}:${e.kind}`).join(" ")}`);
