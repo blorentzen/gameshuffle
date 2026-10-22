@@ -4,10 +4,11 @@
  * The Daily Duel's arena: one visual world in any theme (a dark game screen), after the picks
  * page's playable mockup (https://claude.ai/artifact/5fdauqQ8MPof41oWXYcuPk), made lighter to read
  * (picks https://claude.ai/artifact/VL1NYSQ6NLRwxmMymXQq1y). Top to bottom: the trainer's bar with
- * their round picture and pips, their waiting cards, their card on the field (tilted card + hologram), the middle
- * (the scoreline of what just happened, this turn's event, what's in play, the "Next turn" chip and
- * the Energy row), your card on the field, your moves, your waiting cards, your bar with the turn
- * and the clock.
+ * their round picture and pips, their waiting cards, their card on the field (the hologram), the middle
+ * (the scoreline of what just happened, the event strip with This turn and Next turn, what's in play
+ * and the Energy row), your card on the field, your moves, your waiting cards, your bar with the turn
+ * and the clock. From 900px wide it's side by side and the event strip spans both columns above the
+ * cards (the same strip is drawn in both places; CSS shows one).
  *
  * A turn is one tap for most turns: today's Energy starts on your card on the field (a ringed
  * dot), so a move, Wait or a swap sends the turn. Tap a waiting card first to put the Energy there
@@ -29,7 +30,7 @@ import type { DuelAct, EnergyType } from "@/lib/originals/duel/types";
 import type { ArenaMotion } from "./duelBeats";
 import { CardArt, CardConds, CardThumb, CondTag, CostDots, EnergyDot, MoveConds, Pips, TypeChip, condWords } from "./DuelBits";
 import { DuelField } from "./DuelHolo";
-import { DuelEventBanner, DuelForecast } from "./DuelEvent";
+import { DuelEventMoment, DuelEventStrip, eventNowText } from "./DuelEvent";
 import { TrainerArt } from "./TrainerArt";
 import { CONDITION_LOOK, WEATHER_CHIP, cardLabel, clockText, energyWords, eventLines, eventOutcome, isEventLine, lineText, scoreRows, type ScoreRow } from "./duelLook";
 import type { DuelMoveView } from "@/lib/originals/duel/view";
@@ -250,6 +251,25 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
   const allRows = useMemo(() => scoreRows(play.log, play.you, play.foe), [play.log, play.you, play.foe]);
   const reveal = staging && motion.reveal != null ? motion.reveal : Infinity;
   const outcome = play.event ? eventOutcome(play.event, play.log, play.you, play.foe) : null;
+  const hint = play.hint;
+  const tipped = (a: DuelAct) => !!hint && JSON.stringify(hint.act) === JSON.stringify(a);
+
+  // The moment an event lands (once its exchange has played): it takes the middle for a beat. Not for
+  // the event that was already on when the arena opened, and never with reduced motion.
+  const eventKey = play.event && !play.over ? `${play.event.kind}-${play.event.turn}` : "";
+  const [moment, setMoment] = useState({ key: eventKey, on: false });
+  if (eventKey && !staging && eventKey !== moment.key) {
+    // A new event: its moment starts now (state adjusted during render, React's pattern for this).
+    setMoment({ key: eventKey, on: typeof window !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+  }
+  useEffect(() => {
+    if (!moment.on) return;
+    const t = window.setTimeout(() => setMoment((m) => ({ ...m, on: false })), 1500);
+    return () => window.clearTimeout(t);
+  }, [moment]);
+  const strip = (cls: string) => (play.yi >= 0 && !play.over ? (
+    <DuelEventStrip event={play.event} outcome={outcome} forecast={play.forecast} hint={hint} picture={run.trainer.picture} staging={staging} className={cls} />
+  ) : null);
 
   // The whole turn in full sentences for screen readers (once the beats are done): what happened,
   // the event that flipped and what it did, then what to do now.
@@ -257,12 +277,13 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
     if (staging) return "";
     const parts = play.log.filter((l) => !(l.kind === "energy" && l.side === "you") && !isEventLine(l)).map(lineText);
     if (play.event) parts.push(`${play.event.title}. ${play.event.text}`, ...eventLines(play.log).map(lineText));
+    if (play.event?.kind === "advice" && play.hint) parts.push(`The professor suggests: ${play.hint.text}`);
     if (play.over) parts.push(play.over === "won" ? `You beat ${trainer}.` : `${trainer} wins.`);
     else if (play.needsBring) parts.push(`Pick ${play.bring} of your six to bring.`);
     else if (play.needsNext) parts.push(play.yi < 0 ? "Pick your lead." : "Pick your next card.");
     else if (turnLive && now && you) parts.push(`Turn ${play.turn}. Today's ${now} Energy is on your ${you.name}.`);
     return parts.join(" ");
-  }, [staging, play.log, play.event, play.over, play.needsNext, play.needsBring, play.bring, play.yi, play.turn, turnLive, now, you, trainer]);
+  }, [staging, play.log, play.event, play.hint, play.over, play.needsNext, play.needsBring, play.bring, play.yi, play.turn, turnLive, now, you, trainer]);
 
   const inPlay = play.inPlay;
   const midChips: React.ReactNode[] = [];
@@ -315,16 +336,14 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
         {foe && !foe.out && (
           <DuelField card={foe} side="foe" owner={their} motion={motion.foe} nonce={motion.nonce} fx={motion.fx?.foe} onZoom={() => onZoom(foe, their)}>
             <ul className="duel-foe-moves" aria-label={`${their} ${cardLabel(foe)}: moves`}>
-              {foe.moves.map((m, i) => {
-                const next = play.advice?.move === i;
+              {foe.moves.map((m) => {
                 return (
-                  <li key={m.n} className={next ? "duel-foe-moves__next" : undefined}>
+                  <li key={m.n}>
                     <span className="duel-foe-moves__name">{m.n}</span>
                     <CostDots cost={m.cost} energy={foe.energy} />
                     <span className="sr-only">, needs {energyWords(m.cost)}{m.ready ? ", ready" : ""}</span>
                     <MoveConds fx={m.fx} size="xs" />
                     <strong className={m.weak ? "duel-up" : undefined}>{m.damage ?? m.d}<span className="sr-only"> damage to your card{m.weak ? ", super effective" : ""}.{fxWords(m)}</span></strong>
-                    {next && <em>Next</em>}
                   </li>
                 );
               })}
@@ -339,11 +358,12 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
           </DuelField>
         )}
 
+        {strip("duel-evs--wide")}
+
         <div className="duel-mid">
           {allRows.length > 0 && <Scoreline key={motion.beatKey} rows={allRows} reveal={reveal} trainer={trainer} onLog={() => setLogOpen(true)} />}
-          {play.event && <DuelEventBanner event={play.event} outcome={outcome} picture={run.trainer.picture} />}
+          {strip("duel-evs--mid")}
           {midChips.length > 0 && <p className="duel-chips">{midChips}</p>}
-          {play.forecast && !play.over && play.yi >= 0 && <DuelForecast event={play.forecast} hidden={staging} picture={run.trainer.picture} />}
           {play.yi >= 0 && !play.over && (
             <div className="duel-row">
               <span className="duel-row__label">Energy</span>
@@ -383,18 +403,19 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
               const dmg = m.damage ?? m.d;
               const tone = dmg > m.d ? " duel-up" : dmg < m.d ? " duel-down" : "";
               const why = !turnLive ? "" : you.cond === "asleep" ? " Your card is Asleep." : !play.canMove ? " Your card can't move this turn." : ok ? " Ready." : " Needs more Energy.";
+              const tip = tipped({ move: i });
               return (
                 <Button
                   key={`${you.index}-${m.n}`}
                   variant="secondary"
-                  className={`duel-move${ok ? " duel-move--ready" : ""}${lone && i === you.moves.length - 1 ? " duel-move--wide" : ""}`}
+                  className={`duel-move${ok ? " duel-move--ready" : ""}${tip ? " duel-move--tip" : ""}${lone && i === you.moves.length - 1 ? " duel-move--wide" : ""}`}
                   disabled={!ok || busy}
                   onClick={() => act({ move: i })}
                   data-move={i}
-                  aria-label={`${m.n}: ${dmg} damage${m.weak && dmg > 0 ? ", super effective" : ""}. Costs ${energyWords(m.cost)}.${fxWords(m)}${why}`}
+                  aria-label={`${m.n}: ${dmg} damage${m.weak && dmg > 0 ? ", super effective" : ""}. Costs ${energyWords(m.cost)}.${fxWords(m)}${why}${tip ? " The professor's pick." : ""}`}
                 >
                   <span className="duel-move__top">
-                    <span className="duel-move__name">{m.n}</span>
+                    <span className="duel-move__name">{m.n}{tip && <span className="duel-tip" aria-hidden="true">Tip</span>}</span>
                     <span className="duel-move__hit">
                       {m.weak && dmg > 0 && <span className="duel-badge duel-badge--x2">×2</span>}
                       <span className={`duel-move__dmg${tone}`}>{dmg}</span>
@@ -407,19 +428,19 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
                 </Button>
               );
             })}
-            <Button variant="secondary" className="duel-move duel-move--alt" disabled={attach === null || busy} onClick={() => act({ wait: true })} data-wait aria-label="Wait: no move this turn">
-              <span className="duel-move__top"><span className="duel-move__name"><IconHourglass size={18} stroke={2} aria-hidden="true" />Wait</span></span>
+            <Button variant="secondary" className={`duel-move duel-move--alt${tipped({ wait: true }) ? " duel-move--tip" : ""}`} disabled={attach === null || busy} onClick={() => act({ wait: true })} data-wait aria-label={`Wait: no move this turn${tipped({ wait: true }) ? ". The professor's pick." : ""}`}>
+              <span className="duel-move__top"><span className="duel-move__name"><IconHourglass size={18} stroke={2} aria-hidden="true" />Wait{tipped({ wait: true }) && <span className="duel-tip" aria-hidden="true">Tip</span>}</span></span>
             </Button>
             <Button
               variant="secondary"
-              className={`duel-move duel-move--alt${swapping ? " duel-move--on" : ""}`}
+              className={`duel-move duel-move--alt${swapping ? " duel-move--on" : ""}${hint && "swap" in hint.act ? " duel-move--tip" : ""}`}
               disabled={attach === null || busy || play.swaps.length === 0}
               onClick={toggleSwap}
               aria-pressed={swapping}
               data-swap
-              aria-label={play.swaps.length ? "Swap: pick a waiting card to bring in. Uses your turn." : "Swap: no card can come in"}
+              aria-label={play.swaps.length ? `Swap: pick a waiting card to bring in. Uses your turn.${hint && "swap" in hint.act ? ` The professor's pick: ${play.you[hint.act.swap].name}.` : ""}` : "Swap: no card can come in"}
             >
-              <span className="duel-move__top"><span className="duel-move__name"><IconArrowsExchange size={18} stroke={2} aria-hidden="true" />Swap</span></span>
+              <span className="duel-move__top"><span className="duel-move__name"><IconArrowsExchange size={18} stroke={2} aria-hidden="true" />Swap{hint && "swap" in hint.act && <span className="duel-tip" aria-hidden="true">Tip</span>}</span></span>
             </Button>
             {swapping && (
               <p className="duel-movenote">
@@ -450,7 +471,10 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
                 pending={holds ? now : null}
                 onPress={canSwap ? () => act({ swap: c.index }) : canGive ? () => putEnergy(c.index) : undefined}
                 label={label}
-                className={canSwap ? "duel-thumb--swap" : canGive ? (holds ? "duel-thumb--got" : "duel-thumb--give") : undefined}
+                className={[
+                  canSwap ? "duel-thumb--swap" : canGive ? (holds ? "duel-thumb--got" : "duel-thumb--give") : "",
+                  hint && turnLive && ((swapping && tipped({ swap: c.index })) || (!swapping && hint.attach === c.index && hint.attach !== play.yi && !holds)) ? "duel-thumb--tip" : "",
+                ].filter(Boolean).join(" ") || undefined}
               />
             );
           })}
@@ -466,6 +490,10 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
           <Pips cards={play.you.filter((c) => !c.sat)} who="You" />
         </div>
       </div>
+
+      {moment.on && play.event && moment.key === eventKey && (
+        <DuelEventMoment event={play.event} text={eventNowText(play.event, outcome, hint)} picture={run.trainer.picture} onDone={() => setMoment((m) => ({ ...m, on: false }))} />
+      )}
 
       {picker && play.needsBring && (
         <DuelBringPicker play={play} trainer={trainer} headingRef={pickRef} busy={busy} onBring={(cards) => { touched.current = true; onBring(cards); }} onZoom={(c) => onZoom(c, "Your")} />

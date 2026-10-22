@@ -90,7 +90,7 @@ export function framesBetween(prev: DuelPlayView | null, next: DuelPlayView, non
     foe: copyCards(prev.foe),
     attachTo: [], swaps: [], canMove: false, needsNext: false, nexts: [],
     energy: { now: null, next: prev.energy.next },
-    event: null, advice: null, over: null,
+    event: null, hint: null, over: null,
     forecast: next.forecast,
     log,
   };

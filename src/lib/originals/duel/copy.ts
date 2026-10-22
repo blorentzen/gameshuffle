@@ -18,7 +18,7 @@ const EVENT_COPY: Record<Exclude<DuelEventKind, "signature">, { title: string; t
   confused: { title: "Your Pokémon is confused", text: "Your next move does half damage.", short: "Your next move does half" },
   ace: { title: "A stubborn ace", text: "Whichever card on the field has more HP skips its next move (the trainer's on a tie).", short: "The card with more HP skips its next move" },
   crit: { title: "A critical hit", text: "Your next move does half again as much.", short: "Your next move does 1.5×" },
-  advice: { title: "Professor's advice", text: "You see which move {trainer} will use next.", short: "See {trainer}'s next move" },
+  advice: { title: "Professor's advice", text: "The professor suggests a play for this turn.", short: "A play for this turn" },
   potion: { title: "A Potion drops", text: "Your card on the field heals 30.", short: "Your card heals 30" },
   revive: { title: "A Revive", text: "Your knocked-out card with the most HP comes back with half its HP, waiting, with no Energy.", short: "Your best knocked-out card comes back at half HP" },
 };

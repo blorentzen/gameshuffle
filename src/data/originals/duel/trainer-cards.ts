@@ -41,10 +41,13 @@ export type DuelTrainerCardPlan =
 
 /**
  * A Supporter card's art window by era, measured on Scrydex's medium images on 2026-10-21 and set a
- * hair inside the art (about 1% a side), so no frame ever shows at an edge.
+ * hair inside the art (about 1% a side), so no frame ever shows at an edge. Scarlet & Violet was
+ * measured again to the pixel on 2026-10-22 across its 36 cards (art from row 72 to 263 and column 29
+ * to 337 of 367x512, inside the thin grey border): the 1% cut the top of Larry's hair, which runs to
+ * the picture's edge.
  */
 export const SUPPORTER_ART: Record<"sv" | "swsh" | "sm" | "xy" | "pl", ArtBox> = {
-  sv: [0.085, 0.148, 0.83, 0.362],
+  sv: [0.08, 0.141, 0.838, 0.373],
   swsh: [0.088, 0.15, 0.824, 0.364],
   sm: [0.088, 0.152, 0.824, 0.36],
   xy: [0.105, 0.168, 0.786, 0.336],

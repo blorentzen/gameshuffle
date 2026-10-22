@@ -23,7 +23,7 @@ import { playerKey, type PlayerKind } from "@/lib/daily/boardRules";
 import { recordDuelScore } from "@/lib/daily/boards";
 import type { DailiesEntry, DayMark } from "@/lib/originals/dailies";
 import { alive, applyStep, cardsLeft, inDuel, startState, viewOf, type DuelSetup, type DuelState } from "./engine";
-import { buildDay, makeSetup } from "./solver";
+import { adviceFor, buildDay, makeSetup } from "./solver";
 import { trainerPicture } from "./pictures";
 import { bioFor } from "@/data/originals/duel/bios";
 import { TIER_LABEL, duelNumber, duelPoints, duelShareText, personOf, signatureText, tierFor, type DuelShareFacts } from "./rules";
@@ -313,6 +313,13 @@ function shareFactsOf(r: RunRow, d: DuelDay): DuelShareFacts {
   };
 }
 
+/** The arena's view of a run: on Professor's advice's turn it carries a play for the turn (a short search). */
+function playView(r: RunRow, d: DuelDay) {
+  const play = viewOf(d.setup, r.state, d.trainer);
+  if (play.event?.kind === "advice" && !play.over) play.hint = adviceFor(d.setup, r.state);
+  return play;
+}
+
 function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number } | null = null): DuelRunView {
   const done = r.status === "done";
   // Par shows once the official duel is over (practice only opens after it).
@@ -320,7 +327,7 @@ function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number 
   return {
     id: r.id, day: r.day, number: duelNumber(r.day), official: r.official, status: r.status,
     trainer: dayTrainer(d),
-    play: viewOf(d.setup, r.state, d.trainer),
+    play: playView(r, d),
     result: r.result,
     turns: r.state.turn,
     cardsLeft: cardsLeft(r.state),

@@ -8,7 +8,7 @@ import {
   CONDITION_RULES, actions, applyStep, begin, canUse, cloneState, damageOf, foeEnergy, isLegal, nexts, pays, replay, roll, startState, step, swapTargets, viewOf,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "../src/lib/originals/duel/engine";
-import { FAIR_LEADS, buildDay, candidates, drawPack, fairLeads, makeSetup, obviousPlay, packCap, solve, solverSetup } from "../src/lib/originals/duel/solver";
+import { FAIR_LEADS, adviceFor, buildDay, candidates, drawPack, fairLeads, hintText, makeSetup, obviousPlay, packCap, solve, solverSetup } from "../src/lib/originals/duel/solver";
 import { conditionsOf, toDuelCard } from "../src/data/originals/duel/cardRules";
 import {
   DUEL_EPOCH, DUEL_WARMUP, PAR_BAND, PERSON_GAP_DAYS, TIER_FALLBACK, TIER_LABEL, duelNumber, duelPoints, duelRand, duelShareText, duelSquares, duelTime, energyRow, eventCopy, eventPlan,
@@ -21,9 +21,9 @@ import { artCrop, trainerPicture } from "../src/lib/originals/duel/pictures";
 
 let pass = 0;
 let fail = 0;
-function check(ok: unknown, what: string) {
+function check(ok: unknown, what: string, detail?: unknown) {
   if (ok) pass++;
-  else { fail++; console.error("FAIL:", what); }
+  else { fail++; console.error("FAIL:", what, detail ?? ""); }
 }
 
 // ─── tiny setups ─────────────────────────────────────────────────────────────
@@ -230,10 +230,16 @@ check(!isLegal(SET, startState(SET), { attach: 0, act: { wait: true } }), "no tu
 {
   const set = mk({ events: [at(1, "advice")] });
   const s = begin(set, startState(set), 0);
-  const v = viewOf(set, s, TRAINER);
-  check(v.advice?.name === "Flame" && v.advice.card === 0, "Professor's advice shows the trainer's next move");
+  check(viewOf(set, s, TRAINER).hint === null, "the engine leaves Professor's advice to the server");
+  const h = adviceFor(set, s);
+  check(!!h && isLegal(set, s, { attach: h.attach, act: h.act }), "Professor's advice is a legal play for this turn");
+  check(!!h && h.text.endsWith(".") && /^(Use|Swap in|Wait|Put the Energy on) /.test(h.text), "and says it in one sentence", h?.text);
+  const t = hintText(set, s, { attach: 0, act: { move: 0 } });
+  check(/^Use \S.*: \d+ to /.test(t), "a move names the move and its damage", t);
+  const t2 = hintText(set, s, { attach: 1, act: { move: 0 } });
+  check(t2.startsWith(`Put the Energy on ${set.you[1].short}, then use `), "Energy on a waiting card comes first", t2);
   const s2 = applyStep(set, s, { attach: 0, act: { wait: true } })!;
-  check(viewOf(set, s2, TRAINER).advice === null, "only on its turn");
+  check(adviceFor(set, { ...s2, over: "lost" }) === null, "no advice once the duel is over");
 }
 {
   const set = mk({ events: [at(3, "revive")] });

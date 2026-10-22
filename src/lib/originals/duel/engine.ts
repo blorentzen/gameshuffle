@@ -122,7 +122,7 @@ export interface DuelFx {
   /** The waiting card Team Rocket has (-1 for none) and the turns left. */
   rocket: number;
   rocketLeft: number;
-  /** Professor's advice this turn: the view shows the trainer's next move. */
+  /** Professor's advice this turn: the view carries a play for the turn (solver.ts adviceFor). */
   advice: boolean;
 }
 
@@ -889,10 +889,6 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
   // During turn N you place row[N - 1] and see row[N .. N + 2]; between turns the next to place is
   // row[N], so the same three show (nothing new comes into view until the turn begins).
   const next = s.over ? [] : setup.row.slice(s.turn, s.turn + 3);
-  const advice = turnNow && s.fx.advice && foeCard ? (() => {
-    const mi = foeChoice(setup, s, [...s.foe[s.fi].energy, foeEnergy(foeCard, s.foe[s.fi].energy)]);
-    return mi >= 0 ? { card: s.fi, move: mi, name: foeCard.moves[mi].n } : null;
-  })() : null;
   return {
     turn: s.turn,
     turnCap: TURN_CAP,
@@ -921,7 +917,8 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
       boost: s.fx.boost,
       rocket: s.fx.rocket >= 0 ? { card: s.fx.rocket, turnsLeft: s.fx.rocketLeft } : null,
     },
-    advice,
+    // Professor's advice is worked out by the server from the solver (store.ts runView, solver.ts adviceFor).
+    hint: null,
     log: s.log.map((l) => ({ ...l })),
     over: s.over,
     cardsLeft: cardsLeft(s),

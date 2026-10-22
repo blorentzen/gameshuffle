@@ -22,11 +22,12 @@
  */
 
 import {
-  actions, applyStep, begin, damageOf, inDuel, needsBring, needsNext, nexts, startState, step, topDamage, youLeft,
+  actions, applyStep, begin, damageOf, foeChoice, inDuel, isLegal, needsBring, needsNext, nexts, startState, step, topDamage, youLeft,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "./engine";
 import { PAR_BAND, duelNumber, duelRand, energyRow, eventPlan, peopleNear, peopleOf, personOf, shuffleWith, speciesOf, tierFor, trainerFor } from "./rules";
 import type { DuelAction, DuelCard, DuelEventAt, DuelRules, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
+import type { DuelHintView } from "./view";
 
 // ─── the search ──────────────────────────────────────────────────────────────
 
@@ -111,11 +112,14 @@ export interface DuelSolution {
 
 /**
  * Beam search for a win. `width` positions are kept per turn; `deadline` (epoch ms) stops early
- * with null. Deterministic: the same setup and width always give the same answer.
+ * with null. Deterministic: the same setup and width always give the same answer. `from`: search
+ * from a turn in progress instead of the start (Professor's advice); the line then starts there.
+ * `maxNodes`: give up (null) after this many positions, a limit that's the same on every machine.
  */
-export function solve(setup: DuelSetup, opts: { width?: number; deadline?: number; score?: (setup: DuelSetup, s: DuelState) => number } = {}): DuelSolution | null {
+export function solve(setup: DuelSetup, opts: { width?: number; deadline?: number; maxNodes?: number; score?: (setup: DuelSetup, s: DuelState) => number; from?: DuelState } = {}): DuelSolution | null {
   const width = opts.width ?? 300;
   const deadline = opts.deadline ?? Infinity;
+  const maxNodes = opts.maxNodes ?? Infinity;
   const scoreOf = opts.score ? (s: DuelState) => opts.score!(setup, s) : (s: DuelState) => scoreState(setup, s);
   const s0 = startState(setup);
   let nodes = 0;
@@ -123,10 +127,12 @@ export function solve(setup: DuelSetup, opts: { width?: number; deadline?: numbe
   const starts = needsBring(setup, s0)
     ? subsets(setup.you.length, setup.bring!).map((pick) => ({ s: applyStep(setup, s0, { bring: pick })!, steps: [{ bring: pick }] as DuelStep[] }))
     : [{ s: s0, steps: [] as DuelStep[] }];
-  let frontier: Node[] = starts.flatMap((st) => nexts(st.s).map((i) => {
-    const s = begin(setup, st.s, i, true);
-    return { s, prev: null, steps: [...st.steps, { next: i }], score: scoreOf(s) };
-  }));
+  let frontier: Node[] = opts.from
+    ? [{ s: opts.from, prev: null, steps: [], score: scoreOf(opts.from) }]
+    : starts.flatMap((st) => nexts(st.s).map((i) => {
+      const s = begin(setup, st.s, i, true);
+      return { s, prev: null, steps: [...st.steps, { next: i }], score: scoreOf(s) };
+    }));
   for (let depth = 0; depth < TURN_CAP; depth++) {
     const seen = new Map<string, Node>();
     const add = (prev: Node, s: DuelState, steps: DuelStep[]) => {
@@ -143,7 +149,7 @@ export function solve(setup: DuelSetup, opts: { width?: number; deadline?: numbe
         if (needsNext(t)) for (const nx of nexts(t)) add(node, begin(setup, t, nx, true), [a, { next: nx }]);
         else add(node, begin(setup, t, null, true), [a]);
       }
-      if ((i & 15) === 0 && Date.now() > deadline) return null;
+      if ((i & 15) === 0 && (Date.now() > deadline || nodes > maxNodes)) return null;
     }
     if (!seen.size) return null;
     frontier = [...seen.values()].sort((x, y) => x.score - y.score).slice(0, width);
@@ -265,6 +271,102 @@ export function lookaheadPlay(setup: DuelSetup, lead: number, pick: number[] = s
     s = begin(setup, s, nx, true);
   }
   return { won: s.over === "won", turns: s.turn, left: youLeft(s) };
+}
+
+/**
+ * Professor's advice (Britton, 2026-10-22: "make sure the professor hints are actually useful"): a
+ * play for this turn from where the duel stands. The first move of a winning line the search finds
+ * from here (your conditions counted as misses, like par), else the one-turn look-ahead's best turn.
+ * The search stops at ADVICE_NODES positions, so everyone at the same spot gets the same advice on
+ * any machine (a clock limit gave two answers on 2026-10-22); `budgetMs` is only a safety net. Par
+ * lines need up to about 47,000 positions from turn 1 (350ms on a laptop). A losing position still
+ * gets the best turn on offer.
+ */
+export function adviceFor(setup: DuelSetup, s: DuelState, budgetMs = 2000): DuelHintView | null {
+  if (s.over || s.yi < 0 || needsBring(setup, s) || needsNext(s)) return null;
+  const plan = solverSetup(setup);
+  const sol = solve(plan, { from: s, width: 120, maxNodes: ADVICE_NODES, deadline: Date.now() + budgetMs });
+  const first = sol?.line.find((x): x is DuelAction => "attach" in x) ?? null;
+  const found = first ?? bestTurn(plan, s)?.a ?? null;
+  if (!found) return null;
+  const turns = first && sol ? planTurns(plan, s, sol.line) : [];
+  const a = plainEnergy(plan, s, found, turns);
+  return { attach: a.attach, act: a.act, text: hintText(setup, s, a, turns) };
+}
+
+/**
+ * The search puts the Energy wherever it ties, so a spot the plan never uses would read as advice. Keep
+ * it where it goes by default (your card on the field) unless the plan charges that card for a move,
+ * the turn swaps that card in, or moving it changes how the turn goes.
+ */
+function plainEnergy(setup: DuelSetup, s: DuelState, a: DuelAction, turns: PlanTurn[]): DuelAction {
+  if (a.attach === s.yi) return a;
+  if (turns.some((p, i) => i > 0 && p.yi === a.attach && "move" in p.act)) return a;
+  if ("swap" in a.act && a.act.swap === a.attach) return a;
+  const alt: DuelAction = { attach: s.yi, act: a.act };
+  if (!isLegal(setup, s, alt)) return a;
+  return turnScore(s, step(setup, s, alt, true)) >= turnScore(s, step(setup, s, a, true)) ? alt : a;
+}
+
+const ADVICE_NODES = 60_000;
+
+/** A winning line's turns from here: which card was on the field and what it did (for the advice's reasons). */
+export interface PlanTurn { yi: number; attach: number; act: DuelAction["act"] }
+function planTurns(setup: DuelSetup, s: DuelState, line: DuelStep[]): PlanTurn[] {
+  const out: PlanTurn[] = [];
+  let t: DuelState | null = s;
+  for (const st of line) {
+    if (!t) break;
+    if ("attach" in st) out.push({ yi: t.yi, attach: st.attach, act: st.act });
+    t = applyStep(setup, t, st);
+  }
+  return out;
+}
+
+/**
+ * The advice in one sentence: where the Energy goes (when it isn't the card on the field) and what
+ * for, then the turn and why. `plan` is the winning line's turns from here, when the search found
+ * one: it says what the charged card will use and whether a card swapped in attacks or takes hits.
+ */
+export function hintText(setup: DuelSetup, s: DuelState, a: DuelAction, plan: PlanTurn[] = []): string {
+  const foe = setup.foe[s.fi];
+  const foeLeft = s.foe[s.fi].cur;
+  let turn: string;
+  if ("move" in a.act) {
+    const att = setup.you[s.yi];
+    const m = att.moves[a.act.move];
+    const d = damageOf(s, att, foe, m, true);
+    const why = d >= foeLeft ? ", a knockout" : foe.weak === att.t ? ", double damage" : "";
+    turn = `use ${m.n}: ${d} to ${foe.short}${why}`;
+  } else if ("swap" in a.act) {
+    const c = setup.you[a.act.swap];
+    const field = setup.you[s.yi];
+    const fm = foeChoice(setup, s);
+    const hit = fm >= 0 ? damageOf(s, foe, field, foe.moves[fm], false) : 0;
+    // Its strongest move against the trainer's card, for the reason when nothing else says why.
+    let best: { n: string; d: number } | null = null;
+    for (const m of c.moves) { const d = damageOf(s, c, foe, m, true); if (!best || d > best.d) best = { n: m.n, d }; }
+    // In the plan, does it attack next turn, or come in to take the hits?
+    const after = plan[1];
+    const tank = plan.length > 1 && !(after && after.yi === a.act.swap && "move" in after.act);
+    const why = foe.weak === c.t ? `: ${foe.short} is weak to ${c.t}`
+      : fm >= 0 && hit >= s.you[s.yi].cur ? `: ${field.short} wouldn't survive ${foe.moves[fm].n}`
+      : tank ? ` to take ${foe.short}'s hits`
+      : best && best.d > 0 ? `: its ${best.n} does ${best.d} to ${foe.short}${best.d >= foeLeft ? ", a knockout" : ""}`
+      : "";
+    turn = a.attach === a.act.swap ? `give ${c.short} the Energy and swap it in${why}` : `swap in ${c.short}${why}`;
+  } else {
+    turn = "wait this turn and let the Energy build";
+  }
+  // The card the Energy goes to, and the move the plan charges it for.
+  let energy = "";
+  if (a.attach !== s.yi && !("swap" in a.act && a.act.swap === a.attach)) {
+    const use = plan.find((p, i) => i > 0 && p.yi === a.attach && "move" in p.act);
+    const card = setup.you[a.attach];
+    energy = use && "move" in use.act ? `Charge ${card.short} for ${card.moves[use.act.move].n}, then ` : `Put the Energy on ${card.short}, then `;
+  }
+  const text = `${energy}${turn}.`;
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /**

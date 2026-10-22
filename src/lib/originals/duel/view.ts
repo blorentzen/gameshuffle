@@ -14,7 +14,7 @@
  */
 
 import type { DuelLogLine } from "./engine";
-import type { DuelCondition, DuelEventKind, DuelSignature, DuelTier, EnergyType } from "./types";
+import type { DuelAct, DuelCondition, DuelEventKind, DuelSignature, DuelTier, EnergyType } from "./types";
 import type { DayMark } from "@/lib/originals/dailies";
 
 export type { DuelLogLine };
@@ -94,6 +94,14 @@ export interface DuelInPlay {
 }
 
 /** The duel as you can see it: everything on the table, this turn's Energy and the next 3, this turn's event and the next one. */
+/** Professor's advice: where today's Energy goes and what to do with the turn, in one sentence. */
+export interface DuelHintView {
+  attach: number;
+  act: DuelAct;
+  /** "Put the Energy on Darmanitan, then use Searing Flame: 100 to Tropius, double damage." */
+  text: string;
+}
+
 export interface DuelPlayView {
   /** The turn you're on (0 before the lead goes out). */
   turn: number;
@@ -125,8 +133,11 @@ export interface DuelPlayView {
   /** The next event: it flips at the start of next turn (null when the next turn has none). */
   forecast: DuelEventView | null;
   inPlay: DuelInPlay;
-  /** Professor's advice: the move the trainer's card on the field will use next, if nothing changes. */
-  advice: { card: number; move: number; name: string } | null;
+  /**
+   * Professor's advice (its turn only): a play for this turn from where the duel stands, worked out
+   * by the server (solver.ts adviceFor; Britton, 2026-10-22: the trainer's next move was no help).
+   */
+  hint: DuelHintView | null;
   /** What happened since your last decision: your turn, the trainer's, then this turn's event. */
   log: DuelLogLine[];
   over: "won" | "lost" | null;
