@@ -122,6 +122,23 @@ export async function getDay(day = gsDay(), opts: { build?: boolean; budgetMs?: 
   return p;
 }
 
+/**
+ * Today's and tomorrow's duels, built if they aren't stored yet (the every-minute sweep calls it), so
+ * a new day is ready at midnight and the homepage's card, which only reads a built day, has its
+ * trainer. A stored day is a memory hit after the first read on each server.
+ */
+export async function ensureDays(): Promise<number> {
+  let built = 0;
+  for (const day of [gsDay(), gsAddDays(gsDay(), 1)]) {
+    if (dayCache.has(day)) continue;
+    const have = await readDay(day);
+    if (have === "missing") return built;
+    if (have) { dayCache.set(day, have); continue; }
+    if (await getDay(day)) built++;
+  }
+  return built;
+}
+
 /** The trainer as the page sees it, with their picture (their own card, else `ace`: the last card of the team as the day stored it). */
 export function trainerView(t: DuelTrainer, ace: DuelCard | null = null): DuelTrainerView {
   return {

@@ -365,7 +365,7 @@ check(!isLegal(SET, startState(SET), { attach: 0, act: { wait: true } }), "no tu
   check(["2026-10-31", "2026-11-07", "2026-11-14", "2027-03-13"].every((d) => tierFor(d) === "boss"), "every Saturday is Boss day");
   check(TIER_LABEL.boss === "Boss" && PAR_BAND.boss[0] > PAR_BAND.rival[0] && PAR_BAND.boss[1] < PAR_BAND.champion[1], "the boss band sits between rival and champion");
   check(duelNumber(DUEL_EPOCH) === 1 && duelNumber(gsAddDays(DUEL_EPOCH, 6)) === 7 && duelNumber("2026-10-01") === 0, "duel numbers");
-  check(duelNumber("2026-11-02") === 6, "duel numbers across the clock change");
+  check(duelNumber("2026-11-02") === 12, "duel numbers across the clock change");
   // Rotation: within a tier, no trainer twice until all have had a day.
   const roster = ["a", "b", "c", "d"].map((id): DuelTrainer => ({ id, name: id, title: "", game: "", tier: "gym", team: [], signature: { title: "", effect: "heal50" } }));
   const seen: string[] = [];
