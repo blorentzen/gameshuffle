@@ -177,10 +177,15 @@ async function upgradeDay(d: DuelDay, budgetMs?: number): Promise<DuelDay> {
   const svc = createServiceClient();
   const { data: runs } = await svc.from("duel_runs").select("id").eq("day", d.day).limit(1);
   if (runs?.length) return d;
+  const t0 = Date.now();
   const made = await buildRow(d.day, { budgetMs, allowOlder: false });
-  if (!made || made.build.rules !== DUEL_RULES) return d;
+  if (!made || made.build.rules !== DUEL_RULES) {
+    console.error(`[duel] ${d.day}: no puzzle with rules ${DUEL_RULES} in ${Date.now() - t0}ms (budget ${budgetMs ?? 20_000}ms); it keeps rules ${d.rules}`);
+    return d;
+  }
   const { error } = await svc.from("duel_days").update({ ...made.row, built_at: new Date().toISOString() }).eq("day", d.day).lt("rules", DUEL_RULES);
   if (error) { console.error("[duel] day upgrade failed:", error); return d; }
+  console.log(`[duel] ${d.day}: rebuilt with rules ${DUEL_RULES}: ${made.build.trainerId}, par ${made.build.par}${made.build.inBand ? "" : " (closest to the band)"}, ${made.build.attempts} packs, ${Date.now() - t0}ms`);
   const stored = await readDay(d.day);
   return stored && stored !== "missing" ? stored : d;
 }
@@ -203,7 +208,9 @@ export async function getDay(day = gsDay(), opts: { build?: boolean; budgetMs?: 
   if (hit) return hit;
   const have = await readDay(day);
   if (have === "missing") return null;
-  if (have) { const d = await upgraded(have); keepDay(d); return d; }
+  // Upgrades take minutes on a slow machine, so only the Duel's own cron runs them (ensureDays); the
+  // dev server upgrades on read so a previewed day (?day=) shows the newest rules.
+  if (have) { const d = process.env.NODE_ENV === "development" ? await upgraded(have) : have; keepDay(d); return d; }
   if (opts.build === false) return null;
   let p = building.get(day);
   if (!p) {
@@ -214,30 +221,35 @@ export async function getDay(day = gsDay(), opts: { build?: boolean; budgetMs?: 
 }
 
 /**
- * Today's and tomorrow's duels, built if they aren't stored yet (the every-minute sweep calls it), so
- * a new day is ready at midnight and the homepage's card, which only reads a built day, has its
- * trainer; tomorrow's is rebuilt when it's still on older rules (upgradeDay). A stored day is a memory
- * hit for a few minutes after each read (DAY_CACHE_MS).
+ * Today's and tomorrow's duels, built if they aren't stored yet (the Duel's own cron calls it,
+ * /api/cron/duel-days), so a new day is ready at midnight and the homepage's card, which only reads a
+ * built day, has its trainer; tomorrow's is rebuilt when it's still on older rules (upgradeDay).
+ * `budgetMs` is shared by the whole run. A build's time depends on the machine: Gladion's day took 10
+ * seconds on a laptop and found nothing in 20 on Vercel (2026-10-22), so the budget is generous.
  */
-export async function ensureDays(): Promise<number> {
+export async function ensureDays(budgetMs = ENSURE_BUDGET_MS): Promise<number> {
+  const end = Date.now() + budgetMs;
   let built = 0;
   for (const day of [gsDay(), gsAddDays(gsDay(), 1)]) {
-    if (cachedDay(day)) continue;
+    const left = end - Date.now();
+    if (left < 5_000) break;
+    const hit = cachedDay(day);
+    if (hit && (hit.rules >= DUEL_RULES || hit.day <= gsDay())) continue;
     const have = await readDay(day);
     if (have === "missing") return built;
     if (have) {
-      const d = await upgraded(have, ENSURE_BUDGET_MS);
+      const d = await upgraded(have, left);
       if (d !== have) built++;
       keepDay(d);
       continue;
     }
-    if (await getDay(day, { budgetMs: ENSURE_BUDGET_MS })) built++;
+    if (await getDay(day, { budgetMs: left })) built++;
   }
   return built;
 }
 
-/** The every-minute sweep builds a day ahead, so it can take longer than a page request would (a Champion day can need half a minute). */
-const ENSURE_BUDGET_MS = 40_000;
+/** A run of the Duel's cron: room for a hard day twice over on Vercel's slower machines, inside the route's 300 seconds. */
+const ENSURE_BUDGET_MS = 240_000;
 
 /** The trainer as the page sees it, with their picture (their own card, else `ace`: the last card of the team as the day stored it). */
 export function trainerView(t: DuelTrainer, ace: DuelCard | null = null): DuelTrainerView {

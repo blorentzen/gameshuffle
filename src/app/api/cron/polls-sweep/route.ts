@@ -2,7 +2,8 @@
  * GET /api/cron/polls-sweep
  *
  * Closes any open poll whose `closes_at` has passed (the streamer's optional
- * auto-close timer), plus the other every-minute sweeps and the Daily Duel's next two days.
+ * auto-close timer), plus the other every-minute sweeps. (The Daily Duel's days moved to
+ * /api/cron/duel-days.)
  * Runs every minute. Auth: Vercel Cron Bearer CRON_SECRET.
  */
 
@@ -11,12 +12,8 @@ import { sweepDuePolls } from "@/lib/polls/store";
 import { sweepStreamWindows } from "@/lib/chatbrain/stream";
 import { sweepBreaks } from "@/lib/break/store";
 import { sweepFireRuns } from "@/lib/fireRound/store";
-import { ensureDays } from "@/lib/originals/duel/store";
-import { DUEL_PUBLIC } from "@/lib/games-visibility";
 
 export const runtime = "nodejs";
-/** The Daily Duel may build tomorrow's duel here (up to 40 seconds of search, store.ts ensureDays). */
-export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
@@ -45,12 +42,5 @@ export async function GET(request: Request) {
     console.error("[cron/polls-sweep] fire round sweep failed:", err);
     return 0;
   });
-  // Daily Duel: today's and tomorrow's duels built ahead, so midnight and the homepage card never wait on a player.
-  const duelDays = DUEL_PUBLIC
-    ? await ensureDays().catch((err) => {
-        console.error("[cron/polls-sweep] duel days failed:", err);
-        return 0;
-      })
-    : 0;
-  return NextResponse.json({ ok: true, closed, brainWindows, breaks, fireRuns, duelDays });
+  return NextResponse.json({ ok: true, closed, brainWindows, breaks, fireRuns });
 }
