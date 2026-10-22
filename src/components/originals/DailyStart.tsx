@@ -106,7 +106,7 @@ const PUZZLE_NOTE = "Your first hint and the clock start when you tap Start.";
  * (how to play) sits under it. Fire Round uses it too (`head` above the button,
  * its own label, a secondary button once today's round is played, no note).
  */
-export function DailyStartCard({ onStart, children, head, label = "Start today's puzzle", note = PUZZLE_NOTE, primary = true, className }: {
+export function DailyStartCard({ onStart, children, head, label = "Start today's puzzle", note = PUZZLE_NOTE, primary = true, className, icon }: {
   onStart: () => void;
   children?: ReactNode;
   head?: ReactNode;
@@ -114,12 +114,14 @@ export function DailyStartCard({ onStart, children, head, label = "Start today's
   note?: string | null;
   primary?: boolean;
   className?: string;
+  /** The button's icon in place of the play arrow (the Duel's swords). */
+  icon?: typeof IconPlayerPlay;
 }) {
   return (
     <div className={`daily-start${className ? ` ${className}` : ""}`}>
       {head}
       <div className="daily-start__go">
-        <Button variant={primary ? "primary" : "secondary"} size="large" onClick={onStart} iconBefore={primary ? IconPlayerPlay : undefined}>{label}</Button>
+        <Button variant={primary ? "primary" : "secondary"} size="large" onClick={onStart} iconBefore={primary ? icon ?? IconPlayerPlay : undefined}>{label}</Button>
         {note && <p className="daily-start__note">{note}</p>}
       </div>
       {children}

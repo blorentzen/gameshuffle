@@ -95,39 +95,39 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-hp--mid { background: linear-gradient(90deg, #e0a21c, #f5c84c); }
 .duel-hp--low { background: linear-gradient(90deg, #d23b2d, #ff7a6b); }
 
-/* ── The Start card (the dailies' .daily-start) ── */
-.daily-start--duel { border-color: color-mix(in srgb, #d99a1c 40%, var(--border-default)); }
+/* ── The Start card (the dailies' .daily-start), as today's challenger in the Duel's navy and gold ── */
+.daily-start--duel { overflow: hidden; background: #0d1233; color: #fff; border-color: rgba(245, 200, 76, 0.5); box-shadow: 0 14px 34px rgba(8, 10, 30, 0.22); }
 .daily-start--duel .daily-step__icon { background: var(--tile-duel); }
+.daily-start--duel .daily-step__text, .daily-start--duel .daily-start__note { color: #c9cff0; }
+.daily-start--duel .daily-step__text strong { color: #fff; }
+.daily-start--duel .daily-steps { border-top-color: rgba(255, 255, 255, 0.16); }
+.daily-start--duel .daily-start__go .empac-button--primary { background: #f5c84c; border-color: #f5c84c; color: #1a1300; font-weight: 800; box-shadow: 0 8px 22px rgba(245, 200, 76, 0.3); }
+.daily-start--duel .daily-start__go .empac-button--primary:hover { background: #ffd866; border-color: #ffd866; color: #1a1300; }
+.daily-start--duel .daily-start__go .empac-button--primary:focus-visible { outline: 3px solid #f5c84c; outline-offset: 3px; }
 .duel-start__head { display: flex; flex-direction: column; align-items: stretch; gap: var(--spacing-12); text-align: start; }
-.duel-start__tile { flex: none; width: var(--tile-md); height: var(--tile-md); border-radius: var(--tile-md-radius); box-shadow: var(--tile-shadow); display: grid; place-items: center; color: #fff; background: var(--tile-duel); }
-.duel-start__tile svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
-.duel-start__title { margin: 0; font-size: var(--font-size-20); line-height: 1.2; }
-.duel-start__who { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
-.duel-start__who b { color: var(--text-primary); }
+.duel-start__top { display: grid; gap: var(--spacing-10, 10px); }
+/* The picture runs to the card's edges and fades into the navy under it. */
+.duel-start__media { position: relative; margin: calc(-1 * var(--spacing-20, 20px)) calc(-1 * var(--spacing-20, 20px)) 0; }
+.duel-start__art { width: 100%; aspect-ratio: 2 / 1; }
+.duel-start__media::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(13, 18, 51, 0) 45%, #0d1233 100%); }
+.duel-start__intro { position: relative; z-index: 1; display: grid; gap: 6px; margin-top: -3rem; }
+.duel-start__title { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-28, 2.8rem); font-weight: 800; line-height: 1.08; text-wrap: balance; color: #fff; }
+.duel-start__who { margin: 0; color: #c9cff0; font-size: var(--font-size-16); }
+.duel-start__bio { margin: 0; color: #eef0ff; font-size: var(--font-size-16); line-height: 1.5; max-width: 62ch; }
 .duel-start__side { display: grid; gap: var(--spacing-8); }
-.duel-start__label { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold, 600); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.duel-start__label { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold, 600); letter-spacing: 0.08em; text-transform: uppercase; color: #f5c84c; }
 .duel-start__cards { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--spacing-8); max-width: 54rem; }
-/* The trainer's picture across the start card, their name and title over a dark gradient. The
-   gradient keeps white text at 4.5:1 or better over any art (the name at 3:1 or better as large
-   text); the frame's aspect-ratio holds its space while the image loads. */
-.duel-banner { position: relative; overflow: hidden; border-radius: 12px; aspect-ratio: 16 / 7; background: #12162e; box-shadow: 0 6px 18px rgba(10, 12, 32, 0.22); }
-.duel-banner__art { position: absolute; inset: 0; width: 100%; height: 100%; }
-.duel-banner::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(8, 10, 28, 0) 24%, rgba(8, 10, 28, 0.74) 56%, rgba(8, 10, 28, 0.9) 100%); }
-.duel-banner__text { position: absolute; left: 14px; right: 14px; bottom: 10px; z-index: 1; display: grid; gap: 2px; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55); }
-.duel-banner__name { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-28, 2.8rem); font-weight: 800; line-height: 1.05; overflow-wrap: anywhere; }
-.duel-banner__title { margin: 0; font-size: var(--font-size-14); line-height: 1.35; color: #e4e7ff; }
-/* Wider screens: the picture on the left (so a medium card image isn't stretched across the whole
-   card), fading into navy, with the name and title beside it on the navy. */
+/* Wider screens: the picture on the left (a medium card image isn't stretched across the card), fading into the navy, with who they are beside it. */
 @media (min-width: 40rem) {
-  .duel-banner { aspect-ratio: 3 / 1; background: #0b0d24; }
-  .duel-banner__art { right: auto; width: 62%; }
-  .duel-banner::after { background: linear-gradient(90deg, rgba(11, 13, 36, 0) 34%, rgba(11, 13, 36, 0.85) 52%, #0b0d24 61.5%); }
-  .duel-banner__text { left: 60%; right: 20px; top: 50%; bottom: auto; transform: translateY(-50%); gap: 6px; text-shadow: none; }
-  .duel-banner__name { font-size: var(--font-size-36, 3.6rem); }
-  .duel-banner__title { font-size: var(--font-size-16); }
+  .duel-start__top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: var(--spacing-20, 20px); }
+  .duel-start__media { margin: calc(-1 * var(--spacing-20, 20px)) 0 0 calc(-1 * var(--spacing-20, 20px)); align-self: stretch; }
+  .duel-start__art { height: 100%; min-height: 24rem; aspect-ratio: auto; }
+  .duel-start__media::after { background: linear-gradient(90deg, rgba(13, 18, 51, 0) 55%, #0d1233 100%); }
+  .duel-start__intro { margin-top: 0; }
+  .duel-start__title { font-size: var(--font-size-32, 3.2rem); }
 }
-.duel-start__sig { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.5; }
-.duel-start__sig b { color: var(--text-primary); }
+.duel-start__sig { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(245, 200, 76, 0.12); border: 1px solid rgba(245, 200, 76, 0.45); color: #eef0ff; font-size: var(--font-size-14); line-height: 1.5; }
+.duel-start__sig b { color: #ffe08a; }
 @media (max-width: 30rem) { .duel-start__cards { gap: 5px; } }
 
 /* ── The arena: one dark world in any theme ── */

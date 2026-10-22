@@ -82,6 +82,8 @@ export const EVENTS = {
   duelPracticed: "Duel Practiced",
   /** The duel's Share or copy {via}. */
   duelShared: "Duel Shared",
+  /** A challenger card ("Larry challenged you to a duel") pressed {from: home | shuffle | dex | fire, played}. */
+  duelChallengerClicked: "Duel Challenger Clicked",
   /** The Share button on any result (src/components/share): {game, via: sheet|window}, then where it went {game, place}. */
   shareOpened: "Share Opened",
   shareSent: "Share Sent",

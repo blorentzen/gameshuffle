@@ -23,10 +23,11 @@ import type { DailiesEntry, DayMark } from "@/lib/originals/dailies";
 import { alive, applyStep, cardsLeft, startState, viewOf, type DuelSetup, type DuelState } from "./engine";
 import { buildDay, makeSetup } from "./solver";
 import { trainerPicture } from "./pictures";
-import { TIER_LABEL, duelNumber, duelPoints, duelShareText, signatureText, tierFor, type DuelShareFacts } from "./rules";
+import { bioFor } from "@/data/originals/duel/bios";
+import { TIER_LABEL, duelNumber, duelPoints, duelShareText, personOf, signatureText, tierFor, type DuelShareFacts } from "./rules";
 import type { DuelData } from "./data";
 import type { DuelCard, DuelEventAt, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
-import type { DuelHistory, DuelHome, DuelPicture, DuelRunView, DuelTrainerView } from "./view";
+import type { DuelChallengerView, DuelHistory, DuelHome, DuelPicture, DuelRunView, DuelTrainerView } from "./view";
 
 type DbError = { code?: string; message?: string } | null;
 /** A Daily Duel table or column that isn't there yet. */
@@ -158,6 +159,7 @@ export function trainerView(t: DuelTrainer, ace: DuelCard | null = null): DuelTr
     signature: { title: t.signature.title, effect: t.signature.effect, text: signatureText(t) },
     teamSize: t.team.length,
     picture: trainerPicture(t, ace),
+    bio: bioFor(personOf(t)),
   };
 }
 
@@ -424,9 +426,17 @@ export async function duelShareFacts(player: DuelPlayer, runId?: string | null):
 }
 
 /** A built day's trainer (the winners video, the homepage's Today card): null when the day isn't built (never builds one). */
-export async function duelDayTrainer(day: string): Promise<{ number: number; par: number; trainer: DuelTrainerView } | null> {
+export async function duelDayTrainer(day: string): Promise<{ number: number; par: number; trainer: DuelTrainerView; team: { name: string; img: string | null }[] } | null> {
   const d = await getDay(day, { build: false }).catch(() => null);
-  return d ? { number: duelNumber(day), par: d.par, trainer: dayTrainer(d) } : null;
+  return d ? { number: duelNumber(day), par: d.par, trainer: dayTrainer(d), team: d.setup.foe.map((c) => ({ name: c.short, img: c.img })) } : null;
+}
+
+/** Today's challenger for the cards that lead into the Duel (reads a built day; never builds one). */
+export async function duelChallenger(day: string): Promise<DuelChallengerView | null> {
+  const got = await duelDayTrainer(day);
+  if (!got) return null;
+  const t = got.trainer;
+  return { day, number: got.number, name: t.name, title: t.title, game: t.game, tierLabel: t.tierLabel, picture: t.picture, bio: t.bio, team: got.team };
 }
 
 /** Each player's official duels won, up to `day` (the winners video's streaks, counted as the streak cards count them). */

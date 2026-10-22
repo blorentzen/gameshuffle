@@ -1587,16 +1587,6 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
   .home-play--wide-week > .home-play__card--wide .home-play__title { font-size: var(--font-size-20); }
 }
 .home-play__meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
-/* The Daily Duel's card: today's trainer's picture across the card's top edge (its space held by the aspect-ratio). */
-.home-play__card--duel { overflow: hidden; }
-.home-duel__art { align-self: stretch; margin: calc(-1 * var(--spacing-24, 24px)) calc(-1 * var(--spacing-24, 24px)) var(--spacing-4, 4px); aspect-ratio: 5 / 2; }
-/* Four dailies: two by two on a small laptop, four across on a wide one; the Weekly stays a wide row under them. */
-@media (min-width: 900px) {
-  .home-play--four.home-play--wide-week { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (min-width: 1180px) {
-  .home-play--four.home-play--wide-week { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
 
 /* Splatoon 3 randomizer: the kit under each player's weapon, and the battle list. */
 .splat-kit { display: grid; gap: var(--spacing-4); margin: var(--spacing-12) 0 0; font-size: var(--font-size-14); }
