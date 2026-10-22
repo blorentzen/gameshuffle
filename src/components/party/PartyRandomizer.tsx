@@ -12,6 +12,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { CardActions } from "@/components/randomizer/CardActions";
+import { SeatCard } from "@/components/randomizer/PlayerCard";
 import { RandomTile } from "@/components/randomizer/RandomTile";
 import { withSeat } from "@/lib/randomizers/seats";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
@@ -422,7 +423,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
       <div className="kart-intro">
         <div className="kart-intro__content">
           <h2>Randomize your characters.</h2>
-          <p>Up to {game.seats} players, all different, with CPUs in any empty seats.</p>
+          <p>Everyone gets a different character, and CPUs take any empty seats.</p>
           <div className="kart-intro__actions">
             <Select
               floatingLabel="Players"
@@ -458,21 +459,15 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         {Array.from({ length: seats }, (_, i) => {
           const c = game.characters.find((x) => x.name === chars[i]);
           return (
-            <div key={i} className="player-card">
-              <div className="player-card__header">
-                <div className="player-card__name">
-                  {i < humans ? (
-                    <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24}
-                      onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
-                  ) : <span className="party-seat__cpu">{seatName(i)}</span>}
-                </div>
-                <CardActions refreshLabel={`New character for ${seatName(i)}`} onRefresh={() => rollCharacters(i)} />
-              </div>
-              <ul className="player-card__slots">
-                <KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? characterArt(game, c) ?? null : null} fallback={IMAGE_COMING_SOON} color={c?.color ?? null} pool={reelPool} animate={animateReel} empty={<RandomTile look="party" />} />
-              </ul>
+            <SeatCard key={i} rolled={Boolean(c)} animate={animateReel}
+              name={i < humans ? (
+                <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24}
+                  onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
+              ) : <span className="party-seat__cpu">{seatName(i)}</span>}
+              actions={<CardActions refreshLabel={`New character for ${seatName(i)}`} onRefresh={() => rollCharacters(i)} />}
+              tile={<KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? characterArt(game, c) ?? null : null} fallback={IMAGE_COMING_SOON} color={c?.color ?? null} pool={reelPool} animate={animateReel} empty={<RandomTile look="party" />} />}>
               {c?.buddy && <p className="party-muted">As a Jamboree Buddy: {c.buddy}</p>}
-            </div>
+            </SeatCard>
           );
         })}
       </div>
@@ -620,7 +615,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         {!hero.image && <IconField category="video" seed={game.slug} opacity={0.14} />}
         <Container>
           <div style={{ maxWidth: "600px", position: "relative", zIndex: 2 }}>
-            <p className="marketing-eyebrow">{hero.isNew ? "Free randomizer · New" : "Free randomizer"}</p>
+            <p className="marketing-eyebrow">{hero.isNew ? "New randomizer" : "Free randomizer"}</p>
             <h1 style={{ fontSize: "clamp(2.4rem, 4vw, 4.8rem)", fontWeight: 700, lineHeight: 1.1, marginBottom: "var(--spacing-16)" }}>{hero.title}</h1>
             <p>{hero.lead}</p>
             {/* Lead with the action: roll the board, rules and characters, then show them. */}
@@ -630,7 +625,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
                 rollCharacters();
                 setTab("setup");
                 toolRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}>Randomize now →</Button>
+              }}>Randomize now</Button>
             </div>
           </div>
         </Container>

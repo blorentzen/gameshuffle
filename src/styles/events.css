@@ -204,8 +204,7 @@
   border-top: 1px solid var(--border-subtle, var(--border-default));
 }
 .events-browser__cross-heading { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); margin: 0; }
-.events-browser__cross-link { font-weight: var(--font-weight-semibold); color: var(--bg-primary, var(--primary-600)); text-decoration: none; }
-.events-browser__cross-link:hover { text-decoration: underline; }
+.events-browser__cross-link { color: var(--brand-ink, var(--primary-600)); }
 
 /* ── Attendee table (organizer) ─────────────────────────────────────────── */
 .attendees { display: flex; flex-direction: column; gap: var(--spacing-12); }
@@ -510,6 +509,8 @@
 .browse-hero--brain { --browse-hero-base: rgba(200, 68, 122, 0.55); --browse-hero-accent: rgba(163, 60, 205, 0.34); }
 /* Fire Round: ember, a deeper red than the Dex's orange. */
 .browse-hero--fire { --browse-hero-base: rgba(196, 30, 58, 0.58); --browse-hero-accent: rgba(255, 112, 48, 0.36); }
+/* The Daily Duel: gold on navy (its share card's colors). */
+.browse-hero--duel { --browse-hero-base: rgba(22, 34, 96, 0.7); --browse-hero-accent: rgba(245, 190, 60, 0.4); }
 /* In-page anchors land below the floating nav. */
 #play, #answer, #updates { scroll-margin-top: 96px; }
 /* The glyph field sits above the aurora blobs but under the copy. It is the
@@ -678,7 +679,7 @@
   font-weight: var(--font-weight-bold);
 }
 .bgn-group__count {
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;

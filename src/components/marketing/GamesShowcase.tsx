@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { Badge, Button } from "@empac/cascadeds";
+import { Badge } from "@empac/cascadeds";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import {
   AVAILABLE_GAMES,
   IN_DEVELOPMENT_GAMES,
@@ -56,11 +56,7 @@ function GameCard({
         ) : null}
         {status === "available" && game.href ? (
           <div className="games-card__cta">
-            <Link href={game.href} style={{ textDecoration: "none" }}>
-              <Button variant="tertiary" size="small" style={{ color: "var(--bg-primary, var(--primary-600))" }}>
-                Open it →
-              </Button>
-            </Link>
+            <ArrowLink href={game.href}>Open it</ArrowLink>
           </div>
         ) : null}
       </div>
@@ -151,9 +147,7 @@ export function GamesShowcase({
         }}
       >
         Want a game or mode we don&apos;t have yet?{" "}
-        <Link href="/contact-us" style={{ color: "var(--brand-ink)", fontWeight: 600 }}>
-          Suggest a game or mode →
-        </Link>
+        <ArrowLink href="/contact-us">Suggest a game or mode</ArrowLink>
       </p>
     </section>
   );

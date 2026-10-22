@@ -19,6 +19,7 @@ import "server-only";
 
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { draftStructured, type AiResult } from "@/lib/ai/claude";
 import { isBlockedText } from "@/lib/text/filter";
 import { questionKey } from "@/lib/chatbrain/rules";
@@ -40,7 +41,7 @@ export const CATEGORY_TARGET = 100;
 /** Puts the starter pack's wrong answers on pack questions that have none yet, as drafts. Safe to rerun. */
 export async function fillPackWrong(): Promise<{ filled: number; ready: boolean }> {
   const svc = createServiceClient();
-  const { data, error } = await svc.from("trivia_questions").select("id, prompt, answer, accept, wrong_answers").is("owner_user_id", null).eq("kind", "text").limit(5000);
+  const { data, error } = await readAllPages((from, to) => svc.from("trivia_questions").select("id, prompt, answer, accept, wrong_answers").is("owner_user_id", null).eq("kind", "text").order("id").range(from, to));
   if (error) return { filled: 0, ready: !missing(error) };
   const byKey = new Map(Object.entries(PACK_WRONG).map(([prompt, wrong]) => [questionKey(prompt), wrong]));
   let filled = 0;
@@ -75,9 +76,9 @@ export interface ChoicesAdmin {
 
 export async function choicesAdmin(): Promise<ChoicesAdmin> {
   const empty: ChoicesAdmin = { ready: false, waiting: [], missing: 0, starter: 0, approved: 0, categories: [], playable: 0, growable: GROWABLE };
-  const { data, error } = await createServiceClient().from("trivia_questions")
+  const { data, error } = await readAllPages((from, to) => createServiceClient().from("trivia_questions")
     .select("id, category, prompt, answer, accept, status, wrong_answers, wrong_status")
-    .is("owner_user_id", null).eq("kind", "text").neq("status", "retired").limit(5000);
+    .is("owner_user_id", null).eq("kind", "text").neq("status", "retired").order("id").range(from, to));
   if (error) return empty;
   const rows = (data ?? []) as { id: string; category: string; prompt: string; answer: string; accept: string[] | null; status: ChoiceQuestion["status"]; wrong_answers: string[] | null; wrong_status: string | null }[];
   const pool = await loadPool(true);
@@ -187,7 +188,7 @@ const CATEGORY_SCHEMA = z.object({
 export async function draftCategory(category: string, count: number): Promise<AiResult<{ added: number; skipped: number }> | { ok: false; error: "not_ready" | "unknown_category" }> {
   if (!GROWABLE.includes(category)) return { ok: false, error: "unknown_category" };
   const svc = createServiceClient();
-  const { data: existing, error } = await svc.from("trivia_questions").select("prompt").is("owner_user_id", null).eq("category", category).limit(1000);
+  const { data: existing, error } = await readAllPages((from, to) => svc.from("trivia_questions").select("prompt").is("owner_user_id", null).eq("category", category).order("id").range(from, to));
   if (error) return { ok: false, error: "not_ready" };
   const avoid = ((existing ?? []) as { prompt: string }[]).map((r) => r.prompt);
   const today = gsDay();

@@ -22,6 +22,7 @@ import { guestRequestId } from "@/components/originals/DailyBoard";
 import { OriginalsLink } from "@/components/originals/OriginalsHost";
 import { captureReferral, referralLink, storedReferral, updateReferral, withReferral, type StoredReferral } from "@/lib/originals/referral";
 import { ShareButton } from "@/components/share/ShareButton";
+import { useChallengeShareLabel } from "@/components/share/ShareChallenge";
 import type { ShareRequest } from "@/lib/share/types";
 import type { ReferralGame, ReferralInfo } from "@/lib/referrals/types";
 import { EVENTS, track } from "@/lib/analytics/events";
@@ -43,24 +44,24 @@ interface DailiesState {
 }
 
 const noop = () => () => {};
-/** The games the Discord Activity can switch to (Fire Round isn't in it, so it never reaches `onPick`). */
-type ActivityGame = Exclude<DailiesId, "fire">;
-const pickable = (id: DailiesId): ActivityGame | null => (id === "fire" ? null : id);
+/** The games the Discord Activity can switch to (Fire Round and the Duel aren't in it, so they never reach `onPick`). */
+type ActivityGame = Exclude<DailiesId, "fire" | "duel">;
+const pickable = (id: DailiesId): ActivityGame | null => (id === "fire" || id === "duel" ? null : id);
 const DailiesContext = createContext<DailiesState | null>(null);
 
-function useDailiesState(current: DailiesId, enabled: boolean): DailiesState {
+function useDailiesState(current: DailiesId, enabled: boolean, invite?: string | null): DailiesState {
   const { api, activity } = useOriginalsHost();
   // A friend's ?r= link, noted once per page (and taken out of the address).
   const [invitedBy, setInvitedBy] = useState<StoredReferral | null>(null);
   useEffect(() => {
     if (!enabled || activity) return;
-    const r = captureReferral();
+    const r = captureReferral(7, invite);
     void Promise.resolve().then(() => setInvitedBy(r));
-  }, [enabled, activity]);
+  }, [enabled, activity, invite]);
   const raw = useSyncExternalStore(enabled ? subscribeDailies : noop, dailiesSnapshot, () => "");
   const store = useMemo(() => readDailiesStore(raw || "null"), [raw]);
   // Fire Round isn't in the Discord Activity (it has only the puzzles).
-  const shown = useMemo(() => dailiesShown(current, { fire: !activity }), [current, activity]);
+  const shown = useMemo(() => dailiesShown(current, { fire: !activity, duel: !activity }), [current, activity]);
   const [server, setServer] = useState<{ signedIn: boolean; entries: DailiesEntries | null; referral: ReferralInfo | null } | null>(null);
   // A game finishing here: ask the server again once its save has landed (streaks, the last two weeks).
   const doneKey = shown.filter((id) => store.entries[id]?.state === "done" && store.entries[id]?.day === currentDay(id)).join(",");
@@ -105,8 +106,13 @@ export function sendReferralFinish(api: (path: string, init?: RequestInit) => Pr
 }
 
 /** One shared state for a page's bar, Next up, share and cards (one request, not four). */
-export function DailiesProvider({ current, children }: { current: DailiesId; children: ReactNode }) {
-  const value = useDailiesState(current, true);
+export function DailiesProvider({ current, invite, children }: {
+  current: DailiesId;
+  /** The sharer's invite code on a shared result page (counts like a ?r= link). */
+  invite?: string | null;
+  children: ReactNode;
+}) {
+  const value = useDailiesState(current, true, invite);
   return <DailiesContext.Provider value={value}>{children}</DailiesContext.Provider>;
 }
 
@@ -144,8 +150,14 @@ function InvitedNote({ current }: { current: DailiesId }) {
  * new, the one you're on outlined in its color, and the Weekly on a plain line
  * under it (not on the Weekly's own page).
  */
-export function DailiesBar({ current, onPick }: { current: DailiesId; onPick?: (id: ActivityGame) => void }) {
+export function DailiesBar({ current, onPick, afterPlayed }: {
+  current: DailiesId;
+  onPick?: (id: ActivityGame) => void;
+  /** Only once today's game here is done (a shared result page keeps to one game until then). */
+  afterPlayed?: boolean;
+}) {
   const { shown, entries } = useDailies(current);
+  if (afterPlayed && !(entries[current]?.state === "done" && entries[current]?.day === currentDay(current))) return null;
   const cells = shown.filter((id) => id !== "weekly");
   const vars: Record<string, string | number> = { "--dailies-n": cells.length };
   cells.forEach((id, i) => { vars[`--dailies-c${i + 1}`] = `var(--ink-${id})`; });
@@ -261,11 +273,13 @@ export function DailiesShare({ current, shareOne, oneText, one }: { current: Dai
   const toast = useToast();
   const { activity } = useOriginalsHost();
   const { shown, entries, referral } = useDailies(current);
+  // From a friend's shared result today: "Send yours to Nova".
+  const challengeLabel = useChallengeShareLabel(current);
   const ids = sharedToday(entries, shown);
   const combined = ids.length >= 2 && ids.includes(current);
   const verb = activity?.share ? "Share" : "Copy";
   if (!activity && one) {
-    if (!combined) return <span className="party-row"><ShareButton request={one.request} text={one.text} game={current} fallbackUrl={one.fallbackUrl} /></span>;
+    if (!combined) return <span className="party-row"><ShareButton request={one.request} text={one.text} game={current} fallbackUrl={one.fallbackUrl} label={challengeLabel} /></span>;
     const day = currentDay("shuffle");
     const dayRequest: ShareRequest = {
       kind: "day",

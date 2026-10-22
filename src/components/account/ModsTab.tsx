@@ -515,7 +515,7 @@ export function ModsTab({ bare = false }: { bare?: boolean } = {}) {
                   }
                   disabled={busy}
                 >
-                  Accept invite →
+                  Accept invite
                 </Button>
               </div>
             ))}

@@ -4,6 +4,7 @@ import { Button, Container } from "@empac/cascadeds";
 import { SITE_URL } from "@/lib/seo";
 import { RULES_PATH, RULE_PAGES, ruleUrl } from "@/data/tcg-rules";
 import { shareMeta } from "@/lib/og/meta";
+import { PlugBand } from "@/components/tcg/rules/PlugBand";
 
 const title = "Pokémon TCG Rules in Plain Words";
 const description = "The Pokémon Trading Card Game rules players look up most: damage counters, Special Conditions, Weakness and Resistance, Prize cards and how a turn works.";
@@ -64,14 +65,16 @@ export default function RulesHubPage() {
             ))}
           </ol>
 
-          <section className="rules-page__companion" aria-labelledby="rules-hub-companion">
-            <h2 id="rules-hub-companion">Play with the rules built in</h2>
-            <p>The free GameShuffle TCG Companion keeps the turn, damage counters, conditions and Prize cards on one phone, and reminds you of these rules as you play.</p>
-            <div className="rules-page__actions">
+          <PlugBand
+            id="rules-hub-companion"
+            title="Play with the rules built in"
+            actions={<>
               <Link href="/tcg-companion"><Button variant="primary">Open the companion</Button></Link>
               <Link href="/pokemon-tcg/decks"><Button variant="ghost">Find a deck to start with</Button></Link>
-            </div>
-          </section>
+            </>}
+          >
+            The free GameShuffle TCG Companion keeps the turn, damage counters, conditions and Prize cards on one phone, and reminds you of these rules as you play.
+          </PlugBand>
         </div>
       </Container>
     </main>

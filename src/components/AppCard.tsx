@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, Card, CardContent } from "@empac/cascadeds";
 import { Button } from "@empac/cascadeds";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 
 interface AppCardProps {
   title: string;
@@ -133,9 +134,7 @@ export function AppCard({
             {learnMoreHref ? (
               // Demoted to a text link (not a second button) so each card has a
               // single clear primary action.
-              <Link href={learnMoreHref} className="app-card__learn">
-                Learn more →
-              </Link>
+              <ArrowLink href={learnMoreHref} className="app-card__learn">Learn more</ArrowLink>
             ) : null}
           </div>
         ) : comingSoon ? (

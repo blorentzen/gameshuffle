@@ -15,6 +15,9 @@
  * per-connection channel is the upgrade path — no schema change required.
  */
 
+import { MmrOverlay } from "@/components/mmr/MmrOverlay";
+import { LoungeRoomOverlay } from "@/components/lounge/LoungeRoomOverlay";
+import type { RoomOverlayData } from "@/lib/lounge/roomServer";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { RollSlotArt } from "@/components/twitch/RollSlotArt";
 import { rollKind, rollSlots, rollTitle, type RollSlot } from "@/lib/twitch/chatRoll";
@@ -92,6 +95,8 @@ interface EventsOverlayPayload {
     reward: number | null;
     penalty: number | null;
     targetName: string | null;
+    /** The event's own line (newer payloads). */
+    text?: string | null;
   }>;
 }
 
@@ -121,6 +126,8 @@ interface ApiResponse {
   trivia?: TriviaStreamView | null;
   breakScreen?: BreakView | null;
   viewers?: ViewerCountView | null;
+  mmrToken?: string | null;
+  loungeRoom?: RoomOverlayData | null;
 }
 
 /** Render a generic tool overlay event by type. Add a case per tool. */
@@ -228,6 +235,7 @@ function tidyLabel(s: string): string {
 }
 
 function describeChallenge(c: EventsOverlayPayload["challenges"][number]): string {
+  if (c.text) return c.text;
   const cond = c.condition
     ? Object.values(c.condition)
         .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
@@ -257,6 +265,8 @@ export function OverlayClient({
   const [trivia, setTrivia] = useState<TriviaStreamView | null>(null);
   const [breakScreen, setBreakScreen] = useState<BreakView | null>(null);
   const [viewers, setViewers] = useState<ViewerCountView | null>(null);
+  const [mmrToken, setMmrToken] = useState<string | null>(null);
+  const [loungeRoom, setLoungeRoom] = useState<RoomOverlayData | null>(null);
   const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
   const [format, setFormat] = useState<OverlayFormat>("landscape");
   const [layouts, setLayouts] = useState<Partial<Record<OverlayFormat, LayoutProfile>>>({});
@@ -423,6 +433,8 @@ export function OverlayClient({
         setTrivia(data.trivia ?? null);
         setBreakScreen(data.breakScreen ?? null);
         setViewers(data.viewers ?? null);
+        setMmrToken(data.mmrToken ?? null);
+        setLoungeRoom(data.loungeRoom ?? null);
         if (data.layouts) setLayouts(data.layouts);
         if (processToolEvents(data.overlayEvents, false) > 0) activity = true;
         if (activity) lastActivityRef.current = Date.now();
@@ -470,6 +482,8 @@ export function OverlayClient({
         setTrivia(data.trivia ?? null);
         setBreakScreen(data.breakScreen ?? null);
       setViewers(data.viewers ?? null);
+      setMmrToken(data.mmrToken ?? null);
+        setLoungeRoom(data.loungeRoom ?? null);
       if (data.layouts) setLayouts(data.layouts);
       processToolEvents(data.overlayEvents, true);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
@@ -557,6 +571,12 @@ export function OverlayClient({
       )}
 
       {/* All-up viewer count — hides itself when offline. */}
+      {mmrToken && isPlacementEnabled(format, "mmr", layouts[format]) && (
+        <MmrOverlay token={mmrToken} style={placementStyle(format, "mmr", layouts[format])} />
+      )}
+      {loungeRoom && isPlacementEnabled(format, "lounge_room", layouts[format]) && (
+        <LoungeRoomOverlay room={loungeRoom} style={placementStyle(format, "lounge_room", layouts[format])} />
+      )}
       {viewers?.live && isPlacementEnabled(format, "viewers", layouts[format]) && (
         <ViewerCountOverlay viewers={viewers} style={placementStyle(format, "viewers", layouts[format])} />
       )}

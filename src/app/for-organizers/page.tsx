@@ -43,7 +43,7 @@ const TOOLKIT: {
     description:
       "Run a bracket, a points night, or the sprint-car Heat-to-Mains ladder. Set the tracks, seeding, and rules, then invite players.",
     href: "/tournament/create",
-    cta: "Create a tournament →",
+    cta: "Create a tournament",
     accent: "#16a34a",
   },
   {
@@ -52,7 +52,7 @@ const TOOLKIT: {
     description:
       "Run a whole season of events with season standings, a roster, and a public series page that updates as results come in.",
     href: "/tournament",
-    cta: "Browse tournaments →",
+    cta: "Browse tournaments",
     accent: "#2563eb",
   },
   {
@@ -61,7 +61,7 @@ const TOOLKIT: {
     description:
       "Normalized placements, team modes, and a public viewer page that updates live as each race is scored. No spreadsheets.",
     href: "/competitive/mario-kart-8-deluxe",
-    cta: "See the competitive hub →",
+    cta: "See the competitive hub",
     accent: "#7c3aed",
   },
   {
@@ -70,7 +70,7 @@ const TOOLKIT: {
     description:
       "Lock the format with weight class, drift, and character restrictions, and run track picks and bans right in the flow.",
     href: "/tournament/create",
-    cta: "Set your rules →",
+    cta: "Set your rules",
     accent: "#db2777",
   },
   {
@@ -79,7 +79,7 @@ const TOOLKIT: {
     description:
       "When a player joins, their display name, friend code, and Discord come with them, so your roster fills itself in.",
     href: "/tournament",
-    cta: "How joining works →",
+    cta: "How joining works",
     accent: "#0ea5e9",
   },
   {
@@ -88,7 +88,7 @@ const TOOLKIT: {
     description:
       "Every event has a shareable page where players browse, join, and follow along live from any device. No installs.",
     href: "/tournament",
-    cta: "Browse events →",
+    cta: "Browse events",
     accent: "#2563eb",
   },
   {
@@ -97,7 +97,7 @@ const TOOLKIT: {
     description:
       "Mario Kart with track and build rules, or random-character rounds for Smash, Mario Party, Splatoon, Kirby Air Riders, Street Fighter 6 and Tekken 8.",
     href: "/tournament/create",
-    cta: "Create a tournament →",
+    cta: "Create a tournament",
     accent: "#ea580c",
   },
   {
@@ -106,7 +106,7 @@ const TOOLKIT: {
     description:
       "Check-in and start-time texts to entrants who opt in, so your field actually shows up (Circuit plans, US numbers).",
     href: "/gs-circuit",
-    cta: "See Circuit →",
+    cta: "See Circuit",
     accent: "#0d9488",
   },
   {
@@ -115,7 +115,7 @@ const TOOLKIT: {
     description:
       "One event, announced and kept in sync across Discord and Twitch, so your whole community sees it and shows up.",
     href: "/gs-pro",
-    cta: "See it on Pro →",
+    cta: "See it on Pro",
     accent: "#5865f2",
   },
   {
@@ -124,7 +124,7 @@ const TOOLKIT: {
     description:
       "The core tournament and scoring tools are free. Turn on email-verified-only entry when a bracket needs to stay clean.",
     href: "/tournament/create",
-    cta: "Start free →",
+    cta: "Start free",
     accent: "#e0a106",
   },
 ];
@@ -157,7 +157,7 @@ export default function ForOrganizersPage() {
       <section className="marketing-hero marketing-hero--cyan">
         <MarketingHeroField category="compete" />
         <Container>
-          <p className="marketing-eyebrow">For Organizers</p>
+          <p className="marketing-eyebrow">For organizers</p>
           <h1 className="marketing-hero__title">Run your events on GameShuffle</h1>
           <p className="marketing-hero__sub">
             Tournaments, leagues, and community game nights, without the spreadsheets. Set
@@ -181,7 +181,7 @@ export default function ForOrganizersPage() {
         {/* Who it's for */}
         <section className="beta-section">
           <div className="beta-section__head">
-            <p className="marketing-eyebrow">Built for the people running it</p>
+            <p className="marketing-eyebrow">Who it&apos;s for</p>
             <h2 className="beta-section__title">However you organize, it fits</h2>
             <p className="beta-section__sub">
               Tournament organizers, community leagues, clubs and schools, convention rooms,
@@ -273,7 +273,7 @@ export default function ForOrganizersPage() {
       {/* Collaboration / onboarding CTA — the org partnership pitch. */}
       <DarkBand premium curved curveEdges="top" curveColor={PAGE_BG}>
         <div style={{ maxWidth: "56rem", margin: "0 auto", textAlign: "center" }}>
-          <p className="marketing-eyebrow" style={{ color: "var(--primary-300)" }}>Bring your org aboard</p>
+          <p className="marketing-eyebrow" style={{ color: "var(--primary-300)" }}>Partnerships</p>
           <h2 className="pro-band__title beta-section__title" style={{ marginBottom: "var(--spacing-16)" }}>
             Let&rsquo;s run your next event together
           </h2>

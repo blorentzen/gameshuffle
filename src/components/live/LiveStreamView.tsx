@@ -12,6 +12,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { Accordion, Container, Tabs } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
@@ -53,6 +54,7 @@ import { LiveBingoCard } from "./LiveBingoCard";
 import { LiveBreakCard } from "./LiveBreakCard";
 import { LiveTriviaCard } from "./LiveTriviaCard";
 import { LiveChatBrainCard } from "./LiveChatBrainCard";
+import { LiveSiteHost } from "./LiveSiteHost";
 import { LiveDraftCard } from "./LiveDraftCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
@@ -214,11 +216,13 @@ export function LiveStreamView({
           <StreamerHeader streamer={streamer} />
           <LiveTournamentRace ownerUserId={streamer.userId} />
           {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
-          <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-          <LiveTriviaCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-          <LiveChatBrainCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-          <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-          <LiveDraftCard communityId={initialLeaderboard.communityId} />
+          <LiveSiteHost streamerSlug={streamer.slug}>
+            <LiveBreakCard communityId={initialLeaderboard.communityId} />
+            <LiveTriviaCard communityId={initialLeaderboard.communityId} />
+            <LiveChatBrainCard communityId={initialLeaderboard.communityId} />
+            <LiveBingoCard communityId={initialLeaderboard.communityId} />
+            <LiveDraftCard communityId={initialLeaderboard.communityId} />
+          </LiveSiteHost>
           {upcoming && (
             <UpcomingLobbyCard streamerName={streamerName} upcoming={upcoming} />
           )}
@@ -240,25 +244,20 @@ export function LiveStreamView({
             </p>
             {streamer.twitchHandle && (
               <p>
-                <a
-                  href={`https://www.twitch.tv/${streamer.twitchHandle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="live-page__twitch-link"
-                >
-                  Watch on Twitch →
-                </a>
+                <ArrowLink href={`https://www.twitch.tv/${streamer.twitchHandle}`} external className="live-page__twitch-link">
+                  Watch on Twitch
+                </ArrowLink>
               </p>
             )}
             <p>
-              <Link href={`/u/${streamer.slug}`} className="live-page__twitch-link">
-                View {streamerName}&rsquo;s full profile →
-              </Link>
+              <ArrowLink href={`/u/${streamer.slug}`} className="live-page__twitch-link">
+                View {streamerName}&rsquo;s full profile
+              </ArrowLink>
             </p>
             <p>
-              <Link href={`/c/${streamer.slug}`} className="live-page__twitch-link">
-                Join the {streamerName} community →
-              </Link>
+              <ArrowLink href={`/c/${streamer.slug}`} className="live-page__twitch-link">
+                Join the {streamerName} community
+              </ArrowLink>
             </p>
           </section>
           {streamSchedule && (
@@ -694,12 +693,14 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
           </div>
         </div>
 
-        <LiveBreakCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-        <LiveTriviaCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-        <LiveChatBrainCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-        <LivePollCard communityId={initialLeaderboard.communityId} />
-        <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-        <LiveDraftCard communityId={initialLeaderboard.communityId} />
+        <LiveSiteHost streamerSlug={streamer.slug}>
+          <LiveBreakCard communityId={initialLeaderboard.communityId} />
+          <LiveTriviaCard communityId={initialLeaderboard.communityId} />
+          <LiveChatBrainCard communityId={initialLeaderboard.communityId} />
+          <LivePollCard communityId={initialLeaderboard.communityId} />
+          <LiveBingoCard communityId={initialLeaderboard.communityId} />
+          <LiveDraftCard communityId={initialLeaderboard.communityId} />
+        </LiveSiteHost>
 
         {actionStatus && (
           <div
@@ -777,14 +778,9 @@ function SessionEndedPanel({
           </p>
           {streamer.twitchHandle && (
             <p>
-              <a
-                href={`https://www.twitch.tv/${streamer.twitchHandle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="live-page__twitch-link"
-              >
-                Watch on Twitch →
-              </a>
+              <ArrowLink href={`https://www.twitch.tv/${streamer.twitchHandle}`} external className="live-page__twitch-link">
+                Watch on Twitch
+              </ArrowLink>
             </p>
           )}
           <p className="live-page__brand">

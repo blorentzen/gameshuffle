@@ -31,7 +31,7 @@ import { FOUNDING_BRAIN_ANSWERS, sameLine } from "@/lib/chatbrain/rules";
 interface SeedProgress { answers: number; boards: number; goal: number }
 interface Ask { id: string; text: string; category: string }
 
-export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title = "One more before you go?", frameClass, headingLevel = "h3", flat = false }: {
+export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title = "Answer a Chat Brain question", frameClass, headingLevel = "h3", flat = false }: {
   /** `null`: no line above the title (the dailies' end screens). */
   source: string; eyebrow?: string | null; title?: string; frameClass?: string;
   /** The title's level where the card sits, so headings never skip one (h3 under a page's h2s by default). */

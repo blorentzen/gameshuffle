@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@empac/cascadeds";
+import { TableScroll } from "@/components/ui/TableScroll";
 import { LegalPage, LegalSubSection, LegalContact, type LegalSection } from "@/components/legal/LegalPage";
 
 export const metadata: Metadata = {
@@ -106,6 +107,7 @@ const SECTIONS: LegalSection[] = [
           <p>When you answer a Chat Brain question, play the Daily Shuffle or the Daily Dex, or enter the Weekly Challenge, we store your answer or result with the time it was given. Signed-in answers are tied to your account; signed-out answers are tied to a random ID kept in your browser, which we store only in hashed form. Answers given through our Twitch or Discord bots are tied to that platform account.</p>
           <p><strong>Playing inside Discord:</strong> when you open GameShuffle as a Discord Activity, Discord shares your Discord user ID, username, display name and avatar with us, and we confirm with Discord which server channel the Activity was started in. We use these to save your Daily results and your guesses so far (so a game picks up where you left off), your Chat Brain answers and, if you link a GameShuffle account, your Weekly entries. When you play from a server channel, our bot keeps one results message there for the day showing each player&apos;s display name, profile picture, score and rows as colored squares (never the answer), and posts a short summary of the day&apos;s results the next morning. We keep a link to your Discord avatar for these messages and refresh it each time you open the Activity. When you answer the Weekly or a Chat Brain question from a server (with the bot&apos;s buttons or in the Activity there), the bot&apos;s posts of that question in that server list your display name among the people who answered; your answer itself is never shown. The Activity does not read your messages.</p>
           <p><strong>Playing on Facebook:</strong> GameShuffle&apos;s Instant Game (Chat Brain, the Daily Shuffle and the Daily Dex) runs inside Facebook and is hosted by Meta. Facebook does not share your Facebook ID, name or picture with us, and the game never sends them to us. The game keeps two random IDs it makes for you, your streaks and your recent games in Facebook&apos;s storage for the game. When you answer a Chat Brain question there, we receive your answer, the first random ID (which we store only in hashed form) and the country your connection comes from, and your answer counts toward Chat Brain boards like any other (see &quot;How answers are shown&quot; below). The daily puzzles are played inside the game. When you start one, we receive the second random ID (stored only in hashed form) so a solve time can count. If you choose to join a daily leaderboard with a nickname, we also receive that nickname and the guesses of each daily you finish, and handle them like any leaderboard name without an account (see &quot;Daily leaderboards&quot; below). Because we can&apos;t tie any of this to you, it is not part of a GameShuffle account. When you share a result from the game, Facebook handles the share under Meta&apos;s own policies.</p>
+          <p><strong>Playing on Twitch:</strong> when a streamer adds GameShuffle&apos;s extension to their Twitch channel, Twitch gives the extension a random ID for you that doesn&apos;t say who you are, and the extension shows the channel&apos;s games without sending us anything about you. The first time you play from it (a vote, an answer, a bingo card, a track pick), Twitch asks whether to share your Twitch user ID with GameShuffle. If you agree, we receive your Twitch user ID, look up your Twitch display name, and your plays count as the same player as your messages in that channel&apos;s chat: the same tokens, scores and leaderboard name. If your Twitch account is linked to a GameShuffle account, your bingo card is the same one you&apos;d get on the streamer&apos;s live page. The extension never receives your email address or your chat messages, and you can stop sharing your ID at any time from the extension&apos;s menu on Twitch.</p>
           <p><strong>Optional audience details:</strong> after your first Chat Brain answer we may ask for an age group (13 to 17, 18 to 24, 25 to 34, 35 to 44, 45 to 54, or 55 and up), a gender (woman, man, non-binary) and a country. Each one is optional and has a &quot;prefer not to say&quot; choice. Unless you pick a country or choose not to say, we record the country your connection comes from (country level only) with each answer; we do not store your IP address with your answers. Signed-in choices are saved privately to your account; signed-out choices stay in your browser and are sent with each answer.</p>
           <p><strong>Daily leaderboards:</strong> your daily results earn points, which appear on public daily, weekly and monthly leaderboards. Accounts appear by display name (or as &quot;A player&quot; if your profile is private), and you can take yourself off the leaderboards in Settings, Privacy. Discord players appear by their Discord display name. If you play without an account and choose to join a leaderboard, we store the name you pick, your results and any tokens held for you, tied to a random ID kept in your browser (or in Facebook&apos;s storage, if you play in our Instant Game) that we store only in hashed form, along with a hashed form of your network address so we can limit how many new names one network can add. If you later sign in or create an account in that browser, we move these results and tokens to your account. Each morning we may post the previous day&apos;s top 5 on each daily leaderboard to GameShuffle&apos;s social media accounts, showing each player&apos;s leaderboard name, picture, guesses, solve time and streak; you can leave yourself out of these posts in Settings, Privacy, and you will appear as &quot;A player&quot;.</p>
           <p><strong>Invite links:</strong> each account has a short invite code. When you open a daily game from someone&apos;s invite link, your browser remembers their code for up to a week. If you then finish a daily, or create an account, we record that you came from that link (tied to your account, or to the random browser ID above in hashed form, with a hashed form of your network address so one network can&apos;t count many times) and tell the person who shared it, by your display name if you have an account or as &quot;A new player&quot; if you don&apos;t. We also keep a hashed form of the network address you last used, so your own network never counts for your own link.</p>
@@ -155,6 +157,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <LegalSubSection number="4.1" title="What Cookies We Use">
           <p>GameShuffle uses a minimal number of cookies. For complete details, see our <a href="/cookie-policy">Cookie Policy</a>.</p>
+          <TableScroll label="Cookies we use">
           <Table variant="bordered" dense>
             <TableHeader>
               <TableRow>
@@ -191,6 +194,7 @@ const SECTIONS: LegalSection[] = [
               </TableRow>
             </TableBody>
           </Table>
+          </TableScroll>
         </LegalSubSection>
 
         <LegalSubSection number="4.2" title="Cookie Consent">
@@ -268,6 +272,7 @@ const SECTIONS: LegalSection[] = [
     content: (
       <>
         <p>We work with the following third-party services to operate GameShuffle. Each has its own privacy practices:</p>
+        <TableScroll label="Third-party services">
         <Table variant="bordered" dense>
           <TableHeader>
             <TableRow>
@@ -292,6 +297,7 @@ const SECTIONS: LegalSection[] = [
             <TableRow><TableCell><strong>Sentry</strong></TableCell><TableCell>Error monitoring (where applicable)</TableCell><TableCell><a href="https://sentry.io/privacy/" target="_blank" rel="noopener noreferrer">sentry.io/privacy</a></TableCell></TableRow>
           </TableBody>
         </Table>
+        </TableScroll>
         <p>We have data processing agreements (DPAs) in place with all service providers handling EU/UK personal data, incorporating Standard Contractual Clauses (SCCs) where required. We are not responsible for the data practices of these third parties. We encourage you to review their privacy policies.</p>
       </>
     ),
@@ -430,7 +436,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       intro="What we collect, how we use it, who we share it with, and your rights."
-      effectiveDate="October 19, 2026"
+      effectiveDate="October 20, 2026"
       sections={SECTIONS}
       current="privacy"
     />

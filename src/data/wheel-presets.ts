@@ -69,6 +69,12 @@ export const WHEEL_PRESETS: WheelPreset[] = [
     segments: ["King Boo", "Dry Bones", "Dry Bowser", "Petey Piranha", "Kamek", "Shy Guy", "Bowser", "Waluigi"],
   },
   {
+    id: "christmas-party",
+    name: "Christmas party",
+    blurb: "A festive rule for the next game.",
+    segments: ["Sing a carol", "Sweater vote", "Swap a gift", "Elf voices", "Cocoa break", "Steal a present", "Reindeer race", "Hum a song", "Tell a memory", "Free round"],
+  },
+  {
     id: "truth-dare-lite",
     name: "Party round",
     blurb: "Friendly prompts for a party.",

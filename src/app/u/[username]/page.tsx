@@ -51,6 +51,9 @@ import { getUserCrews } from "@/lib/communities/crews";
 import { formatCompact } from "@/lib/format/number";
 import { resolveProfileLayout, visibleSections, type ProfileSectionKey } from "@/lib/profile/layout";
 import { DailiesCards } from "@/components/originals/DailiesCards";
+import { MmrCard } from "@/components/mmr/MmrCard";
+import { profileMmr } from "@/lib/mmr/store";
+import "@/styles/mmr-card.css";
 import { dailiesShown } from "@/lib/originals/dailies";
 import { resolveProfileSkin, skinBackground, skinBackgroundLayout, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
 import { resolveProfileLinks, resolveProfileSpotlight, spotlightEmbedUrl } from "@/lib/profile/links";
@@ -311,10 +314,11 @@ export default async function PublicProfilePage({
   const thisSeason = currentSeasonKey();
   const seasonHistory = await ownerHasPro(profile.id as string);
   const season = isSeasonKey(sp.season) && seasonHistory && recentSeasonKeys().includes(sp.season) ? sp.season : thisSeason;
-  const [enrichment, seasonData, rivals] = await Promise.all([
+  const [enrichment, seasonData, rivals, mmr] = await Promise.all([
     getProfileEnrichment(profile.id as string),
     userSeason(profile.id as string, season).catch(() => null),
     rivalsFor(profile.id as string).catch(() => []),
+    profileMmr(profile.id as string).catch(() => null),
   ]);
   let authorPosts = COMMUNITY_PUBLICLY_ENABLED
     ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")
@@ -377,11 +381,14 @@ export default async function PublicProfilePage({
     }
   }
 
-  // Supports GameShuffle (once in the last year, or monthly).
+  // Supports GameShuffle (once in the last year, or monthly). Backers and Champions show their level.
+  const levelName = enrichment.supportLevel === "champion" ? "Champion" : enrichment.supportLevel === "backer" ? "Backer" : "Supporter";
   const supporterLabel = enrichment.supporterSince
-    ? `Supporter since ${new Date(enrichment.supporterSince).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Los_Angeles" })}`
-    : "Supporter";
+    ? `${levelName} since ${new Date(enrichment.supporterSince).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Los_Angeles" })}`
+    : levelName;
   if (enrichment.supporter) badges.push({ key: "supporter", label: supporterLabel, href: "/support" });
+  // One of the first 100 supporters keeps this for good, even after their support ends.
+  if (enrichment.foundingSupporter) badges.push({ key: "founding-supporter", label: "Founding supporter", href: "/credits" });
 
   // Weekly Challenge: a top-10 week (the count shows once there's more than one).
   if (enrichment.weeklyTopTen) {
@@ -456,6 +463,14 @@ export default async function PublicProfilePage({
     </div>
   ) : null;
 
+  // The MMR card's sticker, in the owner's own look (picks 2026-10-20), when they've set one up and show it.
+  const mmrWidget = mmr ? (
+    <div className="pcard profile-mmr">
+      <h3 className="pcard__title">Lounge MMR</h3>
+      <div className="mmr-frame"><MmrCard view={mmr.view} look={mmr.look} /></div>
+    </div>
+  ) : null;
+
   const topFriendsWidget = topFriends.length > 0 && (
     <div className="pcard">
       <h3 className="pcard__title">Top Friends</h3>
@@ -511,6 +526,7 @@ export default async function PublicProfilePage({
     crews: crewsWidget,
     favGames: favGamesWidget,
     dailies: dailiesWidget,
+    mmr: mmrWidget,
     topFriends: topFriendsWidget,
     communities: communitiesWidget,
   };

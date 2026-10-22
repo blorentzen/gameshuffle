@@ -16,7 +16,9 @@
  *                                    subscription and its invoices) → Support
  *                                    GameShuffle (src/lib/support/store.ts),
  *                                    handled first so it never reaches the
- *                                    GS Pro / Circuit subscription sync
+ *                                    GS Pro / Circuit subscription sync (a
+ *                                    Backer or Champion level gives GS Pro
+ *                                    through syncSupportPro there)
  *   radar.early_fraud_warning.created → refund + stop any subscription + alert
  *   charge.dispute.created / .closed   → alert with the deadline / outcome
  *                                    (src/lib/stripe/fraud.ts)
@@ -161,7 +163,7 @@ export async function POST(request: Request) {
           if (!event.account) await fulfilShopSession(session.id);
           break;
         }
-        // Support GameShuffle: never a paid plan, even when it's monthly.
+        // Support GameShuffle: handled by its own module (levels with GS Pro included sync Pro there).
         if (session.metadata?.gs_kind === "support") {
           if (!event.account) await fulfilSupportSession(session.id);
           break;

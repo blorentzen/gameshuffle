@@ -38,6 +38,7 @@ import type {
 import type { GsSession } from "@/lib/sessions/types";
 import type { RecapPayload } from "@/lib/sessions/service";
 import { createThreadFromMessage, editEmbed, postComponentsMessage, postEmbed, type DiscordEmbed } from "./adapter";
+import { loungeRecapField } from "@/lib/lounge/recapServer";
 import {
   announcementEmbed,
   qotdEmbed,
@@ -64,7 +65,8 @@ type DiscordEventKey =
   | "round_open"
   | "round_close"
   | "recap"
-  | "qotd";
+  | "qotd"
+  | "lounge";
 
 /**
  * Per-key subscription default, used when the streamer's flags column has
@@ -82,6 +84,8 @@ const SUB_DEFAULTS: Record<DiscordEventKey, boolean> = {
   round_close: true,
   recap: true,
   qotd: false,
+  // Lounge rank-ups (src/lib/lounge/discord.ts): opt-in, like QOTD.
+  lounge: false,
 };
 
 type DiscordEventFlags = Partial<Record<DiscordEventKey, boolean>>;
@@ -546,6 +550,9 @@ export class DiscordAdapter implements PlatformAdapter {
     recap: RecapPayload,
   ): Promise<void> {
     void _session;
+    // The night's lounge run (GS Pro, MMR card owners): one extra field on the recap.
+    const started = new Date(Date.parse(recap.ended_at) - recap.duration_seconds * 1000).toISOString();
+    const lounge = await loungeRecapField(this.ownerUserId, started).catch(() => null);
     await this.eachServer(async (routing) => {
       if (!subEnabled(routing.subscriptions, "recap")) return;
       const channelId = channelFor(routing, "recap");
@@ -562,6 +569,7 @@ export class DiscordAdapter implements PlatformAdapter {
           liveUrl: routing.liveUrl,
           avatarUrl: routing.avatarUrl,
           endedAt: recap.ended_at,
+          lounge,
         }),
         content: ping.content,
         allowedMentions: ping.allowedMentions,

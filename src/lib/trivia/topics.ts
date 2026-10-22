@@ -4,11 +4,13 @@ import "server-only";
  * Game trivia question pages (/trivia/questions/[topic]): the approved
  * GameShuffle pack questions about one game, and a night built from them.
  * A question counts for a topic when its game slug matches, its picture
- * category matches, or it's a Video games question that names the game.
+ * category matches, or it's an untagged Video games question that names the
+ * game.
  * Only approved pack questions ever show on a public page.
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { MAX_TOPIC_QUESTIONS, MIN_TOPIC_QUESTIONS, QUESTION_TOPICS, type QuestionTopic } from "@/data/trivia-seo";
 import { Q_COLS, createGame, forGame, toQuestion, type LibraryQuestion, type QuestionRow } from "./store";
 import type { TriviaRound } from "./rules";
@@ -17,19 +19,22 @@ const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 } as const;
 
 /** Every approved pack question with its game, read once per call. Null when trivia isn't set up. */
 async function approvedPack(): Promise<(LibraryQuestion & { gameSlug: string | null })[] | null> {
-  const { data, error } = await createServiceClient()
+  const { data, error } = await readAllPages((from, to) => createServiceClient()
     .from("trivia_questions")
     .select(`${Q_COLS}, game_slug`)
     .is("owner_user_id", null)
     .eq("status", "approved")
     .order("created_at", { ascending: true })
-    .limit(3000);
+    .order("id")
+    .range(from, to));
   if (error) return null;
   return ((data ?? []) as (QuestionRow & { game_slug: string | null })[]).map((r) => ({ ...toQuestion(r), gameSlug: r.game_slug ?? null }));
 }
 
+// A question from a game pack counts only where its game is listed (or on the broad Video games page), so the
+// Mario page doesn't fill up with Mario Kart questions just because they say "Mario".
 function matches(topic: QuestionTopic, q: LibraryQuestion & { gameSlug: string | null }): boolean {
-  if (q.gameSlug && topic.gameSlugs.includes(q.gameSlug)) return true;
+  if (q.gameSlug) return topic.gameSlugs.includes(q.gameSlug) || (q.category === "Video games" && !!topic.allVideoGames);
   if (q.category && topic.pictureCategories?.includes(q.category)) return true;
   if (q.category && topic.categories?.includes(q.category)) return true;
   if (q.category !== "Video games") return false;
@@ -40,11 +45,26 @@ function matches(topic: QuestionTopic, q: LibraryQuestion & { gameSlug: string |
 
 const byDifficulty = (a: LibraryQuestion, b: LibraryQuestion) => DIFFICULTY_ORDER[a.difficulty ?? "medium"] - DIFFICULTY_ORDER[b.difficulty ?? "medium"];
 
-/** A topic's questions, easiest first, up to the page's limit. */
+/**
+ * A topic's questions, easiest first, up to the page's limit. Broad pages
+ * (Nintendo, Video games) take from each game in turn, so a 100-question game
+ * pack can't fill the whole page.
+ */
 export async function topicQuestions(topic: QuestionTopic): Promise<LibraryQuestion[]> {
   const pack = await approvedPack();
   if (!pack) return [];
-  return pack.filter((q) => matches(topic, q)).sort(byDifficulty).slice(0, topic.max ?? MAX_TOPIC_QUESTIONS);
+  const groups = new Map<string, LibraryQuestion[]>();
+  for (const q of pack.filter((x) => matches(topic, x)).sort(byDifficulty)) {
+    const key = q.gameSlug ?? q.category ?? "";
+    groups.set(key, [...(groups.get(key) ?? []), q]);
+  }
+  const lists = [...groups.values()];
+  const max = topic.max ?? MAX_TOPIC_QUESTIONS;
+  const picked: LibraryQuestion[] = [];
+  for (let i = 0; picked.length < max && lists.some((l) => l.length > i); i++) {
+    for (const list of lists) if (list[i] && picked.length < max) picked.push(list[i]);
+  }
+  return picked.sort(byDifficulty);
 }
 
 /** How many approved questions each topic has (for the index page and the sitemap). */

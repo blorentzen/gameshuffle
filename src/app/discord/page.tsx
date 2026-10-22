@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Accordion, Badge, Button, Card, Container, Icon, Tabs } from "@empac/cascadeds";
+import { Button, Container, Icon, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs } from "@empac/cascadeds";
+import { TableScroll } from "@/components/ui/TableScroll";
+import { FaqList } from "@/components/marketing/FaqList";
 import type { IconName } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { DiscordMock } from "@/components/discord/DiscordMock";
@@ -118,6 +120,10 @@ function PlayButton({ href, from }: { href: string; from: string }) {
   );
 }
 
+function Included() {
+  return <span className="dpage-compare__tick"><Icon name="check" size="20" aria-hidden /><span className="sr-only">Included</span></span>;
+}
+
 function Checks({ items }: { items: string[] }) {
   return (
     <ul className="dpage-checks">
@@ -143,7 +149,7 @@ export default function DiscordPage() {
       />
 
       <BrowseHero
-        eyebrow="GameShuffle for Discord · New"
+        eyebrow="GameShuffle for Discord"
         title="Game night lives in your Discord now"
         sub="Play the Daily, the Weekly and Chat Brain together without leaving Discord, share your squares in the channel, and roll a setup for any game night with one command."
         accent="blue"
@@ -181,7 +187,6 @@ export default function DiscordPage() {
             </ul>
             <Checks items={["Everyone's face and squares in the channel, never the answer", "A morning podium with the channel's streak"]} />
           </div>
-          <DiscordMock variant="summary" />
         </section>
       </Container>
 
@@ -211,29 +216,39 @@ export default function DiscordPage() {
         <section className="beta-section">
           <div className="beta-section__head">
             <p className="marketing-eyebrow">Free and GS Pro</p>
-            <h2 className="beta-section__title">Free for every server. GS Pro runs the whole thing.</h2>
+            <h2 className="beta-section__title">Free for every server</h2>
             <p className="beta-section__sub">
-              The games are free for everyone. GS Pro is for streamers and community owners who want one place to run
-              their server.
+              The games are free for everyone. GS Pro adds the tools that run a server, for streamers and community owners.
             </p>
           </div>
-          <div className="dpage-plans">
-            <Card variant="outlined" padding="large" className="dpage-plan">
-              <h3 className="dpage-plan__name">Free</h3>
-              <p className="dpage-plan__tag">Everything your server needs to play.</p>
-              <Checks items={FREE} />
-              <div className="dpage-plan__cta"><AddButton from="plans" variant="secondary" /></div>
-            </Card>
-            <Card variant="elevated" padding="large" className="dpage-plan dpage-plan--pro">
-              <h3 className="dpage-plan__name">GS Pro <Badge variant="info" size="small">For streamers</Badge></h3>
-              <p className="dpage-plan__tag">Everything in Free, plus the tools that run your server.</p>
-              <Checks items={PRO} />
-              <div className="dpage-plan__cta">
-                <Link href="/gs-pro?from=discord-page" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "discord-page" })}>
-                  <Button variant="primary" size="large">See GS Pro</Button>
-                </Link>
-              </div>
-            </Card>
+          {/* One comparison instead of two long cards (refinement round 2, Britton's pick 2026-10-20). Data keeps its frame. */}
+          <div className="dpage-compare">
+            <TableScroll label="What your server gets, free and with GS Pro">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>What your server gets</TableHead>
+                  <TableHead align="center">Free</TableHead>
+                  <TableHead align="center">GS Pro</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...FREE.map((f) => ({ line: f, free: true })), ...PRO.map((p) => ({ line: p, free: false }))].map((r) => (
+                  <TableRow key={r.line}>
+                    <TableCell>{r.line}</TableCell>
+                    <TableCell align="center">{r.free ? <Included /> : <span className="sr-only">Not included</span>}</TableCell>
+                    <TableCell align="center"><Included /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            </TableScroll>
+            <div className="dpage-compare__cta">
+              <AddButton from="plans" variant="secondary" />
+              <Link href="/gs-pro?from=discord-page" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "discord-page" })}>
+                <Button variant="primary">See GS Pro</Button>
+              </Link>
+            </div>
           </div>
 
           <div className="dpage-spotlight">
@@ -284,11 +299,8 @@ export default function DiscordPage() {
 
         <section className="pricing-page__faq">
           <h2 className="beta-section__title">Questions</h2>
-          <Accordion
-            variant="bordered"
-            allowMultiple
-            items={FAQ.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
-          />
+          {/* FaqList keeps every answer in the HTML (the CDS Accordion only mounts opened answers). */}
+          <FaqList items={FAQ} />
         </section>
       </Container>
 

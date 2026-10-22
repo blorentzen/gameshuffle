@@ -28,7 +28,8 @@ type EventKey =
   | "round_open"
   | "round_close"
   | "recap"
-  | "qotd";
+  | "qotd"
+  | "lounge";
 type EventFlags = Partial<Record<EventKey, boolean>>;
 
 interface RoutingState {
@@ -80,6 +81,11 @@ const EVENT_LABELS: Array<{
     label: "Question of the Day",
     hint: "Posts today's !qotd question to your channel once a day, even when you're not streaming. Off unless you turn it on.",
   },
+  {
+    key: "lounge",
+    label: "Lounge rank-ups",
+    hint: "Posts when a member who confirmed their Mario Kart lounge name on GameShuffle reaches a new division. Off unless you turn it on.",
+  },
 ];
 
 /**
@@ -96,6 +102,7 @@ const SUB_DEFAULTS: Record<EventKey, boolean> = {
   round_close: true,
   recap: true,
   qotd: false,
+  lounge: false,
 };
 
 const subOn = (flags: EventFlags | null, key: EventKey) =>
@@ -427,7 +434,7 @@ export function DiscordBotRoutingCard() {
             style={{ textDecoration: "none" }}
           >
             <Button variant="primary" size="small">
-              Install in your Discord →
+              Install in your Discord
             </Button>
           </a>
         </div>

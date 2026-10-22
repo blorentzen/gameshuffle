@@ -9,6 +9,7 @@
  * theming stays in a single place on purpose.
  */
 
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import Link from "next/link";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 
@@ -51,17 +52,7 @@ export function BrandThemeBar({ context }: { context?: string }) {
           Skins {context ?? "these previews"} and your live overlay.
         </span>
       </span>
-      <Link
-        href="/account?tab=theme"
-        style={{
-          fontSize: "var(--font-size-14)",
-          fontWeight: "var(--font-weight-semibold)",
-          color: "var(--brand-ink, var(--text-primary))",
-          whiteSpace: "nowrap",
-        }}
-      >
-        Edit theme →
-      </Link>
+      <ArrowLink href="/account?tab=theme">Edit theme</ArrowLink>
     </div>
   );
 }

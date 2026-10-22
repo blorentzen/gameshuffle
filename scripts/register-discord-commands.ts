@@ -218,6 +218,57 @@ const commands = [
     contexts: [0, 1, 2],
   },
   {
+    name: "gs-mmr",
+    description: "A Mario Kart lounge player's MMR. Leave the name out for your own MMR card.",
+    options: [
+      { name: "name", description: "Their MKCentral lounge name (optional).", type: 3, required: false, max_length: 40 },
+      { name: "versus", description: "A second lounge name for a head-to-head (optional).", type: 3, required: false, max_length: 40 },
+      {
+        name: "game",
+        description: "Which lounge (Mario Kart World 12 players if left out).",
+        type: 3,
+        required: false,
+        choices: [
+          { name: "Mario Kart World, 12 players", value: "mkworld12p" },
+          { name: "Mario Kart World, 24 players", value: "mkworld24p" },
+          { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
+        ],
+      },
+    ],
+  },
+  {
+    name: "gs-room",
+    description: "What each place pays in a lounge room, and who's favored. Paste the room's names.",
+    options: [
+      { name: "names", description: "The room's lounge names, separated by commas (teams: separated by slashes).", type: 3, required: true, max_length: 1000 },
+      { name: "me", description: "Whose read it is (a lounge name in the room).", type: 3, required: false, max_length: 40 },
+      {
+        name: "format",
+        description: "Free-for-all if left out.",
+        type: 3,
+        required: false,
+        choices: [
+          { name: "Free-for-all", value: "1" },
+          { name: "2v2", value: "2" },
+          { name: "3v3", value: "3" },
+          { name: "4v4", value: "4" },
+          { name: "6v6", value: "6" },
+        ],
+      },
+      {
+        name: "game",
+        description: "Which lounge (Mario Kart World 12 players if left out).",
+        type: 3,
+        required: false,
+        choices: [
+          { name: "Mario Kart World, 12 players", value: "mkworld12p" },
+          { name: "Mario Kart World, 24 players", value: "mkworld24p" },
+          { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
+        ],
+      },
+    ],
+  },
+  {
     name: "gs-weekly",
     description: "Play this week's Weekly Challenge. Managers post it for the whole channel.",
   },

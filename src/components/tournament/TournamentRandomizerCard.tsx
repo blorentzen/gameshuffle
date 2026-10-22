@@ -272,7 +272,7 @@ export function TournamentRandomizerCard({
               {!live
                 ? <Button variant="primary" size="small" onClick={() => act("start_live")} disabled={busy}>Start live</Button>
                 : <>
-                    <Button variant="primary" size="small" onClick={() => act("advance")} disabled={busy}>Advance →</Button>
+                    <Button variant="primary" size="small" onClick={() => act("advance")} disabled={busy}>Advance</Button>
                     <Button variant="ghost" size="small" onClick={() => act("reset_live")} disabled={busy}>Reset live</Button>
                   </>}
             </div>

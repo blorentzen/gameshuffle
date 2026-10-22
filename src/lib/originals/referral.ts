@@ -53,8 +53,10 @@ export function storedReferral(linkDays = 7): StoredReferral | null {
 /**
  * Notes `?r=CODE` from the address (first link wins while it lasts), then
  * takes it out of the address so a reshare doesn't carry someone else's code.
+ * `fromCard`: the sharer's code on a shared result page (/r/<code>), which
+ * counts the same way.
  */
-export function captureReferral(linkDays = 7): StoredReferral | null {
+export function captureReferral(linkDays = 7, fromCard?: string | null): StoredReferral | null {
   try {
     const url = new URL(window.location.href);
     const raw = url.searchParams.get("r");
@@ -64,6 +66,8 @@ export function captureReferral(linkDays = 7): StoredReferral | null {
       url.searchParams.delete("r");
       window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     }
+    const card = fromCard?.trim().toUpperCase();
+    if (card && REFERRAL_CODE_RE.test(card) && !storedReferral(linkDays)) write({ code: card, at: Date.now(), fresh: !hasDailyHistory() });
   } catch { /* no link today */ }
   return storedReferral(linkDays);
 }

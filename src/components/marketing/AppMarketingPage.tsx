@@ -1,26 +1,38 @@
+import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
-import { Button, Container, Stack } from "@empac/cascadeds";
+import { Button, Container } from "@empac/cascadeds";
 import { FaqList } from "@/components/marketing/FaqList";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
-import { DarkBand } from "@/components/marketing/DarkBand";
+import { PlansPanel } from "@/components/marketing/PlansPanel";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { Reveal } from "@/components/marketing/Reveal";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import type { AppMarketingContent } from "@/data/marketing-apps";
 
 /**
- * Reusable per-app marketing landing page (the SEO/GEO surface). Driven
- * entirely by an `AppMarketingContent` record. Structure, in order:
- *   breadcrumb → hero (text + art) → answer-first overview → feature grid
- *   → how-it-works steps → cross-sell dark band → FAQ → final CTA.
+ * Reusable per-app marketing landing page (the SEO/GEO surface). Driven by an
+ * `AppMarketingContent` record plus two page props. Structure, in order:
+ *   hero → a look at the tool (`look`) → features → how it works → the plans
+ *   (`plans`, a PlansPanel worded for the page) → About (the overview) → FAQ.
+ * Refinement round 2 (Britton's picks, 2026-10-20,
+ * https://claude.ai/artifact/Si3qUtPsHVqQXVmvGwyi4W): the picture comes first
+ * and the long overview moves down to About (still in the HTML for search);
+ * the generic GS Pro band became a plans panel and the closing band, which
+ * repeated the hero's button, is gone.
  * Plus FAQ / Breadcrumb / SoftwareApplication JSON-LD for AI answer engines.
- *
- * Server component; CTAs are plain links into the clean tool routes.
- * Reuses existing `.pricing-page__faq-*` styles for the FAQ accordion.
  */
-export function AppMarketingPage({ content }: { content: AppMarketingContent }) {
+export function AppMarketingPage({ content, look, plans, afterPlans }: {
+  content: AppMarketingContent;
+  /** A picture or a working piece of the tool, right under the hero. */
+  look?: ReactNode;
+  /** This page's plans: free account, GS Pro, GS Circuit worded for it. */
+  plans: Omit<ComponentProps<typeof PlansPanel>, "id">;
+  /** A line under the plans (the companion's shop). */
+  afterPlans?: ReactNode;
+}) {
   const c = content;
+  const h2 = { fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-24)", lineHeight: "var(--line-height-tight)" } as const;
 
   return (
     <main>
@@ -64,16 +76,11 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
       </section>
 
       <Container>
-        {/* Overview — answer-first */}
-        <section style={{ maxWidth: "70rem", margin: "0 0 var(--spacing-48)" }}>
-          <p style={{ fontSize: "var(--font-size-18)", lineHeight: "var(--line-height-relaxed)", color: "var(--text-secondary)" }}>
-            {c.overview}
-          </p>
-        </section>
+        {look && <section className="app-look" aria-label={`${c.breadcrumbLabel}, a look`}>{look}</section>}
 
         {/* Features */}
-        <section style={{ margin: "var(--spacing-80) 0" }}>
-          <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-24)", lineHeight: "var(--line-height-tight)" }}>
+        <section style={{ margin: "var(--spacing-64) 0 var(--spacing-80)" }}>
+          <h2 style={h2}>
             {c.featuresHeading}
           </h2>
           <Reveal>
@@ -89,7 +96,7 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
         {/* How it works — omitted for tools simple enough not to need it. */}
         {c.howItWorks && c.howItWorks.length ? (
           <section style={{ margin: "var(--spacing-80) 0" }}>
-            <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-24)", lineHeight: "var(--line-height-tight)" }}>
+            <h2 style={h2}>
               {c.howItWorksHeading}
             </h2>
             <Reveal>
@@ -107,62 +114,24 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
             </Reveal>
           </section>
         ) : null}
-      </Container>
 
-      {/* Cross-sell — curved dark band */}
-      <DarkBand premium curved curveColor="var(--surface-default)">
-        <div style={{ textAlign: "center", maxWidth: "60rem", marginInline: "auto" }}>
-          <h2 className="pro-band__title" style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)", lineHeight: "var(--line-height-tight)" }}>
-            {c.crossSell.heading}
-          </h2>
-          <p style={{ fontSize: "var(--font-size-18)", lineHeight: "var(--line-height-relaxed)", margin: "0 auto var(--spacing-24)", maxWidth: "52rem" }}>
-            {c.crossSell.body}
-          </p>
-          <Stack direction="horizontal" gap={12} justify="center" wrap>
-            <Link href={c.crossSell.ctaHref} style={{ textDecoration: "none" }}>
-              <Button variant="primary" size="large">{c.crossSell.ctaLabel}</Button>
-            </Link>
-            {c.crossSell.secondaryLabel && c.crossSell.secondaryHref ? (
-              <Link href={c.crossSell.secondaryHref} style={{ textDecoration: "none" }}>
-                <Button variant="secondary" size="large">{c.crossSell.secondaryLabel}</Button>
-              </Link>
-            ) : null}
-          </Stack>
-        </div>
-      </DarkBand>
+        <PlansPanel id="plans" {...plans} />
+        {afterPlans && <p className="app-after-plans">{afterPlans}</p>}
 
-      <Container>
+        {/* About: the answer-first overview, kept for search and for anyone who wants the whole picture. */}
+        <section className="app-about" aria-labelledby="app-about">
+          <h2 id="app-about" style={h2}>{c.aboutHeading ?? `About ${c.breadcrumbLabel}`}</h2>
+          <p className="app-about__text">{c.overview}</p>
+        </section>
+
         {/* FAQ */}
-        <section className="pricing-page__faq">
-          <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-24)", lineHeight: "var(--line-height-tight)" }}>
+        <section className="pricing-page__faq app-faq">
+          <h2 style={h2}>
             {c.faqHeading}
           </h2>
           <FaqList items={c.faq} />
         </section>
       </Container>
-
-      {/* Final CTA — full-bleed band. Uses the tool's own background when set,
-          so the page feels cohesive with the randomizer it links into. */}
-      <section
-        className={c.ctaBackground ? "marketing-cta marketing-cta--bg" : "marketing-cta"}
-        style={
-          c.ctaBackground
-            ? {
-                backgroundImage: `linear-gradient(rgba(10,14,22,0.74), rgba(10,14,22,0.82)), url(${c.ctaBackground})`,
-              }
-            : undefined
-        }
-      >
-        <Container>
-          <h2 className="marketing-cta__title">Ready to play?</h2>
-          <p className="marketing-cta__text">
-            Jump in. It&apos;s free and runs right in your browser.
-          </p>
-          <Link href={c.toolHref} style={{ textDecoration: "none" }}>
-            <Button variant="primary" size="large">{c.toolCtaLabel}</Button>
-          </Link>
-        </Container>
-      </section>
     </main>
   );
 }

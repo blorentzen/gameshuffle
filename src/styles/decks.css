@@ -199,7 +199,7 @@ a.deck-detail__winrate-src {
   text-decoration: none;
   font-size: var(--font-size-16);
 }
-.deck-related__list a:hover {
+.deck-related__list a:not(.arrow-link):hover {
   text-decoration: underline;
 }
 
@@ -331,16 +331,8 @@ a.deck-detail__winrate-src {
   border-color: var(--brand-ink, var(--border-default));
   background: var(--background-secondary);
 }
-.deck-tile__browse-arrow {
-  font-size: var(--font-size-32);
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
-  color: var(--brand-ink, var(--text-primary));
-}
 .deck-tile__browse-cta {
   font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--brand-ink, var(--text-primary));
 }
 .deck-tile__badges {
   display: flex;
@@ -428,12 +420,7 @@ a.deck-detail__winrate-src {
 }
 .deck-battlebox-note__links a {
   color: var(--brand-ink, var(--text-primary));
-  font-weight: var(--font-weight-medium);
-  text-decoration: none;
   font-size: var(--font-size-14);
-}
-.deck-battlebox-note__links a:hover {
-  text-decoration: underline;
 }
 /* Companion pointer: sits inside the guide, right after its play section,
    with the guide's own section spacing around it. */

@@ -38,8 +38,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { recordEvent } from "@/lib/sessions/service";
-import { SESSION_EVENT_TYPES } from "@/lib/sessions/event-types";
+import { saveBallot } from "@/lib/picks-bans/ballot";
 import { checkAndConsumeRateLimit } from "@/lib/picks-bans/rateLimit";
 
 export const runtime = "nodejs";
@@ -176,137 +175,24 @@ export async function POST(request: Request) {
     if (name) viewerDisplayName = name;
   }
 
-  // Verify the round exists, is open, and belongs to an active session.
-  const { data: round } = await admin
-    .from("session_picks_bans_rounds")
-    .select("id, status, session_id")
-    .eq("id", roundId)
-    .maybeSingle();
-  if (!round) {
-    return NextResponse.json(
-      { ok: false, error: "round_not_found" },
-      { status: 404 }
-    );
-  }
-  if ((round as { status: string }).status !== "open") {
-    return NextResponse.json(
-      { ok: false, error: "round_not_open" },
-      { status: 409 }
-    );
-  }
-
-  const picksTracks = asStringArray(body.picks_tracks);
-  const bansTracks = asStringArray(body.bans_tracks);
-  const picksRallies = asStringArray(body.picks_rallies);
-  const bansRallies = asStringArray(body.bans_rallies);
-  const picksItemModes = asStringArray(body.picks_item_modes);
-  const bansItemModes = asStringArray(body.bans_item_modes);
-  const picksItemLiteral = asStringArray(body.picks_item_literal);
-  const bansItemLiteral = asStringArray(body.bans_item_literal);
-  const lock = body.lock === true;
-
-  // Find existing ballot for this identity in this round — upsert.
-  let existingBallotId: string | null = null;
-  let existingLocked = false;
-  {
-    let q = admin
-      .from("session_picks_bans_ballots")
-      .select("id, locked_at")
-      .eq("round_id", roundId);
-    if (viewerTwitchUserId) {
-      q = q.eq("viewer_twitch_user_id", viewerTwitchUserId);
-    } else if (anonSessionId) {
-      q = q.eq("anon_session_id", anonSessionId);
-    }
-    const { data: existing } = await q.maybeSingle();
-    if (existing) {
-      existingBallotId = (existing as { id: string }).id;
-      existingLocked = !!(existing as { locked_at: string | null }).locked_at;
-    }
-  }
-
-  // Once locked, the ballot is frozen. Per Britton's rule: viewers lock
-  // their vote and the streamer decides. Subsequent writes (including
-  // re-locks) are no-ops, returning the existing ballot.
-  if (existingLocked) {
-    return NextResponse.json({
-      ok: true,
-      ballotId: existingBallotId,
-      locked: true,
-      message: "Ballot already locked.",
-    });
-  }
-
-  const payload: Record<string, unknown> = {
-    round_id: roundId,
-    viewer_twitch_user_id: viewerTwitchUserId,
-    anon_session_id: anonSessionId,
-    viewer_display_name: viewerDisplayName,
-    picks_tracks: picksTracks,
-    bans_tracks: bansTracks,
-    picks_rallies: picksRallies,
-    bans_rallies: bansRallies,
-    picks_item_modes: picksItemModes,
-    bans_item_modes: bansItemModes,
-    picks_item_literal: picksItemLiteral,
-    bans_item_literal: bansItemLiteral,
-    locked_at: lock ? new Date().toISOString() : null,
-  };
-
-  let resultId: string;
-  if (existingBallotId) {
-    const { data, error } = await admin
-      .from("session_picks_bans_ballots")
-      .update(payload)
-      .eq("id", existingBallotId)
-      .select("id")
-      .single();
-    if (error || !data) {
-      console.error("[picks-bans/ballot] update failed:", error);
-      return NextResponse.json(
-        { ok: false, error: error?.message ?? "update_failed" },
-        { status: 500 }
-      );
-    }
-    resultId = (data as { id: string }).id;
-  } else {
-    const { data, error } = await admin
-      .from("session_picks_bans_ballots")
-      .insert(payload)
-      .select("id")
-      .single();
-    if (error || !data) {
-      console.error("[picks-bans/ballot] insert failed:", error);
-      return NextResponse.json(
-        { ok: false, error: error?.message ?? "insert_failed" },
-        { status: 500 }
-      );
-    }
-    resultId = (data as { id: string }).id;
-  }
-
-  // Audit on lock — in-progress edits are noisy and not interesting.
-  if (lock) {
-    try {
-      await recordEvent({
-        sessionId: (round as { session_id: string }).session_id,
-        eventType: SESSION_EVENT_TYPES.picks_bans_ballot_locked,
-        actorType: viewerTwitchUserId ? "viewer" : "system",
-        actorId: viewerTwitchUserId ?? anonSessionId ?? undefined,
-        payload: {
-          round_id: roundId,
-          ballot_id: resultId,
-          authed: !!viewerTwitchUserId,
-        },
-      });
-    } catch (err) {
-      console.error("[picks-bans/ballot] audit failed:", err);
-    }
-  }
-
-  return NextResponse.json({
-    ok: true,
-    ballotId: resultId,
-    locked: lock,
+  const r = await saveBallot({
+    roundId,
+    viewerTwitchUserId,
+    anonSessionId,
+    displayName: viewerDisplayName,
+    fields: {
+      picks_tracks: asStringArray(body.picks_tracks),
+      bans_tracks: asStringArray(body.bans_tracks),
+      picks_rallies: asStringArray(body.picks_rallies),
+      bans_rallies: asStringArray(body.bans_rallies),
+      picks_item_modes: asStringArray(body.picks_item_modes),
+      bans_item_modes: asStringArray(body.bans_item_modes),
+      picks_item_literal: asStringArray(body.picks_item_literal),
+      bans_item_literal: asStringArray(body.bans_item_literal),
+    },
+    lock: body.lock === true,
   });
+  if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: r.status });
+  if (r.alreadyLocked) return NextResponse.json({ ok: true, ballotId: r.ballotId, locked: true, message: "Ballot already locked." });
+  return NextResponse.json({ ok: true, ballotId: r.ballotId, locked: r.locked });
 }

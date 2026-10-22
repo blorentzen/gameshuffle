@@ -58,6 +58,9 @@ const EXAMPLE = {
   strikes: 2,
 };
 
+/** Questions shown before More questions (production can have dozens open). */
+const SHOW_FIRST = 5;
+
 export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
   const { user } = useAuth();
   const toast = useToast();
@@ -71,6 +74,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [captchaFor, setCaptchaFor] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const audience = useAudienceStep();
 
@@ -110,7 +114,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
   return (
     <main className="chat-brain-page">
       <BrowseHero
-        eyebrow="A GameShuffle Original · coming soon"
+        eyebrow="Coming soon"
         title="Chat Brain"
         sub="Guess what everyone else said. We ask real people quick questions, and the most popular answers become the boards you play."
         accent="brain"
@@ -120,6 +124,67 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
       />
 
       <Container className="chat-brain">
+        {/* The questions first: answering is the page's job until launch (refinement round 2, Britton's pick 2026-10-20). */}
+        <section id="answer" className="cb-section" aria-labelledby="cb-answer">
+          <h2 id="cb-answer" className="cb-h2">Answer a few</h2>
+          {data && !data.ready && <p className="chat-brain__empty">Chat Brain isn&apos;t open yet. Check back soon.</p>}
+          {data?.ready && (
+            <>
+              <div className="chat-brain__cats" role="group" aria-label="Categories">
+                <Chip label="All" clickable selected={!category} onClick={() => setCategory(null)} />
+                {data.categories.map((c) => (
+                  <Chip key={c.slug} icon={<CategoryIcon slug={c.slug} size={14} />} label={c.openPrompts ? `${c.name} · ${c.openPrompts}` : c.name} clickable selected={category === c.slug}
+                    onClick={() => setCategory(category === c.slug ? null : c.slug)} />
+                ))}
+              </div>
+
+              {prompts.length === 0 ? (
+                <p className="chat-brain__empty">No questions open here right now. Try another category.</p>
+              ) : (
+                <ul className="chat-brain__prompts">
+                  {(showAll ? prompts : prompts.slice(0, SHOW_FIRST)).map((p) => {
+                    const need = Math.max(0, p.minAnswers - p.answers);
+                    return (
+                      <li key={p.id} className={`chat-brain__prompt${p.id === focus ? " is-focus" : ""}`}>
+                        <span className="brain-ask__cat"><CategoryIcon slug={p.category} size={14} />{data.categories.find((c) => c.slug === p.category)?.name ?? "Chat Brain"}</span>
+                        <p className="chat-brain__q">{p.text}</p>
+                        {said[p.id] ? (
+                          <>
+                            <p className="chat-brain__said" aria-live="polite"><strong>{said[p.id].answer}</strong> · {sameLine(said[p.id].same)}</p>
+                            {audience.needsAsking && Object.keys(said)[0] === p.id && <AudienceStep suggested={audience.suggested} signedIn={audience.signedIn} onDone={audience.done} />}
+                          </>
+                        ) : p.answered ? (
+                          <Badge variant="success" size="small">Answered</Badge>
+                        ) : (
+                          <form className="chat-brain__answer" onSubmit={(e) => { e.preventDefault(); void send(p); }}>
+                            <Input value={drafts[p.id] ?? ""} maxLength={40} placeholder="First thing that comes to mind" aria-label={`Your answer: ${p.text}`}
+                              onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: e.target.value }))} />
+                            <Button type="submit" variant="primary" disabled={busy === p.id || !(drafts[p.id] ?? "").trim()}>Send</Button>
+                          </form>
+                        )}
+                        {captchaFor === p.id && !user && <TurnstileWidget onToken={setToken} />}
+                        <div className="chat-brain__progress">
+                          <Progress value={Math.min(100, Math.round((p.answers / p.minAnswers) * 100))} size="small" label="Answers so far" className="admin-progress-quiet" />
+                          <span>{need > 0 ? `Needs ${need} more answer${need === 1 ? "" : "s"} to become a board` : "Enough answers for a board"}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {!showAll && prompts.length > SHOW_FIRST && (
+                <div className="chat-brain__more">
+                  <Button variant="secondary" onClick={() => setShowAll(true)}>More questions ({prompts.length - SHOW_FIRST})</Button>
+                </div>
+              )}
+              {Object.keys(said).length > 0 && <SupportMoment from="chat-brain" title="Enjoying Chat Brain?" />}
+              <p className="chat-brain__fine">Answers are anonymous and only ever shown grouped with everyone else&apos;s, after review.</p>
+            </>
+          )}
+        </section>
+        {data?.ready && data.progress && <LaunchPanel progress={data.progress} signedIn={!!user} />}
+
+
         <section className="cb-section" aria-labelledby="cb-how">
           <h2 id="cb-how" className="cb-h2">How it works</h2>
           <ResponsiveCarousel className="cb-tiles" label="How Chat Brain works">
@@ -166,60 +231,6 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
           </ResponsiveCarousel>
         </section>
 
-        {data?.ready && data.progress && <LaunchPanel progress={data.progress} signedIn={!!user} />}
-
-        <section id="answer" className="cb-section" aria-labelledby="cb-answer">
-          <h2 id="cb-answer" className="cb-h2">Answer a few</h2>
-          {data && !data.ready && <p className="chat-brain__empty">Chat Brain isn&apos;t open yet. Check back soon.</p>}
-          {data?.ready && (
-            <>
-              <div className="chat-brain__cats" role="group" aria-label="Categories">
-                <Chip label="All" clickable selected={!category} onClick={() => setCategory(null)} />
-                {data.categories.map((c) => (
-                  <Chip key={c.slug} icon={<CategoryIcon slug={c.slug} size={14} />} label={c.openPrompts ? `${c.name} · ${c.openPrompts}` : c.name} clickable selected={category === c.slug}
-                    onClick={() => setCategory(category === c.slug ? null : c.slug)} />
-                ))}
-              </div>
-
-              {prompts.length === 0 ? (
-                <p className="chat-brain__empty">No questions open here right now. Try another category.</p>
-              ) : (
-                <ul className="chat-brain__prompts">
-                  {prompts.map((p) => {
-                    const need = Math.max(0, p.minAnswers - p.answers);
-                    return (
-                      <li key={p.id} className={`chat-brain__prompt${p.id === focus ? " is-focus" : ""}`}>
-                        <span className="brain-ask__cat"><CategoryIcon slug={p.category} size={14} />{data.categories.find((c) => c.slug === p.category)?.name ?? "Chat Brain"}</span>
-                        <p className="chat-brain__q">{p.text}</p>
-                        {said[p.id] ? (
-                          <>
-                            <p className="chat-brain__said" aria-live="polite"><strong>{said[p.id].answer}</strong> · {sameLine(said[p.id].same)}</p>
-                            {audience.needsAsking && Object.keys(said)[0] === p.id && <AudienceStep suggested={audience.suggested} signedIn={audience.signedIn} onDone={audience.done} />}
-                          </>
-                        ) : p.answered ? (
-                          <Badge variant="success" size="small">Answered</Badge>
-                        ) : (
-                          <form className="chat-brain__answer" onSubmit={(e) => { e.preventDefault(); void send(p); }}>
-                            <Input value={drafts[p.id] ?? ""} maxLength={40} placeholder="First thing that comes to mind" aria-label={`Your answer: ${p.text}`}
-                              onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: e.target.value }))} />
-                            <Button type="submit" variant="primary" disabled={busy === p.id || !(drafts[p.id] ?? "").trim()}>Send</Button>
-                          </form>
-                        )}
-                        {captchaFor === p.id && !user && <TurnstileWidget onToken={setToken} />}
-                        <div className="chat-brain__progress">
-                          <Progress value={Math.min(100, Math.round((p.answers / p.minAnswers) * 100))} size="small" aria-label="Answers so far" />
-                          <span>{need > 0 ? `Needs ${need} more answer${need === 1 ? "" : "s"} to become a board` : "Enough answers for a board"}</span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {Object.keys(said).length > 0 && <SupportMoment from="chat-brain" title="Enjoying Chat Brain?" />}
-              <p className="chat-brain__fine">Answers are anonymous and only ever shown grouped with everyone else&apos;s, after review.</p>
-            </>
-          )}
-        </section>
       </Container>
     </main>
   );

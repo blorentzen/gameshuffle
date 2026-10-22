@@ -1,5 +1,5 @@
 /**
- * GET /api/daily/board?game=shuffle|dex&period=day|week|month — a Daily
+ * GET /api/daily/board?game=shuffle|dex|fire&period=day|week|month[&shared=<code>] — a Daily
  * leaderboard (src/lib/daily/boards.ts) with the viewer's own row: the
  * signed-in account, else the guest whose browser id comes in x-daily-guest.
  * `ready: false` until supabase/daily-boards-m1.sql has run.
@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { boardView } from "@/lib/daily/boards";
+import { sharePlayer } from "@/lib/share/store";
 import { guestKey, validGuestSecret } from "@/lib/daily/guests";
 import { BOARD_GAMES, BOARD_PERIODS, type BoardGame, type BoardPeriod } from "@/lib/daily/boardRules";
 import { dayKey } from "@/lib/originals/daily";
@@ -27,6 +28,9 @@ export async function GET(req: Request) {
   const secret = req.headers.get("x-daily-guest");
   const me = user ? `u:${user.id}` : validGuestSecret(secret) ? `g:${guestKey(secret)}` : null;
 
-  const view = await boardView({ game, period, day, me });
+  // ?shared=<code>: on a shared result page, mark the sharer's row.
+  const code = url.searchParams.get("shared");
+  const shared = code ? await sharePlayer(code) : null;
+  const view = await boardView({ game, period, day, me, shared });
   return NextResponse.json(view, { headers: { "Cache-Control": "private, no-store" } });
 }

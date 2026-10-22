@@ -614,12 +614,14 @@ export function guessFeedback(h: GuessHint, n: number, puzzle: DailyPuzzle, newH
   const { main } = guessLimits(puzzle);
   const total = guessLimits(puzzle).total + extra;
   if (h.correct) return { tone: "success", text: n > main ? "Saved it on the last chance!" : `You got it in ${n}!` };
-  if (n >= total) return { tone: "info", text: `Not ${h.name}. That was your last guess: the answer is below.` };
+  // "Not Bowser Jr." already ends its sentence.
+  const not = `Not ${h.name}${h.name.endsWith(".") ? "" : "."}`;
+  if (n >= total) return { tone: "info", text: `${not} That was your last guess: the answer is below.` };
   const m = h.cells.filter((c) => c.status === "match").length;
   const c = h.cells.filter((x) => x.status === "close").length;
   const parts = [m ? `${m} match` : "", c ? `${c} close` : ""].filter(Boolean).join(", ") || "Nothing matches";
   const last = !!puzzle.lastChance && n === main;
-  return { tone: last ? "warning" : "info", text: `Not ${h.name}. ${parts}.${last ? " Last chance next: one more try." : newHint ? " A new hint is up." : ""}` };
+  return { tone: last ? "warning" : "info", text: `${not} ${parts}.${last ? " Last chance next: one more try." : newHint ? " A new hint is up." : ""}` };
 }
 
 export function hintFor(guess: string, answer: DailyCharacter, puzzle: DailyPuzzle): GuessHint | null {

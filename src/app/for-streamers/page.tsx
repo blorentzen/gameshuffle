@@ -1,18 +1,25 @@
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, Container } from "@empac/cascadeds";
-import { FeatureCard } from "@/components/marketing/FeatureCard";
+import {
+  IconAward, IconBolt, IconBrandDiscord, IconBroadcast, IconChartBar, IconChecks, IconLayoutGrid, IconLayoutList,
+  IconPlayerPlay, IconRosette, IconSparkles, IconUsers, type Icon,
+} from "@tabler/icons-react";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { RowLink, RowPanel, type RowTone } from "@/components/marketing/RowPanel";
+import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
+import { CHAT_GAMES_GUIDE } from "@/data/chat-games";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { STREAMER_TOOLKIT } from "@/data/streamer-toolkit";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
-import { EVENTS, tagged } from "@/lib/analytics/events";
 
 export const metadata: Metadata = {
   title: "Stream with GameShuffle: turn your stream into a game night",
   description:
-    "Give your viewers something to do. GameShuffle turns your stream into an interactive game night with chat rolls for every game, channel-point rewards, live overlay tools, Stream Bingo, chat drafts, a token economy and cross-platform sessions. Free tools to start, Pro to go all in.",
+    "GameShuffle turns your stream into a game night your chat plays: chat rolls for every game, channel-point rewards, overlay tools, Stream Bingo, chat drafts, live polls and Twitch and Discord together. Free tools to start, GS Pro for the full kit.",
   openGraph: {
     title: "Stream with GameShuffle",
     url: "https://www.gameshuffle.co/for-streamers",
@@ -22,7 +29,17 @@ export const metadata: Metadata = {
   },
 };
 
+/** The toolkit's CDS icon names as Tabler glyphs for the rows (RowPanel draws Tabler). */
+const TOOL_ICONS: Record<string, Icon> = {
+  bolt: IconBolt, "layout-list": IconLayoutList, rosette: IconRosette, "chart-bar": IconChartBar,
+  checks: IconChecks, users: IconUsers, sparkles: IconSparkles, "layout-grid": IconLayoutGrid, award: IconAward,
+};
+const TONES: RowTone[] = ["blue", "violet", "magenta", "orange", "teal", "green", "red"];
+/** Overlay pieces shown above the toolkit, from the chat games guide's own screenshots. */
+const SHOT_GAMES = ["Stream Bingo", "Live polls", "Trivia night", "Chat Brain"];
+
 export default function ForStreamersPage() {
+  const shots = SHOT_GAMES.map((name) => CHAT_GAMES_GUIDE.find((g) => g.name === name)).filter((g): g is NonNullable<typeof g> => !!g?.shot);
   return (
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       <MarketingJsonLd
@@ -53,92 +70,81 @@ export default function ForStreamersPage() {
           <p className="marketing-eyebrow">For Streamers</p>
           <h1 className="marketing-hero__title">Turn your stream into a game night</h1>
           <p className="marketing-hero__sub">
-            Give your viewers something to do, not just something to watch. GameShuffle
-            hands your chat the controls: reroll your run, spin the wheel, call the
-            outcome, and play along in real time. Wherever you are on your streaming
-            journey, there&rsquo;s a way in.
+            Your chat rolls your pick, spins the wheel, votes in polls and plays bingo with you. It runs on Twitch and
+            Discord at once and shows on your overlay.
           </p>
           <div className="strm-hero__cta">
             <Link href="/for-streamers/current" style={{ textDecoration: "none" }}>
               <Button variant="primary" size="large">I already stream</Button>
             </Link>
-            <Link href="/for-streamers/aspiring" className="strm-hero__ghost">
-              I want to start streaming →
-            </Link>
+            <ArrowLink href="/for-streamers/aspiring" className="strm-hero__ghost">I want to start streaming</ArrowLink>
           </div>
         </Container>
         <MarketingHeroCurve />
       </section>
 
       <Container>
-        {/* Two audience tracks — each a door to its own page. */}
+        {/* The two ways in, one panel (refinement round 2, Britton's pick 2026-10-20). */}
         <section className="beta-section">
           <div className="beta-section__head">
-            <p className="marketing-eyebrow">Where you&rsquo;re starting from</p>
-            <h2 className="beta-section__title">However you stream, there&rsquo;s a way in</h2>
+            <h2 className="beta-section__title">Already streaming, or just starting</h2>
           </div>
-          <div className="strm-tracks">
-            <Link href="/for-streamers/current" className="strm-track strm-track--link">
-              <span className="strm-track__tag strm-track__tag--pro">Already streaming</span>
-              <h3 className="strm-track__title">Turn viewers into players</h3>
-              <p className="strm-track__body">
-                Already have a channel and a chat? Pro turns passive viewers into
-                participants: chat commands, channel-point rewards, a token economy, live
-                polls, and an overlay that reacts on screen, synced across Twitch and Discord.
-              </p>
-              <span className="strm-track__link">For current streamers →</span>
-            </Link>
-            <Link href="/for-streamers/aspiring" className="strm-track strm-track--link">
-              <span className="strm-track__tag">New to streaming</span>
-              <h3 className="strm-track__title">Start with something to play</h3>
-              <p className="strm-track__body">
-                Thinking about streaming? Start with free tools that give even a small
-                audience a blast, grow into the full kit as your channel does, and reach
-                out, because we love working with early streamers to grow together.
-              </p>
-              <span className="strm-track__link">For new streamers →</span>
-            </Link>
-          </div>
+          <RowPanel className="row-panel--surface" rows={[
+            {
+              key: "current", Icon: IconBroadcast, tone: "violet", eyebrow: "Already streaming", title: "Turn viewers into players",
+              text: "Chat commands, channel-point rewards, live polls, a token economy and an overlay that reacts, on Twitch and Discord at once.",
+              action: <RowLink href="/for-streamers/current">For current streamers</RowLink>,
+            },
+            {
+              key: "aspiring", Icon: IconPlayerPlay, tone: "teal", eyebrow: "New to streaming", title: "Start with something to play",
+              text: "Free tools that give a small chat something to do, and the full kit when you're ready. We like helping new streamers get going, so get in touch.",
+              action: <RowLink href="/for-streamers/aspiring">For new streamers</RowLink>,
+            },
+          ]} />
         </section>
 
-        {/* Toolkit at a glance */}
         <section className="beta-section">
           <div className="beta-section__head">
             <h2 className="beta-section__title">Everything you get on stream</h2>
-            <p className="beta-section__sub">
-              A whole game-night toolkit, built for streamers and the people watching.
-            </p>
           </div>
-          <div className="strm-grid">
-            {STREAMER_TOOLKIT.map((t) => (
-              <FeatureCard
-                key={t.title}
-                icon={t.icon}
-                iconSrc={t.iconSrc}
-                title={t.title}
-                description={t.description}
-                href={t.href}
-                cta={t.cta}
-                accent={t.accent}
-              />
+          <ResponsiveCarousel className="strm-shots" label="Overlay pieces">
+            {shots.map((g) => (
+              <figure key={g.name} className="strm-shot">
+                {/* eslint-disable-next-line @next/next/no-img-element -- local webp screenshots with their sizes */}
+                <img src={`/images/guides/chat-games/${g.shot}`} alt={g.shotAlt ?? ""} width={g.shotSize?.[0]} height={g.shotSize?.[1]} loading="lazy" />
+                <figcaption>{g.name}</figcaption>
+              </figure>
             ))}
-          </div>
+          </ResponsiveCarousel>
+          <p className="strm-shots__more">
+            Overlay pieces as they look on stream. <Link href="/twitch-chat-games">See all 12 games chat can play</Link>
+          </p>
+          <RowPanel across={false} rows={STREAMER_TOOLKIT.map((t, i) => ({
+            key: t.title,
+            Icon: t.iconSrc ? IconBrandDiscord : TOOL_ICONS[t.icon ?? ""] ?? IconLayoutGrid,
+            tone: TONES[i % TONES.length],
+            title: t.title,
+            text: t.description,
+            // Rows that only said "See it on Pro" lose the link; the close below has the one GS Pro button.
+            action: t.href !== "/gs-pro" ? <RowLink href={t.href}>{t.cta.replace(/\s*→$/, "")}</RowLink> : undefined,
+          }))} />
         </section>
       </Container>
 
       {/* Final CTA */}
       <DarkBand premium curved curveEdges="top">
         <h2 className="pro-band__title beta-section__title" style={{ textAlign: "center", marginBottom: "var(--spacing-16)" }}>
-          Ready to run game night?
+          Try it on your stream
         </h2>
         <p style={{ textAlign: "center", maxWidth: "48rem", margin: "0 auto var(--spacing-32)" }}>
-          Explore what Pro unlocks, or apply for the streamer beta and we&rsquo;ll switch it
-          on for you with a real 30-day run.
+          Start a GS Pro trial, or apply for the streamer beta and we&rsquo;ll turn it on for you for 30 days.
         </p>
         <div className="strm-finalcta">
-          <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "for-streamers" })}>
-            <Button variant="primary" size="large">Explore GameShuffle Pro</Button>
-          </Link>
+          <AuthAwareCTA variant="primary" size="large" trackFrom="for-streamers" overrides={{
+            anon: { label: "Try GS Pro free", href: "/gs-pro" },
+            free: { label: "Try GS Pro free", href: "/gs-pro" },
+            pro: { label: "Open your stream hub", href: "/hub" },
+          }} />
           <Link href="/beta" style={{ textDecoration: "none" }}>
             <Button variant="secondary" size="large">Apply for the beta</Button>
           </Link>

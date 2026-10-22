@@ -25,7 +25,7 @@ declare module "@3d-dice/dice-box" {
     constructor(selector: string, config?: DiceBoxConfig);
     constructor(config?: DiceBoxConfig);
     init(): Promise<void>;
-    roll(notation: string | string[]): Promise<DiceRollResult[]>;
+    roll(notation: string | string[], options?: { theme?: string; themeColor?: string; newStartPoint?: boolean }): Promise<DiceRollResult[]>;
     add(notation: string | string[]): Promise<DiceRollResult[]>;
     clear(): void;
     onRollComplete?: (results: DiceRollResult[]) => void;

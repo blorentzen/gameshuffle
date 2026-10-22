@@ -11,6 +11,7 @@ import { RollingText } from "@/components/randomizer/RollingText";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { CardActions } from "@/components/randomizer/CardActions";
+import { SeatCard } from "@/components/randomizer/PlayerCard";
 import { RandomTile } from "@/components/randomizer/RandomTile";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -158,21 +159,19 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
           const r = c ? game.riders.find((x) => x.name === c.rider) : undefined;
           const m = c ? game.machines.find((x) => x.name === c.machine) : undefined;
           return (
-            <div key={i} className="player-card">
-              <div className="player-card__header">
-                <div className="player-card__name">
-                  <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
-                </div>
+            <SeatCard key={i} rolled={Boolean(c)} animate={animateReel}
+              name={<Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />}
+              actions={
                 <CardActions
                   refreshLabel={`New rider and machine for ${seatLabel(names, i)}`} onRefresh={() => rollCombos(i)}
                   removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 1 ? () => removePlayer(i) : undefined} />
-              </div>
-              <ul className="player-card__slots">
-                <KartSlot label="Rider" portrait name={r?.name ?? null} imageSrc={r ? img(r.img) || null : null} color={r ? "#f08bb4" : null} pool={riderReel} animate={animateReel} empty={<RandomTile look="kirby" />} />
+              }
+              tile={<KartSlot label="Rider" portrait name={r?.name ?? null} imageSrc={r ? img(r.img) || null : null} color={r ? "#f08bb4" : null} pool={riderReel} animate={animateReel} empty={<RandomTile look="kirby" />} />}>
+              <ul className="player-card__parts player-card__parts--row">
                 <KartSlot label="Machine" portrait name={m?.name ?? null} imageSrc={m ? img(m.img) || null : null} color={m ? typeColor(m.type) : null} pool={machineReel} animate={animateReel} empty={<RandomTile look="kirby" />} />
               </ul>
               {m && <p className="party-muted">{game.machineTypes.find((t) => t.id === m.type)?.label.replace(/s$/, "") ?? m.type}</p>}
-            </div>
+            </SeatCard>
           );
         })}
       </div>

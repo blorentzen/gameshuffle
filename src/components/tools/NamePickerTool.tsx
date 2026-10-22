@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Textarea, Checkbox } from "@empac/cascadeds";
+import { Button, Input, Switch, Textarea } from "@empac/cascadeds";
+import { ToolLayout, ToolSetting } from "@/components/tools/ToolLayout";
 
 const KEY = "gs-namepicker";
 
@@ -18,22 +19,22 @@ export function NamePickerTool() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setText(raw);
     } catch {
-      // ignore
+      // Storage refused: start empty.
     }
   }, []);
   useEffect(() => {
     try {
       localStorage.setItem(KEY, text);
     } catch {
-      // ignore
+      // Not remembered in this browser.
     }
   }, [text]);
 
   const names = text.split("\n").map((s) => s.trim()).filter(Boolean);
 
   function pick() {
-    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "name-picker" } });
     if (!names.length) return;
+    window.plausible?.("Tool Used", { props: { tool: "name-picker" } });
     const n = Math.max(1, Math.min(count, names.length));
     setPicking(true);
     window.setTimeout(() => {
@@ -52,54 +53,48 @@ export function NamePickerTool() {
     }, 550);
   }
 
-  return (
-    <div className="tool-panel picker-tool">
-      <Textarea
-        floatingLabel="Names or entries (one per line)"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={8}
-        fullWidth
-      />
-
-      <div className="picker-tool__controls">
-        <label className="picker-tool__count">
-          Winners
-          <input
-            type="number"
-            min={1}
-            max={Math.max(1, names.length)}
-            value={count}
-            onChange={(e) => setCount(Math.max(1, Number(e.target.value) || 1))}
-            className="picker-tool__num"
-          />
-        </label>
-        <Checkbox
-          label="Remove winners after drawing"
-          checked={removeWinners}
-          onChange={(e) => setRemoveWinners(e.target.checked)}
-        />
-        <Button variant="primary" onClick={pick} disabled={picking || names.length === 0}>
+  const stage = (
+    <>
+      <div className={`picker-tool__stage${winners.length && !picking ? " has-winners" : ""}`} aria-live="polite">
+        {picking ? (
+          <p className="picker-tool__idle">Picking…</p>
+        ) : winners.length > 0 ? (
+          <>
+            <h2 className="picker-tool__winners-head">{winners.length > 1 ? "Winners" : "Winner"}</h2>
+            <ul className="picker-tool__winner-list">
+              {winners.map((w, i) => <li key={i} className="picker-tool__winner">{w}</li>)}
+            </ul>
+          </>
+        ) : (
+          <p className="picker-tool__idle">{names.length ? "Ready when you are." : "Add names to draw from."}</p>
+        )}
+      </div>
+      <div className="tool-stage__action">
+        <Button variant="primary" size="large" fullWidth onClick={pick} disabled={picking || names.length === 0}>
           {picking ? "Picking…" : count > 1 ? `Pick ${count}` : "Pick a winner"}
         </Button>
+        <p className="tool-stage__tally">{names.length} {names.length === 1 ? "entry" : "entries"}</p>
       </div>
-
-      <p className="picker-tool__note">
-        {names.length} {names.length === 1 ? "entry" : "entries"}
-      </p>
-
-      {winners.length > 0 && !picking && (
-        <div className="picker-tool__winners" aria-live="polite">
-          <h2 className="picker-tool__winners-head">{winners.length > 1 ? "Winners" : "Winner"} 🎉</h2>
-          <ul className="picker-tool__winner-list">
-            {winners.map((w, i) => (
-              <li key={i} className="picker-tool__winner">
-                {w}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
+    </>
   );
+
+  const settings = (
+    <>
+      <Textarea floatingLabel="Names or entries, one per line" value={text} onChange={(e) => setText(e.target.value)} rows={9} fullWidth />
+      <ToolSetting label="Winners">
+        <Input
+          type="number"
+          aria-label="Number of winners"
+          min={1}
+          max={Math.max(1, names.length)}
+          value={String(count)}
+          onChange={(e) => setCount(Math.max(1, Number(e.target.value) || 1))}
+          className="picker-tool__num"
+        />
+      </ToolSetting>
+      <Switch label="Remove winners after drawing" checked={removeWinners} onChange={(e) => setRemoveWinners(e.target.checked)} />
+    </>
+  );
+
+  return <ToolLayout className="picker-tool" stage={stage} settings={settings} settingsLabel="Name picker settings" />;
 }

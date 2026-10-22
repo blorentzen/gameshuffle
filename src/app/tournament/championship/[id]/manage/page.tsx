@@ -189,7 +189,7 @@ export default function ChampionshipManagePage() {
                     {results.map((u) => (
                       <button key={u.id} type="button" onClick={() => invitePlayer(u)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", textAlign: "left", cursor: "pointer", padding: "0.45rem 0.6rem", border: "none", background: "transparent", color: "var(--text-primary)" }}>
                         <span style={{ flex: 1 }}><strong style={{ fontSize: "var(--font-size-14)" }}>{u.display_name}</strong> {u.username && <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>@{u.username}</span>}</span>
-                        <span style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Add →</span>
+                        <span style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Add</span>
                       </button>
                     ))}
                   </div>

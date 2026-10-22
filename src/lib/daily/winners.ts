@@ -6,13 +6,17 @@ import { solvedDays } from "@/lib/daily/results";
 import { answerFor, guessLimits, puzzleFor, puzzleNumber, SHUFFLE } from "@/lib/originals/daily";
 import { DEX, DEX_PUZZLE, dexAnswer, dexNumber } from "@/lib/originals/dailyDex";
 import { fireNumber } from "@/lib/originals/fireRound";
+import { DUEL_SHOWN } from "@/lib/originals/dailies";
+import { duelNumber } from "@/lib/originals/duel/rules";
+import { duelDayTrainer, duelWonDays } from "@/lib/originals/duel/store";
 import { gsAddDays } from "@/lib/time/gsClock";
 import { createNotification } from "@/lib/social/notifications";
 import { MIN_FINISHERS, renumberPlaces, streakEnding, topFinishers, type WinnerRow, type WinnersGame, type WinnersSection } from "@/lib/originals/winners";
 
 /**
  * Yesterday's top 5 (Britton's picks, 2026-10-16), from the day boards: the
- * sections for the morning winners video (/social/winners) and the in-app
+ * sections for the morning winners video (/social/winners; the Daily Duel's
+ * part with its trainer's picture since 2026-10-21) and the in-app
  * notes to accounts that made it (`notifyDailyWinners`, from the 9am Pacific
  * morning job). Rules in src/lib/originals/winners.ts; schema
  * supabase/daily-winners-m1.sql (opt-outs + a once-per-day claim for notes).
@@ -20,8 +24,8 @@ import { MIN_FINISHERS, renumberPlaces, streakEnding, topFinishers, type WinnerR
 
 const missing = (e: { code?: string; message?: string } | null) => !!e && (["42P01", "PGRST205"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
 
-const SHORT: Record<BoardGame, string> = { shuffle: "Daily Shuffle", dex: "Daily Dex", fire: "Fire Round" };
-const PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/daily-trivia" };
+const SHORT: Record<BoardGame, string> = { shuffle: "Daily Shuffle", dex: "Daily Dex", fire: "Fire Round", duel: "Daily Duel" };
+const PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/daily-trivia", duel: "/daily-duel" };
 
 /** Players who chose to be left out of winners videos (none when the table is missing). */
 async function optedOut(players: string[]): Promise<Set<string>> {
@@ -75,16 +79,32 @@ async function streakFor(player: string, game: BoardGame, day: string): Promise<
 
 type Section = WinnersSection & { keys: { player: string; optedOut: boolean }[] };
 
+/**
+ * The Daily Duel's head: the day's trainer (their picture) and par, from the built day. Null when
+ * the day was never built (nobody played it), so the duel sits the video out.
+ */
+export async function duelHead(day: string): Promise<Omit<WinnersSection, "rows" | "finishers"> | null> {
+  const d = await duelDayTrainer(day);
+  if (!d) return null;
+  return { ...sectionHead("duel", day), trainer: { name: d.trainer.name, title: d.trainer.title, picture: d.trainer.picture }, par: d.par };
+}
+
 async function loadSection(game: WinnersGame, day: string): Promise<Section | null> {
+  const head = game === "duel" ? await duelHead(day) : sectionHead(game, day);
+  if (!head) return null;
+  // The board's own order: points, then (the duel) cards left, or (Fire Round) the score, then time.
   const standings = await dayStandings(game, day, 25);
   if (!standings) return null;
   const staff = await staffPlayers(standings.map((s) => s.player));
+  // Only wins count: a duel lost scores 0 points, like a puzzle missed.
   const { top, finishers } = topFinishers(renumberPlaces(standings.filter((s) => !staff.has(s.player))));
   if (finishers < MIN_FINISHERS) return null;
   const hidden = await optedOut(top.map((t) => t.player));
   const fire = game === "fire" ? await fireDays(top.map((t) => t.player), day) : null;
+  const duel = game === "duel" ? await duelWonDays(top.map((t) => t.player), day) : null;
   const streaks = fire
     ? top.map((t) => streakEnding(fire.get(t.player)?.days ?? new Set<string>(), day))
+    : duel ? top.map((t) => streakEnding(duel.get(t.player) ?? new Set<string>(), day))
     : await Promise.all(top.map((t) => streakFor(t.player, game, day)));
   const rows: WinnerRow[] = top.map((t, i) => {
     const out = hidden.has(t.player);
@@ -93,18 +113,20 @@ async function loadSection(game: WinnersGame, day: string): Promise<Section | nu
       name: out ? "A player" : t.row.name,
       avatar: out ? null : t.row.avatar,
       guesses: t.row.guesses,
-      saved: !fire && t.row.points === 1,
+      saved: !fire && !duel && t.row.points === 1,
       seconds: fire ? null : t.row.seconds,
       streak: streaks[i],
       ...(fire ? { score: t.row.score ?? 0, bestStreak: fire.get(t.player)?.bestStreak ?? null } : {}),
+      ...(duel ? { score: t.row.score ?? 0 } : {}),
     };
   });
-  return { ...sectionHead(game, day), rows, finishers, keys: top.map((t) => ({ player: t.player, optedOut: hidden.has(t.player) })) };
+  return { ...head, rows, finishers, keys: top.map((t) => ({ player: t.player, optedOut: hidden.has(t.player) })) };
 }
 
 /** A daily's title, number, guess count, link and answer for a day: everything but the rows. */
 export function sectionHead(game: WinnersGame, day: string): Omit<WinnersSection, "rows" | "finishers"> {
   if (game === "fire") return { game, title: "Fire Round", number: fireNumber(day), main: 0, link: "/daily-trivia" };
+  if (game === "duel") return { game, title: "The Daily Duel", number: duelNumber(day), main: 0, link: "/daily-duel" };
   if (game === "dex") {
     const a = dexAnswer(day);
     return { game, title: DEX.title, number: dexNumber(day), main: guessLimits(DEX_PUZZLE).main, link: DEX.link, answer: { name: a.name, types: a.types ?? [] } };
@@ -113,8 +135,15 @@ export function sectionHead(game: WinnersGame, day: string): Omit<WinnersSection
   return { game, title: SHUFFLE.title, number: puzzleNumber(day), main: guessLimits(puzzleFor(day)).main, link: SHUFFLE.link, answer: { name: a.name, img: a.img } };
 }
 
-async function loadSections(day: string): Promise<Section[]> {
+/** The dailies in the video for a day: Fire Round from its first round, the Daily Duel once it's public (any built day on the dev server). */
+export function winnersGames(day: string): WinnersGame[] {
   const games: WinnersGame[] = fireNumber(day) >= 1 ? ["shuffle", "dex", "fire"] : ["shuffle", "dex"];
+  if (DUEL_SHOWN && (duelNumber(day) >= 1 || process.env.NODE_ENV !== "production")) games.push("duel");
+  return games;
+}
+
+async function loadSections(day: string): Promise<Section[]> {
+  const games = winnersGames(day);
   const out = await Promise.all(games.map((g) => loadSection(g, day).catch((e) => { console.error("[winners] section failed:", g, e); return null; })));
   return out.filter((s): s is Section => !!s);
 }

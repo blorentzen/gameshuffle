@@ -3,9 +3,11 @@
 /**
  * WheelSpinner — the free, no-account wheel tool used on /wheel-spinner.
  *
- * Fully client-side: type options (one per line), spin, and the winner is
- * picked locally (uniform random) — no server, no overlay. Reuses the
- * shared `WheelGraphic` + geometry so it matches the Pro overlay wheel.
+ * Type options (one per line), spin, and the winner is picked locally
+ * (uniform random). The theme and fill are the account's saved wheel look
+ * (this browser's for visitors), with "Your theme" for signed-in accounts.
+ * Reuses the shared `WheelGraphic` + geometry so it matches the Pro overlay
+ * wheel.
  *
  * The rotation is driven in JS (requestAnimationFrame) rather than a CSS
  * transition, which gives us two things: a subtle idle spin before the
@@ -18,14 +20,11 @@ import { Button, Select, Switch, Textarea } from "@empac/cascadeds";
 import { WHEEL_PRESETS, wheelPreset } from "@/data/wheel-presets";
 import { WheelGraphic } from "@/components/wheel/WheelGraphic";
 import { WheelStylePicker } from "@/components/wheel/WheelStylePicker";
+import { ToolLayout } from "@/components/tools/ToolLayout";
+import { useToolLook } from "@/components/tools/looks/useToolLook";
 import { computeSlices, sliceIndexAtPointer } from "@/lib/wheel/geometry";
-import {
-  DEFAULT_FILL_STYLE,
-  DEFAULT_THEME_ID,
-  getFillStyle,
-  getTheme,
-  type FillStyle,
-} from "@/lib/wheel/themes";
+import { BRAND_THEMES } from "@/lib/theme/brand";
+import { DEFAULT_THEME_ID, USER_THEME_ID, getTheme, themeFromBrand } from "@/lib/wheel/themes";
 
 const SPIN_MS = 5000;
 const SPINS = 5;
@@ -57,8 +56,19 @@ export function WheelSpinner() {
   const [winner, setWinner] = useState<string | null>(null);
   const [removeWinner, setRemoveWinner] = useState(false);
   const [sound, setSound] = useState(true);
-  const [themeId, setThemeId] = useState(DEFAULT_THEME_ID);
-  const [fillStyle, setFillStyle] = useState<FillStyle>(DEFAULT_FILL_STYLE);
+  // The theme and fill are the account's saved wheel look (this browser's for visitors).
+  const { look, setLook, signedIn, pro, brand, color } = useToolLook("wheel", { toast: "Wheel look saved" });
+  const { themeId, fillStyle } = look;
+
+  // "Your theme": the brand theme with GS Pro, else the account's own color, else the site's colors.
+  const userTheme = useMemo(() => {
+    if (!signedIn) return null;
+    const site = BRAND_THEMES[0];
+    if (pro && brand && !brand.isDefault) return themeFromBrand(brand.primary, brand.accent, "Your theme");
+    if (color) return themeFromBrand(color, site.accent, "Your theme");
+    return themeFromBrand(site.primary, site.accent, "Your theme");
+  }, [signedIn, pro, brand, color]);
+  const theme = themeId === USER_THEME_ID ? (userTheme ?? getTheme(DEFAULT_THEME_ID)) : getTheme(themeId);
 
   const rafRef = useRef<number | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
@@ -68,32 +78,23 @@ export function WheelSpinner() {
   const segments = useMemo(() => options.map((label) => ({ label })), [options]);
   const canSpin = options.length >= 2 && !spinning;
 
-  // Restore the last-used options + theme (deferred so it's not a sync
-  // setState inside the effect).
+  // Restore the last-used options (deferred so it's not a sync setState inside the effect).
   useEffect(() => {
     let savedText: string | null = null;
-    let savedTheme: string | null = null;
-    let savedFill: string | null = null;
     try {
       savedText = window.localStorage.getItem("gs-wheel-options");
-      savedTheme = window.localStorage.getItem("gs-wheel-theme");
-      savedFill = window.localStorage.getItem("gs-wheel-fill");
     } catch {
       /* ignore */
     }
     // A link can open a ready-made wheel (?preset=halloween-game-night) over the saved one.
     const preset = wheelPreset(new URLSearchParams(window.location.search).get("preset") ?? "");
     if (preset) savedText = preset.segments.join("\n");
-    if (savedText == null && savedTheme == null && savedFill == null) return;
-    const t = window.setTimeout(() => {
-      if (savedText != null) setText(savedText);
-      if (savedTheme != null) setThemeId(savedTheme);
-      if (savedFill != null) setFillStyle(getFillStyle(savedFill));
-    }, 0);
+    if (savedText == null) return;
+    const t = window.setTimeout(() => setText(savedText), 0);
     return () => window.clearTimeout(t);
   }, []);
 
-  // Persist options + theme locally so they survive a refresh.
+  // Keep the options in this browser so they survive a refresh.
   useEffect(() => {
     try {
       window.localStorage.setItem("gs-wheel-options", text);
@@ -101,20 +102,6 @@ export function WheelSpinner() {
       /* ignore */
     }
   }, [text]);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("gs-wheel-theme", themeId);
-    } catch {
-      /* ignore */
-    }
-  }, [themeId]);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("gs-wheel-fill", fillStyle);
-    } catch {
-      /* ignore */
-    }
-  }, [fillStyle]);
 
   // Subtle idle spin — runs until the first spin, paused on hidden tabs and
   // disabled under reduced-motion.
@@ -232,96 +219,94 @@ export function WheelSpinner() {
     setText(arr.join("\n"));
   };
 
-  return (
-    <div className="wheel-tool">
-      <div className="wheel-tool__stage">
-        <button
-          type="button"
-          className="wheel-tool__wheel"
-          onClick={spin}
-          disabled={!canSpin}
-          aria-label="Spin the wheel"
-        >
-          <WheelGraphic
-            segments={segments.length ? segments : [{ label: "Add options →" }]}
-            rotation={rotation}
-            theme={getTheme(themeId)}
-            fillStyle={fillStyle}
-            svgClassName="wheel-tool__svg"
-            rotorClassName="wheel-tool__rotor"
-          />
-        </button>
-
-        <div className="wheel-tool__cta">
-          <Button variant="primary" size="large" onClick={spin} disabled={!canSpin}>
-            {spinning ? "Spinning…" : "Spin"}
-          </Button>
-        </div>
-
-        {winner ? (
-          <div className="wheel-tool__winner" role="status" aria-live="polite">
-            <span className="wheel-tool__winner-label">Winner</span>
-            <strong className="wheel-tool__winner-value">{winner}</strong>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="wheel-tool__panel">
-        <WheelStylePicker
-          themeId={themeId}
-          onThemeChange={setThemeId}
+  const stage = (
+    <div className="wheel-tool__stage">
+      <button
+        type="button"
+        className="wheel-tool__wheel"
+        onClick={spin}
+        disabled={!canSpin}
+        aria-label="Spin the wheel"
+      >
+        <WheelGraphic
+          segments={segments.length ? segments : [{ label: "Add options" }]}
+          rotation={rotation}
+          theme={theme}
           fillStyle={fillStyle}
-          onFillStyleChange={setFillStyle}
+          svgClassName="wheel-tool__svg"
+          rotorClassName="wheel-tool__rotor"
         />
+      </button>
 
-        <div className="wheel-tool__options-head">
-          <label className="wheel-tool__panel-label" htmlFor="wheel-options">
-            Options, one per line
-          </label>
-          <span className="wheel-tool__opt-remaining">
-            {Math.max(0, MAX_OPTIONS - options.length)} left
-          </span>
-        </div>
-        <Select
-          size="small"
-          placeholder="Load a ready-made wheel"
-          aria-label="Load a ready-made wheel"
-          value=""
-          options={WHEEL_PRESETS.map((p) => ({ value: p.id, label: p.name }))}
-          onChange={(v) => { const p = wheelPreset(String(v)); if (p) setText(p.segments.join("\n")); }}
-        />
-        <Textarea
-          id="wheel-options"
-          fullWidth
-          value={text}
-          rows={12}
-          spellCheck={false}
-          placeholder={"Option one\nOption two\nOption three"}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <div className="wheel-tool__row">
-          <Switch
-            checked={removeWinner}
-            onChange={(e) => setRemoveWinner(e.target.checked)}
-            label="Remove the winner after each spin"
-          />
-        </div>
-        <div className="wheel-tool__row">
-          <Switch
-            checked={sound}
-            onChange={(e) => setSound(e.target.checked)}
-            label="Tick sound"
-          />
-        </div>
-        <div className="wheel-tool__row wheel-tool__row--actions">
-          <Button variant="secondary" size="small" onClick={shuffle} disabled={options.length < 2}>
-            Shuffle
-          </Button>
-          <Button variant="secondary" size="small" onClick={() => setText("")}>
-            Clear
-          </Button>
-        </div>
+      <div className="tool-stage__action">
+        <Button variant="primary" size="large" fullWidth onClick={spin} disabled={!canSpin}>
+          {spinning ? "Spinning…" : "Spin"}
+        </Button>
       </div>
+
+      {winner ? (
+        <div className="wheel-tool__winner" role="status" aria-live="polite">
+          <span className="wheel-tool__winner-label">Winner</span>
+          <strong className="wheel-tool__winner-value">{winner}</strong>
+        </div>
+      ) : null}
     </div>
   );
+
+  const settings = (
+    <div className="wheel-tool__panel">
+      <div className="wheel-tool__options-head">
+        <label className="wheel-tool__panel-label" htmlFor="wheel-options">
+          Options, one per line
+        </label>
+        <span className="wheel-tool__opt-remaining">
+          {Math.max(0, MAX_OPTIONS - options.length)} left
+        </span>
+      </div>
+      <Select
+        size="small"
+        placeholder="Load a ready-made wheel"
+        aria-label="Load a ready-made wheel"
+        value=""
+        options={WHEEL_PRESETS.map((p) => ({ value: p.id, label: p.name }))}
+        onChange={(v) => { const p = wheelPreset(String(v)); if (p) setText(p.segments.join("\n")); }}
+      />
+      <Textarea
+        id="wheel-options"
+        fullWidth
+        value={text}
+        rows={10}
+        spellCheck={false}
+        placeholder={"Option one\nOption two\nOption three"}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <div className="wheel-tool__row wheel-tool__row--actions">
+        <Button variant="secondary" size="small" onClick={shuffle} disabled={options.length < 2}>
+          Shuffle
+        </Button>
+        <Button variant="secondary" size="small" onClick={() => setText("")}>
+          Clear
+        </Button>
+      </div>
+      <Switch
+        checked={removeWinner}
+        onChange={(e) => setRemoveWinner(e.target.checked)}
+        label="Remove the winner after each spin"
+      />
+      <Switch
+        checked={sound}
+        onChange={(e) => setSound(e.target.checked)}
+        label="Tick sound"
+      />
+      <WheelStylePicker
+        themeId={themeId === USER_THEME_ID && !userTheme ? DEFAULT_THEME_ID : themeId}
+        onThemeChange={(id) => setLook({ ...look, themeId: id })}
+        fillStyle={fillStyle}
+        onFillStyleChange={(f) => setLook({ ...look, fillStyle: f })}
+        userTheme={userTheme}
+      />
+    </div>
+  );
+
+  return <ToolLayout className="wheel-tool" stage={stage} settings={settings} settingsLabel="Wheel settings" />;
 }

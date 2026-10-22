@@ -8,8 +8,9 @@ type TablerIcon = ComponentType<{ size?: number | string; stroke?: number }>;
  * Shared layout for the free tools (wheel, dice, coin, name picker, tier list,
  * bingo, 8-ball, timer, truth or dare, yes/no): a breadcrumb, then the same
  * compact header the game night tools use (icon tile, eyebrow, title, one
- * line), all reading left. The tool itself sits below; a toy like the coin or
- * the 8-ball centres inside its own card (`.tool-panel`).
+ * line), all reading left. The tool itself sits below: toys with settings use
+ * ToolLayout (the toy left, its settings right, one panel); boards like the
+ * tier list and bingo keep their own full-width layout.
  */
 export function FreeToolShell({ icon: Icon, eyebrow = "Free tool", name, lede, crumbs, children }: {
   icon: TablerIcon;

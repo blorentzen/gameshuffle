@@ -15,7 +15,9 @@ import { weekNumber, weekOf } from "@/lib/originals/weekly";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { topTenFinishes } from "@/lib/weekly/store";
 import { fireDailiesEntry } from "@/lib/fireRound/store";
+import { duelDailiesEntry } from "@/lib/originals/duel/store";
 import type { DailiesEntries, DailiesEntry } from "@/lib/originals/dailies";
+import { DUEL_SHOWN } from "@/lib/originals/dailies";
 
 /** The player the boards (and solve times) use: the account, else the account a Discord identity signs in to, else the identity. */
 async function boardKey(who: DailyWho): Promise<string | null> {
@@ -54,14 +56,15 @@ async function weeklyEntry(userId: string): Promise<DailiesEntry | null> {
   return { day: week, number: weekNumber(week), state: answered ? "done" : "fresh", weeks: { played: all.count ?? 0, topTen } };
 }
 
-/** `fire: false` leaves Fire Round out (the Discord Activity has only the puzzles); it needs an account. */
-export async function dailiesView(who: DailyWho, opts: { dex?: boolean; fire?: boolean } = {}): Promise<DailiesEntries> {
+/** `fire: false` / `duel: false` leave Fire Round and the Daily Duel out (the Discord Activity has only the puzzles); both need an account here. */
+export async function dailiesView(who: DailyWho, opts: { dex?: boolean; fire?: boolean; duel?: boolean } = {}): Promise<DailiesEntries> {
   const key = await boardKey(who);
-  const [shuffle, dex, fire, weekly] = await Promise.all([
+  const [shuffle, dex, fire, duel, weekly] = await Promise.all([
     dailyEntry(who, SHUFFLE, key).catch((e) => { console.error("[dailies] shuffle failed:", e); return undefined; }),
     opts.dex === false ? Promise.resolve(undefined) : dailyEntry(who, DEX, key).catch((e) => { console.error("[dailies] dex failed:", e); return undefined; }),
     opts.fire === false || !who.userId ? Promise.resolve(undefined) : fireDailiesEntry({ kind: "u", id: who.userId }).catch((e) => { console.error("[dailies] fire failed:", e); return undefined; }),
+    opts.duel === false || !who.userId || !DUEL_SHOWN ? Promise.resolve(undefined) : duelDailiesEntry({ kind: "u", id: who.userId }).catch((e) => { console.error("[dailies] duel failed:", e); return undefined; }),
     who.userId ? weeklyEntry(who.userId).catch((e) => { console.error("[dailies] weekly failed:", e); return null; }) : Promise.resolve(null),
   ]);
-  return { ...(shuffle ? { shuffle } : {}), ...(dex ? { dex } : {}), ...(fire ? { fire } : {}), ...(weekly ? { weekly } : {}) };
+  return { ...(shuffle ? { shuffle } : {}), ...(dex ? { dex } : {}), ...(fire ? { fire } : {}), ...(duel ? { duel } : {}), ...(weekly ? { weekly } : {}) };
 }

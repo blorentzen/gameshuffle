@@ -18,6 +18,7 @@ import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import { OriginalsLink, useArtSrc, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { ChallengeVersus } from "@/components/share/ShareChallenge";
 import {
   CLUE_AFTER, DEFAULT_CLOSE_NOTE, MAX_GUESSES, answerFor, dayKey, guessFeedback, guessLimits, hintFor, ladderShown, playTraits, previewPuzzle, puzzleFor, puzzleLabel, puzzleNumber, rotationFor, PUZZLES, shareText, silhouetteAfter, starterFor, WRITTEN_CLUE,
   type DailyStats, type GuessHint, type TraitCell, type TraitDef,
@@ -169,7 +170,7 @@ export function DailyShuffle() {
   const steps = puzzle.lastChance
     ? [
       { icon: "hint" as const, title: "Read the hint", text: "A nod to today's character, with a new one after each miss." },
-      { icon: "guess" as const, title: "Guess anyone", text: `Pick from ${puzzle.characters.length} characters across Nintendo and Smash's guests.` },
+      { icon: "guess" as const, title: "Guess anyone", text: "Type a name; Smash's guests count too." },
       { icon: "colors" as const, title: "Follow the colors", text: `Green matches, yellow is close. ${main} guesses, then a last chance.` },
     ]
     : [
@@ -225,7 +226,12 @@ export function DailyShuffle() {
       const fb = guessFeedback(made, next.length, puzzle, ladderShown(answer, next.length).length > ladderShown(answer, guesses.length).length, help.guesses);
       toast[fb.tone](fb.text);
     }
-    if (!done) setFlash(pick);
+    if (!done) {
+      setFlash(pick);
+      // With a mouse and keyboard, the cursor goes straight back to the guess box for the next one
+      // (on a touch screen that would pop the keyboard over the new row).
+      if (window.matchMedia("(pointer: fine)").matches) requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".daily__guess input")?.focus({ preventScroll: true }));
+    }
     // A Last chance save keeps the streak going but isn't a win.
     const save = right && next.length > main;
     const won = right && !save;
@@ -371,6 +377,7 @@ export function DailyShuffle() {
               <p className="party-muted daily-result__next">A new puzzle at midnight Pacific time.{puzzleLabel(tomorrow) ? ` Tomorrow's game: ${puzzleLabel(tomorrow)}.` : ""}</p>
             </div>
           </div>
+          <ChallengeVersus game="shuffle" mine={{ kind: "puzzle", guesses: elsewhere ? elsewhere.guesses : hints.length, solved, saved: savedIt, seconds: times.seconds, main, rows: hints.map((h) => h.cells.map((c) => c.status)) }} />
           <div className="daily-actions">
             {(hints.length > 0 || (!activity && !!elsewhere)) && (
               <DailiesShare current="shuffle" shareOne={activity?.share ? () => void shareToDiscord() : copy} oneText={activity?.share ? "Share my result" : "Copy my result"} one={{
@@ -410,17 +417,17 @@ export function DailyShuffle() {
           <>
             {puzzle.lastChance ? (
               <>
-                <p>Guess today&apos;s {noun} from {puzzle.characters.length} characters across Nintendo, plus Smash&apos;s guests. Each guess fills a row: {traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match and yellow is close ({puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}).</p>
-                <p>A hint shows when you tap Start and a new one after each miss, each a little more specific. You have {main} guesses. Miss them all and you get a last chance with their {blur ? "blurry picture" : "silhouette"}: get it then and your streak keeps going, though it doesn&apos;t count as a win. One {noun} a day, the same for everyone.</p>
+                <p>Each guess fills a row: {andList(traits.map((t) => t.label))}. Green is a match. Yellow is close: {puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}.</p>
+                <p>Hints get more specific with each miss. If all {main} guesses miss, you get a last chance with their {blur ? "blurry picture" : "silhouette"}: solve it then and your streak keeps going, but it doesn&apos;t count as a win.</p>
               </>
             ) : (
               <>
-                <p>Guess today&apos;s {label ? `${label} ` : ""}{noun}. Each guess fills a row: {traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match and yellow is close ({puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}). {WRITTEN_CLUE ? `After ${CLUE_AFTER} guesses you get a clue, and on` : "On"} your last guess {blur ? "a blurry look at them" : "their silhouette"}. {main} guesses, one {noun} a day, the same for everyone.</p>
+                <p>Guess today&apos;s {label ? `${label} ` : ""}{noun}. Each guess fills a row: {andList(traits.map((t) => t.label))}. Green is a match. Yellow is close: {puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}. {WRITTEN_CLUE ? `After ${CLUE_AFTER} guesses you get a clue, and on` : "On"} your last guess {blur ? "a blurry look at them" : "their silhouette"}. {main} guesses, one {noun} a day, the same for everyone.</p>
                 <p>The game changes by day of the week: {rotationText(day)}. Your streak counts every day you solve, whatever the game.</p>
               </>
             )}
-            <p>Your time runs from Start to your last guess. On today&apos;s leaderboard, players level on points are ranked by time, fastest first. Points and tokens don&apos;t depend on time.</p>
-            {!activity && FIRE_ROUND_PUBLIC && <p>Done for today? <OriginalsLink href="/daily-trivia">Today&apos;s Fire Round</OriginalsLink> is 60 seconds of daily trivia, the same questions for everyone.</p>}
+            <p>Your time runs from Start to your last guess. Points and tokens don&apos;t depend on it.</p>
+            {!activity && FIRE_ROUND_PUBLIC && <p>There&apos;s daily trivia too: <OriginalsLink href="/daily-trivia">Fire Round</OriginalsLink>, 60 seconds of questions.</p>}
           </>
         ),
       }]} />

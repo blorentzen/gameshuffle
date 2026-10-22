@@ -29,15 +29,6 @@ export interface AppFaq {
   a: string;
 }
 
-export interface AppCrossSell {
-  heading: string;
-  body: string;
-  ctaLabel: string;
-  ctaHref: string;
-  secondaryLabel?: string;
-  secondaryHref?: string;
-}
-
 export interface AppMarketingContent {
   /** Marketing page path (the route + canonical). */
   path: string;
@@ -61,24 +52,13 @@ export interface AppMarketingContent {
    *  to need instructions (the randomizers). */
   howItWorksHeading?: string;
   howItWorks?: AppStep[];
-  crossSell: AppCrossSell;
-  /** Optional background image for the final "Ready to play?" CTA — set to
-   *  the tool's own background so the marketing page feels cohesive with it. */
-  ctaBackground?: string;
+  /** Heading over the overview, which sits before the FAQ ("About lounge scoring"). */
+  aboutHeading?: string;
   faqHeading: string;
   faq: AppFaq[];
   /** Name used in SoftwareApplication JSON-LD. */
   schemaName: string;
 }
-
-const PRO_CROSS_SELL: AppCrossSell = {
-  heading: "Streaming it? GameShuffle Pro takes it further.",
-  body: "Pro turns the tool into a live, multiplayer experience for your chat: Twitch & Discord sessions, an OBS overlay, chat commands, channel-point rewards, Picks & Bans, and a token economy with prediction markets.",
-  ctaLabel: "Explore GameShuffle Pro",
-  ctaHref: "/gs-pro",
-  secondaryLabel: "See all features",
-  secondaryHref: "/gs-pro",
-};
 
 export const MARKETING_APPS: Record<string, AppMarketingContent> = {
   "competitive-mario-kart": {
@@ -87,7 +67,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     metaDescription:
       "Run competitive Mario Kart 8 Deluxe game nights with live lounge scoring: normalized placements, FFA and team modes, per-player entry, and real-time results everyone can follow.",
     breadcrumbLabel: "Competitive Mario Kart",
-    eyebrow: "Competitive · New",
+    eyebrow: "Competitive",
     status: "new",
     h1: "Competitive Mario Kart Lounge Scoring",
     heroSubhead:
@@ -113,7 +93,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
       { title: "Players join & pick", description: "Racers join, choose characters, and ready up." },
       { title: "Race & log results", description: "Each player logs their placement per race and standings update live." },
     ],
-    crossSell: PRO_CROSS_SELL,
+    aboutHeading: "About lounge scoring",
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "Is competitive lounge scoring free?", a: "Yes. The live lounge scoring hub is free to play; viewing is open to anyone with the link." },
@@ -160,7 +140,6 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
       { title: "Seed the field", description: "Players join with their profile and friend code, or add guests, then seed the bracket or heats." },
       { title: "Run it live", description: "Score races, report winners, or call heats into the mains, and advance the current race. Standings, brackets, and the season table update in real time on the public page, your overlay, and chat." },
     ],
-    crossSell: PRO_CROSS_SELL,
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "What tournament formats are supported?", a: "FFA points, round-robin, single-elimination and double-elimination brackets, Swiss rounds with a top cut, and the Heat → Mains ladder. (Double-elimination currently needs a power-of-2 player count.)" },
@@ -223,7 +202,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
       { title: "Fill the field", description: "Share the link and let players join, invite people you follow, or add guests by name. Seed by check-in, standings, or at random." },
       { title: "Run it live", description: "Enter results as they happen. Standings, brackets, and the season table update in real time on the public page, your overlay, and your chat." },
     ],
-    crossSell: PRO_CROSS_SELL,
+    aboutHeading: "About hosting on GameShuffle",
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "Is it free to host a tournament?", a: "Yes. Creating and running tournaments is free with an account, and browsing or joining is open to everyone. Every format is free for one full lobby of your game; bigger fields and live reveal are part of GameShuffle Circuit, and the Circuit page says what that costs today." },
@@ -245,7 +224,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     metaDescription:
       "A free companion for the Pokémon Trading Card Game: damage counters, Special Conditions, Prize cards, turns and attacks worked out, with rule reminders and card art. Runs in your browser.",
     breadcrumbLabel: "Pokémon TCG Companion",
-    eyebrow: "TCG Companion · New",
+    eyebrow: "TCG Companion",
     status: "new",
     h1: "Pokémon TCG Companion",
     heroSubhead:
@@ -264,9 +243,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
       { icon: "shield", title: "Conditions you can read", description: "Poison, Burn, Asleep, Paralyzed and Confused as clear icons, applied between turns." },
       { icon: "award", title: "Prize cards", description: "Two for a Pokémon ex, three for a Mega ex, taken automatically on a Knock Out." },
       { icon: "photo", title: "Your cards, your art", description: "Pick Pokémon from the catalog or your collection and see their art on the board." },
-      { icon: "users", title: "Play together on two phones", description: "One game on both players' phones, at the same table or on a call with real cards. The host needs GS Pro; the opponent joins free with a code." },
       { icon: "list", title: "Bring your deck list", description: "Paste a list from Pokémon TCG Live, check it's Standard legal, and its Pokémon come first when you place a card." },
-      { icon: "award", title: "Swiss tournaments with deck lists", description: "Run a League Cup style event: Swiss rounds with no rematches, a top cut, and deck lists checked as players send them." },
     ],
     howItWorksHeading: "How it works",
     howItWorks: [
@@ -274,14 +251,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
       { title: "Play your turn", description: "Attach Energy, tap counters on, mark conditions; the board ticks off the once-a-turn plays." },
       { title: "Attack and end the turn", description: "Pick an attack, let it do the maths, then End turn runs the Checkup for both players." },
     ],
-    crossSell: {
-      heading: "New to the game?",
-      body: "Read the rules in plain words, from damage counters to Prize cards, each with a tool to try, or pick up a beginner deck built to learn with.",
-      ctaLabel: "Pokémon TCG rules",
-      ctaHref: "/pokemon-tcg/rules",
-      secondaryLabel: "Beginner decks",
-      secondaryHref: "/pokemon-tcg/decks",
-    },
+    aboutHeading: "About the companion",
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "Is the Pokémon TCG Companion free?", a: "Yes. The table companion is free and runs in your browser, on a phone, tablet or computer. GS Pro adds extras like unlimited saved games." },

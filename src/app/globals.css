@@ -146,7 +146,8 @@
 a {
   color: var(--link);
 }
-a:hover {
+/* Arrow links keep their own colour on hover (the underline and the arrow are the hover). */
+a:where(:not(.arrow-link)):hover {
   color: var(--link-hover);
 }
 
@@ -643,6 +644,7 @@ ul {
   font-family: inherit;
   font-weight: var(--font-weight-semibold, 600);
   font-size: var(--font-size-14);
+  min-height: 2.4rem;
   opacity: 0.86;
   transition: opacity 0.15s ease;
   white-space: nowrap;
@@ -2542,6 +2544,39 @@ html:not(.dark) .post-topic-chip { color: color-mix(in srgb, var(--bg-primary, v
   .gs-nav__upgrade { display: none; }
 }
 
+/* The heart "Support" button that replaced "Go Pro" (support first plan, 2026-10-19), and the
+   thank-you heart members and supporters see instead (src/components/layout/NavSupport.tsx). */
+.gs-nav__support {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  height: 36px;
+  padding: 0 var(--spacing-14);
+  border-radius: 999px;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #d63a6e, #a81e57);
+  color: #fff;
+  transition: filter 120ms ease;
+}
+.gs-nav__support:hover { filter: brightness(1.08); color: #fff; }
+.gs-nav__support:focus-visible, .gs-nav__thanks:focus-visible { outline: 2px solid #ffb3cd; outline-offset: 2px; }
+.gs-nav__thanks {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  color: #ff8db6;
+  transition: background-color 120ms ease;
+}
+.gs-nav__thanks:hover { background: rgba(255, 255, 255, 0.1); color: #ffb3cd; }
+@media (max-width: 860px) {
+  .gs-nav__support, .gs-nav__thanks { display: none; }
+}
+
 /* The upgrade row inside a pillar dropdown. Separated and weighted so it reads
    as a step up rather than another destination in the list. */
 .gs-navmenu__item--upgrade {
@@ -2570,12 +2605,8 @@ html:not(.dark) .post-topic-chip { color: color-mix(in srgb, var(--bg-primary, v
 .trail__more {
   display: inline-block;
   margin-top: var(--spacing-10);
-  font-size: var(--font-size-12);
-  font-weight: 600;
-  color: var(--bg-primary, var(--primary-600));
-  text-decoration: none;
+  font-size: var(--font-size-14);
 }
-.trail__more:hover { text-decoration: underline; }
 .drail__more {
   margin-top: var(--spacing-8);
   padding: 0;
@@ -2927,8 +2958,22 @@ html:not(.dark) .post-topic-chip { color: color-mix(in srgb, var(--bg-primary, v
 }
 .empac-carousel__dot {
   box-sizing: content-box;
-  padding: var(--spacing-8);
+  /* 6px dot + 9px each side = a 24px target (WCAG 2.5.8). */
+  padding: 0.9rem;
   background-clip: content-box;
+}
+
+/* ── CDS bug: below 480px CDS shrinks Table text to 12px (headers to 10px) and
+   Badges to 10px / 12px. Text never shrinks to fit a phone (a cramped table
+   scrolls sideways instead), so phones keep the desktop sizes.
+   Upstream fix belongs in CascadeDS; local override until then. ── */
+@media (max-width: 480px) {
+  .empac-table { font-size: var(--font-size-14); }
+  .empac-table__caption { font-size: var(--font-size-14); }
+  .empac-table__head { font-size: var(--font-size-12); }
+  .empac-table__empty-description { font-size: var(--font-size-14); }
+  .empac-badge--small { font-size: var(--font-size-12); }
+  .empac-badge--default-size { font-size: var(--font-size-14); }
 }
 
 /* ── CDS bug: a selected success / warning / error Chip is white text on the
@@ -3144,3 +3189,185 @@ html.dark .empac-tabs--pills .empac-tabs__tab--active .empac-tabs__tab-label {
     font-size: var(--font-size-16); /* html:root outranks CDS's size rules (.empac-combobox--medium .empac-combobox__input) */
   }
 }
+
+/* TableScroll (src/components/ui/TableScroll.tsx): a CDS Table that scrolls sideways
+   inside a box keyboard users can focus. The CDS container sizes to its table
+   (fitting the column when it can, wider when the text needs it) and this box scrolls. */
+.table-scroll { position: relative; max-width: 100%; overflow-x: auto; }
+.table-scroll:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; border-radius: var(--radius-8); }
+.table-scroll > .empac-table-container { display: inline-block; min-width: 100%; overflow: visible; vertical-align: top; }
+.circuit-compare__table { max-width: 88rem; margin: 0 auto; }
+
+/* ══ Shared patterns (design round 3, 2026-10-20, Britton's picks) ══════════
+   One icon tile, one arrow link and the prose list markers. Every surface uses
+   these instead of its own copy. */
+
+/* ── IconTile (src/components/ui/IconTile.tsx): a Tabler glyph on a gradient
+   rounded square. 40px in cards, rows and lists (12px corners, 22px glyph);
+   56px only beside a page's main heading (14px corners, 30px glyph). Cards put
+   it above the title, rows and lists beside the label. Seven shared colors plus
+   the four dailies' own. Older tile classes read these tokens too. */
+:root {
+  --tile-blue: linear-gradient(135deg, #2f66ec, #4b5cf5);
+  --tile-violet: linear-gradient(135deg, #5a3fd6, #8b5cf6);
+  --tile-magenta: linear-gradient(135deg, #5a3fd6, #c949e9);
+  --tile-teal: linear-gradient(135deg, #0b5a52, #169a85);
+  --tile-green: linear-gradient(135deg, #1d7a3a, #2f9e44);
+  --tile-orange: linear-gradient(135deg, #b4421d, #e0861c);
+  --tile-red: linear-gradient(135deg, #b42318, #e5533c);
+  --tile-shuffle: linear-gradient(135deg, #2b1d84, #5a3fd6);
+  --tile-dex: linear-gradient(135deg, #a3301b, #dd7a1d);
+  --tile-fire: linear-gradient(135deg, #d9363e, #ff7a2f);
+  --tile-weekly: linear-gradient(135deg, #0b5a52, #169a85);
+  --tile-duel: linear-gradient(135deg, #16224f, #b07a12);
+  --tile-shadow: 0 6px 14px -8px rgba(20, 30, 90, 0.55);
+  --tile-md: 40px;
+  --tile-md-radius: 12px;
+  --tile-md-glyph: 22px;
+  --tile-lg: 56px;
+  --tile-lg-radius: 14px;
+  --tile-lg-glyph: 30px;
+}
+.icon-tile {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--tile-md);
+  height: var(--tile-md);
+  border-radius: var(--tile-md-radius);
+  color: #fff;
+  background: var(--tile-bg, var(--tile-blue));
+  box-shadow: var(--tile-shadow);
+}
+.icon-tile svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); flex: none; }
+.icon-tile--lg { width: var(--tile-lg); height: var(--tile-lg); border-radius: var(--tile-lg-radius); }
+.icon-tile--lg svg { width: var(--tile-lg-glyph); height: var(--tile-lg-glyph); }
+.icon-tile--blue { --tile-bg: var(--tile-blue); }
+.icon-tile--violet { --tile-bg: var(--tile-violet); }
+.icon-tile--magenta { --tile-bg: var(--tile-magenta); }
+.icon-tile--teal { --tile-bg: var(--tile-teal); }
+.icon-tile--green { --tile-bg: var(--tile-green); }
+.icon-tile--orange { --tile-bg: var(--tile-orange); }
+.icon-tile--red { --tile-bg: var(--tile-red); }
+.icon-tile--shuffle { --tile-bg: var(--tile-shuffle); }
+.icon-tile--dex { --tile-bg: var(--tile-dex); }
+.icon-tile--fire { --tile-bg: var(--tile-fire); }
+.icon-tile--weekly { --tile-bg: var(--tile-weekly); }
+.icon-tile--duel { --tile-bg: var(--tile-duel); }
+
+/* ── ArrowLink (src/components/ui/ArrowLink.tsx): a text link with a real
+   arrow. Hover and keyboard focus slide the arrow 4px and underline the label;
+   with reduced motion only the underline shows. A whole-card link adds
+   .arrow-host so its arrow moves when the card is hovered or focused. Colour
+   is the brand ink unless the surrounding class sets its own. */
+/* Inline, so in a sentence or a long label the arrow follows the last word. */
+.arrow-link {
+  font-weight: var(--font-weight-semibold, 600);
+  line-height: 1.5;
+  color: var(--brand-ink, var(--primary-700));
+  text-decoration: none;
+  border-radius: 4px;
+}
+.arrow-link__icon {
+  display: inline-block;
+  width: 1.125em;
+  height: 1.125em;
+  margin-inline-start: 0.35em;
+  vertical-align: -0.2em;
+  transition: transform 0.22s cubic-bezier(0.3, 0.7, 0.3, 1);
+}
+a.arrow-link:hover .arrow-link__label,
+a.arrow-link:focus-visible .arrow-link__label,
+.arrow-host:hover .arrow-link__label,
+.arrow-host:focus-visible .arrow-link__label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+a.arrow-link:hover .arrow-link__icon,
+a.arrow-link:focus-visible .arrow-link__icon,
+.arrow-host:hover .arrow-link__icon,
+.arrow-host:focus-visible .arrow-link__icon {
+  transform: translateX(4px);
+}
+a.arrow-link:focus-visible {
+  outline: 2px solid var(--border-focus, var(--primary-500));
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrow-link__icon { transition: none; }
+  a.arrow-link:hover .arrow-link__icon,
+  a.arrow-link:focus-visible .arrow-link__icon,
+  .arrow-host:hover .arrow-link__icon,
+  .arrow-host:focus-visible .arrow-link__icon { transform: none; }
+}
+
+/* ── Prose list markers: article bodies only (rules pages, trivia articles and
+   deck guides share .deck-prose; guides; help articles; FAQ answers). Reading
+   lists get a small brand square, steps get numbered tiles, and
+   `ul.list-check` (opt-in, anywhere) gets a soft green check for "what you
+   get" lists. Lists with a class of their own (menus, card grids, the rules
+   pages' condition list) keep their look. Legal pages keep disc and decimal. */
+:is(.deck-prose, .guide__body, .help-article__body, .faq-list__a) :is(ul, ol):not([class]),
+ul.list-check {
+  list-style: none;
+  padding-left: 0;
+}
+:is(.deck-prose, .guide__body, .help-article__body, .faq-list__a) :is(ul, ol):not([class]) > li,
+ul.list-check > li {
+  position: relative;
+  list-style: none;
+  padding-left: 3rem;
+}
+:is(.deck-prose, .guide__body, .help-article__body, .faq-list__a) ul:not([class]) > li::before {
+  content: "";
+  position: absolute;
+  left: 0.7rem;
+  top: 0.62em;
+  top: calc(0.5lh - 4px);
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #2f66ec, #8b5cf6);
+}
+:is(.deck-prose, .guide__body, .help-article__body, .faq-list__a) ol:not([class]) { counter-reset: prose-step; }
+:is(.deck-prose, .guide__body, .help-article__body, .faq-list__a) ol:not([class]) > li {
+  counter-increment: prose-step;
+  padding-left: 3.4rem;
+}
+:is(.deck-prose, .guide__body, .help-article__body, .faq-list__a) ol:not([class]) > li::before {
+  content: counter(prose-step);
+  position: absolute;
+  left: 0;
+  top: 0.1em;
+  top: calc(0.5lh - 11px);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #2f66ec, #4b5cf5);
+  color: #fff;
+  font-size: var(--font-size-12);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  /* No line-height here: the lh unit above reads the item's own line. */
+}
+ul.list-check > li { padding-left: 3.2rem; }
+ul.list-check > li::before,
+ul.list-check > li::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  top: calc(0.5lh - 10px);
+  width: 20px;
+  height: 20px;
+}
+ul.list-check > li::before { border-radius: 6px; background: #e3f4ea; }
+ul.list-check > li::after {
+  background: #16683b;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5l10 -10'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5l10 -10'/%3E%3C/svg%3E") center / 14px 14px no-repeat;
+}
+html.dark ul.list-check > li::before { background: #15291f; }
+html.dark ul.list-check > li::after { background: #7fd9a3; }

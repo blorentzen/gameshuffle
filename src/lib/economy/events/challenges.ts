@@ -42,6 +42,38 @@ interface Row {
 const COLS = "id, community_id, stream_id, session_id, chapter, event_id, variable_type, condition, reward, penalty, visibility, target_identity_id, status, resolved_outcome, resolved_to, payout_event";
 const MAX_WINNERS = 10;
 
+/**
+ * What chat has to do, in the event's own words: its line (or the channel's
+ * own wording for it) with the viewer's name filled in. Shared by the control
+ * room, the overlay banner and the live page's Events tab.
+ */
+export function fillChallengeLine(tmpl: string | null | undefined, targetName: string | null): string | null {
+  const line = tmpl?.replace(/\{user\}|\{to\}|\{from\}/g, targetName ?? "chat").replace(/\{[a-z_]+\}/g, "").replace(/\s+/g, " ").trim();
+  return line || null;
+}
+
+/** Each challenge's event line, with a channel's own wording first (`gs_event_overrides`), keyed `${eventId}:${communityId}`. */
+export async function challengeTemplates(rows: { event_id: string; community_id: string | null }[]): Promise<Map<string, string | null>> {
+  const out = new Map<string, string | null>();
+  if (!rows.length) return out;
+  const admin = createServiceClient();
+  const eventIds = [...new Set(rows.map((r) => r.event_id))];
+  const communityIds = [...new Set(rows.map((r) => r.community_id).filter(Boolean) as string[])];
+  const [{ data: events }, { data: overrides }] = await Promise.all([
+    admin.from("gs_events").select("id, flavor_tmpl").in("id", eventIds),
+    communityIds.length
+      ? admin.from("gs_event_overrides").select("community_id, event_id, flavor_tmpl_override").in("community_id", communityIds).in("event_id", eventIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const base = new Map(((events ?? []) as { id: string; flavor_tmpl: string | null }[]).map((e) => [e.id, e.flavor_tmpl]));
+  const own = new Map(((overrides ?? []) as { community_id: string; event_id: string; flavor_tmpl_override: string | null }[]).map((o) => [`${o.event_id}:${o.community_id}`, o.flavor_tmpl_override]));
+  for (const r of rows) {
+    const key = `${r.event_id}:${r.community_id}`;
+    out.set(key, own.get(key) ?? base.get(r.event_id) ?? null);
+  }
+  return out;
+}
+
 function conditionText(variableType: string, condition: Record<string, unknown> | null): string {
   const bits = condition ? Object.values(condition).map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v))).filter(Boolean).join(", ") : "";
   const kind = variableType.replace(/_/g, " ");
@@ -59,18 +91,15 @@ export async function hubChallenges(sessionId: string): Promise<HubChallenge[]> 
   ]);
   const rows = [...((open ?? []) as Row[]), ...((unpaid ?? []) as Row[])];
   if (!rows.length) return [];
-  const eventIds = [...new Set(rows.map((r) => r.event_id))];
   const targetIds = [...new Set(rows.map((r) => r.target_identity_id).filter(Boolean) as string[])];
-  const [{ data: events }, { data: idents }] = await Promise.all([
-    admin.from("gs_events").select("id, flavor_tmpl, event_key").in("id", eventIds),
+  const [templates, { data: idents }] = await Promise.all([
+    challengeTemplates(rows),
     targetIds.length ? admin.from("gs_identities").select("id, display_name").in("id", targetIds) : Promise.resolve({ data: [] }),
   ]);
-  const flavor = new Map(((events ?? []) as { id: string; flavor_tmpl: string | null; event_key: string }[]).map((e) => [e.id, e]));
   const names = new Map(((idents ?? []) as { id: string; display_name: string | null }[]).map((i) => [i.id, i.display_name ?? "a viewer"]));
   return rows.map((r) => {
     const targetName = r.target_identity_id ? names.get(r.target_identity_id) ?? "a viewer" : null;
-    const ev = flavor.get(r.event_id);
-    const line = ev?.flavor_tmpl?.replace(/\{user\}|\{to\}|\{from\}/g, targetName ?? "chat").replace(/\{[a-z_]+\}/g, "").replace(/\s+/g, " ").trim();
+    const line = fillChallengeLine(templates.get(`${r.event_id}:${r.community_id}`), targetName);
     return {
       id: r.id,
       text: line || conditionText(r.variable_type, r.condition),

@@ -13,10 +13,14 @@
 
 import { gsAddDays, gsWeekday } from "@/lib/time/gsClock";
 
-/** The dailies, plus today's Fire Round (src/lib/originals/fireRound.ts), which scores on the same boards. */
-export type BoardGame = "shuffle" | "dex" | "fire";
+/**
+ * The dailies, plus today's Fire Round (src/lib/originals/fireRound.ts) and the Daily Duel
+ * (src/lib/originals/duel/), which score on the same boards. The duel's row keeps turns in
+ * `guesses` and cards left in `score`, so it ranks by points, then cards left, then time.
+ */
+export type BoardGame = "shuffle" | "dex" | "fire" | "duel";
 export type BoardPeriod = "day" | "week" | "month";
-export const BOARD_GAMES: BoardGame[] = ["shuffle", "dex", "fire"];
+export const BOARD_GAMES: BoardGame[] = ["shuffle", "dex", "fire", "duel"];
 export const BOARD_PERIODS: BoardPeriod[] = ["day", "week", "month"];
 
 /** Who a score belongs to: an account, a Discord identity with no account, or a guest. */
@@ -88,7 +92,7 @@ export function ordinal(n: number): string {
 
 /** What a period is called on the board's tabs and in messages. */
 export const PERIOD_LABEL: Record<BoardPeriod, string> = { day: "Today", week: "This week", month: "This month" };
-export const GAME_LABEL: Record<BoardGame, string> = { shuffle: "The Daily Shuffle", dex: "The Daily Dex", fire: "Fire Round" };
+export const GAME_LABEL: Record<BoardGame, string> = { shuffle: "The Daily Shuffle", dex: "The Daily Dex", fire: "Fire Round", duel: "The Daily Duel" };
 
 /** A guest's board name: 2 to 24 characters, spaces tidied. Word and brand checks happen on the server. */
 export function tidyName(raw: unknown): string {

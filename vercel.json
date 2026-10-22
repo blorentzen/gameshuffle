@@ -96,6 +96,18 @@
     {
       "path": "/api/cron/hero-rosters",
       "schedule": "0 15 1 * *"
+    },
+    {
+      "path": "/api/cron/lounge",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/lounge-tables",
+      "schedule": "20 * * * *"
+    },
+    {
+      "path": "/api/cron/lounge-weekly",
+      "schedule": "0 16,17 * * 1"
     }
   ]
 }

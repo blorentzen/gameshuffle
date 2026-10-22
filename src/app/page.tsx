@@ -4,6 +4,7 @@ import { Container, Icon } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
 import { IconBook2, IconCards, IconPokeball } from "@tabler/icons-react";
 import { RowLink, RowPanel, type PanelRow } from "@/components/marketing/RowPanel";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { HeroShowcase } from "@/components/home/HeroShowcase";
 import Link from "next/link";
@@ -18,6 +19,9 @@ import { PlansBand } from "@/components/home/PlansBand";
 import { paidPlansHere } from "@/lib/billing/availability";
 import { homeViewer } from "@/lib/home/viewer";
 import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
+import { DUEL_SHOWN } from "@/lib/originals/dailies";
+import { duelDayTrainer } from "@/lib/originals/duel/store";
+import { gsDay } from "@/lib/time/gsClock";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
 import { getPublicFeaturedShopCards } from "@/lib/shop/featuredCards";
 import { shopVisibleToVisitors } from "@/lib/store/visibility";
@@ -25,16 +29,17 @@ import { ShopBand } from "@/components/store/ShopEntry";
 
 /** Free-tools wayfinder tiles. CDS (Tabler) icons, no emoji (they clash with
  *  the icon system and render per OS). CDS lacks dice/coin glyphs, so those use
- *  the nearest shapes (box = die, rosette = coin token); flagged for a CDS add. */
-const FREE_TOOLS: { icon: IconName; label: string; href: string }[] = [
-  { icon: "rotate", label: "Wheel Spinner", href: "/wheel-spinner" },
-  { icon: "box", label: "Dice Roller", href: "/dice-roller" },
-  { icon: "rosette", label: "Coin Flip", href: "/coin-flip" },
-  { icon: "user-check", label: "Name Picker", href: "/name-picker" },
-  { icon: "clock", label: "Stream Timer", href: "/stream-timer" },
-  { icon: "layout-list", label: "Tier List Maker", href: "/tier-list-maker" },
-  { icon: "border-all", label: "Bingo", href: "/bingo-card-generator" },
-  { icon: "help-circle", label: "Magic 8-Ball", href: "/magic-8-ball" },
+ *  the nearest shapes (box = die, rosette = coin token); flagged for a CDS add.
+ *  `family` colors the tile the way /tools does (pick, stream, board, party). */
+const FREE_TOOLS: { icon: IconName; label: string; href: string; family: "pick" | "stream" | "board" | "party" }[] = [
+  { icon: "rotate", label: "Wheel Spinner", href: "/wheel-spinner", family: "pick" },
+  { icon: "box", label: "Dice Roller", href: "/dice-roller", family: "pick" },
+  { icon: "rosette", label: "Coin Flip", href: "/coin-flip", family: "pick" },
+  { icon: "user-check", label: "Name Picker", href: "/name-picker", family: "pick" },
+  { icon: "clock", label: "Stream Timer", href: "/stream-timer", family: "stream" },
+  { icon: "layout-list", label: "Tier List Maker", href: "/tier-list-maker", family: "board" },
+  { icon: "border-all", label: "Bingo", href: "/bingo-card-generator", family: "board" },
+  { icon: "help-circle", label: "Magic 8-Ball", href: "/magic-8-ball", family: "party" },
 ];
 
 export const metadata: Metadata = {
@@ -105,10 +110,11 @@ const POPULAR_PAGES: { label: string; sub: string; href: string }[] = [
  * https://claude.ai/artifact/PjULC3d4viTX3Tn4oYmLTe). Grouped by what people
  * came to do, with what brings them back near the top and the paid plans in
  * one place: the hero, Today on GameShuffle (the dailies and the Weekly),
- * the randomizers, Run the night (tournaments, trivia, game nights), the
+ * the randomizers, Host your own (tournaments, trivia, game nights), the
  * GS Pro and GS Circuit band, free tools, Pokémon, then Support. Signed in,
- * Today shows your streaks, Run the night your next event, and the plans band
- * your way in.
+ * Today shows your streaks, Host your own your next event, and the plans band
+ * your way in. Each section heading has one short colored eyebrow that never
+ * repeats the heading's words (design round 3, 2026-10-20).
  */
 export default async function HomePage() {
   // Pokémon: one panel (Britton's pick, 2026-10-19), then the store's cards.
@@ -131,7 +137,11 @@ export default async function HomePage() {
   ];
   // Featured shop cards for the Pokémon section (read-only, 0 Scrydex credits;
   // FPO fallback inside the component if none configured).
-  const [shopCards, shopVisible, viewer, paidHere] = await Promise.all([getPublicFeaturedShopCards(), shopVisibleToVisitors(), homeViewer().catch(() => null), paidPlansHere().catch(() => true)]);
+  // The Daily Duel's card (dev only until it's public): today's trainer and picture, from a built day (never builds one).
+  const [shopCards, shopVisible, viewer, paidHere, duelToday] = await Promise.all([
+    getPublicFeaturedShopCards(), shopVisibleToVisitors(), homeViewer().catch(() => null), paidPlansHere().catch(() => true),
+    DUEL_SHOWN ? duelDayTrainer(gsDay()).catch(() => null) : Promise.resolve(null),
+  ]);
   return (
     <>
       <script
@@ -140,7 +150,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_JSON_LD) }}
       />
       <BrowseHero
-        eyebrow="Free for everyone · no account needed"
+        eyebrow="Free for everyone"
         title={"Shuffle up your game\u00a0night."}
         sub="Randomizers, daily puzzles, tournaments and trivia nights for any game night, from family on the couch to friends across Discord."
         accent="blue"
@@ -156,17 +166,27 @@ export default async function HomePage() {
           {/* The daily habit first: the people who come back are the ones who host, stream and support. */}
           <section className="home-section" aria-labelledby="home-today-title">
             <div className="home-section__head">
-              <h2 id="home-today-title" className="home-section__title">Today on GameShuffle</h2>
+              <div className="home-section__titles">
+                <p className="home-section__eyebrow home-section__eyebrow--violet">Daily games</p>
+                <h2 id="home-today-title" className="home-section__title">Today on GameShuffle</h2>
+              </div>
               <p className="home-section__aside">A new puzzle at midnight Pacific</p>
             </div>
-            <HomeToday dexPublic={DAILY_DEX_PUBLIC} firePublic={FIRE_ROUND_PUBLIC} />
+            <HomeToday
+              dexPublic={DAILY_DEX_PUBLIC}
+              firePublic={FIRE_ROUND_PUBLIC}
+              duel={DUEL_SHOWN ? { number: duelToday?.number ?? 0, name: duelToday?.trainer.name ?? null, title: duelToday?.trainer.title ?? null, picture: duelToday?.trainer.picture ?? null } : null}
+            />
             <DiscordPlug from="home" text="Play the Daily, the Weekly and Chat Brain with your server, right in Discord." />
           </section>
 
           <section id="apps" className="home-section" aria-labelledby="home-apps-title" style={{ scrollMarginTop: "6rem" }}>
             <div className="home-section__head">
-              <h2 id="home-apps-title" className="home-section__title">What are we playing?</h2>
-              <Link href="/randomizers" className="home-section__link">All randomizers →</Link>
+              <div className="home-section__titles">
+                <p className="home-section__eyebrow home-section__eyebrow--blue">Randomizers</p>
+                <h2 id="home-apps-title" className="home-section__title">What are we playing?</h2>
+              </div>
+              <ArrowLink href="/randomizers" className="home-section__link">All randomizers</ArrowLink>
             </div>
             <ResponsiveCarousel className="app-card-grid" label="Top randomizers">
               {TOP_RANDOMIZERS.map((r) => (
@@ -194,14 +214,17 @@ export default async function HomePage() {
         <Container>
           <section className="home-section" aria-labelledby="home-tools-title">
             <div className="home-section__head">
-              <h2 id="home-tools-title" className="home-section__title">Free tools</h2>
-              <Link href="/tools" className="home-section__link">All free tools →</Link>
+              <div className="home-section__titles">
+                <p className="home-section__eyebrow home-section__eyebrow--teal">No account needed</p>
+                <h2 id="home-tools-title" className="home-section__title">Free tools</h2>
+              </div>
+              <ArrowLink href="/tools" className="home-section__link">All free tools</ArrowLink>
             </div>
             <p className="home-section__lede">Spin a wheel, roll dice, run a bingo board or tier list, ask the 8-ball: free tools, no account needed. On GS Pro, they go live on your overlay.</p>
             <ResponsiveCarousel className="home-tiles" perSlide={2} label="Free tools">
               {FREE_TOOLS.map((t) => (
                 <a key={t.href} href={t.href} className="home-tile gs-hover-gradient">
-                  <span className="home-tile__icon" aria-hidden="true">
+                  <span className={`home-tile__icon home-tile__icon--${t.family}`} aria-hidden="true">
                     <Icon name={t.icon} size="32" />
                   </span>
                   <span className="home-tile__label">{t.label}</span>
@@ -213,8 +236,11 @@ export default async function HomePage() {
           {/* Pokémon: the Companion and the Dex keep Pokémon players around; the store's cards sell. */}
           <section className="home-section" aria-labelledby="home-pokemon-title">
             <div className="home-section__head">
-              <h2 id="home-pokemon-title" className="home-section__title">For Pokémon players</h2>
-              <Link href="/pokemon-tcg" className="home-section__link">Pokémon TCG →</Link>
+              <div className="home-section__titles">
+                <p className="home-section__eyebrow home-section__eyebrow--orange">Trading cards</p>
+                <h2 id="home-pokemon-title" className="home-section__title">For Pokémon players</h2>
+              </div>
+              <ArrowLink href="/pokemon-tcg" className="home-section__link">Pokémon TCG</ArrowLink>
             </div>
             <RowPanel className="row-panel--surface" rows={pokemonRows} />
           </section>
@@ -243,7 +269,7 @@ export default async function HomePage() {
           </nav>
 
 
-          <p className="home-ideas">Got an idea for GameShuffle? <Link href="/ideas">Share it on the Idea Board →</Link></p>
+          <p className="home-ideas">Got an idea for GameShuffle? <ArrowLink href="/ideas">Share it on the Idea Board</ArrowLink></p>
         </Container>
       </main>
     </>

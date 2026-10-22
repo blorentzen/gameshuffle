@@ -35,6 +35,8 @@ interface EventFlags {
    *  (it posts on a schedule, not in reaction to the streamer) — see
    *  SUB_DEFAULTS in `src/lib/adapters/discord/index.ts`. */
   qotd?: boolean;
+  /** Lounge rank-up posts (free, opt-in). */
+  lounge?: boolean;
 }
 
 interface RoutingBody {

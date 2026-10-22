@@ -5,10 +5,10 @@
  * profile renders it on the server and the end screens in the browser.
  */
 
-import { IconCalendarWeek, IconFlame, IconPokeball, IconPuzzle } from "@tabler/icons-react";
+import { IconCalendarWeek, IconFlame, IconPokeball, IconPuzzle, IconSwords } from "@tabler/icons-react";
 import { DAILIES, formatTime, type DailiesEntries, type DailiesId, type DayMark } from "@/lib/originals/dailies";
 
-export const DAILIES_GLYPHS: Record<DailiesId, typeof IconPuzzle> = { shuffle: IconPuzzle, dex: IconPokeball, fire: IconFlame, weekly: IconCalendarWeek };
+export const DAILIES_GLYPHS: Record<DailiesId, typeof IconPuzzle> = { shuffle: IconPuzzle, dex: IconPokeball, fire: IconFlame, duel: IconSwords, weekly: IconCalendarWeek };
 
 const MARK_WORD: Record<Exclude<DayMark, null>, string> = { won: "won", saved: "saved on the last chance", missed: "missed", played: "played" };
 

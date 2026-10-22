@@ -114,6 +114,9 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
   /* Fire Round: solo trivia against the clock. */
   fire: { feature: IconFlame, ramp: ["#3a0f1c", "#d9363e"],
     glyphs: [IconFlame, IconClock, IconBolt, IconBulb, IconTrophy] },
+  /* The Daily Duel: gold on navy, a card duel against the trainer of the day. */
+  duel: { feature: IconSwords, ramp: ["#0b1433", "#d99a1c"],
+    glyphs: [IconSwords, IconCards, IconBolt, IconCrown, IconPokeball] },
   spooky: { feature: IconGhost, ramp: ["#2a1450", "#f08a1c"],
     glyphs: [IconGhost, IconPumpkinScary, IconBat, IconCandy, IconSpider, IconMoonStars] },
 };

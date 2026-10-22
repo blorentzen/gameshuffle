@@ -96,5 +96,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     for (const n of v.nodes) console.log(`   - ${n}`);
   }
   chrome.kill("SIGKILL");
-  process.exit(found.size ? 1 : 0);
+  // Headless profiles are ~30MB each; leaving them filled the disk once.
+  setTimeout(() => { try { fs.rmSync(profile, { recursive: true, force: true }); } catch {} process.exit(found.size ? 1 : 0); }, 300);
 })();

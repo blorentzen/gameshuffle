@@ -65,6 +65,8 @@ export const NOTIFICATION_TYPES = {
   daily_top5: { cds: "success", invite: false },
   // Referral links (src/lib/referrals/store.ts): tokens when someone new plays or signs up from your link.
   referral: { cds: "success", invite: false },
+  // The Monday lounge report (src/lib/lounge/weeklyReport.ts, GS Pro): last week's MMR change, record and rivals.
+  lounge_weekly: { cds: "info", invite: false },
 } as const satisfies Record<string, NotificationTypeDef>;
 
 /** The registered GS notification types. New producers must register here. */

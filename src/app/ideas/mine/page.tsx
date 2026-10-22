@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { Container, Button, Card, Badge } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { listMyIdeas } from "@/lib/ideas/store";
@@ -31,7 +32,7 @@ export default async function MyIdeasPage() {
 
       {ideas.length === 0 ? (
         <p className="ideas-page__lead">
-          You haven&apos;t submitted any ideas yet. <Link href="/ideas/submit">Share one →</Link>
+          You haven&apos;t submitted any ideas yet. <ArrowLink href="/ideas/submit">Share one</ArrowLink>
         </p>
       ) : (
         <ul className="ideas-list">

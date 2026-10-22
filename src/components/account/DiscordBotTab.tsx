@@ -21,6 +21,7 @@ import { ROUTE_CATEGORIES } from "@/lib/discord/routeCategories";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { DiscordLiveAlerts } from "@/components/account/DiscordLiveAlerts";
+import { DiscordLoungeCard } from "@/components/account/DiscordLoungeCard";
 
 interface Channel {
   id: string;
@@ -748,6 +749,9 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
         <DiscordLiveAlerts key={current?.guildId ?? "main"} withGuild={withGuild} channels={channels} roles={guildRoles} />
       )}
 
+      {/* Mario Kart lounge: the Monday board of members who confirmed their lounge name (GS Pro). */}
+      {show("posts") && canEdit && <DiscordLoungeCard key={`board-${current?.guildId ?? "main"}`} part="board" withGuild={withGuild} />}
+
       {/* Free accounts see the rest of the suite as greyed, inactive spaces. */}
       {show("posts") && !isPro && (
         <>
@@ -774,6 +778,9 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
           </LockedFeature>
           <LockedFeature title="Question of the Day">
             Post a daily question to spark conversation, on the schedule you set.
+          </LockedFeature>
+          <LockedFeature title="Mario Kart lounge">
+            Division roles and a Monday board for members who confirmed their lounge name.
           </LockedFeature>
         </>
       )}
@@ -866,6 +873,9 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
       )}
 
       {/* Self-assign roles — reactions / buttons / dropdown, one builder */}
+      {/* Mario Kart lounge division roles (GS Pro). */}
+      {show("roles") && canEdit && <DiscordLoungeCard key={`roles-${current?.guildId ?? "main"}`} part="roles" withGuild={withGuild} />}
+
       {show("roles") && canEdit && (
         <div className="account-card">
           <h2 className="account-card__title">Self-assign roles</h2>

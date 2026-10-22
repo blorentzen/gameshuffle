@@ -15,7 +15,8 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { TEMPLATES } from "@/lib/trivia/rules";
 import { TriviaLeaguesSection } from "./leagues/TriviaLeaguesSection";
-import { IconFlame } from "@tabler/icons-react";
+import { IconFlame, IconUsers } from "@tabler/icons-react";
+import { RowPanel } from "@/components/marketing/RowPanel";
 import { FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import "@/styles/trivia.css";
 
@@ -65,9 +66,9 @@ export function TriviaHome({ signedIn, children }: { signedIn: boolean; children
   return (
     <main className="trivia-page">
       <BrowseHero
-        eyebrow="GameShuffle · Trivia Nights"
+        eyebrow="Trivia nights"
         title="Trivia night, ready in minutes"
-        sub="Pick an occasion, fill the rounds from your library or draft them with AI, and run the room from your phone. Teams play on theirs, the TV shows the rest."
+        sub="Free to host. Teams answer on their phones while the TV shows the questions and keeps score."
         accent="violet"
         field="mystery"
         actions={
@@ -79,8 +80,8 @@ export function TriviaHome({ signedIn, children }: { signedIn: boolean; children
       />
 
       <div className="trivia-page__body">
-        {/* Solo play beside hosting (Fire Round, Britton's pick 2026-10-19). */}
-        {FIRE_ROUND_PUBLIC && (
+        {/* Solo play beside hosting (Fire Round, Britton's pick 2026-10-19). Signed out, both share one panel (refinement round 2). */}
+        {FIRE_ROUND_PUBLIC && signedIn && (
           <div className="trivia-card trivia-solo">
             <span className="trivia-solo__tile" aria-hidden><IconFlame size={22} stroke={2} /></span>
             <div className="trivia-solo__copy">
@@ -91,14 +92,26 @@ export function TriviaHome({ signedIn, children }: { signedIn: boolean; children
           </div>
         )}
         {!signedIn ? (
-          <div className="trivia-card">
-            <h2 className="trivia-h2">Host a trivia night</h2>
-            <p className="trivia-muted">Hosting is free. Make an account so your questions and nights are saved.</p>
-            <div className="trivia-row">
-              <Link href="/signup?redirect=/trivia"><Button variant="primary">Make a free account</Button></Link>
-              <Link href="/login?redirect=/trivia"><Button variant="secondary">Sign in</Button></Link>
-            </div>
-          </div>
+          <>
+          <h2 className="sr-only">Play or host</h2>
+          <RowPanel className="row-panel--surface trivia-ways" rows={[
+            ...(FIRE_ROUND_PUBLIC ? [{
+              key: "solo", Icon: IconFlame, tone: "red" as const, title: "Play solo: Fire Round",
+              text: "Answer as many as you can against the clock, then take on today's round with everyone else.",
+              action: <Link href="/daily-trivia"><Button variant="secondary">Play Fire Round</Button></Link>,
+            }] : []),
+            {
+              key: "host", Icon: IconUsers, tone: "violet" as const, title: "Host a trivia night",
+              text: "Make an account so your questions and nights are saved.",
+              action: (
+                <div className="trivia-row">
+                  <Link href="/signup?redirect=/trivia"><Button variant="primary">Make a free account</Button></Link>
+                  <Link href="/login?redirect=/trivia"><Button variant="secondary">Sign in</Button></Link>
+                </div>
+              ),
+            },
+          ]} />
+          </>
         ) : !ready ? (
           <div className="trivia-card"><p className="trivia-muted">Trivia Nights needs a quick update on our side before it can run.</p></div>
         ) : (

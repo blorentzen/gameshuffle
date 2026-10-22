@@ -25,13 +25,13 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://www.gameshuffle.co/daily-trivia" },
 };
 
-const CATEGORIES_TEXT = "Today's round mixes everything. More rounds can be one category: general knowledge, geography, science and nature, history, video games, movies and TV, music, sports, food and drink, words and numbers, game characters and Overwatch heroes. Game categories like Mario Kart, Smash and Pokémon open as their question packs fill up.";
+const CATEGORIES_TEXT = "Today's round mixes everything. More rounds can be one category, from general knowledge and geography to Mario Kart, Pokémon, Zelda and Smash, plus seasonal ones like Halloween in their month.";
 
 const FAQ = [
   { q: "Is there a new trivia quiz every day?", a: "Yes. A new Fire Round starts at midnight Pacific: 60 seconds of mixed questions, the same for everyone, in the same order." },
   { q: "Is it free?", a: "Yes, and you don't need an account. Play as a guest and add a name to go on the leaderboard. A free account keeps your streak and scores on every device and earns tokens on the leaderboard." },
   { q: "Can I answer multiple choice?", a: `Every question can open four choices when you're stuck. A right choice is worth ${CHOICE_POINTS} instead of ${TYPED_POINTS}, and a typed answer that's close opens them for you.` },
-  { q: "How is today's round scored?", a: `${TYPED_POINTS} for a typed answer, ${CHOICE_POINTS} with choices, times your heat: three right in a row is ×1.5, six is ×2, and a miss cools you down. On the leaderboard, every 200 points is a point, up to 10.` },
+  { q: "How is today's round scored?", a: `${TYPED_POINTS} for a typed answer, ${CHOICE_POINTS} with choices, times your heat: ×1.5 from three right in a row, ×2 from six, and a miss resets it. On the leaderboard, every 200 points is one point, up to 10.` },
   { q: "Can I play more than once a day?", a: "Only your first try counts for today. Play it again for practice, or pick a category and 1, 3 or 5 minutes any time." },
   { q: "What categories are there?", a: CATEGORIES_TEXT },
 ];
@@ -41,9 +41,9 @@ const FAQ_SHOWN = FAQ.map((f) => (f.a === CATEGORIES_TEXT ? {
   q: f.q,
   a: (
     <>
-      {CATEGORIES_TEXT} Want to read some first? See our trivia questions for <Link href={topicUrl("mario-kart")}>Mario Kart</Link>,{" "}
+      {CATEGORIES_TEXT} Sample questions with answers: <Link href={topicUrl("mario-kart")}>Mario Kart</Link>,{" "}
       <Link href={topicUrl("pokemon")}>Pokémon</Link>, <Link href={topicUrl("smash")}>Smash</Link> and{" "}
-      <Link href={`${TRIVIA_PATH}/questions`}>more</Link>.
+      <Link href={`${TRIVIA_PATH}/questions`}>every topic</Link>.
     </>
   ),
 } : f));
@@ -59,9 +59,9 @@ export default function DailyTriviaPage() {
         faq={FAQ}
       />
       <BrowseHero
-        eyebrow="Daily trivia · A GameShuffle Original"
+        eyebrow="Daily trivia"
         title="Fire Round"
-        sub="Today's free trivia quiz: 60 seconds, the same questions for everyone. Type the answer for full points, or pick from four choices when you're stuck."
+        sub="Today's free trivia quiz: 60 seconds, the same questions for everyone."
         subShort="Daily trivia against the clock."
         accent="fire"
         field="fire"
@@ -74,19 +74,11 @@ export default function DailyTriviaPage() {
         </DailiesProvider>
         <NewHereLine from="daily-fire" />
 
-        <section className="fire-flat fire-about" aria-labelledby="fire-how-title">
-          <h2 id="fire-how-title" className="fire-flat__title">How the daily trivia quiz works</h2>
-          <ol className="fire-steps">
-            <li><strong>Pick a round.</strong> Today&apos;s round is 60 seconds of mixed questions. More rounds let you choose a category and 1, 3 or 5 minutes, or keep going until you miss three.</li>
-            <li><strong>Type, or open the choices.</strong> A typed answer is worth {TYPED_POINTS}. Four choices are there when you need them, for {CHOICE_POINTS}.</li>
-            <li><strong>Heat up.</strong> Three right in a row is ×1.5, six is ×2. A miss cools you down.</li>
-          </ol>
-          <p className="fire-small">Hosting a group? <Link href={TRIVIA_PATH}>Run a trivia night</Link> with phones and a TV.</p>
-        </section>
-
+        {/* How to play is the Start card's three steps; the FAQ holds the details (writing pass, 2026-10-20). */}
         <section className="fire-flat fire-about" aria-labelledby="fire-faq-title">
-          <h2 id="fire-faq-title" className="fire-flat__title">Questions</h2>
+          <h2 id="fire-faq-title" className="fire-flat__title">About the daily trivia quiz</h2>
           <FaqList items={FAQ_SHOWN} />
+          <p className="fire-small">For a group, <Link href={TRIVIA_PATH}>run a trivia night</Link> with phones and a TV.</p>
         </section>
       </Container>
     </main>

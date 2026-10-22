@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 import { Button } from "@empac/cascadeds";
+import { ToolLayout } from "@/components/tools/ToolLayout";
+import { TruthOrDarePicker } from "@/components/tools/TruthOrDarePicker";
 
 type Kind = "truth" | "dare";
 
@@ -16,20 +18,14 @@ function pickAvoiding(pool: string[], last: string | undefined): string {
   return next;
 }
 
-export function TruthOrDareTool({
-  truths,
-  dares,
-}: {
-  truths: string[];
-  dares: string[];
-}) {
+export function TruthOrDareTool({ truths, dares, currentSlug }: { truths: string[]; dares: string[]; currentSlug?: string }) {
   const [kind, setKind] = useState<Kind | null>(null);
   const [prompt, setPrompt] = useState<string | null>(null);
   const lastTruth = useRef<string>(undefined);
   const lastDare = useRef<string>(undefined);
 
   function draw(which: Kind) {
-    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "truth-or-dare", kind: which } });
+    window.plausible?.("Tool Used", { props: { tool: "truth-or-dare", kind: which } });
     const pool = which === "truth" ? truths : dares;
     const last = which === "truth" ? lastTruth.current : lastDare.current;
     const next = pickAvoiding(pool, last);
@@ -39,30 +35,25 @@ export function TruthOrDareTool({
     setPrompt(next);
   }
 
-  function drawRandom() {
-    draw(Math.random() < 0.5 ? "truth" : "dare");
-  }
-
-  return (
-    <div className="tool-panel tod-tool">
-      <div className="tod-tool__buttons">
-        <Button variant="primary" onClick={() => draw("truth")}>Truth</Button>
-        <Button variant="primary" onClick={() => draw("dare")}>Dare</Button>
-        <Button variant="secondary" onClick={drawRandom}>Random</Button>
+  const stage = (
+    <>
+      <div className={`tod-card${kind ? ` tod-card--${kind}` : " tod-card--idle"}`} aria-live="polite">
+        {prompt && kind ? (
+          <>
+            <span className="tod-card__kind">{kind}</span>
+            <p className="tod-card__prompt">{prompt}</p>
+          </>
+        ) : (
+          <p className="tod-card__prompt">Truth or dare?</p>
+        )}
       </div>
-
-      {prompt && kind && (
-        <div className={`tod-card tod-card--${kind}`} aria-live="polite">
-          <span className="tod-card__kind">{kind}</span>
-          <p className="tod-card__prompt">{prompt}</p>
-        </div>
-      )}
-
-      {prompt && (
-        <Button variant="ghost" size="small" onClick={() => (kind ? draw(kind) : drawRandom())}>
-          Another {kind}
-        </Button>
-      )}
-    </div>
+      <div className="tool-stage__action tod-tool__buttons">
+        <Button variant="primary" size="large" onClick={() => draw("truth")}>Truth</Button>
+        <Button variant="primary" size="large" onClick={() => draw("dare")}>Dare</Button>
+        <Button variant="secondary" size="large" onClick={() => draw(Math.random() < 0.5 ? "truth" : "dare")}>Random</Button>
+      </div>
+    </>
   );
+
+  return <ToolLayout className="tod-tool" stage={stage} settings={<TruthOrDarePicker currentSlug={currentSlug} />} settingsLabel="Truth or dare sets" />;
 }

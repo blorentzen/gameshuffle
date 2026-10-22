@@ -72,8 +72,25 @@ function specsFor(titles) {
   add("/bingo-card-generator/halloween-party-bingo", "Halloween Bingo", "Card Generator", SPOOKY, "public/images/opengraph/bingo/halloween-party-bingo.jpg");
   add("/tier-list-maker/halloween-treats", "Halloween Treats", "Tier List", SPOOKY, "public/images/opengraph/tier-list/halloween-treats.jpg");
   add("/game-nights/halloween-party-games", "Halloween", "Free party games", SPOOKY);
+  // Christmas (2026-10-19): the party games page and the new Christmas sets.
+  const FESTIVE = G("christmas-tree", "gift", "snowflake", "candy", "star", "bell");
+  add("/game-nights/christmas-party-games", "Christmas", "Free party games", FESTIVE);
+  add("/truth-or-dare/christmas", "Christmas", "Truth or Dare", FESTIVE, "public/images/opengraph/truth-or-dare/christmas.jpg");
+  add("/bingo-card-generator/christmas-party-bingo", "Christmas Bingo", "Card Generator", FESTIVE, "public/images/opengraph/bingo/christmas-party-bingo.jpg");
+  add("/tier-list-maker/christmas-movies", "Christmas Movies", "Tier List", FESTIVE, "public/images/opengraph/tier-list/christmas-movies.jpg");
   // Hubs
   add("/welcome", "Welcome", "Free tools for every game night", G("calendar", "device-tv", "brand-discord", "broadcast", "trophy", "pokeball"));
+  // Search pages (2026-10-20): the random Pokémon generator (glyphs only: no Pokémon art on our images).
+  add("/randomizers/pokemon", "Random Pokémon", "Roll from all 1,025", G("pokeball", "dice-5", "flame", "droplet", "leaf", "bolt"), "public/images/opengraph/pokemon-og.jpg");
+  add("/twitch-chat-games", "Chat Games", "Twelve ways viewers play along", G("broadcast", "message-circle", "trophy", "dice-5", "users-group"));
+  add("/name-every-pokemon", "Name Them All", "How many can you remember?", G("list-numbers", "pokeball", "stopwatch", "brain", "trophy"));
+  // The free bracket tools (search pages round, 2026-10-20).
+  add("/bracket-generator", "Bracket Maker", "Single or double elimination", G("tournament", "trophy", "users", "crown", "flag"));
+  add("/round-robin-generator", "Round Robin", "A schedule with live standings", G("layout-grid", "refresh", "users", "list-numbers", "trophy"));
+  add("/swiss-pairing-generator", "Swiss Pairings", "Rounds, tiebreakers and a top cut", G("chess-knight", "cards", "list-numbers", "trophy", "users"));
+  // Support levels (2026-10-19): the credits page and the campaign page.
+  add("/credits", "Credits", "Made possible by our supporters", G("heart", "crown", "star", "award", "users-group"));
+  add("/support", "Support", "Keep game night free", G("heart", "crown", "star", "award", "server"));
   add("/game-nights", "Game Nights", "Find a table near you", A(GN));
   add("/gs-circuit", "Circuit", "Run bigger tournaments", A(TOUR));
   add("/communities", "Communities", "Find your people", G("users-group", "message-circle", "heart-handshake", "home", "star"));

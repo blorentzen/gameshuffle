@@ -6,7 +6,7 @@
 
 import "server-only";
 import { recordOverlayEvent } from "@/lib/overlay/events";
-import { getStreamerModuleDefault } from "@/lib/modules/streamerDefaults";
+import { coinForOverlay } from "@/lib/tools/looksServer";
 import { trackServerEvent } from "@/lib/analytics/server";
 import type { ToolSource } from "./dice";
 
@@ -26,19 +26,17 @@ export async function triggerCoinFlip(args: {
   void trackServerEvent("Streamer Tool", {
     props: { tool: "coin", surface: args.source ?? "unknown" },
   });
-  const cfg = await getStreamerModuleDefault({
-    ownerUserId: args.ownerUserId,
-    moduleId: "coin",
-    gameSlug: "*",
-  });
+  // The streamer's coin look, drawn the same as the free coin page.
+  const { paint } = await coinForOverlay(args.ownerUserId);
   await recordOverlayEvent({
     ownerUserId: args.ownerUserId,
     sessionId: args.sessionId ?? null,
     type: "coin",
     payload: {
       result,
-      headsColor: cfg?.headsColor ?? null,
-      tailsColor: cfg?.tailsColor ?? null,
+      paint,
+      headsColor: paint.base,
+      tailsColor: paint.base,
       triggeredBy: args.triggeredBy ?? null,
     },
     ttlMs: COIN_TTL_MS,

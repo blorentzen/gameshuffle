@@ -12,6 +12,8 @@
  * gs_overlay_layouts.
  */
 
+import { MmrOverlay } from "@/components/mmr/MmrOverlay";
+import { LoungeRoomOverlay } from "@/components/lounge/LoungeRoomOverlay";
 import type { ComponentType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
@@ -35,6 +37,8 @@ import {
 import { DEFAULT_TIERS, DEFAULT_BINGO_PROMPTS } from "@/lib/modules/registry";
 import { DiceOverlay } from "@/components/overlay/DiceOverlay";
 import { CoinOverlay } from "@/components/overlay/CoinOverlay";
+import { useToolLook } from "@/components/tools/looks/useToolLook";
+import { coinLetter, coinPaint, diceDrawn, DEFAULT_COIN_LOOK } from "@/lib/tools/looks";
 import { PartyCardOverlay } from "@/components/overlay/PartyCardOverlay";
 import { OracleOverlay } from "@/components/overlay/OracleOverlay";
 import { NamePickerOverlay } from "@/components/overlay/NamePickerOverlay";
@@ -55,7 +59,7 @@ import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
-import { IconBallBowling, IconBrain, IconBulb, IconCar, IconCards, IconChartBar, IconChecklist, IconCoffee, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
+import { IconChartLine, IconBallBowling, IconBrain, IconBulb, IconCar, IconCards, IconChartBar, IconChecklist, IconCoffee, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconUsersGroup, IconWorld } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type OverlayElement = {
@@ -94,6 +98,8 @@ const APPS: OverlayElement[] = [
   { id: "break_screen", label: "Break screen", icon: IconCoffee },
   { id: "chat", label: "Chat", icon: IconMessageCircle },
   { id: "viewers", label: "Viewer Count", icon: IconEye },
+  { id: "mmr", label: "MMR card", icon: IconChartLine },
+  { id: "lounge_room", label: "Tonight's room", icon: IconUsersGroup },
 ];
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
@@ -140,6 +146,18 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
   // The streamer's saved brand theme, applied to the preview frame so the stage
   // renders with their ACTUAL colors (WYSIWYG with the live overlay).
   const { vars: brandVars } = useBrandTheme();
+  // The dice and coin preview in the streamer's saved looks (Tool looks), as the overlay draws them.
+  const diceLook = useToolLook("dice", { toast: false });
+  const coinLook = useToolLook("coin", { toast: false });
+  const diceSample = useMemo(() => {
+    const d = diceDrawn(diceLook.look, { pro: diceLook.pro, brand: diceLook.brand });
+    return { values: [4, 2], dieColor: d.dieColor, pipColor: d.pipColor, table: diceLook.look.showTable ? diceLook.look.table : null };
+  }, [diceLook.look, diceLook.pro, diceLook.brand]);
+  const coinSample = useMemo(() => {
+    const c = coinLook.look;
+    const paint = coinPaint({ ...c, heads: coinLetter(c.heads, DEFAULT_COIN_LOOK.heads), tails: coinLetter(c.tails, DEFAULT_COIN_LOOK.tails) }, { pro: coinLook.pro, brand: coinLook.brand, avatarUrl: coinLook.avatarUrl });
+    return { result: "heads" as const, paint };
+  }, [coinLook.look, coinLook.pro, coinLook.brand, coinLook.avatarUrl]);
   const stageRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<string | null>(null);
@@ -192,8 +210,6 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
       i === 12 ? "★" : DEFAULT_BINGO_PROMPTS[i % DEFAULT_BINGO_PROMPTS.length],
     );
     return {
-      dice: { values: [4, 2], dieColor: "#eef1f6", pipColor: "#1b2740" },
-      coin: { result: "heads" as const, headsColor: "#e6b23c", tailsColor: "#d9a94f" },
       party_card: {
         kind: "crutch" as const,
         title: "Mushroom diet",
@@ -488,9 +504,9 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
   const renderComponent = (toolId: string, style: CSSProperties) => {
     switch (toolId) {
       case "dice":
-        return <DiceOverlay payload={samples.dice} style={style} />;
+        return <DiceOverlay payload={diceSample} style={style} />;
       case "coin":
-        return <CoinOverlay payload={samples.coin} style={style} />;
+        return <CoinOverlay payload={coinSample} style={style} />;
       case "oracle":
         return <OracleOverlay payload={samples.oracle} style={style} />;
       case "party_card":
@@ -527,6 +543,10 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
         return <BreakScreenOverlay view={samples.break_screen} style={style} />;
       case "chat":
         return <ChatTimelineOverlay sample style={style} />;
+      case "mmr":
+        return <MmrOverlay sample style={style} />;
+      case "lounge_room":
+        return <LoungeRoomOverlay sample style={style} />;
       case "viewers":
         return <ViewerCountOverlay sample style={style} />;
       default:

@@ -9,25 +9,25 @@
 
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
-import { AuthPromptModal } from "./AuthPromptModal";
+import { useLiveHost } from "./LiveHost";
 import type { BreakView } from "@/lib/break/types";
 import { BreakRoundPlay } from "@/components/break/BreakRoundPlay";
 
 const secsUntil = (iso: string | null, now: number) => (iso ? Math.max(0, Math.ceil((Date.parse(iso) - now) / 1000)) : 0);
 
-export function LiveBreakCard({ communityId, streamerSlug }: { communityId: string | null; streamerSlug: string }) {
+export function LiveBreakCard({ communityId }: { communityId: string | null; streamerSlug?: string }) {
   const toast = useToast();
+  const host = useLiveHost();
   const [view, setView] = useState<BreakView | null>(null);
   const [mine, setMine] = useState<string | null>(null);
   const [signedIn, setSignedIn] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!communityId) return;
     let active = true;
     const load = async () => {
-      const d = await fetch(`/api/break/community/${communityId}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+      const d = await host.api(`/api/break/community/${communityId}`);
       if (!active || !d?.ok) return;
       setView(d.view ?? null);
       setMine(d.mine ?? null);
@@ -36,7 +36,7 @@ export function LiveBreakCard({ communityId, streamerSlug }: { communityId: stri
     void load();
     const iv = window.setInterval(load, 2000);
     return () => { active = false; window.clearInterval(iv); };
-  }, [communityId]);
+  }, [communityId, host]);
 
   const open = view?.phase === "open" && view.status === "running";
   useEffect(() => {
@@ -48,9 +48,8 @@ export function LiveBreakCard({ communityId, streamerSlug }: { communityId: stri
   if (!view) return null;
 
   const answer = async (text: string): Promise<boolean> => {
-    if (!signedIn) { setAuthOpen(true); return false; }
-    const d = await fetch(`/api/break/${view.id}/answer`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) })
-      .then((r) => r.json()).catch(() => null);
+    if (!signedIn) { host.signIn("play along"); return false; }
+    const d = await host.api(`/api/break/${view.id}/answer`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
     if (d?.ok) { setMine(text.trim().toLowerCase()); return true; }
     toast.error(d?.error === "closed" ? "That round just closed. Catch the next one!" : d?.error === "not_an_answer" ? (view.round?.layout === "letters" ? "That word isn't on our list. Try another five-letter word." : "That isn't an answer for this round.") : "Couldn't send that. Try again.");
     return false;
@@ -91,7 +90,6 @@ export function LiveBreakCard({ communityId, streamerSlug }: { communityId: stri
       {view.leaders.length > 0 && view.status === "running" && (
         <p className="live-break__leaders">Leading: {view.leaders.slice(0, 3).map((l) => `${l.name} ${l.points}`).join(" · ")}</p>
       )}
-      <AuthPromptModal isOpen={authOpen} onClose={() => setAuthOpen(false)} streamerSlug={streamerSlug} actionLabel="play along" />
     </section>
   );
 }

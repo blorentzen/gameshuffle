@@ -12,6 +12,7 @@ import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, KIRBY_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import { GAME_ART } from "@/data/game-art";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
@@ -34,7 +35,6 @@ export default function AppsPage() {
       <section className="marketing-hero">
         <MarketingHeroField category="mixed" />
         <Container>
-          <p className="marketing-eyebrow">Every app in one place</p>
           <h1 className="marketing-hero__title">All the GameShuffle apps</h1>
           <p className="marketing-hero__sub">
             The games you play on stream: randomizers, competitive scoring, tournaments, and a
@@ -216,7 +216,7 @@ export default function AppsPage() {
             />
             )}
             </ResponsiveCarousel>
-          <Link href="/randomizers" className="home-all-link"><Button variant="secondary">All randomizers →</Button></Link>
+          <Link href="/randomizers" className="home-all-link"><Button variant="secondary">All randomizers</Button></Link>
           <h2 className="randomizer-index__heading">More apps</h2>
           <ResponsiveCarousel className="app-card-grid" label="More apps">
             <AppCard
@@ -274,7 +274,7 @@ export default function AppsPage() {
           </ResponsiveCarousel>
           <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
             Looking for wheel spinners, dice, tier lists &amp; more?{" "}
-            <Link href="/tools" style={{ color: "var(--brand-ink)", fontWeight: 600 }}>Browse the free tools →</Link>
+            <ArrowLink href="/tools">Browse the free tools</ArrowLink>
           </p>
         </section>
 

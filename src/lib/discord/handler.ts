@@ -8,6 +8,7 @@ import { handleGsPoll, handlePollVote, POLL_VOTE_PREFIX } from "./commands/polls
 import { handleGsTag } from "./commands/tags";
 import { handleGsRemind } from "./commands/remind";
 import { handleGsProfile } from "./commands/profile";
+import { handleGsMmr, handleGsRoom } from "./commands/mmr";
 import {
   BRAIN_ANSWER_PREFIX,
   BRAIN_MODAL_PREFIX,
@@ -73,6 +74,10 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleGsRemind(interaction);
       case "gs-profile":
         return handleGsProfile(interaction);
+      case "gs-mmr":
+        return handleGsMmr(interaction);
+      case "gs-room":
+        return handleGsRoom(interaction);
       case "gs-brain":
         return handleGsBrain(interaction);
       case "gs-weekly":

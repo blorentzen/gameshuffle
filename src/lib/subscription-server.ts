@@ -136,8 +136,14 @@ export async function getProAccess(
   }[];
   const pro = rows.find((r) => (r.product ?? "pro") === "pro");
   const circuit = rows.find((r) => r.product === "circuit");
+  // Pro from a Backer or Champion support level: a live level and no live GS Pro plan of their own.
+  const ownProLive = rows.some((r) => (r.product ?? "pro") === "pro" && ["trialing", "active", "past_due"].includes(r.status ?? ""));
+  const { supportProGrant } = await import("@/lib/support/store");
+  const grant = ownProLive ? null : await supportProGrant(userId).catch(() => null);
 
   return proAccessFromState({
+    proFromSupport: !!grant,
+    supportPeriodEnd: grant?.renewsAt ?? null,
     subscriptionTier: user.subscriptionTier,
     subscriptionStatus: user.subscriptionStatus,
     role: user.role,

@@ -11,6 +11,7 @@ import { RollingText } from "@/components/randomizer/RollingText";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { CardActions } from "@/components/randomizer/CardActions";
+import { SeatCard } from "@/components/randomizer/PlayerCard";
 import { RandomTile } from "@/components/randomizer/RandomTile";
 import { otherSeats, seatLabel, withSeat } from "@/lib/randomizers/seats";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -200,21 +201,19 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         {Array.from({ length: players }, (_, i) => {
           const f = fighters[i];
           return (
-            <div key={i} className="player-card">
-              <div className="player-card__header">
-                <div className="player-card__name">
-                  <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
-                </div>
+            <SeatCard key={i} rolled={Boolean(f)} animate={animateReel}
+              name={<Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />}
+              actions={
                 <CardActions
                   refreshLabel={`New fighter for ${seatLabel(names, i)}`} onRefresh={() => rollFighters(i)}
                   removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 2 ? () => removePlayer(i) : undefined} />
-              </div>
-              <ul className="player-card__slots">
+              }
+              tile={
                 <KartSlot label="Fighter" portrait name={f?.name ?? null} imageSrc={f ? fighterArt(f.name) || null : null}
                   color={f ? fighterColor(game.fighters.find((x) => x.name === f.name)?.series ?? "") : null} pool={reelPool} animate={animateReel} empty={<RandomTile look="smash" />} />
-              </ul>
+              }>
               {f && <p className="party-muted">Costume {f.costume} · {game.series[game.fighters.find((x) => x.name === f.name)?.series ?? ""] ?? ""}</p>}
-            </div>
+            </SeatCard>
           );
         })}
       </div>

@@ -129,7 +129,7 @@ export function ClaimClient({
       {isSignedIn ? (
         <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
           <Button variant="primary" onClick={claim} disabled={busy}>
-            {busy ? "Accepting…" : "Accept and continue →"}
+            {busy ? "Accepting…" : "Accept and continue"}
           </Button>
         </div>
       ) : (

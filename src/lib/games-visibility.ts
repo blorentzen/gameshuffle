@@ -33,6 +33,8 @@ export const GUIDES_PUBLIC = false;
 export const DAILY_DEX_PUBLIC = true;
 /** Fire Round (daily trivia, /daily-trivia): links from the dailies, the homepage and /trivia, and the sitemap. */
 export const FIRE_ROUND_PUBLIC = true;
+/** The Daily Duel (/daily-duel, a card duel against the trainer of the day): its APIs answer 404 in production until this is on. */
+export const DUEL_PUBLIC = false;
 
 /** Hidden randomizers by slug, for lists that loop over every randomizer. */
 const HIDDEN_RANDOMIZERS: Record<string, boolean> = {

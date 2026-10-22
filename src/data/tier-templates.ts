@@ -216,6 +216,19 @@ export const TIER_TEMPLATES: TierTemplate[] = [
       "Toothbrushes", "Pennies",
     ].map((label) => ({ label })),
   },
+  {
+    slug: "christmas-movies",
+    group: "Game night",
+    title: "Christmas Movies",
+    description: "Rank the holiday classics, from Home Alone to the one your family watches every year.",
+    // Words only: the movie titles, no posters.
+    items: [
+      "Home Alone", "Elf", "A Christmas Story", "It's a Wonderful Life", "The Polar Express", "How the Grinch Stole Christmas",
+      "The Muppet Christmas Carol", "Miracle on 34th Street", "National Lampoon's Christmas Vacation", "The Santa Clause",
+      "Rudolph the Red-Nosed Reindeer", "A Charlie Brown Christmas", "The Nightmare Before Christmas", "Klaus", "Arthur Christmas",
+      "Frosty the Snowman", "Jingle All the Way", "White Christmas", "Scrooged", "The Holiday",
+    ].map((label) => ({ label })),
+  },
 ].filter((t) => t.items.length > 0);
 
 export function getTierTemplate(slug: string): TierTemplate | undefined {

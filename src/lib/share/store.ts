@@ -24,6 +24,7 @@ import { boardView, timesFor } from "@/lib/daily/boards";
 import { parsePlayer, type BoardGame } from "@/lib/daily/boardRules";
 import { streakEnding } from "@/lib/originals/winners";
 import { fireShareFacts } from "@/lib/fireRound/store";
+import { duelShareFacts } from "@/lib/originals/duel/store";
 import { weekNumber, weekOf } from "@/lib/originals/weekly";
 import { getEntry, getWeek } from "@/lib/weekly/store";
 import { accountAvatar, type AccountRow } from "@/lib/discord/faces";
@@ -31,12 +32,18 @@ import { BRAND_THEMES } from "@/lib/theme/brand";
 import { codeFor } from "@/lib/referrals/store";
 import { supporterInfo } from "@/lib/support/store";
 import { SITE_URL } from "@/lib/seo";
-import { shareAlt, type FirePart, type PuzzlePart, type ShareBackground, type ShareCell, type ShareData, type ShareKind, type ShareMade, type SharePart, type SharePlayer, type ShareRequest, type SupporterPart, type WeeklyPart } from "./types";
+import { clockLabel, clockSeconds, isQuizClock, isQuizSet, setLabel, setPool } from "@/lib/pokemon/nameQuiz";
+import { LoungeUnavailable, divisionSteps, loungePlayer } from "@/lib/mmr/mkcentral";
+import { MMR_GAMES, isMmrGame } from "@/lib/mmr/rules";
+import { nightFor } from "@/lib/lounge/night";
+import { loungePagePath } from "@/lib/lounge/lines";
+import { shareAlt, type DuelPart, type LoungePart, type NamesPart, type FirePart, type PuzzlePart, type ShareBackground, type ShareCell, type ShareData, type ShareKind, type ShareMade, type SharePart, type SharePlayer, type ShareRequest, type SupporterPart, type WeeklyPart } from "./types";
+import { DUEL_SHOWN } from "@/lib/originals/dailies";
 
 type DbError = { code?: string; message?: string } | null;
 const missing = (e: DbError) => !!e && (["42P01", "PGRST205"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
 
-export type ShareError = "not_ready" | "bad_request" | "no_result" | "mismatch";
+export type ShareError = "not_ready" | "bad_request" | "no_result" | "mismatch" | "unavailable";
 
 const SCHEDULE: Record<"shuffle" | "dex", DailySchedule> = { shuffle: SHUFFLE, dex: DEX };
 
@@ -129,6 +136,22 @@ async function firePart(key: string, runId: string | null): Promise<FirePart | n
   return { kind: "fire", daily: f.daily, number: f.number, score: f.score, right: f.right, bestStreak: f.bestStreak, categoryLabel: f.categoryLabel, lengthLabel: f.lengthLabel, streak: f.daily ? f.streak : 0, place };
 }
 
+/** A finished Daily Duel of this player's (the run asked for, else today's official one), from the server's record. */
+async function duelPart(key: string, runId: string | null): Promise<{ part: DuelPart; day: string } | null> {
+  const p = parsePlayer(key);
+  if (!p || p.kind === "i") return null;
+  const f = await duelShareFacts(p, runId);
+  if (!f) return null;
+  const place = f.official ? await placeToday(key, "duel", f.day) : null;
+  return {
+    day: f.day,
+    part: {
+      kind: "duel", number: f.number, trainer: f.trainer, trainerTitle: f.trainerTitle, practice: !f.official, won: f.won, turns: f.turns, par: f.par,
+      seconds: f.seconds, standing: f.standing, knocked: f.knocked, team: f.team, streak: f.streak, place, picture: f.picture,
+    },
+  };
+}
+
 async function weeklyPart(key: string): Promise<WeeklyPart | null> {
   const p = parsePlayer(key);
   if (p?.kind !== "u") return null;
@@ -186,11 +209,60 @@ async function supporterPart(key: string, session: string | undefined): Promise<
   return null;
 }
 
+/**
+ * Name every Pokémon: a quiz played in the browser, so the score is the player's own word. It's
+ * checked for sense (real Pokémon in the set, each once; the time inside the clock) and carries no
+ * tokens or leaderboard place.
+ */
+function namesPart(raw: ShareRequest["names"]): NamesPart | null {
+  if (!raw || !isQuizSet(raw.set) || !isQuizClock(raw.clock) || !Array.isArray(raw.named) || raw.named.length > 1100) return null;
+  const pool = new Set(setPool(raw.set).map((p) => p.dex));
+  const count = new Set(raw.named.filter((d) => typeof d === "number" && pool.has(d))).size;
+  const limit = clockSeconds(raw.set, raw.clock) ?? 12 * 3600;
+  const seconds = Math.max(0, Math.min(limit, Math.round(Number(raw.seconds) || 0)));
+  return { kind: "names", set: raw.set, setLabel: setLabel(raw.set), count, of: pool.size, seconds, clockLabel: clockLabel(raw.set, raw.clock) };
+}
+
+/**
+ * A lounge night (lounge night picks, 2026-10-20): only an account's own confirmed lounge player
+ * (lounge_links), worked out from MKCentral's history on the server. The latest night with
+ * events, or the night asked for.
+ */
+async function loungePart(key: string, raw: ShareRequest["lounge"]): Promise<LoungePart | ShareError> {
+  const p = parsePlayer(key);
+  if (p?.kind !== "u" || !raw || !isMmrGame(raw.game)) return p?.kind === "u" ? "bad_request" : "no_result";
+  const night = typeof raw.night === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.night) ? raw.night : null;
+  const game = raw.game;
+  const { data, error } = await createServiceClient().from("lounge_links").select("player_id").eq("user_id", p.id).eq("game", game).maybeSingle();
+  if (error) return missing(error) ? "no_result" : "bad_request";
+  const playerId = (data as { player_id: number } | null)?.player_id;
+  if (!playerId) return "no_result";
+  let player;
+  try {
+    player = await loungePlayer({ id: playerId }, game);
+  } catch (e) {
+    if (!(e instanceof LoungeUnavailable)) console.error("[share] lounge read:", e);
+    return "unavailable";
+  }
+  if (!player) return "no_result";
+  const steps = await divisionSteps(game);
+  const picked = nightFor({ changes: player.changes, steps, mmr: player.mmr, division: player.division }, night);
+  if (!picked || !picked.recap.events) return "no_result";
+  const r = picked.recap;
+  return {
+    kind: "lounge", game, gameLabel: MMR_GAMES[game].short, name: player.name, night: picked.day,
+    events: r.events, wins: r.wins, losses: r.losses, net: r.net, mmr: r.mmr, division: r.division,
+    newDivision: r.newDivisions.length ? r.newDivisions[r.newDivisions.length - 1] : null,
+    best: r.best ? { place: r.best.place, delta: r.best.delta, format: r.best.format } : null,
+    squares: r.squares.slice(-24), page: loungePagePath(player.name, game),
+  };
+}
+
 /** Makes (or refreshes) this player's card for a request and returns its link. */
 export async function makeShare(key: string, req: ShareRequest): Promise<ShareMade | ShareError> {
   const kind = req.kind;
-  if (!["shuffle", "dex", "fire", "weekly", "day", "supporter"].includes(kind)) return "bad_request";
-  const day = dayKey();
+  if (!["shuffle", "dex", "fire", "weekly", "day", "supporter", "names", "lounge", "duel"].includes(kind)) return "bad_request";
+  let day = dayKey();
   const parts: SharePart[] = [];
   let ref = "";
 
@@ -204,12 +276,33 @@ export async function makeShare(key: string, req: ShareRequest): Promise<ShareMa
     if (!part) return "no_result";
     parts.push(part);
     ref = part.daily ? "" : runId ?? "";
+  } else if (kind === "duel") {
+    const runId = typeof req.duelRun === "string" && /^[0-9a-f-]{36}$/i.test(req.duelRun) ? req.duelRun : null;
+    const got = await duelPart(key, runId);
+    if (!got) return "no_result";
+    parts.push(got.part);
+    // One card for the official duel a day; each practice duel gets its own. The card's day is the duel's.
+    ref = got.part.practice ? runId ?? "" : "";
+    day = got.day;
+  } else if (kind === "names") {
+    const part = namesPart(req.names);
+    if (!part) return "bad_request";
+    parts.push(part);
+    // One card per set and clock a day.
+    ref = `${part.set}-${req.names!.clock}`;
   } else if (kind === "supporter") {
     const part = await supporterPart(key, req.session);
     if (!part) return "no_result";
     parts.push(part);
     // A gift made signed out gets its own card per gift.
     ref = parsePlayer(key)?.kind === "u" ? "" : (req.session ?? "");
+  } else if (kind === "lounge") {
+    const part = await loungePart(key, req.lounge);
+    if (typeof part === "string") return part;
+    parts.push(part);
+    // One card per lounge game and night; the card's day is the night it shows.
+    ref = part.game;
+    day = part.night;
   } else if (kind === "weekly") {
     const part = await weeklyPart(key);
     if (!part) return "no_result";
@@ -223,6 +316,9 @@ export async function makeShare(key: string, req: ShareRequest): Promise<ShareMa
     }
     const fire = await firePart(key, null);
     if (fire) parts.push(fire);
+    // The Daily Duel only once it's on (its tables don't exist in production before then).
+    const duel = DUEL_SHOWN ? await duelPart(key, null).catch(() => null) : null;
+    if (duel) parts.push(duel.part);
     const weekly = await weeklyPart(key);
     if (weekly) parts.push(weekly);
     if (parts.length < 2) return "no_result";
@@ -248,7 +344,7 @@ export async function makeShare(key: string, req: ShareRequest): Promise<ShareMa
         // Another tab made this card first: use theirs.
         const { data: race } = await svc.from("gs_share_cards").select("code").eq("player", key).eq("kind", kind).eq("day", day).eq("ref", ref).maybeSingle();
         if (race) code = (race as { code: string }).code;
-      } else return "bad_request";
+      } else return ins.error.code === "23514" ? "not_ready" : "bad_request"; // a kind the table's check doesn't know yet (migration pending)
     }
   }
   if (!code) return "bad_request";
@@ -262,6 +358,13 @@ export async function loadShare(code: string): Promise<{ data: ShareData; update
   if (error || !data) return null;
   const row = data as { data: ShareData; updated_at: string };
   return { data: row.data, updatedAt: row.updated_at };
+}
+
+/** Whose card a code is (`u:`/`i:`/`g:`), for the leaderboard's "shared this". Server only: never sent to a page. */
+export async function sharePlayer(code: string): Promise<string | null> {
+  if (!/^[a-z0-9]{6,12}$/.test(code)) return null;
+  const { data } = await createServiceClient().from("gs_share_cards").select("player").eq("code", code).maybeSingle();
+  return (data as { player: string } | null)?.player ?? null;
 }
 
 export type { ShareKind };

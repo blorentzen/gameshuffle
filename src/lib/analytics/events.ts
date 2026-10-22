@@ -74,6 +74,14 @@ export const EVENTS = {
   fireRoundFinished: "Fire Round Finished",
   /** "Copy my score" {mode}. */
   fireRoundShared: "Fire Round Shared",
+  /** The Daily Duel (src/lib/originals/duel/): today's official duel started (the Start button). {tier} */
+  duelStarted: "Duel Started",
+  /** A duel ended {won, turns, par, official}. */
+  duelFinished: "Duel Finished",
+  /** A practice duel started (only once the official one is over). */
+  duelPracticed: "Duel Practiced",
+  /** The duel's Share or copy {via}. */
+  duelShared: "Duel Shared",
   /** The Share button on any result (src/components/share): {game, via: sheet|window}, then where it went {game, place}. */
   shareOpened: "Share Opened",
   shareSent: "Share Sent",
@@ -138,6 +146,42 @@ export const EVENTS = {
   // Randomizer extras
   pokemonDetailsOpened: "Pokemon Details Opened",
   pokemonSlotChosen: "Pokemon Slot Chosen",
+  /** The random Pokémon generator rolled (props: { count, gen: all | 1-9, type: any | the type, slot: all | one }). */
+  pokemonRolled: "Pokemon Rolled",
+  /** A generator roll's link was copied. */
+  pokemonLinkCopied: "Pokemon Link Copied",
+  /** A free bracket tool made a bracket, schedule or round 1 (props: { format: single | double | roundrobin | swiss, players }). */
+  bracketMade: "Bracket Made",
+  /** A bracket tool's link was copied (props: { format }). */
+  bracketLinkCopied: "Bracket Link Copied",
+  /** A bracket tool was printed (props: { format }). */
+  bracketPrinted: "Bracket Printed",
+  /** "Run it as a live tournament" from a bracket tool (props: { format, players }). */
+  bracketRunLive: "Bracket Run Live",
+  /** The MMR card's lounge name was found and saved (props: { game }). */
+  mmrCardSaved: "MMR Card Saved",
+  /** The MMR card's OBS link was copied (props: { layout }). */
+  mmrCardLinkCopied: "MMR Card Link Copied",
+  /** Tonight's goal set on the MMR card, GS Pro (props: { game }). */
+  mmrGoalSet: "MMR Goal Set",
+  /** The weekly lounge report switched on or off in the MMR studio (props: { on }). */
+  loungeWeeklySwitched: "Lounge Weekly Switched",
+  /** A lounge name confirmed by Discord on /lounge ({games}: how many lounge games). */
+  loungeConfirmed: "Lounge Confirmed",
+  /** A room read on /lounge ({players, format}: how many names, players per team). */
+  loungeRoomRead: "Lounge Room Read",
+  /** A player opened from the lounge lookup (props: { via: suggestion | enter | fc | recent | did-you-mean }). */
+  loungeSearchUsed: "Lounge Search Used",
+  /** A board tab opened on /lounge (props: { board: world | climbing | countries | gs }). */
+  loungeBoardViewed: "Lounge Board Viewed",
+  /** A lounge player's page shared from its header (props: { via: share | copy }). */
+  loungePlayerShared: "Lounge Player Shared",
+  /** The compare form sent (props: { from: lounge | player }). */
+  loungeCompareUsed: "Lounge Compare Used",
+  /** Name every Pokémon started (props: { set: all | 1-9, clock: standard | long | none }). */
+  nameQuizStarted: "Name Quiz Started",
+  /** Name every Pokémon ended (props: { set, clock, count, reason: time | gave-up | done }). */
+  nameQuizFinished: "Name Quiz Finished",
   runPartTicked: "Run Part Ticked",
   runFinished: "Run Finished",
   goldeneyePartRefreshed: "GoldenEye Part Refreshed",

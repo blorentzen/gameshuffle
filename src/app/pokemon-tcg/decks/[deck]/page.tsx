@@ -25,6 +25,7 @@ import { deckUrl, shareImage } from "@/lib/decks/seo";
 import { CompanionNote, splitAfterSection } from "@/components/tcg/CompanionNote";
 import { SaveGuideDeck } from "@/components/tcg/decks/SaveGuideDeck";
 import { NewHereLine } from "@/components/welcome/NewHereLine";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 
 /**
  * Deck detail page — `/pokemon-tcg/decks/[deck]`. Renders one deck guide.
@@ -233,14 +234,12 @@ export default async function Page({
               , a matched pair built to learn the game together.
             </p>
             <div className="deck-battlebox-note__links">
-              <Link
-                href={`/pokemon-tcg/decks/battle-box/${battleBox.frontmatter.slug}`}
-              >
-                See the Battle Box →
-              </Link>
-              <Link href={`/pokemon-tcg/decks/${partner.frontmatter.slug}`}>
-                Play against {partner.frontmatter.archetype} →
-              </Link>
+              <ArrowLink href={`/pokemon-tcg/decks/battle-box/${battleBox.frontmatter.slug}`}>
+                See the Battle Box
+              </ArrowLink>
+              <ArrowLink href={`/pokemon-tcg/decks/${partner.frontmatter.slug}`}>
+                Play against {partner.frontmatter.archetype}
+              </ArrowLink>
             </div>
           </aside>
         ) : null}
@@ -271,7 +270,7 @@ export default async function Page({
               style={{ textDecoration: "none" }}
             >
               <Button variant="primary" size="large">
-                Shop the cards →
+                Shop the cards
               </Button>
             </a>
             <SaveGuideDeck slug={fm.slug} />
@@ -295,10 +294,10 @@ export default async function Page({
               const primary = orderedTierBadges(r.frontmatter.tiers)[0];
               return (
                 <li key={r.frontmatter.slug}>
-                  <Link href={`/pokemon-tcg/decks/${r.frontmatter.slug}`}>
+                  <ArrowLink href={`/pokemon-tcg/decks/${r.frontmatter.slug}`}>
                     {primary ? `${primary.label}: ` : ""}
-                    {r.frontmatter.archetype} →
-                  </Link>
+                    {r.frontmatter.archetype}
+                  </ArrowLink>
                 </li>
               );
             })}

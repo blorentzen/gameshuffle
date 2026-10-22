@@ -1415,6 +1415,7 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   .bgn-grid--compact .bgn-card__title { font-size: var(--font-size-16); }
   .bgn-grid--compact .bgn-card__tags { margin-top: var(--spacing-4); }
   .bgn-grid--compact .bgn-card__tags > :nth-child(n + 3) { display: none; }
+  .bgn-grid--compact .bgn-card__hero-box { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; box-shadow: none; transform: none; }
 }
 .bgn-card {
   display: flex;
@@ -1452,6 +1453,18 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   height: 128px; /* matches .tournament-browse-card__hero */
   overflow: hidden;
 }
+/* The game's box art as a card on the generated art (events without a cover). */
+.bgn-card__hero-box {
+  position: relative;
+  height: 100px;
+  width: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-8, 8px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  transform: rotate(-4deg);
+}
+.bgn-card__hero--box .evart__feature { display: none; }
 .bgn-card__hero-emoji {
   font-size: var(--font-size-32);
   line-height: 1;
@@ -1472,7 +1485,7 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.35);
   color: #fff;
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   font-weight: 700;
 }
 /* Ticket price. Same pill as the count, opposite corner so the two can both
@@ -1488,7 +1501,7 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   font-weight: 700;
 }
 /* Free is the common case, so it reads quieter than a dollar amount without

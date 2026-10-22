@@ -22,6 +22,7 @@ import { OriginalsLink, useOriginalsHost } from "@/components/originals/Original
 import { ordinal, PERIOD_LABEL, tidyName, type BoardGame, type BoardPeriod } from "@/lib/daily/boardRules";
 import type { BoardRow, BoardView, ScoreResult } from "@/lib/daily/boardTypes";
 import { formatTime } from "@/lib/originals/dailies";
+import { useShareChallenge } from "@/components/share/ShareChallenge";
 
 const GUEST_KEY = "gs-daily-guest";
 const SENT_KEY = "gs-daily-guest-sent";
@@ -209,12 +210,14 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
   const day = view.period === "day";
   // Fire Round's board: right answers and the score on the day, points over a week or month.
   const fire = view.game === "fire";
+  // The Daily Duel's day board: turns (or Lost) and cards left, then the time.
+  const duel = view.game === "duel" && day;
   // Today's board shows solve times once anyone on it has one (the Start button arrived 2026-10-16).
   const timed = !fire && day && [...view.rows, ...(view.you ? [view.you] : [])].some((r) => r.seconds != null);
   const shown = view.rows;
   const pinned = view.you && !shown.some((r) => r.you) ? view.you : null;
   if (!shown.length) {
-    return <p className="party-muted daily-board__empty">{day ? (fire ? "Nobody's played today's round yet. Be the first." : "Nobody's on the board yet today. Finish today's puzzle to be first.") : "Nobody's on this board yet."}</p>;
+    return <p className="party-muted daily-board__empty">{day ? (fire ? "Nobody's played today's round yet. Be the first." : view.game === "duel" ? "Nobody's on the board yet today. Win today's duel to be first." : "Nobody's on the board yet today. Finish today's puzzle to be first.") : "Nobody's on this board yet."}</p>;
   }
   const row = (r: BoardRow, key: string) => (
     <TableRow key={key} className={r.you ? "daily-board__you" : undefined}>
@@ -224,10 +227,12 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
           <PlayerAvatar name={r.name} src={pictures ? r.avatar ?? undefined : undefined} place={placeOf(r)} />
           {r.profile ? <OriginalsLink href={r.profile}>{r.you ? "You" : r.name}</OriginalsLink> : <span>{r.you ? "You" : r.name}</span>}
           {r.supporter && <IconHeartFilled size={13} className="daily-board__heart" aria-hidden="true" />}
+          {r.shared && !r.you && <span className="daily-board__shared">Shared this</span>}
           <span className="sr-only"> ({PLACES[placeOf(r)].said}{r.supporter ? ", supports GameShuffle" : ""})</span>
         </span>
       </TableCell>
-      <TableCell>{fire && day ? r.guesses : day ? <ResultDots guesses={r.guesses} points={r.points} main={main} /> : `${r.days} ${r.days === 1 ? "day" : "days"}`}</TableCell>
+      <TableCell>{fire && day ? r.guesses : duel ? (r.points > 0 ? r.guesses : "Lost") : day ? <ResultDots guesses={r.guesses} points={r.points} main={main} /> : `${r.days} ${r.days === 1 ? "day" : "days"}`}</TableCell>
+      {duel && <TableCell align="right">{r.score ?? 0}</TableCell>}
       {timed && <TableCell align="right"><span className="daily-board__time">{r.seconds != null ? formatTime(r.seconds) : ""}</span></TableCell>}
       <TableCell align="right"><strong>{fire && day ? (r.score ?? 0).toLocaleString("en-US") : r.points}</strong></TableCell>
       {!day && <TableCell align="right">{r.prize ? <span className="daily-board__prize">{r.prize.toLocaleString("en-US")}</span> : ""}</TableCell>}
@@ -243,7 +248,8 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
           <TableRow>
             <TableHead>#</TableHead>
             <TableHead>Player</TableHead>
-            <TableHead>{fire && day ? "Right" : day ? "Result" : "Played"}</TableHead>
+            <TableHead>{fire && day ? "Right" : duel ? "Turns" : day ? "Result" : "Played"}</TableHead>
+            {duel && <TableHead align="right"><abbr title="Cards left">Left</abbr></TableHead>}
             {timed && <TableHead align="right">Time</TableHead>}
             <TableHead align="right">{fire && day ? "Score" : <><span className="daily-board__long">Points</span><abbr className="daily-board__short" title="Points">Pts</abbr></>}</TableHead>
             {!day && <TableHead align="right">Prize</TableHead>}
@@ -272,12 +278,14 @@ const settleText = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateStr
 /** `join`: the guest's "Put me on the board" form, shown above the board it joins. */
 export function DailyBoard({ game, main, guestId, refresh, onViews, join }: { game: BoardGame; main: number; guestId: string | null; refresh: number; onViews?: (day: BoardView | null, week: BoardView | null) => void; join?: ReactNode }) {
   const { api, activity } = useOriginalsHost();
+  // On a friend's shared result page the board marks their row (the server looks the code up).
+  const sharedCode = useShareChallenge()?.code ?? null;
   const [period, setPeriod] = useState<BoardPeriod>("day");
   const [views, setViews] = useState<Partial<Record<BoardPeriod, BoardView>>>({});
 
   useEffect(() => {
     let alive = true;
-    const load = (p: BoardPeriod) => api(`/api/daily/board?game=${game}&period=${p}`, { headers: guestId ? { "x-daily-guest": guestId } : {} })
+    const load = (p: BoardPeriod) => api(`/api/daily/board?game=${game}&period=${p}${sharedCode ? `&shared=${sharedCode}` : ""}`, { headers: guestId ? { "x-daily-guest": guestId } : {} })
       .then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<BoardView | null>;
     void Promise.all([load("day"), load("week"), load("month")]).then(([d, w, m]) => {
       if (!alive) return;
@@ -289,7 +297,7 @@ export function DailyBoard({ game, main, guestId, refresh, onViews, join }: { ga
       }
     });
     return () => { alive = false; };
-  }, [api, game, guestId, refresh, onViews]);
+  }, [api, game, guestId, refresh, onViews, sharedCode]);
 
   const current = views[period];
   if (!views.day?.ready) return null;
@@ -310,7 +318,9 @@ export function DailyBoard({ game, main, guestId, refresh, onViews, join }: { ga
         <p className="daily-board__foot">
           {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · {game === "fire"
             ? "ties share a place · your first round each day earns up to 10 points, 1 for every 200 you score"
-            : `${period === "day" ? "level on points, the faster solve ranks higher" : "ties share a place"} · 10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance`}
+            : game === "duel"
+            ? `10 points for a win at par or better, then 8, 6, 4, 2 by turns over par · ${period === "day" ? "ties go to more cards left, then the faster win" : "ties share a place"}`
+            : `10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance · ${period === "day" ? "ties go to the faster solve" : "ties share a place"}`}
           {current.settles ? ` · prizes land ${settleText(current.settles)}` : ""}
         </p>
       )}

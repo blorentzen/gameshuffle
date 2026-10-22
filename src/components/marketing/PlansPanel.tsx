@@ -41,10 +41,12 @@ export async function PlansPanel({ title, intro, rows, copy = {}, cta = {}, from
   id?: string;
 }) {
   const launched = rows.includes("circuit") ? !!(await circuitLaunchState()).launchedAt : false;
-  const eyebrow: Record<PlanRow, React.ReactNode> = {
-    account: "Free account",
-    circuit: launched ? "GS Circuit" : "GS Circuit · free during preview",
-    pro: <>GS Pro<TrialNote trial=" · 14 days free" outside=" · in the US for now" /></>,
+  // One short label per row (eyebrow rule, 2026-10-20); the trial and preview facts close the row's text.
+  const eyebrow: Record<PlanRow, string> = { account: "Free account", circuit: "GS Circuit", pro: "GS Pro" };
+  const note: Record<PlanRow, React.ReactNode> = {
+    account: null,
+    circuit: launched ? null : " Free during the preview.",
+    pro: <TrialNote trial=" 14 days free." outside=" In the US for now." />,
   };
   const action = (row: PlanRow) => {
     const own = cta[row];
@@ -85,7 +87,7 @@ export async function PlansPanel({ title, intro, rows, copy = {}, cta = {}, from
       <RowPanel
         rows={rows.map((row) => {
           const c = { ...DEFAULTS[row], ...copy[row] };
-          return { key: row, Icon: ICONS[row], tone: TONES[row], eyebrow: eyebrow[row], title: c.name, text: c.body, action: action(row) };
+          return { key: row, Icon: ICONS[row], tone: TONES[row], eyebrow: eyebrow[row], title: c.name, text: <>{c.body}{note[row]}</>, action: action(row) };
         })}
       />
     </section>

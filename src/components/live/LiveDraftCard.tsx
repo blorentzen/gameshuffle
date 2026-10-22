@@ -15,11 +15,13 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { CaptainBoard } from "@/components/drafts/CaptainBoard";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useAnonViewerId } from "./useAnonViewerId";
+import { useLiveHost } from "./LiveHost";
 import type { StreamDraftView } from "@/lib/drafts/store";
 
 export function LiveDraftCard({ communityId }: { communityId: string | null }) {
   const anonId = useAnonViewerId();
   const toast = useToast();
+  const host = useLiveHost();
   const [draft, setDraft] = useState<StreamDraftView | null>(null);
   const [you, setYou] = useState<{ onClock: boolean; streamer: boolean } | null>(null);
   const [mine, setMine] = useState<Record<string, string>>({});
@@ -29,20 +31,19 @@ export function LiveDraftCard({ communityId }: { communityId: string | null }) {
     if (!communityId) return;
     let active = true;
     const load = async () => {
-      const d = await fetch(`/api/drafts/community/${communityId}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+      const d = await host.api(`/api/drafts/community/${communityId}`);
       if (active && d?.ok) { setDraft(d.draft ?? null); setYou(d.you ?? null); }
     };
     void load();
     const iv = window.setInterval(() => { void load(); setNow(Date.now()); }, 3000);
     return () => { active = false; window.clearInterval(iv); };
-  }, [communityId]);
+  }, [communityId, host]);
 
   if (!draft) return null;
   if (draft.mode === "captains" && draft.captains) {
     const cap = draft.captains;
     const pick = async (key: string) => {
-      const res = await fetch(`/api/drafts/${draft.id}/pick`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
-      const d = await res.json().catch(() => null);
+      const d = await host.api(`/api/drafts/${draft.id}/pick`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
       if (d?.ok) { setDraft(d.draft); setYou((y) => (y ? { ...y, onClock: false } : y)); track(EVENTS.draftPicked, { mode: "captain" }); }
       else toast.error(d?.error === "not_your_turn" ? "It's not your pick anymore." : "That pick didn't go through. Try again.");
     };
@@ -72,8 +73,12 @@ export function LiveDraftCard({ communityId }: { communityId: string | null }) {
   const vote = async (optionId: string) => {
     if (!c || !anonId) return;
     setMine((m) => ({ ...m, [c.pollId]: optionId }));
-    const res = await fetch(`/api/polls/${c.pollId}/vote`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ optionId, anonSessionId: anonId }) }).catch(() => null);
-    if (res?.ok) track(EVENTS.draftPicked, { mode: "poll" });
+    const d = await host.api(`/api/polls/${c.pollId}/vote`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ optionId, anonSessionId: anonId }) });
+    if (d?.ok) track(EVENTS.draftPicked, { mode: "poll" });
+    else if (d?.error === "share_needed") {
+      setMine((m) => { const next = { ...m }; delete next[c.pollId]; return next; });
+      host.signIn("vote");
+    }
   };
 
   return (

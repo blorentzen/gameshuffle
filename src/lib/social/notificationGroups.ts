@@ -23,6 +23,7 @@ export const NOTIFICATION_GROUPS: NotificationGroup[] = [
   { id: "game_nights", label: "Game nights", helper: "RSVPs to your nights and reminders for the ones you're going to.", types: ["game_night_rsvp", "game_night_reminder"] },
   { id: "ideas", label: "Idea Board", helper: "Updates on ideas you submitted.", types: ["idea_accepted", "idea_in_review", "idea_verdict", "idea_shipped"] },
   { id: "dailies", label: "Daily games", helper: "Prizes from the Daily Shuffle and Daily Dex leaderboards, making yesterday's top 5, and tokens from your invite link.", types: ["daily_prize", "daily_top5", "referral"] },
+  { id: "lounge", label: "Mario Kart lounge", helper: "Your Monday lounge report with GS Pro: last week's MMR change, best night and rivals. To stop the email too, turn the report off on your MMR card page.", types: ["lounge_weekly"] },
   { id: "streaming", label: "Streaming and payouts", helper: "Crew promotions, your Discord question pool running low, and ticket payouts.", types: ["crew_promotion", "qotd_low", "payout_paid", "payout_failed"] },
 ];
 

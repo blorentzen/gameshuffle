@@ -7,10 +7,35 @@
 
 import Link from "next/link";
 import { Button, Container } from "@empac/cascadeds";
+import { IconAlertTriangle, IconBook2, IconCards, IconCircles, IconScale, IconTrophy, type Icon } from "@tabler/icons-react";
 import { SITE_URL } from "@/lib/seo";
 import { RULES_CHECKED, RULES_PATH, RULE_PAGES, ruleUrl, type RulePage } from "@/data/tcg-rules";
+import { IconTile, type TileTone } from "@/components/ui/IconTile";
+import { ARROW_HOST_CLASS, ArrowCue } from "@/components/ui/ArrowLink";
+import { PlugBand } from "@/components/tcg/rules/PlugBand";
 
 export interface Faq { q: string; a: string }
+
+/** Each rule page's tile on the More rules cards (design round 3, 2026-10-20). */
+export const RULE_TILES: Record<string, { icon: Icon; tone: TileTone }> = {
+  "damage-counters": { icon: IconCircles, tone: "red" },
+  "special-conditions": { icon: IconAlertTriangle, tone: "violet" },
+  "weakness-and-resistance": { icon: IconScale, tone: "teal" },
+  "prize-cards": { icon: IconTrophy, tone: "orange" },
+  "how-to-play": { icon: IconBook2, tone: "blue" },
+};
+
+/** One More rules card: the whole card is the link. */
+function RuleCard({ href, title, summary, icon, tone }: { href: string; title: string; summary: string; icon: Icon; tone: TileTone }) {
+  return (
+    <Link href={href} className={`rule-card ${ARROW_HOST_CLASS}`}>
+      <IconTile icon={icon} tone={tone} />
+      <span className="rule-card__title">{title}</span>
+      <span className="rule-card__text">{summary}</span>
+      <ArrowCue className="rule-card__go">Read it</ArrowCue>
+    </Link>
+  );
+}
 
 export function RulesArticle({ page, lede, faq, children }: { page: RulePage; lede: React.ReactNode; faq: Faq[]; children: React.ReactNode }) {
   const url = `${SITE_URL}${ruleUrl(page.slug)}`;
@@ -61,16 +86,16 @@ export function RulesArticle({ page, lede, faq, children }: { page: RulePage; le
 
           <div className="deck-prose rules-page__body">{children}</div>
 
-          <section className="rules-page__companion" aria-labelledby="rules-companion">
-            <h2 id="rules-companion">Keep track at the table</h2>
-            <p>
-              The free GameShuffle TCG Companion tracks damage counters, Special Conditions, Energy and Prize cards on one phone, knows whose turn it is, and reminds you of the rules without stopping play. No download.
-            </p>
-            <div className="rules-page__actions">
+          <PlugBand
+            id="rules-companion"
+            title="Keep track at the table"
+            actions={<>
               <Link href="/tcg-companion"><Button variant="primary">Open the companion</Button></Link>
               <Link href="/pokemon-tcg-companion"><Button variant="ghost">How it works</Button></Link>
-            </div>
-          </section>
+            </>}
+          >
+            The free GameShuffle TCG Companion tracks damage counters, Special Conditions, Energy and Prize cards on one phone, knows whose turn it is, and reminds you of the rules without stopping play. No download.
+          </PlugBand>
 
           <section className="deck-prose rules-page__faq" aria-labelledby="rules-faq">
             <h2 id="rules-faq">Questions players ask</h2>
@@ -87,15 +112,16 @@ export function RulesArticle({ page, lede, faq, children }: { page: RulePage; le
           <nav className="rules-page__related" aria-labelledby="rules-related">
             <h2 id="rules-related">More rules</h2>
             <ul>
-              {related.map((p) => (
-                <li key={p.slug}>
-                  <Link href={ruleUrl(p.slug)}>{p.label}</Link>
-                  <span>{p.summary}</span>
-                </li>
-              ))}
+              {related.map((p) => {
+                const tile = RULE_TILES[p.slug] ?? { icon: IconBook2, tone: "blue" as const };
+                return (
+                  <li key={p.slug}>
+                    <RuleCard href={ruleUrl(p.slug)} title={p.label} summary={p.summary} icon={tile.icon} tone={tile.tone} />
+                  </li>
+                );
+              })}
               <li>
-                <Link href="/pokemon-tcg/decks">Deck guides</Link>
-                <span>Ready-to-play lists, from beginner decks to the meta.</span>
+                <RuleCard href="/pokemon-tcg/decks" title="Deck guides" summary="Ready-to-play lists, from beginner decks to the meta." icon={IconCards} tone="green" />
               </li>
             </ul>
           </nav>

@@ -181,6 +181,8 @@
 
 /* /trivia: the Fire Round card beside hosting (icon tile above the title, as on the site's other cards). */
 .trivia-solo { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-12); }
-.trivia-solo__tile { width: 4.4rem; height: 4.4rem; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #d9363e, #ff7a2f); }
+/* The shared icon tile (globals.css .icon-tile values), in Fire Round's gradient. */
+.trivia-solo__tile { flex: none; width: var(--tile-md); height: var(--tile-md); border-radius: var(--tile-md-radius); box-shadow: var(--tile-shadow); display: grid; place-items: center; color: #fff; background: var(--tile-fire); }
+.trivia-solo__tile svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
 .trivia-solo__copy { display: grid; gap: var(--spacing-4); min-width: 0; }
 .trivia-solo__copy .trivia-h2 { margin: 0; }

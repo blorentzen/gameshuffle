@@ -11,6 +11,7 @@ import { IconAdjustments } from "@tabler/icons-react";
 import { boardGameLevelLabel, BOARD_GAME_LEVELS } from "@/data/board-games";
 import { EventCard } from "./EventCard";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { artCategoryFor } from "./EventHeaderArt";
 import { NIGHT_KINDS, nightKindLabel } from "@/lib/game-nights/types";
 import { matchScore, isGoodMatch, haversineMiles, formatMiles, type ViewerPrefs } from "@/lib/game-nights/match";
@@ -447,6 +448,17 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     return () => { cancelled = true; };
   }, [serverMode, queryString]);
 
+  /* Both Show more buttons can leave the page (the last page, an opened
+     group), so the first card they add takes focus instead of the page body. */
+  const listRef = useRef<HTMLDivElement>(null);
+  const focusHref = useRef<string | null>(null);
+  useEffect(() => {
+    const href = focusHref.current;
+    if (!href) return;
+    const card = listRef.current?.querySelector<HTMLElement>(`a.bgn-card[href="${CSS.escape(href)}"]`);
+    if (card) { focusHref.current = null; card.focus(); }
+  });
+
   const loadMore = async () => {
     if (!serverCursor) return;
     setFetching(true);
@@ -454,6 +466,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
       const r = await fetch(`/api/events/browse?${queryString(serverCursor)}`, { cache: "no-store" });
       if (!r.ok) return;
       const page = await r.json();
+      focusHref.current = page.rows[0]?.href ?? null;
       setServerRows((prev) => [...(prev ?? []), ...page.rows]);
       setServerCursor(page.nextCursor);
       setServerTotal(page.total);
@@ -493,6 +506,25 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     return out;
   }, [visible, groupable]);
 
+  /** How many of a group's rows wait behind its own "Show N more". */
+  const hiddenIn = (g: { key: string; label: string; rows: unknown[] }) => {
+    const cap = config.groupCap && g.label && !openGroups.includes(g.key) ? config.groupCap : 0;
+    // A button for one more event costs as much room as the event, so a group one over the cap shows whole.
+    return cap && g.rows.length > cap + 1 ? g.rows.length - cap : 0;
+  };
+  /* The next page lands at the end of the last group. While that group is
+     still cut to the cap, its own button comes first: "Show more" would add
+     cards nobody sees (found 2026-10-20). Loading more opens the last group,
+     so what it adds there shows. */
+  const lastGroup = groups[groups.length - 1];
+  const lastCapped = !!lastGroup && hiddenIn(lastGroup) > 0;
+  const showMore = () => {
+    if (lastGroup?.label) setOpenGroups((o) => (o.includes(lastGroup.key) ? o : [...o, lastGroup.key]));
+    if (serverDecorated) { void loadMore(); return; }
+    focusHref.current = rows[shown]?.event.href ?? null;
+    setShown((n) => n + PAGE);
+  };
+
   const results = (
     <>
     {effectiveRows.length === 0 ? (
@@ -505,12 +537,10 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         )}
       </div>
     ) : (
-      <>
+      <div ref={listRef}>
       {groups.map((g) => {
-        const cap = config.groupCap && g.label && !openGroups.includes(g.key) ? config.groupCap : 0;
-        // A button for one more event costs as much room as the event, so a group one over the cap shows whole.
-        const hidden = cap && g.rows.length > cap + 1 ? g.rows.length - cap : 0;
-        const groupRows = hidden ? g.rows.slice(0, cap) : g.rows;
+        const hidden = hiddenIn(g);
+        const groupRows = hidden ? g.rows.slice(0, g.rows.length - hidden) : g.rows;
         return (
         <section key={g.key} className="bgn-group">
           {g.label && (
@@ -559,7 +589,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
           </div>
           {hidden > 0 && (
             <div className="bgn-group__more">
-              <Button variant="ghost" size="small" onClick={() => setOpenGroups((o) => [...o, g.key])}>
+              <Button variant="ghost" size="small" onClick={() => { focusHref.current = g.rows[groupRows.length]?.event.href ?? null; setOpenGroups((o) => [...o, g.key]); }}>
                 {`Show ${hidden} more ${groupMoreLabel(g.label)}`.trim()}
               </Button>
             </div>
@@ -567,18 +597,14 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         </section>
         );
       })}
-      {remaining > 0 && (
+      {remaining > 0 && !lastCapped && (
         <div className="bgn-more">
-          <Button
-            variant="secondary"
-            loading={fetching}
-            onClick={() => (serverDecorated ? void loadMore() : setShown((n) => n + PAGE))}
-          >
+          <Button variant="secondary" loading={fetching} onClick={showMore}>
             Show more ({remaining} left)
           </Button>
         </div>
       )}
-      </>
+      </div>
     )}
     </>
   );
@@ -754,7 +780,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         <section className="events-browser__cross">
           <div className="bgn-browse__head">
             <h2 className="events-browser__cross-heading">{config.crossRail.heading}</h2>
-            <Link href={config.crossRail.href} className="events-browser__cross-link">{config.crossRail.linkLabel} →</Link>
+            <ArrowLink href={config.crossRail.href} className="events-browser__cross-link">{config.crossRail.linkLabel}</ArrowLink>
           </div>
           <ResponsiveCarousel className="bgn-foryou__row" label={config.crossRail.heading}>
             {config.crossRail.items.map((e) => (

@@ -28,6 +28,8 @@ export interface BoardRow {
   prize: number;
   /** Supports GameShuffle (a small heart by the name, picks 2026-10-19). */
   supporter?: boolean;
+  /** The player whose shared result page this board is on ("shared this", picks 2026-10-20). */
+  shared?: boolean;
 }
 
 export interface BoardView {

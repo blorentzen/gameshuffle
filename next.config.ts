@@ -134,10 +134,11 @@ const nextConfig: NextConfig = {
       },
 
       // ─── All other API routes ─────────────────────────────────────────
-      // Only gameshuffle.co frontend should call these. /api/instant/* sets its
-      // own headers: the Facebook Instant Game calls it from *.fbsbx.com.
+      // Only gameshuffle.co frontend should call these. /api/instant/* and
+      // /api/twitch-ext/* set their own headers: the Facebook Instant Game calls
+      // from *.fbsbx.com and the Twitch extension from *.ext-twitch.tv.
       {
-        source: "/api/:path((?!instant/).*)",
+        source: "/api/:path((?!instant/|twitch-ext/).*)",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "https://gameshuffle.co" },
           { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },

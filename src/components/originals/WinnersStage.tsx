@@ -7,8 +7,10 @@
  * top 5". It's the hint videos' stage (social.css: the hero ground, glyph field
  * and logo, kept clear of the platforms' buttons), in each game's own colors:
  * the first game's ground, then each later game's layer fades in over it (the
- * Dex's warm, Fire Round's ember). Fire Round's rows show the score, right
- * answers and best streak in place of guess dots.
+ * Dex's warm, Fire Round's ember, the Duel's gold on navy). Fire Round's rows
+ * show the score, right answers and best streak in place of guess dots; the
+ * Daily Duel's show turns, cards left and the time, under the day's
+ * trainer's picture and par (trainer picture picks, 2026-10-21).
  *
  * Britton films it on his phone: the start screen copies the caption, then Play
  * hides it and the video runs once, full screen. `?paused=1` skips that screen
@@ -21,11 +23,15 @@ import { Button } from "@empac/cascadeds";
 import { IconBolt, IconCopy, IconCrown, IconFlame, IconPlayerPlay, IconStopwatch, IconTrophy } from "@tabler/icons-react";
 import { IconField } from "@/components/events/EventHeaderArt";
 import { TypeTile } from "@/components/pokemon/TypeCard";
+import { TrainerArt } from "@/components/originals/duel/TrainerArt";
 import { useToast } from "@/components/toast/ToastProvider";
 import { formatTime } from "@/lib/originals/dailies";
 import { WINNERS_INTRO, WINNERS_SECTION, rowDelay, winnersTimeline, type WinnerRow, type WinnersSection } from "@/lib/originals/winners";
 
-const LOOK = { shuffle: "daily", dex: "dex", fire: "fire" } as const;
+const LOOK = { shuffle: "daily", dex: "dex", fire: "fire", duel: "duel" } as const;
+
+/** "1 turn" / "3 turns". */
+const turnsWord = (n: number) => `${n} ${n === 1 ? "turn" : "turns"}`;
 
 const vars = (o: Record<string, string>) => o as CSSProperties;
 
@@ -36,8 +42,8 @@ function hueOf(name: string): number {
   return h;
 }
 
-function Row({ r, i, count, at, main, fire }: { r: WinnerRow; i: number; count: number; at: number; main: number; fire: boolean }) {
-  const dots = fire ? [] : Array.from({ length: Math.max(main, r.guesses) }, (_, k) => (k < r.guesses - 1 ? "miss" : k === r.guesses - 1 ? (r.saved ? "save" : "win") : "open"));
+function Row({ r, i, count, at, main, fire, duel }: { r: WinnerRow; i: number; count: number; at: number; main: number; fire: boolean; duel: boolean }) {
+  const dots = fire || duel ? [] : Array.from({ length: Math.max(main, r.guesses) }, (_, k) => (k < r.guesses - 1 ? "miss" : k === r.guesses - 1 ? (r.saved ? "save" : "win") : "open"));
   const first = r.place === 1;
   return (
     <li className={`winners-row winners-row--p${Math.min(r.place, 4)}${first ? " winners-row--first" : ""}`} style={vars({ "--at": `${(at + rowDelay(i, count)).toFixed(2)}s` })}>
@@ -53,6 +59,8 @@ function Row({ r, i, count, at, main, fire }: { r: WinnerRow; i: number; count: 
         <span className="winners-row__name">{r.name}</span>
         {fire ? (
           <span className="winners-row__fire">{r.guesses} right</span>
+        ) : duel ? (
+          <span className="winners-row__fire winners-row__duel">{turnsWord(r.guesses)}{r.score != null ? ` · ${r.score} left` : ""}</span>
         ) : (
           <span className="winners-row__dots" role="img" aria-label={r.saved ? "Saved on the last chance" : `Got it in ${r.guesses}`}>
             {dots.map((d, k) => <span key={k} className={`winners-row__dot winners-row__dot--${d}`} />)}
@@ -78,6 +86,7 @@ export function WinnersStage({ dateLabel, sections, caption, paused }: { dateLab
   const pictures = useMemo(() => [
     ...sections.flatMap((s) => s.rows.map((r) => r.avatar).filter((a): a is string => !!a)),
     ...sections.map((s) => s.answer?.img).filter((a): a is string => !!a),
+    ...sections.map((s) => s.trainer?.picture?.img).filter((a): a is string => !!a),
   ], [sections]);
   const [ready, setReady] = useState(pictures.length === 0);
   // Phone filming: the start screen, then the run, then the start screen again (Play again).
@@ -125,6 +134,7 @@ export function WinnersStage({ dateLabel, sections, caption, paused }: { dateLab
 
   const timing = vars({ "--intro-len": `${WINNERS_INTRO}s`, "--section-len": `${WINNERS_SECTION}s`, "--end-at": `${endAt}s` });
   const hasFire = sections.some((s) => s.game === "fire");
+  const hasDuel = sections.some((s) => s.game === "duel");
   const going = paused ? undefined : go;
 
   return (
@@ -162,7 +172,15 @@ export function WinnersStage({ dateLabel, sections, caption, paused }: { dateLab
           return (
             <section key={s.game} className={`winners-scene winners-scene--${s.game}`} style={vars({ "--at": `${at}s`, "--len": `${WINNERS_SECTION}s` })}>
               <p className="social-stage__eyebrow winners-in" style={vars({ "--at": `${(at + 0.1).toFixed(2)}s` })}>{s.title}{s.number >= 1 ? ` · #${s.number}` : ""}</p>
-              {s.answer ? (
+              {s.game === "duel" && s.trainer ? (
+                <div className="winners-trainer winners-in" style={vars({ "--at": `${(at + 0.5).toFixed(2)}s` })}>
+                  {s.trainer.picture && <TrainerArt picture={s.trainer.picture} shape="banner" className="winners-trainer__art" />}
+                  <p className="winners-trainer__line">
+                    <span>Against <strong>{s.trainer.name}</strong></span>
+                    {s.par ? <span>Par {s.par}</span> : null}
+                  </p>
+                </div>
+              ) : s.answer ? (
                 <p className="winners-answer winners-in" style={vars({ "--at": `${(at + 0.5).toFixed(2)}s` })}>
                   {s.game === "dex"
                     ? <TypeTile types={s.answer.types ?? []} size="medium" />
@@ -177,7 +195,7 @@ export function WinnersStage({ dateLabel, sections, caption, paused }: { dateLab
                 </p>
               )}
               <ol className="winners-rows" aria-label={`${s.title} top ${s.rows.length}`}>
-                {s.rows.map((r, i) => <Row key={`${r.place}-${i}`} r={r} i={i} count={s.rows.length} at={at} main={s.main} fire={s.game === "fire"} />)}
+                {s.rows.map((r, i) => <Row key={`${r.place}-${i}`} r={r} i={i} count={s.rows.length} at={at} main={s.main} fire={s.game === "fire"} duel={s.game === "duel"} />)}
               </ol>
             </section>
           );
@@ -186,7 +204,7 @@ export function WinnersStage({ dateLabel, sections, caption, paused }: { dateLab
         <section className="winners-scene winners-scene--end" style={vars({ "--at": `${endAt}s` })}>
           <p className="winners-big winners-in" style={vars({ "--at": `${(endAt + 0.15).toFixed(2)}s` })}>Make today&apos;s top 5</p>
           <span className="social-stage__pill winners-in" style={vars({ "--at": `${(endAt + 0.5).toFixed(2)}s` })}>Play at gameshuffle.co/top5</span>
-          <p className="social-stage__sub winners-in" style={vars({ "--at": `${(endAt + 0.8).toFixed(2)}s` })}>{hasFire ? "Free puzzles and trivia, new every day" : "Two free puzzles every day · new ones at midnight Pacific"}</p>
+          <p className="social-stage__sub winners-in" style={vars({ "--at": `${(endAt + 0.8).toFixed(2)}s` })}>{hasDuel ? "Free puzzles, trivia and a card duel, new every day" : hasFire ? "Free puzzles and trivia, new every day" : "Two free puzzles every day · new ones at midnight Pacific"}</p>
         </section>
       </main>
 

@@ -42,6 +42,7 @@ function remaining(expiresAt: string, now: number): string {
 }
 
 function describeChallenge(c: LiveChallenge): string {
+  if (c.text) return c.text;
   const cond = c.condition
     ? Object.values(c.condition)
         .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
