@@ -218,6 +218,7 @@ export function DailyDuel() {
 
   const onTurn = useCallback((attach: number, act: DuelAct) => void send({ attach, act }), [send]);
   const onNext = useCallback((card: number) => void send({ next: card }), [send]);
+  const onBring = useCallback((cards: number[]) => void send({ bring: cards }), [send]);
   const onZoom = useCallback((card: DuelCardView, owner: string) => setZoom({ card, owner }), []);
 
   const joinBoard = useCallback(async (name: string, token: string | null) => {
@@ -259,7 +260,7 @@ export function DailyDuel() {
   if (run && frame && (run.status === "playing" || holding)) {
     return (
       <>
-        <DuelArena run={run} play={frame.play} motion={frame.motion} busy={busy || staging || run.status !== "playing"} staging={staging} offset={offset} onNext={onNext} onTurn={onTurn} onZoom={onZoom} onSkip={endBeats} />
+        <DuelArena run={run} play={frame.play} motion={frame.motion} busy={busy || staging || run.status !== "playing"} staging={staging} offset={offset} onNext={onNext} onBring={onBring} onTurn={onTurn} onZoom={onZoom} onSkip={endBeats} />
         {zoomer}
       </>
     );

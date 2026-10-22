@@ -42,13 +42,13 @@ const EVENT_COPY_2: Partial<Record<DuelEventKind, { title: string; text: string;
 };
 
 /** An event's title, what it does, and the short line, in the trainer's name (`rules`: the day's rules version). */
-export function eventCopy(kind: DuelEventKind, trainer: Pick<DuelTrainer, "name" | "signature">, rules: 1 | 2 = 1): { title: string; text: string; short: string } {
+export function eventCopy(kind: DuelEventKind, trainer: Pick<DuelTrainer, "name" | "signature">, rules = 1): { title: string; text: string; short: string } {
   const fill = (s: string) => s.replaceAll("{trainer}", trainer.name);
   if (kind === "signature") {
     const e = trainer.signature.effect;
     return { title: fill(trainer.signature.title), text: fill(SIGNATURE_TEXT[e]), short: fill(SIGNATURE_SHORT[e]) };
   }
-  const c = (rules === 2 ? EVENT_COPY_2[kind] : undefined) ?? EVENT_COPY[kind];
+  const c = (rules >= 2 ? EVENT_COPY_2[kind] : undefined) ?? EVENT_COPY[kind];
   return { title: fill(c.title), text: fill(c.text), short: fill(c.short) };
 }
 

@@ -23,7 +23,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Icon } from "@tabler/icons-react";
 import { Button, IconButton, Modal } from "@empac/cascadeds";
-import { IconArrowsExchange, IconBolt, IconCrown, IconHourglass, IconList, IconMoodAngry, IconRocket, IconSpiral, IconStopwatch, IconZoomIn, IconZzz } from "@tabler/icons-react";
+import { IconArrowsExchange, IconBolt, IconCheck, IconCrown, IconHourglass, IconList, IconMoodAngry, IconRocket, IconSpiral, IconStopwatch, IconZoomIn, IconZzz } from "@tabler/icons-react";
 import type { DuelCardView, DuelPlayView, DuelRunView } from "@/lib/originals/duel/view";
 import type { DuelAct, EnergyType } from "@/lib/originals/duel/types";
 import type { ArenaMotion } from "./duelBeats";
@@ -152,7 +152,7 @@ function Scoreline({ rows, reveal, trainer, onLog }: { rows: ScoreRow[]; reveal:
   );
 }
 
-export function DuelArena({ run, play, motion, busy, staging, offset, onNext, onTurn, onZoom, onSkip }: {
+export function DuelArena({ run, play, motion, busy, staging, offset, onNext, onBring, onTurn, onZoom, onSkip }: {
   run: DuelRunView;
   /** The picture to draw (an exchange's beats first, then the new turn). */
   play: DuelPlayView;
@@ -163,6 +163,8 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
   /** Server time minus this browser's, for the clock. */
   offset: number;
   onNext: (card: number) => void;
+  /** Rules 4: the cards you bring. */
+  onBring: (cards: number[]) => void;
   onTurn: (attach: number, act: DuelAct) => void;
   onZoom: (card: DuelCardView, owner: string) => void;
   onSkip: () => void;
@@ -236,7 +238,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
   useEffect(() => {
     if (!touched.current || play.over || staging || busy) return;
     const opts = { preventScroll: !byKey.current };
-    if (play.needsNext) { pickRef.current?.focus(opts); return; }
+    if (play.needsNext || play.needsBring) { pickRef.current?.focus(opts); return; }
     const a = document.activeElement as HTMLElement | null;
     const kept = a && a !== document.body && a !== turnRef.current && a.isConnected && !(a as HTMLButtonElement).disabled && a.closest(".duel-arena__body");
     if (kept) return;
@@ -256,10 +258,11 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
     const parts = play.log.filter((l) => !(l.kind === "energy" && l.side === "you") && !isEventLine(l)).map(lineText);
     if (play.event) parts.push(`${play.event.title}. ${play.event.text}`, ...eventLines(play.log).map(lineText));
     if (play.over) parts.push(play.over === "won" ? `You beat ${trainer}.` : `${trainer} wins.`);
+    else if (play.needsBring) parts.push(`Pick ${play.bring} of your six to bring.`);
     else if (play.needsNext) parts.push(play.yi < 0 ? "Pick your lead." : "Pick your next card.");
     else if (turnLive && now && you) parts.push(`Turn ${play.turn}. Today's ${now} Energy is on your ${you.name}.`);
     return parts.join(" ");
-  }, [staging, play.log, play.event, play.over, play.needsNext, play.yi, play.turn, turnLive, now, you, trainer]);
+  }, [staging, play.log, play.event, play.over, play.needsNext, play.needsBring, play.bring, play.yi, play.turn, turnLive, now, you, trainer]);
 
   const inPlay = play.inPlay;
   const midChips: React.ReactNode[] = [];
@@ -275,7 +278,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
   }
 
   const energyFor = (c: DuelCardView): EnergyType[] => (attach === c.index && now ? [...c.energy, now] : c.energy);
-  const picker = play.needsNext && !play.over;
+  const picker = (play.needsNext || play.needsBring) && !play.over;
   const lone = you ? you.moves.length % 2 === 1 : false;
   const logLines = play.log.filter((l) => !isEventLine(l));
 
@@ -431,7 +434,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
 
         <div className="duel-bench duel-bench--you" role="group" aria-label="Your waiting cards" ref={benchRef}>
           {play.you.map((c) => {
-            if (c.index === play.yi && !c.out && !play.needsNext) return null;
+            if (c.sat || (c.index === play.yi && !c.out && !play.needsNext)) return null;
             const holds = attach === c.index;
             const canSwap = turnLive && swapping && play.swaps.includes(c.index);
             const canGive = turnLive && !swapping && !!now && !!you && play.attachTo.includes(c.index);
@@ -460,11 +463,14 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
           </div>
           {!run.official && <span className="duel-practice">Practice</span>}
           {run.official && run.status === "playing" && <DuelClock startedAt={Date.parse(run.startedAt)} offset={offset} />}
-          <Pips cards={play.you} who="You" />
+          <Pips cards={play.you.filter((c) => !c.sat)} who="You" />
         </div>
       </div>
 
-      {picker && (
+      {picker && play.needsBring && (
+        <DuelBringPicker play={play} trainer={trainer} headingRef={pickRef} busy={busy} onBring={(cards) => { touched.current = true; onBring(cards); }} onZoom={(c) => onZoom(c, "Your")} />
+      )}
+      {picker && !play.needsBring && (
         <DuelPicker play={play} trainer={trainer} headingRef={pickRef} busy={busy} onPick={(i) => { touched.current = true; onNext(i); }} onZoom={(c) => onZoom(c, "Your")} />
       )}
 
@@ -484,6 +490,67 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
           {eventLines(play.log).map((l, i) => <li key={`e${i}`}>{lineText(l)}</li>)}
         </ol>
       </Modal>
+    </div>
+  );
+}
+
+/**
+ * Rules 4: pick the cards you bring (as many as the trainer, at least 3) before the lead. Each card
+ * is a toggle (aria-pressed); Bring these N sends them once exactly N are picked. The picker's own
+ * drawing like DuelPicker (CascadeDS has no picture toggle grid: on the CDS fix list).
+ */
+function DuelBringPicker({ play, trainer, headingRef, busy, onBring, onZoom }: {
+  play: DuelPlayView;
+  trainer: string;
+  headingRef: React.RefObject<HTMLHeadingElement | null>;
+  busy: boolean;
+  onBring: (cards: number[]) => void;
+  onZoom: (c: DuelCardView) => void;
+}) {
+  const [picked, setPicked] = useState<number[]>([]);
+  const n = play.bring;
+  useEffect(() => { headingRef.current?.focus(); }, [headingRef]);
+  const names = play.foe.map((c) => cardLabel(c));
+  const team = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0];
+  const toggle = (i: number) => setPicked((p) => (p.includes(i) ? p.filter((x) => x !== i) : p.length < n ? [...p, i] : p));
+  const full = picked.length === n;
+  return (
+    <div className="duel-overlay duel-overlay--pick">
+      <div className="duel-pick">
+        <h3 className="duel-overlay__title" ref={headingRef} tabIndex={-1}>Pick {n} to bring</h3>
+        <p className="duel-overlay__text duel-pick__across">
+          <span>{trainer} brings <b>{play.foe.length}</b>: {team}</span>
+        </p>
+        <ul className="duel-pick__list">
+          {play.you.map((c) => {
+            const on = picked.includes(c.index);
+            const best = c.moves.reduce((m, mv) => Math.max(m, mv.d), 0);
+            return (
+              <li key={c.index} className="duel-pick__item">
+                <button type="button" className={`duel-pick__card${on ? " duel-pick__card--on" : ""}`} onClick={() => toggle(c.index)} disabled={busy || (!on && full)} aria-pressed={on} data-bring={c.index}
+                  aria-label={`${c.name}: ${c.t}, ${c.hp} HP, ${c.weak ? `weak to ${c.weak}` : "no Weakness"}, hits for up to ${best}.`}>
+                  <span className="duel-pick__art"><CardArt card={c} /></span>
+                  {on && <span className="duel-pick__tick" aria-hidden="true"><IconCheck size={18} stroke={3} /></span>}
+                  <span className="duel-pick__name">{cardLabel(c)}</span>
+                  <span className="duel-pick__facts" aria-hidden="true">
+                    <TypeChip t={c.t} />
+                    <span>{c.hp} HP</span>
+                  </span>
+                  <span className="duel-pick__facts" aria-hidden="true"><span>Up to <b>{best}</b></span><MoveConds fx={c.moves.flatMap((m) => m.fx).filter((f, k, all) => all.findIndex((x) => x.c === f.c) === k)} size="xs" /></span>
+                </button>
+                <button type="button" className="duel-pick__zoom" onClick={() => onZoom(c)} aria-label={`See the ${c.name} card`}>
+                  <IconZoomIn size={18} stroke={2} aria-hidden="true" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="sr-only" aria-live="polite">{picked.length} of {n} picked.</p>
+        <Button variant="primary" size="large" className="duel-bring__go" disabled={!full || busy} onClick={() => onBring([...picked].sort((a, b) => a - b))}>
+          {full ? `Bring these ${n}` : `Pick ${n - picked.length} more`}
+        </Button>
+        <p className="duel-overlay__text">Then pick who leads. The other {play.you.length - n} sit this one out.</p>
+      </div>
     </div>
   );
 }

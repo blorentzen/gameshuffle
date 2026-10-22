@@ -22,11 +22,11 @@
  */
 
 import {
-  actions, begin, damageOf, needsNext, nexts, startState, step, topDamage,
+  actions, applyStep, begin, damageOf, inDuel, needsBring, needsNext, nexts, startState, step, topDamage, youLeft,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "./engine";
 import { PAR_BAND, duelNumber, duelRand, energyRow, eventPlan, peopleNear, peopleOf, personOf, shuffleWith, speciesOf, tierFor, trainerFor } from "./rules";
-import type { DuelAction, DuelCard, DuelEventAt, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
+import type { DuelAction, DuelCard, DuelEventAt, DuelRules, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
 
 // ─── the search ──────────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ const condKey = (c: { cond?: { k: string; n: number }; conf?: number }) => `${c.
 /** A position's identity: two ways of reaching the same position are one. Energy order doesn't matter. */
 function keyOf(s: DuelState): string {
   const f = s.fx;
-  let k = `${s.yi}.${s.fi}.${f.weather ?? "-"}${f.weatherLeft}.${f.crit ? 1 : 0}${f.confused ? 1 : 0}${f.aceYou ? 1 : 0}.${f.sleep}.${f.aceFoe}.${f.boost}.${f.rocket}${f.rocketLeft}`;
+  let k = `${s.brought ? s.brought.join("") : ""}/${s.yi}.${s.fi}.${f.weather ?? "-"}${f.weatherLeft}.${f.crit ? 1 : 0}${f.confused ? 1 : 0}${f.aceYou ? 1 : 0}.${f.sleep}.${f.aceFoe}.${f.boost}.${f.rocket}${f.rocketLeft}`;
   for (const c of s.you) {
     if (c.out) { k += "|x"; continue; }
     k += `|${c.cur}:`;
@@ -81,7 +81,7 @@ export function scoreState(setup: DuelSetup, s: DuelState): number {
   const def = setup.foe[s.fi];
   for (let i = 0; i < s.you.length; i++) {
     const c = s.you[i];
-    if (c.out) continue;
+    if (c.out || !inDuel(s, i)) continue;
     you += c.cur;
     const card = setup.you[i];
     let best = 0;
@@ -119,10 +119,14 @@ export function solve(setup: DuelSetup, opts: { width?: number; deadline?: numbe
   const scoreOf = opts.score ? (s: DuelState) => opts.score!(setup, s) : (s: DuelState) => scoreState(setup, s);
   const s0 = startState(setup);
   let nodes = 0;
-  let frontier: Node[] = nexts(s0).map((i) => {
-    const s = begin(setup, s0, i, true);
-    return { s, prev: null, steps: [{ next: i }], score: scoreOf(s) };
-  });
+  // Rules 4: every pick of the cards you bring, each with every lead; else every lead.
+  const starts = needsBring(setup, s0)
+    ? subsets(setup.you.length, setup.bring!).map((pick) => ({ s: applyStep(setup, s0, { bring: pick })!, steps: [{ bring: pick }] as DuelStep[] }))
+    : [{ s: s0, steps: [] as DuelStep[] }];
+  let frontier: Node[] = starts.flatMap((st) => nexts(st.s).map((i) => {
+    const s = begin(setup, st.s, i, true);
+    return { s, prev: null, steps: [...st.steps, { next: i }], score: scoreOf(s) };
+  }));
   for (let depth = 0; depth < TURN_CAP; depth++) {
     const seen = new Map<string, Node>();
     const add = (prev: Node, s: DuelState, steps: DuelStep[]) => {
@@ -161,12 +165,47 @@ export function obviousAction(setup: DuelSetup, s: DuelState): DuelAction {
   return best ?? { attach: s.yi, act: { wait: true } };
 }
 
+/** Every pick of `k` of `n` cards, in index order. */
+export function subsets(n: number, k: number): number[][] {
+  const out: number[][] = [];
+  const walk = (start: number, cur: number[]) => {
+    if (cur.length === k) { out.push(cur); return; }
+    for (let i = start; i < n; i++) walk(i + 1, [...cur, i]);
+  };
+  walk(0, []);
+  return out;
+}
+
+/** The obvious pick (rules 4): the hardest hitters. */
+export function obviousBring(setup: DuelSetup): number[] {
+  return setup.you.map((c, i) => ({ i, d: topDamage(c), hp: c.hp })).sort((a, b) => b.d - a.d || b.hp - a.hp || a.i - b.i).slice(0, setup.bring).map((x) => x.i).sort((a, b) => a - b);
+}
+
+/**
+ * A thinking person's pick (rules 4, the findable check): the cards that hit the trainer's team
+ * hardest, counting Weakness, as a share of each trainer card's HP.
+ */
+export function smartBring(setup: DuelSetup): number[] {
+  const s0 = startState(setup);
+  const score = (c: DuelCard) => setup.foe.reduce((n, f) => n + Math.min(1, Math.max(0, ...c.moves.map((m) => damageOf(s0, c, f, m, true))) / f.hp), 0);
+  return setup.you.map((c, i) => ({ i, v: score(c), hp: c.hp })).sort((a, b) => b.v - a.v || b.hp - a.hp || a.i - b.i).slice(0, setup.bring).map((x) => x.i).sort((a, b) => a - b);
+}
+
+/** The duel after the cards you bring are picked (rules 4), or the start as it is. */
+function afterBring(setup: DuelSetup, pick: number[]): { s: DuelState; line: DuelStep[] } {
+  const s0 = startState(setup);
+  if (!needsBring(setup, s0)) return { s: s0, line: [] };
+  return { s: applyStep(setup, s0, { bring: pick })!, line: [{ bring: pick }] };
+}
+
 /** The obvious play from the start: does it win, and in how many turns. */
 export function obviousPlay(setup: DuelSetup): { won: boolean; turns: number; line: DuelStep[] } {
-  let lead = 0;
-  for (let i = 1; i < setup.you.length; i++) if (topDamage(setup.you[i]) > topDamage(setup.you[lead])) lead = i;
-  const line: DuelStep[] = [{ next: lead }];
-  let s = begin(setup, startState(setup), lead, true);
+  const start = afterBring(setup, obviousBring(setup));
+  const pool = nexts(start.s);
+  let lead = pool[0];
+  for (const i of pool) if (topDamage(setup.you[i]) > topDamage(setup.you[lead])) lead = i;
+  const line: DuelStep[] = [...start.line, { next: lead }];
+  let s = begin(setup, start.s, lead, true);
   while (!s.over) {
     const a = obviousAction(setup, s);
     line.push(a);
@@ -206,8 +245,10 @@ function bestTurn(setup: DuelSetup, s: DuelState): { a: DuelAction; t: DuelState
  * move, wait and swap is tried and the one that does the most for the least (turnScore) is kept;
  * after a knockout it sends out the card whose first turn would score best. No plan beyond the turn.
  */
-export function lookaheadPlay(setup: DuelSetup, lead: number): { won: boolean; turns: number } {
-  let s = begin(setup, startState(setup), lead, true);
+export function lookaheadPlay(setup: DuelSetup, lead: number, pick: number[] = smartBring(setup)): { won: boolean; turns: number; left: number } {
+  const start = afterBring(setup, pick);
+  if (!nexts(start.s).includes(lead)) return { won: false, turns: 0, left: 0 };
+  let s = begin(setup, start.s, lead, true);
   while (!s.over) {
     const b = bestTurn(setup, s);
     if (!b) break;
@@ -223,14 +264,27 @@ export function lookaheadPlay(setup: DuelSetup, lead: number): { won: boolean; t
     }
     s = begin(setup, s, nx, true);
   }
-  return { won: s.over === "won", turns: s.turn };
+  return { won: s.over === "won", turns: s.turn, left: youLeft(s) };
 }
 
-/** How many of the six leads the lookahead player wins from. */
-export function fairLeads(setup: DuelSetup): number {
-  let n = 0;
-  for (let i = 0; i < setup.you.length; i++) if (lookaheadPlay(setup, i).won) n++;
-  return n;
+/**
+ * How many leads the lookahead player wins from: of the six, or under rules 4 with the best of a few
+ * sensible picks of the cards to bring (the matchup pick, the hardest hitters, and `extra`, e.g. the
+ * par line's own pick).
+ */
+export function fairLeads(setup: DuelSetup, extra: number[][] = []): number {
+  const picks = needsBring(setup, startState(setup)) ? [smartBring(setup), obviousBring(setup), ...extra] : [smartBring(setup)];
+  let best = 0;
+  const seen = new Set<string>();
+  for (const pick of picks) {
+    const key = pick.join(",");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    let n = 0;
+    for (const i of nexts(afterBring(setup, pick).s)) if (lookaheadPlay(setup, i, pick).won) n++;
+    best = Math.max(best, n);
+  }
+  return best;
 }
 
 /** Leads the lookahead player must win from: hard but findable, two on the easy gym days. */
@@ -244,18 +298,34 @@ export const FAIR_LEADS: Record<DuelTier, number> = { gym: 2, elite: 1, rival: 1
  */
 export function makeSetup(
   cards: Readonly<Record<string, DuelCard>>, trainer: DuelTrainer, pack: readonly string[], row: EnergyType[], events: DuelEventAt[],
-  opts: { rules?: 1 | 2; seed?: string } = {},
+  opts: { rules?: DuelRules; seed?: string } = {},
 ): DuelSetup | null {
   const you = pack.map((id) => cards[id]);
   const foe = trainer.team.map((id) => cards[id]).filter(Boolean);
   if (you.some((c) => !c) || foe.length < 1) return null;
   const setup: DuelSetup = { you, foe, row, events, signature: trainer.signature.effect, trainer: trainer.name };
-  if (opts.rules === 2) { setup.rules = 2; setup.seed = opts.seed ?? ""; }
+  if (opts.rules && opts.rules >= 2) { setup.rules = opts.rules; setup.seed = opts.seed ?? ""; }
+  if (opts.rules && opts.rules >= 4) {
+    // You bring as many as the trainer (at least 3); a short team's cards start with Energy.
+    const bring = Math.min(you.length, Math.max(3, foe.length));
+    if (bring < you.length) setup.bring = bring;
+    const head = Math.min(3, Math.max(0, HEAD_START_FROM - foe.length));
+    if (head > 0) setup.foeHead = head;
+  }
   return setup;
 }
 
+/**
+ * Rules 4: a trainer's cards start with an Energy for each card its team is short of five (up to 3:
+ * a 2-card team's cards start with 3). Britton picked "short of six"; with you bringing as many as the
+ * trainer that made 4- and 5-card teams unwinnable for many packs (8 of 28 days fell to a stand-in in
+ * the 2026-10-22 sweep), so it counts from five: 5-card teams get none, as the gap it makes up for is
+ * the bring rule's own.
+ */
+export const HEAD_START_FROM = 5;
+
 /** The same duel as the solver plays it: your conditions never land (rules 2), so par never counts on luck. */
-export const solverSetup = (setup: DuelSetup): DuelSetup => (setup.rules === 2 ? { ...setup, luck: "miss" } : setup);
+export const solverSetup = (setup: DuelSetup): DuelSetup => ((setup.rules ?? 1) >= 2 ? { ...setup, luck: "miss" } : setup);
 
 /** How many ex cards a pack may hold, by tier (never more than 2). */
 export const MAX_EX: Record<DuelTier, number> = { gym: 1, elite: 1, rival: 2, boss: 2, champion: 2 };
@@ -292,7 +362,13 @@ export function candidates(pool: readonly string[], cards: Readonly<Record<strin
  * most), at least 3 different types (and at least 2 that aren't Colorless). Pool order matters only
  * for days not built yet: a built day keeps its own copy of its cards.
  */
-export function drawPack(ids: readonly string[], cards: Readonly<Record<string, DuelCard>>, rand: () => number, maxEx = 2): string[] | null {
+export const hasCondition = (c: DuelCard) => c.moves.some((m) => !!m.fx?.length);
+
+/**
+ * `needFx` (rules 3): the six must hold at least one card with a condition move; when these
+ * candidates can't give one in 40 tries, any six will do.
+ */
+export function drawPack(ids: readonly string[], cards: Readonly<Record<string, DuelCard>>, rand: () => number, maxEx = 2, needFx = false): string[] | null {
   for (let tries = 0; tries < 40; tries++) {
     const pick: string[] = [];
     const species = new Set<string>();
@@ -309,9 +385,11 @@ export function drawPack(ids: readonly string[], cards: Readonly<Record<string, 
     if (pick.length < 6) return null;
     const types = new Set(pick.map((id) => cards[id].t));
     const colored = [...types].filter((t) => t !== "Colorless").length;
-    if (types.size >= 3 && colored >= 2) return pick;
+    if (types.size < 3 || colored < 2) continue;
+    if (needFx && !pick.some((id) => hasCondition(cards[id]))) continue;
+    return pick;
   }
-  return null;
+  return needFx ? drawPack(ids, cards, rand, maxEx) : null;
 }
 
 export interface DuelDayBuild {
@@ -335,8 +413,8 @@ export interface DuelDayBuild {
   obviousTurns: number;
   /** Leads the lookahead player wins from (FAIR_LEADS asks for at least 1, 2 on gym days; 0 only when no pack anywhere passed). */
   fair: number;
-  /** The rules it was built with (2: conditions play). */
-  rules: 1 | 2;
+  /** The rules it was built with (types.ts DuelRules). */
+  rules: DuelRules;
   ms: number;
 }
 
@@ -349,7 +427,7 @@ type Found = Omit<DuelDayBuild, "attempts" | "ms" | "inBand" | "stoodIn">;
  */
 export function packsFor(
   day: string, trainer: DuelTrainer, tier: DuelTier, pool: readonly string[], cards: Readonly<Record<string, DuelCard>>,
-  seed: string, attempts: number, deadline: number, width: number | undefined, count: { n: number }, needFair = 0, rules: 1 | 2 = 1,
+  seed: string, attempts: number, deadline: number, width: number | undefined, count: { n: number }, needFair = 0, rules: DuelRules = 1,
 ): { found: Found; inBand: boolean } | null {
   const [lo, hi] = PAR_BAND[tier];
   const team = trainer.team.map((id) => cards[id]).filter(Boolean);
@@ -373,7 +451,7 @@ export function packsFor(
       ids = candidates(pool, cards, exclude, packCap(team, slack));
     }
     const rand = duelRand(`duel:${day}:${seed}:${trainer.id}:${attempt}`);
-    const pack = drawPack(ids, cards, rand, MAX_EX[tier]);
+    const pack = drawPack(ids, cards, rand, MAX_EX[tier], rules >= 3);
     if (!pack) break;
     const row = energyRow(pack.map((id) => cards[id]), rand);
     const events = eventPlan(rand);
@@ -384,7 +462,8 @@ export function packsFor(
     const sol = solve(solverSetup(setup), { width, deadline });
     if (!sol) { tooHard++; continue; }
     // Findable: a player reading one turn ahead has to win from enough leads.
-    const fair = fairLeads(solverSetup(setup));
+    const parPick = sol.line[0] && "bring" in sol.line[0] ? [sol.line[0].bring] : [];
+    const fair = fairLeads(solverSetup(setup), parPick);
     if (fair < needFair) { tooHard++; continue; }
     const found: Found = { day, number: duelNumber(day), tier, trainerId: trainer.id, pack, row, events, par: sol.par, line: sol.line, slack, obviousTurns: obvious.turns, fair, rules };
     if (sol.par >= lo && sol.par <= hi) return { found, inBand: true };
@@ -415,11 +494,12 @@ export function buildDay(
   cards: Readonly<Record<string, DuelCard>>,
   trainers: readonly DuelTrainer[],
   seed = "",
-  opts: { attempts?: number; budgetMs?: number; width?: number; standIns?: number; rules?: 1 | 2 } = {},
+  opts: { attempts?: number; budgetMs?: number; width?: number; standIns?: number; rules?: DuelRules } = {},
 ): DuelDayBuild | null {
   const t0 = Date.now();
   const deadline = t0 + (opts.budgetMs ?? 60_000);
-  const attempts = opts.attempts ?? 36;
+  // Rules 4 makes a few trainers hard to fit (Poppy, Lance): more packs before a stand-in.
+  const attempts = opts.attempts ?? ((opts.rules ?? 1) >= 4 ? 72 : 36);
   const first = trainerFor(day, trainers);
   if (!first) return null;
   const tier = tierFor(day);
@@ -434,7 +514,9 @@ export function buildDay(
   for (const needFair of [FAIR_LEADS[tier], 0]) {
     for (const [i, trainer] of order.entries()) {
       if (Date.now() >= deadline) break;
-      const got = packsFor(day, trainer, tier, pool, cards, seed, attempts, deadline, opts.width, count, needFair, opts.rules ?? 1);
+      // The rotation's trainer gets at most half the time left, so a stand-in still gets a turn.
+      const own = i === 0 && needFair > 0 ? Date.now() + (deadline - Date.now()) / 2 : deadline;
+      const got = packsFor(day, trainer, tier, pool, cards, seed, attempts, own, opts.width, count, needFair, opts.rules ?? 1);
       if (got) return { ...got.found, attempts: count.n, inBand: got.inBand, stoodIn: i > 0, ms: Date.now() - t0 };
     }
   }

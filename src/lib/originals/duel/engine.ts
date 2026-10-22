@@ -30,7 +30,7 @@
  */
 
 import { eventCopy } from "./copy";
-import type { DuelAction, DuelCard, DuelCondition, DuelEventAt, DuelEventKind, DuelMove, DuelMoveFx, DuelSignature, DuelStep, DuelTrainer, EnergyType } from "./types";
+import type { DuelAction, DuelCard, DuelCondition, DuelEventAt, DuelEventKind, DuelMove, DuelMoveFx, DuelRules, DuelSignature, DuelStep, DuelTrainer, EnergyType } from "./types";
 import type { DuelCardView, DuelEventView, DuelPlayView } from "./view";
 
 /** Turn 40 ends a duel that isn't won: a loss. */
@@ -80,12 +80,16 @@ export interface DuelSetup {
   signature: DuelSignature;
   /** The trainer's name, for log lines ("Cynthia"). */
   trainer: string;
-  /** 2 = conditions play (days built from 2026-10-22). Absent or 1: the first rules, unchanged. */
-  rules?: 1 | 2;
+  /** 2 or 3 = conditions play (days built from 2026-10-22; types.ts DuelRules). Absent or 1: the first rules, unchanged. */
+  rules?: DuelRules;
   /** The day, which every chance is rolled from (rules 2). */
   seed?: string;
   /** The solver's setting: your moves' conditions never land, so par never counts on luck. */
   luck?: "miss";
+  /** Each of the trainer's cards starts with this many Energy (the types its best move needs): rules 4, one for each card a short team lacks, up to 3. */
+  foeHead?: number;
+  /** Rules 4: how many of your six you bring (picked first, a `bring` step). Absent: all six play. */
+  bring?: number;
 }
 
 export interface DuelSlot {
@@ -165,6 +169,8 @@ export interface DuelState {
   over: "won" | "lost" | null;
   /** What happened on the last turn (and this turn's event). */
   log: DuelLogLine[];
+  /** Rules 4: the cards you brought (your card indexes), once picked; absent while all six play. */
+  brought?: number[];
 }
 
 const r10 = (x: number) => Math.round(x / 10) * 10;
@@ -176,7 +182,9 @@ const NO_FX: DuelFx = { weather: null, weatherLeft: 0, crit: false, confused: fa
 /** A fresh duel: nobody on the field yet (pick the lead with { next }). */
 export function startState(setup: DuelSetup): DuelState {
   const slot = (c: DuelCard): DuelSlot => ({ cur: c.hp, energy: [], out: false });
-  return { turn: 0, you: setup.you.map(slot), foe: setup.foe.map(slot), yi: -1, fi: 0, pending: null, fx: { ...NO_FX }, event: null, over: null, log: [] };
+  const foe = setup.foe.map(slot);
+  if (setup.foeHead) foe.forEach((f, i) => { for (let k = 0; k < setup.foeHead!; k++) f.energy.push(foeEnergy(setup.foe[i], f.energy)); });
+  return { turn: 0, you: setup.you.map(slot), foe, yi: -1, fi: 0, pending: null, fx: { ...NO_FX }, event: null, over: null, log: [] };
 }
 
 const copySlot = (c: DuelSlot): DuelSlot => {
@@ -192,7 +200,7 @@ function cure(c: DuelSlot) {
   delete c.conf;
 }
 
-const conditionsOn = (setup: DuelSetup) => setup.rules === 2;
+const conditionsOn = (setup: DuelSetup) => (setup.rules ?? 1) >= 2;
 
 /** A chance from 0 to 100 (below 100), the same for everyone on the day: a hash of the day and `key`. */
 export function roll(setup: DuelSetup, key: string): number {
@@ -216,8 +224,23 @@ const CONDITION_WORD: Record<DuelCondition, string> = { burned: "Burned", poison
 
 /** A copy safe to change (structured, not a JSON round trip: the solver makes a lot of these). The log starts empty. */
 export function cloneState(s: DuelState): DuelState {
-  return { turn: s.turn, you: s.you.map(copySlot), foe: s.foe.map(copySlot), yi: s.yi, fi: s.fi, pending: s.pending, fx: { ...s.fx }, event: s.event, over: s.over, log: [] };
+  const out: DuelState = { turn: s.turn, you: s.you.map(copySlot), foe: s.foe.map(copySlot), yi: s.yi, fi: s.fi, pending: s.pending, fx: { ...s.fx }, event: s.event, over: s.over, log: [] };
+  if (s.brought) out.brought = s.brought.slice();
+  return out;
 }
+
+/** Your card `i` is in this duel: you brought it (rules 4), or every card plays. */
+export const inDuel = (s: DuelState, i: number) => !s.brought || s.brought.includes(i);
+
+/** Your cards still standing in this duel (the ones that sit it out don't count). */
+export function youLeft(s: DuelState): number {
+  let n = 0;
+  for (let i = 0; i < s.you.length; i++) if (!s.you[i].out && inDuel(s, i)) n++;
+  return n;
+}
+
+/** Rules 4: the cards you bring are still to be picked (the very first step). */
+export const needsBring = (setup: DuelSetup, s: DuelState) => !s.over && !!setup.bring && setup.bring < setup.you.length && !s.brought;
 
 // ─── Energy and moves ────────────────────────────────────────────────────────
 
@@ -312,7 +335,7 @@ export function rocketTarget(s: DuelState): number {
   let best = -1;
   for (let i = 0; i < s.you.length; i++) {
     const c = s.you[i];
-    if (i === s.yi || c.out) continue;
+    if (i === s.yi || c.out || !inDuel(s, i)) continue;
     if (best < 0) { best = i; continue; }
     const b = s.you[best];
     if (c.energy.length > b.energy.length || (c.energy.length === b.energy.length && c.cur > b.cur)) best = i;
@@ -324,7 +347,7 @@ export function rocketTarget(s: DuelState): number {
 export function reviveTarget(setup: DuelSetup, s: DuelState): number {
   let best = -1;
   for (let i = 0; i < s.you.length; i++) {
-    if (!s.you[i].out) continue;
+    if (!s.you[i].out || !inDuel(s, i)) continue;
     if (best < 0 || setup.you[i].hp > setup.you[best].hp) best = i;
   }
   return best;
@@ -569,7 +592,7 @@ function foeTurn(setup: DuelSetup, s: DuelState, L: Log) {
   } else {
     const mi = foeChoice(setup, s);
     if (mi < 0) note(L, { kind: "wait", side: "foe", card: s.fi, text: `${setup.trainer}'s ${card.short} waits.` });
-    else if (hit(setup, s, false, mi, L) && !alive(s.you)) s.over = "lost";
+    else if (hit(setup, s, false, mi, L) && !youLeft(s)) s.over = "lost";
   }
 }
 
@@ -588,7 +611,7 @@ function foeTurn2(setup: DuelSetup, s: DuelState, card: DuelCard, L: Log) {
   } else {
     const mi = foeChoice(setup, s);
     if (mi < 0) note(L, { kind: "wait", side: "foe", card: fi, text: `${setup.trainer}'s ${card.short} waits.` });
-    else if (attempt(setup, s, false, mi, L) && !alive(s.you)) s.over = "lost";
+    else if (attempt(setup, s, false, mi, L) && !youLeft(s)) s.over = "lost";
   }
   confusedTurn(slot.out ? undefined : slot);
   // Its card knocked itself out: the next one comes out now.
@@ -621,7 +644,7 @@ function conditionTicks(setup: DuelSetup, s: DuelState, L: Log) {
     if (slot.cur > 0) continue;
     knockOut(setup, s, mine, i, L);
     if (!mine) foeNext(setup, s, L);
-    else if (!alive(s.you) && !s.over) s.over = "lost";
+    else if (!youLeft(s) && !s.over) s.over = "lost";
   }
 }
 
@@ -661,22 +684,22 @@ export const needsNext = (s: DuelState) => !s.over && (s.yi < 0 || s.you[s.yi].o
 /** The cards you can send out: any standing card, but not the one Team Rocket has unless it's the only one left. */
 export function nexts(s: DuelState): number[] {
   const out: number[] = [];
-  for (let i = 0; i < s.you.length; i++) if (!s.you[i].out && i !== s.fx.rocket) out.push(i);
-  if (!out.length && s.fx.rocket >= 0 && !s.you[s.fx.rocket].out) out.push(s.fx.rocket);
+  for (let i = 0; i < s.you.length; i++) if (!s.you[i].out && inDuel(s, i) && i !== s.fx.rocket) out.push(i);
+  if (!out.length && s.fx.rocket >= 0 && !s.you[s.fx.rocket].out && inDuel(s, s.fx.rocket)) out.push(s.fx.rocket);
   return out;
 }
 
 /** The cards this turn's Energy can go on: every standing card. */
 export function attachTargets(s: DuelState): number[] {
   const out: number[] = [];
-  for (let i = 0; i < s.you.length; i++) if (!s.you[i].out) out.push(i);
+  for (let i = 0; i < s.you.length; i++) if (!s.you[i].out && inDuel(s, i)) out.push(i);
   return out;
 }
 
 /** The waiting cards you can swap in (not Team Rocket's). */
 export function swapTargets(s: DuelState): number[] {
   const out: number[] = [];
-  for (let i = 0; i < s.you.length; i++) if (i !== s.yi && !s.you[i].out && i !== s.fx.rocket) out.push(i);
+  for (let i = 0; i < s.you.length; i++) if (i !== s.yi && !s.you[i].out && inDuel(s, i) && i !== s.fx.rocket) out.push(i);
   return out;
 }
 
@@ -697,7 +720,7 @@ export function canUse(setup: DuelSetup, s: DuelState, attach: number, mi: numbe
 /** Is this a legal action right now? */
 export function isLegal(setup: DuelSetup, s: DuelState, a: DuelAction): boolean {
   if (!atTurn(s)) return false;
-  if (!Number.isInteger(a.attach) || a.attach < 0 || a.attach >= s.you.length || s.you[a.attach].out) return false;
+  if (!Number.isInteger(a.attach) || a.attach < 0 || a.attach >= s.you.length || s.you[a.attach].out || !inDuel(s, a.attach)) return false;
   const act = a.act as { move?: number; swap?: number; wait?: boolean };
   if (act.move != null) return Number.isInteger(act.move) && canUse(setup, s, a.attach, act.move);
   if (act.swap != null) return swapTargets(s).includes(act.swap);
@@ -767,7 +790,7 @@ function step2(setup: DuelSetup, s: DuelState, act: { move?: number; swap?: numb
         foeNext(setup, s, L);
         if (s.over) return s;
       }
-      if (!alive(s.you)) { s.over = "lost"; return s; }
+      if (!youLeft(s)) { s.over = "lost"; return s; }
     } else note(L, { kind: "wait", side: "you", card: s.yi, text: "You wait." });
     confusedTurn(me.out ? undefined : me);
   }
@@ -795,6 +818,15 @@ export function begin(setup: DuelSetup, s0: DuelState, next: number | null, quie
  */
 export function applyStep(setup: DuelSetup, s: DuelState, st: DuelStep): DuelState | null {
   if (s.over) return null;
+  if ("bring" in st) {
+    if (!needsBring(setup, s)) return null;
+    const pick = [...new Set(st.bring)];
+    if (pick.length !== setup.bring || pick.length !== st.bring.length || pick.some((i) => !Number.isInteger(i) || i < 0 || i >= setup.you.length)) return null;
+    const t = cloneState(s);
+    t.brought = pick.sort((a, b) => a - b);
+    return t;
+  }
+  if (needsBring(setup, s)) return null;
   if ("next" in st) {
     if (!needsNext(s) || !nexts(s).includes(st.next)) return null;
     return begin(setup, s, st.next);
@@ -819,7 +851,7 @@ export function replay(setup: DuelSetup, line: readonly DuelStep[]): DuelState |
 }
 
 /** Your cards still standing. */
-export const cardsLeft = (s: DuelState) => alive(s.you);
+export const cardsLeft = (s: DuelState) => youLeft(s);
 
 // ─── what the player sees ────────────────────────────────────────────────────
 
@@ -851,6 +883,7 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
       skips: mine ? field && (s.fx.aceYou || slot.cond?.k === "asleep") : s.fx.sleep === i || s.fx.aceFoe === i || slot.cond?.k === "asleep",
       cond: !slot.out && slot.cond ? slot.cond.k : null,
       confused: !slot.out && !!slot.conf,
+      sat: mine && !inDuel(s, i),
     };
   });
   // During turn N you place row[N - 1] and see row[N .. N + 2]; between turns the next to place is
@@ -867,8 +900,10 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
     foe: side(false),
     yi: s.yi,
     fi: s.fi,
-    needsNext: needsNext(s),
-    nexts: needsNext(s) ? nexts(s) : [],
+    needsBring: needsBring(setup, s),
+    bring: setup.bring && setup.bring < setup.you.length ? setup.bring : setup.you.length,
+    needsNext: !needsBring(setup, s) && needsNext(s),
+    nexts: !needsBring(setup, s) && needsNext(s) ? nexts(s) : [],
     energy: { now: turnNow ? s.pending : null, next },
     attachTo: turnNow ? attachTargets(s) : [],
     swaps: turnNow ? swapTargets(s) : [],

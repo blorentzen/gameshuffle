@@ -1,6 +1,7 @@
 /**
  * One Daily Duel (src/lib/originals/duel/store.ts), for the player who started it.
  *   GET                                    → { run }
+ *   POST { bring: [i, …] }                 → { run }: the cards you bring (rules 4, before the lead)
  *   POST { next }                          → { run }: send out a card (the lead, or after a knockout)
  *   POST { attach, act }                   → { run }: a turn; the Energy goes on card `attach`, then
  *                                            act = { move: i } | { swap: i } | { wait: true }
@@ -23,6 +24,10 @@ const idx = (x: unknown): x is number => Number.isInteger(x) && (x as number) >=
 
 /** The body as a step, or null. */
 function stepOf(body: Record<string, unknown>): DuelStep | null {
+  if ("bring" in body) {
+    const b = body.bring;
+    return Array.isArray(b) && b.length >= 1 && b.length <= 6 && b.every(idx) && new Set(b).size === b.length ? { bring: b as number[] } : null;
+  }
   if ("next" in body) return idx(body.next) ? { next: body.next } : null;
   const a = body.act as Record<string, unknown> | undefined;
   if (!idx(body.attach) || !a || typeof a !== "object") return null;

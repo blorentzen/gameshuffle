@@ -22,13 +22,13 @@ import { gsAddDays, gsDay } from "@/lib/time/gsClock";
 import { playerKey, type PlayerKind } from "@/lib/daily/boardRules";
 import { recordDuelScore } from "@/lib/daily/boards";
 import type { DailiesEntry, DayMark } from "@/lib/originals/dailies";
-import { alive, applyStep, cardsLeft, startState, viewOf, type DuelSetup, type DuelState } from "./engine";
+import { alive, applyStep, cardsLeft, inDuel, startState, viewOf, type DuelSetup, type DuelState } from "./engine";
 import { buildDay, makeSetup } from "./solver";
 import { trainerPicture } from "./pictures";
 import { bioFor } from "@/data/originals/duel/bios";
 import { TIER_LABEL, duelNumber, duelPoints, duelShareText, personOf, signatureText, tierFor, type DuelShareFacts } from "./rules";
 import type { DuelData } from "./data";
-import type { DuelCard, DuelEventAt, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
+import type { DuelCard, DuelEventAt, DuelRules, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
 import type { DuelChallengerView, DuelHistory, DuelHome, DuelPicture, DuelRunView, DuelTrainerView } from "./view";
 
 type DbError = { code?: string; message?: string } | null;
@@ -49,8 +49,8 @@ interface DayRow {
 }
 const DAY_COLS = "day, number, tier, trainer_id, pack, row, events, par, line, in_band, built_at, cards, trainer";
 
-/** The newest rules: days built from now on play conditions (picks 2026-10-22). */
-export const DUEL_RULES = 2 as const;
+/** The newest rules (types.ts DuelRules): conditions, a condition card in every six, bring as many as the trainer (2026-10-22). */
+export const DUEL_RULES: DuelRules = 4;
 
 /** Whether duel_days has its `rules` column yet (daily-duel-m2.sql); asked once per server. */
 let rulesColumn: Promise<boolean> | null = null;
@@ -72,8 +72,8 @@ export interface DuelDay {
   setup: DuelSetup;
   /** The solver's winning line (never sent to a page). */
   line: DuelStep[];
-  /** The rules it was built with (2: conditions play). */
-  rules: 1 | 2;
+  /** The rules it was built with (types.ts DuelRules). */
+  rules: DuelRules;
 }
 
 /**
@@ -92,11 +92,14 @@ const cachedDay = (day: string): DuelDay | null => {
 const keepDay = (d: DuelDay) => { dayCache.set(d.day, { d, at: Date.now() }); };
 const building = new Map<string, Promise<DuelDay | null>>();
 
+const rulesOf = (n: number | undefined): DuelRules => (n === 4 ? 4 : n === 3 ? 3 : n === 2 ? 2 : 1);
+
 function dayFrom(r: DayRow): DuelDay | null {
   const trainer = r.trainer;
   if (!trainer) return null;
-  const setup = makeSetup(r.cards, trainer, r.pack, r.row, r.events, { rules: r.rules === 2 ? 2 : 1, seed: r.day });
-  return setup ? { day: r.day, number: r.number, tier: r.tier, trainer, par: r.par, setup, line: r.line, rules: r.rules === 2 ? 2 : 1 } : null;
+  const rules = rulesOf(r.rules);
+  const setup = makeSetup(r.cards, trainer, r.pack, r.row, r.events, { rules, seed: r.day });
+  return setup ? { day: r.day, number: r.number, tier: r.tier, trainer, par: r.par, setup, line: r.line, rules } : null;
 }
 
 async function readDay(day: string): Promise<DuelDay | null | "missing"> {
@@ -124,13 +127,16 @@ async function loadData(): Promise<DuelData | null> {
 async function buildRow(day: string, opts: { budgetMs?: number; data?: DuelData; seed?: string; allowOlder?: boolean }) {
   const data = opts.data ?? (await loadData());
   if (!data) return null;
-  let rules: 1 | 2 = (await rulesReady()) ? DUEL_RULES : 1;
+  let rules: DuelRules = (await rulesReady()) ? DUEL_RULES : 1;
   const budgetMs = opts.budgetMs ?? 20_000;
+  const t0 = Date.now();
   let build = buildDay(day, data.pool, data.cards, data.trainers, opts.seed ?? "", { budgetMs, rules });
-  if (!build && rules === 2 && opts.allowOlder !== false) {
-    console.error(`[duel] ${day}: no puzzle with conditions in ${budgetMs}ms; building with the first rules`);
+  if (!build && rules >= 2 && opts.allowOlder !== false) {
+    // Only the time that's left (at least 5 seconds), so the every-minute job stays inside its limit.
+    const left = Math.max(5_000, budgetMs - (Date.now() - t0));
+    console.error(`[duel] ${day}: no puzzle with rules ${rules} in ${budgetMs}ms; building with the first rules (${left}ms)`);
     rules = 1;
-    build = buildDay(day, data.pool, data.cards, data.trainers, opts.seed ?? "", { budgetMs, rules });
+    build = buildDay(day, data.pool, data.cards, data.trainers, opts.seed ?? "", { budgetMs: left, rules });
   }
   if (!build) return null;
   const trainer = data.trainers.find((t) => t.id === build.trainerId)!;
@@ -138,7 +144,7 @@ async function buildRow(day: string, opts: { budgetMs?: number; data?: DuelData;
   for (const id of [...build.pack, ...trainer.team]) if (data.cards[id]) cards[id] = data.cards[id];
   const row = {
     day, number: build.number, tier: build.tier, trainer_id: build.trainerId, pack: build.pack, row: build.row, events: build.events,
-    par: build.par, line: build.line, in_band: build.inBand, cards, trainer, ...(rules === 2 ? { rules } : {}),
+    par: build.par, line: build.line, in_band: build.inBand, cards, trainer, ...(rules >= 2 ? { rules } : {}),
   };
   return { build, row };
 }
@@ -291,7 +297,7 @@ async function recordBoard(r: RunRow, d: DuelDay): Promise<{ points: number; tok
 function shareFactsOf(r: RunRow, d: DuelDay): DuelShareFacts {
   return {
     number: duelNumber(r.day), trainer: d.trainer.name, won: r.result === "won", turns: r.turns, par: d.par, seconds: r.seconds,
-    standing: r.state.you.map((c) => !c.out), knocked: r.state.foe.length - alive(r.state.foe), team: r.state.foe.length, practice: !r.official,
+    standing: r.state.you.filter((_, i) => inDuel(r.state, i)).map((c) => !c.out), knocked: r.state.foe.length - alive(r.state.foe), team: r.state.foe.length, practice: !r.official,
   };
 }
 
@@ -419,13 +425,13 @@ async function officialRows(key: string, day: string): Promise<OfficialRow[]> {
 /** The page's opening state: today's trainer, team and six, your official duel or its result, practice, a duel to pick back up, streaks. `day`: another day, for development previews only. */
 export async function duelHome(player: DuelPlayer | null, day = gsDay()): Promise<DuelHome> {
   const empty: DuelHome = {
-    ready: false, day, number: duelNumber(day), tier: tierFor(day), trainer: null, pack: [], team: [],
+    ready: false, day, number: duelNumber(day), tier: tierFor(day), trainer: null, pack: [], bring: 6, team: [],
     official: null, par: null, practiceAllowed: false, current: null, history: NO_HISTORY, signedIn: player?.kind === "u",
   };
   const d = await getDay(day);
   if (!d) return empty;
   const start = viewOf(d.setup, startState(d.setup), d.trainer);
-  const base: DuelHome = { ...empty, ready: true, tier: d.tier, trainer: dayTrainer(d), pack: start.you, team: start.foe };
+  const base: DuelHome = { ...empty, ready: true, tier: d.tier, trainer: dayTrainer(d), pack: start.you, bring: start.bring, team: start.foe };
   if (!player) return base;
   const key = keyOf(player);
   const [official, rows, { data: practice }] = await Promise.all([
