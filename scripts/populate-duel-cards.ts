@@ -13,6 +13,12 @@
  *   ... --trainers [--run] [--max 180]   store each trainer's own Supporter card for their picture
  *                                   (src/data/originals/duel/trainer-cards.ts): fetched by its id,
  *                                   1 credit per card not stored yet; a miss searches its name (1 more)
+ *   ... --clean [--run] [--max 60]  re-pick every team slot and pool card whose print has an attack
+ *                                   the duel can't play (cardRules cleanAttacks) with a clean print of
+ *                                   the same Pokémon: stored cards first (0 credits), else one search
+ *                                   each. Pinned slots are reported, not changed; a pool card with no
+ *                                   clean print anywhere leaves the pool. Built days keep their own
+ *                                   copy of their cards, so only days not built yet change.
  *   ... --warm [--run]              load every card the game uses (team picks, DUEL_POOL and the
  *                                   trainers' picture cards) into THIS database's tcg_cards: 1 credit
  *                                   per missing card. For production after the picks are made on dev.
@@ -38,7 +44,7 @@ import { createServiceClient } from "../src/lib/supabase/admin";
 import { DUEL_TRAINER_PLANS, type DuelTrainerPlan } from "../src/data/originals/duel/trainers";
 import { DUEL_POOL } from "../src/data/originals/duel/pool";
 import { DUEL_TRAINER_CARDS } from "../src/data/originals/duel/trainer-cards";
-import { duelReady, isRuleBox, OWNER_PREFIX, type DuelCatalogRow } from "../src/data/originals/duel/cardRules";
+import { cleanAttacks, duelReady, isRuleBox, OWNER_PREFIX, type DuelCatalogRow } from "../src/data/originals/duel/cardRules";
 import type { DuelCard, EnergyType } from "../src/lib/originals/duel/types";
 
 const PICKS_OUT = "src/data/originals/duel/team-picks.generated.ts";
@@ -161,8 +167,9 @@ function rarityRank(r: string | null): number {
 
 /** Lower is better. Gym leaders and the Elite Four lean away from ex cards (their days are the easy ones). */
 function score(row: Row, fit: "own" | "plain", plan: DuelTrainerPlan, slot: number, used: Set<string>): number {
-  // The trainer's own card always wins; among those, and among the rest, nicer prints first.
-  let s = (fit === "own" ? 0 : 10) + rarityRank(row.rarity) * 2;
+  // A print whose every attack plays comes first (a clean own card, then any clean print); then the
+  // trainer's own card; among those, nicer prints first.
+  let s = (cleanAttacks(row) ? 0 : 30) + (fit === "own" ? 0 : 10) + rarityRank(row.rarity) * 2;
   const ace = slot === plan.species.length - 1;
   if (fit !== "own" && isRuleBox(row.subtypes, row.name)) {
     if (plan.tier === "gym") s += 12;
@@ -284,6 +291,7 @@ async function main() {
   if (args.includes("--warm")) return warm();
   if (args.includes("--trainers")) return trainerCards(args.includes("--run"), args.includes("--max") ? Number(args[args.indexOf("--max") + 1]) : 180);
   if (args.includes("--pool")) return pickPool();
+  if (args.includes("--clean")) return cleanPass(args.includes("--run"), args.includes("--max") ? Number(args[args.indexOf("--max") + 1]) : 60);
   const run = args.includes("--run");
   const max = args.includes("--max") ? Number(args[args.indexOf("--max") + 1]) : 400;
   const only = args.includes("--only") ? new Set(args[args.indexOf("--only") + 1].split(",")) : null;
@@ -469,7 +477,7 @@ async function pickPool() {
   /** ex prints held back by a type's share of the cap; a second pass spends what's left of the cap on types still short. */
   const deferred = new Map<EnergyType, { row: Row; card: DuelCard; key: string }[]>((Object.keys(POOL_TYPES) as EnergyType[]).map((t) => [t, []]));
   const prefer = (a: { row: Row; card: DuelCard }, b: { row: Row; card: DuelCard }) =>
-    rarityRank(a.row.rarity) - rarityRank(b.row.rarity) || (b.row.release ?? "").localeCompare(a.row.release ?? "") || a.row.id.localeCompare(b.row.id);
+    Number(!cleanAttacks(a.row)) - Number(!cleanAttacks(b.row)) || rarityRank(a.row.rarity) - rarityRank(b.row.rarity) || (b.row.release ?? "").localeCompare(a.row.release ?? "") || a.row.id.localeCompare(b.row.id);
 
   for (const t of Object.keys(POOL_TYPES) as EnergyType[]) {
     const want = POOL_TYPES[t] - (perType.get(t) ?? 0);
@@ -549,6 +557,104 @@ ${lines}
 ];
 `);
   console.log(`Wrote ${POOL_OUT}.`);
+}
+
+/**
+ * Clean prints for the cards already picked: every team slot and pool card whose print has an attack
+ * the duel can't play gets a clean print of the same Pokémon (a clean own card first, as in score),
+ * from stored cards when there is one, else one search (1 credit). The pool keeps its order (a
+ * replacement takes the old card's place); a pool card with no clean print leaves the pool.
+ */
+async function cleanPass(run: boolean, max: number) {
+  const local = await loadLocal();
+  const byId = new Map(local.map((r) => [r.id, r]));
+  const picks = existingPicks();
+  const onTeams = () => new Set(Object.values(picks).flat());
+  const pool = [...DUEL_POOL];
+  const poolSet = () => new Set(pool);
+  let credits = 0;
+  const searched = new Map<string, NormalizedCard>();
+  const memo = new Map<string, Row[]>();
+  async function search(q: string): Promise<Row[]> {
+    if (memo.has(q)) return memo.get(q)!;
+    if (!run || credits >= max) return [];
+    credits++;
+    const raw = await searchCardsByQuery(q, WHY, 100);
+    for (const n of raw) searched.set(n.card.id, n);
+    const found = raw.map(fromSearch);
+    memo.set(q, found);
+    return found;
+  }
+  async function keep(row: Row) {
+    if (byId.has(row.id) && (row.images?.medium || row.images?.small)) return;
+    const n = searched.get(row.id);
+    if (n) await persistSearchResults([n]);
+    byId.set(row.id, row);
+    local.push(row);
+  }
+  const unclean = (id: string) => { const r = byId.get(id); return !!r && !cleanAttacks(r); };
+
+  // Team slots.
+  let teamFixed = 0, teamLeft = 0, pinnedLeft = 0;
+  for (const p of DUEL_TRAINER_PLANS) {
+    const team = picks[p.id];
+    if (!team) continue;
+    for (let i = 0; i < team.length; i++) {
+      if (!unclean(team[i])) continue;
+      const sp = p.species[i];
+      if (p.pin?.[i]) { pinnedLeft++; console.log(`  pinned, kept: ${p.id} ${i + 1}. ${sp} ${team[i]}`); continue; }
+      const usedAcross = new Set(Object.entries(picks).filter(([id]) => id !== p.id).flatMap(([, ids]) => ids));
+      const fits = (rows: Row[]) => rows
+        .map((r) => ({ r, fit: nameFits(r, sp, p.owner) }))
+        .filter((x): x is { r: Row; fit: "own" | "plain" } => !!x.fit && !!duelReady(x.r) && cleanAttacks(x.r) && !poolSet().has(x.r.id) && !team.some((id, j) => j !== i && id === x.r.id))
+        .sort((a, b) => score(a.r, a.fit, p, i, usedAcross) - score(b.r, b.fit, p, i, usedAcross) || (b.r.release ?? "").localeCompare(a.r.release ?? ""));
+      let best = fits(local)[0];
+      if (!best) best = fits(await search(`name:"${quoteSafe(sp)}"`))[0];
+      if (!best) { teamLeft++; console.log(`  no clean print: ${p.id} ${i + 1}. ${sp} (${byId.get(team[i])?.name})`); continue; }
+      if (run) await keep(best.r);
+      console.log(`  ${p.id} ${i + 1}. ${sp}: ${team[i]} ${byId.get(team[i])?.name} → ${best.r.id} ${best.r.name} [${best.r.rarity ?? "?"}]`);
+      team[i] = best.r.id;
+      teamFixed++;
+    }
+  }
+
+  // Pool cards.
+  let poolFixed = 0, poolDropped = 0;
+  for (let k = 0; k < pool.length; k++) {
+    const id = pool[k];
+    if (!unclean(id)) continue;
+    const old = byId.get(id)!;
+    const oldCard = duelReady(old);
+    const key = speciesKey(old.name);
+    const ok = (r: Row) => {
+      const c = duelReady(r);
+      return !!c && cleanAttacks(r) && !onTeams().has(r.id) && !poolSet().has(r.id) && speciesKey(r.name) === key && !OWNER_PREFIX.test(c.name)
+        && c.hp >= 60 && c.hp <= 340 && c.ex === !!oldCard?.ex && !/[^\x00-\x7FéÉ♀♂’'.:\- ]/.test(c.name);
+    };
+    const rank = (rows: Row[]) => rows.filter(ok).sort((a, b) => rarityRank(a.rarity) - rarityRank(b.rarity) || (b.release ?? "").localeCompare(a.release ?? ""));
+    let best = rank(local)[0];
+    if (!best) best = rank(await search(`name:"${quoteSafe(old.name.replace(/\s+(ex|V|VMAX|VSTAR|GX|EX)$/, ""))}"`))[0];
+    if (best) {
+      if (run) await keep(best);
+      console.log(`  pool: ${id} ${old.name} → ${best.id} ${best.name} [${best.rarity ?? "?"}]`);
+      pool[k] = best.id;
+      poolFixed++;
+    } else {
+      console.log(`  pool: ${id} ${old.name} has no clean print: ${run ? "leaves the pool" : "would leave the pool"}`);
+      pool.splice(k, 1);
+      k--;
+      poolDropped++;
+    }
+  }
+  console.log(`\nTeams: ${teamFixed} slots get clean prints, ${teamLeft} have none, ${pinnedLeft} pinned kept. Pool: ${poolFixed} swapped, ${poolDropped} leave (${pool.length} left). ${credits} credits${run ? "" : " (plan only: searches skipped)"}.`);
+  if (!run) { console.log("Plan only. Add --run to apply (stored cards first, then up to --max searches)."); return; }
+  writePicks(picks);
+  const names = new Map([...byId.values()].map((r) => [r.id, r]));
+  const lines = pool.map((pid) => { const c = duelReady(names.get(pid)!); return `  "${pid}", // ${c?.name ?? pid} · ${c?.t ?? "?"} · ${c?.hp ?? "?"} HP`; }).join("\n");
+  const src = readFileSync(POOL_OUT, "utf8");
+  const head = src.slice(0, src.indexOf("export const DUEL_POOL"));
+  writeFileSync(POOL_OUT, `${head}export const DUEL_POOL: string[] = [\n${lines}\n];\n`);
+  console.log(`Wrote ${PICKS_OUT} and ${POOL_OUT}. Then run scripts/build-duel-cards.ts.`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

@@ -578,8 +578,10 @@ async function real() {
       const tr = DUEL_DATA.trainers.find((t) => t.id === a.trainerId)!;
       const set = makeSetup(DUEL_DATA.cards, tr, a.pack, a.row, a.events)!;
       check(replay(set, a.line)?.over === "won" && !obviousPlay(set).won, `the real roster: duel #1 (${tr.name}, par ${a.par}) is beatable and beats the obvious play`);
-      // Launched as Larry, par 9: the findable rule must not change a day people have played.
-      check(tr.name === "Larry" && a.par === 9, `the real roster: duel #1 is still Larry at par 9 (got ${tr.name}, par ${a.par})`);
+      // Launched as Larry. A built day keeps its own copy of its cards (duel_days.cards), so card data
+      // changes (the clean prints and text damage of 2026-10-22) never change a played day; a fresh
+      // build of #1 only has to keep its trainer, the rotation's pick.
+      check(tr.name === "Larry", `the real roster: duel #1 is still Larry (got ${tr.name}, par ${a.par})`);
       check(a.fair >= FAIR_LEADS[a.tier] && fairLeads(set) === a.fair, `the real roster: duel #1 is findable (a one-turn-ahead player wins from ${a.fair} leads)`);
     }
     // A Saturday: a villain team's boss, beatable, the obvious play loses.
