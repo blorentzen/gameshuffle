@@ -44,6 +44,9 @@ export function DuelEventStrip({ event, outcome, forecast, hint, picture = null,
   className?: string;
 }) {
   const next = staging ? null : forecast;
+  // Professor's play gets its own full-width line under the halves (too long for half a phone),
+  // led by the same gold Tip as the button it points at.
+  const tip = event?.kind === "advice" && hint ? hint.text : null;
   return (
     <div className={`duel-evs ${className}`} role="group" aria-label="Events">
       <div key={event ? `now-${event.kind}-${event.turn}` : "now-none"} className={`duel-evs__half duel-evs__half--now${event ? " is-on" : ""}`}>
@@ -51,7 +54,7 @@ export function DuelEventStrip({ event, outcome, forecast, hint, picture = null,
         <EventTile event={event} picture={picture} size="sm" />
         <span className="duel-evs__text">
           <b>{event ? event.title : "No event"}</b>
-          {event && <span>{eventNowText(event, outcome, hint)}</span>}
+          {event && <span>{tip ? event.short : eventNowText(event, outcome, hint)}</span>}
         </span>
       </div>
       <div key={next ? `next-${next.kind}-${next.turn}` : "next-none"} className={`duel-evs__half duel-evs__half--next${next ? " is-on" : ""}`}>
@@ -62,6 +65,7 @@ export function DuelEventStrip({ event, outcome, forecast, hint, picture = null,
           {next && <span>{next.short}</span>}
         </span>
       </div>
+      {tip && <p className="duel-evs__tip"><span className="duel-tip" aria-hidden="true">Tip</span>{tip}</p>}
     </div>
   );
 }
