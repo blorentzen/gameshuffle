@@ -20,7 +20,7 @@ import type { ReactNode } from "react";
 import { ImageResponse } from "next/dist/compiled/@vercel/og/index.node.js";
 import sharp from "sharp";
 
-type Motif = "grid" | "dex" | "podium" | "board" | "choices";
+type Motif = "grid" | "dex" | "podium" | "board" | "choices" | "duel";
 interface Spec { slug: string; route: string; title: string; /** "" = no line under the title. */ sub: string; colors: [string, string]; glyphs: string[]; motif: Motif }
 
 const SPECS: Spec[] = [
@@ -30,6 +30,8 @@ const SPECS: Spec[] = [
   { slug: "chat-brain", route: "chat-brain", title: "Chat Brain", sub: "Name the top answers", colors: ["#4a1243", "#c8447a"], glyphs: ["Brain", "Messages", "ChartBar", "Users", "Bulb"], motif: "board" },
   // Fire Round (Britton's pick A, 2026-10-19): ember, a deeper red than the Dex's orange, with a glow behind the choices.
   { slug: "fire", route: "daily-trivia", title: "Fire Round", sub: "Daily trivia against the clock", colors: ["#4a0616", "#d42a3a"], glyphs: ["Flame", "Clock", "Bolt", "Bulb", "Trophy"], motif: "choices" },
+  // Daily Duel (launched 2026-10-22): the duel's gold on navy, two of our own card shapes facing off (never card art).
+  { slug: "duel", route: "daily-duel", title: "Daily Duel", sub: "Beat today's trainer", colors: ["#0b1030", "#2a2f8f"], glyphs: ["Cards", "Bolt", "Flame", "Droplet", "Leaf", "Swords"], motif: "duel" },
 ];
 
 const font = readFileSync("src/app/fonts/gabarito-bold.ttf");
@@ -169,7 +171,38 @@ function Choices(): ReactNode {
   );
 }
 
-const MOTIFS: Record<Motif, () => ReactNode> = { grid: Grid, dex: Dex, podium: Podium, board: Board, choices: Choices };
+/** Daily Duel: your card and the trainer's facing off, each with its type circle, HP bar and Energy, a gold VS between. */
+function Duel(): ReactNode {
+  const GOLD = "#f5c84c";
+  const card = (type: string, icon: string, hp: number, foe: boolean) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, width: 150, height: 214, padding: 12, borderRadius: 16, transform: foe ? "rotate(4deg)" : "rotate(-4deg)",
+      background: "rgba(255,255,255,0.12)", border: `3px solid ${foe ? "rgba(255,255,255,0.4)" : GOLD}`, boxShadow: "0 10px 24px rgba(0,0,0,0.35)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ width: 70, height: 12, borderRadius: 6, background: "rgba(255,255,255,0.75)" }} />
+        <div style={{ width: 36, height: 36, borderRadius: 18, background: type, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={iconSvg(icon, "#fff", 22)} width={22} height={22} alt="" />
+        </div>
+      </div>
+      <div style={{ flex: 1, borderRadius: 10, backgroundImage: `linear-gradient(160deg, ${type}, rgba(255,255,255,0.08))`, display: "flex" }} />
+      <div style={{ display: "flex", height: 12, borderRadius: 6, background: "rgba(255,255,255,0.18)" }}>
+        <div style={{ width: `${hp}%`, borderRadius: 6, background: hp > 50 ? "#3ec46d" : "#f0a43a", display: "flex" }} />
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {[0, 1].map((i) => <div key={i} style={{ width: 18, height: 18, borderRadius: 9, background: type, border: "2px solid rgba(255,255,255,0.7)" }} />)}
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+      {card("#2f72d6", "Droplet", 80, false)}
+      <div style={{ fontSize: 54, color: GOLD, letterSpacing: -1 }}>VS</div>
+      {card("#d9502a", "Flame", 35, true)}
+    </div>
+  );
+}
+
+const MOTIFS: Record<Motif, () => ReactNode> = { grid: Grid, dex: Dex, podium: Podium, board: Board, choices: Choices, duel: Duel };
 
 function checkWords(s: Spec) {
   const words = (t: string) => t.toLowerCase().split(/[^a-z0-9é]+/).filter((w) => w.length > 2);

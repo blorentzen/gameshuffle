@@ -1,7 +1,7 @@
 import { CHECKLISTS, CHECKLISTS_PATH, checklistUrl } from "@/data/tcg-checklists";
 import type { MetadataRoute } from "next";
 import { publishedGuidesAsync } from "@/lib/guides/store";
-import { FIRE_ROUND_PUBLIC, GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
+import { DUEL_PUBLIC, FIRE_ROUND_PUBLIC, GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 import { createPublicClient } from "@/lib/supabase/public";
 import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
@@ -166,6 +166,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...["how-to-host", "team-names", "answer-sheet"].map((p) => ({ url: `${baseUrl}${TRIVIA_PATH}/${p}`, lastModified: lm(`${TRIVIA_PATH}/${p}`), changeFrequency: "monthly" as const, priority: 0.6 })),
     // Fire Round: solo trivia, a new shared round every day.
     ...(FIRE_ROUND_PUBLIC ? [{ url: `${baseUrl}/daily-trivia`, lastModified: lm("/daily-trivia"), changeFrequency: "daily" as const, priority: 0.8 }] : []),
+    ...(DUEL_PUBLIC ? [{ url: `${baseUrl}/daily-duel`, lastModified: lm("/daily-duel"), changeFrequency: "daily" as const, priority: 0.8 }] : []),
     {
       url: `${baseUrl}/wheel-spinner`,
       lastModified: lm("/wheel-spinner"),

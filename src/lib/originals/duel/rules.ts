@@ -15,10 +15,10 @@ import { TURN_CAP } from "./engine";
 import type { DuelCard, DuelEventAt, DuelEventKind, DuelTier, DuelTrainer, EnergyType } from "./types";
 
 /**
- * Duel #1. May move before launch, never after: the number counts days from it, and shares and
- * boards carry the number.
+ * Duel #1, launched Thursday Oct 22, 2026. Never move it: the number counts days from it, and
+ * shares and boards carry the number.
  */
-export const DUEL_EPOCH = "2026-10-28";
+export const DUEL_EPOCH = "2026-10-22";
 
 /** Duel number for a day (#1 on DUEL_EPOCH); 0 before it. */
 export function duelNumber(day: string): number {
