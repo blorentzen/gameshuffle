@@ -54,7 +54,9 @@ function duelEntry(h: DuelHome): DailiesEntry {
 function duelFetch(path: string, init: RequestInit & { makeGuest?: boolean } = {}) {
   const { makeGuest, ...rest } = init;
   const id = makeGuest ? guestRequestId() : storedGuestId();
-  return fetch(path, { ...rest, headers: { ...(rest.headers ?? {}), ...(id ? { "x-daily-guest": id } : {}), ...(rest.body ? { "Content-Type": "application/json" } : {}) } });
+  // Development previews: /daily-duel?day=2026-11-20 plays that day's duel.
+  const day = process.env.NODE_ENV === "development" && typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("day") : null;
+  return fetch(path, { ...rest, headers: { ...(rest.headers ?? {}), ...(id ? { "x-daily-guest": id } : {}), ...(day ? { "x-duel-day": day } : {}), ...(rest.body ? { "Content-Type": "application/json" } : {}) } });
 }
 
 export function DailyDuel() {

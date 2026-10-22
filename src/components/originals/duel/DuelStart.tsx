@@ -31,7 +31,7 @@ export function DuelStart({ home, busy, onStart, onZoom }: {
         onStart={() => { if (!busy) onStart(); }}
         label="Battle now"
         icon={IconSwords}
-        note={`${home.number >= 1 ? `Daily Duel #${home.number} · ` : ""}${t.tierLabel} day. The clock starts when you tap Battle now.`}
+        note={`${home.number >= 1 ? `Daily Duel #${home.number}` : "The warm-up duel"} · ${t.tierLabel} day. The clock starts when you tap Battle now.`}
         head={
           <div className="duel-start__head">
             <div className="duel-start__top">

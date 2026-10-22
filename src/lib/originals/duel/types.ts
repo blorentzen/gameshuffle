@@ -9,11 +9,25 @@
 
 export type EnergyType = "Grass" | "Fire" | "Water" | "Lightning" | "Psychic" | "Fighting" | "Darkness" | "Metal" | "Dragon" | "Colorless";
 
+/**
+ * The Duel's conditions (picks 2026-10-22, https://claude.ai/artifact/534LAa7cDPtr1rsCvh39UE): borrowed
+ * from the card's words, played by the Duel's own rules (engine.ts), each a chance like the games.
+ */
+export type DuelCondition = "burned" | "poisoned" | "paralyzed" | "asleep" | "confused";
+
+/** A condition a move puts on the card it hits: `coin` when the card flips a coin for it (a smaller chance). */
+export interface DuelMoveFx {
+  c: DuelCondition;
+  coin?: true;
+}
+
 /** A move as the duel plays it: the printed name, the printed Energy cost, the printed damage as a number ("130+" and "50×" count as 130 and 50). */
 export interface DuelMove {
   n: string;
   cost: EnergyType[];
   d: number;
+  /** The conditions it puts on the card it hits (cardRules.ts conditionsOf). Played only on days built with the condition rules. */
+  fx?: DuelMoveFx[];
 }
 
 /** A card as the duel plays it, taken from our Scrydex catalog (`tcg_cards`). Only the numbers count. */

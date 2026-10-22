@@ -171,7 +171,7 @@ export function WinnersStage({ dateLabel, sections, caption, paused }: { dateLab
           const at = sectionAt[si];
           return (
             <section key={s.game} className={`winners-scene winners-scene--${s.game}`} style={vars({ "--at": `${at}s`, "--len": `${WINNERS_SECTION}s` })}>
-              <p className="social-stage__eyebrow winners-in" style={vars({ "--at": `${(at + 0.1).toFixed(2)}s` })}>{s.title}{s.number >= 1 ? ` · #${s.number}` : ""}</p>
+              <p className="social-stage__eyebrow winners-in" style={vars({ "--at": `${(at + 0.1).toFixed(2)}s` })}>{s.title}{s.number >= 1 ? ` · #${s.number}` : s.game === "duel" ? " · Warm-up" : ""}</p>
               {s.game === "duel" && s.trainer ? (
                 <div className="winners-trainer winners-in" style={vars({ "--at": `${(at + 0.5).toFixed(2)}s` })}>
                   {s.trainer.picture && <TrainerArt picture={s.trainer.picture} shape="banner" className="winners-trainer__art" />}

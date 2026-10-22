@@ -57,7 +57,7 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
   const play = run.play;
   const knocked = play.foe.filter((c) => c.out).length;
   const official = run.official;
-  const kicker = official ? (run.number >= 1 ? `The Daily Duel #${run.number}` : "Today's duel") : "Practice duel";
+  const kicker = official ? (run.number >= 1 ? `The Daily Duel #${run.number}` : "The warm-up duel") : "Practice duel";
   const shareText = (url: string) => withLink(run.share ?? "", url);
   const sharedNow = () => track(EVENTS.duelShared, { via: official ? "result" : "practice" });
 

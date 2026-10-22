@@ -22,8 +22,14 @@
 .duel-ch__who { margin: 0; font-size: var(--font-size-16, 1.6rem); color: #c9cff0; }
 .duel-ch__label { margin: 4px 0 0; font-size: var(--font-size-12, 1.2rem); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ch-gold); }
 .duel-ch__team { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); gap: 6px; max-width: 46rem; }
-.duel-ch__team img, .duel-ch__noart { display: block; width: 100%; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 5px; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45); }
-.duel-ch__noart { display: grid; place-items: center; padding: 4px; background: #1d2450; font-size: var(--font-size-12, 1.2rem); text-align: center; }
+/* The team as our own card faces (the art window, type and HP), like the Duel's cards. */
+.duel-ch__face { display: flex; flex-direction: column; padding: 2px; border-radius: 6px; background: linear-gradient(180deg, #1a2358, #10163d); box-shadow: inset 0 0 0 1px rgba(245, 200, 76, 0.8), 0 6px 14px rgba(0, 0, 0, 0.45); }
+.duel-ch__cardart { display: block; width: 100%; aspect-ratio: 1; border-radius: 4px; }
+.duel-ch__face .duel-noart { display: grid; place-items: center; box-sizing: border-box; padding: 4px; background: linear-gradient(160deg, var(--e), #0b0d24); color: #fff; font-size: var(--font-size-12); font-weight: 700; text-align: center; }
+/* The type dot (the homepage doesn't load daily-duel.css). */
+.duel-ch__foot .duel-e { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--e); color: #0b0d1f; }
+.duel-ch__foot .duel-e svg { display: block; width: 72%; height: 72%; stroke-width: 2.6; }
+.duel-ch__foot { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 3px 0 1px; color: #fff; font-family: var(--font-display, inherit); font-size: var(--font-size-14); font-weight: 800; font-variant-numeric: tabular-nums; }
 .duel-ch__link { display: block; text-decoration: none; }
 .duel-ch__go.empac-button { width: 100%; min-height: 5.2rem; background: var(--ch-gold); border-color: var(--ch-gold); color: var(--ch-ink); font-family: var(--font-display, inherit); font-size: var(--font-size-18, 1.8rem); font-weight: 800; box-shadow: 0 8px 22px rgba(245, 200, 76, 0.3); }
 .duel-ch__go.empac-button:hover { background: #ffd866; border-color: #ffd866; color: var(--ch-ink); }

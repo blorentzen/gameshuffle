@@ -15,6 +15,8 @@ import { ensureDays } from "@/lib/originals/duel/store";
 import { DUEL_PUBLIC } from "@/lib/games-visibility";
 
 export const runtime = "nodejs";
+/** The Daily Duel may build tomorrow's duel here (up to 40 seconds of search, store.ts ensureDays). */
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;

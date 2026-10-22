@@ -17,17 +17,56 @@
  *      else its own type) and uses the strongest move it can.
  *   4. end of turn: sand, weather counting down, the turn cap.
  * When one of your cards is knocked out you pick the next before the next turn begins (`next`).
- * Weakness doubles damage; nothing else changes it but the events. No coin flips anywhere.
+ * Weakness doubles damage; nothing else changes it but the events.
+ *
+ * Conditions (rules 2: days built from 2026-10-22's picks, https://claude.ai/artifact/534LAa7cDPtr1rsCvh39UE;
+ * days built before keep rules 1 and play exactly as they did). A move that puts a condition on the
+ * card it hits gets a chance, like the games: 50% when the card always does it, 25% when the card
+ * flips a coin (CONDITION_RULES); a move with two rolls each on its own. Burned, Poisoned, Paralyzed
+ * and Asleep replace each other (a card holds one); Confused sits beside any of them. Swapping a card
+ * out cures it, and so does a knockout. Every chance is rolled from the day, the turn and the move
+ * (`roll`), so the same play gets the same luck for everyone; the solver plays with `luck: "miss"`
+ * (your chances never land) so par never counts on luck.
  */
 
 import { eventCopy } from "./copy";
-import type { DuelAction, DuelCard, DuelEventAt, DuelEventKind, DuelMove, DuelSignature, DuelStep, DuelTrainer, EnergyType } from "./types";
+import type { DuelAction, DuelCard, DuelCondition, DuelEventAt, DuelEventKind, DuelMove, DuelMoveFx, DuelSignature, DuelStep, DuelTrainer, EnergyType } from "./types";
 import type { DuelCardView, DuelEventView, DuelPlayView } from "./view";
 
 /** Turn 40 ends a duel that isn't won: a loss. */
 export const TURN_CAP = 40;
 export const WEATHER_TURNS = 3;
 export const ROCKET_TURNS = 2;
+
+/**
+ * The condition rules (picks 2026-10-22, all as recommended): the chances, the damage, how long
+ * each lasts. Changing a number changes every day built with rules 2, so only change it for days not
+ * built yet (a new rules version).
+ */
+export const CONDITION_RULES = {
+  /** A move whose card always puts the condition on: 50%. One that flips a coin for it: 25%. */
+  sure: 50,
+  coin: 25,
+  /** Burned: 20 at the end of every turn. */
+  burn: 20,
+  /** Poisoned: 10 at the end of its first turn, then 20, then 30… */
+  poison: 10,
+  /** Paralyzed: each turn, this chance it can't move. */
+  paralyzed: 25,
+  /** Asleep: can't move for 1 to 3 of its turns, rolled when it falls asleep. */
+  sleepMin: 1,
+  sleepMax: 3,
+  /** Confused: for 3 of its turns, each move has this chance to hit itself for 20 instead. */
+  confusedTurns: 3,
+  confusedSelf: 33,
+  confusedHit: 20,
+} as const;
+
+/** A lasting condition on a card: what it is, and its count (Asleep: turns left; Poisoned: ticks so far). */
+export interface DuelStatus {
+  k: Exclude<DuelCondition, "confused">;
+  n: number;
+}
 
 export interface DuelSetup {
   /** Your six cards, in pack order. */
@@ -41,12 +80,22 @@ export interface DuelSetup {
   signature: DuelSignature;
   /** The trainer's name, for log lines ("Cynthia"). */
   trainer: string;
+  /** 2 = conditions play (days built from 2026-10-22). Absent or 1: the first rules, unchanged. */
+  rules?: 1 | 2;
+  /** The day, which every chance is rolled from (rules 2). */
+  seed?: string;
+  /** The solver's setting: your moves' conditions never land, so par never counts on luck. */
+  luck?: "miss";
 }
 
 export interface DuelSlot {
   cur: number;
   energy: EnergyType[];
   out: boolean;
+  /** A lasting condition (rules 2). Absent when it has none. */
+  cond?: DuelStatus;
+  /** Confused: turns left (rules 2). Absent when it isn't. */
+  conf?: number;
 }
 
 /** What's in play. */
@@ -73,7 +122,7 @@ export interface DuelFx {
   advice: boolean;
 }
 
-export type DuelLogKind = "move" | "ko" | "out" | "swap" | "wait" | "event" | "skip" | "sand" | "heal" | "revive" | "energy";
+export type DuelLogKind = "move" | "ko" | "out" | "swap" | "wait" | "event" | "skip" | "sand" | "heal" | "revive" | "energy" | "cond" | "tick" | "wake" | "self";
 
 export interface DuelLogLine {
   kind: DuelLogKind;
@@ -89,7 +138,9 @@ export interface DuelLogLine {
   /** An Energy line: the type that went on. */
   type?: EnergyType;
   /** A skip line: why the card skipped its move. */
-  why?: "asleep" | "stubborn";
+  why?: "asleep" | "stubborn" | "paralyzed";
+  /** A condition line (cond: it landed; tick: its damage; wake: Asleep ended): which condition. */
+  cond?: DuelCondition;
   /** A heal line: HP actually healed (0 on a card already at full HP). */
   amount?: number;
   /** The turn's event this line came from (lines written when the event flipped). */
@@ -128,7 +179,40 @@ export function startState(setup: DuelSetup): DuelState {
   return { turn: 0, you: setup.you.map(slot), foe: setup.foe.map(slot), yi: -1, fi: 0, pending: null, fx: { ...NO_FX }, event: null, over: null, log: [] };
 }
 
-const copySlot = (c: DuelSlot): DuelSlot => ({ cur: c.cur, energy: c.energy.slice(), out: c.out });
+const copySlot = (c: DuelSlot): DuelSlot => {
+  const out: DuelSlot = { cur: c.cur, energy: c.energy.slice(), out: c.out };
+  if (c.cond) out.cond = { k: c.cond.k, n: c.cond.n };
+  if (c.conf) out.conf = c.conf;
+  return out;
+};
+
+/** A card's conditions go (a swap out or a knockout). */
+function cure(c: DuelSlot) {
+  delete c.cond;
+  delete c.conf;
+}
+
+const conditionsOn = (setup: DuelSetup) => setup.rules === 2;
+
+/** A chance from 0 to 100 (below 100), the same for everyone on the day: a hash of the day and `key`. */
+export function roll(setup: DuelSetup, key: string): number {
+  const str = `${setup.seed ?? ""}|${key}`;
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return ((4294967296 * (2097151 & h2) + (h1 >>> 0)) % 10000) / 100;
+}
+
+/** A move's chance to put this condition on (rules 2). */
+export const fxChance = (f: DuelMoveFx) => (f.coin ? CONDITION_RULES.coin : CONDITION_RULES.sure);
+
+const CONDITION_WORD: Record<DuelCondition, string> = { burned: "Burned", poisoned: "Poisoned", paralyzed: "Paralyzed", asleep: "Asleep", confused: "Confused" };
 
 /** A copy safe to change (structured, not a JSON round trip: the solver makes a lot of these). The log starts empty. */
 export function cloneState(s: DuelState): DuelState {
@@ -303,10 +387,18 @@ function applyEvent(setup: DuelSetup, s: DuelState, ev: DuelEventKind, L: Log) {
       break;
     }
     case "sleep":
-      s.fx.sleep = s.fi;
+      if (conditionsOn(setup)) {
+        // Rules 2: the trainer's card falls asleep, as a move would put it to sleep.
+        const span = CONDITION_RULES.sleepMax - CONDITION_RULES.sleepMin + 1;
+        foe.cond = { k: "asleep", n: CONDITION_RULES.sleepMin + Math.floor((roll(setup, `se:${s.turn}`) / 100) * span) };
+        note(L, { kind: "cond", side: "foe", card: s.fi, cond: "asleep", text: `${setup.trainer}'s ${foeCard.short} is now Asleep.` });
+      } else s.fx.sleep = s.fi;
       break;
     case "confused":
-      s.fx.confused = true;
+      if (conditionsOn(setup)) {
+        you.conf = CONDITION_RULES.confusedTurns;
+        note(L, { kind: "cond", side: "you", card: s.yi, cond: "confused", text: `Your ${youCard.short} is now Confused.` });
+      } else s.fx.confused = true;
       break;
     case "crit":
       s.fx.crit = true;
@@ -360,6 +452,43 @@ function beginTurn(setup: DuelSetup, s: DuelState, L: Log) {
   }
 }
 
+/** "Your Gloom" / "Cynthia's Garchomp ex", for log lines. */
+const whose = (setup: DuelSetup, mine: boolean, card: DuelCard) => `${mine ? "Your" : `${setup.trainer}'s`} ${card.short}`;
+
+/**
+ * A move lands its conditions on the card it hit (rules 2), each on its own chance, keyed by the
+ * turn, the side and the move. A card already holding that condition keeps it as it is; a different
+ * lasting one replaces it. Your moves never land them for the solver (`luck: "miss"`).
+ */
+function inflict(setup: DuelSetup, s: DuelState, mine: boolean, mi: number, fx: readonly DuelMoveFx[], L: Log) {
+  if (mine && setup.luck === "miss") return;
+  const ti = mine ? s.fi : s.yi;
+  const target = mine ? s.foe[ti] : s.you[ti];
+  const card = mine ? setup.foe[ti] : setup.you[ti];
+  if (!target || target.out) return;
+  const key = `c:${s.turn}:${mine ? "you" : "foe"}:${mine ? s.yi : s.fi}:${mi}`;
+  for (const f of fx) {
+    if (roll(setup, `${key}:${f.c}`) >= fxChance(f)) continue;
+    if (f.c === "confused") {
+      if (target.conf) continue;
+      target.conf = CONDITION_RULES.confusedTurns;
+    } else {
+      if (target.cond?.k === f.c) continue;
+      const span = CONDITION_RULES.sleepMax - CONDITION_RULES.sleepMin + 1;
+      target.cond = { k: f.c, n: f.c === "asleep" ? CONDITION_RULES.sleepMin + Math.floor((roll(setup, `${key}:z`) / 100) * span) : 0 };
+    }
+    note(L, { kind: "cond", side: mine ? "foe" : "you", card: ti, cond: f.c, text: `${whose(setup, !mine, card)} is now ${CONDITION_WORD[f.c]}.` });
+  }
+}
+
+function knockOut(setup: DuelSetup, s: DuelState, mine: boolean, i: number, L: Log) {
+  const slot = mine ? s.you[i] : s.foe[i];
+  slot.out = true;
+  slot.energy = [];
+  cure(slot);
+  note(L, { kind: "ko", side: mine ? "you" : "foe", card: i, text: `${whose(setup, mine, mine ? setup.you[i] : setup.foe[i])} is knocked out.` });
+}
+
 function hit(setup: DuelSetup, s: DuelState, mine: boolean, mi: number, L: Log): boolean {
   const att = mine ? setup.you[s.yi] : setup.foe[s.fi];
   const def = mine ? setup.foe[s.fi] : setup.you[s.yi];
@@ -370,17 +499,67 @@ function hit(setup: DuelSetup, s: DuelState, mine: boolean, mi: number, L: Log):
   target.cur = Math.max(0, target.cur - d);
   const weak = d > 0 && isWeak(att, def);
   note(L, { kind: "move", side: mine ? "you" : "foe", card: mine ? s.yi : s.fi, damage: d, weak, move: m.n, text: `${mine ? "Your" : `${setup.trainer}'s`} ${att.short} used ${m.n}: ${d}${weak ? ", super effective" : ""}.` });
-  if (target.cur > 0) return false;
+  if (target.cur > 0) {
+    if (conditionsOn(setup) && m.fx?.length) inflict(setup, s, mine, mi, m.fx, L);
+    return false;
+  }
+  if (conditionsOn(setup)) { knockOut(setup, s, !mine, mine ? s.fi : s.yi, L); return true; }
   target.out = true;
   target.energy = [];
   note(L, { kind: "ko", side: mine ? "foe" : "you", card: mine ? s.fi : s.yi, text: `${mine ? `${setup.trainer}'s` : "Your"} ${def.short} is knocked out.` });
   return true;
 }
 
+/**
+ * A card on the field tries a move (rules 2): Paralyzed may stop it, Confused may turn it on
+ * itself; otherwise the move lands (`hit`). Returns true when the card it hit was knocked out.
+ */
+function attempt(setup: DuelSetup, s: DuelState, mine: boolean, mi: number, L: Log): boolean {
+  const i = mine ? s.yi : s.fi;
+  const slot = mine ? s.you[i] : s.foe[i];
+  const card = mine ? setup.you[i] : setup.foe[i];
+  const key = `${s.turn}:${mine ? "you" : "foe"}:${i}`;
+  // A critical hit or the trainer's boost waits for the next move that lands.
+  if (slot.cond?.k === "paralyzed" && roll(setup, `p:${key}`) < CONDITION_RULES.paralyzed) {
+    note(L, { kind: "skip", side: mine ? "you" : "foe", card: i, why: "paralyzed", text: `${whose(setup, mine, card)} is paralyzed and can't move.` });
+    return false;
+  }
+  if (slot.conf && roll(setup, `x:${key}`) < CONDITION_RULES.confusedSelf) {
+    const d = CONDITION_RULES.confusedHit;
+    slot.cur = Math.max(0, slot.cur - d);
+    note(L, { kind: "self", side: mine ? "you" : "foe", card: i, damage: d, cond: "confused", text: `${whose(setup, mine, card)} is confused and hits itself for ${d}.` });
+    if (slot.cur === 0) knockOut(setup, s, mine, i, L);
+    return false;
+  }
+  return hit(setup, s, mine, mi, L);
+}
+
+/** Asleep counts down on each of the card's own turns; it wakes when the count runs out. */
+function sleepTurn(setup: DuelSetup, s: DuelState, mine: boolean, L: Log) {
+  const i = mine ? s.yi : s.fi;
+  const slot = mine ? s.you[i] : s.foe[i];
+  const card = mine ? setup.you[i] : setup.foe[i];
+  note(L, { kind: "skip", side: mine ? "you" : "foe", card: i, why: "asleep", text: `${whose(setup, mine, card)} is asleep.` });
+  if (!slot.cond) return;
+  slot.cond.n -= 1;
+  if (slot.cond.n <= 0) {
+    delete slot.cond;
+    note(L, { kind: "wake", side: mine ? "you" : "foe", card: i, cond: "asleep", text: `${whose(setup, mine, card)} wakes up.` });
+  }
+}
+
+/** Confused counts down on each of the card's own turns on the field. */
+function confusedTurn(slot: DuelSlot | undefined) {
+  if (!slot || !slot.conf) return;
+  slot.conf -= 1;
+  if (slot.conf <= 0) delete slot.conf;
+}
+
 /** The trainer's turn: one Energy for its card on the field, then its strongest move (unless it's asleep or loafing). */
 function foeTurn(setup: DuelSetup, s: DuelState, L: Log) {
   giveFoeEnergy(setup, s, L);
   const card = setup.foe[s.fi];
+  if (conditionsOn(setup)) { foeTurn2(setup, s, card, L); return; }
   if (s.fx.sleep === s.fi) {
     s.fx.sleep = -1;
     note(L, { kind: "skip", side: "foe", card: s.fi, why: "asleep", text: `${setup.trainer}'s ${card.short} is asleep.` });
@@ -391,6 +570,58 @@ function foeTurn(setup: DuelSetup, s: DuelState, L: Log) {
     const mi = foeChoice(setup, s);
     if (mi < 0) note(L, { kind: "wait", side: "foe", card: s.fi, text: `${setup.trainer}'s ${card.short} waits.` });
     else if (hit(setup, s, false, mi, L) && !alive(s.you)) s.over = "lost";
+  }
+}
+
+/** The trainer's turn under rules 2: asleep, a stubborn ace, or its strongest move (which Paralyzed or Confused may spoil). */
+function foeTurn2(setup: DuelSetup, s: DuelState, card: DuelCard, L: Log) {
+  const fi = s.fi;
+  const slot = s.foe[fi];
+  if (s.yi < 0 || s.you[s.yi].out) {
+    // Your card knocked itself out: nothing to hit.
+    note(L, { kind: "wait", side: "foe", card: fi, text: `${setup.trainer}'s ${card.short} waits.` });
+  } else if (slot.cond?.k === "asleep") {
+    sleepTurn(setup, s, false, L);
+  } else if (s.fx.aceFoe === fi) {
+    s.fx.aceFoe = -1;
+    note(L, { kind: "skip", side: "foe", card: fi, why: "stubborn", text: `${setup.trainer}'s ${card.short} loafs around.` });
+  } else {
+    const mi = foeChoice(setup, s);
+    if (mi < 0) note(L, { kind: "wait", side: "foe", card: fi, text: `${setup.trainer}'s ${card.short} waits.` });
+    else if (attempt(setup, s, false, mi, L) && !alive(s.you)) s.over = "lost";
+  }
+  confusedTurn(slot.out ? undefined : slot);
+  // Its card knocked itself out: the next one comes out now.
+  if (slot.out && !s.over) foeNext(setup, s, L);
+}
+
+/** The trainer sends out its next card (or you've won). */
+function foeNext(setup: DuelSetup, s: DuelState, L: Log) {
+  if (s.fx.sleep === s.fi) s.fx.sleep = -1;
+  if (s.fx.aceFoe === s.fi) s.fx.aceFoe = -1;
+  if (!alive(s.foe)) { s.over = "won"; return; }
+  s.fi = s.foe.findIndex((c) => !c.out);
+  note(L, { kind: "out", side: "foe", card: s.fi, text: `${setup.trainer} sends out ${setup.foe[s.fi].short}.` });
+}
+
+/** Burned and Poisoned at the end of the turn (rules 2): the trainer's card first, then yours. Either can knock a card out. */
+function conditionTicks(setup: DuelSetup, s: DuelState, L: Log) {
+  for (const mine of [false, true]) {
+    const i = mine ? s.yi : s.fi;
+    const slot = i >= 0 ? (mine ? s.you[i] : s.foe[i]) : undefined;
+    if (!slot || slot.out || !slot.cond) continue;
+    let d = 0;
+    if (slot.cond.k === "burned") d = CONDITION_RULES.burn;
+    else if (slot.cond.k === "poisoned") { slot.cond.n += 1; d = CONDITION_RULES.poison * slot.cond.n; }
+    if (!d) continue;
+    const k = slot.cond.k;
+    const card = mine ? setup.you[i] : setup.foe[i];
+    slot.cur = Math.max(0, slot.cur - d);
+    note(L, { kind: "tick", side: mine ? "you" : "foe", card: i, damage: d, cond: k, text: `${whose(setup, mine, card)} takes ${d} from ${k === "burned" ? "its burn" : "poison"}.` });
+    if (slot.cur > 0) continue;
+    knockOut(setup, s, mine, i, L);
+    if (!mine) foeNext(setup, s, L);
+    else if (!alive(s.you) && !s.over) s.over = "lost";
   }
 }
 
@@ -410,6 +641,7 @@ function endTurn(setup: DuelSetup, s: DuelState, L: Log) {
       if (before !== f.cur) note(L, { kind: "sand", side: "foe", card: s.fi, damage: before - f.cur, text: `The sandstorm hits ${setup.trainer}'s ${setup.foe[s.fi].short}.` });
     }
   }
+  if (conditionsOn(setup) && !s.over) conditionTicks(setup, s, L);
   if (s.fx.weatherLeft > 0) {
     s.fx.weatherLeft -= 1;
     if (s.fx.weatherLeft === 0) s.fx.weather = null;
@@ -454,6 +686,7 @@ export const atTurn = (s: DuelState) => !s.over && s.turn > 0 && s.yi >= 0 && !s
 /** Can your card on the field use move `mi` this turn, with the Energy going on `attach`? */
 export function canUse(setup: DuelSetup, s: DuelState, attach: number, mi: number): boolean {
   if (s.fx.aceYou) return false;
+  if (s.you[s.yi]?.cond?.k === "asleep") return false;
   const card = setup.you[s.yi];
   const m = card.moves[mi];
   if (!m) return false;
@@ -500,6 +733,7 @@ export function step(setup: DuelSetup, s0: DuelState, a: DuelAction, quiet = fal
   s.pending = null;
   s.event = null;
   const act = a.act as { move?: number; swap?: number };
+  if (conditionsOn(setup)) return step2(setup, s, act, L);
   if (act.move != null) {
     const ko = hit(setup, s, true, act.move, L);
     if (ko) {
@@ -514,6 +748,31 @@ export function step(setup: DuelSetup, s0: DuelState, a: DuelAction, quiet = fal
     note(L, { kind: "swap", side: "you", card: s.yi, text: `You swap in ${setup.you[s.yi].short}.` });
   } else note(L, { kind: "wait", side: "you", card: s.yi, text: "You wait." });
   foeTurn(setup, s, L);
+  endTurn(setup, s, L);
+  return s;
+}
+
+/** Your action and the rest of the turn under rules 2 (the Energy is already on). */
+function step2(setup: DuelSetup, s: DuelState, act: { move?: number; swap?: number }, L: Log): DuelState {
+  const me = s.you[s.yi];
+  if (act.swap != null) {
+    // Swapping out cures the card that leaves.
+    cure(me);
+    s.yi = act.swap;
+    note(L, { kind: "swap", side: "you", card: s.yi, text: `You swap in ${setup.you[s.yi].short}.` });
+  } else {
+    if (me.cond?.k === "asleep") sleepTurn(setup, s, true, L);
+    else if (act.move != null) {
+      if (attempt(setup, s, true, act.move, L) && s.foe[s.fi].out) {
+        foeNext(setup, s, L);
+        if (s.over) return s;
+      }
+      if (!alive(s.you)) { s.over = "lost"; return s; }
+    } else note(L, { kind: "wait", side: "you", card: s.yi, text: "You wait." });
+    confusedTurn(me.out ? undefined : me);
+  }
+  foeTurn(setup, s, L);
+  if (s.over) return s;
   endTurn(setup, s, L);
   return s;
 }
@@ -570,7 +829,7 @@ export const cardsLeft = (s: DuelState) => alive(s.you);
  */
 export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer, "name" | "signature">): DuelPlayView {
   const turnNow = atTurn(s);
-  const ev = (kind: DuelEventKind | null, turn: number): DuelEventView | null => (kind ? { kind, turn, ...eventCopy(kind, trainer) } : null);
+  const ev = (kind: DuelEventKind | null, turn: number): DuelEventView | null => (kind ? { kind, turn, ...eventCopy(kind, trainer, setup.rules) } : null);
   const yourCard = s.yi >= 0 && !s.you[s.yi].out ? setup.you[s.yi] : null;
   const foeCard = s.foe[s.fi] && !s.foe[s.fi].out ? setup.foe[s.fi] : null;
   const side = (mine: boolean): DuelCardView[] => (mine ? setup.you : setup.foe).map((c, i) => {
@@ -581,6 +840,7 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
       index: i, id: c.id, name: c.name, short: c.short, t: c.t, hp: c.hp, weak: c.weak, ex: c.ex, img: c.img,
       moves: c.moves.map((m) => ({
         n: m.n, cost: m.cost.slice(), d: m.d,
+        fx: conditionsOn(setup) && m.fx ? m.fx.map((f) => ({ c: f.c, chance: fxChance(f) })) : [],
         damage: across ? damageOf(s, c, across, m, mine) : null,
         weak: !!across && m.d > 0 && isWeak(c, across),
         ready: pays(slot.energy, m.cost),
@@ -588,7 +848,9 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
       })),
       cur: slot.cur, energy: slot.energy.slice(), out: slot.out, field: field && !slot.out,
       grabbed: mine && s.fx.rocket === i ? s.fx.rocketLeft : 0,
-      skips: mine ? field && s.fx.aceYou : s.fx.sleep === i || s.fx.aceFoe === i,
+      skips: mine ? field && (s.fx.aceYou || slot.cond?.k === "asleep") : s.fx.sleep === i || s.fx.aceFoe === i || slot.cond?.k === "asleep",
+      cond: !slot.out && slot.cond ? slot.cond.k : null,
+      confused: !slot.out && !!slot.conf,
     };
   });
   // During turn N you place row[N - 1] and see row[N .. N + 2]; between turns the next to place is
@@ -610,7 +872,8 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
     energy: { now: turnNow ? s.pending : null, next },
     attachTo: turnNow ? attachTargets(s) : [],
     swaps: turnNow ? swapTargets(s) : [],
-    canMove: turnNow && !s.fx.aceYou,
+    canMove: turnNow && !s.fx.aceYou && s.you[s.yi]?.cond?.k !== "asleep",
+    rules: conditionsOn(setup) ? 2 : 1,
     event: turnNow ? ev(s.event, s.turn) : null,
     forecast: s.over ? null : ev(eventAt(setup, s.turn + 1), s.turn + 1),
     inPlay: {

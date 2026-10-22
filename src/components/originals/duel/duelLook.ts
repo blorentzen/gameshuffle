@@ -7,11 +7,12 @@
 
 import type { Icon } from "@tabler/icons-react";
 import {
-  IconBolt, IconBulb, IconCloudRain, IconCrown, IconDroplet, IconEye, IconFirstAidKit, IconFlame, IconFlask, IconHandStop, IconHeartPlus, IconLeaf, IconMoodAngry,
-  IconMoon, IconPaw, IconRocket, IconShield, IconSpiral, IconStar, IconSun, IconWind, IconZzz,
+  IconBolt, IconBulb, IconCloudRain, IconCrown, IconDroplet, IconEye, IconFirstAidKit, IconFlame, IconFlask, IconHandStop, IconHeartPlus, IconLeaf, IconLock, IconMoodAngry,
+  IconMoon, IconPaw, IconRocket, IconShield, IconSkull, IconSpiral, IconStar, IconSun, IconTemperature, IconWind, IconZzz,
 } from "@tabler/icons-react";
 import type { DuelCardView, DuelEventView, DuelLogLine } from "@/lib/originals/duel/view";
-import type { DuelEventKind, EnergyType } from "@/lib/originals/duel/types";
+import type { DuelCondition, DuelEventKind, EnergyType } from "@/lib/originals/duel/types";
+import { CONDITION_RULES as R } from "@/lib/originals/duel/engine";
 
 /** A type chip's background (white text on it, 4.5:1 or better). */
 export const TYPE_CHIP: Record<EnergyType, string> = {
@@ -57,6 +58,22 @@ export const TYPE_ICON: Record<EnergyType, Icon> = {
   Dragon: IconCrown,
   Colorless: IconStar,
 };
+
+/**
+ * The conditions' look: a square tag with the condition's icon on its color (the TCG Companion's
+ * icon language: circles are types, squares are conditions), the word for screen readers and
+ * tooltips, and what it does in the Duel (the card window's key and the FAQ).
+ */
+export const CONDITION_LOOK: Record<DuelCondition, { word: string; icon: Icon; color: string; ink: string; what: string }> = {
+  burned: { word: "Burned", icon: IconTemperature, color: "#dc2626", ink: "#ffffff", what: `Loses ${R.burn} HP at the end of every turn.` },
+  poisoned: { word: "Poisoned", icon: IconSkull, color: "#9333ea", ink: "#ffffff", what: `Loses ${R.poison} HP at the end of its first turn, then ${R.poison * 2}, then ${R.poison * 3}, and so on.` },
+  paralyzed: { word: "Paralyzed", icon: IconLock, color: "#facc15", ink: "#3b2a00", what: `Each turn, a ${R.paralyzed}% chance it can't move.` },
+  asleep: { word: "Asleep", icon: IconZzz, color: "#64748b", ink: "#ffffff", what: `Can't move. Wakes after ${R.sleepMin} to ${R.sleepMax} turns.` },
+  confused: { word: "Confused", icon: IconSpiral, color: "#ec4899", ink: "#ffffff", what: `For ${R.confusedTurns} turns, each move has a ${R.confusedSelf}% chance to hit itself for ${R.confusedHit} instead.` },
+};
+
+/** The conditions in a fixed order, for keys. */
+export const CONDITION_ORDER: DuelCondition[] = ["burned", "poisoned", "paralyzed", "asleep", "confused"];
 
 export interface EventLook { icon: Icon; bg: string }
 
@@ -128,9 +145,16 @@ export const reducedMotion = () => typeof window !== "undefined" && typeof windo
 /** A row of the scoreline. `at` is the log line it comes from (rows appear with their beat). */
 export type ScoreRow =
   | { key: string; at: number; kind: "move"; side: "you" | "foe"; move: string; damage: number; weak: boolean; ko: boolean }
-  | { key: string; at: number; kind: "skip"; side: "you" | "foe"; why: "asleep" | "stubborn" }
+  | { key: string; at: number; kind: "skip"; side: "you" | "foe"; why: "asleep" | "stubborn" | "paralyzed" }
   | { key: string; at: number; kind: "swap"; side: "you"; card: string }
-  | { key: string; at: number; kind: "sand"; hits: { side: "you" | "foe"; card: string; damage: number }[] };
+  | { key: string; at: number; kind: "sand"; hits: { side: "you" | "foe"; card: string; damage: number }[] }
+  /** A condition landed on a card (side = whose card). */
+  | { key: string; at: number; kind: "cond"; side: "you" | "foe"; card: string; cond: DuelCondition }
+  /** Burned or Poisoned took its HP at the end of the turn. */
+  | { key: string; at: number; kind: "tick"; side: "you" | "foe"; card: string; cond: DuelCondition; damage: number; ko: boolean }
+  /** Confused: the card hit itself. */
+  | { key: string; at: number; kind: "self"; side: "you" | "foe"; card: string; damage: number; ko: boolean }
+  | { key: string; at: number; kind: "wake"; side: "you" | "foe"; card: string };
 
 /**
  * A line written by the turn's event (a heal, Team Rocket's grab, a revive). Lines stored before
@@ -158,8 +182,17 @@ export function scoreRows(log: readonly DuelLogLine[], you: readonly Named[], fo
     } else if (l.kind === "ko") {
       const last = rows[rows.length - 1];
       if (last && last.kind === "move" && last.side !== l.side) last.ko = true;
+      else if (last && (last.kind === "tick" || last.kind === "self") && last.side === l.side) last.ko = true;
     } else if (l.kind === "skip" && l.side) {
       rows.push({ key: `s${i}`, at: i, kind: "skip", side: l.side, why: l.why ?? (/asleep/i.test(l.text) ? "asleep" : "stubborn") });
+    } else if (l.kind === "cond" && l.side && l.cond) {
+      rows.push({ key: `c${i}`, at: i, kind: "cond", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card), cond: l.cond });
+    } else if (l.kind === "tick" && l.side && l.cond) {
+      rows.push({ key: `t${i}`, at: i, kind: "tick", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card), cond: l.cond, damage: l.damage ?? 0, ko: false });
+    } else if (l.kind === "self" && l.side) {
+      rows.push({ key: `x${i}`, at: i, kind: "self", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card), damage: l.damage ?? 0, ko: false });
+    } else if (l.kind === "wake" && l.side) {
+      rows.push({ key: `k${i}`, at: i, kind: "wake", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card) });
     } else if (l.kind === "swap" && l.side === "you") {
       rows.push({ key: `w${i}`, at: i, kind: "swap", side: "you", card: nameOf(you, l.card) });
     } else if (l.kind === "sand" && l.side) {

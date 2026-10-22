@@ -270,7 +270,7 @@ export function loungeBest(p: LoungePart): string | null {
 
 /** The card's game line: "The Daily Shuffle #22", "Fire Round #1", "Fire Round · Geography, 3 minutes". */
 export function partTitle(p: SharePart): string {
-  if (p.kind === "duel") return `The Daily Duel${p.number >= 1 ? ` #${p.number}` : ""}${p.practice ? " · practice" : ""}`;
+  if (p.kind === "duel") return `The Daily Duel${p.number >= 1 ? ` #${p.number}` : " warm-up"}${p.practice ? " · practice" : ""}`;
   if (p.kind === "lounge") return `${p.gameLabel} lounge`;
   if (p.kind === "supporter") return "Supporter";
   if (p.kind === "names") return p.set === "all" ? "Name every Pokémon" : `Name every Pokémon · ${p.setLabel}`;
