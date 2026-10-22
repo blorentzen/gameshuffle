@@ -706,6 +706,51 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
   check(!!fixV2 && fixV2.rules === 2 && fixV2.seed === "x", "makeSetup sets the rules and the day");
   const solV2 = fixV2 && solve(solverSetup(fixV2), { width: 60 });
   if (solV2) check(replay(solverSetup(fixV2!), solV2.line)?.over === "won", "a rules 2 line replays to a win");
+
+  // Rules 3: every six holds a card with a condition move (when the candidates have one).
+  const fxIds = ["fx1", "fx2"];
+  const pool: Record<string, DuelCard> = {};
+  const types: EnergyType[] = [W, R, G, M, F, L, X];
+  for (let i = 0; i < 40; i++) pool[`p${i}`] = card(`Mon${i}`, types[i % types.length], 100, null, [["Hit", [X], 30]]);
+  for (const id of fxIds) { pool[id] = card(id, W, 100, null, [["Zap", [X], 20]]); pool[id].moves[0].fx = [{ c: "paralyzed" }]; }
+  const ids = Object.keys(pool);
+  let withFx = 0;
+  for (let i = 0; i < 200; i++) {
+    const pk = drawPack(ids, pool, duelRand(`fx-${i}`), 2, true);
+    if (pk && pk.some((id) => fxIds.includes(id))) withFx++;
+  }
+  check(withFx === 200, `rules 3 sixes always hold a condition card (${withFx}/200)`);
+  const none = drawPack(ids.filter((id) => !fxIds.includes(id)), pool, duelRand("fx-none"), 2, true);
+  check(!!none && none.length === 6, "with no condition cards to draw, any six will do");
+
+  // Rules 4: bring as many as the trainer (at least 3); a short team's cards start with Energy.
+  const four: DuelSetup = { ...mk(), rules: 4, seed: "b", bring: 3, foeHead: 3 };
+  const b0 = startState(four);
+  check(b0.foe.every((f) => f.energy.length === 3), "a 2-card team's cards start with 3 Energy");
+  check(applyStep(four, b0, { next: 0 }) === null, "the lead waits for the cards you bring");
+  check(applyStep(four, b0, { bring: [0, 1] }) === null && applyStep(four, b0, { bring: [0, 0, 1] }) === null && applyStep(four, b0, { bring: [0, 1, 9] }) === null, "a pick of the wrong size, a repeat or a card that isn't there is refused");
+  const b1 = applyStep(four, b0, { bring: [4, 0, 2] })!;
+  check(JSON.stringify(b1.brought) === "[0,2,4]" && JSON.stringify(nexts(b1)) === "[0,2,4]", "you lead from the cards you brought");
+  const v1 = viewOf(four, b0, TRAINER);
+  check(v1.needsBring && v1.bring === 3 && !v1.needsNext, "the view asks for the pick first");
+  const b2 = applyStep(four, b1, { next: 0 })!;
+  check(!isLegal(four, b2, { attach: 1, act: { wait: true } }) && isLegal(four, b2, { attach: 2, act: { wait: true } }), "Energy only goes on cards you brought");
+  check(JSON.stringify(swapTargets(b2)) === "[2,4]", "you only swap to cards you brought");
+  const v2 = viewOf(four, b2, TRAINER);
+  check(v2.you[1].sat && !v2.you[0].sat && v2.cardsLeft === 3, "the others sit out and don't count");
+  const ko = cloneState(b2);
+  for (const i of [0, 2, 4]) ko.you[i].out = true;
+  check(viewOf(four, ko, TRAINER).cardsLeft === 0, "losing the three you brought is all of them");
+  // makeSetup sets it from the trainer's team.
+  const sized = (n: number) => makeSetup(FIX_CARDS, { ...FIX_TRAINERS[0], team: FIX_TRAINERS[0].team.concat(FIX_TRAINERS[1]?.team ?? []).slice(0, n) }, FIX_POOL.slice(0, 6), Array(TURN_CAP).fill("Colorless"), [], { rules: 4, seed: "s" });
+  const s3 = sized(3);
+  check(!!s3 && s3.bring === 3 && s3.foeHead === 2, "a 3-card team: bring 3, its cards start with 2 Energy");
+  const s5 = sized(5);
+  if (s5 && s5.foe.length === 5) check(s5.bring === 5 && !s5.foeHead, "a 5-card team: bring 5, no head start");
+  // The solver searches every pick and its line replays.
+  const sol4 = solve(solverSetup(four), { width: 120 });
+  check(!!sol4 && "bring" in sol4.line[0] && replay(solverSetup(four), sol4.line)?.over === "won", "a rules 4 line starts with the pick and replays to a win");
+  check(obviousPlay(four).line.length > 0 && "bring" in obviousPlay(four).line[0], "the obvious play makes a pick too");
 }
 
 // ─── the real roster (when it's there): a day builds the same twice ──────────

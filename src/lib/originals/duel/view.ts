@@ -58,6 +58,8 @@ export interface DuelCardView {
   grabbed: number;
   /** It skips its next move (asleep, or a stubborn ace). */
   skips: boolean;
+  /** Your cards: it sits this duel out (rules 4: you didn't bring it). */
+  sat: boolean;
   /** Its lasting condition (Burned, Poisoned, Paralyzed or Asleep), or null. Days with the condition rules only. */
   cond: Exclude<DuelCondition, "confused"> | null;
   /** It's Confused. Days with the condition rules only. */
@@ -101,6 +103,10 @@ export interface DuelPlayView {
   /** Your card on the field (-1 before the lead) and the trainer's. */
   yi: number;
   fi: number;
+  /** Rules 4: pick which `bring` of your six to bring, before the lead (send { bring: [...] }). */
+  needsBring: boolean;
+  /** How many of your six play today (6 = all, no pick). */
+  bring: number;
   /** Pick a card to send out first (the lead, or after a knockout): one of `nexts`. */
   needsNext: boolean;
   nexts: number[];
@@ -236,6 +242,8 @@ export interface DuelHome {
   trainer: DuelTrainerView | null;
   /** Today's six, as they start (full HP, no Energy). */
   pack: DuelCardView[];
+  /** How many of the six you bring (6 = all; rules 4: as many as the trainer, at least 3). */
+  bring: number;
   /** The trainer's team in order. */
   team: DuelCardView[];
   /** Your official duel today, if you've started it. */

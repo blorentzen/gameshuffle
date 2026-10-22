@@ -84,7 +84,7 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
         <div className="duel-result__sides">
           <div>
             <p className="duel-result__label">Your six</p>
-            <div className="duel-result__cards">{play.you.map((c) => <CardThumb key={c.index} card={c} onPress={() => onZoom(c, "Your")} label={`See the ${c.name} card${c.out ? ", knocked out" : `, ${c.cur} of ${c.hp} HP left`}`} />)}</div>
+            <div className="duel-result__cards">{play.you.filter((c) => !c.sat).map((c) => <CardThumb key={c.index} card={c} onPress={() => onZoom(c, "Your")} label={`See the ${c.name} card${c.out ? ", knocked out" : `, ${c.cur} of ${c.hp} HP left`}`} />)}</div>
           </div>
           <div>
             <p className="duel-result__label">{their} team</p>

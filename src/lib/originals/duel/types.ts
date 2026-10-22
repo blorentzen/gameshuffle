@@ -15,6 +15,16 @@ export type EnergyType = "Grass" | "Fire" | "Water" | "Lightning" | "Psychic" | 
  */
 export type DuelCondition = "burned" | "poisoned" | "paralyzed" | "asleep" | "confused";
 
+/**
+ * The rules a day was built with (duel_days.rules): 1 = the first rules; 2 = conditions play (picks
+ * 2026-10-22); 3 = conditions, and every six has at least one card with a condition move (Britton,
+ * 2026-10-22). The engine plays 2 and 3 alike; 3 is a build rule. 4 (Britton's picks 2026-10-22,
+ * https://claude.ai/artifact/41n2aCkBTkpmcG5DYt4zoz): you bring as many of your six as the trainer
+ * brings (at least 3), picked after Battle now, and a trainer with fewer than six cards starts each
+ * card with an Energy for every card it's short (up to 3).
+ */
+export type DuelRules = 1 | 2 | 3 | 4;
+
 /** A condition a move puts on the card it hits: `coin` when the card flips a coin for it (a smaller chance). */
 export interface DuelMoveFx {
   c: DuelCondition;
@@ -102,5 +112,5 @@ export interface DuelAction {
   act: DuelAct;
 }
 
-/** One step of a duel: a card to send out (the lead, or after a knockout), or a turn. */
-export type DuelStep = { next: number } | DuelAction;
+/** One step of a duel: the cards you bring (rules 4, first), a card to send out (the lead, or after a knockout), or a turn. */
+export type DuelStep = { bring: number[] } | { next: number } | DuelAction;

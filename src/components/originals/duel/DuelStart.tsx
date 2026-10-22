@@ -53,7 +53,7 @@ export function DuelStart({ home, busy, onStart, onZoom }: {
               </div>
             </div>
             <div className="duel-start__side">
-              <p className="duel-start__label">Your six, the same for everyone</p>
+              <p className="duel-start__label">Your six, the same for everyone{home.bring < home.pack.length ? `. Bring ${home.bring}.` : ""}</p>
               <div className="duel-start__cards" role="group" aria-label="Your six">
                 {home.pack.map((c) => <CardThumb key={c.index} card={c} size="md" onPress={() => onZoom(c, "Your")} label={`See the ${c.name} card`} />)}
               </div>
