@@ -109,7 +109,7 @@ export function LiveJoin({ code, isAuthenticated, displayName, tier }: Props) {
   return (
     <main className="companion-entry">
       <div className="companion-entry__card companion-join">
-        <span className="companion-join__eyebrow">Pokémon TCG · Play together</span>
+        <span className="companion-join__eyebrow">Play together</span>
         {phase.kind === "checking" && (
           <>
             <h1 className="companion-entry__title">Opening game {spacedCode(code)}</h1>

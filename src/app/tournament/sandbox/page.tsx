@@ -481,7 +481,7 @@ export default function TournamentSandboxPage() {
                   </>
                 )}
               </div>
-              <Button variant="primary" onClick={() => setStage(1)}>Next: {runMode === "championship" ? "Set the league" : "Manage registrations"} →</Button>
+              <Button variant="primary" onClick={() => setStage(1)}>Next: {runMode === "championship" ? "Set the league" : "Manage registrations"}</Button>
             </div>
           )}
 
@@ -518,7 +518,7 @@ export default function TournamentSandboxPage() {
                           <button key={u.id} type="button" onClick={() => invitePlayer(u)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", textAlign: "left", cursor: "pointer", padding: "0.4rem 0.6rem", border: "none", background: "transparent", color: "var(--text-primary)" }}>
                             <span style={{ display: "inline-flex", width: 24, height: 24, borderRadius: 999, alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--primary-500) 18%, var(--surface-default))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>{u.name[0]}</span>
                             <span style={{ flex: 1, minWidth: 0 }}><strong style={{ fontSize: "var(--font-size-14)" }}>{u.name}</strong> <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>@{u.handle}</span></span>
-                            <span style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Invite →</span>
+                            <span style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Invite</span>
                           </button>
                         ))}
                       </div>
@@ -581,7 +581,7 @@ export default function TournamentSandboxPage() {
               )}
               <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.5rem" }}>
                 <Button variant="ghost" onClick={() => setStage(0)}>← Back</Button>
-                <Button variant="primary" disabled={confirmed.length < 2 || !canSeedDouble} onClick={goRun}>Next: Run it →</Button>
+                <Button variant="primary" disabled={confirmed.length < 2 || !canSeedDouble} onClick={goRun}>Next: Run it</Button>
               </div>
             </div>
           )}
@@ -691,7 +691,7 @@ export default function TournamentSandboxPage() {
               ) : <p style={{ color: "var(--text-tertiary)" }}>Seed the bracket from the Manage step.</p>}
               <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.5rem" }}>
                 <Button variant="ghost" onClick={() => setStage(1)}>← Back</Button>
-                <Button variant="primary" onClick={() => setStage(3)}>See results →</Button>
+                <Button variant="primary" onClick={() => setStage(3)}>See results</Button>
               </div>
             </div>
           )}
@@ -715,7 +715,7 @@ export default function TournamentSandboxPage() {
                       <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)" }}>Championship points · Event {seasonEvents.length + 1}</div>
                       <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Main points from your final main + a light heat bonus. Making the A Main is worth a jump.</div>
                     </div>
-                    <Button variant="primary" size="small" onClick={logEventToSeason}>Log event → run the next →</Button>
+                    <Button variant="primary" size="small" onClick={logEventToSeason}>Log the event and run the next</Button>
                   </div>
                   <ChampionshipTable rows={eventPoints} nameOf={nameOf} />
                 </div>

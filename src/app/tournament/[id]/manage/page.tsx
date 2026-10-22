@@ -2770,7 +2770,7 @@ export default function ManageTournamentPage() {
                 {tournament.bracket && (
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {bracketChampion(tournament.bracket!) && (
-                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeBracketPlacements}>Finalize placements →</Button>
+                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeBracketPlacements}>Finalize placements</Button>
                     )}
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ bracket: null })}>Clear</Button>
                   </div>
@@ -2813,7 +2813,7 @@ export default function ManageTournamentPage() {
                 {gb && (
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {isGroupComplete(gb) && (
-                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeGroupPlacements}>Finalize placements →</Button>
+                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeGroupPlacements}>Finalize placements</Button>
                     )}
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ group_bracket: null })}>Clear</Button>
                   </div>
@@ -2852,7 +2852,7 @@ export default function ManageTournamentPage() {
                 {hm && (
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {heatMainsStage(hm) === "complete" && (
-                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeHeatMains}>Finalize placements →</Button>
+                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeHeatMains}>Finalize placements</Button>
                     )}
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ heat_mains: null })}>Clear</Button>
                   </div>
@@ -2901,7 +2901,7 @@ export default function ManageTournamentPage() {
                 {fl && (
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {isFlightsComplete(fl) && (
-                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeFlights}>Finalize placements →</Button>
+                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeFlights}>Finalize placements</Button>
                     )}
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ flights: null })}>Clear</Button>
                   </div>
@@ -3005,7 +3005,7 @@ export default function ManageTournamentPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Race Scoring</h2>
                 {liveStandings.some((s) => s.racesPlayed > 0) && (
-                  <Button variant="primary" size="small" onClick={finalizeStandings}>Finalize standings →</Button>
+                  <Button variant="primary" size="small" onClick={finalizeStandings}>Finalize standings</Button>
                 )}
               </div>
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>

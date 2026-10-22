@@ -408,11 +408,10 @@
 }
 
 .legal-page-v2__sibling-cta {
-  color: var(--primary-ink-600);
   font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
   margin: 0;
 }
+.legal-page-v2__sibling-cta .arrow-link { color: var(--primary-ink-600); }
 
 @media (max-width: 768px) {
   .legal-page-v2__title {

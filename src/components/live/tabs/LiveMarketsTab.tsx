@@ -605,7 +605,7 @@ export function LiveMarketsTab({
 function TokensExplainerCallout() {
   return (
     <details className="live-markets__explainer">
-      <summary>New here? How GS tokens work →</summary>
+      <summary>How GS tokens work</summary>
       <div className="live-markets__explainer-body">
         <p>
           GameShuffle tokens (<TokenIcon size={14} />) are the community currency for this

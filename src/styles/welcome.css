@@ -64,24 +64,25 @@
   .welcome-door { font-size: var(--font-size-14); padding: var(--spacing-8); gap: var(--spacing-8); }
 }
 
-/* Icon tiles: the site's gradient tile, one colour per door. */
+/* Icon tiles: the shared icon tile (globals.css .icon-tile values), one colour per door. */
 .welcome-tile {
   flex: none;
   display: grid;
   place-items: center;
-  width: 3.6rem;
-  height: 3.6rem;
-  border-radius: 1rem;
+  width: var(--tile-md);
+  height: var(--tile-md);
+  border-radius: var(--tile-md-radius);
   color: #fff;
-  background: linear-gradient(135deg, #2f66ec, #4b5cf5);
+  background: var(--tile-blue);
+  box-shadow: var(--tile-shadow);
 }
-.welcome-tile--small { width: 2.8rem; height: 2.8rem; border-radius: 0.8rem; }
-.welcome-tile--daily { background: linear-gradient(135deg, #5a3fd6, #8b5cf6); }
-.welcome-tile--home { background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
-.welcome-tile--online { background: linear-gradient(135deg, #4752c4, #5865f2); }
-.welcome-tile--stream { background: linear-gradient(135deg, #7c2bd9, #c949e9); }
-.welcome-tile--tour { background: linear-gradient(135deg, #b4421d, #e0861c); }
-.welcome-tile--poke { background: linear-gradient(135deg, #b42318, #e5533c); }
+.welcome-tile svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
+.welcome-tile--daily { background: var(--tile-violet); }
+.welcome-tile--home { background: var(--tile-blue); }
+.welcome-tile--online { background: var(--tile-teal); }
+.welcome-tile--stream { background: var(--tile-magenta); }
+.welcome-tile--tour { background: var(--tile-orange); }
+.welcome-tile--poke { background: var(--tile-red); }
 
 /* Every section after the first sits flat under a thin line. */
 .welcome__body > section + section {
@@ -173,7 +174,7 @@
 .welcome-path__eyebrow {
   display: flex;
   align-items: center;
-  gap: var(--spacing-8);
+  gap: var(--spacing-12);
   margin: 0;
   font-size: var(--font-size-14);
   font-weight: 700;

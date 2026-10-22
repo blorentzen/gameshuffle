@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { IconDeviceTv } from "@tabler/icons-react";
+import { PlugBand } from "@/components/tcg/rules/PlugBand";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { SITE_URL } from "@/lib/seo";
@@ -66,14 +68,13 @@ export default async function TriviaQuestionsIndex() {
             <p className="trivia-topics__empty">The first game pages are on their way. Meanwhile, host a night from our general question pack.</p>
           )}
 
-          <section className="rules-page__companion" aria-labelledby="trivia-host">
-            <h2 id="trivia-host">Host a trivia night</h2>
-            <p>Teams answer on their phones with a short code, the TV shows the questions, and the scoring adds up on its own. Free to host.</p>
-            <div className="rules-page__actions">
+          <PlugBand id="trivia-host" title="Host a trivia night" icon={IconDeviceTv} tone="violet" field="mixed"
+            actions={<>
               <TriviaStartButton templateId="party" label="Host a trivia night" returnTo={PATH} />
               <Link href={`${TRIVIA_PATH}/how-to-host`} className="trivia-article__more">How to host a trivia night</Link>
-            </div>
-          </section>
+            </>}>
+            Teams answer on their phones with a short code, the TV shows the questions, and the scoring adds up on its own. Free to host.
+          </PlugBand>
         </article>
       </Container>
     </main>

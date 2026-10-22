@@ -26,6 +26,8 @@ export default function robots(): MetadataRoute.Robots {
         "/stream-card",
         "/stream-card/",
         "/social/",
+        // The MMR card's private OBS links.
+        "/mmr/",
         "/tournament/create",
         "/tournament/*/manage",
         "/login",

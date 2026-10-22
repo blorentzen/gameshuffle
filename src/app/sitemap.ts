@@ -15,6 +15,9 @@ import { RULES_PATH, RULE_PAGES } from "@/data/tcg-rules";
 import { OCCASIONS, TRIVIA_PATH, occasionUrl, topicUrl } from "@/data/trivia-seo";
 import { liveTopics } from "@/lib/trivia/topics";
 import { listPublicLeagues } from "@/lib/trivia/leagues";
+import { createServiceClient } from "@/lib/supabase/admin";
+import { loungePagePath } from "@/lib/lounge/lines";
+import type { MmrGame } from "@/lib/mmr/rules";
 import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
@@ -198,6 +201,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: lm("/name-every-pokemon"),
       changeFrequency: "monthly",
       priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/mmr-card`,
+      lastModified: lm("/mmr-card"),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/lounge`,
+      lastModified: lm("/lounge"),
+      changeFrequency: "daily",
+      priority: 0.6,
     },
     {
       url: `${baseUrl}/bracket-generator`,
@@ -625,6 +640,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const leagues = await listPublicLeagues().catch(() => []);
   triviaRoutes.push(...leagues.map((l) => ({ url: `${baseUrl}${TRIVIA_PATH}/leagues/${l.slug}`, lastModified: new Date(l.updated_at), changeFrequency: "weekly" as const, priority: 0.5 })));
 
+  // Lounge players who confirmed their lounge name on GameShuffle (everyone else's page is noindex).
+  let loungeRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const { data: links } = await createServiceClient().from("lounge_links").select("game, name, checked_at").order("mmr", { ascending: false }).limit(2000);
+    loungeRoutes = ((links ?? []) as { game: MmrGame; name: string; checked_at: string | null }[]).map((l) => ({
+      url: `${baseUrl}${loungePagePath(l.name, l.game)}`,
+      lastModified: l.checked_at ? new Date(l.checked_at) : undefined,
+      changeFrequency: "daily" as const,
+      priority: 0.4,
+    }));
+  } catch (err) {
+    console.error("Sitemap: failed to fetch lounge players", err);
+  }
+
   // One entry per URL. The blocks above overlap (the pillar map also lists
   // /pokemon-tcg, which the deck block adds too), so keep the first position
   // and the higher priority whenever a URL turns up twice.
@@ -634,6 +663,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...deckRoutes,
     ...ideaRoutes,
     ...triviaRoutes,
+    ...loungeRoutes,
   ]);
 }
 

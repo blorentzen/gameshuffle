@@ -29,7 +29,7 @@ export default async function CommunitiesPage() {
   return (
     <main style={{ "--browse-hero-curve": "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", background: "var(--browse-hero-curve)", minHeight: "100vh", paddingBottom: "var(--spacing-64)" } as React.CSSProperties}>
       <BrowseHero
-        eyebrow="Community Hub · New"
+        eyebrow="Community hub"
         title="Find your people"
         sub="Communities, posts and players from across GameShuffle. Join a crew, follow the players you race with, and keep game night going between game nights."
         accent="blue"

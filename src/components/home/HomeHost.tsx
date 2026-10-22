@@ -1,5 +1,6 @@
 /**
- * Homepage: Run the night (Britton's picks, 2026-10-16). Tournaments (with
+ * Homepage: Host your own (named "Run the night" until design round 3,
+ * 2026-10-20; Britton's picks, 2026-10-16). Tournaments (with
  * the Circuit line), trivia nights and game nights: where groups come back
  * every week. Signed in, their next event leads (src/lib/home/viewer.ts).
  * One panel with three rows since 2026-10-19 (it was three outlined cards).
@@ -10,6 +11,7 @@ import { IconCalendarEvent, IconHelpHexagon, IconTournament } from "@tabler/icon
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import type { NextEvent } from "@/lib/home/viewer";
 import { RowLink, RowPanel, type RowTone } from "@/components/marketing/RowPanel";
+import { ARROW_HOST_CLASS, ArrowCue } from "@/components/ui/ArrowLink";
 
 const CARDS = [
   {
@@ -36,15 +38,18 @@ export function HomeHost({ next }: { next: NextEvent | null }) {
   return (
     <section className="home-section" aria-labelledby="home-host-title">
       <div className="home-section__head">
-        <h2 id="home-host-title" className="home-section__title">Run the night</h2>
-        <p className="home-section__aside">Free to host</p>
+        <div className="home-section__titles">
+          <p className="home-section__eyebrow home-section__eyebrow--green">Events</p>
+          <h2 id="home-host-title" className="home-section__title">Host your own</h2>
+        </div>
+        <p className="home-section__aside">Free for any group</p>
       </div>
       {next && (
-        <Link href={next.href} className="home-next">
+        <Link href={next.href} className={`home-next ${ARROW_HOST_CLASS}`}>
           <span className="home-next__label">Your next {next.kind === "tournament" ? "tournament" : "game night"}</span>
           <strong className="home-next__title">{next.title}</strong>
           <span className="home-next__meta">{next.when} · {next.role}</span>
-          <span className="home-next__go" aria-hidden>Open →</span>
+          <span className="home-next__go" aria-hidden><ArrowCue>Open</ArrowCue></span>
         </Link>
       )}
       <RowPanel

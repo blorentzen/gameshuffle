@@ -35,10 +35,12 @@ html.dark .fire-page, [data-theme="dark"] .fire-page { --fire-ink: #ff9a7a; }
 }
 /* Today's round sits in the dailies' Start card (.daily-start): the tile above the title, then the button and the three steps. */
 .daily-start--fire { border-color: color-mix(in srgb, var(--fire-ember-1) 32%, var(--border-default)); }
-.daily-start--fire .daily-step__icon { background: linear-gradient(135deg, var(--fire-ember-1), var(--fire-ember-2)); }
+.daily-start--fire .daily-step__icon { background: var(--tile-fire); }
 .fire-today__head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); text-align: start; }
 .fire-today__head .fire-today__sub { margin: 0; }
-.fire-tile { flex: none; width: 4.4rem; height: 4.4rem; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--fire-ember-1), var(--fire-ember-2)); }
+/* The shared icon tile (globals.css .icon-tile values), in Fire Round's gradient. */
+.fire-tile { flex: none; width: var(--tile-md); height: var(--tile-md); border-radius: var(--tile-md-radius); box-shadow: var(--tile-shadow); display: grid; place-items: center; color: #fff; background: var(--tile-fire); }
+.fire-tile svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
 .fire-today__title { margin: 0; font-size: var(--font-size-20); line-height: 1.2; }
 .fire-today__sub { margin: var(--spacing-4) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); }
 .fire-today__done { display: flex; align-items: flex-start; gap: var(--spacing-8); margin: 0; font-size: var(--font-size-16); }

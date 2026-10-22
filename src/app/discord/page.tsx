@@ -149,7 +149,7 @@ export default function DiscordPage() {
       />
 
       <BrowseHero
-        eyebrow="GameShuffle for Discord · New"
+        eyebrow="GameShuffle for Discord"
         title="Game night lives in your Discord now"
         sub="Play the Daily, the Weekly and Chat Brain together without leaving Discord, share your squares in the channel, and roll a setup for any game night with one command."
         accent="blue"

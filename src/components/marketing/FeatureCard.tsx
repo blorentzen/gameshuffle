@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Badge, Card, CardContent, Icon, Stack } from "@empac/cascadeds";
+import { Badge, Card, CardContent, Icon } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
+import { IconTile, type TileTone } from "@/components/ui/IconTile";
+import { ARROW_HOST_CLASS, ArrowCue } from "@/components/ui/ArrowLink";
 
 /**
  * Marketing feature card. Two variants:
@@ -8,9 +10,28 @@ import type { IconName } from "@empac/cascadeds";
  *   - `full`    — /features deep-dive sections (adds a "Why it matters"
  *                 body + an anchor `id` so teasers can deep-link)
  *
- * Built on CDS `Card` + `Icon` (kebab-case registry) — no external icon
- * dependency. When `href` is set the whole card is an interactive link.
+ * Built on CDS `Card` + `Icon` (kebab-case registry). The icon sits on the
+ * shared IconTile, which the card's free-form `accent` maps to the nearest of
+ * the seven tile colors (design round 3, 2026-10-20: it was a pale tinted
+ * chip). When `href` is set the whole card is an interactive link and its cta
+ * arrow moves when the card is hovered or focused.
  */
+
+/** The tile color nearest an accent hex, by hue (a grey or missing accent is blue). */
+function toneForAccent(accent?: string): TileTone {
+  const m = accent?.match(/^#([0-9a-f]{6})$/i);
+  if (!m) return "blue";
+  const n = parseInt(m[1], 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  if (d < 0.08) return "blue";
+  let hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  hue = (hue * 60 + 360) % 360;
+  const anchors: [TileTone, number][] = [["red", 0], ["orange", 30], ["green", 135], ["teal", 172], ["blue", 222], ["violet", 260], ["magenta", 315], ["red", 360]];
+  let best: TileTone = "blue", gap = Infinity;
+  for (const [tone, at] of anchors) { const dist = Math.abs(hue - at); if (dist < gap) { gap = dist; best = tone; } }
+  return best;
+}
 
 interface FeatureCardProps {
   variant?: "compact" | "full";
@@ -32,10 +53,10 @@ interface FeatureCardProps {
   href?: string;
   /** Availability label, e.g. "Pro" or "Free". */
   availability?: string;
-  /** Base color for the icon chip (adds per-card variety). Defaults to brand blue. */
+  /** Base color for the icon (adds per-card variety): mapped to the nearest tile color. Defaults to blue. */
   accent?: string;
   /**
-   * Visible call-to-action shown at the bottom of the card (e.g. "Try it →").
+   * Visible call-to-action shown at the bottom of the card (e.g. "Try it"; the arrow is drawn for you).
    * Rendered as a link-styled affordance — the whole card is already the link,
    * so this is a visual cue, not a nested anchor. Only shown when `href` is set.
    */
@@ -56,17 +77,13 @@ export function FeatureCard({
   cta,
 }: FeatureCardProps) {
   const isFull = variant === "full";
-  const glyphSize = isFull ? 24 : 20;
-  // CTA always uses the primary brand color — accent tints only the icon chip.
-  const ctaColor = "var(--bg-primary, var(--primary-600))";
-
   return (
     <Card
       variant="elevated"
       padding={isFull ? "large" : "medium"}
       interactive={!!href}
       href={href}
-      className={href ? "marketing-feature-card" : undefined}
+      className={href ? `marketing-feature-card ${ARROW_HOST_CLASS}` : undefined}
       style={{ height: "100%", scrollMarginTop: "6rem", display: "flex", flexDirection: "column" }}
       {...(id ? { "aria-label": title } : {})}
     >
@@ -74,42 +91,14 @@ export function FeatureCard({
           when Card renders as an <a>. */}
       {id ? <span id={id} /> : null}
       <CardContent style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-        <Stack direction="horizontal" gap={12} align="center">
-          <span
-            style={{
-              width: isFull ? 44 : 36,
-              height: isFull ? 44 : 36,
-              borderRadius: "var(--radius-md, 0.5rem)",
-              background: accent ? `color-mix(in srgb, ${accent} 15%, var(--surface-default))` : "var(--surface-brand, var(--primary-100))",
-              color: accent ?? "var(--primary-700)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
+        <div className="feature-card__head">
+          <IconTile tone={toneForAccent(accent)} className="feature-card__tile">
             {iconSrc ? (
-              <span
-                aria-hidden="true"
-                style={{
-                  width: glyphSize,
-                  height: glyphSize,
-                  backgroundColor: "currentColor",
-                  WebkitMaskImage: `url(${iconSrc})`,
-                  maskImage: `url(${iconSrc})`,
-                  WebkitMaskRepeat: "no-repeat",
-                  maskRepeat: "no-repeat",
-                  WebkitMaskPosition: "center",
-                  maskPosition: "center",
-                  WebkitMaskSize: "contain",
-                  maskSize: "contain",
-                  display: "inline-block",
-                }}
-              />
+              <span className="feature-card__mask" style={{ WebkitMaskImage: `url(${iconSrc})`, maskImage: `url(${iconSrc})` }} />
             ) : icon ? (
-              <Icon name={icon} size={isFull ? "24" : "20"} />
+              <Icon name={icon} size="24" />
             ) : null}
-          </span>
+          </IconTile>
           <h3
             style={{
               margin: 0,
@@ -120,7 +109,7 @@ export function FeatureCard({
           >
             {title}
           </h3>
-        </Stack>
+        </div>
 
         <p
           style={{
@@ -161,20 +150,8 @@ export function FeatureCard({
         ) : null}
 
         {cta && href ? (
-          <div
-            aria-hidden="true"
-            style={{
-              marginTop: "auto",
-              paddingTop: "var(--spacing-16)",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "var(--spacing-4)",
-              color: ctaColor,
-              fontWeight: "var(--font-weight-semibold)",
-              fontSize: "var(--font-size-14)",
-            }}
-          >
-            {cta}
+          <div aria-hidden="true" className="feature-card__cta">
+            <ArrowCue>{cta.replace(/\s*→\s*$/, "")}</ArrowCue>
           </div>
         ) : null}
       </CardContent>

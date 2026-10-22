@@ -1,8 +1,9 @@
 /**
- * POST /api/share { kind, shuffle?, dex?, fireRun? } → { code, url, version, alt }: makes (or
+ * POST /api/share { kind, shuffle?, dex?, fireRun?, lounge? } → { code, url, version, alt }: makes (or
  * refreshes) this player's share card (src/lib/share/store.ts). The player is the signed-in
  * account, else the browser's daily guest (x-daily-guest, hashed). Errors: 400 bad_request /
- * no_result / mismatch, 401 no_player, 503 not_ready (before share-cards-m1).
+ * no_result / mismatch, 401 no_player, 503 not_ready (before share-cards-m1, or for a lounge night before
+ * lounge-night-m1) / unavailable (MKCentral didn't answer).
  */
 
 import { NextResponse } from "next/server";
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as ShareRequest | null;
   if (!body || typeof body.kind !== "string") return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const made = await makeShare(playerKey(player.kind, player.id), body);
-  if (typeof made === "string") return NextResponse.json({ error: made }, { status: made === "not_ready" ? 503 : 400 });
+  if (typeof made === "string") return NextResponse.json({ error: made }, { status: made === "not_ready" || made === "unavailable" ? 503 : 400 });
   // The dev server's own links point at itself; production at www.
   const origin = process.env.NODE_ENV === "production" ? SITE_URL : new URL(req.url).origin;
   return NextResponse.json({ ...made, url: `${origin}/r/${made.code}` }, { headers: { "Cache-Control": "private, no-store" } });

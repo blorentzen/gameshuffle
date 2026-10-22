@@ -2856,7 +2856,9 @@ html.dark .verified-badge { background: var(--surface-success); color: var(--suc
 .create-more { display: flex; flex-direction: column; gap: var(--spacing-20, 2rem); padding-top: var(--spacing-8); }
 .run-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: var(--spacing-12); }
 .run-pick.empac-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); height: 100%; width: 100%; text-align: left; font-family: inherit; }
-.run-pick__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+/* The shared icon tile (globals.css .icon-tile values). */
+.run-pick__icon { display: grid; place-items: center; flex: none; width: var(--tile-md); height: var(--tile-md); border-radius: var(--tile-md-radius); box-shadow: var(--tile-shadow); color: #fff; background: var(--tile-blue); }
+.run-pick__icon svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
 .run-pick__title { display: inline-flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-16); font-weight: var(--font-weight-bold); color: var(--text-primary); }
 .run-pick__text { font-size: var(--font-size-14); color: var(--text-secondary); line-height: var(--line-height-snug, 1.4); }
 .ai-tourney--bare { background: transparent; }

@@ -16,6 +16,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { Card, Chip } from "@empac/cascadeds";
 import type { HubTournament, HubTournaments } from "@/lib/communities/discover";
 import { IconTrophy, IconBolt, IconCalendarEvent } from "@tabler/icons-react";
@@ -67,7 +68,7 @@ export function TournamentsRail({ tournaments }: { tournaments: HubTournaments }
 
       {empty ? (
         <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>
-          No tournaments running right now. <Link href="/tournament/create" style={{ color: "var(--bg-primary, var(--primary-600))" }}>Host one →</Link>
+          No tournaments running right now. <ArrowLink href="/tournament/create">Host one</ArrowLink>
         </p>
       ) : (
         <>
@@ -100,9 +101,9 @@ export function TournamentsRail({ tournaments }: { tournaments: HubTournaments }
                 {shown.map((t) => <Row key={t.id} t={t} live={view === "live"} />)}
               </ul>
               {rows.length > CAP && (
-                <Link href="/tournament" className="trail__more">
-                  See all {rows.length} {view === "live" ? "live" : "upcoming"} →
-                </Link>
+                <ArrowLink href="/tournament" className="trail__more">
+                  See all {rows.length} {view === "live" ? "live" : "upcoming"}
+                </ArrowLink>
               )}
             </>
           )}

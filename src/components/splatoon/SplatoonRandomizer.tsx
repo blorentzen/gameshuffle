@@ -11,6 +11,7 @@ import { RollingText } from "@/components/randomizer/RollingText";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { CardActions } from "@/components/randomizer/CardActions";
+import { SeatCard } from "@/components/randomizer/PlayerCard";
 import { RandomTile } from "@/components/randomizer/RandomTile";
 import { seatLabel, withSeat } from "@/lib/randomizers/seats";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -167,19 +168,17 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
         {Array.from({ length: players }, (_, i) => {
           const k = kits[i];
           return (
-            <div key={i} className={`player-card${k ? "" : " player-card--seat"}`}>
-              <div className="player-card__header">
-                <div className="player-card__name">
-                  <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
-                </div>
+            <SeatCard key={i} rolled={Boolean(k)} animate={animateReel}
+              name={<Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />}
+              actions={
                 <CardActions
                   refreshLabel={`New weapon kit for ${seatLabel(names, i)}`} onRefresh={() => rollKits(i)}
                   removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 1 ? () => removePlayer(i) : undefined} />
-              </div>
-              <ul className="player-card__slots">
+              }
+              tile={
                 <KartSlot label="Weapon" portrait name={k?.name ?? null} imageSrc={k ? art(k) || null : null}
                   color={k ? classColor(k.cls) : null} pool={reelPool} animate={animateReel} empty={<RandomTile look="splatoon" />} />
-              </ul>
+              }>
               {k && (
                 <dl className="splat-kit">
                   <div><dt>Class</dt><dd>{k.cls}</dd></div>
@@ -187,7 +186,7 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
                   <div><dt>Special</dt><dd>{k.special}</dd></div>
                 </dl>
               )}
-            </div>
+            </SeatCard>
           );
         })}
       </div>

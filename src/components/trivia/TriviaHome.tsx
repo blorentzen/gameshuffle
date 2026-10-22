@@ -66,7 +66,7 @@ export function TriviaHome({ signedIn, children }: { signedIn: boolean; children
   return (
     <main className="trivia-page">
       <BrowseHero
-        eyebrow="GameShuffle · Trivia Nights"
+        eyebrow="Trivia nights"
         title="Trivia night, ready in minutes"
         sub="Free to host. Teams answer on their phones while the TV shows the questions and keeps score."
         accent="violet"

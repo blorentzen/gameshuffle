@@ -331,7 +331,7 @@ export function RandomizerClient({
       >
         <Container>
           <div style={{ maxWidth: "600px" }}>
-            <p className="marketing-eyebrow">Free randomizer{gameConfig.isNew ? " · New" : ""}</p>
+            <p className="marketing-eyebrow">{gameConfig.isNew ? "New randomizer" : "Free randomizer"}</p>
             <h1
               style={{
                 fontSize: "clamp(2.4rem, 4vw, 4.8rem)",
@@ -358,7 +358,7 @@ export function RandomizerClient({
                   toolRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
               >
-                Randomize now →
+                Randomize now
               </Button>
             </div>
           </div>
@@ -477,8 +477,9 @@ export function RandomizerClient({
                 <div className="kart-intro__content">
                   <h2>{charOnly ? "Randomize your characters." : "Randomize your kart combo(s)."}</h2>
                   <p>
-                    You can add as many players or combos you like up to{" "}
-                    {gameConfig.maxPlayers} total.
+                    {gameConfig.uniqueCharacters
+                      ? "Add a player for each racer, then randomize. Nobody gets the same character, as in the game."
+                      : "Add a player for each racer, then randomize. Each player's card can reroll on its own."}
                   </p>
                   <div className="kart-intro__actions">
                     <Button

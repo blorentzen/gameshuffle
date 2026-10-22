@@ -226,7 +226,12 @@ export function DailyDex() {
       const fb = guessFeedback(made, next.length, puzzle, ladderShown(answer, next.length).length > ladderShown(answer, guesses.length).length, help.guesses);
       toast[fb.tone](fb.text);
     }
-    if (!done) setFlash(name);
+    if (!done) {
+      setFlash(name);
+      // With a mouse and keyboard, the cursor goes straight back to the guess box for the next one
+      // (on a touch screen that would pop the keyboard over the new row).
+      if (window.matchMedia("(pointer: fine)").matches) requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".daily__guess input")?.focus({ preventScroll: true }));
+    }
     const save = right && next.length > main;
     const won = right && !save;
     if (guesses.length === 0) track(EVENTS.dailyStarted, { puzzle: puzzle.id });

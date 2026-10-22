@@ -98,7 +98,7 @@ export default async function HalloweenPartyGamesPage() {
   return (
     <main className="seasonal">
       <BrowseHero
-        eyebrow="Game nights · Halloween"
+        eyebrow="Game nights"
         title="Halloween party games"
         sub="Free spooky games for your Halloween party: truth or dare, bingo, a wheel of house rules, trivia and party games everyone plays on their phones. Nothing to download."
         subShort="Free spooky games for your party, nothing to download."

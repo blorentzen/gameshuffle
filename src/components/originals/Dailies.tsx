@@ -44,9 +44,9 @@ interface DailiesState {
 }
 
 const noop = () => () => {};
-/** The games the Discord Activity can switch to (Fire Round isn't in it, so it never reaches `onPick`). */
-type ActivityGame = Exclude<DailiesId, "fire">;
-const pickable = (id: DailiesId): ActivityGame | null => (id === "fire" ? null : id);
+/** The games the Discord Activity can switch to (Fire Round and the Duel aren't in it, so they never reach `onPick`). */
+type ActivityGame = Exclude<DailiesId, "fire" | "duel">;
+const pickable = (id: DailiesId): ActivityGame | null => (id === "fire" || id === "duel" ? null : id);
 const DailiesContext = createContext<DailiesState | null>(null);
 
 function useDailiesState(current: DailiesId, enabled: boolean, invite?: string | null): DailiesState {
@@ -61,7 +61,7 @@ function useDailiesState(current: DailiesId, enabled: boolean, invite?: string |
   const raw = useSyncExternalStore(enabled ? subscribeDailies : noop, dailiesSnapshot, () => "");
   const store = useMemo(() => readDailiesStore(raw || "null"), [raw]);
   // Fire Round isn't in the Discord Activity (it has only the puzzles).
-  const shown = useMemo(() => dailiesShown(current, { fire: !activity }), [current, activity]);
+  const shown = useMemo(() => dailiesShown(current, { fire: !activity, duel: !activity }), [current, activity]);
   const [server, setServer] = useState<{ signedIn: boolean; entries: DailiesEntries | null; referral: ReferralInfo | null } | null>(null);
   // A game finishing here: ask the server again once its save has landed (streaks, the last two weeks).
   const doneKey = shown.filter((id) => store.entries[id]?.state === "done" && store.entries[id]?.day === currentDay(id)).join(",");

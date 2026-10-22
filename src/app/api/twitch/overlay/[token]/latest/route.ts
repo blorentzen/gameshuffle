@@ -43,6 +43,8 @@ import { getCurrentGame as getBingoGame, tickAuto as tickBingo, viewOf as bingoV
 import { breakView, getShowable as getShowableBreak, tickBreak } from "@/lib/break/store";
 import type { BreakView } from "@/lib/break/types";
 import { getViewerCountsForOwner } from "@/lib/streams/viewers";
+import { mmrTokenFor } from "@/lib/mmr/store";
+import { roomOverlayFor } from "@/lib/lounge/roomServer";
 
 export const runtime = "nodejs";
 
@@ -95,6 +97,10 @@ export async function GET(
   // All-up viewer count (Twitch today; cached ~20s so this 2s poll doesn't hit
   // Helix every tick). Null on failure — the overlay just hides the badge.
   const viewers = await getViewerCountsForOwner(ownerUserId).catch(() => null);
+  // The streamer's MMR card, for its overlay piece (it reads its own live link).
+  const mmrToken = await mmrTokenFor(ownerUserId).catch(() => null);
+  // Tonight's checked lounge room, for its overlay piece (GS Pro; cached 10s per streamer).
+  const loungeRoom = await roomOverlayFor(ownerUserId).catch(() => null);
 
   // Wheel spins are owner-keyed and session-independent — resolve the
   // latest one regardless of whether a session is active. The overlay
@@ -288,6 +294,8 @@ export async function GET(
       trivia,
       breakScreen,
       viewers,
+      mmrToken,
+      loungeRoom,
     });
   }
 
@@ -450,5 +458,7 @@ export async function GET(
     trivia,
     breakScreen,
     viewers,
+    mmrToken,
+    loungeRoom,
   });
 }

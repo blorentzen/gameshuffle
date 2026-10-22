@@ -17,7 +17,7 @@ export default function DailyPage() {
   return (
     <main>
       <BrowseHero
-        eyebrow="A GameShuffle Original · every day"
+        eyebrow="A GameShuffle Original"
         title="The Daily Shuffle"
         sub="Guess today's character from 130 across Nintendo. The same one for everyone, new at midnight Pacific."
         subShort="Guess today's character from 130 across Nintendo."

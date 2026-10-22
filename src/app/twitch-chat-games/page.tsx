@@ -65,7 +65,7 @@ export default function TwitchChatGamesPage() {
         <article className="cg">
           <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "For streamers", href: "/for-streamers" }, { label: "Twitch chat games" }]} />
           <header className="cg__head">
-            <p className="marketing-eyebrow">For streamers · Guide</p>
+            <p className="marketing-eyebrow">For streamers</p>
             <h1 className="cg__title">{TITLE}</h1>
             <p className="cg__lede">
               The best streams turn watchers into players. These are games your viewers play from chat while you stream, what chat does in each one, and the command that starts it. Every one runs on GameShuffle, with a piece for your OBS overlay.

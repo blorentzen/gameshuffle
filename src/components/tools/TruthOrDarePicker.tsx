@@ -12,6 +12,7 @@ export function TruthOrDarePicker({ currentSlug }: { currentSlug?: string }) {
             key={s.slug}
             href={`/truth-or-dare/${s.slug}`}
             className={`tier-templates__link${currentSlug === s.slug ? " is-active" : ""}`}
+            aria-current={currentSlug === s.slug ? "page" : undefined}
           >
             {s.title}
           </Link>

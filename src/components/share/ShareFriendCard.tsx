@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Avatar } from "@empac/cascadeds";
-import { IconBolt, IconClock, IconEyeOff, IconFlame, IconTrophy } from "@tabler/icons-react";
+import { IconBolt, IconCards, IconClock, IconEyeOff, IconFlame, IconTrophy } from "@tabler/icons-react";
 import type { CSSProperties, ReactNode } from "react";
-import { ShareSquares } from "@/components/share/ShareChallenge";
+import { DuelSquares, ShareSquares } from "@/components/share/ShareChallenge";
 import {
   challengeWho, dayName, ordinalPlace, partLine, partTitle, puzzleHeadline, puzzleVibe, shareTime,
   type ShareData, type SharePart,
@@ -22,6 +22,7 @@ const GAME_BAND: Record<string, string> = {
   weekly: "linear-gradient(135deg, #1aa38f, #2766ec)",
   names: "linear-gradient(135deg, #f08a24, #d6452f)",
   day: "linear-gradient(135deg, #2766ec, #7a5cff)",
+  duel: "linear-gradient(135deg, #f5c84c, #16224f)",
 };
 
 function Stat({ icon, children }: { icon: ReactNode; children: ReactNode }) {
@@ -66,6 +67,23 @@ function PartBody({ p, now, when }: { p: SharePart; now: boolean; when: string }
       </>
     );
   }
+  if (p.kind === "duel") {
+    return (
+      <>
+        <p className="share-friend__result">
+          <span className="share-friend__big">{p.won ? `Beat ${p.trainer} in ${p.turns} turns` : `Lost to ${p.trainer}`}</span>
+          <span className="share-friend__vibe">{p.won ? (p.par ? `par ${p.par}` : p.trainerTitle) : `${p.knocked} of ${p.team} knocked out`}</span>
+        </p>
+        <DuelSquares standing={p.standing} />
+        <p className="share-friend__stats">
+          {p.won && p.seconds != null && <Stat icon={<IconClock size={16} aria-hidden />}>Won in {shareTime(p.seconds)}</Stat>}
+          <Stat icon={<IconCards size={16} aria-hidden />}>{p.standing.filter(Boolean).length} of {p.standing.length} cards left</Stat>
+          {p.streak > 1 && <Stat icon={<IconFlame size={16} aria-hidden />}>{p.streak}-day streak</Stat>}
+          {p.place != null && <Stat icon={<IconTrophy size={16} aria-hidden />}>{placeLine(p.place, now, when)}</Stat>}
+        </p>
+      </>
+    );
+  }
   if (p.kind === "names") {
     return (
       <>
@@ -84,16 +102,19 @@ export function ShareFriendCard({ d, today }: { d: ShareData; today: string }) {
   const first = d.parts[0];
   const band = d.background?.theme ?? GAME_BAND[d.kind] ?? GAME_BAND.day;
   const anyDay = first?.kind === "names";
-  const sub = d.kind === "day" ? `Their dailies · ${now ? "today" : when}` : first ? `${partTitle(first)}${anyDay ? "" : ` · ${now ? "today" : when}`}` : "";
+  // A card with no name never stands in a person: the game is the heading and the line says when it was shared.
+  const title = who ?? (d.kind === "day" || !first ? "The dailies" : partTitle(first));
+  const shared = anyDay ? "Shared from GameShuffle" : now ? "Shared today" : when === "yesterday" ? "Shared yesterday" : `Shared from ${when}`;
+  const sub = !who ? shared : d.kind === "day" ? `Their dailies · ${now ? "today" : when}` : first ? `${partTitle(first)}${anyDay ? "" : ` · ${now ? "today" : when}`}` : "";
   // Squares only show for the puzzles; say so where they show.
   const squares = d.parts.some((p) => (p.kind === "shuffle" || p.kind === "dex") && p.rows.length > 0);
 
   return (
-    <section className="share-friend" style={{ "--share-band": band } as CSSProperties} aria-label={`${who}'s result`}>
+    <section className="share-friend" style={{ "--share-band": band } as CSSProperties} aria-label={who ? `${who}'s result` : "The shared result"}>
       <div className="share-friend__head">
-        <Avatar size="medium" src={d.player?.avatar ?? undefined} initials={who.slice(0, 1).toUpperCase()} alt="" color="neutral" />
+        {who && <Avatar size="medium" src={d.player?.avatar ?? undefined} initials={who.slice(0, 1).toUpperCase()} alt="" color="neutral" />}
         <div className="share-friend__who">
-          {d.player?.profile ? <Link className="share-friend__name" href={d.player.profile}>{who}</Link> : <p className="share-friend__name">{who}</p>}
+          {who && d.player?.profile ? <Link className="share-friend__name" href={d.player.profile}>{who}</Link> : <p className="share-friend__name">{title}</p>}
           <p className="share-friend__sub">{sub}</p>
         </div>
       </div>

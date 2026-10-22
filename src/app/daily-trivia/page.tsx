@@ -59,7 +59,7 @@ export default function DailyTriviaPage() {
         faq={FAQ}
       />
       <BrowseHero
-        eyebrow="Daily trivia · A GameShuffle Original"
+        eyebrow="Daily trivia"
         title="Fire Round"
         sub="Today's free trivia quiz: 60 seconds, the same questions for everyone."
         subShort="Daily trivia against the clock."

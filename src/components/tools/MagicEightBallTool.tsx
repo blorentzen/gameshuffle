@@ -1,86 +1,61 @@
 "use client";
 
+/**
+ * The free Magic 8-Ball (/magic-8-ball): the shared ball the stream overlay
+ * draws too. A GS Pro account's own answers (Tool looks ▸ Oracle) join the
+ * classic twenty here as well.
+ */
+
 import { useState } from "react";
 import { Button, Input } from "@empac/cascadeds";
-
-type Tone = "yes" | "maybe" | "no";
-interface Answer {
-  text: string;
-  tone: Tone;
-}
-
-// The classic 20 Magic 8-Ball answers: 10 affirmative, 5 non-committal, 5 negative.
-const ANSWERS: Answer[] = [
-  { text: "It is certain.", tone: "yes" },
-  { text: "It is decidedly so.", tone: "yes" },
-  { text: "Without a doubt.", tone: "yes" },
-  { text: "Yes, definitely.", tone: "yes" },
-  { text: "You may rely on it.", tone: "yes" },
-  { text: "As I see it, yes.", tone: "yes" },
-  { text: "Most likely.", tone: "yes" },
-  { text: "Outlook good.", tone: "yes" },
-  { text: "Yes.", tone: "yes" },
-  { text: "Signs point to yes.", tone: "yes" },
-  { text: "Reply hazy, try again.", tone: "maybe" },
-  { text: "Ask again later.", tone: "maybe" },
-  { text: "Better not tell you now.", tone: "maybe" },
-  { text: "Cannot predict now.", tone: "maybe" },
-  { text: "Concentrate and ask again.", tone: "maybe" },
-  { text: "Don't count on it.", tone: "no" },
-  { text: "My reply is no.", tone: "no" },
-  { text: "My sources say no.", tone: "no" },
-  { text: "Outlook not so good.", tone: "no" },
-  { text: "Very doubtful.", tone: "no" },
-];
+import { ToolLayout, ToolSetting } from "@/components/tools/ToolLayout";
+import { EightBall, type EightBallAnswerView } from "@/components/tools/eightball/EightBall";
+import { useLookContext } from "@/components/tools/looks/useToolLook";
+import { eightBallPool } from "@/lib/tools/looks";
 
 export function MagicEightBallTool() {
+  const { pro, eightBall } = useLookContext();
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<Answer | null>(null);
+  const [answer, setAnswer] = useState<EightBallAnswerView | null>(null);
   const [shaking, setShaking] = useState(false);
+  const ownAnswers = pro && !!eightBall && (eightBall.custom.length > 0 || eightBall.disabled.length > 0);
 
   function shake() {
-    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "8-ball" } });
     if (shaking) return;
+    window.plausible?.("Tool Used", { props: { tool: "8-ball" } });
     setShaking(true);
     setAnswer(null);
+    const pool = eightBallPool(ownAnswers ? eightBall : null);
     window.setTimeout(() => {
-      setAnswer(ANSWERS[Math.floor(Math.random() * ANSWERS.length)]);
+      setAnswer(pool[Math.floor(Math.random() * pool.length)]);
       setShaking(false);
     }, 900);
   }
 
-  return (
-    <div className="tool-panel eight-tool">
+  const stage = (
+    <>
+      <EightBall answer={answer} shaking={shaking} onClick={shake} />
+      <p className="sr-only" aria-live="polite">{answer && !shaking ? answer.text : ""}</p>
+      <div className="tool-stage__action">
+        <Button variant="primary" size="large" fullWidth onClick={shake} disabled={shaking}>
+          {shaking ? "Shaking…" : answer ? "Ask again" : "Shake"}
+        </Button>
+      </div>
+    </>
+  );
+
+  const settings = (
+    <ToolSetting label="Your question" note={ownAnswers ? "Your own answers from Tool looks are in the mix." : "Optional. Think it or type it, then shake."}>
       <Input
-        floatingLabel="Ask a yes-or-no question (optional)"
+        aria-label="Your question"
+        placeholder="Will we win tonight?"
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") shake();
-        }}
+        onKeyDown={(e) => { if (e.key === "Enter") shake(); }}
         fullWidth
       />
-
-      <button
-        type="button"
-        className={`eight-ball${shaking ? " is-shaking" : ""}`}
-        onClick={shake}
-        aria-label="Shake the Magic 8-Ball"
-      >
-        {answer && !shaking ? (
-          <span className="eight-ball__glass" aria-live="polite">
-            <span className={`eight-ball__window eight-ball__window--${answer.tone}`}>
-              <span className="eight-ball__answer">{answer.text}</span>
-            </span>
-          </span>
-        ) : (
-          <span className="eight-ball__num">8</span>
-        )}
-      </button>
-
-      <Button variant="primary" onClick={shake} disabled={shaking}>
-        {shaking ? "Shaking…" : answer ? "Ask again" : "Shake"}
-      </Button>
-    </div>
+    </ToolSetting>
   );
+
+  return <ToolLayout className="eight-tool" stage={stage} settings={settings} settingsLabel="8-ball settings" />;
 }

@@ -13,12 +13,12 @@
  * played on another device. A new daily joins by adding an entry to DAILIES.
  */
 
-import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
+import { DAILY_DEX_PUBLIC, DUEL_PUBLIC, FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import { gsAddDays, gsDay, gsWeekStart, gsWeekday } from "@/lib/time/gsClock";
 
-export type DailiesId = "shuffle" | "dex" | "fire" | "weekly";
+export type DailiesId = "shuffle" | "dex" | "fire" | "duel" | "weekly";
 /** The ones that run every day (the Weekly runs by week). */
-export type DailyGameId = "shuffle" | "dex" | "fire";
+export type DailyGameId = "shuffle" | "dex" | "fire" | "duel";
 /** The guessing dailies (a result in guesses). */
 export type PuzzleDailyId = "shuffle" | "dex";
 /** One day on a streak card: won, saved on the last chance, missed, played (Fire Round: no win or loss), or not played. */
@@ -43,6 +43,8 @@ export const DAILIES: Record<DailiesId, DailiesGame> = {
   shuffle: { id: "shuffle", name: "The Daily Shuffle", short: "Daily Shuffle", tab: "Shuffle", href: "/daily", square: "🟪", pitch: "Guess today's Nintendo character." },
   dex: { id: "dex", name: "The Daily Dex", short: "Daily Dex", tab: "Dex", href: "/daily-dex", square: "🟧", pitch: "Guess today's Pokémon from all 1,025." },
   fire: { id: "fire", name: "Fire Round", short: "Fire Round", tab: "Fire", href: "/daily-trivia", square: "🟥", pitch: "60 seconds of trivia, the same questions for everyone." },
+  // Gold on navy (picks 2026-10-21): apart from the Shuffle's violet, the Dex's warm orange, Fire Round's red and the Weekly's teal.
+  duel: { id: "duel", name: "The Daily Duel", short: "Daily Duel", tab: "Duel", href: "/daily-duel", square: "🟨", pitch: "Knock out today's trainer with the same six cards as everyone." },
   weekly: { id: "weekly", name: "The Weekly Challenge", short: "Weekly", tab: "Weekly", href: "/weekly", square: "🟩", pitch: "Answer this week's question and guess the crowd's top three." },
 };
 
@@ -52,11 +54,18 @@ export const DAILY_DEX_SHOWN = DAILY_DEX_PUBLIC || process.env.NODE_ENV !== "pro
 /** Fire Round joins once it's public (and in development). Never in the Discord Activity, which only has the puzzles. */
 export const FIRE_ROUND_SHOWN = FIRE_ROUND_PUBLIC || process.env.NODE_ENV !== "production";
 
-/** The games shown, in order: Shuffle, Dex, Fire Round, then the Weekly (also Next up's order). */
-export function dailiesShown(current?: DailiesId, opts: { fire?: boolean } = {}): DailiesId[] {
-  return (["shuffle", "dex", "fire", "weekly"] as DailiesId[]).filter((id) => {
+/**
+ * The Daily Duel joins the bar, Next up and the cards once it's public (and in development, to
+ * try it). The bar lays out four cells (randomizer.css, .dailies-bar--4). Never in the Discord Activity.
+ */
+export const DUEL_SHOWN = DUEL_PUBLIC || process.env.NODE_ENV !== "production";
+
+/** The games shown, in order: Shuffle, Dex, Fire Round, the Duel, then the Weekly (also Next up's order). */
+export function dailiesShown(current?: DailiesId, opts: { fire?: boolean; duel?: boolean } = {}): DailiesId[] {
+  return (["shuffle", "dex", "fire", "duel", "weekly"] as DailiesId[]).filter((id) => {
     if (id === "dex") return DAILY_DEX_SHOWN || current === "dex";
     if (id === "fire") return opts.fire !== false && (FIRE_ROUND_SHOWN || current === "fire");
+    if (id === "duel") return opts.duel !== false && (DUEL_SHOWN || current === "duel");
     return true;
   });
 }
@@ -68,6 +77,9 @@ export interface DailiesStats { played: number; won: number; streak: number; bes
 
 /** Today's Fire Round, once played: the score and the right answers. */
 export interface FireDayResult { score: number; right: number }
+
+/** Today's official Daily Duel, once over: won or lost, in how many turns, the day's par and the time. */
+export interface DuelDayResult { won: boolean; turns: number; par: number | null; seconds: number | null }
 
 /** A solve time as people say it: "0:42", "12:05", "2h 14m". */
 export function formatTime(seconds: number): string {
@@ -87,6 +99,8 @@ export interface DailiesEntry {
   result?: DailyResult | null;
   /** Fire Round's result once today's round is played. */
   fire?: FireDayResult | null;
+  /** The Daily Duel's result once today's official duel is over. */
+  duel?: DuelDayResult | null;
   stats?: DailiesStats | null;
   /** The last 14 days, oldest first (signed in, from the server). */
   recent?: DayMark[] | null;
@@ -122,6 +136,7 @@ export function markOf(r: DailyResult): DayMark {
 /** A finished entry's mark for the streak card's last two weeks. */
 function entryMark(id: DailiesId, entry: DailiesEntry): DayMark {
   if (id === "fire") return entry.fire ? "played" : null;
+  if (id === "duel") return entry.duel ? (entry.duel.won ? "won" : "missed") : null;
   return entry.result ? markOf(entry.result) : null;
 }
 
@@ -176,7 +191,7 @@ export function recentFromHistory(history: Record<string, DayMark> | undefined, 
  */
 export function mergeDailies(local: DailiesEntries, server: DailiesEntries | null, history: Store["history"], at: Date | number = Date.now()): DailiesEntries {
   const out: DailiesEntries = {};
-  for (const id of ["shuffle", "dex", "fire", "weekly"] as DailiesId[]) {
+  for (const id of ["shuffle", "dex", "fire", "duel", "weekly"] as DailiesId[]) {
     const day = currentDay(id, at);
     const l = local[id]?.day === day ? local[id] : undefined;
     const sv = server?.[id]?.day === day ? server[id] : undefined;
@@ -198,6 +213,11 @@ export function mergeDailies(local: DailiesEntries, server: DailiesEntries | nul
   return out;
 }
 
+/** "won in 14 (par 13)" or "lost". */
+export function duelScoreText(r: DuelDayResult): string {
+  return r.won ? `won in ${r.turns}${r.par ? ` (par ${r.par})` : ""}` : "lost";
+}
+
 /** "3/5", "X/5", or "last chance" for a save. */
 export function scoreText(r: DailyResult): string {
   return !r.solved ? `X/${r.main}` : r.saved ? "last chance" : `${r.guesses}/${r.main}`;
@@ -212,7 +232,7 @@ function dateLabel(day: string): string {
 
 /** The games with something to share today, in order. */
 export function sharedToday(entries: DailiesEntries, shown: DailiesId[]): DailiesId[] {
-  return shown.filter((id) => entries[id]?.state === "done" && (id === "weekly" || (id === "fire" ? !!entries[id]?.fire : !!entries[id]?.result)));
+  return shown.filter((id) => entries[id]?.state === "done" && (id === "weekly" || (id === "fire" ? !!entries[id]?.fire : id === "duel" ? !!entries[id]?.duel : !!entries[id]?.result)));
 }
 
 /**
@@ -227,6 +247,7 @@ export function combinedShareText(entries: DailiesEntries, shown: DailiesId[], a
     const name = e.number >= 1 ? `${g.short} #${e.number}` : g.short;
     if (id === "weekly") return `${g.square} ${name} · answered`;
     if (id === "fire") return `${g.square} ${name} · ${e.fire!.score.toLocaleString("en-US")} · ${e.fire!.right} right${flame(e.stats?.streak)}`;
+    if (id === "duel") return `${g.square} ${name} · ${duelScoreText(e.duel!)}${e.duel!.won && e.duel!.seconds != null ? ` ⏱ ${formatTime(e.duel!.seconds)}` : ""}${flame(e.stats?.streak)}`;
     const time = e.result!.solved && e.result!.seconds != null ? ` ⏱ ${formatTime(e.result!.seconds)}` : "";
     return `${g.square} ${name} · ${scoreText(e.result!)}${time}${flame(e.stats?.streak)}`;
   });
@@ -243,6 +264,7 @@ export function barStatus(id: DailiesId, e: DailiesEntry | undefined, current: b
   if (e?.state === "done") {
     if (id === "weekly") return "✓ Answered";
     if (id === "fire") return e.fire ? `✓ ${e.fire.score.toLocaleString("en-US")}` : "Done";
+    if (id === "duel") return !e.duel ? "Done" : e.duel.won ? `✓ ${e.duel.turns} turns` : "Lost";
     return !e.result ? "Done" : e.result.solved ? `✓ ${scoreText(e.result)}` : scoreText(e.result);
   }
   if (id === "weekly") {

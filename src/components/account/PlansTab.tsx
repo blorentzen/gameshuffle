@@ -26,6 +26,7 @@ import { isStaffRole } from "@/lib/subscription";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
 import { BillingManager } from "./BillingManager";
 import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { useSupportStatus } from "@/components/support/useSupportStatus";
 import { dollars, levelGrantsPro, supportLevel } from "@/lib/support/rules";
 import { circuitTier as getCircuitTier, type CircuitTierId } from "@/lib/tournaments/circuit";
@@ -455,7 +456,7 @@ function PlanCard({ name, subtitle, status, rows, alert, learnMore, children }: 
 
       {learnMore && (
         <div style={{ marginTop: "var(--spacing-12)" }}>
-          <a href={learnMore.href} style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--brand-ink, var(--primary-600))", textDecoration: "none" }}>{learnMore.label} →</a>
+          <ArrowLink href={learnMore.href} plain style={{ fontSize: "var(--font-size-14)" }}>{learnMore.label}</ArrowLink>
         </div>
       )}
     </Card>

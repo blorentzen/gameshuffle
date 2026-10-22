@@ -9,7 +9,9 @@ import {
   Stack,
 } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
-import { IconStarFilled } from "@tabler/icons-react";
+import { IconCards, IconStarFilled } from "@tabler/icons-react";
+import { ARROW_HOST_CLASS, ArrowCue, ArrowLink } from "@/components/ui/ArrowLink";
+import { IconTile } from "@/components/ui/IconTile";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
@@ -252,19 +254,17 @@ export default async function Page() {
               <CarouselItem key="browse-all">
                 <Link
                   href="/pokemon-tcg/decks"
-                  className="deck-tile deck-tile--browse"
+                  className={`deck-tile deck-tile--browse ${ARROW_HOST_CLASS}`}
                 >
-                  <span className="deck-tile__browse-arrow" aria-hidden="true">
-                    →
-                  </span>
+                  <IconTile icon={IconCards} tone="blue" />
                   <h3 className="deck-tile__name">Browse all decks</h3>
                   <p className="deck-tile__desc">
                     Every Standard 2026 deck guide: competitive, beginner
                     &amp; family, and meme.
                   </p>
-                  <span className="deck-tile__browse-cta">
+                  <ArrowCue className="deck-tile__browse-cta">
                     See the full deck index
-                  </span>
+                  </ArrowCue>
                 </Link>
               </CarouselItem>
             </AutoplayCarousel>
@@ -353,11 +353,9 @@ export default async function Page() {
             <h2 className="tcg-companion__title">{COMPANION.heading}</h2>
             <p className="tcg-companion__body">{COMPANION.body}</p>
             <p className="tcg-companion__more">
-              <Link href={COMPANION.learnMore.href}>{COMPANION.learnMore.label} →</Link>
-              {" · "}
-              <Link href="/pokemon-tcg/rules">Pokémon TCG rules in plain words →</Link>
-              {" · "}
-              <Link href="/pokemon-tcg/checklists">Card checklists →</Link>
+              <ArrowLink href={COMPANION.learnMore.href}>{COMPANION.learnMore.label}</ArrowLink>
+              <ArrowLink href="/pokemon-tcg/rules">Pokémon TCG rules in plain words</ArrowLink>
+              <ArrowLink href="/pokemon-tcg/checklists">Card checklists</ArrowLink>
             </p>
           </div>
 

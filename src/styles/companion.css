@@ -2562,17 +2562,19 @@
   width: 100%;
 }
 
-/* The site's icon tile: a rounded square in the brand gradient (a circle means Energy in the companion). */
+/* The site's icon tile (globals.css .icon-tile values; a circle means Energy in the companion). */
 .companion-settings__format-icon {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #2f66ec, #4b5cf5);
+  width: var(--tile-md);
+  height: var(--tile-md);
+  border-radius: var(--tile-md-radius);
+  background: var(--tile-blue);
+  box-shadow: var(--tile-shadow);
   color: #fff;
 }
+.companion-settings__format-icon svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
 
 .companion-settings__format-body {
   display: flex;

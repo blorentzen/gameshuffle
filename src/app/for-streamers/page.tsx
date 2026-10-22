@@ -1,3 +1,4 @@
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, Container } from "@empac/cascadeds";
@@ -76,9 +77,7 @@ export default function ForStreamersPage() {
             <Link href="/for-streamers/current" style={{ textDecoration: "none" }}>
               <Button variant="primary" size="large">I already stream</Button>
             </Link>
-            <Link href="/for-streamers/aspiring" className="strm-hero__ghost">
-              I want to start streaming →
-            </Link>
+            <ArrowLink href="/for-streamers/aspiring" className="strm-hero__ghost">I want to start streaming</ArrowLink>
           </div>
         </Container>
         <MarketingHeroCurve />

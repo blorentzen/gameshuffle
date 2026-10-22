@@ -1,6 +1,6 @@
 import "server-only";
 import { dailiesView } from "@/lib/daily/dailies";
-import { DAILY_DEX_SHOWN, type DailiesEntries } from "@/lib/originals/dailies";
+import { DAILY_DEX_SHOWN, DUEL_SHOWN, type DailiesEntries } from "@/lib/originals/dailies";
 import { supporterInfo } from "@/lib/support/store";
 import { topTenFinishes } from "@/lib/weekly/store";
 import { brainAnswerCount } from "@/lib/chatbrain/store";
@@ -145,7 +145,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
         .order("showcase_rank", { ascending: true })
         .limit(MAX_SHOWCASE),
       // The dailies (streak, best, the last two weeks per game) for the profile's Dailies card.
-      dailiesView({ userId }, { dex: DAILY_DEX_SHOWN }).catch(() => ({}) as DailiesEntries),
+      dailiesView({ userId }, { dex: DAILY_DEX_SHOWN, duel: DUEL_SHOWN }).catch(() => ({}) as DailiesEntries),
       topTenFinishes(userId).catch(() => 0),
       supporterInfo(userId).catch(() => null),
     ]);

@@ -210,12 +210,14 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
   const day = view.period === "day";
   // Fire Round's board: right answers and the score on the day, points over a week or month.
   const fire = view.game === "fire";
+  // The Daily Duel's day board: turns (or Lost) and cards left, then the time.
+  const duel = view.game === "duel" && day;
   // Today's board shows solve times once anyone on it has one (the Start button arrived 2026-10-16).
   const timed = !fire && day && [...view.rows, ...(view.you ? [view.you] : [])].some((r) => r.seconds != null);
   const shown = view.rows;
   const pinned = view.you && !shown.some((r) => r.you) ? view.you : null;
   if (!shown.length) {
-    return <p className="party-muted daily-board__empty">{day ? (fire ? "Nobody's played today's round yet. Be the first." : "Nobody's on the board yet today. Finish today's puzzle to be first.") : "Nobody's on this board yet."}</p>;
+    return <p className="party-muted daily-board__empty">{day ? (fire ? "Nobody's played today's round yet. Be the first." : view.game === "duel" ? "Nobody's on the board yet today. Win today's duel to be first." : "Nobody's on the board yet today. Finish today's puzzle to be first.") : "Nobody's on this board yet."}</p>;
   }
   const row = (r: BoardRow, key: string) => (
     <TableRow key={key} className={r.you ? "daily-board__you" : undefined}>
@@ -229,7 +231,8 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
           <span className="sr-only"> ({PLACES[placeOf(r)].said}{r.supporter ? ", supports GameShuffle" : ""})</span>
         </span>
       </TableCell>
-      <TableCell>{fire && day ? r.guesses : day ? <ResultDots guesses={r.guesses} points={r.points} main={main} /> : `${r.days} ${r.days === 1 ? "day" : "days"}`}</TableCell>
+      <TableCell>{fire && day ? r.guesses : duel ? (r.points > 0 ? r.guesses : "Lost") : day ? <ResultDots guesses={r.guesses} points={r.points} main={main} /> : `${r.days} ${r.days === 1 ? "day" : "days"}`}</TableCell>
+      {duel && <TableCell align="right">{r.score ?? 0}</TableCell>}
       {timed && <TableCell align="right"><span className="daily-board__time">{r.seconds != null ? formatTime(r.seconds) : ""}</span></TableCell>}
       <TableCell align="right"><strong>{fire && day ? (r.score ?? 0).toLocaleString("en-US") : r.points}</strong></TableCell>
       {!day && <TableCell align="right">{r.prize ? <span className="daily-board__prize">{r.prize.toLocaleString("en-US")}</span> : ""}</TableCell>}
@@ -245,7 +248,8 @@ function BoardTable({ view, main, pictures }: { view: BoardView; main: number; p
           <TableRow>
             <TableHead>#</TableHead>
             <TableHead>Player</TableHead>
-            <TableHead>{fire && day ? "Right" : day ? "Result" : "Played"}</TableHead>
+            <TableHead>{fire && day ? "Right" : duel ? "Turns" : day ? "Result" : "Played"}</TableHead>
+            {duel && <TableHead align="right"><abbr title="Cards left">Left</abbr></TableHead>}
             {timed && <TableHead align="right">Time</TableHead>}
             <TableHead align="right">{fire && day ? "Score" : <><span className="daily-board__long">Points</span><abbr className="daily-board__short" title="Points">Pts</abbr></>}</TableHead>
             {!day && <TableHead align="right">Prize</TableHead>}
@@ -314,6 +318,8 @@ export function DailyBoard({ game, main, guestId, refresh, onViews, join }: { ga
         <p className="daily-board__foot">
           {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · {game === "fire"
             ? "ties share a place · your first round each day earns up to 10 points, 1 for every 200 you score"
+            : game === "duel"
+            ? `10 points for a win at par or better, then 8, 6, 4, 2 by turns over par · ${period === "day" ? "ties go to more cards left, then the faster win" : "ties share a place"}`
             : `10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance · ${period === "day" ? "ties go to the faster solve" : "ties share a place"}`}
           {current.settles ? ` · prizes land ${settleText(current.settles)}` : ""}
         </p>

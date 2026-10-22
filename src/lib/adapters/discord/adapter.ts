@@ -320,6 +320,22 @@ export async function listGuildRoles(
   return { ok: true, roles };
 }
 
+/** Make a role (the lounge's division roles). Needs the bot's Manage Roles permission;
+ *  the role lands under the bot's own role, so the bot can hand it out. Not mentionable. */
+export async function createGuildRole(
+  guildId: string,
+  role: { name: string; color?: number },
+): Promise<{ ok: true; role: DiscordGuildRole } | { ok: false; error: string }> {
+  const r = await request<{ id: string; name: string; position: number; managed?: boolean }>("POST", `/guilds/${guildId}/roles`, {
+    name: role.name.slice(0, 100),
+    color: role.color ?? 0,
+    mentionable: false,
+    hoist: false,
+  });
+  if (!r.ok) return { ok: false, error: r.error };
+  return { ok: true, role: { id: r.data.id, name: r.data.name, position: r.data.position, managed: Boolean(r.data.managed) } };
+}
+
 // ---------------------------------------------------------------------------
 // Server picture — for the Discord bot tab's server header and picker.
 // ---------------------------------------------------------------------------

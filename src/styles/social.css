@@ -108,6 +108,7 @@
 /* The Dex's part keeps its own warm label (its colors, as on its share image). */
 .winners-scene--dex .social-stage__eyebrow { color: #ffc98f; }
 .winners-scene--fire .social-stage__eyebrow { color: #ffb48a; }
+.winners-scene--duel .social-stage__eyebrow { color: #ffe08a; }
 .winners-big { margin: 0; font: 800 11vw/1.04 var(--font-display); color: #fff; text-wrap: balance; }
 .winners-date { margin: 2.4vh 0 0; font: 500 4.8vw/1.3 var(--font-body); color: #d6d9f6; }
 .winners-scene--end .social-stage__pill { margin-top: 4vh; }
@@ -132,6 +133,11 @@
 .winners-answer__tile { width: 10vw; height: 10vw; flex: none; border-radius: 2.4vw; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #d9363e, #ff7a2f); }
 .winners-answer__tile svg { width: 6vw; height: 6vw; }
 
+/* The Daily Duel: the day's trainer's picture (their card's art) where the puzzles show the answer. */
+.winners-trainer { margin: 1.8vh 0 0; display: inline-flex; align-items: center; gap: 3.6vw; padding: 0.9vh 4.4vw 0.9vh 0.9vh; border-radius: 3.4vw; border: 1px solid rgba(255, 224, 138, 0.35); background: rgba(255, 255, 255, 0.08); }
+.winners-trainer__art { width: 26vw; aspect-ratio: 5 / 2; border-radius: 2vw; box-shadow: 0 0 0 0.5vw #f5c84c; }
+.winners-trainer__line { margin: 0; display: grid; gap: 0.2vh; text-align: left; font: 500 3.6vw/1.15 var(--font-body); color: #e6e8ff; }
+.winners-trainer__line strong { font: 800 4.6vw/1.1 var(--font-display); color: #fff; }
 .winners-rows { list-style: none; margin: 3vh 0 0; padding: 0; width: 100%; display: grid; gap: 1.4vh; }
 .winners-row {
   display: grid;
@@ -189,6 +195,7 @@
 .winners-row__streak { color: #ffb36b; }
 .winners-row__fire { font: 600 3.6vw/1.2 var(--font-body); color: #ffd3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .winners-row__score { font: 800 4.8vw/1 var(--font-display); color: #fff; }
+.winners-row__duel { font-size: 3.4vw; line-height: 1.1; }
 
 /* A later game's ground (the Dex's warm, Fire Round's ember), faded in over the first game's for its part of the video. */
 .winners-stage > .winners-warm { position: absolute; inset: 0; z-index: 0; opacity: 0; pointer-events: none; }

@@ -11,8 +11,10 @@
 
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { Avatar, Badge } from "@empac/cascadeds";
+import { IconShare } from "@tabler/icons-react";
+import { IconTile } from "@/components/ui/IconTile";
 import { gsDay } from "@/lib/time/gsClock";
-import { shareTime, type FirePart, type PuzzlePart, type ShareCell, type SharePart } from "@/lib/share/types";
+import { shareTime, type DuelPart, type FirePart, type PuzzlePart, type ShareCell, type SharePart } from "@/lib/share/types";
 
 export interface ShareChallengeInfo {
   /** The share's code, for the leaderboard's "shared this". */
@@ -25,8 +27,8 @@ export interface ShareChallengeInfo {
   parts: SharePart[];
 }
 
-type ChallengeGame = "shuffle" | "dex" | "fire";
-const isChallengeGame = (g: string): g is ChallengeGame => g === "shuffle" || g === "dex" || g === "fire";
+type ChallengeGame = "shuffle" | "dex" | "fire" | "duel";
+const isChallengeGame = (g: string): g is ChallengeGame => g === "shuffle" || g === "dex" || g === "fire" || g === "duel";
 
 const Ctx = createContext<ShareChallengeInfo | null>(null);
 
@@ -38,13 +40,13 @@ export function useShareChallenge(): ShareChallengeInfo | null {
   return useContext(Ctx);
 }
 
-/** Their result in this game when they played it today (today's round, for Fire Round), else null. */
-export function useChallengePart(game: string): PuzzlePart | FirePart | null {
+/** Their result in this game when they played it today (today's round, for Fire Round; the official duel, for the Daily Duel), else null. */
+export function useChallengePart(game: string): PuzzlePart | FirePart | DuelPart | null {
   const c = useShareChallenge();
   if (!c || !isChallengeGame(game) || c.day !== gsDay()) return null;
   const p = c.parts.find((x) => x.kind === game);
-  if (!p || (p.kind === "fire" && !p.daily)) return null;
-  return p as PuzzlePart | FirePart;
+  if (!p || (p.kind === "fire" && !p.daily) || (p.kind === "duel" && p.practice)) return null;
+  return p as PuzzlePart | FirePart | DuelPart;
 }
 
 /** The end screen's Share button when you came from their link today. */
@@ -72,7 +74,26 @@ export function ShareSquares({ rows, size = "large" }: { rows: ShareCell[][]; si
 
 export type ChallengeMine =
   | { kind: "puzzle"; guesses: number; solved: boolean; saved: boolean; seconds: number | null; rows: ShareCell[][]; main: number }
-  | { kind: "fire"; score: number; right: number };
+  | { kind: "fire"; score: number; right: number }
+  | { kind: "duel"; won: boolean; turns: number; seconds: number | null; standing: boolean[]; knocked: number; team: number };
+
+/** A Daily Duel's six as squares: green still standing, red knocked out (decorative, like ShareSquares). */
+export function DuelSquares({ standing, size = "large" }: { standing: boolean[]; size?: "large" | "small" }) {
+  if (!standing.length) return null;
+  return (
+    <span className={`share-squares share-squares--${size}`} style={{ "--share-cols": standing.length } as CSSProperties} aria-hidden="true">
+      <span className="share-squares__row">
+        {standing.map((up, i) => <span key={i} className={`share-squares__cell share-squares__cell--${up ? "match" : "ko"}`} />)}
+      </span>
+    </span>
+  );
+}
+
+/** A duel's order: a win beats a loss; then fewer turns, more cards left and the faster win; two losses, more knocked out. */
+const duelScore = (d: { won: boolean; turns: number; standing: boolean[]; seconds: number | null; knocked: number }) =>
+  d.won ? [1, -d.turns, d.standing.filter(Boolean).length, -(d.seconds ?? 1e9)] : [0, d.knocked, 0, 0];
+const duelWords = (d: { won: boolean; turns: number; seconds: number | null; knocked: number; team: number }) =>
+  d.won ? `Won in ${d.turns} turns${d.seconds != null ? ` · ${shareTime(d.seconds)}` : ""}` : `Lost · ${d.knocked} of ${d.team} out`;
 
 /** Lower is better: guesses when solved, then a last-chance save, then a miss. */
 const puzzleRank = (solved: boolean, saved: boolean, guesses: number, main: number) => (!solved ? main + 2 : saved ? main + 1 : guesses);
@@ -85,12 +106,13 @@ export function ChallengeVersus({ game, mine }: { game: ChallengeGame; mine: Cha
   const c = useShareChallenge();
   const theirs = useChallengePart(game);
   if (!c || !theirs) return null;
-  const who = c.name ?? "Your friend";
+  // A card with no name is "the shared result", never a stand-in person.
+  const who = c.name ?? "the shared result";
 
   let outcome: number;
   let mineLine: string;
   let theirLine: string;
-  if (mine.kind === "puzzle" && theirs.kind !== "fire") {
+  if (mine.kind === "puzzle" && (theirs.kind === "shuffle" || theirs.kind === "dex")) {
     const a = puzzleRank(mine.solved, mine.saved, mine.guesses, mine.main);
     const b = puzzleRank(theirs.solved, theirs.saved, theirs.guesses, theirs.main);
     outcome = a !== b ? Math.sign(b - a) : mine.seconds != null && theirs.seconds != null && mine.solved ? Math.sign(theirs.seconds - mine.seconds) : 0;
@@ -100,10 +122,17 @@ export function ChallengeVersus({ game, mine }: { game: ChallengeGame; mine: Cha
     outcome = mine.score !== theirs.score ? Math.sign(mine.score - theirs.score) : Math.sign(mine.right - theirs.right);
     mineLine = `${mine.score.toLocaleString("en-US")} · ${mine.right} right`;
     theirLine = `${theirs.score.toLocaleString("en-US")} · ${theirs.right} right`;
+  } else if (mine.kind === "duel" && theirs.kind === "duel") {
+    const a = duelScore(mine);
+    const b = duelScore(theirs);
+    const k = a.findIndex((x, i) => x !== b[i]);
+    outcome = k < 0 ? 0 : Math.sign(a[k] - b[k]);
+    mineLine = duelWords(mine);
+    theirLine = duelWords(theirs);
   } else {
     return null;
   }
-  const verdict = outcome > 0 ? `You beat ${who} today.` : outcome < 0 ? `${who} takes this one.` : `A tie with ${who}.`;
+  const verdict = outcome > 0 ? `You beat ${who} today.` : outcome < 0 ? `${c.name ?? "The shared result"} takes this one.` : `A tie with ${who}.`;
 
   return (
     <section className="share-vs" aria-label={`You and ${who}`}>
@@ -114,13 +143,15 @@ export function ChallengeVersus({ game, mine }: { game: ChallengeGame; mine: Cha
           <strong>You{outcome > 0 && <> <Badge variant="success" size="small">Wins</Badge></>}</strong>
           <span className="share-vs__line">{mineLine}</span>
           {mine.kind === "puzzle" && <ShareSquares rows={mine.rows} size="small" />}
+          {mine.kind === "duel" && <DuelSquares standing={mine.standing} size="small" />}
         </div>
         <span className="share-vs__mid" aria-hidden="true">vs</span>
         <div className="share-vs__side">
-          <Avatar size="large" src={c.avatar ?? undefined} initials={who.slice(0, 1).toUpperCase()} alt="" color="neutral" />
-          <strong>{who}{outcome < 0 && <> <Badge variant="success" size="small">Wins</Badge></>}</strong>
+          {c.name ? <Avatar size="large" src={c.avatar ?? undefined} initials={c.name.slice(0, 1).toUpperCase()} alt="" color="neutral" /> : <IconTile icon={IconShare} tone="blue" />}
+          <strong>{c.name ?? "Shared result"}{outcome < 0 && <> <Badge variant="success" size="small">Wins</Badge></>}</strong>
           <span className="share-vs__line">{theirLine}</span>
-          {theirs.kind !== "fire" && <ShareSquares rows={theirs.rows} size="small" />}
+          {(theirs.kind === "shuffle" || theirs.kind === "dex") && <ShareSquares rows={theirs.rows} size="small" />}
+          {theirs.kind === "duel" && <DuelSquares standing={theirs.standing} size="small" />}
         </div>
       </div>
     </section>

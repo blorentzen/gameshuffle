@@ -23,7 +23,7 @@ export interface BrowseHeroProps {
   sub: ReactNode;
   /** Warm gold for the tabletop half, cyan for the competitive half. */
   /** Pillar tints, plus one per GameShuffle game (daily, dex, weekly, brain: each game's own colors, as on its share image). */
-  accent: "gold" | "cyan" | "violet" | "blue" | "orange" | "red" | "daily" | "dex" | "weekly" | "brain" | "fire";
+  accent: "gold" | "cyan" | "violet" | "blue" | "orange" | "red" | "daily" | "dex" | "weekly" | "brain" | "fire" | "duel";
   /**
    * Which glyph family drifts behind the copy, when there is no photo. Matches
    * the cards below it.

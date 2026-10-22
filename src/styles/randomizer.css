@@ -785,17 +785,7 @@ html.dark .gs-portrait-bg {
 .app-card__title-link:hover { text-decoration: underline; text-underline-offset: 0.2em; }
 .app-card__title-link:focus-visible { outline: 2px solid var(--border-focus, var(--bg-primary)); outline-offset: 2px; border-radius: var(--radius-4, 4px); }
 
-.app-card__learn {
-  color: var(--brand-ink);
-  font-weight: 600;
-  font-size: var(--font-size-14);
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-.app-card__learn:hover {
-  color: var(--brand-primary);
-  text-decoration: underline;
-}
+.app-card__learn { font-size: var(--font-size-14); }
 
 /* Homepage "quick launch" wayfinder — icon tiles for the most popular tools. */
 .home-tiles {
@@ -831,41 +821,29 @@ html.dark .gs-portrait-bg {
   border-color: transparent;
   color: #fff;
 }
+/* The tile is the shared icon tile (globals.css .icon-tile values), colored by
+   tool family: pick something at random (blue), run your stream (violet), build
+   a board (teal), play a party game (orange), run a whole night (green). Over
+   the hover gradient it keeps its colors and gains a light ring. */
 .home-tile__icon {
-  display: inline-flex;
-  line-height: 1;
-  /* CDS (Tabler) icon inherits currentColor: brand at rest, white on hover
-     (over the gradient fill). */
-  color: var(--brand-primary);
-  transition: color 0.2s ease;
-}
-.home-tile:hover .home-tile__icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--tile-md);
+  height: var(--tile-md);
+  border-radius: var(--tile-md-radius);
   color: #fff;
+  background: var(--tile-bg, var(--tile-blue));
+  box-shadow: var(--tile-shadow);
+  transition: box-shadow 0.2s ease;
 }
-
-/* ── Tool families ────────────────────────────────────────────────────────
-   The icon sits in a tinted chip so the glyph reads as an object rather than
-   a floating outline, and the tint groups tools by what they DO. Every tint is
-   a color-mix into the surface, so it flips with the theme instead of being a
-   fixed pastel that turns muddy in dark mode. On hover the gradient fill takes
-   over and the chip steps out of the way. */
-.home-tile__icon {
-  width: 4.8rem;
-  height: 4.8rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--gs-radius-md, 0.8rem);
-  background: color-mix(in srgb, var(--tool-tone, var(--brand-primary)) 14%, var(--surface-default));
-  color: var(--tool-tone, var(--brand-primary));
-  transition: color 0.2s ease, background 0.2s ease;
-}
-.home-tile:hover .home-tile__icon { background: rgba(255, 255, 255, 0.18); }
-
-.home-tile__icon--pick { --tool-tone: var(--primary-500, #2766ec); }
-.home-tile__icon--stream { --tool-tone: var(--accent-500, #a855f7); }
-.home-tile__icon--board { --tool-tone: #0ea5e9; }
-.home-tile__icon--party { --tool-tone: #f97316; }
-.home-tile__icon--kit { --tool-tone: #17a710; }
+.home-tile__icon svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
+.home-tile:hover .home-tile__icon { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6); }
+.home-tile__icon--pick { --tile-bg: var(--tile-blue); }
+.home-tile__icon--stream { --tile-bg: var(--tile-violet); }
+.home-tile__icon--board { --tile-bg: var(--tile-teal); }
+.home-tile__icon--party { --tile-bg: var(--tile-orange); }
+.home-tile__icon--kit { --tile-bg: var(--tile-green); }
 .home-tile__label {
   font-size: var(--font-size-16);
   font-weight: 600;
@@ -874,7 +852,7 @@ html.dark .gs-portrait-bg {
 /* Optional descriptor line — a brief "what it does" under the label (tools
    page). Homepage wayfinder tiles omit it. */
 .home-tile__desc {
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   color: var(--text-tertiary);
   text-align: center;
   line-height: 1.4;
@@ -1453,7 +1431,11 @@ html.dark .gs-portrait-bg {
 /* ── The Daily Shuffle ─────────────────────────────────────────────────────── */
 .daily { display: flex; flex-direction: column; gap: var(--spacing-20); max-width: 64rem; margin-bottom: var(--spacing-64); }
 .daily__meta { display: flex; align-items: center; gap: var(--spacing-12); }
-.daily__guess { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
+/* The guess box stays in reach while the grid grows (Britton, 2026-10-21: no scrolling back up for
+   the next guess). It sticks under the nav inside the game only, like Fire Round's bar; rows keep a
+   scroll margin so a new row never lands under it. */
+.daily__guess { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; position: sticky; top: calc(var(--gs-nav-offset, 64px) + var(--spacing-8)); transition: var(--gs-nav-slide, top 0.2s ease); z-index: 5; padding: var(--spacing-12) var(--spacing-16); border-radius: var(--radius-12, 12px); background: var(--surface-default); border: 1px solid var(--border-default); box-shadow: 0 6px 18px rgba(20, 10, 30, 0.08); }
+.daily__grid tr { scroll-margin-top: calc(var(--gs-nav-offset, 64px) + 10rem); scroll-margin-bottom: var(--spacing-16); }
 .daily__guess > :first-child { flex: 1 1 24rem; }
 /* Start today's puzzle (DailyStart.tsx): the first hint and the clock wait for this tap. */
 .daily-start { display: grid; gap: var(--spacing-16, 16px); padding: var(--spacing-20, 20px); border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: var(--surface-default); }
@@ -1507,7 +1489,8 @@ html.dark .gs-portrait-bg {
 /* How to play inside the Start card: three short lines, side by side when there's room. */
 .daily-steps { list-style: none; margin: 0; padding: var(--spacing-16, 16px) 0 0; border-top: 1px solid var(--border-default); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--spacing-12, 12px) var(--spacing-20, 20px); text-align: start; }
 .daily-step { display: flex; align-items: flex-start; gap: var(--spacing-10, 10px); min-width: 0; }
-.daily-step__icon { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+/* A list marker inside the Start card's steps, so it stays small; colors from the shared tile tokens. */
+.daily-step__icon { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--tile-blue); }
 .daily-step__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.4; }
 .daily-step__text strong { color: var(--text-primary); }
 /* Phones (Britton's picks, 2026-10-19): tighter page, one lane of characters. */
@@ -1604,6 +1587,16 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
   .home-play--wide-week > .home-play__card--wide .home-play__title { font-size: var(--font-size-20); }
 }
 .home-play__meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
+/* The Daily Duel's card: today's trainer's picture across the card's top edge (its space held by the aspect-ratio). */
+.home-play__card--duel { overflow: hidden; }
+.home-duel__art { align-self: stretch; margin: calc(-1 * var(--spacing-24, 24px)) calc(-1 * var(--spacing-24, 24px)) var(--spacing-4, 4px); aspect-ratio: 5 / 2; }
+/* Four dailies: two by two on a small laptop, four across on a wide one; the Weekly stays a wide row under them. */
+@media (min-width: 900px) {
+  .home-play--four.home-play--wide-week { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1180px) {
+  .home-play--four.home-play--wide-week { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
 /* Splatoon 3 randomizer: the kit under each player's weapon, and the battle list. */
 .splat-kit { display: grid; gap: var(--spacing-4); margin: var(--spacing-12) 0 0; font-size: var(--font-size-14); }
@@ -1987,14 +1980,16 @@ html.dark .daily-board__prize { color: var(--color-warning-300, #f2c96b); }
 
 
 /* ── The dailies together: today bar, Next up, streak cards (src/components/originals/Dailies.tsx) ── */
-.dailies--shuffle { --dailies-ink: #5a3fd6; --dailies-tile: linear-gradient(135deg, #2b1d84, #5a3fd6); }
-.dailies--dex { --dailies-ink: #c4471f; --dailies-tile: linear-gradient(135deg, #a3301b, #dd7a1d); }
-.dailies--weekly { --dailies-ink: #12806e; --dailies-tile: linear-gradient(135deg, #0b5a52, #169a85); }
-.dailies--fire { --dailies-ink: #b42318; --dailies-tile: linear-gradient(135deg, #d9363e, #ff7a2f); }
+.dailies--shuffle { --dailies-ink: #5a3fd6; --dailies-tile: var(--tile-shuffle); }
+.dailies--dex { --dailies-ink: #c4471f; --dailies-tile: var(--tile-dex); }
+.dailies--weekly { --dailies-ink: #12806e; --dailies-tile: var(--tile-weekly); }
+.dailies--fire { --dailies-ink: #b42318; --dailies-tile: var(--tile-fire); }
+.dailies--duel { --dailies-ink: #8a5d00; --dailies-tile: var(--tile-duel); }
 html.dark .dailies--shuffle { --dailies-ink: #a99bff; }
 html.dark .dailies--dex { --dailies-ink: #f0a070; }
 html.dark .dailies--weekly { --dailies-ink: #5fd3bd; }
 html.dark .dailies--fire { --dailies-ink: #ff9a7a; }
+html.dark .dailies--duel { --dailies-ink: #f5c84c; }
 
 .dailies-bar { width: 100%; margin: 0 auto var(--spacing-16); min-width: 0; max-width: 72rem; }
 .dailies-bar .empac-subnav, .dailies-bar .empac-subnav__wrapper { background: transparent; }
@@ -2002,11 +1997,12 @@ html.dark .dailies--fire { --dailies-ink: #ff9a7a; }
 /* Three equal cells, the status under each name, so all of today fits across a phone. */
 .dailies-bar .empac-subnav__container { display: grid; grid-template-columns: repeat(var(--dailies-n, 3), minmax(0, 1fr)); max-width: none; padding: 2px; gap: var(--spacing-8); overflow: visible; }
 /* Each cell's colour comes from the bar (CDS SubNav items take no class): --dailies-c1..c3 name a game's ink, set inline by DailiesBar. */
-.dailies-bar { --ink-shuffle: #5a3fd6; --ink-dex: #c4471f; --ink-fire: #b42318; --ink-weekly: #12806e; }
-html.dark .dailies-bar { --ink-shuffle: #a99bff; --ink-dex: #f0a070; --ink-fire: #ff9a7a; --ink-weekly: #5fd3bd; }
+.dailies-bar { --ink-shuffle: #5a3fd6; --ink-dex: #c4471f; --ink-fire: #b42318; --ink-duel: #8a5d00; --ink-weekly: #12806e; }
+html.dark .dailies-bar { --ink-shuffle: #a99bff; --ink-dex: #f0a070; --ink-fire: #ff9a7a; --ink-duel: #f5c84c; --ink-weekly: #5fd3bd; }
 .dailies-bar .empac-subnav__item:nth-child(1) { --dailies-ink: var(--dailies-c1, var(--ink-shuffle)); }
 .dailies-bar .empac-subnav__item:nth-child(2) { --dailies-ink: var(--dailies-c2, var(--ink-dex)); }
 .dailies-bar .empac-subnav__item:nth-child(3) { --dailies-ink: var(--dailies-c3, var(--ink-fire)); }
+.dailies-bar .empac-subnav__item:nth-child(4) { --dailies-ink: var(--dailies-c4, var(--ink-duel)); }
 .dailies-bar .empac-subnav--pills .empac-subnav__item { flex-wrap: wrap; align-content: center; justify-content: flex-start; text-align: left; gap: 2px var(--spacing-8); min-width: 0; padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: var(--background-primary); color: var(--text-primary); white-space: normal; }
 .dailies-bar .empac-subnav__item > span:not(.empac-subnav__badge) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .dailies-bar .empac-subnav__badge, .dailies-bar .empac-subnav--pills .empac-subnav__item--active .empac-subnav__badge { flex-basis: 100%; justify-content: flex-start; height: auto; min-width: 0; padding: 0 0 0 18px; background: none; color: var(--text-secondary); font-weight: var(--font-weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2014,6 +2010,19 @@ html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subna
 .dailies-bar .empac-subnav__item::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--dailies-ink); }
 .dailies-bar .empac-subnav--pills .empac-subnav__item--active,
 .dailies-bar .empac-subnav--pills .empac-subnav__item--active:hover { background: var(--background-primary); color: var(--text-primary); border-color: var(--dailies-ink); box-shadow: inset 0 0 0 1px var(--dailies-ink); }
+
+/* Four dailies (the Daily Duel joined 2026-10-21): four across, a little tighter on a phone (the dot
+   goes, the status drops to 12px, a label); two by two below 360px so nothing is cut off. */
+@media (max-width: 40rem) {
+  .dailies-bar--4 .empac-subnav__container { gap: var(--spacing-6, 6px); }
+  .dailies-bar--4 .empac-subnav--pills .empac-subnav__item { padding: var(--spacing-8) var(--spacing-8); gap: 2px var(--spacing-6, 6px); }
+  .dailies-bar--4 .empac-subnav__item::before { display: none; }
+  .dailies-bar.dailies-bar--4 .empac-subnav--pills .empac-subnav__item { border-top: 3px solid var(--dailies-ink); }
+  .dailies-bar--4 .empac-subnav__badge, .dailies-bar--4 .empac-subnav--pills .empac-subnav__item--active .empac-subnav__badge { padding-left: 0; font-size: var(--font-size-12); }
+}
+@media (max-width: 22.5rem) {
+  .dailies-bar--4 .empac-subnav__container { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 /* The Weekly under the bar (Britton, 2026-10-19: the three dailies stay together, the Weekly drops below): a plain line, no box. */
 .dailies-week { display: flex; align-items: center; gap: var(--spacing-10, 10px); min-width: 0; margin: var(--spacing-8) 0 0; padding: 0 var(--spacing-4); font-size: var(--font-size-14); color: var(--text-secondary); text-align: start; }
@@ -2028,7 +2037,9 @@ html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subna
 .dailies-pair > * { min-width: 0; }
 .dailies-next { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: 100%; height: 100%; text-align: start; }
 .dailies-next > .empac-button, .dailies-next__link, .dailies-invite__more { margin-top: auto; }
-.dailies-next__tile { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: var(--dailies-tile); }
+/* Shared icon tile values (globals.css .icon-tile), in the game's gradient. */
+.dailies-next__tile, .dailies-invite__tile, .dailies-card__tile { flex: none; width: var(--tile-md); height: var(--tile-md); border-radius: var(--tile-md-radius); display: grid; place-items: center; color: #fff; background: var(--dailies-tile, var(--tile-blue)); box-shadow: var(--tile-shadow); }
+:is(.dailies-next__tile, .dailies-invite__tile, .dailies-card__tile) svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
 .dailies-next__eyebrow { margin-top: var(--spacing-4); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
 .dailies-next__title { margin: 0; font-size: var(--font-size-18); }
 .dailies-next__text { margin: 0 0 var(--spacing-4); color: var(--text-secondary); }
@@ -2047,7 +2058,6 @@ html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subna
 .dailies-cards--strip .dailies-cards__grid { grid-template-columns: minmax(0, 1fr); }
 .dailies-cards--strip .dailies-card { gap: var(--spacing-10, 10px); padding: var(--spacing-2, 2px) 0 var(--spacing-2, 2px) var(--spacing-14, 14px); border: 0; border-left: 4px solid var(--dailies-ink); border-radius: 0; background: none; }
 .dailies-cards--strip .dailies-card__line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-20); }
-.dailies-card__tile { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: #fff; background: var(--dailies-tile); }
 .dailies-card__name { font-weight: var(--font-weight-semibold); font-size: var(--font-size-15, 1.5rem); }
 .dailies-card__streak { display: flex; align-items: center; gap: 6px; margin: 0; }
 .dailies-card__streak svg { color: var(--dailies-ink); }
@@ -2090,7 +2100,7 @@ html.dark .dex-cotd__kicker { color: #f0a070; }
 /* ── Referral links on the dailies (Dailies.tsx: InvitedNote, DailiesInvite) ── */
 .dailies-invited { width: 100%; margin: 0 auto var(--spacing-16); max-width: 72rem; }
 .dailies-invite { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: 100%; height: 100%; text-align: start; }
-.dailies-invite__tile { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+.dailies-invite__tile { background: var(--tile-blue); }
 .dailies-invite__link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); width: 100%; }
 .dailies-invite__link code { flex: 1 1 18rem; min-width: 0; padding: var(--spacing-8) var(--spacing-10, 10px); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--background-secondary); font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dailies-invite__more { font-size: var(--font-size-14); }
@@ -2154,26 +2164,138 @@ html.dark .dex-cotd__kicker { color: #f0a070; }
   clip-path: inset(0 -2rem -2rem -2rem);
 }
 
-/* Short seats until the first roll: the game's own random tile at 5.6rem beside
-   the name, refresh and remove; the card grows when the seat is rolled. Nothing
-   is scaled: the tile is drawn at its own size and the "???" caption is left
-   out (a compact version drops elements, it doesn't shrink them). */
-.player-card--seat {
-  display: grid;
-  grid-template-columns: 5.6rem minmax(0, 1fr);
-  align-items: center;
-  gap: 1.2rem;
-  padding: 1.2rem 1.6rem;
+/* Player cards grow in place (Britton's pick, 2026-10-20; SeatCard in
+   PlayerCard.tsx). Before the first roll a card is a short row: the game's own
+   random tile (5.6rem) beside the name field and the card's buttons. On the
+   first roll the tile stays in the left column and grows into the picture
+   (11.2rem on a desktop card, down to 8.4rem on phones: 40% of the card less
+   5rem, so a narrow card keeps room for the name field) while the details
+   unfold beside the name field: the rolled name, then the game's own details,
+   a short stagger apart. Nothing
+   in the row moves out of its place, and re-rolls only spin the picture (the
+   reel in KartSlot). Transitions sit on the rolled state only, so a card that
+   mounts rolled doesn't animate and going back to a seat is one step. Nothing
+   with text is scaled: the tile's box changes size and the picture fills it.
+   Scoped to .player-card--grow (HeroRoulette, Stadium and the players
+   directory keep their own .player-card). */
+.player-card--grow {
+  --pc-tile: 5.6rem;
+  --pc-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Flex, not grid: the picture's percentage width then resolves against the
+     card, so the size can follow the card's width and still transition. */
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1.4rem;
+  padding: 1.4rem;
 }
-.player-card--seat .player-card__header { grid-column: 2; grid-row: 1; }
-.player-card--seat .player-card__slots { grid-column: 1; grid-row: 1; display: block; width: 5.6rem; }
-.player-card--seat .player-card__slots > :not(:first-child),
-.player-card--seat > :not(.player-card__header):not(.player-card__slots),
-.player-card--seat .kart-slot > span:not(.kart-slot__tile) { display: none; }
-.player-card--seat .player-card__header { border-bottom: 0; padding-bottom: 0; }
-.player-card--seat .kart-slot { gap: 0; }
-.player-card--seat .kart-slot img { height: 5.6rem; width: 5.6rem; object-fit: contain; }
-.player-card--seat .kart-slot__tile,
-.player-card--seat .kart-slot--portrait:only-child .kart-slot__tile { width: 5.6rem; border-radius: 1rem; }
-.player-card--seat .kart-slot__tile > .random-tile { font-size: var(--font-size-32); }
-.player-card--seat .kart-slot__tile > .random-tile--smash { -webkit-text-stroke: 2px #26272c; }
+.player-card--grow.player-card--rolled { --pc-tile: clamp(8.4rem, 40% - 5rem, 11.2rem); }
+
+/* The picture: the main slot fills a box that grows. */
+.player-card--grow .player-card__pic {
+  position: relative;
+  flex: none;
+  width: var(--pc-tile);
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: 1.2rem;
+  overflow: hidden;
+}
+/* Mario Kart's pictures are cut-out icons: give them a tile to stand on. */
+.player-card--grow .player-card__pic:has(> .kart-slot:not(.kart-slot--portrait)) {
+  background: linear-gradient(160deg, var(--background-tertiary), var(--border-default));
+}
+.player-card--grow .player-card__pic > .kart-slot { width: 100%; height: 100%; gap: 0; }
+.player-card--grow .player-card__pic > .kart-slot > img {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  padding: 0.4rem;
+  object-fit: contain;
+  border-radius: 0;
+}
+.player-card--grow .player-card__pic .kart-slot .kart-slot__tile { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
+/* The name shows beside the picture (SlotCaptionContext); this is the copy
+   drawn before that spot exists. */
+.player-card--grow .player-card__pic .kart-slot > span:not(.kart-slot__tile) { display: none; }
+.player-card--grow .player-card__pic .kart-slot__tile > .random-tile { font-size: var(--font-size-32); }
+.player-card--grow .player-card__pic .kart-slot__tile > .random-tile--smash { -webkit-text-stroke: 2px #26272c; }
+
+/* The name field and buttons keep the seat's height, so they stay put. */
+.player-card--grow .player-card__main { display: grid; flex: 1 1 0; min-width: 0; text-align: start; }
+.player-card--grow .player-card__header { min-height: 5.6rem; padding: 0; border: 0; }
+
+/* The details unfold under the name field. */
+.player-card--grow .player-card__more { display: grid; grid-template-rows: 0fr; }
+.player-card--grow.player-card--seat .player-card__more { visibility: hidden; }
+.player-card--grow .player-card__inner { display: grid; gap: 0.8rem; align-content: start; min-height: 0; overflow: hidden; }
+.player-card--grow .player-card__inner > * { opacity: 0; transform: translateY(0.8rem); }
+.player-card--grow .player-card__pick {
+  margin: 0;
+  padding-top: 0.4rem;
+  font-family: var(--font-display, inherit);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+/* While the reel spins the name stays on one line, so the card doesn't
+   change height with every name that flies past. */
+.player-card--grow .kart-slot__caption--spinning { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* Room inside the clip for focus rings and the parts' reel. */
+.player-card--grow .player-card__details { display: grid; gap: 0.8rem; justify-items: start; margin: 0 -0.4rem; padding: 0 0.4rem 0.4rem; }
+/* While the picture's reel spins, details that name the pick wait (hidden at
+   once, back with a fade when it lands); the parts spin with it. */
+.player-card--grow .player-card__details > * { transition: opacity 0.25s ease; }
+.player-card--grow.player-card--spinning .player-card__details > :not(.player-card__parts) { opacity: 0; transition: none; }
+
+/* Mario Kart's vehicle, wheels and glider (and Kirby's machine) beside the
+   picture, in one row however narrow the card: each part up to 8.8rem. */
+.player-card--grow .player-card__parts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 8.8rem); justify-content: start; gap: 1rem; width: 100%; margin: 0; padding: 0; list-style: none; }
+.player-card--grow .player-card__parts > .kart-slot { min-width: 0; gap: 0.4rem; }
+.player-card--grow .player-card__parts > .kart-slot > img { width: 100%; height: 4.8rem; max-height: none; object-fit: contain; }
+.player-card--grow .player-card__parts .kart-slot .kart-slot__tile { width: 6.4rem; }
+.player-card--grow .player-card__parts > .kart-slot > span:not(.kart-slot__tile) {
+  /* Part names are reading text: 14px everywhere, two lines kept so a long
+     name in the reel doesn't make the card jump. */
+  min-height: 3.4rem;
+  font-size: var(--font-size-14);
+  line-height: 1.2;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+/* A lone part (Mario Kart World's vehicle, Kirby's machine) sits beside its name. */
+.player-card--grow .player-card__parts--row { grid-auto-columns: minmax(0, auto); }
+.player-card--grow .player-card__parts--row > .kart-slot { flex-direction: row; align-items: center; gap: 1rem; }
+.player-card--grow .player-card__parts--row > .kart-slot > img { flex: none; width: 8rem; }
+.player-card--grow .player-card__parts--row .kart-slot .kart-slot__tile { flex: none; width: 5.6rem; }
+.player-card--grow .player-card__parts--row > .kart-slot > span:not(.kart-slot__tile) { min-height: 0; text-align: start; }
+.player-card--grow .player-card__parts > .kart-slot { opacity: 0; transform: translateY(1rem); }
+.player-card--grow .player-card__save { justify-content: flex-start; padding: 0; }
+.player-card--grow .splat-kit { width: 100%; margin: 0; }
+
+/* The rolled state, with the motion. */
+.player-card--grow.player-card--rolled .player-card__pic { transition: width 0.5s var(--pc-ease); }
+.player-card--grow.player-card--rolled .player-card__more { grid-template-rows: 1fr; transition: grid-template-rows 0.5s var(--pc-ease); }
+.player-card--grow.player-card--rolled .player-card__inner > * { opacity: 1; transform: none; transition: opacity 0.3s ease 0.2s, transform 0.35s ease 0.2s; }
+.player-card--grow.player-card--rolled .player-card__inner > :nth-child(2) { transition-delay: 0.28s; }
+.player-card--grow.player-card--rolled .player-card__parts > .kart-slot { opacity: 1; transform: none; transition: opacity 0.3s ease 0.32s, transform 0.4s cubic-bezier(0.2, 1.3, 0.3, 1) 0.32s; }
+.player-card--grow.player-card--rolled .player-card__parts > .kart-slot:nth-child(2) { transition-delay: 0.4s; }
+.player-card--grow.player-card--rolled .player-card__parts > .kart-slot:nth-child(3) { transition-delay: 0.48s; }
+
+@media (max-width: 35em) {
+  .player-card--grow { gap: 1rem; padding: 1.2rem; }
+  .player-card--grow .player-card__parts { gap: 0.6rem; }
+  .player-card--grow .player-card__parts > .kart-slot > img { height: 4rem; }
+}
+
+/* Reduced motion, or the page's Rolling animation switch off: one step. */
+.player-card--still :is(.player-card__pic, .player-card__more, .player-card__inner > *, .player-card__details > *, .player-card__parts > .kart-slot) { transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .player-card--grow :is(.player-card__pic, .player-card__more, .player-card__inner > *, .player-card__details > *, .player-card__parts > .kart-slot) { transition: none !important; }
+}

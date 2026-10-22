@@ -1,0 +1,339 @@
+/* Lounge pages: /lounge (search, your lounge, GameShuffle boards) and /lounge/<name> (one player's season).
+   Sections sit flat under a thin line; tables keep their frame (containers and gaps rule). */
+
+.lounge-body { display: grid; gap: var(--spacing-24); padding-block: var(--spacing-24) var(--spacing-64); }
+.lounge-games { justify-self: start; }
+.lounge-sub { display: inline-flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-12); align-items: center; }
+.lounge-confirmed { display: inline-flex; align-items: center; gap: var(--spacing-4); padding: var(--spacing-4) var(--spacing-8); border-radius: 999px; background: color-mix(in srgb, #2bd17e 22%, transparent); color: #a8f5cb; font-size: var(--font-size-14); font-weight: 700; }
+.lounge-confirmed a { color: inherit; }
+
+.lounge-next { display: grid; gap: var(--spacing-8); max-width: 64rem; }
+.lounge-next__line { margin: 0; font-size: var(--font-size-18); }
+.lounge-next__line b { font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-variant-numeric: tabular-nums; }
+.lounge-next__pace { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); max-width: 68ch; }
+
+
+.lounge-sec { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.lounge-sec h2 { margin: 0; font-size: var(--font-size-20); display: flex; gap: var(--spacing-8); align-items: baseline; flex-wrap: wrap; }
+.lounge-sec h2 small { font-size: var(--font-size-14); font-weight: 500; color: var(--text-secondary); }
+.lounge-two { display: grid; gap: var(--spacing-24); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 56rem) { .lounge-two { grid-template-columns: 1fr 1fr; } }
+
+.lounge-up { color: var(--success-700, #1f7a46); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lounge-down { color: var(--error-700, #b42318); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lounge-cell-note { display: block; font-size: var(--font-size-14); color: var(--text-secondary); }
+.lounge-empty { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+
+.lounge-chart { margin: 0; overflow-x: auto; }
+/* SVG text scales with the drawing: never narrower than its own 880 units (labels stay 12px or more), scroll sideways on phones. */
+.lounge-chart svg { width: 100%; min-width: 880px; height: auto; display: block; }
+/* Every label sits on a halo of the page color, so a line passing behind it never cuts through a word. */
+.lounge-chart text { font-size: 12px; font-weight: 600; fill: var(--text-secondary); paint-order: stroke; stroke: var(--background-primary, #fff); stroke-width: 4px; stroke-linejoin: round; }
+.lounge-chart .lounge-chart__band { fill: var(--text-primary); opacity: .75; }
+.lounge-chart__area { fill: var(--primary-500, #3b5bdb); opacity: .12; }
+.lounge-chart__line { fill: none; stroke: var(--primary-600, #2b52d6); stroke-width: 2.4; stroke-linejoin: round; }
+
+/* Free-for-all places */
+.lounge-bars { overflow-x: auto; }
+.lounge-bars__list { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(2.8rem, 1fr); gap: var(--spacing-4); height: 22rem; align-items: end; min-width: 34rem; }
+.lounge-bars__col { display: grid; grid-template-rows: auto 1fr auto; height: 100%; align-items: end; justify-items: stretch; text-align: center; }
+.lounge-bars__n { font-size: var(--font-size-12); font-weight: 700; color: var(--text-secondary); font-variant-numeric: tabular-nums; min-height: 1.6rem; }
+.lounge-bars__bar { display: block; align-self: end; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--primary-500, #3b5bdb); }
+.lounge-bars__place { font-size: var(--font-size-12); font-weight: 700; color: var(--text-secondary); padding-top: var(--spacing-4); border-top: 1px solid var(--border-default); }
+
+.lounge-foot { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.lounge-foot p { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); max-width: 80ch; }
+
+/* /lounge: your lounge */
+.lounge-mine { display: grid; gap: var(--spacing-12); }
+.lounge-mine__list { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); }
+.lounge-mine__item { display: grid; grid-template-columns: 4.8rem minmax(0, 1fr); gap: var(--spacing-12); align-items: center; padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: 1.2rem; text-decoration: none; color: inherit; }
+.lounge-mine__item:hover, .lounge-mine__item:focus-visible { border-color: var(--primary-500, #3b5bdb); }
+.lounge-mine__item svg { width: 100%; height: auto; display: block; }
+.lounge-mine__item b { display: block; font-size: var(--font-size-16); }
+.lounge-mine__item span { display: block; font-size: var(--font-size-14); color: var(--text-secondary); }
+.lounge-mine__note { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); max-width: 68ch; }
+
+/* Boards: game pills over the tabs; the On GameShuffle tab's board beside its climbers. */
+.lounge-boards { display: grid; gap: var(--spacing-16); min-width: 0; }
+.lounge-gs { display: grid; gap: var(--spacing-24); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 64rem) { .lounge-gs { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
+.lounge-board-name { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+.lounge-board-name svg { width: 2.8rem; height: auto; flex: none; display: block; }
+.lounge-board-row--me td { background: color-mix(in srgb, var(--primary-500, #3b5bdb) 9%, transparent); font-weight: 700; }
+.lounge-sub-head { margin: 0 0 var(--spacing-12); font-size: var(--font-size-18); }
+.lounge-chart:focus-visible, .lounge-bars:focus-visible { outline: 2px solid var(--primary-500, #3b5bdb); outline-offset: 4px; border-radius: 4px; }
+.lounge-pending { margin: 0; padding: var(--spacing-8) var(--spacing-12); border: 1px dashed var(--border-default); border-radius: .8rem; font-size: var(--font-size-16); justify-self: start; }
+
+/* Check a room */
+.lounge-room { display: grid; gap: var(--spacing-16); }
+.lounge-room__form { display: grid; gap: var(--spacing-12); max-width: 80rem; }
+.lounge-room__opts { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); align-items: end; }
+.lounge-room__out { display: grid; gap: var(--spacing-16); }
+.lounge-room__sum { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 56rem) { .lounge-room__sum { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.lounge-room h3 { margin: 0; font-size: var(--font-size-18); display: flex; gap: var(--spacing-8); align-items: baseline; flex-wrap: wrap; }
+.lounge-room h3 small { font-size: var(--font-size-14); font-weight: 500; color: var(--text-secondary); }
+.lounge-pay { position: relative; display: block; height: 1.4rem; min-width: 14rem; }
+.lounge-pay::before { content: ""; position: absolute; left: 50%; top: -.3rem; bottom: -.3rem; width: 1px; background: var(--border-default); }
+.lounge-pay i { position: absolute; top: 0; height: 100%; border-radius: .4rem; }
+.lounge-pay i.g { left: 50%; background: var(--success-500, #2bb673); }
+.lounge-pay i.l { right: 50%; background: var(--error-500, #e05b4b); }
+.lounge-foot-note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); max-width: 80ch; }
+.lounge-vs { display: flex; gap: var(--spacing-12); }
+.lounge-vs svg { width: 8rem; height: auto; display: block; }
+@media (max-width: 40rem) { .lounge-vs svg { width: 5.6rem; } }
+.lounge-lead { font-weight: 800; }
+.lounge-cell-note--mid { display: inline; }
+.lounge-compare { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: flex-end; max-width: 56rem; }
+.lounge-compare > :first-child { flex: 1 1 22rem; min-width: 0; }
+.lounge-play { display: grid; gap: var(--spacing-8); align-content: start; min-width: 0; }
+.lounge-play h3 { margin: 0; font-size: var(--font-size-18); display: flex; gap: var(--spacing-8); align-items: baseline; flex-wrap: wrap; }
+.lounge-play h3 small { font-size: var(--font-size-14); font-weight: 500; color: var(--text-secondary); }
+.lounge-play__big { margin: 0; font-size: var(--font-size-32); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ── The player header wears the division (lounge page picks, 2026-10-20) ─────────────
+   The band is the division's dark shade, deepest where the text sits, with the light shade
+   as a glow toward the emblem. Colors come from heroColors() (season.ts), checked for AA. */
+.lounge-hero {
+  background:
+    radial-gradient(80% 140% at 100% 0%, var(--lh-glow) 0%, transparent 58%),
+    linear-gradient(115deg, var(--lh-deep) 0%, var(--lh-mid) 58%, var(--lh-edge) 100%);
+}
+.lounge-hero .browse-hero__veil { background: linear-gradient(100deg, rgba(8, 10, 18, 0.55) 0%, rgba(8, 10, 18, 0.32) 34%, transparent 62%); }
+.lounge-hero .marketing-eyebrow { color: rgba(255, 255, 255, 0.86); }
+.lounge-hero__wrap { position: relative; }
+.lounge-hero__inner { max-width: none; padding-right: 26rem; }
+.lounge-hero__division { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lh-label); }
+.lounge-hero .browse-hero__title { margin-top: var(--spacing-4); }
+.lounge-hero__line { margin-bottom: 0; }
+/* The emblem as the header's art, the way box art sits on event pages: large, tilted, at the edge. */
+.lounge-hero__emblem {
+  position: absolute;
+  z-index: 1;
+  right: -2.6rem;
+  top: calc(50% + 3.2rem);
+  width: 23rem;
+  transform: translateY(-50%) rotate(-8deg);
+  filter: drop-shadow(0 2.4rem 3.2rem rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+}
+.lounge-hero__emblem svg { width: 100%; height: auto; display: block; }
+/* Phones: the emblem fades behind the text, top right, and the band stays dark under the words. */
+@media (max-width: 40rem) {
+  .lounge-hero { background: radial-gradient(70% 90% at 100% 0%, var(--lh-glow) 0%, transparent 60%), linear-gradient(160deg, var(--lh-deep) 0%, var(--lh-mid) 100%); }
+  .lounge-hero__inner { padding-right: 0; }
+  .lounge-hero__emblem { width: 15rem; right: -4rem; top: 7.2rem; transform: rotate(-8deg); opacity: 0.35; filter: none; }
+}
+
+/* Game pills and the season picker on one line (they wrap on phones). */
+.lounge-picker { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-16); align-items: center; justify-content: space-between; }
+.lounge-picker .empac-subnav { width: auto; flex: 0 1 auto; min-width: 0; }
+.lounge-picker .empac-subnav__container { padding-inline: 0; }
+.lounge-season { width: 22rem; max-width: 100%; }
+
+/* Tabs. Every layer gets min-width 0, or the tab bar's and tables' widths push the page sideways on phones. */
+.lounge-body > *, .lounge-boards, .lounge-tabs, .lounge-tabs .empac-tabs, .lounge-tabs .empac-tabs__content, .lounge-tabs .empac-tabs__panel { min-width: 0; }
+.lounge-tabs .empac-tabs { gap: var(--spacing-24); }
+.lounge-tabs .empac-tabs__tab-badge { background: #efe9ff; color: #4a2ab8; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; }
+.lounge-tabs .empac-tabs__tab--active .empac-tabs__tab-badge { background: #e4dbff; color: #3b1f9e; }
+.lounge-panel { display: grid; gap: var(--spacing-24); min-width: 0; }
+/* The first block of a tab sits right under the tab bar, so it needs no line of its own. */
+.lounge-sec--flat { padding-top: 0; border-top: 0; }
+.lounge-nowrap { white-space: nowrap; }
+.lounge-note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); max-width: 80ch; }
+.lounge-share { display: flex; flex-wrap: wrap; gap: var(--spacing-12); }
+
+/* One numbers strip: one frame, the cells divided by thin lines, values over their labels. */
+.lounge-strip {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 1px;
+  background: var(--border-default);
+  border: 1px solid var(--border-default);
+  border-radius: 1.2rem;
+  overflow: hidden;
+}
+.lounge-strip__cell { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: var(--spacing-4); padding: var(--spacing-12) var(--spacing-16); background: var(--surface-default, #fff); min-width: 0; }
+.lounge-strip dt { font-size: var(--font-size-14); color: var(--text-secondary); }
+.lounge-strip dd { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.lounge-strip__none { font-family: var(--font-family-base, inherit); font-size: var(--font-size-14); font-weight: 500; color: var(--text-secondary); }
+/* The MMR card's squares: a gain, a loss, gold for a new season peak. */
+.lounge-form { display: grid; grid-template-columns: repeat(10, minmax(0, 1.4rem)); gap: 0.4rem; padding-top: 0.4rem; }
+.lounge-form__sq { display: block; aspect-ratio: 1; border-radius: 0.4rem; background: #c8ccd8; }
+.lounge-form__sq--w { background: #3fbf6f; }
+.lounge-form__sq--p { background: #ffd25a; box-shadow: inset 0 0 0 1px #c9971a; }
+
+/* Career chart: one panel per season, each with its own division lines. */
+.lounge-chart--career svg { min-width: 0; }
+.lounge-chart__panel { fill: transparent; }
+.lounge-chart__panel--alt { fill: color-mix(in srgb, var(--text-primary) 2.5%, transparent); }
+.lounge-chart .lounge-chart__season { fill: var(--text-primary); font-weight: 700; }
+/* Row headers in a table body read like the cells, not like the column headers. */
+.lounge-panel tbody th { text-transform: none; letter-spacing: normal; font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); text-align: left; }
+.lounge-career-total td, .lounge-career-total th { font-weight: 700; background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
+
+/* GS Pro for lounge players: one dark band, three rows, the trial offer. */
+.lounge-pro {
+  display: grid;
+  gap: var(--spacing-20);
+  padding: var(--spacing-24);
+  border-radius: 1.8rem;
+  color: #fff;
+  background: radial-gradient(120% 140% at 100% 0%, #6d3fe0 0%, transparent 55%), #140f3a;
+}
+.lounge-pro__head { display: grid; gap: var(--spacing-8); }
+.lounge-pro__eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #cfc2ff; }
+.lounge-pro h2 { margin: 0; color: #fff; font-size: var(--font-size-24); line-height: 1.2; }
+.lounge-pro__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-16); grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+.lounge-pro__rows li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-12); align-items: start; }
+.lounge-pro__copy { display: grid; gap: var(--spacing-4); }
+.lounge-pro__copy b { font-size: var(--font-size-16); }
+.lounge-pro__copy span { font-size: var(--font-size-16); line-height: 1.5; color: #dcd6ff; }
+.lounge-pro__offer { display: grid; gap: var(--spacing-12); justify-items: start; min-height: 4.4rem; }
+.lounge-pro__terms { margin: 0; font-size: var(--font-size-14); color: #dcd6ff; }
+.lounge-pro .paid-waitlist__note { color: #dcd6ff; }
+.lounge-pro a:not([class]) { color: #fff; }
+
+
+/* ── The lounge lookup (lookup picks, 2026-10-21) ───────────────────────────────────────
+   The search sits in the header band (dark) and on a "Did you mean" page (light). Every field
+   has a visible label and a helper line; the suggestions open in the page flow under it, so the
+   band's overflow never clips them. */
+#boards, #divisions { scroll-margin-top: 96px; }
+.lounge-lookup { display: grid; gap: var(--spacing-12); width: 100%; max-width: 72rem; }
+.browse-hero .browse-hero__cta:has(> .lounge-lookup) { display: block; }
+.lounge-lookup__form { display: grid; gap: var(--spacing-8); }
+.lounge-lookup__label { display: block; font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.lounge-lookup__help { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.lounge-lookup__row { display: flex; gap: var(--spacing-8); align-items: stretch; }
+.lounge-lookup__row > :first-child { flex: 1 1 auto; min-width: 0; }
+.lounge-lookup__row .empac-button { flex: none; }
+.lounge-lookup__scope { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: center; padding-top: var(--spacing-4); }
+.lounge-lookup__scope-label { font-size: var(--font-size-14); font-weight: 700; color: var(--text-secondary); margin-right: var(--spacing-4); }
+.lounge-lookup .empac-chip { min-height: 3.2rem; }
+.lounge-lookup__panel {
+  background: var(--surface-default, #fff);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 1.2rem;
+  box-shadow: 0 1.6rem 4rem rgba(8, 10, 18, 0.28);
+  overflow: hidden;
+}
+.lounge-lookup__list { list-style: none; margin: 0; padding: var(--spacing-4); display: grid; gap: 2px; }
+.lounge-lookup__none { margin: 0; padding: var(--spacing-16); font-size: var(--font-size-16); color: var(--text-secondary); }
+.lounge-lookup__more { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-20); align-items: center; justify-content: space-between; }
+
+/* Dark: the header band. */
+.lounge-lookup--dark .lounge-lookup__label { color: #fff; }
+.lounge-lookup--dark .lounge-lookup__help,
+.lounge-lookup--dark .lounge-lookup__scope-label,
+.lounge-lookup--dark .lounge-recent__label { color: rgba(255, 255, 255, 0.86); }
+/* :root and the doubled class outrank globals.css's dark-OS chip fixes (:root[data-theme="light"] .empac-chip--default). */
+:root .lounge-lookup.lounge-lookup--dark .empac-chip--default { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.34); color: #fff; }
+:root .lounge-lookup.lounge-lookup--dark .empac-chip--default.empac-chip--selected { background: #fff; border-color: #fff; color: #141a3d; }
+:root .lounge-lookup.lounge-lookup--dark .empac-chip--clickable:focus-visible { box-shadow: 0 0 0 2px #0b0d14, 0 0 0 4px #fff; }
+:root .lounge-lookup.lounge-lookup--dark .empac-chip--outline { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.34); color: #fff; }
+:root .lounge-lookup.lounge-lookup--light .empac-chip--default.empac-chip--selected { background: var(--primary-600, #2b52d6); border-color: var(--primary-600, #2b52d6); color: #fff; }
+.lounge-lookup--dark .lounge-textbtn { color: #fff; }
+.lounge-lookup--dark .lounge-textbtn:focus-visible { outline-color: #fff; }
+
+/* A player row: emblem, name and country, the line under it, the game tags. */
+.lounge-prow {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr) auto;
+  gap: var(--spacing-4) var(--spacing-12);
+  align-items: center;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: 0.8rem;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.lounge-prow--option { cursor: pointer; }
+.lounge-prow--active, .lounge-prow--link:hover { background: color-mix(in srgb, var(--primary-500, #3b5bdb) 10%, transparent); }
+.lounge-prow--active { box-shadow: inset 3px 0 0 var(--primary-600, #2b52d6); }
+.lounge-prow--link:focus-visible { outline: 2px solid var(--primary-500, #3b5bdb); outline-offset: 2px; }
+.lounge-prow__emblem svg { width: 3.6rem; height: auto; display: block; }
+.lounge-prow__main { display: grid; gap: 2px; min-width: 0; }
+.lounge-prow__name { display: flex; flex-wrap: wrap; gap: 0 var(--spacing-8); align-items: baseline; }
+.lounge-prow__name b { font-size: var(--font-size-16); overflow-wrap: anywhere; }
+.lounge-prow__country { font-size: var(--font-size-14); color: var(--text-secondary); }
+.lounge-prow__meta { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.lounge-prow__tags { display: flex; flex-wrap: wrap; gap: var(--spacing-4); justify-content: flex-end; }
+.lounge-tag { display: inline-block; padding: 2px var(--spacing-8); border-radius: 999px; border: 1px solid var(--border-default); font-size: var(--font-size-12); font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+@media (max-width: 40rem) {
+  .lounge-prow { grid-template-columns: 3.2rem minmax(0, 1fr); }
+  .lounge-prow__emblem svg { width: 3.2rem; }
+  .lounge-prow__tags { grid-column: 2; justify-content: flex-start; }
+}
+.lounge-dym { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-4); max-width: 72rem; }
+.lounge-dym .lounge-prow { border: 1px solid var(--border-default); }
+
+/* Looked up lately, and the compare opener. */
+.lounge-recent { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: center; }
+.lounge-recent__label { font-size: var(--font-size-14); font-weight: 700; color: var(--text-secondary); }
+.lounge-recent__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.lounge-recent__link { display: inline-flex; text-decoration: none; border-radius: 999px; }
+.lounge-recent__link:hover .empac-chip { filter: brightness(1.1); }
+.lounge-recent__link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.lounge-recent__emblem { display: inline-flex; width: 2rem; }
+.lounge-recent__emblem svg { width: 100%; height: auto; display: block; }
+.lounge-textbtn {
+  display: inline-flex; align-items: center; gap: var(--spacing-8); min-height: 3.2rem; padding: 0;
+  border: 0; background: none; font: inherit; font-size: var(--font-size-16); font-weight: 700;
+  color: var(--text-link, var(--primary-600)); text-decoration: underline; text-underline-offset: 0.3rem; cursor: pointer;
+}
+.lounge-textbtn:focus-visible { outline: 2px solid var(--primary-500, #3b5bdb); outline-offset: 2px; border-radius: 0.4rem; }
+.lounge-compare-modal { display: grid; gap: var(--spacing-16); }
+.lounge-compare-modal__note { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); }
+.lounge-compare-modal .empac-form-field__label { font-size: var(--font-size-16); font-weight: 700; }
+.lounge-compare-modal .empac-form-field__helper { font-size: var(--font-size-14); }
+.lounge-compare-modal__foot { display: flex; gap: var(--spacing-12); justify-content: flex-end; flex-wrap: wrap; }
+
+/* The season so far, in one line. */
+.lounge-sofar__line { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-24); font-size: var(--font-size-16); color: var(--text-secondary); }
+.lounge-sofar__line b { color: var(--text-primary); font-family: var(--font-display, inherit); font-size: var(--font-size-20); font-variant-numeric: tabular-nums; margin-right: var(--spacing-4); }
+.lounge-sofar__live { display: inline-flex; align-items: baseline; gap: var(--spacing-4); }
+.lounge-live-dot { position: relative; display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 50%; background: #1f9d55; margin-right: var(--spacing-4); align-self: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .lounge-live-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #1f9d55; animation: lounge-live 1.8s ease-out infinite; }
+}
+@keyframes lounge-live { from { transform: scale(1); opacity: 0.6; } to { transform: scale(2.6); opacity: 0; } }
+
+/* Climbing this week */
+.lounge-climb { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+
+/* Divisions: each division's share as a small bar in its own color. */
+.lounge-share-cell { display: inline-flex; align-items: center; gap: var(--spacing-8); justify-content: flex-end; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lounge-share-bar { display: inline-block; width: 8rem; height: 0.8rem; border-radius: 999px; background: color-mix(in srgb, var(--text-primary) 8%, transparent); overflow: hidden; }
+.lounge-share-bar i { display: block; height: 100%; border-radius: 999px; }
+.lounge-land { display: grid; gap: var(--spacing-12); padding-top: var(--spacing-8); }
+.lounge-land__head { margin: 0; font-size: var(--font-size-18); }
+.lounge-land__row { display: grid; gap: var(--spacing-12) var(--spacing-24); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 48rem) { .lounge-land__row { grid-template-columns: minmax(0, 22rem) minmax(0, 1fr); } }
+.lounge-land__field { display: grid; gap: var(--spacing-8); }
+.lounge-land__out { margin: 0; font-size: var(--font-size-18); line-height: 1.5; max-width: 60ch; padding-top: var(--spacing-24); }
+@media (max-width: 47.99rem) { .lounge-land__out { padding-top: 0; } }
+
+/* For lounge players: Check a room folds open in place; Your lounge under it. */
+.lounge-for { gap: var(--spacing-24); }
+.lounge-for__block { display: grid; gap: var(--spacing-8); min-width: 0; }
+.lounge-for__block h3 { margin: 0; font-size: var(--font-size-18); }
+.lounge-room-fold .empac-accordion__trigger { padding-inline: 0; font-size: var(--font-size-16); color: var(--text-primary); }
+.lounge-room-fold .empac-accordion__trigger-title { font-size: var(--font-size-16); font-weight: 600; text-align: left; }
+.lounge-room-fold .empac-accordion__content-inner { padding: var(--spacing-8) 0 var(--spacing-8); color: var(--text-primary); font-size: var(--font-size-16); }
+/* CDS sets the open height once, when it opens; the room check grows when its results come in. */
+.lounge-room-fold .empac-accordion__content--open { height: auto !important; overflow: visible; }
+
+/* The player header's sentence and buttons. */
+.lounge-sentence { max-width: 62ch; }
+.lounge-hero__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-12); margin-top: var(--spacing-20); position: relative; z-index: 2; }
+.lounge-next__more { margin: 0; font-size: var(--font-size-16); }
+/* Rows with an emblem are two lines tall: keep every cell centred on them. */
+.lounge-page .empac-table td { vertical-align: middle; }
+/* Phones: the share's number without its bar, so the divisions table fits the screen. */
+@media (max-width: 40rem) { .lounge-share-bar { display: none; } }
+
+/* The # column on the boards: as wide as its numbers, so names start near the edge. */
+.lounge-rank-col { width: 4.8rem; }

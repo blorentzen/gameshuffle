@@ -37,6 +37,8 @@ export type ArtCategory =
   | "originals"
   /* Fire Round: a flame, the clock, a lightning bolt, a bright idea, a trophy. */
   | "fire"
+  /* The Daily Duel: crossed swords, cards, a lightning bolt (Energy), a crown and a Poké Ball. */
+  | "duel"
   /* Halloween week: ghosts, pumpkins, bats, candy (the glyph fields swap to it, see IconField). */
   | "spooky";
 

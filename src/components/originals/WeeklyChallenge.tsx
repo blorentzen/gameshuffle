@@ -263,7 +263,7 @@ export function WeeklyChallenge() {
 
       {last && (
         <section className="weekly__card">
-          <span className="weekly__eyebrow">Last week&apos;s reveal · week {last.number}</span>
+          <span className="weekly__eyebrow">Last week&apos;s reveal</span>
           {last.kind === "survey" ? (
             <>
               <h2 className="weekly__title">{last.title}</h2>

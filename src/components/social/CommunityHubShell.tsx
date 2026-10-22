@@ -9,6 +9,7 @@
  * shows all panels at once.
  */
 
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { useState } from "react";
 import { Icon } from "@empac/cascadeds";
 import { SocialFeed } from "@/components/social/SocialFeed";
@@ -69,9 +70,7 @@ export function CommunityHubShell({
           <>
             <PostList posts={previewPosts} currentUserId="" readOnly emptyMessage="No posts yet. Be the first when you join." />
             {previewPosts.length > 0 && (
-              <a href="/signup?redirect=/communities" className="hub-preview-more">
-                Sign up to see the full feed and join the conversation →
-              </a>
+              <ArrowLink href="/signup?redirect=/communities" className="hub-preview-more">Sign up to see the full feed and join the conversation</ArrowLink>
             )}
           </>
         )}

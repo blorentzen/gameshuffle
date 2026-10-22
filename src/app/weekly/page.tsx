@@ -16,7 +16,7 @@ export default function WeeklyPage() {
   return (
     <main>
       <BrowseHero
-        eyebrow="A GameShuffle Original · every Monday"
+        eyebrow="A GameShuffle Original"
         title="The Weekly Challenge"
         sub="A new question every Monday. The crowd's answers are revealed the Monday after."
         accent="weekly"

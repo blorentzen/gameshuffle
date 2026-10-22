@@ -6,17 +6,26 @@
  * Daily Dex (once it launches) and the Weekly, then today's top 3 from the
  * Daily leaderboard. Signed in, each daily shows your streak and where you
  * stand today. Client-side: the day is the visitor's, and the numbers change
- * all day. Chat Brain lives on the Daily's end screen now.
+ * all day. Chat Brain lives on the Daily's end screen now. Each card wears its
+ * game's tile (glyph and colors from the dailies bar), above the title; the
+ * wide Weekly card has it on the left (design round 3, 2026-10-20). The Daily
+ * Duel's card (dev only until it's public) wears today's trainer's picture
+ * across its top instead (trainer picture picks, 2026-10-21).
  */
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge, Button } from "@empac/cascadeds";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
+import { DAILIES_GLYPHS } from "@/components/originals/DailiesCards";
+import { IconTile } from "@/components/ui/IconTile";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { DEX_EPOCH, dayKey, puzzleNumber } from "@/lib/originals/daily";
 import { CHOICE_POINTS, TYPED_POINTS, fireNumber } from "@/lib/originals/fireRound";
 import { ordinal } from "@/lib/daily/boardRules";
 import type { BoardRow, BoardView } from "@/lib/daily/boardTypes";
+import type { DuelPicture } from "@/lib/originals/duel/view";
+import { TrainerArt } from "@/components/originals/duel/TrainerArt";
 
 interface WeeklySummary { number: number; kind: "tier" | "survey"; title: string; players: number }
 interface Mine { streak: number; place: number | null }
@@ -38,8 +47,11 @@ function standing(m: Mine | null | undefined, fresh: string): string | null {
   return parts.join(" · ");
 }
 
-/** `firePublic`: Fire Round's card (solo trivia, today's round on the boards). */
-export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolean; firePublic?: boolean }) {
+/** Today's Daily Duel for its card: the trainer and their picture (null fields before the day is built). */
+export interface HomeDuel { number: number; name: string | null; title: string | null; picture: DuelPicture | null }
+
+/** `firePublic`: Fire Round's card (solo trivia, today's round on the boards). `duel`: the Daily Duel's card, with today's trainer. */
+export function HomeToday({ dexPublic, firePublic = false, duel = null }: { dexPublic: boolean; firePublic?: boolean; duel?: HomeDuel | null }) {
   const [day, setDay] = useState<string | null>(null);
   const [weekly, setWeekly] = useState<WeeklySummary | null>(null);
   const [top, setTop] = useState<BoardRow[] | null>(null);
@@ -68,8 +80,9 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
 
   return (
     <>
-      <ResponsiveCarousel className={`home-play${dexPublic && firePublic ? " home-play--wide-week" : ""}`} label="Today's games">
+      <ResponsiveCarousel className={`home-play${dexPublic && firePublic ? " home-play--wide-week" : ""}${dexPublic && firePublic && duel ? " home-play--four" : ""}`} label="Today's games">
         <div className="home-play__card">
+          <IconTile icon={DAILIES_GLYPHS.shuffle} tone="shuffle" className="home-play__tile" />
           <h3 className="home-play__title">The Daily Shuffle</h3>
           <p className="home-play__text">Name today&apos;s Nintendo character in five guesses. Each miss adds a hint.</p>
           <span className="home-play__meta">
@@ -80,6 +93,7 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
         </div>
         {dexPublic && (
           <div className="home-play__card">
+            <IconTile icon={DAILIES_GLYPHS.dex} tone="dex" className="home-play__tile" />
             <h3 className="home-play__title">The Daily Dex</h3>
             <p className="home-play__text">One Pokémon a day from all 1,025. Arrows point you toward its generation, height and weight.</p>
             <span className="home-play__meta">
@@ -92,6 +106,7 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
         )}
         {firePublic && (
           <div className="home-play__card">
+            <IconTile icon={DAILIES_GLYPHS.fire} tone="fire" className="home-play__tile" />
             <h3 className="home-play__title">Fire Round</h3>
             <p className="home-play__text">60 seconds of trivia, the same questions for everyone. Type an answer for {TYPED_POINTS}, or open four choices for {CHOICE_POINTS}.</p>
             <span className="home-play__meta">
@@ -102,8 +117,27 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
             <Link href="/daily-trivia"><Button variant="primary">Play today&apos;s round</Button></Link>
           </div>
         )}
+        {duel && (
+          <div className="home-play__card home-play__card--duel">
+            {duel.picture
+              ? <TrainerArt picture={duel.picture} shape="banner" className="home-duel__art" />
+              : <IconTile icon={DAILIES_GLYPHS.duel} tone="duel" className="home-play__tile" />}
+            <h3 className="home-play__title">The Daily Duel</h3>
+            <p className="home-play__text">
+              {duel.name
+                ? <>Today: <strong>{duel.name}</strong>{duel.title ? `, ${duel.title}` : ""}. Knock out their team with the same six cards as everyone.</>
+                : "Knock out the trainer of the day with the same six Pokémon cards as everyone."}
+            </p>
+            <span className="home-play__meta">
+              <Badge variant="info" size="small">New</Badge>
+              {duel.number >= 1 && <Badge variant="info" size="small">Duel #{duel.number}</Badge>}
+            </span>
+            <Link href="/daily-duel"><Button variant="primary">Play today&apos;s duel</Button></Link>
+          </div>
+        )}
         {/* The Weekly: a wide row under the three dailies on a laptop (Britton, 2026-10-19). */}
-        <div className="home-play__card home-play__card--wide">
+        <div className="home-play__card home-play__card--wide home-play__card--tile">
+          <IconTile icon={DAILIES_GLYPHS.weekly} tone="weekly" className="home-play__tile" />
           <span className="home-play__eyebrow">Every week</span>
           <h3 className="home-play__title">The Weekly Challenge</h3>
           <p className="home-play__text">
@@ -120,7 +154,7 @@ export function HomeToday({ dexPublic, firePublic = false }: { dexPublic: boolea
         <p className="home-today__top">
           <strong>Top today</strong>
           {top.map((r, i) => <span key={`${r.place}-${i}`} className="home-today__chip">{r.place} · {r.name} · {r.points}</span>)}
-          <Link href="/daily#daily-board-shuffle">Leaderboards →</Link>
+          <ArrowLink href="/daily#daily-board-shuffle">Leaderboards</ArrowLink>
         </p>
       )}
     </>

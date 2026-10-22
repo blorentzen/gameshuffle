@@ -110,7 +110,7 @@ export default function MarioKartTournamentsPage() {
         <MarketingHeroField category="compete" />
         <Container>
           <div className="pro-hero__content">
-            <p className="marketing-eyebrow">Mario Kart · tournaments</p>
+            <p className="marketing-eyebrow">Mario Kart</p>
             <h1 className="pro-hero__title">Nobody knows what they&rsquo;re racing until it starts.</h1>
             <p className="pro-hero__sub">
               Brackets and seasons where the draw picks the karts, the tracks and the items. You

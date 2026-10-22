@@ -13,6 +13,7 @@
  *   - Connected                     → integration setup (no session/shuffle data — see /hub)
  */
 
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { useEffect, useRef, useState } from "react";
 import { ChannelPointsSettings, LiveLobbySetting } from "@/components/account/ChannelPointsSettings";
 import { useSearchParams } from "next/navigation";
@@ -524,16 +525,7 @@ export function TwitchHubTab() {
                 the right game when the heads-up goes out.
               </li>
             </ul>
-            <a
-              href="/api/twitch/auth/start"
-              style={{
-                color: "var(--primary-ink-600)",
-                fontWeight: "var(--font-weight-semibold)",
-                textDecoration: "underline",
-              }}
-            >
-              Reconnect Twitch →
-            </a>
+            <ArrowLink href="/api/twitch/auth/start" plain>Reconnect Twitch</ArrowLink>
             <button
               type="button"
               onClick={dismissReauth}

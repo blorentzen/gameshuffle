@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { IconDeviceTv } from "@tabler/icons-react";
+import { PlugBand } from "@/components/tcg/rules/PlugBand";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
@@ -101,16 +103,13 @@ export default async function TopicQuestionsPage({ params }: { params: Promise<{
 
           <TopicQuestionList questions={view} topic={topic.slug} />
 
-          <section className="rules-page__companion" aria-labelledby="trivia-host">
-            <h2 id="trivia-host">Play them with friends</h2>
-            <p>
-              One tap builds a night from these questions: three rounds, a picture round when the game has pictures, and scoring that adds up on its own. Teams join with a short code, the TV shows each question, and you can change anything before you open the room. Free to host.
-            </p>
-            <div className="rules-page__actions">
+          <PlugBand id="trivia-host" title="Play them with friends" icon={IconDeviceTv} tone="violet" field="mixed"
+            actions={<>
               <TriviaStartButton topic={topic.slug} label="Play these as a trivia night" returnTo={path} />
               <Link href={`${TRIVIA_PATH}/how-to-host`} className="trivia-article__more">How to host a trivia night</Link>
-            </div>
-          </section>
+            </>}>
+            One tap builds a night from these questions: three rounds, a picture round when the game has pictures, and scoring that adds up on its own. Teams join with a short code, the TV shows each question, and you can change anything before you open the room. Free to host.
+          </PlugBand>
 
           <nav className="rules-page__related" aria-labelledby="trivia-related">
             <h2 id="trivia-related">More trivia</h2>

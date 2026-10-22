@@ -12,6 +12,7 @@ import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import { IconBroadcast, IconHeart, IconTrophy } from "@tabler/icons-react";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { IconTile } from "@/components/ui/IconTile";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { circuitLaunch } from "@/lib/tournaments/circuit";
 import { circuitLaunchState } from "@/lib/tournaments/circuit-resolve";
@@ -40,7 +41,7 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere }
       <p className="home-plans__lede">Everything above is free. Support it to keep it that way, or add tools for streams and bigger events.</p>
       <div className="home-plans__grid">
         <div className="home-plan home-plan--support">
-          <span className="home-plan__icon home-plan__icon--support" aria-hidden><IconHeart size={22} stroke={1.75} /></span>
+          <IconTile icon={IconHeart} className="home-plan__icon--support" />
           <h3 className="home-plan__name">Support GameShuffle <span>for everyone</span></h3>
           <p className="home-plan__price">{supporter ? "Thank you for supporting us" : !paidHere ? "In the US for now" : "From $3 · GS Pro included from $9"}</p>
           <p className="home-plan__text">No ads, built independently. Support keeps the free games free and new ones coming. You get the Supporter badge, and GS Pro when you back at $9 a month.</p>
@@ -49,7 +50,7 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere }
           </Link>
         </div>
         <div className="home-plan">
-          <span className="home-plan__icon" aria-hidden><IconBroadcast size={22} stroke={1.75} /></span>
+          <IconTile icon={IconBroadcast} tone="magenta" />
           <h3 className="home-plan__name">GS Pro <span>for streamers</span></h3>
           <p className="home-plan__price">{proPrice}</p>
           <p className="home-plan__text">Your chat plays along: rolls, polls, bingo, trivia and predictions on your overlay, the Discord bot, break mode and your own themes.</p>
@@ -58,7 +59,7 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere }
             : <Link href="/gs-pro" className={tagged(EVENTS.upgradeClicked, { from: "home-plans" })}><Button variant="secondary">{!paidHere ? "See GS Pro" : trialUsed ? "Get GS Pro" : "Try GS Pro free"}</Button></Link>}
         </div>
         <div className="home-plan">
-          <span className="home-plan__icon" aria-hidden><IconTrophy size={22} stroke={1.75} /></span>
+          <IconTile icon={IconTrophy} tone="teal" />
           <h3 className="home-plan__name">GS Circuit <span>for organizers</span></h3>
           <p className="home-plan__price">{circuitPrice}</p>
           <p className="home-plan__text">Fields of 64 or 256, championship seasons, co-organizers, your branding, text reminders and live randomized rounds.</p>

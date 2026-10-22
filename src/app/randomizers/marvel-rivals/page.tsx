@@ -24,7 +24,7 @@ export default function Page() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} accent="red" field="heroes" image={GAME_ART["marvel-rivals"].hero} primary={{ href: "#play", label: "Roll heroes" }} />
+        <BrowseHero eyebrow="New randomizer" title={landing.h1} sub={landing.lead} accent="red" field="heroes" image={GAME_ART["marvel-rivals"].hero} primary={{ href: "#play", label: "Roll heroes" }} />
         <div id="play">
           <Container className="tool-page">
             <NewBanner />

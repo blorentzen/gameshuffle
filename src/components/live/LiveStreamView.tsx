@@ -12,6 +12,7 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { Accordion, Container, Tabs } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
@@ -243,25 +244,20 @@ export function LiveStreamView({
             </p>
             {streamer.twitchHandle && (
               <p>
-                <a
-                  href={`https://www.twitch.tv/${streamer.twitchHandle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="live-page__twitch-link"
-                >
-                  Watch on Twitch →
-                </a>
+                <ArrowLink href={`https://www.twitch.tv/${streamer.twitchHandle}`} external className="live-page__twitch-link">
+                  Watch on Twitch
+                </ArrowLink>
               </p>
             )}
             <p>
-              <Link href={`/u/${streamer.slug}`} className="live-page__twitch-link">
-                View {streamerName}&rsquo;s full profile →
-              </Link>
+              <ArrowLink href={`/u/${streamer.slug}`} className="live-page__twitch-link">
+                View {streamerName}&rsquo;s full profile
+              </ArrowLink>
             </p>
             <p>
-              <Link href={`/c/${streamer.slug}`} className="live-page__twitch-link">
-                Join the {streamerName} community →
-              </Link>
+              <ArrowLink href={`/c/${streamer.slug}`} className="live-page__twitch-link">
+                Join the {streamerName} community
+              </ArrowLink>
             </p>
           </section>
           {streamSchedule && (
@@ -782,14 +778,9 @@ function SessionEndedPanel({
           </p>
           {streamer.twitchHandle && (
             <p>
-              <a
-                href={`https://www.twitch.tv/${streamer.twitchHandle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="live-page__twitch-link"
-              >
-                Watch on Twitch →
-              </a>
+              <ArrowLink href={`https://www.twitch.tv/${streamer.twitchHandle}`} external className="live-page__twitch-link">
+                Watch on Twitch
+              </ArrowLink>
             </p>
           )}
           <p className="live-page__brand">

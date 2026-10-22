@@ -266,15 +266,14 @@
 }
 /* "How the companion works" link to the companion's landing page. */
 .tcg-companion__more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8) var(--spacing-24);
   margin: var(--spacing-16) 0 0;
   font-size: var(--font-size-16);
 }
-.tcg-companion__more a {
-  color: var(--text-primary);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
+.tcg-companion__more .arrow-link { color: var(--text-primary); }
+.tcg-companion__more .arrow-link:focus-visible { outline-color: #fff; }
 
 /* ── One buyer review under Recently sold (replaced the reviews band,
    Britton's pick 2026-10-19) ─────────────────────────────────────────── */

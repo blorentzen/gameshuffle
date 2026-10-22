@@ -63,7 +63,7 @@ export function BackingPair({ from, proHref = "/gs-pro", supportHref = "/support
         <p className="backing-card__text">
           {support?.supporter
             ? "Thank you for keeping the free games free. You can give again any time."
-            : "Keep the free games free and new ones coming. You get the Supporter badge and, if you like, a spot on the wall. Back at $9 a month and GS Pro comes with it."}
+            : "Keep the free games free and new ones coming. Supporters get a badge, and a spot on the wall if they want one."}
         </p>
         <div className="backing-card__cta">
           <Link href={supportHref} onClick={() => track(EVENTS.supportClicked, { from: `${from}-pair` })}>

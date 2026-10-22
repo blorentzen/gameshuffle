@@ -1,3 +1,4 @@
+import { IconArrowRight } from "@tabler/icons-react";
 import { Button, CarouselItem } from "@empac/cascadeds";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { CardImage } from "@/components/tcg/CardImage";
@@ -101,7 +102,7 @@ export function FeaturedShopCards({
                 className="tcg-card-browse"
               >
                 <span className="tcg-card-browse__arrow" aria-hidden="true">
-                  →
+                  <IconArrowRight stroke={2} />
                 </span>
                 <span className="tcg-card-browse__name">Shop all cards</span>
                 <span className="tcg-card-browse__cta">

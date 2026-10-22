@@ -114,7 +114,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
   return (
     <main className="chat-brain-page">
       <BrowseHero
-        eyebrow="A GameShuffle Original · coming soon"
+        eyebrow="Coming soon"
         title="Chat Brain"
         sub="Guess what everyone else said. We ask real people quick questions, and the most popular answers become the boards you play."
         accent="brain"

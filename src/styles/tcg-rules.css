@@ -12,20 +12,64 @@
   scroll-margin-top: calc(var(--gs-nav-offset, 64px) + var(--spacing-16));
 }
 .rules-page__companion {
-  margin: var(--spacing-32) 0 0;
-  padding: var(--spacing-20);
-  border-radius: var(--radius-12);
-  background-color: var(--background-secondary);
-  border: 1px solid var(--border-subtle);
+  /* The plug band (src/components/tcg/rules/PlugBand.tsx; design round 3,
+     2026-10-20): a dark navy band like the site's headers, so a plug for our
+     own tool reads as a step out of the article. The trivia articles' boxes
+     share this class and get the band without the tile. */
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: var(--spacing-40) 0 0;
+  padding: var(--spacing-24);
+  border-radius: var(--radius-16, 16px);
+  color: #fff;
+  background: radial-gradient(120% 120% at 100% 0%, #3b2fb8 0%, transparent 55%), #0d1233;
 }
 .rules-page__companion h2 {
   margin: 0 0 var(--spacing-8);
-  font-size: var(--font-size-20);
+  font-size: var(--font-size-24);
+  line-height: 1.2;
+  color: #fff;
+  text-wrap: balance;
 }
 .rules-page__companion p {
   margin: 0;
-  max-width: 64ch;
-  color: var(--text-secondary);
+  max-width: 60ch;
+  color: #dfe3ff;
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed, 1.6);
+}
+.plug-band {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--spacing-16) var(--spacing-20);
+  align-items: start;
+}
+.plug-band .plug-band__field { z-index: -1; }
+.plug-band__copy { min-width: 0; }
+.rules-page__companion .plug-band__eyebrow {
+  margin: 0 0 var(--spacing-6, 6px);
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: #a9b8ff;
+}
+/* Buttons and links on the dark band. */
+.rules-page__companion .empac-button--ghost {
+  padding-inline: var(--spacing-16);
+  color: #fff;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+.rules-page__companion .empac-button--ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.rules-page__companion .empac-button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.rules-page__companion a:not(:has(.empac-button)) { color: #fff; }
+.rules-page__companion a:not(:has(.empac-button)):focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 4px; }
+@media (max-width: 560px) {
+  .rules-page__companion { padding: var(--spacing-20); }
+  .plug-band { grid-template-columns: minmax(0, 1fr); }
 }
 .rules-page__actions {
   display: flex;
@@ -52,7 +96,7 @@
   max-width: 68ch;
 }
 .rules-page__related {
-  margin-top: var(--spacing-32);
+  margin-top: var(--spacing-40);
 }
 .rules-page__related h2 {
   font-size: var(--font-size-20);
@@ -60,30 +104,70 @@
 }
 .rules-page__related ul {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
   gap: var(--spacing-12);
   margin: 0;
   padding: 0;
   list-style: none;
 }
+/* A plain link list (the trivia articles): each item a card with a visible edge. */
 .rules-page__related li {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
   padding: var(--spacing-12) var(--spacing-14, 1.4rem);
-  border-radius: var(--radius-10, 1rem);
-  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12, 12px);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-default);
   font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
-.rules-page__related a,
+.rules-page__related li > a:not(.rule-card) {
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-ink, var(--primary-600));
+}
+.rules-page__related li > a:not(.rule-card):hover { color: var(--link-hover); text-decoration: underline; }
+/* More rules (design round 3, 2026-10-20): the whole card is the link, with a
+   tile, the summary and a "Read it" arrow that moves with the card. */
+.rules-page__related li:has(> .rule-card) { padding: 0; border: 0; background: none; }
+.rule-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+  height: 100%;
+  padding: var(--spacing-16);
+  border-radius: var(--radius-12, 12px);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-default);
+  color: var(--text-primary);
+  text-decoration: none;
+  box-shadow: 0 1px 0 rgba(20, 25, 50, 0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.rule-card:hover,
+.rule-card:focus-visible {
+  color: var(--text-primary);
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--brand-primary) 35%, var(--border-strong));
+  box-shadow: 0 12px 24px -16px rgba(30, 40, 90, 0.45);
+}
+.rule-card:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; }
+.rule-card .icon-tile { margin-bottom: var(--spacing-4); }
+.rule-card__title { font-size: var(--font-size-18); font-weight: var(--font-weight-bold); line-height: 1.3; }
+.rule-card__text { font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); }
+.rule-card__go { margin-top: auto; padding-top: var(--spacing-4); font-size: var(--font-size-14); }
+@media (prefers-reduced-motion: reduce) {
+  .rule-card { transition: box-shadow 0.18s ease, border-color 0.18s ease; }
+  .rule-card:hover, .rule-card:focus-visible { transform: none; }
+}
 .rules-hub__link {
   font-weight: var(--font-weight-bold);
   color: var(--brand-ink, var(--primary-600));
 }
 .rules-page__checked {
   margin: var(--spacing-32) 0 var(--spacing-48);
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
   max-width: 72ch;
 }

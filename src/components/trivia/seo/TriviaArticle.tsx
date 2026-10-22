@@ -7,6 +7,8 @@
  */
 
 import Link from "next/link";
+import { IconDeviceTv } from "@tabler/icons-react";
+import { PlugBand } from "@/components/tcg/rules/PlugBand";
 import { Container } from "@empac/cascadeds";
 import { SITE_URL } from "@/lib/seo";
 import { OCCASIONS, TRIVIA_CHECKED, TRIVIA_PATH, occasionUrl, type Faq } from "@/data/trivia-seo";
@@ -80,16 +82,13 @@ export function TriviaArticle({ path, label, h1, description, lede, faq, childre
 
           <div className="deck-prose rules-page__body">{children}</div>
 
-          <section className="rules-page__companion" aria-labelledby="trivia-host">
-            <h2 id="trivia-host">Run it on GameShuffle</h2>
-            <p>
-              Free to host. Teams answer on their phones with a short code, the TV shows the questions and the standings, and the scoring adds up on its own. Fill rounds from our checked question pack, your own questions, or AI drafts you approve.
-            </p>
-            <div className="rules-page__actions">
+          <PlugBand id="trivia-host" title="Run it on GameShuffle" icon={IconDeviceTv} tone="violet" field="mixed"
+            actions={<>
               <TriviaStartButton templateId={templateId ?? "party"} label={startLabel ?? "Host a trivia night"} returnTo={path} />
               <Link href={TRIVIA_PATH} className="trivia-article__more">How GameShuffle trivia works</Link>
-            </div>
-          </section>
+            </>}>
+            Free to host. Teams answer on their phones with a short code, the TV shows the questions and the standings, and the scoring adds up on its own. Fill rounds from our checked question pack, your own questions, or AI drafts you approve.
+          </PlugBand>
 
           <section className="deck-prose rules-page__faq" aria-labelledby="trivia-faq">
             <h2 id="trivia-faq">Questions hosts ask</h2>

@@ -2,19 +2,24 @@
 
 /**
  * DiceControl — Hub "Roll dice" button (Pro). Rolls N dice onto the overlay via
- * the `rollDiceAction` server action (streamer's colors). Self-hides for non-Pro
- * (the action returns `pro_required`). Mirrors WheelControl.
+ * the `rollDiceAction` server action, in the streamer's dice look. The count
+ * starts at the look's default (Tool looks or the free dice page); a Full mod
+ * gets the streamer's. Self-hides for non-Pro (the action returns
+ * `pro_required`). Mirrors WheelControl.
  */
 
 import { useState, useTransition } from "react";
 import { Button, Select } from "@empac/cascadeds";
 import { Lever } from "./live/Lever";
 import { rollDiceAction } from "@/app/hub/sessions/[slug]/actions";
+import { useToolLook } from "@/components/tools/looks/useToolLook";
 
 const COUNTS = [1, 2, 3, 4, 5, 6];
 
 export function DiceControl() {
-  const [count, setCount] = useState(2);
+  const { look } = useToolLook("dice", { forStream: true });
+  const [picked, setPicked] = useState<number | null>(null);
+  const count = picked ?? look.defaultCount;
   const [result, setResult] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -44,7 +49,7 @@ export function DiceControl() {
           size="small"
           aria-label="Number of dice"
           value={String(count)}
-          onChange={(v) => setCount(Number(v))}
+          onChange={(v) => setPicked(Number(v))}
           options={COUNTS.map((n) => ({ value: String(n), label: `${n} ${n === 1 ? "die" : "dice"}` }))}
         />
       }

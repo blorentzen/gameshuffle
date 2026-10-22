@@ -59,6 +59,8 @@ a.share-friend__name:hover { text-decoration: underline; }
 .share-squares__cell { aspect-ratio: 1; border-radius: 6px; background: color-mix(in srgb, var(--text-primary) 16%, transparent); }
 .share-squares__cell--match { background: #2bb36b; }
 .share-squares__cell--close { background: #e9a91b; }
+/* The Daily Duel's six: red for a card knocked out (its share text's 🟥). */
+.share-squares__cell--ko { background: #d23b2d; }
 /* Small squares fill their column (up to 24px each), so the head-to-head uses the room it has. */
 .share-squares--small { max-width: calc(var(--share-cols, 6) * 2.8rem); gap: 4px; }
 .share-squares--small .share-squares__row { gap: 4px; }

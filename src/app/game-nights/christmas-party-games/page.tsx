@@ -98,7 +98,7 @@ export default async function ChristmasPartyGamesPage() {
   return (
     <main className="seasonal">
       <BrowseHero
-        eyebrow="Game nights · Christmas"
+        eyebrow="Game nights"
         title="Christmas party games"
         sub="Free games for your holiday party: Christmas trivia, bingo, festive truth or dare, a wheel of house rules and party games everyone plays on their phones. Nothing to download."
         subShort="Free games for your holiday party, nothing to download."

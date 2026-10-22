@@ -5,14 +5,14 @@
  * overlay event, return the result for the caller to announce. Mirrors
  * `performSpin()` for the wheel.
  *
- * Colors + default count are streamer-owned (§3.4) — read from the streamer's
- * `dice` module default; explicit args override, registry defaults backstop.
+ * Colors, table and default count come from the streamer's saved dice look
+ * (src/lib/tools/looks.ts), the same one the free dice page uses: GS Pro
+ * brand color applied, pips matched to the die. Explicit args override.
  */
 
 import "server-only";
 import { recordOverlayEvent } from "@/lib/overlay/events";
-import { getStreamerModuleDefault } from "@/lib/modules/streamerDefaults";
-import { DEFAULT_DICE_CONFIG } from "@/lib/modules/registry";
+import { diceForOverlay } from "@/lib/tools/looksServer";
 import { trackServerEvent } from "@/lib/analytics/server";
 
 export type ToolSource = "chat" | "hub" | "channel_point";
@@ -25,18 +25,10 @@ export interface DiceRollResult {
   total: number;
 }
 
-/** The streamer's dice customization (colors + default count), with fallbacks. */
+/** The streamer's dice as drawn on stream (colors, table) and their default count. */
 export async function getDiceConfig(ownerUserId: string) {
-  const cfg = await getStreamerModuleDefault({
-    ownerUserId,
-    moduleId: "dice",
-    gameSlug: "*", // dice isn't game-specific
-  });
-  return {
-    dieColor: cfg?.dieColor ?? DEFAULT_DICE_CONFIG.dieColor,
-    pipColor: cfg?.pipColor ?? DEFAULT_DICE_CONFIG.pipColor,
-    defaultCount: cfg?.defaultCount ?? DEFAULT_DICE_CONFIG.defaultCount,
-  };
+  const d = await diceForOverlay(ownerUserId);
+  return { dieColor: d.dieColor, pipColor: d.pipColor, table: d.table, defaultCount: d.look.defaultCount };
 }
 
 export async function triggerDiceRoll(args: {
@@ -64,7 +56,8 @@ export async function triggerDiceRoll(args: {
     payload: {
       values,
       dieColor: args.dieColor ?? cfg.dieColor,
-      pipColor: args.pipColor ?? cfg.pipColor,
+      pipColor: args.pipColor ?? (args.dieColor ? undefined : cfg.pipColor),
+      table: cfg.table,
       triggeredBy: args.triggeredBy ?? null,
     },
     ttlMs: DICE_TTL_MS,

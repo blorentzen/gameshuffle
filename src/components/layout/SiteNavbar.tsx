@@ -38,6 +38,8 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 const HERO_ROUTES = new Set([
   "/",
   "/welcome",
+  "/mmr-card",
+  "/lounge",
   "/game-nights/halloween-party-games",
   "/game-nights/christmas-party-games",
   "/apps",
@@ -81,6 +83,7 @@ const HERO_ROUTES = new Set([
   "/daily",
   "/daily-dex",
   "/daily-trivia",
+  "/daily-duel",
   "/weekly",
   "/chat-brain",
   "/trivia",
@@ -105,10 +108,14 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   { prefix: "/chat-brain/q/", notIds: new Set() },
   // A shared result (/r/<code>) opens on its game's band.
   { prefix: "/r/", notIds: new Set() },
+  // A lounge player's season (/lounge/<name>); /lounge/find only redirects. Head-to-head pages are below.
+  { prefix: "/lounge/", notIds: new Set(["find", "compare"]) },
 ];
 
 function isHeroPath(pathname: string): boolean {
   if (HERO_ROUTES.has(pathname)) return true;
+  // Lounge head-to-head (/lounge/compare/<a>/<b>) opens on the same band.
+  if (/^\/lounge\/compare\/[^/]+\/[^/]+$/.test(pathname)) return true;
   for (const { prefix, notIds } of HERO_DETAIL) {
     if (!pathname.startsWith(prefix)) continue;
     const rest = pathname.slice(prefix.length);

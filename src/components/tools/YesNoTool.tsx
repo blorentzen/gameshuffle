@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Checkbox } from "@empac/cascadeds";
+import { Button, Switch } from "@empac/cascadeds";
+import { ToolLayout } from "@/components/tools/ToolLayout";
 
 type Result = "yes" | "no" | "maybe";
 
@@ -12,19 +13,15 @@ export function YesNoTool() {
   const [tally, setTally] = useState({ yes: 0, no: 0 });
   const flashTimer = useRef<number | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (flashTimer.current) window.clearInterval(flashTimer.current);
-    };
-  }, []);
+  useEffect(() => () => { if (flashTimer.current) window.clearInterval(flashTimer.current); }, []);
 
   function decide() {
-    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "yes-no" } });
     if (spinning) return;
+    window.plausible?.("Tool Used", { props: { tool: "yes-no" } });
     setSpinning(true);
     const pool: Result[] = allowMaybe ? ["yes", "no", "maybe"] : ["yes", "no"];
 
-    // Flash through options, then settle on the final pick.
+    // Flash through the answers, then settle on the final pick.
     if (flashTimer.current) window.clearInterval(flashTimer.current);
     flashTimer.current = window.setInterval(() => {
       setResult(pool[Math.floor(Math.random() * pool.length)]);
@@ -35,43 +32,35 @@ export function YesNoTool() {
       const final = pool[Math.floor(Math.random() * pool.length)];
       setResult(final);
       setSpinning(false);
-      if (final === "yes" || final === "no") {
-        setTally((t) => ({ ...t, [final]: t[final] + 1 }));
-      }
+      if (final === "yes" || final === "no") setTally((t) => ({ ...t, [final]: t[final] + 1 }));
     }, 1100);
   }
 
   const label = result ? result.toUpperCase() : "?";
 
-  return (
-    <div className="tool-panel yesno-tool">
+  const stage = (
+    <>
       <button
         type="button"
         className={`yesno-face${result ? ` yesno-face--${result}` : ""}${spinning ? " is-spinning" : ""}`}
         onClick={decide}
         aria-label="Get a yes or no answer"
-        aria-live="polite"
       >
         {label}
       </button>
-
-      <Button variant="primary" onClick={decide} disabled={spinning}>
-        {spinning ? "Deciding…" : result ? "Again" : "Decide"}
-      </Button>
-
-      <div className="yesno-tool__opts">
-        <Checkbox
-          label="Allow &ldquo;Maybe&rdquo;"
-          checked={allowMaybe}
-          onChange={(e) => setAllowMaybe(e.target.checked)}
-        />
+      <p className="sr-only" aria-live="polite">{result && !spinning ? result : ""}</p>
+      <div className="tool-stage__action">
+        <Button variant="primary" size="large" fullWidth onClick={decide} disabled={spinning}>
+          {spinning ? "Deciding…" : result ? "Again" : "Decide"}
+        </Button>
+        {(tally.yes > 0 || tally.no > 0) && <p className="tool-stage__tally">Yes {tally.yes}, no {tally.no}</p>}
       </div>
-
-      {(tally.yes > 0 || tally.no > 0) && (
-        <p className="yesno-tool__tally">
-          Yes: {tally.yes} &nbsp;·&nbsp; No: {tally.no}
-        </p>
-      )}
-    </div>
+    </>
   );
+
+  const settings = (
+    <Switch label="Allow “Maybe”" checked={allowMaybe} onChange={(e) => setAllowMaybe(e.target.checked)} />
+  );
+
+  return <ToolLayout className="yesno-tool" stage={stage} settings={settings} settingsLabel="Yes or no settings" />;
 }

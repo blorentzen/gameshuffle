@@ -16,6 +16,7 @@ import { TCG_HUB_LIVE } from "@/data/tcg-hub";
 import { SITE_URL } from "@/lib/seo";
 import { battleBoxUrl, deckUrl, shareImage } from "@/lib/decks/seo";
 import { CompanionNote, splitAfterSection } from "@/components/tcg/CompanionNote";
+import { ARROW_HOST_CLASS, ArrowCue, ArrowLink } from "@/components/ui/ArrowLink";
 
 /**
  * Battle Box wrapper — `/pokemon-tcg/decks/battle-box/[slug]`. A thin
@@ -175,7 +176,7 @@ export default async function Page({
               <Link
                 key={d.slug}
                 href={`/pokemon-tcg/decks/${d.slug}`}
-                className="deck-tile deck-tile--featured"
+                className={`deck-tile deck-tile--featured ${ARROW_HOST_CLASS}`}
               >
                 {fansBySlug[d.slug]?.length ? (
                   <DeckCardFan cards={fansBySlug[d.slug]} />
@@ -193,7 +194,7 @@ export default async function Page({
                 <h2 className="deck-tile__name">{d.archetype}</h2>
                 <p className="deck-tile__desc">{d.meta_description}</p>
                 <div className="deck-tile__meta">
-                  {d.cost_estimate} · Full guide →
+                  {d.cost_estimate} · <ArrowCue>Full guide</ArrowCue>
                 </div>
               </Link>
             );
@@ -213,7 +214,7 @@ export default async function Page({
           </p>
           <Link href="/pokemon-tcg" style={{ textDecoration: "none" }}>
             <Button variant="primary" size="large">
-              Build the Battle Box from GameShuffle singles →
+              Build the Battle Box from GameShuffle singles
             </Button>
           </Link>
         </section>
@@ -224,16 +225,16 @@ export default async function Page({
           <ul className="deck-related__list">
             {decks.map(({ deck }) => (
               <li key={deck.frontmatter.slug}>
-                <Link href={`/pokemon-tcg/decks/${deck.frontmatter.slug}`}>
-                  {deck.frontmatter.archetype}: full deck guide →
-                </Link>
+                <ArrowLink href={`/pokemon-tcg/decks/${deck.frontmatter.slug}`}>
+                  {deck.frontmatter.archetype}: full deck guide
+                </ArrowLink>
               </li>
             ))}
             <li>
               <Link href="/pokemon-tcg/decks">← All Standard 2026 decks</Link>
             </li>
             <li>
-              <Link href="/pokemon-tcg">Shop Pokémon singles &amp; decks →</Link>
+              <ArrowLink href="/pokemon-tcg">Shop Pokémon singles &amp; decks</ArrowLink>
             </li>
           </ul>
         </section>

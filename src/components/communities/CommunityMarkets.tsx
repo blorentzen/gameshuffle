@@ -9,6 +9,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button, Input } from "@empac/cascadeds";
+import { IconArrowRight } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 
 interface Outcome { outcomeId: string; optionKey: string; label: string; pickerCount: number }
@@ -121,7 +122,7 @@ export function CommunityMarkets({
       })}
 
       <Link href={`/live/${slug}`} style={{ textDecoration: "none" }}>
-        <Button variant="ghost" size="small">Open the live page →</Button>
+        <Button variant="ghost" size="small" iconAfter={IconArrowRight}>Open the live page</Button>
       </Link>
     </>
   );

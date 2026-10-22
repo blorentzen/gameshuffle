@@ -1117,6 +1117,13 @@
   }
 }
 
+/* FeatureCard: the shared icon tile above the title (a card), the cta's arrow
+   moving with the card (design round 3, 2026-10-20). */
+.feature-card__head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-12); }
+.feature-card__mask { display: inline-block; width: var(--tile-md-glyph); height: var(--tile-md-glyph); background-color: currentColor;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; -webkit-mask-size: contain; mask-size: contain; }
+.feature-card__cta { margin-top: auto; padding-top: var(--spacing-16); font-size: var(--font-size-14); }
+
 .games-card {
   overflow: hidden;
   border-radius: var(--gs-radius-lg, 1.6rem);
@@ -1781,12 +1788,8 @@
   outline: 2px solid var(--primary-500);
   outline-offset: 2px;
 }
-/* Icons inherit the brand ink rather than emoji's own baked-in colours. */
-.pillars__glyph {
-  display: inline-flex;
-  line-height: 1;
-  color: var(--primary-ink-600);
-}
+/* The glyph sits on the shared icon tile (IconTile), above the label. */
+.pillars__glyph { margin-bottom: var(--spacing-4, 4px); }
 .pillars__label {
   font-size: var(--font-size-20);
   font-weight: var(--font-weight-bold);
@@ -2474,12 +2477,11 @@
   font-size: var(--font-size-16);
 }
 .discord-plug img { flex-shrink: 0; }
-.discord-plug a { font-weight: 600; color: #3640c0; }
+.discord-plug .arrow-link { color: #3640c0; }
 
 /* ProTrialPrompt: the shared "this is GS Pro" card (src/components/billing). */
 .pro-trial { display: grid; gap: var(--spacing-12); }
-.pro-trial__head { display: flex; align-items: center; gap: var(--spacing-8); }
-.pro-trial__icon { display: grid; place-items: center; width: 3.2rem; height: 3.2rem; border-radius: 50%; background: color-mix(in srgb, var(--primary-500, #3d5afe) 12%, transparent); color: var(--primary-600, #2f55e4); flex-shrink: 0; }
+.pro-trial__head { display: flex; align-items: center; gap: var(--spacing-12); }
 .pro-trial__title { margin: 0; font-size: var(--font-size-18); }
 .pro-trial__body { color: var(--text-secondary); font-size: var(--font-size-16); line-height: var(--line-height-relaxed); }
 .pro-trial__body p { margin: 0; }
@@ -2531,15 +2533,38 @@
 /* ── Homepage (reorganized 2026-10-16, src/app/page.tsx + src/components/home/) ── */
 .home-section { margin: var(--spacing-56, 56px) 0 0; display: grid; gap: var(--spacing-16, 16px); }
 .home-section:first-child { margin-top: var(--spacing-48, 48px); }
-.home-section__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-8, 8px) var(--spacing-16, 16px); }
+.home-section__head { display: flex; flex-wrap: wrap; align-items: last baseline; justify-content: space-between; gap: var(--spacing-8, 8px) var(--spacing-16, 16px); }
 .home-section__title { margin: 0; font-size: var(--font-size-fluid-h2); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
 .home-section__aside { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
-.home-section__link { font-weight: 600; font-size: var(--font-size-16); }
+.home-section__link { font-size: var(--font-size-16); }
+/* One short colored eyebrow over each heading (design round 3, 2026-10-20): the
+   section's own color, never the heading's words. Each passes AA on the page. */
+.home-section__titles { display: grid; gap: var(--spacing-6, 6px); min-width: 0; }
+.home-section__eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; line-height: 1.2; color: var(--home-eyebrow, var(--brand-ink, var(--primary-700))); }
+.home-section__eyebrow--violet { --home-eyebrow: #5a3fd6; }
+.home-section__eyebrow--blue { --home-eyebrow: #1d47c7; }
+.home-section__eyebrow--green { --home-eyebrow: #1d7a3a; }
+.home-section__eyebrow--teal { --home-eyebrow: #0f6e5f; }
+.home-section__eyebrow--orange { --home-eyebrow: #b4421d; }
+html.dark .home-section__eyebrow--violet { --home-eyebrow: #a99bff; }
+html.dark .home-section__eyebrow--blue { --home-eyebrow: #8eb1fa; }
+html.dark .home-section__eyebrow--green { --home-eyebrow: #6fd08c; }
+html.dark .home-section__eyebrow--teal { --home-eyebrow: #5fd3bd; }
+html.dark .home-section__eyebrow--orange { --home-eyebrow: #f0a070; }
+/* Today's cards: the game's tile above the title. The wide Weekly card puts it on
+   the left (these outrank the .home-play rules in randomizer.css on purpose). */
+.home-play__tile { margin-bottom: var(--spacing-4, 4px); }
+@media (min-width: 900px) {
+  .home-play--wide-week > .home-play__card--wide.home-play__card--tile { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .home-play--wide-week > .home-play__card--wide.home-play__card--tile > * { grid-column: 2; }
+  .home-play--wide-week > .home-play__card--wide.home-play__card--tile > .home-play__tile { grid-column: 1; grid-row: 1 / span 4; align-self: center; margin: 0; }
+  .home-play--wide-week > .home-play__card--wide.home-play__card--tile > a { grid-column: 3; }
+}
 /* Today on GameShuffle: today's top 3 under the cards. */
 .home-today__top { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8, 8px); font-size: var(--font-size-14);
   padding: var(--spacing-10, 10px) var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
 .home-today__chip { padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--text-primary) 6%, var(--surface-default)); font-variant-numeric: tabular-nums; }
-.home-today__top a { margin-inline-start: auto; font-weight: 600; }
+.home-today__top .arrow-link { margin-inline-start: auto; }
 /* Run the night */
 .home-next { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "label go" "title go" "meta go"; gap: 2px var(--spacing-12, 12px); align-items: center;
   padding: var(--spacing-14, 14px) var(--spacing-16, 16px); border-radius: var(--radius-12, 12px); text-decoration: none; color: var(--text-primary);
@@ -2547,7 +2572,7 @@
 .home-next__label { grid-area: label; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand-ink, var(--text-secondary)); }
 .home-next__title { grid-area: title; font-size: var(--font-size-18); }
 .home-next__meta { grid-area: meta; font-size: var(--font-size-14); color: var(--text-secondary); }
-.home-next__go { grid-area: go; font-weight: 600; color: var(--brand-ink, var(--color-primary-600, #2766ec)); }
+.home-next__go { grid-area: go; }
 /* Go further: GS Pro and GS Circuit side by side on the dark band. */
 .home-plans { margin-top: var(--spacing-56, 56px); }
 .home-plans__title { margin: 0 0 var(--spacing-8, 8px); font-size: var(--font-size-fluid-h2); font-weight: var(--font-weight-bold); color: #fff; }
@@ -2555,8 +2580,8 @@
 .home-plans__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: var(--spacing-16, 16px); }
 .home-plan { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8, 8px); padding: var(--spacing-20, 20px); border-radius: var(--radius-16, 16px);
   background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.18); color: #fff; }
-.home-plan__icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.14); color: #fff; }
-.home-plan__icon--support { background: linear-gradient(135deg, #e2457a, #a81e57); }
+/* The shared icon tile (IconTile); Support keeps its own rose, as the dailies keep theirs. */
+.icon-tile.home-plan__icon--support { --tile-bg: linear-gradient(135deg, #e2457a, #a81e57); }
 .home-plan__name { margin: var(--spacing-4, 4px) 0 0; font-size: var(--font-size-20); color: #fff; }
 .home-plan__name span { font-weight: 500; color: #cfd3ff; font-size: var(--font-size-16); }
 .home-plan__price { margin: 0; font-weight: 700; color: #fff; font-size: var(--font-size-16); }
@@ -2572,7 +2597,6 @@
 .home-popular__sub { font-size: var(--font-size-14); font-weight: 400; color: var(--text-secondary); }
 @media (max-width: 640px) { .home-popular__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-16) var(--spacing-16); } }
 .home-ideas { margin: var(--spacing-32, 32px) 0 var(--spacing-48, 48px); text-align: center; color: var(--text-secondary); font-size: var(--font-size-14); }
-.home-ideas a { font-weight: 600; }
 
 /* ── FaqList (src/components/marketing/FaqList.tsx): questions only, answers in the HTML.
    Matches the CDS bordered accordion until it can keep closed items mounted. ── */
@@ -2599,13 +2623,8 @@
 /* RowPanel: one surface, a row per thing (src/components/marketing/RowPanel.tsx). */
 .row-panel { display: grid; }
 .row-panel__row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-16); padding: var(--spacing-20) 0; border-top: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent); }
-.row-panel__tile { display: grid; place-items: center; width: 4.4rem; height: 4.4rem; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
-.row-panel__tile--violet { background: linear-gradient(135deg, #5a3fd6, #8b5cf6); }
-.row-panel__tile--magenta { background: linear-gradient(135deg, #5a3fd6, #c949e9); }
-.row-panel__tile--teal { background: linear-gradient(135deg, #0b5a52, #169a85); }
-.row-panel__tile--green { background: linear-gradient(135deg, #1d7a3a, #2f9e44); }
-.row-panel__tile--orange { background: linear-gradient(135deg, #b4421d, #e0861c); }
-.row-panel__tile--red { background: linear-gradient(135deg, #b42318, #e5533c); }
+/* The tile is the shared IconTile (globals.css .icon-tile), beside the text at every width. */
+.row-panel__tile { margin-top: 2px; }
 .row-panel__copy { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-4); min-width: 0; }
 .row-panel__eyebrow { font-size: var(--font-size-12); font-weight: var(--font-weight-bold, 700); letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand-ink, var(--primary-700)); }
 .row-panel__name { margin: 0; font-size: var(--font-size-18); line-height: 1.3; }
@@ -2613,11 +2632,9 @@
 .row-panel__name a:hover { text-decoration: underline; }
 .row-panel__body { margin: 0; max-width: 68ch; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; }
 .row-panel__go { margin-top: var(--spacing-12); }
-.row-panel__link { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); color: var(--brand-ink, var(--primary-700)); text-decoration: none; }
-.row-panel__link:hover { text-decoration: underline; }
+.row-panel__link { font-size: var(--font-size-16); }
 @media (min-width: 900px) {
   .row-panel--across { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0 var(--spacing-32); }
-  .row-panel--across .row-panel__row { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; align-content: start; }
   .row-panel--across .row-panel__go { margin-top: auto; padding-top: var(--spacing-12); }
   .row-panel--across .row-panel__copy { height: 100%; }
 }

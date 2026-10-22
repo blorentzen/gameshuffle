@@ -67,7 +67,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     metaDescription:
       "Run competitive Mario Kart 8 Deluxe game nights with live lounge scoring: normalized placements, FFA and team modes, per-player entry, and real-time results everyone can follow.",
     breadcrumbLabel: "Competitive Mario Kart",
-    eyebrow: "Competitive · New",
+    eyebrow: "Competitive",
     status: "new",
     h1: "Competitive Mario Kart Lounge Scoring",
     heroSubhead:
@@ -224,7 +224,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     metaDescription:
       "A free companion for the Pokémon Trading Card Game: damage counters, Special Conditions, Prize cards, turns and attacks worked out, with rule reminders and card art. Runs in your browser.",
     breadcrumbLabel: "Pokémon TCG Companion",
-    eyebrow: "TCG Companion · New",
+    eyebrow: "TCG Companion",
     status: "new",
     h1: "Pokémon TCG Companion",
     heroSubhead:

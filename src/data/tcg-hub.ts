@@ -124,7 +124,7 @@ export const FEATURED_CARDS: FeaturedCard[] = [
 
 // ── Companion tie-in ──────────────────────────────────────────────────
 export const COMPANION = {
-  eyebrow: "Free with every order, free for everyone",
+  eyebrow: "Free for everyone",
   heading: "A companion app that runs your whole table",
   body:
     "Buy the cards, then run the game with the free GameShuffle Companion. Damage, conditions, prizes, coin flips, dice. Everything the game needs, in one place, so nothing gets lost between turns. It's the real reason to make GameShuffle your shop: you're not just getting cards, you're getting the tool that makes game night better.",

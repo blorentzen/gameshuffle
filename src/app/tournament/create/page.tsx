@@ -840,7 +840,7 @@ export default function CreateTournamentPage() {
           )}
 
           <Button variant="primary" onClick={handleCreate} disabled={saving || (runMode === "championship" && !isPro)} fullWidth>
-            {saving ? "Creating..." : runMode === "championship" ? (isPro ? "Create championship → set the roster" : "Championship requires GS Pro") : "Create Tournament"}
+            {saving ? "Creating..." : runMode === "championship" ? (isPro ? "Create championship" : "Championship requires GS Pro") : "Create Tournament"}
           </Button>
         </div>
       </Container>

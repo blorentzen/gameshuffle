@@ -82,7 +82,7 @@ const PATHS: Path[] = [
   },
   {
     id: "online", door: "Playing online with friends", icon: IconBrandDiscord, tone: "online",
-    eyebrow: "Playing online with friends", title: "Play together over Discord",
+    eyebrow: "Online with friends", title: "Play together over Discord",
     line: "Play the dailies and quick party games together in a Discord call, roll picks for the whole server, and run live nights for friends far away.",
     demo: "smash", demoLabel: "Smash fighter roll",
     things: [

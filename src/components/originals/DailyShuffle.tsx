@@ -226,7 +226,12 @@ export function DailyShuffle() {
       const fb = guessFeedback(made, next.length, puzzle, ladderShown(answer, next.length).length > ladderShown(answer, guesses.length).length, help.guesses);
       toast[fb.tone](fb.text);
     }
-    if (!done) setFlash(pick);
+    if (!done) {
+      setFlash(pick);
+      // With a mouse and keyboard, the cursor goes straight back to the guess box for the next one
+      // (on a touch screen that would pop the keyboard over the new row).
+      if (window.matchMedia("(pointer: fine)").matches) requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".daily__guess input")?.focus({ preventScroll: true }));
+    }
     // A Last chance save keeps the streak going but isn't a win.
     const save = right && next.length > main;
     const won = right && !save;

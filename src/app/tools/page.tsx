@@ -8,6 +8,7 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 
 export const metadata: Metadata = {
   title: "Free Tools: wheel spinner, dice, tier lists, bingo, 8-ball & more",
@@ -62,7 +63,7 @@ export default function ToolsPage() {
       <section className="marketing-hero marketing-hero--blue">
         <MarketingHeroField category="tools" />
         <Container>
-          <p className="marketing-eyebrow">Free · no account needed</p>
+          <p className="marketing-eyebrow">No account needed</p>
           <h1 className="marketing-hero__title">Free stream &amp; party tools</h1>
           <p className="marketing-hero__sub">
             Free tools you can use right in your browser: spin a wheel, roll dice, run a
@@ -99,10 +100,10 @@ export default function ToolsPage() {
             ))}
           </ul>
           <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
-            Looking for everything else? <a href="/apps" style={{ color: "var(--brand-ink, var(--text-primary))", fontWeight: 600 }}>Browse the apps →</a>
+            Looking for everything else? <ArrowLink href="/apps">Browse the apps</ArrowLink>
           </p>
           <p style={{ marginTop: "var(--spacing-12)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
-            Playing the Pokémon card game? <Link href="/pokemon-tcg" style={{ color: "var(--brand-ink, var(--text-primary))", fontWeight: 600 }}>Deck guides and a free companion on the Pokémon TCG hub →</Link>
+            Playing the Pokémon card game? <ArrowLink href="/pokemon-tcg">Deck guides and a free companion on the Pokémon TCG hub</ArrowLink>
           </p>
         </section>
 

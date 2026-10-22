@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { TCG_COMPANION_MARKETING_HREF } from "@/data/tcg-hub";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 
 /**
  * A short pointer from a deck guide (or a Battle Box) to the free TCG
@@ -18,7 +18,7 @@ export function CompanionNote({
     <div className="deck-battlebox-note deck-companion-note">
       <p className="deck-battlebox-note__lead">{lead}</p>
       <div className="deck-battlebox-note__links">
-        <Link href={TCG_COMPANION_MARKETING_HREF}>See how the Pokémon TCG Companion works →</Link>
+        <ArrowLink href={TCG_COMPANION_MARKETING_HREF}>See how the Pokémon TCG Companion works</ArrowLink>
       </div>
     </div>
   );

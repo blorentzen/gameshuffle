@@ -20,7 +20,7 @@ const FEATURE_LABEL: Record<(typeof CIRCUIT_PAID_FEATURES)[number], string> = {
   promo_codes: "Promo codes",
   series: "Championship series",
   co_organizers: "Co-organizers",
-  branding: "Custom branding (page and display board)",
+  branding: "Custom branding",
   seeding: "Custom seeding & redraw",
   randomizer: "Live randomized rounds",
 };
@@ -34,7 +34,11 @@ function capLine(t: CircuitTier): string {
   return `Multi-lobby events up to ${t.playerCap} players.`;
 }
 
-export function CircuitPricing({ launchedAt = null }: { launchedAt?: string | null }) {
+export function CircuitPricing({ launchedAt = null, paidEntry = false }: {
+  launchedAt?: string | null;
+  /** Paid event entry is on: ticket sales analytics only make sense once tickets can be sold (Britton, 2026-10-20). */
+  paidEntry?: boolean;
+}) {
   const [annual, setAnnual] = useState(false);
   const pricing = usePublicPricing();
   const amounts = (t: CircuitTier) => {
@@ -136,7 +140,7 @@ export function CircuitPricing({ launchedAt = null }: { launchedAt?: string | nu
                         channel-point rewards (${PRO_INCLUDED_ANNUAL_VALUE}/yr value)
                       </li>
                     )}
-                    {CIRCUIT_PAID_FEATURES.map((f) => <li key={f}>{FEATURE_LABEL[f]}</li>)}
+                    {CIRCUIT_PAID_FEATURES.filter((f) => paidEntry || f !== "analytics").map((f) => <li key={f}>{FEATURE_LABEL[f]}</li>)}
                     {t.id === "circuit_64" && (
                       <li>Add GameShuffle Pro for {usd(addonMonthly)}/mo</li>
                     )}

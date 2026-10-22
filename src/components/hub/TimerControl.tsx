@@ -4,21 +4,30 @@
  * TimerControl — Hub "Start timer" widget (Pro). Pick a preset or a custom
  * number of minutes (no cap, so streamers can go past 15), hit start, and a
  * countdown lands on the overlay. "Clear" removes it. Session-independent
- * (overlay is owner-keyed). Self-hides for non-Pro (actions return
- * `pro_required`).
+ * (overlay is owner-keyed). The length starts at the streamer's saved timer
+ * look (Tool looks or the free timer page). Self-hides for non-Pro (actions
+ * return `pro_required`).
  */
 
 import { useState, useTransition } from "react";
 import { Button, Input, Select } from "@empac/cascadeds";
 import { Lever } from "./live/Lever";
 import { startTimerAction, stopTimerAction } from "@/app/hub/sessions/[slug]/actions";
+import { useToolLook } from "@/components/tools/looks/useToolLook";
 
 const PRESETS = [1, 3, 5, 10, 15]; // minutes
 
 export function TimerControl() {
-  const [minutes, setMinutes] = useState(5);
-  const [custom, setCustom] = useState(false);
-  const [customMin, setCustomMin] = useState(20);
+  const { look } = useToolLook("timer", { forStream: true });
+  const saved = Math.max(1, Math.round(look.defaultSeconds / 60));
+  // Until a length is picked here, the saved one stands (a preset, or "Custom" with its minutes).
+  const [picked, setPicked] = useState<{ minutes: number; custom: boolean; customMin: number } | null>(null);
+  const minutes = picked?.minutes ?? (PRESETS.includes(saved) ? saved : 5);
+  const custom = picked?.custom ?? !PRESETS.includes(saved);
+  const customMin = picked?.customMin ?? (PRESETS.includes(saved) ? 20 : saved);
+  const setMinutes = (m: number) => setPicked({ minutes: m, custom: false, customMin });
+  const setCustom = (on: boolean) => setPicked({ minutes, custom: on, customMin });
+  const setCustomMin = (m: number) => setPicked({ minutes, custom: true, customMin: m });
   const [hidden, setHidden] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -51,10 +60,7 @@ export function TimerControl() {
             value={custom ? "custom" : String(minutes)}
             onChange={(v) => {
               if (v === "custom") setCustom(true);
-              else {
-                setCustom(false);
-                setMinutes(Number(v));
-              }
+              else setMinutes(Number(v));
             }}
             options={[...PRESETS.map((m) => ({ value: String(m), label: `${m} min` })), { value: "custom", label: "Custom" }]}
           />

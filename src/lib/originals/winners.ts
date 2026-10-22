@@ -8,10 +8,14 @@
  * them. A daily with fewer than MIN_FINISHERS solvers is left out of the video.
  * Today's Fire Round joined as a third part on 2026-10-19 (Britton's pick): its
  * rows show the score, right answers and best streak in place of guesses, and
- * anyone who scored counts as a finisher.
+ * anyone who scored counts as a finisher. The Daily Duel is the fourth part
+ * (trainer picture picks, 2026-10-21, once it's public): only wins count, its
+ * rows show the turns against par, the cards left and the time, and the
+ * trainer's picture stands where the other dailies show their answer.
  */
 
 import { gsAddDays } from "@/lib/time/gsClock";
+import type { DuelPicture } from "@/lib/originals/duel/view";
 
 export const WINNERS_TOP = 5;
 export const MIN_FINISHERS = 3;
@@ -21,7 +25,7 @@ export const WINNERS_INTRO = 2.6;
 export const WINNERS_SECTION = 7;
 export const WINNERS_END = 3;
 
-export type WinnersGame = "shuffle" | "dex" | "fire";
+export type WinnersGame = "shuffle" | "dex" | "fire" | "duel";
 
 export interface WinnerRow {
   place: number;
@@ -33,7 +37,10 @@ export interface WinnerRow {
   saved: boolean;
   seconds: number | null;
   streak: number;
-  /** Fire Round: the round's score and its longest run of right answers (`guesses` holds the right answers). */
+  /**
+   * Fire Round: the round's score and its longest run of right answers (`guesses` holds the right
+   * answers). The Daily Duel: `guesses` holds the turns and `score` the cards left.
+   */
   score?: number | null;
   bestStreak?: number | null;
 }
@@ -47,6 +54,9 @@ export interface WinnersSection {
   link: string;
   /** Yesterday's answer (the puzzles; Fire Round has none). */
   answer?: { name: string; img?: string | null; types?: string[] };
+  /** The Daily Duel: the day's trainer (their picture where the puzzles show the answer) and par. */
+  trainer?: { name: string; title: string; picture: DuelPicture | null };
+  par?: number | null;
   rows: WinnerRow[];
   /** How many solved that day. */
   finishers: number;
@@ -99,8 +109,8 @@ export function winnersDateLabel(day: string): string {
 export function winnersCaption(sections: WinnersSection[]): string {
   const lines = sections.map((s) => {
     const named = s.rows.filter((r) => r.name !== "A player").map((r) => `${r.place}. ${r.name}`);
-    return `${s.title} #${s.number}: ${named.length ? named.join(" · ") : "our top 5"}`;
+    return `${s.title}${s.number >= 1 ? ` #${s.number}` : ""}: ${named.length ? named.join(" · ") : "our top 5"}`;
   });
-  const tags = ["#DailyPuzzle", "#GameShuffle", ...(sections.some((s) => s.game === "shuffle") ? ["#Nintendo"] : []), ...(sections.some((s) => s.game === "dex") ? ["#Pokemon"] : []), ...(sections.some((s) => s.game === "fire") ? ["#Trivia"] : [])];
+  const tags = ["#DailyPuzzle", "#GameShuffle", ...(sections.some((s) => s.game === "shuffle") ? ["#Nintendo"] : []), ...(sections.some((s) => s.game === "dex") ? ["#Pokemon"] : []), ...(sections.some((s) => s.game === "fire") ? ["#Trivia"] : []), ...(sections.some((s) => s.game === "duel") ? ["#PokemonTCG"] : [])];
   return [`Congrats to yesterday's top 5! 🏆`, "", ...lines, "", "Make today's top 5 at https://gameshuffle.co/top5", "", tags.join(" ")].join("\n");
 }

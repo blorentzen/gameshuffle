@@ -17,6 +17,7 @@ import { TCG_HUB_LIVE } from "@/data/tcg-hub";
 import { TCG_SHOP_URL } from "@/data/shop";
 import { shopVisibleToVisitors } from "@/lib/store/visibility";
 import { ShopLine } from "@/components/store/ShopEntry";
+import { ARROW_HOST_CLASS, ArrowCue } from "@/components/ui/ArrowLink";
 
 /**
  * Deck hub — `/pokemon-tcg/decks`. Topic-cluster authority node: reads all
@@ -181,7 +182,7 @@ export default async function Page() {
                   <Link
                     key={bf.slug}
                     href={`/pokemon-tcg/decks/battle-box/${bf.slug}`}
-                    className="deck-tile deck-tile--featured"
+                    className={`deck-tile deck-tile--featured ${ARROW_HOST_CLASS}`}
                   >
                     <div className="deck-tile__badges">
                       <Badge variant="info" size="small">
@@ -195,7 +196,7 @@ export default async function Page() {
                     </div>
                     <h3 className="deck-tile__name">{bf.name}</h3>
                     <p className="deck-tile__desc">{bf.meta_description}</p>
-                    <div className="deck-tile__meta">Two decks · Full guide →</div>
+                    <div className="deck-tile__meta">Two decks · <ArrowCue>Full guide</ArrowCue></div>
                   </Link>
                 );
               })}
@@ -223,7 +224,7 @@ export default async function Page() {
               style={{ textDecoration: "none" }}
             >
               <Button variant="primary" size="large">
-                Shop the cards →
+                Shop the cards
               </Button>
             </a>
             <Link href="/pokemon-tcg" style={{ textDecoration: "none" }}>

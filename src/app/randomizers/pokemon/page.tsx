@@ -38,7 +38,7 @@ export default async function PokemonGeneratorPage() {
   ];
   return (
     <main>
-      <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} subShort="Roll from all 1,025 Pokémon." accent="red" field="video" primary={{ href: "#play", label: "Roll Pokémon" }} />
+      <BrowseHero eyebrow="New randomizer" title={landing.h1} sub={landing.lead} subShort="Roll from all 1,025 Pokémon." accent="red" field="video" primary={{ href: "#play", label: "Roll Pokémon" }} />
       <div id="play">
         <Container className="tool-page">
           <NewBanner />

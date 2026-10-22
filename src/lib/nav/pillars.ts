@@ -160,6 +160,8 @@ export const PILLARS: Pillar[] = [
         items: [
           { label: "Browse tournaments", href: "/tournament", blurb: "Open registration, live brackets and past results." },
           { label: "Mario Kart lounge", href: "/competitive/mario-kart-8-deluxe", blurb: "Normalised placement scoring across a session." },
+          { label: "Lounge stats", href: "/lounge", blurb: "Any lounge player's season, plus boards for the people you know.", footer: true },
+          { label: "MMR card", href: "/mmr-card", blurb: "Your lounge MMR on stream, live, with a moment every event. Free.", footer: true },
         ],
       },
       {

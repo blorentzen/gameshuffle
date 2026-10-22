@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Card, Icon } from "@empac/cascadeds";
+import { Card } from "@empac/cascadeds";
+import { IconLock } from "@tabler/icons-react";
+import { IconTile } from "@/components/ui/IconTile";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
 import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
 import { ProTerms } from "@/components/billing/ProTerms";
@@ -32,7 +34,8 @@ export function ProTrialPrompt({ title, children, from, compact = false }: {
   return (
     <Card variant="outlined" padding={compact ? "medium" : "large"} className="pro-trial">
       <div className="pro-trial__head">
-        <span className="pro-trial__icon" aria-hidden><Icon name="lock" size="18" /></span>
+        {/* A square tile: a circle means Energy in the companion (design round 3, 2026-10-20). */}
+        <IconTile icon={IconLock} tone="magenta" />
         <h3 className="pro-trial__title">{title}</h3>
       </div>
       {children && <div className="pro-trial__body">{children}</div>}

@@ -2067,6 +2067,9 @@ html.dark .gs-platform-icon {
   gap: var(--spacing-20);
   margin-top: var(--spacing-32);
 }
+.help-landing__cat-tile {
+  margin-bottom: var(--spacing-12);
+}
 .help-landing__cat-title {
   margin: 0 0 var(--spacing-6);
   font-size: var(--font-size-20);
@@ -2139,9 +2142,9 @@ html.dark .gs-platform-icon {
   padding-left: var(--spacing-24);
 }
 
+/* Lists without a class get the shared prose markers (globals.css). */
 .help-article__body li {
   margin-bottom: var(--spacing-8);
-  list-style: revert;
 }
 
 .help-article__body a {
@@ -3670,8 +3673,10 @@ html.dark .gs-platform-icon {
    scroller instead, so drop the inner one and its second border. */
 .admin-table .empac-table-container { overflow: visible; border: 0; border-radius: 0; }
 .admin-row-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--spacing-4); white-space: nowrap; }
-.admin-section__icon { width: 36px; height: 36px; flex: 0 0 auto; border-radius: 10px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
-.admin-section__icon--accent { background: linear-gradient(135deg, #7c3aed, #c949e9); }
+/* The shared icon tile (globals.css .icon-tile values), beside the section title. */
+.admin-section__icon { width: var(--tile-md); height: var(--tile-md); flex: 0 0 auto; border-radius: var(--tile-md-radius); display: grid; place-items: center; color: #fff; background: var(--tile-blue); box-shadow: var(--tile-shadow); }
+.admin-section__icon svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
+.admin-section__icon--accent { background: var(--tile-magenta); }
 .admin-section__head:has(.admin-section__icon) .admin-section__title { flex: 1; min-width: 0; }
 .admin-panel { display: flex; flex-direction: column; gap: var(--spacing-10); min-width: 0; padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-primary); }
 .admin-panel .admin-panel__title { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); }

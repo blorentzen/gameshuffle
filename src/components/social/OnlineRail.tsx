@@ -7,7 +7,7 @@
  */
 
 import { useState } from "react";
-import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { Card } from "@empac/cascadeds";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { useMessenger } from "@/components/social/MessengerProvider";
@@ -46,7 +46,7 @@ export function OnlineRail({ people }: { people: OnlineConnection[] }) {
       </h2>
       {people.length === 0 ? (
         <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>
-          Nobody you follow is online right now. <Link href="/players" style={{ color: "var(--bg-primary, var(--primary-600))" }}>Find players →</Link>
+          Nobody you follow is online right now. <ArrowLink href="/players">Find players</ArrowLink>
         </p>
       ) : (
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>

@@ -49,7 +49,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
       <BrowseHero
         eyebrow="Support GameShuffle"
         title="Keep game night free"
-        sub="GameShuffle is independent and has no ads. Supporters pay for the servers, new games and the art. Every bit helps."
+        sub="GameShuffle is independent and has no ads. Support from players keeps it running."
         subShort="Independent, no ads. Supporters keep it going."
         accent="violet"
         field="support"
@@ -118,7 +118,6 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
 
         <section className="support-pro" aria-labelledby="support-two">
           <h2 id="support-two">Two ways to back GameShuffle</h2>
-          <p>Support is for anyone who enjoys GameShuffle and wants to keep it going. GS Pro is the toolkit for streamers, and it&apos;s included when you back at $9 a month.</p>
           <BackingPair from="support-page" supportHref="#give" />
         </section>
 

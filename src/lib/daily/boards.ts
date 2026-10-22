@@ -32,7 +32,7 @@ type DbError = { code?: string; message?: string } | null;
 export const boardsMissing = (e: DbError) => !!e && (["42P01", "PGRST205", "42883", "PGRST202"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
 const duplicate = (e: DbError) => !!e && (e.code === "23505" || /duplicate key|unique/i.test(e.message ?? ""));
 
-const GAME_PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/daily-trivia" };
+const GAME_PAGE: Record<BoardGame, string> = { shuffle: "/daily", dex: "/daily-dex", fire: "/daily-trivia", duel: "/daily-duel" };
 
 /** The payout levers (Platform ▸ Token economy), falling back to the seeded defaults. */
 export async function boardLevers(): Promise<BoardLevers> {
@@ -135,6 +135,34 @@ export async function recordFireScore(args: { day: string; player: ScorePlayer; 
   const levers = await boardLevers();
   const tokens = await pay(args.player, args.points * levers.tokensPerPoint, "play", `daily:fire:${args.day}:${key}`, { game: "fire", day: args.day, points: args.points, score: args.score }, levers.holdDays).catch((e) => { console.error("[boards] fire pay failed:", e); return 0; });
   return { points: args.points, tokens, recorded: true };
+}
+
+/**
+ * Today's Daily Duel on the boards: the player's official duel, once over. Points from turns
+ * against par (duelPoints); the row keeps turns in `guesses`, cards left in `score` (0 on a loss)
+ * and the time from Start to the final move in `seconds`, so the day board ranks by points, then
+ * cards left, then time. Pays tokens like a daily, once. Null before the migrations.
+ */
+export async function recordDuelScore(args: { day: string; player: ScorePlayer; won: boolean; turns: number; cardsLeft: number; seconds: number | null; points: number }): Promise<ScoreResult | null> {
+  const key = playerKey(args.player.kind, args.player.id);
+  const row = {
+    game: "duel", day: args.day, player: key,
+    user_id: args.player.kind === "u" ? args.player.id : null,
+    identity_id: args.player.kind === "i" ? args.player.id : null,
+    guest_key: args.player.kind === "g" ? args.player.id : null,
+    points: args.points, guesses: Math.min(999, Math.max(0, args.turns)), solved: args.won,
+    score: args.won ? Math.max(0, args.cardsLeft) : 0,
+    seconds: args.seconds != null && args.seconds >= 0 && args.seconds <= MAX_SOLVE_SECONDS ? args.seconds : null,
+  };
+  const { data, error } = await createServiceClient().from("daily_scores").upsert(row, { onConflict: "game,day,player", ignoreDuplicates: true }).select("player");
+  if (error) {
+    if (!boardsMissing(error) && error.code !== "PGRST204" && error.code !== "42703" && error.code !== "23514") console.error("[boards] duel score failed:", error);
+    return null;
+  }
+  if (!data?.length) return { points: args.points, tokens: 0, recorded: false, seconds: row.seconds };
+  const levers = await boardLevers();
+  const tokens = await pay(args.player, args.points * levers.tokensPerPoint, "play", `daily:duel:${args.day}:${key}`, { game: "duel", day: args.day, points: args.points, turns: args.turns }, levers.holdDays).catch((e) => { console.error("[boards] duel pay failed:", e); return 0; });
+  return { points: args.points, tokens, recorded: true, seconds: row.seconds };
 }
 
 /** A clock longer than this (a Start left open for days) isn't a solve time. */
@@ -344,7 +372,7 @@ export async function closeDue(now = Date.now()): Promise<{ game: BoardGame; per
   const lastWeek = gsAddDays(gsWeekStart(now), -7);
   const lastMonth = gsMonthStart(Date.parse(`${gsAddDays(gsMonthStart(now), -1)}T12:00:00Z`));
   const out = [];
-  for (const game of ["shuffle", "dex", "fire"] as BoardGame[]) {
+  for (const game of ["shuffle", "dex", "fire", "duel"] as BoardGame[]) {
     for (const [period, start] of [["week", lastWeek], ["month", lastMonth]] as const) {
       out.push({ game, period, start, ...(await closePeriod(game, period, start, today)) });
     }
