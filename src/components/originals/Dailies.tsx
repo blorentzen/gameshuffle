@@ -16,6 +16,7 @@ import { createContext, useContext, useEffect, useMemo, useState, useSyncExterna
 import { Alert, Button, Card, SubNav } from "@empac/cascadeds";
 import { IconArrowRight, IconUserPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
+import { ChallengerStrip } from "@/components/originals/duel/DuelChallenger";
 import { useOriginalsHost } from "@/components/originals/OriginalsHost";
 import { DAILIES_GLYPHS, DailiesCards } from "@/components/originals/DailiesCards";
 import { guestRequestId } from "@/components/originals/DailyBoard";
@@ -146,9 +147,10 @@ function InvitedNote({ current }: { current: DailiesId }) {
 }
 
 /**
- * The today bar: the dailies (Shuffle, Dex, Fire Round) with done / playing /
- * new, the one you're on outlined in its color, and the Weekly on a plain line
- * under it (not on the Weekly's own page).
+ * The today bar: the dailies (Shuffle, Dex, Fire Round, Duel) with done / playing /
+ * new, the one you're on outlined in its color, the Weekly on a plain line
+ * under it (not on the Weekly's own page), and today's Duel challenger under that
+ * on the other dailies' pages ("Larry challenged you to a duel"; the result once played).
  */
 export function DailiesBar({ current, onPick, afterPlayed }: {
   current: DailiesId;
@@ -182,6 +184,9 @@ export function DailiesBar({ current, onPick, afterPlayed }: {
         }))}
       />
       {shown.includes("weekly") && current !== "weekly" && <DailiesWeekLine current={current} onPick={onPick} />}
+      {!onPick && shown.includes("duel") && current !== "duel" && current !== "weekly" && (
+        <ChallengerStrip from={current} result={entries.duel?.state === "done" && entries.duel.day === currentDay("duel") ? entries.duel.duel ?? null : undefined} />
+      )}
     </div>
     {!onPick && <InvitedNote current={current} />}
     </>

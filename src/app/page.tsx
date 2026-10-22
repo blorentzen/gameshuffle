@@ -20,7 +20,7 @@ import { paidPlansHere } from "@/lib/billing/availability";
 import { homeViewer } from "@/lib/home/viewer";
 import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
 import { DUEL_SHOWN } from "@/lib/originals/dailies";
-import { duelDayTrainer } from "@/lib/originals/duel/store";
+import { duelChallenger } from "@/lib/originals/duel/store";
 import { gsDay } from "@/lib/time/gsClock";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
 import { getPublicFeaturedShopCards } from "@/lib/shop/featuredCards";
@@ -137,10 +137,10 @@ export default async function HomePage() {
   ];
   // Featured shop cards for the Pokémon section (read-only, 0 Scrydex credits;
   // FPO fallback inside the component if none configured).
-  // The Daily Duel's card (dev only until it's public): today's trainer and picture, from a built day (never builds one).
+  // The Daily Duel's challenger ("Larry challenged you to a duel"): today's trainer, from a built day (never builds one).
   const [shopCards, shopVisible, viewer, paidHere, duelToday] = await Promise.all([
     getPublicFeaturedShopCards(), shopVisibleToVisitors(), homeViewer().catch(() => null), paidPlansHere().catch(() => true),
-    DUEL_SHOWN ? duelDayTrainer(gsDay()).catch(() => null) : Promise.resolve(null),
+    DUEL_SHOWN ? duelChallenger(gsDay()).catch(() => null) : Promise.resolve(null),
   ]);
   return (
     <>
@@ -175,7 +175,7 @@ export default async function HomePage() {
             <HomeToday
               dexPublic={DAILY_DEX_PUBLIC}
               firePublic={FIRE_ROUND_PUBLIC}
-              duel={DUEL_SHOWN ? { number: duelToday?.number ?? 0, name: duelToday?.trainer.name ?? null, title: duelToday?.trainer.title ?? null, picture: duelToday?.trainer.picture ?? null } : null}
+              duel={DUEL_SHOWN ? duelToday : null}
             />
             <DiscordPlug from="home" text="Play the Daily, the Weekly and Chat Brain with your server, right in Discord." />
           </section>

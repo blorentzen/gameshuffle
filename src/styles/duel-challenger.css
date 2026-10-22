@@ -1,0 +1,69 @@
+/*
+ * The Daily Duel's challenger cards (src/components/originals/duel/DuelChallenger.tsx): the Duel's own
+ * navy and gold in every theme, like the arena. The root is 10px, so sizes are tokens or rem x 10.
+ */
+
+.duel-ch {
+  --ch-navy: #0d1233;
+  --ch-gold: #f5c84c;
+  --ch-ink: #1a1300;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--ch-navy);
+  color: #fff;
+  box-shadow: 0 14px 34px rgba(8, 10, 30, 0.28), 0 0 0 1px rgba(245, 200, 76, 0.45);
+}
+.duel-ch__media { position: relative; }
+.duel-ch__art { width: 100%; aspect-ratio: 2 / 1; }
+.duel-ch__media::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(13, 18, 51, 0) 42%, var(--ch-navy) 100%); }
+.duel-ch__body { position: relative; z-index: 1; display: grid; gap: 10px; padding: 0 18px 18px; margin-top: -3.2rem; }
+.duel-ch__title { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-26, 2.6rem); font-weight: 800; line-height: 1.1; text-wrap: balance; color: #fff; }
+.duel-ch__who { margin: 0; font-size: var(--font-size-16, 1.6rem); color: #c9cff0; }
+.duel-ch__label { margin: 4px 0 0; font-size: var(--font-size-12, 1.2rem); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ch-gold); }
+.duel-ch__team { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); gap: 6px; max-width: 46rem; }
+.duel-ch__team img, .duel-ch__noart { display: block; width: 100%; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 5px; box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45); }
+.duel-ch__noart { display: grid; place-items: center; padding: 4px; background: #1d2450; font-size: var(--font-size-12, 1.2rem); text-align: center; }
+.duel-ch__link { display: block; text-decoration: none; }
+.duel-ch__go.empac-button { width: 100%; min-height: 5.2rem; background: var(--ch-gold); border-color: var(--ch-gold); color: var(--ch-ink); font-family: var(--font-display, inherit); font-size: var(--font-size-18, 1.8rem); font-weight: 800; box-shadow: 0 8px 22px rgba(245, 200, 76, 0.3); }
+.duel-ch__go.empac-button:hover { background: #ffd866; border-color: #ffd866; color: var(--ch-ink); }
+.duel-ch__again.empac-button { width: 100%; background: transparent; border-color: rgba(255, 255, 255, 0.4); color: #fff; }
+.duel-ch__again.empac-button:hover { border-color: var(--ch-gold); color: #fff; background: rgba(255, 255, 255, 0.06); }
+.duel-ch__link:focus-visible { outline: 3px solid var(--ch-gold); outline-offset: 3px; border-radius: 12px; }
+.duel-ch__small { margin: 0; text-align: center; font-size: var(--font-size-14, 1.4rem); color: #aab1d6; }
+
+@media (min-width: 900px) {
+  .duel-ch { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+  .duel-ch__art { aspect-ratio: auto; height: 100%; min-height: 32rem; }
+  .duel-ch__media::after { background: linear-gradient(90deg, rgba(13, 18, 51, 0) 55%, var(--ch-navy) 100%); }
+  .duel-ch__body { margin-top: 0; padding: 26px 28px; align-content: center; }
+  .duel-ch__title { font-size: var(--font-size-32, 3.2rem); }
+  .duel-ch__link, .duel-ch__small { justify-self: start; text-align: start; }
+  .duel-ch__go.empac-button, .duel-ch__again.empac-button { width: auto; padding-inline: 2.8rem; }
+}
+
+/* On the homepage it leads Today, above the daily cards. */
+.home-ch { margin-bottom: 2.4rem; }
+
+/* The strip under the today bar on the other dailies. */
+.duel-chs {
+  display: grid;
+  grid-template-columns: 5.6rem minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #0d1233;
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(245, 200, 76, 0.5), 0 8px 20px rgba(8, 10, 30, 0.2);
+}
+.duel-chs__face { width: 5.6rem; height: 5.6rem; box-shadow: 0 0 0 2px #f5c84c; }
+.duel-chs__text { margin: 0; display: grid; gap: 2px; min-width: 0; text-align: start; }
+.duel-chs__text b { font-family: var(--font-display, inherit); font-size: var(--font-size-16, 1.6rem); font-weight: 800; line-height: 1.25; color: #fff; }
+.duel-chs__text span { font-size: var(--font-size-14, 1.4rem); color: #c9cff0; }
+.duel-chs__link { text-decoration: none; }
+.duel-chs__go.empac-button { background: #f5c84c; border-color: #f5c84c; color: #1a1300; font-weight: 800; white-space: nowrap; }
+.duel-chs__go.empac-button:hover { background: #ffd866; border-color: #ffd866; color: #1a1300; }
+.duel-chs__again.empac-button { background: transparent; border-color: rgba(255, 255, 255, 0.4); color: #fff; }
+.duel-chs__link:focus-visible { outline: 3px solid #f5c84c; outline-offset: 3px; border-radius: 10px; }

@@ -46,6 +46,12 @@ export function tierFor(day: string): DuelTier {
 
 export const TIER_LABEL: Record<DuelTier, string> = { gym: "Gym Leader", elite: "Elite Four", rival: "Rival", boss: "Boss", champion: "Champion" };
 
+/** Who comes the day after `day`, without naming them: "Tomorrow: a rival" (the challenger cards, once today's duel is played). */
+export function tomorrowLine(day: string): string {
+  const who: Record<DuelTier, string> = { gym: "a Gym Leader", elite: "a member of an Elite Four", rival: "a rival", boss: "a villain team's boss", champion: "a Champion" };
+  return `Tomorrow: ${who[tierFor(gsAddDays(day, 1))]}`;
+}
+
 /**
  * The par each tier accepts (the solver's fewest turns). A pack whose par falls outside its band
  * is drawn again; Monday's gym leaders are quick, Sunday's champions take a while. Tuned on the real

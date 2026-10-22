@@ -161,6 +161,22 @@ export interface DuelTrainerView {
   teamSize: number;
   /** Their picture (null only when neither their card nor their ace has one). */
   picture: DuelPicture | null;
+  /** A line about who they are in their games (src/data/originals/duel/bios.ts), when written. */
+  bio: string | null;
+}
+
+/** Today's challenger, for the cards that lead into the Duel (homepage, the other dailies): no cards of yours, nothing about the answer. */
+export interface DuelChallengerView {
+  day: string;
+  number: number;
+  name: string;
+  title: string;
+  game: string;
+  tierLabel: string;
+  picture: DuelPicture | null;
+  bio: string | null;
+  /** Their team as cards, in battle order. */
+  team: { name: string; img: string | null }[];
 }
 
 export interface DuelRunView {

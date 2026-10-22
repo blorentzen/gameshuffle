@@ -9,8 +9,8 @@
  * all day. Chat Brain lives on the Daily's end screen now. Each card wears its
  * game's tile (glyph and colors from the dailies bar), above the title; the
  * wide Weekly card has it on the left (design round 3, 2026-10-20). The Daily
- * Duel's card (dev only until it's public) wears today's trainer's picture
- * across its top instead (trainer picture picks, 2026-10-21).
+ * Duel leads the section as today's challenger ("Larry challenged you to a
+ * duel", challenger picks 2026-10-22) instead of a card in the row.
  */
 
 import Link from "next/link";
@@ -24,8 +24,8 @@ import { DEX_EPOCH, dayKey, puzzleNumber } from "@/lib/originals/daily";
 import { CHOICE_POINTS, TYPED_POINTS, fireNumber } from "@/lib/originals/fireRound";
 import { ordinal } from "@/lib/daily/boardRules";
 import type { BoardRow, BoardView } from "@/lib/daily/boardTypes";
-import type { DuelPicture } from "@/lib/originals/duel/view";
-import { TrainerArt } from "@/components/originals/duel/TrainerArt";
+import type { DuelChallengerView } from "@/lib/originals/duel/view";
+import { ChallengerBand } from "@/components/originals/duel/DuelChallenger";
 
 interface WeeklySummary { number: number; kind: "tier" | "survey"; title: string; players: number }
 interface Mine { streak: number; place: number | null }
@@ -47,11 +47,8 @@ function standing(m: Mine | null | undefined, fresh: string): string | null {
   return parts.join(" · ");
 }
 
-/** Today's Daily Duel for its card: the trainer and their picture (null fields before the day is built). */
-export interface HomeDuel { number: number; name: string | null; title: string | null; picture: DuelPicture | null }
-
-/** `firePublic`: Fire Round's card (solo trivia, today's round on the boards). `duel`: the Daily Duel's card, with today's trainer. */
-export function HomeToday({ dexPublic, firePublic = false, duel = null }: { dexPublic: boolean; firePublic?: boolean; duel?: HomeDuel | null }) {
+/** `firePublic`: Fire Round's card (solo trivia, today's round on the boards). `duel`: today's Daily Duel challenger, leading the section. */
+export function HomeToday({ dexPublic, firePublic = false, duel = null }: { dexPublic: boolean; firePublic?: boolean; duel?: DuelChallengerView | null }) {
   const [day, setDay] = useState<string | null>(null);
   const [weekly, setWeekly] = useState<WeeklySummary | null>(null);
   const [top, setTop] = useState<BoardRow[] | null>(null);
@@ -80,7 +77,8 @@ export function HomeToday({ dexPublic, firePublic = false, duel = null }: { dexP
 
   return (
     <>
-      <ResponsiveCarousel className={`home-play${dexPublic && firePublic ? " home-play--wide-week" : ""}${dexPublic && firePublic && duel ? " home-play--four" : ""}`} label="Today's games">
+      {duel && <div className="home-ch"><ChallengerBand challenger={duel} /></div>}
+      <ResponsiveCarousel className={`home-play${dexPublic && firePublic ? " home-play--wide-week" : ""}`} label="Today's games">
         <div className="home-play__card">
           <IconTile icon={DAILIES_GLYPHS.shuffle} tone="shuffle" className="home-play__tile" />
           <h3 className="home-play__title">The Daily Shuffle</h3>
@@ -115,24 +113,6 @@ export function HomeToday({ dexPublic, firePublic = false, duel = null }: { dexP
               {fire ? [fire.score >= 0 ? `You scored ${fire.score.toLocaleString("en-US")} today` : null, fire.streak ? `${fire.streak} ${fire.streak === 1 ? "day" : "days"} in a row` : null].filter(Boolean).join(" · ") : null}
             </span>
             <Link href="/daily-trivia"><Button variant="primary">Play today&apos;s round</Button></Link>
-          </div>
-        )}
-        {duel && (
-          <div className="home-play__card home-play__card--duel">
-            {duel.picture
-              ? <TrainerArt picture={duel.picture} shape="banner" className="home-duel__art" />
-              : <IconTile icon={DAILIES_GLYPHS.duel} tone="duel" className="home-play__tile" />}
-            <h3 className="home-play__title">The Daily Duel</h3>
-            <p className="home-play__text">
-              {duel.name
-                ? <>Today: <strong>{duel.name}</strong>{duel.title ? `, ${duel.title}` : ""}. Knock out their team with the same six cards as everyone.</>
-                : "Knock out the trainer of the day with the same six Pokémon cards as everyone."}
-            </p>
-            <span className="home-play__meta">
-              <Badge variant="info" size="small">New</Badge>
-              {duel.number >= 1 && <Badge variant="info" size="small">Duel #{duel.number}</Badge>}
-            </span>
-            <Link href="/daily-duel"><Button variant="primary">Play today&apos;s duel</Button></Link>
           </div>
         )}
         {/* The Weekly: a wide row under the three dailies on a laptop (Britton, 2026-10-19). */}

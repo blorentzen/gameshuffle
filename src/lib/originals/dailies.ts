@@ -256,6 +256,8 @@ export function combinedShareText(entries: DailiesEntries, shown: DailiesId[], a
 
 /** The next game to play after `current`: the first shown one not done yet. */
 export function nextUp(entries: DailiesEntries, shown: DailiesId[], current: DailiesId): DailiesId | null {
+  // Today's challenger first while the Duel is unplayed (challenger picks, 2026-10-22).
+  if (shown.includes("duel") && current !== "duel" && entries.duel?.state !== "done") return "duel";
   return shown.find((id) => id !== current && entries[id]?.state !== "done") ?? null;
 }
 
