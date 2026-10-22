@@ -8,7 +8,7 @@ import {
   applyStep, begin, cloneState, damageOf, foeEnergy, isLegal, nexts, pays, replay, startState, swapTargets, viewOf,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "../src/lib/originals/duel/engine";
-import { buildDay, candidates, drawPack, makeSetup, obviousPlay, packCap, solve } from "../src/lib/originals/duel/solver";
+import { FAIR_LEADS, buildDay, candidates, drawPack, fairLeads, makeSetup, obviousPlay, packCap, solve } from "../src/lib/originals/duel/solver";
 import {
   DUEL_EPOCH, PAR_BAND, PERSON_GAP_DAYS, TIER_FALLBACK, TIER_LABEL, duelNumber, duelPoints, duelRand, duelShareText, duelSquares, duelTime, energyRow, eventCopy, eventPlan,
   peopleNear, peopleOf, personKey, personOf, shuffleWith, speciesOf, tierFor, trainerFor,
@@ -570,7 +570,7 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
 async function real() {
   try {
     const { DUEL_DATA } = await import("../src/lib/originals/duel/data");
-    const day = "2026-10-28";
+    const day = DUEL_EPOCH;
     const a = buildDay(day, DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000 });
     const b = buildDay(day, DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000 });
     check(!!a && JSON.stringify({ ...a, ms: 0 }) === JSON.stringify({ ...b, ms: 0 }), "the real roster: duel #1 builds the same twice");
@@ -578,6 +578,9 @@ async function real() {
       const tr = DUEL_DATA.trainers.find((t) => t.id === a.trainerId)!;
       const set = makeSetup(DUEL_DATA.cards, tr, a.pack, a.row, a.events)!;
       check(replay(set, a.line)?.over === "won" && !obviousPlay(set).won, `the real roster: duel #1 (${tr.name}, par ${a.par}) is beatable and beats the obvious play`);
+      // Launched as Larry, par 9: the findable rule must not change a day people have played.
+      check(tr.name === "Larry" && a.par === 9, `the real roster: duel #1 is still Larry at par 9 (got ${tr.name}, par ${a.par})`);
+      check(a.fair >= FAIR_LEADS[a.tier] && fairLeads(set) === a.fair, `the real roster: duel #1 is findable (a one-turn-ahead player wins from ${a.fair} leads)`);
     }
     // A Saturday: a villain team's boss, beatable, the obvious play loses.
     const sat = buildDay("2026-10-31", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000 });
@@ -585,6 +588,7 @@ async function real() {
     const bossSet = sat && boss && makeSetup(DUEL_DATA.cards, boss, sat.pack, sat.row, sat.events);
     check(!!bossSet && sat!.tier === "boss" && boss!.tier === "boss" && replay(bossSet, sat!.line)?.over === "won" && !obviousPlay(bossSet).won,
       `the real roster: a Saturday is a boss's day (${boss?.name}, par ${sat?.par}${sat?.inBand ? "" : ", outside the band"})`);
+    check(!!sat && sat.fair >= FAIR_LEADS.boss, `the real roster: the Saturday is findable (${sat?.fair} leads)`);
     // Every person in a tier has a day before anyone comes back (Mondays and Tuesdays from the anchor).
     const gymPeople = peopleOf(DUEL_DATA.trainers.filter((t) => t.tier === "gym")).length;
     const gymDays: string[] = [];

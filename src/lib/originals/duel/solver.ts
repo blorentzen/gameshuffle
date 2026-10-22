@@ -9,7 +9,10 @@
  *
  * A day is accepted only when the solver wins and the obvious play (lead with the hardest hitter,
  * Energy on the card on the field, always the strongest move it can use, the first card left when
- * one is knocked out) loses, and its par sits in the tier's band (rules.ts PAR_BAND). Packs are
+ * one is knocked out) loses, and its par sits in the tier's band (rules.ts PAR_BAND). It must also
+ * be findable (Britton, 2026-10-22: hard is the appeal, but a person has to be able to find a way):
+ * a player who reads one turn ahead (lookaheadPlay) wins from at least FAIR_LEADS of the six leads.
+ * #1 passed that; four of the next six days built without it failed it from every lead. Packs are
  * strength-matched to the team (packCap): light teams like the Kanto gym leaders' 2000-era cards
  * face cards of their own weight, so those days aren't won by the obvious play.
  */
@@ -168,6 +171,63 @@ export function obviousPlay(setup: DuelSetup): { won: boolean; turns: number; li
   return { won: s.over === "won", turns: s.turn, line };
 }
 
+/** One turn as a person weighs it: what it took off the trainer's cards against what it cost yours (a knockout counts 200). */
+function turnScore(before: DuelState, after: DuelState): number {
+  if (after.over === "won") return 1e6;
+  if (after.over === "lost") return -1e6;
+  let dealt = 0;
+  let taken = 0;
+  for (let i = 0; i < before.foe.length; i++) dealt += (before.foe[i].out ? 0 : before.foe[i].cur) - (after.foe[i].out ? -200 : after.foe[i].cur);
+  for (let i = 0; i < before.you.length; i++) taken += (before.you[i].out ? 0 : before.you[i].cur) - (after.you[i].out ? -200 : after.you[i].cur);
+  return dealt - 0.8 * taken;
+}
+
+/** The lookahead player's best action this turn and where it leaves the duel. */
+function bestTurn(setup: DuelSetup, s: DuelState): { a: DuelAction; t: DuelState; score: number } | null {
+  let best: { a: DuelAction; t: DuelState; score: number } | null = null;
+  for (const a of actions(setup, s)) {
+    const t = step(setup, s, a, true);
+    const score = turnScore(s, t);
+    if (!best || score > best.score) best = { a, t, score };
+  }
+  return best;
+}
+
+/**
+ * A player who reads the screen one turn ahead, from `lead`: each turn every Energy spot and every
+ * move, wait and swap is tried and the one that does the most for the least (turnScore) is kept;
+ * after a knockout it sends out the card whose first turn would score best. No plan beyond the turn.
+ */
+export function lookaheadPlay(setup: DuelSetup, lead: number): { won: boolean; turns: number } {
+  let s = begin(setup, startState(setup), lead, true);
+  while (!s.over) {
+    const b = bestTurn(setup, s);
+    if (!b) break;
+    s = b.t;
+    if (s.over) break;
+    let nx: number | null = null;
+    if (needsNext(s)) {
+      let top = -Infinity;
+      for (const i of nexts(s)) {
+        const score = bestTurn(setup, begin(setup, s, i, true))?.score ?? -Infinity;
+        if (nx === null || score > top) { top = score; nx = i; }
+      }
+    }
+    s = begin(setup, s, nx, true);
+  }
+  return { won: s.over === "won", turns: s.turn };
+}
+
+/** How many of the six leads the lookahead player wins from. */
+export function fairLeads(setup: DuelSetup): number {
+  let n = 0;
+  for (let i = 0; i < setup.you.length; i++) if (lookaheadPlay(setup, i).won) n++;
+  return n;
+}
+
+/** Leads the lookahead player must win from: hard but findable, two on the easy gym days. */
+export const FAIR_LEADS: Record<DuelTier, number> = { gym: 2, elite: 1, rival: 1, boss: 1, champion: 1 };
+
 // ─── building a day ──────────────────────────────────────────────────────────
 
 /** The engine's setup for a day: the pack and the trainer's team as cards. Null if a card is missing. */
@@ -254,6 +314,8 @@ export interface DuelDayBuild {
   slack: number;
   /** The obvious play's turns (it lost). */
   obviousTurns: number;
+  /** Leads the lookahead player wins from (FAIR_LEADS asks for at least 1, 2 on gym days; 0 only when no pack anywhere passed). */
+  fair: number;
   ms: number;
 }
 
@@ -266,7 +328,7 @@ type Found = Omit<DuelDayBuild, "attempts" | "ms" | "inBand" | "stoodIn">;
  */
 export function packsFor(
   day: string, trainer: DuelTrainer, tier: DuelTier, pool: readonly string[], cards: Readonly<Record<string, DuelCard>>,
-  seed: string, attempts: number, deadline: number, width: number | undefined, count: { n: number },
+  seed: string, attempts: number, deadline: number, width: number | undefined, count: { n: number }, needFair = 0,
 ): { found: Found; inBand: boolean } | null {
   const [lo, hi] = PAR_BAND[tier];
   const team = trainer.team.map((id) => cards[id]).filter(Boolean);
@@ -300,7 +362,10 @@ export function packsFor(
     if (obvious.won) { tooEasy++; continue; }
     const sol = solve(setup, { width, deadline });
     if (!sol) { tooHard++; continue; }
-    const found: Found = { day, number: duelNumber(day), tier, trainerId: trainer.id, pack, row, events, par: sol.par, line: sol.line, slack, obviousTurns: obvious.turns };
+    // Findable: a player reading one turn ahead has to win from enough leads.
+    const fair = fairLeads(setup);
+    if (fair < needFair) { tooHard++; continue; }
+    const found: Found = { day, number: duelNumber(day), tier, trainerId: trainer.id, pack, row, events, par: sol.par, line: sol.line, slack, obviousTurns: obvious.turns, fair };
     if (sol.par >= lo && sol.par <= hi) return { found, inBand: true };
     if (sol.par < lo) tooEasy++;
     else tooHard++;
@@ -312,7 +377,8 @@ export function packsFor(
 
 /**
  * Builds a day: the trainer by rotation, then packs drawn at random (seeded by day, seed, trainer
- * and attempt) until one is beatable, the obvious play loses, and the par sits in the tier's band.
+ * and attempt) until one is beatable, the obvious play loses, the lookahead player wins from enough
+ * leads (FAIR_LEADS), and the par sits in the tier's band.
  * When the attempts run out, the beatable pack whose par came closest to the band. A trainer with
  * no beatable pack at all that the obvious play loses (a very light team) hands the day to other
  * people of its tier (each with their first team), in a seeded order, leaving out anyone the
@@ -343,10 +409,13 @@ export function buildDay(
   const others = shuffleWith((free.length ? free : rest).map((p) => p.teams[0]), duelRand(`duel-stand-in:${day}`));
   const order = [first, ...others.slice(0, opts.standIns ?? 4)];
   const count = { n: 0 };
-  for (const [i, trainer] of order.entries()) {
-    if (Date.now() >= deadline) break;
-    const got = packsFor(day, trainer, tier, pool, cards, seed, attempts, deadline, opts.width, count);
-    if (got) return { ...got.found, attempts: count.n, inBand: got.inBand, stoodIn: i > 0, ms: Date.now() - t0 };
+  // Findable packs first (FAIR_LEADS); only when no trainer in the order has one, any beatable pack.
+  for (const needFair of [FAIR_LEADS[tier], 0]) {
+    for (const [i, trainer] of order.entries()) {
+      if (Date.now() >= deadline) break;
+      const got = packsFor(day, trainer, tier, pool, cards, seed, attempts, deadline, opts.width, count, needFair);
+      if (got) return { ...got.found, attempts: count.n, inBand: got.inBand, stoodIn: i > 0, ms: Date.now() - t0 };
+    }
   }
   return null;
 }
