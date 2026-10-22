@@ -5,12 +5,13 @@
  */
 
 import {
-  applyStep, begin, cloneState, damageOf, foeEnergy, isLegal, nexts, pays, replay, startState, swapTargets, viewOf,
+  CONDITION_RULES, actions, applyStep, begin, canUse, cloneState, damageOf, foeEnergy, isLegal, nexts, pays, replay, roll, startState, step, swapTargets, viewOf,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "../src/lib/originals/duel/engine";
-import { FAIR_LEADS, buildDay, candidates, drawPack, fairLeads, makeSetup, obviousPlay, packCap, solve } from "../src/lib/originals/duel/solver";
+import { FAIR_LEADS, buildDay, candidates, drawPack, fairLeads, makeSetup, obviousPlay, packCap, solve, solverSetup } from "../src/lib/originals/duel/solver";
+import { conditionsOf, toDuelCard } from "../src/data/originals/duel/cardRules";
 import {
-  DUEL_EPOCH, PAR_BAND, PERSON_GAP_DAYS, TIER_FALLBACK, TIER_LABEL, duelNumber, duelPoints, duelRand, duelShareText, duelSquares, duelTime, energyRow, eventCopy, eventPlan,
+  DUEL_EPOCH, DUEL_WARMUP, PAR_BAND, PERSON_GAP_DAYS, TIER_FALLBACK, TIER_LABEL, duelNumber, duelPoints, duelRand, duelShareText, duelSquares, duelTime, energyRow, eventCopy, eventPlan,
   peopleNear, peopleOf, personKey, personOf, shuffleWith, speciesOf, tierFor, trainerFor,
 } from "../src/lib/originals/duel/rules";
 import type { DuelCard, DuelEventAt, DuelEventKind, DuelSignature, DuelTier, DuelTrainer, EnergyType } from "../src/lib/originals/duel/types";
@@ -365,7 +366,7 @@ check(!isLegal(SET, startState(SET), { attach: 0, act: { wait: true } }), "no tu
   check(["2026-10-31", "2026-11-07", "2026-11-14", "2027-03-13"].every((d) => tierFor(d) === "boss"), "every Saturday is Boss day");
   check(TIER_LABEL.boss === "Boss" && PAR_BAND.boss[0] > PAR_BAND.rival[0] && PAR_BAND.boss[1] < PAR_BAND.champion[1], "the boss band sits between rival and champion");
   check(duelNumber(DUEL_EPOCH) === 1 && duelNumber(gsAddDays(DUEL_EPOCH, 6)) === 7 && duelNumber("2026-10-01") === 0, "duel numbers");
-  check(duelNumber("2026-11-02") === 12, "duel numbers across the clock change");
+  check(duelNumber("2026-11-02") === 11 && duelNumber("2026-10-22") === 0, "duel numbers across the clock change; the warm-up is 0");
   // Rotation: within a tier, no trainer twice until all have had a day.
   const roster = ["a", "b", "c", "d"].map((id): DuelTrainer => ({ id, name: id, title: "", game: "", tier: "gym", team: [], signature: { title: "", effect: "heal50" } }));
   const seen: string[] = [];
@@ -565,25 +566,169 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
   }
 }
 
+// ─── conditions (rules 2, picks 2026-10-22) ──────────────────────────────────
+
+{
+  // The card's words: two wordings play, everything else stays out.
+  const one = (t: string) => JSON.stringify(conditionsOf(t));
+  check(one("Your opponent's Active Pokémon is now Paralyzed.") === '[{"c":"paralyzed"}]', "always: paralyzed");
+  check(one("Flip a coin. If heads, the Defending Pokémon is now Confused.") === '[{"c":"confused","coin":true}]', "coin: confused (old wording)");
+  check(one("Your opponent's Active Pokémon is now Asleep and Poisoned.") === '[{"c":"asleep"},{"c":"poisoned"}]', "two conditions");
+  check(one("Discard 2 Energy attached to this Pokémon. Your opponent's Active Pokémon is now Burned.") === '[{"c":"burned"}]', "a condition after other words");
+  check(one("If the Defending Pokémon is a Basic Pokémon, that Pokémon is now Asleep.") === "[]", "a condition with its own condition stays out");
+  check(one("Flip a coin. If heads, the Defending Pokémon is now Paralyzed. If tails, the Defending Pokémon is now Confused.") === "[]", "heads-or-tails stays out");
+  check(one("This Pokémon is now Confused.") === "[]", "the attacker's own condition stays out");
+  check(one("Flip 2 coins. This attack does 20 damage for each heads. If either of them is heads, your opponent's Active Pokémon is now Paralyzed.") === "[]", "two coins stay out");
+  const row = { id: "t-1", name: "Testmon", supertype: "Pokémon", subtypes: ["Basic"], types: ["Grass"], hp: "80", rarity: null, language_code: "en", images: null, weaknesses: [{ type: "Fire" }],
+    attacks: [{ name: "Sting", cost: ["Grass"], damage: "20", text: "Your opponent's Active Pokémon is now Poisoned." }, { name: "Tackle", cost: ["Colorless"], damage: "10", text: "" }] };
+  const tc = toDuelCard(row);
+  check(tc?.moves[0].fx?.[0]?.c === "poisoned" && !tc?.moves[1].fx, "toDuelCard keeps a move's conditions");
+
+  // The rolls: the same key gives the same chance, keys spread out.
+  const V = { ...mk(), rules: 2 as const, seed: "2026-11-01" };
+  check(roll(V, "a") === roll(V, "a") && roll(V, "a") !== roll({ ...V, seed: "2026-11-02" }, "a"), "rolls repeat per day and key, and change by day");
+  let sum = 0;
+  for (let i = 0; i < 4000; i++) { const r = roll(V, `k${i}`); sum += r; if (r < 0 || r >= 100) check(false, "roll in range"); }
+  check(Math.abs(sum / 4000 - 50) < 2.5, `rolls average about 50 (${(sum / 4000).toFixed(1)})`);
+
+  // A move with a sure condition lands about half the time; a coin about a quarter; never under rules 1 or for the solver.
+  const zap = card("zap", L, 100, null, [["Zap", [X], 10]]);
+  zap.moves[0].fx = [{ c: "paralyzed" }];
+  const flip = card("flip", L, 100, null, [["Flip", [X], 10]]);
+  flip.moves[0].fx = [{ c: "burned", coin: true }];
+  const big = card("big", G, 300, null, [["Slap", [G, G, G, G], 10]]);
+  const rate = (you: DuelCard, opts: { rules?: 2; luck?: "miss" }) => {
+    let n = 0;
+    for (let i = 0; i < 400; i++) {
+      const set: DuelSetup = { ...mk({ you: [you, ...YOU.slice(1)], foe: [big] }), rules: opts.rules, seed: `d${i}`, luck: opts.luck };
+      const s = step(set, begin(set, startState(set), 0), { attach: 0, act: { move: 0 } });
+      if (s.foe[0].cond) n++;
+    }
+    return n / 400;
+  };
+  const sure = rate(zap, { rules: 2 });
+  const coin = rate(flip, { rules: 2 });
+  check(sure > 0.42 && sure < 0.58, `a sure condition lands about half the time (${sure})`);
+  check(coin > 0.18 && coin < 0.32, `a coin condition lands about a quarter of the time (${coin})`);
+  check(rate(zap, {}) === 0, "rules 1 never plays conditions");
+  check(rate(zap, { rules: 2, luck: "miss" }) === 0, "the solver's luck: your conditions never land");
+
+  // Burned and Poisoned at the end of the turn; Poisoned grows.
+  const V2: DuelSetup = { ...mk({ foe: [big] }), rules: 2, seed: "t" };
+  let s = begin(V2, startState(V2), 0);
+  s.foe[0].cond = { k: "burned", n: 0 };
+  let t = step(V2, s, { attach: 0, act: { wait: true } });
+  check(t.foe[0].cur === 300 - CONDITION_RULES.burn && t.log.some((l) => l.kind === "tick" && l.cond === "burned"), "Burned takes 20 at the end of the turn");
+  s = begin(V2, startState(V2), 0);
+  s.foe[0].cond = { k: "poisoned", n: 0 };
+  t = step(V2, s, { attach: 0, act: { wait: true } });
+  const t2 = step(V2, begin(V2, t, null), { attach: 0, act: { wait: true } });
+  check(t.foe[0].cur === 290 && t2.foe[0].cur === 270, "Poisoned takes 10, then 20");
+
+  // A tick can knock a card out: the trainer's next card comes out, or you've won.
+  s = begin(V2, startState(V2), 0);
+  s.foe[0].cond = { k: "burned", n: 0 };
+  s.foe[0].cur = 10;
+  t = step(V2, s, { attach: 0, act: { wait: true } });
+  check(t.over === "won", "a burn that knocks out the last card wins");
+  const two: DuelSetup = { ...mk({ foe: [big, FOE[1]] }), rules: 2, seed: "t" };
+  s = begin(two, startState(two), 0);
+  s.foe[0].cond = { k: "poisoned", n: 0 };
+  s.foe[0].cur = 10;
+  t = step(two, s, { attach: 0, act: { wait: true } });
+  check(t.foe[0].out && t.fi === 1 && !t.over && t.log.some((l) => l.kind === "out" && l.side === "foe"), "poison knocks out a card and the next one comes out");
+
+  // Asleep: no moves, counts down on its turns, wakes. Swapping out cures it.
+  s = begin(V2, startState(V2), 0);
+  s.you[0].cond = { k: "asleep", n: 2 };
+  check(!canUse(V2, s, 0, 0) && !actions(V2, s).some((a) => "move" in a.act), "an Asleep card has no moves");
+  check(!viewOf(V2, s, TRAINER).canMove && viewOf(V2, s, TRAINER).you[0].cond === "asleep", "the view says it can't move");
+  t = step(V2, s, { attach: 0, act: { wait: true } });
+  check(t.you[0].cond?.n === 1 && t.log.some((l) => l.kind === "skip" && l.why === "asleep" && l.side === "you"), "Asleep counts down when it waits");
+  const t3 = step(V2, begin(V2, t, null), { attach: 0, act: { wait: true } });
+  check(!t3.you[0].cond && t3.log.some((l) => l.kind === "wake" && l.side === "you"), "it wakes when the count runs out");
+  s = begin(V2, startState(V2), 0);
+  s.you[0].cond = { k: "burned", n: 0 };
+  s.you[0].conf = 2;
+  t = step(V2, s, { attach: 0, act: { swap: 1 } });
+  check(!t.you[0].cond && !t.you[0].conf && t.yi === 1, "swapping out cures every condition");
+
+  // Paralyzed stops about a quarter of moves; Confused turns about a third on the card itself.
+  let para = 0;
+  let self = 0;
+  let selfDamage = true;
+  for (let i = 0; i < 400; i++) {
+    const set: DuelSetup = { ...mk({ foe: [big] }), rules: 2, seed: `p${i}` };
+    const a = begin(set, startState(set), 0);
+    a.you[0].cond = { k: "paralyzed", n: 0 };
+    if (step(set, a, { attach: 0, act: { move: 0 } }).log.some((l) => l.kind === "skip" && l.why === "paralyzed")) para++;
+    const c = begin(set, startState(set), 0);
+    c.you[0].conf = 3;
+    const r = step(set, c, { attach: 0, act: { move: 0 } });
+    const hitSelf = r.log.find((l) => l.kind === "self");
+    if (hitSelf) { self++; if (r.you[0].cur !== YOU[0].hp - CONDITION_RULES.confusedHit) selfDamage = false; }
+    if (r.you[0].conf !== 2) check(false, "Confused counts down by one on its turn");
+  }
+  check(para / 400 > 0.17 && para / 400 < 0.33, `Paralyzed stops about a quarter (${para / 400})`);
+  check(self / 400 > 0.25 && self / 400 < 0.41 && selfDamage, `Confused hits itself about a third, for 20 (${self / 400})`);
+
+  // One lasting condition at a time (the newest wins); Confused sits beside it.
+  const both = card("both", L, 100, null, [["Mix", [X], 10]]);
+  both.moves[0].fx = [{ c: "paralyzed" }, { c: "confused" }];
+  let landedBoth = false;
+  for (let i = 0; i < 60 && !landedBoth; i++) {
+    const set: DuelSetup = { ...mk({ you: [both, ...YOU.slice(1)], foe: [big] }), rules: 2, seed: `b${i}` };
+    const a = begin(set, startState(set), 0);
+    a.foe[0].cond = { k: "burned", n: 0 };
+    const r = step(set, a, { attach: 0, act: { move: 0 } });
+    if (r.foe[0].cond?.k === "paralyzed" && r.foe[0].conf) landedBoth = r.log.filter((l) => l.kind === "cond").length === 2;
+  }
+  check(landedBoth, "a new lasting condition replaces the old one, and Confused sits beside it");
+
+  // The two events that became conditions.
+  const ev: DuelSetup = { ...mk({ events: [at(1, "sleep")], foe: [big] }), rules: 2, seed: "e" };
+  const se = begin(ev, startState(ev), 0);
+  check(se.foe[0].cond?.k === "asleep" && se.foe[0].cond.n >= 1 && se.foe[0].cond.n <= 3 && se.fx.sleep === -1, "the sleep event puts the trainer's card to sleep for 1 to 3 turns");
+  const ec: DuelSetup = { ...mk({ events: [at(1, "confused")] }), rules: 2, seed: "e" };
+  const ce = begin(ec, startState(ec), 0);
+  check(ce.you[0].conf === CONDITION_RULES.confusedTurns && !ce.fx.confused, "the confused event makes your card Confused for 3 turns");
+  check(eventCopy("sleep", TRAINER, 2).text.includes("1 to 3") && !eventCopy("sleep", TRAINER).text.includes("1 to 3"), "rules 2 has its own event words");
+
+  // The view shows a move's chance only under rules 2.
+  const vz: DuelSetup = { ...mk({ you: [zap, ...YOU.slice(1)] }), rules: 2, seed: "v" };
+  check(viewOf(vz, startState(vz), TRAINER).you[0].moves[0].fx[0]?.chance === CONDITION_RULES.sure, "the view shows a sure condition at 50%");
+  check(viewOf({ ...vz, rules: undefined }, startState(vz), TRAINER).you[0].moves[0].fx.length === 0, "rules 1 shows no chances");
+  check(viewOf({ ...mk({ you: [flip, ...YOU.slice(1)] }), rules: 2, seed: "v" }, startState(vz), TRAINER).you[0].moves[0].fx[0]?.chance === CONDITION_RULES.coin, "a coin condition shows at 25%");
+
+  // The solver plays rules 2 with your luck missing, and its line still replays.
+  check(solverSetup(V2).luck === "miss" && solverSetup(mk()).luck === undefined, "solverSetup only changes rules 2 setups");
+  const fixV2 = makeSetup(FIX_CARDS, FIX_TRAINERS[0], FIX_POOL.slice(0, 6), Array(TURN_CAP).fill("Colorless"), [], { rules: 2, seed: "x" });
+  check(!!fixV2 && fixV2.rules === 2 && fixV2.seed === "x", "makeSetup sets the rules and the day");
+  const solV2 = fixV2 && solve(solverSetup(fixV2), { width: 60 });
+  if (solV2) check(replay(solverSetup(fixV2!), solV2.line)?.over === "won", "a rules 2 line replays to a win");
+}
+
 // ─── the real roster (when it's there): a day builds the same twice ──────────
 
 async function real() {
   try {
     const { DUEL_DATA } = await import("../src/lib/originals/duel/data");
+    // #1 (the first day with conditions) builds the same twice under rules 2, beatable, findable.
     const day = DUEL_EPOCH;
-    const a = buildDay(day, DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000 });
-    const b = buildDay(day, DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000 });
+    const a = buildDay(day, DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000, rules: 2 });
+    const b = buildDay(day, DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000, rules: 2 });
     check(!!a && JSON.stringify({ ...a, ms: 0 }) === JSON.stringify({ ...b, ms: 0 }), "the real roster: duel #1 builds the same twice");
     if (a) {
       const tr = DUEL_DATA.trainers.find((t) => t.id === a.trainerId)!;
-      const set = makeSetup(DUEL_DATA.cards, tr, a.pack, a.row, a.events)!;
-      check(replay(set, a.line)?.over === "won" && !obviousPlay(set).won, `the real roster: duel #1 (${tr.name}, par ${a.par}) is beatable and beats the obvious play`);
-      // Launched as Larry. A built day keeps its own copy of its cards (duel_days.cards), so card data
-      // changes (the clean prints and text damage of 2026-10-22) never change a played day; a fresh
-      // build of #1 only has to keep its trainer, the rotation's pick.
-      check(tr.name === "Larry", `the real roster: duel #1 is still Larry (got ${tr.name}, par ${a.par})`);
-      check(a.fair >= FAIR_LEADS[a.tier] && fairLeads(set) === a.fair, `the real roster: duel #1 is findable (a one-turn-ahead player wins from ${a.fair} leads)`);
+      const set = makeSetup(DUEL_DATA.cards, tr, a.pack, a.row, a.events, { rules: 2, seed: day })!;
+      check(a.rules === 2 && replay(solverSetup(set), a.line)?.over === "won" && !obviousPlay(set).won, `the real roster: duel #1 (${tr.name}, par ${a.par}) is beatable and beats the obvious play`);
+      check(a.fair >= FAIR_LEADS[a.tier] && fairLeads(solverSetup(set)) === a.fair, `the real roster: duel #1 is findable (a one-turn-ahead player wins from ${a.fair} leads)`);
     }
+    // The warm-up (the day the Duel opened, first rules): its trainer is the rotation's, Larry. A built
+    // day keeps its own copy of its cards, so later card data changes never change it.
+    const warm = buildDay(DUEL_WARMUP, DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000 });
+    const warmTr = warm && DUEL_DATA.trainers.find((t) => t.id === warm.trainerId);
+    check(warmTr?.name === "Larry" && duelNumber(DUEL_WARMUP) === 0, `the real roster: the warm-up is Larry (got ${warmTr?.name})`);
     // A Saturday: a villain team's boss, beatable, the obvious play loses.
     const sat = buildDay("2026-10-31", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000 });
     const boss = sat && DUEL_DATA.trainers.find((t) => t.id === sat.trainerId);

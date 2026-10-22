@@ -15,7 +15,7 @@
  */
 
 import type { DuelCardView, DuelLogLine, DuelPlayView } from "@/lib/originals/duel/view";
-import type { EnergyType } from "@/lib/originals/duel/types";
+import type { DuelCondition, EnergyType } from "@/lib/originals/duel/types";
 import type { HoloMotion } from "./DuelHolo";
 import { reducedMotion } from "./duelLook";
 
@@ -23,10 +23,10 @@ import { reducedMotion } from "./duelLook";
 export const BEAT_MS = 650;
 export const KO_BEAT_MS = 850;
 
-/** What shows over a hologram for one beat: the move's name on the attacker, the damage on the card hit. */
+/** What shows over a hologram for one beat: the move's name on the attacker, the damage on the card hit (and any condition it put on). */
 export interface HoloFx {
   tag?: string;
-  pop?: { damage: number; weak: boolean };
+  pop?: { damage: number; weak: boolean; conds?: DuelCondition[] };
 }
 
 export interface ArenaMotion {
@@ -113,6 +113,25 @@ export function framesBetween(prev: DuelPlayView | null, next: DuelPlayView, non
     if (t && c) c.energy.push(t);
   }
 
+  // Conditions a move just put on a card (the lines right after it), shown on that card from this beat.
+  const takeConds = (side: "you" | "foe"): DuelCondition[] => {
+    const out: DuelCondition[] = [];
+    for (; log[i]?.kind === "cond" && log[i].side === side && log[i].ev == null && log[i].cond; i++) out.push(log[i].cond!);
+    const c = side === "you" ? b.you[b.yi] : b.foe[b.fi];
+    if (c) for (const k of out) { if (k === "confused") c.confused = true; else c.cond = k; }
+    return out;
+  };
+  // A card that woke up (right after its asleep line).
+  const takeWake = (side: "you" | "foe") => {
+    if (log[i]?.kind === "wake" && log[i].side === side) {
+      const c = side === "you" ? b.you[b.yi] : b.foe[b.fi];
+      if (c) c.cond = null;
+      i += 1;
+    }
+  };
+  const skipTag = (l: DuelLogLine) => (l.why === "paralyzed" ? "Paralyzed" : l.why === "stubborn" || /loafs/.test(l.text) ? "Stubborn" : "Asleep");
+  const knock = (c: DuelCardView | undefined) => { if (c) { c.out = true; c.field = false; c.energy = []; c.cond = null; c.confused = false; } };
+
   // Your action.
   const mine = log[i];
   if (mine?.side === "you" && mine.kind === "move") {
@@ -121,12 +140,27 @@ export function framesBetween(prev: DuelPlayView | null, next: DuelPlayView, non
     const foe = b.foe[b.fi];
     if (foe) foe.cur = ko ? 0 : Math.max(0, foe.cur - d);
     i += ko ? 2 : 1;
-    snap({ you: null, foe: ko ? "ko" : d > 0 ? "hit" : null, fx: { you: { tag: moveOf(mine) }, foe: { pop: { damage: d, weak: !!mine.weak } } } }, i, ko ? KO_BEAT_MS : BEAT_MS);
-    if (ko && foe) { foe.out = true; foe.field = false; foe.energy = []; }
+    const conds = ko ? [] : takeConds("foe");
+    snap({ you: null, foe: ko ? "ko" : d > 0 ? "hit" : null, fx: { you: { tag: moveOf(mine) }, foe: { pop: { damage: d, weak: !!mine.weak, conds } } } }, i, ko ? KO_BEAT_MS : BEAT_MS);
+    if (ko) knock(foe);
   } else if (mine?.side === "you" && mine.kind === "swap" && mine.card != null) {
+    const was = b.you[b.yi];
+    if (was) { was.cond = null; was.confused = false; }
     setField("you", mine.card);
     i += 1;
     snap({ you: "summon", foe: null }, i, BEAT_MS);
+  } else if (mine?.side === "you" && mine.kind === "skip") {
+    i += 1;
+    takeWake("you");
+    snap({ you: null, foe: null, fx: { you: { tag: skipTag(mine) } } }, i, BEAT_MS);
+  } else if (mine?.side === "you" && mine.kind === "self") {
+    const d = mine.damage ?? 0;
+    const ko = log[i + 1]?.kind === "ko" && log[i + 1].side === "you";
+    const you = b.you[b.yi];
+    if (you) you.cur = ko ? 0 : Math.max(0, you.cur - d);
+    i += ko ? 2 : 1;
+    snap({ you: ko ? "ko" : "hit", foe: null, fx: { you: { tag: "Confused", pop: { damage: d, weak: false } } } }, i, ko ? KO_BEAT_MS : BEAT_MS);
+    if (ko) knock(you);
   } else if (mine?.side === "you" && mine.kind === "wait") {
     i += 1;
   }
@@ -153,12 +187,43 @@ export function framesBetween(prev: DuelPlayView | null, next: DuelPlayView, non
     const you = b.you[b.yi];
     if (you) you.cur = ko ? 0 : Math.max(0, you.cur - d);
     i += ko ? 2 : 1;
-    snap({ you: ko ? "ko" : d > 0 ? "hit" : null, foe: null, fx: { foe: { tag: moveOf(theirs) }, you: { pop: { damage: d, weak: !!theirs.weak } } } }, i, ko ? KO_BEAT_MS : BEAT_MS);
-    if (ko && you) { you.out = true; you.field = false; you.energy = []; }
+    const conds = ko ? [] : takeConds("you");
+    snap({ you: ko ? "ko" : d > 0 ? "hit" : null, foe: null, fx: { foe: { tag: moveOf(theirs) }, you: { pop: { damage: d, weak: !!theirs.weak, conds } } } }, i, ko ? KO_BEAT_MS : BEAT_MS);
+    if (ko) knock(you);
   } else if (theirs?.side === "foe" && theirs.kind === "skip") {
     i += 1;
-    snap({ you: null, foe: null, fx: { foe: { tag: theirs.why === "stubborn" || /loafs/.test(theirs.text) ? "Stubborn" : "Asleep" } } }, i, BEAT_MS);
+    takeWake("foe");
+    snap({ you: null, foe: null, fx: { foe: { tag: skipTag(theirs) } } }, i, BEAT_MS);
+  } else if (theirs?.side === "foe" && theirs.kind === "self") {
+    const d = theirs.damage ?? 0;
+    const ko = log[i + 1]?.kind === "ko" && log[i + 1].side === "foe";
+    const foe = b.foe[b.fi];
+    if (foe) foe.cur = ko ? 0 : Math.max(0, foe.cur - d);
+    i += ko ? 2 : 1;
+    snap({ you: null, foe: ko ? "ko" : "hit", fx: { foe: { tag: "Confused", pop: { damage: d, weak: false } } } }, i, ko ? KO_BEAT_MS : BEAT_MS);
+    if (ko) knock(foe);
+    if (log[i]?.kind === "out" && log[i].side === "foe" && log[i].card != null) {
+      setField("foe", log[i].card!);
+      i += 1;
+      snap({ you: null, foe: "summon" }, i, BEAT_MS);
+    }
   }
+
+  // The end of the turn: Burned and Poisoned take their HP (one beat for both cards).
+  const ticks: Partial<Record<"you" | "foe", HoloFx>> = {};
+  const hurt: Partial<Record<"you" | "foe", HoloMotion>> = {};
+  let upTo = i;
+  for (let j = i; j < log.length; j++) {
+    const l = log[j];
+    if (l.kind !== "tick" || !l.side || l.ev != null) continue;
+    const c = l.side === "you" ? b.you[l.card ?? b.yi] : b.foe[l.card ?? b.fi];
+    const ko = log[j + 1]?.kind === "ko" && log[j + 1].side === l.side;
+    if (c) c.cur = ko ? 0 : Math.max(0, c.cur - (l.damage ?? 0));
+    ticks[l.side] = { pop: { damage: l.damage ?? 0, weak: false, conds: l.cond ? [l.cond] : [] } };
+    hurt[l.side] = ko ? "ko" : "hit";
+    upTo = ko ? j + 2 : j + 1;
+  }
+  if (ticks.you || ticks.foe) snap({ you: hurt.you ?? null, foe: hurt.foe ?? null, fx: ticks }, upTo, hurt.you === "ko" || hurt.foe === "ko" ? KO_BEAT_MS : BEAT_MS);
 
   return [...frames, last(b, n)];
 }

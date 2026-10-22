@@ -35,14 +35,20 @@ const SIGNATURE_SHORT: Record<DuelSignature, string> = {
   boost30: "{trainer}'s next move does 30 more",
 };
 
-/** An event's title, what it does, and the short line, in the trainer's name. */
-export function eventCopy(kind: DuelEventKind, trainer: Pick<DuelTrainer, "name" | "signature">): { title: string; text: string; short: string } {
+/** The two events that became conditions with the condition rules (days built from 2026-10-22). */
+const EVENT_COPY_2: Partial<Record<DuelEventKind, { title: string; text: string; short: string }>> = {
+  sleep: { title: "{trainer}'s Pokémon fell asleep", text: "{trainer}'s card on the field falls Asleep: it can't move for 1 to 3 of its turns.", short: "{trainer}'s card falls Asleep" },
+  confused: { title: "Your Pokémon is confused", text: "Your card on the field is Confused for 3 turns: each move has a 33% chance to hit itself for 20 instead. Swapping it out cures it.", short: "Your card is Confused for 3 turns" },
+};
+
+/** An event's title, what it does, and the short line, in the trainer's name (`rules`: the day's rules version). */
+export function eventCopy(kind: DuelEventKind, trainer: Pick<DuelTrainer, "name" | "signature">, rules: 1 | 2 = 1): { title: string; text: string; short: string } {
   const fill = (s: string) => s.replaceAll("{trainer}", trainer.name);
   if (kind === "signature") {
     const e = trainer.signature.effect;
     return { title: fill(trainer.signature.title), text: fill(SIGNATURE_TEXT[e]), short: fill(SIGNATURE_SHORT[e]) };
   }
-  const c = EVENT_COPY[kind];
+  const c = (rules === 2 ? EVENT_COPY_2[kind] : undefined) ?? EVENT_COPY[kind];
   return { title: fill(c.title), text: fill(c.text), short: fill(c.short) };
 }
 

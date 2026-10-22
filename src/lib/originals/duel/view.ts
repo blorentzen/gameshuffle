@@ -14,7 +14,7 @@
  */
 
 import type { DuelLogLine } from "./engine";
-import type { DuelEventKind, DuelSignature, DuelTier, EnergyType } from "./types";
+import type { DuelCondition, DuelEventKind, DuelSignature, DuelTier, EnergyType } from "./types";
 import type { DayMark } from "@/lib/originals/dailies";
 
 export type { DuelLogLine };
@@ -32,6 +32,8 @@ export interface DuelMoveView {
   ready: boolean;
   /** Your cards: it's covered once this turn's Energy goes on this card (false between turns). */
   readyWithNew: boolean;
+  /** The conditions it puts on the card it hits, each with its chance in percent (empty on days without the condition rules). */
+  fx: { c: DuelCondition; chance: number }[];
 }
 
 export interface DuelCardView {
@@ -56,6 +58,10 @@ export interface DuelCardView {
   grabbed: number;
   /** It skips its next move (asleep, or a stubborn ace). */
   skips: boolean;
+  /** Its lasting condition (Burned, Poisoned, Paralyzed or Asleep), or null. Days with the condition rules only. */
+  cond: Exclude<DuelCondition, "confused"> | null;
+  /** It's Confused. Days with the condition rules only. */
+  confused: boolean;
 }
 
 export interface DuelEventView {
@@ -104,8 +110,10 @@ export interface DuelPlayView {
   attachTo: number[];
   /** Waiting cards you can swap in this turn. */
   swaps: number[];
-  /** Your card on the field may use a move this turn (false when it's a stubborn ace). */
+  /** Your card on the field may use a move this turn (false when it's a stubborn ace or Asleep). */
   canMove: boolean;
+  /** The day's rules: 2 = conditions play (days built from 2026-10-22). */
+  rules: 1 | 2;
   /** The event that flipped at the start of this turn. */
   event: DuelEventView | null;
   /** The next event: it flips at the start of next turn (null when the next turn has none). */
@@ -175,8 +183,8 @@ export interface DuelChallengerView {
   tierLabel: string;
   picture: DuelPicture | null;
   bio: string | null;
-  /** Their team as cards, in battle order. */
-  team: { name: string; img: string | null }[];
+  /** Their team as cards, in battle order (our own card faces: the art, type and HP). */
+  team: { name: string; img: string | null; t: EnergyType; hp: number }[];
 }
 
 export interface DuelRunView {

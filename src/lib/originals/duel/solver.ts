@@ -15,6 +15,10 @@
  * #1 passed that; four of the next six days built without it failed it from every lead. Packs are
  * strength-matched to the team (packCap): light teams like the Kanto gym leaders' 2000-era cards
  * face cards of their own weight, so those days aren't won by the obvious play.
+ *
+ * With the condition rules (rules 2) par and the findable check play with `luck: "miss"`: your
+ * moves' conditions never land, so par never counts on luck (picks 2026-10-22). The trainer's rolls
+ * count (they're the same for everyone). The obvious play is judged with real luck: it mustn't win.
  */
 
 import {
@@ -30,6 +34,9 @@ interface Node { s: DuelState; prev: Node | null; steps: DuelStep[]; score: numb
 
 const CODE: Record<EnergyType, string> = { Grass: "g", Fire: "r", Water: "w", Lightning: "l", Psychic: "p", Fighting: "f", Darkness: "d", Metal: "m", Dragon: "n", Colorless: "c" };
 
+/** A card's conditions in a position's key (rules 2): the lasting one with its count, and Confused's turns. */
+const condKey = (c: { cond?: { k: string; n: number }; conf?: number }) => `${c.cond ? `${c.cond.k[0]}${c.cond.n}` : ""}${c.conf ? `c${c.conf}` : ""}`;
+
 /** A position's identity: two ways of reaching the same position are one. Energy order doesn't matter. */
 function keyOf(s: DuelState): string {
   const f = s.fx;
@@ -38,9 +45,10 @@ function keyOf(s: DuelState): string {
     if (c.out) { k += "|x"; continue; }
     k += `|${c.cur}:`;
     k += c.energy.length > 1 ? c.energy.map((e) => CODE[e]).sort().join("") : c.energy.length ? CODE[c.energy[0]] : "";
+    k += condKey(c);
   }
   // The trainer's Energy follows a fixed rule, so for the same card the count says it all.
-  for (const c of s.foe) k += c.out ? "|x" : `|${c.cur}:${c.energy.length}`;
+  for (const c of s.foe) k += c.out ? "|x" : `|${c.cur}:${c.energy.length}${condKey(c)}`;
   return k;
 }
 
@@ -230,13 +238,24 @@ export const FAIR_LEADS: Record<DuelTier, number> = { gym: 2, elite: 1, rival: 1
 
 // ─── building a day ──────────────────────────────────────────────────────────
 
-/** The engine's setup for a day: the pack and the trainer's team as cards. Null if a card is missing. */
-export function makeSetup(cards: Readonly<Record<string, DuelCard>>, trainer: DuelTrainer, pack: readonly string[], row: EnergyType[], events: DuelEventAt[]): DuelSetup | null {
+/**
+ * The engine's setup for a day: the pack and the trainer's team as cards. Null if a card is missing.
+ * `rules` 2 plays conditions, rolled from `seed` (the day).
+ */
+export function makeSetup(
+  cards: Readonly<Record<string, DuelCard>>, trainer: DuelTrainer, pack: readonly string[], row: EnergyType[], events: DuelEventAt[],
+  opts: { rules?: 1 | 2; seed?: string } = {},
+): DuelSetup | null {
   const you = pack.map((id) => cards[id]);
   const foe = trainer.team.map((id) => cards[id]).filter(Boolean);
   if (you.some((c) => !c) || foe.length < 1) return null;
-  return { you, foe, row, events, signature: trainer.signature.effect, trainer: trainer.name };
+  const setup: DuelSetup = { you, foe, row, events, signature: trainer.signature.effect, trainer: trainer.name };
+  if (opts.rules === 2) { setup.rules = 2; setup.seed = opts.seed ?? ""; }
+  return setup;
 }
+
+/** The same duel as the solver plays it: your conditions never land (rules 2), so par never counts on luck. */
+export const solverSetup = (setup: DuelSetup): DuelSetup => (setup.rules === 2 ? { ...setup, luck: "miss" } : setup);
 
 /** How many ex cards a pack may hold, by tier (never more than 2). */
 export const MAX_EX: Record<DuelTier, number> = { gym: 1, elite: 1, rival: 2, boss: 2, champion: 2 };
@@ -316,6 +335,8 @@ export interface DuelDayBuild {
   obviousTurns: number;
   /** Leads the lookahead player wins from (FAIR_LEADS asks for at least 1, 2 on gym days; 0 only when no pack anywhere passed). */
   fair: number;
+  /** The rules it was built with (2: conditions play). */
+  rules: 1 | 2;
   ms: number;
 }
 
@@ -328,7 +349,7 @@ type Found = Omit<DuelDayBuild, "attempts" | "ms" | "inBand" | "stoodIn">;
  */
 export function packsFor(
   day: string, trainer: DuelTrainer, tier: DuelTier, pool: readonly string[], cards: Readonly<Record<string, DuelCard>>,
-  seed: string, attempts: number, deadline: number, width: number | undefined, count: { n: number }, needFair = 0,
+  seed: string, attempts: number, deadline: number, width: number | undefined, count: { n: number }, needFair = 0, rules: 1 | 2 = 1,
 ): { found: Found; inBand: boolean } | null {
   const [lo, hi] = PAR_BAND[tier];
   const team = trainer.team.map((id) => cards[id]).filter(Boolean);
@@ -356,16 +377,16 @@ export function packsFor(
     if (!pack) break;
     const row = energyRow(pack.map((id) => cards[id]), rand);
     const events = eventPlan(rand);
-    const setup = makeSetup(cards, trainer, pack, row, events);
+    const setup = makeSetup(cards, trainer, pack, row, events, { rules, seed: day });
     if (!setup) continue;
     const obvious = obviousPlay(setup);
     if (obvious.won) { tooEasy++; continue; }
-    const sol = solve(setup, { width, deadline });
+    const sol = solve(solverSetup(setup), { width, deadline });
     if (!sol) { tooHard++; continue; }
     // Findable: a player reading one turn ahead has to win from enough leads.
-    const fair = fairLeads(setup);
+    const fair = fairLeads(solverSetup(setup));
     if (fair < needFair) { tooHard++; continue; }
-    const found: Found = { day, number: duelNumber(day), tier, trainerId: trainer.id, pack, row, events, par: sol.par, line: sol.line, slack, obviousTurns: obvious.turns, fair };
+    const found: Found = { day, number: duelNumber(day), tier, trainerId: trainer.id, pack, row, events, par: sol.par, line: sol.line, slack, obviousTurns: obvious.turns, fair, rules };
     if (sol.par >= lo && sol.par <= hi) return { found, inBand: true };
     if (sol.par < lo) tooEasy++;
     else tooHard++;
@@ -394,7 +415,7 @@ export function buildDay(
   cards: Readonly<Record<string, DuelCard>>,
   trainers: readonly DuelTrainer[],
   seed = "",
-  opts: { attempts?: number; budgetMs?: number; width?: number; standIns?: number } = {},
+  opts: { attempts?: number; budgetMs?: number; width?: number; standIns?: number; rules?: 1 | 2 } = {},
 ): DuelDayBuild | null {
   const t0 = Date.now();
   const deadline = t0 + (opts.budgetMs ?? 60_000);
@@ -413,7 +434,7 @@ export function buildDay(
   for (const needFair of [FAIR_LEADS[tier], 0]) {
     for (const [i, trainer] of order.entries()) {
       if (Date.now() >= deadline) break;
-      const got = packsFor(day, trainer, tier, pool, cards, seed, attempts, deadline, opts.width, count, needFair);
+      const got = packsFor(day, trainer, tier, pool, cards, seed, attempts, deadline, opts.width, count, needFair, opts.rules ?? 1);
       if (got) return { ...got.found, attempts: count.n, inBand: got.inBand, stoodIn: i > 0, ms: Date.now() - t0 };
     }
   }

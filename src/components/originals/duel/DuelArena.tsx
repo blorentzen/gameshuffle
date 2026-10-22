@@ -27,11 +27,15 @@ import { IconArrowsExchange, IconBolt, IconCrown, IconHourglass, IconList, IconM
 import type { DuelCardView, DuelPlayView, DuelRunView } from "@/lib/originals/duel/view";
 import type { DuelAct, EnergyType } from "@/lib/originals/duel/types";
 import type { ArenaMotion } from "./duelBeats";
-import { CardPicture, CardThumb, CostDots, EnergyDot, Pips, TypeChip } from "./DuelBits";
+import { CardArt, CardConds, CardThumb, CondTag, CostDots, EnergyDot, MoveConds, Pips, TypeChip, condWords } from "./DuelBits";
 import { DuelField } from "./DuelHolo";
 import { DuelEventBanner, DuelForecast } from "./DuelEvent";
 import { TrainerArt } from "./TrainerArt";
-import { WEATHER_CHIP, cardLabel, clockText, energyWords, eventLines, eventOutcome, isEventLine, lineText, scoreRows, type ScoreRow } from "./duelLook";
+import { CONDITION_LOOK, WEATHER_CHIP, cardLabel, clockText, energyWords, eventLines, eventOutcome, isEventLine, lineText, scoreRows, type ScoreRow } from "./duelLook";
+import type { DuelMoveView } from "@/lib/originals/duel/view";
+
+/** A move's conditions in words, for its button's label (" 25% chance to make it Paralyzed."). */
+const fxWords = (m: Pick<DuelMoveView, "fx">) => m.fx.map((f) => ` ${f.chance}% chance to make it ${CONDITION_LOOK[f.c].word}.`).join("");
 
 export type { ArenaMotion };
 
@@ -61,9 +65,10 @@ function Chip({ icon: Glyph, text, full, tone }: { icon?: Icon; text: string; fu
   );
 }
 
-/** The scoreline: one row per move (×2 on a Weakness, KO on a knockout), a skipped move, a swap, the sandstorm. */
+/** The scoreline: one row per move (×2 on a Weakness, KO on a knockout), a skipped move, a swap, the sandstorm, the conditions. */
 function Scoreline({ rows, reveal, trainer, onLog }: { rows: ScoreRow[]; reveal: number; trainer: string; onLog: () => void }) {
   const who = (side: "you" | "foe") => (side === "you" ? "You" : trainer);
+  const whose = (side: "you" | "foe") => (side === "you" ? "Your" : `${trainer}'s`);
   return (
     <div className="duel-score">
       <ul className="duel-score__rows" aria-label="Last turn">
@@ -82,9 +87,44 @@ function Scoreline({ rows, reveal, trainer, onLog }: { rows: ScoreRow[]; reveal:
             {r.kind === "skip" && (
               <>
                 <span className="duel-score__who">{who(r.side)}</span>
-                {r.why === "asleep" ? <IconZzz size={16} stroke={2} aria-hidden="true" /> : <IconMoodAngry size={16} stroke={2} aria-hidden="true" />}
-                <b>{r.why === "asleep" ? "Asleep" : "Stubborn"}</b>
+                {r.why === "paralyzed" ? <CondTag c="paralyzed" size="xs" label="Paralyzed" /> : r.why === "asleep" ? <IconZzz size={16} stroke={2} aria-hidden="true" /> : <IconMoodAngry size={16} stroke={2} aria-hidden="true" />}
+                <b>{r.why === "asleep" ? "Asleep" : r.why === "paralyzed" ? "Can't move" : "Stubborn"}</b>
                 <span className="sr-only">, no move</span>
+              </>
+            )}
+            {r.kind === "cond" && (
+              <>
+                <span className="duel-score__who">{whose(r.side)}</span>
+                <b>{r.card}</b>
+                <CondTag c={r.cond} size="xs" label={`is now ${CONDITION_LOOK[r.cond].word}`} />
+                <span aria-hidden="true">{CONDITION_LOOK[r.cond].word}</span>
+              </>
+            )}
+            {r.kind === "tick" && (
+              <>
+                <span className="duel-score__who">{whose(r.side)}</span>
+                <b>{r.card}</b>
+                <CondTag c={r.cond} size="xs" label={r.cond === "burned" ? "takes its burn" : "takes poison"} />
+                <span className="duel-score__dmg">{r.damage}</span>
+                {r.ko && <span className="duel-badge duel-badge--ko" aria-hidden="true">KO</span>}
+                <span className="sr-only">{r.ko ? ", knocked out" : ""}</span>
+              </>
+            )}
+            {r.kind === "self" && (
+              <>
+                <span className="duel-score__who">{whose(r.side)}</span>
+                <b>{r.card}</b>
+                <CondTag c="confused" size="xs" label="is confused and hits itself" />
+                <span className="duel-score__dmg">{r.damage}</span>
+                {r.ko && <span className="duel-badge duel-badge--ko" aria-hidden="true">KO</span>}
+                <span className="sr-only">{r.ko ? ", knocked out" : ""}</span>
+              </>
+            )}
+            {r.kind === "wake" && (
+              <>
+                <span className="duel-score__who">{whose(r.side)}</span>
+                <b>{r.card}</b>
+                <span>wakes up</span>
               </>
             )}
             {r.kind === "swap" && (
@@ -279,7 +319,8 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
                     <span className="duel-foe-moves__name">{m.n}</span>
                     <CostDots cost={m.cost} energy={foe.energy} />
                     <span className="sr-only">, needs {energyWords(m.cost)}{m.ready ? ", ready" : ""}</span>
-                    <strong className={m.weak ? "duel-up" : undefined}>{m.damage ?? m.d}<span className="sr-only"> damage to your card{m.weak ? ", super effective" : ""}</span></strong>
+                    <MoveConds fx={m.fx} size="xs" />
+                    <strong className={m.weak ? "duel-up" : undefined}>{m.damage ?? m.d}<span className="sr-only"> damage to your card{m.weak ? ", super effective" : ""}.{fxWords(m)}</span></strong>
                     {next && <em>Next</em>}
                   </li>
                 );
@@ -338,7 +379,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
               const ok = attach !== null && play.canMove && (attach === you.index ? m.readyWithNew : m.ready);
               const dmg = m.damage ?? m.d;
               const tone = dmg > m.d ? " duel-up" : dmg < m.d ? " duel-down" : "";
-              const why = !turnLive ? "" : !play.canMove ? " Your card can't move this turn." : ok ? " Ready." : " Needs more Energy.";
+              const why = !turnLive ? "" : you.cond === "asleep" ? " Your card is Asleep." : !play.canMove ? " Your card can't move this turn." : ok ? " Ready." : " Needs more Energy.";
               return (
                 <Button
                   key={`${you.index}-${m.n}`}
@@ -347,7 +388,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
                   disabled={!ok || busy}
                   onClick={() => act({ move: i })}
                   data-move={i}
-                  aria-label={`${m.n}: ${dmg} damage${m.weak && dmg > 0 ? ", super effective" : ""}. Costs ${energyWords(m.cost)}.${why}`}
+                  aria-label={`${m.n}: ${dmg} damage${m.weak && dmg > 0 ? ", super effective" : ""}. Costs ${energyWords(m.cost)}.${fxWords(m)}${why}`}
                 >
                   <span className="duel-move__top">
                     <span className="duel-move__name">{m.n}</span>
@@ -356,7 +397,10 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
                       <span className={`duel-move__dmg${tone}`}>{dmg}</span>
                     </span>
                   </span>
-                  <CostDots cost={m.cost} energy={energyFor(you)} />
+                  <span className="duel-move__foot">
+                    <CostDots cost={m.cost} energy={energyFor(you)} />
+                    <MoveConds fx={m.fx} size="xs" />
+                  </span>
                 </Button>
               );
             })}
@@ -380,7 +424,8 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
                 <Button variant="ghost" size="small" onClick={cancelSwap}>Cancel</Button>
               </p>
             )}
-            {!swapping && turnLive && play.turn === 1 && <p className="duel-movenote">Tap a move, or tap a waiting card to give it the Energy.</p>}
+            {!swapping && turnLive && you.cond === "asleep" && <p className="duel-movenote"><CondTag c="asleep" size="xs" label="Asleep" />Asleep: wait, or swap to wake it.</p>}
+            {!swapping && turnLive && you.cond !== "asleep" && play.turn === 1 && <p className="duel-movenote">Tap a move, or tap a waiting card to give it the Energy.</p>}
           </div>
         )}
 
@@ -478,8 +523,8 @@ function DuelPicker({ play, trainer, headingRef, busy, onPick, onZoom }: {
             return (
               <li key={i} className="duel-pick__item">
                 <button type="button" className="duel-pick__card" onClick={() => onPick(i)} disabled={busy} data-pick={i}
-                  aria-label={`Send out ${c.name}: ${c.t}, ${c.cur} of ${c.hp} HP, ${c.weak ? `weak to ${c.weak}` : "no Weakness"}. Hits for up to ${best}${weakHit ? ", super effective" : ""}.${c.energy.length ? ` Energy on it: ${energyWords(c.energy)}.` : ""}`}>
-                  <CardPicture card={c} />
+                  aria-label={`Send out ${c.name}: ${c.t}, ${c.cur} of ${c.hp} HP${condWords(c)}, ${c.weak ? `weak to ${c.weak}` : "no Weakness"}. Hits for up to ${best}${weakHit ? ", super effective" : ""}.${c.energy.length ? ` Energy on it: ${energyWords(c.energy)}.` : ""}`}>
+                  <span className="duel-pick__art"><CardArt card={c} />{(c.cond || c.confused) && <span className="duel-thumb__conds"><CardConds card={c} size="xs" /></span>}</span>
                   <span className="duel-pick__name">{cardLabel(c)}</span>
                   <span className="duel-pick__facts" aria-hidden="true">
                     <TypeChip t={c.t} />

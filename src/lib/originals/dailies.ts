@@ -244,7 +244,7 @@ export function combinedShareText(entries: DailiesEntries, shown: DailiesId[], a
     const e = entries[id]!;
     const g = DAILIES[id];
     // Before a game's first day (a preview) it has no number yet.
-    const name = e.number >= 1 ? `${g.short} #${e.number}` : g.short;
+    const name = e.number >= 1 ? `${g.short} #${e.number}` : id === "duel" ? `${g.short} warm-up` : g.short;
     if (id === "weekly") return `${g.square} ${name} · answered`;
     if (id === "fire") return `${g.square} ${name} · ${e.fire!.score.toLocaleString("en-US")} · ${e.fire!.right} right${flame(e.stats?.streak)}`;
     if (id === "duel") return `${g.square} ${name} · ${duelScoreText(e.duel!)}${e.duel!.won && e.duel!.seconds != null ? ` ⏱ ${formatTime(e.duel!.seconds)}` : ""}${flame(e.stats?.streak)}`;

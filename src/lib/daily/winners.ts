@@ -7,7 +7,7 @@ import { answerFor, guessLimits, puzzleFor, puzzleNumber, SHUFFLE } from "@/lib/
 import { DEX, DEX_PUZZLE, dexAnswer, dexNumber } from "@/lib/originals/dailyDex";
 import { fireNumber } from "@/lib/originals/fireRound";
 import { DUEL_SHOWN } from "@/lib/originals/dailies";
-import { duelNumber } from "@/lib/originals/duel/rules";
+import { DUEL_WARMUP, duelNumber } from "@/lib/originals/duel/rules";
 import { duelDayTrainer, duelWonDays } from "@/lib/originals/duel/store";
 import { gsAddDays } from "@/lib/time/gsClock";
 import { createNotification } from "@/lib/social/notifications";
@@ -138,7 +138,7 @@ export function sectionHead(game: WinnersGame, day: string): Omit<WinnersSection
 /** The dailies in the video for a day: Fire Round from its first round, the Daily Duel once it's public (any built day on the dev server). */
 export function winnersGames(day: string): WinnersGame[] {
   const games: WinnersGame[] = fireNumber(day) >= 1 ? ["shuffle", "dex", "fire"] : ["shuffle", "dex"];
-  if (DUEL_SHOWN && (duelNumber(day) >= 1 || process.env.NODE_ENV !== "production")) games.push("duel");
+  if (DUEL_SHOWN && (duelNumber(day) >= 1 || day === DUEL_WARMUP || process.env.NODE_ENV !== "production")) games.push("duel");
   return games;
 }
 

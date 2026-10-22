@@ -18,6 +18,8 @@ import { currentDay, dailiesSnapshot, readDailiesStore, subscribeDailies, type D
 import { tomorrowLine } from "@/lib/originals/duel/rules";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { TrainerArt } from "./TrainerArt";
+import { CardArt, EnergyDot } from "./DuelBits";
+import { TYPE_DOT } from "./duelLook";
 import "@/styles/duel-challenger.css";
 
 /** Today's official duel as this browser recorded it: undefined before it's over, else its result (null when unknown). */
@@ -69,9 +71,10 @@ export function ChallengerBand({ challenger }: { challenger: DuelChallengerView 
             <p className="duel-ch__label">{c.name}&apos;s team</p>
             <ul className="duel-ch__team" style={{ "--n": c.team.length } as React.CSSProperties} aria-label={`${c.name}'s team`}>
               {c.team.map((card, i) => (
-                <li key={i}>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- Scrydex CDN image, medium size, never rewritten */}
-                  {card.img ? <img src={card.img} alt={card.name} loading="lazy" decoding="async" /> : <span className="duel-ch__noart">{card.name}</span>}
+                // Our own card face: the art window, its type and HP (the Duel never shows the real card as the card you play).
+                <li key={i} className="duel-ch__face" style={{ "--tc": TYPE_DOT[card.t ?? "Colorless"] } as React.CSSProperties}>
+                  <CardArt card={{ img: card.img, name: card.name, short: card.name, t: card.t ?? "Colorless" }} className="duel-ch__cardart" alt={`${card.name}, ${card.t ?? "Colorless"}, ${card.hp ?? ""} HP`} />
+                  {card.t && card.hp ? <span className="duel-ch__foot" aria-hidden="true"><EnergyDot t={card.t} size="xs" /><b>{card.hp}</b></span> : null}
                 </li>
               ))}
             </ul>
@@ -82,7 +85,7 @@ export function ChallengerBand({ challenger }: { challenger: DuelChallengerView 
             ? <Button variant="secondary" size="large" className="duel-ch__again">See how you did</Button>
             : <Button variant="primary" size="large" iconBefore={IconSwords} className="duel-ch__go">Battle now</Button>}
         </Link>
-        <p className="duel-ch__small">{done ? tomorrowLine(c.day) : `Daily Duel #${c.number} · ${c.tierLabel} day · the same six cards for everyone`}</p>
+        <p className="duel-ch__small">{done ? tomorrowLine(c.day) : `${c.number >= 1 ? `Daily Duel #${c.number}` : "Warm-up duel"} · ${c.tierLabel} day · the same six cards for everyone`}</p>
       </div>
     </article>
   );

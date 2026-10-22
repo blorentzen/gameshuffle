@@ -9,7 +9,7 @@
  * stays out.
  */
 
-import type { DuelCard, DuelMove, EnergyType } from "@/lib/originals/duel/types";
+import type { DuelCard, DuelCondition, DuelMove, DuelMoveFx, EnergyType } from "@/lib/originals/duel/types";
 
 /** The columns of `tcg_cards` the duel reads. */
 export interface DuelCatalogRow {
@@ -93,6 +93,35 @@ export function textDamage(text: unknown): number | null {
 }
 interface RawWeakness { type?: unknown }
 
+const CONDITION_WORD: Record<string, DuelCondition> = { burned: "burned", poisoned: "poisoned", paralyzed: "paralyzed", asleep: "asleep", confused: "confused" };
+const TARGET = "(?:your opponent's Active Pokémon|the Defending Pokémon)";
+const CONDS = "(Burned|Poisoned|Paralyzed|Asleep|Confused)(?:,? and (Burned|Poisoned|Paralyzed|Asleep|Confused))?";
+/** "Your opponent's Active Pokémon is now Paralyzed." (also "The Defending Pokémon …", and "X and Y"). */
+const SURE = new RegExp(`(?:^|\\. )${TARGET} is now ${CONDS}\\.`, "i");
+/** "Flip a coin. If heads, your opponent's Active Pokémon is now Paralyzed." */
+const COIN = new RegExp(`(?:^|\\. )Flip a coin\\. If heads, ${TARGET} is now ${CONDS}\\.`, "i");
+
+/**
+ * The conditions an attack's text puts on the card it hits, in the two wordings the Duel plays:
+ * always ("… is now Paralyzed.") and on a coin ("Flip a coin. If heads, … is now Paralyzed.").
+ * Anything with a condition of its own ("If the Defending Pokémon is…", "If tails…", two coins) and
+ * conditions on the attacker itself stay out: the card's other words are flavor, as before.
+ */
+export function conditionsOf(text: unknown): DuelMoveFx[] {
+  if (typeof text !== "string" || !text) return [];
+  const clean = text.replace(/\([^)]*\)/g, " ").replace(/[’‘]/g, "'").replace(/Pok[eé]mon/g, "Pokémon").replace(/\s+/g, " ").trim();
+  if (/If tails/i.test(clean)) return [];
+  const m = clean.match(COIN) ?? clean.match(SURE);
+  if (!m) return [];
+  const coin = /^(?:\. )?Flip a coin/i.test(m[0]);
+  const out: DuelMoveFx[] = [];
+  for (const w of [m[1], m[2]]) {
+    const c = w ? CONDITION_WORD[w.toLowerCase()] : undefined;
+    if (c && !out.some((x) => x.c === c)) out.push(coin ? { c, coin: true } : { c });
+  }
+  return out;
+}
+
 /** The card as the duel plays it, or null when it can't play (not a Pokémon, no type or HP, no damaging move). */
 export function toDuelCard(row: DuelCatalogRow): DuelCard | null {
   if (!/^pok/i.test(row.supertype ?? "")) return null;
@@ -104,7 +133,8 @@ export function toDuelCard(row: DuelCatalogRow): DuelCard | null {
     const d = damageOf(a.damage) || textDamage(a.text) || 0;
     if (!d || typeof a.name !== "string") continue;
     const cost = (Array.isArray(a.cost) ? a.cost : []).map((c) => energyOf(c) ?? "Colorless");
-    moves.push({ n: a.name.trim(), cost, d });
+    const fx = conditionsOf(a.text);
+    moves.push(fx.length ? { n: a.name.trim(), cost, d, fx } : { n: a.name.trim(), cost, d });
   }
   if (!moves.length) return null;
   const weak = energyOf(((Array.isArray(row.weaknesses) ? row.weaknesses : []) as RawWeakness[])[0]?.type);

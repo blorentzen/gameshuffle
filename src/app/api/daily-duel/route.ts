@@ -22,6 +22,11 @@ export const maxDuration = 60;
 
 const noStore = { "Cache-Control": "private, no-store" };
 const hidden = () => !DUEL_PUBLIC && process.env.NODE_ENV === "production";
+/** Development only: another day's duel (the page sends ?day= as x-duel-day), built on first use like any day. */
+const devDay = (req: Request) => {
+  const d = req.headers.get("x-duel-day");
+  return process.env.NODE_ENV === "development" && d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : undefined;
+};
 
 export async function GET(req: Request) {
   if (hidden()) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -30,7 +35,7 @@ export async function GET(req: Request) {
     return NextResponse.json(c ? { ready: true, ...c } : { ready: false }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } });
   }
   const player = await duelPlayer(req);
-  return NextResponse.json(await duelHome(player), { headers: noStore });
+  return NextResponse.json(await duelHome(player, devDay(req)), { headers: noStore });
 }
 
 export async function POST(req: Request) {
@@ -42,7 +47,7 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as { action?: string; mode?: string };
   if (body.action === "board") return NextResponse.json({ board: await boardTodayFor(player) }, { headers: noStore });
   if (body.action !== "start" || (body.mode !== "official" && body.mode !== "practice")) return NextResponse.json({ error: "bad_request" }, { status: 400 });
-  const r = await startRun(player, body.mode);
+  const r = await startRun(player, body.mode, devDay(req));
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.error === "not_ready" ? 503 : r.error === "official_first" ? 409 : 500 });
   return NextResponse.json({ run: r.run }, { headers: noStore });
 }

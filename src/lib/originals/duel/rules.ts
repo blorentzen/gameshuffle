@@ -15,12 +15,18 @@ import { TURN_CAP } from "./engine";
 import type { DuelCard, DuelEventAt, DuelEventKind, DuelTier, DuelTrainer, EnergyType } from "./types";
 
 /**
- * Duel #1, launched Thursday Oct 22, 2026. Never move it: the number counts days from it, and
- * shares and boards carry the number.
+ * Duel #1: Friday Oct 23, 2026, the first day with our own cards and conditions. The Duel opened the
+ * day before (Oct 22, Larry) on the first rules; that day is the warm-up (DUEL_WARMUP, Britton's call
+ * on 2026-10-22). Never move it again: the number counts days from it, and shares and boards carry it.
  */
-export const DUEL_EPOCH = "2026-10-22";
+export const DUEL_EPOCH = "2026-10-23";
+/** The day the Duel opened, before #1: shown as the warm-up wherever a number would be. */
+export const DUEL_WARMUP = "2026-10-22";
 
-/** Duel number for a day (#1 on DUEL_EPOCH); 0 before it. */
+/** "#12", or "warm-up" for the day before #1 (number 0). */
+export const duelLabel = (n: number) => (n >= 1 ? `#${n}` : "warm-up");
+
+/** Duel number for a day (#1 on DUEL_EPOCH); 0 before it (the warm-up). */
 export function duelNumber(day: string): number {
   if (day < DUEL_EPOCH) return 0;
   return Math.round((Date.parse(`${day}T12:00:00Z`) - Date.parse(`${DUEL_EPOCH}T12:00:00Z`)) / 86_400_000) + 1;
@@ -49,7 +55,8 @@ export const TIER_LABEL: Record<DuelTier, string> = { gym: "Gym Leader", elite: 
 /** Who comes the day after `day`, without naming them: "Tomorrow: a rival" (the challenger cards, once today's duel is played). */
 export function tomorrowLine(day: string): string {
   const who: Record<DuelTier, string> = { gym: "a Gym Leader", elite: "a member of an Elite Four", rival: "a rival", boss: "a villain team's boss", champion: "a Champion" };
-  return `Tomorrow: ${who[tierFor(gsAddDays(day, 1))]}`;
+  const next = gsAddDays(day, 1);
+  return `Tomorrow${next === DUEL_EPOCH ? ", Daily Duel #1" : ""}: ${who[tierFor(next)]}`;
 }
 
 /**
@@ -405,7 +412,7 @@ export function duelHeadline(f: Pick<DuelShareFacts, "won" | "turns" | "par" | "
 
 /** The text a result shares: the duel, the trainer, the result and time, your squares, the link. Never a card's name. */
 export function duelShareText(f: DuelShareFacts, url = "https://www.gameshuffle.co/daily-duel"): string {
-  const title = `Daily Duel${f.number >= 1 ? ` #${f.number}` : ""} · vs ${f.trainer}${f.practice ? " (practice)" : ""}`;
+  const title = `Daily Duel ${duelLabel(f.number)} · vs ${f.trainer}${f.practice ? " (practice)" : ""}`;
   const time = f.seconds != null ? ` ⏱ ${duelTime(f.seconds)}` : "";
   return [title, `${f.won ? "🏆" : "❌"} ${duelHeadline(f)}${time}`, duelSquares(f.standing), url].join("\n");
 }
