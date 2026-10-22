@@ -55,8 +55,20 @@ export interface DuelDay {
   line: DuelStep[];
 }
 
-/** Built days never change: kept per server instance. */
-const dayCache = new Map<string, DuelDay>();
+/**
+ * Built days don't change, so each server keeps the ones it has read, but only for a few minutes: a
+ * day an operator deletes to rebuild (as #2 was on 2026-10-22, under the findable rule) mustn't live
+ * on in one server's memory while the others build the new one.
+ */
+const DAY_CACHE_MS = 5 * 60_000;
+const dayCache = new Map<string, { d: DuelDay; at: number }>();
+const cachedDay = (day: string): DuelDay | null => {
+  const hit = dayCache.get(day);
+  if (!hit) return null;
+  if (Date.now() - hit.at > DAY_CACHE_MS) { dayCache.delete(day); return null; }
+  return hit.d;
+};
+const keepDay = (d: DuelDay) => { dayCache.set(d.day, { d, at: Date.now() }); };
 const building = new Map<string, Promise<DuelDay | null>>();
 
 function dayFrom(r: DayRow): DuelDay | null {
@@ -102,17 +114,17 @@ export async function buildAndSaveDay(day: string, opts: { budgetMs?: number; da
   if (error) { console.error("[duel] day save failed:", error); return null; }
   const stored = await readDay(day);
   if (!stored || stored === "missing") return null;
-  dayCache.set(day, stored);
+  keepDay(stored);
   return { day: stored, build };
 }
 
 /** A day's duel: stored, else built now (lazily, within the budget). Null before the migration or when it can't be built. */
 export async function getDay(day = gsDay(), opts: { build?: boolean; budgetMs?: number } = {}): Promise<DuelDay | null> {
-  const hit = dayCache.get(day);
+  const hit = cachedDay(day);
   if (hit) return hit;
   const have = await readDay(day);
   if (have === "missing") return null;
-  if (have) { dayCache.set(day, have); return have; }
+  if (have) { keepDay(have); return have; }
   if (opts.build === false) return null;
   let p = building.get(day);
   if (!p) {
@@ -125,15 +137,15 @@ export async function getDay(day = gsDay(), opts: { build?: boolean; budgetMs?: 
 /**
  * Today's and tomorrow's duels, built if they aren't stored yet (the every-minute sweep calls it), so
  * a new day is ready at midnight and the homepage's card, which only reads a built day, has its
- * trainer. A stored day is a memory hit after the first read on each server.
+ * trainer. A stored day is a memory hit for a few minutes after each read (DAY_CACHE_MS).
  */
 export async function ensureDays(): Promise<number> {
   let built = 0;
   for (const day of [gsDay(), gsAddDays(gsDay(), 1)]) {
-    if (dayCache.has(day)) continue;
+    if (cachedDay(day)) continue;
     const have = await readDay(day);
     if (have === "missing") return built;
-    if (have) { dayCache.set(day, have); continue; }
+    if (have) { keepDay(have); continue; }
     if (await getDay(day)) built++;
   }
   return built;
