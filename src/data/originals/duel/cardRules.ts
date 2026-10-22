@@ -2,7 +2,11 @@
  * Daily Duel: how a catalog card (`tcg_cards`) becomes a DuelCard. Pure and client-safe, shared by
  * scripts/populate-duel-cards.ts (which cards can play), scripts/build-duel-cards.ts (writes
  * cards.generated.ts) and scripts/test-duel-data.ts. Only the printed numbers count: type, HP,
- * Weakness, and each move's Energy cost and damage ("130+" counts as 130, "50×" as 50).
+ * Weakness, and each move's Energy cost and damage ("130+" counts as 130, "50×" as 50). An attack
+ * whose damage is written in its text and nothing else ("This attack does 30 damage to 2 of your
+ * opponent's Pokémon") plays as that hit on the card in play (textDamage; Britton, 2026-10-22, after a
+ * player expected Kyogre's Dual Splash to work). Text with any condition, cost or bench-only target
+ * stays out.
  */
 
 import type { DuelCard, DuelMove, EnergyType } from "@/lib/originals/duel/types";
@@ -63,7 +67,30 @@ export function shortName(name: string): string {
   return clean.length > 16 ? clean.replace(OWNER_PREFIX, "") : clean;
 }
 
-interface RawAttack { name?: unknown; cost?: unknown; damage?: unknown }
+interface RawAttack { name?: unknown; cost?: unknown; damage?: unknown; text?: unknown }
+
+/** The whole text of an attack that only does damage to the opponent's Pokémon (the reminder in parentheses aside). */
+const TEXT_DAMAGE: RegExp[] = [
+  /^This attack does (\d+) damage to (?:1|2|each) of your opponent's Pokémon\.$/i,
+  /^This attack does (\d+) damage to each of 2 of your opponent's Pokémon\.$/i,
+  /^Choose (?:1|2) of your opponent's Pokémon\. This attack does (\d+) damage to (?:that Pokémon|each of them)\.$/i,
+  /^Does (\d+) damage to each Defending Pokémon\.$/i,
+];
+
+/**
+ * The damage an attack's text does when that's all it does: "This attack does 30 damage to 2 of
+ * your opponent's Pokémon. (Don't apply Weakness and Resistance for Benched Pokémon.)" → 30. Null for
+ * anything else (a condition, a discard, a coin, a bench-only target, an effect).
+ */
+export function textDamage(text: unknown): number | null {
+  if (typeof text !== "string") return null;
+  const clean = text.replace(/\([^)]*\)/g, " ").replace(/[’‘]/g, "'").replace(/Pok[eé]mon/g, "Pokémon").replace(/\s+/g, " ").trim();
+  for (const re of TEXT_DAMAGE) {
+    const m = clean.match(re);
+    if (m) return Number(m[1]);
+  }
+  return null;
+}
 interface RawWeakness { type?: unknown }
 
 /** The card as the duel plays it, or null when it can't play (not a Pokémon, no type or HP, no damaging move). */
@@ -74,7 +101,7 @@ export function toDuelCard(row: DuelCatalogRow): DuelCard | null {
   if (!t || !hp) return null;
   const moves: DuelMove[] = [];
   for (const a of (Array.isArray(row.attacks) ? row.attacks : []) as RawAttack[]) {
-    const d = damageOf(a.damage);
+    const d = damageOf(a.damage) || textDamage(a.text) || 0;
     if (!d || typeof a.name !== "string") continue;
     const cost = (Array.isArray(a.cost) ? a.cost : []).map((c) => energyOf(c) ?? "Colorless");
     moves.push({ n: a.name.trim(), cost, d });
@@ -93,6 +120,17 @@ export function toDuelCard(row: DuelCatalogRow): DuelCard | null {
     moves,
     img: row.images?.medium ?? row.images?.small ?? null,
   };
+}
+
+/**
+ * Every attack on the card plays in the duel as printed: a printed damage number, or text that only
+ * does damage (textDamage). A card with an attack that only draws, heals, searches or adds a
+ * condition shows a move the duel can't play, so prints like that are picked last (Britton,
+ * 2026-10-22: "find cards that clean lines through attacks").
+ */
+export function cleanAttacks(row: Pick<DuelCatalogRow, "attacks">): boolean {
+  const attacks = (Array.isArray(row.attacks) ? row.attacks : []) as RawAttack[];
+  return attacks.every((a) => damageOf(a.damage) > 0 || textDamage(a.text) !== null);
 }
 
 /** Can hit with at least one move costing MAX_MOVE_COST Energy or less. */
