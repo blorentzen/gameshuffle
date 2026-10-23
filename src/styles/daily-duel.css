@@ -141,8 +141,11 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 /* Wider screens: the picture on the left (a medium card image isn't stretched across the card), fading into the navy, with who they are beside it. */
 @media (min-width: 40rem) {
   .duel-start__top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: var(--spacing-20, 20px); }
-  .duel-start__media { margin: calc(-1 * var(--spacing-20, 20px)) 0 0 calc(-1 * var(--spacing-20, 20px)); align-self: stretch; }
-  .duel-start__art { height: 100%; min-height: 24rem; aspect-ratio: auto; }
+  .duel-start__media { margin: calc(-1 * var(--spacing-20, 20px)) 0 0 calc(-1 * var(--spacing-20, 20px)); align-self: stretch; min-height: 24rem; }
+  /* The picture fills the frame as a box of its own: a frame whose height came from height: 100% and
+     min-height read 100cqh as 0 in the crop (2026-10-23), so heads were cut and the card's text showed
+     under the picture. */
+  .duel-start__art { position: absolute; inset: 0; width: auto; aspect-ratio: auto; }
   .duel-start__media::after { background: linear-gradient(90deg, rgba(13, 18, 51, 0) 55%, #0d1233 100%); }
   .duel-start__intro { margin-top: 0; }
   .duel-start__title { font-size: var(--font-size-32, 3.2rem); }
