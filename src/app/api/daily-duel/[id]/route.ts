@@ -31,9 +31,12 @@ function stepOf(body: Record<string, unknown>): DuelStep | null {
   if ("next" in body) return idx(body.next) ? { next: body.next } : null;
   const a = body.act as Record<string, unknown> | undefined;
   if (!idx(body.attach) || !a || typeof a !== "object") return null;
-  if ("move" in a) return Number.isInteger(a.move) && (a.move as number) >= 0 && (a.move as number) < 8 ? { attach: body.attach, act: { move: a.move as number } } : null;
-  if ("swap" in a) return idx(a.swap) ? { attach: body.attach, act: { swap: a.swap } } : null;
-  if (a.wait === true) return { attach: body.attach, act: { wait: true } };
+  // Rules 5: which Energy in the hand (the engine refuses one the day doesn't have).
+  if (body.use != null && !(Number.isInteger(body.use) && (body.use as number) >= 0 && (body.use as number) < 3)) return null;
+  const use = body.use != null ? { use: body.use as number } : {};
+  if ("move" in a) return Number.isInteger(a.move) && (a.move as number) >= 0 && (a.move as number) < 8 ? { attach: body.attach, act: { move: a.move as number }, ...use } : null;
+  if ("swap" in a) return idx(a.swap) ? { attach: body.attach, act: { swap: a.swap }, ...use } : null;
+  if (a.wait === true) return { attach: body.attach, act: { wait: true }, ...use };
   return null;
 }
 

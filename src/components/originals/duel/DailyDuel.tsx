@@ -216,7 +216,7 @@ export function DailyDuel() {
     else if (!fresh) toast.error("Couldn't send that. Check your connection.");
   }, [busy, run, staging, take, toast]);
 
-  const onTurn = useCallback((attach: number, act: DuelAct) => void send({ attach, act }), [send]);
+  const onTurn = useCallback((attach: number, act: DuelAct, use?: number) => void send(use != null ? { attach, act, use } : { attach, act }), [send]);
   const onNext = useCallback((card: number) => void send({ next: card }), [send]);
   const onBring = useCallback((cards: number[]) => void send({ bring: cards }), [send]);
   const onZoom = useCallback((card: DuelCardView, owner: string) => setZoom({ card, owner }), []);

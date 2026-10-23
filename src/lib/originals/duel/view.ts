@@ -9,12 +9,12 @@
  *   POST /api/daily-duel { action: "board" }     → { board: { points, tokens } | null } (a guest who just joined the boards)
  *   GET  /api/daily-duel/<id>                    → { run: DuelRunView }
  *   POST /api/daily-duel/<id> { next }           → { run } (send out a card: the lead, or after a knockout)
- *   POST /api/daily-duel/<id> { attach, act }    → { run } (a turn: act = { move } | { swap } | { wait: true })
+ *   POST /api/daily-duel/<id> { attach, act, use? } → { run } (a turn: act = { move } | { swap } | { wait: true }; use = which Energy in your hand, rules 5)
  * Guests send the dailies' guest id in `x-daily-guest`, as the other dailies do.
  */
 
 import type { DuelLogLine } from "./engine";
-import type { DuelAct, DuelCondition, DuelEventKind, DuelSignature, DuelTier, EnergyType } from "./types";
+import type { DuelAct, DuelCondition, DuelEventKind, DuelRules, DuelSignature, DuelTier, EnergyType } from "./types";
 import type { DayMark } from "@/lib/originals/dailies";
 
 export type { DuelLogLine };
@@ -34,6 +34,8 @@ export interface DuelMoveView {
   readyWithNew: boolean;
   /** The conditions it puts on the card it hits, each with its chance in percent (empty on days without the condition rules). */
   fx: { c: DuelCondition; chance: number }[];
+  /** Rules 5: what a "+" or "×" attack counts, in words ("+20 for each of the trainer's waiting cards"); `damage` already counts it. */
+  plus: string | null;
 }
 
 export interface DuelCardView {
@@ -91,6 +93,8 @@ export interface DuelInPlay {
   boost: number;
   /** The card Team Rocket has and the turns left. */
   rocket: { card: number; turnsLeft: number } | null;
+  /** Rules 5: the Energy your card on the field came in with this turn for coming back after a knockout (0 otherwise). */
+  fresh: number;
 }
 
 /** The duel as you can see it: everything on the table, this turn's Energy and the next 3, this turn's event and the next one. */
@@ -98,6 +102,8 @@ export interface DuelInPlay {
 export interface DuelHintView {
   attach: number;
   act: DuelAct;
+  /** Rules 5: which Energy in your hand (its index). */
+  use?: number;
   /** "Put the Energy on Darmanitan, then use Searing Flame: 100 to Tropius, double damage." */
   text: string;
 }
@@ -118,16 +124,19 @@ export interface DuelPlayView {
   /** Pick a card to send out first (the lead, or after a knockout): one of `nexts`. */
   needsNext: boolean;
   nexts: number[];
-  /** This turn's Energy (null between turns) and the next 3 after it. */
-  energy: { now: EnergyType | null; next: EnergyType[] };
+  /**
+   * This turn's Energy (null between turns) and the next 3 after it. Rules 5: `hand` is the three you
+   * pick from (send `use`, its index, with the turn; `now` is the first), `next` the next three drawn.
+   */
+  energy: { now: EnergyType | null; next: EnergyType[]; hand: EnergyType[] | null };
   /** Where this turn's Energy can go (every standing card). */
   attachTo: number[];
   /** Waiting cards you can swap in this turn. */
   swaps: number[];
   /** Your card on the field may use a move this turn (false when it's a stubborn ace or Asleep). */
   canMove: boolean;
-  /** The day's rules: 2 = conditions play (days built from 2026-10-22). */
-  rules: 1 | 2;
+  /** The day's rules (types.ts DuelRules): 2 and up = conditions play, 5 = the Energy hand, the comeback charge and "+"/"×" attacks. */
+  rules: DuelRules;
   /** The event that flipped at the start of this turn. */
   event: DuelEventView | null;
   /** The next event: it flips at the start of next turn (null when the next turn has none). */
@@ -267,4 +276,16 @@ export interface DuelHome {
   current: DuelRunView | null;
   history: DuelHistory;
   signedIn: boolean;
+  /** The day's rules (types.ts DuelRules). */
+  rules: DuelRules;
+  /** Rules 5: the professor's plans for the start card (different cards carry each; nothing about luck or par). */
+  plans: DuelPlanView[];
+}
+
+/** One of the professor's plans (solver.ts dayPlans). */
+export interface DuelPlanView {
+  /** "Grimmsnarl carries it". */
+  title: string;
+  /** "Leave Minun out. Lead with Drampa to take the first hits while Mudsdale charges, then send in Mudsdale: High Horsepower knocks out four." */
+  text: string;
 }

@@ -41,7 +41,8 @@ const condKey = (c: { cond?: { k: string; n: number }; conf?: number }) => `${c.
 /** A position's identity: two ways of reaching the same position are one. Energy order doesn't matter. */
 function keyOf(s: DuelState): string {
   const f = s.fx;
-  let k = `${s.brought ? s.brought.join("") : ""}/${s.yi}.${s.fi}.${f.weather ?? "-"}${f.weatherLeft}.${f.crit ? 1 : 0}${f.confused ? 1 : 0}${f.aceYou ? 1 : 0}.${f.sleep}.${f.aceFoe}.${f.boost}.${f.rocket}${f.rocketLeft}`;
+  let k = `${s.brought ? s.brought.join("") : ""}/${s.yi}.${s.fi}.${f.weather ?? "-"}${f.weatherLeft}.${f.crit ? 1 : 0}${f.confused ? 1 : 0}${f.aceYou ? 1 : 0}${f.arrived ?? ""}.${f.sleep}.${f.aceFoe}.${f.boost}.${f.rocket}${f.rocketLeft}`;
+  if (s.hand) k += `/h${s.hand.map((e) => CODE[e]).sort().join("")}`;
   for (const c of s.you) {
     if (c.out) { k += "|x"; continue; }
     k += `|${c.cur}:`;
@@ -291,7 +292,7 @@ export function adviceFor(setup: DuelSetup, s: DuelState, budgetMs = 2000): Duel
   if (!found) return null;
   const turns = first && sol ? planTurns(plan, s, sol.line) : [];
   const a = plainEnergy(plan, s, found, turns);
-  return { attach: a.attach, act: a.act, text: hintText(setup, s, a, turns) };
+  return { attach: a.attach, act: a.act, ...(a.use != null ? { use: a.use } : {}), text: hintText(setup, s, a, turns) };
 }
 
 /**
@@ -303,7 +304,7 @@ function plainEnergy(setup: DuelSetup, s: DuelState, a: DuelAction, turns: PlanT
   if (a.attach === s.yi) return a;
   if (turns.some((p, i) => i > 0 && p.yi === a.attach && "move" in p.act)) return a;
   if ("swap" in a.act && a.act.swap === a.attach) return a;
-  const alt: DuelAction = { attach: s.yi, act: a.act };
+  const alt: DuelAction = { attach: s.yi, act: a.act, ...(a.use != null ? { use: a.use } : {}) };
   if (!isLegal(setup, s, alt)) return a;
   return turnScore(s, step(setup, s, alt, true)) >= turnScore(s, step(setup, s, a, true)) ? alt : a;
 }
@@ -354,19 +355,276 @@ export function hintText(setup: DuelSetup, s: DuelState, a: DuelAction, plan: Pl
       : tank ? ` to take ${foe.short}'s hits`
       : best && best.d > 0 ? `: its ${best.n} does ${best.d} to ${foe.short}${best.d >= foeLeft ? ", a knockout" : ""}`
       : "";
-    turn = a.attach === a.act.swap ? `give ${c.short} the Energy and swap it in${why}` : `swap in ${c.short}${why}`;
+    turn = a.attach === a.act.swap ? (setup.hand ? `swap it in${why}` : `give ${c.short} the Energy and swap it in${why}`) : `swap in ${c.short}${why}`;
   } else {
     turn = "wait this turn and let the Energy build";
   }
-  // The card the Energy goes to, and the move the plan charges it for.
+  // The card the Energy goes to, and the move the plan charges it for. Rules 5: which Energy from the hand.
   let energy = "";
+  const kind = setup.hand && s.hand?.length ? `the ${s.hand[a.use ?? 0]} Energy` : "the Energy";
   if (a.attach !== s.yi && !("swap" in a.act && a.act.swap === a.attach)) {
     const use = plan.find((p, i) => i > 0 && p.yi === a.attach && "move" in p.act);
     const card = setup.you[a.attach];
-    energy = use && "move" in use.act ? `Charge ${card.short} for ${card.moves[use.act.move].n}, then ` : `Put the Energy on ${card.short}, then `;
+    energy = use && "move" in use.act
+      ? (setup.hand ? `Charge ${card.short} with ${kind} for ${card.moves[use.act.move].n}, then ` : `Charge ${card.short} for ${card.moves[use.act.move].n}, then `)
+      : `Put ${kind} on ${card.short}, then `;
+  } else if (setup.hand) {
+    energy = `Play ${kind} on ${setup.you[a.attach].short}, then `;
   }
   const text = `${energy}${turn}.`;
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
+ * Rules 5's stand-in for a person (picks 2026-10-22, https://claude.ai/artifact/MFwJQi5RBdq92B1JKS2EWZ):
+ * each turn the best play a turn ahead (turnScore), or with chance `slip` the second best; after a
+ * knockout the card whose first turn scores best, or with chance `slip` any. Deterministic for `rand`.
+ */
+export function slipPlay(setup: DuelSetup, s0: DuelState, lead: number, slip: number, rand: () => number): boolean {
+  let s = begin(setup, s0, lead, true);
+  let guard = 0;
+  while (!s.over && guard++ < TURN_CAP + 5) {
+    let best: { t: DuelState; score: number } | null = null;
+    let second: { t: DuelState; score: number } | null = null;
+    for (const a of actions(setup, s)) {
+      const t = step(setup, s, a, true);
+      const score = slipScore(setup, s, t) - ("swap" in a.act ? SWAP_COST : 0);
+      if (!best || score > best.score) { second = best; best = { t, score }; }
+      else if (!second || score > second.score) second = { t, score };
+    }
+    if (!best) break;
+    s = (second && rand() < slip ? second : best).t;
+    if (s.over) break;
+    let nx: number | null = null;
+    if (needsNext(s)) {
+      const ns = nexts(s);
+      if (rand() < slip) nx = ns[Math.floor(rand() * ns.length)];
+      else {
+        let top = -Infinity;
+        for (const i of ns) {
+          const score = bestTurn(setup, begin(setup, s, i, true))?.score ?? -Infinity;
+          if (nx === null || score > top) { top = score; nx = i; }
+        }
+      }
+    }
+    s = begin(setup, s, nx, true);
+  }
+  return s.over === "won";
+}
+
+/**
+ * The slipping player's view of a turn: damage dealt (a knockout worth 200 more), less 0.8 of the HP
+ * your cards lost, plus half of how much closer it leaves your cards to their best moves (readiness).
+ * Unlike the lookahead player, losing a card costs only its HP: under rules 5 the next card comes back
+ * charged, and with a knockout counted as 200 the player swapped every turn to dodge one, spreading the
+ * damage. Without readiness a turn that deals no damage is a tie wherever the Energy goes, and the
+ * player never charged anything.
+ */
+function slipScore(setup: DuelSetup, before: DuelState, after: DuelState): number {
+  if (after.over === "won") return 1e6;
+  if (after.over === "lost") return -1e6;
+  let dealt = 0;
+  let lost = 0;
+  for (let i = 0; i < before.foe.length; i++) dealt += (before.foe[i].out ? 0 : before.foe[i].cur) - (after.foe[i].out ? -200 : after.foe[i].cur);
+  for (let i = 0; i < before.you.length; i++) lost += (before.you[i].out ? 0 : before.you[i].cur) - (after.you[i].out ? 0 : after.you[i].cur);
+  return dealt - 0.8 * lost + 0.5 * (readiness(setup, after) - readiness(setup, before));
+}
+
+/** For each of your cards still in, its best move against the trainer's card on the field times the square of the share of its cost already paid; the card on the field counts double. */
+function readiness(setup: DuelSetup, s: DuelState): number {
+  const def = s.fi >= 0 && !s.foe[s.fi]?.out ? setup.foe[s.fi] : null;
+  if (!def) return 0;
+  let v = 0;
+  for (let i = 0; i < setup.you.length; i++) {
+    const slot = s.you[i];
+    if (slot.out || !inDuel(s, i)) continue;
+    const c = setup.you[i];
+    let best = 0;
+    for (const m of c.moves) {
+      const share = paidShare(slot.energy, m.cost);
+      if (share > 0) best = Math.max(best, damageOf(s, c, def, m, true, { att: slot }) * share * share);
+    }
+    v += (i === s.yi ? 1 : 0.5) * best;
+  }
+  return v;
+}
+
+/** How much of a cost the Energy covers: colored needs met, then Colorless from what's left. */
+function paidShare(energy: readonly EnergyType[], cost: readonly EnergyType[]): number {
+  if (!cost.length) return 1;
+  const left = energy.slice();
+  let paid = 0;
+  let colorless = 0;
+  for (const t of cost) {
+    if (t === "Colorless") { colorless++; continue; }
+    const j = left.indexOf(t);
+    if (j >= 0) { left.splice(j, 1); paid++; }
+  }
+  return (paid + Math.min(left.length, colorless)) / cost.length;
+}
+
+/** Rules 5: the share of duels a player who slips 30% of the time wins, over sensible picks of the cards to bring, every lead and a few seeds. */
+export function slipWinRate(setup: DuelSetup, key: string, extra: number[][] = [], seeds = SLIP_SEEDS, slip = SLIP): number {
+  const s0 = startState(setup);
+  const picks = needsBring(setup, s0) ? uniquePicks([smartBring(setup), obviousBring(setup), ...extra]) : [null];
+  let games = 0;
+  let wins = 0;
+  for (const pick of picks) {
+    const sb = pick ? applyStep(setup, s0, { bring: pick })! : s0;
+    for (const lead of nexts(sb)) {
+      for (let k = 0; k < seeds; k++) {
+        games++;
+        if (slipPlay(setup, sb, lead, slip, duelRand(`slip:${key}:${pick?.join("") ?? "6"}:${lead}:${k}`))) wins++;
+      }
+    }
+  }
+  return games ? wins / games : 0;
+}
+const uniquePicks = (ps: number[][]) => ps.filter((p, i) => ps.findIndex((q) => q.join(",") === p.join(",")) === i);
+
+/** What a swap costs the slipping player (a person swaps for a reason; without it the player swapped every turn and spread the damage). */
+const SWAP_COST = 60;
+
+/** How often the slipping player picks the second-best play, and the seeds per start. */
+export const SLIP = 0.3;
+export const SLIP_SEEDS = 4;
+
+/**
+ * Rules 5's targets (Britton's picks 2026-10-22): the share of duels the slipping player wins, about
+ * 85% on Monday and Tuesday down to 55% on Sunday, with room either side.
+ */
+export const WIN_BAND: Record<DuelTier, [number, number]> = {
+  gym: [0.75, 0.95],
+  elite: [0.65, 0.88],
+  rival: [0.6, 0.82],
+  boss: [0.5, 0.72],
+  champion: [0.45, 0.68],
+};
+
+/** One of the professor's plans: a different card carries each. */
+export interface DuelPlan {
+  /** "Grimmsnarl carries it". */
+  title: string;
+  /** One or two sentences: what to bring, who leads, how the carrying card comes in and what it does. */
+  text: string;
+  /** The carrying card (your card index) and the plan's turns (for ordering; never shown). */
+  carry: number;
+  turns: number;
+}
+
+/**
+ * The professor's plans (rules 5): the par line first, then the best line with that plan's carrying
+ * card left without moves (so it can't carry: "Leave X out" when you bring fewer than six), then
+ * without both. Each later line is searched on that changed duel and kept only when it also wins the
+ * real one. Up to `max`, fewest turns first; each search stops at a fixed number of positions, so the
+ * same pack always gets the same plans.
+ */
+export function dayPlans(setup: DuelSetup, par: DuelSolution | null, max = 3): DuelPlan[] {
+  return plansWithLines(setup, par, max).map((p) => p.plan);
+}
+
+/** dayPlans with each plan's winning line (a later plan can beat the par search: judge5 then takes it as par). */
+function plansWithLines(setup: DuelSetup, par: DuelSolution | null, max = 3): { plan: DuelPlan; line: DuelStep[] }[] {
+  const plan = solverSetup(setup);
+  const out: { plan: DuelPlan; line: DuelStep[] }[] = [];
+  const banned: number[] = [];
+  for (let k = 0; k < max; k++) {
+    const line = k === 0 && par ? par.line : lineWithout(plan, banned);
+    if (!line) break;
+    const story = storyOf(plan, line);
+    if (!story || banned.includes(story.carry)) break;
+    out.push({ plan: { title: `${setup.you[story.carry].short} carries it`, text: planText(setup, story), carry: story.carry, turns: story.turns }, line });
+    banned.push(story.carry);
+  }
+  return out.sort((x, y) => x.plan.turns - y.plan.turns);
+}
+
+/**
+ * The fewest-turns winning line the search finds when the `banned` cards have no moves (one search
+ * over every pick and lead), checked on the real duel. On six-card days the second plan often needs
+ * 150,000 to 400,000 positions (2026-10-22 sweep), so PLAN_NODES is 400,000: about 3 seconds.
+ */
+function lineWithout(plan: DuelSetup, banned: number[]): DuelStep[] | null {
+  const off: DuelSetup = { ...plan, you: plan.you.map((c, i) => (banned.includes(i) ? { ...c, moves: [] } : c)) };
+  const sol = solve(off, { width: 300, maxNodes: PLAN_NODES });
+  return sol && winsReal(plan, sol.line) ? sol.line : null;
+}
+
+function winsReal(plan: DuelSetup, line: DuelStep[]): boolean {
+  let s: DuelState | null = startState(plan);
+  for (const st of line) {
+    if (!s) return false;
+    s = applyStep(plan, s, st);
+  }
+  return s?.over === "won";
+}
+const PLAN_NODES = 400_000;
+
+interface LineStory { carry: number; move: string; kos: number; lead: number; pick: number[] | null; entered: "lead" | "swap" | "sent"; chargedFirst: boolean; turns: number; helper: number | null }
+
+/** What a winning line does: who carries it (most damage), with what, how it comes in. */
+function storyOf(setup: DuelSetup, line: DuelStep[]): LineStory | null {
+  let s: DuelState | null = startState(setup);
+  const dealt = new Map<number, number>();
+  const kos = new Map<number, number>();
+  const used = new Map<number, Map<string, number>>();
+  const enter = new Map<number, "lead" | "swap" | "sent">();
+  const energyBefore = new Map<number, number>();
+  let pick: number[] | null = null;
+  let lead = -1;
+  for (const st of line) {
+    if (!s) return null;
+    if ("bring" in st) pick = st.bring;
+    else if ("next" in st) { if (lead < 0) { lead = st.next; enter.set(st.next, "lead"); } else if (!enter.has(st.next)) enter.set(st.next, "sent"); }
+    else {
+      if (!enter.has(st.attach) && st.attach !== s.yi) energyBefore.set(st.attach, (energyBefore.get(st.attach) ?? 0) + 1);
+      if ("swap" in st.act && !enter.has(st.act.swap)) enter.set(st.act.swap, "swap");
+      if ("move" in st.act) {
+        const who = s.yi;
+        const fi = s.fi;
+        const before = s.foe[fi].cur;
+        const t = applyStep(setup, s, st);
+        if (!t) return null;
+        const d = before - (t.foe[fi].out ? 0 : t.foe[fi].cur);
+        dealt.set(who, (dealt.get(who) ?? 0) + Math.max(0, d));
+        if (t.foe[fi].out) kos.set(who, (kos.get(who) ?? 0) + 1);
+        const name = setup.you[who].moves[st.act.move].n;
+        const m = used.get(who) ?? new Map<string, number>();
+        m.set(name, (m.get(name) ?? 0) + 1);
+        used.set(who, m);
+        s = t;
+        continue;
+      }
+    }
+    s = applyStep(setup, s, st);
+  }
+  if (!s || s.over !== "won") return null;
+  const ranked = [...dealt.entries()].sort((a, b) => b[1] - a[1]);
+  const carry = ranked[0]?.[0];
+  if (carry == null) return null;
+  const total = ranked.reduce((n, [, d]) => n + d, 0);
+  const helper = ranked[1] && ranked[1][1] >= total * 0.3 ? ranked[1][0] : null;
+  const move = [...(used.get(carry)?.entries() ?? [])].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+  return { carry, move, kos: kos.get(carry) ?? 0, lead, pick, entered: enter.get(carry) ?? "sent", chargedFirst: (energyBefore.get(carry) ?? 0) > 0, turns: s.turn, helper };
+}
+
+const NUM = ["no", "one", "two", "three", "four", "five", "six"];
+/** A plan in plain words: what to bring (or leave out), who leads, how the carrying card comes in and what it does. */
+function planText(setup: DuelSetup, p: LineStory): string {
+  const name = (i: number) => setup.you[i].short;
+  const list = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+  const parts: string[] = [];
+  if (p.pick) {
+    const out = setup.you.map((_, i) => i).filter((i) => !p.pick!.includes(i));
+    parts.push(out.length <= 2 ? `Leave ${list(out.map(name))} out.` : `Bring ${list(p.pick.map(name))}.`);
+  }
+  const ko = p.kos > 0 ? `${p.move} knocks out ${NUM[p.kos] ?? p.kos}` : `${p.move} does the work`;
+  const carry = name(p.carry);
+  if (p.entered === "lead") parts.push(`Lead with ${carry}: ${ko}.`);
+  else if (p.entered === "swap") parts.push(`Lead with ${name(p.lead)}${p.chargedFirst ? ` while ${carry} charges` : ""}, then swap ${carry} in: ${ko}.`);
+  else parts.push(`Lead with ${name(p.lead)} to take the first hits${p.chargedFirst ? ` while ${carry} charges` : ""}, then send in ${carry}: ${ko}.`);
+  if (p.helper != null && p.helper !== p.carry) parts.push(`${name(p.helper)} helps with the damage.`);
+  return parts.join(" ");
 }
 
 /**
@@ -414,8 +672,22 @@ export function makeSetup(
     const head = Math.min(3, Math.max(0, HEAD_START_FROM - foe.length));
     if (head > 0) setup.foeHead = head;
   }
+  if (opts.rules && opts.rules >= 5) {
+    // A hand of three Energy, and a charged comeback after a knockout (up to 2).
+    setup.hand = HAND_SIZE;
+    setup.comeback = COMEBACK_MAX;
+  } else {
+    // "+" and "×" attacks play their text from rules 5; older days play the printed number.
+    const plain = (c: DuelCard): DuelCard => (c.moves.some((m) => m.plus) ? { ...c, moves: c.moves.map((m) => ({ n: m.n, cost: m.cost, d: m.d, ...(m.fx ? { fx: m.fx } : {}) })) } : c);
+    setup.you = setup.you.map(plain);
+    setup.foe = setup.foe.map(plain);
+  }
   return setup;
 }
+
+/** Rules 5: the Energy you hold, and the most a card brings back after a knockout. */
+export const HAND_SIZE = 3;
+export const COMEBACK_MAX = 2;
 
 /**
  * Rules 4: a trainer's cards start with an Energy for each card its team is short of five (up to 3:
@@ -513,14 +785,61 @@ export interface DuelDayBuild {
   slack: number;
   /** The obvious play's turns (it lost). */
   obviousTurns: number;
-  /** Leads the lookahead player wins from (FAIR_LEADS asks for at least 1, 2 on gym days; 0 only when no pack anywhere passed). */
+  /** Leads the lookahead player wins from (FAIR_LEADS asks for at least 1, 2 on gym days; 0 only when no pack anywhere passed). Rules 5 judges by the slipping player instead and leaves it 0. */
   fair: number;
   /** The rules it was built with (types.ts DuelRules). */
   rules: DuelRules;
+  /** Rules 5: the share of duels the slipping player wins (WIN_BAND), and the professor's plans. */
+  winRate?: number;
+  plans?: DuelPlan[];
   ms: number;
 }
 
 type Found = Omit<DuelDayBuild, "attempts" | "ms" | "inBand" | "stoodIn">;
+
+/**
+ * Rules 5's checks on one pack, cheapest first: the slipping player's share of wins lands near the
+ * weekday's target (WIN_BAND; a pack more than RATE_SLACK off is thrown out before the par search,
+ * which is most of the cost); the solver wins; the obvious play doesn't reach par; par sits in the
+ * tier's band; and, only for packs that pass all that, at least two plans with different cards
+ * carrying them. "easy" or "hard" throws the pack out; otherwise `miss` says how far it is from passing
+ * (0 = passes), so the closest pack can stand when none passes.
+ */
+function judge5(
+  setup: DuelSetup, obvious: { won: boolean; turns: number }, tier: DuelTier, key: string, width: number | undefined, deadline: number,
+): "easy" | "hard" | { sol: DuelSolution; rate: number; plans: DuelPlan[]; miss: number; lean: "easy" | "hard" } {
+  const [wlo, whi] = WIN_BAND[tier];
+  const rate = slipWinRate(setup, key);
+  if (rate > whi + RATE_SLACK) return "easy";
+  if (rate < wlo - RATE_SLACK) return "hard";
+  const plan = solverSetup(setup);
+  const sol = solve(plan, { width, deadline });
+  if (!sol) return "hard";
+  if (obvious.won && obvious.turns <= sol.par) return "easy";
+  const [lo, hi] = PAR_BAND[tier];
+  const parMiss = sol.par < lo ? lo - sol.par : sol.par > hi ? sol.par - hi : 0;
+  // A tenth of the win share counts as one turn of par miss.
+  const rateMiss = rate < wlo ? (wlo - rate) * 10 : rate > whi ? (rate - whi) * 10 : 0;
+  const lean = rate > whi || sol.par < lo ? "easy" : "hard";
+  if (parMiss > 3) return lean;
+  if (parMiss > 0 || rateMiss > 0) return { sol, rate, plans: [], miss: parMiss + rateMiss + 1, lean };
+  const found = plansWithLines(setup, sol);
+  const plans = found.map((p) => p.plan);
+  // The par search is a beam search: a plan's own search can find a faster win. Then that's par.
+  if (found[0] && found[0].plan.turns < sol.par) {
+    const quick: DuelSolution = { par: found[0].plan.turns, line: found[0].line, nodes: sol.nodes };
+    if (obvious.won && obvious.turns <= quick.par) return "easy";
+    const miss2 = quick.par < lo ? lo - quick.par : 0;
+    return { sol: quick, rate, plans, miss: miss2 + (plans.length >= MIN_PLANS ? 0 : 1), lean: miss2 ? "easy" : lean };
+  }
+  return { sol, rate, plans, miss: plans.length >= MIN_PLANS ? 0 : 1, lean };
+}
+
+/** How far off the weekday's target a pack's win share may be before the par search is skipped. */
+const RATE_SLACK = 0.15;
+
+/** Rules 5: plans a day needs (Britton's picks 2026-10-22: at least two ways to win). */
+export const MIN_PLANS = 2;
 
 /**
  * Packs for one trainer: drawn under a strength cap that tightens while the obvious play keeps
@@ -535,7 +854,7 @@ export function packsFor(
   const team = trainer.team.map((id) => cards[id]).filter(Boolean);
   const exclude = new Set(trainer.team);
   let slack = START_SLACK[tier];
-  let fallback: { found: Found; miss: number } | null = null;
+  let fallback: { found: Found; miss: number; setup?: DuelSetup } | null = null;
   let tooEasy = 0;
   let tooHard = 0;
   for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt++) {
@@ -560,6 +879,17 @@ export function packsFor(
     const setup = makeSetup(cards, trainer, pack, row, events, { rules, seed: day });
     if (!setup) continue;
     const obvious = obviousPlay(setup);
+    if (rules >= 5) {
+      const got = judge5(setup, obvious, tier, `${day}:${seed}:${trainer.id}:${attempt}`, width, deadline);
+      if (got === "easy") { tooEasy++; continue; }
+      if (got === "hard") { tooHard++; continue; }
+      const found: Found = { day, number: duelNumber(day), tier, trainerId: trainer.id, pack, row, events, par: got.sol.par, line: got.sol.line, slack, obviousTurns: obvious.turns, fair: 0, rules, winRate: got.rate, plans: got.plans };
+      if (got.miss === 0) return { found, inBand: true };
+      if (got.lean === "easy") tooEasy++;
+      else tooHard++;
+      if (!fallback || got.miss < fallback.miss) fallback = { found, miss: got.miss, setup };
+      continue;
+    }
     if (obvious.won) { tooEasy++; continue; }
     const sol = solve(solverSetup(setup), { width, deadline });
     if (!sol) { tooHard++; continue; }
@@ -574,7 +904,15 @@ export function packsFor(
     const miss = sol.par < lo ? lo - sol.par : sol.par - hi;
     if (!fallback || miss < fallback.miss) fallback = { found, miss };
   }
-  return fallback ? { found: fallback.found, inBand: false } : null;
+  if (!fallback) return null;
+  // Rules 5: the closest pack still gets its plans (they're only worked out for packs on target).
+  if (fallback.setup && !fallback.found.plans?.length) {
+    const f = fallback.found;
+    const found = plansWithLines(fallback.setup, { par: f.par, line: f.line, nodes: 0 });
+    const quick = found[0] && found[0].plan.turns < f.par ? found[0] : null;
+    fallback.found = { ...f, plans: found.map((p) => p.plan), ...(quick ? { par: quick.plan.turns, line: quick.line } : {}) };
+  }
+  return { found: fallback.found, inBand: false };
 }
 
 /**
@@ -600,8 +938,10 @@ export function buildDay(
 ): DuelDayBuild | null {
   const t0 = Date.now();
   const deadline = t0 + (opts.budgetMs ?? 60_000);
-  // Rules 4 makes a few trainers hard to fit (Poppy, Lance): more packs before a stand-in.
-  const attempts = opts.attempts ?? ((opts.rules ?? 1) >= 4 ? 72 : 36);
+  // Rules 4 makes a few trainers hard to fit (Poppy, Lance): more packs before a stand-in; rules 5's
+  // targets more still.
+  const rules = opts.rules ?? 1;
+  const attempts = opts.attempts ?? (rules >= 5 ? 120 : rules >= 4 ? 72 : 36);
   const first = trainerFor(day, trainers);
   if (!first) return null;
   const tier = tierFor(day);
@@ -613,14 +953,21 @@ export function buildDay(
   const order = [first, ...others.slice(0, opts.standIns ?? 4)];
   const count = { n: 0 };
   // Findable packs first (FAIR_LEADS); only when no trainer in the order has one, any beatable pack.
-  for (const needFair of [FAIR_LEADS[tier], 0]) {
+  // Rules 5 judges packs by the slipping player instead (judge5), so one pass.
+  // Rules 5: a pack off target from the rotation's trainer waits while the stand-ins try for one on
+  // target, and stands if none has one.
+  let closest: DuelDayBuild | null = null;
+  for (const needFair of rules >= 5 ? [1] : [FAIR_LEADS[tier], 0]) {
     for (const [i, trainer] of order.entries()) {
       if (Date.now() >= deadline) break;
       // The rotation's trainer gets at most half the time left, so a stand-in still gets a turn.
       const own = i === 0 && needFair > 0 ? Date.now() + (deadline - Date.now()) / 2 : deadline;
-      const got = packsFor(day, trainer, tier, pool, cards, seed, attempts, own, opts.width, count, needFair, opts.rules ?? 1);
-      if (got) return { ...got.found, attempts: count.n, inBand: got.inBand, stoodIn: i > 0, ms: Date.now() - t0 };
+      const got = packsFor(day, trainer, tier, pool, cards, seed, attempts, own, opts.width, count, needFair, rules);
+      if (!got) continue;
+      const build = { ...got.found, attempts: count.n, inBand: got.inBand, stoodIn: i > 0, ms: Date.now() - t0 };
+      if (rules < 5 || got.inBand) return build;
+      closest ??= build;
     }
   }
-  return null;
+  return closest ? { ...closest, attempts: count.n, ms: Date.now() - t0 } : null;
 }

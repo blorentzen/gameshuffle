@@ -36,9 +36,10 @@ export function DuelCardFace({ card, owner }: { card: DuelCardView; owner: strin
           <li key={m.n}>
             <span className="duel-face__cost"><CostDots cost={m.cost} energy={card.energy} /></span>
             <span className="duel-face__move">{m.n}</span>
-            <strong>{m.d}</strong>
-            <span className="sr-only">damage. Costs {energyWords(m.cost)}.{m.fx.map((f) => ` ${f.chance}% chance to make it ${CONDITION_LOOK[f.c].word}.`).join("")}</span>
+            <strong>{m.d}{m.plus ? (m.plus.startsWith("+") ? "+" : "×") : ""}</strong>
+            <span className="sr-only">damage{m.plus ? `, ${m.plus}` : ""}. Costs {energyWords(m.cost)}.{m.fx.map((f) => ` ${f.chance}% chance to make it ${CONDITION_LOOK[f.c].word}.`).join("")}</span>
             {m.fx.length > 0 && <span className="duel-face__fx"><MoveConds fx={m.fx} /></span>}
+            {m.plus && <span className="duel-face__plus" aria-hidden="true">{m.plus.startsWith("+") ? m.plus : `${m.plus.split(" ")[0]} damage ${m.plus.split(" ").slice(1).join(" ")}`}</span>}
           </li>
         ))}
       </ul>

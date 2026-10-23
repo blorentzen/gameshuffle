@@ -236,3 +236,30 @@ export const WEATHER_CHIP: Record<"rain" | "sun" | "sand", { word: string; icon:
   sun: { word: "Sun", icon: IconSun },
   sand: { word: "Sandstorm", icon: IconWind },
 };
+
+/** Every dot of a cost covered by this Energy (the engine's pays, for the page). */
+export const covers = (energy: readonly EnergyType[], cost: readonly EnergyType[]) => coveredDots(energy, cost).every(Boolean);
+
+/**
+ * Rules 5: which Energy in the hand to start on for a card (the player can pick another): the one that
+ * covers its hardest-hitting move now, else the one that covers the most of its strongest move's dots,
+ * else the first.
+ */
+export function handPick(card: Pick<DuelCardView, "energy" | "moves">, hand: readonly EnergyType[]): number {
+  let best = -1;
+  let bestD = 0;
+  hand.forEach((h, i) => {
+    for (const m of card.moves) {
+      const d = m.damage ?? m.d;
+      if (d > bestD && covers([...card.energy, h], m.cost)) { best = i; bestD = d; }
+    }
+  });
+  if (best >= 0) return best;
+  const top = [...card.moves].sort((a, b) => (b.damage ?? b.d) - (a.damage ?? a.d))[0];
+  if (!top) return 0;
+  const count = (e: readonly EnergyType[]) => coveredDots(e, top.cost).filter(Boolean).length;
+  const now = count(card.energy);
+  const gain = hand.map((h) => count([...card.energy, h]) - now);
+  const i = gain.indexOf(Math.max(...gain));
+  return gain[i] > 0 ? i : 0;
+}
