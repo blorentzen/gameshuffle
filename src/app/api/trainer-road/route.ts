@@ -13,8 +13,8 @@ import { firePlayer, ipOf } from "@/lib/fireRound/player";
 import { getRoadDuel, roadStarsFor, roadTeamHome, startRoadRun } from "@/lib/originals/duel/roadStore";
 
 export const runtime = "nodejs";
-/** A duel built on request searches for up to 50 seconds. */
-export const maxDuration = 60;
+/** A missing duel is built after the answer with the cron job's own budget (240 seconds): a Champion's six can take minutes (raised from 50 at launch, 2026-10-23). */
+export const maxDuration = 300;
 
 const noStore = { "Cache-Control": "private, no-store" };
 const validTeam = (s: string | null | undefined): s is string => !!s && /^[a-z0-9-]{1,80}$/.test(s);
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   const home = await roadTeamHome(player, team);
   if (!home) return NextResponse.json({ error: "not_found" }, { status: 404 });
   // Not built yet: build it after answering (the page checks back).
-  if (!home.ready) after(() => getRoadDuel(team, home.month, { build: true, budgetMs: 50_000 }).then(() => undefined, () => undefined));
+  if (!home.ready) after(() => getRoadDuel(team, home.month, { build: true, budgetMs: 240_000 }).then(() => undefined, () => undefined));
   return NextResponse.json(home, { headers: noStore });
 }
 
