@@ -98,6 +98,38 @@ export interface DuelSetup {
    */
   hand?: number;
   comeback?: number;
+  /**
+   * Rules 6 (Britton's picks 2026-10-23, "a fair, even match"): the trainer plays by the same rules: a
+   * hand of `foeHand` Energy drawn from its own row (`foeRow`, made by foeRowFor from the day), the one
+   * its card needs most going on each turn, and a card it sends out after a knockout comes in with an
+   * Energy for each card it has lost, up to `foeComeback`.
+   */
+  foeHand?: number;
+  foeRow?: EnergyType[];
+  foeComeback?: number;
+}
+
+/**
+ * The trainer's Energy row for rules 6: 40 Energy drawn (seeded by the day) from what its team uses:
+ * each card's own type twice, and each colored cost of each move once. Frozen: stored days don't keep
+ * this row, so changing this function would change days already played.
+ */
+export function foeRowFor(foe: readonly DuelCard[], seed: string): EnergyType[] {
+  const pool: EnergyType[] = [];
+  for (const c of foe) {
+    pool.push(c.t, c.t);
+    for (const m of c.moves) for (const t of m.cost) if (t !== "Colorless") pool.push(t);
+  }
+  if (!pool.length) return [];
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+  const out: EnergyType[] = [];
+  for (let k = 0; k < 40; k++) {
+    h = Math.imul(h ^ (h >>> 15), 2246822507) ^ (k * 2654435761);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    out.push(pool[(h >>> 0) % pool.length]);
+  }
+  return out;
 }
 
 export interface DuelSlot {
@@ -186,6 +218,9 @@ export interface DuelState {
   /** Rules 5: the Energy in your hand, and how many of the row have been drawn. */
   hand?: EnergyType[];
   drawn?: number;
+  /** Rules 6: the trainer's hand and how many of its row it has drawn. */
+  foeHand?: EnergyType[];
+  foeDrawn?: number;
 }
 
 const r10 = (x: number) => Math.round(x / 10) * 10;
@@ -202,6 +237,7 @@ export function startState(setup: DuelSetup): DuelState {
   const you = setup.you.map(slot);
   const st: DuelState = { turn: 0, you, foe, yi: -1, fi: 0, pending: null, fx: { ...NO_FX }, event: null, over: null, log: [] };
   if (setup.hand) { st.hand = setup.row.slice(0, setup.hand); st.drawn = setup.hand; }
+  if (setup.foeHand && setup.foeRow?.length) { st.foeHand = setup.foeRow.slice(0, setup.foeHand); st.foeDrawn = setup.foeHand; }
   return st;
 }
 
@@ -245,6 +281,7 @@ export function cloneState(s: DuelState): DuelState {
   const out: DuelState = { turn: s.turn, you: s.you.map(copySlot), foe: s.foe.map(copySlot), yi: s.yi, fi: s.fi, pending: s.pending, fx: { ...s.fx }, event: s.event, over: s.over, log: [] };
   if (s.brought) out.brought = s.brought.slice();
   if (s.hand) { out.hand = s.hand.slice(); out.drawn = s.drawn; }
+  if (s.foeHand) { out.foeHand = s.foeHand.slice(); out.foeDrawn = s.foeDrawn; }
   return out;
 }
 
@@ -423,9 +460,29 @@ const note = (L: Log, line: DuelLogLine) => { if (L) L.push(line); };
 
 function giveFoeEnergy(setup: DuelSetup, s: DuelState, L: Log) {
   const f = s.foe[s.fi];
-  const t = foeEnergy(setup.foe[s.fi], f.energy);
+  let t = foeEnergy(setup.foe[s.fi], f.energy);
+  // Rules 6: from its own hand, the one its card needs most (else the first), then it draws the next.
+  if (setup.foeHand && s.foeHand?.length && setup.foeRow?.length) {
+    const i = foeHandPick(setup.foe[s.fi], f.energy, s.foeHand, t);
+    t = s.foeHand[i];
+    s.foeHand.splice(i, 1);
+    s.foeHand.push(setup.foeRow[(s.foeDrawn ?? 0) % setup.foeRow.length]);
+    s.foeDrawn = (s.foeDrawn ?? 0) + 1;
+  }
   f.energy.push(t);
-  note(L, { kind: "energy", side: "foe", card: s.fi, type: t, text: `${setup.trainer}'s ${setup.foe[s.fi].short} gets ${t} Energy.` });
+  note(L, { kind: "energy", side: "foe", card: s.fi, type: t, text: `${setup.trainer} plays ${t} Energy on ${setup.foe[s.fi].short}.` });
+}
+
+/** Rules 6: which Energy in the trainer's hand its card takes: `want` (what foeEnergy picks) if it has it, else one that covers a dot of its strongest move, else the first. */
+function foeHandPick(card: DuelCard, energy: readonly EnergyType[], hand: readonly EnergyType[], want: EnergyType): number {
+  const i = hand.indexOf(want);
+  if (i >= 0) return i;
+  const moves = [...card.moves].sort((a, b) => b.d - a.d);
+  for (const m of moves) {
+    if (pays(energy, m.cost)) continue;
+    for (let k = 0; k < hand.length; k++) if (m.cost.includes(hand[k]) || m.cost.includes("Colorless")) return k;
+  }
+  return 0;
 }
 
 function heal(setup: DuelSetup, slot: DuelSlot, card: DuelCard, n: number): number {
@@ -694,6 +751,13 @@ function foeNext(setup: DuelSetup, s: DuelState, L: Log) {
   if (!alive(s.foe)) { s.over = "won"; return; }
   s.fi = s.foe.findIndex((c) => !c.out);
   note(L, { kind: "out", side: "foe", card: s.fi, text: `${setup.trainer} sends out ${setup.foe[s.fi].short}.` });
+  // Rules 6: it comes in with an Energy for each card the trainer has lost, up to foeComeback, like yours.
+  if (setup.foeComeback) {
+    const fresh = Math.min(setup.foeComeback, s.foe.filter((c) => c.out).length);
+    const slot = s.foe[s.fi];
+    for (let k = 0; k < fresh; k++) slot.energy.push(foeEnergy(setup.foe[s.fi], slot.energy));
+    if (fresh) note(L, { kind: "energy", side: "foe", card: s.fi, text: `${setup.trainer}'s ${setup.foe[s.fi].short} comes in with ${fresh === 1 ? "an Energy" : `${fresh} Energy`} for coming back.` });
+  }
 }
 
 /** Burned and Poisoned at the end of the turn (rules 2): the trainer's card first, then yours. Either can knock a card out. */

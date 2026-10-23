@@ -5,14 +5,14 @@
  */
 
 import {
-  CONDITION_RULES, actions, applyStep, begin, canUse, cloneState, damageOf, foeEnergy, isLegal, nexts, pays, printedDamage, replay, roll, startState, step, swapTargets, viewOf,
+  CONDITION_RULES, actions, applyStep, begin, canUse, cloneState, damageOf, foeEnergy, foeRowFor, isLegal, nexts, pays, printedDamage, replay, roll, startState, step, swapTargets, viewOf,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "../src/lib/originals/duel/engine";
 import { COMEBACK_MAX, FAIR_LEADS, HAND_SIZE, MIN_PLANS, WIN_BAND, adviceFor, buildDay, candidates, dayPlans, drawPack, fairLeads, hintText, makeSetup, obviousPlay, packCap, slipWinRate, solve, solverSetup } from "../src/lib/originals/duel/solver";
 import { conditionsOf, plusOf, toDuelCard } from "../src/data/originals/duel/cardRules";
 import { plusText } from "../src/lib/originals/duel/copy";
 import {
-  DUEL_EPOCH, DUEL_WARMUP, PAR_BAND, PERSON_GAP_DAYS, TIER_FALLBACK, TIER_LABEL, duelNumber, duelPoints, duelRand, duelShareText, duelSquares, duelTime, energyRow, eventCopy, eventPlan,
+  DUEL_EPOCH, DUEL_WARMUP, PAR_BAND, PERSON_GAP_DAYS, SCORE, duelScore, TIER_FALLBACK, TIER_LABEL, duelNumber, duelPoints, duelRand, duelShareText, duelSquares, duelTime, energyRow, eventCopy, eventPlan,
   peopleNear, peopleOf, personKey, personOf, shuffleWith, speciesOf, tierFor, trainerFor,
 } from "../src/lib/originals/duel/rules";
 import type { DuelCard, DuelEventAt, DuelEventKind, DuelSignature, DuelTier, DuelTrainer, EnergyType } from "../src/lib/originals/duel/types";
@@ -851,6 +851,48 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
   check(slipWinRate(H5, "t") === slipWinRate(H5, "t"), "rules 5: the slipping player's share is the same every time");
 }
 
+// ─── rules 6: the trainer on the same rules, and the score ───────────────────
+
+{
+  const row6 = foeRowFor(FOE, "t6:foe");
+  check(row6.length === 40 && row6.every((t) => t === R || t === G) && JSON.stringify(foeRowFor(FOE, "t6:foe")) === JSON.stringify(row6), "rules 6: the trainer's row is 40 of its team's types, the same every time");
+  check(JSON.stringify(foeRowFor(FOE, "other:foe")) !== JSON.stringify(row6), "rules 6: a different day draws a different row");
+  const S6: DuelSetup = { ...mk({ row: Array(TURN_CAP).fill(W) }), hand: HAND_SIZE, comeback: COMEBACK_MAX, foeHand: HAND_SIZE, foeRow: [G, R, G, R, R, G, R, R, R, R], foeComeback: COMEBACK_MAX, rules: 6 };
+  const a0 = startState(S6);
+  check(a0.foeHand?.join() === [G, R, G].join() && a0.foeDrawn === 3, "rules 6: the trainer starts with its row's first three");
+  // Blaze (Fire) on the field wants Fire for Inferno: it takes the Fire from its hand and draws the next.
+  const a1 = step(S6, begin(S6, a0, 0), { attach: 0, act: { wait: true }, use: 0 });
+  check(a1.foe[0].energy.join() === R && a1.foeHand?.join() === [G, G, R].join() && a1.foeDrawn === 4, "rules 6: the trainer plays the Energy its card needs from its hand, then draws", { e: a1.foe[0].energy, hand: a1.foeHand });
+  check(a1.log.some((l) => l.side === "foe" && /Tester plays Fire Energy on blaze/.test(l.text)), "rules 6: the log says what the trainer played", a1.log.map((l) => l.text));
+  // The trainer's comeback: knock out Blaze and Vine comes in with an Energy for the card lost.
+  const k6 = cloneState(begin(S6, a0, 0));
+  k6.foe[0].cur = 10;
+  k6.you[0].energy = [W, W];
+  const k7 = step(S6, k6, { attach: 0, act: { move: 1 }, use: 0 });
+  check(k7.fi === 1 && k7.foe[1].energy.length >= 1 && k7.log.some((l) => /vine comes in with an Energy for coming back/.test(l.text)), "rules 6: the trainer's next card comes in with an Energy for the card it lost", { fi: k7.fi, e: k7.foe[1].energy, log: k7.log.map((l) => l.text) });
+  const k5 = step({ ...S6, foeComeback: undefined }, cloneState(k6), { attach: 0, act: { move: 1 }, use: 0 });
+  check(k5.fi === 1 && !k5.log.some((l) => /for coming back/.test(l.text) && l.side === "foe"), "rules 6: without foeComeback (older days) the trainer's card comes in as before");
+  const m6 = makeSetup(FIX_CARDS, FIX_TRAINERS[0], FIX_POOL.slice(0, 6), Array(TURN_CAP).fill(W), [], { rules: 6, seed: "2026-11-01" });
+  const m5 = makeSetup(FIX_CARDS, FIX_TRAINERS[0], FIX_POOL.slice(0, 6), Array(TURN_CAP).fill(W), [], { rules: 5, seed: "2026-11-01" });
+  check(!!m6 && m6.foeHand === HAND_SIZE && m6.foeComeback === COMEBACK_MAX && (m6.foeRow?.length ?? 0) === 40, "rules 6: makeSetup gives the trainer its hand, row and comeback");
+  check(!!m5 && !m5.foeHand && !m5.foeComeback && !m5.foeRow, "rules 6: rules 5 days keep the trainer as it was");
+
+  // The score.
+  const best = duelScore({ won: true, turns: 9, par: 9, seconds: 100, solo: true, knocked: 5 });
+  check(best.score === 1000 && best.points === 10, "score: par, inside the time, solo = 1,000 (10 points)", best);
+  const ex = duelScore({ won: true, turns: 10, par: 9, seconds: 165, solo: true, knocked: 5 });
+  check(ex.turns === 550 && ex.time === 230 && ex.solo === 150 && ex.score === 930 && ex.points === 9, "score: 10 turns at par 9 in 2:45, solo = 930", ex);
+  const slow = duelScore({ won: true, turns: 30, par: 9, seconds: 4000, solo: false, knocked: 5 });
+  check(slow.turns === SCORE.turnsFloor && slow.time === 0 && slow.solo === 0 && slow.score === 200, "score: a win never drops below 200", slow);
+  const lost = duelScore({ won: false, turns: 12, par: 9, seconds: 300, solo: true, knocked: 3 });
+  check(lost.score === 60 && lost.points === 0 && lost.solo === 0, "score: a loss is 20 per knockout and no solo bonus", lost);
+  check(duelScore({ won: false, turns: 12, par: 9, seconds: 300, solo: true, knocked: 9 }).score === SCORE.koMax, "score: a loss tops out at 100");
+  check(duelScore({ won: true, turns: 9, par: 9, seconds: 9 * 15 + 1, solo: true, knocked: 5 }).time === 240, "score: one second over the allowance costs one step (10)");
+  const scoredShare = duelShareText({ number: 3, trainer: "Bea", won: true, turns: 6, par: 6, seconds: 72, standing: [true, true, true, true, true, false], knocked: 5, team: 5, score: 1000 });
+  check(scoredShare.includes("· Score 1,000") && !/Hoopa|Grapploct/.test(scoredShare), "share: a scored day adds the score, never a card's name");
+  check(!duelShareText({ number: 3, trainer: "Bea", won: true, turns: 6, par: 6, seconds: 72, standing: [true], knocked: 5, team: 5 }).includes("Score"), "share: older days have no score");
+}
+
 // ─── the real roster (when it's there): a day builds the same twice ──────────
 
 async function real() {
@@ -879,18 +921,18 @@ async function real() {
     check(!!bossSet && sat!.tier === "boss" && boss!.tier === "boss" && replay(bossSet, sat!.line)?.over === "won" && !obviousPlay(bossSet).won,
       `the real roster: a Saturday is a boss's day (${boss?.name}, par ${sat?.par}${sat?.inBand ? "" : ", outside the band"})`);
     check(!!sat && sat.fair >= FAIR_LEADS.boss, `the real roster: the Saturday is findable (${sat?.fair} leads)`);
-    // Rules 5: a day on target with at least two plans, each carried by a different card.
-    const r5 = buildDay("2026-11-05", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000, rules: 5 });
+    // Rules 6: a day on target with at least two plans, each carried by a different card.
+    const r5 = buildDay("2026-11-05", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000, rules: 6 });
     const r5Tr = r5 && DUEL_DATA.trainers.find((t) => t.id === r5.trainerId);
-    const r5Set = r5 && r5Tr && makeSetup(DUEL_DATA.cards, r5Tr, r5.pack, r5.row, r5.events, { rules: 5, seed: r5.day });
-    check(!!r5Set && r5!.rules === 5 && r5!.inBand && replay(solverSetup(r5Set), r5!.line)?.over === "won", `the real roster: a rules 5 day builds on target (${r5Tr?.name}, par ${r5?.par})`);
+    const r5Set = r5 && r5Tr && makeSetup(DUEL_DATA.cards, r5Tr, r5.pack, r5.row, r5.events, { rules: 6, seed: r5.day });
+    check(!!r5Set && r5!.rules === 6 && r5!.inBand && replay(solverSetup(r5Set), r5!.line)?.over === "won", `the real roster: a rules 6 day builds on target (${r5Tr?.name}, par ${r5?.par})`);
     const ob5 = r5Set ? obviousPlay(r5Set) : null;
-    check(!!ob5 && !(ob5.won && ob5.turns <= r5!.par), "the real roster: the rules 5 obvious play doesn't reach par", ob5);
+    check(!!ob5 && !(ob5.won && ob5.turns <= r5!.par), "the real roster: the rules 6 obvious play doesn't reach par", ob5);
     check(!!r5 && r5.winRate! >= WIN_BAND[r5.tier][0] && r5.winRate! <= WIN_BAND[r5.tier][1], `the real roster: the slipping player wins about the weekday's share (${Math.round((r5?.winRate ?? 0) * 100)}%)`);
     check(!!r5 && (r5.plans?.length ?? 0) >= MIN_PLANS && new Set(r5.plans!.map((p) => p.carry)).size === r5.plans!.length, "the real roster: at least two plans, a different card carrying each", r5?.plans);
     check(!!r5Set && JSON.stringify(dayPlans(r5Set, { par: r5!.par, line: r5!.line, nodes: 0 })) === JSON.stringify(r5!.plans), "the real roster: the plans come out the same again");
-    const r5b = buildDay("2026-11-05", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000, rules: 5 });
-    check(!!r5b && JSON.stringify(r5b.pack) === JSON.stringify(r5!.pack) && r5b.par === r5!.par, "the real roster: a rules 5 day builds the same twice");
+    const r5b = buildDay("2026-11-05", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000, rules: 6 });
+    check(!!r5b && JSON.stringify(r5b.pack) === JSON.stringify(r5!.pack) && r5b.par === r5!.par, "the real roster: a rules 6 day builds the same twice");
     // Every person in a tier has a day before anyone comes back (Mondays and Tuesdays from the anchor).
     const gymPeople = peopleOf(DUEL_DATA.trainers.filter((t) => t.tier === "gym")).length;
     const gymDays: string[] = [];

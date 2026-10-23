@@ -6,6 +6,7 @@
  *   POST { action: "start", mode: "official" | "practice" } → { run }: the official duel (pressing Start starts its clock; asking again returns it),
  *                                                        or a practice duel once the official one is over (409 official_first before)
  *   POST { action: "board" }                           → { board }: a guest who just joined the boards puts today's finished duel on them
+ *   POST { action: "ask" }                             → { plans }: the professor's plans (rules 6 days: asking ends today's solo bonus)
  * Hidden (404) in production until DUEL_PUBLIC.
  */
 
@@ -13,7 +14,7 @@ import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { DUEL_PUBLIC } from "@/lib/games-visibility";
 import { firePlayer as duelPlayer, ipOf } from "@/lib/fireRound/player";
-import { boardTodayFor, duelChallenger, duelHome, startRun } from "@/lib/originals/duel/store";
+import { askProfessor, boardTodayFor, duelChallenger, duelHome, startRun } from "@/lib/originals/duel/store";
 import { gsDay } from "@/lib/time/gsClock";
 
 export const runtime = "nodejs";
@@ -46,6 +47,10 @@ export async function POST(req: Request) {
   if (!under) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const body = (await req.json().catch(() => ({}))) as { action?: string; mode?: string };
   if (body.action === "board") return NextResponse.json({ board: await boardTodayFor(player) }, { headers: noStore });
+  if (body.action === "ask") {
+    const plans = await askProfessor(player, devDay(req));
+    return plans ? NextResponse.json({ plans }, { headers: noStore }) : NextResponse.json({ error: "not_ready" }, { status: 503 });
+  }
   if (body.action !== "start" || (body.mode !== "official" && body.mode !== "practice")) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const r = await startRun(player, body.mode, devDay(req));
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.error === "not_ready" ? 503 : r.error === "official_first" ? 409 : 500 });

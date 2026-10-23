@@ -4,9 +4,9 @@
  * The Daily Duel on its page (picks 2026-10-21, https://claude.ai/artifact/5fdauqQ8MPof41oWXYcuPk).
  * Three screens:
  *   start   today's trainer, both sides' cards and Start (DuelStart), then the leaderboard.
- *   duel    the arena (DuelArena): today's Energy starts on your card on the field, so a move,
- *           Wait or a swap is one tap; the card picker when a card is needed; a running clock on
- *           the official duel.
+ *   duel    the arena (DuelArena): each turn starts in the turn window (an Energy and its card,
+ *           then keep or swap), then the attacks and End turn; the card picker when a card is
+ *           needed; a running clock on the official duel.
  *   result  DuelEnd: the result, Share, Practice, Next up, streak, the board, today's cards.
  * The server (/api/daily-duel) holds every duel and checks each step with the engine; this page
  * only draws what it sends back, playing the difference one hit at a time (duelBeats.ts: your
@@ -24,7 +24,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import type { BoardView } from "@/lib/daily/boardTypes";
 import { reportDaily, type DailiesEntry } from "@/lib/originals/dailies";
 import type { DuelAct, DuelStep } from "@/lib/originals/duel/types";
-import type { DuelCardView, DuelHome, DuelRunView } from "@/lib/originals/duel/view";
+import type { DuelCardView, DuelHintView, DuelHome, DuelRunView } from "@/lib/originals/duel/view";
 import { DuelArena } from "./DuelArena";
 import { framesBetween, type Frame } from "./duelBeats";
 import { DuelEnd } from "./DuelEnd";
@@ -218,8 +218,26 @@ export function DailyDuel() {
 
   const onTurn = useCallback((attach: number, act: DuelAct, use?: number) => void send(use != null ? { attach, act, use } : { attach, act }), [send]);
   const onNext = useCallback((card: number) => void send({ next: card }), [send]);
+  /** The professor's play for this turn. On a scored day's official duel it ends the solo bonus. */
+  const onTip = useCallback(async () => {
+    if (!run) return null;
+    const res = await duelFetch(`/api/daily-duel/${run.id}`, { method: "POST", body: JSON.stringify({ action: "tip" }) });
+    if (!res.ok) throw new Error(`tip ${res.status}`);
+    const { hint } = (await res.json()) as { hint: DuelHintView | null };
+    if (run.official && run.play.rules >= 6) setRun((r) => (r ? { ...r, asked: true } : r));
+    return hint;
+  }, [run]);
   const onBring = useCallback((cards: number[]) => void send({ bring: cards }), [send]);
   const onZoom = useCallback((card: DuelCardView, owner: string) => setZoom({ card, owner }), []);
+  /** The professor's plans on the start card. On a scored day asking ends today's solo bonus. */
+  const onAsk = useCallback(async () => {
+    const res = await duelFetch("/api/daily-duel", { method: "POST", makeGuest: true, body: JSON.stringify({ action: "ask" }) }).catch(() => null);
+    if (!res?.ok) return false;
+    const { plans } = (await res.json()) as { plans: DuelHome["plans"] | null };
+    if (!plans) return false;
+    setHome((h) => (h ? { ...h, plans, asked: h.rules >= 6 ? true : h.asked } : h));
+    return true;
+  }, []);
 
   const joinBoard = useCallback(async (name: string, token: string | null) => {
     const problem = await boards.join(name, token);
@@ -249,6 +267,7 @@ export function DailyDuel() {
     <DailyBoard
       game="duel"
       main={0}
+      scored={home.rules >= 6}
       guestId={boards.guestId ?? storedGuestId()}
       refresh={boardRefresh + boards.refresh}
       onViews={onViews}
@@ -260,7 +279,7 @@ export function DailyDuel() {
   if (run && frame && (run.status === "playing" || holding)) {
     return (
       <>
-        <DuelArena run={run} play={frame.play} motion={frame.motion} busy={busy || staging || run.status !== "playing"} staging={staging} offset={offset} onNext={onNext} onBring={onBring} onTurn={onTurn} onZoom={onZoom} onSkip={endBeats} />
+        <DuelArena run={run} play={frame.play} motion={frame.motion} busy={busy || staging || run.status !== "playing"} staging={staging} offset={offset} onNext={onNext} onBring={onBring} onTurn={onTurn} onTip={onTip} onZoom={onZoom} onSkip={endBeats} />
         {zoomer}
       </>
     );
@@ -288,7 +307,7 @@ export function DailyDuel() {
 
   return (
     <div className="duel-home">
-      <DuelStart home={home} busy={busy} onStart={() => void start("official")} onZoom={onZoom} />
+      <DuelStart home={home} busy={busy} onStart={() => void start("official")} onAsk={onAsk} onZoom={onZoom} />
       {board}
       {zoomer}
     </div>

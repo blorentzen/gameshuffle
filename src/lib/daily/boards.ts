@@ -143,7 +143,7 @@ export async function recordFireScore(args: { day: string; player: ScorePlayer; 
  * and the time from Start to the final move in `seconds`, so the day board ranks by points, then
  * cards left, then time. Pays tokens like a daily, once. Null before the migrations.
  */
-export async function recordDuelScore(args: { day: string; player: ScorePlayer; won: boolean; turns: number; cardsLeft: number; seconds: number | null; points: number }): Promise<ScoreResult | null> {
+export async function recordDuelScore(args: { day: string; player: ScorePlayer; won: boolean; turns: number; cardsLeft: number; seconds: number | null; points: number; score?: number }): Promise<ScoreResult | null> {
   const key = playerKey(args.player.kind, args.player.id);
   const row = {
     game: "duel", day: args.day, player: key,
@@ -151,7 +151,8 @@ export async function recordDuelScore(args: { day: string; player: ScorePlayer; 
     identity_id: args.player.kind === "i" ? args.player.id : null,
     guest_key: args.player.kind === "g" ? args.player.id : null,
     points: args.points, guesses: Math.min(999, Math.max(0, args.turns)), solved: args.won,
-    score: args.won ? Math.max(0, args.cardsLeft) : 0,
+    // Rules 6 days: the duel's score out of 1,000 (rules.ts duelScore); older days: cards left (0 on a loss).
+    score: args.score != null ? Math.max(0, Math.round(args.score)) : args.won ? Math.max(0, args.cardsLeft) : 0,
     seconds: args.seconds != null && args.seconds >= 0 && args.seconds <= MAX_SOLVE_SECONDS ? args.seconds : null,
   };
   const { data, error } = await createServiceClient().from("daily_scores").upsert(row, { onConflict: "game,day,player", ignoreDuplicates: true }).select("player");

@@ -5,6 +5,8 @@
  *   POST { next }                          → { run }: send out a card (the lead, or after a knockout)
  *   POST { attach, act }                   → { run }: a turn; the Energy goes on card `attach`, then
  *                                            act = { move: i } | { swap: i } | { wait: true }
+ *   POST { action: "tip" }                 → { hint }: the professor's play for this turn (null between turns;
+ *                                            on a rules 6 day's official duel asking ends the solo bonus)
  * Errors: 404 not_found, 409 over / busy, 422 illegal (not allowed right now), 400 bad_request.
  * Hidden (404) in production until DUEL_PUBLIC.
  */
@@ -13,7 +15,7 @@ import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { DUEL_PUBLIC } from "@/lib/games-visibility";
 import { firePlayer as duelPlayer, ipOf } from "@/lib/fireRound/player";
-import { act, getRunView } from "@/lib/originals/duel/store";
+import { act, getRunView, tipFor } from "@/lib/originals/duel/store";
 import type { DuelStep } from "@/lib/originals/duel/types";
 
 export const runtime = "nodejs";
@@ -57,6 +59,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { ok: under } = await rateLimit(`duel-act:${ipOf(req)}`, { max: 240, windowMs: 5 * 60_000 });
   if (!under) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  if (body && body.action === "tip") {
+    const hint = await tipFor(id, player);
+    return hint === "not_found" ? NextResponse.json({ error: "not_found" }, { status: 404 }) : NextResponse.json({ hint }, { headers: noStore });
+  }
   const st = body && typeof body === "object" ? stepOf(body) : null;
   if (!st) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const r = await act(id, player, st);

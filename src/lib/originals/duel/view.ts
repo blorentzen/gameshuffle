@@ -15,6 +15,7 @@
 
 import type { DuelLogLine } from "./engine";
 import type { DuelAct, DuelCondition, DuelEventKind, DuelRules, DuelSignature, DuelTier, EnergyType } from "./types";
+import type { DuelScoreParts } from "./rules";
 import type { DayMark } from "@/lib/originals/dailies";
 
 export type { DuelLogLine };
@@ -237,6 +238,12 @@ export interface DuelRunView {
   serverNow: string;
   /** An official duel on the boards: points and tokens (null for practice, or a guest not on the boards yet). */
   board: { points: number; tokens: number } | null;
+  /** Rules 6 days: the score's parts once the official duel is over (rules.ts duelScore); null otherwise. */
+  score: DuelScoreParts | null;
+  /** "score" on rules 6 days (one score out of 1,000), "points" on older days. */
+  scoring: "score" | "points";
+  /** The player asked the professor today (the solo bonus is gone). */
+  asked: boolean;
   /** The share text once over (squares, never a card's name). */
   share: string | null;
 }
@@ -267,7 +274,7 @@ export interface DuelHome {
   /** The trainer's team in order. */
   team: DuelCardView[];
   /** Your official duel today, if you've started it. */
-  official: { id: string; status: "playing" | "done"; result: "won" | "lost" | null; turns: number; cardsLeft: number; seconds: number | null; points: number | null } | null;
+  official: { id: string; status: "playing" | "done"; result: "won" | "lost" | null; turns: number; cardsLeft: number; seconds: number | null; points: number | null; score?: DuelScoreParts | null } | null;
   /** The day's par: only once your official duel is over. */
   par: number | null;
   /** Practice opens once your official duel is over. */
@@ -278,8 +285,14 @@ export interface DuelHome {
   signedIn: boolean;
   /** The day's rules (types.ts DuelRules). */
   rules: DuelRules;
-  /** Rules 5: the professor's plans for the start card (different cards carry each; nothing about luck or par). */
+  /** Rules 5: the professor's plans for the start card (different cards carry each; nothing about luck or par). Rules 6: empty until asked for (askProfessor). */
   plans: DuelPlanView[];
+  /** How many plans the professor has (shown before asking). */
+  planCount: number;
+  /** "score" on rules 6 days, "points" on older days. */
+  scoring: "score" | "points";
+  /** The player asked the professor today (rules 6: the solo bonus is gone). */
+  asked: boolean;
 }
 
 /** One of the professor's plans (solver.ts dayPlans). */
