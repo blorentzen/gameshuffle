@@ -8,7 +8,7 @@ import {
   CONDITION_RULES, actions, applyStep, begin, canUse, cloneState, damageOf, foeEnergy, foeRowFor, isLegal, nexts, pays, printedDamage, replay, roll, startState, step, swapTargets, viewOf,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "../src/lib/originals/duel/engine";
-import { COMEBACK_MAX, FAIR_LEADS, HAND_SIZE, MIN_PLANS, WIN_BAND, adviceFor, buildDay, candidates, dayPlans, drawPack, fairLeads, hardParFor, hardSetup, hintText, makeSetup, obviousPlay, packCap, slipWinRate, solve, solverSetup } from "../src/lib/originals/duel/solver";
+import { COMEBACK_MAX, FAIR_LEADS, HAND_SIZE, MIN_PLANS, WIN_BAND, adviceFor, buildDay, candidates, dayPlans, drawPack, fairLeads, hardParFor, hardSetup, hintText, makeSetup, obviousPlay, packCap, packsFor, slipWinRate, solve, solverSetup } from "../src/lib/originals/duel/solver";
 import { conditionsOf, plusOf, toDuelCard } from "../src/data/originals/duel/cardRules";
 import { plusText } from "../src/lib/originals/duel/copy";
 import {
@@ -952,6 +952,15 @@ async function real() {
     const hp = r5Set ? hardParFor(r5Set) : -1;
     check(hp >= 0 && hp === (r5Set ? hardParFor(r5Set) : -2), `the real roster: Hard's par comes out the same again (${hp})`);
     check(!r5 || hp === 0 || hp >= r5.par, "the real roster: Hard's par is never quicker than Normal's", { hard: hp, par: r5?.par });
+    // Trainer Road's last resort: Red's Gold team (four ex cards) throws out every pack, and still gets a duel that wins for real.
+    const redGold = DUEL_DATA.trainers.find((t) => t.id === "red-gold");
+    if (redGold) {
+      const noResort = packsFor("2026-10-01", redGold, redGold.tier, DUEL_DATA.pool, DUEL_DATA.cards, `road:${redGold.id}`, 120, Date.now() + 120_000, undefined, { n: 0 }, 1, 6);
+      const rg = packsFor("2026-10-01", redGold, redGold.tier, DUEL_DATA.pool, DUEL_DATA.cards, `road:${redGold.id}`, 120, Date.now() + 120_000, undefined, { n: 0 }, 1, 6, { lastResort: true });
+      const rgSet = rg && makeSetup(DUEL_DATA.cards, redGold, rg.found.pack, rg.found.row, rg.found.events, { rules: 6, seed: "2026-10-01" });
+      check(!noResort && !!rg && !rg.inBand, "Trainer Road: Red's Gold team gets a duel only through the last resort", { noResort: !!noResort, got: !!rg });
+      check(!!rgSet && replay(rgSet, rg!.found.line)?.over === "won", `Trainer Road: the last resort's line wins the real duel (par ${rg?.found.par})`);
+    }
     // Every person in a tier has a day before anyone comes back (Mondays and Tuesdays from the anchor).
     const gymPeople = peopleOf(DUEL_DATA.trainers.filter((t) => t.tier === "gym")).length;
     const gymDays: string[] = [];

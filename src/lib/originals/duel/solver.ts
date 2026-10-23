@@ -853,13 +853,16 @@ type Found = Omit<DuelDayBuild, "attempts" | "ms" | "inBand" | "stoodIn">;
  * which is most of the cost); the solver wins; the obvious play doesn't reach par; par sits in the
  * tier's band; and, only for packs that pass all that, at least two plans with different cards
  * carrying them. "easy" or "hard" throws the pack out; otherwise `miss` says how far it is from passing
- * (0 = passes), so the closest pack can stand when none passes.
+ * (0 = passes), so the closest pack can stand when none passes. `seen.rate` gets the win share
+ * either way.
  */
 function judge5(
   setup: DuelSetup, obvious: { won: boolean; turns: number }, tier: DuelTier, key: string, width: number | undefined, deadline: number,
+  seen?: { rate: number },
 ): "easy" | "hard" | { sol: DuelSolution; rate: number; plans: DuelPlan[]; miss: number; lean: "easy" | "hard" } {
   const [wlo, whi] = WIN_BAND[tier];
   const rate = slipWinRate(setup, key);
+  if (seen) seen.rate = rate;
   if (rate > whi + RATE_SLACK) return "easy";
   if (rate < wlo - RATE_SLACK) return "hard";
   const plan = solverSetup(setup);
@@ -891,20 +894,31 @@ const RATE_SLACK = 0.15;
 /** Rules 5: plans a day needs (Britton's picks 2026-10-22: at least two ways to win). */
 export const MIN_PLANS = 2;
 
+/** packsFor's last resort: how many thrown-out packs get a par search, and the extra time it may take. */
+const LAST_RESORT_TRIES = 3;
+const LAST_RESORT_MS = 20_000;
+
 /**
  * Packs for one trainer: drawn under a strength cap that tightens while the obvious play keeps
  * winning and loosens while nothing can be won. Stops at the first in-band pack; else returns the
  * beatable pack whose par came closest to the band.
+ *
+ * `lastResort` (Trainer Road, where every team needs a duel and there's no stand-in): when rules 5
+ * throws out every pack before the par search, the packs the slipping player did best against get
+ * a par search after the loop, and the first one the solver can win stands as the closest. Red's
+ * Gold team (four ex cards) was the only team this left without a duel on 2026-10-23.
  */
 export function packsFor(
   day: string, trainer: DuelTrainer, tier: DuelTier, pool: readonly string[], cards: Readonly<Record<string, DuelCard>>,
   seed: string, attempts: number, deadline: number, width: number | undefined, count: { n: number }, needFair = 0, rules: DuelRules = 1,
+  opts: { lastResort?: boolean } = {},
 ): { found: Found; inBand: boolean } | null {
   const [lo, hi] = PAR_BAND[tier];
   const team = trainer.team.map((id) => cards[id]).filter(Boolean);
   const exclude = new Set(trainer.team);
   let slack = START_SLACK[tier];
   let fallback: { found: Found; miss: number; setup?: DuelSetup } | null = null;
+  const thrown: { setup: DuelSetup; pack: string[]; row: EnergyType[]; events: DuelEventAt[]; rate: number; slack: number; obviousTurns: number }[] = [];
   let tooEasy = 0;
   let tooHard = 0;
   for (let attempt = 0; attempt < attempts && Date.now() < deadline; attempt++) {
@@ -930,9 +944,18 @@ export function packsFor(
     if (!setup) continue;
     const obvious = obviousPlay(setup);
     if (rules >= 5) {
-      const got = judge5(setup, obvious, tier, `${day}:${seed}:${trainer.id}:${attempt}`, width, deadline);
+      const seen = { rate: -1 };
+      const got = judge5(setup, obvious, tier, `${day}:${seed}:${trainer.id}:${attempt}`, width, deadline, seen);
       if (got === "easy") { tooEasy++; continue; }
-      if (got === "hard") { tooHard++; continue; }
+      if (got === "hard") {
+        tooHard++;
+        if (opts.lastResort && !obvious.won) {
+          thrown.push({ setup, pack, row, events, rate: seen.rate, slack, obviousTurns: obvious.turns });
+          thrown.sort((a, b) => b.rate - a.rate);
+          thrown.length = Math.min(thrown.length, LAST_RESORT_TRIES);
+        }
+        continue;
+      }
       const found: Found = { day, number: duelNumber(day), tier, trainerId: trainer.id, pack, row, events, par: got.sol.par, line: got.sol.line, slack, obviousTurns: obvious.turns, fair: 0, rules, winRate: got.rate, plans: got.plans };
       if (got.miss === 0) return { found, inBand: true };
       if (got.lean === "easy") tooEasy++;
@@ -953,6 +976,23 @@ export function packsFor(
     else tooHard++;
     const miss = sol.par < lo ? lo - sol.par : sol.par - hi;
     if (!fallback || miss < fallback.miss) fallback = { found, miss };
+  }
+  if (!fallback && thrown.length) {
+    // The loop may have used the whole budget: the last resort gets a little more (the callers leave room under maxDuration).
+    const until = Math.max(deadline, Date.now() + LAST_RESORT_MS);
+    for (const p of thrown) {
+      if (Date.now() >= until) break;
+      // Par usually assumes none of your conditions land; when no such line wins, a line with the
+      // duel's real luck still wins the same way for everyone (every roll is seeded by the day and the move).
+      const sol = solve(solverSetup(p.setup), { width, deadline: until }) ?? solve(p.setup, { width, deadline: until });
+      if (!sol) continue;
+      fallback = {
+        found: { day, number: duelNumber(day), tier, trainerId: trainer.id, pack: p.pack, row: p.row, events: p.events, par: sol.par, line: sol.line, slack: p.slack, obviousTurns: p.obviousTurns, fair: 0, rules, winRate: p.rate, plans: [] },
+        miss: Number.POSITIVE_INFINITY,
+        setup: p.setup,
+      };
+      break;
+    }
   }
   if (!fallback) return null;
   // Rules 5: the closest pack still gets its plans (they're only worked out for packs on target).

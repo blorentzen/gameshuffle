@@ -98,7 +98,8 @@ export async function buildRoadDuel(t: DuelTrainer, month: string, opts: { budge
   const t0 = Date.now();
   const deadline = t0 + (opts.budgetMs ?? 60_000);
   const rules = DUEL_RULES;
-  const got = packsFor(month, t, t.tier, data.pool, data.cards, `road:${t.id}`, 120, deadline, undefined, { n: 0 }, 1, rules);
+  // Every team needs a duel (no stand-ins here), so packsFor's last resort is on.
+  const got = packsFor(month, t, t.tier, data.pool, data.cards, `road:${t.id}`, 120, deadline, undefined, { n: 0 }, 1, rules, { lastResort: true });
   if (!got) { console.error(`[road] ${month} ${t.id}: no duel found in ${Date.now() - t0}ms`); return null; }
   const f = got.found;
   const cards: Record<string, DuelCard> = {};
