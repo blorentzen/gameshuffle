@@ -39,7 +39,7 @@ function parLine(run: DuelRunView): string | null {
   return `${turnsWord(over)} over par.`;
 }
 
-export function DuelEnd({ run, place, players, signedIn, board, onPractice, onToday, onZoom }: {
+export function DuelEnd({ run, place, players, signedIn, board, onPractice, hardCan = false, onToday, onZoom }: {
   run: DuelRunView;
   /** Today's place on the day board (official duels on the board). */
   place: number | null;
@@ -47,7 +47,9 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
   signedIn: boolean;
   /** The day board (official duels only). */
   board: ReactNode;
-  onPractice: () => void;
+  /** Practice in Normal or Hard (Hard only when it's open today). */
+  onPractice: (level: "normal" | "hard") => void;
+  hardCan?: boolean;
   /** Practice: back to today's own result. */
   onToday?: () => void;
   onZoom: (card: DuelCardView, owner: string) => void;
@@ -58,7 +60,9 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
   const play = run.play;
   const knocked = play.foe.filter((c) => c.out).length;
   const official = run.official;
+  const hard = run.level === "hard";
   const kicker = official ? (run.number >= 1 ? `The Daily Duel #${run.number}` : "The warm-up duel") : "Practice duel";
+  const other = hard ? "normal" : "hard";
   const shareText = (url: string) => withLink(run.share ?? "", url);
   const sharedNow = () => track(EVENTS.duelShared, { via: official ? "result" : "practice" });
 
@@ -66,9 +70,9 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
     <div className="duel-end">
       <section className="duel-result" aria-labelledby="duel-result-title" tabIndex={-1} id="duel-result">
         {run.trainer.picture && <TrainerArt picture={run.trainer.picture} shape="round" className="duel-result__face" />}
-        <p className="duel-result__kicker">{kicker}</p>
+        <p className="duel-result__kicker">{kicker}{hard && <span className="duel-hard-tag">Hard</span>}</p>
         <h2 id="duel-result-title" className="duel-result__title">{won ? `You beat ${trainer} in ${turnsWord(run.turns)}` : `${trainer} wins this one`}</h2>
-        {official && run.score && <DuelScoreCard score={run.score} won={won} />}
+        {official && run.score && <DuelScoreCard score={run.score} won={won} hard={run.level === "hard"} />}
         <dl className="duel-result__stats">
           {won
             ? <div><dt>Turns</dt><dd>{run.turns}</dd></div>
@@ -100,7 +104,8 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
               ? <DailiesShare current="duel" oneText="Copy my result" shareOne={() => { void navigator.clipboard.writeText(shareText(SHARE_URL)); }} one={{ request: { kind: "duel", duelRun: run.id }, text: shareText, fallbackUrl: SHARE_URL }} />
               : <ShareButton request={{ kind: "duel", duelRun: run.id }} text={shareText} game="duel" fallbackUrl={SHARE_URL} title="My Daily Duel practice" variant="secondary" />}
           </span>
-          <Button variant="secondary" iconBefore={IconRefresh} onClick={onPractice}>{official ? "Practice this duel" : "Practice again"}</Button>
+          <Button variant="secondary" iconBefore={IconRefresh} onClick={() => onPractice(run.level)}>{official ? "Practice this duel" : "Practice again"}</Button>
+          {hardCan && <Button variant="ghost" onClick={() => onPractice(other)}>{hard ? "Practice in Normal" : "Practice in Hard"}</Button>}
           {official ? <DailiesNextButton current="duel" /> : onToday && <Button variant="ghost" onClick={onToday}>Back to today&apos;s result</Button>}
         </div>
       </section>
@@ -117,19 +122,19 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
 }
 
 /** A scored day's score (rules 6): the total out of 1,000, then its parts (turns, time and solo on a win; knockouts on a loss). */
-function DuelScoreCard({ score, won }: { score: NonNullable<DuelRunView["score"]>; won: boolean }) {
+function DuelScoreCard({ score, won, hard }: { score: NonNullable<DuelRunView["score"]>; won: boolean; hard: boolean }) {
   const parts = won
-    ? [{ label: "From turns", value: score.turns, max: SCORE.turns }, { label: "From time", value: score.time, max: SCORE.time }, { label: "Solo bonus", value: score.solo, max: SCORE.solo }]
+    ? [{ label: "From turns", value: score.turns, max: SCORE.turns }, { label: "From time", value: score.time, max: SCORE.time }, { label: "Solo bonus", value: score.solo, max: SCORE.solo }, ...(score.hard ? [{ label: "Hard", value: score.hard, max: SCORE.hard }] : [])]
     : [{ label: "From knockouts", value: score.kos, max: SCORE.koMax }];
   return (
     <div className="duel-scorecard">
-      <p className="duel-scorecard__total"><span>Score</span> <b>{score.score.toLocaleString("en-US")}</b> <small>of 1,000</small></p>
+      <p className="duel-scorecard__total"><span>Score</span> <b>{score.score.toLocaleString("en-US")}</b> <small>of {(hard ? 1000 + SCORE.hard : 1000).toLocaleString("en-US")}</small></p>
       <dl className="duel-scorecard__parts">
         {parts.map((p) => (
           <div key={p.label}><dt>{p.label}</dt><dd>{p.value}<small> of {p.max}</small></dd></div>
         ))}
       </dl>
-      {won && score.solo === 0 && <p className="duel-result__small">You asked the professor today, so there&apos;s no solo bonus.</p>}
+      {won && !hard && score.solo === 0 && <p className="duel-result__small">You asked the professor today, so there&apos;s no solo bonus.</p>}
     </div>
   );
 }

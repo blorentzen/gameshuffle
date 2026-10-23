@@ -28,10 +28,13 @@ import type { DuelCardView, DuelHintView, DuelHome, DuelRunView } from "@/lib/or
 import { DuelArena } from "./DuelArena";
 import { framesBetween, type Frame } from "./duelBeats";
 import { DuelEnd } from "./DuelEnd";
-import { DuelStart } from "./DuelStart";
+import { DuelStart, type DuelLevelPick } from "./DuelStart";
 import { DuelZoom } from "./DuelZoom";
 import { setDuelCredit } from "./DuelPictureCredit";
 import { reducedMotion } from "./duelLook";
+
+/** Where this browser remembers Normal or Hard. */
+const LEVEL_KEY = "gs-duel-level";
 
 /** How long the final picture holds before the result shows. */
 const OVER_MS = 1400;
@@ -76,6 +79,14 @@ export function DailyDuel() {
   const [zoom, setZoom] = useState<{ card: DuelCardView; owner: string } | null>(null);
   const [boardRefresh, setBoardRefresh] = useState(0);
   const [today, setToday] = useState<BoardView | null>(null);
+  // Normal or Hard: the last pick is remembered in this browser (picks 2026-10-23).
+  const [level, setLevel] = useState<DuelLevelPick>(() => {
+    try { return typeof window !== "undefined" && window.localStorage.getItem(LEVEL_KEY) === "hard" ? "hard" : "normal"; } catch { return "normal"; }
+  });
+  const pickLevel = useCallback((l: DuelLevelPick) => {
+    setLevel(l);
+    try { window.localStorage.setItem(LEVEL_KEY, l); } catch { /* private window */ }
+  }, []);
   const timers = useRef<number[]>([]);
   /** The beats still to play (cleared by a skip) and what runs once they're done. */
   const beatTimers = useRef<number[]>([]);
@@ -179,19 +190,19 @@ export function DailyDuel() {
     if (top !== undefined) window.scrollTo({ top: Math.max(0, window.scrollY + top - 80), behavior: reducedMotion() ? "auto" : "smooth" });
   });
 
-  const start = useCallback(async (mode: "official" | "practice") => {
+  const start = useCallback(async (mode: "official" | "practice", want: DuelLevelPick = "normal") => {
     if (busy) return;
     setBusy(true);
-    const res = await duelFetch("/api/daily-duel", { method: "POST", makeGuest: true, body: JSON.stringify({ action: "start", mode }) }).catch(() => null);
+    const res = await duelFetch("/api/daily-duel", { method: "POST", makeGuest: true, body: JSON.stringify({ action: "start", mode, level: want }) }).catch(() => null);
     setBusy(false);
     if (!res?.ok) {
       const err = ((await res?.json().catch(() => ({}))) as { error?: string } | undefined)?.error;
-      toast.error(err === "official_first" ? "Finish today's duel first: practice opens after it." : err === "not_ready" ? "Today's duel isn't ready yet. Try again in a moment." : err === "rate_limited" ? "Slow down a little, then try again." : "Couldn't start the duel. Try again in a moment.");
+      toast.error(err === "official_first" ? "Finish today's duel first: practice opens after it." : err === "hard_off" ? "Hard isn't open for this duel. Pick Normal to play." : err === "not_ready" ? "Today's duel isn't ready yet. Try again in a moment." : err === "rate_limited" ? "Slow down a little, then try again." : "Couldn't start the duel. Try again in a moment.");
       return;
     }
     const body = (await res.json()) as { run: DuelRunView };
-    if (mode === "official") track(EVENTS.duelStarted, { tier: body.run.trainer.tier });
-    else track(EVENTS.duelPracticed, { tier: body.run.trainer.tier });
+    if (mode === "official") track(EVENTS.duelStarted, { tier: body.run.trainer.tier, level: body.run.level });
+    else track(EVENTS.duelPracticed, { tier: body.run.trainer.tier, level: body.run.level });
     setHolding(false);
     take(body.run, { fresh: true });
     scrollToArena();
@@ -295,7 +306,8 @@ export function DailyDuel() {
           players={today?.total ?? 0}
           signedIn={signedIn}
           board={board}
-          onPractice={() => void start("practice")}
+          onPractice={(l) => void start("practice", l)}
+          hardCan={home.hard.can}
           onToday={!shown.official ? () => setRun(null) : undefined}
           onZoom={onZoom}
         />
@@ -307,7 +319,7 @@ export function DailyDuel() {
 
   return (
     <div className="duel-home">
-      <DuelStart home={home} busy={busy} onStart={() => void start("official")} onAsk={onAsk} onZoom={onZoom} />
+      <DuelStart home={home} busy={busy} level={level} onLevel={pickLevel} onStart={() => void start("official", home.hard.can ? level : "normal")} onAsk={onAsk} onZoom={onZoom} />
       {board}
       {zoomer}
     </div>

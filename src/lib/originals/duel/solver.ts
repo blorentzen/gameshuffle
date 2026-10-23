@@ -387,6 +387,11 @@ export function hintText(setup: DuelSetup, s: DuelState, a: DuelAction, plan: Pl
  * knockout the card whose first turn scores best, or with chance `slip` any. Deterministic for `rand`.
  */
 export function slipPlay(setup: DuelSetup, s0: DuelState, lead: number, slip: number, rand: () => number): boolean {
+  return slipGame(setup, s0, lead, slip, rand).over === "won";
+}
+
+/** The slipping player's whole duel (slipPlay), returning where it ended. */
+export function slipGame(setup: DuelSetup, s0: DuelState, lead: number, slip: number, rand: () => number): DuelState {
   let s = begin(setup, s0, lead, true);
   let guard = 0;
   while (!s.over && guard++ < TURN_CAP + 5) {
@@ -415,7 +420,7 @@ export function slipPlay(setup: DuelSetup, s0: DuelState, lead: number, slip: nu
     }
     s = begin(setup, s, nx, true);
   }
-  return s.over === "won";
+  return s;
 }
 
 /**
@@ -712,6 +717,39 @@ export const HEAD_START_FROM = 5;
 
 /** The same duel as the solver plays it: your conditions never land (rules 2), so par never counts on luck. */
 export const solverSetup = (setup: DuelSetup): DuelSetup => ((setup.rules ?? 1) >= 2 ? { ...setup, luck: "miss" } : setup);
+
+/**
+ * Hard (picks 2026-10-23, https://claude.ai/artifact/BFhLK47XrGwhsJdGSvXSP6): the same duel without your
+ * comeback Energy (the trainer keeps theirs). The professor is off too, which the store handles.
+ */
+export const hardSetup = (setup: DuelSetup): DuelSetup => ({ ...setup, comeback: 0 });
+
+/** How far Hard's par search looks before the slipping player's wins are asked instead. */
+export const HARD_NODES = 400_000;
+
+/**
+ * Hard's par: the fewest turns the search finds (your conditions as misses, like Normal's par). When
+ * the search runs out of room, the slipping player's quickest win over every pick, lead and seed shows
+ * a winning line exists and stands as par. 0 = no winning line found: Hard is off that day.
+ */
+export function hardParFor(setup: DuelSetup, nodes = HARD_NODES): number {
+  const hard = hardSetup(setup);
+  const sol = solve(solverSetup(hard), { width: 300, maxNodes: nodes });
+  if (sol) return sol.par;
+  const s0 = startState(hard);
+  const picks = needsBring(hard, s0) ? uniquePicks([smartBring(hard), obviousBring(hard)]) : [null];
+  let best = 0;
+  for (const pick of picks) {
+    const sb = pick ? applyStep(hard, s0, { bring: pick })! : s0;
+    for (const lead of nexts(sb)) {
+      for (let k = 0; k < SLIP_SEEDS * 2; k++) {
+        const end = slipGame(hard, sb, lead, SLIP, duelRand(`hard:${pick?.join("") ?? "6"}:${lead}:${k}`));
+        if (end.over === "won" && (!best || end.turn < best)) best = end.turn;
+      }
+    }
+  }
+  return best;
+}
 
 /** How many ex cards a pack may hold, by tier (never more than 2). */
 export const MAX_EX: Record<DuelTier, number> = { gym: 1, elite: 1, rival: 2, boss: 2, champion: 2 };

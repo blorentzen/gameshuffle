@@ -160,10 +160,25 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 @media (max-width: 30rem) { .duel-teamcards { gap: 5px; } }
 /* The professor (start card): the solo bonus and Ask the professor, or the plans once asked. */
 .duel-prof { display: grid; justify-items: start; gap: 10px; }
-.duel-prof__bonus { display: inline-block; margin-right: 4px; padding: 2px 8px; border-radius: 999px; background: rgba(47, 191, 113, 0.28); color: #d2f7e2; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.02em; vertical-align: 1px; }
+.duel-prof__bonus { display: inline-block; margin-right: 4px; padding: 2px 8px; border-radius: 999px; background: rgba(47, 191, 113, 0.28); color: #d2f7e2; font-size: var(--font-size-14); font-weight: 800; letter-spacing: 0.02em; vertical-align: 1px; }
 .duel-prof .duel-prof__ask.empac-button { height: auto; min-height: 4rem; border-color: rgba(45, 212, 191, 0.6); background: rgba(45, 212, 191, 0.12); color: #b8f3e8; font-weight: 700; }
 .duel-prof .duel-prof__ask.empac-button:hover:not(:disabled) { background: rgba(45, 212, 191, 0.22); color: #fff; }
 .duel-prof .duel-prof__ask.empac-button:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+/* The mode on the start card: Normal or Hard, two CascadeDS cards you press (picks 2026-10-23). */
+.duel-modes { display: grid; gap: 8px; }
+.duel-modes__pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 54rem; }
+.daily-start--duel .duel-mode.empac-card { display: grid; align-content: start; gap: 3px; min-height: 0; padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06); color: #fff; text-align: start; box-shadow: none; }
+.daily-start--duel .duel-mode.empac-card:hover:not(:disabled) { border-color: rgba(245, 200, 76, 0.7); background: rgba(255, 255, 255, 0.1); }
+.daily-start--duel .duel-mode.empac-card.empac-card--selected { border-color: #f5c84c; background: rgba(245, 200, 76, 0.14); box-shadow: inset 0 0 0 1px #f5c84c; }
+.daily-start--duel .duel-mode.empac-card:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+.daily-start--duel .duel-mode.empac-card:disabled { opacity: 0.75; cursor: default; }
+.duel-mode__name { font-family: var(--font-display, inherit); font-size: var(--font-size-18, 1.8rem); font-weight: 800; line-height: 1.2; }
+.duel-mode__line { color: #c9cff0; font-size: var(--font-size-14); line-height: 1.35; }
+.duel-mode__bonus { color: #9ef0c4; font-weight: 700; }
+.duel-mode__off { margin-top: 4px; color: #ffd3a8; font-size: var(--font-size-14); font-weight: 600; }
+/* Hard, wherever a duel says which mode it is: your bar, the result, the leaderboard. */
+.duel-hard-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-family: var(--font-body, inherit); font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.04em; line-height: 1.5; text-transform: uppercase; vertical-align: 2px; }
+@media (max-width: 22.5rem) { .duel-modes__pick { grid-template-columns: minmax(0, 1fr); } }
 /* How to play, folded after your first duel (a flush CDS Accordion on the navy card). */
 .duel-howto.empac-accordion--flush .empac-accordion__item { border-top: 1px solid rgba(255, 255, 255, 0.16); border-bottom: 0; }
 .duel-howto .empac-accordion__trigger { min-height: 44px; padding: 10px 0; background: none; color: #fff; }
@@ -283,6 +298,7 @@ button.duel-ev--next:hover { background: rgba(245, 200, 76, 0.22); }
 .duel-bar__face { flex: none; width: 4rem; height: 4rem; box-shadow: 0 0 0 2px var(--duel-gold, #f5c84c); }
 .duel-bar__who b { font-family: var(--font-display, inherit); font-size: 1.7rem; font-weight: 800; line-height: 1.1; }
 .duel-bar__who span { font-size: var(--font-size-14); color: var(--i2); }
+.duel-bar__who .duel-hard-tag { font-size: var(--font-size-12); color: #1a1300; }
 .duel-bar__turn:focus-visible { outline: 2px solid var(--duel-focus); outline-offset: 2px; border-radius: 4px; }
 .duel-practice { flex: none; padding: 4px 10px; border-radius: 999px; background: rgba(245, 200, 76, 0.18); border: 1px solid rgba(245, 200, 76, 0.6); color: #ffe08a; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .duel-clock { flex: none; display: inline-flex; align-items: center; gap: 4px; color: #ffe08a; font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }

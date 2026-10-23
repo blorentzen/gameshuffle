@@ -7,14 +7,16 @@
  * a duel", who they are, a line about them and their own event; their team as cards (Leads on the
  * first, each card's Weakness; press one for its moves) and your six; the professor (rules 6: the
  * solo bonus and how many plans there are, with Ask the professor, which ends the bonus once you
- * confirm; older days show the plans); Battle now (it starts the official duel and its clock); and
+ * confirm; older days show the plans); the mode, Normal or Hard (picks 2026-10-23,
+ * https://claude.ai/artifact/BFhLK47XrGwhsJdGSvXSP6: Hard has no comeback Energy and no professor, its own
+ * par and +200 on a win; the pick locks when the duel starts); Battle now (it starts the official duel and its clock); and
  * How to play, folded once you've played a duel. The one boxed thing on the page before you play,
  * in the Duel's own navy.
  */
 
 import { useState } from "react";
 import { IconBulb, IconSwords } from "@tabler/icons-react";
-import { Accordion, Button } from "@empac/cascadeds";
+import { Accordion, Button, Card } from "@empac/cascadeds";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { DuelCardView, DuelHome } from "@/lib/originals/duel/view";
@@ -51,7 +53,8 @@ function DuelProfessor({ home, onAsk }: { home: DuelHome; onAsk: () => Promise<b
   const shown = home.plans.length > 0;
   if (!shown && home.planCount === 0) return null;
   const ask = async () => {
-    const ok = await confirm({ title: "Ask the professor?", body: "You'll lose today's solo bonus: 150 points off your score.", confirmLabel: "Ask", danger: false });
+    const body = home.hard.can ? "You'll lose today's solo bonus (150 points off your score), and Hard closes for today." : "You'll lose today's solo bonus: 150 points off your score.";
+    const ok = await confirm({ title: "Ask the professor?", body, confirmLabel: "Ask", danger: false });
     if (!ok) return;
     setBusy(true);
     const got = await onAsk().catch(() => false);
@@ -89,9 +92,41 @@ const STEPS_6 = [
   { icon: "board", title: "Knock out every card", text: "Your score counts turns, time and going solo. Your first duel today is the one that counts." },
 ] as const;
 
-export function DuelStart({ home, busy, onStart, onAsk, onZoom }: {
+/** Normal or Hard, as two CascadeDS cards you press (like the support levels). */
+function DuelModePick({ home, level, onLevel }: { home: DuelHome; level: DuelLevelPick; onLevel: (l: DuelLevelPick) => void }) {
+  const hard = home.hard;
+  const off = hard.why === "asked" ? "Closed today: you asked the professor" : "Not on today's duel";
+  return (
+    <div className="duel-modes">
+      <p className="duel-start__label" id="duel-mode-label">Mode</p>
+      <div className="duel-modes__pick" role="group" aria-labelledby="duel-mode-label">
+        <Card variant="outlined" padding="small" interactive selected={level === "normal"} onClick={() => onLevel("normal")} className="duel-mode"
+          aria-label="Normal: comeback Energy, and the professor can help">
+          <span className="duel-mode__name">Normal</span>
+          <span className="duel-mode__line">Comeback Energy</span>
+          <span className="duel-mode__line">The professor can help</span>
+        </Card>
+        <Card variant="outlined" padding="small" interactive={hard.can} disabled={!hard.can} selected={level === "hard"} onClick={() => { if (hard.can) onLevel("hard"); }} className="duel-mode duel-mode--hard"
+          aria-label={`Hard: no comeback Energy, no professor, 200 more on a win${!hard.can ? `. ${off}` : ""}`}>
+          <span className="duel-mode__name">Hard</span>
+          <span className="duel-mode__line">No comeback Energy</span>
+          <span className="duel-mode__line">No professor</span>
+          <span className="duel-mode__line duel-mode__bonus">+200 on a win</span>
+          {!hard.can && <span className="duel-mode__off">{off}</span>}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export type DuelLevelPick = "normal" | "hard";
+
+export function DuelStart({ home, busy, level, onLevel, onStart, onAsk, onZoom }: {
   home: DuelHome;
   busy: boolean;
+  /** Normal or Hard for the official duel (Hard only when `home.hard.can`). */
+  level: DuelLevelPick;
+  onLevel: (l: DuelLevelPick) => void;
   onStart: () => void;
   /** Asks the professor for the plans (true once they're in `home.plans`). */
   onAsk: () => Promise<boolean>;
@@ -116,7 +151,7 @@ export function DuelStart({ home, busy, onStart, onAsk, onZoom }: {
         onStart={() => { if (!busy) onStart(); }}
         label="Battle now"
         icon={IconSwords}
-        note={`${home.number >= 1 ? `Daily Duel #${home.number}` : "The warm-up duel"} · ${t.tierLabel} day. The clock starts when you tap Battle now.`}
+        note={`${home.number >= 1 ? `Daily Duel #${home.number}` : "The warm-up duel"} · ${t.tierLabel} day. The clock starts${home.rules >= 6 ? " and your mode locks" : ""} when you tap Battle now.`}
         head={
           <div className="duel-start__head">
             <div className="duel-start__top">
@@ -142,7 +177,8 @@ export function DuelStart({ home, busy, onStart, onAsk, onZoom }: {
                 {home.pack.map((c) => <CardThumb key={c.index} card={c} size="md" onPress={() => onZoom(c, "Your")} label={`See the ${c.name} card`} />)}
               </div>
             </div>
-            <DuelProfessor home={home} onAsk={onAsk} />
+            {home.rules >= 6 && <DuelModePick home={home} level={home.hard.can ? level : "normal"} onLevel={onLevel} />}
+            {!(home.hard.can && level === "hard") && <DuelProfessor home={home} onAsk={onAsk} />}
           </div>
         }
       >
