@@ -26,10 +26,10 @@ import { alive, applyStep, cardsLeft, inDuel, startState, viewOf, type DuelSetup
 import { adviceFor, buildDay, makeSetup, type DuelPlan } from "./solver";
 import { trainerPicture } from "./pictures";
 import { bioFor } from "@/data/originals/duel/bios";
-import { TIER_LABEL, duelNumber, duelPoints, duelShareText, personOf, signatureText, tierFor, type DuelShareFacts } from "./rules";
+import { TIER_LABEL, duelNumber, duelPoints, duelScore, duelShareText, personOf, signatureText, tierFor, type DuelScoreParts, type DuelShareFacts } from "./rules";
 import type { DuelData } from "./data";
 import type { DuelCard, DuelEventAt, DuelRules, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
-import type { DuelChallengerView, DuelHistory, DuelHome, DuelPicture, DuelRunView, DuelTrainerView } from "./view";
+import type { DuelChallengerView, DuelHintView, DuelHistory, DuelHome, DuelPicture, DuelPlanView, DuelRunView, DuelTrainerView } from "./view";
 
 type DbError = { code?: string; message?: string } | null;
 /** A Daily Duel table or column that isn't there yet. */
@@ -51,8 +51,8 @@ interface DayRow {
 }
 const DAY_COLS = "day, number, tier, trainer_id, pack, row, events, par, line, in_band, built_at, cards, trainer";
 
-/** The newest rules (types.ts DuelRules): the Energy hand, the comeback charge, "+"/"×" attacks and the professor's plans (2026-10-22). */
-export const DUEL_RULES: DuelRules = 5;
+/** The newest rules (types.ts DuelRules): rules 5 plus the trainer on the same rules (its own hand, the comeback charge), 2026-10-23. */
+export const DUEL_RULES: DuelRules = 6;
 
 /** Whether duel_days has `plans` and `win_rate` yet (daily-duel-m3.sql); rules 5 days need them, so until then days build with rules 4. */
 let plansColumn: Promise<boolean> | null = null;
@@ -113,7 +113,7 @@ const cachedDay = (day: string): DuelDay | null => {
 const keepDay = (d: DuelDay) => { dayCache.set(d.day, { d, at: Date.now() }); };
 const building = new Map<string, Promise<DuelDay | null>>();
 
-const rulesOf = (n: number | undefined): DuelRules => (n === 5 ? 5 : n === 4 ? 4 : n === 3 ? 3 : n === 2 ? 2 : 1);
+const rulesOf = (n: number | undefined): DuelRules => (n === 6 ? 6 : n === 5 ? 5 : n === 4 ? 4 : n === 3 ? 3 : n === 2 ? 2 : 1);
 
 function dayFrom(r: DayRow): DuelDay | null {
   const trainer = r.trainer;
@@ -325,9 +325,66 @@ async function recordBoard(r: RunRow, d: DuelDay): Promise<{ points: number; tok
     const { data } = await createServiceClient().from("daily_guests").select("guest_key").eq("guest_key", player.id).maybeSingle();
     if (!data) return null;
   }
-  const points = duelPoints(r.result === "won", r.turns, d.par);
-  const got = await recordDuelScore({ day: r.day, player, won: r.result === "won", turns: r.turns, cardsLeft: r.cards_left ?? 0, seconds: r.seconds, points });
+  const parts = scoreOf(r, d, d.rules >= 6 ? await askedOn(r.player, r.day) : false);
+  const points = parts ? parts.points : duelPoints(r.result === "won", r.turns, d.par);
+  const got = await recordDuelScore({ day: r.day, player, won: r.result === "won", turns: r.turns, cardsLeft: r.cards_left ?? 0, seconds: r.seconds, points, ...(parts ? { score: parts.score } : {}) });
   return got ? { points: got.points, tokens: got.tokens } : null;
+}
+
+// ─── asking the professor (rules 6) ──────────────────────────────────────────
+
+/** Whether duel_help exists yet (daily-duel-m4.sql); asked once per server. Without it nobody is marked, so everyone keeps the bonus. */
+let helpTable: Promise<boolean> | null = null;
+function helpReady(): Promise<boolean> {
+  helpTable ??= (async () => {
+    const { error } = await createServiceClient().from("duel_help").select("player").limit(1);
+    if (error && !missing(error)) console.error("[duel] help table check failed:", error);
+    return !error;
+  })();
+  return helpTable;
+}
+
+/** The player asked the professor on this day (the plans or a tip): the official duel loses the solo bonus. */
+async function askedOn(key: string, day: string): Promise<boolean> {
+  if (!(await helpReady())) return false;
+  const { data } = await createServiceClient().from("duel_help").select("player").eq("player", key).eq("day", day).maybeSingle();
+  return !!data;
+}
+
+async function markAsked(key: string, day: string): Promise<void> {
+  if (!(await helpReady())) return;
+  const { error } = await createServiceClient().from("duel_help").upsert({ player: key, day }, { onConflict: "player,day", ignoreDuplicates: true });
+  if (error) console.error("[duel] help record failed:", error);
+}
+
+/** Whether this run's player asked the professor on its day (official runs on rules 6 days only). */
+const askedFor = async (r: RunRow, d: DuelDay) => (d.rules >= 6 && r.official ? askedOn(r.player, r.day) : false);
+
+/** A finished official duel's score on a rules 6 day (null otherwise: older days keep their points). */
+function scoreOf(r: RunRow, d: DuelDay, asked: boolean): DuelScoreParts | null {
+  if (d.rules < 6 || !r.official || r.status !== "done" || !r.result) return null;
+  return duelScore({ won: r.result === "won", turns: r.turns, par: d.par, seconds: r.seconds, solo: !asked, knocked: r.state.foe.filter((c) => c.out).length });
+}
+
+/** The professor's plans for a day. On a rules 6 day asking for them ends the solo bonus (it's recorded first). */
+export async function askProfessor(player: DuelPlayer, day = gsDay()): Promise<DuelPlanView[] | null> {
+  const d = await getDay(day, { build: false });
+  if (!d) return null;
+  if (d.rules >= 6) await markAsked(keyOf(player), day);
+  return d.plans.map((p) => ({ title: p.title, text: p.text }));
+}
+
+/**
+ * A tip for the turn in progress (the professor's play: where the Energy goes, which one, and what to
+ * do). On a rules 6 day's official duel asking ends the solo bonus (recorded first). Null between turns.
+ */
+export async function tipFor(runId: string, player: DuelPlayer): Promise<DuelHintView | null | "not_found"> {
+  const r = await getRun(runId);
+  if (!r || r.player !== keyOf(player)) return "not_found";
+  const d = await getDay(r.day, { build: false });
+  if (!d || r.status === "done") return null;
+  if (d.rules >= 6 && r.official) await markAsked(r.player, r.day);
+  return adviceFor(d.setup, r.state);
 }
 
 function shareFactsOf(r: RunRow, d: DuelDay): DuelShareFacts {
@@ -344,7 +401,8 @@ function playView(r: RunRow, d: DuelDay) {
   return play;
 }
 
-function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number } | null = null): DuelRunView {
+function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number } | null = null, asked = false): DuelRunView {
+  const parts = scoreOf(r, d, asked);
   const done = r.status === "done";
   // Par shows once the official duel is over (practice only opens after it).
   const parShown = done || !r.official;
@@ -356,12 +414,15 @@ function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number 
     turns: r.state.turn,
     cardsLeft: cardsLeft(r.state),
     par: parShown ? d.par : null,
-    points: r.official && done && r.result ? duelPoints(r.result === "won", r.turns, d.par) : null,
+    points: parts ? parts.points : r.official && done && r.result ? duelPoints(r.result === "won", r.turns, d.par) : null,
+    score: parts,
+    scoring: d.rules >= 6 ? "score" : "points",
+    asked,
     seconds: done ? r.seconds : null,
     startedAt: r.started_at,
     serverNow: new Date().toISOString(),
     board,
-    share: done && r.result ? duelShareText(shareFactsOf(r, d)) : null,
+    share: done && r.result ? duelShareText({ ...shareFactsOf(r, d), score: parts?.score ?? null }) : null,
   };
 }
 
@@ -379,7 +440,7 @@ export async function startRun(player: DuelPlayer, mode: "official" | "practice"
   const key = keyOf(player);
   const official = await officialRun(key, day);
   if (mode === "official") {
-    if (official) return { ok: true, run: runView(official, d) };
+    if (official) return { ok: true, run: runView(official, d, null, await askedFor(official, d)) };
   } else if (!official || official.status !== "done") {
     return { ok: false, error: "official_first" };
   } else {
@@ -390,10 +451,10 @@ export async function startRun(player: DuelPlayer, mode: "official" | "practice"
   if (error?.code === "23505") {
     // Another tab started the official duel first: that one stands.
     const again = await officialRun(key, day);
-    return again ? { ok: true, run: runView(again, d) } : { ok: false, error: "failed" };
+    return again ? { ok: true, run: runView(again, d, null, await askedFor(again, d)) } : { ok: false, error: "failed" };
   }
   if (error || !data) { if (!missing(error)) console.error("[duel] start failed:", error); return { ok: false, error: missing(error) ? "not_ready" : "failed" }; }
-  return { ok: true, run: runView(data as RunRow, d) };
+  return { ok: true, run: runView(data as RunRow, d, null, await askedFor(data as RunRow, d)) };
 }
 
 export type ActResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_found" | "not_ready" | "bad_request" | "illegal" | "over" | "busy" };
@@ -419,7 +480,7 @@ export async function act(runId: string, player: DuelPlayer, st: DuelStep, attem
   const saved = await save(r, patch);
   if (!saved) return attempt < 2 ? act(runId, player, st, attempt + 1) : { ok: false, error: "busy" };
   const board = saved.status === "done" ? await recordBoard(saved, d) : null;
-  return { ok: true, run: runView(saved, d, board) };
+  return { ok: true, run: runView(saved, d, board, await askedFor(saved, d)) };
 }
 
 /** A run's view for its player. */
@@ -427,7 +488,7 @@ export async function getRunView(runId: string, player: DuelPlayer): Promise<Due
   const r = await getRun(runId);
   if (!r || r.player !== keyOf(player)) return null;
   const d = await getDay(r.day, { build: false });
-  return d ? runView(r, d) : null;
+  return d ? runView(r, d, null, await askedFor(r, d)) : null;
 }
 
 // ─── streaks and the page's opening state ────────────────────────────────────
@@ -470,33 +531,40 @@ export async function duelHome(player: DuelPlayer | null, day = gsDay()): Promis
   const empty: DuelHome = {
     ready: false, day, number: duelNumber(day), tier: tierFor(day), trainer: null, pack: [], bring: 6, team: [],
     official: null, par: null, practiceAllowed: false, current: null, history: NO_HISTORY, signedIn: player?.kind === "u",
-    rules: 1, plans: [],
+    rules: 1, plans: [], planCount: 0, scoring: "points", asked: false,
   };
   const d = await getDay(day);
   if (!d) return empty;
   const start = viewOf(d.setup, startState(d.setup), d.trainer);
   const base: DuelHome = {
     ...empty, ready: true, tier: d.tier, trainer: dayTrainer(d), pack: start.you, bring: start.bring, team: start.foe,
-    rules: d.rules, plans: d.plans.map((p) => ({ title: p.title, text: p.text })),
+    rules: d.rules, planCount: d.plans.length, scoring: d.rules >= 6 ? "score" : "points",
+    // Rules 6: the plans stay on the server until asked for (askProfessor); older days show them.
+    plans: d.rules >= 6 ? [] : d.plans.map((p) => ({ title: p.title, text: p.text })),
   };
   if (!player) return base;
   const key = keyOf(player);
-  const [official, rows, { data: practice }] = await Promise.all([
+  const [official, rows, { data: practice }, asked] = await Promise.all([
     officialRun(key, day),
     officialRows(key, day),
     createServiceClient().from("duel_runs").select(RUN_COLS).eq("player", key).eq("day", day).eq("official", false).eq("status", "playing").order("started_at", { ascending: false }).limit(1),
+    d.rules >= 6 ? askedOn(key, day) : Promise.resolve(false),
   ]);
   const over = official?.status === "done";
+  const parts = official ? scoreOf(official, d, asked) : null;
   const open = official && !over ? official : ((practice ?? []) as RunRow[])[0] ?? null;
   return {
     ...base,
     official: official ? {
       id: official.id, status: official.status, result: official.result, turns: official.turns, cardsLeft: official.cards_left ?? cardsLeft(official.state),
-      seconds: over ? official.seconds : null, points: over && official.result ? duelPoints(official.result === "won", official.turns, d.par) : null,
+      seconds: over ? official.seconds : null, points: parts ? parts.points : over && official.result ? duelPoints(official.result === "won", official.turns, d.par) : null,
+      score: parts,
     } : null,
+    asked,
+    plans: d.rules < 6 || asked ? d.plans.map((p) => ({ title: p.title, text: p.text })) : [],
     par: over ? d.par : null,
     practiceAllowed: over,
-    current: open ? runView(open, d) : null,
+    current: open ? runView(open, d, null, open.official ? asked : false) : null,
     history: historyOf(rows, day),
   };
 }

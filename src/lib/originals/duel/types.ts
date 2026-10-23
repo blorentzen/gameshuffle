@@ -25,8 +25,10 @@ export type DuelCondition = "burned" | "poisoned" | "paralyzed" | "asleep" | "co
  * https://claude.ai/artifact/MFwJQi5RBdq92B1JKS2EWZ): a hand of three Energy to pick from, a card
  * coming in after a knockout brings an Energy for each card you've lost (up to 2), "+" and "×"
  * attacks count, and days are built to weekday win targets with at least two of the professor's plans.
+ * 6 (Britton's picks 2026-10-23, https://claude.ai/artifact/BXp1RfGmpEis5UanYC4bdb): the trainer plays by
+ * the same rules (its own hand of three from its own row, the comeback charge).
  */
-export type DuelRules = 1 | 2 | 3 | 4 | 5;
+export type DuelRules = 1 | 2 | 3 | 4 | 5 | 6;
 
 /** A condition a move puts on the card it hits: `coin` when the card flips a coin for it (a smaller chance). */
 export interface DuelMoveFx {

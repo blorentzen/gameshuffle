@@ -45,7 +45,9 @@
 
 @media (min-width: 640px) {
   .duel-ch { display: grid; grid-template-columns: minmax(0, min(46%, 52rem)) minmax(0, 1fr); }
-  .duel-ch__art { aspect-ratio: auto; height: 100%; min-height: 30rem; }
+  /* A box of its own inside the frame, so the crop always knows its height (see daily-duel.css .duel-start__art). */
+  .duel-ch__media { min-height: 30rem; }
+  .duel-ch__art { position: absolute; inset: 0; width: auto; aspect-ratio: auto; }
   .duel-ch__media::after { background: linear-gradient(90deg, rgba(13, 18, 51, 0) 60%, var(--ch-navy) 100%); }
   .duel-ch__body { margin-top: 0; padding: 24px 26px; align-content: center; }
   .duel-ch__link, .duel-ch__small { justify-self: start; text-align: start; }

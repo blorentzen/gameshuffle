@@ -1,28 +1,29 @@
 "use client";
 
 /**
- * The duel's events (picks 2026-10-22, https://claude.ai/artifact/P9oteT6tmhCmAqpQrAakJZ, all as
- * recommended): one strip with two halves, This turn and Next turn, in the same place at the same
- * height every turn, so nothing below it moves. A half with nothing in it says "No event". The
- * coming event glows gold; the trainer's own event wears their picture. Professor's advice says its
- * play for the turn in the This turn half. When an event lands it takes the middle of the arena for
- * a moment first (DuelEventMoment). Our own drawing: CascadeDS has no game event strip.
+ * The duel's events (arena pass, picks 2026-10-23, https://claude.ai/artifact/BXp1RfGmpEis5UanYC4bdb,
+ * all as recommended). A bar at the top of the arena that stays in view while you scroll: the turn,
+ * what's on now (the weather with its turns left, or this turn's event) and next turn's event in gold.
+ * Each chip is a button that shows its notice again. When an event lands it shows as a notice
+ * at the top of the screen for about three seconds (a tap closes it); the bar carries it after that.
+ * The turn window repeats the bar's chips (not pressable) because the window covers the bar.
+ * Our own drawing: CascadeDS has no game event bar.
  */
 
-import { IconCircleDashed } from "@tabler/icons-react";
-import type { DuelEventView, DuelHintView, DuelPicture } from "@/lib/originals/duel/view";
-import { EVENT_LOOK } from "./duelLook";
+import type { ReactNode, Ref } from "react";
+import { createPortal } from "react-dom";
+import type { DuelEventView, DuelHintView, DuelInPlay, DuelPicture } from "@/lib/originals/duel/view";
+import { EVENT_LOOK, WEATHER_CHIP } from "./duelLook";
 import { TrainerArt } from "./TrainerArt";
 
 /** An event's tile: its icon on its color, or the trainer's picture for their own event. */
-function EventTile({ event, picture, size, next = false }: { event: DuelEventView | null; picture: DuelPicture | null; size: "sm" | "lg"; next?: boolean }) {
-  if (!event) return <span className={`duel-evs__tile duel-evs__tile--${size} duel-evs__tile--quiet`} aria-hidden="true"><IconCircleDashed size={size === "lg" ? 34 : 18} stroke={2} /></span>;
-  if (event.kind === "signature" && picture) return <TrainerArt picture={picture} shape="tile" className={`duel-evs__tile duel-evs__tile--${size} duel-evs__face`} />;
+export function EventTile({ event, picture, size, next = false }: { event: DuelEventView; picture: DuelPicture | null; size: "sm" | "lg"; next?: boolean }) {
+  if (event.kind === "signature" && picture) return <TrainerArt picture={picture} shape="tile" className={`duel-evtile duel-evtile--${size} duel-evtile--face`} />;
   const look = EVENT_LOOK[event.kind];
   const Glyph = look.icon;
   return (
-    <span className={`duel-evs__tile duel-evs__tile--${size}${next ? " duel-evs__tile--next" : ""}`} style={next ? undefined : { background: look.bg }} aria-hidden="true">
-      <Glyph size={size === "lg" ? 34 : 20} stroke={2} />
+    <span className={`duel-evtile duel-evtile--${size}${next ? " duel-evtile--next" : ""}`} style={next ? undefined : { background: look.bg }} aria-hidden="true">
+      <Glyph size={size === "lg" ? 30 : 15} stroke={2} />
     </span>
   );
 }
@@ -33,57 +34,94 @@ export function eventNowText(event: DuelEventView, outcome: string | null, hint:
   return outcome ?? event.short;
 }
 
-export function DuelEventStrip({ event, outcome, forecast, hint, picture = null, staging = false, className = "" }: {
+const isWeather = (k: DuelEventView["kind"]): k is "rain" | "sun" | "sand" => k === "rain" || k === "sun" || k === "sand";
+export const turnsLeft = (n: number) => `${n} ${n === 1 ? "turn" : "turns"} left`;
+
+/** Which notice to show: this turn's event, the weather that's on, or next turn's event. */
+export type NoticeWhich = "now" | "weather" | "next";
+
+/** The weather's tile (its event's icon and color). */
+export function WeatherTile({ kind, size }: { kind: "rain" | "sun" | "sand"; size: "sm" | "lg" }) {
+  const Glyph = WEATHER_CHIP[kind].icon;
+  return <span className={`duel-evtile duel-evtile--${size}`} style={{ background: EVENT_LOOK[kind].bg }} aria-hidden="true"><Glyph size={size === "lg" ? 30 : 15} stroke={2} /></span>;
+}
+
+export function DuelEventsBar({ turn, event, forecast, weather, outcome, hint, picture, staging = false, onShow, turnRef, inWindow = false }: {
+  turn: number;
   event: DuelEventView | null;
-  outcome: string | null;
   forecast: DuelEventView | null;
+  weather: DuelInPlay["weather"];
+  outcome: string | null;
   hint: DuelHintView | null;
-  picture?: DuelPicture | null;
+  picture: DuelPicture | null;
   /** The exchange is still playing: next turn's event waits until it's done. */
   staging?: boolean;
-  className?: string;
+  /** Shows an event's notice again (the bar's chips are buttons; the window's copy isn't). */
+  onShow?: (which: NoticeWhich) => void;
+  turnRef?: Ref<HTMLSpanElement>;
+  /** The copy at the top of the turn window. */
+  inWindow?: boolean;
 }) {
   const next = staging ? null : forecast;
-  // Professor's play gets its own full-width line under the halves (too long for half a phone),
-  // led by the same gold Tip as the button it points at.
-  const tip = event?.kind === "advice" && hint ? hint.text : null;
+  // The weather chip covers a weather event that started this turn (one chip, with its turns left).
+  const eventChip = event && !(isWeather(event.kind) && weather?.kind === event.kind) ? event : null;
+  const chip = (which: NoticeWhich, className: string, label: string, children: ReactNode) =>
+    onShow && !inWindow ? (
+      <button type="button" className={`duel-ev ${className}`} onClick={() => onShow(which)} aria-label={label}>{children}</button>
+    ) : (
+      <span className={`duel-ev ${className}`}><span aria-hidden="true" className="duel-ev__in">{children}</span><span className="sr-only">{label}</span></span>
+    );
+  const w = weather ? WEATHER_CHIP[weather.kind] : null;
+  if (inWindow && !w && !eventChip && !next) return null;
   return (
-    <div className={`duel-evs ${className}`} role="group" aria-label="Events">
-      <div key={event ? `now-${event.kind}-${event.turn}` : "now-none"} className={`duel-evs__half duel-evs__half--now${event ? " is-on" : ""}`}>
-        <span className="duel-evs__k">This turn</span>
-        <EventTile event={event} picture={picture} size="sm" />
-        <span className="duel-evs__text">
-          <b>{event ? event.title : "No event"}</b>
-          {event && <span>{tip ? event.short : eventNowText(event, outcome, hint)}</span>}
-        </span>
-      </div>
-      <div key={next ? `next-${next.kind}-${next.turn}` : "next-none"} className={`duel-evs__half duel-evs__half--next${next ? " is-on" : ""}`}>
-        <span className="duel-evs__k">Next turn</span>
-        <EventTile event={next} picture={picture} size="sm" next />
-        <span className="duel-evs__text">
-          <b>{next ? next.title : "No event"}</b>
-          {next && <span>{next.short}</span>}
-        </span>
-      </div>
-      {tip && <p className="duel-evs__tip"><span className="duel-tip" aria-hidden="true">Tip</span>{tip}</p>}
+    <div className={`duel-evbar${inWindow ? " duel-evbar--window" : ""}`} role="group" aria-label="Events">
+      {!inWindow && <span className="duel-evbar__turn" ref={turnRef} tabIndex={-1}>{turn > 0 ? `Turn ${turn}` : "Today's six"}</span>}
+      {weather && w && (
+        chip("weather", "duel-ev--now", `${w.word}: ${w.line}, ${turnsLeft(weather.turnsLeft)}.`, (
+          <>
+            <WeatherTile kind={weather.kind} size="sm" />
+            <span>{w.word}</span>
+            <small>{turnsLeft(weather.turnsLeft)}</small>
+          </>
+        ))
+      )}
+      {eventChip && (
+        chip("now", "duel-ev--now", `This turn: ${eventChip.title}. ${eventNowText(eventChip, outcome, hint)}`, (
+          <>
+            <EventTile event={eventChip} picture={picture} size="sm" />
+            <span>{eventChip.title}</span>
+          </>
+        ))
+      )}
+      {next && (
+        chip("next", "duel-ev--next", `Next turn: ${next.title}. ${next.short}`, (
+          <>
+            <EventTile event={next} picture={picture} size="sm" next />
+            <span><span className="duel-ev__k">Next</span> {next.title}</span>
+          </>
+        ))
+      )}
     </div>
   );
 }
 
 /**
- * The moment an event lands: it takes the middle of the arena for about a second and a half, then
- * the strip carries it. A tap ends it early. Decoration only (the turn's announcement reads the
- * event), so it's hidden from screen readers and never takes focus.
+ * An event as a notice at the top of the screen: when it lands (about three seconds) or when its chip
+ * in the bar is pressed. A tap closes it. Decoration for screen readers (the turn's announcement and
+ * the chip's label carry the words), so it never takes focus.
  */
-export function DuelEventMoment({ event, text, picture = null, onDone }: { event: DuelEventView; text: string; picture?: DuelPicture | null; onDone: () => void }) {
-  return (
-    <div className="duel-moment" aria-hidden="true" onPointerDown={(e) => { e.stopPropagation(); onDone(); }}>
-      <div className="duel-moment__card">
-        <small>This turn</small>
-        <EventTile event={event} picture={picture} size="lg" />
-        <b>{event.title}</b>
+export function DuelNotice({ tile, kicker, title, text, next = false, onDone }: { tile: ReactNode; kicker: string; title: string; text: string; next?: boolean; onDone: () => void }) {
+  // On the page itself (not inside the arena), so it sits above the turn window.
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className={`duel-notice${next ? " duel-notice--next" : ""}`} aria-hidden="true" onPointerDown={(e) => { e.stopPropagation(); onDone(); }}>
+      {tile}
+      <span className="duel-notice__text">
+        <small>{kicker}</small>
+        <b>{title}</b>
         <span>{text}</span>
-      </div>
-    </div>
+      </span>
+    </div>,
+    document.body,
   );
 }

@@ -22,7 +22,7 @@
  */
 
 import {
-  actions, applyStep, begin, damageOf, foeChoice, inDuel, isLegal, needsBring, needsNext, nexts, startState, step, topDamage, youLeft,
+  actions, applyStep, begin, damageOf, foeChoice, foeRowFor, inDuel, isLegal, needsBring, needsNext, nexts, startState, step, topDamage, youLeft,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "./engine";
 import { PAR_BAND, duelNumber, duelRand, energyRow, eventPlan, peopleNear, peopleOf, personOf, shuffleWith, speciesOf, tierFor, trainerFor } from "./rules";
@@ -49,7 +49,13 @@ function keyOf(s: DuelState): string {
     k += c.energy.length > 1 ? c.energy.map((e) => CODE[e]).sort().join("") : c.energy.length ? CODE[c.energy[0]] : "";
     k += condKey(c);
   }
-  // The trainer's Energy follows a fixed rule, so for the same card the count says it all.
+  // The trainer's Energy follows a fixed rule, so for the same card the count says it all; under rules 6
+  // its hand (and so the types it holds) depends on the path, so the types count too.
+  if (s.foeHand) {
+    k += `/f${s.foeHand.map((e) => CODE[e]).sort().join("")}`;
+    for (const c of s.foe) k += c.out ? "|x" : `|${c.cur}:${c.energy.map((e) => CODE[e]).sort().join("")}${condKey(c)}`;
+    return k;
+  }
   for (const c of s.foe) k += c.out ? "|x" : `|${c.cur}:${c.energy.length}${condKey(c)}`;
   return k;
 }
@@ -676,6 +682,12 @@ export function makeSetup(
     // A hand of three Energy, and a charged comeback after a knockout (up to 2).
     setup.hand = HAND_SIZE;
     setup.comeback = COMEBACK_MAX;
+    if (opts.rules >= 6) {
+      // Rules 6: the trainer plays by the same rules (its own hand from its own row, the comeback charge).
+      setup.foeHand = HAND_SIZE;
+      setup.foeRow = foeRowFor(setup.foe, `${opts.seed ?? ""}:foe`);
+      setup.foeComeback = COMEBACK_MAX;
+    }
   } else {
     // "+" and "×" attacks play their text from rules 5; older days play the printed number.
     const plain = (c: DuelCard): DuelCard => (c.moves.some((m) => m.plus) ? { ...c, moves: c.moves.map((m) => ({ n: m.n, cost: m.cost, d: m.d, ...(m.fx ? { fx: m.fx } : {}) })) } : c);

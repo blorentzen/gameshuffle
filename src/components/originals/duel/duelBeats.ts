@@ -48,7 +48,7 @@ export interface Frame {
   ms: number;
 }
 
-const ENERGY_WORD = /^(\w+) Energy goes on|gets (\w+) Energy\.$/;
+const ENERGY_WORD = /^(\w+) Energy goes on|gets (\w+) Energy\.$|plays (\w+) Energy on /;
 const energyOf = (l: DuelLogLine): EnergyType | null => l.type ?? ((l.text.match(ENERGY_WORD)?.slice(1).find(Boolean) as EnergyType | undefined) ?? null);
 const MOVE_NAME = /used (.+?): \d+/;
 const moveOf = (l: DuelLogLine) => l.move ?? l.text.match(MOVE_NAME)?.[1] ?? "";

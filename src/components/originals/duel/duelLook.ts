@@ -154,7 +154,9 @@ export type ScoreRow =
   | { key: string; at: number; kind: "tick"; side: "you" | "foe"; card: string; cond: DuelCondition; damage: number; ko: boolean }
   /** Confused: the card hit itself. */
   | { key: string; at: number; kind: "self"; side: "you" | "foe"; card: string; damage: number; ko: boolean }
-  | { key: string; at: number; kind: "wake"; side: "you" | "foe"; card: string };
+  | { key: string; at: number; kind: "wake"; side: "you" | "foe"; card: string }
+  /** An Energy played (side = whose), or a card coming back in with Energy after a knockout (`back`). */
+  | { key: string; at: number; kind: "energy"; side: "you" | "foe"; card: string; type: EnergyType | null; back: number };
 
 /**
  * A line written by the turn's event (a heal, Team Rocket's grab, a revive). Lines stored before
@@ -193,6 +195,10 @@ export function scoreRows(log: readonly DuelLogLine[], you: readonly Named[], fo
       rows.push({ key: `x${i}`, at: i, kind: "self", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card), damage: l.damage ?? 0, ko: false });
     } else if (l.kind === "wake" && l.side) {
       rows.push({ key: `k${i}`, at: i, kind: "wake", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card) });
+    } else if (l.kind === "energy" && l.side) {
+      const back = l.text.match(/comes in with (an|\d+) Energy for coming back/);
+      const type = l.type ?? ((l.text.match(/^(\w+) Energy goes on|plays (\w+) Energy on |gets (\w+) Energy\.$/)?.slice(1).find(Boolean) as EnergyType | undefined) ?? null);
+      rows.push({ key: `e${i}`, at: i, kind: "energy", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card), type: back ? null : type, back: back ? (back[1] === "an" ? 1 : Number(back[1])) : 0 });
     } else if (l.kind === "swap" && l.side === "you") {
       rows.push({ key: `w${i}`, at: i, kind: "swap", side: "you", card: nameOf(you, l.card) });
     } else if (l.kind === "sand" && l.side) {
@@ -231,10 +237,10 @@ export function eventOutcome(event: DuelEventView, log: readonly DuelLogLine[], 
 export const lineText = (l: DuelLogLine) => (l.kind === "heal" && / heals 0\.$/.test(l.text) ? l.text.replace(/ heals 0\.$/, " is already at full HP.") : l.text);
 
 /** The weather's chip word and icon. */
-export const WEATHER_CHIP: Record<"rain" | "sun" | "sand", { word: string; icon: Icon }> = {
-  rain: { word: "Rain", icon: IconCloudRain },
-  sun: { word: "Sun", icon: IconSun },
-  sand: { word: "Sandstorm", icon: IconWind },
+export const WEATHER_CHIP: Record<"rain" | "sun" | "sand", { word: string; icon: Icon; line: string }> = {
+  rain: { word: "Rain", icon: IconCloudRain, line: "Water moves +30, Fire moves −30" },
+  sun: { word: "Sun", icon: IconSun, line: "Fire moves +30, Water moves −30" },
+  sand: { word: "Sandstorm", icon: IconWind, line: "Cards on the field that aren't Fighting or Metal take 10 a turn" },
 };
 
 /** Every dot of a cost covered by this Energy (the engine's pays, for the page). */

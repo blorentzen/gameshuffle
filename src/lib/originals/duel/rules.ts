@@ -378,6 +378,31 @@ export function duelPoints(won: boolean, turns: number, par: number): number {
   return 2;
 }
 
+/**
+ * The score (rules 6 days, Britton's picks 2026-10-23, https://claude.ai/artifact/BXp1RfGmpEis5UanYC4bdb),
+ * out of 1,000. A win: turns 600 at par or better, 50 less for each turn over, never below 200; time
+ * 250 inside 15 seconds per par turn, then 10 less for each 15 seconds over; 150 for never asking the
+ * professor. A loss: 20 for each of the trainer's cards knocked out, up to 100. Board points are the
+ * score ÷ 100, rounded down (week and month boards, tokens), like Fire Round.
+ */
+export const SCORE = { turns: 600, turnCost: 50, turnsFloor: 200, time: 250, perParTurn: 15, timeStep: 15, timeCost: 10, solo: 150, ko: 20, koMax: 100 } as const;
+
+export interface DuelScoreParts { score: number; turns: number; time: number; solo: number; kos: number; points: number }
+
+export function duelScore(f: { won: boolean; turns: number; par: number; seconds: number | null; solo: boolean; knocked: number }): DuelScoreParts {
+  if (!f.won) {
+    const kos = Math.min(SCORE.koMax, SCORE.ko * Math.max(0, f.knocked));
+    return { score: kos, turns: 0, time: 0, solo: 0, kos, points: Math.floor(kos / 100) };
+  }
+  const turns = Math.max(SCORE.turnsFloor, SCORE.turns - SCORE.turnCost * Math.max(0, f.turns - f.par));
+  const allowance = SCORE.perParTurn * f.par;
+  const over = f.seconds == null ? Infinity : Math.max(0, f.seconds - allowance);
+  const time = over === Infinity ? 0 : Math.max(0, SCORE.time - SCORE.timeCost * Math.ceil(over / SCORE.timeStep));
+  const solo = f.solo ? SCORE.solo : 0;
+  const score = turns + time + solo;
+  return { score, turns, time, solo, kos: 0, points: Math.min(10, Math.floor(score / 100)) };
+}
+
 /** "3:12", "12:05", "2h 14m". */
 export function duelTime(seconds: number): string {
   const s = Math.max(0, Math.round(seconds));
@@ -402,6 +427,8 @@ export interface DuelShareFacts {
   team: number;
   /** A practice duel (after the day's official one). */
   practice?: boolean;
+  /** A scored day's official duel: its score out of 1,000. */
+  score?: number | null;
 }
 
 /** "Won in 14 turns (par 13)", "Knocked out 4 of 6". */
@@ -414,7 +441,8 @@ export function duelHeadline(f: Pick<DuelShareFacts, "won" | "turns" | "par" | "
 export function duelShareText(f: DuelShareFacts, url = "https://www.gameshuffle.co/daily-duel"): string {
   const title = `Daily Duel ${duelLabel(f.number)} · vs ${f.trainer}${f.practice ? " (practice)" : ""}`;
   const time = f.seconds != null ? ` ⏱ ${duelTime(f.seconds)}` : "";
-  return [title, `${f.won ? "🏆" : "❌"} ${duelHeadline(f)}${time}`, duelSquares(f.standing), url].join("\n");
+  const score = f.score != null ? ` · Score ${f.score.toLocaleString("en-US")}` : "";
+  return [title, `${f.won ? "🏆" : "❌"} ${duelHeadline(f)}${time}${score}`, duelSquares(f.standing), url].join("\n");
 }
 
 export { eventCopy, signatureText } from "./copy";

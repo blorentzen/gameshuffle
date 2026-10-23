@@ -1,40 +1,40 @@
 "use client";
 
 /**
- * The Daily Duel's arena: one visual world in any theme (a dark game screen), after the picks
- * page's playable mockup (https://claude.ai/artifact/5fdauqQ8MPof41oWXYcuPk), made lighter to read
- * (picks https://claude.ai/artifact/VL1NYSQ6NLRwxmMymXQq1y). Top to bottom: the trainer's bar with
- * their round picture and pips, their waiting cards, their card on the field (the hologram), the middle
- * (the scoreline of what just happened, the event strip with This turn and Next turn, what's in play
- * and the Energy row), your card on the field, your moves, your waiting cards, your bar with the turn
- * and the clock. From 900px wide it's side by side and the event strip spans both columns above the
- * cards (the same strip is drawn in both places; CSS shows one).
+ * The Daily Duel's arena: one visual world in any theme (a dark game screen). Arena pass (picks
+ * 2026-10-23, https://claude.ai/artifact/BXp1RfGmpEis5UanYC4bdb, all as recommended), top to bottom:
+ * the events bar (the turn, what's on now and next turn's event; it stays in view while you scroll),
+ * the last turn (both sides' moves, the Energy each played, conditions; the full log one tap away),
+ * the trainer's side (bar, waiting cards, card on the field with its moves) and yours in the same
+ * order (bar, waiting cards, card, the Energy you played with Change, your attacks and End turn).
+ * From 1024px the two sides stand side by side with their rows lined up.
  *
- * A turn is one tap for most turns: today's Energy starts on your card on the field (a ringed
- * dot), so a move, Wait or a swap sends the turn. Rules 5: the Energy is one of a hand of three (CDS
- * Chips, pressed = the one you'll play), starting on the one your card needs most (handPick). Tap a waiting card first to put the Energy there
- * instead (tap it again, or "Back to", to bring it back). Swap is its own button: press it, then
- * tap the card to bring in. Nothing reaches the server until the move, Wait or swap. The card
- * picker covers the arena when a card is needed (the lead, or after a knockout).
+ * Each turn starts in the turn window (DuelTurn): pick an Energy from the hand and the card it goes
+ * on, then keep your card or swap one in. The battle then only holds attacks and End turn; nothing
+ * reaches the server until one of them, or a swap, is pressed. Events land as a notice at the top for
+ * about three seconds. The card picker covers the arena when a card is needed (the lead, or after a
+ * knockout).
  *
  * Screen readers hear the whole turn in full sentences (the polite announcement); the screen
- * shows the short version. The board pieces (cards, hologram, Energy dots, pips, scoreline) are
- * our own drawings; the moves, Wait, Swap, "Back to" and the turn log button are CascadeDS.
+ * shows the short version. The board pieces (cards, hologram, Energy dots, pips, last turn) are our
+ * own drawings; the attacks, End turn, Change, the turn window and the turn log are CascadeDS.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Icon } from "@tabler/icons-react";
-import { Button, Chip as CdsChip, IconButton, Modal } from "@empac/cascadeds";
-import { IconArrowsExchange, IconBolt, IconCheck, IconCrown, IconHourglass, IconList, IconMoodAngry, IconRocket, IconSpiral, IconStopwatch, IconZoomIn, IconZzz } from "@tabler/icons-react";
-import type { DuelCardView, DuelPlayView, DuelRunView } from "@/lib/originals/duel/view";
+import { Button, IconButton, Modal } from "@empac/cascadeds";
+import { IconArrowsExchange, IconBolt, IconCheck, IconCrown, IconList, IconMoodAngry, IconSpiral, IconStopwatch, IconZoomIn, IconZzz } from "@tabler/icons-react";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { useToast } from "@/components/toast/ToastProvider";
+import type { DuelCardView, DuelHintView, DuelMoveView, DuelPlayView, DuelRunView } from "@/lib/originals/duel/view";
 import type { DuelAct, EnergyType } from "@/lib/originals/duel/types";
 import type { ArenaMotion } from "./duelBeats";
 import { CardArt, CardConds, CardThumb, CondTag, CostDots, EnergyDot, MoveConds, Pips, TypeChip, condWords } from "./DuelBits";
 import { DuelField } from "./DuelHolo";
-import { DuelEventMoment, DuelEventStrip, eventNowText } from "./DuelEvent";
+import { DuelEventsBar, DuelNotice, EventTile, WeatherTile, eventNowText, turnsLeft, type NoticeWhich } from "./DuelEvent";
+import { DuelTurn, type TurnStep } from "./DuelTurn";
 import { TrainerArt } from "./TrainerArt";
 import { CONDITION_LOOK, WEATHER_CHIP, cardLabel, clockText, covers, energyWords, eventLines, eventOutcome, handPick, isEventLine, lineText, scoreRows, type ScoreRow } from "./duelLook";
-import type { DuelMoveView } from "@/lib/originals/duel/view";
 
 /** A move's conditions in words, for its button's label (" 25% chance to make it Paralyzed."). */
 const fxWords = (m: Pick<DuelMoveView, "fx">) => m.fx.map((f) => ` ${f.chance}% chance to make it ${CONDITION_LOOK[f.c].word}.`).join("");
@@ -67,83 +67,104 @@ function Chip({ icon: Glyph, text, full, tone }: { icon?: Icon; text: string; fu
   );
 }
 
-/** The scoreline: one row per move (×2 on a Weakness, KO on a knockout), a skipped move, a swap, the sandstorm, the conditions. */
+/** A part of the last turn, without who did it (the line's first column says that). */
+function ScorePart({ r }: { r: ScoreRow }) {
+  switch (r.kind) {
+    case "move":
+      return (
+        <>
+          <b>{r.move}</b>
+          <span className="duel-score__dmg">{r.damage}</span>
+          {r.weak && r.damage > 0 && <span className="duel-badge duel-badge--x2" aria-hidden="true">×2</span>}
+          {r.ko && <span className="duel-badge duel-badge--ko" aria-hidden="true">KO</span>}
+          <span className="sr-only">{r.weak && r.damage > 0 ? ", super effective" : ""}{r.ko ? ", knocked out" : ""}</span>
+        </>
+      );
+    case "skip":
+      return (
+        <>
+          {r.why === "paralyzed" ? <CondTag c="paralyzed" size="xs" label="Paralyzed" /> : r.why === "asleep" ? <IconZzz size={16} stroke={2} aria-hidden="true" /> : <IconMoodAngry size={16} stroke={2} aria-hidden="true" />}
+          <b>{r.why === "asleep" ? "Asleep" : r.why === "paralyzed" ? "Can't move" : "Stubborn"}</b>
+          <span className="sr-only">, no move</span>
+        </>
+      );
+    case "cond":
+      return (
+        <>
+          <b>{r.card}</b>
+          <CondTag c={r.cond} size="xs" label={`is now ${CONDITION_LOOK[r.cond].word}`} />
+          <span aria-hidden="true">{CONDITION_LOOK[r.cond].word}</span>
+        </>
+      );
+    case "tick":
+    case "self":
+      return (
+        <>
+          <b>{r.card}</b>
+          {r.kind === "tick" ? <CondTag c={r.cond} size="xs" label={r.cond === "burned" ? "takes its burn" : "takes poison"} /> : <CondTag c="confused" size="xs" label="is confused and hits itself" />}
+          <span className="duel-score__dmg">{r.damage}</span>
+          {r.ko && <span className="duel-badge duel-badge--ko" aria-hidden="true">KO</span>}
+          <span className="sr-only">{r.ko ? ", knocked out" : ""}</span>
+        </>
+      );
+    case "wake":
+      return <><b>{r.card}</b><span>wakes up</span></>;
+    case "swap":
+      return <><span>Swap in</span><b>{r.card}</b></>;
+    case "sand":
+      return <>{r.hits.map((h, k) => <span key={k} className="duel-score__hit"><b>{h.card}</b><span className="duel-score__dmg">{h.damage}</span></span>)}</>;
+    case "energy":
+      return r.back > 0 ? (
+        <>
+          <b>{r.card}</b>
+          <IconBolt size={16} stroke={2} aria-hidden="true" />
+          <span>came back with {r.back === 1 ? "an Energy" : `${r.back} Energy`}</span>
+        </>
+      ) : (
+        <>
+          <span className="sr-only">played</span>
+          {r.type && <EnergyDot t={r.type} size="sm" />}
+          <span>{r.type ?? "An"} Energy on</span>
+          <b>{r.card}</b>
+        </>
+      );
+  }
+}
+
+const ACTS = new Set(["move", "skip", "swap"]);
+
+/**
+ * The last turn: a line per side's turn (the Energy it played, then its move, a skipped move or a
+ * swap), and a line for each condition, burn, wake-up, comeback and the sandstorm. Parts of a line
+ * still to come in the exchange's beats stay hidden until their beat.
+ */
 function Scoreline({ rows, reveal, trainer, onLog }: { rows: ScoreRow[]; reveal: number; trainer: string; onLog: () => void }) {
-  const who = (side: "you" | "foe") => (side === "you" ? "You" : trainer);
-  const whose = (side: "you" | "foe") => (side === "you" ? "Your" : `${trainer}'s`);
+  const lines: { key: string; at: number; who: string; parts: ScoreRow[] }[] = [];
+  for (const r of rows) {
+    const who = r.kind === "sand" ? "Sandstorm" : r.side === "you" ? "You" : trainer;
+    const last = lines[lines.length - 1];
+    const prev = last?.parts[last.parts.length - 1];
+    // An Energy played and the move (or swap, or skipped move) after it read as one line.
+    if (last && prev && prev.kind === "energy" && prev.back === 0 && last.parts.length === 1 && ACTS.has(r.kind) && "side" in r && r.side === prev.side) {
+      last.parts.push(r);
+      continue;
+    }
+    lines.push({ key: r.key, at: r.at, who, parts: [r] });
+  }
   return (
     <div className="duel-score">
       <ul className="duel-score__rows" aria-label="Last turn">
-        {rows.map((r) => (
-          <li key={r.key} className={`duel-score__row${r.at >= reveal ? " duel-score__row--later" : ""}`}>
-            {r.kind === "move" && (
-              <>
-                <span className="duel-score__who">{who(r.side)}</span>
-                <b>{r.move}</b>
-                <span className="duel-score__dmg">{r.damage}</span>
-                {r.weak && r.damage > 0 && <span className="duel-badge duel-badge--x2" aria-hidden="true">×2</span>}
-                {r.ko && <span className="duel-badge duel-badge--ko" aria-hidden="true">KO</span>}
-                <span className="sr-only">{r.weak && r.damage > 0 ? ", super effective" : ""}{r.ko ? ", knocked out" : ""}</span>
-              </>
-            )}
-            {r.kind === "skip" && (
-              <>
-                <span className="duel-score__who">{who(r.side)}</span>
-                {r.why === "paralyzed" ? <CondTag c="paralyzed" size="xs" label="Paralyzed" /> : r.why === "asleep" ? <IconZzz size={16} stroke={2} aria-hidden="true" /> : <IconMoodAngry size={16} stroke={2} aria-hidden="true" />}
-                <b>{r.why === "asleep" ? "Asleep" : r.why === "paralyzed" ? "Can't move" : "Stubborn"}</b>
-                <span className="sr-only">, no move</span>
-              </>
-            )}
-            {r.kind === "cond" && (
-              <>
-                <span className="duel-score__who">{whose(r.side)}</span>
-                <b>{r.card}</b>
-                <CondTag c={r.cond} size="xs" label={`is now ${CONDITION_LOOK[r.cond].word}`} />
-                <span aria-hidden="true">{CONDITION_LOOK[r.cond].word}</span>
-              </>
-            )}
-            {r.kind === "tick" && (
-              <>
-                <span className="duel-score__who">{whose(r.side)}</span>
-                <b>{r.card}</b>
-                <CondTag c={r.cond} size="xs" label={r.cond === "burned" ? "takes its burn" : "takes poison"} />
-                <span className="duel-score__dmg">{r.damage}</span>
-                {r.ko && <span className="duel-badge duel-badge--ko" aria-hidden="true">KO</span>}
-                <span className="sr-only">{r.ko ? ", knocked out" : ""}</span>
-              </>
-            )}
-            {r.kind === "self" && (
-              <>
-                <span className="duel-score__who">{whose(r.side)}</span>
-                <b>{r.card}</b>
-                <CondTag c="confused" size="xs" label="is confused and hits itself" />
-                <span className="duel-score__dmg">{r.damage}</span>
-                {r.ko && <span className="duel-badge duel-badge--ko" aria-hidden="true">KO</span>}
-                <span className="sr-only">{r.ko ? ", knocked out" : ""}</span>
-              </>
-            )}
-            {r.kind === "wake" && (
-              <>
-                <span className="duel-score__who">{whose(r.side)}</span>
-                <b>{r.card}</b>
-                <span>wakes up</span>
-              </>
-            )}
-            {r.kind === "swap" && (
-              <>
-                <span className="duel-score__who">You</span>
-                <span>Swap in</span>
-                <b>{r.card}</b>
-              </>
-            )}
-            {r.kind === "sand" && (
-              <>
-                <span className="duel-score__who">Sandstorm</span>
-                {r.hits.map((h, k) => (
-                  <span key={k} className="duel-score__hit"><b>{h.card}</b><span className="duel-score__dmg">{h.damage}</span></span>
-                ))}
-              </>
-            )}
+        {lines.map((l) => (
+          <li key={l.key} className={`duel-score__row${l.at >= reveal ? " duel-score__row--later" : ""}`}>
+            <span className="duel-score__who">{l.who}</span>
+            <span className="duel-score__what">
+              {l.parts.map((p, k) => (
+                <span key={p.key} className={`duel-score__part${p.kind === "energy" && p.back === 0 ? " duel-score__part--energy" : ""}${p.at >= reveal ? " duel-score__part--later" : ""}`}>
+                  {k > 0 && <span className="sr-only">, then </span>}
+                  <ScorePart r={p} />
+                </span>
+              ))}
+            </span>
           </li>
         ))}
       </ul>
@@ -154,7 +175,7 @@ function Scoreline({ rows, reveal, trainer, onLog }: { rows: ScoreRow[]; reveal:
   );
 }
 
-export function DuelArena({ run, play, motion, busy, staging, offset, onNext, onBring, onTurn, onZoom, onSkip }: {
+export function DuelArena({ run, play, motion, busy, staging, offset, onNext, onBring, onTurn, onTip, onZoom, onSkip }: {
   run: DuelRunView;
   /** The picture to draw (an exchange's beats first, then the new turn). */
   play: DuelPlayView;
@@ -169,66 +190,66 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
   onBring: (cards: number[]) => void;
   /** `use`: which Energy in the hand (rules 5). */
   onTurn: (attach: number, act: DuelAct, use?: number) => void;
+  /** Asks the professor for this turn's play (null between turns; throws when it can't reach us). */
+  onTip: () => Promise<DuelHintView | null>;
   onZoom: (card: DuelCardView, owner: string) => void;
   onSkip: () => void;
 }) {
+  const confirm = useConfirm();
+  const toast = useToast();
   const trainer = run.trainer.name;
   const their = `${trainer}'s`;
   const you = play.yi >= 0 ? play.you[play.yi] : null;
   const foe = play.foe[play.fi] ?? null;
-  const turnLive = play.attachTo.length > 0 && !play.over && !play.needsNext;
+  const turnLive = play.attachTo.length > 0 && !play.over && !play.needsNext && !play.needsBring;
   const hand = play.energy.hand;
-
-  // This turn's choices, kept with the turn they belong to (a new turn starts clean): where the
-  // Energy goes (null = your card on the field), which one from the hand (null = handPick's) and
-  // whether Swap is pressed.
-  const [choice, setChoice] = useState<{ turn: number; attach: number | null; swapping: boolean; use: number | null }>({ turn: -1, attach: null, swapping: false, use: null });
-  const mine = choice.turn === play.turn && turnLive;
   const hasEnergy = turnLive && !!play.energy.now;
-  const fieldTakes = hasEnergy && play.attachTo.includes(play.yi);
+
+  // A tip asked for this turn (Professor's advice turns carry one in play.hint, free).
+  const [asked, setAsked] = useState<{ turn: number; hint: DuelHintView | null }>({ turn: -1, hint: null });
+  const [tipBusy, setTipBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const hint = turnLive ? (play.hint ?? (asked.turn === play.turn ? asked.hint : null)) : null;
+
+  // This turn's Energy, kept with the turn it belongs to (a new turn starts clean): the card it goes
+  // on (null = the professor's card, else your card on the field) and which one from the hand (null =
+  // the professor's, else the one that card needs most).
+  const [choice, setChoice] = useState<{ turn: number; attach: number | null; use: number | null }>({ turn: -1, attach: null, use: null });
+  const mine = choice.turn === play.turn && turnLive;
   const picked = mine && choice.attach !== null && play.attachTo.includes(choice.attach) ? choice.attach : null;
-  /** The card today's Energy is on (null between turns). */
-  const attach: number | null = hasEnergy ? (picked ?? (fieldTakes ? play.yi : null)) : null;
-  /** Rules 5: the Energy from the hand you'll play. */
-  const use = hand && attach !== null ? (mine && choice.use != null && choice.use < hand.length ? choice.use : handPick(play.you[attach], hand)) : 0;
+  const hinted = hint && play.attachTo.includes(hint.attach) ? hint.attach : null;
+  const attach: number | null = hasEnergy ? (picked ?? hinted ?? (play.attachTo.includes(play.yi) ? play.yi : play.attachTo[0] ?? null)) : null;
+  const use = hand && attach !== null
+    ? (mine && choice.use != null && choice.use < hand.length ? choice.use
+      : hint && hint.attach === attach && hint.use != null && hint.use < hand.length ? hint.use
+      : handPick(play.you[attach], hand))
+    : 0;
   const now = hand ? (attach !== null ? hand[use] ?? null : null) : play.energy.now;
-  const swapping = mine && choice.swapping && play.swaps.length > 0;
-  /** What a screen reader hears when you move the Energy. */
-  const [energyNote, setEnergyNote] = useState("");
+
+  // The turn window opens at the start of every turn (after the exchange has played) and stays shut
+  // once you're through it, until Change opens it again.
+  const [win, setWin] = useState<{ turn: number; open: boolean; step: TurnStep }>({ turn: -1, open: false, step: 1 });
+  const winOpen = turnLive && !staging && attach !== null && (win.turn === play.turn ? win.open : true);
+  const winStep: TurnStep = win.turn === play.turn ? win.step : 1;
   const [logOpen, setLogOpen] = useState(false);
 
   const movesRef = useRef<HTMLDivElement>(null);
-  const benchRef = useRef<HTMLDivElement>(null);
   const turnRef = useRef<HTMLSpanElement>(null);
   const pickRef = useRef<HTMLHeadingElement>(null);
   const touched = useRef(false);
   // Keyboard or pointer last: a keyboard player's focus scrolls into view, a tap doesn't move the page.
   const byKey = useRef(false);
 
-  const putEnergy = (i: number) => {
-    if (!now || !you) return;
-    touched.current = true;
-    const to = attach === i && i !== play.yi ? play.yi : i;
-    setChoice({ turn: play.turn, attach: to, swapping: false, use: mine ? choice.use : null });
-    setEnergyNote(`Today's ${now} Energy is on ${play.you[to].name}.`);
-  };
-  const pickUse = (i: number) => {
-    if (!hand || attach === null) return;
-    touched.current = true;
-    setChoice({ turn: play.turn, attach, swapping, use: i });
-    setEnergyNote(`The ${hand[i]} Energy goes on ${play.you[attach].name}.`);
-  };
-  const toggleSwap = () => {
-    touched.current = true;
-    const on = !swapping;
-    setChoice({ turn: play.turn, attach, swapping: on, use: mine ? choice.use : null });
-    // Keyboard players land on the first card they can bring in.
-    if (on && byKey.current) requestAnimationFrame(() => benchRef.current?.querySelector<HTMLButtonElement>(".duel-thumb--swap")?.focus());
-  };
-  const cancelSwap = () => {
-    setChoice({ turn: play.turn, attach, swapping: false, use: mine ? choice.use : null });
-    if (byKey.current) requestAnimationFrame(() => movesRef.current?.querySelector<HTMLButtonElement>("[data-swap]")?.focus());
-  };
+  /** After the window closes: focus on the first attack you can use, else End turn (the window gave focus back to where it was). */
+  const focusMoves = () => window.setTimeout(() => {
+    const btn = movesRef.current?.querySelector<HTMLButtonElement>("[data-move]:not(:disabled), [data-wait]:not(:disabled)");
+    btn?.focus({ preventScroll: !byKey.current });
+  }, 30);
+  const closeWin = () => { touched.current = true; setWin({ turn: play.turn, open: false, step: winStep }); focusMoves(); };
+  const openWin = (step: TurnStep) => setWin({ turn: play.turn, open: true, step });
+  const pickUse = (i: number) => { touched.current = true; setChoice({ turn: play.turn, attach, use: i }); };
+  // Moving the Energy to another card keeps the Energy you picked.
+  const pickCard = (i: number) => { touched.current = true; setChoice({ turn: play.turn, attach: i, use: hand ? use : null }); };
   const act = (a: DuelAct) => {
     if (attach === null || busy) return;
     touched.current = true;
@@ -236,6 +257,25 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
     // label (not the page), and lands on this turn's first move once it's back.
     if (byKey.current) turnRef.current?.focus({ preventScroll: true });
     onTurn(attach, a, hand ? use : undefined);
+  };
+  const swapIn = (i: number) => { setWin({ turn: play.turn, open: false, step: 2 }); act({ swap: i }); };
+
+  // On a scored day's official duel the first ask ends the solo bonus, so it asks first.
+  const costs = run.official && play.rules >= 6 && !run.asked;
+  const askProfessor = async () => {
+    if (tipBusy) return;
+    if (costs) {
+      setConfirming(true);
+      const ok = await confirm({ title: "Ask the professor?", body: "You'll lose today's solo bonus: 150 points off your score.", confirmLabel: "Ask", danger: false });
+      setConfirming(false);
+      if (!ok) return;
+    }
+    setTipBusy(true);
+    const got = await onTip().then((h) => ({ h }), () => null);
+    setTipBusy(false);
+    if (!got) { toast.error("Couldn't reach the professor. Try again in a moment."); return; }
+    setAsked({ turn: play.turn, hint: got.h });
+    if (got.h) setChoice({ turn: play.turn, attach: got.h.attach, use: got.h.use ?? null });
   };
 
   // Escape skips the beats wherever focus is.
@@ -246,11 +286,10 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
     return () => window.removeEventListener("keydown", onKey);
   }, [staging, onSkip]);
 
-  // A new picture of the field, once the turn is back and its beats are done: focus goes to the
-  // next step (the card picker, or this turn's first move or Wait) unless it's still on a control
-  // in the arena; with nothing to press, to the turn.
+  // A new picture of the field, once the turn is back and its beats are done: focus goes to the card
+  // picker when one is up (the turn window takes focus itself); with nothing to press, to the turn.
   useEffect(() => {
-    if (!touched.current || play.over || staging || busy) return;
+    if (!touched.current || play.over || staging || busy || winOpen) return;
     const opts = { preventScroll: !byKey.current };
     if (play.needsNext || play.needsBring) { pickRef.current?.focus(opts); return; }
     const a = document.activeElement as HTMLElement | null;
@@ -259,291 +298,233 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
     const btn = movesRef.current?.querySelector<HTMLButtonElement>("[data-move]:not(:disabled), [data-wait]:not(:disabled)");
     if (btn) { btn.focus(opts); return; }
     turnRef.current?.focus(opts);
-  }, [play, busy, staging]);
+  }, [play, busy, staging, winOpen]);
 
   const allRows = useMemo(() => scoreRows(play.log, play.you, play.foe), [play.log, play.you, play.foe]);
   const reveal = staging && motion.reveal != null ? motion.reveal : Infinity;
   const outcome = play.event ? eventOutcome(play.event, play.log, play.you, play.foe) : null;
-  const hint = play.hint;
-  const tipped = (a: DuelAct) => !!hint && JSON.stringify(hint.act) === JSON.stringify(a);
+  const tipped = (a: DuelAct) => !!hint && hint.attach === attach && JSON.stringify(hint.act) === JSON.stringify(a);
 
-  // The moment an event lands (once its exchange has played): it takes the middle for a beat. Not for
-  // the event that was already on when the arena opened, and never with reduced motion.
+  // An event lands as a notice for about three seconds (once its exchange has played; not the event
+  // that was already on when the arena opened). Its chip in the events bar shows it again.
   const eventKey = play.event && !play.over ? `${play.event.kind}-${play.event.turn}` : "";
-  const [moment, setMoment] = useState({ key: eventKey, on: false });
-  if (eventKey && !staging && eventKey !== moment.key) {
-    // A new event: its moment starts now (state adjusted during render, React's pattern for this).
-    setMoment({ key: eventKey, on: typeof window !== "undefined" && !window.matchMedia("(prefers-reduced-motion: reduce)").matches });
+  const [notice, setNotice] = useState<{ key: string; which: NoticeWhich | null }>({ key: eventKey, which: null });
+  if (eventKey && !staging && eventKey !== notice.key) {
+    // A new event: its notice starts now (state adjusted during render, React's pattern for this).
+    setNotice({ key: eventKey, which: "now" });
   }
   useEffect(() => {
-    if (!moment.on) return;
-    const t = window.setTimeout(() => setMoment((m) => ({ ...m, on: false })), 1500);
+    if (!notice.which) return;
+    const t = window.setTimeout(() => setNotice((n) => ({ ...n, which: null })), 3000);
     return () => window.clearTimeout(t);
-  }, [moment]);
-  const strip = (cls: string) => (play.yi >= 0 && !play.over ? (
-    <DuelEventStrip event={play.event} outcome={outcome} forecast={play.forecast} hint={hint} picture={run.trainer.picture} staging={staging} className={cls} />
-  ) : null);
+  }, [notice]);
+  const showNotice = (which: NoticeWhich) => setNotice({ key: eventKey, which });
+  const weather = play.inPlay.weather;
+  const forecast = staging ? null : play.forecast;
+  let noticeView: { tile: React.ReactNode; kicker: string; title: string; text: string; next: boolean } | null = null;
+  if (notice.which === "now" && play.event) noticeView = { tile: <EventTile event={play.event} picture={run.trainer.picture} size="lg" />, kicker: "This turn", title: play.event.title, text: eventNowText(play.event, outcome, hint), next: false };
+  else if (notice.which === "weather" && weather) noticeView = { tile: <WeatherTile kind={weather.kind} size="lg" />, kicker: "On now", title: WEATHER_CHIP[weather.kind].word, text: `${WEATHER_CHIP[weather.kind].line}, ${turnsLeft(weather.turnsLeft)}`, next: false };
+  else if (notice.which === "next" && forecast) noticeView = { tile: <EventTile event={forecast} picture={run.trainer.picture} size="lg" next />, kicker: "Next turn", title: forecast.title, text: forecast.short, next: true };
+
+  const barProps = { turn: play.turn, event: play.over ? null : play.event, forecast: play.over ? null : play.forecast, weather: play.over ? null : weather, outcome, hint, picture: run.trainer.picture, staging };
 
   // The whole turn in full sentences for screen readers (once the beats are done): what happened,
   // the event that flipped and what it did, then what to do now.
   const announce = useMemo(() => {
     if (staging) return "";
-    const parts = play.log.filter((l) => !(l.kind === "energy" && l.side === "you") && !isEventLine(l)).map(lineText);
+    const parts = play.log.filter((l) => !isEventLine(l)).map(lineText);
     if (play.event) parts.push(`${play.event.title}. ${play.event.text}`, ...eventLines(play.log).map(lineText));
     if (play.event?.kind === "advice" && play.hint) parts.push(`The professor suggests: ${play.hint.text}`);
     if (play.over) parts.push(play.over === "won" ? `You beat ${trainer}.` : `${trainer} wins.`);
     else if (play.needsBring) parts.push(`Pick ${play.bring} of your six to bring.`);
     else if (play.needsNext) parts.push(play.yi < 0 ? "Pick your lead." : "Pick your next card.");
-    else if (turnLive && now && you) {
-      if (play.inPlay.fresh > 0) parts.push(`Your ${you.name} came in with ${play.inPlay.fresh === 1 ? "an Energy" : `${play.inPlay.fresh} Energy`} for coming back.`);
-      parts.push(hand ? `Turn ${play.turn}. Your Energy: ${energyWords(hand)}. The ${now} is on your ${you.name}.` : `Turn ${play.turn}. Today's ${now} Energy is on your ${you.name}.`);
-    }
+    else if (turnLive) parts.push(`Turn ${play.turn}.`);
     return parts.join(" ");
-  }, [staging, play.log, play.event, play.hint, play.over, play.needsNext, play.needsBring, play.bring, play.yi, play.turn, play.inPlay.fresh, turnLive, now, hand, you, trainer]);
+  }, [staging, play.log, play.event, play.hint, play.over, play.needsNext, play.needsBring, play.bring, play.yi, play.turn, turnLive, trainer]);
 
   const inPlay = play.inPlay;
-  const midChips: React.ReactNode[] = [];
-  if (inPlay.weather) {
-    const w = WEATHER_CHIP[inPlay.weather.kind];
-    const n = inPlay.weather.turnsLeft;
-    midChips.push(<Chip key="weather" icon={w.icon} text={`${w.word} · ${n}`} full={`${w.word}: ${n} ${n === 1 ? "turn" : "turns"} left.`} />);
-  }
-  if (inPlay.rocket) {
-    const c = play.you[inPlay.rocket.card];
-    const n = inPlay.rocket.turnsLeft;
-    midChips.push(<Chip key="rocket" icon={IconRocket} tone="bad" text={`Team Rocket · ${cardLabel(c)} · ${n}`} full={`Team Rocket has your ${c.name} for ${n} more ${n === 1 ? "turn" : "turns"}. You can't swap to it.`} />);
-  }
-
-  const energyFor = (c: DuelCardView): EnergyType[] => (attach === c.index && now ? [...c.energy, now] : c.energy);
   const picker = (play.needsNext || play.needsBring) && !play.over;
-  const lone = you ? you.moves.length % 2 === 1 : false;
+  // End turn fills the row's last cell, or takes a row of its own under an even number of attacks.
+  const endWide = you ? you.moves.length % 2 === 0 : false;
   const logLines = play.log.filter((l) => !isEventLine(l));
+  const energyFor = (c: DuelCardView): EnergyType[] => (attach === c.index && now ? [...c.energy, now] : c.energy);
+  const target = attach !== null ? play.you[attach] : null;
+  const asleepish = turnLive && you && !play.canMove;
 
   return (
     <div
       className={`duel-arena${run.official ? "" : " duel-arena--practice"}`}
-      data-turn={play.turn} data-yi={play.yi} data-fi={play.fi} data-over={play.over ?? undefined} data-staging={staging || undefined}
+      data-turn={play.turn} data-yi={play.yi} data-fi={play.fi} data-over={play.over ?? undefined} data-staging={staging || undefined} data-window={winOpen ? winStep : undefined}
       onKeyDown={(e) => {
         byKey.current = true;
-        if (staging && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSkip(); return; }
-        if (swapping && e.key === "Escape") cancelSwap();
+        if (staging && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onSkip(); }
       }}
       onPointerDown={() => { byKey.current = false; if (staging) onSkip(); }}
     >
       <h2 className="sr-only">{run.official ? "Today's duel" : "Practice duel"} against {trainer}</h2>
       <p className="sr-only" aria-live="polite">{announce}</p>
-      <p className="sr-only" aria-live="polite">{energyNote}</p>
       <div className="duel-arena__body" inert={picker || play.over !== null ? true : undefined}>
-        <div className="duel-bar duel-bar--foe">
-          {run.trainer.picture && <TrainerArt picture={run.trainer.picture} shape="round" className="duel-bar__face" />}
-          <div className="duel-bar__who">
-            <b>{trainer}</b>
-            <span>{run.trainer.title}</span>
+        <DuelEventsBar {...barProps} onShow={showNotice} turnRef={turnRef} />
+
+        {allRows.length > 0 && <Scoreline key={motion.beatKey} rows={allRows} reveal={reveal} trainer={trainer} onLog={() => setLogOpen(true)} />}
+
+        <section className="duel-side duel-side--foe" aria-label={`${trainer}'s side`}>
+          <div className="duel-bar duel-bar--foe">
+            {run.trainer.picture && <TrainerArt picture={run.trainer.picture} shape="round" className="duel-bar__face" />}
+            <div className="duel-bar__who">
+              <b>{trainer}</b>
+              <span>{run.trainer.title}</span>
+            </div>
+            <Pips cards={play.foe} who={trainer} />
           </div>
-          <Pips cards={play.foe} who={trainer} />
-        </div>
-
-        <div className="duel-bench duel-bench--foe" aria-label={`${their} waiting cards`} role="group">
-          {play.foe.map((c) => (c.index === play.fi && !c.out ? null : (
-            <CardThumb key={c.index} card={c} onPress={() => onZoom(c, their)} label={`See ${their} ${c.name} card${c.out ? ", knocked out" : `, ${c.cur} of ${c.hp} HP`}`} />
-          )))}
-        </div>
-
-        {foe && !foe.out && (
-          <DuelField card={foe} side="foe" owner={their} motion={motion.foe} nonce={motion.nonce} fx={motion.fx?.foe} onZoom={() => onZoom(foe, their)}>
-            <ul className="duel-foe-moves" aria-label={`${their} ${cardLabel(foe)}: moves`}>
-              {foe.moves.map((m) => {
-                return (
-                  <li key={m.n}>
-                    <span className="duel-foe-moves__name">{m.n}</span>
-                    <CostDots cost={m.cost} energy={foe.energy} />
-                    <span className="sr-only">, needs {energyWords(m.cost)}{m.ready ? ", ready" : ""}</span>
-                    <MoveConds fx={m.fx} size="xs" />
-                    <strong className={m.weak ? "duel-up" : undefined}>{m.damage ?? m.d}<span className="sr-only"> damage to your card{m.weak ? ", super effective" : ""}{m.plus ? ` (${m.plus})` : ""}.{fxWords(m)}</span></strong>
-                  </li>
-                );
-              })}
-            </ul>
-            {(inPlay.foeAsleep || inPlay.foeStubborn || inPlay.boost > 0) && (
-              <p className="duel-chips">
-                {inPlay.foeAsleep && <Chip icon={IconZzz} text="Asleep" full="Asleep: it skips its next move." />}
-                {!inPlay.foeAsleep && inPlay.foeStubborn && <Chip icon={IconMoodAngry} text="Stubborn" full="Stubborn: it skips its next move." />}
-                {inPlay.boost > 0 && <Chip icon={IconCrown} tone="bad" text={`Next move +${inPlay.boost}`} full={`${their} next move does ${inPlay.boost} more.`} />}
-              </p>
+          <div className="duel-bench duel-bench--foe" aria-label={`${their} waiting cards`} role="group">
+            {play.foe.map((c) => (c.index === play.fi && !c.out ? null : (
+              <CardThumb key={c.index} card={c} onPress={() => onZoom(c, their)} label={`See ${their} ${c.name} card${c.out ? ", knocked out" : `, ${c.cur} of ${c.hp} HP`}`} />
+            )))}
+          </div>
+          <div className="duel-side__field">
+            {foe && !foe.out && (
+              <DuelField card={foe} side="foe" owner={their} motion={motion.foe} nonce={motion.nonce} fx={motion.fx?.foe} onZoom={() => onZoom(foe, their)}>
+                <ul className="duel-foe-moves" aria-label={`${their} ${cardLabel(foe)}: moves`}>
+                  {foe.moves.map((m) => (
+                    <li key={m.n}>
+                      <span className="duel-foe-moves__name">{m.n}</span>
+                      <CostDots cost={m.cost} energy={foe.energy} />
+                      <span className="sr-only">, needs {energyWords(m.cost)}{m.ready ? ", ready" : ""}</span>
+                      <MoveConds fx={m.fx} size="xs" />
+                      <strong className={m.weak ? "duel-up" : undefined}>{m.damage ?? m.d}<span className="sr-only"> damage to your card{m.weak ? ", super effective" : ""}{m.plus ? ` (${m.plus})` : ""}.{fxWords(m)}</span></strong>
+                    </li>
+                  ))}
+                </ul>
+                {(inPlay.foeAsleep || inPlay.foeStubborn || inPlay.boost > 0) && (
+                  <p className="duel-chips">
+                    {inPlay.foeAsleep && <Chip icon={IconZzz} text="Asleep" full="Asleep: it skips its next move." />}
+                    {!inPlay.foeAsleep && inPlay.foeStubborn && <Chip icon={IconMoodAngry} text="Stubborn" full="Stubborn: it skips its next move." />}
+                    {inPlay.boost > 0 && <Chip icon={IconCrown} tone="bad" text={`Next move +${inPlay.boost}`} full={`${their} next move does ${inPlay.boost} more.`} />}
+                  </p>
+                )}
+              </DuelField>
             )}
-          </DuelField>
-        )}
+          </div>
+          <div className="duel-side__foot" aria-hidden="true" />
+        </section>
 
-        {strip("duel-evs--wide")}
-
-        <div className="duel-mid">
-          {allRows.length > 0 && <Scoreline key={motion.beatKey} rows={allRows} reveal={reveal} trainer={trainer} onLog={() => setLogOpen(true)} />}
-          {strip("duel-evs--mid")}
-          {midChips.length > 0 && <p className="duel-chips">{midChips}</p>}
-          {play.yi >= 0 && !play.over && hand && (
-            <div className="duel-row duel-row--hand">
-              <span className="duel-row__label">Energy</span>
-              <span className="duel-hand" role="group" aria-label="Your Energy: the one pressed goes on this turn">
-                {hand.map((t, i) => (
-                  <CdsChip
-                    key={i}
-                    clickable
-                    selected={attach !== null && i === use}
-                    disabled={attach === null || busy}
-                    size="medium"
-                    icon={<EnergyDot t={t} size="sm" />}
-                    label={t}
-                    onClick={() => pickUse(i)}
-                    className={`duel-hand__e${attach !== null && hint?.use === i && hint.attach === attach ? " duel-hand__e--tip" : ""}`}
-                    aria-label={`${t} Energy${attach !== null && i === use ? ", this one goes on" : ""}${attach !== null && hint?.use === i ? ". The professor's pick." : ""}`}
-                  />
-                ))}
-              </span>
-              {now && attach !== null && <span className="duel-row__on" aria-hidden="true">on {cardLabel(play.you[attach])}</span>}
-              {play.energy.next.length > 0 && (
-                <span className="duel-row__next">
-                  <span className="duel-row__nextlabel" aria-hidden="true">Next</span>
-                  <span className="sr-only">You draw next: {energyWords(play.energy.next)}.</span>
-                  <span aria-hidden="true" className="duel-row__dots">{play.energy.next.map((t, i) => <EnergyDot key={i} t={t} on={false} />)}</span>
-                </span>
-              )}
-              {now && attach !== null && attach !== play.yi && you && (
-                <Button variant="ghost" size="small" className="duel-row__back" onClick={() => putEnergy(play.yi)} disabled={busy} aria-label={`Put the ${now} Energy back on ${you.name}`}>
-                  Back to {cardLabel(you)}
-                </Button>
-              )}
+        <section className="duel-side duel-side--you" aria-label="Your side">
+          <div className="duel-bar duel-bar--you">
+            <div className="duel-bar__who">
+              <b>You</b>
+              {!run.official && <span>Practice</span>}
             </div>
-          )}
-          {play.yi >= 0 && !play.over && !hand && (
-            <div className="duel-row">
-              <span className="duel-row__label">Energy</span>
-              {now && <EnergyDot t={now} size="lg" />}
-              {now && attach !== null && <span className="duel-row__on" aria-hidden="true">on {cardLabel(play.you[attach])}</span>}
-              {play.energy.next.length > 0 && (
-                <span className="duel-row__next">
-                  <span className="sr-only">Energy still to come: {energyWords(play.energy.next)}.</span>
-                  <span aria-hidden="true" className="duel-row__dots">{play.energy.next.map((t, i) => <EnergyDot key={i} t={t} on={false} />)}</span>
-                </span>
-              )}
-              {now && attach !== null && attach !== play.yi && you && (
-                <Button variant="ghost" size="small" className="duel-row__back" onClick={() => putEnergy(play.yi)} disabled={busy} aria-label={`Put today's ${now} Energy back on ${you.name}`}>
-                  Back to {cardLabel(you)}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {you && !you.out && !play.needsNext && (
-          <DuelField card={you} side="you" owner="your" motion={motion.you} nonce={motion.nonce} fx={motion.fx?.you} pending={attach === you.index ? now : null} onZoom={() => onZoom(you, "Your")}>
-            {(inPlay.crit || inPlay.confused || inPlay.youStubborn || inPlay.fresh > 0) && (
-              <p className="duel-chips">
-                {inPlay.fresh > 0 && <Chip icon={IconBolt} tone="good" text={`+${inPlay.fresh} Energy for coming back`} full={`It came in with ${inPlay.fresh === 1 ? "an Energy" : `${inPlay.fresh} Energy`} for coming back after a knockout.`} />}
-                {inPlay.crit && <Chip icon={IconBolt} tone="good" text="Critical ×1.5" full="Critical hit: your next move does half again as much." />}
-                {inPlay.confused && <Chip icon={IconSpiral} tone="bad" text="Confused: half" full="Confused: your next move does half damage." />}
-                {inPlay.youStubborn && <Chip icon={IconMoodAngry} tone="bad" text="Stubborn" full="Stubborn: no move this turn. You can wait or swap." />}
-              </p>
-            )}
-          </DuelField>
-        )}
-
-        {you && !you.out && !play.needsNext && (
-          <div className="duel-moves" ref={movesRef} role="group" aria-label="Your move">
-            {you.moves.map((m, i) => {
-              const ok = attach !== null && play.canMove && (attach === you.index && now ? covers([...you.energy, now], m.cost) : m.ready);
-              const dmg = m.damage ?? m.d;
-              const tone = dmg > m.d ? " duel-up" : dmg < m.d ? " duel-down" : "";
-              const why = !turnLive ? "" : you.cond === "asleep" ? " Your card is Asleep." : !play.canMove ? " Your card can't move this turn." : ok ? " Ready." : " Needs more Energy.";
-              const tip = tipped({ move: i });
+            {run.official && run.status === "playing" && <DuelClock startedAt={Date.parse(run.startedAt)} offset={offset} />}
+            <Pips cards={play.you.filter((c) => !c.sat)} who="You" />
+          </div>
+          <div className="duel-bench duel-bench--you" role="group" aria-label="Your waiting cards">
+            {play.you.map((c) => {
+              if (c.sat || (c.index === play.yi && !c.out && !play.needsNext)) return null;
               return (
-                <Button
-                  key={`${you.index}-${m.n}`}
-                  variant="secondary"
-                  className={`duel-move${ok ? " duel-move--ready" : ""}${tip ? " duel-move--tip" : ""}${lone && i === you.moves.length - 1 ? " duel-move--wide" : ""}`}
-                  disabled={!ok || busy}
-                  onClick={() => act({ move: i })}
-                  data-move={i}
-                  aria-label={`${m.n}: ${dmg} damage${m.weak && dmg > 0 ? ", super effective" : ""}${m.plus ? ` (${m.plus})` : ""}. Costs ${energyWords(m.cost)}.${fxWords(m)}${why}${tip ? " The professor's pick." : ""}`}
-                >
-                  <span className="duel-move__top">
-                    <span className="duel-move__name">{m.n}{tip && <span className="duel-tip" aria-hidden="true">Tip</span>}</span>
-                    <span className="duel-move__hit">
-                      {m.weak && dmg > 0 && <span className="duel-badge duel-badge--x2">×2</span>}
-                      <span className={`duel-move__dmg${tone}`}>{dmg}</span>
-                    </span>
-                  </span>
-                  <span className="duel-move__foot">
-                    <CostDots cost={m.cost} energy={energyFor(you)} />
-                    <MoveConds fx={m.fx} size="xs" />
-                  </span>
-                </Button>
+                <CardThumb
+                  key={c.index}
+                  card={c}
+                  pending={attach === c.index ? now : null}
+                  onPress={() => onZoom(c, "Your")}
+                  label={`See your ${c.name} card${c.out ? ", knocked out" : `, ${c.cur} of ${c.hp} HP`}${attach === c.index && now ? `. This turn's ${now} Energy goes on it.` : ""}`}
+                />
               );
             })}
-            <Button variant="secondary" className={`duel-move duel-move--alt${tipped({ wait: true }) ? " duel-move--tip" : ""}`} disabled={attach === null || busy} onClick={() => act({ wait: true })} data-wait aria-label={`Wait: no move this turn${tipped({ wait: true }) ? ". The professor's pick." : ""}`}>
-              <span className="duel-move__top"><span className="duel-move__name"><IconHourglass size={18} stroke={2} aria-hidden="true" />Wait{tipped({ wait: true }) && <span className="duel-tip" aria-hidden="true">Tip</span>}</span></span>
-            </Button>
-            <Button
-              variant="secondary"
-              className={`duel-move duel-move--alt${swapping ? " duel-move--on" : ""}${hint && "swap" in hint.act ? " duel-move--tip" : ""}`}
-              disabled={attach === null || busy || play.swaps.length === 0}
-              onClick={toggleSwap}
-              aria-pressed={swapping}
-              data-swap
-              aria-label={play.swaps.length ? `Swap: pick a waiting card to bring in. Uses your turn.${hint && "swap" in hint.act ? ` The professor's pick: ${play.you[hint.act.swap].name}.` : ""}` : "Swap: no card can come in"}
-            >
-              <span className="duel-move__top"><span className="duel-move__name"><IconArrowsExchange size={18} stroke={2} aria-hidden="true" />Swap{hint && "swap" in hint.act && <span className="duel-tip" aria-hidden="true">Tip</span>}</span></span>
-            </Button>
-            {swapping && (
-              <p className="duel-movenote">
-                <span>Tap a waiting card to swap it in.</span>
-                <Button variant="ghost" size="small" onClick={cancelSwap}>Cancel</Button>
-              </p>
+          </div>
+          <div className="duel-side__field">
+            {you && !you.out && !play.needsNext && (
+              <DuelField card={you} side="you" owner="your" motion={motion.you} nonce={motion.nonce} fx={motion.fx?.you} pending={attach === you.index ? now : null} onZoom={() => onZoom(you, "Your")}>
+                {(inPlay.crit || inPlay.confused || inPlay.youStubborn || inPlay.fresh > 0) && (
+                  <p className="duel-chips">
+                    {inPlay.fresh > 0 && <Chip icon={IconBolt} tone="good" text={`+${inPlay.fresh} Energy for coming back`} full={`It came in with ${inPlay.fresh === 1 ? "an Energy" : `${inPlay.fresh} Energy`} for coming back after a knockout.`} />}
+                    {inPlay.crit && <Chip icon={IconBolt} tone="good" text="Critical ×1.5" full="Critical hit: your next move does half again as much." />}
+                    {inPlay.confused && <Chip icon={IconSpiral} tone="bad" text="Confused: half" full="Confused: your next move does half damage." />}
+                    {inPlay.youStubborn && <Chip icon={IconMoodAngry} tone="bad" text="Stubborn" full="Stubborn: no attack this turn." />}
+                  </p>
+                )}
+              </DuelField>
             )}
-            {!swapping && turnLive && you.cond === "asleep" && <p className="duel-movenote"><CondTag c="asleep" size="xs" label="Asleep" />Asleep: wait, or swap to wake it.</p>}
-            {!swapping && turnLive && you.cond !== "asleep" && play.turn === 1 && <p className="duel-movenote">{hand ? "Pick an Energy, then a move. Tap a waiting card to give it the Energy instead." : "Tap a move, or tap a waiting card to give it the Energy."}</p>}
           </div>
-        )}
-
-        <div className="duel-bench duel-bench--you" role="group" aria-label="Your waiting cards" ref={benchRef}>
-          {play.you.map((c) => {
-            if (c.sat || (c.index === play.yi && !c.out && !play.needsNext)) return null;
-            const holds = attach === c.index;
-            const canSwap = turnLive && swapping && play.swaps.includes(c.index);
-            const canGive = turnLive && !swapping && !!now && !!you && play.attachTo.includes(c.index);
-            const hp = `${c.cur} of ${c.hp} HP`;
-            const label = canSwap
-              ? `Swap in ${c.name}, ${hp}. Uses your turn.`
-              : canGive ? (holds ? `${c.name} has today's ${now} Energy. Press to put it back on ${you!.name}.` : `Give today's ${now} Energy to ${c.name}, ${hp}`)
-              : undefined;
-            return (
-              <CardThumb
-                key={c.index}
-                card={c}
-                pending={holds ? now : null}
-                onPress={canSwap ? () => act({ swap: c.index }) : canGive ? () => putEnergy(c.index) : undefined}
-                label={label}
-                className={[
-                  canSwap ? "duel-thumb--swap" : canGive ? (holds ? "duel-thumb--got" : "duel-thumb--give") : "",
-                  hint && turnLive && ((swapping && tipped({ swap: c.index })) || (!swapping && hint.attach === c.index && hint.attach !== play.yi && !holds)) ? "duel-thumb--tip" : "",
-                ].filter(Boolean).join(" ") || undefined}
-              />
-            );
-          })}
-        </div>
-
-        <div className="duel-bar duel-bar--you">
-          <div className="duel-bar__who">
-            <b>You</b>
-            <span ref={turnRef} tabIndex={-1} className="duel-bar__turn">{play.turn > 0 ? `Turn ${play.turn}` : "Today's six"}</span>
-          </div>
-          {!run.official && <span className="duel-practice">Practice</span>}
-          {run.official && run.status === "playing" && <DuelClock startedAt={Date.parse(run.startedAt)} offset={offset} />}
-          <Pips cards={play.you.filter((c) => !c.sat)} who="You" />
-        </div>
+          {you && !you.out && !play.needsNext && (
+            <div className="duel-side__foot">
+              {turnLive && now && target && (
+                <p className="duel-played">
+                  <EnergyDot t={now} size="sm" fresh />
+                  <span className="duel-played__text">{now} Energy on <b>{cardLabel(target)}</b></span>
+                  <Button variant="ghost" size="small" className="duel-played__change" onClick={() => openWin(1)} disabled={busy} aria-label={`Change: ${now} Energy goes on ${target.name}`}>Change</Button>
+                </p>
+              )}
+              <div className="duel-moves" ref={movesRef} role="group" aria-label="Your attacks">
+                {you.moves.map((m, i) => {
+                  const ok = attach !== null && play.canMove && (attach === you.index && now ? covers([...you.energy, now], m.cost) : m.ready);
+                  const dmg = m.damage ?? m.d;
+                  const tone = dmg > m.d ? " duel-up" : dmg < m.d ? " duel-down" : "";
+                  const why = !turnLive ? "" : you.cond === "asleep" ? " Your card is Asleep." : !play.canMove ? " Your card can't attack this turn." : ok ? " Ready." : " Needs more Energy.";
+                  const tip = tipped({ move: i });
+                  return (
+                    <Button
+                      key={`${you.index}-${m.n}`}
+                      variant="secondary"
+                      className={`duel-move${ok ? " duel-move--ready" : ""}${tip ? " duel-move--tip" : ""}`}
+                      disabled={!ok || busy}
+                      onClick={() => act({ move: i })}
+                      data-move={i}
+                      aria-label={`${m.n}: ${dmg} damage${m.weak && dmg > 0 ? ", super effective" : ""}${m.plus ? ` (${m.plus})` : ""}. Costs ${energyWords(m.cost)}.${fxWords(m)}${why}${tip ? " The professor's pick." : ""}`}
+                    >
+                      <span className="duel-move__top">
+                        <span className="duel-move__name">{m.n}{tip && <span className="duel-tip" aria-hidden="true">Tip</span>}</span>
+                        <span className="duel-move__hit">
+                          {m.weak && dmg > 0 && <span className="duel-badge duel-badge--x2">×2</span>}
+                          <span className={`duel-move__dmg${tone}`}>{dmg}</span>
+                        </span>
+                      </span>
+                      <span className="duel-move__foot">
+                        <CostDots cost={m.cost} energy={energyFor(you)} />
+                        <MoveConds fx={m.fx} size="xs" />
+                      </span>
+                    </Button>
+                  );
+                })}
+                <Button variant="secondary" className={`duel-move duel-move--end${endWide ? " duel-move--wide" : ""}${tipped({ wait: true }) ? " duel-move--tip" : ""}`} disabled={attach === null || busy} onClick={() => act({ wait: true })} data-wait aria-label={`End turn: no attack this turn${tipped({ wait: true }) ? ". The professor's pick." : ""}`}>
+                  <span className="duel-move__top"><span className="duel-move__name">End turn{tipped({ wait: true }) && <span className="duel-tip" aria-hidden="true">Tip</span>}</span></span>
+                </Button>
+                {asleepish && (
+                  <p className="duel-movenote">
+                    {you.cond === "asleep" && <CondTag c="asleep" size="xs" label="Asleep" />}
+                    <span>{you.cond === "asleep" ? "Asleep: it can't attack." : "It can't attack this turn."}</span>
+                    {play.swaps.length > 0 && <Button variant="ghost" size="small" onClick={() => openWin(2)} disabled={busy} iconBefore={IconArrowsExchange}>Swap it out</Button>}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
       </div>
 
-      {moment.on && play.event && moment.key === eventKey && (
-        <DuelEventMoment event={play.event} text={eventNowText(play.event, outcome, hint)} picture={run.trainer.picture} onDone={() => setMoment((m) => ({ ...m, on: false }))} />
+      {noticeView && <DuelNotice tile={noticeView.tile} kicker={noticeView.kicker} title={noticeView.title} text={noticeView.text} next={noticeView.next} onDone={() => setNotice((n) => ({ ...n, which: null }))} />}
+
+      {turnLive && attach !== null && (
+        <DuelTurn
+          open={winOpen}
+          step={winStep}
+          play={play}
+          attach={attach}
+          use={use}
+          now={now}
+          hint={hint}
+          bar={<DuelEventsBar {...barProps} inWindow />}
+          busy={busy}
+          ask={{ show: !hint, costs, busy: tipBusy, onAsk: () => void askProfessor(), escape: !confirming }}
+          onUse={pickUse}
+          onAttach={pickCard}
+          onNext={() => { touched.current = true; if (play.swaps.length) setWin({ turn: play.turn, open: true, step: 2 }); else closeWin(); }}
+          onKeep={closeWin}
+          onSwap={swapIn}
+          onStep={openWin}
+          onClose={closeWin}
+          onZoom={(c) => onZoom(c, "Your")}
+        />
       )}
 
       {picker && play.needsBring && (

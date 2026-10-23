@@ -2,63 +2,113 @@
 
 /**
  * Today's duel in the dailies' Start card, as today's challenger (challenger picks 2026-10-22,
- * https://claude.ai/artifact/RqcHdCgb2M4wxnLVs1NJ2E): the trainer's picture, "Larry challenged you to
- * a duel", who they are and a line about them, their team as rows (each card's type, HP, Weakness
- * and moves, the one that leads marked; picks 2026-10-22, https://claude.ai/artifact/MFwJQi5RBdq92B1JKS2EWZ)
- * and your six as cards (press one to see it whole), the professor's plans (rules 5: each closed until
- * you open it), the trainer's own event, then Battle now (it starts the official duel and its clock)
- * and three short lines on how to duel. The one boxed thing on the page before you play, in the
- * Duel's own navy.
+ * https://claude.ai/artifact/RqcHdCgb2M4wxnLVs1NJ2E; arena pass 2026-10-23,
+ * https://claude.ai/artifact/BXp1RfGmpEis5UanYC4bdb): the trainer's picture, "Larry challenged you to
+ * a duel", who they are, a line about them and their own event; their team as cards (Leads on the
+ * first, each card's Weakness; press one for its moves) and your six; the professor (rules 6: the
+ * solo bonus and how many plans there are, with Ask the professor, which ends the bonus once you
+ * confirm; older days show the plans); Battle now (it starts the official duel and its clock); and
+ * How to play, folded once you've played a duel. The one boxed thing on the page before you play,
+ * in the Duel's own navy.
  */
 
-import { IconSwords } from "@tabler/icons-react";
-import { Accordion } from "@empac/cascadeds";
+import { useState } from "react";
+import { IconBulb, IconSwords } from "@tabler/icons-react";
+import { Accordion, Button } from "@empac/cascadeds";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 import type { DuelCardView, DuelHome } from "@/lib/originals/duel/view";
 import { DailyStartCard } from "@/components/originals/DailyStart";
 import { DailySteps } from "@/components/originals/DailyParade";
-import { CardThumb, CostDots, MoveConds } from "./DuelBits";
-import { CONDITION_LOOK, energyWords } from "./duelLook";
+import { CardThumb, EnergyDot } from "./DuelBits";
 import { TrainerArt } from "./TrainerArt";
 
 const COUNT = ["No", "One", "Two", "Three", "Four", "Five", "Six"];
 
-/** The trainer's team as rows: the card (press it to see it whole), its type, HP and Weakness, and its moves; the first one out says Leads. */
-export function DuelTeamRows({ team, owner, onZoom }: { team: DuelCardView[]; owner: string; onZoom: (card: DuelCardView) => void }) {
+/** The trainer's team as cards in the order they come out: Leads on the first, each card's Weakness under it. Press one for its moves. */
+export function DuelTeamCards({ team, owner, onZoom }: { team: DuelCardView[]; owner: string; onZoom: (card: DuelCardView) => void }) {
   return (
-    <ul className="duel-team" aria-label={`${owner} team, in the order they come out`}>
+    <ul className="duel-teamcards" aria-label={`${owner} team, in the order they come out`}>
       {team.map((c, i) => (
-        <li key={c.index} className="duel-team__row">
-          <CardThumb card={c} size="sm" onPress={() => onZoom(c)} label={`See ${owner} ${c.name} card`} />
-          <div className="duel-team__info">
-            <p className="duel-team__head"><b>{c.name}</b>{i === 0 && <span className="duel-team__lead">Leads</span>}</p>
-            <p className="duel-team__meta">{c.t} · {c.hp} HP · {c.weak ? `weak to ${c.weak}` : "no Weakness"}{c.energy.length > 0 ? ` · starts with ${c.energy.length} Energy` : ""}</p>
-            <ul className="duel-team__moves">
-              {c.moves.map((m) => (
-                <li key={m.n}>
-                  <span className="duel-team__move">{m.n}</span>
-                  <CostDots cost={m.cost} energy={c.energy} size="xs" />
-                  <MoveConds fx={m.fx} size="xs" />
-                  <strong>{m.d}{m.plus ? (m.plus.startsWith("+") ? "+" : "×") : ""}</strong>
-                  <span className="sr-only"> damage{m.plus ? `, ${m.plus}` : ""}. Costs {energyWords(m.cost)}.{m.fx.map((f) => ` ${f.chance}% chance to make it ${CONDITION_LOOK[f.c].word}.`).join("")}</span>
-                  {m.plus && <span className="duel-team__plus" aria-hidden="true">{m.plus.startsWith("+") ? m.plus : `${m.plus.split(" ")[0]} damage ${m.plus.split(" ").slice(1).join(" ")}`}</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
+        <li key={c.index} className="duel-teamcard">
+          <CardThumb card={c} size="md" onPress={() => onZoom(c)} label={`See ${owner} ${c.name} card${i === 0 ? " (it leads)" : ""}: ${c.hp} HP, ${c.weak ? `weak to ${c.weak}` : "no Weakness"}`} />
+          <span className="duel-teamcard__facts" aria-hidden="true">
+            {i === 0 && <span className="duel-team__lead">Leads</span>}
+            {c.weak ? <span className="duel-teamcard__weak">Weak <EnergyDot t={c.weak} size="xs" /></span> : <span className="duel-teamcard__weak">No Weakness</span>}
+          </span>
         </li>
       ))}
     </ul>
   );
 }
 
-export function DuelStart({ home, busy, onStart, onZoom }: {
+/** The professor on the start card: on a scored day, the solo bonus and Ask the professor (it ends the bonus); the plans once asked, or on older days. */
+function DuelProfessor({ home, onAsk }: { home: DuelHome; onAsk: () => Promise<boolean> }) {
+  const confirm = useConfirm();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const scored = home.rules >= 6;
+  const shown = home.plans.length > 0;
+  if (!shown && home.planCount === 0) return null;
+  const ask = async () => {
+    const ok = await confirm({ title: "Ask the professor?", body: "You'll lose today's solo bonus: 150 points off your score.", confirmLabel: "Ask", danger: false });
+    if (!ok) return;
+    setBusy(true);
+    const got = await onAsk().catch(() => false);
+    setBusy(false);
+    if (!got) toast.error("Couldn't reach the professor. Try again in a moment.");
+  };
+  const count = shown ? home.plans.length : home.planCount;
+  const ways = count === 1 ? "One way to win." : `${COUNT[count] ?? count} ways to win, each built around a different card.`;
+  return (
+    <div className="duel-plans">
+      <p className="duel-start__label">The professor</p>
+      {shown ? (
+        <>
+          <p className="duel-plans__sub">{ways}{scored ? " Your solo bonus is gone for today." : " Opening one doesn't change your score."}</p>
+          <Accordion
+            variant="flush"
+            allowMultiple
+            className="duel-plans__list"
+            items={home.plans.map((p, i) => ({ id: `plan-${i}`, title: `Plan ${i + 1}: ${p.title}`, content: <p className="duel-plans__text">{p.text}</p> }))}
+          />
+        </>
+      ) : (
+        <div className="duel-prof">
+          <p className="duel-plans__sub"><span className="duel-prof__bonus">Solo bonus +150</span> {ways} Asking for one, or for a tip during the duel, ends the bonus.</p>
+          <Button variant="secondary" size="small" className="duel-prof__ask" iconBefore={IconBulb} onClick={() => void ask()} disabled={busy} loading={busy}>Ask the professor</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const STEPS_6 = [
+  { icon: "energy", title: "Play an Energy", text: "Each turn opens with your hand of three: pick one and the card it goes on. It stays there." },
+  { icon: "move", title: "Attack, or swap", text: "A move works once its dots are covered, and hitting a Weakness does double. Swapping a card in uses the turn." },
+  { icon: "board", title: "Knock out every card", text: "Your score counts turns, time and going solo. Your first duel today is the one that counts." },
+] as const;
+
+export function DuelStart({ home, busy, onStart, onAsk, onZoom }: {
   home: DuelHome;
   busy: boolean;
   onStart: () => void;
+  /** Asks the professor for the plans (true once they're in `home.plans`). */
+  onAsk: () => Promise<boolean>;
   onZoom: (card: DuelCardView, owner: string) => void;
 }) {
   const t = home.trainer!;
   const their = `${t.name}'s`;
+  const steps = home.rules >= 6 ? [...STEPS_6] : home.rules >= 5 ? [
+    { icon: "energy", title: "Play an Energy", text: "Each turn, put one of the three in your hand on any of your cards. It stays there." },
+    { icon: "move", title: "Make your move", text: "A move works once its dots are covered. Hitting a Weakness does double." },
+    { icon: "board", title: "Knock out every card", text: "Lose a card and the next one comes in with extra Energy. Fewer turns score higher, and your first duel today counts." },
+  ] : [
+    { icon: "energy", title: "Place an Energy", text: "Each turn, put the next Energy on any of your cards. It stays there." },
+    { icon: "move", title: "Make your move", text: "A move works once its dots are covered. Hitting a Weakness does double." },
+    { icon: "board", title: "Knock out every card", text: "Fewer turns score higher. Your first duel today counts." },
+  ];
+  const howTo = <DailySteps steps={steps as Parameters<typeof DailySteps>[0]["steps"]} />;
   return (
     <section aria-labelledby="duel-today-title">
       <DailyStartCard
@@ -79,11 +129,12 @@ export function DuelStart({ home, busy, onStart, onZoom }: {
                 <h2 id="duel-today-title" className="duel-start__title">{t.name} challenged you to a duel</h2>
                 <p className="duel-start__who">{t.title} · {t.game}</p>
                 {t.bio && <p className="duel-start__bio">{t.bio}</p>}
+                <p className="duel-start__sig"><b>{their} own event, {t.signature.title}{/[.!?]$/.test(t.signature.title) ? "" : ":"}</b> {t.signature.text}</p>
               </div>
             </div>
             <div className="duel-start__side">
               <p className="duel-start__label">{their} team</p>
-              <DuelTeamRows team={home.team} owner={their} onZoom={(c) => onZoom(c, their)} />
+              <DuelTeamCards team={home.team} owner={their} onZoom={(c) => onZoom(c, their)} />
             </div>
             <div className="duel-start__side">
               <p className="duel-start__label">Your six, the same for everyone{home.bring < home.pack.length ? `. Bring ${home.bring}.` : ""}</p>
@@ -91,31 +142,13 @@ export function DuelStart({ home, busy, onStart, onZoom }: {
                 {home.pack.map((c) => <CardThumb key={c.index} card={c} size="md" onPress={() => onZoom(c, "Your")} label={`See the ${c.name} card`} />)}
               </div>
             </div>
-            {home.plans.length > 0 && (
-              <div className="duel-plans">
-                <p className="duel-start__label">The professor&apos;s plans</p>
-                <p className="duel-plans__sub">{COUNT[home.plans.length] ?? home.plans.length} ways to win, each built around a different card. Opening one doesn&apos;t change your score.</p>
-                <Accordion
-                  variant="flush"
-                  allowMultiple
-                  className="duel-plans__list"
-                  items={home.plans.map((p, i) => ({ id: `plan-${i}`, title: `Plan ${i + 1}: ${p.title}`, content: <p className="duel-plans__text">{p.text}</p> }))}
-                />
-              </div>
-            )}
-            <p className="duel-start__sig"><b>{their} own event, {t.signature.title}{/[.!?]$/.test(t.signature.title) ? "" : ":"}</b> {t.signature.text}</p>
+            <DuelProfessor home={home} onAsk={onAsk} />
           </div>
         }
       >
-        <DailySteps steps={home.rules >= 5 ? [
-          { icon: "energy", title: "Play an Energy", text: "Each turn, put one of the three in your hand on any of your cards. It stays there." },
-          { icon: "move", title: "Make your move", text: "A move works once its dots are covered. Hitting a Weakness does double." },
-          { icon: "board", title: "Knock out every card", text: "Lose a card and the next one comes in with extra Energy. Fewer turns score higher, and your first duel today counts." },
-        ] : [
-          { icon: "energy", title: "Place an Energy", text: "Each turn, put the next Energy on any of your cards. It stays there." },
-          { icon: "move", title: "Make your move", text: "A move works once its dots are covered. Hitting a Weakness does double." },
-          { icon: "board", title: "Knock out every card", text: "Fewer turns score higher. Your first duel today counts." },
-        ]} />
+        {home.history.played > 0 ? (
+          <Accordion variant="flush" className="duel-howto" items={[{ id: "how", title: "How to play", content: howTo }]} />
+        ) : howTo}
       </DailyStartCard>
     </section>
   );

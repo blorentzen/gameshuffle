@@ -54,7 +54,7 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 /* Colorless is a white dot: a grey rim keeps it visible on a light page (and its ring and star grey). */
 .duel-e--any { border-color: #8d8d9a; }
 .duel-e--any:not(.duel-e--on) { color: #6f6f7d; }
-.duel-arena .duel-e--any:not(.duel-e--on) { color: #d6d6e0; border-color: #a3a3b4; }
+.duel-arena .duel-e--any:not(.duel-e--on), .duel-turnwin .duel-e--any:not(.duel-e--on) { color: #d6d6e0; border-color: #a3a3b4; }
 /* Today's Energy, placed but not sent yet: a white ring. */
 .duel-e--new { box-shadow: 0 0 0 2.5px #fff, 0 0 12px var(--e); }
 .duel-energy { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
@@ -141,26 +141,39 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 /* Wider screens: the picture on the left (a medium card image isn't stretched across the card), fading into the navy, with who they are beside it. */
 @media (min-width: 40rem) {
   .duel-start__top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: var(--spacing-20, 20px); }
-  .duel-start__media { margin: calc(-1 * var(--spacing-20, 20px)) 0 0 calc(-1 * var(--spacing-20, 20px)); align-self: stretch; }
-  .duel-start__art { height: 100%; min-height: 24rem; aspect-ratio: auto; }
+  .duel-start__media { margin: calc(-1 * var(--spacing-20, 20px)) 0 0 calc(-1 * var(--spacing-20, 20px)); align-self: stretch; min-height: 24rem; }
+  /* The picture fills the frame as a box of its own: a frame whose height came from height: 100% and
+     min-height read 100cqh as 0 in the crop (2026-10-23), so heads were cut and the card's text showed
+     under the picture. */
+  .duel-start__art { position: absolute; inset: 0; width: auto; aspect-ratio: auto; }
   .duel-start__media::after { background: linear-gradient(90deg, rgba(13, 18, 51, 0) 55%, #0d1233 100%); }
   .duel-start__intro { margin-top: 0; }
   .duel-start__title { font-size: var(--font-size-32, 3.2rem); }
 }
-/* The trainer's team as rows (start card): a thin line between rows, no boxes inside the card. */
-.duel-team { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); column-gap: var(--spacing-20, 20px); }
-.duel-team__row { display: grid; grid-template-columns: 5.6rem minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.14); }
-.duel-team .duel-thumb--sm { width: 5.6rem; }
-.duel-team__info { min-width: 0; display: grid; gap: 4px; }
-.duel-team__head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; color: #fff; font-size: var(--font-size-16); line-height: 1.25; }
-.duel-team__head b { font-weight: 800; }
+/* The trainer's team as cards (start card), on the same grid as your six: Leads and the Weakness under each. */
+.duel-teamcards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--spacing-8); max-width: 54rem; }
+.duel-teamcard { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: start; gap: 4px; min-width: 0; }
+.duel-teamcard > .duel-thumb { width: 100%; }
+.duel-teamcard__facts { display: grid; justify-items: center; gap: 3px; color: #c9cff0; font-size: var(--font-size-12); font-weight: 600; text-align: center; }
+.duel-teamcard__weak { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 3px; }
 .duel-team__lead { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
-.duel-team__meta { margin: 0; color: #c9cff0; font-size: var(--font-size-14); }
-.duel-team__moves { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 4px; }
-.duel-team__moves li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; color: #e6e9f8; font-size: var(--font-size-14); }
-.duel-team__move { flex: 1 1 auto; min-width: 0; }
-.duel-team__moves strong { color: #fff; font-weight: 800; font-variant-numeric: tabular-nums; }
-.duel-team__plus { flex-basis: 100%; color: #c9cff0; font-size: var(--font-size-14); }
+@media (max-width: 30rem) { .duel-teamcards { gap: 5px; } }
+/* The professor (start card): the solo bonus and Ask the professor, or the plans once asked. */
+.duel-prof { display: grid; justify-items: start; gap: 10px; }
+.duel-prof__bonus { display: inline-block; margin-right: 4px; padding: 2px 8px; border-radius: 999px; background: rgba(47, 191, 113, 0.28); color: #d2f7e2; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.02em; vertical-align: 1px; }
+.duel-prof .duel-prof__ask.empac-button { height: auto; min-height: 4rem; border-color: rgba(45, 212, 191, 0.6); background: rgba(45, 212, 191, 0.12); color: #b8f3e8; font-weight: 700; }
+.duel-prof .duel-prof__ask.empac-button:hover:not(:disabled) { background: rgba(45, 212, 191, 0.22); color: #fff; }
+.duel-prof .duel-prof__ask.empac-button:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+/* How to play, folded after your first duel (a flush CDS Accordion on the navy card). */
+.duel-howto.empac-accordion--flush .empac-accordion__item { border-top: 1px solid rgba(255, 255, 255, 0.16); border-bottom: 0; }
+.duel-howto .empac-accordion__trigger { min-height: 44px; padding: 10px 0; background: none; color: #fff; }
+.duel-howto.empac-accordion--flush .empac-accordion__trigger:hover { color: #ffe08a; background: none; }
+.duel-howto .empac-accordion__trigger:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+.duel-howto .empac-accordion__trigger-title { color: inherit; font-size: var(--font-size-16); font-weight: 700; }
+.duel-howto .empac-accordion__icon { color: #f5c84c; }
+.duel-howto .empac-accordion__content--open { height: auto !important; }
+.duel-howto .empac-accordion__content-inner { padding: 0 0 8px; }
+.duel-howto .daily-steps { border-top: 0; padding-top: 0; }
 /* The professor's plans: a flush CDS Accordion on the navy card, every plan closed until opened. */
 .duel-plans { display: grid; gap: 6px; }
 .duel-plans__sub { margin: 0; color: #c9cff0; font-size: var(--font-size-14); line-height: 1.45; }
@@ -174,7 +187,7 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-plans__list .empac-accordion__content--open { height: auto !important; }
 .duel-plans__list .empac-accordion__content-inner { padding: 0 0 12px; }
 .duel-plans__text { margin: 0; color: #eef0ff; font-size: var(--font-size-16); line-height: 1.5; }
-.duel-start__sig { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(245, 200, 76, 0.12); border: 1px solid rgba(245, 200, 76, 0.45); color: #eef0ff; font-size: var(--font-size-14); line-height: 1.5; }
+.duel-start__sig { margin: 4px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(245, 200, 76, 0.12); border: 1px solid rgba(245, 200, 76, 0.45); color: #eef0ff; font-size: var(--font-size-14); line-height: 1.5; }
 .duel-start__sig b { color: #ffe08a; }
 @media (max-width: 30rem) { .duel-start__cards { gap: 5px; } }
 
@@ -188,7 +201,8 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
   margin-inline: auto;
   min-height: 64rem;
   border-radius: 18px;
-  overflow: hidden;
+  /* clip, not hidden: hidden would make the arena a scroll box and the events bar couldn't stick. */
+  overflow: clip;
   color: #fff;
   font-family: var(--font-body, inherit);
   background:
@@ -205,7 +219,56 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
   opacity: 0.35;
   background: linear-gradient(transparent 49.6%, rgba(130, 170, 255, 0.5) 50%, transparent 50.4%), repeating-linear-gradient(90deg, transparent 0 38px, rgba(120, 150, 255, 0.12) 38px 39px);
 }
-.duel-arena__body { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 4px; min-height: 64rem; }
+.duel-arena__body { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0; min-height: 64rem; }
+
+/*
+ * The events bar (arena pass, picks 2026-10-23): the turn, what's on now and next turn's event. It
+ * stays in view under the site nav while you scroll (and slides with it). Each chip shows its notice.
+ */
+.duel-evbar { position: sticky; top: var(--gs-nav-offset, 0px); transition: var(--gs-nav-slide); z-index: 4; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-height: 4.8rem; padding: 8px 12px; box-sizing: border-box; background: rgba(8, 10, 30, 0.92); backdrop-filter: blur(6px); border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+.duel-evbar__turn { margin-right: 2px; font-family: var(--font-display, inherit); font-size: 1.6rem; font-weight: 800; line-height: 1; color: #fff; }
+.duel-evbar__turn:focus-visible { outline: 2px solid var(--duel-focus); outline-offset: 3px; border-radius: 4px; }
+.duel-evbar__turn:focus:not(:focus-visible) { outline: none; }
+.duel-ev { display: inline-flex; align-items: center; gap: 6px; min-height: 3.2rem; padding: 3px 12px 3px 4px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: #fff; font: inherit; font-size: var(--font-size-14); font-weight: 700; line-height: 1.2; text-align: start; }
+button.duel-ev { cursor: pointer; }
+button.duel-ev:hover { background: rgba(255, 255, 255, 0.16); }
+button.duel-ev:focus-visible { outline: 3px solid var(--duel-focus); outline-offset: 2px; }
+.duel-ev__in { display: contents; }
+.duel-ev small { color: #c3c9e6; font-size: var(--font-size-12); font-weight: 600; }
+.duel-ev--next { background: rgba(245, 200, 76, 0.14); box-shadow: inset 0 0 0 1px rgba(245, 200, 76, 0.55); color: #ffe08a; }
+button.duel-ev--next:hover { background: rgba(245, 200, 76, 0.22); }
+.duel-ev__k { font-size: var(--font-size-12); letter-spacing: 0.06em; text-transform: uppercase; }
+/* The window's copy of the bar: no turn, no sticking. */
+.duel-evbar--window { position: static; min-height: 0; padding: 0; background: none; backdrop-filter: none; border: 0; }
+.duel-evtile { display: grid; place-items: center; flex: none; border-radius: 7px; color: #fff; }
+.duel-evtile--sm { width: 2.4rem; height: 2.4rem; }
+.duel-evtile--lg { width: 5.2rem; height: 5.2rem; border-radius: 12px; }
+.duel-evtile--next { background: rgba(245, 200, 76, 0.2); color: #ffe08a; box-shadow: inset 0 0 0 1.5px rgba(245, 200, 76, 0.7); }
+.duel-evtile--face { box-shadow: 0 0 0 2px var(--duel-gold, #f5c84c); }
+
+/* An event lands as a notice at the top of the screen for about three seconds (a tap closes it). */
+.duel-notice { position: fixed; z-index: 10010; left: 50%; top: calc(var(--gs-nav-offset, 0px) + 12px); transform: translateX(-50%); box-sizing: border-box; width: min(calc(100% - 32px), 44rem); display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px 16px 12px 12px; border-radius: 16px; background: radial-gradient(120% 100% at 0% 0%, rgba(245, 200, 76, 0.22), transparent 60%), #121638; box-shadow: 0 0 0 2px var(--duel-gold, #f5c84c), 0 18px 40px rgba(0, 0, 0, 0.55); color: #fff; cursor: pointer; animation: duel-notice 3s ease both; }
+.duel-notice__text { display: grid; gap: 2px; min-width: 0; }
+.duel-notice__text small { color: #ffe08a; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.duel-notice__text b { font-family: var(--font-display, inherit); font-size: var(--font-size-18, 1.8rem); font-weight: 800; line-height: 1.2; }
+.duel-notice__text span { color: #d6daf3; font-size: var(--font-size-16); line-height: 1.4; }
+@keyframes duel-notice { 0% { opacity: 0; transform: translate(-50%, -12px); } 8% { opacity: 1; transform: translate(-50%, 0); } 88% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -8px); } }
+
+/* Each side keeps its own things together: bar, waiting cards, card on the field, then (yours) the
+   Energy you played and your attacks. The trainer's side wears a faint red, yours a faint blue. */
+.duel-side { display: flex; flex-direction: column; gap: 4px; padding: 6px 0 10px; }
+.duel-side--foe { background: linear-gradient(180deg, rgba(210, 59, 45, 0.12), rgba(210, 59, 45, 0) 70%); }
+.duel-side--you { background: linear-gradient(0deg, rgba(59, 130, 246, 0.14), rgba(59, 130, 246, 0) 70%); }
+.duel-side__field { min-width: 0; }
+.duel-side__foot { display: grid; gap: 8px; min-width: 0; }
+.duel-side__foot:empty { display: none; }
+
+/* The Energy you played this turn, with Change (it reopens the turn window). */
+.duel-played { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 14px; padding: 6px 6px 6px 10px; border-radius: 10px; background: rgba(245, 200, 76, 0.1); box-shadow: inset 0 0 0 1px rgba(245, 200, 76, 0.4); color: #fff; font-size: var(--font-size-14); line-height: 1.3; }
+.duel-played__text { flex: 1; min-width: 0; }
+.duel-played .duel-played__change.empac-button--ghost { height: auto; min-height: 3.2rem; padding: 4px 10px; color: #ffe08a; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.duel-played .duel-played__change.empac-button--ghost:hover:not(:disabled) { background: rgba(245, 200, 76, 0.16); color: #fff; }
+.duel-played .duel-played__change.empac-button--ghost:focus-visible { outline: 3px solid var(--duel-focus); outline-offset: 2px; }
 
 .duel-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-10, 10px); padding: 10px 14px; background: rgba(0, 0, 0, 0.25); }
 .duel-bar__who { display: grid; gap: 1px; min-width: 0; margin-right: auto; }
@@ -276,88 +339,38 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-chip--good { background: rgba(47, 191, 113, 0.25); }
 .duel-chip--bad { background: rgba(210, 59, 45, 0.3); }
 
-/* The middle: the scoreline, the event strip (phones), what's in play, the Energy row. */
-.duel-mid { position: relative; z-index: 2; flex: 1; display: grid; align-content: center; gap: 8px; min-height: 9.6rem; padding: 8px 14px; }
-/*
- * The event strip (picks 2026-10-22): This turn and Next turn, in the same place at the same height
- * every turn, so nothing below it moves. Drawn twice: in the middle on phones (--mid), across both
- * columns above the cards from 900px (--wide); CSS shows one.
- */
-.duel-evs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
-.duel-evs--wide { display: none; }
-.duel-evs__half { display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); grid-template-rows: auto 1fr; align-items: center; gap: 4px 8px; min-height: 8.6rem; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); text-align: start; }
-.duel-evs__half.is-on { background: rgba(12, 14, 40, 0.9); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 8px 22px rgba(0, 0, 0, 0.4); animation: duel-flip 0.6s ease both; }
-.duel-evs__half--next.is-on { background: linear-gradient(180deg, rgba(245, 200, 76, 0.2), rgba(245, 200, 76, 0.08)); box-shadow: inset 0 0 0 1.5px rgba(245, 200, 76, 0.85), 0 0 18px rgba(245, 200, 76, 0.25); animation: duel-glow 1.2s ease 1; }
-.duel-evs__k { grid-column: 1 / -1; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #b3b9dc; }
-.duel-evs__half--next.is-on .duel-evs__k { color: #ffe08a; }
-.duel-evs__tile { display: grid; place-items: center; border-radius: 10px; color: #fff; }
-.duel-evs__tile--sm { width: 3.6rem; height: 3.6rem; }
-.duel-evs__tile--lg { width: 6.4rem; height: 6.4rem; border-radius: 16px; }
-.duel-evs__tile--next { background: rgba(245, 200, 76, 0.18); color: #ffe08a; box-shadow: inset 0 0 0 1.5px rgba(245, 200, 76, 0.7); }
-.duel-evs__tile--quiet { background: rgba(255, 255, 255, 0.06); color: #9097bd; }
-/* The trainer's own event: their picture as the tile. */
-.duel-evs__face { box-shadow: 0 0 0 2px var(--duel-gold, #f5c84c); }
-.duel-evs__text { display: grid; gap: 2px; min-width: 0; }
-.duel-evs__text b { font-family: var(--font-display, inherit); font-size: 1.5rem; font-weight: 800; line-height: 1.2; color: #fff; }
-.duel-evs__text span { color: var(--i2); font-size: var(--font-size-14); line-height: 1.35; }
-.duel-evs__half:not(.is-on) .duel-evs__text b { color: #9097bd; font-weight: 600; }
-.duel-evs__tip { grid-column: 1 / -1; margin: 0; padding: 8px 12px; border-radius: 12px; background: rgba(15, 118, 110, 0.28); box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.55); color: #fff; font-size: 1.5rem; line-height: 1.4; text-align: start; animation: duel-flip 0.6s ease both; }
-.duel-evs__tip .duel-tip { margin: 0 8px 0 0; }
-
-/* The moment an event lands: the middle of the screen for about a second and a half (a tap ends it). */
-.duel-moment { position: fixed; inset: 0; z-index: 1060; display: grid; place-items: center; padding: 16px; background: rgba(6, 8, 24, 0.5); animation: duel-moment 1.5s ease both; }
-.duel-moment__card { display: grid; justify-items: center; gap: 10px; width: min(100%, 34rem); padding: 22px 20px; border-radius: 18px; background: radial-gradient(120% 100% at 50% 0%, rgba(245, 200, 76, 0.3), transparent 60%), #121638; box-shadow: 0 0 0 2px var(--duel-gold, #f5c84c), 0 24px 60px rgba(0, 0, 0, 0.6); color: #fff; text-align: center; animation: duel-flip 0.5s ease both; }
-.duel-moment__card small { font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #ffe08a; }
-.duel-moment__card b { font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-weight: 800; line-height: 1.15; }
-.duel-moment__card span { color: #c9cff0; font-size: var(--font-size-16); line-height: 1.4; }
-@keyframes duel-moment { 0% { opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
-
 /* The professor's pick: a gold Tip on the move, Wait or Swap, a gold ring on the card. */
 .duel-tip { margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.04em; vertical-align: 1px; }
 .duel-move--tip.empac-button:not(:disabled) { border-color: rgba(245, 200, 76, 0.9); box-shadow: 0 0 0 1px rgba(245, 200, 76, 0.6), 0 0 16px rgba(245, 200, 76, 0.25); }
 .duel-thumb--tip { outline: 2px solid #f5c84c; outline-offset: 2px; }
 @keyframes duel-flip { from { transform: perspective(600px) rotateY(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
 
-/* The scoreline: a row per move, a skipped move, a swap, the sandstorm; the turn log button on the right. */
-.duel-score { position: relative; display: grid; align-items: center; min-height: 3.6rem; padding: 0 44px; }
-.duel-score__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; justify-items: center; }
-.duel-score__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; color: #fff; font-size: 1.5rem; line-height: 1.3; animation: duel-row-in 0.3s ease both; }
+/* The last turn, under the events bar: a row per move and per Energy played, a skipped move, a swap,
+   the sandstorm; the turn log button on the right. */
+.duel-score { position: relative; display: grid; align-items: center; min-height: 3.6rem; padding: 8px 56px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(6, 8, 24, 0.35); }
+.duel-score__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; justify-items: start; }
+.duel-score__row { display: grid; grid-template-columns: 6.4rem minmax(0, 1fr); align-items: baseline; gap: 8px; width: 100%; color: #fff; font-size: 1.5rem; line-height: 1.35; animation: duel-row-in 0.3s ease both; }
+.duel-score__what { display: grid; justify-items: start; gap: 2px; min-width: 0; }
+.duel-score__part { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+/* An Energy played sits small above the move it paid for. */
+.duel-score__part--energy { color: #c3c9e6; font-size: var(--font-size-14); }
+.duel-score__part--energy b { color: #e6e9f8; }
+.duel-score__part--later { visibility: hidden; }
 .duel-score__row--later { visibility: hidden; animation: none; }
 .duel-score__row b { font-weight: 600; }
 .duel-score__row svg { flex: none; color: #c3c9e6; }
-.duel-score__who { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #b8bdd8; }
+.duel-score__who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #b8bdd8; }
 .duel-score__dmg { font-family: var(--font-display, inherit); font-weight: 800; color: #ffe08a; font-variant-numeric: tabular-nums; }
 .duel-score__hit { display: inline-flex; align-items: center; gap: 6px; }
-.duel-score__log.empac-icon-button { position: absolute; right: 0; top: 50%; transform: translateY(-50%); border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 9px; background: rgba(255, 255, 255, 0.06); color: #c3c9e6; }
+.duel-score__log.empac-icon-button { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 9px; background: rgba(255, 255, 255, 0.06); color: #c3c9e6; }
 .duel-score__log.empac-icon-button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.5); color: #fff; }
 .duel-score__log.empac-icon-button:focus-visible { outline: 3px solid var(--duel-focus); outline-offset: 2px; }
 @keyframes duel-row-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 @keyframes duel-glow { 0%, 100% { box-shadow: none; } 35% { box-shadow: 0 0 0 3px rgba(245, 200, 76, 0.35), 0 0 18px rgba(245, 200, 76, 0.5); } }
 
-/* The Energy row: today's Energy (and the card it's on), then the next three as rings. */
-.duel-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; min-height: 3.2rem; color: var(--i2); font-size: var(--font-size-14); }
-.duel-row__label { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.duel-row__on { color: #fff; font-weight: 600; }
-.duel-row__next { display: inline-flex; align-items: center; }
-.duel-row__dots { display: inline-flex; gap: 5px; opacity: 0.9; }
-.duel-row__dots .duel-e { width: 2rem; height: 2rem; }
-.duel-row__dots .duel-e svg { width: 60%; height: 60%; }
-.duel-row__back.empac-button--ghost { height: auto; min-height: 3.2rem; padding: 4px 10px; color: #ffe08a; font-weight: 600; }
-/* Rules 5: the Energy hand (CDS Chips on the arena's dark world; pressed = the one that goes on). */
-.duel-hand { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.duel-arena .duel-hand .duel-hand__e.empac-chip { min-height: 3.6rem; padding: 4px 12px 4px 6px; gap: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.24); color: #fff; font-size: var(--font-size-14); font-weight: 700; }
-.duel-arena .duel-hand .duel-hand__e.empac-chip:hover:not(.empac-chip--disabled) { background: rgba(255, 255, 255, 0.14); }
-.duel-arena .duel-hand .duel-hand__e.empac-chip.empac-chip--selected { background: rgba(245, 200, 76, 0.18); border-color: #f5c84c; box-shadow: inset 0 0 0 1px #f5c84c; color: #fff; }
-.duel-arena .duel-hand .duel-hand__e.empac-chip.empac-chip--disabled { opacity: 0.55; }
-.duel-arena .duel-hand .duel-hand__e.empac-chip .empac-chip__icon { display: inline-flex; }
-.duel-arena .duel-hand .duel-hand__e.empac-chip .empac-chip__label { color: inherit; }
-.duel-arena .duel-hand .duel-hand__e.empac-chip:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
-.duel-arena .duel-hand .duel-hand__e--tip.empac-chip:not(.empac-chip--selected) { border-color: rgba(245, 200, 76, 0.9); box-shadow: 0 0 12px rgba(245, 200, 76, 0.35); }
-.duel-row__nextlabel { margin-right: 6px; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-
-/* Moves, Wait and Swap: CascadeDS Buttons drawn as tiles. Attacks on top (one alone spans the
-   row), Wait and Swap side by side under them, a little shorter. */
+/* Your attacks and End turn: CascadeDS Buttons drawn as tiles, two across. End turn fills the last
+   cell (or takes its own row under an even number of attacks), a little shorter. */
 .duel-moves { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 6px 14px 4px; }
 .duel-move.empac-button { display: flex; width: 100%; height: auto; min-height: 5.6rem; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.08); color: #fff; white-space: normal; text-align: start; justify-content: stretch; align-items: stretch; }
 .duel-move.empac-button:hover:not(:disabled) { border-color: var(--duel-gold); background: rgba(255, 255, 255, 0.12); }
@@ -373,8 +386,8 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-move__foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .duel-movenote .duel-cond { margin-right: 6px; vertical-align: -2px; }
 .duel-foe-moves .duel-conds { flex: none; }
-.duel-move--alt.empac-button { min-height: 4.4rem; align-items: center; }
-.duel-move--on.empac-button, .duel-move--on.empac-button:hover:not(:disabled) { border-color: var(--duel-gold); background: rgba(245, 200, 76, 0.16); }
+.duel-move--end.empac-button { min-height: 4.4rem; align-items: center; }
+.duel-move--end .duel-move__top { justify-content: center; }
 .duel-movenote { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; margin: 2px 0 0; text-align: center; color: #c3c9e6; font-size: var(--font-size-14); line-height: 1.4; text-wrap: balance; }
 .duel-movenote .empac-button--ghost { height: auto; min-height: 3.2rem; color: #ffe08a; }
 
@@ -430,43 +443,32 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
   .duel-bench { padding: 4px 8px; gap: 5px; min-height: 0; }
   .duel-bench--foe .duel-thumb--sm { width: 3.6rem; }
   .duel-bench--you .duel-thumb--sm { width: 4.4rem; }
-  .duel-mid { padding: 4px 10px; gap: 6px; min-height: 0; }
-  .duel-evs__half { padding: 6px 8px; min-height: 8rem; }
+  .duel-evbar { padding: 6px 10px; }
+  .duel-score { padding: 6px 52px 6px 10px; }
+  .duel-played { margin: 0 10px; }
   .duel-bar__face { width: 3.6rem; height: 3.6rem; }
   .duel-moves { padding: 4px 10px; gap: 6px; }
   .duel-move.empac-button { min-height: 5.2rem; padding: 8px 10px; }
-  .duel-move--alt.empac-button { min-height: 4.4rem; }
+  .duel-move--end.empac-button { min-height: 4.4rem; }
   .duel-overlay { padding: 14px 10px; }
 }
 
-/* Laptops and up: the trainer on the left, you on the right, so a whole turn fits the screen.
-   Their bar, waiting cards and field down the left; yours down the right; the middle (event,
-   what happened, the forecast, Today's Energy) under theirs and your moves under yours. */
+/* Laptops and up: the trainer on the left, you on the right, their rows lined up (bar, waiting cards,
+   card, then your Energy and attacks), with the events bar and the last turn across both. */
 @media (min-width: 64rem) {
   .duel-page > .duel-arena { max-width: 100rem; }
   .duel-arena, .duel-arena__body { min-height: 0; }
   .duel-arena::before { background: linear-gradient(90deg, transparent 49.8%, rgba(130, 170, 255, 0.5) 50%, transparent 50.2%), repeating-linear-gradient(0deg, transparent 0 38px, rgba(120, 150, 255, 0.1) 38px 39px); }
-  .duel-arena__body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "tbar ybar" "tbench ybench" "ev ev" "tfield yfield" "mid moves";
-    grid-template-rows: auto auto auto auto 1fr;
-    gap: 6px 0;
-    padding-bottom: 12px;
-  }
-  .duel-bar--foe { grid-area: tbar; }
-  .duel-bar--you { grid-area: ybar; }
-  .duel-bench--foe { grid-area: tbench; }
-  .duel-bench--you { grid-area: ybench; }
-  .duel-field--foe { grid-area: tfield; }
-  .duel-field--you { grid-area: yfield; }
-  .duel-mid { grid-area: mid; align-content: start; }
-  .duel-evs--mid { display: none; }
-  .duel-evs--wide { display: grid; grid-area: ev; width: 100%; max-width: 76rem; justify-self: center; padding: 0 18px; box-sizing: border-box; }
-  .duel-moves { grid-area: moves; align-content: start; }
+  .duel-arena__body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start; }
+  .duel-evbar, .duel-score { grid-column: 1 / -1; }
+  .duel-side { display: grid; grid-row: span 4; grid-template-rows: subgrid; align-content: start; gap: 6px; padding-bottom: 14px; }
+  .duel-side--foe { grid-column: 1; border-right: 1px solid rgba(255, 255, 255, 0.1); }
+  .duel-side--you { grid-column: 2; }
+  .duel-side__foot:empty { display: block; }
   .duel-field { align-items: start; padding: 6px 18px; }
-
-  .duel-bench { min-height: 8rem; align-items: center; }
+  .duel-bench { align-items: center; }
+  .duel-played { margin: 0 18px; }
+  .duel-moves { padding: 0 18px; }
   .duel-pick__list { grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
   .duel-pick { max-width: 92rem; }
 }
@@ -496,6 +498,18 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-result__stats div { display: grid; gap: 4px; padding: 8px 4px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); }
 .duel-result__stats dt { order: 2; color: #c3c9e6; font-size: var(--font-size-12); }
 .duel-result__stats dd { margin: 0; font-size: var(--font-size-20); font-weight: 800; font-variant-numeric: tabular-nums; }
+/* A scored day's score: the total, then its parts, flat inside the result between thin lines. */
+.duel-scorecard { display: grid; justify-items: center; gap: 8px; width: 100%; max-width: 48rem; padding: 12px 0; border-top: 1px solid rgba(255, 255, 255, 0.16); border-bottom: 1px solid rgba(255, 255, 255, 0.16); }
+.duel-scorecard__total { display: flex; align-items: baseline; gap: 8px; margin: 0; }
+.duel-scorecard__total span { color: #ffe08a; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.duel-scorecard__total b { font-family: var(--font-display, inherit); font-size: 4.4rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.duel-scorecard__total small { color: #c3c9e6; font-size: var(--font-size-14); }
+.duel-scorecard__parts { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 0; margin: 0; }
+.duel-scorecard__parts div { display: grid; gap: 2px; padding: 0 16px; text-align: center; }
+.duel-scorecard__parts div + div { border-left: 1px solid rgba(255, 255, 255, 0.16); }
+.duel-scorecard__parts dt { order: 2; color: #c3c9e6; font-size: var(--font-size-12); }
+.duel-scorecard__parts dd { margin: 0; font-size: var(--font-size-20); font-weight: 800; font-variant-numeric: tabular-nums; }
+.duel-scorecard__parts dd small { color: #aab1d6; font-size: var(--font-size-12); font-weight: 600; }
 .duel-result__line { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; font-size: var(--font-size-16); font-weight: 600; text-wrap: balance; }
 .duel-result__line svg { flex: none; color: var(--duel-gold); }
 .duel-result__small { margin: 0; color: #c3c9e6; font-size: var(--font-size-14); line-height: 1.5; max-width: 52ch; }
@@ -552,8 +566,92 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-turnlog__list { margin: 0; padding-left: 2.4rem; display: grid; gap: 6px; font-size: var(--font-size-16); line-height: 1.45; color: var(--text-primary); }
 .duel-turnlog__event { margin-top: 4px; }
 
+/*
+ * The turn window (DuelTurn, a CascadeDS Modal portaled to the page): the arena's navy and gold in any
+ * theme. Step 1: the hand, then a row per card (picture, name and tags, HP and Energy, moves with
+ * where this Energy would go). Step 2: keep your card or swap one in. Ask the professor at the foot.
+ */
+html:root .empac-modal.duel-turnwin { --duel-focus: #f5c84c; --i2: #c3c9e6; background: #12173d; border-color: rgba(245, 200, 76, 0.55); color: #fff; box-shadow: 0 0 0 1px rgba(245, 200, 76, 0.35), 0 24px 60px rgba(0, 0, 0, 0.6); }
+.duel-turnwin .empac-modal__header { padding: 16px 16px 4px; }
+.duel-turnwin .empac-modal__title { color: #fff; font-family: var(--font-display, inherit); font-size: var(--font-size-20); }
+.duel-turnwin .empac-modal__close { color: #c3c9e6; }
+.duel-turnwin .empac-modal__close:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+.duel-turnwin .empac-modal__close:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+html:root .duel-turnwin .empac-modal__body { gap: 12px; padding: 8px 16px 16px; color: #e6e9f8; line-height: 1.4; }
+/* The body scrolls; nothing in it may shrink to fit (a flex column would squash the rows into each other). */
+.duel-turnwin .empac-modal__body > * { flex-shrink: 0; }
+.duel-turnwin .empac-modal__footer { display: block; padding: 12px 16px 16px; border-top-color: rgba(255, 255, 255, 0.14); }
+.duel-turnwin__foot { display: grid; gap: 8px; }
+.duel-turnwin__go.empac-button, .duel-turnwin__keep.empac-button { width: 100%; min-height: 4.8rem; height: auto; padding: 10px 16px; background: #f5c84c; border-color: #f5c84c; color: #1a1300; font-family: var(--font-display, inherit); font-size: var(--font-size-16); font-weight: 800; white-space: normal; }
+.duel-turnwin__go.empac-button:hover:not(:disabled), .duel-turnwin__keep.empac-button:hover:not(:disabled) { background: #ffd866; border-color: #ffd866; color: #1a1300; }
+.duel-turnwin__go.empac-button:focus-visible, .duel-turnwin__keep.empac-button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+/* The steps: Energy, then Who fights (the one you're on in gold). */
+.duel-steps { list-style: none; counter-reset: step; display: flex; gap: 14px; margin: 0; padding: 0; color: #9aa1c7; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.duel-steps li { counter-increment: step; display: inline-flex; align-items: center; gap: 6px; }
+.duel-steps li::before { content: counter(step); display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; box-shadow: inset 0 0 0 1.5px currentColor; letter-spacing: 0; }
+.duel-steps li[aria-current] { color: #ffe08a; }
+.duel-steps li[aria-current]::before { background: #f5c84c; color: #1a1300; box-shadow: none; }
+/* The professor's play, when there is one. */
+.duel-tipline { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 8px 12px; border-radius: 12px; background: rgba(15, 118, 110, 0.3); box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.55); color: #fff; font-size: var(--font-size-16); line-height: 1.4; animation: duel-row-in 0.3s ease both; }
+.duel-tipline .duel-tip { margin: 2px 0 0; flex: none; }
+.duel-turnwin__hand { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.duel-turnwin__one { display: inline-flex; align-items: center; gap: 8px; font-size: var(--font-size-16); font-weight: 700; }
+.duel-turnwin__next { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: #aab1d6; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.duel-turnwin__dots { display: inline-flex; gap: 4px; }
+.duel-turnwin__label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 4px 0 0; color: #f5c84c; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.duel-turnwin__label span { color: #aab1d6; font-size: var(--font-size-14); font-weight: 600; letter-spacing: 0; text-transform: none; }
+.duel-turnwin__played { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0; font-size: var(--font-size-16); font-weight: 600; }
+.duel-turnwin__played .empac-button--ghost { height: auto; min-height: 3.2rem; padding: 4px 10px; color: #ffe08a; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.duel-turnwin__played .empac-button--ghost:hover:not(:disabled) { background: rgba(245, 200, 76, 0.16); color: #fff; }
+.duel-turnwin__zoomhint { display: flex; align-items: center; gap: 6px; margin: 0; color: #aab1d6; font-size: var(--font-size-14); }
+/* The hand: CascadeDS Chips on the navy (pressed = the one you'll play). */
+.duel-hand { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+.duel-turnwin .duel-hand .duel-hand__e.empac-chip { min-height: 4rem; padding: 4px 14px 4px 6px; gap: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.26); color: #fff; font-size: var(--font-size-14); font-weight: 700; }
+.duel-turnwin .duel-hand .duel-hand__e.empac-chip:hover:not(.empac-chip--disabled) { background: rgba(255, 255, 255, 0.14); }
+.duel-turnwin .duel-hand .duel-hand__e.empac-chip.empac-chip--selected { background: rgba(245, 200, 76, 0.2); border-color: #f5c84c; box-shadow: inset 0 0 0 1px #f5c84c; color: #fff; }
+.duel-turnwin .duel-hand .duel-hand__e.empac-chip.empac-chip--disabled { opacity: 0.55; }
+.duel-turnwin .duel-hand .duel-hand__e.empac-chip .empac-chip__icon { display: inline-flex; }
+.duel-turnwin .duel-hand .duel-hand__e.empac-chip .empac-chip__label { color: inherit; }
+.duel-turnwin .duel-hand .duel-hand__e.empac-chip:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+.duel-turnwin .duel-hand .duel-hand__e--tip.empac-chip { border-color: rgba(45, 212, 191, 0.9); box-shadow: 0 0 12px rgba(45, 212, 191, 0.35); }
+/* A card row: its picture (a button for the card window) and the rest (the button that picks it). */
+.duel-trows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.duel-trow { display: grid; grid-template-columns: 5.6rem minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+.duel-trow--on { background: rgba(245, 200, 76, 0.12); box-shadow: inset 0 0 0 2px #f5c84c; }
+.duel-trow--tip { box-shadow: inset 0 0 0 2px rgba(45, 212, 191, 0.8); }
+.duel-trow .duel-thumb--sm { width: 5.6rem; }
+.duel-trow__main { display: grid; gap: 4px; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; border-radius: 6px; }
+.duel-trow__main:focus-visible { outline: 3px solid #f5c84c; outline-offset: 4px; }
+.duel-trow__main:disabled { cursor: default; }
+.duel-trow__head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: var(--font-size-16); line-height: 1.25; }
+.duel-trow__head b { font-weight: 800; }
+.duel-trow__head .duel-tip { margin: 0; }
+.duel-trow__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: #c3c9e6; font-size: var(--font-size-14); }
+.duel-trow__meta b { color: #fff; }
+.duel-trow__moves { display: grid; gap: 4px; margin-top: 2px; }
+.duel-trow__move { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: var(--font-size-14); color: #e6e9f8; }
+.duel-trow__mname { flex: 1 1 8rem; min-width: 0; }
+.duel-trow__move b { min-width: 2.6rem; text-align: end; font-family: var(--font-display, inherit); font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.duel-trow__swap { display: inline-flex; align-items: center; gap: 6px; color: #ffe08a; font-size: var(--font-size-14); font-weight: 700; }
+.duel-tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: #dfe3ff; font-size: var(--font-size-12); font-weight: 700; line-height: 1.3; }
+.duel-tag--x2 { background: #2fbf71; color: #062312; }
+.duel-tag--bad { background: rgba(210, 59, 45, 0.4); color: #fff; }
+.duel-ready { padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); color: #dfe3ff; font-size: var(--font-size-12); font-weight: 700; line-height: 1.3; }
+.duel-ready--new { background: rgba(47, 191, 113, 0.32); color: #d2f7e2; }
+/* Ask the professor, at the foot of both steps. */
+.duel-ask { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; }
+.duel-ask .duel-ask__btn.empac-button--ghost { height: auto; min-height: 4rem; padding: 6px 12px; color: #b8f3e8; font-weight: 700; }
+.duel-ask .duel-ask__btn.empac-button--ghost:hover:not(:disabled) { background: rgba(45, 212, 191, 0.14); color: #fff; }
+.duel-ask .duel-ask__btn.empac-button--ghost:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+.duel-ask__note { color: #9fd9cd; font-size: var(--font-size-14); }
+@media (max-width: 40rem) {
+  html:root .empac-modal.duel-turnwin { max-height: calc(100dvh - 16px); }
+  .duel-trow { grid-template-columns: 4.8rem minmax(0, 1fr); padding: 8px 8px 8px 6px; }
+  .duel-trow .duel-thumb--sm { width: 4.8rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .duel-holo--summon, .duel-holo--hit, .duel-holo--ko, .duel-evs__half, .duel-evs__tip, .duel-overlay--over, .duel-moment, .duel-moment__card,
+  .duel-holo--summon, .duel-holo--hit, .duel-holo--ko, .duel-overlay--over, .duel-notice, .duel-turnwin .duel-tipline,
   .duel-holo__tag, .duel-holo__pop, .duel-score__row { animation: none; }
   .duel-holo::after { animation: none; }
   .duel-field__hp i { transition: none; }

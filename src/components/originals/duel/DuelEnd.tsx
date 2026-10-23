@@ -21,6 +21,7 @@ import { ordinal } from "@/lib/daily/boardRules";
 import { formatTime } from "@/lib/originals/dailies";
 import { TCG_SHOP_URL } from "@/data/shop";
 import type { DuelCardView, DuelRunView } from "@/lib/originals/duel/view";
+import { SCORE } from "@/lib/originals/duel/rules";
 import { CardThumb } from "./DuelBits";
 import { TrainerArt } from "./TrainerArt";
 
@@ -67,13 +68,14 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
         {run.trainer.picture && <TrainerArt picture={run.trainer.picture} shape="round" className="duel-result__face" />}
         <p className="duel-result__kicker">{kicker}</p>
         <h2 id="duel-result-title" className="duel-result__title">{won ? `You beat ${trainer} in ${turnsWord(run.turns)}` : `${trainer} wins this one`}</h2>
+        {official && run.score && <DuelScoreCard score={run.score} won={won} />}
         <dl className="duel-result__stats">
           {won
             ? <div><dt>Turns</dt><dd>{run.turns}</dd></div>
             : <div><dt>Knocked out</dt><dd>{knocked} of {play.foe.length}</dd></div>}
           {run.par != null && <div><dt>Par</dt><dd>{run.par}</dd></div>}
           {official && run.seconds != null && <div><dt>Time</dt><dd>{formatTime(run.seconds)}</dd></div>}
-          <div><dt>Cards left</dt><dd>{run.cardsLeft} of {play.you.length}</dd></div>
+          <div><dt>Cards left</dt><dd>{run.cardsLeft} of {play.you.filter((c) => !c.sat).length}</dd></div>
         </dl>
         {parLine(run) && <p className="duel-result__line">{parLine(run)}</p>}
         {official && run.board && (
@@ -110,6 +112,24 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
       <DuelCards cards={play.you} trainer={run.trainer.picture?.kind === "card" ? { id: run.trainer.picture.id, card: run.trainer.picture.card } : null} signedIn={signedIn} />
 
       <SupportMoment from="duel" title="Enjoying the Daily Duel?" />
+    </div>
+  );
+}
+
+/** A scored day's score (rules 6): the total out of 1,000, then its parts (turns, time and solo on a win; knockouts on a loss). */
+function DuelScoreCard({ score, won }: { score: NonNullable<DuelRunView["score"]>; won: boolean }) {
+  const parts = won
+    ? [{ label: "From turns", value: score.turns, max: SCORE.turns }, { label: "From time", value: score.time, max: SCORE.time }, { label: "Solo bonus", value: score.solo, max: SCORE.solo }]
+    : [{ label: "From knockouts", value: score.kos, max: SCORE.koMax }];
+  return (
+    <div className="duel-scorecard">
+      <p className="duel-scorecard__total"><span>Score</span> <b>{score.score.toLocaleString("en-US")}</b> <small>of 1,000</small></p>
+      <dl className="duel-scorecard__parts">
+        {parts.map((p) => (
+          <div key={p.label}><dt>{p.label}</dt><dd>{p.value}<small> of {p.max}</small></dd></div>
+        ))}
+      </dl>
+      {won && score.solo === 0 && <p className="duel-result__small">You asked the professor today, so there&apos;s no solo bonus.</p>}
     </div>
   );
 }
