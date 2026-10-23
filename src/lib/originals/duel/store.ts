@@ -23,7 +23,7 @@ import { playerKey, type PlayerKind } from "@/lib/daily/boardRules";
 import { recordDuelScore } from "@/lib/daily/boards";
 import type { DailiesEntry, DayMark } from "@/lib/originals/dailies";
 import { alive, applyStep, cardsLeft, inDuel, startState, viewOf, type DuelSetup, type DuelState } from "./engine";
-import { buildDay, makeSetup } from "./solver";
+import { adviceFor, buildDay, makeSetup, type DuelPlan } from "./solver";
 import { trainerPicture } from "./pictures";
 import { bioFor } from "@/data/originals/duel/bios";
 import { TIER_LABEL, duelNumber, duelPoints, duelShareText, personOf, signatureText, tierFor, type DuelShareFacts } from "./rules";
@@ -46,11 +46,30 @@ interface DayRow {
   par: number; line: DuelStep[]; in_band: boolean; built_at: string; cards: Record<string, DuelCard>; trainer: DuelTrainer | null;
   /** 2 = conditions play. Absent before daily-duel-m2.sql. */
   rules?: number;
+  /** Rules 5: the professor's plans. Absent before daily-duel-m3.sql. */
+  plans?: DuelPlan[] | null;
 }
 const DAY_COLS = "day, number, tier, trainer_id, pack, row, events, par, line, in_band, built_at, cards, trainer";
 
-/** The newest rules (types.ts DuelRules): conditions, a condition card in every six, bring as many as the trainer (2026-10-22). */
-export const DUEL_RULES: DuelRules = 4;
+/** The newest rules (types.ts DuelRules): the Energy hand, the comeback charge, "+"/"×" attacks and the professor's plans (2026-10-22). */
+export const DUEL_RULES: DuelRules = 5;
+
+/** Whether duel_days has `plans` and `win_rate` yet (daily-duel-m3.sql); rules 5 days need them, so until then days build with rules 4. */
+let plansColumn: Promise<boolean> | null = null;
+function plansReady(): Promise<boolean> {
+  plansColumn ??= (async () => {
+    const { error } = await createServiceClient().from("duel_days").select("plans, win_rate").limit(1);
+    if (error && !missing(error)) console.error("[duel] plans column check failed:", error);
+    return !error;
+  })();
+  return plansColumn;
+}
+
+/** The newest rules this database can hold: 1 before daily-duel-m2.sql, 4 before daily-duel-m3.sql. */
+async function newestRules(): Promise<DuelRules> {
+  if (!(await rulesReady())) return 1;
+  return (await plansReady()) ? DUEL_RULES : 4;
+}
 
 /** Whether duel_days has its `rules` column yet (daily-duel-m2.sql); asked once per server. */
 let rulesColumn: Promise<boolean> | null = null;
@@ -74,6 +93,8 @@ export interface DuelDay {
   line: DuelStep[];
   /** The rules it was built with (types.ts DuelRules). */
   rules: DuelRules;
+  /** Rules 5: the professor's plans (empty on older days). */
+  plans: DuelPlan[];
 }
 
 /**
@@ -92,18 +113,18 @@ const cachedDay = (day: string): DuelDay | null => {
 const keepDay = (d: DuelDay) => { dayCache.set(d.day, { d, at: Date.now() }); };
 const building = new Map<string, Promise<DuelDay | null>>();
 
-const rulesOf = (n: number | undefined): DuelRules => (n === 4 ? 4 : n === 3 ? 3 : n === 2 ? 2 : 1);
+const rulesOf = (n: number | undefined): DuelRules => (n === 5 ? 5 : n === 4 ? 4 : n === 3 ? 3 : n === 2 ? 2 : 1);
 
 function dayFrom(r: DayRow): DuelDay | null {
   const trainer = r.trainer;
   if (!trainer) return null;
   const rules = rulesOf(r.rules);
   const setup = makeSetup(r.cards, trainer, r.pack, r.row, r.events, { rules, seed: r.day });
-  return setup ? { day: r.day, number: r.number, tier: r.tier, trainer, par: r.par, setup, line: r.line, rules } : null;
+  return setup ? { day: r.day, number: r.number, tier: r.tier, trainer, par: r.par, setup, line: r.line, rules, plans: r.plans ?? [] } : null;
 }
 
 async function readDay(day: string): Promise<DuelDay | null | "missing"> {
-  const cols = (await rulesReady()) ? `${DAY_COLS}, rules` : DAY_COLS;
+  const cols = (await rulesReady()) ? `${DAY_COLS}, rules${(await plansReady()) ? ", plans" : ""}` : DAY_COLS;
   const { data, error } = await createServiceClient().from("duel_days").select(cols).eq("day", day).maybeSingle();
   if (error) { if (!missing(error)) console.error("[duel] day read failed:", error); return "missing"; }
   return data ? dayFrom(data as unknown as DayRow) : null;
@@ -127,7 +148,7 @@ async function loadData(): Promise<DuelData | null> {
 async function buildRow(day: string, opts: { budgetMs?: number; data?: DuelData; seed?: string; allowOlder?: boolean }) {
   const data = opts.data ?? (await loadData());
   if (!data) return null;
-  let rules: DuelRules = (await rulesReady()) ? DUEL_RULES : 1;
+  let rules: DuelRules = await newestRules();
   const budgetMs = opts.budgetMs ?? 20_000;
   const t0 = Date.now();
   let build = buildDay(day, data.pool, data.cards, data.trainers, opts.seed ?? "", { budgetMs, rules });
@@ -145,6 +166,7 @@ async function buildRow(day: string, opts: { budgetMs?: number; data?: DuelData;
   const row = {
     day, number: build.number, tier: build.tier, trainer_id: build.trainerId, pack: build.pack, row: build.row, events: build.events,
     par: build.par, line: build.line, in_band: build.inBand, cards, trainer, ...(rules >= 2 ? { rules } : {}),
+    ...(rules >= 5 ? { plans: build.plans ?? [], win_rate: build.winRate ?? null } : {}),
   };
   return { build, row };
 }
@@ -173,14 +195,21 @@ export async function buildAndSaveDay(day: string, opts: { budgetMs?: number; da
  * two servers upgrading at once store one.
  */
 async function upgradeDay(d: DuelDay, budgetMs?: number): Promise<DuelDay> {
-  if (d.rules >= DUEL_RULES || d.day <= gsDay() || !(await rulesReady())) return d;
+  const newest = await newestRules();
+  if (d.rules >= newest || d.day <= gsDay()) return d;
   const svc = createServiceClient();
   const { data: runs } = await svc.from("duel_runs").select("id").eq("day", d.day).limit(1);
   if (runs?.length) return d;
+  const t0 = Date.now();
   const made = await buildRow(d.day, { budgetMs, allowOlder: false });
-  if (!made || made.build.rules !== DUEL_RULES) return d;
-  const { error } = await svc.from("duel_days").update({ ...made.row, built_at: new Date().toISOString() }).eq("day", d.day).lt("rules", DUEL_RULES);
+  if (!made || made.build.rules !== newest) {
+    console.error(`[duel] ${d.day}: no puzzle with rules ${newest} in ${Date.now() - t0}ms (budget ${budgetMs ?? 20_000}ms); it keeps rules ${d.rules}`);
+    return d;
+  }
+  const { error } = await svc.from("duel_days").update({ ...made.row, built_at: new Date().toISOString() }).eq("day", d.day).lt("rules", newest);
   if (error) { console.error("[duel] day upgrade failed:", error); return d; }
+  const rate = made.build.winRate != null ? `, slipping player wins ${Math.round(made.build.winRate * 100)}%, ${made.build.plans?.length ?? 0} plans` : "";
+  console.log(`[duel] ${d.day}: rebuilt with rules ${newest}: ${made.build.trainerId}, par ${made.build.par}${made.build.inBand ? "" : " (closest to the target)"}${rate}, ${made.build.attempts} packs, ${Date.now() - t0}ms`);
   const stored = await readDay(d.day);
   return stored && stored !== "missing" ? stored : d;
 }
@@ -203,7 +232,9 @@ export async function getDay(day = gsDay(), opts: { build?: boolean; budgetMs?: 
   if (hit) return hit;
   const have = await readDay(day);
   if (have === "missing") return null;
-  if (have) { const d = await upgraded(have); keepDay(d); return d; }
+  // Upgrades take minutes on a slow machine, so only the Duel's own cron runs them (ensureDays); the
+  // dev server upgrades on read so a previewed day (?day=) shows the newest rules.
+  if (have) { const d = process.env.NODE_ENV === "development" ? await upgraded(have, ENSURE_BUDGET_MS) : have; keepDay(d); return d; }
   if (opts.build === false) return null;
   let p = building.get(day);
   if (!p) {
@@ -214,30 +245,35 @@ export async function getDay(day = gsDay(), opts: { build?: boolean; budgetMs?: 
 }
 
 /**
- * Today's and tomorrow's duels, built if they aren't stored yet (the every-minute sweep calls it), so
- * a new day is ready at midnight and the homepage's card, which only reads a built day, has its
- * trainer; tomorrow's is rebuilt when it's still on older rules (upgradeDay). A stored day is a memory
- * hit for a few minutes after each read (DAY_CACHE_MS).
+ * Today's and tomorrow's duels, built if they aren't stored yet (the Duel's own cron calls it,
+ * /api/cron/duel-days), so a new day is ready at midnight and the homepage's card, which only reads a
+ * built day, has its trainer; tomorrow's is rebuilt when it's still on older rules (upgradeDay).
+ * `budgetMs` is shared by the whole run. A build's time depends on the machine: Gladion's day took 10
+ * seconds on a laptop and found nothing in 20 on Vercel (2026-10-22), so the budget is generous.
  */
-export async function ensureDays(): Promise<number> {
+export async function ensureDays(budgetMs = ENSURE_BUDGET_MS): Promise<number> {
+  const end = Date.now() + budgetMs;
   let built = 0;
   for (const day of [gsDay(), gsAddDays(gsDay(), 1)]) {
-    if (cachedDay(day)) continue;
+    const left = end - Date.now();
+    if (left < 5_000) break;
+    const hit = cachedDay(day);
+    if (hit && (hit.rules >= DUEL_RULES || hit.day <= gsDay())) continue;
     const have = await readDay(day);
     if (have === "missing") return built;
     if (have) {
-      const d = await upgraded(have, ENSURE_BUDGET_MS);
+      const d = await upgraded(have, left);
       if (d !== have) built++;
       keepDay(d);
       continue;
     }
-    if (await getDay(day, { budgetMs: ENSURE_BUDGET_MS })) built++;
+    if (await getDay(day, { budgetMs: left })) built++;
   }
   return built;
 }
 
-/** The every-minute sweep builds a day ahead, so it can take longer than a page request would (a Champion day can need half a minute). */
-const ENSURE_BUDGET_MS = 40_000;
+/** A run of the Duel's cron: room for a hard day twice over on Vercel's slower machines, inside the route's 300 seconds. */
+const ENSURE_BUDGET_MS = 240_000;
 
 /** The trainer as the page sees it, with their picture (their own card, else `ace`: the last card of the team as the day stored it). */
 export function trainerView(t: DuelTrainer, ace: DuelCard | null = null): DuelTrainerView {
@@ -301,6 +337,13 @@ function shareFactsOf(r: RunRow, d: DuelDay): DuelShareFacts {
   };
 }
 
+/** The arena's view of a run: on Professor's advice's turn it carries a play for the turn (a short search). */
+function playView(r: RunRow, d: DuelDay) {
+  const play = viewOf(d.setup, r.state, d.trainer);
+  if (play.event?.kind === "advice" && !play.over) play.hint = adviceFor(d.setup, r.state);
+  return play;
+}
+
 function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number } | null = null): DuelRunView {
   const done = r.status === "done";
   // Par shows once the official duel is over (practice only opens after it).
@@ -308,7 +351,7 @@ function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number 
   return {
     id: r.id, day: r.day, number: duelNumber(r.day), official: r.official, status: r.status,
     trainer: dayTrainer(d),
-    play: viewOf(d.setup, r.state, d.trainer),
+    play: playView(r, d),
     result: r.result,
     turns: r.state.turn,
     cardsLeft: cardsLeft(r.state),
@@ -427,11 +470,15 @@ export async function duelHome(player: DuelPlayer | null, day = gsDay()): Promis
   const empty: DuelHome = {
     ready: false, day, number: duelNumber(day), tier: tierFor(day), trainer: null, pack: [], bring: 6, team: [],
     official: null, par: null, practiceAllowed: false, current: null, history: NO_HISTORY, signedIn: player?.kind === "u",
+    rules: 1, plans: [],
   };
   const d = await getDay(day);
   if (!d) return empty;
   const start = viewOf(d.setup, startState(d.setup), d.trainer);
-  const base: DuelHome = { ...empty, ready: true, tier: d.tier, trainer: dayTrainer(d), pack: start.you, bring: start.bring, team: start.foe };
+  const base: DuelHome = {
+    ...empty, ready: true, tier: d.tier, trainer: dayTrainer(d), pack: start.you, bring: start.bring, team: start.foe,
+    rules: d.rules, plans: d.plans.map((p) => ({ title: p.title, text: p.text })),
+  };
   if (!player) return base;
   const key = keyOf(player);
   const [official, rows, { data: practice }] = await Promise.all([

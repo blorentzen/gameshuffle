@@ -5,7 +5,7 @@
  * full stop).
  */
 
-import type { DuelEventKind, DuelSignature, DuelTrainer } from "./types";
+import type { DuelCondition, DuelEventKind, DuelPlus, DuelPlusKind, DuelSignature, DuelTrainer } from "./types";
 
 const EVENT_COPY: Record<Exclude<DuelEventKind, "signature">, { title: string; text: string; short: string }> = {
   rain: { title: "Rain begins to fall", text: "Water moves do 30 more and Fire moves 30 less, for 3 turns.", short: "Water +30, Fire −30 for 3 turns" },
@@ -18,7 +18,7 @@ const EVENT_COPY: Record<Exclude<DuelEventKind, "signature">, { title: string; t
   confused: { title: "Your Pokémon is confused", text: "Your next move does half damage.", short: "Your next move does half" },
   ace: { title: "A stubborn ace", text: "Whichever card on the field has more HP skips its next move (the trainer's on a tie).", short: "The card with more HP skips its next move" },
   crit: { title: "A critical hit", text: "Your next move does half again as much.", short: "Your next move does 1.5×" },
-  advice: { title: "Professor's advice", text: "You see which move {trainer} will use next.", short: "See {trainer}'s next move" },
+  advice: { title: "Professor's advice", text: "The professor suggests a play for this turn.", short: "A play for this turn" },
   potion: { title: "A Potion drops", text: "Your card on the field heals 30.", short: "Your card heals 30" },
   revive: { title: "A Revive", text: "Your knocked-out card with the most HP comes back with half its HP, waiting, with no Energy.", short: "Your best knocked-out card comes back at half HP" },
 };
@@ -54,3 +54,39 @@ export function eventCopy(kind: DuelEventKind, trainer: Pick<DuelTrainer, "name"
 
 /** What a signature does, in the trainer's name (for the trainer's card on the page). */
 export const signatureText = (trainer: Pick<DuelTrainer, "name" | "signature">) => SIGNATURE_TEXT[trainer.signature.effect].replaceAll("{trainer}", trainer.name);
+
+const COND_WORD: Record<DuelCondition, string> = { burned: "Burned", poisoned: "Poisoned", paralyzed: "Paralyzed", asleep: "Asleep", confused: "Confused" };
+
+/**
+ * A "+" or "×" attack's count in words (rules 5), from the side of the card that has it: "+20 for each
+ * of the trainer's waiting cards", "30 for each Energy on this card", "+50 against an ex". `mine`: one of
+ * your cards (else the trainer's, so "your" becomes theirs).
+ */
+export function plusText(p: DuelPlus, mine = true): string {
+  const opp = mine ? "the trainer's" : "your";
+  const own = mine ? "your" : "their";
+  const t = p.t ? `${p.t} ` : "";
+  const conds = p.conds?.map((c) => COND_WORD[c]).join(" or ");
+  const what: Record<DuelPlusKind, string> = {
+    foeBench: `for each of ${opp} waiting cards`,
+    foeLeft: `for each of ${opp} cards still standing`,
+    youBench: `for each of ${own} waiting cards`,
+    bothBench: "for each waiting card on both sides",
+    bothLeft: "for each card still standing on both sides",
+    selfEnergy: `for each ${t}Energy on this card`,
+    foeEnergy: `for each ${t}Energy on the card it hits`,
+    selfDamage: p.flat ? "if this card has any damage" : "for each 10 damage on this card",
+    foeDamage: p.flat ? "if the card it hits has any damage" : "for each 10 damage on the card it hits",
+    spareEnergy: `for each ${t}Energy on this card beyond its cost`,
+    youLeft: `for each of ${own} cards still standing`,
+    foeType: `against a ${t}card`,
+    arrived: "if this card came in this turn",
+    foeEx: "against an ex",
+    foeCond: p.flat ? `if the card it hits is ${conds ?? "under a condition"}` : "for each condition on the card it hits",
+    selfCond: p.flat ? `if this card is ${conds ?? "under a condition"}` : "for each condition on this card",
+    youLost: `for each of ${own} cards knocked out`,
+    foeLost: `for each of ${opp} cards knocked out`,
+  };
+  const cap = p.max != null ? ` (up to ${p.op === "x" ? "" : "+"}${p.max})` : "";
+  return `${p.op === "x" ? "" : "+"}${p.per} ${what[p.kind]}${cap}`;
+}

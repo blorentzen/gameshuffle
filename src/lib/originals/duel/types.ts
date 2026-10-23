@@ -21,9 +21,12 @@ export type DuelCondition = "burned" | "poisoned" | "paralyzed" | "asleep" | "co
  * 2026-10-22). The engine plays 2 and 3 alike; 3 is a build rule. 4 (Britton's picks 2026-10-22,
  * https://claude.ai/artifact/41n2aCkBTkpmcG5DYt4zoz): you bring as many of your six as the trainer
  * brings (at least 3), picked after Battle now, and a trainer with fewer than six cards starts each
- * card with an Energy for every card it's short (up to 3).
+ * card with an Energy for every card it's short (up to 3). 5 (Britton's picks 2026-10-22,
+ * https://claude.ai/artifact/MFwJQi5RBdq92B1JKS2EWZ): a hand of three Energy to pick from, a card
+ * coming in after a knockout brings an Energy for each card you've lost (up to 2), "+" and "×"
+ * attacks count, and days are built to weekday win targets with at least two of the professor's plans.
  */
-export type DuelRules = 1 | 2 | 3 | 4;
+export type DuelRules = 1 | 2 | 3 | 4 | 5;
 
 /** A condition a move puts on the card it hits: `coin` when the card flips a coin for it (a smaller chance). */
 export interface DuelMoveFx {
@@ -31,13 +34,41 @@ export interface DuelMoveFx {
   coin?: true;
 }
 
-/** A move as the duel plays it: the printed name, the printed Energy cost, the printed damage as a number ("130+" and "50×" count as 130 and 50). */
+/**
+ * What a "+" or "×" attack counts (rules 5, picks 2026-10-22: Miltank's Rout should count the
+ * trainer's waiting cards). Read from the card's text by cardRules.ts plusOf; "foe" is the side
+ * across the field from the card using the move, "you"/"self" its own side.
+ */
+export type DuelPlusKind =
+  | "foeBench" | "foeLeft" | "youBench" | "bothBench" | "bothLeft"
+  | "selfEnergy" | "foeEnergy" | "selfDamage" | "foeDamage"
+  | "spareEnergy" | "youLeft" | "foeType" | "arrived"
+  | "foeEx" | "foeCond" | "selfCond" | "youLost" | "foeLost";
+
+export interface DuelPlus {
+  /** "+": the printed number plus `per` for each one; "x": `per` for each one. */
+  op: "+" | "x";
+  kind: DuelPlusKind;
+  per: number;
+  /** Counts once (`per` more when it's true): an ex, a condition, any damage at all. */
+  flat?: true;
+  /** Only Energy of this type counts. */
+  t?: EnergyType;
+  /** selfCond, foeCond: only these conditions count (Facade: Burned or Poisoned). */
+  conds?: DuelCondition[];
+  /** The most it adds ("You can't add more than 20 damage"). */
+  max?: number;
+}
+
+/** A move as the duel plays it: the printed name, the printed Energy cost, the printed damage as a number ("130+" and "50×" count as 130 and 50 until rules 5). */
 export interface DuelMove {
   n: string;
   cost: EnergyType[];
   d: number;
   /** The conditions it puts on the card it hits (cardRules.ts conditionsOf). Played only on days built with the condition rules. */
   fx?: DuelMoveFx[];
+  /** A "+" or "×" attack's count (cardRules.ts plusOf). Played from rules 5. */
+  plus?: DuelPlus;
 }
 
 /** A card as the duel plays it, taken from our Scrydex catalog (`tcg_cards`). Only the numbers count. */
@@ -110,6 +141,8 @@ export type DuelAct = { move: number } | { swap: number } | { wait: true };
 export interface DuelAction {
   attach: number;
   act: DuelAct;
+  /** Rules 5: which Energy in your hand goes on (an index; 0 when absent). */
+  use?: number;
 }
 
 /** One step of a duel: the cards you bring (rules 4, first), a card to send out (the lead, or after a knockout), or a turn. */

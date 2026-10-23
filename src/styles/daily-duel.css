@@ -147,6 +147,33 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
   .duel-start__intro { margin-top: 0; }
   .duel-start__title { font-size: var(--font-size-32, 3.2rem); }
 }
+/* The trainer's team as rows (start card): a thin line between rows, no boxes inside the card. */
+.duel-team { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); column-gap: var(--spacing-20, 20px); }
+.duel-team__row { display: grid; grid-template-columns: 5.6rem minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, 0.14); }
+.duel-team .duel-thumb--sm { width: 5.6rem; }
+.duel-team__info { min-width: 0; display: grid; gap: 4px; }
+.duel-team__head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0; color: #fff; font-size: var(--font-size-16); line-height: 1.25; }
+.duel-team__head b { font-weight: 800; }
+.duel-team__lead { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.duel-team__meta { margin: 0; color: #c9cff0; font-size: var(--font-size-14); }
+.duel-team__moves { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 4px; }
+.duel-team__moves li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; color: #e6e9f8; font-size: var(--font-size-14); }
+.duel-team__move { flex: 1 1 auto; min-width: 0; }
+.duel-team__moves strong { color: #fff; font-weight: 800; font-variant-numeric: tabular-nums; }
+.duel-team__plus { flex-basis: 100%; color: #c9cff0; font-size: var(--font-size-14); }
+/* The professor's plans: a flush CDS Accordion on the navy card, every plan closed until opened. */
+.duel-plans { display: grid; gap: 6px; }
+.duel-plans__sub { margin: 0; color: #c9cff0; font-size: var(--font-size-14); line-height: 1.45; }
+.duel-plans__list.empac-accordion--flush .empac-accordion__item { border-bottom-color: rgba(255, 255, 255, 0.14); }
+.duel-plans__list.empac-accordion--flush .empac-accordion__item:first-child { border-top: 1px solid rgba(255, 255, 255, 0.14); }
+.duel-plans__list .empac-accordion__trigger { min-height: 44px; padding: 10px 0; background: none; color: #fff; }
+.duel-plans__list.empac-accordion--flush .empac-accordion__trigger:hover { color: #ffe08a; background: none; }
+.duel-plans__list .empac-accordion__trigger:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+.duel-plans__list .empac-accordion__trigger-title { color: inherit; font-size: var(--font-size-16); font-weight: 700; }
+.duel-plans__list .empac-accordion__icon { color: #f5c84c; }
+.duel-plans__list .empac-accordion__content--open { height: auto !important; }
+.duel-plans__list .empac-accordion__content-inner { padding: 0 0 12px; }
+.duel-plans__text { margin: 0; color: #eef0ff; font-size: var(--font-size-16); line-height: 1.5; }
 .duel-start__sig { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(245, 200, 76, 0.12); border: 1px solid rgba(245, 200, 76, 0.45); color: #eef0ff; font-size: var(--font-size-14); line-height: 1.5; }
 .duel-start__sig b { color: #ffe08a; }
 @media (max-width: 30rem) { .duel-start__cards { gap: 5px; } }
@@ -241,8 +268,6 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-foe-moves__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .duel-foe-moves strong { color: #fff; font-family: var(--font-display, inherit); font-size: 1.5rem; font-variant-numeric: tabular-nums; }
 .duel-foe-moves strong.duel-up { color: #ff9a8c; }
-.duel-foe-moves em { font-style: normal; padding: 2px 7px; border-radius: 999px; background: #0f766e; color: #fff; font-size: var(--font-size-12); font-weight: 700; }
-.duel-foe-moves__next .duel-foe-moves__name { color: #fff; font-weight: 700; }
 
 .duel-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0; }
 .duel-field .duel-chips { justify-content: flex-start; }
@@ -251,15 +276,46 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-chip--good { background: rgba(47, 191, 113, 0.25); }
 .duel-chip--bad { background: rgba(210, 59, 45, 0.3); }
 
-/* The middle: the scoreline, this turn's event, what's in play, the "Next turn" chip, the Energy row. */
+/* The middle: the scoreline, the event strip (phones), what's in play, the Energy row. */
 .duel-mid { position: relative; z-index: 2; flex: 1; display: grid; align-content: center; gap: 8px; min-height: 9.6rem; padding: 8px 14px; }
-.duel-event { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: rgba(12, 14, 40, 0.88); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14), 0 10px 30px rgba(0, 0, 0, 0.5); animation: duel-flip 0.6s ease both; }
-.duel-event__tile { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; color: #fff; }
+/*
+ * The event strip (picks 2026-10-22): This turn and Next turn, in the same place at the same height
+ * every turn, so nothing below it moves. Drawn twice: in the middle on phones (--mid), across both
+ * columns above the cards from 900px (--wide); CSS shows one.
+ */
+.duel-evs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.duel-evs--wide { display: none; }
+.duel-evs__half { display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); grid-template-rows: auto 1fr; align-items: center; gap: 4px 8px; min-height: 8.6rem; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); text-align: start; }
+.duel-evs__half.is-on { background: rgba(12, 14, 40, 0.9); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 8px 22px rgba(0, 0, 0, 0.4); animation: duel-flip 0.6s ease both; }
+.duel-evs__half--next.is-on { background: linear-gradient(180deg, rgba(245, 200, 76, 0.2), rgba(245, 200, 76, 0.08)); box-shadow: inset 0 0 0 1.5px rgba(245, 200, 76, 0.85), 0 0 18px rgba(245, 200, 76, 0.25); animation: duel-glow 1.2s ease 1; }
+.duel-evs__k { grid-column: 1 / -1; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #b3b9dc; }
+.duel-evs__half--next.is-on .duel-evs__k { color: #ffe08a; }
+.duel-evs__tile { display: grid; place-items: center; border-radius: 10px; color: #fff; }
+.duel-evs__tile--sm { width: 3.6rem; height: 3.6rem; }
+.duel-evs__tile--lg { width: 6.4rem; height: 6.4rem; border-radius: 16px; }
+.duel-evs__tile--next { background: rgba(245, 200, 76, 0.18); color: #ffe08a; box-shadow: inset 0 0 0 1.5px rgba(245, 200, 76, 0.7); }
+.duel-evs__tile--quiet { background: rgba(255, 255, 255, 0.06); color: #9097bd; }
 /* The trainer's own event: their picture as the tile. */
-.duel-event__face { width: 40px; height: 40px; border-radius: 11px; box-shadow: 0 0 0 2px var(--duel-gold, #f5c84c); }
-.duel-event__body { display: grid; gap: 2px; min-width: 0; }
-.duel-event__body b { font-family: var(--font-display, inherit); font-size: 1.5rem; font-weight: 800; line-height: 1.2; }
-.duel-event__body span { color: var(--i2); font-size: var(--font-size-14); line-height: 1.35; }
+.duel-evs__face { box-shadow: 0 0 0 2px var(--duel-gold, #f5c84c); }
+.duel-evs__text { display: grid; gap: 2px; min-width: 0; }
+.duel-evs__text b { font-family: var(--font-display, inherit); font-size: 1.5rem; font-weight: 800; line-height: 1.2; color: #fff; }
+.duel-evs__text span { color: var(--i2); font-size: var(--font-size-14); line-height: 1.35; }
+.duel-evs__half:not(.is-on) .duel-evs__text b { color: #9097bd; font-weight: 600; }
+.duel-evs__tip { grid-column: 1 / -1; margin: 0; padding: 8px 12px; border-radius: 12px; background: rgba(15, 118, 110, 0.28); box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.55); color: #fff; font-size: 1.5rem; line-height: 1.4; text-align: start; animation: duel-flip 0.6s ease both; }
+.duel-evs__tip .duel-tip { margin: 0 8px 0 0; }
+
+/* The moment an event lands: the middle of the screen for about a second and a half (a tap ends it). */
+.duel-moment { position: fixed; inset: 0; z-index: 1060; display: grid; place-items: center; padding: 16px; background: rgba(6, 8, 24, 0.5); animation: duel-moment 1.5s ease both; }
+.duel-moment__card { display: grid; justify-items: center; gap: 10px; width: min(100%, 34rem); padding: 22px 20px; border-radius: 18px; background: radial-gradient(120% 100% at 50% 0%, rgba(245, 200, 76, 0.3), transparent 60%), #121638; box-shadow: 0 0 0 2px var(--duel-gold, #f5c84c), 0 24px 60px rgba(0, 0, 0, 0.6); color: #fff; text-align: center; animation: duel-flip 0.5s ease both; }
+.duel-moment__card small { font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #ffe08a; }
+.duel-moment__card b { font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-weight: 800; line-height: 1.15; }
+.duel-moment__card span { color: #c9cff0; font-size: var(--font-size-16); line-height: 1.4; }
+@keyframes duel-moment { 0% { opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
+
+/* The professor's pick: a gold Tip on the move, Wait or Swap, a gold ring on the card. */
+.duel-tip { margin-left: 8px; padding: 2px 7px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.04em; vertical-align: 1px; }
+.duel-move--tip.empac-button:not(:disabled) { border-color: rgba(245, 200, 76, 0.9); box-shadow: 0 0 0 1px rgba(245, 200, 76, 0.6), 0 0 16px rgba(245, 200, 76, 0.25); }
+.duel-thumb--tip { outline: 2px solid #f5c84c; outline-offset: 2px; }
 @keyframes duel-flip { from { transform: perspective(600px) rotateY(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* The scoreline: a row per move, a skipped move, a swap, the sandstorm; the turn log button on the right. */
@@ -277,13 +333,6 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-score__log.empac-icon-button:focus-visible { outline: 3px solid var(--duel-focus); outline-offset: 2px; }
 @keyframes duel-row-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-/* Next turn's event, in one line. */
-.duel-forecast { justify-self: center; display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin: 0; padding: 6px 12px; border-radius: 14px; border: 1px solid rgba(245, 200, 76, 0.6); background: rgba(245, 200, 76, 0.12); color: #fff; font-size: var(--font-size-14); line-height: 1.35; text-align: start; }
-.duel-forecast svg { flex: none; color: #ffe08a; }
-.duel-forecast__face { flex: none; width: 2.4rem; height: 2.4rem; box-shadow: 0 0 0 1.5px var(--duel-gold, #f5c84c); }
-.duel-forecast b { color: #ffe08a; font-weight: 700; }
-.duel-forecast:not(.duel-forecast--later) { animation: duel-glow 1.2s ease 1; }
-.duel-forecast--later { visibility: hidden; }
 @keyframes duel-glow { 0%, 100% { box-shadow: none; } 35% { box-shadow: 0 0 0 3px rgba(245, 200, 76, 0.35), 0 0 18px rgba(245, 200, 76, 0.5); } }
 
 /* The Energy row: today's Energy (and the card it's on), then the next three as rings. */
@@ -295,6 +344,17 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-row__dots .duel-e { width: 2rem; height: 2rem; }
 .duel-row__dots .duel-e svg { width: 60%; height: 60%; }
 .duel-row__back.empac-button--ghost { height: auto; min-height: 3.2rem; padding: 4px 10px; color: #ffe08a; font-weight: 600; }
+/* Rules 5: the Energy hand (CDS Chips on the arena's dark world; pressed = the one that goes on). */
+.duel-hand { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.duel-arena .duel-hand .duel-hand__e.empac-chip { min-height: 3.6rem; padding: 4px 12px 4px 6px; gap: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.24); color: #fff; font-size: var(--font-size-14); font-weight: 700; }
+.duel-arena .duel-hand .duel-hand__e.empac-chip:hover:not(.empac-chip--disabled) { background: rgba(255, 255, 255, 0.14); }
+.duel-arena .duel-hand .duel-hand__e.empac-chip.empac-chip--selected { background: rgba(245, 200, 76, 0.18); border-color: #f5c84c; box-shadow: inset 0 0 0 1px #f5c84c; color: #fff; }
+.duel-arena .duel-hand .duel-hand__e.empac-chip.empac-chip--disabled { opacity: 0.55; }
+.duel-arena .duel-hand .duel-hand__e.empac-chip .empac-chip__icon { display: inline-flex; }
+.duel-arena .duel-hand .duel-hand__e.empac-chip .empac-chip__label { color: inherit; }
+.duel-arena .duel-hand .duel-hand__e.empac-chip:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+.duel-arena .duel-hand .duel-hand__e--tip.empac-chip:not(.empac-chip--selected) { border-color: rgba(245, 200, 76, 0.9); box-shadow: 0 0 12px rgba(245, 200, 76, 0.35); }
+.duel-row__nextlabel { margin-right: 6px; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 
 /* Moves, Wait and Swap: CascadeDS Buttons drawn as tiles. Attacks on top (one alone spans the
    row), Wait and Swap side by side under them, a little shorter. */
@@ -350,6 +410,11 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-pick__energy { display: inline-flex; gap: 3px; }
 .duel-pick__across { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; }
 .duel-pick__across b { color: #fff; }
+/* The trainer's team beside the bring picker (press a card to see its moves). */
+.duel-pick__foes { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.duel-pick__foe { display: grid; justify-items: center; gap: 4px; }
+.duel-pick__foefacts { display: grid; justify-items: center; gap: 3px; color: #c9cff0; font-size: var(--font-size-12); font-weight: 600; }
+.duel-pick__foefacts > span:last-child { display: inline-flex; align-items: center; gap: 4px; }
 .duel-pick__zoom { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 3.2rem; height: 3.2rem; padding: 0; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.65); color: #fff; cursor: zoom-in; }
 .duel-pick__zoom:focus-visible { outline: 3px solid var(--duel-focus); outline-offset: 2px; }
 
@@ -366,8 +431,7 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
   .duel-bench--foe .duel-thumb--sm { width: 3.6rem; }
   .duel-bench--you .duel-thumb--sm { width: 4.4rem; }
   .duel-mid { padding: 4px 10px; gap: 6px; min-height: 0; }
-  .duel-event { grid-template-columns: 34px minmax(0, 1fr); padding: 6px 8px; }
-  .duel-event__tile, .duel-event__face { width: 34px; height: 34px; border-radius: 10px; }
+  .duel-evs__half { padding: 6px 8px; min-height: 8rem; }
   .duel-bar__face { width: 3.6rem; height: 3.6rem; }
   .duel-moves { padding: 4px 10px; gap: 6px; }
   .duel-move.empac-button { min-height: 5.2rem; padding: 8px 10px; }
@@ -385,8 +449,8 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
   .duel-arena__body {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "tbar ybar" "tbench ybench" "tfield yfield" "mid moves";
-    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas: "tbar ybar" "tbench ybench" "ev ev" "tfield yfield" "mid moves";
+    grid-template-rows: auto auto auto auto 1fr;
     gap: 6px 0;
     padding-bottom: 12px;
   }
@@ -397,6 +461,8 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
   .duel-field--foe { grid-area: tfield; }
   .duel-field--you { grid-area: yfield; }
   .duel-mid { grid-area: mid; align-content: start; }
+  .duel-evs--mid { display: none; }
+  .duel-evs--wide { display: grid; grid-area: ev; width: 100%; max-width: 76rem; justify-self: center; padding: 0 18px; box-sizing: border-box; }
   .duel-moves { grid-area: moves; align-content: start; }
   .duel-field { align-items: start; padding: 6px 18px; }
 
@@ -474,6 +540,7 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-face__move { font-size: var(--font-size-16); font-weight: 700; line-height: 1.25; }
 .duel-face__moves strong { font-family: var(--font-display, inherit); font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 .duel-face__fx { grid-column: 2 / -1; color: #ffe08a; }
+.duel-face__plus { grid-column: 2 / -1; color: #c9cff0; font-size: var(--font-size-14); line-height: 1.35; }
 .duel-face__weak { display: flex; align-items: center; gap: 8px; margin: 0; color: #c9cff0; font-size: var(--font-size-14); }
 .duel-zoom__key { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; width: 100%; max-width: 34rem; font-size: var(--font-size-14); line-height: 1.4; color: var(--text-primary); }
 .duel-zoom__key li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start; }
@@ -486,8 +553,8 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-turnlog__event { margin-top: 4px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .duel-holo--summon, .duel-holo--hit, .duel-holo--ko, .duel-event, .duel-overlay--over,
-  .duel-holo__tag, .duel-holo__pop, .duel-score__row, .duel-forecast:not(.duel-forecast--later) { animation: none; }
+  .duel-holo--summon, .duel-holo--hit, .duel-holo--ko, .duel-evs__half, .duel-evs__tip, .duel-overlay--over, .duel-moment, .duel-moment__card,
+  .duel-holo__tag, .duel-holo__pop, .duel-score__row { animation: none; }
   .duel-holo::after { animation: none; }
   .duel-field__hp i { transition: none; }
   .duel-thumb--selected { transform: none; }

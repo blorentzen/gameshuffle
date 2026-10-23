@@ -89,8 +89,8 @@ export function framesBetween(prev: DuelPlayView | null, next: DuelPlayView, non
     you: copyCards(prev.you),
     foe: copyCards(prev.foe),
     attachTo: [], swaps: [], canMove: false, needsNext: false, nexts: [],
-    energy: { now: null, next: prev.energy.next },
-    event: null, advice: null, over: null,
+    energy: { now: null, next: prev.energy.next, hand: prev.energy.hand },
+    event: null, hint: null, over: null,
     forecast: next.forecast,
     log,
   };

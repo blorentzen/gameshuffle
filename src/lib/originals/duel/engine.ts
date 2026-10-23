@@ -29,7 +29,7 @@
  * (your chances never land) so par never counts on luck.
  */
 
-import { eventCopy } from "./copy";
+import { eventCopy, plusText } from "./copy";
 import type { DuelAction, DuelCard, DuelCondition, DuelEventAt, DuelEventKind, DuelMove, DuelMoveFx, DuelRules, DuelSignature, DuelStep, DuelTrainer, EnergyType } from "./types";
 import type { DuelCardView, DuelEventView, DuelPlayView } from "./view";
 
@@ -90,6 +90,14 @@ export interface DuelSetup {
   foeHead?: number;
   /** Rules 4: how many of your six you bring (picked first, a `bring` step). Absent: all six play. */
   bring?: number;
+  /**
+   * Rules 5 (picks 2026-10-22, https://claude.ai/artifact/MFwJQi5RBdq92B1JKS2EWZ): you hold `hand`
+   * Energy from the day's row and pick which one goes on each turn (the action's `use`), then draw the
+   * next; after one of your cards is knocked out, the card you send in comes in with an Energy for each
+   * card you've lost, up to `comeback`.
+   */
+  hand?: number;
+  comeback?: number;
 }
 
 export interface DuelSlot {
@@ -122,8 +130,12 @@ export interface DuelFx {
   /** The waiting card Team Rocket has (-1 for none) and the turns left. */
   rocket: number;
   rocketLeft: number;
-  /** Professor's advice this turn: the view shows the trainer's next move. */
+  /** Professor's advice this turn: the view carries a play for the turn (solver.ts adviceFor). */
   advice: boolean;
+  /** Rules 5: the Energy your card on the field came in with after a knockout, this turn only (for the screen). */
+  fresh?: number;
+  /** Rules 5: your card sent out at the start of this turn (the lead, or after a knockout), for "moved to the Active Spot this turn" attacks. */
+  arrived?: number;
 }
 
 export type DuelLogKind = "move" | "ko" | "out" | "swap" | "wait" | "event" | "skip" | "sand" | "heal" | "revive" | "energy" | "cond" | "tick" | "wake" | "self";
@@ -171,6 +183,9 @@ export interface DuelState {
   log: DuelLogLine[];
   /** Rules 4: the cards you brought (your card indexes), once picked; absent while all six play. */
   brought?: number[];
+  /** Rules 5: the Energy in your hand, and how many of the row have been drawn. */
+  hand?: EnergyType[];
+  drawn?: number;
 }
 
 const r10 = (x: number) => Math.round(x / 10) * 10;
@@ -184,7 +199,10 @@ export function startState(setup: DuelSetup): DuelState {
   const slot = (c: DuelCard): DuelSlot => ({ cur: c.hp, energy: [], out: false });
   const foe = setup.foe.map(slot);
   if (setup.foeHead) foe.forEach((f, i) => { for (let k = 0; k < setup.foeHead!; k++) f.energy.push(foeEnergy(setup.foe[i], f.energy)); });
-  return { turn: 0, you: setup.you.map(slot), foe, yi: -1, fi: 0, pending: null, fx: { ...NO_FX }, event: null, over: null, log: [] };
+  const you = setup.you.map(slot);
+  const st: DuelState = { turn: 0, you, foe, yi: -1, fi: 0, pending: null, fx: { ...NO_FX }, event: null, over: null, log: [] };
+  if (setup.hand) { st.hand = setup.row.slice(0, setup.hand); st.drawn = setup.hand; }
+  return st;
 }
 
 const copySlot = (c: DuelSlot): DuelSlot => {
@@ -226,6 +244,7 @@ const CONDITION_WORD: Record<DuelCondition, string> = { burned: "Burned", poison
 export function cloneState(s: DuelState): DuelState {
   const out: DuelState = { turn: s.turn, you: s.you.map(copySlot), foe: s.foe.map(copySlot), yi: s.yi, fi: s.fi, pending: s.pending, fx: { ...s.fx }, event: s.event, over: s.over, log: [] };
   if (s.brought) out.brought = s.brought.slice();
+  if (s.hand) { out.hand = s.hand.slice(); out.drawn = s.drawn; }
   return out;
 }
 
@@ -265,9 +284,55 @@ export function pays(energy: readonly EnergyType[], cost: readonly EnergyType[])
   return energy.length - used >= colorless;
 }
 
-/** The damage a move does right now: weather, the trainer's boost, your critical hit or confusion, then Weakness (×2). */
-export function damageOf(s: DuelState, att: DuelCard, def: DuelCard, m: DuelMove, mine: boolean): number {
-  let d = m.d;
+/**
+ * A "+" or "×" attack's damage before anything else (rules 5): the printed number plus `per` for
+ * each one counted, or `per` times the count. `att`/`def` slots default to the cards on the field.
+ */
+export function printedDamage(s: DuelState, att: DuelCard, def: DuelCard, m: DuelMove, mine: boolean, slots?: { att?: DuelSlot; def?: DuelSlot }): number {
+  const p = m.plus;
+  if (!p) return m.d;
+  const own = mine ? s.you : s.foe;
+  const other = mine ? s.foe : s.you;
+  const ownAt = mine ? s.yi : s.fi;
+  const otherAt = mine ? s.fi : s.yi;
+  const a = slots?.att ?? own[ownAt];
+  const b = slots?.def ?? other[otherAt];
+  const standing = (side: DuelSlot[], isYou: boolean) => side.filter((c, i) => !c.out && (!isYou || inDuel(s, i))).length;
+  const waiting = (side: DuelSlot[], at: number, isYou: boolean) => side.filter((c, i) => i !== at && !c.out && (!isYou || inDuel(s, i))).length;
+  const lost = (side: DuelSlot[], isYou: boolean) => side.filter((c, i) => c.out && (!isYou || inDuel(s, i))).length;
+  const typed = (e: readonly EnergyType[] | undefined) => (e ?? []).filter((t) => !p.t || t === p.t).length;
+  const counters = (card: DuelCard, slot: DuelSlot | undefined) => (slot ? Math.max(0, Math.round((card.hp - slot.cur) / 10)) : 0);
+  const hasCond = (slot: DuelSlot | undefined) => !!slot && (p.conds ? p.conds.some((c) => slot.cond?.k === c || (c === "confused" && !!slot.conf)) : !!slot.cond || !!slot.conf);
+  const condCount = (slot: DuelSlot | undefined) => (slot ? (slot.cond ? 1 : 0) + (slot.conf ? 1 : 0) : 0);
+  let n = 0;
+  switch (p.kind) {
+    case "foeBench": n = waiting(other, otherAt, !mine); break;
+    case "foeLeft": n = standing(other, !mine); break;
+    case "youBench": n = waiting(own, ownAt, mine); break;
+    case "bothBench": n = waiting(own, ownAt, mine) + waiting(other, otherAt, !mine); break;
+    case "bothLeft": n = standing(own, mine) + standing(other, !mine); break;
+    case "selfEnergy": n = typed(a?.energy); break;
+    case "foeEnergy": n = typed(b?.energy); break;
+    case "selfDamage": n = counters(att, a); break;
+    case "foeDamage": n = counters(def, b); break;
+    case "spareEnergy": n = Math.max(0, typed(a?.energy) - m.cost.length); break;
+    case "youLeft": n = standing(own, mine); break;
+    case "foeType": n = def.t === p.t ? 1 : 0; break;
+    case "arrived": n = mine && s.fx.arrived === s.yi ? 1 : 0; break;
+    case "foeEx": n = def.ex ? 1 : 0; break;
+    case "foeCond": n = p.flat ? (hasCond(b) ? 1 : 0) : condCount(b); break;
+    case "selfCond": n = p.flat ? (hasCond(a) ? 1 : 0) : condCount(a); break;
+    case "youLost": n = lost(own, mine); break;
+    case "foeLost": n = lost(other, !mine); break;
+  }
+  if (p.flat) n = n > 0 ? 1 : 0;
+  const add = Math.min(p.max ?? Infinity, p.per * n);
+  return p.op === "x" ? add : m.d + add;
+}
+
+/** The damage a move does right now: its printed damage (a "+" or "×" attack's count), weather, the trainer's boost, your critical hit or confusion, then Weakness (×2). */
+export function damageOf(s: DuelState, att: DuelCard, def: DuelCard, m: DuelMove, mine: boolean, slots?: { att?: DuelSlot; def?: DuelSlot }): number {
+  let d = printedDamage(s, att, def, m, mine, slots);
   if (d > 0) {
     const w = s.fx.weather;
     if (w === "rain") { if (att.t === "Water") d += 30; else if (att.t === "Fire") d -= 30; }
@@ -461,6 +526,10 @@ function applyEvent(setup: DuelSetup, s: DuelState, ev: DuelEventKind, L: Log) {
 function beginTurn(setup: DuelSetup, s: DuelState, L: Log) {
   s.turn += 1;
   s.pending = setup.row.length ? setup.row[(s.turn - 1) % setup.row.length] : null;
+  // Rules 5: the hand's first Energy stands in until the turn picks one (the action's `use`).
+  if (setup.hand) s.pending = s.hand?.[0] ?? null;
+  if (s.fx.fresh) s.fx.fresh = 0;
+  if (s.fx.arrived != null) delete s.fx.arrived;
   s.fx.aceYou = false;
   s.fx.advice = false;
   if (s.fx.rocketLeft > 0) {
@@ -707,22 +776,25 @@ export function swapTargets(s: DuelState): number[] {
 export const atTurn = (s: DuelState) => !s.over && s.turn > 0 && s.yi >= 0 && !s.you[s.yi].out && s.pending !== null;
 
 /** Can your card on the field use move `mi` this turn, with the Energy going on `attach`? */
-export function canUse(setup: DuelSetup, s: DuelState, attach: number, mi: number): boolean {
+export function canUse(setup: DuelSetup, s: DuelState, attach: number, mi: number, use = 0): boolean {
   if (s.fx.aceYou) return false;
   if (s.you[s.yi]?.cond?.k === "asleep") return false;
   const card = setup.you[s.yi];
   const m = card.moves[mi];
   if (!m) return false;
   const e = s.you[s.yi].energy;
-  return pays(attach === s.yi && s.pending ? [...e, s.pending] : e, m.cost);
+  const put = setup.hand ? s.hand?.[use] ?? null : s.pending;
+  return pays(attach === s.yi && put ? [...e, put] : e, m.cost);
 }
 
 /** Is this a legal action right now? */
 export function isLegal(setup: DuelSetup, s: DuelState, a: DuelAction): boolean {
   if (!atTurn(s)) return false;
   if (!Number.isInteger(a.attach) || a.attach < 0 || a.attach >= s.you.length || s.you[a.attach].out || !inDuel(s, a.attach)) return false;
+  const use = a.use ?? 0;
+  if (setup.hand && (!Number.isInteger(use) || use < 0 || use >= (s.hand?.length ?? 0))) return false;
   const act = a.act as { move?: number; swap?: number; wait?: boolean };
-  if (act.move != null) return Number.isInteger(act.move) && canUse(setup, s, a.attach, act.move);
+  if (act.move != null) return Number.isInteger(act.move) && canUse(setup, s, a.attach, act.move, use);
   if (act.swap != null) return swapTargets(s).includes(act.swap);
   return act.wait === true;
 }
@@ -733,10 +805,15 @@ export function actions(setup: DuelSetup, s: DuelState): DuelAction[] {
   if (!atTurn(s)) return out;
   const swaps = swapTargets(s);
   const card = setup.you[s.yi];
-  for (const at of attachTargets(s)) {
-    for (let mi = 0; mi < card.moves.length; mi++) if (canUse(setup, s, at, mi)) out.push({ attach: at, act: { move: mi } });
-    for (const w of swaps) out.push({ attach: at, act: { swap: w } });
-    out.push({ attach: at, act: { wait: true } });
+  // Rules 5: one choice per different type in your hand.
+  const uses = setup.hand && s.hand ? s.hand.map((t, i) => (s.hand!.indexOf(t) === i ? i : -1)).filter((i) => i >= 0) : [0];
+  for (const use of uses) {
+    const u = setup.hand ? { use } : {};
+    for (const at of attachTargets(s)) {
+      for (let mi = 0; mi < card.moves.length; mi++) if (canUse(setup, s, at, mi, use)) out.push({ attach: at, act: { move: mi }, ...u });
+      for (const w of swaps) out.push({ attach: at, act: { swap: w }, ...u });
+      out.push({ attach: at, act: { wait: true }, ...u });
+    }
   }
   return out;
 }
@@ -749,6 +826,13 @@ export function actions(setup: DuelSetup, s: DuelState): DuelAction[] {
 export function step(setup: DuelSetup, s0: DuelState, a: DuelAction, quiet = false): DuelState {
   const s = cloneState(s0);
   const L: Log = quiet ? null : s.log;
+  if (setup.hand && s.hand) {
+    const i = a.use ?? 0;
+    s.pending = s.hand[i] ?? null;
+    s.hand.splice(i, 1);
+    if (setup.row.length) s.hand.push(setup.row[(s.drawn ?? 0) % setup.row.length]);
+    s.drawn = (s.drawn ?? 0) + 1;
+  }
   if (s.pending) {
     s.you[a.attach].energy.push(s.pending);
     note(L, { kind: "energy", side: "you", card: a.attach, type: s.pending, text: `${s.pending} Energy goes on your ${setup.you[a.attach].short}.` });
@@ -807,7 +891,17 @@ export function begin(setup: DuelSetup, s0: DuelState, next: number | null, quie
     s.yi = next;
     if (!quiet) s.log.push({ kind: "out", side: "you", card: next, text: `You send out ${setup.you[next].short}.` });
   }
+  // Rules 5: a card sent in after a knockout (not the lead) comes in with an Energy for each card you've lost.
+  let fresh = 0;
+  if (next != null && setup.comeback && s0.turn > 0) {
+    fresh = Math.min(setup.comeback, s.you.filter((c, i) => c.out && inDuel(s, i)).length);
+    const slot = s.you[next];
+    for (let k = 0; k < fresh; k++) slot.energy.push(foeEnergy(setup.you[next], slot.energy));
+    if (fresh && !quiet) s.log.push({ kind: "energy", side: "you", card: next, text: `Your ${setup.you[next].short} comes in with ${fresh === 1 ? "an Energy" : `${fresh} Energy`} for coming back.` });
+  }
   beginTurn(setup, s, quiet ? null : s.log);
+  if (fresh) s.fx.fresh = fresh;
+  if (next != null && setup.hand) s.fx.arrived = next;
   return s;
 }
 
@@ -874,9 +968,12 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
         n: m.n, cost: m.cost.slice(), d: m.d,
         fx: conditionsOn(setup) && m.fx ? m.fx.map((f) => ({ c: f.c, chance: fxChance(f) })) : [],
         damage: across ? damageOf(s, c, across, m, mine) : null,
-        weak: !!across && m.d > 0 && isWeak(c, across),
+        weak: !!across && (m.d > 0 || !!m.plus) && isWeak(c, across),
         ready: pays(slot.energy, m.cost),
-        readyWithNew: mine && turnNow && !slot.out && !!s.pending && pays([...slot.energy, s.pending], m.cost),
+        readyWithNew: mine && turnNow && !slot.out && (setup.hand
+          ? (s.hand ?? []).some((h) => pays([...slot.energy, h], m.cost))
+          : !!s.pending && pays([...slot.energy, s.pending], m.cost)),
+        plus: m.plus ? plusText(m.plus, mine) : null,
       })),
       cur: slot.cur, energy: slot.energy.slice(), out: slot.out, field: field && !slot.out,
       grabbed: mine && s.fx.rocket === i ? s.fx.rocketLeft : 0,
@@ -887,12 +984,12 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
     };
   });
   // During turn N you place row[N - 1] and see row[N .. N + 2]; between turns the next to place is
-  // row[N], so the same three show (nothing new comes into view until the turn begins).
-  const next = s.over ? [] : setup.row.slice(s.turn, s.turn + 3);
-  const advice = turnNow && s.fx.advice && foeCard ? (() => {
-    const mi = foeChoice(setup, s, [...s.foe[s.fi].energy, foeEnergy(foeCard, s.foe[s.fi].energy)]);
-    return mi >= 0 ? { card: s.fi, move: mi, name: foeCard.moves[mi].n } : null;
-  })() : null;
+  // row[N], so the same three show (nothing new comes into view until the turn begins). Rules 5: the
+  // hand, then the next three it draws.
+  const drawn = s.drawn ?? 0;
+  const next = s.over ? [] : setup.hand
+    ? Array.from({ length: 3 }, (_, k) => setup.row[(drawn + k) % setup.row.length])
+    : setup.row.slice(s.turn, s.turn + 3);
   return {
     turn: s.turn,
     turnCap: TURN_CAP,
@@ -904,11 +1001,11 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
     bring: setup.bring && setup.bring < setup.you.length ? setup.bring : setup.you.length,
     needsNext: !needsBring(setup, s) && needsNext(s),
     nexts: !needsBring(setup, s) && needsNext(s) ? nexts(s) : [],
-    energy: { now: turnNow ? s.pending : null, next },
+    energy: { now: turnNow ? s.pending : null, next, hand: setup.hand ? (s.hand ?? []).slice() : null },
     attachTo: turnNow ? attachTargets(s) : [],
     swaps: turnNow ? swapTargets(s) : [],
     canMove: turnNow && !s.fx.aceYou && s.you[s.yi]?.cond?.k !== "asleep",
-    rules: conditionsOn(setup) ? 2 : 1,
+    rules: setup.rules ?? 1,
     event: turnNow ? ev(s.event, s.turn) : null,
     forecast: s.over ? null : ev(eventAt(setup, s.turn + 1), s.turn + 1),
     inPlay: {
@@ -920,8 +1017,10 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
       youStubborn: turnNow && s.fx.aceYou,
       boost: s.fx.boost,
       rocket: s.fx.rocket >= 0 ? { card: s.fx.rocket, turnsLeft: s.fx.rocketLeft } : null,
+      fresh: turnNow ? s.fx.fresh ?? 0 : 0,
     },
-    advice,
+    // Professor's advice is worked out by the server from the solver (store.ts runView, solver.ts adviceFor).
+    hint: null,
     log: s.log.map((l) => ({ ...l })),
     over: s.over,
     cardsLeft: cardsLeft(s),

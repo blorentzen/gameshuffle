@@ -5,11 +5,12 @@
  */
 
 import {
-  CONDITION_RULES, actions, applyStep, begin, canUse, cloneState, damageOf, foeEnergy, isLegal, nexts, pays, replay, roll, startState, step, swapTargets, viewOf,
+  CONDITION_RULES, actions, applyStep, begin, canUse, cloneState, damageOf, foeEnergy, isLegal, nexts, pays, printedDamage, replay, roll, startState, step, swapTargets, viewOf,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "../src/lib/originals/duel/engine";
-import { FAIR_LEADS, buildDay, candidates, drawPack, fairLeads, makeSetup, obviousPlay, packCap, solve, solverSetup } from "../src/lib/originals/duel/solver";
-import { conditionsOf, toDuelCard } from "../src/data/originals/duel/cardRules";
+import { COMEBACK_MAX, FAIR_LEADS, HAND_SIZE, MIN_PLANS, WIN_BAND, adviceFor, buildDay, candidates, dayPlans, drawPack, fairLeads, hintText, makeSetup, obviousPlay, packCap, slipWinRate, solve, solverSetup } from "../src/lib/originals/duel/solver";
+import { conditionsOf, plusOf, toDuelCard } from "../src/data/originals/duel/cardRules";
+import { plusText } from "../src/lib/originals/duel/copy";
 import {
   DUEL_EPOCH, DUEL_WARMUP, PAR_BAND, PERSON_GAP_DAYS, TIER_FALLBACK, TIER_LABEL, duelNumber, duelPoints, duelRand, duelShareText, duelSquares, duelTime, energyRow, eventCopy, eventPlan,
   peopleNear, peopleOf, personKey, personOf, shuffleWith, speciesOf, tierFor, trainerFor,
@@ -21,9 +22,9 @@ import { artCrop, trainerPicture } from "../src/lib/originals/duel/pictures";
 
 let pass = 0;
 let fail = 0;
-function check(ok: unknown, what: string) {
+function check(ok: unknown, what: string, detail?: unknown) {
   if (ok) pass++;
-  else { fail++; console.error("FAIL:", what); }
+  else { fail++; console.error("FAIL:", what, detail ?? ""); }
 }
 
 // ─── tiny setups ─────────────────────────────────────────────────────────────
@@ -230,10 +231,16 @@ check(!isLegal(SET, startState(SET), { attach: 0, act: { wait: true } }), "no tu
 {
   const set = mk({ events: [at(1, "advice")] });
   const s = begin(set, startState(set), 0);
-  const v = viewOf(set, s, TRAINER);
-  check(v.advice?.name === "Flame" && v.advice.card === 0, "Professor's advice shows the trainer's next move");
+  check(viewOf(set, s, TRAINER).hint === null, "the engine leaves Professor's advice to the server");
+  const h = adviceFor(set, s);
+  check(!!h && isLegal(set, s, { attach: h.attach, act: h.act }), "Professor's advice is a legal play for this turn");
+  check(!!h && h.text.endsWith(".") && /^(Use|Swap in|Wait|Put the Energy on) /.test(h.text), "and says it in one sentence", h?.text);
+  const t = hintText(set, s, { attach: 0, act: { move: 0 } });
+  check(/^Use \S.*: \d+ to /.test(t), "a move names the move and its damage", t);
+  const t2 = hintText(set, s, { attach: 1, act: { move: 0 } });
+  check(t2.startsWith(`Put the Energy on ${set.you[1].short}, then use `), "Energy on a waiting card comes first", t2);
   const s2 = applyStep(set, s, { attach: 0, act: { wait: true } })!;
-  check(viewOf(set, s2, TRAINER).advice === null, "only on its turn");
+  check(adviceFor(set, { ...s2, over: "lost" }) === null, "no advice once the duel is over");
 }
 {
   const set = mk({ events: [at(3, "revive")] });
@@ -753,6 +760,97 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
   check(obviousPlay(four).line.length > 0 && "bring" in obviousPlay(four).line[0], "the obvious play makes a pick too");
 }
 
+// ─── rules 5: the Energy hand, the comeback charge, "+" and "×" attacks ──────
+
+{
+  const row: EnergyType[] = [W, R, G, M, F, L, X, W, R, G];
+  const H5: DuelSetup = { ...mk({ row }), hand: HAND_SIZE, comeback: COMEBACK_MAX, rules: 5 };
+  const s0 = startState(H5);
+  check(s0.hand?.join() === [W, R, G].join() && s0.drawn === 3, "rules 5: the hand starts with the row's first three");
+  const s1 = begin(H5, s0, 0);
+  check(s1.pending === W, "rules 5: the hand's first Energy stands in until a turn picks one");
+  check(!isLegal(H5, s1, { attach: 0, act: { wait: true }, use: 3 }) && !isLegal(H5, s1, { attach: 0, act: { wait: true }, use: -1 }), "rules 5: a hand index outside the hand is refused");
+  const s2 = step(H5, s1, { attach: 0, act: { wait: true }, use: 1 });
+  check(s2.you[0].energy.join() === R && s2.hand?.join() === [W, G, M].join() && s2.drawn === 4, "rules 5: playing the Fire puts it on and draws the row's next", { e: s2.you[0].energy, hand: s2.hand });
+  // One action per different type in the hand (two Waters count once).
+  const dup: DuelSetup = { ...H5, row: [W, W, R, G, M, F] };
+  const sd = begin(dup, startState(dup), 0);
+  const uses = new Set(actions(dup, sd).filter((a) => a.attach === 0 && "wait" in a.act).map((a) => a.use));
+  check(uses.size === 2, "rules 5: two Energy of one type in the hand are one choice", [...uses]);
+  // Ready with the picked Energy: Splash (Water) is ready with a Water, not with the Fire.
+  check(canUse(H5, s1, 0, 0, 0) && !canUse(H5, s1, 0, 0, 1), "rules 5: a move is ready only with the Energy that covers it");
+  const v = viewOf(H5, s1, TRAINER);
+  check(v.energy.hand?.join() === [W, R, G].join() && v.energy.next.join() === [M, F, L].join() && v.rules === 5, "rules 5: the view shows the hand and the next three it draws", v.energy);
+  check(viewOf(SET, setup1(), TRAINER).energy.hand === null, "rules 5: older days have no hand in the view");
+
+  // The comeback: a card sent in after a knockout brings an Energy per card lost, up to 2.
+  let k = cloneState(s2);
+  k.you[0].out = true; k.you[0].cur = 0; k.turn = 3;
+  const c1 = begin(H5, k, 1);
+  check(c1.you[1].energy.length === 1 && c1.fx.fresh === 1 && viewOf(H5, c1, TRAINER).inPlay.fresh === 1, "rules 5: the first card back comes in with an Energy", c1.you[1].energy);
+  check(c1.you[1].energy[0] === "Fire", "rules 5: the comeback Energy is the card's own type when it needs it", c1.you[1].energy);
+  k = cloneState(c1);
+  k.you[1].out = true; k.you[1].cur = 0; k.you[2].out = true; k.you[2].cur = 0;
+  const c2 = begin(H5, k, 3);
+  check(c2.you[3].energy.length === COMEBACK_MAX, "rules 5: the comeback stops at two Energy", c2.you[3].energy);
+  check(begin(H5, startState(H5), 0).fx.fresh === undefined || begin(H5, startState(H5), 0).fx.fresh === 0, "rules 5: the lead brings nothing");
+  check(begin(SET, k, 3).you[3].energy.length === 0, "rules 5: older days have no comeback");
+  const c3 = applyStep(H5, c1, { attach: 1, act: { wait: true }, use: 0 });
+  check(!!c3 && (c3.over != null || !c3.fx.fresh), "rules 5: the comeback chip lasts only the turn the card came in", c3?.fx);
+
+  // "+" and "×" attacks.
+  const plusCard = (n: string, d: number, plus: DuelCard["moves"][number]["plus"]): DuelCard => ({ ...card(n, X, 120, null, [[n, [X], d]]), moves: [{ n, cost: [X], d, plus }] });
+  const rout = plusCard("rout", 10, { op: "+", kind: "foeBench", per: 30 });
+  const charge = plusCard("charge", 30, { op: "x", kind: "selfEnergy", per: 30 });
+  const hunt = plusCard("hunt", 30, { op: "+", kind: "foeEx", per: 50, flat: true });
+  const swoop = plusCard("swoop", 20, { op: "+", kind: "arrived", per: 60, flat: true });
+  const capped = plusCard("capped", 20, { op: "+", kind: "selfDamage", per: 10, max: 30 });
+  const foeEx: DuelCard = { ...FOE[0], ex: true };
+  const P5: DuelSetup = { ...H5, you: [rout, charge, hunt, swoop, capped, YOU[5]], foe: [foeEx, FOE[1]] };
+  const p = begin(P5, startState(P5), 0);
+  check(printedDamage(p, rout, foeEx, rout.moves[0], true) === 40, "rules 5: Rout adds 30 for the trainer's one waiting card", printedDamage(p, rout, foeEx, rout.moves[0], true));
+  const pe = cloneState(p); pe.you[1].energy = [W, W, R];
+  check(printedDamage(pe, charge, foeEx, charge.moves[0], true, { att: pe.you[1] }) === 90, "rules 5: a × attack is 30 for each Energy on it (three Energy, 90)");
+  check(printedDamage(p, hunt, foeEx, hunt.moves[0], true) === 80 && printedDamage(p, hunt, FOE[1], hunt.moves[0], true) === 30, "rules 5: +50 against an ex, nothing more against anything else");
+  const sw = begin(P5, (() => { const x = cloneState(p); x.you[0].out = true; x.turn = 2; return x; })(), 3);
+  check(printedDamage(sw, swoop, foeEx, swoop.moves[0], true) === 80, "rules 5: +60 on the turn the card came in");
+  const sw2 = step(P5, sw, { attach: 3, act: { wait: true }, use: 0 });
+  const sw3 = begin(P5, sw2, null);
+  check(sw3.over || printedDamage(sw3, swoop, foeEx, swoop.moves[0], true) === 20, "rules 5: and not the turn after");
+  const hurt = cloneState(p); hurt.you[4].cur = 40;
+  check(printedDamage(hurt, capped, foeEx, capped.moves[0], true, { att: hurt.you[4] }) === 50, "rules 5: a capped attack stops at its cap (+30 at most)");
+  check(damageOf(p, rout, foeEx, rout.moves[0], true) === 40, "rules 5: damageOf starts from the counted damage");
+  const v5 = viewOf(P5, p, TRAINER);
+  check(v5.you[0].moves[0].plus === "+30 for each of the trainer's waiting cards" && v5.you[0].moves[0].damage === 40, "rules 5: the view says what Rout counts, and its damage counts it", v5.you[0].moves[0]);
+  check(plusText({ op: "x", kind: "selfEnergy", per: 30, t: "Fire" }) === "30 for each Fire Energy on this card", "rules 5: × words");
+  check(plusText({ op: "+", kind: "foeBench", per: 20 }, false) === "+20 for each of your waiting cards", "rules 5: a trainer's card counts your cards");
+
+  // Reading "+" and "×" off the card's text (cardRules plusOf).
+  const po = (d: string, text: string) => plusOf(d, text);
+  check(po("10+", "This attack does 30 more damage for each of your opponent's Benched Pokémon.")?.kind === "foeBench", "plusOf: more for each Benched Pokémon of the opponent");
+  check(JSON.stringify(po("30×", "This attack does 30 damage for each Energy attached to this Pokémon.")) === JSON.stringify({ op: "x", kind: "selfEnergy", per: 30 }), "plusOf: × for each Energy on it", po("30×", "This attack does 30 damage for each Energy attached to this Pokémon."));
+  check(po("60+", "Flip a coin. If heads, this attack does 60 more damage.") === undefined, "plusOf: a coin flip never counts");
+  check(po("20+", "This attack does 20 more damage for each damage counter on all of your Pokémon.")?.kind !== "selfDamage", "plusOf: \"all of your Pokémon\" isn't this card");
+  check(po("100", "This attack does 30 more damage for each of your opponent's Benched Pokémon.") === undefined, "plusOf: a plain number has no count");
+
+  // Older rules: the same cards play their printed number (makeSetup strips the count).
+  const card5 = Object.values(FIX_CARDS)[0];
+  const t5 = FIX_TRAINERS[0];
+  const s4 = makeSetup({ ...FIX_CARDS, [card5.id]: { ...card5, moves: card5.moves.map((m) => ({ ...m, plus: { op: "+" as const, kind: "foeBench" as const, per: 10 } })) } }, t5, FIX_POOL.slice(0, 6), Array(TURN_CAP).fill(W), [], { rules: 4 });
+  check(!!s4 && s4.you.concat(s4.foe).every((c) => c.moves.every((m) => !m.plus)) && !s4.hand && !s4.comeback, "rules 5: older rules strip the counts and have no hand or comeback");
+  const s5 = makeSetup(FIX_CARDS, t5, FIX_POOL.slice(0, 6), Array(TURN_CAP).fill(W), [], { rules: 5 });
+  check(!!s5 && s5.hand === HAND_SIZE && s5.comeback === COMEBACK_MAX, "rules 5: makeSetup turns on the hand and the comeback");
+
+  // The professor's tip names the Energy from the hand.
+  const tip = hintText(H5, s1, { attach: 0, act: { move: 0 }, use: 0 });
+  check(/^Play the Water Energy on aqua, then use Splash/.test(tip), "rules 5: the tip names the Energy from the hand", tip);
+  const tip2 = hintText(H5, s1, { attach: 1, act: { wait: true }, use: 1 });
+  check(/Fire Energy on ember/.test(tip2), "rules 5: and the card it goes on", tip2);
+
+  // The slipping player: deterministic.
+  check(slipWinRate(H5, "t") === slipWinRate(H5, "t"), "rules 5: the slipping player's share is the same every time");
+}
+
 // ─── the real roster (when it's there): a day builds the same twice ──────────
 
 async function real() {
@@ -781,6 +879,18 @@ async function real() {
     check(!!bossSet && sat!.tier === "boss" && boss!.tier === "boss" && replay(bossSet, sat!.line)?.over === "won" && !obviousPlay(bossSet).won,
       `the real roster: a Saturday is a boss's day (${boss?.name}, par ${sat?.par}${sat?.inBand ? "" : ", outside the band"})`);
     check(!!sat && sat.fair >= FAIR_LEADS.boss, `the real roster: the Saturday is findable (${sat?.fair} leads)`);
+    // Rules 5: a day on target with at least two plans, each carried by a different card.
+    const r5 = buildDay("2026-11-05", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000, rules: 5 });
+    const r5Tr = r5 && DUEL_DATA.trainers.find((t) => t.id === r5.trainerId);
+    const r5Set = r5 && r5Tr && makeSetup(DUEL_DATA.cards, r5Tr, r5.pack, r5.row, r5.events, { rules: 5, seed: r5.day });
+    check(!!r5Set && r5!.rules === 5 && r5!.inBand && replay(solverSetup(r5Set), r5!.line)?.over === "won", `the real roster: a rules 5 day builds on target (${r5Tr?.name}, par ${r5?.par})`);
+    const ob5 = r5Set ? obviousPlay(r5Set) : null;
+    check(!!ob5 && !(ob5.won && ob5.turns <= r5!.par), "the real roster: the rules 5 obvious play doesn't reach par", ob5);
+    check(!!r5 && r5.winRate! >= WIN_BAND[r5.tier][0] && r5.winRate! <= WIN_BAND[r5.tier][1], `the real roster: the slipping player wins about the weekday's share (${Math.round((r5?.winRate ?? 0) * 100)}%)`);
+    check(!!r5 && (r5.plans?.length ?? 0) >= MIN_PLANS && new Set(r5.plans!.map((p) => p.carry)).size === r5.plans!.length, "the real roster: at least two plans, a different card carrying each", r5?.plans);
+    check(!!r5Set && JSON.stringify(dayPlans(r5Set, { par: r5!.par, line: r5!.line, nodes: 0 })) === JSON.stringify(r5!.plans), "the real roster: the plans come out the same again");
+    const r5b = buildDay("2026-11-05", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000, rules: 5 });
+    check(!!r5b && JSON.stringify(r5b.pack) === JSON.stringify(r5!.pack) && r5b.par === r5!.par, "the real roster: a rules 5 day builds the same twice");
     // Every person in a tier has a day before anyone comes back (Mondays and Tuesdays from the anchor).
     const gymPeople = peopleOf(DUEL_DATA.trainers.filter((t) => t.tier === "gym")).length;
     const gymDays: string[] = [];
