@@ -11,7 +11,9 @@
  *
  * Timing is CSS from `go`, like the other stages: the hook, then the window,
  * then the pill at --cta-at: the window shrinks up and the pill lands under it
- * (Britton's pick, 2026-10-19: nothing covers the page). `pageWidth` renders
+ * (Britton's pick, 2026-10-19: nothing covers the page). With `endTitle` (announce
+ * videos, 2026-10-23) the window steps away instead and an end card takes the frame:
+ * the logo, the title, up to four lines and the pill, clear of the platforms' buttons. `pageWidth` renders
  * the page narrower so it shows bigger. `data-ready` = the page inside has loaded and
  * been tidied, so the recorder can prepare it before filming.
  */
@@ -25,8 +27,11 @@ const PAGE_WIDTH = 390;
 /** Hidden inside the framed page: the site's chrome. */
 const TIDY = ".gs-nav-shell, .site-footer, .cookie-banner, nextjs-portal, .policy-banner { display: none !important; } html { scroll-behavior: auto !important; }";
 
-export function ClipStage({ src, hook, cta, sub, accent, field, ctaAt, paused, pageWidth = PAGE_WIDTH }: {
+export function ClipStage({ src, hook, cta, sub, accent, field, ctaAt, paused, pageWidth = PAGE_WIDTH, endTitle = null, endLines = [] }: {
   src: string; hook: string; cta: string; sub?: string | null; accent: string; field: ArtCategory; ctaAt: number; paused: boolean; pageWidth?: number;
+  /** An end card at --cta-at in place of the docked pill. */
+  endTitle?: string | null;
+  endLines?: string[];
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -74,7 +79,7 @@ export function ClipStage({ src, hook, cta, sub, accent, field, ctaAt, paused, p
 
   return (
     <main
-      className={`social-stage clip-stage browse-hero browse-hero--${accent}${paused ? "" : " go"}`}
+      className={`social-stage clip-stage browse-hero browse-hero--${accent}${endTitle ? " clip-stage--card" : ""}${paused ? "" : " go"}`}
       style={{ "--cta-at": `${ctaAt}s` } as CSSProperties}
       data-ready={ready ? "1" : undefined}
     >
@@ -93,9 +98,17 @@ export function ClipStage({ src, hook, cta, sub, accent, field, ctaAt, paused, p
           style={{ width: pageWidth, height, transform: `scale(${scale})` }}
         />
       </div>
+      {endTitle && (
+        <div className="clip-stage__end">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="clip-stage__end-logo" src="/images/fg/logos/gameshuffle-wht.svg" alt="" />
+          <p className="clip-stage__end-title">{endTitle}</p>
+          {endLines.length > 0 && <ul className="clip-stage__end-lines">{endLines.map((l, i) => <li key={l} style={{ "--i": i } as CSSProperties}>{l}</li>)}</ul>}
+        </div>
+      )}
       <div className="clip-stage__cta">
         <span className="social-stage__pill">{cta}</span>
-        {sub && <p className="social-stage__sub">{sub}</p>}
+        {sub && !endTitle && <p className="social-stage__sub">{sub}</p>}
       </div>
     </main>
   );
