@@ -23,7 +23,7 @@
 /** A rectangle on a card image: x, y, width, height as shares of the image. */
 export type ArtBox = readonly [number, number, number, number];
 
-/** A person's own Supporter card, or `{ card: null }`: no card shows them, so the picture is their ace's card art. */
+/** A person's own Supporter card, or `{ card: null }`: no card shows them, so the picture is their official artwork (OFFICIAL_ART) or, without one, their ace's card art. */
 export type DuelTrainerCardPlan =
   | {
     /** The Scrydex id of the regular print. */
@@ -56,7 +56,8 @@ export const SUPPORTER_ART: Record<"sv" | "swsh" | "sm" | "xy" | "pl", ArtBox> =
 
 /** The era a card id belongs to, for its art window (Mega Evolution cards share Scarlet & Violet's frame; Generations and Black & White share XY's). */
 export function supporterEra(id: string): keyof typeof SUPPORTER_ART {
-  if (/^(sv|rsv|me)/.test(id)) return "sv";
+  // Pokémon TCG Pocket's Supporters share Scarlet & Violet's window (measured 2026-10-23: art from row 70 to 266, column 28 to 343).
+  if (/^(sv|rsv|me|tcgp)/.test(id)) return "sv";
   if (/^swsh/.test(id)) return "swsh";
   if (/^sm/.test(id)) return "sm";
   if (/^(xy|g1|bw)/.test(id)) return "xy";
@@ -73,12 +74,13 @@ export const ACE_FACE: readonly [number, number, number] = [0.5, 0.5, 1.15];
 const FULL_ART: ArtBox = [0.06, 0.165, 0.88, 0.345];
 
 /**
- * Each ace's art window and face, by card id (only the 32 aces of people with no card are ever
+ * Each ace's art window and face, by card id (only the aces of people with no card are ever
  * shown): the full illustration of a full art card, a shorter window where text or a set stamp
  * sits inside the usual one, and where the Pokémon's face is. Set by hand from a contact sheet.
  */
 export const ACE_ART: Record<string, { box?: ArtBox; face?: readonly [number, number, number] }> = {
   "ecard3-H22": { face: [0.72, 0.72, 1.3] }, // Pryce's Piloswine
+  "ex5-15": { box: [0.13, 0.093, 0.74, 0.355], face: [0.49, 0.55, 1.3] }, // Glacia's Walrein: an EX-era holo, whose window sits higher and taller than the usual one
   "xy5-108": { box: [0.11, 0.175, 0.78, 0.26], face: [0.5, 0.3, 1.3] }, // Clair's and Juan's Kingdra: its Ancient Trait sits at the top of the window
   "me5-89": { box: FULL_ART, face: [0.25, 0.55, 1.3] }, // Wattson's Manectric
   "sm12-69": { face: [0.4, 0.5, 1.2] }, // Wattson's Magneton
@@ -112,6 +114,44 @@ export const ACE_ART: Record<string, { box?: ArtBox; face?: readonly [number, nu
   "zsv10pt5-100": { box: FULL_ART, face: [0.38, 0.62, 1.3] }, // Alder's Volcarona
 };
 
+/**
+ * Official artwork for people with no Supporter card of their own (Britton, 2026-10-23: card art
+ * from Scrydex first, then official artwork from official Pokémon sources, self-hosted; never fan
+ * sites, never anime stills or video). The pictures come from the games' official sites (each
+ * source in scripts/data/duel-official-art.json), are copied to public/images/duel/trainers/ by
+ * scripts/pull-duel-official-art.ts, and show in place of the person's ace while OFFICIAL_ART_ON is
+ * true (turn it off to put every one of them back on their ace). `game` names the source for the
+ * credit; `face` is where the face is on the whole picture (x, y as shares of it) and the round
+ * portrait's zoom (1 fits the picture's narrower side in the circle). Set by hand from a contact sheet
+ * (scripts/.tmp/official-art-sheet.ts).
+ */
+export const OFFICIAL_ART_ON = true;
+
+const ORAS = "Pokémon Omega Ruby and Alpha Sapphire";
+const XY = "Pokémon X and Y";
+const BW = "Pokémon Black and White";
+const BDSP = "Pokémon Brilliant Diamond and Shining Pearl";
+
+export const OFFICIAL_ART: Record<string, { game: string; face: readonly [number, number, number] }> = {
+  "alder": { game: BW, face: [0.46, 0.19, 3.6] },
+  "brendan": { game: ORAS, face: [0.36, 0.15, 2.2] },
+  "brycen": { game: BW, face: [0.46, 0.13, 3.5] },
+  "burgh": { game: BW, face: [0.65, 0.11, 3] },
+  "byron": { game: BDSP, face: [0.47, 0.13, 2.4] },
+  "clair": { game: "Pokémon Masters EX", face: [0.27, 0.28, 4] },
+  "lenora": { game: BW, face: [0.51, 0.19, 3.6] },
+  "malva": { game: XY, face: [0.53, 0.14, 3.9] },
+  "marshal": { game: BW, face: [0.47, 0.09, 3.6] },
+  "maylene": { game: BDSP, face: [0.47, 0.15, 3.6] },
+  "ramos": { game: XY, face: [0.4, 0.19, 3.3] },
+  "trace": { game: "Pokémon: Let's Go, Pikachu! and Let's Go, Eevee!", face: [0.47, 0.45, 1.8] },
+  "valerie": { game: XY, face: [0.49, 0.14, 4.6] },
+  "viola": { game: XY, face: [0.52, 0.15, 3.8] },
+  "wattson": { game: ORAS, face: [0.38, 0.19, 2.6] },
+  "wikstrom": { game: XY, face: [0.46, 0.12, 3.8] },
+  "wulfric": { game: XY, face: [0.41, 0.12, 3.8] },
+};
+
 export const DUEL_TRAINER_CARDS: Record<string, DuelTrainerCardPlan> = {
   // ── Gym Leaders and kahunas ───────────────────────────────────────────────────────────────────
   "allister": { card: "swsh4-146", name: "Allister", set: "Vivid Voltage", artist: "take", face: [0.55, 0.32, 1.8] },
@@ -134,7 +174,7 @@ export const DUEL_TRAINER_CARDS: Record<string, DuelTrainerCardPlan> = {
   "clay": { card: "sm12-188", name: "Clay", set: "Cosmic Eclipse", artist: "Yusuke Ohmura", face: [0.6, 0.15, 2] },
   "clemont": { card: "sv8-167", name: "Clemont's Quick Wit", set: "Surging Sparks", artist: "Naoki Saito", face: [0.38, 0.32, 1.5] },
   "crasher-wake": { card: "sm6-104", name: "Crasher Wake", set: "Forbidden Light", artist: "Ken Sugimori", face: [0.48, 0.17, 2] },
-  "drayden": { card: null },
+  "drayden": { card: "tcgp-B4-151", name: "Drayden", set: "Ruler of the Skies (Pokémon TCG Pocket)", artist: "Souichirou Gunjima", face: [0.5, 0.2, 2] },
   "elesa": { card: "bw11-RC20", name: "Elesa", set: "Legendary Treasures", artist: "Yusuke Ohmura", face: [0.4, 0.22, 2] },
   "erika": { card: "sm12-191", name: "Erika", set: "Cosmic Eclipse", artist: "Megumi Mizutani", face: [0.52, 0.22, 2] },
   "falkner": { card: "sv2-180", name: "Falkner", set: "Paldea Evolved", artist: "Ryuta Fuse", face: [0.38, 0.2, 2] },
@@ -162,7 +202,7 @@ export const DUEL_TRAINER_CARDS: Record<string, DuelTrainerCardPlan> = {
   "larry": { card: "sv4-165", name: "Larry", set: "Paradox Rift", artist: "Akira Komayama", face: [0.49, 0.22, 2] },
   "lenora": { card: null },
   "lt-surge": { card: "me1-120", name: "Lt. Surge's Bargain", set: "Mega Evolution", artist: "Hideki Ishikawa", face: [0.47, 0.18, 1.6] },
-  "marlon": { card: null },
+  "marlon": { card: "tcgp-B1-221", name: "Marlon", set: "Mega Rising (Pokémon TCG Pocket)", artist: "Hideki Ishikawa", face: [0.47, 0.27, 2] },
   "maylene": { card: null },
   "melony": { card: "swsh6-146", name: "Melony", set: "Chilling Reign", artist: "take", face: [0.5, 0.18, 2] },
   "milo": { card: "swsh35-57", name: "Milo", set: "Champion's Path", artist: "take", face: [0.5, 0.22, 2] },
@@ -183,7 +223,7 @@ export const DUEL_TRAINER_CARDS: Record<string, DuelTrainerCardPlan> = {
   "roark": { card: "sv4-173", name: "Roark", set: "Paradox Rift", artist: "Ryuta Fuse", face: [0.33, 0.16, 2] },
   "roxanne": { card: "swsh10-150", name: "Roxanne", set: "Astral Radiance", artist: "Megumi Mizutani", face: [0.48, 0.25, 2] },
   "roxie": { card: "me4-81", name: "Roxie's Performance", set: "Chaos Rising", artist: "Nobusawa/Mochipuyo", face: [0.55, 0.25, 2] },
-  "ryme": { card: null },
+  "ryme": { card: "sv3-194", name: "Ryme", set: "Obsidian Flames", artist: "nagimiso", face: [0.45, 0.22, 2] },
   "sabrina": { card: "sm115-65", name: "Sabrina's Suggestion", set: "Hidden Fates", artist: "Hitoshi Ariga", face: [0.6, 0.26, 2] },
   "skyla": { card: "swsh2-166", name: "Skyla", set: "Rebel Clash", artist: "Hideki Ishikawa", face: [0.3, 0.33, 1.7] },
   "tate-liza": { card: "sm7-148", name: "Tate & Liza", set: "Celestial Storm", artist: "Megumi Mizutani", face: [0.46, 0.3, 1.4] },
@@ -210,6 +250,8 @@ export const DUEL_TRAINER_CARDS: Record<string, DuelTrainerCardPlan> = {
   "drasna": { card: "sv8-173", name: "Drasna", set: "Surging Sparks", artist: "Hideki Ishikawa", face: [0.6, 0.17, 2] },
   "drayton": { card: "sv8-174", name: "Drayton", set: "Surging Sparks", artist: "GIDORA", face: [0.48, 0.22, 2] },
   "flint": { card: "pl2-91", name: "Flint's Willpower", set: "Rising Rivals", artist: "Ken Sugimori", face: [0.53, 0.25, 2] },
+  // Glacia: no card shows her, so her picture is her ace's (Walrein).
+  "glacia": { card: null },
   "grimsley": { card: "sm11-199", name: "Grimsley", set: "Unified Minds", artist: "kodama", face: [0.47, 0.17, 2] },
   "hassel": { card: "sv6-151", name: "Hassel", set: "Twilight Masquerade", artist: "GOSSAN", face: [0.59, 0.15, 2] },
   "kahili": { card: "sm8-179", name: "Kahili", set: "Lost Thunder", artist: "Ken Sugimori", face: [0.53, 0.3, 2] },
@@ -238,20 +280,20 @@ export const DUEL_TRAINER_CARDS: Record<string, DuelTrainerCardPlan> = {
   "bede": { card: "swsh35-50", name: "Bede", set: "Champion's Path", artist: "Naoki Saito", face: [0.56, 0.25, 2] },
   "bianca": { card: "sv5-142", name: "Bianca's Devotion", set: "Temporal Forces", artist: "En Morikura", face: [0.47, 0.25, 1.8] },
   "brendan": { card: null },
-  "calem": { card: null },
+  "calem": { card: "tcgp-B2b-68", name: "Calem", set: "Mega Shine (Pokémon TCG Pocket)", artist: "Ryuta Fuse", face: [0.48, 0.22, 2] },
   "cheren": { card: "rsv10pt5-81", name: "Cheren", set: "White Flare", artist: "Atsushi Furusawa", face: [0.47, 0.25, 2] },
   "gladion": { card: "sm4-95", name: "Gladion", set: "Crimson Invasion", artist: "Ken Sugimori", face: [0.52, 0.2, 2] },
   // Hop: Crown Zenith's Hop carries an autograph across the art; his Champion's Path card doesn't.
   "hop": { card: "swsh35-53", name: "Hop", set: "Champion's Path", artist: "Sanosuke Sakuma", face: [0.55, 0.35, 2] },
   "hugh": { card: "bw7-130", name: "Hugh", set: "Boundaries Crossed", artist: "Yusuke Ohmura", face: [0.47, 0.17, 2] },
   "marnie": { card: "swsh35-56", name: "Marnie", set: "Champion's Path", artist: "kirisAki", face: [0.5, 0.27, 2] },
-  "may": { card: null },
+  "may": { card: "tcgp-B1-223", name: "May", set: "Mega Rising (Pokémon TCG Pocket)", artist: "Sanosuke Sakuma", face: [0.45, 0.26, 2] },
   "n": { card: "xy10-105", name: "N", set: "Fates Collide", artist: "Megumi Mizutani", face: [0.33, 0.35, 1.8] },
   "nemona": { card: "sv4pt5-82", name: "Nemona", set: "Paldean Fates", artist: "Sanosuke Sakuma", face: [0.53, 0.18, 2] },
   "penny": { card: "sv1-183", name: "Penny", set: "Scarlet & Violet", artist: "yuu", face: [0.45, 0.23, 2] },
   "serena": { card: "swsh12-164", name: "Serena", set: "Silver Tempest", artist: "Ken Sugimori", face: [0.55, 0.15, 2] },
   "shauna": { card: "swsh8-240", name: "Shauna", set: "Fusion Strike", artist: "Yuu Nishida", face: [0.38, 0.32, 1.8] },
-  "silver": { card: null },
+  "silver": { card: "tcgp-A4-158", name: "Silver", set: "Wisdom of Sea and Sky (Pokémon TCG Pocket)", artist: "Hideki Ishikawa", face: [0.5, 0.26, 2] },
   "trace": { card: null },
   "wally": { card: "g1-RC27", name: "Wally", set: "Generations", artist: "Megumi Mizutani", face: [0.36, 0.58, 1.6] },
   // ── Bosses ────────────────────────────────────────────────────────────────────────────────────

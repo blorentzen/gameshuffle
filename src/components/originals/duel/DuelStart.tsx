@@ -92,10 +92,9 @@ const STEPS_6 = [
   { icon: "board", title: "Knock out every card", text: "Your score counts turns, time and going solo. Your first duel today is the one that counts." },
 ] as const;
 
-/** Normal or Hard, as two CascadeDS cards you press (like the support levels). */
-function DuelModePick({ home, level, onLevel }: { home: DuelHome; level: DuelLevelPick; onLevel: (l: DuelLevelPick) => void }) {
-  const hard = home.hard;
-  const off = hard.why === "asked" ? "Closed today: you asked the professor" : "Not on today's duel";
+/** Normal or Hard, as two CascadeDS cards you press (like the support levels). Trainer Road uses it too. */
+export function DuelModePick({ hard, level, onLevel, offText = "Not on today's duel" }: { hard: { can: boolean; why?: "ok" | "off" | "asked" }; level: DuelLevelPick; onLevel: (l: DuelLevelPick) => void; offText?: string }) {
+  const off = hard.why === "asked" ? "Closed today: you asked the professor" : offText;
   return (
     <div className="duel-modes">
       <p className="duel-start__label" id="duel-mode-label">Mode</p>
@@ -177,7 +176,7 @@ export function DuelStart({ home, busy, level, onLevel, onStart, onAsk, onZoom }
                 {home.pack.map((c) => <CardThumb key={c.index} card={c} size="md" onPress={() => onZoom(c, "Your")} label={`See the ${c.name} card`} />)}
               </div>
             </div>
-            {home.rules >= 6 && <DuelModePick home={home} level={home.hard.can ? level : "normal"} onLevel={onLevel} />}
+            {home.rules >= 6 && <DuelModePick hard={home.hard} level={home.hard.can ? level : "normal"} onLevel={onLevel} />}
             {!(home.hard.can && level === "hard") && <DuelProfessor home={home} onAsk={onAsk} />}
           </div>
         }

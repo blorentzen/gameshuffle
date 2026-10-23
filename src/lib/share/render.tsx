@@ -11,6 +11,8 @@ import "server-only";
 import type { ReactNode } from "react";
 import { ImageResponse } from "next/og";
 import sharp from "sharp";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { allowedImageHost, fieldSvg, fonts, logo, svgUri } from "@/lib/og/eventCard";
 import { GLYPHS, type GlyphName } from "@/lib/og/glyphs";
 import { facePng } from "@/lib/discord/faces";
@@ -78,19 +80,29 @@ async function bannerPng(src: string, w: number, h: number): Promise<string | nu
   }
 }
 
-/**
- * The Daily Duel trainer's picture, cut from their card image (Scrydex's, the only host it's read
- * from) with the page's own crop rule and drawn to `w` × `h`. Null when it can't be read in time.
- */
-async function trainerArtPng(p: DuelPicture, w: number, h: number, crop: { zoom?: number; py?: number } = { py: 0.42 }): Promise<string | null> {
+/** A trainer picture's image: official artwork from our own copy in public/, a card from Scrydex (the only host it's read from). */
+async function trainerImage(src: string): Promise<Buffer | null> {
+  if (src.startsWith("/images/duel/trainers/")) {
+    if (src.includes("..")) return null;
+    return readFile(join(process.cwd(), "public", src)).catch(() => null);
+  }
   let url: URL;
-  try { url = new URL(p.img); } catch { return null; }
+  try { url = new URL(src); } catch { return null; }
   if (url.protocol !== "https:" || url.host !== "images.scrydex.com") return null;
+  const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+  if (!res.ok) return null;
+  const buf = Buffer.from(await res.arrayBuffer());
+  return buf.length > 6 * 1024 * 1024 ? null : buf;
+}
+
+/**
+ * The Daily Duel trainer's picture, cut from their card image or official artwork with the page's
+ * own crop rule and drawn to `w` × `h`. Null when it can't be read in time.
+ */
+export async function trainerArtPng(p: DuelPicture, w: number, h: number, crop: { zoom?: number; py?: number } = { py: 0.42 }): Promise<string | null> {
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) return null;
-    const buf = Buffer.from(await res.arrayBuffer());
-    if (buf.length > 6 * 1024 * 1024) return null;
+    const buf = await trainerImage(p.img);
+    if (!buf) return null;
     const meta = await sharp(buf).metadata();
     if (!meta.width || !meta.height) return null;
     const [x, y, cw, ch] = artCrop({ ...p, ratio: meta.width / meta.height }, w, h, crop);

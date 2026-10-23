@@ -114,6 +114,8 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
 
 function isHeroPath(pathname: string): boolean {
   if (HERO_ROUTES.has(pathname)) return true;
+  // Trainer Road: the front page, each region and each trainer open on the band.
+  if (/^\/pokemon-trainers(\/[^/]+){0,2}$/.test(pathname)) return true;
   // Lounge head-to-head (/lounge/compare/<a>/<b>) opens on the same band.
   if (/^\/lounge\/compare\/[^/]+\/[^/]+$/.test(pathname)) return true;
   for (const { prefix, notIds } of HERO_DETAIL) {

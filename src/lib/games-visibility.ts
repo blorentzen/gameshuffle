@@ -35,6 +35,15 @@ export const DAILY_DEX_PUBLIC = true;
 export const FIRE_ROUND_PUBLIC = true;
 /** The Daily Duel (/daily-duel, a card duel against the trainer of the day): launched Oct 22, 2026 (DUEL_EPOCH in src/lib/originals/duel/rules.ts). */
 export const DUEL_PUBLIC = true;
+/**
+ * Trainer Road (/pokemon-trainers, picks 2026-10-23): every Daily Duel trainer any time. Launched
+ * 2026-10-23. Off = production 404s its pages, share images and API, leaves it out of the sitemap,
+ * the menu, the homepage and the Daily Duel's links, and its cron builds nothing. Development always
+ * shows the pages.
+ */
+export const ROAD_PUBLIC = true;
+/** Trainer Road can be seen here (always in development). */
+export const roadShown = () => ROAD_PUBLIC || process.env.NODE_ENV !== "production";
 
 /** Hidden randomizers by slug, for lists that loop over every randomizer. */
 const HIDDEN_RANDOMIZERS: Record<string, boolean> = {

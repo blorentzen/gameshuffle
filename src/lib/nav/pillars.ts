@@ -1,4 +1,4 @@
-import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
+import { ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 /**
  * The four pillars — the single source of truth for GameShuffle's information
  * architecture.
@@ -113,6 +113,7 @@ export const PILLARS: Pillar[] = [
           ...(OVERWATCH_PUBLIC ? [{ label: "Overwatch hero randomizer", href: "/randomizers/overwatch", blurb: "Hero roulette with role queue, no repeats and a random map. New.", secondary: true }] : []),
           ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players. New.", secondary: true }] : []),
           { label: "Pokémon TCG", href: "/pokemon-tcg", blurb: "Deck guides, singles and the free companion for the card game." },
+          ...(ROAD_PUBLIC ? [{ label: "Trainer Road", href: "/pokemon-trainers", blurb: "Duel every Gym Leader, Elite Four member and Champion from the Pokémon games, any time. New." }] : []),
           // Footer only: the nav menu already reaches the deck guides through the hub.
           { label: "Pokémon decks", href: "/pokemon-tcg/decks", blurb: "Standard deck lists and guides, from beginner to competitive.", secondary: true, footer: true },
           { label: "Pokémon TCG rules", href: "/pokemon-tcg/rules", blurb: "Damage counters, Special Conditions, Prize cards and a turn, in plain words.", secondary: true, footer: true },

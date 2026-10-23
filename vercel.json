@@ -78,6 +78,10 @@
       "schedule": "*/10 * * * *"
     },
     {
+      "path": "/api/cron/road-duels",
+      "schedule": "5-59/10 * * * *"
+    },
+    {
       "path": "/api/cron/discord-reminders",
       "schedule": "* * * * *"
     },

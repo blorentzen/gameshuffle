@@ -24,5 +24,7 @@
   top: clamp(calc(100cqh - (var(--ay) + var(--ah)) * var(--ih)), calc(100cqh * var(--py) - (var(--ay) + var(--fy) * var(--ah)) * var(--ih)), calc(-1 * var(--ay) * var(--ih)));
   user-select: none;
 }
+/* Official artwork is a figure on white (scripts/pull-duel-official-art.ts lays every one on white). */
+.duel-art--official { background: #fff; }
 .duel-art--round { border-radius: 50%; }
 .duel-art--tile { border-radius: 10px; }

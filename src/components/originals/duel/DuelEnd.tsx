@@ -21,7 +21,10 @@ import { ordinal } from "@/lib/daily/boardRules";
 import { formatTime } from "@/lib/originals/dailies";
 import { TCG_SHOP_URL } from "@/data/shop";
 import type { DuelCardView, DuelRunView } from "@/lib/originals/duel/view";
-import { SCORE } from "@/lib/originals/duel/rules";
+import { SCORE, personKey } from "@/lib/originals/duel/rules";
+import { regionOf, roadPath } from "@/lib/originals/duel/road";
+import { roadShown } from "@/lib/games-visibility";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { CardThumb } from "./DuelBits";
 import { TrainerArt } from "./TrainerArt";
 
@@ -108,6 +111,9 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, hard
           {hardCan && <Button variant="ghost" onClick={() => onPractice(other)}>{hard ? "Practice in Normal" : "Practice in Hard"}</Button>}
           {official ? <DailiesNextButton current="duel" /> : onToday && <Button variant="ghost" onClick={onToday}>Back to today&apos;s result</Button>}
         </div>
+        {roadShown() && regionOf(run.trainer) && (
+          <p className="duel-result__small duel-result__road"><ArrowLink href={roadPath(regionOf(run.trainer)!, personKey(trainer))}>{`Duel ${trainer} any time on Trainer Road`}</ArrowLink></p>
+        )}
       </section>
 
       {official && <div className="duel-streak"><DailiesYours current="duel" only /></div>}
@@ -122,7 +128,7 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, hard
 }
 
 /** A scored day's score (rules 6): the total out of 1,000, then its parts (turns, time and solo on a win; knockouts on a loss). */
-function DuelScoreCard({ score, won, hard }: { score: NonNullable<DuelRunView["score"]>; won: boolean; hard: boolean }) {
+export function DuelScoreCard({ score, won, hard, askedNote = "You asked the professor today, so there's no solo bonus." }: { score: NonNullable<DuelRunView["score"]>; won: boolean; hard: boolean; askedNote?: string }) {
   const parts = won
     ? [{ label: "From turns", value: score.turns, max: SCORE.turns }, { label: "From time", value: score.time, max: SCORE.time }, { label: "Solo bonus", value: score.solo, max: SCORE.solo }, ...(score.hard ? [{ label: "Hard", value: score.hard, max: SCORE.hard }] : [])]
     : [{ label: "From knockouts", value: score.kos, max: SCORE.koMax }];
@@ -134,7 +140,7 @@ function DuelScoreCard({ score, won, hard }: { score: NonNullable<DuelRunView["s
           <div key={p.label}><dt>{p.label}</dt><dd>{p.value}<small> of {p.max}</small></dd></div>
         ))}
       </dl>
-      {won && !hard && score.solo === 0 && <p className="duel-result__small">You asked the professor today, so there&apos;s no solo bonus.</p>}
+      {won && !hard && score.solo === 0 && <p className="duel-result__small">{askedNote}</p>}
     </div>
   );
 }

@@ -9,7 +9,9 @@ import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { NewHereLine } from "@/components/welcome/NewHereLine";
-import { DUEL_PUBLIC } from "@/lib/games-visibility";
+import { DUEL_PUBLIC, ROAD_PUBLIC } from "@/lib/games-visibility";
+import { ArrowLink } from "@/components/ui/ArrowLink";
+import { ReportProblem } from "@/components/ui/ReportProblem";
 import "@/styles/daily-duel.css";
 
 /**
@@ -26,6 +28,7 @@ export const metadata: Metadata = {
 };
 
 /** Details the Start card's three steps don't cover (writing rules: say each fact once). */
+const ROAD_Q = "Can I duel other trainers?";
 const FAQ = [
   { q: "Is there a new duel every day?", a: "Yes. A new trainer and a new six at midnight Pacific, the same for everyone. Gym Leaders early in the week, Elite Four and rivals in the middle, a villain team's boss on Saturday and a Champion on Sunday." },
   { q: "What's par?", a: "Every pack is checked before it goes out, and par is the fewest turns that win it, counting none of your conditions as landing. You see it once your duel is over." },
@@ -38,6 +41,7 @@ const FAQ = [
   { q: "How do the cards work?", a: "The Daily Duel is its own game. It borrows Pokémon cards and plays them like a battle from the video games, so each card shows the Duel's version: its art, type, HP and Weakness, and each move's Energy, damage and any condition it can cause. A move whose damage is printed with a + or × counts what its card says, like 20 more for each of the trainer's waiting cards. The rest of a card's text isn't used. Tap a card to see its moves, or to see the real card." },
   { q: "What do the condition icons mean?", a: "A move can make the card it hits Burned (it loses 20 HP at the end of every turn), Poisoned (10, then 20, then 30, and so on), Paralyzed (a 25% chance each turn it can't move), Asleep (it can't move for 1 to 3 turns) or Confused (for 3 turns, each move has a 33% chance to hit itself for 20). The number beside the icon is the chance: 50% when the card always causes it, 25% when the card flips a coin. A card holds one condition at a time, plus Confused, and swapping it out cures it. The same moves get the same luck for everyone." },
   { q: "Can I play more than once?", a: "Your first duel each day counts. Once it's over you can practice the same duel as often as you like, in Normal or Hard." },
+  ...(ROAD_PUBLIC ? [{ q: ROAD_Q, a: "Yes, on Trainer Road: every trainer in the Daily Duel, by region, with each team they bring in the games. Each team has its own duel for the month, stars and a leaderboard." }] : []),
   { q: "Do I need an account?", a: "No. Play as a guest and add a name to go on the leaderboard. A free account keeps your streak on every device, earns tokens and adds the day's cards to My Cards." },
 ];
 
@@ -69,9 +73,10 @@ export default function DailyDuelPage() {
         <NewHereLine from="daily-duel" />
         <section className="duel-flat duel-about" aria-labelledby="duel-faq-title">
           <h2 id="duel-faq-title" className="duel-flat__title">About the Daily Duel</h2>
-          <FaqList items={FAQ} />
+          <FaqList items={FAQ.map((f) => (f.q === ROAD_Q ? { ...f, a: <>{f.a} <ArrowLink href="/pokemon-trainers">Go to Trainer Road</ArrowLink></> } : f))} />
         </section>
         <div className="duel-credits-foot">
+          <ReportProblem about="The Daily Duel" page="/daily-duel" />
           <DuelPictureCredit />
           <TcgAttribution className="duel-credits" />
         </div>
