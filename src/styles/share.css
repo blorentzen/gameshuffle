@@ -81,3 +81,5 @@ a.share-friend__name:hover { text-decoration: underline; }
 
 /* Their row on the leaderboard. */
 .daily-board__shared { flex: none; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--brand-ink, var(--primary-700)); }
+/* The Daily Duel's day board: a run played in Hard. */
+.daily-board__hard { flex: none; padding: 1px 8px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); letter-spacing: 0.04em; line-height: 1.5; text-transform: uppercase; }

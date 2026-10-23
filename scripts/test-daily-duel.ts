@@ -8,7 +8,7 @@ import {
   CONDITION_RULES, actions, applyStep, begin, canUse, cloneState, damageOf, foeEnergy, foeRowFor, isLegal, nexts, pays, printedDamage, replay, roll, startState, step, swapTargets, viewOf,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "../src/lib/originals/duel/engine";
-import { COMEBACK_MAX, FAIR_LEADS, HAND_SIZE, MIN_PLANS, WIN_BAND, adviceFor, buildDay, candidates, dayPlans, drawPack, fairLeads, hintText, makeSetup, obviousPlay, packCap, slipWinRate, solve, solverSetup } from "../src/lib/originals/duel/solver";
+import { COMEBACK_MAX, FAIR_LEADS, HAND_SIZE, MIN_PLANS, WIN_BAND, adviceFor, buildDay, candidates, dayPlans, drawPack, fairLeads, hardParFor, hardSetup, hintText, makeSetup, obviousPlay, packCap, slipWinRate, solve, solverSetup } from "../src/lib/originals/duel/solver";
 import { conditionsOf, plusOf, toDuelCard } from "../src/data/originals/duel/cardRules";
 import { plusText } from "../src/lib/originals/duel/copy";
 import {
@@ -891,6 +891,16 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
   const scoredShare = duelShareText({ number: 3, trainer: "Bea", won: true, turns: 6, par: 6, seconds: 72, standing: [true, true, true, true, true, false], knocked: 5, team: 5, score: 1000 });
   check(scoredShare.includes("· Score 1,000") && !/Hoopa|Grapploct/.test(scoredShare), "share: a scored day adds the score, never a card's name");
   check(!duelShareText({ number: 3, trainer: "Bea", won: true, turns: 6, par: 6, seconds: 72, standing: [true], knocked: 5, team: 5 }).includes("Score"), "share: older days have no score");
+  // Hard mode: +200 on a win, the solo bonus always, up to 12 points; a loss gets no bonus.
+  const hard = duelScore({ won: true, turns: 9, par: 9, seconds: 100, solo: false, knocked: 5, hard: true });
+  check(hard.score === 1200 && hard.hard === SCORE.hard && hard.solo === SCORE.solo && hard.points === 12, "score: a Hard win at par = 1,200 (12 points)", hard);
+  const hardLoss = duelScore({ won: false, turns: 12, par: 9, seconds: 300, solo: false, knocked: 3, hard: true });
+  check(hardLoss.score === 60 && hardLoss.hard === 0 && hardLoss.points === 0, "score: a Hard loss scores like any loss", hardLoss);
+  check(duelScore({ won: true, turns: 9, par: 9, seconds: 100, solo: true, knocked: 5 }).hard === 0, "score: Normal has no Hard part");
+  const hardShare = duelShareText({ number: 3, trainer: "Bea", won: true, turns: 6, par: 6, seconds: 72, standing: [true], knocked: 5, team: 5, score: 1200, hard: true });
+  check(hardShare.includes("(Hard)") && hardShare.includes("· Score 1,200"), "share: a Hard duel says Hard");
+  const hs = hardSetup({ comeback: 2, foeComeback: 2 } as never);
+  check(hs.comeback === 0 && hs.foeComeback === 2, "hard: your comeback goes, the trainer's stays");
 }
 
 // ─── the real roster (when it's there): a day builds the same twice ──────────
@@ -933,6 +943,10 @@ async function real() {
     check(!!r5Set && JSON.stringify(dayPlans(r5Set, { par: r5!.par, line: r5!.line, nodes: 0 })) === JSON.stringify(r5!.plans), "the real roster: the plans come out the same again");
     const r5b = buildDay("2026-11-05", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000, rules: 6 });
     check(!!r5b && JSON.stringify(r5b.pack) === JSON.stringify(r5!.pack) && r5b.par === r5!.par, "the real roster: a rules 6 day builds the same twice");
+    // Hard's par: a line that wins without your comeback Energy, the same every time (0 = Hard closed that day).
+    const hp = r5Set ? hardParFor(r5Set) : -1;
+    check(hp >= 0 && hp === (r5Set ? hardParFor(r5Set) : -2), `the real roster: Hard's par comes out the same again (${hp})`);
+    check(!r5 || hp === 0 || hp >= r5.par, "the real roster: Hard's par is never quicker than Normal's", { hard: hp, par: r5?.par });
     // Every person in a tier has a day before anyone comes back (Mondays and Tuesdays from the anchor).
     const gymPeople = peopleOf(DUEL_DATA.trainers.filter((t) => t.tier === "gym")).length;
     const gymDays: string[] = [];

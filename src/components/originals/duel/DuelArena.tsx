@@ -403,7 +403,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
         <section className="duel-side duel-side--you" aria-label="Your side">
           <div className="duel-bar duel-bar--you">
             <div className="duel-bar__who">
-              <b>You</b>
+              <b>You{run.level === "hard" && <span className="duel-hard-tag">Hard</span>}</b>
               {!run.official && <span>Practice</span>}
             </div>
             {run.official && run.status === "playing" && <DuelClock startedAt={Date.parse(run.startedAt)} offset={offset} />}
@@ -505,9 +505,9 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
           now={now}
           hint={hint}
           bar={<DuelEventsBar {...barProps} inWindow />}
-          event={play.event && !play.over ? <DuelEventCard event={play.event} text={play.event.kind === "advice" ? play.event.short : eventNowText(play.event, outcome, hint)} picture={run.trainer.picture} /> : null}
+          event={play.event && !play.over ? <DuelEventCard event={play.event} text={play.event.kind === "advice" ? (run.level === "hard" ? "You're on your own in Hard: no tip." : play.event.short) : eventNowText(play.event, outcome, hint)} picture={run.trainer.picture} /> : null}
           busy={busy}
-          ask={{ show: !hint, costs, busy: tipBusy, onAsk: () => void askProfessor(), escape: !confirming }}
+          ask={{ show: !hint && run.level !== "hard", costs, busy: tipBusy, onAsk: () => void askProfessor(), escape: !confirming }}
           onUse={pickUse}
           onAttach={pickCard}
           onNext={() => { touched.current = true; if (play.swaps.length) setWin({ turn: play.turn, open: true, step: 2 }); else closeWin(); }}
@@ -523,7 +523,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
         <DuelBringPicker play={play} trainer={trainer} headingRef={pickRef} busy={busy} onBring={(cards) => { touched.current = true; onBring(cards); }} onZoom={(c) => onZoom(c, "Your")} onZoomFoe={(c) => onZoom(c, their)} />
       )}
       {picker && !play.needsBring && (
-        <DuelPicker play={play} trainer={trainer} headingRef={pickRef} busy={busy} onPick={(i) => { touched.current = true; onNext(i); }} onZoom={(c) => onZoom(c, "Your")} />
+        <DuelPicker play={play} trainer={trainer} hard={run.level === "hard"} headingRef={pickRef} busy={busy} onPick={(i) => { touched.current = true; onNext(i); }} onZoom={(c) => onZoom(c, "Your")} />
       )}
 
       {play.over && (
@@ -620,9 +620,11 @@ function DuelBringPicker({ play, trainer, headingRef, busy, onBring, onZoom, onZ
 }
 
 /** The card picker: your lead, or the next card after a knockout, with what each brings against the card across. */
-function DuelPicker({ play, trainer, headingRef, busy, onPick, onZoom }: {
+function DuelPicker({ play, trainer, hard = false, headingRef, busy, onPick, onZoom }: {
   play: DuelPlayView;
   trainer: string;
+  /** Hard: the card comes in without comeback Energy. */
+  hard?: boolean;
   headingRef: React.RefObject<HTMLHeadingElement | null>;
   busy: boolean;
   onPick: (i: number) => void;
@@ -646,6 +648,7 @@ function DuelPicker({ play, trainer, headingRef, busy, onPick, onZoom }: {
             <span>{hp}</span>
           </p>
         )}
+        {hard && !lead && <p className="duel-overlay__text">Hard: it comes in without Energy.</p>}
         <ul className="duel-pick__list">
           {play.nexts.map((i) => {
             const c = play.you[i];

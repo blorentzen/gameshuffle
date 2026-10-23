@@ -385,22 +385,31 @@ export function duelPoints(won: boolean, turns: number, par: number): number {
  * professor. A loss: 20 for each of the trainer's cards knocked out, up to 100. Board points are the
  * score ÷ 100, rounded down (week and month boards, tokens), like Fire Round.
  */
-export const SCORE = { turns: 600, turnCost: 50, turnsFloor: 200, time: 250, perParTurn: 15, timeStep: 15, timeCost: 10, solo: 150, ko: 20, koMax: 100 } as const;
+export const SCORE = { turns: 600, turnCost: 50, turnsFloor: 200, time: 250, perParTurn: 15, timeStep: 15, timeCost: 10, solo: 150, ko: 20, koMax: 100, hard: 200 } as const;
 
-export interface DuelScoreParts { score: number; turns: number; time: number; solo: number; kos: number; points: number }
+/** Board points: one per 100 of the score, up to 10 (12 for a Hard win, with its bonus). */
+export const POINTS_MAX = 10;
+export const HARD_POINTS_MAX = 12;
 
-export function duelScore(f: { won: boolean; turns: number; par: number; seconds: number | null; solo: boolean; knocked: number }): DuelScoreParts {
+export interface DuelScoreParts { score: number; turns: number; time: number; solo: number; kos: number; points: number; hard: number }
+
+/**
+ * A scored duel (rules 6): turns, time and going solo out of 1,000; a loss scores its knockouts. Hard
+ * (picks 2026-10-23) plays against its own par, is always solo and adds `SCORE.hard` on a win.
+ */
+export function duelScore(f: { won: boolean; turns: number; par: number; seconds: number | null; solo: boolean; knocked: number; hard?: boolean }): DuelScoreParts {
   if (!f.won) {
     const kos = Math.min(SCORE.koMax, SCORE.ko * Math.max(0, f.knocked));
-    return { score: kos, turns: 0, time: 0, solo: 0, kos, points: Math.floor(kos / 100) };
+    return { score: kos, turns: 0, time: 0, solo: 0, kos, points: Math.floor(kos / 100), hard: 0 };
   }
   const turns = Math.max(SCORE.turnsFloor, SCORE.turns - SCORE.turnCost * Math.max(0, f.turns - f.par));
   const allowance = SCORE.perParTurn * f.par;
   const over = f.seconds == null ? Infinity : Math.max(0, f.seconds - allowance);
   const time = over === Infinity ? 0 : Math.max(0, SCORE.time - SCORE.timeCost * Math.ceil(over / SCORE.timeStep));
-  const solo = f.solo ? SCORE.solo : 0;
-  const score = turns + time + solo;
-  return { score, turns, time, solo, kos: 0, points: Math.min(10, Math.floor(score / 100)) };
+  const solo = f.solo || f.hard ? SCORE.solo : 0;
+  const hard = f.hard ? SCORE.hard : 0;
+  const score = turns + time + solo + hard;
+  return { score, turns, time, solo, kos: 0, points: Math.min(f.hard ? HARD_POINTS_MAX : POINTS_MAX, Math.floor(score / 100)), hard };
 }
 
 /** "3:12", "12:05", "2h 14m". */
@@ -429,6 +438,8 @@ export interface DuelShareFacts {
   practice?: boolean;
   /** A scored day's official duel: its score out of 1,000. */
   score?: number | null;
+  /** Played in Hard. */
+  hard?: boolean;
 }
 
 /** "Won in 14 turns (par 13)", "Knocked out 4 of 6". */
@@ -439,7 +450,7 @@ export function duelHeadline(f: Pick<DuelShareFacts, "won" | "turns" | "par" | "
 
 /** The text a result shares: the duel, the trainer, the result and time, your squares, the link. Never a card's name. */
 export function duelShareText(f: DuelShareFacts, url = "https://www.gameshuffle.co/daily-duel"): string {
-  const title = `Daily Duel ${duelLabel(f.number)} · vs ${f.trainer}${f.practice ? " (practice)" : ""}`;
+  const title = `Daily Duel ${duelLabel(f.number)}${f.hard ? " (Hard)" : ""} · vs ${f.trainer}${f.practice ? " (practice)" : ""}`;
   const time = f.seconds != null ? ` ⏱ ${duelTime(f.seconds)}` : "";
   const score = f.score != null ? ` · Score ${f.score.toLocaleString("en-US")}` : "";
   return [title, `${f.won ? "🏆" : "❌"} ${duelHeadline(f)}${time}${score}`, duelSquares(f.standing), url].join("\n");

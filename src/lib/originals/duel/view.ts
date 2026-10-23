@@ -244,6 +244,8 @@ export interface DuelRunView {
   scoring: "score" | "points";
   /** The player asked the professor today (the solo bonus is gone). */
   asked: boolean;
+  /** Normal or Hard (picks 2026-10-23: Hard has no comeback Energy and no professor, its own par and +200 on a win). */
+  level: "normal" | "hard";
   /** The share text once over (squares, never a card's name). */
   share: string | null;
 }
@@ -274,7 +276,7 @@ export interface DuelHome {
   /** The trainer's team in order. */
   team: DuelCardView[];
   /** Your official duel today, if you've started it. */
-  official: { id: string; status: "playing" | "done"; result: "won" | "lost" | null; turns: number; cardsLeft: number; seconds: number | null; points: number | null; score?: DuelScoreParts | null } | null;
+  official: { id: string; status: "playing" | "done"; result: "won" | "lost" | null; turns: number; cardsLeft: number; seconds: number | null; points: number | null; score?: DuelScoreParts | null; level?: "normal" | "hard" } | null;
   /** The day's par: only once your official duel is over. */
   par: number | null;
   /** Practice opens once your official duel is over. */
@@ -293,6 +295,12 @@ export interface DuelHome {
   scoring: "score" | "points";
   /** The player asked the professor today (rules 6: the solo bonus is gone). */
   asked: boolean;
+  /**
+   * Hard today: `can` = it can be picked; `why` "off" = not on this day (before rules 6, or no winning
+   * line without comeback Energy), "asked" = you asked the professor today (Hard is on your own);
+   * `par` = Hard's par, once your official duel is over.
+   */
+  hard: { can: boolean; why: "ok" | "off" | "asked"; par: number | null };
 }
 
 /** One of the professor's plans (solver.ts dayPlans). */

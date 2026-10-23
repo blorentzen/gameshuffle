@@ -229,6 +229,7 @@ function BoardTable({ view, main, pictures, scored = false }: { view: BoardView;
           {r.profile ? <OriginalsLink href={r.profile}>{r.you ? "You" : r.name}</OriginalsLink> : <span>{r.you ? "You" : r.name}</span>}
           {r.supporter && <IconHeartFilled size={13} className="daily-board__heart" aria-hidden="true" />}
           {r.shared && !r.you && <span className="daily-board__shared">Shared this</span>}
+          {r.hard && <span className="daily-board__hard">Hard</span>}
           <span className="sr-only"> ({PLACES[placeOf(r)].said}{r.supporter ? ", supports GameShuffle" : ""})</span>
         </span>
       </TableCell>
@@ -331,7 +332,7 @@ export function DailyBoard({ game, main, guestId, refresh, onViews, join, scored
           {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · {game === "fire"
             ? "ties share a place · your first round each day earns up to 10 points, 1 for every 200 you score"
             : game === "duel" && scored
-            ? `a point for every 100 of your score, up to 10 · ${period === "day" ? "ties go to the higher score, then the faster time" : "ties share a place"}`
+            ? `a point for every 100 of your score, up to 10 (12 for a Hard win) · ${period === "day" ? "ties go to the higher score, then the faster time" : "ties share a place"}`
             : game === "duel"
             ? `10 points for a win at par or better, then 8, 6, 4, 2 by turns over par · ${period === "day" ? "ties go to more cards left, then the faster win" : "ties share a place"}`
             : `10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance · ${period === "day" ? "ties go to the faster solve" : "ties share a place"}`}

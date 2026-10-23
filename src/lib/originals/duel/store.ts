@@ -23,7 +23,7 @@ import { playerKey, type PlayerKind } from "@/lib/daily/boardRules";
 import { recordDuelScore } from "@/lib/daily/boards";
 import type { DailiesEntry, DayMark } from "@/lib/originals/dailies";
 import { alive, applyStep, cardsLeft, inDuel, startState, viewOf, type DuelSetup, type DuelState } from "./engine";
-import { adviceFor, buildDay, makeSetup, type DuelPlan } from "./solver";
+import { adviceFor, buildDay, hardParFor, hardSetup, makeSetup, type DuelPlan } from "./solver";
 import { trainerPicture } from "./pictures";
 import { bioFor } from "@/data/originals/duel/bios";
 import { TIER_LABEL, duelNumber, duelPoints, duelScore, duelShareText, personOf, signatureText, tierFor, type DuelScoreParts, type DuelShareFacts } from "./rules";
@@ -48,6 +48,8 @@ interface DayRow {
   rules?: number;
   /** Rules 5: the professor's plans. Absent before daily-duel-m3.sql. */
   plans?: DuelPlan[] | null;
+  /** Hard's par (0 = no winning line, Hard is off; null = not worked out yet). Absent before daily-duel-m5.sql. */
+  hard_par?: number | null;
 }
 const DAY_COLS = "day, number, tier, trainer_id, pack, row, events, par, line, in_band, built_at, cards, trainer";
 
@@ -63,6 +65,22 @@ function plansReady(): Promise<boolean> {
     return !error;
   })();
   return plansColumn;
+}
+
+/**
+ * Whether Hard can be played (daily-duel-m5.sql: duel_runs.level and duel_days.hard_par); asked once per
+ * server. Until then Hard is hidden and every run is Normal.
+ */
+let levelColumns: Promise<boolean> | null = null;
+function levelReady(): Promise<boolean> {
+  levelColumns ??= (async () => {
+    const svc = createServiceClient();
+    const [a, b] = await Promise.all([svc.from("duel_runs").select("level").limit(1), svc.from("duel_days").select("hard_par").limit(1)]);
+    const error = a.error ?? b.error;
+    if (error && !missing(error)) console.error("[duel] level columns check failed:", error);
+    return !error;
+  })();
+  return levelColumns;
 }
 
 /** The newest rules this database can hold: 1 before daily-duel-m2.sql, 4 before daily-duel-m3.sql. */
@@ -95,6 +113,8 @@ export interface DuelDay {
   rules: DuelRules;
   /** Rules 5: the professor's plans (empty on older days). */
   plans: DuelPlan[];
+  /** Hard's par: 0 = Hard is off that day (no winning line found), null = not worked out yet (or before rules 6). */
+  hardPar: number | null;
 }
 
 /**
@@ -120,11 +140,11 @@ function dayFrom(r: DayRow): DuelDay | null {
   if (!trainer) return null;
   const rules = rulesOf(r.rules);
   const setup = makeSetup(r.cards, trainer, r.pack, r.row, r.events, { rules, seed: r.day });
-  return setup ? { day: r.day, number: r.number, tier: r.tier, trainer, par: r.par, setup, line: r.line, rules, plans: r.plans ?? [] } : null;
+  return setup ? { day: r.day, number: r.number, tier: r.tier, trainer, par: r.par, setup, line: r.line, rules, plans: r.plans ?? [], hardPar: r.hard_par ?? null } : null;
 }
 
 async function readDay(day: string): Promise<DuelDay | null | "missing"> {
-  const cols = (await rulesReady()) ? `${DAY_COLS}, rules${(await plansReady()) ? ", plans" : ""}` : DAY_COLS;
+  const cols = (await rulesReady()) ? `${DAY_COLS}, rules${(await plansReady()) ? ", plans" : ""}${(await levelReady()) ? ", hard_par" : ""}` : DAY_COLS;
   const { data, error } = await createServiceClient().from("duel_days").select(cols).eq("day", day).maybeSingle();
   if (error) { if (!missing(error)) console.error("[duel] day read failed:", error); return "missing"; }
   return data ? dayFrom(data as unknown as DayRow) : null;
@@ -163,10 +183,14 @@ async function buildRow(day: string, opts: { budgetMs?: number; data?: DuelData;
   const trainer = data.trainers.find((t) => t.id === build.trainerId)!;
   const cards: Record<string, DuelCard> = {};
   for (const id of [...build.pack, ...trainer.team]) if (data.cards[id]) cards[id] = data.cards[id];
+  // Hard's par (rules 6 days): one more search on the finished day.
+  const hardSetupOf = rules >= 6 && (await levelReady()) ? makeSetup(cards, trainer, build.pack, build.row, build.events, { rules, seed: day }) : null;
+  const hardPar = hardSetupOf ? hardParFor(hardSetupOf) : null;
   const row = {
     day, number: build.number, tier: build.tier, trainer_id: build.trainerId, pack: build.pack, row: build.row, events: build.events,
     par: build.par, line: build.line, in_band: build.inBand, cards, trainer, ...(rules >= 2 ? { rules } : {}),
     ...(rules >= 5 ? { plans: build.plans ?? [], win_rate: build.winRate ?? null } : {}),
+    ...(hardPar != null ? { hard_par: hardPar } : {}),
   };
   return { build, row };
 }
@@ -234,7 +258,12 @@ export async function getDay(day = gsDay(), opts: { build?: boolean; budgetMs?: 
   if (have === "missing") return null;
   // Upgrades take minutes on a slow machine, so only the Duel's own cron runs them (ensureDays); the
   // dev server upgrades on read so a previewed day (?day=) shows the newest rules.
-  if (have) { const d = process.env.NODE_ENV === "development" ? await upgraded(have, ENSURE_BUDGET_MS) : have; keepDay(d); return d; }
+  if (have) {
+    let d = process.env.NODE_ENV === "development" ? await upgraded(have, ENSURE_BUDGET_MS) : have;
+    if (process.env.NODE_ENV === "development" && d.rules >= 6 && d.hardPar == null) d = await withHardPar(d);
+    keepDay(d);
+    return d;
+  }
   if (opts.build === false) return null;
   let p = building.get(day);
   if (!p) {
@@ -258,18 +287,33 @@ export async function ensureDays(budgetMs = ENSURE_BUDGET_MS): Promise<number> {
     const left = end - Date.now();
     if (left < 5_000) break;
     const hit = cachedDay(day);
-    if (hit && (hit.rules >= DUEL_RULES || hit.day <= gsDay())) continue;
+    if (hit && (hit.rules >= DUEL_RULES || hit.day <= gsDay()) && (hit.rules < 6 || hit.hardPar != null)) continue;
     const have = await readDay(day);
     if (have === "missing") return built;
     if (have) {
-      const d = await upgraded(have, left);
+      let d = await upgraded(have, left);
       if (d !== have) built++;
+      if (d.rules >= 6 && d.hardPar == null) d = await withHardPar(d);
       keepDay(d);
       continue;
     }
     if (await getDay(day, { budgetMs: left })) built++;
   }
   return built;
+}
+
+/**
+ * Hard's par for a stored rules 6 day that doesn't have it yet (days built before Hard): worked out once
+ * and stored (the write only lands while it's still empty). Today's day too: Normal doesn't change.
+ */
+async function withHardPar(d: DuelDay): Promise<DuelDay> {
+  if (d.rules < 6 || d.hardPar != null || !(await levelReady())) return d;
+  const t0 = Date.now();
+  const hardPar = hardParFor(d.setup);
+  const { error } = await createServiceClient().from("duel_days").update({ hard_par: hardPar }).eq("day", d.day).is("hard_par", null);
+  if (error) { console.error("[duel] hard par save failed:", error); return d; }
+  console.log(`[duel] ${d.day}: Hard par ${hardPar || "none (Hard off)"}, ${Date.now() - t0}ms`);
+  return { ...d, hardPar };
 }
 
 /** A run of the Duel's cron: room for a hard day twice over on Vercel's slower machines, inside the route's 300 seconds. */
@@ -295,26 +339,39 @@ export interface RunRow {
   id: string; player: string; user_id: string | null; day: string; official: boolean; state: DuelState; steps: DuelStep[];
   version: number; status: "playing" | "done"; result: "won" | "lost" | null; turns: number; cards_left: number | null;
   seconds: number | null; started_at: string; finished_at: string | null;
+  /** Normal or Hard (absent before daily-duel-m5.sql: Normal). */
+  level?: DuelLevel;
 }
-const RUN_COLS = "id, player, user_id, day, official, state, steps, version, status, result, turns, cards_left, seconds, started_at, finished_at";
+export type DuelLevel = "normal" | "hard";
+const RUN_COLS_BASE = "id, player, user_id, day, official, state, steps, version, status, result, turns, cards_left, seconds, started_at, finished_at";
+/** The run columns this database has (`level` once daily-duel-m5.sql runs). */
+const runCols = async (): Promise<string> => ((await levelReady()) ? `${RUN_COLS_BASE}, level` : RUN_COLS_BASE);
+
+const isHard = (r: Pick<RunRow, "level">) => r.level === "hard";
+/** The duel a run plays: Hard takes away your comeback Energy. */
+const setupOf = (r: Pick<RunRow, "level">, d: DuelDay): DuelSetup => (isHard(r) ? hardSetup(d.setup) : d.setup);
+/** The par a run is measured against: Hard has its own. */
+const parOf = (r: Pick<RunRow, "level">, d: DuelDay): number => (isHard(r) && d.hardPar ? d.hardPar : d.par);
+/** Hard can be played on this day: a rules 6 day whose Hard par is worked out and has a winning line. */
+const hardOn = async (d: DuelDay) => d.rules >= 6 && !!d.hardPar && (await levelReady());
 
 async function getRun(id: string): Promise<RunRow | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const { data } = await createServiceClient().from("duel_runs").select(RUN_COLS).eq("id", id).maybeSingle();
-  return (data as RunRow | null) ?? null;
+  const { data } = await createServiceClient().from("duel_runs").select(await runCols()).eq("id", id).maybeSingle();
+  return (data as unknown as RunRow | null) ?? null;
 }
 
 /** The player's official run for a day (null when not started). */
 async function officialRun(key: string, day: string): Promise<RunRow | null> {
-  const { data } = await createServiceClient().from("duel_runs").select(RUN_COLS).eq("player", key).eq("day", day).eq("official", true).maybeSingle();
-  return (data as RunRow | null) ?? null;
+  const { data } = await createServiceClient().from("duel_runs").select(await runCols()).eq("player", key).eq("day", day).eq("official", true).maybeSingle();
+  return (data as unknown as RunRow | null) ?? null;
 }
 
 /** Saves a run's changes if nobody else changed it first. Null on a clash. */
 async function save(r: RunRow, patch: Partial<RunRow>): Promise<RunRow | null> {
-  const { data, error } = await createServiceClient().from("duel_runs").update({ ...patch, version: r.version + 1 }).eq("id", r.id).eq("version", r.version).select(RUN_COLS).maybeSingle();
+  const { data, error } = await createServiceClient().from("duel_runs").update({ ...patch, version: r.version + 1 }).eq("id", r.id).eq("version", r.version).select(await runCols()).maybeSingle();
   if (error) { console.error("[duel] save failed:", error); return null; }
-  return (data as RunRow | null) ?? null;
+  return (data as unknown as RunRow | null) ?? null;
 }
 
 /** An official duel goes on the boards: guests only once they've put a name on the boards. */
@@ -326,7 +383,7 @@ async function recordBoard(r: RunRow, d: DuelDay): Promise<{ points: number; tok
     if (!data) return null;
   }
   const parts = scoreOf(r, d, d.rules >= 6 ? await askedOn(r.player, r.day) : false);
-  const points = parts ? parts.points : duelPoints(r.result === "won", r.turns, d.par);
+  const points = parts ? parts.points : duelPoints(r.result === "won", r.turns, parOf(r, d));
   const got = await recordDuelScore({ day: r.day, player, won: r.result === "won", turns: r.turns, cardsLeft: r.cards_left ?? 0, seconds: r.seconds, points, ...(parts ? { score: parts.score } : {}) });
   return got ? { points: got.points, tokens: got.tokens } : null;
 }
@@ -363,7 +420,7 @@ const askedFor = async (r: RunRow, d: DuelDay) => (d.rules >= 6 && r.official ? 
 /** A finished official duel's score on a rules 6 day (null otherwise: older days keep their points). */
 function scoreOf(r: RunRow, d: DuelDay, asked: boolean): DuelScoreParts | null {
   if (d.rules < 6 || !r.official || r.status !== "done" || !r.result) return null;
-  return duelScore({ won: r.result === "won", turns: r.turns, par: d.par, seconds: r.seconds, solo: !asked, knocked: r.state.foe.filter((c) => c.out).length });
+  return duelScore({ won: r.result === "won", turns: r.turns, par: parOf(r, d), seconds: r.seconds, solo: !asked, knocked: r.state.foe.filter((c) => c.out).length, hard: isHard(r) });
 }
 
 /** The professor's plans for a day. On a rules 6 day asking for them ends the solo bonus (it's recorded first). */
@@ -382,22 +439,26 @@ export async function tipFor(runId: string, player: DuelPlayer): Promise<DuelHin
   const r = await getRun(runId);
   if (!r || r.player !== keyOf(player)) return "not_found";
   const d = await getDay(r.day, { build: false });
-  if (!d || r.status === "done") return null;
+  // Hard is on your own: no tips.
+  if (!d || r.status === "done" || isHard(r)) return null;
   if (d.rules >= 6 && r.official) await markAsked(r.player, r.day);
-  return adviceFor(d.setup, r.state);
+  return adviceFor(setupOf(r, d), r.state);
 }
 
 function shareFactsOf(r: RunRow, d: DuelDay): DuelShareFacts {
   return {
-    number: duelNumber(r.day), trainer: d.trainer.name, won: r.result === "won", turns: r.turns, par: d.par, seconds: r.seconds,
+    number: duelNumber(r.day), trainer: d.trainer.name, won: r.result === "won", turns: r.turns, par: parOf(r, d), seconds: r.seconds,
     standing: r.state.you.filter((_, i) => inDuel(r.state, i)).map((c) => !c.out), knocked: r.state.foe.length - alive(r.state.foe), team: r.state.foe.length, practice: !r.official,
+    ...(isHard(r) ? { hard: true } : {}),
   };
 }
 
 /** The arena's view of a run: on Professor's advice's turn it carries a play for the turn (a short search). */
 function playView(r: RunRow, d: DuelDay) {
-  const play = viewOf(d.setup, r.state, d.trainer);
-  if (play.event?.kind === "advice" && !play.over) play.hint = adviceFor(d.setup, r.state);
+  const setup = setupOf(r, d);
+  const play = viewOf(setup, r.state, d.trainer);
+  // Hard is on your own: the advice event comes up but gives no play.
+  if (play.event?.kind === "advice" && !play.over && !isHard(r)) play.hint = adviceFor(setup, r.state);
   return play;
 }
 
@@ -413,11 +474,12 @@ function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number 
     result: r.result,
     turns: r.state.turn,
     cardsLeft: cardsLeft(r.state),
-    par: parShown ? d.par : null,
-    points: parts ? parts.points : r.official && done && r.result ? duelPoints(r.result === "won", r.turns, d.par) : null,
+    par: parShown ? parOf(r, d) : null,
+    points: parts ? parts.points : r.official && done && r.result ? duelPoints(r.result === "won", r.turns, parOf(r, d)) : null,
     score: parts,
     scoring: d.rules >= 6 ? "score" : "points",
     asked,
+    level: isHard(r) ? "hard" : "normal",
     seconds: done ? r.seconds : null,
     startedAt: r.started_at,
     serverNow: new Date().toISOString(),
@@ -426,35 +488,40 @@ function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number 
   };
 }
 
-export type StartResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_ready" | "official_first" | "failed" };
+export type StartResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_ready" | "official_first" | "failed" | "hard_off" };
 
 /**
  * Starts a duel. Official: the player's first today (pressing Start starts its clock); asking again
  * returns the same one. Practice: only once the official duel is over; each start is a fresh duel
  * on the same day (an unfinished practice one is put away).
  */
-export async function startRun(player: DuelPlayer, mode: "official" | "practice", day = gsDay()): Promise<StartResult> {
+export async function startRun(player: DuelPlayer, mode: "official" | "practice", day = gsDay(), level: DuelLevel = "normal"): Promise<StartResult> {
   const d = await getDay(day);
   if (!d) return { ok: false, error: "not_ready" };
   const svc = createServiceClient();
   const key = keyOf(player);
   const official = await officialRun(key, day);
   if (mode === "official") {
+    // The official duel's mode locks when it starts: asking again returns it as it is.
     if (official) return { ok: true, run: runView(official, d, null, await askedFor(official, d)) };
   } else if (!official || official.status !== "done") {
     return { ok: false, error: "official_first" };
   } else {
     await svc.from("duel_runs").update({ status: "done" }).eq("player", key).eq("day", day).eq("official", false).eq("status", "playing");
   }
-  const row = { player: key, user_id: player.kind === "u" ? player.id : null, day, official: mode === "official", state: startState(d.setup), steps: [] };
-  const { data, error } = await svc.from("duel_runs").insert(row).select(RUN_COLS).single();
+  // Hard needs a day with a Hard par, and an official Hard duel needs a player who hasn't asked the professor today (Hard is on your own).
+  if (level === "hard" && (!(await hardOn(d)) || (mode === "official" && (await askedOn(key, day))))) return { ok: false, error: "hard_off" };
+  const hard = level === "hard";
+  const row = { player: key, user_id: player.kind === "u" ? player.id : null, day, official: mode === "official", state: startState(hard ? hardSetup(d.setup) : d.setup), steps: [], ...(hard ? { level: "hard" } : {}) };
+  const { data, error } = await svc.from("duel_runs").insert(row).select(await runCols()).single();
   if (error?.code === "23505") {
     // Another tab started the official duel first: that one stands.
     const again = await officialRun(key, day);
     return again ? { ok: true, run: runView(again, d, null, await askedFor(again, d)) } : { ok: false, error: "failed" };
   }
   if (error || !data) { if (!missing(error)) console.error("[duel] start failed:", error); return { ok: false, error: missing(error) ? "not_ready" : "failed" }; }
-  return { ok: true, run: runView(data as RunRow, d, null, await askedFor(data as RunRow, d)) };
+  const made = data as unknown as RunRow;
+  return { ok: true, run: runView(made, d, null, await askedFor(made, d)) };
 }
 
 export type ActResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_found" | "not_ready" | "bad_request" | "illegal" | "over" | "busy" };
@@ -466,7 +533,7 @@ export async function act(runId: string, player: DuelPlayer, st: DuelStep, attem
   const d = await getDay(r.day, { build: false });
   if (!d) return { ok: false, error: "not_ready" };
   if (r.status === "done") return { ok: false, error: "over" };
-  const next = applyStep(d.setup, r.state, st);
+  const next = applyStep(setupOf(r, d), r.state, st);
   if (!next) return { ok: false, error: "illegal" };
   const patch: Partial<RunRow> = { state: next, steps: [...(r.steps ?? []), st], turns: next.turn };
   if (next.over) {
@@ -493,7 +560,7 @@ export async function getRunView(runId: string, player: DuelPlayer): Promise<Due
 
 // ─── streaks and the page's opening state ────────────────────────────────────
 
-type OfficialRow = { day: string; status: "playing" | "done"; result: "won" | "lost" | null; seconds: number | null; turns: number };
+type OfficialRow = { day: string; status: "playing" | "done"; result: "won" | "lost" | null; seconds: number | null; turns: number; level?: DuelLevel };
 
 const NO_HISTORY: DuelHistory = { streak: 0, best: 0, played: 0, won: 0, fastest: null, recent: Array.from({ length: 14 }, () => null) };
 
@@ -521,9 +588,10 @@ function historyOf(rows: OfficialRow[], day: string): DuelHistory {
 }
 
 async function officialRows(key: string, day: string): Promise<OfficialRow[]> {
-  const { data } = await createServiceClient().from("duel_runs").select("day, status, result, seconds, turns")
+  const cols: string = `day, status, result, seconds, turns${(await levelReady()) ? ", level" : ""}`;
+  const { data } = await createServiceClient().from("duel_runs").select(cols)
     .eq("player", key).eq("official", true).gte("day", gsAddDays(day, -400)).lte("day", day).order("day", { ascending: false }).limit(400);
-  return (data ?? []) as OfficialRow[];
+  return (data ?? []) as unknown as OfficialRow[];
 }
 
 /** The page's opening state: today's trainer, team and six, your official duel or its result, practice, a duel to pick back up, streaks. `day`: another day, for development previews only. */
@@ -531,38 +599,43 @@ export async function duelHome(player: DuelPlayer | null, day = gsDay()): Promis
   const empty: DuelHome = {
     ready: false, day, number: duelNumber(day), tier: tierFor(day), trainer: null, pack: [], bring: 6, team: [],
     official: null, par: null, practiceAllowed: false, current: null, history: NO_HISTORY, signedIn: player?.kind === "u",
-    rules: 1, plans: [], planCount: 0, scoring: "points", asked: false,
+    rules: 1, plans: [], planCount: 0, scoring: "points", asked: false, hard: { can: false, why: "off", par: null },
   };
   const d = await getDay(day);
   if (!d) return empty;
   const start = viewOf(d.setup, startState(d.setup), d.trainer);
+  const hardToday = await hardOn(d);
   const base: DuelHome = {
     ...empty, ready: true, tier: d.tier, trainer: dayTrainer(d), pack: start.you, bring: start.bring, team: start.foe,
     rules: d.rules, planCount: d.plans.length, scoring: d.rules >= 6 ? "score" : "points",
     // Rules 6: the plans stay on the server until asked for (askProfessor); older days show them.
     plans: d.rules >= 6 ? [] : d.plans.map((p) => ({ title: p.title, text: p.text })),
+    hard: { can: hardToday, why: hardToday ? "ok" : "off", par: null },
   };
   if (!player) return base;
   const key = keyOf(player);
   const [official, rows, { data: practice }, asked] = await Promise.all([
     officialRun(key, day),
     officialRows(key, day),
-    createServiceClient().from("duel_runs").select(RUN_COLS).eq("player", key).eq("day", day).eq("official", false).eq("status", "playing").order("started_at", { ascending: false }).limit(1),
+    createServiceClient().from("duel_runs").select(await runCols()).eq("player", key).eq("day", day).eq("official", false).eq("status", "playing").order("started_at", { ascending: false }).limit(1),
     d.rules >= 6 ? askedOn(key, day) : Promise.resolve(false),
   ]);
   const over = official?.status === "done";
   const parts = official ? scoreOf(official, d, asked) : null;
-  const open = official && !over ? official : ((practice ?? []) as RunRow[])[0] ?? null;
+  const open = official && !over ? official : ((practice ?? []) as unknown as RunRow[])[0] ?? null;
   return {
     ...base,
     official: official ? {
       id: official.id, status: official.status, result: official.result, turns: official.turns, cardsLeft: official.cards_left ?? cardsLeft(official.state),
       seconds: over ? official.seconds : null, points: parts ? parts.points : over && official.result ? duelPoints(official.result === "won", official.turns, d.par) : null,
       score: parts,
+      level: official.level === "hard" ? "hard" : "normal",
     } : null,
     asked,
+    // Hard is on your own: asking the professor today closes it for the official duel (practice can still be Hard).
+    hard: { can: hardToday && (!asked || over), why: !hardToday ? "off" : asked && !over ? "asked" : "ok", par: over && official && hardToday ? d.hardPar : null },
     plans: d.rules < 6 || asked ? d.plans.map((p) => ({ title: p.title, text: p.text })) : [],
-    par: over ? d.par : null,
+    par: over && official ? parOf(official, d) : null,
     practiceAllowed: over,
     current: open ? runView(open, d, null, open.official ? asked : false) : null,
     history: historyOf(rows, day),
@@ -581,7 +654,7 @@ export async function duelDailiesEntry(player: DuelPlayer): Promise<DailiesEntry
     day,
     number: duelNumber(day),
     state: today?.status === "done" ? "done" : today ? "playing" : "fresh",
-    duel: today?.status === "done" && today.result ? { won: today.result === "won", turns: today.turns, par: d?.par ?? null, seconds: today.seconds } : null,
+    duel: today?.status === "done" && today.result ? { won: today.result === "won", turns: today.turns, par: d ? (today.level === "hard" && d.hardPar ? d.hardPar : d.par) : null, seconds: today.seconds } : null,
     stats: { played: history.played, won: history.won, streak: history.streak, best: history.best, fastest: history.fastest },
     recent: history.recent,
   };
