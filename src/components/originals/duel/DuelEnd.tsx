@@ -75,7 +75,7 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
             : <div><dt>Knocked out</dt><dd>{knocked} of {play.foe.length}</dd></div>}
           {run.par != null && <div><dt>Par</dt><dd>{run.par}</dd></div>}
           {official && run.seconds != null && <div><dt>Time</dt><dd>{formatTime(run.seconds)}</dd></div>}
-          <div><dt>Cards left</dt><dd>{run.cardsLeft} of {play.you.length}</dd></div>
+          <div><dt>Cards left</dt><dd>{run.cardsLeft} of {play.you.filter((c) => !c.sat).length}</dd></div>
         </dl>
         {parLine(run) && <p className="duel-result__line">{parLine(run)}</p>}
         {official && run.board && (
@@ -119,8 +119,8 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, onTo
 /** A scored day's score (rules 6): the total out of 1,000, then its parts (turns, time and solo on a win; knockouts on a loss). */
 function DuelScoreCard({ score, won }: { score: NonNullable<DuelRunView["score"]>; won: boolean }) {
   const parts = won
-    ? [{ label: "Turns", value: score.turns, max: SCORE.turns }, { label: "Time", value: score.time, max: SCORE.time }, { label: "Solo", value: score.solo, max: SCORE.solo }]
-    : [{ label: "Knockouts", value: score.kos, max: SCORE.koMax }];
+    ? [{ label: "From turns", value: score.turns, max: SCORE.turns }, { label: "From time", value: score.time, max: SCORE.time }, { label: "Solo bonus", value: score.solo, max: SCORE.solo }]
+    : [{ label: "From knockouts", value: score.kos, max: SCORE.koMax }];
   return (
     <div className="duel-scorecard">
       <p className="duel-scorecard__total"><span>Score</span> <b>{score.score.toLocaleString("en-US")}</b> <small>of 1,000</small></p>
