@@ -205,7 +205,7 @@ export const DUEL_TRAINER_PLANS: DuelTrainerPlan[] = [
   { id: "winona-omegaruby", name: "Winona", title: "Fortree City Gym Leader", game: "Pokémon Omega Ruby and Alpha Sapphire", tier: "gym",
     species: ["Swellow", "Pelipper", "Skarmory", "Altaria"],
     signature: { title: "Wings of grace", effect: "heal50" } },
-  // Bulbapedia: Tate_and_Liza, Emerald Gym battle (snapshot 20261015045022). A Double Battle in the
+  // Bulbapedia: Tate_and_Liza, Emerald Gym battle (snapshot 20260902154514; re-checked 2026-10-23, the later capture is a Cloudflare page). A Double Battle in the
   // game; here the twins' four come out one at a time as one team.
   { id: "tate-liza-emerald", name: "Tate & Liza", title: "Mossdeep City Gym Leaders", game: "Pokémon Emerald", tier: "gym",
     species: ["Claydol", "Xatu", "Lunatone", "Solrock"],
@@ -369,6 +369,7 @@ export const DUEL_TRAINER_PLANS: DuelTrainerPlan[] = [
     signature: { title: "Dragon girl's dash", effect: "energy2" } },
   // Left out (2026-10-21): Cheren's Black 2/White 2 Gym team (Patrat, Lillipup) can't make a puzzle; even the
   // hardest-hitting prints (60 HP each) lose to the obvious play with every pack. He stays a rival.
+
   // Bulbapedia: Lt._Surge, HeartGold/SoulSilver Gym battle; Electrode twice (snapshot 20261013013338).
   { id: "lt-surge-heartgold", person: "lt-surge", name: "Lt. Surge", title: "Vermilion City Gym Leader", game: "Pokémon HeartGold and SoulSilver", tier: "gym",
     species: ["Raichu", "Electrode", "Electrode", "Magneton", "Electabuzz"], owner: "Lt. Surge",
@@ -474,11 +475,11 @@ export const DUEL_TRAINER_PLANS: DuelTrainerPlan[] = [
   { id: "winona-emerald", person: "winona", name: "Winona", title: "Fortree City Gym Leader", game: "Pokémon Emerald", tier: "gym",
     species: ["Swablu", "Tropius", "Pelipper", "Skarmory", "Altaria"],
     signature: { title: "Sky dance", effect: "heal50" } },
-  // Bulbapedia: Tate_and_Liza, Omega Ruby/Alpha Sapphire Gym battle (snapshot 20261015045022).
+  // Bulbapedia: Tate_and_Liza, Omega Ruby/Alpha Sapphire Gym battle (snapshot 20260902154514; re-checked 2026-10-23, the later capture is a Cloudflare page).
   { id: "tate-liza-omegaruby", person: "tate-liza", name: "Tate & Liza", title: "Mossdeep City Gym Leaders", game: "Pokémon Omega Ruby and Alpha Sapphire", tier: "gym",
     species: ["Lunatone", "Solrock"],
     signature: { title: "Twin moons", effect: "energy2" } },
-  // Bulbapedia: Tate_and_Liza, Emerald first rematch (snapshot 20261015045022).
+  // Bulbapedia: Tate_and_Liza, Emerald first rematch (snapshot 20260902154514; re-checked 2026-10-23, the later capture is a Cloudflare page).
   { id: "tate-liza-emerald-rematch", person: "tate-liza", name: "Tate & Liza", title: "Mossdeep City Gym Leaders", game: "Pokémon Emerald (rematch)", tier: "gym",
     species: ["Slowpoke", "Claydol", "Xatu", "Lunatone", "Solrock"],
     signature: { title: "Space center minds", effect: "energy2" } },
@@ -670,6 +671,10 @@ export const DUEL_TRAINER_PLANS: DuelTrainerPlan[] = [
   { id: "drake-emerald", name: "Drake", title: "Elite Four of Hoenn", game: "Pokémon Emerald", tier: "elite",
     species: ["Shelgon", "Altaria", "Kingdra", "Flygon", "Salamence"],
     signature: { title: "A dragon's heart", effect: "boost30" } },
+  // Bulbapedia: Glacia, Emerald (snapshot 20260913003146). Sealeo twice and Glalie twice.
+  { id: "glacia-emerald", name: "Glacia", title: "Elite Four of Hoenn", game: "Pokémon Emerald", tier: "elite",
+    species: ["Sealeo", "Glalie", "Sealeo", "Glalie", "Walrein"],
+    signature: { title: "Full Restore", effect: "heal50" } },
   // Bulbapedia: Aaron, Platinum (Yanmega and Scizor replace Diamond/Pearl's Dustox and Beautifly).
   { id: "aaron-platinum", name: "Aaron", title: "Elite Four of Sinnoh", game: "Pokémon Platinum", tier: "elite",
     species: ["Yanmega", "Scizor", "Heracross", "Vespiquen", "Drapion"],
@@ -834,6 +839,10 @@ export const DUEL_TRAINER_PLANS: DuelTrainerPlan[] = [
   { id: "drake-omegaruby", person: "drake", name: "Drake", title: "Elite Four of Hoenn", game: "Pokémon Omega Ruby and Alpha Sapphire", tier: "elite",
     species: ["Altaria", "Flygon", "Kingdra", "Flygon", "Salamence"],
     signature: { title: "Sailor's dragons", effect: "boost30" } },
+  // Bulbapedia: Glacia, Omega Ruby/Alpha Sapphire initial battle (snapshot 20260913003146). Glalie twice and Froslass twice.
+  { id: "glacia-omegaruby", person: "glacia", name: "Glacia", title: "Elite Four of Hoenn", game: "Pokémon Omega Ruby and Alpha Sapphire", tier: "elite",
+    species: ["Glalie", "Froslass", "Glalie", "Froslass", "Walrein"],
+    signature: { title: "Flaming passion", effect: "boost30" } },
   // Bulbapedia: Aaron, Brilliant Diamond/Shining Pearl first match; Diamond and Pearl have the same team (snapshot 20260903013049).
   { id: "aaron-bdsp", person: "aaron", name: "Aaron", title: "Elite Four of Sinnoh", game: "Pokémon Brilliant Diamond and Shining Pearl", tier: "elite",
     species: ["Dustox", "Beautifly", "Vespiquen", "Heracross", "Drapion"],
@@ -913,6 +922,8 @@ export const DUEL_TRAINER_PLANS: DuelTrainerPlan[] = [
   // Bulbapedia: Larry, Scarlet/Violet Champion Assessment; the same person as the Medali Gym Leader, in another tier (snapshot 20261015100336).
   { id: "larry-scarlet-elite", person: "larry", name: "Larry", title: "Elite Four of Paldea", game: "Pokémon Scarlet and Violet", tier: "elite",
     species: ["Tropius", "Oricorio", "Altaria", "Staraptor", "Flamigo"], owner: "Larry",
+    // His Oricorio is Pom-Pom Style (Electric/Flying): a Lightning print, not the automatic Fire (Baile) pick. Re-checked 2026-10-23.
+    pin: { 1: "sv4-67" },
     signature: { title: "Overtime shift", effect: "energy2" } },
   // Bulbapedia: Hala, Sun/Moon Pokémon League battle; the same person as the Melemele kahuna, in another tier (snapshot 20261002171643).
   { id: "hala-sun-elite", person: "hala", name: "Hala", title: "Elite Four of Alola", game: "Pokémon Sun and Moon", tier: "elite",

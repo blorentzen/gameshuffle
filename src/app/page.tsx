@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/seo";
 import { Container, Icon } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
-import { IconBook2, IconCards, IconPokeball } from "@tabler/icons-react";
+import { IconBook2, IconCards, IconPokeball, IconRoute } from "@tabler/icons-react";
 import { RowLink, RowPanel, type PanelRow } from "@/components/marketing/RowPanel";
 import { ArrowLink } from "@/components/ui/ArrowLink";
 import { BrowseHero } from "@/components/events/BrowseHero";
@@ -18,7 +18,7 @@ import { HomeHost } from "@/components/home/HomeHost";
 import { PlansBand } from "@/components/home/PlansBand";
 import { paidPlansHere } from "@/lib/billing/availability";
 import { homeViewer } from "@/lib/home/viewer";
-import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC } from "@/lib/games-visibility";
+import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC } from "@/lib/games-visibility";
 import { DUEL_SHOWN } from "@/lib/originals/dailies";
 import { duelChallenger } from "@/lib/originals/duel/store";
 import { gsDay } from "@/lib/time/gsClock";
@@ -128,6 +128,11 @@ export default async function HomePage() {
       key: "dex", Icon: IconPokeball, tone: "orange" as const, title: "The Daily Dex",
       text: "Guess today's Pokémon from all 1,025, with a new hint after every miss.",
       action: <RowLink href="/daily-dex" className={tagged(EVENTS.homeSectionClicked, { to: "daily-dex" })}>Play today&apos;s Pokémon</RowLink>,
+    }] : []),
+    ...(ROAD_PUBLIC ? [{
+      key: "road", Icon: IconRoute, tone: "violet" as const, title: "Trainer Road",
+      text: "Duel any Gym Leader, Elite Four member or Champion from the games with their own teams, any time.",
+      action: <RowLink href="/pokemon-trainers" className={tagged(EVENTS.homeSectionClicked, { to: "trainer-road" })}>Pick a trainer</RowLink>,
     }] : []),
     {
       key: "rules", Icon: IconBook2, tone: "blue", title: "Rules and checklists",

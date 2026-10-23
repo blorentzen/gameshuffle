@@ -1,7 +1,7 @@
 /**
  * The Daily Duel trainer's picture (picks 2026-10-21, https://claude.ai/artifact/4YeQz1MVRnuBLkSHmkMCmp):
- * the art window of their own Supporter card (or their ace's card), cropped with CSS from the card
- * image as Scrydex serves it. `banner` covers a wide frame with the face a little above the middle;
+ * the art window of their own Supporter card (else their official artwork, else their ace's card),
+ * cropped with CSS from the card image as Scrydex serves it (official artwork: our own copy). `banner` covers a wide frame with the face a little above the middle;
  * `round` and `tile` close in on the face (the card's hand-set face point and zoom). Our own drawing
  * (CascadeDS has no picture crop); the sums match artCrop in src/lib/originals/duel/pictures.ts.
  * Size the frame from outside (width and height, or an aspect-ratio): it never sizes itself, so
@@ -37,8 +37,8 @@ export function TrainerArt({ picture, shape, alt = "", className, eager = false 
   eager?: boolean;
 }) {
   return (
-    <span className={`duel-art duel-art--${shape}${picture.kind === "ace" ? " duel-art--ace" : ""}${className ? ` ${className}` : ""}`} style={artVars(picture, shape)}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- Scrydex CDN image, medium size, never rewritten */}
+    <span className={`duel-art duel-art--${shape}${picture.kind !== "card" ? ` duel-art--${picture.kind}` : ""}${className ? ` ${className}` : ""}`} style={artVars(picture, shape)}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- Scrydex CDN image, medium size, never rewritten (official artwork: our own small copy) */}
       <img src={picture.img} alt={alt} loading={eager ? "eager" : "lazy"} decoding="async" draggable={false} />
     </span>
   );

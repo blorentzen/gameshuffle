@@ -163,17 +163,18 @@ export interface DuelPlayView {
  * cuts it on the server with artCrop.
  */
 export interface DuelPicture {
-  /** "card": their own Supporter card; "ace": the last card of their team, when no card shows them. */
-  kind: "card" | "ace";
-  /** The card's Scrydex id (My Cards takes it). */
+  /** "card": their own Supporter card; "official": official artwork, when no card shows them; "ace": the last card of their team, when neither does. */
+  kind: "card" | "official" | "ace";
+  /** The card's Scrydex id (My Cards takes it); "official:<person>" for official artwork. */
   id: string;
-  /** The card's picture: Scrydex's medium image, exactly as stored. */
+  /** The card's picture: Scrydex's medium image, exactly as stored; official artwork is our own copy ("/images/duel/trainers/viola.webp"). */
   img: string;
-  /** The card's printed name ("Bertha's Warmth"; an ace's short name, "Manectric"). */
+  /** The card's printed name ("Bertha's Warmth"; an ace's short name, "Manectric"); "official artwork". */
   card: string;
+  /** The card's set; official artwork's game ("Pokémon X and Y"). */
   set: string | null;
   artist: string | null;
-  /** The art window on the image: x, y, width, height as shares of it. */
+  /** The art window on the image: x, y, width, height as shares of it (the whole picture for official artwork). */
   box: [number, number, number, number];
   /** The image's width over its height. */
   ratio: number;

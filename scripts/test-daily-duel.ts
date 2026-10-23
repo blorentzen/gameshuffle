@@ -558,10 +558,12 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
   const byName = trainerPicture({ name: "Bertha" }, null);
   check(withPerson?.kind === "card" && withPerson.id === byName?.id && withPerson.credit === byName?.credit, "a stored day without `person` gets the same picture by name");
   const ace = card("their-ace", L, 120, F, [["Zap", [L], 40]]);
-  const noImg = trainerPicture({ name: "Wattson" }, ace);
+  const noImg = trainerPicture({ name: "Bugsy" }, ace);
   check(noImg === null, "an ace with no image: no picture (the page falls back to the plain line)");
-  const aceShown = trainerPicture({ name: "Wattson" }, { ...ace, short: "Manectric", img: "https://images.scrydex.com/pokemon/x-1/medium" });
-  check(aceShown?.kind === "ace" && aceShown.card === "Manectric" && aceShown.credit === "Wattson's picture: the art from Wattson's ace, Manectric." && aceShown.alt === "Wattson's ace, Manectric, from its card", "a person with no card: their ace, labeled with their name");
+  const aceShown = trainerPicture({ name: "Bugsy" }, { ...ace, short: "Kakuna", img: "https://images.scrydex.com/pokemon/x-1/medium" });
+  check(aceShown?.kind === "ace" && aceShown.card === "Kakuna" && aceShown.credit === "Bugsy's picture: the art from Bugsy's ace, Kakuna." && aceShown.alt === "Bugsy's ace, Kakuna, from its card", "a person with no card: their ace, labeled with their name");
+  const official = trainerPicture({ name: "Wattson" }, { ...ace, short: "Manectric", img: "https://images.scrydex.com/pokemon/x-1/medium" });
+  check(official?.kind === "official" && official.img === "/images/duel/trainers/wattson.webp" && official.credit === "Wattson's picture: official artwork from Pokémon Omega Ruby and Alpha Sapphire." && official.alt === "Wattson, from official artwork", "a person with no card but official artwork: the artwork, ahead of the ace");
   // The crop: a banner keeps the art window's full width or height; a closer round crop is square and centred on the face where it can be.
   if (withPerson) {
     const [, , bw, bh] = artCrop(withPerson, 16, 7);
@@ -923,7 +925,10 @@ async function real() {
     // day keeps its own copy of its cards, so later card data changes never change it.
     const warm = buildDay(DUEL_WARMUP, DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000 });
     const warmTr = warm && DUEL_DATA.trainers.find((t) => t.id === warm.trainerId);
-    check(warmTr?.name === "Larry" && duelNumber(DUEL_WARMUP) === 0, `the real roster: the warm-up is Larry (got ${warmTr?.name})`);
+    // The warm-up was Larry (production stores it). Adding a person to a tier reshuffles that tier's
+    // rotation for days not built yet (Glacia, 2026-10-23), so today's roster can name someone else;
+    // stored days never change.
+    check(warmTr?.tier === "elite" && duelNumber(DUEL_WARMUP) === 0, `the real roster: the warm-up is an Elite Four day (got ${warmTr?.name})`);
     // A Saturday: a villain team's boss, beatable, the obvious play loses.
     const sat = buildDay("2026-10-31", DUEL_DATA.pool, DUEL_DATA.cards, DUEL_DATA.trainers, "", { budgetMs: 120_000 });
     const boss = sat && DUEL_DATA.trainers.find((t) => t.id === sat.trainerId);

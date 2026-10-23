@@ -5,13 +5,16 @@
  *   npx tsx scripts/test-duel-data.ts
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { DUEL_TRAINERS, DUEL_TRAINER_PLANS } from "../src/data/originals/duel/trainers";
 import { DUEL_POOL } from "../src/data/originals/duel/pool";
 import { DUEL_CARDS } from "../src/data/originals/duel/cards.generated";
 import { canHit, MAX_MOVE_COST, OWNER_PREFIX } from "../src/data/originals/duel/cardRules";
 import { peopleOf, personKey, personOf } from "../src/lib/originals/duel/rules";
 import type { DuelTier, EnergyType } from "../src/lib/originals/duel/types";
-import { ACE_ART, DUEL_TRAINER_CARDS, SUPPORTER_ART, supporterEra } from "../src/data/originals/duel/trainer-cards";
+import { ACE_ART, DUEL_TRAINER_CARDS, OFFICIAL_ART, OFFICIAL_ART_ON, SUPPORTER_ART, supporterEra } from "../src/data/originals/duel/trainer-cards";
+import { DUEL_OFFICIAL_ART } from "../src/data/originals/duel/official-art.generated";
 import { DUEL_TRAINER_ART } from "../src/data/originals/duel/trainer-art.generated";
 import { artCrop, pictureCredit, trainerPicture } from "../src/lib/originals/duel/pictures";
 
@@ -116,8 +119,8 @@ for (const [id, c] of Object.entries(DUEL_CARDS)) {
   ok(typeof c.img === "string" && c.img.startsWith("https://images.scrydex.com/") && !/\/large$/.test(c.img), `${id}: Scrydex image (small/medium only)`);
 }
 
-// Trainer pictures (picks 2026-10-21): every person has one, their own Supporter card or their ace's
-// card art, with a face point, a credit and an art window inside the card.
+// Trainer pictures (picks 2026-10-21): every person has one, their own Supporter card, else official
+// artwork (2026-10-23), else their ace's card art, with a face point, a credit and an art window.
 const inUnit = (v: number) => Number.isFinite(v) && v >= 0 && v <= 1;
 const boxOk = (b: readonly number[]) => b.length === 4 && b.every(inUnit) && b[2] > 0.3 && b[3] > 0.15 && b[0] + b[2] <= 1.0001 && b[1] + b[3] <= 1.0001;
 const seenPeople = new Set<string>();
@@ -139,12 +142,19 @@ for (const t of DUEL_TRAINERS) {
   const pic = trainerPicture(t, ace);
   ok(pic, `${t.id}: has a picture`);
   if (!pic) continue;
-  ok(pic.kind === (plan?.card ? "card" : "ace"), `${t.id}: picture is ${plan?.card ? "their own card" : "their ace"}`);
-  ok(pic.img.startsWith("https://images.scrydex.com/"), `${t.id}: picture is a Scrydex image`);
+  const want = plan?.card ? "card" : OFFICIAL_ART_ON && OFFICIAL_ART[person] ? "official" : "ace";
+  ok(pic.kind === want, `${t.id}: picture is ${want} (got ${pic.kind})`);
+  if (pic.kind === "official") {
+    ok(pic.img === `/images/duel/trainers/${person}.webp`, `${t.id}: official picture is our own copy (${pic.img})`);
+    ok(pic.ratio > 0.3 && pic.ratio < 2, `${t.id}: official picture shape ${pic.ratio}`);
+    ok(pic.credit.replace(/\.$/, "") === `${t.name}'s picture: official artwork from ${OFFICIAL_ART[person].game}`, `${t.id}: credit names the official source (${pic.credit})`);
+  } else {
+    ok(pic.img.startsWith("https://images.scrydex.com/"), `${t.id}: picture is a Scrydex image`);
+    ok(pic.ratio > 0.68 && pic.ratio < 0.76, `${t.id}: picture shape ${pic.ratio} is a card's`);
+  }
   ok(boxOk(pic.box) && pic.face.length === 3 && inUnit(pic.face[0]) && inUnit(pic.face[1]) && pic.face[2] >= 1, `${t.id}: picture has an art window and a face point`);
-  ok(pic.ratio > 0.68 && pic.ratio < 0.76, `${t.id}: picture shape ${pic.ratio} is a card's`);
-  ok(pic.credit.startsWith(`${t.name}'s picture: `) && pic.credit.endsWith(".") && !/[–—]/.test(pic.credit), `${t.id}: credit line (${pic.credit})`);
-  ok(pic.kind === "ace" || pic.credit.includes("illustrated by "), `${t.id}: credit names the illustrator`);
+  ok(pic.credit.startsWith(`${t.name}'s picture: `) && /[.!]$/.test(pic.credit) && !/\.\.$|!\.$/.test(pic.credit) && !/[–—]/.test(pic.credit), `${t.id}: credit line (${pic.credit})`);
+  ok(pic.kind !== "card" || pic.credit.includes("illustrated by "), `${t.id}: credit names the illustrator`);
   ok(pic.alt.startsWith(t.name), `${t.id}: alt text names the trainer (${pic.alt})`);
   if (pic.kind === "ace") ok(DUEL_TRAINER_ART[pic.id] && ACE_ART[pic.id], `${t.id}: ace ${pic.id} measured and framed by hand (trainer-art.generated.ts, ACE_ART)`);
   // The crop rule: a round crop stays inside the art window and is square on the card.
@@ -152,6 +162,24 @@ for (const t of DUEL_TRAINERS) {
   ok(x >= pic.box[0] - 1e-6 && y >= pic.box[1] - 1e-6 && x + w <= pic.box[0] + pic.box[2] + 1e-6 && y + h <= pic.box[1] + pic.box[3] + 1e-6, `${t.id}: the round crop stays inside the art window`);
   ok(Math.abs((w * pic.ratio) / h - 1) < 1e-6, `${t.id}: the round crop is square`);
 }
+// Official artwork: only for people with no card of their own, each with its picture on disk, a source on
+// an official Pokémon site (scripts/data/duel-official-art.json) and a face point; every one of them still
+// has a framed ace for when the switch is off.
+const officialSources = (JSON.parse(fs.readFileSync(path.join(process.cwd(), "scripts/data/duel-official-art.json"), "utf8")) as { people: Record<string, { url: string }> }).people;
+const OFFICIAL_HOSTS = /^https:\/\/(www\.pokemon\.co\.jp\/|cdn\.pokemonmasters-game\.com\/|web\.archive\.org\/web\/\d+id_\/http:\/\/pokemonblackwhite\.com\/)/;
+for (const [person, art] of Object.entries(OFFICIAL_ART)) {
+  ok(DUEL_TRAINER_CARDS[person] && !DUEL_TRAINER_CARDS[person].card, `${person}: official artwork only for someone with no card of their own`);
+  ok(DUEL_OFFICIAL_ART[person] && fs.existsSync(path.join(process.cwd(), "public", DUEL_OFFICIAL_ART[person].img)), `${person}: official picture on disk (run scripts/pull-duel-official-art.ts)`);
+  ok(OFFICIAL_HOSTS.test(officialSources[person]?.url ?? ""), `${person}: official picture from an official Pokémon site (${officialSources[person]?.url})`);
+  ok(/^Pokémon/.test(art.game), `${person}: the source game for the credit (${art.game})`);
+  ok(art.face.length === 3 && inUnit(art.face[0]) && inUnit(art.face[1]) && art.face[2] >= 1 && art.face[2] <= 6, `${person}: a face point and zoom (${art.face})`);
+  const t = DUEL_TRAINERS.find((x) => personOf(x) === person)!;
+  const aceId = t ? DUEL_CARDS[t.team[t.team.length - 1]]?.id : null;
+  ok(aceId && DUEL_TRAINER_ART[aceId] && ACE_ART[aceId], `${person}: their ace is still framed, for when the switch is off`);
+}
+for (const person of Object.keys(DUEL_OFFICIAL_ART)) ok(OFFICIAL_ART[person], `official-art.generated.ts: ${person} has a credit and face in OFFICIAL_ART`);
+ok(pictureCredit("Viola", { kind: "official", card: "official artwork", set: "Pokémon X and Y", artist: null }) === "Viola's picture: official artwork from Pokémon X and Y.", "the official credit line");
+
 // The data covers only the roster's people.
 for (const person of Object.keys(DUEL_TRAINER_CARDS)) ok(seenPeople.has(person), `trainer-cards.ts: ${person} is someone on the roster`);
 // An unknown person falls back to the ace; no ace picture, no picture.
@@ -165,4 +193,4 @@ if (failures.length) {
   process.exit(1);
 }
 const tiers = TIERS.map((t) => `${t} ${DUEL_TRAINERS.filter((x) => x.tier === t).length}`).join(" · ");
-console.log(`All ${checks} checks passed. ${DUEL_TRAINERS.length} trainers (${tiers}) · pictures ${Object.values(DUEL_TRAINER_CARDS).filter((p) => p.card).length} cards, ${Object.values(DUEL_TRAINER_CARDS).filter((p) => !p.card).length} aces · pool ${DUEL_POOL.length} (${ENERGY.map((t) => `${t} ${perType.get(t) ?? 0}`).join(", ")}) · ${Object.keys(DUEL_CARDS).length} cards.`);
+console.log(`All ${checks} checks passed. ${DUEL_TRAINERS.length} trainers (${tiers}) · pictures ${Object.values(DUEL_TRAINER_CARDS).filter((p) => p.card).length} cards, ${Object.keys(DUEL_TRAINER_CARDS).filter((k) => !DUEL_TRAINER_CARDS[k].card && OFFICIAL_ART_ON && OFFICIAL_ART[k] && DUEL_OFFICIAL_ART[k]).length} official, ${Object.keys(DUEL_TRAINER_CARDS).filter((k) => !DUEL_TRAINER_CARDS[k].card && !(OFFICIAL_ART_ON && OFFICIAL_ART[k] && DUEL_OFFICIAL_ART[k])).length} aces · pool ${DUEL_POOL.length} (${ENERGY.map((t) => `${t} ${perType.get(t) ?? 0}`).join(", ")}) · ${Object.keys(DUEL_CARDS).length} cards.`);

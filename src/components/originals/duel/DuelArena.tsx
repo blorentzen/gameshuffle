@@ -175,7 +175,7 @@ function Scoreline({ rows, reveal, trainer, onLog }: { rows: ScoreRow[]; reveal:
   );
 }
 
-export function DuelArena({ run, play, motion, busy, staging, offset, onNext, onBring, onTurn, onTip, onZoom, onSkip }: {
+export function DuelArena({ run, play, motion, busy, staging, offset, onNext, onBring, onTurn, onTip, onZoom, onSkip, askBody = "You'll lose today's solo bonus: 150 points off your score." }: {
   run: DuelRunView;
   /** The picture to draw (an exchange's beats first, then the new turn). */
   play: DuelPlayView;
@@ -194,6 +194,8 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
   onTip: () => Promise<DuelHintView | null>;
   onZoom: (card: DuelCardView, owner: string) => void;
   onSkip: () => void;
+  /** What asking the professor costs, in the check (Trainer Road: this duel's bonus). */
+  askBody?: string;
 }) {
   const confirm = useConfirm();
   const toast = useToast();
@@ -266,7 +268,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
     if (tipBusy) return;
     if (costs) {
       setConfirming(true);
-      const ok = await confirm({ title: "Ask the professor?", body: "You'll lose today's solo bonus: 150 points off your score.", confirmLabel: "Ask", danger: false });
+      const ok = await confirm({ title: "Ask the professor?", body: askBody, confirmLabel: "Ask", danger: false });
       setConfirming(false);
       if (!ok) return;
     }

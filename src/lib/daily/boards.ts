@@ -213,6 +213,12 @@ export async function playerForIdentity(identityId: string, userId?: string | nu
 
 type RawRow = { place: number; player: string; points: number; days: number; guesses: number; seconds?: number | null; score?: number | null; user_id: string | null; identity_id: string | null; guest_key: string | null; total_players: number };
 
+/** Names, pictures and profile links for players by key (u:, i:, g:), for boards outside the dailies (Trainer Road). */
+export async function describePlayers(keys: string[]): Promise<Map<string, Pick<BoardRow, "name" | "tag" | "avatar" | "profile">>> {
+  const rows = keys.map((k): RawRow => ({ place: 0, player: k, points: 0, days: 0, guesses: 0, user_id: k.startsWith("u:") ? k.slice(2) : null, identity_id: k.startsWith("i:") ? k.slice(2) : null, guest_key: k.startsWith("g:") ? k.slice(2) : null, total_players: 0 }));
+  return describe(rows);
+}
+
 /** Names, pictures and profile links for a board's rows. Private profiles show as "A player". */
 async function describe(rows: RawRow[]): Promise<Map<string, Pick<BoardRow, "name" | "tag" | "avatar" | "profile">>> {
   const admin = createServiceClient();
@@ -239,7 +245,6 @@ async function describe(rows: RawRow[]): Promise<Map<string, Pick<BoardRow, "nam
   return out;
 }
 
-/** A board: today, this week or this month for a game, with the viewer's own row. */
 /** The Daily Duel's day board: who played today's official duel in Hard (a tag by the name; picks 2026-10-23). Empty before daily-duel-m5.sql. */
 async function duelHardPlayers(day: string, players: string[]): Promise<Set<string>> {
   if (!players.length) return new Set();
@@ -248,6 +253,7 @@ async function duelHardPlayers(day: string, players: string[]): Promise<Set<stri
   return new Set(((data ?? []) as { player: string }[]).map((r) => r.player));
 }
 
+/** A board: today, this week or this month for a game, with the viewer's own row. */
 export async function boardView(args: { game: BoardGame; period: BoardPeriod; day?: string; me?: string | null; limit?: number; shared?: string | null }): Promise<BoardView> {
   const day = args.day ?? gsDay();
   const { from, to } = periodRange(args.period, day);

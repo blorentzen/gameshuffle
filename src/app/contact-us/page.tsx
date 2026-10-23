@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Script from "next/script";
 import {
   Alert,
@@ -17,6 +17,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { CONTACT_TOPIC_LABELS } from "@/lib/email/contact";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { readReport, REPORT_TOPIC } from "@/lib/contact/report";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -29,6 +30,8 @@ interface TurnstileAPI {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;
   reset: (id: string) => void;
 }
+const noSubscribe = () => () => {};
+
 function getTurnstile(): TurnstileAPI | undefined {
   return (window as unknown as { turnstile?: TurnstileAPI }).turnstile;
 }
@@ -45,7 +48,11 @@ export default function ContactPage() {
 
   const [name, setName] = useState(prefilledName);
   const [email, setEmail] = useState(prefilledEmail);
-  const [topic, setTopic] = useState<string>("general");
+  // A "Let us know" link (src/lib/contact/report.ts) opens the form on its topic and names the page.
+  const search = useSyncExternalStore(noSubscribe, () => window.location.search, () => "");
+  const report = readReport(search);
+  const [picked, setTopic] = useState<string | null>(null);
+  const topic = picked ?? (report.topic && report.topic in CONTACT_TOPIC_LABELS ? report.topic : "general");
   const [message, setMessage] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [turnstileReady, setTurnstileReady] = useState(false);
@@ -117,7 +124,9 @@ export default function ContactPage() {
           name: name.trim() || null,
           email: email.trim(),
           topic,
-          message: message.trim(),
+          message: report.about
+            ? `About: ${report.about}${report.page ? ` (${window.location.origin}${report.page})` : ""}\n\n${message.trim()}`
+            : message.trim(),
           turnstileToken: captchaToken,
         }),
       });
@@ -215,6 +224,13 @@ export default function ContactPage() {
                         />
                       </FormField>
 
+                      {report.about && (
+                        <p className="contact-page__about">
+                          About:{" "}
+                          {report.page ? <a href={report.page}>{report.about}</a> : report.about}
+                        </p>
+                      )}
+
                       <FormField
                         label="Message"
                         required
@@ -225,7 +241,7 @@ export default function ContactPage() {
                           onChange={(e) => setMessage(e.target.value.slice(0, 5000))}
                           rows={6}
                           maxLength={5000}
-                          placeholder="What can we help with?"
+                          placeholder={topic === REPORT_TOPIC ? "What's wrong, and what should it say?" : "What can we help with?"}
                           fullWidth
                         />
                       </FormField>

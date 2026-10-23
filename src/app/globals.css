@@ -1908,6 +1908,24 @@ ul {
   justify-content: flex-start;
 }
 
+/* "About: Viola on Trainer Road" when the form was opened from a "Let us know" link. */
+.contact-page__about {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.contact-page__about a {
+  color: var(--primary-ink-600);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+/* "Is something wrong? Let us know" at the foot of a page with facts on it (ReportProblem). */
+.report-problem {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
 /* ─────────────────────────────────────────────
    DSAR (Data Subject Access Request) pages
    Form layout that pairs with CDS form components.

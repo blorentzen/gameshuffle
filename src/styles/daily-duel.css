@@ -167,11 +167,11 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 /* The mode on the start card: Normal or Hard, two CascadeDS cards you press (picks 2026-10-23). */
 .duel-modes { display: grid; gap: 8px; }
 .duel-modes__pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 54rem; }
-.daily-start--duel .duel-mode.empac-card { display: grid; align-content: start; gap: 3px; min-height: 0; padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06); color: #fff; text-align: start; box-shadow: none; }
-.daily-start--duel .duel-mode.empac-card:hover:not(:disabled) { border-color: rgba(245, 200, 76, 0.7); background: rgba(255, 255, 255, 0.1); }
-.daily-start--duel .duel-mode.empac-card.empac-card--selected { border-color: #f5c84c; background: rgba(245, 200, 76, 0.14); box-shadow: inset 0 0 0 1px #f5c84c; }
-.daily-start--duel .duel-mode.empac-card:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
-.daily-start--duel .duel-mode.empac-card:disabled { opacity: 0.75; cursor: default; }
+:is(.daily-start--duel, .road-start) .duel-mode.empac-card { display: grid; align-content: start; gap: 3px; min-height: 0; padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06); color: #fff; text-align: start; box-shadow: none; }
+:is(.daily-start--duel, .road-start) .duel-mode.empac-card:hover:not(:disabled) { border-color: rgba(245, 200, 76, 0.7); background: rgba(255, 255, 255, 0.1); }
+:is(.daily-start--duel, .road-start) .duel-mode.empac-card.empac-card--selected { border-color: #f5c84c; background: rgba(245, 200, 76, 0.14); box-shadow: inset 0 0 0 1px #f5c84c; }
+:is(.daily-start--duel, .road-start) .duel-mode.empac-card:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+:is(.daily-start--duel, .road-start) .duel-mode.empac-card:disabled { opacity: 0.75; cursor: default; }
 .duel-mode__name { font-family: var(--font-display, inherit); font-size: var(--font-size-18, 1.8rem); font-weight: 800; line-height: 1.2; }
 .duel-mode__line { color: #c9cff0; font-size: var(--font-size-14); line-height: 1.35; }
 .duel-mode__bonus { color: #9ef0c4; font-weight: 700; }
@@ -687,3 +687,5 @@ html:root .duel-turnwin .empac-modal__body { gap: 12px; padding: 8px 16px 16px; 
   .duel-arena:has(> .duel-overlay--pick) > .duel-arena__body { display: none; }
   .duel-arena > .duel-overlay--pick { position: relative; inset: auto; overflow: visible; min-height: 32rem; }
 }
+/* The result's way into Trainer Road (gold on the navy result). */
+.duel-result__road .arrow-link, .duel-result__road .arrow-link:hover { color: #f5c84c; font-weight: 700; }

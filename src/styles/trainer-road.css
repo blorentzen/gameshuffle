@@ -1,0 +1,106 @@
+/*
+ * Trainer Road (src/app/pokemon-trainers, src/components/originals/duel/road). Light marketing
+ * pages: regions and trainers as tiles; on a trainer's page the duel's start is the one boxed thing,
+ * in the Daily Duel's navy, and the board sits flat under a thin line. Root font-size is 10px.
+ */
+
+.road-hub, .road-region-page { display: grid; gap: var(--spacing-32); padding-block: var(--spacing-32) var(--spacing-48); }
+.road-section { display: grid; gap: var(--spacing-16); min-width: 0; }
+.road-section__title { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-weight: 800; line-height: 1.2; color: var(--text-primary); text-wrap: balance; }
+.road-flat { display: grid; gap: var(--spacing-16); padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle, rgba(20, 22, 31, 0.12)); }
+.road-credits { display: grid; gap: var(--spacing-8); color: var(--text-secondary); font-size: var(--font-size-14); }
+.road-credits__pic { margin: 0; }
+
+/* Regions on the front page: a card each, with the Gym Leaders' faces in a row. */
+.road-regions { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr)); gap: var(--spacing-16); }
+.road-region { display: grid; gap: 6px; height: 100%; padding: var(--spacing-16); border-radius: 14px; border: 1px solid var(--border-subtle, rgba(20, 22, 31, 0.12)); background: var(--bg-surface, #fff); color: var(--text-primary); text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+.road-region:hover { border-color: #c99a1a; box-shadow: 0 6px 18px rgba(13, 18, 51, 0.1); }
+.road-region:focus-visible { outline: 3px solid var(--focus-ring, #2f66ec); outline-offset: 2px; }
+.road-region__name { font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-weight: 800; line-height: 1.15; }
+.road-region__line { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.4; }
+.road-region__faces { display: flex; gap: 0; margin: 6px 0 2px; }
+.road-region__face { position: relative; width: 4rem; height: 4rem; border-radius: 50%; overflow: hidden; margin-right: -0.8rem; box-shadow: 0 0 0 2px var(--bg-surface, #fff); background: #0d1233; color: #fff; display: grid; place-items: center; font-weight: 800; flex: none; }
+.road-region__face .duel-art { position: absolute; inset: 0; }
+.road-region__count { color: var(--text-secondary); font-size: var(--font-size-14); font-weight: 600; }
+
+/* Region pages: the region pills, then a section per tier of trainer tiles. */
+.road-regionnav { max-width: 100%; overflow-x: auto; }
+.road-tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); gap: var(--spacing-12); }
+.road-tile { display: grid; justify-items: center; align-content: start; text-align: center; gap: 4px; height: 100%; padding: var(--spacing-16) var(--spacing-12); border-radius: 14px; border: 1px solid var(--border-subtle, rgba(20, 22, 31, 0.12)); background: var(--bg-surface, #fff); color: var(--text-primary); text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+.road-tile:hover { border-color: #c99a1a; box-shadow: 0 6px 18px rgba(13, 18, 51, 0.1); }
+.road-tile:focus-visible { outline: 3px solid var(--focus-ring, #2f66ec); outline-offset: 2px; }
+.road-tile__face { position: relative; width: 8.4rem; height: 8.4rem; border-radius: 50%; overflow: hidden; background: #0d1233; box-shadow: 0 0 0 3px #f5c84c; margin-bottom: 6px; }
+.road-tile__face .duel-art { position: absolute; inset: 0; }
+.road-tile__initial { display: grid; place-items: center; width: 100%; height: 100%; color: #fff; font-family: var(--font-display, inherit); font-size: var(--font-size-32, 3.2rem); font-weight: 800; }
+.road-tile__name { font-family: var(--font-display, inherit); font-size: var(--font-size-18); font-weight: 800; line-height: 1.2; }
+.road-tile__title { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.35; }
+.road-tile__team { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.4; }
+.road-tile__games { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #8a5d00; }
+
+.road-stars { display: inline-flex; gap: 1px; vertical-align: -2px; }
+.road-stars__on { color: #d29b00; }
+.road-stars__off { color: rgba(120, 128, 160, 0.55); }
+
+/* A trainer's page. */
+.road-hero__art { position: relative; width: 100%; aspect-ratio: 16 / 10; max-width: 46rem; border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 2px rgba(245, 200, 76, 0.85), 0 18px 40px rgba(0, 0, 0, 0.35); }
+.road-hero__art .duel-art { position: absolute; inset: 0; }
+.road-page { padding-block: var(--spacing-24) var(--spacing-48); }
+.road-crumbs { display: flex; flex-wrap: wrap; gap: 6px; font-size: var(--font-size-14); color: var(--text-secondary); }
+.road-crumbs a { color: var(--duel-ink, #8a5d00); }
+/* While a duel is on, the rest of the page steps aside. */
+.road-page:has(.duel-arena) .road-quiet,
+.road-page:has(.duel-arena) .road-teams { display: none; }
+
+.road-teams { display: grid; gap: var(--spacing-12); }
+.road-teams__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr)); gap: var(--spacing-12); }
+.road-team { display: grid; gap: 4px; width: 100%; height: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border-subtle, rgba(20, 22, 31, 0.14)); background: var(--bg-surface, #fff); color: var(--text-primary); text-align: start; font: inherit; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.road-team:hover { border-color: #c99a1a; }
+.road-team:focus-visible { outline: 3px solid var(--focus-ring, #2f66ec); outline-offset: 2px; }
+.road-team[aria-pressed="true"] { border-color: #c99a1a; background: rgba(245, 200, 76, 0.14); box-shadow: inset 0 0 0 1px #c99a1a; }
+.road-team__game { font-weight: 800; font-size: var(--font-size-16); line-height: 1.3; }
+.road-team__meta { color: var(--text-secondary); font-size: var(--font-size-14); display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.road-team__species { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.45; }
+
+/* The duel's start: the one boxed thing, in the Daily Duel's navy. */
+.road-start { display: grid; gap: var(--spacing-16); padding: var(--spacing-20, 2rem); border-radius: 18px; background: radial-gradient(90% 120% at 100% 0%, rgba(245, 200, 76, 0.16), transparent 60%), #0d1233; color: #fff; }
+.road-start__head { display: grid; gap: 4px; }
+.road-start__kicker { margin: 0; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #f5c84c; }
+.road-start__title { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-32, 3.2rem); font-weight: 800; line-height: 1.1; }
+.road-start__species { margin: 0; color: #c9cff0; font-size: var(--font-size-14); }
+.road-start .duel-note { color: #dfe3ff; }
+.road-start__sig { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(245, 200, 76, 0.12); border: 1px solid rgba(245, 200, 76, 0.45); color: #eef0ff; font-size: var(--font-size-14); line-height: 1.5; }
+.road-start__side { display: grid; gap: 8px; }
+.road-start__label { margin: 0; font-size: var(--font-size-12); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #f5c84c; }
+.road-start__cards { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--spacing-8); max-width: 54rem; }
+.road-start .duel-start__label { color: #f5c84c; }
+.road-start__resume { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #eef0ff; font-size: var(--font-size-14); }
+.road-start__resume .empac-button { color: #f5c84c; }
+.road-start__go { display: grid; gap: 8px; justify-items: start; }
+.road-start__go .empac-button--primary { background: #f5c84c; border-color: #f5c84c; color: #1a1300; }
+.road-start__go .empac-button--primary:hover:not(:disabled) { background: #ffd765; border-color: #ffd765; }
+.road-start__note { margin: 0; color: #c9cff0; font-size: var(--font-size-14); }
+.road-yours { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #eef0ff; font-size: var(--font-size-14); }
+.road-yours b { font-size: var(--font-size-16); }
+.road-yours .road-stars__off { color: rgba(255, 255, 255, 0.35); }
+.road-yours .road-stars__on { color: #f5c84c; }
+.road-yours__par { color: #c9cff0; }
+
+/* The result's stars. */
+.road-end__stars { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.road-end__stars .road-stars__on { color: #f5c84c; }
+.road-end__stars .road-stars__off { color: rgba(255, 255, 255, 0.3); }
+.road-end__best { padding: 2px 10px; border-radius: 999px; background: #9ef0c4; color: #08321c; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.road-end .duel-result__actions .empac-button--primary { background: #f5c84c; border-color: #f5c84c; color: #1a1300; }
+.road-end .duel-result__actions .empac-button--primary:hover:not(:disabled) { background: #ffd765; border-color: #ffd765; }
+.road-end__next { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; color: #f5c84c; font-weight: 700; text-decoration: none; }
+.road-end__next:hover { text-decoration: underline; }
+.road-end__next:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; border-radius: 8px; }
+
+.road-board { display: grid; gap: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle, rgba(20, 22, 31, 0.12)); }
+.road-board__foot { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+
+@media (max-width: 30rem) {
+  .road-start { padding: var(--spacing-16); }
+  .road-start__cards { gap: 5px; }
+  .road-tile__face { width: 7.2rem; height: 7.2rem; }
+}
