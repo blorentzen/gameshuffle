@@ -18,7 +18,7 @@
  * each is a <button aria-pressed> with a separate button on its picture for the card window.
  */
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Button, Chip as CdsChip, Modal } from "@empac/cascadeds";
 import { IconArrowsExchange, IconBulb, IconRocket, IconZoomIn } from "@tabler/icons-react";
 import type { DuelCardView, DuelHintView, DuelPlayView } from "@/lib/originals/duel/view";
@@ -102,7 +102,7 @@ function CardRow({ card, foe, add, picked, tip, field, onPick, onZoom, disabled 
   );
 }
 
-export function DuelTurn({ open, step, play, attach, use, now, hint, bar, busy, ask, onUse, onAttach, onNext, onKeep, onSwap, onStep, onClose, onZoom }: {
+export function DuelTurn({ open, step, play, attach, use, now, hint, bar, event, busy, ask, onUse, onAttach, onNext, onKeep, onSwap, onStep, onClose, onZoom }: {
   open: boolean;
   step: TurnStep;
   play: DuelPlayView;
@@ -115,6 +115,8 @@ export function DuelTurn({ open, step, play, attach, use, now, hint, bar, busy, 
   hint: DuelHintView | null;
   /** The events bar's chips (the window covers the bar). */
   bar: ReactNode;
+  /** This turn's event, as a card at the top (it stays while the window is open). */
+  event: ReactNode;
   busy: boolean;
   /** Ask the professor: shown when there's no tip yet; `costs` = it ends the solo bonus. */
   ask: { show: boolean; costs: boolean; busy: boolean; onAsk: () => void; escape: boolean };
@@ -136,9 +138,13 @@ export function DuelTurn({ open, step, play, attach, use, now, hint, bar, busy, 
   // The card on the field first, then the others in their order.
   cards.sort((a, b) => (a.index === play.yi ? -1 : b.index === play.yi ? 1 : a.index - b.index));
   const canSwap = play.swaps.length > 0;
-  // The card the Energy is on stays in view (the professor's pick can be at the bottom of the list).
+  // When the pick moves to another card (the professor's pick can be at the bottom of the list), that
+  // card scrolls into view. Not on opening: the window opens at the top, on this turn's event.
+  const shownAttach = useRef<number | null>(null);
   useEffect(() => {
-    if (!open || step !== 1) return;
+    if (!open || step !== 1) { shownAttach.current = null; return; }
+    if (shownAttach.current === null || shownAttach.current === attach) { shownAttach.current = attach; return; }
+    shownAttach.current = attach;
     const t = window.setTimeout(() => document.querySelector(`.duel-turnwin [data-attach="${attach}"]`)?.closest("li")?.scrollIntoView({ block: "nearest" }), 60);
     return () => window.clearTimeout(t);
   }, [open, step, attach]);
@@ -178,6 +184,7 @@ export function DuelTurn({ open, step, play, attach, use, now, hint, bar, busy, 
         <li aria-current={step === 1 ? "step" : undefined}>Energy</li>
         <li aria-current={step === 2 ? "step" : undefined}>Who fights</li>
       </ol>
+      {event}
       {bar}
       {hint && <p className="duel-tipline"><span className="duel-tip" aria-hidden="true">Tip</span><span><span className="sr-only">The professor suggests: </span>{hint.text}</span></p>}
 

@@ -10,8 +10,10 @@
  * Our own drawing: CascadeDS has no game event bar.
  */
 
-import type { ReactNode, Ref } from "react";
+import { useEffect, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
+import { IconButton } from "@empac/cascadeds";
+import { IconX } from "@tabler/icons-react";
 import type { DuelEventView, DuelHintView, DuelInPlay, DuelPicture } from "@/lib/originals/duel/view";
 import { EVENT_LOOK, WEATHER_CHIP } from "./duelLook";
 import { TrainerArt } from "./TrainerArt";
@@ -64,14 +66,17 @@ export function DuelEventsBar({ turn, event, forecast, weather, outcome, hint, p
 }) {
   const next = staging ? null : forecast;
   // The weather chip covers a weather event that started this turn (one chip, with its turns left).
-  const eventChip = event && !(isWeather(event.kind) && weather?.kind === event.kind) ? event : null;
+  // In the turn window this turn's event has its own card above the chips, so it isn't repeated.
+  const startedNow = !!event && isWeather(event.kind) && weather?.kind === event.kind;
+  const eventChip = event && !startedNow && !inWindow ? event : null;
+  const showWeather = !!weather && !(inWindow && startedNow);
   const chip = (which: NoticeWhich, className: string, label: string, children: ReactNode) =>
     onShow && !inWindow ? (
       <button type="button" className={`duel-ev ${className}`} onClick={() => onShow(which)} aria-label={label}>{children}</button>
     ) : (
       <span className={`duel-ev ${className}`}><span aria-hidden="true" className="duel-ev__in">{children}</span><span className="sr-only">{label}</span></span>
     );
-  const w = weather ? WEATHER_CHIP[weather.kind] : null;
+  const w = weather && showWeather ? WEATHER_CHIP[weather.kind] : null;
   if (inWindow && !w && !eventChip && !next) return null;
   return (
     <div className={`duel-evbar${inWindow ? " duel-evbar--window" : ""}`} role="group" aria-label="Events">
@@ -105,22 +110,42 @@ export function DuelEventsBar({ turn, event, forecast, weather, outcome, hint, p
   );
 }
 
+/** This turn's event at the top of the turn window: its tile, title and what it does, for as long as the window is open. */
+export function DuelEventCard({ event, text, picture = null }: { event: DuelEventView; text: string; picture?: DuelPicture | null }) {
+  return (
+    <div className="duel-evcard" role="group" aria-label="This turn's event">
+      <EventTile event={event} picture={picture} size="lg" />
+      <span className="duel-evcard__text">
+        <small>This turn</small>
+        <b>{event.title}</b>
+        <span>{text}</span>
+      </span>
+    </div>
+  );
+}
+
 /**
- * An event as a notice at the top of the screen: when it lands (about three seconds) or when its chip
- * in the bar is pressed. A tap closes it. Decoration for screen readers (the turn's announcement and
- * the chip's label carry the words), so it never takes focus.
+ * An event's notice at the top of the screen, opened from its chip in the events bar. It stays until
+ * closed: the X, a tap on it, or Escape. Portaled to the page, so it sits above the arena.
  */
 export function DuelNotice({ tile, kicker, title, text, next = false, onDone }: { tile: ReactNode; kicker: string; title: string; text: string; next?: boolean; onDone: () => void }) {
-  // On the page itself (not inside the arena), so it sits above the turn window.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onDone(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onDone]);
   if (typeof document === "undefined") return null;
   return createPortal(
-    <div className={`duel-notice${next ? " duel-notice--next" : ""}`} aria-hidden="true" onPointerDown={(e) => { e.stopPropagation(); onDone(); }}>
+    <div className={`duel-notice${next ? " duel-notice--next" : ""}`} role="status" onClick={onDone}>
       {tile}
       <span className="duel-notice__text">
         <small>{kicker}</small>
         <b>{title}</b>
         <span>{text}</span>
       </span>
+      <IconButton variant="tertiary" size="small" className="duel-notice__close" aria-label="Close" onClick={(e) => { e.stopPropagation(); onDone(); }}>
+        <IconX size={18} stroke={2} aria-hidden="true" />
+      </IconButton>
     </div>,
     document.body,
   );

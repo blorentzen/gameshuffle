@@ -11,9 +11,9 @@
  *
  * Each turn starts in the turn window (DuelTurn): pick an Energy from the hand and the card it goes
  * on, then keep your card or swap one in. The battle then only holds attacks and End turn; nothing
- * reaches the server until one of them, or a swap, is pressed. Events land as a notice at the top for
- * about three seconds. The card picker covers the arena when a card is needed (the lead, or after a
- * knockout).
+ * reaches the server until one of them, or a swap, is pressed. The event that lands shows at the top of
+ * the turn window; an event's chip in the bar opens its notice, which stays until closed. The card
+ * picker covers the arena when a card is needed (the lead, or after a knockout).
  *
  * Screen readers hear the whole turn in full sentences (the polite announcement); the screen
  * shows the short version. The board pieces (cards, hologram, Energy dots, pips, last turn) are our
@@ -31,7 +31,7 @@ import type { DuelAct, EnergyType } from "@/lib/originals/duel/types";
 import type { ArenaMotion } from "./duelBeats";
 import { CardArt, CardConds, CardThumb, CondTag, CostDots, EnergyDot, MoveConds, Pips, TypeChip, condWords } from "./DuelBits";
 import { DuelField } from "./DuelHolo";
-import { DuelEventsBar, DuelNotice, EventTile, WeatherTile, eventNowText, turnsLeft, type NoticeWhich } from "./DuelEvent";
+import { DuelEventCard, DuelEventsBar, DuelNotice, EventTile, WeatherTile, eventNowText, turnsLeft, type NoticeWhich } from "./DuelEvent";
 import { DuelTurn, type TurnStep } from "./DuelTurn";
 import { TrainerArt } from "./TrainerArt";
 import { CONDITION_LOOK, WEATHER_CHIP, cardLabel, clockText, covers, energyWords, eventLines, eventOutcome, handPick, isEventLine, lineText, scoreRows, type ScoreRow } from "./duelLook";
@@ -305,26 +305,17 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
   const outcome = play.event ? eventOutcome(play.event, play.log, play.you, play.foe) : null;
   const tipped = (a: DuelAct) => !!hint && hint.attach === attach && JSON.stringify(hint.act) === JSON.stringify(a);
 
-  // An event lands as a notice for about three seconds (once its exchange has played; not the event
-  // that was already on when the arena opened). Its chip in the events bar shows it again.
-  const eventKey = play.event && !play.over ? `${play.event.kind}-${play.event.turn}` : "";
-  const [notice, setNotice] = useState<{ key: string; which: NoticeWhich | null }>({ key: eventKey, which: null });
-  if (eventKey && !staging && eventKey !== notice.key) {
-    // A new event: its notice starts now (state adjusted during render, React's pattern for this).
-    setNotice({ key: eventKey, which: "now" });
-  }
-  useEffect(() => {
-    if (!notice.which) return;
-    const t = window.setTimeout(() => setNotice((n) => ({ ...n, which: null })), 3000);
-    return () => window.clearTimeout(t);
-  }, [notice]);
-  const showNotice = (which: NoticeWhich) => setNotice({ key: eventKey, which });
+  // An event's notice, opened from its chip in the events bar; it stays until closed. Closed again
+  // whenever the turn moves on (the chip it came from may be gone).
+  const [notice, setNotice] = useState<{ turn: number; which: NoticeWhich } | null>(null);
+  const showNotice = (which: NoticeWhich) => setNotice({ turn: play.turn, which });
+  const shown = notice && notice.turn === play.turn && !staging ? notice.which : null;
   const weather = play.inPlay.weather;
   const forecast = staging ? null : play.forecast;
   let noticeView: { tile: React.ReactNode; kicker: string; title: string; text: string; next: boolean } | null = null;
-  if (notice.which === "now" && play.event) noticeView = { tile: <EventTile event={play.event} picture={run.trainer.picture} size="lg" />, kicker: "This turn", title: play.event.title, text: eventNowText(play.event, outcome, hint), next: false };
-  else if (notice.which === "weather" && weather) noticeView = { tile: <WeatherTile kind={weather.kind} size="lg" />, kicker: "On now", title: WEATHER_CHIP[weather.kind].word, text: `${WEATHER_CHIP[weather.kind].line}, ${turnsLeft(weather.turnsLeft)}`, next: false };
-  else if (notice.which === "next" && forecast) noticeView = { tile: <EventTile event={forecast} picture={run.trainer.picture} size="lg" next />, kicker: "Next turn", title: forecast.title, text: forecast.short, next: true };
+  if (shown === "now" && play.event) noticeView = { tile: <EventTile event={play.event} picture={run.trainer.picture} size="lg" />, kicker: "This turn", title: play.event.title, text: eventNowText(play.event, outcome, hint), next: false };
+  else if (shown === "weather" && weather) noticeView = { tile: <WeatherTile kind={weather.kind} size="lg" />, kicker: "On now", title: WEATHER_CHIP[weather.kind].word, text: `${WEATHER_CHIP[weather.kind].line}, ${turnsLeft(weather.turnsLeft)}`, next: false };
+  else if (shown === "next" && forecast) noticeView = { tile: <EventTile event={forecast} picture={run.trainer.picture} size="lg" next />, kicker: "Next turn", title: forecast.title, text: forecast.short, next: true };
 
   const barProps = { turn: play.turn, event: play.over ? null : play.event, forecast: play.over ? null : play.forecast, weather: play.over ? null : weather, outcome, hint, picture: run.trainer.picture, staging };
 
@@ -502,7 +493,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
         </section>
       </div>
 
-      {noticeView && <DuelNotice tile={noticeView.tile} kicker={noticeView.kicker} title={noticeView.title} text={noticeView.text} next={noticeView.next} onDone={() => setNotice((n) => ({ ...n, which: null }))} />}
+      {noticeView && <DuelNotice tile={noticeView.tile} kicker={noticeView.kicker} title={noticeView.title} text={noticeView.text} next={noticeView.next} onDone={() => setNotice(null)} />}
 
       {turnLive && attach !== null && (
         <DuelTurn
@@ -514,6 +505,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
           now={now}
           hint={hint}
           bar={<DuelEventsBar {...barProps} inWindow />}
+          event={play.event && !play.over ? <DuelEventCard event={play.event} text={play.event.kind === "advice" ? play.event.short : eventNowText(play.event, outcome, hint)} picture={run.trainer.picture} /> : null}
           busy={busy}
           ask={{ show: !hint, costs, busy: tipBusy, onAsk: () => void askProfessor(), escape: !confirming }}
           onUse={pickUse}
