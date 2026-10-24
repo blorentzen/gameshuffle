@@ -8,11 +8,11 @@ import {
   CONDITION_RULES, actions, applyStep, begin, canUse, cloneState, damageOf, foeEnergy, foeRowFor, isLegal, nexts, pays, printedDamage, replay, roll, startState, step, swapTargets, viewOf,
   TURN_CAP, type DuelSetup, type DuelState,
 } from "../src/lib/originals/duel/engine";
-import { COMEBACK_MAX, FAIR_LEADS, HAND_SIZE, MIN_PLANS, WIN_BAND, adviceFor, buildDay, candidates, dayPlans, drawPack, fairLeads, hardParFor, hardSetup, hintText, makeSetup, obviousPlay, packCap, packsFor, slipWinRate, solve, solverSetup } from "../src/lib/originals/duel/solver";
+import { COMEBACK_MAX, EASY_COMEBACK, NORMAL_COMEBACK, levelSetup, FAIR_LEADS, HAND_SIZE, MIN_PLANS, WIN_BAND, adviceFor, buildDay, candidates, dayPlans, drawPack, fairLeads, hardParFor, hardSetup, hintText, makeSetup, obviousPlay, packCap, packsFor, slipWinRate, solve, solverSetup } from "../src/lib/originals/duel/solver";
 import { conditionsOf, plusOf, toDuelCard } from "../src/data/originals/duel/cardRules";
 import { plusText } from "../src/lib/originals/duel/copy";
 import {
-  DUEL_EPOCH, DUEL_WARMUP, PAR_BAND, PERSON_GAP_DAYS, SCORE, duelScore, TIER_FALLBACK, TIER_LABEL, duelNumber, duelPoints, duelRand, duelShareText, duelSquares, duelTime, energyRow, eventCopy, eventPlan,
+  DUEL_EPOCH, DUEL_WARMUP, PAR_BAND, PERSON_GAP_DAYS, SCORE, duelScore, levelMax, TIER_FALLBACK, TIER_LABEL, duelNumber, duelPoints, duelRand, duelShareText, duelSquares, duelTime, energyRow, eventCopy, eventPlan,
   peopleNear, peopleOf, personKey, personOf, shuffleWith, speciesOf, tierFor, trainerFor,
 } from "../src/lib/originals/duel/rules";
 import type { DuelCard, DuelEventAt, DuelEventKind, DuelSignature, DuelTier, DuelTrainer, EnergyType } from "../src/lib/originals/duel/types";
@@ -799,6 +799,10 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
   check(begin(SET, k, 3).you[3].energy.length === 0, "rules 5: older days have no comeback");
   const c3 = applyStep(H5, c1, { attach: 1, act: { wait: true }, use: 0 });
   check(!!c3 && (c3.over != null || !c3.fx.fresh), "rules 5: the comeback chip lasts only the turn the card came in", c3?.fx);
+  // Easy (Britton, 2026-10-24): an Energy for each card lost, past two; Normal from rules 7: one each time; Hard none.
+  check(begin(levelSetup(H5, "easy"), k, 3).you[3].energy.length === 3, "easy: the third card lost brings three Energy");
+  check(begin({ ...H5, comeback: NORMAL_COMEBACK }, k, 3).you[3].energy.length === 1, "rules 7: Normal brings one Energy each time");
+  check(levelSetup(H5, "easy").comeback === EASY_COMEBACK && levelSetup(H5, "hard").comeback === 0 && levelSetup(H5, "normal") === H5, "levels: Easy grows, Hard none, Normal as built");
 
   // "+" and "×" attacks.
   const plusCard = (n: string, d: number, plus: DuelCard["moves"][number]["plus"]): DuelCard => ({ ...card(n, X, 120, null, [[n, [X], d]]), moves: [{ n, cost: [X], d, plus }] });
@@ -878,6 +882,8 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
   const m5 = makeSetup(FIX_CARDS, FIX_TRAINERS[0], FIX_POOL.slice(0, 6), Array(TURN_CAP).fill(W), [], { rules: 5, seed: "2026-11-01" });
   check(!!m6 && m6.foeHand === HAND_SIZE && m6.foeComeback === COMEBACK_MAX && (m6.foeRow?.length ?? 0) === 40, "rules 6: makeSetup gives the trainer its hand, row and comeback");
   check(!!m5 && !m5.foeHand && !m5.foeComeback && !m5.foeRow, "rules 6: rules 5 days keep the trainer as it was");
+  const m7 = makeSetup(FIX_CARDS, FIX_TRAINERS[0], FIX_POOL.slice(0, 6), Array(TURN_CAP).fill(W), [], { rules: 7, seed: "2026-11-01" });
+  check(!!m7 && m7.comeback === NORMAL_COMEBACK && m7.foeComeback === COMEBACK_MAX && m6?.comeback === COMEBACK_MAX, "rules 7: Normal's comeback is one Energy, the trainer's and older days' stay at two");
 
   // The score.
   const best = duelScore({ won: true, turns: 9, par: 9, seconds: 100, solo: true, knocked: 5 });
@@ -901,6 +907,16 @@ check(duelSquares([true, false, true, true, false, true]) === "🟩🟥🟩🟩�
   check(duelScore({ won: true, turns: 9, par: 9, seconds: 100, solo: true, knocked: 5 }).hard === 0, "score: Normal has no Hard part");
   const hardShare = duelShareText({ number: 3, trainer: "Bea", won: true, turns: 6, par: 6, seconds: 72, standing: [true], knocked: 5, team: 5, score: 1200, hard: true });
   check(hardShare.includes("(Hard)") && hardShare.includes("· Score 1,200"), "share: a Hard duel says Hard");
+  // Easy: 200 off a win (out of 800, up to 8 points), never below 150; a loss scores like any loss.
+  const easy = duelScore({ won: true, turns: 9, par: 9, seconds: 100, solo: true, knocked: 5, level: "easy" });
+  check(easy.score === 800 && easy.easy === SCORE.easy && easy.points === 8 && easy.hard === 0, "score: an Easy win at par = 800 (8 points)", easy);
+  const easySlow = duelScore({ won: true, turns: 30, par: 9, seconds: 4000, solo: false, knocked: 5, level: "easy" });
+  check(easySlow.score === SCORE.easyFloor && easySlow.easy === 200 - SCORE.easyFloor, "score: an Easy win never drops below 150", easySlow);
+  const easyLoss = duelScore({ won: false, turns: 12, par: 9, seconds: 300, solo: true, knocked: 3, level: "easy" });
+  check(easyLoss.score === 60 && !easyLoss.easy, "score: an Easy loss scores like any loss", easyLoss);
+  check(levelMax("easy") === 800 && levelMax("normal") === 1000 && levelMax("hard") === 1200, "score: each mode's most");
+  const easyShare = duelShareText({ number: 3, trainer: "Bea", won: true, turns: 6, par: 6, seconds: 72, standing: [true], knocked: 5, team: 5, score: 800, easy: true });
+  check(easyShare.includes("(Easy)") && !easyShare.includes("(Hard)"), "share: an Easy duel says Easy");
   const hs = hardSetup({ comeback: 2, foeComeback: 2 } as never);
   check(hs.comeback === 0 && hs.foeComeback === 2, "hard: your comeback goes, the trainer's stays");
 }

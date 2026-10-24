@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { ownerHasPro } from "@/lib/profile/proLooks";
 import { FOUNDING_BRAIN_ANSWERS } from "@/lib/chatbrain/rules";
@@ -54,6 +55,10 @@ import { DailiesCards } from "@/components/originals/DailiesCards";
 import { MmrCard } from "@/components/mmr/MmrCard";
 import { profileMmr } from "@/lib/mmr/store";
 import "@/styles/mmr-card.css";
+import { RoadTrainerCard } from "@/components/originals/duel/road/RoadCard";
+import { roadProgressView } from "@/lib/originals/duel/roadProgress";
+import { roadShown } from "@/lib/games-visibility";
+import "@/styles/road-card.css";
 import { dailiesShown } from "@/lib/originals/dailies";
 import { resolveProfileSkin, skinBackground, skinBackgroundLayout, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
 import { resolveProfileLinks, resolveProfileSpotlight, spotlightEmbedUrl } from "@/lib/profile/links";
@@ -314,11 +319,12 @@ export default async function PublicProfilePage({
   const thisSeason = currentSeasonKey();
   const seasonHistory = await ownerHasPro(profile.id as string);
   const season = isSeasonKey(sp.season) && seasonHistory && recentSeasonKeys().includes(sp.season) ? sp.season : thisSeason;
-  const [enrichment, seasonData, rivals, mmr] = await Promise.all([
+  const [enrichment, seasonData, rivals, mmr, road] = await Promise.all([
     getProfileEnrichment(profile.id as string),
     userSeason(profile.id as string, season).catch(() => null),
     rivalsFor(profile.id as string).catch(() => []),
     profileMmr(profile.id as string).catch(() => null),
+    roadShown() ? roadProgressView(profile.id as string).catch(() => null) : Promise.resolve(null),
   ]);
   let authorPosts = COMMUNITY_PUBLICLY_ENABLED
     ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")
@@ -471,6 +477,14 @@ export default async function PublicProfilePage({
     </div>
   ) : null;
 
+  // Trainer Road's trainer card (phase 2 picks, 2026-10-23), once they've earned anything on the road.
+  const roadWidget = road ? (
+    <div className="pcard profile-road">
+      <h3 className="pcard__title"><Link href="/pokemon-trainers">Trainer Road</Link></h3>
+      <RoadTrainerCard p={road} regions={false} />
+    </div>
+  ) : null;
+
   const topFriendsWidget = topFriends.length > 0 && (
     <div className="pcard">
       <h3 className="pcard__title">Top Friends</h3>
@@ -527,6 +541,7 @@ export default async function PublicProfilePage({
     favGames: favGamesWidget,
     dailies: dailiesWidget,
     mmr: mmrWidget,
+    road: roadWidget,
     topFriends: topFriendsWidget,
     communities: communitiesWidget,
   };

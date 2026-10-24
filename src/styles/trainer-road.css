@@ -68,7 +68,7 @@
 .road-start__title { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-32, 3.2rem); font-weight: 800; line-height: 1.1; }
 .road-start__species { margin: 0; color: #c9cff0; font-size: var(--font-size-14); }
 .road-start .duel-note { color: #dfe3ff; }
-.road-start__sig { margin: 0; padding: 10px 12px; border-radius: 12px; background: rgba(245, 200, 76, 0.12); border: 1px solid rgba(245, 200, 76, 0.45); color: #eef0ff; font-size: var(--font-size-14); line-height: 1.5; }
+.road-start__sig { margin: 0; color: #eef0ff; font-size: var(--font-size-14); line-height: 1.5; } /* a line on the box, not a box in it */
 .road-start__side { display: grid; gap: 8px; }
 .road-start__label { margin: 0; font-size: var(--font-size-12); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #f5c84c; }
 .road-start__cards { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--spacing-8); max-width: 54rem; }
@@ -92,9 +92,6 @@
 .road-end__best { padding: 2px 10px; border-radius: 999px; background: #9ef0c4; color: #08321c; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
 .road-end .duel-result__actions .empac-button--primary { background: #f5c84c; border-color: #f5c84c; color: #1a1300; }
 .road-end .duel-result__actions .empac-button--primary:hover:not(:disabled) { background: #ffd765; border-color: #ffd765; }
-.road-end__next { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; color: #f5c84c; font-weight: 700; text-decoration: none; }
-.road-end__next:hover { text-decoration: underline; }
-.road-end__next:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; border-radius: 8px; }
 
 .road-board { display: grid; gap: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle, rgba(20, 22, 31, 0.12)); }
 .road-board__foot { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
@@ -104,3 +101,65 @@
   .road-start__cards { gap: 5px; }
   .road-tile__face { width: 7.2rem; height: 7.2rem; }
 }
+
+/* The path (phase 2): the region page's path box, flat under the pills; faces in rings that say done, next, later or locked. */
+.road-path { display: grid; gap: var(--spacing-20, 2rem); min-width: 0; }
+.road-path__head { display: grid; gap: 6px; }
+.road-path__sub { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; max-width: 70ch; }
+.road-path__lead { margin: 0; font-size: var(--font-size-16); line-height: 1.5; color: var(--text-primary); }
+.road-path__part { display: grid; gap: 10px; min-width: 0; }
+.road-path__label { margin: 0; display: flex; gap: 8px; align-items: baseline; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8a5d00; }
+.road-path__label span { color: var(--text-secondary); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.road-path__gyms { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(7.6rem, 1fr)); gap: 10px; } /* four across on a phone, so eight badges make two even rows */
+.road-path__league { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.road-path__step { display: grid; justify-items: center; gap: 4px; padding: 6px 4px; border-radius: 12px; color: var(--text-primary); text-decoration: none; text-align: center; min-height: 44px; }
+.road-path__step--row { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: 999px; border: 1px solid var(--border-subtle, rgba(20, 22, 31, 0.14)); background: var(--bg-surface, #fff); }
+.road-path__step:hover .road-path__name { text-decoration: underline; }
+.road-path__step:focus-visible { outline: 3px solid var(--focus-ring, #2f66ec); outline-offset: 2px; }
+.road-path__step.is-next { background: rgba(245, 200, 76, 0.16); }
+.road-path__step--row.is-next { border-color: #c99a1a; }
+.road-path__part > .road-path__step--row { justify-self: start; } /* the end-game opponent stays a pill like the League's */
+.road-path__step.is-locked, .road-path__step.is-later { color: var(--text-secondary); }
+.road-path__name { font-size: var(--font-size-14); font-weight: 700; line-height: 1.25; }
+.road-path__face { position: relative; display: grid; place-items: center; border-radius: 50%; overflow: visible; background: #0d1233; color: #fff; flex: none; }
+.road-path__face .duel-art { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
+.road-path__face--md { width: 6.4rem; height: 6.4rem; }
+.road-path__face--sm { width: 3.6rem; height: 3.6rem; }
+.road-path__face.is-done { box-shadow: 0 0 0 3px #f5c84c; }
+.road-path__face.is-next { box-shadow: 0 0 0 3px #f5c84c, 0 0 0 7px rgba(245, 200, 76, 0.3); }
+.road-path__face.is-later, .road-path__face.is-locked { box-shadow: 0 0 0 2px rgba(120, 128, 160, 0.45); filter: grayscale(1); opacity: 0.65; }
+.road-path__initial { font-weight: 800; }
+.road-path__tick { position: absolute; right: -2px; bottom: -2px; width: 2rem; height: 2rem; border-radius: 50%; display: grid; place-items: center; background: #1f7a46; color: #fff; box-shadow: 0 0 0 2px var(--bg-surface, #fff); }
+.road-path__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.road-path__go { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.road-path__nextline { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+
+/* The front page's road: the trainer card beside the next trainer. */
+.road-hubpath { display: grid; gap: var(--spacing-16); min-width: 0; }
+.road-hubpath__grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--spacing-20, 2rem); align-items: start; }
+@media (max-width: 760px) { .road-hubpath__grid { grid-template-columns: minmax(0, 1fr); } }
+.road-hubpath__next { display: grid; gap: 12px; justify-items: start; min-width: 0; }
+.road-hubpath__who { display: flex; align-items: center; gap: 12px; }
+.road-hubpath__name { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-weight: 800; line-height: 1.15; }
+
+/* The trainer page: where this team sits on your path, inside the navy start box. */
+.road-start__path { margin: 0; display: flex; gap: 8px; align-items: center; font-size: var(--font-size-14); font-weight: 600; line-height: 1.5; color: #eef0ff; }
+.road-start__path svg { flex: none; }
+.road-start__path.is-next { color: #ffe08a; }
+/* A villain team on the road (road encounters): what they took, or why a win here waits. */
+.road-start__path--villain, .road-start__path--blocked { align-items: flex-start; color: #ffc2ca; }
+.road-start__path--villain svg, .road-start__path--blocked svg { margin-top: 2px; color: #ff8a98; }
+.road-start__path--blocked a { color: #ffe08a; }
+
+/* The result (inside the navy result panel): what the duel did to your path. */
+.road-gains { display: grid; gap: 10px; justify-items: center; text-align: center; width: min(100%, 48rem); padding-top: 16px; border-top: 1px solid rgba(245, 200, 76, 0.45); } /* under a gold line on the result, not a box in it */
+.road-gains__item { display: grid; gap: 2px; }
+.road-gains__item--encounter, .road-gains__item--blocked { color: #ffc2ca; }
+.road-gains__item--encounter { grid-auto-flow: column; align-items: center; justify-content: center; gap: 12px; text-align: left; }
+.road-gains__art { width: 6.4rem; height: 6.4rem; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 2px #e0364b; }
+.road-gains__art .duel-art { width: 100%; height: 100%; }
+.road-gains__title { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-20, 2rem); font-weight: 800; line-height: 1.2; }
+.road-gains__line { margin: 0; font-size: var(--font-size-14); line-height: 1.45; }
+.road-gains__xp { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: var(--font-size-16); font-variant-numeric: tabular-nums; }
+.road-gains__tokens { color: #9ef0c4; font-weight: 700; }
+.road-gains__small { margin: 0; font-size: var(--font-size-14); color: #c3c9e6; }

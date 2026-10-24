@@ -16,6 +16,7 @@ import { Button } from "@empac/cascadeds";
 import { CardImage } from "@/components/tcg/CardImage";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { OriginalsLink } from "@/components/originals/OriginalsHost";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, tagged, track } from "@/lib/analytics/events";
 import { TCG_SHOP_URL } from "@/data/shop";
@@ -71,12 +72,11 @@ export function DexCardOfDay({ dex, signedIn, credits = true, onCard }: { dex: n
         <h2 id="dex-cotd-title" className="dex-cotd__name">{card.name}</h2>
         {meta && <p className="dex-cotd__meta">{meta}</p>}
         <span className="party-row">
+          {/* One button and a link (Britton, 2026-10-24): Share stays the result's one primary action. */}
           {signedIn
-            ? <Button variant="primary" size="small" disabled={busy || added} onClick={() => void add()}>{added ? "In My Cards" : "Add to My Cards"}</Button>
-            : <OriginalsLink href="/login?redirect=/daily-dex"><Button variant="primary" size="small">Add to My Cards</Button></OriginalsLink>}
-          <a href={TCG_SHOP_URL} target="_blank" rel="noopener noreferrer" className={tagged(EVENTS.tcgStoreClicked, { from: "daily-dex" })}>
-            <Button variant="secondary" size="small">Shop our Pokémon cards</Button>
-          </a>
+            ? <Button variant="secondary" size="small" disabled={busy || added} onClick={() => void add()}>{added ? "In My Cards" : "Add to My Cards"}</Button>
+            : <OriginalsLink href="/login?redirect=/daily-dex"><Button variant="secondary" size="small">Add to My Cards</Button></OriginalsLink>}
+          <ArrowLink href={TCG_SHOP_URL} external className={tagged(EVENTS.tcgStoreClicked, { from: "daily-dex" })}>Shop our Pokémon cards</ArrowLink>
         </span>
         {credits && <TcgAttribution className="dex-cotd__attr" />}
       </div>

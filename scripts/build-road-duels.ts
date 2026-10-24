@@ -1,7 +1,8 @@
 /**
  * Builds Trainer Road's duels ahead of time for a month (the cron does the same a few at a time),
  * stored in road_duels on the .env.local project (dev), or another project with SUPABASE_URL +
- * SUPABASE_SERVICE_ROLE_KEY set. A duel already stored is kept as is.
+ * SUPABASE_SERVICE_ROLE_KEY set. A duel already stored is kept, unless it's on older rules and nobody
+ * has started it: then it's built again on the newest.
  *
  *   npx tsx -r ./scripts/server-only-shim.cjs scripts/build-road-duels.ts [--month 2026-11-01] [--region kanto] [--only id,id] [--minutes 60]
  */

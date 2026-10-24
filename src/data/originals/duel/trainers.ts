@@ -31,6 +31,8 @@ export interface DuelTrainerPlan {
   name: string;
   title: string;
   game: string;
+  /** Where in the game, when a person has several teams from it (a villain team's grunts: "Mt. Moon"). */
+  place?: string;
   tier: DuelTier;
   /** The team in battle order, as card names spell each Pokémon. */
   species: string[];
@@ -1253,10 +1255,193 @@ export const DUEL_TRAINER_PLANS: DuelTrainerPlan[] = [
   { id: "geeta-indigo", person: "geeta", name: "Geeta", title: "Top Champion of Paldea", game: "Pokémon Scarlet and Violet: The Indigo Disk", tier: "champion",
     species: ["Glimmora", "Espathra", "Chesnaught", "Avalugg", "Dragapult", "Kingambit"],
     signature: { title: "Top Champion's test", effect: "energy2" } },
+
+  // ── Villain teams on Trainer Road (road encounters, picks 2026-10-24) ─────────────────────────
+  // Never in the Daily Duel (tiers grunt and admin). Each region's path game: a story battle where the
+  // game puts the villain team (src/lib/originals/duel/roadEncounters.ts says which Gym it stands
+  // before) and grunt teams of two or three, as the games had them. Read through Wayback captures of
+  // Bulbapedia on 2026-10-24; Bulbapedia's walkthroughs now live at Walkthrough:Pokémon_<Game>/Part_N.
+
+  // Kanto, FireRed and LeafGreen: Team Rocket.
+  // Bulbapedia: Giovanni, FireRed/LeafGreen Rocket Hideout B4F (snapshot 20260912184836). Must come before
+  // Koga: the hideout's Silph Scope leads to the Poké Flute that wakes the Snorlax on the way to Fuchsia
+  // (Walkthrough Part_9, snapshot 20260210031607; Team_Rocket_Hideout, snapshot 20260911134153).
+  { id: "giovanni-firered-hideout", person: "giovanni", name: "Giovanni", title: "Boss of Team Rocket", game: "Pokémon FireRed and LeafGreen", place: "Rocket Hideout", tier: "admin",
+    species: ["Onix", "Rhyhorn", "Kangaskhan"], owner: "Team Rocket",
+    signature: { title: "Hideout ambush", effect: "boost30" } },
+  // Bulbapedia: Walkthrough:Pokémon_FireRed_and_LeafGreen/Part_4, Mt. Moon B2F grunt (snapshot 20260910035300).
+  { id: "team-rocket-firered-mt-moon", name: "Team Rocket", title: "Team Rocket Grunt", game: "Pokémon FireRed and LeafGreen", place: "Mt. Moon", tier: "grunt",
+    species: ["Sandshrew", "Rattata", "Zubat"], owner: "Team Rocket",
+    signature: { title: "Fossil thieves", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_9, Rocket Hideout B1F grunt (snapshot 20260210031607).
+  { id: "team-rocket-firered-hideout", name: "Team Rocket", title: "Team Rocket Grunt", game: "Pokémon FireRed and LeafGreen", place: "Rocket Hideout", tier: "grunt",
+    species: ["Grimer", "Koffing", "Koffing"], owner: "Team Rocket",
+    signature: { title: "Game Corner cover", effect: "heal50" } },
+  // Bulbapedia: Walkthrough Part_11, Silph Co. 11F grunt (snapshot 20260309163326).
+  { id: "team-rocket-firered-silph", name: "Team Rocket", title: "Team Rocket Grunt", game: "Pokémon FireRed and LeafGreen", place: "Silph Co.", tier: "grunt",
+    species: ["Cubone", "Drowzee", "Marowak"], owner: "Team Rocket",
+    signature: { title: "Silph takeover", effect: "boost30" } },
+
+  // Johto, HeartGold and SoulSilver: Team Rocket.
+  // Bulbapedia: Archer, HeartGold/SoulSilver Radio Tower 5F, the takeover's last battle (snapshot 20260822195115).
+  // After Pryce and before Clair (Walkthrough Part_11, snapshot 20260629015451; Part_12, snapshot 20260519130329).
+  { id: "archer-heartgold", name: "Archer", title: "Team Rocket Executive", game: "Pokémon HeartGold and SoulSilver", place: "Goldenrod Radio Tower", tier: "admin",
+    species: ["Houndour", "Koffing", "Houndoom"], owner: "Team Rocket",
+    signature: { title: "A message for Giovanni", effect: "energy2" } },
+  // Bulbapedia: Walkthrough:Pokémon_HeartGold_and_SoulSilver/Part_5, Slowpoke Well B1F grunt (snapshot 20260801230337).
+  { id: "team-rocket-heartgold-well", person: "team-rocket", name: "Team Rocket", title: "Team Rocket Grunt", game: "Pokémon HeartGold and SoulSilver", place: "Slowpoke Well", tier: "grunt",
+    species: ["Zubat", "Ekans"], owner: "Team Rocket",
+    signature: { title: "Tail trade", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_12, Goldenrod Underground Warehouse grunt (snapshot 20260519130329).
+  { id: "team-rocket-heartgold-warehouse", person: "team-rocket", name: "Team Rocket", title: "Team Rocket Grunt", game: "Pokémon HeartGold and SoulSilver", place: "Underground Warehouse", tier: "grunt",
+    species: ["Raticate", "Golbat"], owner: "Team Rocket",
+    signature: { title: "Warehouse guard", effect: "heal50" } },
+  // Bulbapedia: Walkthrough Part_12, Radio Tower 2F grunt (snapshot 20260519130329).
+  { id: "team-rocket-heartgold-radio-tower", person: "team-rocket", name: "Team Rocket", title: "Team Rocket Grunt", game: "Pokémon HeartGold and SoulSilver", place: "Goldenrod Radio Tower", tier: "grunt",
+    species: ["Grimer", "Grimer", "Muk"], owner: "Team Rocket",
+    signature: { title: "Radio takeover", effect: "boost30" } },
+
+  // Hoenn, Emerald: Team Magma and Team Aqua.
+  // Bulbapedia: Maxie, Emerald Mt. Chimney summit (snapshot 20260823065625; Zubat in Emerald, Golbat in Ruby).
+  // Before Flannery: Jagged Pass to Lavaridge comes after (Walkthrough:Pokémon_Emerald/Part_7, snapshot 20260816173806).
+  { id: "maxie-emerald", person: "maxie", name: "Maxie", title: "Team Magma Leader", game: "Pokémon Emerald", place: "Mt. Chimney", tier: "admin",
+    species: ["Mightyena", "Zubat", "Camerupt"], owner: "Team Magma",
+    signature: { title: "Meteorite machine", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_7, Jagged Pass grunt right after Maxie (snapshot 20260816173806).
+  { id: "team-magma-emerald-jagged-pass", name: "Team Magma", title: "Team Magma Grunt", game: "Pokémon Emerald", place: "Jagged Pass", tier: "grunt",
+    species: ["Poochyena", "Numel"], owner: "Team Magma",
+    signature: { title: "Hot on your heels", effect: "boost30" } },
+  // Bulbapedia: Walkthrough Part_12, Magma Hideout 2F grunt (snapshot 20260608015407).
+  { id: "team-magma-emerald-hideout", name: "Team Magma", title: "Team Magma Grunt", game: "Pokémon Emerald", place: "Magma Hideout", tier: "grunt",
+    species: ["Baltoy", "Numel"], owner: "Team Magma",
+    signature: { title: "Under the volcano", effect: "heal50" } },
+  // Bulbapedia: Walkthrough Part_10, Weather Institute 2F grunt (snapshot 20260608015407).
+  { id: "team-aqua-emerald-weather-institute", name: "Team Aqua", title: "Team Aqua Grunt", game: "Pokémon Emerald", place: "Weather Institute", tier: "grunt",
+    species: ["Poochyena", "Zubat", "Carvanha"], owner: "Team Aqua",
+    signature: { title: "Storm research", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_12, Mt. Pyre grunt on the outside path (snapshot 20260608015407).
+  { id: "team-aqua-emerald-mt-pyre", name: "Team Aqua", title: "Team Aqua Grunt", game: "Pokémon Emerald", place: "Mt. Pyre", tier: "grunt",
+    species: ["Wailmer", "Zubat"], owner: "Team Aqua",
+    signature: { title: "Orb snatchers", effect: "boost30" } },
+
+  // Sinnoh, Platinum: Team Galactic.
+  // Bulbapedia: Mars, Platinum battle at Lake Verity (snapshot 20260902010543): after Byron and before Candice
+  // (Walkthrough:Pokémon_Platinum/Part_13, Part_14 and Part_15, snapshots 20260731221258, 20260505011732, 20260731221500).
+  { id: "mars-platinum", name: "Mars", title: "Team Galactic Commander", game: "Pokémon Platinum", place: "Lake Verity", tier: "admin",
+    species: ["Golbat", "Bronzor", "Purugly"],
+    signature: { title: "Lake guardian hunt", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_4, the second grunt inside the Valley Windworks (snapshot 20260731221258; Valley_Windworks, snapshot 20260812215514).
+  { id: "team-galactic-platinum-windworks", name: "Team Galactic", title: "Team Galactic Grunt", game: "Pokémon Platinum", place: "Valley Windworks", tier: "grunt",
+    species: ["Glameow", "Stunky"],
+    signature: { title: "Power grab", effect: "boost30" } },
+  // Bulbapedia: Walkthrough Part_5, the grunt at the computer on the Eterna Building's second floor (snapshot 20260626002106).
+  { id: "team-galactic-platinum-eterna", name: "Team Galactic", title: "Team Galactic Grunt", game: "Pokémon Platinum", place: "Galactic Eterna Building", tier: "grunt",
+    species: ["Stunky", "Croagunk", "Glameow"],
+    signature: { title: "Eterna office", effect: "heal50" } },
+  // Bulbapedia: Walkthrough Part_11, the grunt guarding the ruins in Celestic Town (snapshot 20260626181344; Celestic_Town, snapshot 20260909203839).
+  { id: "team-galactic-platinum-celestic", name: "Team Galactic", title: "Team Galactic Grunt", game: "Pokémon Platinum", place: "Celestic Town", tier: "grunt",
+    species: ["Houndour", "Golbat"],
+    signature: { title: "Ruins lookout", effect: "energy2" } },
+
+  // Unova, Black: Team Plasma (no admin battles in Black and White: the story battle is the grunts around Zinzolin).
+  // Bulbapedia: Walkthrough:Pokémon_Black_and_White/Part_6 (snapshot 20260423150403) and Cold_Storage (snapshot
+  // 20260818133934): the four grunts you face in the Cold Storage, right before Clay, in the order you meet their
+  // Pokémon (Watchog, Scraggy; Liepard; Trubbish; Sandile, Watchog), the second Watchog left out.
+  { id: "team-plasma-black-cold-storage", name: "Team Plasma", title: "Team Plasma Grunts", game: "Pokémon Black and White", place: "Cold Storage", tier: "admin",
+    species: ["Watchog", "Scraggy", "Liepard", "Trubbish", "Sandile"],
+    signature: { title: "Guarding Zinzolin", effect: "heal50" } },
+  // Bulbapedia: Walkthrough Part_4, the last grunt in Pinwheel Forest, who hands back the Dragon Skull (snapshot 20260615023029; Pinwheel_Forest, snapshot 20260817221800).
+  { id: "team-plasma-black-pinwheel", name: "Team Plasma", title: "Team Plasma Grunt", game: "Pokémon Black and White", place: "Pinwheel Forest", tier: "grunt",
+    species: ["Patrat", "Patrat", "Sandile"],
+    signature: { title: "Dragon Skull heist", effect: "boost30" } },
+  // Bulbapedia: Walkthrough Part_7, Chargestone Cave grunt (snapshot 20260610051018; Chargestone_Cave, snapshot 20260821234630).
+  { id: "team-plasma-black-chargestone", name: "Team Plasma", title: "Team Plasma Grunt", game: "Pokémon Black and White", place: "Chargestone Cave", tier: "grunt",
+    species: ["Trubbish", "Liepard"],
+    signature: { title: "Liberate them", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_9, Dragonspiral Tower grunt (snapshot 20260227181850; Dragonspiral_Tower, snapshot 20260822201249).
+  { id: "team-plasma-black-dragonspiral", name: "Team Plasma", title: "Team Plasma Grunt", game: "Pokémon Black and White", place: "Dragonspiral Tower", tier: "grunt",
+    species: ["Watchog", "Krokorok", "Scraggy"],
+    signature: { title: "Tower climb", effect: "heal50" } },
+
+  // Kalos, X and Y: Team Flare.
+  // Bulbapedia: Xerosic, X/Y battle at Lysandre Labs B3F under Lysandre Café (snapshot 20260822095421): after
+  // Olympia and before Wulfric (Lysandre_Labs, snapshot 20260818190442; Walkthrough:Pokémon_X_and_Y/Part_11, snapshot 20260831202737).
+  { id: "xerosic-x", name: "Xerosic", title: "Team Flare Scientist", game: "Pokémon X and Y", place: "Lysandre Labs", tier: "admin",
+    species: ["Crobat", "Malamar"],
+    signature: { title: "Ultimate weapon", effect: "boost30" } },
+  // Bulbapedia: Walkthrough Part_5, the first solo grunt in Glittering Cave (snapshot 20260830223534; Glittering_Cave, snapshot 20260813194617).
+  { id: "team-flare-x-glittering-cave", name: "Team Flare", title: "Team Flare Grunt", game: "Pokémon X and Y", place: "Glittering Cave", tier: "grunt",
+    species: ["Houndour", "Zubat"],
+    signature: { title: "Fossil grab", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_7, the last grunt before the Kalos Power Plant's admin (snapshot 20261010163731; Kalos_Power_Plant, snapshot 20251231213040).
+  { id: "team-flare-x-power-plant", name: "Team Flare", title: "Team Flare Grunt", game: "Pokémon X and Y", place: "Kalos Power Plant", tier: "grunt",
+    species: ["Croagunk", "Scraggy", "Liepard"],
+    signature: { title: "Lights out", effect: "boost30" } },
+  // Bulbapedia: Walkthrough Part_9, Poké Ball Factory grunt (snapshot 20260831202609; Poké_Ball_Factory, snapshot 20260823163618).
+  { id: "team-flare-x-poke-ball-factory", name: "Team Flare", title: "Team Flare Grunt", game: "Pokémon X and Y", place: "Poké Ball Factory", tier: "grunt",
+    species: ["Mightyena", "Golbat"],
+    signature: { title: "Factory takeover", effect: "heal50" } },
+
+  // Alola, Sun and Moon: Team Skull.
+  // Bulbapedia: Plumeria, Sun/Moon first battle at the Akala Outskirts (snapshot 20260826174653), right
+  // before Olivia's grand trial (Walkthrough:Pokémon_Sun_and_Moon/Part_12, snapshot 20251230122729).
+  { id: "plumeria-sun", name: "Plumeria", title: "Team Skull Admin", game: "Pokémon Sun and Moon", place: "Akala Outskirts", tier: "admin",
+    species: ["Golbat", "Salandit"],
+    signature: { title: "Big sister's orders", effect: "heal50" } },
+  // Bulbapedia: Walkthrough Part_18, Route 17 grunt (snapshot 20251219062214); Alolan forms per Team_Skull_Grunt (snapshot 20260528072726).
+  { id: "team-skull-sun-route-17", name: "Team Skull", title: "Team Skull Grunt", game: "Pokémon Sun and Moon", place: "Route 17", tier: "grunt",
+    species: ["Alolan Rattata", "Alolan Raticate"],
+    signature: { title: "Ula'ula ambush", effect: "boost30" } },
+  // Bulbapedia: Walkthrough Part_19, Shady House first floor grunt (snapshot 20260311122315).
+  { id: "team-skull-sun-shady-house", name: "Team Skull", title: "Team Skull Grunt", game: "Pokémon Sun and Moon", place: "Shady House, first floor", tier: "grunt",
+    species: ["Zubat", "Gastly", "Salandit"],
+    signature: { title: "Po Town welcome", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_19, Shady House second floor grunt (snapshot 20260311122315).
+  { id: "team-skull-sun-shady-house-upstairs", name: "Team Skull", title: "Team Skull Grunt", game: "Pokémon Sun and Moon", place: "Shady House, second floor", tier: "grunt",
+    species: ["Wimpod", "Drowzee"],
+    signature: { title: "House rules", effect: "heal50" } },
+
+  // Galar, Sword: Team Yell (no admin: the story battle is the grunts lining Spikemuth's street).
+  // Bulbapedia: Spikemuth (snapshot 20260829093740) and Walkthrough:Pokémon_Sword_and_Shield/Part_13 (snapshot
+  // 20260220130637): one Pokémon per grunt in street order, right before Piers (Gym Trainer Joshua's Drapion left out).
+  { id: "team-yell-sword-spikemuth", name: "Team Yell", title: "Team Yell Grunts", game: "Pokémon Sword and Shield", place: "Spikemuth", tier: "admin",
+    species: ["Galarian Linoone", "Thievul", "Scrafty", "Weavile", "Liepard"],
+    signature: { title: "Gates of Spikemuth", effect: "boost30" } },
+  // Bulbapedia: Walkthrough Part_6, Route 5 grunt by the bridge (snapshot 20260217114312); Galarian forms per Team_Yell_Grunt (snapshot 20260219123656).
+  { id: "team-yell-sword-route-5", name: "Team Yell", title: "Team Yell Grunt", game: "Pokémon Sword and Shield", place: "Route 5", tier: "grunt",
+    species: ["Galarian Zigzagoon", "Thievul"],
+    signature: { title: "Bridge blockade", effect: "heal50" } },
+  // Bulbapedia: Walkthrough Part_10, Route 6 grunt (snapshot 20251218011047).
+  { id: "team-yell-sword-route-6", name: "Team Yell", title: "Team Yell Grunt", game: "Pokémon Sword and Shield", place: "Route 6", tier: "grunt",
+    species: ["Stunky", "Galarian Linoone"],
+    signature: { title: "Cheer squad", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_13, Route 9 grunt (snapshot 20260220130637).
+  { id: "team-yell-sword-route-9", name: "Team Yell", title: "Team Yell Grunt", game: "Pokémon Sword and Shield", place: "Route 9", tier: "grunt",
+    species: ["Galarian Linoone", "Pangoro"],
+    signature: { title: "Marnie's biggest fans", effect: "boost30" } },
+
+  // Paldea, Scarlet and Violet: Team Star.
+  // Bulbapedia: Atticus, first battle at the Navi Squad's Base (snapshot 20260901121157): his own Revavroom,
+  // then the Navi Starmobile, which battles as a Revavroom (Starmobile, snapshot 20260909034841). Right
+  // before Larry in the walkthrough's order (Walkthrough:Pokémon_Scarlet_and_Violet/Part_13 and Part_14,
+  // snapshots 20251213050454 and 20260727225821).
+  { id: "atticus-scarlet", name: "Atticus", title: "Boss of Team Star's Poison crew", game: "Pokémon Scarlet and Violet", place: "Navi Squad's Base", tier: "admin",
+    species: ["Skuntank", "Muk", "Revavroom", "Revavroom"],
+    pin: { 2: "sv7-109" }, // his own Revavroom as a regular card; the Starmobile after it stays an ex, so the team has one
+    signature: { title: "Poison verse", effect: "energy2" } },
+  // Bulbapedia: Walkthrough Part_3 (snapshot 20260302143456): two grunts back to back on the academy's
+  // stairs in Mesagoza (Team Star's story grunts have one Pokémon each; this scene is one battle after another).
+  { id: "team-star-scarlet-academy", name: "Team Star", title: "Team Star Grunts", game: "Pokémon Scarlet and Violet", place: "Academy stairs", tier: "grunt",
+    species: ["Shroodle", "Yungoos"],
+    signature: { title: "Skipping class", effect: "boost30" } },
+  // Bulbapedia: Carmen, the grunt at the Caph Squad's Base gate (snapshot 20260728234018; Caph_Squad's_Base, snapshot 20260818185317).
+  { id: "team-star-scarlet-caph-gate", name: "Team Star", title: "Team Star Grunt Carmen", game: "Pokémon Scarlet and Violet", place: "Caph Squad's Base", tier: "grunt",
+    species: ["Croagunk", "Primeape"],
+    signature: { title: "Caph gate", effect: "heal50" } },
 ];
 
 export const DUEL_TRAINERS: DuelTrainer[] = DUEL_TRAINER_PLANS.flatMap((p) => {
   const team = DUEL_TEAM_PICKS[p.id];
   if (!team || team.length !== p.species.length) return [];
-  return [{ id: p.id, person: p.person ?? personKey(p.name), name: p.name, title: p.title, game: p.game, tier: p.tier, team, signature: p.signature }];
+  return [{ id: p.id, person: p.person ?? personKey(p.name), name: p.name, title: p.title, game: p.game, ...(p.place ? { place: p.place } : {}), tier: p.tier, team, signature: p.signature }];
 });

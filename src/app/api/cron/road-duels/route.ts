@@ -2,7 +2,8 @@
  * GET /api/cron/road-duels
  *
  * Trainer Road's duels for the month (src/lib/originals/duel/roadStore.ts ensureRoadDuels): the
- * month's missing duels, a few per run (Kanto first), and in the month's last three days next
+ * month's missing duels, a few per run (Kanto first), then the month's duels stored on older rules
+ * that nobody has started (built again on the newest), and in the month's last three days next
  * month's, so the 1st never waits. Every 10 minutes. Auth: Vercel Cron Bearer CRON_SECRET.
  */
 

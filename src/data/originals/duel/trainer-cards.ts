@@ -54,13 +54,13 @@ export const SUPPORTER_ART: Record<"sv" | "swsh" | "sm" | "xy" | "pl", ArtBox> =
   pl: [0.10, 0.15, 0.80, 0.345],
 };
 
-/** The era a card id belongs to, for its art window (Mega Evolution cards share Scarlet & Violet's frame; Generations and Black & White share XY's). */
+/** The era a card id belongs to, for its art window (Mega Evolution cards share Scarlet & Violet's frame; Generations, Double Crisis and Black & White share XY's). */
 export function supporterEra(id: string): keyof typeof SUPPORTER_ART {
   // Pokémon TCG Pocket's Supporters share Scarlet & Violet's window (measured 2026-10-23: art from row 70 to 266, column 28 to 343).
   if (/^(sv|rsv|me|tcgp)/.test(id)) return "sv";
   if (/^swsh/.test(id)) return "swsh";
   if (/^sm/.test(id)) return "sm";
-  if (/^(xy|g1|bw)/.test(id)) return "xy";
+  if (/^(xy|g1|bw|dc)/.test(id)) return "xy";
   return "pl";
 }
 
@@ -321,4 +321,22 @@ export const DUEL_TRAINER_CARDS: Record<string, DuelTrainerCardPlan> = {
   "leon": { card: "swsh4-154", name: "Leon", set: "Vivid Voltage", artist: "Ken Sugimori", face: [0.49, 0.18, 2.2] },
   "red": { card: "sm10-184", name: "Red's Challenge", set: "Unbroken Bonds", artist: "Megumi Mizutani", face: [0.5, 0.21, 2] },
   "steven": { card: "xy6-90", name: "Steven", set: "Roaring Skies", artist: "Megumi Mizutani", face: [0.6, 0.17, 2] },
+  // ── Villain teams on Trainer Road (road encounters, picks 2026-10-24) ─────────────────────────────
+  // A team's grunts wear its own grunt Supporter card (two grunts on most: the face is the one picked
+  // for the round portrait); a story battle's leader wears their own card. Illustrators read off each
+  // card's "Illus." line on 2026-10-24 (the Pokémon TCG API was down).
+  "team-rocket": { card: "tcgp-A2b-72", name: "Team Rocket Grunt", set: "Shining Revelry (Pokémon TCG Pocket)", artist: "kantaro", face: [0.66, 0.45, 2] },
+  "archer": { card: "sv10-170", name: "Team Rocket's Archer", set: "Destined Rivals", artist: "Hideki Ishikawa", face: [0.5, 0.22, 2] },
+  "team-magma": { card: "dc1-30", name: "Team Magma Grunt", set: "Double Crisis", artist: "GAME FREAK inc.", face: [0.2, 0.35, 2] },
+  "team-aqua": { card: "dc1-26", name: "Team Aqua Grunt", set: "Double Crisis", artist: "GAME FREAK inc.", face: [0.27, 0.23, 2] },
+  "team-galactic": { card: "tcgp-A2-151", name: "Team Galactic Grunt", set: "Space-Time Smackdown (Pokémon TCG Pocket)", artist: "GOSSAN", face: [0.31, 0.23, 2] },
+  "mars": { card: "dp3-126", name: "Team Galactic's Mars", set: "Secret Wonders", artist: "Ken Sugimori", face: [0.6, 0.3, 2.2] },
+  "team-plasma": { card: "bw8-125", name: "Team Plasma Grunt", set: "Plasma Storm", artist: "Yusuke Ohmura", face: [0.28, 0.21, 2] },
+  "team-flare": { card: "xy1-129", name: "Team Flare Grunt", set: "XY", artist: "Yusuke Ohmura", face: [0.58, 0.34, 2] },
+  "xerosic": { card: "xy4-110", name: "Xerosic", set: "Phantom Forces", artist: "Yusuke Ohmura", face: [0.56, 0.16, 2] },
+  "team-skull": { card: "sm1-133", name: "Team Skull Grunt", set: "Sun & Moon", artist: "Ken Sugimori", face: [0.33, 0.21, 2] },
+  "plumeria": { card: "sm3-120", name: "Plumeria", set: "Burning Shadows", artist: "Ken Sugimori", face: [0.5, 0.16, 2] },
+  "team-yell": { card: "swsh1-184", name: "Team Yell Grunt", set: "Sword & Shield", artist: "nagimiso", face: [0.37, 0.26, 2] },
+  "team-star": { card: "sv1-195", name: "Team Star Grunt", set: "Scarlet & Violet", artist: "nagimiso", face: [0.24, 0.27, 2] },
+  "atticus": { card: "sv4pt5-77", name: "Atticus", set: "Paldean Fates", artist: "kantaro", face: [0.44, 0.17, 2] },
 };

@@ -88,6 +88,18 @@ export const EVENTS = {
   roadFinished: "Road Duel Finished",
   /** A link from Trainer Road to the Daily Duel pressed {from: result}. */
   roadToDaily: "Road To Daily Duel",
+  /** The Daily Duel page's Trainer Road module was used ({ from: "duel-module" | "duel-module-next" }). */
+  duelToRoad: "Duel To Trainer Road",
+  /** A badge on a region's path (Trainer Road phase 2) {region}. */
+  roadBadge: "Road Badge Earned",
+  /** A region cleared on the path {region}. */
+  roadCleared: "Road Region Cleared",
+  /** A villain team turned up on someone's road (road encounters) {region, kind: set | grunt}. */
+  roadEncounter: "Road Encounter Appeared",
+  /** A villain team on the road beaten {region, kind}. */
+  roadEncounterBeaten: "Road Encounter Beaten",
+  /** "Battle Team Rocket" pressed where an encounter blocks the road {from: path | hub | duel-module | result | start, kind}. */
+  roadEncounterClicked: "Road Encounter Clicked",
   /** A challenger card ("Larry challenged you to a duel") pressed {from: home | shuffle | dex | fire, played}. */
   duelChallengerClicked: "Duel Challenger Clicked",
   /** The Share button on any result (src/components/share): {game, via: sheet|window}, then where it went {game, place}. */

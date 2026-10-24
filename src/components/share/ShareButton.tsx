@@ -48,7 +48,7 @@ function useShareCard(request: ShareRequest | null): Card | null {
   return card?.key === key ? card.card : null;
 }
 
-export function ShareButton({ request, text, game, fallbackUrl, title = "My GameShuffle result", label = "Share", variant = "primary", trigger }: {
+export interface ShareOptions {
   /** What to make the card from; null while the game isn't finished. */
   request: ShareRequest | null;
   /** The squares and words to go with it, ending in the link it's given. */
@@ -58,11 +58,14 @@ export function ShareButton({ request, text, game, fallbackUrl, title = "My Game
   /** Where the link points when the card couldn't be made (the game's page). */
   fallbackUrl: string;
   title?: string;
-  label?: string;
-  variant?: "primary" | "secondary";
-  /** Draws its own control in place of the Share button (the profile's Supporter badge). */
-  trigger?: (share: () => void) => ReactNode;
-}) {
+}
+
+/**
+ * The card made ahead of the tap, and `share()` to call from a tap: the share sheet, else our
+ * share window. Render `window` once. Used by ShareButton and by the dailies' Share window, which
+ * readies both cards (just this game, all of today's) before either is picked.
+ */
+export function useShare({ request, text, game, fallbackUrl, title = "My GameShuffle result" }: ShareOptions): { share: () => void; window: ReactNode } {
   const toast = useToast();
   const card = useShareCard(request);
   const [open, setOpen] = useState(false);
@@ -92,10 +95,23 @@ export function ShareButton({ request, text, game, fallbackUrl, title = "My Game
     setOpen(true);
   }, [card, fullText, game, title]);
 
+  return {
+    share: () => void share(),
+    window: <ShareWindow open={open} onClose={() => setOpen(false)} card={card} url={url} text={fullText} title={title} game={game} onCopied={(m) => toast.success(m)} onFailed={(m) => toast.error(m)} />,
+  };
+}
+
+export function ShareButton({ label = "Share", variant = "primary", trigger, ...opts }: ShareOptions & {
+  label?: string;
+  variant?: "primary" | "secondary";
+  /** Draws its own control in place of the Share button (the profile's Supporter badge). */
+  trigger?: (share: () => void) => ReactNode;
+}) {
+  const { share, window: win } = useShare(opts);
   return (
     <>
-      {trigger ? trigger(() => void share()) : <Button variant={variant} iconBefore={IconShare} onClick={() => void share()}>{label}</Button>}
-      <ShareWindow open={open} onClose={() => setOpen(false)} card={card} url={url} text={fullText} title={title} game={game} onCopied={(m) => toast.success(m)} onFailed={(m) => toast.error(m)} />
+      {trigger ? trigger(share) : <Button variant={variant} iconBefore={IconShare} onClick={share}>{label}</Button>}
+      {win}
     </>
   );
 }

@@ -14,7 +14,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, Modal } from "@empac/cascadeds";
-import { IconBroadcast, IconCoins, IconConfetti, IconHandStop, IconPencil, IconSparkles, IconTrophy, IconUserPlus } from "@tabler/icons-react";
+import { IconBroadcast, IconCoins, IconConfetti, IconHandStop, IconPencil, IconRoute, IconSparkles, IconTrophy, IconUserPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminField, AdminHeader, AdminSection } from "@/components/account/admin/AdminKit";
@@ -25,13 +25,13 @@ interface ConfigRow {
   updated_at: string;
 }
 
-type LeverCategory = "onboarding" | "earns" | "dailies" | "chaos" | "streamer" | "lifecycle";
+type LeverCategory = "onboarding" | "earns" | "dailies" | "road" | "chaos" | "streamer" | "lifecycle";
 
 interface LeverMeta {
   key: string;
   label: string;
   helper: string;
-  unit: "tokens" | "seconds" | "count";
+  unit: "tokens" | "seconds" | "count" | "xp" | "percent";
   category: LeverCategory;
 }
 
@@ -91,6 +91,28 @@ const LEVERS: LeverMeta[] = [
     helper: "Most letters a player can buy for one daily (two always stay hidden, so short names allow fewer). Up to 5." },
   { key: "daily_help_guesses", label: "Help: extra guesses a day", unit: "count", category: "dailies",
     helper: "Most extra guesses a player can buy for one daily. Up to 5." },
+  // ── Trainer Road (GameShuffle pays; no streamer allowance) ────
+  { key: "road_badge_tokens", label: "Badge", unit: "tokens", category: "road", helper: "Tokens for each badge on a region's path (Alola's grand trials too). Paid once per badge. 0 turns it off." },
+  { key: "road_league_tokens", label: "League won", unit: "tokens", category: "road", helper: "Tokens for winning a region's League back to back (Galar's Champion Cup)." },
+  { key: "road_region_tokens", label: "Region cleared", unit: "tokens", category: "road", helper: "Tokens for beating a region's end-game opponent, which opens the next region." },
+  { key: "road_champion_tokens", label: "Trainer Road Champion", unit: "tokens", category: "road", helper: "Tokens for clearing all nine regions. Paid once." },
+  { key: "road_xp_gym", label: "XP: a Gym Leader win", unit: "xp", category: "road", helper: "XP for the first win against a Gym Leader team each month, before stars." },
+  { key: "road_xp_rival", label: "XP: a rival win", unit: "xp", category: "road", helper: "XP for the first win against a rival team each month." },
+  { key: "road_xp_elite", label: "XP: an Elite Four win", unit: "xp", category: "road", helper: "XP for the first win against an Elite Four team each month." },
+  { key: "road_xp_boss", label: "XP: a villain boss win", unit: "xp", category: "road", helper: "XP for the first win against a villain boss team each month." },
+  { key: "road_xp_champion", label: "XP: a Champion win", unit: "xp", category: "road", helper: "XP for the first win against a Champion team each month." },
+  { key: "road_xp_endgame", label: "XP: an end-game win", unit: "xp", category: "road", helper: "XP for the first win against a region's end-game opponent each month, in place of its tier's." },
+  { key: "road_xp_star", label: "XP: each star", unit: "xp", category: "road", helper: "Added to a win's XP for each star it earned (up to three)." },
+  { key: "road_xp_hard_percent", label: "XP: Hard", unit: "percent", category: "road", helper: "A Hard win's XP as a percent of the same win in Normal. 150 means half again." },
+  { key: "road_xp_badge", label: "XP: a badge", unit: "xp", category: "road", helper: "XP for each badge, on top of the win's own XP." },
+  { key: "road_xp_league", label: "XP: a League", unit: "xp", category: "road", helper: "XP for winning a region's League." },
+  { key: "road_xp_region", label: "XP: a region cleared", unit: "xp", category: "road", helper: "XP for clearing a region. Clearing all nine at about two stars a win lands near level 60." },
+  { key: "road_encounter_swipe", label: "Villain team: tokens swiped", unit: "tokens", category: "road", helper: "What a villain team takes when it turns up on someone's road (or all they have, if less). It comes back when they beat it. 0 means nothing at stake." },
+  { key: "road_encounter_tokens", label: "Villain team: reward", unit: "tokens", category: "road", helper: "Tokens for beating a villain team that turned up, on top of getting the swiped tokens back." },
+  { key: "road_xp_encounter", label: "XP: a villain team beaten", unit: "xp", category: "road", helper: "XP for beating a villain team that turned up on the road. Like a Gym win by default." },
+  { key: "road_encounter_chance", label: "Villain team: grunt chance", unit: "percent", category: "road", helper: "The chance a grunt turns up after a badge (when the next trainer is a Gym Leader). Each region's story battle comes regardless." },
+  { key: "road_xp_grunt", label: "XP: a grunt win", unit: "xp", category: "road", helper: "XP for the first win against a grunt team each month in free play." },
+  { key: "road_xp_admin", label: "XP: a villain story battle win", unit: "xp", category: "road", helper: "XP for the first win against a villain team's story battle each month in free play." },
   // ── Chaos prices ──────────────────────────────────────────────
   { key: "chaos_price_min", label: "Lowest chaos price", unit: "tokens", category: "chaos",
     helper: "The least a streamer can charge for a chaos event in chat. Works with the highest price below." },
@@ -114,6 +136,7 @@ const CATEGORIES: { id: LeverCategory; title: string; intro: string; icon: typeo
   { id: "onboarding", title: "Welcome and recovery", intro: "What viewers start with, and what keeps an empty wallet from staying empty.", icon: IconUserPlus },
   { id: "earns", title: "Earning", intro: "How viewers earn tokens by playing and chatting, and the daily limit.", icon: IconSparkles },
   { id: "dailies", title: "Daily leaderboards", intro: "What the Daily Shuffle and Daily Dex pay: tokens for every game, and prizes when a week or month ends. GameShuffle pays these, not streamers.", icon: IconTrophy },
+  { id: "road", title: "Trainer Road", intro: "Tokens and XP on the road: badges, Leagues and regions pay tokens once each; wins and milestones give XP for the trainer level. GameShuffle pays these, not streamers.", icon: IconRoute },
   { id: "chaos", title: "Chaos prices", intro: "The range streamers can charge when chat spends tokens on a chaos event.", icon: IconConfetti },
   { id: "streamer", title: "Streamer payouts", intro: "Tokens streamers hand out, which come from their monthly allowance.", icon: IconCoins },
   { id: "lifecycle", title: "Streams", intro: "Timing around the end of a stream.", icon: IconBroadcast },
@@ -121,8 +144,8 @@ const CATEGORIES: { id: LeverCategory; title: string; intro: string; icon: typeo
 
 const fmt = (v: number) => v.toLocaleString("en-US");
 const valueText = (v: number, unit: LeverMeta["unit"]) =>
-  unit === "tokens" ? `${fmt(v)} ${v === 1 ? "token" : "tokens"}` : unit === "seconds" ? `${fmt(v)} ${v === 1 ? "second" : "seconds"}` : fmt(v);
-const UNIT_FIELD: Record<LeverMeta["unit"], string> = { tokens: "tokens", seconds: "seconds", count: "a number" };
+  unit === "tokens" ? `${fmt(v)} ${v === 1 ? "token" : "tokens"}` : unit === "seconds" ? `${fmt(v)} ${v === 1 ? "second" : "seconds"}` : unit === "xp" ? `${fmt(v)} XP` : unit === "percent" ? `${fmt(v)}%` : fmt(v);
+const UNIT_FIELD: Record<LeverMeta["unit"], string> = { tokens: "tokens", seconds: "seconds", count: "a number", xp: "XP", percent: "a percent" };
 const when = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
 const humanize = (key: string) => {
   const s = key.replace(/[._]+/g, " ").trim();

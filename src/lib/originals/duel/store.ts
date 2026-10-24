@@ -23,12 +23,15 @@ import { playerKey, type PlayerKind } from "@/lib/daily/boardRules";
 import { recordDuelScore } from "@/lib/daily/boards";
 import type { DailiesEntry, DayMark } from "@/lib/originals/dailies";
 import { alive, applyStep, cardsLeft, inDuel, startState, viewOf, type DuelSetup, type DuelState } from "./engine";
-import { adviceFor, buildDay, hardParFor, hardSetup, makeSetup, type DuelPlan } from "./solver";
+import { adviceFor, buildDay, hardParFor, levelSetup, makeSetup, type DuelPlan } from "./solver";
 import { trainerPicture } from "./pictures";
 import { bioFor } from "@/data/originals/duel/bios";
-import { TIER_LABEL, duelNumber, duelPoints, duelScore, duelShareText, personOf, signatureText, tierFor, type DuelScoreParts, type DuelShareFacts } from "./rules";
+import { TIER_LABEL, duelNumber, duelPoints, duelScore, duelShareText, personKey, personOf, signatureText, tierFor, type DuelScoreParts, type DuelShareFacts } from "./rules";
+import { regionOf, roadPath, roadRegion } from "./road";
+import { regionGymFaces, roadTotals } from "./roadPages";
+import { roadShown } from "@/lib/games-visibility";
 import type { DuelData } from "./data";
-import type { DuelCard, DuelEventAt, DuelRules, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
+import type { DuelCard, DuelEventAt, DuelLevel, DuelRules, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
 import type { DuelChallengerView, DuelHintView, DuelHistory, DuelHome, DuelPicture, DuelPlanView, DuelRunView, DuelTrainerView } from "./view";
 
 type DbError = { code?: string; message?: string } | null;
@@ -53,8 +56,8 @@ interface DayRow {
 }
 const DAY_COLS = "day, number, tier, trainer_id, pack, row, events, par, line, in_band, built_at, cards, trainer";
 
-/** The newest rules (types.ts DuelRules): rules 5 plus the trainer on the same rules (its own hand, the comeback charge), 2026-10-23. */
-export const DUEL_RULES: DuelRules = 6;
+/** The newest rules (types.ts DuelRules): rules 6 (the trainer on the same rules, 2026-10-23) plus three modes with Normal's comeback at one Energy (2026-10-24). */
+export const DUEL_RULES: DuelRules = 7;
 
 /** Whether duel_days has `plans` and `win_rate` yet (daily-duel-m3.sql); rules 5 days need them, so until then days build with rules 4. */
 let plansColumn: Promise<boolean> | null = null;
@@ -81,6 +84,27 @@ function levelReady(): Promise<boolean> {
     return !error;
   })();
   return levelColumns;
+}
+
+/**
+ * Whether Easy runs can be saved (duel-easy-m1.sql widens the level checks and adds gs_duel_easy_ready).
+ * Until then Easy is hidden. A yes is kept; a no is asked again after a minute, so Easy turns up
+ * without a redeploy once the migration runs.
+ */
+let easyCheck: { at: number; ready: Promise<boolean> } | null = null;
+export function easyReady(): Promise<boolean> {
+  const now = Date.now();
+  if (!easyCheck) easyCheck = { at: now, ready: askEasy() };
+  else if (now - easyCheck.at > 60_000) {
+    const prev = easyCheck.ready;
+    easyCheck = { at: now, ready: prev.then((ok) => ok || askEasy()) };
+  }
+  return easyCheck.ready;
+}
+async function askEasy(): Promise<boolean> {
+  const { data, error } = await createServiceClient().rpc("gs_duel_easy_ready");
+  if (error && !missing(error) && error.code !== "PGRST202") console.error("[duel] easy check failed:", error);
+  return !error && data === true;
 }
 
 /** The newest rules this database can hold: 1 before daily-duel-m2.sql, 4 before daily-duel-m3.sql. */
@@ -133,7 +157,8 @@ const cachedDay = (day: string): DuelDay | null => {
 const keepDay = (d: DuelDay) => { dayCache.set(d.day, { d, at: Date.now() }); };
 const building = new Map<string, Promise<DuelDay | null>>();
 
-const rulesOf = (n: number | undefined): DuelRules => (n === 6 ? 6 : n === 5 ? 5 : n === 4 ? 4 : n === 3 ? 3 : n === 2 ? 2 : 1);
+/** A stored rules number: 1 to the newest (a row from newer code reads as the newest this server knows). */
+export const rulesOf = (n: number | null | undefined): DuelRules => (Number.isInteger(n) && (n as number) >= 1 ? Math.min(n as number, DUEL_RULES) : 1) as DuelRules;
 
 function dayFrom(r: DayRow): DuelDay | null {
   const trainer = r.trainer;
@@ -339,21 +364,24 @@ export interface RunRow {
   id: string; player: string; user_id: string | null; day: string; official: boolean; state: DuelState; steps: DuelStep[];
   version: number; status: "playing" | "done"; result: "won" | "lost" | null; turns: number; cards_left: number | null;
   seconds: number | null; started_at: string; finished_at: string | null;
-  /** Normal or Hard (absent before daily-duel-m5.sql: Normal). */
+  /** Easy, Normal or Hard (absent before daily-duel-m5.sql: Normal). */
   level?: DuelLevel;
 }
-export type DuelLevel = "normal" | "hard";
+export type { DuelLevel };
 const RUN_COLS_BASE = "id, player, user_id, day, official, state, steps, version, status, result, turns, cards_left, seconds, started_at, finished_at";
 /** The run columns this database has (`level` once daily-duel-m5.sql runs). */
 const runCols = async (): Promise<string> => ((await levelReady()) ? `${RUN_COLS_BASE}, level` : RUN_COLS_BASE);
 
 const isHard = (r: Pick<RunRow, "level">) => r.level === "hard";
-/** The duel a run plays: Hard takes away your comeback Energy. */
-const setupOf = (r: Pick<RunRow, "level">, d: DuelDay): DuelSetup => (isHard(r) ? hardSetup(d.setup) : d.setup);
-/** The par a run is measured against: Hard has its own. */
+const levelOf = (r: Pick<RunRow, "level">): DuelLevel => r.level ?? "normal";
+/** The duel a run plays: Hard takes away your comeback Energy, Easy brings one for each card you've lost. */
+const setupOf = (r: Pick<RunRow, "level">, d: DuelDay): DuelSetup => levelSetup(d.setup, r.level);
+/** The par a run is measured against: Hard has its own; Easy plays against Normal's. */
 const parOf = (r: Pick<RunRow, "level">, d: DuelDay): number => (isHard(r) && d.hardPar ? d.hardPar : d.par);
 /** Hard can be played on this day: a rules 6 day whose Hard par is worked out and has a winning line. */
 const hardOn = async (d: DuelDay) => d.rules >= 6 && !!d.hardPar && (await levelReady());
+/** Easy can be played on this day: rules 6 days on, once the database takes Easy runs. */
+const easyOn = async (d: DuelDay) => d.rules >= 6 && (await levelReady()) && (await easyReady());
 
 async function getRun(id: string): Promise<RunRow | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
@@ -420,7 +448,7 @@ const askedFor = async (r: RunRow, d: DuelDay) => (d.rules >= 6 && r.official ? 
 /** A finished official duel's score on a rules 6 day (null otherwise: older days keep their points). */
 function scoreOf(r: RunRow, d: DuelDay, asked: boolean): DuelScoreParts | null {
   if (d.rules < 6 || !r.official || r.status !== "done" || !r.result) return null;
-  return duelScore({ won: r.result === "won", turns: r.turns, par: parOf(r, d), seconds: r.seconds, solo: !asked, knocked: r.state.foe.filter((c) => c.out).length, hard: isHard(r) });
+  return duelScore({ won: r.result === "won", turns: r.turns, par: parOf(r, d), seconds: r.seconds, solo: !asked, knocked: r.state.foe.filter((c) => c.out).length, level: levelOf(r) });
 }
 
 /** The professor's plans for a day. On a rules 6 day asking for them ends the solo bonus (it's recorded first). */
@@ -449,7 +477,7 @@ function shareFactsOf(r: RunRow, d: DuelDay): DuelShareFacts {
   return {
     number: duelNumber(r.day), trainer: d.trainer.name, won: r.result === "won", turns: r.turns, par: parOf(r, d), seconds: r.seconds,
     standing: r.state.you.filter((_, i) => inDuel(r.state, i)).map((c) => !c.out), knocked: r.state.foe.length - alive(r.state.foe), team: r.state.foe.length, practice: !r.official,
-    ...(isHard(r) ? { hard: true } : {}),
+    ...(isHard(r) ? { hard: true } : levelOf(r) === "easy" ? { easy: true } : {}),
   };
 }
 
@@ -479,7 +507,7 @@ function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number 
     score: parts,
     scoring: d.rules >= 6 ? "score" : "points",
     asked,
-    level: isHard(r) ? "hard" : "normal",
+    level: levelOf(r),
     seconds: done ? r.seconds : null,
     startedAt: r.started_at,
     serverNow: new Date().toISOString(),
@@ -488,7 +516,7 @@ function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number 
   };
 }
 
-export type StartResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_ready" | "official_first" | "failed" | "hard_off" };
+export type StartResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_ready" | "official_first" | "failed" | "hard_off" | "easy_off" };
 
 /**
  * Starts a duel. Official: the player's first today (pressing Start starts its clock); asking again
@@ -511,8 +539,8 @@ export async function startRun(player: DuelPlayer, mode: "official" | "practice"
   }
   // Hard needs a day with a Hard par, and an official Hard duel needs a player who hasn't asked the professor today (Hard is on your own).
   if (level === "hard" && (!(await hardOn(d)) || (mode === "official" && (await askedOn(key, day))))) return { ok: false, error: "hard_off" };
-  const hard = level === "hard";
-  const row = { player: key, user_id: player.kind === "u" ? player.id : null, day, official: mode === "official", state: startState(hard ? hardSetup(d.setup) : d.setup), steps: [], ...(hard ? { level: "hard" } : {}) };
+  if (level === "easy" && !(await easyOn(d))) return { ok: false, error: "easy_off" };
+  const row = { player: key, user_id: player.kind === "u" ? player.id : null, day, official: mode === "official", state: startState(levelSetup(d.setup, level)), steps: [], ...(level !== "normal" ? { level } : {}) };
   const { data, error } = await svc.from("duel_runs").insert(row).select(await runCols()).single();
   if (error?.code === "23505") {
     // Another tab started the official duel first: that one stands.
@@ -599,18 +627,20 @@ export async function duelHome(player: DuelPlayer | null, day = gsDay()): Promis
   const empty: DuelHome = {
     ready: false, day, number: duelNumber(day), tier: tierFor(day), trainer: null, pack: [], bring: 6, team: [],
     official: null, par: null, practiceAllowed: false, current: null, history: NO_HISTORY, signedIn: player?.kind === "u",
-    rules: 1, plans: [], planCount: 0, scoring: "points", asked: false, hard: { can: false, why: "off", par: null },
+    rules: 1, plans: [], planCount: 0, scoring: "points", asked: false, hard: { can: false, why: "off", par: null }, easy: { can: false }, comeback: 0,
   };
   const d = await getDay(day);
   if (!d) return empty;
   const start = viewOf(d.setup, startState(d.setup), d.trainer);
-  const hardToday = await hardOn(d);
+  const [hardToday, easyToday] = await Promise.all([hardOn(d), easyOn(d)]);
   const base: DuelHome = {
     ...empty, ready: true, tier: d.tier, trainer: dayTrainer(d), pack: start.you, bring: start.bring, team: start.foe,
     rules: d.rules, planCount: d.plans.length, scoring: d.rules >= 6 ? "score" : "points",
     // Rules 6: the plans stay on the server until asked for (askProfessor); older days show them.
     plans: d.rules >= 6 ? [] : d.plans.map((p) => ({ title: p.title, text: p.text })),
     hard: { can: hardToday, why: hardToday ? "ok" : "off", par: null },
+    easy: { can: easyToday },
+    comeback: d.setup.comeback ?? 0,
   };
   if (!player) return base;
   const key = keyOf(player);
@@ -629,7 +659,7 @@ export async function duelHome(player: DuelPlayer | null, day = gsDay()): Promis
       id: official.id, status: official.status, result: official.result, turns: official.turns, cardsLeft: official.cards_left ?? cardsLeft(official.state),
       seconds: over ? official.seconds : null, points: parts ? parts.points : over && official.result ? duelPoints(official.result === "won", official.turns, d.par) : null,
       score: parts,
-      level: official.level === "hard" ? "hard" : "normal",
+      level: levelOf(official),
     } : null,
     asked,
     // Hard is on your own: asking the professor today closes it for the official duel (practice can still be Hard).
@@ -709,7 +739,9 @@ export async function duelChallenger(day: string): Promise<DuelChallengerView | 
   const got = await duelDayTrainer(day);
   if (!got) return null;
   const t = got.trainer;
-  return { day, number: got.number, name: t.name, title: t.title, game: t.game, tierLabel: t.tierLabel, picture: t.picture, bio: t.bio, team: got.team };
+  const region = roadShown() ? regionOf(t) : null;
+  const road = region ? { href: roadPath(region, personKey(t.name)), regionName: roadRegion(region)?.name ?? region, faces: regionGymFaces(region), ...roadTotals() } : undefined;
+  return { day, number: got.number, name: t.name, title: t.title, game: t.game, tierLabel: t.tierLabel, picture: t.picture, bio: t.bio, team: got.team, ...(road ? { road } : {}) };
 }
 
 /** Each player's official duels won, up to `day` (the winners video's streaks, counted as the streak cards count them). */

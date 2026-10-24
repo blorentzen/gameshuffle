@@ -3,9 +3,9 @@
  * browser's guest id in x-daily-guest (as on the daily leaderboards).
  *   GET                                                → DuelHome: today's trainer, team and six, your official duel or its result, practice, streaks
  *   GET ?view=challenger                               → DuelChallengerView (today's trainer for the cards that lead into the Duel; cached a minute), or { ready: false }
- *   POST { action: "start", mode: "official" | "practice", level?: "normal" | "hard" } → { run }: the official duel (pressing Start starts its clock;
+ *   POST { action: "start", mode: "official" | "practice", level?: "easy" | "normal" | "hard" } → { run }: the official duel (pressing Start starts its clock;
  *                                                        asking again returns it, its mode locked), or a practice duel once the official one is over
- *                                                        (409 official_first before); 409 hard_off when Hard isn't open (not today, or you asked the professor)
+ *                                                        (409 official_first before); 409 hard_off when Hard isn't open (not today, or you asked the professor), 409 easy_off before Easy is set up
  *   POST { action: "board" }                           → { board }: a guest who just joined the boards puts today's finished duel on them
  *   POST { action: "ask" }                             → { plans }: the professor's plans (rules 6 days: asking ends today's solo bonus)
  * Hidden (404) in production until DUEL_PUBLIC.
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     return plans ? NextResponse.json({ plans }, { headers: noStore }) : NextResponse.json({ error: "not_ready" }, { status: 503 });
   }
   if (body.action !== "start" || (body.mode !== "official" && body.mode !== "practice")) return NextResponse.json({ error: "bad_request" }, { status: 400 });
-  const r = await startRun(player, body.mode, devDay(req), body.level === "hard" ? "hard" : "normal");
-  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.error === "not_ready" ? 503 : r.error === "official_first" || r.error === "hard_off" ? 409 : 500 });
+  const r = await startRun(player, body.mode, devDay(req), body.level === "hard" || body.level === "easy" ? body.level : "normal");
+  if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.error === "not_ready" ? 503 : r.error === "official_first" || r.error === "hard_off" || r.error === "easy_off" ? 409 : 500 });
   return NextResponse.json({ run: r.run }, { headers: noStore });
 }

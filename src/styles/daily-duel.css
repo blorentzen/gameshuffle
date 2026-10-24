@@ -72,7 +72,7 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 /* ── Card thumbnails (our own drawing: a card picture with its HP line) ── */
 /* Our own card face (DuelBits ThumbFace; picks 2026-10-22, direction A): the card's art window,
    then a foot with its type and HP left, in a navy frame with a gold edge. The Duel borrows from the
-   card but never shows it as the card you play with (the card window has See the real card). */
+   card but never shows it as the card you play with (the card window has View TCG version). */
 .duel-thumb { position: relative; display: flex; flex-direction: column; flex: none; box-sizing: border-box; padding: 2px; border-radius: 6px; overflow: hidden; background: linear-gradient(180deg, #1a2358, #10163d); box-shadow: inset 0 0 0 1px rgba(245, 200, 76, 0.8), 0 4px 10px rgba(0, 0, 0, 0.35); container-type: inline-size; text-align: center; }
 .duel-thumb--sm { width: 4.6rem; }
 .duel-thumb--md { width: 100%; }
@@ -175,10 +175,14 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-mode__name { font-family: var(--font-display, inherit); font-size: var(--font-size-18, 1.8rem); font-weight: 800; line-height: 1.2; }
 .duel-mode__line { color: #c9cff0; font-size: var(--font-size-14); line-height: 1.35; }
 .duel-mode__bonus { color: #9ef0c4; font-weight: 700; }
+.duel-mode__less { color: #ffd3a8; font-weight: 700; }
 .duel-mode__off { margin-top: 4px; color: #ffd3a8; font-size: var(--font-size-14); font-weight: 600; }
 /* Hard, wherever a duel says which mode it is: your bar, the result, the leaderboard. */
 .duel-hard-tag { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-family: var(--font-body, inherit); font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.04em; line-height: 1.5; text-transform: uppercase; vertical-align: 2px; }
 @media (max-width: 22.5rem) { .duel-modes__pick { grid-template-columns: minmax(0, 1fr); } }
+/* Three modes: side by side once there's room, else one a row (never shrunk to fit). */
+.duel-modes__pick--3 { grid-template-columns: minmax(0, 1fr); max-width: 72rem; }
+@media (min-width: 40rem) { .duel-modes__pick--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 /* How to play, folded after your first duel (a flush CDS Accordion on the navy card). */
 .duel-howto.empac-accordion--flush .empac-accordion__item { border-top: 1px solid rgba(255, 255, 255, 0.16); border-bottom: 0; }
 .duel-howto .empac-accordion__trigger { min-height: 44px; padding: 10px 0; background: none; color: #fff; }
@@ -202,7 +206,7 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-plans__list .empac-accordion__content--open { height: auto !important; }
 .duel-plans__list .empac-accordion__content-inner { padding: 0 0 12px; }
 .duel-plans__text { margin: 0; color: #eef0ff; font-size: var(--font-size-16); line-height: 1.5; }
-.duel-start__sig { margin: 4px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(245, 200, 76, 0.12); border: 1px solid rgba(245, 200, 76, 0.45); color: #eef0ff; font-size: var(--font-size-14); line-height: 1.5; }
+.duel-start__sig { margin: 4px 0 0; color: #eef0ff; font-size: var(--font-size-14); line-height: 1.5; } /* a line on the card, not a box in it */
 .duel-start__sig b { color: #ffe08a; }
 @media (max-width: 30rem) { .duel-start__cards { gap: 5px; } }
 
@@ -299,6 +303,7 @@ button.duel-ev--next:hover { background: rgba(245, 200, 76, 0.22); }
 .duel-bar__who b { font-family: var(--font-display, inherit); font-size: 1.7rem; font-weight: 800; line-height: 1.1; }
 .duel-bar__who span { font-size: var(--font-size-14); color: var(--i2); }
 .duel-bar__who .duel-hard-tag { font-size: var(--font-size-12); color: #1a1300; }
+.duel-hard-tag.duel-easy-tag, .duel-bar__who .duel-hard-tag.duel-easy-tag { background: #a8dcff; color: #06263d; }
 .duel-bar__turn:focus-visible { outline: 2px solid var(--duel-focus); outline-offset: 2px; border-radius: 4px; }
 .duel-practice { flex: none; padding: 4px 10px; border-radius: 999px; background: rgba(245, 200, 76, 0.18); border: 1px solid rgba(245, 200, 76, 0.6); color: #ffe08a; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .duel-clock { flex: none; display: inline-flex; align-items: center; gap: 4px; color: #ffe08a; font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -517,8 +522,9 @@ button.duel-ev--next:hover { background: rgba(245, 200, 76, 0.22); }
 .duel-result__title { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-28); line-height: 1.15; text-wrap: balance; }
 /* The numbers in one row (two by two on the narrowest phones). */
 .duel-result__stats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--spacing-8); width: 100%; max-width: 48rem; margin: 0; }
-@media (max-width: 22.5rem) { .duel-result__stats { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.duel-result__stats div { display: grid; gap: 4px; padding: 8px 4px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); }
+@media (max-width: 22.5rem) { .duel-result__stats { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 12px; } .duel-result__stats div:nth-child(odd) { box-shadow: none; } }
+.duel-result__stats div { display: grid; gap: 4px; padding: 2px 4px; }
+.duel-result__stats div + div { box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.16); } /* split by lines like the score's parts, not tiles */
 .duel-result__stats dt { order: 2; color: #c3c9e6; font-size: var(--font-size-12); }
 .duel-result__stats dd { margin: 0; font-size: var(--font-size-20); font-weight: 800; font-variant-numeric: tabular-nums; }
 /* A scored day's score: the total, then its parts, flat inside the result between thin lines. */
@@ -533,6 +539,11 @@ button.duel-ev--next:hover { background: rgba(245, 200, 76, 0.22); }
 .duel-scorecard__parts dt { order: 2; color: #c3c9e6; font-size: var(--font-size-12); }
 .duel-scorecard__parts dd { margin: 0; font-size: var(--font-size-20); font-weight: 800; font-variant-numeric: tabular-nums; }
 .duel-scorecard__parts dd small { color: #aab1d6; font-size: var(--font-size-12); font-weight: 600; }
+/* Four parts (Hard's +200 or Easy's −200): two by two on phones rather than one left alone on a second row. */
+@media (max-width: 40rem) {
+  .duel-scorecard__parts--4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 0; width: 100%; }
+  .duel-scorecard__parts--4 div:nth-child(odd) { border-left: 0; }
+}
 .duel-result__line { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; font-size: var(--font-size-16); font-weight: 600; text-wrap: balance; }
 .duel-result__line svg { flex: none; color: var(--duel-gold); }
 .duel-result__small { margin: 0; color: #c3c9e6; font-size: var(--font-size-14); line-height: 1.5; max-width: 52ch; }
@@ -688,4 +699,3 @@ html:root .duel-turnwin .empac-modal__body { gap: 12px; padding: 8px 16px 16px; 
   .duel-arena > .duel-overlay--pick { position: relative; inset: auto; overflow: visible; min-height: 32rem; }
 }
 /* The result's way into Trainer Road (gold on the navy result). */
-.duel-result__road .arrow-link, .duel-result__road .arrow-link:hover { color: #f5c84c; font-weight: 700; }

@@ -14,7 +14,7 @@
  */
 
 import type { DuelLogLine } from "./engine";
-import type { DuelAct, DuelCondition, DuelEventKind, DuelRules, DuelSignature, DuelTier, EnergyType } from "./types";
+import type { DuelAct, DuelCondition, DuelEventKind, DuelLevel, DuelRules, DuelSignature, DuelTier, EnergyType } from "./types";
 import type { DuelScoreParts } from "./rules";
 import type { DayMark } from "@/lib/originals/dailies";
 
@@ -213,6 +213,8 @@ export interface DuelChallengerView {
   bio: string | null;
   /** Their team as cards, in battle order (our own card faces: the art, type and HP). */
   team: { name: string; img: string | null; t: EnergyType; hp: number }[];
+  /** Trainer Road's module on the Daily Duel page: their page there, their region's Gym Leaders, the road's size. Absent while Trainer Road is hidden. */
+  road?: { href: string; regionName: string; faces: { name: string; picture: DuelPicture | null }[]; trainers: number; teams: number; regions: number };
 }
 
 export interface DuelRunView {
@@ -245,8 +247,8 @@ export interface DuelRunView {
   scoring: "score" | "points";
   /** The player asked the professor today (the solo bonus is gone). */
   asked: boolean;
-  /** Normal or Hard (picks 2026-10-23: Hard has no comeback Energy and no professor, its own par and +200 on a win). */
-  level: "normal" | "hard";
+  /** Easy, Normal or Hard (picks 2026-10-23: Hard has no comeback Energy and no professor, its own par and +200 on a win; Easy, 2026-10-24: an Energy for each card lost, 200 less on a win). */
+  level: DuelLevel;
   /** The share text once over (squares, never a card's name). */
   share: string | null;
 }
@@ -277,7 +279,7 @@ export interface DuelHome {
   /** The trainer's team in order. */
   team: DuelCardView[];
   /** Your official duel today, if you've started it. */
-  official: { id: string; status: "playing" | "done"; result: "won" | "lost" | null; turns: number; cardsLeft: number; seconds: number | null; points: number | null; score?: DuelScoreParts | null; level?: "normal" | "hard" } | null;
+  official: { id: string; status: "playing" | "done"; result: "won" | "lost" | null; turns: number; cardsLeft: number; seconds: number | null; points: number | null; score?: DuelScoreParts | null; level?: DuelLevel } | null;
   /** The day's par: only once your official duel is over. */
   par: number | null;
   /** Practice opens once your official duel is over. */
@@ -302,6 +304,10 @@ export interface DuelHome {
    * `par` = Hard's par, once your official duel is over.
    */
   hard: { can: boolean; why: "ok" | "off" | "asked"; par: number | null };
+  /** Easy today (rules 6 days on, once the database takes Easy runs). */
+  easy: { can: boolean };
+  /** Normal's comeback Energy this day: 1 on rules 7 days, up to 2 before. */
+  comeback: number;
 }
 
 /** One of the professor's plans (solver.ts dayPlans). */

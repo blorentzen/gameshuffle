@@ -20,6 +20,7 @@ import { Accordion, Button, Card } from "@empac/cascadeds";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { DuelCardView, DuelHome } from "@/lib/originals/duel/view";
+import type { DuelLevel } from "@/lib/originals/duel/types";
 import { DailyStartCard } from "@/components/originals/DailyStart";
 import { DailySteps } from "@/components/originals/DailyParade";
 import { CardThumb, EnergyDot } from "./DuelBits";
@@ -92,17 +93,34 @@ const STEPS_6 = [
   { icon: "board", title: "Knock out every card", text: "Your score counts turns, time and going solo. Your first duel today is the one that counts." },
 ] as const;
 
-/** Normal or Hard, as two CascadeDS cards you press (like the support levels). Trainer Road uses it too. */
-export function DuelModePick({ hard, level, onLevel, offText = "Not on today's duel" }: { hard: { can: boolean; why?: "ok" | "off" | "asked" }; level: DuelLevelPick; onLevel: (l: DuelLevelPick) => void; offText?: string }) {
+/** Normal's comeback Energy in words: one each time (rules 7), or one then two on older days. */
+const normalComeback = (comeback: number) => (comeback <= 1 ? "always 1" : "1, then 2");
+
+/**
+ * Easy, Normal or Hard, as three CascadeDS cards you press (like the support levels). Trainer Road
+ * uses it too. `comeback` is Normal's comeback Energy that day (1 from rules 7, up to 2 before).
+ */
+export function DuelModePick({ easy, hard, comeback, level, onLevel, offText = "Not on today's duel", stars = false }: { easy: { can: boolean }; hard: { can: boolean; why?: "ok" | "off" | "asked" }; comeback: number; level: DuelLevelPick; onLevel: (l: DuelLevelPick) => void; offText?: string; /** Trainer Road: Easy wins earn two stars at most. */ stars?: boolean }) {
   const off = hard.why === "asked" ? "Closed today: you asked the professor" : offText;
+  const normalLine = `Comeback Energy: ${normalComeback(comeback)}`;
   return (
     <div className="duel-modes">
       <p className="duel-start__label" id="duel-mode-label">Mode</p>
-      <div className="duel-modes__pick" role="group" aria-labelledby="duel-mode-label">
+      <div className={`duel-modes__pick${easy.can ? " duel-modes__pick--3" : ""}`} role="group" aria-labelledby="duel-mode-label">
+        {easy.can && (
+          <Card variant="outlined" padding="small" interactive selected={level === "easy"} onClick={() => onLevel("easy")} className="duel-mode duel-mode--easy"
+            aria-label={`Easy: comeback Energy 1, then 2, then 3, the professor can help, 200 less on a win${stars ? ", two stars at most" : ""}`}>
+            <span className="duel-mode__name">Easy</span>
+            <span className="duel-mode__line">Comeback Energy: 1, then 2, then 3</span>
+            <span className="duel-mode__line">The professor can help</span>
+            <span className="duel-mode__line duel-mode__less">200 less on a win</span>
+            {stars && <span className="duel-mode__line duel-mode__less">Two stars at most</span>}
+          </Card>
+        )}
         <Card variant="outlined" padding="small" interactive selected={level === "normal"} onClick={() => onLevel("normal")} className="duel-mode"
-          aria-label="Normal: comeback Energy, and the professor can help">
+          aria-label={`Normal: ${normalLine}, and the professor can help`}>
           <span className="duel-mode__name">Normal</span>
-          <span className="duel-mode__line">Comeback Energy</span>
+          <span className="duel-mode__line">{normalLine}</span>
           <span className="duel-mode__line">The professor can help</span>
         </Card>
         <Card variant="outlined" padding="small" interactive={hard.can} disabled={!hard.can} selected={level === "hard"} onClick={() => { if (hard.can) onLevel("hard"); }} className="duel-mode duel-mode--hard"
@@ -118,12 +136,26 @@ export function DuelModePick({ hard, level, onLevel, offText = "Not on today's d
   );
 }
 
-export type DuelLevelPick = "normal" | "hard";
+export type DuelLevelPick = DuelLevel;
+
+/** The last mode picked, kept in this browser for the Daily Duel and Trainer Road alike. */
+export const LEVEL_KEY = "gs-duel-level";
+export function readLevel(): DuelLevel {
+  try {
+    const v = typeof window !== "undefined" ? window.localStorage.getItem(LEVEL_KEY) : null;
+    return v === "hard" || v === "easy" ? v : "normal";
+  } catch { return "normal"; }
+}
+
+/** The mode to show and play: a pick that isn't open on this duel falls back to Normal. */
+export function openLevel(level: DuelLevel, open: { easy: { can: boolean }; hard: { can: boolean } }): DuelLevel {
+  return (level === "easy" && !open.easy.can) || (level === "hard" && !open.hard.can) ? "normal" : level;
+}
 
 export function DuelStart({ home, busy, level, onLevel, onStart, onAsk, onZoom }: {
   home: DuelHome;
   busy: boolean;
-  /** Normal or Hard for the official duel (Hard only when `home.hard.can`). */
+  /** Easy, Normal or Hard for the official duel (Easy and Hard only when open, see `openLevel`). */
   level: DuelLevelPick;
   onLevel: (l: DuelLevelPick) => void;
   onStart: () => void;
@@ -176,8 +208,8 @@ export function DuelStart({ home, busy, level, onLevel, onStart, onAsk, onZoom }
                 {home.pack.map((c) => <CardThumb key={c.index} card={c} size="md" onPress={() => onZoom(c, "Your")} label={`See the ${c.name} card`} />)}
               </div>
             </div>
-            {home.rules >= 6 && <DuelModePick hard={home.hard} level={home.hard.can ? level : "normal"} onLevel={onLevel} />}
-            {!(home.hard.can && level === "hard") && <DuelProfessor home={home} onAsk={onAsk} />}
+            {home.rules >= 6 && <DuelModePick easy={home.easy} hard={home.hard} comeback={home.comeback} level={openLevel(level, home)} onLevel={onLevel} />}
+            {openLevel(level, home) !== "hard" && <DuelProfessor home={home} onAsk={onAsk} />}
           </div>
         }
       >
