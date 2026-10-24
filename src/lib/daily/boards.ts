@@ -245,12 +245,12 @@ async function describe(rows: RawRow[]): Promise<Map<string, Pick<BoardRow, "nam
   return out;
 }
 
-/** The Daily Duel's day board: who played today's official duel in Hard (a tag by the name; picks 2026-10-23). Empty before daily-duel-m5.sql. */
-async function duelHardPlayers(day: string, players: string[]): Promise<Set<string>> {
-  if (!players.length) return new Set();
-  const { data, error } = await createServiceClient().from("duel_runs").select("player").eq("day", day).eq("official", true).eq("level", "hard").in("player", players);
-  if (error) return new Set();
-  return new Set(((data ?? []) as { player: string }[]).map((r) => r.player));
+/** The Daily Duel's day board: who played today's official duel in Hard or Easy (a tag by the name; picks 2026-10-23, Easy 2026-10-24). Empty before daily-duel-m5.sql. */
+async function duelLevelPlayers(day: string, players: string[]): Promise<Map<string, "hard" | "easy">> {
+  if (!players.length) return new Map();
+  const { data, error } = await createServiceClient().from("duel_runs").select("player, level").eq("day", day).eq("official", true).in("level", ["hard", "easy"]).in("player", players);
+  if (error) return new Map();
+  return new Map(((data ?? []) as { player: string; level: "hard" | "easy" }[]).map((r) => [r.player, r.level]));
 }
 
 /** A board: today, this week or this month for a game, with the viewer's own row. */
@@ -264,10 +264,10 @@ export async function boardView(args: { game: BoardGame; period: BoardPeriod; da
     return empty;
   }
   const raw = (data ?? []) as RawRow[];
-  const [names, supporters, hardPlayers] = await Promise.all([
+  const [names, supporters, levelPlayers] = await Promise.all([
     describe(raw),
     supportersAmong(raw.filter((r) => r.player.startsWith("u:")).map((r) => r.player.slice(2))).catch(() => new Set<string>()),
-    args.game === "duel" && args.period === "day" ? duelHardPlayers(day, raw.map((r) => r.player)) : Promise.resolve(new Set<string>()),
+    args.game === "duel" && args.period === "day" ? duelLevelPlayers(day, raw.map((r) => r.player)) : Promise.resolve(new Map<string, "hard" | "easy">()),
   ]);
   const levers = args.period === "day" ? null : await boardLevers();
   const toRow = (r: RawRow): BoardRow => ({
@@ -281,7 +281,7 @@ export async function boardView(args: { game: BoardGame; period: BoardPeriod; da
     prize: levers && args.period !== "day" && Number(r.points) > 0 ? prizeFor(Number(r.place), args.period, levers) : 0,
     supporter: r.player.startsWith("u:") && supporters.has(r.player.slice(2)),
     shared: !!args.shared && r.player === args.shared,
-    ...(hardPlayers.has(r.player) ? { hard: true } : {}),
+    ...(levelPlayers.get(r.player) === "hard" ? { hard: true } : levelPlayers.get(r.player) === "easy" ? { easy: true } : {}),
   });
   const rows = raw.map(toRow);
   const limit = args.limit ?? 25;

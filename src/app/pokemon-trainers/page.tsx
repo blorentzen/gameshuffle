@@ -3,10 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { DailyDuelModule } from "@/components/originals/duel/DuelChallenger";
 import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { TrainerArt } from "@/components/originals/duel/TrainerArt";
+import { RoadHubPath } from "@/components/originals/duel/road/RoadPath";
 import { RoadStarsProvider } from "@/components/originals/duel/road/RoadTileStars";
 import { ROAD_REGIONS, roadPath } from "@/lib/originals/duel/road";
 import { regionView } from "@/lib/originals/duel/roadPages";
@@ -14,6 +16,7 @@ import { roadShown } from "@/lib/games-visibility";
 import { ReportProblem } from "@/components/ui/ReportProblem";
 import { shareMeta } from "@/lib/og/meta";
 import "@/styles/trainer-road.css";
+import "@/styles/road-card.css";
 
 /**
  * /pokemon-trainers: Trainer Road's front page (picks 2026-10-23, https://claude.ai/artifact/Va86Xd5w5G44gPudmzsKDe):
@@ -22,21 +25,23 @@ import "@/styles/trainer-road.css";
 
 export const metadata: Metadata = {
   title: "Trainer Road: duel every Pokémon Gym Leader and Champion",
-  description: "Every Pokémon Gym Leader, Elite Four member, Champion, rival and villain boss from Kanto to Paldea, with the teams they use in the games. Pick one and duel them with Pokémon cards.",
+  description: "Every Pokémon Gym Leader, Elite Four member, Champion, rival, villain boss and villain team grunt from Kanto to Paldea, with the teams they use in the games. Pick one and duel them with Pokémon cards.",
   ...shareMeta({
     title: "Trainer Road: duel every Pokémon Gym Leader and Champion",
-    description: "Every Pokémon Gym Leader, Elite Four member, Champion, rival and villain boss from Kanto to Paldea, with the teams they use in the games.",
+    description: "Every Pokémon Gym Leader, Elite Four member, Champion, rival, villain boss and villain team grunt from Kanto to Paldea, with the teams they use in the games.",
     path: "/pokemon-trainers",
   }),
 };
 
 const FAQ = [
-  { q: "What is Trainer Road?", a: "A page for every trainer in the Daily Duel: each region's Gym Leaders, Elite Four, Champions, rivals and villain bosses, with the teams they use in the games. Pick one and duel them with Pokémon cards, any time, as often as you like." },
+  { q: "What is Trainer Road?", a: "A page for every trainer in the Daily Duel: each region's Gym Leaders, Elite Four, Champions, rivals and villain bosses, plus each villain team's grunts and story battles, with the teams they use in the games. Pick one and duel them with Pokémon cards, any time, as often as you like." },
   { q: "Are these the teams from the games?", a: "Yes. Each team is the one the trainer uses in that game, in the order they send them out, checked against the games. A trainer who appears in several games has a team for each." },
   { q: "How does a duel work?", a: "The Daily Duel's rules: you hold three Energy, play one each turn on any of your cards, then attack or swap. Random events crash the duel about every third turn. You win by knocking out the trainer's whole team." },
   { q: "Do the duels change?", a: "Each team gets a new duel every month: a new six for you, a new Energy row and new events, the same for everyone that month. Your stars and the boards start fresh with it." },
-  { q: "How do stars work?", a: "Win for one star, win within two turns of par for two, and win in par or fewer turns for all three. Your best duel against each team this month counts, scored out of 1,000 like the Daily Duel." },
-  { q: "Do I need an account?", a: "No, anyone can play. A free account keeps your stars and puts your best duels on each team's board." },
+  { q: "How do stars work?", a: "Win for one star, win within two turns of par for two, and win in par or fewer turns for all three. Easy wins earn two stars at most: the third needs Normal or Hard. Your best duel against each team this month counts, scored like the Daily Duel." },
+  { q: "How does the road work?", a: "Each region follows one game: its Gym Leaders in badge order, the League back to back (lose one and you start again from its first challenge), then an end-game battle that clears the region and opens the next. Kanto comes first, Paldea last. Wins earn XP for your trainer level, and badges, Leagues and regions also pay tokens." },
+  { q: "What happens when a villain team turns up?", a: "Each region's villain team turns up on your road once where its game puts it (Team Rocket's hideout before Koga in Kanto), and now and then after a badge. While they're out, the next trainer on your path waits; every other duel stays open. They swipe 50 tokens when they turn up. Beat them to get those back plus 25, and a story battle puts that team's mark on your trainer card. A loss changes nothing: try again any time." },
+  { q: "Do I need an account?", a: "No, anyone can duel any trainer. A free account follows the road for you, keeps your stars and level, and puts your best duels on each team's board." },
 ];
 
 /** "Gym Leaders, Elite Four and Champions". */
@@ -51,12 +56,12 @@ export default function TrainerRoadPage() {
       <BrowseHero
         eyebrow="Trainer Road"
         title="Duel every Pokémon trainer"
-        sub="Every Gym Leader, Elite Four member, Champion, rival and villain boss from the games, with their teams. Pick one and battle them with the Daily Duel's cards."
+        sub="Every Gym Leader, Elite Four member, Champion, rival and villain from the games, with their teams. Pick one and battle them with the Daily Duel's cards."
         accent="duel"
         field="duel"
-        secondary={{ href: "/daily-duel", label: "Today's Daily Duel" }}
       />
       <Container className="road-hub">
+        <RoadHubPath signUpHref="/signup?redirect=%2Fpokemon-trainers" />
         <RoadStarsProvider>
           <section aria-labelledby="road-regions-title" className="road-hub__regions">
             <h2 id="road-regions-title" className="road-section__title">Pick a region</h2>
@@ -82,6 +87,7 @@ export default function TrainerRoadPage() {
             </ul>
           </section>
         </RoadStarsProvider>
+        <DailyDuelModule from="trainer-road" />
         <section className="road-flat" aria-labelledby="road-faq-title">
           <h2 id="road-faq-title" className="road-section__title">About Trainer Road</h2>
           <FaqList items={FAQ} />

@@ -13,8 +13,8 @@
 
 import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Alert, Button, Card, SubNav } from "@empac/cascadeds";
-import { IconArrowRight, IconUserPlus } from "@tabler/icons-react";
+import { Alert, Button, Card, Modal, SubNav } from "@empac/cascadeds";
+import { IconArrowRight, IconShare, IconUserPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChallengerStrip } from "@/components/originals/duel/DuelChallenger";
 import { useOriginalsHost } from "@/components/originals/OriginalsHost";
@@ -22,7 +22,7 @@ import { DAILIES_GLYPHS, DailiesCards } from "@/components/originals/DailiesCard
 import { guestRequestId } from "@/components/originals/DailyBoard";
 import { OriginalsLink } from "@/components/originals/OriginalsHost";
 import { captureReferral, referralLink, storedReferral, updateReferral, withReferral, type StoredReferral } from "@/lib/originals/referral";
-import { ShareButton } from "@/components/share/ShareButton";
+import { useShare } from "@/components/share/ShareButton";
 import { useChallengeShareLabel } from "@/components/share/ShareChallenge";
 import type { ShareRequest } from "@/lib/share/types";
 import type { ReferralGame, ReferralInfo } from "@/lib/referrals/types";
@@ -269,10 +269,11 @@ export const withLink = (text: string, url: string) => [...text.split("\n").slic
 export interface ShareOne { request: ShareRequest; text: (url: string) => string; fallbackUrl: string }
 
 /**
- * The share buttons on an end screen. On the site (Britton's picks, 2026-10-19): one Share
- * button with a picture of the result (src/components/share); once more than one daily is done
- * today, "Share today's results" (the day card) and "Share just this one". Inside the Discord
- * Activity, Discord's own share as before ("Share today's results" / "Share just this one").
+ * The Share button on an end screen (Britton's picks, 2026-10-24, one button, guided): with one
+ * daily played today it shares that one (a picture of the result on the site, Discord's share or a
+ * copy in the Activity). With two or more it opens a window to pick: just this game, or all of
+ * today's. Each row shows what goes out, and a tap shares it. On the site both cards are made
+ * ahead, so the share sheet can open straight from the tap.
  */
 export function DailiesShare({ current, shareOne, oneText, one }: { current: DailiesId; shareOne: () => void; oneText: string; one?: ShareOne }) {
   const toast = useToast();
@@ -280,43 +281,80 @@ export function DailiesShare({ current, shareOne, oneText, one }: { current: Dai
   const { shown, entries, referral } = useDailies(current);
   // From a friend's shared result today: "Send yours to Nova".
   const challengeLabel = useChallengeShareLabel(current);
+  const [choosing, setChoosing] = useState(false);
   const ids = sharedToday(entries, shown);
   const combined = ids.length >= 2 && ids.includes(current);
-  const verb = activity?.share ? "Share" : "Copy";
-  if (!activity && one) {
-    if (!combined) return <span className="party-row"><ShareButton request={one.request} text={one.text} game={current} fallbackUrl={one.fallbackUrl} label={challengeLabel} /></span>;
-    const day = currentDay("shuffle");
-    const dayRequest: ShareRequest = {
-      kind: "day",
-      shuffle: current === "shuffle" ? one.request.shuffle : localGuesses("gs-daily-shuffle", day),
-      dex: current === "dex" ? one.request.dex : localGuesses("gs-daily-dex", day),
-    };
-    const dailyLink = withReferral("https://www.gameshuffle.co/daily", referral?.code);
-    return (
-      <span className="party-row">
-        <ShareButton request={dayRequest} text={(url) => withLink(combinedShareText(entries, shown), url)} game="day" fallbackUrl={dailyLink} label="Share today's results" title="My GameShuffle dailies" />
-        <ShareButton request={one.request} text={one.text} game={current} fallbackUrl={one.fallbackUrl} label="Share just this one" variant="secondary" />
-      </span>
-    );
-  }
-  if (!combined) return <span className="party-row"><Button variant="primary" onClick={shareOne}>{oneText}</Button></span>;
+  const site = !activity && !!one;
+  const day = currentDay("shuffle");
+  const dayRequest: ShareRequest | null = site && combined ? {
+    kind: "day",
+    shuffle: current === "shuffle" ? one!.request.shuffle : localGuesses("gs-daily-shuffle", day),
+    dex: current === "dex" ? one!.request.dex : localGuesses("gs-daily-dex", day),
+  } : null;
+  const allText = withReferral(combinedShareText(entries, shown), referral?.code);
+  const dailyLink = withReferral("https://www.gameshuffle.co/daily", referral?.code);
+  const oneShare = useShare({ request: site ? one!.request : null, text: one?.text ?? (() => ""), game: current, fallbackUrl: one?.fallbackUrl ?? dailyLink });
+  const allShare = useShare({ request: dayRequest, text: (url) => withLink(combinedShareText(entries, shown), url), game: "day", fallbackUrl: dailyLink, title: "My GameShuffle dailies" });
 
+  // Inside the Discord Activity: Discord's own share, else a copy.
   const shareAll = async () => {
-    const text = withReferral(combinedShareText(entries, shown), referral?.code);
     if (activity?.share) {
-      if (await activity.share(text)) { track(EVENTS.dailiesShared, { games: ids.length, from: current }); toast.success("Shared"); }
+      if (await activity.share(allText)) { track(EVENTS.dailiesShared, { games: ids.length, from: current }); toast.success("Shared"); }
       return;
     }
-    navigator.clipboard.writeText(text).then(
+    navigator.clipboard.writeText(allText).then(
       () => { track(EVENTS.dailiesShared, { games: ids.length, from: current }); toast.success("Today's results copied"); },
       () => toast.error("Couldn't copy your results"),
     );
   };
+  const pickOne = () => { setChoosing(false); if (site) oneShare.share(); else shareOne(); };
+  const pickAll = () => { setChoosing(false); if (site) allShare.share(); else void shareAll(); };
+
+  const label = site ? (challengeLabel ?? "Share") : oneText;
+  const onPress = combined ? () => setChoosing(true) : site ? oneShare.share : shareOne;
+  const preview = site ? previewOf(one!.text("")) : "";
   return (
     <span className="party-row">
-      <Button variant="primary" onClick={() => void shareAll()}>{verb} today&apos;s results</Button>
-      <Button variant="secondary" onClick={shareOne}>{verb} just this one</Button>
+      <Button variant="primary" iconBefore={IconShare} onClick={onPress}>{label}</Button>
+      {site && oneShare.window}
+      {site && allShare.window}
+      {combined && (
+        <ShareChooser
+          open={choosing}
+          onClose={() => setChoosing(false)}
+          verb={site || activity?.share ? "Share" : "Copy"}
+          rows={[
+            { key: "one", title: `Just ${DAILIES[current].name.replace(/^The /, "the ")}`, preview, onPick: pickOne },
+            { key: "all", title: "All of today's dailies", tag: `${ids.length} played`, preview: previewOf(combinedShareText(entries, shown)), onPick: pickAll },
+          ]}
+        />
+      )}
     </span>
+  );
+}
+
+/** What goes out, without the link (the picture card carries it). */
+const previewOf = (text: string) => text.split("\n").filter((l) => l.trim() && !/^https?:\/\//.test(l.trim())).join("\n");
+
+/** The window behind a combined Share: one row per choice, each showing what goes out. Rows, not boxes. */
+function ShareChooser({ open, onClose, verb, rows }: { open: boolean; onClose: () => void; verb: string; rows: { key: string; title: string; tag?: string; preview: string; onPick: () => void }[] }) {
+  // The CDS Modal portals to the body: only after hydration.
+  const mounted = useSyncExternalStore(noop, () => true, () => false);
+  if (!mounted) return null;
+  return (
+    <Modal isOpen={open} onClose={onClose} title={`${verb} your results`} size="small">
+      <ul className="share-choose">
+        {rows.map((r) => (
+          <li key={r.key}>
+            <button type="button" className="share-choose__row" onClick={r.onPick}>
+              <span className="share-choose__title">{r.title}{r.tag && <span className="share-choose__tag">{r.tag}</span>}</span>
+              {r.preview && <span className="share-choose__preview">{r.preview}</span>}
+              <span className="share-choose__go" aria-hidden="true"><IconShare size={18} />{verb}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Modal>
   );
 }
 

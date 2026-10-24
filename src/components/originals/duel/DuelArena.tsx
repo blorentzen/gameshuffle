@@ -405,7 +405,7 @@ export function DuelArena({ run, play, motion, busy, staging, offset, onNext, on
         <section className="duel-side duel-side--you" aria-label="Your side">
           <div className="duel-bar duel-bar--you">
             <div className="duel-bar__who">
-              <b>You{run.level === "hard" && <span className="duel-hard-tag">Hard</span>}</b>
+              <b>You{run.level === "hard" && <span className="duel-hard-tag">Hard</span>}{run.level === "easy" && <span className="duel-hard-tag duel-easy-tag">Easy</span>}</b>
               {!run.official && <span>Practice</span>}
             </div>
             {run.official && run.status === "playing" && <DuelClock startedAt={Date.parse(run.startedAt)} offset={offset} />}

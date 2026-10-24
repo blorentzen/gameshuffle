@@ -26,9 +26,18 @@ export type DuelCondition = "burned" | "poisoned" | "paralyzed" | "asleep" | "co
  * coming in after a knockout brings an Energy for each card you've lost (up to 2), "+" and "×"
  * attacks count, and days are built to weekday win targets with at least two of the professor's plans.
  * 6 (Britton's picks 2026-10-23, https://claude.ai/artifact/BXp1RfGmpEis5UanYC4bdb): the trainer plays by
- * the same rules (its own hand of three from its own row, the comeback charge).
+ * the same rules (its own hand of three from its own row, the comeback charge). 7 (Britton, 2026-10-24): three
+ * modes, and Normal's comeback is one Energy after a knockout (Easy: one for each card you've lost; Hard:
+ * none). Days are built for Normal, so a rules 7 day's par and targets assume the single Energy.
  */
-export type DuelRules = 1 | 2 | 3 | 4 | 5 | 6;
+export type DuelRules = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+/**
+ * A duel's mode (rules 6 days on): Easy (Britton, 2026-10-24) brings an Energy for each card you've lost
+ * after a knockout and scores 200 less; Normal brings one; Hard brings none, gives no professor and
+ * scores 200 more. The trainer's own comeback is the same in every mode.
+ */
+export type DuelLevel = "easy" | "normal" | "hard";
 
 /** A condition a move puts on the card it hits: `coin` when the card flips a coin for it (a smaller chance). */
 export interface DuelMoveFx {
@@ -93,8 +102,13 @@ export interface DuelCard {
   species?: string;
 }
 
-/** Difficulty by weekday (picks: easy Monday, hardest Sunday; Saturday is Boss day, picks 2026-10-21 roster round). */
-export type DuelTier = "gym" | "elite" | "rival" | "boss" | "champion";
+/**
+ * Difficulty by weekday (picks: easy Monday, hardest Sunday; Saturday is Boss day, picks 2026-10-21 roster round).
+ * "grunt" and "admin" are Trainer Road's villain teams (road encounters, picks 2026-10-24,
+ * https://claude.ai/artifact/GRHU4zVKU8TjMpu4dQ9Kat): grunts easier than a region's Gym Leaders, admins
+ * leading a story battle. The Daily Duel never picks them (tierFor only gives the weekday five).
+ */
+export type DuelTier = "gym" | "elite" | "rival" | "boss" | "champion" | "grunt" | "admin";
 
 /** A trainer's one signature event (each trainer has one). */
 export type DuelSignature = "energy2" | "heal50" | "boost30";
@@ -114,6 +128,8 @@ export interface DuelTrainer {
   title: string;
   /** The game the team comes from ("Pokémon Platinum"). */
   game: string;
+  /** Where in that game, when one person has several teams from it (a villain team's grunts: "Mt. Moon"). */
+  place?: string;
   tier: DuelTier;
   /** Card ids in team order; the first one leads, as in the game. 3 to 6 cards. */
   team: string[];

@@ -12,17 +12,21 @@
  */
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
-import { IconArrowRight, IconRefresh, IconStar, IconStarFilled, IconSwords } from "@tabler/icons-react";
+import { IconArrowRight, IconRoute, IconSkull, IconStar, IconStarFilled, IconSwords } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { guestRequestId, storedGuestId } from "@/components/originals/DailyBoard";
 import { formatTime } from "@/lib/originals/dailies";
 import type { DuelCardView } from "@/lib/originals/duel/view";
-import type { RoadBoardRow, RoadRunView, RoadTeamHome } from "@/lib/originals/duel/roadView";
+import type { RoadBoardRow, RoadPathResult, RoadPathView, RoadProgressView, RoadRunView, RoadTeamHome } from "@/lib/originals/duel/roadView";
+import { pathSpot } from "@/lib/originals/duel/roadPath";
+import { useRoadPath } from "./RoadPath";
+import { battleLabel, encounterLine } from "./RoadEncounter";
 import { DuelArena } from "../DuelArena";
-import { DuelScoreCard } from "../DuelEnd";
-import { DuelModePick, DuelTeamCards, type DuelLevelPick } from "../DuelStart";
+import { DuelScoreCard, LevelTag, PracticeButton } from "../DuelEnd";
+import { DuelModePick, DuelTeamCards, LEVEL_KEY, openLevel, readLevel, type DuelLevelPick } from "../DuelStart";
 import { DuelZoom } from "../DuelZoom";
 import { CardThumb } from "../DuelBits";
 import { TrainerArt } from "../TrainerArt";
@@ -38,7 +42,6 @@ export interface RoadTeamOption {
   species: string[];
 }
 
-const LEVEL_KEY = "gs-duel-level";
 
 function roadFetch(path: string, init: RequestInit & { makeGuest?: boolean } = {}) {
   const { makeGuest, ...rest } = init;
@@ -91,9 +94,9 @@ export function RoadDuel({ region, person, teams, next }: {
   const [zoom, setZoom] = useState<{ card: DuelCardView; owner: string } | null>(null);
   const [refresh, setRefresh] = useState(0);
   const stars = useRoadStars(refresh);
-  const [level, setLevel] = useState<DuelLevelPick>(() => {
-    try { return typeof window !== "undefined" && window.localStorage.getItem(LEVEL_KEY) === "hard" ? "hard" : "normal"; } catch { return "normal"; }
-  });
+  const spot = pathSpot(selected);
+  const { progress, path } = useRoadPath(spot?.region ?? null, refresh);
+  const [level, setLevel] = useState<DuelLevelPick>(() => readLevel());
   const pickLevel = useCallback((l: DuelLevelPick) => {
     setLevel(l);
     try { window.localStorage.setItem(LEVEL_KEY, l); } catch { /* private window */ }
@@ -122,6 +125,12 @@ export function RoadDuel({ region, person, teams, next }: {
     runPath,
     onFinished: (r) => {
       track(EVENTS.roadFinished, { won: r.result === "won", stars: r.stars ?? 0, tier: r.trainer.tier, level: r.level });
+      for (const o of r.path?.outcomes ?? []) {
+        if (o.kind === "badge") track(EVENTS.roadBadge, { region });
+        if (o.kind === "region") track(EVENTS.roadCleared, { region });
+        if (o.kind === "encounter_beaten") track(EVENTS.roadEncounterBeaten, { region, kind: home?.encounter?.view.kind ?? "grunt" });
+        if (o.kind === "encounter" && r.path?.encounter) track(EVENTS.roadEncounter, { region: r.path.encounter.region, kind: r.path.encounter.kind });
+      }
       setRefresh((n) => n + 1);
     },
   });
@@ -148,7 +157,7 @@ export function RoadDuel({ region, person, teams, next }: {
     setStarting(false);
     if (!res?.ok) {
       const err = ((await res?.json().catch(() => ({}))) as { error?: string } | undefined)?.error;
-      toast.error(err === "hard_off" ? "Hard isn't open for this duel. Pick Normal to play." : err === "not_ready" ? "This duel isn't ready yet. Try again in a moment." : err === "rate_limited" ? "Slow down a little, then try again." : "Couldn't start the duel. Try again in a moment.");
+      toast.error(err === "hard_off" ? "Hard isn't open for this duel. Pick Normal to play." : err === "easy_off" ? "Easy isn't open for this duel. Pick Normal to play." : err === "not_ready" ? "This duel isn't ready yet. Try again in a moment." : err === "rate_limited" ? "Slow down a little, then try again." : "Couldn't start the duel. Try again in a moment.");
       return;
     }
     const body = (await res.json()) as { run: RoadRunView };
@@ -228,13 +237,22 @@ export function RoadDuel({ region, person, teams, next }: {
                 {home.pack.map((c) => <CardThumb key={c.index} card={c} size="md" onPress={() => onZoom(c, "Your")} label={`See the ${c.name} card`} />)}
               </div>
             </div>
-            <DuelModePick hard={{ can: home.hard.can, why: home.hard.can ? "ok" : "off" }} level={home.hard.can ? level : "normal"} onLevel={pickLevel} offText="Not open for this duel" />
+            {home.encounter?.role === "villain" ? (
+              <p className="road-start__path road-start__path--villain"><IconSkull size={18} aria-hidden="true" />{encounterLine(home.encounter.view)}</p>
+            ) : home.encounter?.role === "blocked" ? (
+              <p className="road-start__path road-start__path--blocked"><IconSkull size={18} aria-hidden="true" />
+                <span>{home.encounter.view.name} is blocking the road: a win here won&apos;t count for {home.encounter.view.blocks.label} until you beat them. <Link href={home.encounter.view.href}>{battleLabel(home.encounter.view)}</Link></span>
+              </p>
+            ) : (
+              <RoadPathLine team={selected} path={spot ? path : null} progress={progress} signedIn={home.signedIn} />
+            )}
+            <DuelModePick easy={home.easy} hard={{ can: home.hard.can, why: home.hard.can ? "ok" : "off" }} comeback={home.comeback} level={openLevel(level, home)} onLevel={pickLevel} offText="Not open for this duel" stars />
             <RoadYours home={home} />
             {home.current && (
               <p className="road-start__resume">You have a duel in progress against this team. <Button variant="ghost" size="small" onClick={() => { play.resume(home.current as RoadRunView); scrollToArena(); }}>Pick it up</Button></p>
             )}
             <div className="road-start__go">
-              <Button variant="primary" size="large" iconBefore={IconSwords} onClick={() => void start(home.hard.can ? level : "normal")} disabled={starting} loading={starting}>Battle now</Button>
+              <Button variant="primary" size="large" iconBefore={IconSwords} onClick={() => void start(openLevel(level, home))} disabled={starting} loading={starting}>Battle now</Button>
               <p className="road-start__note">Every duel counts: your best this month stays on the board. The clock starts when you tap Battle now.</p>
             </div>
           </>
@@ -246,16 +264,38 @@ export function RoadDuel({ region, person, teams, next }: {
   );
 }
 
+/** Where this team sits on your path ("On your path: win for Brock's badge, 1 of 8"). Nothing for free-play teams. */
+function RoadPathLine({ team, path, progress, signedIn }: { team: string; path: RoadPathView | null; progress: RoadProgressView | null; signedIn: boolean }) {
+  if (!path) return null;
+  const steps = [...path.gyms, ...path.league, path.endgame];
+  const step = steps.find((s) => s.team === team);
+  if (!step) return null;
+  const where = step.kind === "gym" ? `${step.label}, ${step.index + 1} of ${path.gyms.length}` : step.kind === "league" ? `${path.leagueLabel}, challenge ${step.index + 1} of ${path.league.length}` : `the end-game battle that clears ${path.regionName}`;
+  let line: string;
+  if (!signedIn) line = `On the ${path.regionName} path: ${where}. A free account follows the path for you.`;
+  else if (step.state === "next") line = step.kind === "gym" ? `On your path: win for ${where}.` : step.kind === "league" ? `On your path: ${where}. Lose and you start again from ${path.league[0].name}.` : `On your path: win ${where}.`;
+  else if (step.state === "done") line = step.kind === "league" && !path.leagueDone ? `Beaten in this ${path.leagueLabel} run.` : `Done on your path: ${step.kind === "endgame" ? `${path.regionName} cleared` : where}.`;
+  else if (step.state === "locked") line = `On the ${path.regionName} path, which opens once you clear ${path.openedBy}.`;
+  else line = `Later on your path (${where}).${progress?.next ? ` Next up: ${progress.next.name}.` : ""}`;
+  return <p className={`road-start__path is-${step.state}`}><IconRoute size={18} aria-hidden="true" />{line}</p>;
+}
+
 /** Your best against this team this month, and par once you've played it. */
 function RoadYours({ home }: { home: RoadTeamHome }) {
   const b = home.best;
   if (!b && home.par == null) return null;
   return (
     <p className="road-yours">
-      {b && <><span>Your best this month</span> <RoadStars n={b.stars} size={16} /> <b>{b.score.toLocaleString("en-US")}</b>{b.level === "hard" && <span className="daily-board__hard">Hard</span>}</>}
+      {b && <><span>Your best this month</span> <RoadStars n={b.stars} size={16} /> <b>{b.score.toLocaleString("en-US")}</b>{b.level === "hard" && <span className="daily-board__hard">Hard</span>}{b.level === "easy" && <span className="daily-board__hard daily-board__easy">Easy</span>}</>}
       {home.par != null && <span className="road-yours__par">Par {home.par}{home.hard.par ? `, Hard ${home.hard.par}` : ""}</span>}
     </p>
   );
+}
+
+/** What the next star needs (Easy tops out at two: the third needs Normal or Hard). */
+function nextStarLine(stars: number, par: number, level: DuelLevelPick): string {
+  if (level === "easy") return stars === 1 ? `Win within ${turnsWord(par + 2)} for a second star. The third needs a win in ${par} on Normal or Hard.` : `The third star needs a win in ${turnsWord(par)} on Normal or Hard.`;
+  return stars === 1 ? `Win within ${turnsWord(par + 2)} for a second star, in ${par} for all three.` : `Win in ${turnsWord(par)} for the third star.`;
 }
 
 function parLine(run: RoadRunView): string | null {
@@ -283,17 +323,20 @@ function RoadEnd({ run, home, team, next, region, person, onAgain, onBack, onZoo
   const their = `${name}'s`;
   const p = run.play;
   const knocked = p.foe.filter((c) => c.out).length;
-  const hard = run.level === "hard";
   const stars = run.stars ?? 0;
   const signUp = `/signup?redirect=${encodeURIComponent(`/pokemon-trainers/${region}/${person.slug}?team=${team.id}`)}`;
+  const router = useRouter();
+  const blocking = run.path?.encounter ?? null;
+  const nextUp = blocking ? { href: blocking.href, label: battleLabel(blocking) }
+    : run.path?.next ? { href: run.path.next.href, label: `Next on your path: ${run.path.next.name}` } : next ? { href: next.href, label: `Next: ${next.name}` } : null;
   return (
     <div className="duel-end road-end">
       <section className="duel-result" aria-labelledby="duel-result-title" tabIndex={-1} id="duel-result">
         {run.trainer.picture && <TrainerArt picture={run.trainer.picture} shape="round" className="duel-result__face" />}
-        <p className="duel-result__kicker">{team.gameLabel} team{hard && <span className="duel-hard-tag">Hard</span>}</p>
+        <p className="duel-result__kicker">{team.gameLabel} team<LevelTag level={run.level} /></p>
         <h2 id="duel-result-title" className="duel-result__title">{won ? `You beat ${name} in ${turnsWord(run.turns)}` : `${name} wins this one`}</h2>
         {won && <div className="road-end__stars"><RoadStars n={stars} size={34} />{run.best && home.signedIn && <span className="road-end__best">New best</span>}</div>}
-        {run.score && <DuelScoreCard score={run.score} won={won} hard={hard} askedNote="You asked the professor in this duel, so there's no solo bonus." />}
+        {run.score && <DuelScoreCard score={run.score} won={won} level={run.level} askedNote="You asked the professor in this duel, so there's no solo bonus." />}
         <dl className="duel-result__stats">
           {won ? <div><dt>Turns</dt><dd>{run.turns}</dd></div> : <div><dt>Knocked out</dt><dd>{knocked} of {p.foe.length}</dd></div>}
           {run.par != null && <div><dt>Par</dt><dd>{run.par}</dd></div>}
@@ -301,8 +344,9 @@ function RoadEnd({ run, home, team, next, region, person, onAgain, onBack, onZoo
           <div><dt>Cards left</dt><dd>{run.cardsLeft} of {p.you.filter((c) => !c.sat).length}</dd></div>
         </dl>
         {parLine(run) && <p className="duel-result__line">{parLine(run)}</p>}
-        {won && stars < 3 && run.par != null && <p className="duel-result__small">{stars === 1 ? `Win within ${turnsWord(run.par + 2)} for a second star, in ${run.par} for all three.` : `Win in ${turnsWord(run.par)} for the third star.`}</p>}
-        {!home.signedIn && <p className="duel-result__small"><Link href={signUp}>Make a free account</Link> to keep your stars and get on this team&apos;s board.</p>}
+        {won && stars < 3 && run.par != null && <p className="duel-result__small">{nextStarLine(stars, run.par, run.level)}</p>}
+        {!home.signedIn && <p className="duel-result__small"><Link href={signUp}>Make a free account</Link> to keep your stars, follow the path and get on this team&apos;s board.</p>}
+        {run.path && <RoadPathGains gains={run.path} />}
         <div className="duel-result__sides">
           <div>
             <p className="duel-result__label">{p.you.some((c) => c.sat) ? "Your team" : "Your six"}</p>
@@ -313,14 +357,41 @@ function RoadEnd({ run, home, team, next, region, person, onAgain, onBack, onZoo
             <div className="duel-result__cards">{p.foe.map((c) => <CardThumb key={c.index} card={c} onPress={() => onZoom(c, their)} label={`See ${their} ${c.name} card${c.out ? ", knocked out" : `, ${c.cur} of ${c.hp} HP left`}`} />)}</div>
           </div>
         </div>
+        {/* Three actions at most (Britton, 2026-10-24): after a win the next trainer leads, after a loss playing again does. */}
         <div className="duel-result__actions">
-          <Button variant="primary" iconBefore={IconRefresh} onClick={() => onAgain(run.level)}>Play again</Button>
-          {home.hard.can && <Button variant="secondary" onClick={() => onAgain(hard ? "normal" : "hard")}>{hard ? "Play in Normal" : "Play in Hard"}</Button>}
-          {next && <Link href={next.href} className="road-end__next">Next: {next.name} <IconArrowRight size={16} aria-hidden="true" /></Link>}
-          <Link href="/daily-duel" className="road-end__next" onClick={() => track(EVENTS.roadToDaily, { from: "result" })}>Today&apos;s Daily Duel <IconArrowRight size={16} aria-hidden="true" /></Link>
+          {won && nextUp && <Button variant="primary" iconBefore={blocking ? IconSwords : undefined} iconAfter={blocking ? undefined : IconArrowRight}
+            onClick={() => { if (blocking) track(EVENTS.roadEncounterClicked, { from: "result", kind: blocking.kind }); router.push(nextUp.href); }}>{nextUp.label}</Button>}
+          <PracticeButton label="Play again" level={run.level} hardCan={home.hard.can} easyCan={home.easy.can} onPractice={onAgain} variant={won && nextUp ? "secondary" : "primary"} />
+          {!won && nextUp && <Button variant="secondary" iconAfter={IconArrowRight} onClick={() => router.push(nextUp.href)}>{nextUp.label}</Button>}
           <Button variant="ghost" onClick={onBack}>Back to {their} teams</Button>
         </div>
       </section>
+    </div>
+  );
+}
+
+/** What the duel did to your path: the milestones, XP (and a new level), tokens and a new card color. */
+function RoadPathGains({ gains }: { gains: RoadPathResult }) {
+  const levelUp = gains.level > gains.levelBefore;
+  const newColor = gains.color !== gains.colorBefore;
+  if (!gains.outcomes.length && !gains.xp) return null;
+  return (
+    <div className="road-gains" role="status">
+      {gains.outcomes.map((o, i) => (
+        <div key={`${o.kind}-${i}`} className={`road-gains__item road-gains__item--${o.kind}`}>
+          {o.kind === "encounter" && gains.encounter?.picture && <span className="road-gains__art" aria-hidden="true"><TrainerArt picture={gains.encounter.picture} shape="tile" /></span>}
+          <div>
+            <p className="road-gains__title">{o.title}</p>
+            <p className="road-gains__line">{o.line}</p>
+          </div>
+        </div>
+      ))}
+      <p className="road-gains__xp">
+        {gains.xp > 0 && <span><b>+{gains.xp.toLocaleString("en-US")} XP</b>{levelUp ? `, up to level ${gains.level}` : ""}</span>}
+        {gains.tokens > 0 && <span className="road-gains__tokens">+{gains.tokens.toLocaleString("en-US")} tokens</span>}
+        {newColor && <span>Your trainer card turned {gains.colorLabel.toLowerCase()}.</span>}
+      </p>
+      {gains.xp === 0 && gains.outcomes.length > 0 && <p className="road-gains__small">You beat this team earlier this month, so no XP for the win itself.</p>}
     </div>
   );
 }
@@ -352,7 +423,7 @@ function RoadBoard({ home, team }: { home: RoadTeamHome; team: RoadTeamOption })
                   <TableCell>
                     <span className="daily-board__who">
                       {r.profile ? <Link href={r.profile}>{r.name}</Link> : <span>{r.name}</span>}
-                      {r.hard && <span className="daily-board__hard">Hard</span>}
+                      {r.hard && <span className="daily-board__hard">Hard</span>}{r.easy && <span className="daily-board__hard daily-board__easy">Easy</span>}
                     </span>
                   </TableCell>
                   <TableCell>{r.won ? <RoadStars n={r.stars} size={14} /> : "Lost"}</TableCell>

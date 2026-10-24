@@ -31,8 +31,8 @@ const ENERGY: EnergyType[] = ["Grass", "Fire", "Water", "Lightning", "Psychic", 
  * Johto, Unova, Kalos and Galar leaders bring 2, Brock (HeartGold), Janine and Juan 5. Blueberry
  * Academy's Elite Four bring 6; Shauna's battles never go past 3, Brendan's and May's past 4.
  */
-const SIZES: Record<DuelTier, [number, number]> = { gym: [2, 5], elite: [4, 6], rival: [3, 6], boss: [5, 6], champion: [6, 6] };
-const MIN_TIER: Record<DuelTier, number> = { gym: 60, elite: 25, rival: 15, boss: 10, champion: 12 };
+const SIZES: Record<DuelTier, [number, number]> = { gym: [2, 5], elite: [4, 6], rival: [3, 6], boss: [5, 6], champion: [6, 6], grunt: [2, 3], admin: [2, 6] };
+const MIN_TIER: Record<DuelTier, number> = { gym: 60, elite: 25, rival: 15, boss: 10, champion: 12, grunt: 9, admin: 9 };
 const TIERS: DuelTier[] = ["gym", "elite", "rival", "boss", "champion"];
 const ENGLISH = /^[A-Za-z0-9 .,'’:\-éÉ♀♂&()]+$/;
 const norm = (x: string) => x.replace(/[’‘]/g, "'").toLowerCase();

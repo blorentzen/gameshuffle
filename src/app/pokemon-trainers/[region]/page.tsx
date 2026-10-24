@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { DailyDuelModule } from "@/components/originals/duel/DuelChallenger";
 import { LabeledSubNav } from "@/components/ui/LabeledSubNav";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { RoadSection } from "@/components/originals/duel/road/RoadTiles";
 import { RoadStarsProvider } from "@/components/originals/duel/road/RoadTileStars";
+import { RoadPathBox } from "@/components/originals/duel/road/RoadPath";
 import { ROAD_REGIONS, roadPath } from "@/lib/originals/duel/road";
 import { regionHeading, regionView } from "@/lib/originals/duel/roadPages";
 import { roadShown } from "@/lib/games-visibility";
@@ -15,8 +17,8 @@ import "@/styles/trainer-road.css";
 
 /**
  * /pokemon-trainers/<region>: one region on Trainer Road: its Gym Leaders (Alola's island kahunas),
- * Elite Four, Champions, rivals and villain bosses as tiles, each with the team it brings, in the
- * order the games meet them.
+ * Elite Four, Champions, rivals, villain bosses and villain teams as tiles, each with the team it brings, in the
+ * order the games meet them. The region's path (badges, League, end-game battle) leads the page.
  */
 
 export const dynamicParams = false;
@@ -67,9 +69,11 @@ export default async function RegionPage({ params }: { params: Promise<{ region:
       />
       <Container className="road-region-page">
         <LabeledSubNav label="Regions" variant="pills" className="road-regionnav" items={ROAD_REGIONS.map((r) => ({ label: r.name, href: roadPath(r.slug), active: r.slug === region }))} />
+        <RoadPathBox region={region} signUpHref={`/signup?redirect=${encodeURIComponent(roadPath(region))}`} />
         <RoadStarsProvider>
           {v.sections.map((s) => <RoadSection key={s.tier} section={s} />)}
         </RoadStarsProvider>
+        <DailyDuelModule from="trainer-road-region" />
         <ReportProblem about={`${v.region.name} on Trainer Road`} page={`/pokemon-trainers/${v.region.slug}`} />
         <TcgAttribution className="road-credits" />
       </Container>

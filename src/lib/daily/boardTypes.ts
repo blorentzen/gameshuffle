@@ -30,8 +30,9 @@ export interface BoardRow {
   supporter?: boolean;
   /** The player whose shared result page this board is on ("shared this", picks 2026-10-20). */
   shared?: boolean;
-  /** The Daily Duel's day board: today's official duel was played in Hard (picks 2026-10-23). */
+  /** The Daily Duel's day board: today's official duel was played in Hard (picks 2026-10-23) or Easy (2026-10-24). */
   hard?: boolean;
+  easy?: boolean;
 }
 
 export interface BoardView {

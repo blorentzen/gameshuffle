@@ -1,0 +1,15 @@
+/* A villain team blocking the road (road/RoadEncounter.tsx): one dark panel with a red edge, the
+   villain team's card art, and its button. Used on light pages and inside the navy road module. */
+.road-enc { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 16px; align-items: center; padding: var(--spacing-16, 1.6rem); border-radius: 16px; background: #1b0f1f; color: #fff; box-shadow: inset 0 0 0 2px #e0364b; min-width: 0; }
+.road-enc__art { width: 7.2rem; height: 7.2rem; border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: linear-gradient(140deg, #e0364b, #7a1022); }
+.road-enc__art .duel-art { width: 100%; height: 100%; }
+.road-enc__initial { font-family: var(--font-display, inherit); font-size: var(--font-size-32, 3.2rem); font-weight: 800; }
+.road-enc__body { display: grid; gap: 2px; min-width: 0; }
+.road-enc__kicker { margin: 0; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #ff9aa6; }
+.road-enc__title { margin: 2px 0 0; font-family: var(--font-display, inherit); font-size: var(--font-size-20); font-weight: 800; line-height: 1.2; text-wrap: balance; overflow-wrap: break-word; }
+.road-enc__line { margin: 4px 0 0; font-size: var(--font-size-16); line-height: 1.5; color: #f3d7dc; }
+.road-enc__go { grid-column: 1 / -1; justify-self: start; }
+.road-enc__go.empac-button--primary { background: #c8243a; border-color: #c8243a; color: #fff; }
+.road-enc__go.empac-button--primary:hover:not(:disabled) { background: #b01e32; border-color: #b01e32; }
+@media (min-width: 640px) { .road-enc__art { width: 8.8rem; height: 8.8rem; } }
+.road-enc--flat { padding: 0; background: none; box-shadow: none; border-radius: 0; }

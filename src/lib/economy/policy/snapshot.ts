@@ -33,10 +33,11 @@ const FREE_MINT_TYPES = [
   "earn_t1",
   "earn_t2",
   "earn_newcommunity",
-  // GameShuffle's own payouts: the dailies, their board prizes, invite links and the Idea Board.
+  // GameShuffle's own payouts: the dailies, their board prizes, invite links, Trainer Road and the Idea Board.
   "earn_daily",
   "award_board",
   "earn_referral",
+  "earn_road",
   "idea_accept",
   "idea_ship",
 ] as const;

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { DailyDuelModule } from "@/components/originals/duel/DuelChallenger";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { TrainerArt } from "@/components/originals/duel/TrainerArt";
 import { RoadDuel } from "@/components/originals/duel/road/RoadDuel";
@@ -67,6 +68,7 @@ export default async function TrainerPage({ params }: { params: Promise<{ region
           <Link href="/pokemon-trainers">Trainer Road</Link> <span aria-hidden="true">/</span> <Link href={roadPath(region)}>{v.region.name}</Link> <span aria-hidden="true">/</span> <span aria-current="page">{v.person.name}</span>
         </nav>
         <RoadDuel region={region} person={{ name: v.person.name, slug: trainer }} teams={v.teams} next={v.next} />
+        <DailyDuelModule from="trainer-road-trainer" className="road-quiet" />
         <div className="road-credits road-quiet">
           <ReportProblem about={`${v.person.name} on Trainer Road`} page={roadPath(region, trainer)} />
           {v.picture && <p className="road-credits__pic">{v.picture.credit}</p>}

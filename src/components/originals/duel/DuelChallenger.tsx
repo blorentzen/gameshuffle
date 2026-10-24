@@ -33,7 +33,7 @@ export function useTodayDuelResult(): DuelDayResult | null | undefined {
 
 let challengerLoad: Promise<DuelChallengerView | null> | null = null;
 /** Today's challenger from the Duel's API (one request per page; cached a minute at the edge). */
-function useChallenger(initial: DuelChallengerView | null): DuelChallengerView | null {
+export function useChallenger(initial: DuelChallengerView | null): DuelChallengerView | null {
   const [c, setC] = useState(initial);
   useEffect(() => {
     if (initial) return;
@@ -52,7 +52,7 @@ function resultLine(name: string, r: DuelDayResult | null): string {
 }
 
 /** The homepage's challenger: the picture, the headline, who they are, their team and Battle now. */
-export function ChallengerBand({ challenger }: { challenger: DuelChallengerView }) {
+export function ChallengerBand({ challenger, from = "home" }: { challenger: DuelChallengerView; from?: string }) {
   const played = useTodayDuelResult();
   const c = challenger;
   const done = played !== undefined;
@@ -71,7 +71,7 @@ export function ChallengerBand({ challenger }: { challenger: DuelChallengerView 
             <p className="duel-ch__label">{c.name}&apos;s team</p>
             <ul className="duel-ch__team" style={{ "--n": c.team.length } as React.CSSProperties} aria-label={`${c.name}'s team`}>
               {c.team.map((card, i) => (
-                // Our own card face: the art window, its type and HP (the Duel never shows the real card as the card you play).
+                // Our own card face: the art window, its type and HP (the Duel never shows the TCG version as the card you play).
                 <li key={i} className="duel-ch__face" style={{ "--tc": TYPE_DOT[card.t ?? "Colorless"] } as React.CSSProperties}>
                   <CardArt card={{ img: card.img, name: card.name, short: card.name, t: card.t ?? "Colorless" }} className="duel-ch__cardart" alt={`${card.name}, ${card.t ?? "Colorless"}, ${card.hp ?? ""} HP`} />
                   {card.t && card.hp ? <span className="duel-ch__foot" aria-hidden="true"><EnergyDot t={card.t} size="xs" /><b>{card.hp}</b></span> : null}
@@ -80,7 +80,7 @@ export function ChallengerBand({ challenger }: { challenger: DuelChallengerView 
             </ul>
           </>
         )}
-        <Link href="/daily-duel" className="duel-ch__link" onClick={() => track(EVENTS.duelChallengerClicked, { from: "home", played: done })}>
+        <Link href="/daily-duel" className="duel-ch__link" onClick={() => track(EVENTS.duelChallengerClicked, { from, played: done })}>
           {done
             ? <Button variant="secondary" size="large" className="duel-ch__again">See how you did</Button>
             : <Button variant="primary" size="large" iconBefore={IconSwords} className="duel-ch__go">Battle now</Button>}
@@ -88,6 +88,22 @@ export function ChallengerBand({ challenger }: { challenger: DuelChallengerView 
         <p className="duel-ch__small">{done ? tomorrowLine(c.day) : `${c.number >= 1 ? `Daily Duel #${c.number}` : "Warm-up duel"} · ${c.tierLabel} day · the same six cards for everyone`}</p>
       </div>
     </article>
+  );
+}
+
+/**
+ * The Daily Duel as its own module on another game's page (Trainer Road; Britton's picks, 2026-10-24):
+ * "Today's Daily Duel" over the challenger band. Loads today's challenger in the browser, because
+ * Trainer Road's pages are built ahead; nothing shows until a day is built.
+ */
+export function DailyDuelModule({ from, className }: { from: string; className?: string }) {
+  const c = useChallenger(null);
+  if (!c) return null;
+  return (
+    <section className={`duel-ch-module${className ? ` ${className}` : ""}`} aria-labelledby="duel-ch-module-title">
+      <h2 id="duel-ch-module-title" className="duel-ch-module__title">Today&apos;s Daily Duel</h2>
+      <ChallengerBand challenger={c} from={from} />
+    </section>
   );
 }
 

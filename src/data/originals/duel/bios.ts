@@ -158,4 +158,26 @@ export const DUEL_BIOS: Readonly<Record<string, string>> = {
   glacia: "The third of Hoenn's Elite Four, an Ice-type master who traveled to Hoenn from afar to hone her moves and finds most challengers weak.",
 };
 
-export const bioFor = (person: string): string | null => DUEL_BIOS[person] ?? null;
+/**
+ * Trainer Road's villain teams (road encounters, picks 2026-10-24): each team's grunts are one person
+ * per region ("team-rocket" in Kanto and in Johto, so its line fits both), plus the people who lead a
+ * region's story battle. From the Bulbapedia pages read for their teams (trainers.ts).
+ */
+export const VILLAIN_BIOS: Readonly<Record<string, string>> = {
+  "team-rocket": "A crime gang that steals rare Pokémon for money, hiding under the Celadon Game Corner in Kanto and later seizing the Goldenrod Radio Tower in Johto.",
+  archer: "Team Rocket's Executive, who runs the gang while Giovanni is missing and takes over the Goldenrod Radio Tower to call his boss back.",
+  "team-magma": "A gang that wants to expand the land, stirring up Mt. Chimney with a stolen Meteorite while it hunts for the ancient Pokémon Groudon.",
+  "team-aqua": "A gang that wants to expand the sea, stealing a submarine and breaking into the Seafloor Cavern to wake the ancient Pokémon Kyogre.",
+  "team-galactic": "Cyrus's followers, who set out to capture Sinnoh's three lake guardians and summon Dialga and Palkia to build a new world.",
+  mars: "A Team Galactic Commander who tries to take over the Valley Windworks for its energy, then captures Mesprit at Lake Verity.",
+  "team-plasma": "A group that urges Unova's trainers to set their Pokémon free, while its grunts, led by Ghetsis and the Seven Sages, steal them.",
+  "team-flare": "Lysandre's red-suited followers, who pay their way in and back his plan to fire the ultimate weapon and keep a beautiful world for themselves.",
+  xerosic: "One of Team Flare's five scientists, who battles in the depths of Lysandre Labs and wakes the ultimate weapon whichever button you press.",
+  "team-skull": "A gang of misfits who failed the island challenge, stealing Pokémon and causing trouble across Alola under their boss, Guzma.",
+  plumeria: "Team Skull's only admin, a Poison-type specialist the grunts call their big sister, strict with them but always looking out for them.",
+  "team-yell": "Marnie's rowdy fans from Spikemuth, who get in the way of her rivals in the Gym Challenge and turn out to be the town's Gym Trainers.",
+  "team-star": "A band of academy students who were bullied, now skipping class at five bases across Paldea, each squad led by its own boss.",
+  atticus: "The boss of Team Star's Navi Squad and its Poison crew, said to descend from ninjas, who designed the uniforms every Team Star boss wears.",
+};
+
+export const bioFor = (person: string): string | null => DUEL_BIOS[person] ?? VILLAIN_BIOS[person] ?? null;

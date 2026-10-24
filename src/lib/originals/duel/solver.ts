@@ -26,7 +26,7 @@ import {
   TURN_CAP, type DuelSetup, type DuelState,
 } from "./engine";
 import { PAR_BAND, duelNumber, duelRand, energyRow, eventPlan, peopleNear, peopleOf, personOf, shuffleWith, speciesOf, tierFor, trainerFor } from "./rules";
-import type { DuelAction, DuelCard, DuelEventAt, DuelRules, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
+import type { DuelAction, DuelCard, DuelEventAt, DuelLevel, DuelRules, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
 import type { DuelHintView } from "./view";
 
 // ─── the search ──────────────────────────────────────────────────────────────
@@ -510,6 +510,9 @@ export const WIN_BAND: Record<DuelTier, [number, number]> = {
   rival: [0.6, 0.82],
   boss: [0.5, 0.72],
   champion: [0.45, 0.68],
+  // Trainer Road's villain teams: a grunt should rarely stop anyone; a story battle's admin about as often as a Gym Leader.
+  grunt: [0.85, 0.99],
+  admin: [0.72, 0.93],
 };
 
 /** One of the professor's plans: a different card carries each. */
@@ -659,7 +662,7 @@ export function fairLeads(setup: DuelSetup, extra: number[][] = []): number {
 }
 
 /** Leads the lookahead player must win from: hard but findable, two on the easy gym days. */
-export const FAIR_LEADS: Record<DuelTier, number> = { gym: 2, elite: 1, rival: 1, boss: 1, champion: 1 };
+export const FAIR_LEADS: Record<DuelTier, number> = { gym: 2, elite: 1, rival: 1, boss: 1, champion: 1, grunt: 2, admin: 2 };
 
 // ─── building a day ──────────────────────────────────────────────────────────
 
@@ -684,9 +687,9 @@ export function makeSetup(
     if (head > 0) setup.foeHead = head;
   }
   if (opts.rules && opts.rules >= 5) {
-    // A hand of three Energy, and a charged comeback after a knockout (up to 2).
+    // A hand of three Energy, and a charged comeback after a knockout (up to 2; rules 7's Normal: one).
     setup.hand = HAND_SIZE;
-    setup.comeback = COMEBACK_MAX;
+    setup.comeback = opts.rules >= 7 ? NORMAL_COMEBACK : COMEBACK_MAX;
     if (opts.rules >= 6) {
       // Rules 6: the trainer plays by the same rules (its own hand from its own row, the comeback charge).
       setup.foeHand = HAND_SIZE;
@@ -702,9 +705,12 @@ export function makeSetup(
   return setup;
 }
 
-/** Rules 5: the Energy you hold, and the most a card brings back after a knockout. */
+/** Rules 5: the Energy you hold, and the most a card brings back after a knockout (the trainer's, and your Normal before rules 7). */
 export const HAND_SIZE = 3;
 export const COMEBACK_MAX = 2;
+/** Rules 7 (Britton, 2026-10-24): Normal brings one Energy after a knockout; Easy one for each card you've lost (six is more than a duel can lose). */
+export const NORMAL_COMEBACK = 1;
+export const EASY_COMEBACK = 6;
 
 /**
  * Rules 4: a trainer's cards start with an Energy for each card its team is short of five (up to 3:
@@ -723,6 +729,13 @@ export const solverSetup = (setup: DuelSetup): DuelSetup => ((setup.rules ?? 1) 
  * comeback Energy (the trainer keeps theirs). The professor is off too, which the store handles.
  */
 export const hardSetup = (setup: DuelSetup): DuelSetup => ({ ...setup, comeback: 0 });
+
+/** Easy (Britton, 2026-10-24): the same duel with an Energy for each card you've lost (1, 2, 3…) when the next comes in. */
+export const easySetup = (setup: DuelSetup): DuelSetup => ({ ...setup, comeback: EASY_COMEBACK });
+
+/** The duel a mode plays (Normal is the day as built). */
+export const levelSetup = (setup: DuelSetup, level: DuelLevel | null | undefined): DuelSetup =>
+  level === "hard" ? hardSetup(setup) : level === "easy" ? easySetup(setup) : setup;
 
 /** How far Hard's par search looks before the slipping player's wins are asked instead. */
 export const HARD_NODES = 400_000;
@@ -752,14 +765,14 @@ export function hardParFor(setup: DuelSetup, nodes = HARD_NODES): number {
 }
 
 /** How many ex cards a pack may hold, by tier (never more than 2). */
-export const MAX_EX: Record<DuelTier, number> = { gym: 1, elite: 1, rival: 2, boss: 2, champion: 2 };
+export const MAX_EX: Record<DuelTier, number> = { gym: 1, elite: 1, rival: 2, boss: 2, champion: 2, grunt: 0, admin: 1 };
 
 /**
  * Where a tier's strength cap starts: pack cards may hit up to this much harder than the team's
  * hardest hitter, and have this much more HP than its biggest card. Light teams (the Kanto gym
  * leaders' 2000-era cards) get cards of their own weight; a champion's big team leaves the pool open.
  */
-export const START_SLACK: Record<DuelTier, number> = { gym: 20, elite: 30, rival: 40, boss: 50, champion: 60 };
+export const START_SLACK: Record<DuelTier, number> = { gym: 20, elite: 30, rival: 40, boss: 50, champion: 60, grunt: 10, admin: 20 };
 
 /** The strength cap for a team: its hardest hit and its biggest HP, plus `slack`. */
 export function packCap(team: readonly DuelCard[], slack: number): { damage: number; hp: number } {

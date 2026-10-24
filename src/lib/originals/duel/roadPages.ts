@@ -8,7 +8,7 @@ import "server-only";
 import { DUEL_DATA } from "./data";
 import { bioFor } from "@/data/originals/duel/bios";
 import { trainerPicture } from "./pictures";
-import { ROAD_REGIONS, gameLabel, holdsRole, regionSections, roadPath, roadPeople, roadRegion, sectionLabel, teamRole, type RoadPerson, type RoadRegion } from "./road";
+import { ROAD_REGIONS, holdsRole, regionSections, roadPath, roadPeople, roadRegion, sectionLabel, sectionOf, teamLabel, teamRole, type RoadPerson, type RoadRegion } from "./road";
 import type { DuelTier, DuelTrainer } from "./types";
 import type { DuelPicture } from "./view";
 
@@ -37,7 +37,7 @@ export interface RoadTileView {
 }
 
 export function tileOf(p: RoadPerson, tier: DuelTier): RoadTileView {
-  const teams = p.teams.filter((t) => t.tier === tier);
+  const teams = p.teams.filter((t) => sectionOf(t.tier) === tier);
   return { slug: p.slug, name: p.name, href: roadPath(p.region, p.slug), title: teams[0].title, picture: personPicture(p), species: teamSpecies(teams[0]), teamIds: teams.map((t) => t.id), games: teams.length };
 }
 
@@ -48,7 +48,7 @@ export function regionView(slug: string): { region: RoadRegion; sections: RoadSe
   if (!region) return null;
   const people = roadMap().get(slug) ?? [];
   const sections = regionSections(people).map((s) => {
-    const real = s.people.some((p) => p.teams.some((t) => t.tier === s.tier && holdsRole(t)));
+    const real = s.people.some((p) => p.teams.some((t) => sectionOf(t.tier) === s.tier && holdsRole(t)));
     return { tier: s.tier, label: sectionLabel(s.tier, region, s.people.length, real), real, tiles: s.people.map((p) => tileOf(p, s.tier)) };
   });
   return { region, sections, people };
@@ -110,10 +110,11 @@ export function personView(regionSlug: string, slug: string): RoadPersonView | n
   const eyebrow = tier === "gym" ? (region.slug === "alola" ? "Alola kahuna" : `${region.name} Gym Leader`)
     : tier === "elite" ? (holds ? `${region.name} Elite Four` : first.title)
     : tier === "champion" ? (holds ? `${region.name} Champion` : `${region.name} final battle`)
-    : tier === "rival" ? `${region.name} rival` : `${region.name} villain boss`;
+    : tier === "rival" ? `${region.name} rival`
+    : tier === "grunt" || tier === "admin" ? `${region.name} villain team` : `${region.name} villain boss`;
   return {
     person, region, picture: personPicture(person), bio: bioFor(slug), role, eyebrow,
-    teams: person.tiers.flatMap((tier) => person.teams.filter((t) => t.tier === tier)).map((t) => ({ id: t.id, gameLabel: gameLabel(t.game), title: t.title, tierLabel: teamRole(t), species: teamSpecies(t) })),
+    teams: person.tiers.flatMap((tier) => person.teams.filter((t) => t.tier === tier)).map((t) => ({ id: t.id, gameLabel: teamLabel(t), title: t.title, tierLabel: teamRole(t), species: teamSpecies(t) })),
     next: nextOnRoad(regionSlug, slug),
   };
 }
@@ -121,4 +122,23 @@ export function personView(regionSlug: string, slug: string): RoadPersonView | n
 /** Every trainer page (the sitemap, generateStaticParams). */
 export function allRoadPeople(): { region: string; slug: string }[] {
   return ROAD_REGIONS.flatMap((r) => (roadMap().get(r.slug) ?? []).map((p) => ({ region: r.slug, slug: p.slug })));
+}
+
+let totals: { trainers: number; teams: number; regions: number } | null = null;
+/** How big the road is: different trainers (Koga, Bruno and Lance count once), teams and regions. */
+export function roadTotals(): { trainers: number; teams: number; regions: number } {
+  if (totals) return totals;
+  const people = new Set<string>();
+  let teams = 0;
+  for (const r of ROAD_REGIONS) {
+    for (const p of regionView(r.slug)?.people ?? []) { people.add(p.slug); teams += p.teams.length; }
+  }
+  totals = { trainers: people.size, teams, regions: ROAD_REGIONS.length };
+  return totals;
+}
+
+/** A region's Gym Leaders as faces, in badge order (the Daily Duel page's road module). */
+export function regionGymFaces(slug: string): { name: string; picture: DuelPicture | null }[] {
+  const gym = regionView(slug)?.sections.find((s) => s.tier === "gym");
+  return (gym?.tiles ?? []).slice(0, 8).map((t) => ({ name: t.name, picture: t.picture }));
 }

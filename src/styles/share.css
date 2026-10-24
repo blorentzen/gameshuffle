@@ -82,4 +82,17 @@ a.share-friend__name:hover { text-decoration: underline; }
 /* Their row on the leaderboard. */
 .daily-board__shared { flex: none; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--brand-ink, var(--primary-700)); }
 /* The Daily Duel's day board: a run played in Hard. */
+.daily-board__hard.daily-board__easy { background: #a8dcff; color: #06263d; }
 .daily-board__hard { flex: none; padding: 1px 8px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); letter-spacing: 0.04em; line-height: 1.5; text-transform: uppercase; }
+
+/* The Share window on an end screen once two or more dailies are played (DailiesShare): a row per
+   choice split by thin lines, each showing what goes out. A tap shares it. */
+.share-choose { display: grid; list-style: none; margin: 0; padding: 0; }
+.share-choose__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; width: 100%; min-height: 56px; padding: 14px 4px; border: 0; border-top: 1px solid var(--border-subtle, var(--border-default)); background: none; color: var(--text-primary); font: inherit; text-align: left; cursor: pointer; border-radius: 0; }
+.share-choose li:first-child .share-choose__row { border-top: 0; }
+.share-choose__row:hover .share-choose__title { text-decoration: underline; }
+.share-choose__row:focus-visible { outline: 3px solid var(--focus-ring, #2f66ec); outline-offset: 2px; border-radius: 8px; }
+.share-choose__title { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: var(--font-size-16); font-weight: 700; }
+.share-choose__tag { padding: 2px 8px; border-radius: 999px; font-size: var(--font-size-12); font-weight: 700; background: var(--bg-primary-subtle, #eef2ff); color: var(--text-brand, #2a3a8f); }
+.share-choose__preview { grid-column: 1; white-space: pre-line; font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); }
+.share-choose__go { grid-column: 2; grid-row: 1 / span 2; display: inline-flex; align-items: center; gap: 6px; font-size: var(--font-size-14); font-weight: 700; color: var(--text-link, #2a5fe0); }

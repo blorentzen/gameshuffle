@@ -12,7 +12,7 @@
 
 import { gsAddDays, gsWeekday } from "@/lib/time/gsClock";
 import { TURN_CAP } from "./engine";
-import type { DuelCard, DuelEventAt, DuelEventKind, DuelTier, DuelTrainer, EnergyType } from "./types";
+import type { DuelCard, DuelEventAt, DuelEventKind, DuelLevel, DuelTier, DuelTrainer, EnergyType } from "./types";
 
 /**
  * Duel #1: Friday Oct 23, 2026, the first day with our own cards and conditions. The Duel opened the
@@ -50,11 +50,11 @@ export function tierFor(day: string): DuelTier {
   return "champion";
 }
 
-export const TIER_LABEL: Record<DuelTier, string> = { gym: "Gym Leader", elite: "Elite Four", rival: "Rival", boss: "Boss", champion: "Champion" };
+export const TIER_LABEL: Record<DuelTier, string> = { gym: "Gym Leader", elite: "Elite Four", rival: "Rival", boss: "Boss", champion: "Champion", grunt: "Grunt", admin: "Villain team" };
 
 /** Who comes the day after `day`, without naming them: "Tomorrow: a rival" (the challenger cards, once today's duel is played). */
 export function tomorrowLine(day: string): string {
-  const who: Record<DuelTier, string> = { gym: "a Gym Leader", elite: "a member of an Elite Four", rival: "a rival", boss: "a villain team's boss", champion: "a Champion" };
+  const who: Record<DuelTier, string> = { gym: "a Gym Leader", elite: "a member of an Elite Four", rival: "a rival", boss: "a villain team's boss", champion: "a Champion", grunt: "a villain team", admin: "a villain team" };
   const next = gsAddDays(day, 1);
   return `Tomorrow${next === DUEL_EPOCH ? ", Daily Duel #1" : ""}: ${who[tierFor(next)]}`;
 }
@@ -74,6 +74,10 @@ export const PAR_BAND: Record<DuelTier, [number, number]> = {
   rival: [9, 14],
   boss: [10, 15],
   champion: [12, 18],
+  // Trainer Road's villain teams (road encounters, 2026-10-24): grunts are quicker than Monday's Gym
+  // Leaders; a story battle's admin sits with them.
+  grunt: [3, 7],
+  admin: [5, 10],
 };
 
 /** When a tier has no trainers yet, the nearest one that does. */
@@ -83,6 +87,8 @@ export const TIER_FALLBACK: Record<DuelTier, DuelTier[]> = {
   rival: ["elite", "boss", "gym", "champion"],
   boss: ["champion", "elite", "rival", "gym"],
   champion: ["boss", "elite", "rival", "gym"],
+  grunt: ["gym", "elite", "rival", "boss", "champion"],
+  admin: ["gym", "elite", "rival", "boss", "champion"],
 };
 
 // ─── seeded draws ────────────────────────────────────────────────────────────
@@ -385,19 +391,27 @@ export function duelPoints(won: boolean, turns: number, par: number): number {
  * professor. A loss: 20 for each of the trainer's cards knocked out, up to 100. Board points are the
  * score ÷ 100, rounded down (week and month boards, tokens), like Fire Round.
  */
-export const SCORE = { turns: 600, turnCost: 50, turnsFloor: 200, time: 250, perParTurn: 15, timeStep: 15, timeCost: 10, solo: 150, ko: 20, koMax: 100, hard: 200 } as const;
+export const SCORE = { turns: 600, turnCost: 50, turnsFloor: 200, time: 250, perParTurn: 15, timeStep: 15, timeCost: 10, solo: 150, ko: 20, koMax: 100, hard: 200, easy: 200, easyFloor: 150 } as const;
 
-/** Board points: one per 100 of the score, up to 10 (12 for a Hard win, with its bonus). */
+/** Board points: one per 100 of the score, up to 10 (12 for a Hard win, with its bonus; an Easy win tops out at 8). */
 export const POINTS_MAX = 10;
 export const HARD_POINTS_MAX = 12;
+export const EASY_POINTS_MAX = 8;
 
-export interface DuelScoreParts { score: number; turns: number; time: number; solo: number; kos: number; points: number; hard: number }
+/** The most a win can score in each mode. */
+export const levelMax = (level: DuelLevel | null | undefined) => 1000 + (level === "hard" ? SCORE.hard : level === "easy" ? -SCORE.easy : 0);
+
+/** `easy`: what an Easy win gave up (0 for other runs). */
+export interface DuelScoreParts { score: number; turns: number; time: number; solo: number; kos: number; points: number; hard: number; easy?: number }
 
 /**
  * A scored duel (rules 6): turns, time and going solo out of 1,000; a loss scores its knockouts. Hard
- * (picks 2026-10-23) plays against its own par, is always solo and adds `SCORE.hard` on a win.
+ * (picks 2026-10-23) plays against its own par, is always solo and adds `SCORE.hard` on a win. Easy
+ * (Britton, 2026-10-24) plays against Normal's par and takes `SCORE.easy` off a win (out of 800), never
+ * below `SCORE.easyFloor`, so an Easy win still beats any loss.
  */
-export function duelScore(f: { won: boolean; turns: number; par: number; seconds: number | null; solo: boolean; knocked: number; hard?: boolean }): DuelScoreParts {
+export function duelScore(f: { won: boolean; turns: number; par: number; seconds: number | null; solo: boolean; knocked: number; hard?: boolean; level?: DuelLevel | null }): DuelScoreParts {
+  const level: DuelLevel = f.level ?? (f.hard ? "hard" : "normal");
   if (!f.won) {
     const kos = Math.min(SCORE.koMax, SCORE.ko * Math.max(0, f.knocked));
     return { score: kos, turns: 0, time: 0, solo: 0, kos, points: Math.floor(kos / 100), hard: 0 };
@@ -406,10 +420,14 @@ export function duelScore(f: { won: boolean; turns: number; par: number; seconds
   const allowance = SCORE.perParTurn * f.par;
   const over = f.seconds == null ? Infinity : Math.max(0, f.seconds - allowance);
   const time = over === Infinity ? 0 : Math.max(0, SCORE.time - SCORE.timeCost * Math.ceil(over / SCORE.timeStep));
-  const solo = f.solo || f.hard ? SCORE.solo : 0;
-  const hard = f.hard ? SCORE.hard : 0;
-  const score = turns + time + solo + hard;
-  return { score, turns, time, solo, kos: 0, points: Math.min(f.hard ? HARD_POINTS_MAX : POINTS_MAX, Math.floor(score / 100)), hard };
+  const solo = f.solo || level === "hard" ? SCORE.solo : 0;
+  const hard = level === "hard" ? SCORE.hard : 0;
+  const full = turns + time + solo + hard;
+  if (level === "easy") {
+    const score = Math.max(SCORE.easyFloor, full - SCORE.easy);
+    return { score, turns, time, solo, kos: 0, points: Math.min(EASY_POINTS_MAX, Math.floor(score / 100)), hard: 0, easy: full - score };
+  }
+  return { score: full, turns, time, solo, kos: 0, points: Math.min(level === "hard" ? HARD_POINTS_MAX : POINTS_MAX, Math.floor(full / 100)), hard };
 }
 
 /** "3:12", "12:05", "2h 14m". */
@@ -440,6 +458,8 @@ export interface DuelShareFacts {
   score?: number | null;
   /** Played in Hard. */
   hard?: boolean;
+  /** Played in Easy. */
+  easy?: boolean;
 }
 
 /** "Won in 14 turns (par 13)", "Knocked out 4 of 6". */
@@ -450,7 +470,7 @@ export function duelHeadline(f: Pick<DuelShareFacts, "won" | "turns" | "par" | "
 
 /** The text a result shares: the duel, the trainer, the result and time, your squares, the link. Never a card's name. */
 export function duelShareText(f: DuelShareFacts, url = "https://www.gameshuffle.co/daily-duel"): string {
-  const title = `Daily Duel ${duelLabel(f.number)}${f.hard ? " (Hard)" : ""} · vs ${f.trainer}${f.practice ? " (practice)" : ""}`;
+  const title = `Daily Duel ${duelLabel(f.number)}${f.hard ? " (Hard)" : f.easy ? " (Easy)" : ""} · vs ${f.trainer}${f.practice ? " (practice)" : ""}`;
   const time = f.seconds != null ? ` ⏱ ${duelTime(f.seconds)}` : "";
   const score = f.score != null ? ` · Score ${f.score.toLocaleString("en-US")}` : "";
   return [title, `${f.won ? "🏆" : "❌"} ${duelHeadline(f)}${time}${score}`, duelSquares(f.standing), url].join("\n");

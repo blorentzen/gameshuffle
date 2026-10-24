@@ -26,6 +26,7 @@ export const PROFILE_SECTIONS = [
   "favGames",
   "dailies",
   "mmr",
+  "road",
   "featuredCard",
   "crews",
   "communities",
@@ -42,6 +43,7 @@ export const PROFILE_SECTION_LABELS: Record<ProfileSectionKey, string> = {
   favGames: "Favorite games",
   dailies: "Dailies (streaks)",
   mmr: "MMR card (lounge)",
+  road: "Trainer Road (trainer card)",
   topFriends: "Top friends",
   communities: "Communities",
 };

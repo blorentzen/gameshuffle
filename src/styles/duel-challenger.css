@@ -83,3 +83,7 @@
 .duel-chs__go.empac-button:hover { background: #ffd866; border-color: #ffd866; color: #1a1300; }
 .duel-chs__again.empac-button { background: transparent; border-color: rgba(255, 255, 255, 0.4); color: #fff; }
 .duel-chs__link:focus-visible { outline: 3px solid #f5c84c; outline-offset: 3px; border-radius: 10px; }
+
+/* The Daily Duel as its own module on Trainer Road (DailyDuelModule): a heading over the band. */
+.duel-ch-module { display: grid; gap: 12px; min-width: 0; }
+.duel-ch-module__title { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-weight: 800; line-height: 1.2; color: var(--text-primary); text-wrap: balance; }

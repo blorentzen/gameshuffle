@@ -230,6 +230,7 @@ function BoardTable({ view, main, pictures, scored = false }: { view: BoardView;
           {r.supporter && <IconHeartFilled size={13} className="daily-board__heart" aria-hidden="true" />}
           {r.shared && !r.you && <span className="daily-board__shared">Shared this</span>}
           {r.hard && <span className="daily-board__hard">Hard</span>}
+          {r.easy && <span className="daily-board__hard daily-board__easy">Easy</span>}
           <span className="sr-only"> ({PLACES[placeOf(r)].said}{r.supporter ? ", supports GameShuffle" : ""})</span>
         </span>
       </TableCell>

@@ -5,8 +5,8 @@
  * https://claude.ai/artifact/534LAa7cDPtr1rsCvh39UE, direction A). The Duel borrows from the card but
  * never shows it as the card you play with (Britton): the card's art window, its type, HP and
  * Weakness, and each move as the Duel plays it (Energy, damage, the conditions it can put on, with
- * their chance). A key under it says what those conditions do. The real card is one tap away (See the
- * real card) for anyone who collects it.
+ * their chance). A key under it says what those conditions do. The card it's inspired by is one tap
+ * away (View TCG version), so nobody mistakes the Duel's mechanics for the card's own.
  */
 
 import { useState } from "react";
@@ -63,8 +63,8 @@ export function DuelZoom({ card, owner, onClose }: { card: DuelCardView | null; 
         <div className="duel-zoom__body">
           {showReal ? (
             <>
-              <div className="duel-zoom__card"><CardPicture card={card} alt={`The ${card.name} card`} /></div>
-              <p className="duel-zoom__note">The real card, from the Pokémon TCG. The Duel plays its own version: moves play their damage and conditions, and the rest of the card isn&apos;t used.</p>
+              <div className="duel-zoom__card"><CardPicture card={card} alt={`The Pokémon TCG version of ${card.name}`} /></div>
+              <p className="duel-zoom__note">The Pokémon TCG version of this card. The Duel&apos;s version is inspired by it: moves play their damage and conditions, and the rest of the card isn&apos;t used.</p>
               <Button variant="secondary" onClick={() => setReal(null)}>Back to the Duel card</Button>
             </>
           ) : (
@@ -78,7 +78,7 @@ export function DuelZoom({ card, owner, onClose }: { card: DuelCardView | null; 
                   <li className="duel-zoom__key-note">Swapping a card out cures it.</li>
                 </ul>
               )}
-              {card.img && <Button variant="ghost" onClick={() => setReal(card.id)}>See the real card</Button>}
+              {card.img && <Button variant="ghost" onClick={() => setReal(card.id)}>View TCG version</Button>}
             </>
           )}
         </div>

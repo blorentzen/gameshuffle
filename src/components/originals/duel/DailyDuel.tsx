@@ -28,13 +28,12 @@ import type { DuelCardView, DuelHintView, DuelHome, DuelRunView } from "@/lib/or
 import { DuelArena } from "./DuelArena";
 import { framesBetween, type Frame } from "./duelBeats";
 import { DuelEnd } from "./DuelEnd";
-import { DuelStart, type DuelLevelPick } from "./DuelStart";
+import { DuelStart, LEVEL_KEY, openLevel, readLevel, type DuelLevelPick } from "./DuelStart";
 import { DuelZoom } from "./DuelZoom";
 import { setDuelCredit } from "./DuelPictureCredit";
 import { reducedMotion } from "./duelLook";
 
 /** Where this browser remembers Normal or Hard. */
-const LEVEL_KEY = "gs-duel-level";
 
 /** How long the final picture holds before the result shows. */
 const OVER_MS = 1400;
@@ -79,10 +78,8 @@ export function DailyDuel() {
   const [zoom, setZoom] = useState<{ card: DuelCardView; owner: string } | null>(null);
   const [boardRefresh, setBoardRefresh] = useState(0);
   const [today, setToday] = useState<BoardView | null>(null);
-  // Normal or Hard: the last pick is remembered in this browser (picks 2026-10-23).
-  const [level, setLevel] = useState<DuelLevelPick>(() => {
-    try { return typeof window !== "undefined" && window.localStorage.getItem(LEVEL_KEY) === "hard" ? "hard" : "normal"; } catch { return "normal"; }
-  });
+  // Easy, Normal or Hard: the last pick is remembered in this browser (picks 2026-10-23, Easy 2026-10-24).
+  const [level, setLevel] = useState<DuelLevelPick>(() => readLevel());
   const pickLevel = useCallback((l: DuelLevelPick) => {
     setLevel(l);
     try { window.localStorage.setItem(LEVEL_KEY, l); } catch { /* private window */ }
@@ -197,7 +194,7 @@ export function DailyDuel() {
     setBusy(false);
     if (!res?.ok) {
       const err = ((await res?.json().catch(() => ({}))) as { error?: string } | undefined)?.error;
-      toast.error(err === "official_first" ? "Finish today's duel first: practice opens after it." : err === "hard_off" ? "Hard isn't open for this duel. Pick Normal to play." : err === "not_ready" ? "Today's duel isn't ready yet. Try again in a moment." : err === "rate_limited" ? "Slow down a little, then try again." : "Couldn't start the duel. Try again in a moment.");
+      toast.error(err === "official_first" ? "Finish today's duel first: practice opens after it." : err === "hard_off" ? "Hard isn't open for this duel. Pick Normal to play." : err === "easy_off" ? "Easy isn't open for this duel. Pick Normal to play." : err === "not_ready" ? "Today's duel isn't ready yet. Try again in a moment." : err === "rate_limited" ? "Slow down a little, then try again." : "Couldn't start the duel. Try again in a moment.");
       return;
     }
     const body = (await res.json()) as { run: DuelRunView };
@@ -308,6 +305,7 @@ export function DailyDuel() {
           board={board}
           onPractice={(l) => void start("practice", l)}
           hardCan={home.hard.can}
+          easyCan={home.easy.can}
           onToday={!shown.official ? () => setRun(null) : undefined}
           onZoom={onZoom}
         />
@@ -319,7 +317,7 @@ export function DailyDuel() {
 
   return (
     <div className="duel-home">
-      <DuelStart home={home} busy={busy} level={level} onLevel={pickLevel} onStart={() => void start("official", home.hard.can ? level : "normal")} onAsk={onAsk} onZoom={onZoom} />
+      <DuelStart home={home} busy={busy} level={level} onLevel={pickLevel} onStart={() => void start("official", openLevel(level, home))} onAsk={onAsk} onZoom={onZoom} />
       {board}
       {zoomer}
     </div>
