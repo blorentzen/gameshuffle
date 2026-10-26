@@ -590,7 +590,7 @@ function storyOf(setup: DuelSetup, line: DuelStep[]): LineStory | null {
     if (!s) return null;
     if ("bring" in st) pick = st.bring;
     else if ("next" in st) { if (lead < 0) { lead = st.next; enter.set(st.next, "lead"); } else if (!enter.has(st.next)) enter.set(st.next, "sent"); }
-    else {
+    else if ("attach" in st) {
       if (!enter.has(st.attach) && st.attach !== s.yi) energyBefore.set(st.attach, (energyBefore.get(st.attach) ?? 0) + 1);
       if ("swap" in st.act && !enter.has(st.act.swap)) enter.set(st.act.swap, "swap");
       if ("move" in st.act) {

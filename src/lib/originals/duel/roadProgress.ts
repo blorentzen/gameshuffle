@@ -34,7 +34,9 @@ import {
   type LedgerRow, type PathKind, type PathOutcome, type RoadLevers, type RoadProgress,
 } from "./roadPath";
 import { gruntAfter, markNames, setCause, setDue, villainTeamOf } from "./roadEncounters";
-import type { DuelTier, DuelTrainer } from "./types";
+import { giveTools, toolsReady } from "./roadTools";
+import { TOOLS, badgeTools, leagueTools, regionTools, rewardTool } from "./tools";
+import type { DuelTier, DuelTrainer, ToolId } from "./types";
 import type { DuelPicture } from "./view";
 import type { RoadEncounterView, RoadNextView, RoadPathResult, RoadPathView, RoadProgressView, RoadStepView } from "./roadView";
 
@@ -45,6 +47,9 @@ const duplicate = (e: DbError) => !!e && (e.code === "23505" || /duplicate key/i
 // ─── levers ──────────────────────────────────────────────────────────────────
 
 let leverCache: { v: RoadLevers; at: number } | null = null;
+
+/** The road's numbers as last read (the defaults before the first read): for code that can't wait, like a run's setup. */
+export const cachedLevers = (): RoadLevers => leverCache?.v ?? ROAD_LEVER_DEFAULTS;
 
 /** The road's numbers from gs_economy_config (cached a minute), the defaults where a row is missing. */
 export async function roadLevers(): Promise<RoadLevers> {
@@ -72,6 +77,10 @@ export async function roadLevers(): Promise<RoadLevers> {
     encounterTokens: n("road_encounter_tokens", D.encounterTokens),
     xpEncounter: n("road_xp_encounter", D.xpEncounter),
     encounterChance: Math.min(100, n("road_encounter_chance", D.encounterChance)),
+    prize: Object.fromEntries(Object.entries(D.prize).map(([k, v]) => [k, n(`road_prize_${k}`, v)])) as RoadLevers["prize"],
+    toolPrice: Object.fromEntries(Object.entries(D.toolPrice).map(([k, v]) => [k, n(`road_tool_price_${k}`, v)])) as RoadLevers["toolPrice"],
+    bagMax: Math.max(1, n("road_bag_max", D.bagMax)),
+    toolsDuel: Math.min(5, n("road_tools_duel", D.toolsDuel)),
   };
   leverCache = { v, at: Date.now() };
   return v;
@@ -373,9 +382,31 @@ export async function applyRunToPath(userId: string, run: { trainerId: string; m
       outcomes = outcomes.filter((o) => o.kind === "endgame_hard");
     }
 
+    // Tools (picks 2026-10-25): prize money for the first win each month, and tools for milestones, once each.
+    const tooled = await toolsReady();
+    const gotTools: ToolId[] = [];
+    let prize = 0;
+    const give = async (list: readonly ToolId[], key: string) => {
+      if (!tooled || !list.length) return;
+      const g = await giveTools(userId, list, key, levers);
+      gotTools.push(...g.added);
+      tokens += g.paid;
+    };
+    if (beat && open) await give([rewardTool(encounterKey(open.id))], encounterKey(open.id));
+
     if (run.won) {
       const amount = winXp(levers, t.tier as DuelTier, spot?.kind === "endgame", run.stars, run.hard);
-      if (await earn(userId, { key: winKey(run.trainerId, run.month), kind: "win", region, team_id: run.trainerId, xp: amount, tokens: 0 })) xp += amount;
+      const key = winKey(run.trainerId, run.month);
+      const purse = tooled ? levers.prize[t.tier as DuelTier] ?? 0 : 0;
+      if (await earn(userId, { key, kind: "win", region, team_id: run.trainerId, xp: amount, tokens: purse })) {
+        xp += amount;
+        prize = await pay(userId, key, purse);
+        tokens += prize;
+      }
+      // A first three-star win against a team gives a tool.
+      if (tooled && run.stars >= 3 && (await earn(userId, { key: `three-stars:${run.trainerId}`, kind: "tool", region, team_id: run.trainerId, xp: 0, tokens: 0 }))) {
+        await give([rewardTool(`three-stars:${run.trainerId}`)], `three-stars:${run.trainerId}`);
+      }
     }
 
     const svc = createServiceClient();
@@ -398,6 +429,10 @@ export async function applyRunToPath(userId: string, run: { trainerId: string; m
         xp += r.xp;
         tokens += await pay(userId, key, r.tokens);
         earned.push(o);
+        // A badge gives the tool it opens at the Mart, the League two, a region three.
+        if (o.kind === "badge") await give(badgeTools(o.region, o.index), key);
+        else if (o.kind === "league") await give(leagueTools(o.region), key);
+        else if (o.kind === "region") await give(regionTools(o.region), key);
         // The League's step stays at its end once it's won.
         if (o.kind === "league") await svc.from("road_league").upsert({ user_id: userId, region: o.region, step: regionPath(o.region)!.league.length - 1, updated_at: new Date().toISOString() }, { onConflict: "user_id,region" });
       }
@@ -434,11 +469,23 @@ export async function applyRunToPath(userId: string, run: { trainerId: string; m
       outcomes: [...extra.filter((o) => o.kind !== "encounter"), ...earned.map((o) => ({ kind: o.kind, ...outcomeText(o, before) })), ...extra.filter((o) => o.kind === "encounter")],
       next: nextView(after),
       encounter: blocking ? encounterView(blocking, levers) : null,
+      prize,
+      tools: toolCounts(gotTools),
     };
   } catch (e) {
     console.error("[road] path update failed:", e);
     return null;
   }
+}
+
+/** Tools given, counted ("Patch Up ×2"). */
+function toolCounts(list: readonly ToolId[]): { id: ToolId; name: string; count: number }[] {
+  const out: { id: ToolId; name: string; count: number }[] = [];
+  for (const id of list) {
+    const row = out.find((x) => x.id === id);
+    if (row) row.count += 1; else out.push({ id, name: TOOLS[id].name, count: 1 });
+  }
+  return out;
 }
 
 /** Every region's slug, for the API's ?path= check. */

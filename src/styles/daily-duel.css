@@ -684,6 +684,30 @@ html:root .duel-turnwin .empac-modal__body { gap: 12px; padding: 8px 16px 16px; 
   .duel-trow .duel-thumb--sm { width: 4.8rem; }
 }
 
+/* Tools in the turn window (picks 2026-10-25): the bag's tools as picture tiles, then the choice after a pick. */
+.duel-tools { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
+.duel-tools .duel-turnwin__label { align-items: center; }
+.duel-tools .duel-turnwin__label svg { color: #f5c84c; }
+.duel-tools__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.4rem, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.duel-tool { display: grid; grid-template-columns: 1fr auto; gap: 4px 6px; width: 100%; padding: 6px; border: 0; border-radius: 10px; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); color: #fff; font: inherit; text-align: start; cursor: pointer; }
+.duel-tool:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+.duel-tool:focus-visible { outline: 3px solid #f5c84c; outline-offset: 2px; }
+.duel-tool:disabled { cursor: default; opacity: 0.5; }
+.duel-tool--on { background: rgba(245, 200, 76, 0.14); box-shadow: inset 0 0 0 2px #f5c84c; }
+.duel-tool__art { grid-column: 1 / -1; border-radius: 6px; }
+.duel-tool__name { font-size: var(--font-size-14); font-weight: 800; line-height: 1.25; min-width: 0; }
+.duel-tool__count { color: #ffe08a; font-size: var(--font-size-14); font-weight: 700; white-space: nowrap; }
+.duel-tools__use { display: grid; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(245, 200, 76, 0.08); }
+.duel-tools__line { margin: 0; color: #e6e9f8; font-size: var(--font-size-14); line-height: 1.4; }
+.duel-tools__credit { margin: 0; color: #aab1d6; font-size: var(--font-size-14); line-height: 1.4; }
+.duel-tools__cards { display: flex; flex-wrap: wrap; gap: 8px; }
+.duel-turnwin .duel-tools__card.empac-button { height: auto; min-height: 4rem; white-space: normal; text-align: start; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(245, 200, 76, 0.7); color: #fff; }
+.duel-turnwin .duel-tools__card.empac-button:hover:not(:disabled) { background: rgba(245, 200, 76, 0.18); }
+.duel-turnwin .duel-tools__go.empac-button { justify-self: start; min-height: 4rem; }
+.duel-tools--empty { padding-bottom: 8px; }
+.duel-tools--empty .duel-turnwin__label span { font-size: var(--font-size-14); }
+.duel-ev--later { opacity: 0.85; }
+
 @media (prefers-reduced-motion: reduce) {
   .duel-holo--summon, .duel-holo--hit, .duel-holo--ko, .duel-overlay--over, .duel-notice, .duel-evcard, .duel-turnwin .duel-tipline,
   .duel-holo__tag, .duel-holo__pop, .duel-score__row { animation: none; }

@@ -14,7 +14,7 @@
  */
 
 import type { DuelLogLine } from "./engine";
-import type { DuelAct, DuelCondition, DuelEventKind, DuelLevel, DuelRules, DuelSignature, DuelTier, EnergyType } from "./types";
+import type { DuelAct, DuelCondition, DuelEventKind, DuelLevel, DuelRules, DuelSignature, DuelTier, EnergyType, ToolId } from "./types";
 import type { DuelScoreParts } from "./rules";
 import type { DayMark } from "@/lib/originals/dailies";
 
@@ -109,6 +109,19 @@ export interface DuelHintView {
   text: string;
 }
 
+/** The duel's tools: how many it allows, which have been used, and where each could go right now. */
+export interface DuelToolsView {
+  cap: number;
+  used: ToolId[];
+  left: number;
+  /** Tools that can be used now: the cards each can go on (Look Ahead lists your card on the field), and Spare Energy's types. */
+  targets: Partial<Record<ToolId, { cards: number[]; types?: EnergyType[] }>>;
+  /** Power Up on this turn's attack: how much more (0: not used). */
+  power: number;
+  /** Look Ahead: turns left of seeing further (0: not used). */
+  look: number;
+}
+
 export interface DuelPlayView {
   /** The turn you're on (0 before the lead goes out). */
   turn: number;
@@ -142,6 +155,10 @@ export interface DuelPlayView {
   event: DuelEventView | null;
   /** The next event: it flips at the start of next turn (null when the next turn has none). */
   forecast: DuelEventView | null;
+  /** Look Ahead: the event the turn after next (null without Look Ahead, or when that turn has none). */
+  later?: DuelEventView | null;
+  /** The tools this duel allows (null: none). Which you have is the store's (the run view's bag). */
+  tools?: DuelToolsView | null;
   inPlay: DuelInPlay;
   /**
    * Professor's advice (its turn only): a play for this turn from where the duel stands, worked out
@@ -217,6 +234,39 @@ export interface DuelChallengerView {
   road?: { href: string; regionName: string; faces: { name: string; picture: DuelPicture | null }[]; trainers: number; teams: number; regions: number };
 }
 
+/** A tool's picture: its Item card's large image, art window [x, y, w, h], size and credit (toolArt.ts). */
+export interface ToolArtView {
+  img: string;
+  box: readonly [number, number, number, number];
+  w: number;
+  h: number;
+  /** "Potion (Scarlet & Violet), illustrated by Studio Bora Inc." */
+  credit: string;
+}
+
+/** A tool as the bag and the Mart show it: its card picture, what it does, how many you hold. */
+export interface ToolItemView {
+  id: ToolId;
+  name: string;
+  /** What it does. */
+  line: string;
+  /** In the bag (0 to the bag's limit). */
+  count: number;
+  /** Kept for good in a cleared region: ready once a day (`keptReady` false once used today). */
+  kept: boolean;
+  keptReady: boolean;
+  price: number;
+  art: ToolArtView | null;
+}
+
+/** Your tools: every tool with how many you hold (accounts only; null for guests and before the tables exist). */
+export interface ToolBagView {
+  items: ToolItemView[];
+  max: number;
+  /** How many a duel allows. */
+  duel: number;
+}
+
 export interface DuelRunView {
   id: string;
   day: string;
@@ -251,6 +301,10 @@ export interface DuelRunView {
   level: DuelLevel;
   /** The share text once over (squares, never a card's name). */
   share: string | null;
+  /** Your tools (accounts, where the duel allows them; tools.ts). Null for guests, Hard, or before the tables exist. */
+  bag?: ToolBagView | null;
+  /** How many tools this run used (a mark beside it on the boards). */
+  tools?: number;
 }
 
 export interface DuelHistory {

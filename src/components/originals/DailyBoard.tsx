@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Avatar, Button, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs } from "@empac/cascadeds";
-import { IconBrandDiscordFilled, IconHeartFilled } from "@tabler/icons-react";
+import { IconBackpack, IconBrandDiscordFilled, IconHeartFilled } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { OriginalsLink, useOriginalsHost } from "@/components/originals/OriginalsHost";
@@ -231,7 +231,8 @@ function BoardTable({ view, main, pictures, scored = false }: { view: BoardView;
           {r.shared && !r.you && <span className="daily-board__shared">Shared this</span>}
           {r.hard && <span className="daily-board__hard">Hard</span>}
           {r.easy && <span className="daily-board__hard daily-board__easy">Easy</span>}
-          <span className="sr-only"> ({PLACES[placeOf(r)].said}{r.supporter ? ", supports GameShuffle" : ""})</span>
+          {r.tools && <span className="daily-board__tool" title="Used a tool"><IconBackpack size={14} stroke={2} aria-hidden="true" /></span>}
+          <span className="sr-only"> ({PLACES[placeOf(r)].said}{r.supporter ? ", supports GameShuffle" : ""}{r.tools ? ", used a tool" : ""})</span>
         </span>
       </TableCell>
       <TableCell>{fire && day ? r.guesses : duel ? (r.points > 0 ? r.guesses : "Lost") : day ? <ResultDots guesses={r.guesses} points={r.points} main={main} /> : `${r.days} ${r.days === 1 ? "day" : "days"}`}</TableCell>

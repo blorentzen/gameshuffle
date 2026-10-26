@@ -10,7 +10,8 @@
  * loss sends you back to its first challenge (badges stay).
  */
 
-import type { DuelTier } from "./types";
+import { BAG_MAX, PRIZE_BY_TIER, TOOLS, TOOL_CAP, TOOL_IDS } from "./tools";
+import type { DuelTier, ToolId } from "./types";
 
 export interface RegionPath {
   region: string;
@@ -97,8 +98,8 @@ export function pathSpot(teamId: string): { region: string; kind: PathKind; inde
 /** One thing a player earned on the road (road_ledger): each key is earned once. */
 export interface LedgerRow {
   key: string;
-  /** "encounter": a villain team beaten on the road (encounter:<id>); "mark": a region's story battle won (mark:<region>, the trainer card's villain-team marks). */
-  kind: "win" | "badge" | "league" | "region" | "endgame_hard" | "champion" | "encounter" | "mark";
+  /** "encounter": a villain team beaten on the road (encounter:<id>); "mark": a region's story battle won (mark:<region>, the trainer card's villain-team marks); "tool": a tool reward's own claim (three-stars:<team>, the Mart's first-look gift) or a tool past the bag's limit paid as tokens (tool:<reward>:<n>). */
+  kind: "win" | "badge" | "league" | "region" | "endgame_hard" | "champion" | "encounter" | "mark" | "tool";
   region: string | null;
   team_id: string | null;
   xp: number;
@@ -293,6 +294,11 @@ export interface RoadLevers {
   encounterTokens: number;
   xpEncounter: number;
   encounterChance: number;
+  /** Tools (picks 2026-10-25, tools.ts): prize money for a first win each month by kind, Mart prices, the bag's limit, and how many a duel allows. */
+  prize: Record<DuelTier, number>;
+  toolPrice: Record<ToolId, number>;
+  bagMax: number;
+  toolsDuel: number;
 }
 
 export const ROAD_LEVER_DEFAULTS: RoadLevers = {
@@ -311,6 +317,10 @@ export const ROAD_LEVER_DEFAULTS: RoadLevers = {
   encounterTokens: 25,
   xpEncounter: 100,
   encounterChance: 25,
+  prize: { grunt: PRIZE_BY_TIER.grunt, gym: PRIZE_BY_TIER.gym, rival: PRIZE_BY_TIER.rival, admin: PRIZE_BY_TIER.admin, elite: PRIZE_BY_TIER.elite, boss: PRIZE_BY_TIER.boss, champion: PRIZE_BY_TIER.champion },
+  toolPrice: Object.fromEntries(TOOL_IDS.map((t) => [t, TOOLS[t].price])) as Record<ToolId, number>,
+  bagMax: BAG_MAX,
+  toolsDuel: TOOL_CAP.duel,
 };
 
 /** XP for a win (the first win against each team each month): by role, plus each star, Hard half again. */

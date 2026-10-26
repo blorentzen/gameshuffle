@@ -163,3 +163,35 @@
 .road-gains__xp { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: var(--font-size-16); font-variant-numeric: tabular-nums; }
 .road-gains__tokens { color: #9ef0c4; font-weight: 700; }
 .road-gains__small { margin: 0; font-size: var(--font-size-14); color: #c3c9e6; }
+
+/* ── Tools (picks 2026-10-25): the bag line, the Mart window, what a duel gave ───────────── */
+.road-bag { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.road-bag__line { margin: 0; display: flex; gap: 8px; align-items: flex-start; flex: 1 1 24rem; min-width: 0; font-size: var(--font-size-14); line-height: 1.5; }
+.road-bag__line svg { flex: none; margin-top: 2px; color: var(--brand-ink, #4338ca); }
+.road-start .road-bag__line { color: #eef0ff; font-weight: 600; }
+.road-start .road-bag__line svg { color: #f5c84c; }
+.road-start .road-bag .road-bag__mart.empac-button--ghost { color: #ffe08a; text-decoration: underline; text-underline-offset: 3px; }
+.road-start .road-bag .road-bag__mart.empac-button--ghost:hover:not(:disabled) { background: rgba(245, 200, 76, 0.16); color: #fff; }
+.road-mart__balance { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: var(--font-size-16); }
+.road-mart__balance svg { color: #b7791f; }
+.road-mart__rule { margin: 0 0 12px; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.5; }
+.road-mart__shelf { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.road-mart__item { display: grid; grid-template-columns: 9.6rem minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--border-default, rgba(0, 0, 0, 0.12)); }
+.road-mart__item:first-child { border-top: 0; }
+.road-mart__item--locked .road-mart__art { filter: grayscale(0.8) brightness(0.8); }
+.road-mart__art { border-radius: 8px; }
+.road-mart__words { display: grid; gap: 2px; min-width: 0; }
+.road-mart__name { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: var(--font-size-16); }
+.road-mart__name span { color: var(--text-secondary); font-size: var(--font-size-14); }
+.road-mart__line { margin: 0; font-size: var(--font-size-14); line-height: 1.45; }
+.road-mart__opens { display: inline-flex; align-items: center; gap: 4px; color: var(--text-secondary); font-size: var(--font-size-14); max-width: 14rem; text-align: end; }
+.road-mart__credits { margin: 12px 0 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.5; }
+.road-mart__keep { display: grid; gap: 8px; margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--border-default, rgba(0, 0, 0, 0.12)); }
+.road-mart__keep-title { margin: 0; font-size: var(--font-size-18); }
+.road-mart__keeps { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 40rem) {
+  .road-mart__item { grid-template-columns: 7.2rem minmax(0, 1fr); }
+  .road-mart__buy { grid-column: 2; }
+  .road-mart__opens { max-width: none; text-align: start; }
+}
+.road-gains__tools { margin: 0; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: var(--font-size-16); font-weight: 600; color: #ffe08a; }

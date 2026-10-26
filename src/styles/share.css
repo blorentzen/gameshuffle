@@ -83,6 +83,8 @@ a.share-friend__name:hover { text-decoration: underline; }
 .daily-board__shared { flex: none; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--brand-ink, var(--primary-700)); }
 /* The Daily Duel's day board: a run played in Hard. */
 .daily-board__hard.daily-board__easy { background: #a8dcff; color: #06263d; }
+/* The road's tools (picks 2026-10-25): a bag beside a player who used one. */
+.daily-board__tool { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: rgba(245, 200, 76, 0.18); color: #8a5a00; }
 .daily-board__hard { flex: none; padding: 1px 8px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); letter-spacing: 0.04em; line-height: 1.5; text-transform: uppercase; }
 
 /* The Share window on an end screen once two or more dailies are played (DailiesShare): a row per

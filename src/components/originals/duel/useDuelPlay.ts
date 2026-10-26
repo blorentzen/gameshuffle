@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
-import type { DuelAct, DuelStep } from "@/lib/originals/duel/types";
+import type { DuelAct, DuelStep, DuelToolStep } from "@/lib/originals/duel/types";
 import type { DuelHintView, DuelRunView } from "@/lib/originals/duel/view";
 import { framesBetween, type Frame } from "./duelBeats";
 import { reducedMotion } from "./duelLook";
@@ -123,12 +123,14 @@ export function useDuelPlay<R extends DuelRunView>({ fetcher, runPath, onFinishe
     setBusy(false);
     if (fresh) take(fresh.run, { quiet: true });
     if (status === 422) toast.error("That isn't allowed right now.");
+    else if (status === 409 && "tool" in step) toast.error("That tool isn't in your bag any more.");
     else if (!fresh) toast.error("Couldn't send that. Check your connection.");
   }, [busy, fetcher, run, runPath, staging, take, toast]);
 
   const onTurn = useCallback((attach: number, act: DuelAct, use?: number) => void send(use != null ? { attach, act, use } : { attach, act }), [send]);
   const onNext = useCallback((card: number) => void send({ next: card }), [send]);
   const onBring = useCallback((cards: number[]) => void send({ bring: cards }), [send]);
+  const onTool = useCallback((st: DuelToolStep) => void send(st), [send]);
   const onTip = useCallback(async () => {
     if (!run) return null;
     const res = await fetcher(runPath(run.id), { method: "POST", body: JSON.stringify({ action: "tip" }) });
@@ -140,5 +142,5 @@ export function useDuelPlay<R extends DuelRunView>({ fetcher, runPath, onFinishe
 
   const clear = useCallback(() => { setRun(null); setFrame(null); setHolding(false); }, []);
 
-  return { run, frame, holding, busy, setBusy, staging, offset, take, resume, clear, endBeats, onTurn, onNext, onBring, onTip };
+  return { run, frame, holding, busy, setBusy, staging, offset, take, resume, clear, endBeats, onTurn, onNext, onBring, onTip, onTool };
 }

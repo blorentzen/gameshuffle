@@ -72,7 +72,7 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, hard
         {run.trainer.picture && <TrainerArt picture={run.trainer.picture} shape="round" className="duel-result__face" />}
         <p className="duel-result__kicker">{kicker}<LevelTag level={run.level} /></p>
         <h2 id="duel-result-title" className="duel-result__title">{won ? `You beat ${trainer} in ${turnsWord(run.turns)}` : `${trainer} wins this one`}</h2>
-        {official && run.score && <DuelScoreCard score={run.score} won={won} level={run.level} />}
+        {official && run.score && <DuelScoreCard score={run.score} won={won} level={run.level} {...((run.tools ?? 0) > 0 ? { askedNote: "You used a tool in today's duel, so there's no solo bonus." } : {})} />}
         <dl className="duel-result__stats">
           {won
             ? <div><dt>Turns</dt><dd>{run.turns}</dd></div>

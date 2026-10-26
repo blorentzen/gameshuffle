@@ -30,6 +30,8 @@ import { TIER_LABEL, duelNumber, duelPoints, duelScore, duelShareText, personKey
 import { regionOf, roadPath, roadRegion } from "./road";
 import { regionGymFaces, roadTotals } from "./roadPages";
 import { roadShown } from "@/lib/games-visibility";
+import { cachedLevers, roadLevers } from "./roadProgress";
+import { bagView, takeTool, toolsReady } from "./roadTools";
 import type { DuelData } from "./data";
 import type { DuelCard, DuelEventAt, DuelLevel, DuelRules, DuelStep, DuelTier, DuelTrainer, EnergyType } from "./types";
 import type { DuelChallengerView, DuelHintView, DuelHistory, DuelHome, DuelPicture, DuelPlanView, DuelRunView, DuelTrainerView } from "./view";
@@ -366,16 +368,27 @@ export interface RunRow {
   seconds: number | null; started_at: string; finished_at: string | null;
   /** Easy, Normal or Hard (absent before daily-duel-m5.sql: Normal). */
   level?: DuelLevel;
+  /** Tools used in this run (supabase/trainer-road-m6.sql). */
+  tools?: number;
 }
 export type { DuelLevel };
 const RUN_COLS_BASE = "id, player, user_id, day, official, state, steps, version, status, result, turns, cards_left, seconds, started_at, finished_at";
 /** The run columns this database has (`level` once daily-duel-m5.sql runs). */
-const runCols = async (): Promise<string> => ((await levelReady()) ? `${RUN_COLS_BASE}, level` : RUN_COLS_BASE);
+const runCols = async (): Promise<string> => `${RUN_COLS_BASE}${(await levelReady()) ? ", level" : ""}${(await toolsReady()) ? ", tools" : ""}`;
 
 const isHard = (r: Pick<RunRow, "level">) => r.level === "hard";
 const levelOf = (r: Pick<RunRow, "level">): DuelLevel => r.level ?? "normal";
-/** The duel a run plays: Hard takes away your comeback Energy, Easy brings one for each card you've lost. */
-const setupOf = (r: Pick<RunRow, "level">, d: DuelDay): DuelSetup => levelSetup(d.setup, r.level);
+/**
+ * The duel a run plays: Hard takes away your comeback Energy, Easy brings one for each card you've lost.
+ * A rules 6 day allows Trainer Road's tools in Easy and Normal (one, the `road_tools_duel` lever; picks
+ * 2026-10-25), never in Hard; a run that used more than the lever allows now keeps what it used.
+ */
+function setupOf(r: Pick<RunRow, "level" | "state">, d: DuelDay): DuelSetup {
+  const setup = levelSetup(d.setup, r.level);
+  const cap = d.rules >= 6 && !isHard(r) ? cachedLevers().toolsDuel : 0;
+  const tools = Math.max(cap, r.state?.used?.length ?? 0);
+  return tools ? { ...setup, tools } : setup;
+}
 /** The par a run is measured against: Hard has its own; Easy plays against Normal's. */
 const parOf = (r: Pick<RunRow, "level">, d: DuelDay): number => (isHard(r) && d.hardPar ? d.hardPar : d.par);
 /** Hard can be played on this day: a rules 6 day whose Hard par is worked out and has a winning line. */
@@ -513,7 +526,14 @@ function runView(r: RunRow, d: DuelDay, board: { points: number; tokens: number 
     serverNow: new Date().toISOString(),
     board,
     share: done && r.result ? duelShareText({ ...shareFactsOf(r, d), score: parts?.score ?? null }) : null,
+    tools: r.tools ?? r.state.used?.length ?? 0,
   };
+}
+
+/** Adds an account's tools to a duel in play that allows them (the route's answer; guests and Hard get none). */
+export async function withDuelBag(run: DuelRunView, player: DuelPlayer | null): Promise<DuelRunView> {
+  if (player?.kind !== "u" || run.status === "done" || !run.play.tools) return run;
+  return { ...run, bag: await bagView(player.id, await roadLevers()) };
 }
 
 export type StartResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_ready" | "official_first" | "failed" | "hard_off" | "easy_off" };
@@ -552,7 +572,7 @@ export async function startRun(player: DuelPlayer, mode: "official" | "practice"
   return { ok: true, run: runView(made, d, null, await askedFor(made, d)) };
 }
 
-export type ActResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_found" | "not_ready" | "bad_request" | "illegal" | "over" | "busy" };
+export type ActResult = { ok: true; run: DuelRunView } | { ok: false; error: "not_found" | "not_ready" | "bad_request" | "illegal" | "over" | "busy" | "no_tool" };
 
 /** One step in a duel: send out a card ({ next }), or a turn ({ attach, act }). */
 export async function act(runId: string, player: DuelPlayer, st: DuelStep, attempt = 0): Promise<ActResult> {
@@ -561,9 +581,17 @@ export async function act(runId: string, player: DuelPlayer, st: DuelStep, attem
   const d = await getDay(r.day, { build: false });
   if (!d) return { ok: false, error: "not_ready" };
   if (r.status === "done") return { ok: false, error: "over" };
+  await roadLevers();
   const next = applyStep(setupOf(r, d), r.state, st);
   if (!next) return { ok: false, error: "illegal" };
   const patch: Partial<RunRow> = { state: next, steps: [...(r.steps ?? []), st], turns: next.turn };
+  if ("tool" in st) {
+    // A tool from the account's bag: on the official duel it ends the solo bonus (like asking the professor) and marks the board.
+    const n = next.used?.length ?? 1;
+    if (player.kind !== "u" || !(await takeTool(player.id, st.tool, r.id, "duel", n))) return { ok: false, error: "no_tool" };
+    if (r.official) await markAsked(r.player, r.day);
+    if (await toolsReady()) patch.tools = n;
+  }
   if (next.over) {
     const now = new Date();
     patch.status = "done";

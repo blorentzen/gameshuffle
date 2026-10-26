@@ -15,7 +15,7 @@ import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { DUEL_PUBLIC } from "@/lib/games-visibility";
 import { firePlayer as duelPlayer, ipOf } from "@/lib/fireRound/player";
-import { askProfessor, boardTodayFor, duelChallenger, duelHome, startRun } from "@/lib/originals/duel/store";
+import { askProfessor, boardTodayFor, duelChallenger, duelHome, startRun, withDuelBag } from "@/lib/originals/duel/store";
 import { gsDay } from "@/lib/time/gsClock";
 
 export const runtime = "nodejs";
@@ -37,7 +37,9 @@ export async function GET(req: Request) {
     return NextResponse.json(c ? { ready: true, ...c } : { ready: false }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } });
   }
   const player = await duelPlayer(req);
-  return NextResponse.json(await duelHome(player, devDay(req)), { headers: noStore });
+  const home = await duelHome(player, devDay(req));
+  if (home.current) home.current = await withDuelBag(home.current, player);
+  return NextResponse.json(home, { headers: noStore });
 }
 
 export async function POST(req: Request) {
@@ -55,5 +57,5 @@ export async function POST(req: Request) {
   if (body.action !== "start" || (body.mode !== "official" && body.mode !== "practice")) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const r = await startRun(player, body.mode, devDay(req), body.level === "hard" || body.level === "easy" ? body.level : "normal");
   if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.error === "not_ready" ? 503 : r.error === "official_first" || r.error === "hard_off" || r.error === "easy_off" ? 409 : 500 });
-  return NextResponse.json({ run: r.run }, { headers: noStore });
+  return NextResponse.json({ run: await withDuelBag(r.run, player) }, { headers: noStore });
 }

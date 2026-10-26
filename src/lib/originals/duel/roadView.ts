@@ -9,11 +9,15 @@
  *   POST /api/trainer-road/<run id> { action: "tip" } → { hint } (ends this run's solo bonus)
  *   GET  /api/trainer-road?path=<region>             → { progress: RoadProgressView | null, path: RoadPathView } (progress for accounts;
  *                                                      a region's story battle due on the account's path turns up here)
+ *   POST /api/trainer-road/<run id> { tool, card?, type? } → { run } (a tool from the bag during your turn; 409 no_tool)
+ *   GET  /api/trainer-road?mart=<region>             → MartView (accounts: the bag, the shelf, the balance)
+ *   POST /api/trainer-road { action: "buy", tool, region, nonce } → MartView (402 insufficient_balance, 409 full | shelf)
+ *   POST /api/trainer-road { action: "keep", region, tool } → MartView (the tool kept for good in a cleared region)
  * Guests send the dailies' guest id in `x-daily-guest`.
  */
 
-import type { DuelLevel, DuelRules, DuelTier } from "./types";
-import type { DuelCardView, DuelPicture, DuelRunView, DuelTrainerView } from "./view";
+import type { DuelLevel, DuelRules, DuelTier, ToolId } from "./types";
+import type { DuelCardView, DuelPicture, DuelRunView, DuelTrainerView, ToolBagView } from "./view";
 import type { CardColor, PathKind, PathOutcome, StepState } from "./roadPath";
 
 /** An account's best run on a duel this month. */
@@ -38,6 +42,8 @@ export interface RoadBoardRow {
   /** The best run was in Hard, or in Easy. */
   hard: boolean;
   easy?: boolean;
+  /** The best run used a tool (a bag mark beside it). */
+  tools?: boolean;
   won: boolean;
   you: boolean;
 }
@@ -211,4 +217,24 @@ export interface RoadPathResult {
   next: RoadNextView | null;
   /** A villain team blocking the road after this duel (it just turned up, or it's still there). */
   encounter: RoadEncounterView | null;
+  /** Prize money for the first win against this trainer this month (in `tokens` too). */
+  prize?: number;
+  /** Tools this duel gave (a badge, the League, a region, a first three-star win, a villain team beaten). */
+  tools?: { id: ToolId; name: string; count: number }[];
+}
+
+// ─── tools (picks 2026-10-25) ────────────────────────────────────────────────
+
+/** The Mart in a region: what's on its shelf, your bag and your balance, and the tool you can keep there. */
+export interface MartView {
+  region: string;
+  regionName: string;
+  /** What you can buy here now (Kanto's shelf opens with its badges). */
+  shelf: ToolId[];
+  /** The badge that opens each tool not on the shelf yet ("Brock's badge"). */
+  opens: Partial<Record<ToolId, string>>;
+  bag: ToolBagView;
+  balance: number;
+  /** A cleared region's kept tool: picked (`tool`) or still to pick (`tool` null). Null before the region is cleared. */
+  keep: { tool: ToolId | null } | null;
 }

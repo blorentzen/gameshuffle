@@ -29,7 +29,8 @@ import type { DuelData } from "./data";
 import type { DuelCard, DuelEventAt, DuelLevel, DuelRules, DuelStep, DuelTrainer, EnergyType } from "./types";
 import type { DuelHintView, DuelRunView } from "./view";
 import type { RoadBest, RoadBoardRow, RoadPathResult, RoadTeamHome } from "./roadView";
-import { applyRunToPath, encounterFor } from "./roadProgress";
+import { applyRunToPath, cachedLevers, encounterFor, roadLevers } from "./roadProgress";
+import { bagView, takeTool, toolsReady } from "./roadTools";
 
 type DbError = { code?: string; message?: string } | null;
 const missing = (e: DbError) => !!e && (["42P01", "PGRST205", "42703", "PGRST204"].includes(e.code ?? "") || /does not exist|schema cache/i.test(e.message ?? ""));
@@ -209,25 +210,38 @@ interface RunRow {
   id: string; player: string; user_id: string | null; trainer_id: string; month: string; level: DuelLevel; state: DuelState; steps: DuelStep[];
   version: number; status: "playing" | "done"; result: "won" | "lost" | null; turns: number; cards_left: number | null; seconds: number | null;
   score: number | null; stars: number | null; asked: boolean; started_at: string; finished_at: string | null;
+  /** Tools used in this run (supabase/trainer-road-m6.sql). */
+  tools?: number;
 }
-const RUN_COLS = "id, player, user_id, trainer_id, month, level, state, steps, version, status, result, turns, cards_left, seconds, score, stars, asked, started_at, finished_at";
+const RUN_COLS_BASE = "id, player, user_id, trainer_id, month, level, state, steps, version, status, result, turns, cards_left, seconds, score, stars, asked, started_at, finished_at";
+const runCols = async () => `${RUN_COLS_BASE}${(await toolsReady()) ? ", tools" : ""}`;
 
 const isHard = (r: Pick<RunRow, "level">) => r.level === "hard";
 const levelOf = (r: Pick<RunRow, "level">): DuelLevel => r.level ?? "normal";
 /** Hard takes away your comeback Energy, Easy brings one for each card you've lost; Easy plays against Normal's par. */
-const setupOf = (r: Pick<RunRow, "level">, d: RoadDuel): DuelSetup => levelSetup(d.setup, r.level);
+/**
+ * A run's setup: the duel at the run's level, with its tools (picks 2026-10-25): one a duel (the
+ * `road_tools_duel` lever), none in Hard. A run that already used more than the lever allows now keeps
+ * what it used, so it always replays.
+ */
+function setupOf(r: Pick<RunRow, "level" | "state">, d: RoadDuel): DuelSetup {
+  const setup = levelSetup(d.setup, r.level);
+  const cap = isHard(r) ? 0 : cachedLevers().toolsDuel;
+  const tools = Math.max(cap, r.state?.used?.length ?? 0);
+  return tools ? { ...setup, tools } : setup;
+}
 const parOf = (r: Pick<RunRow, "level">, d: RoadDuel): number => (isHard(r) && d.hardPar ? d.hardPar : d.par);
 /** Easy on a duel: rules 6 duels on, once the database takes Easy runs. */
 const easyOn = async (d: RoadDuel) => d.rules >= 6 && (await easyReady());
 
 async function getRun(id: string): Promise<RunRow | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const { data } = await createServiceClient().from("road_runs").select(RUN_COLS).eq("id", id).maybeSingle();
+  const { data } = await createServiceClient().from("road_runs").select(await runCols()).eq("id", id).maybeSingle();
   return (data as unknown as RunRow | null) ?? null;
 }
 
 async function save(r: RunRow, patch: Partial<RunRow>): Promise<RunRow | null> {
-  const { data, error } = await createServiceClient().from("road_runs").update({ ...patch, version: r.version + 1 }).eq("id", r.id).eq("version", r.version).select(RUN_COLS).maybeSingle();
+  const { data, error } = await createServiceClient().from("road_runs").update({ ...patch, version: r.version + 1 }).eq("id", r.id).eq("version", r.version).select(await runCols()).maybeSingle();
   if (error) { console.error("[road] save failed:", error); return null; }
   return (data as unknown as RunRow | null) ?? null;
 }
@@ -255,8 +269,14 @@ function runView(r: RunRow, d: RoadDuel): DuelRunView & { stars: number | null; 
     id: r.id, day: r.month, number: 0, official: true, status: r.status, trainer: duelTrainer(d), play: playView(r, d), result: r.result,
     turns: r.state.turn, cardsLeft: cardsLeft(r.state), par: done ? parOf(r, d) : null, points: null, score: parts, scoring: "score",
     asked: r.asked, level: levelOf(r), seconds: done ? r.seconds : null, startedAt: r.started_at, serverNow: new Date().toISOString(),
-    board: null, share: null, stars: done ? r.stars : null, best: false,
+    board: null, share: null, stars: done ? r.stars : null, best: false, tools: r.tools ?? r.state.used?.length ?? 0,
   };
+}
+
+/** Adds an account's tools to a run in play that allows them (the route's answer; guests and Hard get none). */
+export async function withBag<T extends DuelRunView>(run: T, player: DuelPlayer | null): Promise<T> {
+  if (player?.kind !== "u" || run.status === "done" || !run.play.tools) return run;
+  return { ...run, bag: await bagView(player.id, await roadLevers()) };
 }
 
 /** Keeps an account's best finished run per duel: higher score first, then the faster time. Returns whether this run is now the best. */
@@ -268,7 +288,7 @@ async function keepBest(r: RunRow): Promise<boolean> {
   if (prev && (prev.score > r.score || (prev.score === r.score && (prev.seconds ?? Infinity) <= (r.seconds ?? Infinity)))) return false;
   const { error } = await svc.from("road_best").upsert({
     player: r.player, trainer_id: r.trainer_id, month: r.month, run_id: r.id, level: r.level, won: r.result === "won", score: r.score, stars: r.stars ?? 0,
-    turns: r.turns, seconds: r.seconds, updated_at: new Date().toISOString(),
+    turns: r.turns, seconds: r.seconds, updated_at: new Date().toISOString(), ...((await toolsReady()) ? { tools: r.tools ?? 0 } : {}),
   }, { onConflict: "player,trainer_id,month" });
   if (error) { console.error("[road] best save failed:", error); return false; }
   return true;
@@ -287,12 +307,12 @@ export async function startRoadRun(player: DuelPlayer, trainerId: string, level:
   const svc = createServiceClient();
   await svc.from("road_runs").update({ status: "done" }).eq("player", key).eq("trainer_id", trainerId).eq("month", month).eq("status", "playing");
   const row = { player: key, user_id: player.kind === "u" ? player.id : null, trainer_id: trainerId, month, level, state: startState(levelSetup(d.setup, level)), steps: [] };
-  const { data, error } = await svc.from("road_runs").insert(row).select(RUN_COLS).single();
+  const { data, error } = await svc.from("road_runs").insert(row).select(await runCols()).single();
   if (error || !data) { if (!missing(error)) console.error("[road] start failed:", error); return { ok: false, error: missing(error) ? "not_ready" : "failed" }; }
   return { ok: true, run: runView(data as unknown as RunRow, d) };
 }
 
-export type RoadActResult = { ok: true; run: DuelRunView & { path?: RoadPathResult | null } } | { ok: false; error: "not_found" | "not_ready" | "illegal" | "over" | "busy" };
+export type RoadActResult = { ok: true; run: DuelRunView & { path?: RoadPathResult | null } } | { ok: false; error: "not_found" | "not_ready" | "illegal" | "over" | "busy" | "no_tool" };
 
 /** One step in a duel. A finished run is scored, gets its stars, and becomes the account's best when it beats it. */
 export async function roadAct(runId: string, player: DuelPlayer, st: DuelStep, attempt = 0): Promise<RoadActResult> {
@@ -301,9 +321,17 @@ export async function roadAct(runId: string, player: DuelPlayer, st: DuelStep, a
   const d = await getRoadDuel(r.trainer_id, r.month, { after: r.started_at });
   if (!d) return { ok: false, error: "not_ready" };
   if (r.status === "done") return { ok: false, error: "over" };
+  await roadLevers();
   const next = applyStep(setupOf(r, d), r.state, st);
   if (!next) return { ok: false, error: "illegal" };
   const patch: Partial<RunRow> = { state: next, steps: [...(r.steps ?? []), st], turns: next.turn };
+  if ("tool" in st) {
+    // A tool comes out of the account's bag (or a kept tool); it ends the solo bonus and marks the run.
+    const n = next.used?.length ?? 1;
+    if (player.kind !== "u" || !(await takeTool(player.id, st.tool, r.id, "road", n))) return { ok: false, error: "no_tool" };
+    patch.asked = true;
+    if (await toolsReady()) patch.tools = n;
+  }
   if (next.over) {
     const now = new Date();
     const seconds = Math.max(0, Math.round((now.getTime() - Date.parse(r.started_at)) / 1000));
@@ -350,16 +378,17 @@ const BOARD_SIZE = 10;
 /** A duel's board this month (accounts' best runs: score, then time), with the viewer's own row when they're further down. */
 async function boardFor(trainerId: string, month: string, viewer: string | null): Promise<{ rows: RoadBoardRow[]; you: RoadBoardRow | null; total: number }> {
   const svc = createServiceClient();
-  const { data, count, error } = await svc.from("road_best").select("player, score, stars, turns, seconds, level, won", { count: "exact" })
+  const cols = `player, score, stars, turns, seconds, level, won${(await toolsReady()) ? ", tools" : ""}`;
+  const { data, count, error } = await svc.from("road_best").select(cols, { count: "exact" })
     .eq("trainer_id", trainerId).eq("month", month).order("score", { ascending: false }).order("seconds", { ascending: true, nullsFirst: false }).limit(BOARD_SIZE);
   if (error) return { rows: [], you: null, total: 0 };
-  type Best = { player: string; score: number; stars: number; turns: number; seconds: number | null; level: DuelLevel; won: boolean };
-  const top = (data ?? []) as Best[];
+  type Best = { player: string; score: number; stars: number; turns: number; seconds: number | null; level: DuelLevel; won: boolean; tools?: number };
+  const top = (data ?? []) as unknown as Best[];
   let mine: (Best & { place: number }) | null = null;
   if (viewer?.startsWith("u:") && !top.some((b) => b.player === viewer)) {
-    const { data: me } = await svc.from("road_best").select("player, score, stars, turns, seconds, level, won").eq("player", viewer).eq("trainer_id", trainerId).eq("month", month).maybeSingle();
+    const { data: me } = await svc.from("road_best").select(cols).eq("player", viewer).eq("trainer_id", trainerId).eq("month", month).maybeSingle();
     if (me) {
-      const m = me as Best;
+      const m = me as unknown as Best;
       const { count: ahead } = await svc.from("road_best").select("player", { count: "exact", head: true }).eq("trainer_id", trainerId).eq("month", month).gt("score", m.score);
       mine = { ...m, place: (ahead ?? 0) + 1 };
     }
@@ -370,11 +399,11 @@ async function boardFor(trainerId: string, month: string, viewer: string | null)
   const rows = top.map((b, i): RoadBoardRow => {
     if (i === 0 || b.score !== top[i - 1].score || b.seconds !== top[i - 1].seconds) place = i + 1;
     const n = names.get(b.player);
-    return { place, name: n?.name ?? "A player", avatar: n?.avatar ?? null, profile: n?.profile ?? null, score: b.score, stars: b.stars, turns: b.turns, seconds: b.seconds, hard: b.level === "hard", easy: b.level === "easy", won: b.won, you: b.player === viewer };
+    return { place, name: n?.name ?? "A player", avatar: n?.avatar ?? null, profile: n?.profile ?? null, score: b.score, stars: b.stars, turns: b.turns, seconds: b.seconds, hard: b.level === "hard", easy: b.level === "easy", tools: (b.tools ?? 0) > 0, won: b.won, you: b.player === viewer };
   });
   const youRow = rows.find((r) => r.you) ?? (mine ? (() => {
     const n = names.get(mine.player);
-    return { place: mine.place, name: n?.name ?? "You", avatar: n?.avatar ?? null, profile: n?.profile ?? null, score: mine.score, stars: mine.stars, turns: mine.turns, seconds: mine.seconds, hard: mine.level === "hard", easy: mine.level === "easy", won: mine.won, you: true };
+    return { place: mine.place, name: n?.name ?? "You", avatar: n?.avatar ?? null, profile: n?.profile ?? null, score: mine.score, stars: mine.stars, turns: mine.turns, seconds: mine.seconds, hard: mine.level === "hard", easy: mine.level === "easy", tools: (mine.tools ?? 0) > 0, won: mine.won, you: true };
   })() : null);
   return { rows, you: youRow, total: count ?? rows.length };
 }
@@ -408,9 +437,10 @@ export async function roadTeamHome(player: DuelPlayer | null, trainerId: string)
   if (!d) return base;
   const start = viewOf(d.setup, startState(d.setup), d.trainer);
   const svc = createServiceClient();
+  const cols = await runCols();
   const [bestRow, openRow, finishedAny, board] = await Promise.all([
     key?.startsWith("u:") ? svc.from("road_best").select("score, stars, turns, seconds, level, won").eq("player", key).eq("trainer_id", trainerId).eq("month", month).maybeSingle() : Promise.resolve({ data: null }),
-    key ? svc.from("road_runs").select(RUN_COLS).eq("player", key).eq("trainer_id", trainerId).eq("month", month).eq("status", "playing").order("started_at", { ascending: false }).limit(1) : Promise.resolve({ data: [] }),
+    key ? svc.from("road_runs").select(cols).eq("player", key).eq("trainer_id", trainerId).eq("month", month).eq("status", "playing").order("started_at", { ascending: false }).limit(1) : Promise.resolve({ data: [] }),
     key ? svc.from("road_runs").select("id, level").eq("player", key).eq("trainer_id", trainerId).eq("month", month).not("result", "is", null).limit(20) : Promise.resolve({ data: [] }),
     boardFor(trainerId, month, key),
   ]);

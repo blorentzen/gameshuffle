@@ -1,0 +1,83 @@
+/*
+ * The moment before a battle (src/components/originals/duel/DuelVersus.tsx; battle intro picks
+ * 2026-10-25, version A). Nothing overlaps (Britton's note): the trainer's band is a grid, words in one
+ * column and the picture in the other (stacked on phones, picture first), VS has its own row, and your
+ * band sits under it. The bands are skewed and their contents skewed back, so the words stay level.
+ * Sizes in px and the type tokens (the root font-size is 10px).
+ */
+
+.duel-vs {
+  --tone: #f5c84c;
+  --tone-2: #2a3a9e;
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  overflow: hidden;
+  color: #fff;
+  cursor: pointer;
+  background: radial-gradient(70% 60% at 50% 45%, rgba(20, 26, 70, 0.94), rgba(5, 8, 25, 0.98));
+  animation: vs-fade 0.18s ease both;
+}
+.duel-vs--villain { --tone: #ff6b6b; --tone-2: #6b1220; }
+.duel-vs--elite { --tone: #c4b5fd; --tone-2: #3b1f6e; }
+.duel-vs--champion { --tone: #ffd866; --tone-2: #6b4c00; }
+.duel-vs.is-leaving { animation: vs-out 0.26s ease forwards; }
+.duel-vs__rays { position: absolute; inset: -30%; background: repeating-conic-gradient(from 0deg at 50% 45%, rgba(255, 216, 102, 0.12) 0 6deg, transparent 6deg 18deg); animation: vs-spin 16s linear infinite; pointer-events: none; }
+
+.duel-vs__stage { position: relative; width: min(100%, 960px); display: grid; gap: 16px; }
+
+/* The trainer's band: words left, picture right, never on top of each other. */
+.duel-vs__foe { transform: skewY(-5deg); overflow: hidden; background: linear-gradient(90deg, var(--tone-2), #0b0f2a 78%); border-top: 3px solid var(--tone); border-bottom: 3px solid var(--tone); animation: vs-in-right 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.05s both; }
+.duel-vs__foein { transform: skewY(5deg); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); min-height: clamp(220px, 40vh, 360px); }
+.duel-vs__words { align-self: center; display: grid; gap: 6px; min-width: 0; padding: 32px 20px 32px 28px; animation: vs-rise 0.32s ease 0.6s both; }
+.duel-vs__kicker { margin: 0; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--tone); }
+.duel-vs__name { margin: 0; font-family: var(--font-display, inherit); font-weight: 800; font-size: clamp(34px, 5.4vw, 56px); line-height: 1.02; overflow-wrap: anywhere; text-wrap: balance; }
+.duel-vs__title { margin: 0; font-size: var(--font-size-16); line-height: 1.35; color: #dfe3ff; }
+.duel-vs__cards { margin: 8px 0 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.duel-vs__cb { width: 22px; aspect-ratio: 63 / 88; border-radius: 3px; background: repeating-linear-gradient(45deg, #121a44 0 4px, #18225a 4px 8px); border: 2px solid var(--tone); animation: vs-pop 0.26s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+.duel-vs__count { margin-left: 6px; font-size: var(--font-size-14); font-weight: 600; color: #dfe3ff; }
+/* The picture fills its own column (a frame with a definite size, so the crop's container units work), fading in from its left edge only. */
+.duel-vs__pic { position: relative; min-width: 0; min-height: 100%; -webkit-mask: linear-gradient(90deg, transparent, #000 18%); mask: linear-gradient(90deg, transparent, #000 18%); animation: vs-fade 0.4s ease 0.25s both; }
+.duel-vs__art { position: absolute; inset: 0; }
+
+.duel-vs__vs { margin: 4px 0 14px; justify-self: center; font-family: var(--font-display, inherit); font-weight: 800; font-style: italic; font-size: clamp(44px, 7vw, 64px); line-height: 1; color: var(--tone); text-shadow: 0 6px 24px rgba(0, 0, 0, 0.7); animation: vs-stamp 0.3s cubic-bezier(0.3, 1.5, 0.5, 1) 0.5s both; }
+
+/* Your band, smaller, from the other side. */
+.duel-vs__you { justify-self: start; width: min(100%, 420px); transform: skewY(-5deg); background: linear-gradient(90deg, #0b0f2a, #1b2456); border-top: 2px solid rgba(255, 255, 255, 0.35); border-bottom: 2px solid rgba(255, 255, 255, 0.35); animation: vs-in-left 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s both; }
+.duel-vs__youin { transform: skewY(5deg); display: flex; align-items: center; gap: 12px; padding: 12px 18px; }
+.duel-vs__badge { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: #2a3a9e; border: 2px solid #fff; font-family: var(--font-display, inherit); font-weight: 800; font-size: var(--font-size-16); }
+.duel-vs__youwords { display: grid; gap: 1px; min-width: 0; }
+.duel-vs__youwords b { font-size: var(--font-size-16); }
+.duel-vs__youwords span { font-size: var(--font-size-14); color: #c3c8ee; }
+
+.duel-vs .duel-vs__skip { position: absolute; top: max(12px, env(safe-area-inset-top, 0px)); right: 12px; color: #dfe3ff; }
+.duel-vs .duel-vs__skip:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.duel-vs .duel-vs__skip:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+/* A replay: the same picture, quickly. */
+.duel-vs--short .duel-vs__foe, .duel-vs--short .duel-vs__pic, .duel-vs--short .duel-vs__words, .duel-vs--short .duel-vs__vs, .duel-vs--short .duel-vs__you, .duel-vs--short .duel-vs__cb { animation-duration: 0.16s; animation-delay: 0s !important; }
+
+/* Phones: the picture on top, the words under it in their own row. */
+@media (max-width: 640px) {
+  .duel-vs__foein { grid-template-columns: minmax(0, 1fr); grid-template-rows: clamp(150px, 28vh, 230px) auto; }
+  .duel-vs__pic { order: -1; -webkit-mask: linear-gradient(180deg, #000 72%, transparent); mask: linear-gradient(180deg, #000 72%, transparent); }
+  .duel-vs__words { padding: 4px 18px 26px; }
+  .duel-vs__you { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duel-vs, .duel-vs *, .duel-vs__rays { animation: none !important; }
+  .duel-vs.is-leaving { opacity: 0; transition: opacity 0.2s; }
+}
+
+@keyframes vs-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vs-out { to { opacity: 0; } }
+@keyframes vs-in-right { from { transform: skewY(-5deg) translateX(110%); } to { transform: skewY(-5deg) translateX(0); } }
+@keyframes vs-in-left { from { transform: skewY(-5deg) translateX(-120%); } to { transform: skewY(-5deg) translateX(0); } }
+@keyframes vs-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes vs-pop { from { transform: scale(0); } to { transform: none; } }
+@keyframes vs-stamp { from { opacity: 0; transform: scale(2.2); } to { opacity: 1; transform: none; } }
+@keyframes vs-spin { to { transform: rotate(1turn); } }
