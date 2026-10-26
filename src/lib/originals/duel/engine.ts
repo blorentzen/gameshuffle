@@ -27,11 +27,16 @@
  * out cures it, and so does a knockout. Every chance is rolled from the day, the turn and the move
  * (`roll`), so the same play gets the same luck for everyone; the solver plays with `luck: "miss"`
  * (your chances never land) so par never counts on luck.
+ *
+ * Tools (the road's, picks 2026-10-25, tools.ts): a `{ tool }` step during your turn, before your
+ * action. It changes the table straight away and the turn goes on; `setup.tools` caps them per duel
+ * (absent: none). The solver never uses them, so par never counts on a tool.
  */
 
 import { eventCopy, plusText } from "./copy";
-import type { DuelAction, DuelCard, DuelCondition, DuelEventAt, DuelEventKind, DuelMove, DuelMoveFx, DuelRules, DuelSignature, DuelStep, DuelTrainer, EnergyType } from "./types";
-import type { DuelCardView, DuelEventView, DuelPlayView } from "./view";
+import { LOOK_TURNS, TOOLS, patchAmount, powerAmount, spareTypes } from "./tools";
+import type { DuelAction, DuelCard, DuelCondition, DuelEventAt, DuelEventKind, DuelMove, DuelMoveFx, DuelRules, DuelSignature, DuelStep, DuelToolStep, DuelTrainer, EnergyType, ToolId } from "./types";
+import type { DuelCardView, DuelEventView, DuelPlayView, DuelToolsView } from "./view";
 
 /** Turn 40 ends a duel that isn't won: a loss. */
 export const TURN_CAP = 40;
@@ -107,6 +112,8 @@ export interface DuelSetup {
   foeHand?: number;
   foeRow?: EnergyType[];
   foeComeback?: number;
+  /** Tools you may use in this duel (tools.ts TOOL_CAP). Absent or 0: none. */
+  tools?: number;
 }
 
 /**
@@ -168,9 +175,13 @@ export interface DuelFx {
   fresh?: number;
   /** Rules 5: your card sent out at the start of this turn (the lead, or after a knockout), for "moved to the Active Spot this turn" attacks. */
   arrived?: number;
+  /** Power Up, this turn: your next move does this much more. */
+  power?: number;
+  /** Look Ahead: turns left (this one included) of seeing six Energy and two events ahead. */
+  look?: number;
 }
 
-export type DuelLogKind = "move" | "ko" | "out" | "swap" | "wait" | "event" | "skip" | "sand" | "heal" | "revive" | "energy" | "cond" | "tick" | "wake" | "self";
+export type DuelLogKind = "move" | "ko" | "out" | "swap" | "wait" | "event" | "skip" | "sand" | "heal" | "revive" | "energy" | "cond" | "tick" | "wake" | "self" | "tool";
 
 export interface DuelLogLine {
   kind: DuelLogKind;
@@ -193,6 +204,9 @@ export interface DuelLogLine {
   amount?: number;
   /** The turn's event this line came from (lines written when the event flipped). */
   ev?: DuelEventKind;
+  /** A tool line: which tool, and the turn it was used on (they stay at the top of that turn's log). */
+  tool?: ToolId;
+  turn?: number;
 }
 // The optional fields above were added after the first duels were stored: pages read old lines
 // without them (falling back to the text), and none of them change a result.
@@ -221,6 +235,8 @@ export interface DuelState {
   /** Rules 6: the trainer's hand and how many of its row it has drawn. */
   foeHand?: EnergyType[];
   foeDrawn?: number;
+  /** The tools used so far in this duel, in order. */
+  used?: ToolId[];
 }
 
 const r10 = (x: number) => Math.round(x / 10) * 10;
@@ -282,6 +298,7 @@ export function cloneState(s: DuelState): DuelState {
   if (s.brought) out.brought = s.brought.slice();
   if (s.hand) { out.hand = s.hand.slice(); out.drawn = s.drawn; }
   if (s.foeHand) { out.foeHand = s.foeHand.slice(); out.foeDrawn = s.foeDrawn; }
+  if (s.used) out.used = s.used.slice();
   return out;
 }
 
@@ -376,6 +393,7 @@ export function damageOf(s: DuelState, att: DuelCard, def: DuelCard, m: DuelMove
     else if (w === "sun") { if (att.t === "Fire") d += 30; else if (att.t === "Water") d -= 30; }
     if (!mine) d += s.fx.boost;
     d = Math.max(0, d);
+    if (mine && s.fx.power) d += s.fx.power;
     if (mine && s.fx.crit) d = r10(d * 1.5);
     if (mine && s.fx.confused) d = r10(d / 2);
   }
@@ -587,6 +605,8 @@ function beginTurn(setup: DuelSetup, s: DuelState, L: Log) {
   if (setup.hand) s.pending = s.hand?.[0] ?? null;
   if (s.fx.fresh) s.fx.fresh = 0;
   if (s.fx.arrived != null) delete s.fx.arrived;
+  if (s.fx.power) delete s.fx.power;
+  if (s.fx.look) { if (s.fx.look > 1) s.fx.look -= 1; else delete s.fx.look; }
   s.fx.aceYou = false;
   s.fx.advice = false;
   if (s.fx.rocketLeft > 0) {
@@ -644,7 +664,7 @@ function hit(setup: DuelSetup, s: DuelState, mine: boolean, mi: number, L: Log):
   const target = mine ? s.foe[s.fi] : s.you[s.yi];
   const m = att.moves[mi];
   const d = damageOf(s, att, def, m, mine);
-  if (mine) { s.fx.crit = false; s.fx.confused = false; } else s.fx.boost = 0;
+  if (mine) { s.fx.crit = false; s.fx.confused = false; delete s.fx.power; } else s.fx.boost = 0;
   target.cur = Math.max(0, target.cur - d);
   const weak = d > 0 && isWeak(att, def);
   note(L, { kind: "move", side: mine ? "you" : "foe", card: mine ? s.yi : s.fi, damage: d, weak, move: m.n, text: `${mine ? "Your" : `${setup.trainer}'s`} ${att.short} used ${m.n}: ${d}${weak ? ", super effective" : ""}.` });
@@ -890,6 +910,8 @@ export function actions(setup: DuelSetup, s: DuelState): DuelAction[] {
 export function step(setup: DuelSetup, s0: DuelState, a: DuelAction, quiet = false): DuelState {
   const s = cloneState(s0);
   const L: Log = quiet ? null : s.log;
+  // Tools used this turn stay at the top of the turn's log (the scoreline shows them with the turn).
+  if (L) for (const l of s0.log) if (l.kind === "tool" && l.turn === s0.turn) L.push({ ...l });
   if (setup.hand && s.hand) {
     const i = a.use ?? 0;
     s.pending = s.hand[i] ?? null;
@@ -969,6 +991,133 @@ export function begin(setup: DuelSetup, s0: DuelState, next: number | null, quie
   return s;
 }
 
+// ─── tools ───────────────────────────────────────────────────────────────────
+
+/** Tools still to use in this duel. */
+export const toolsLeft = (setup: DuelSetup, s: DuelState) => Math.max(0, (setup.tools ?? 0) - (s.used?.length ?? 0));
+
+/** The row's next Energy (Spare Energy's when there's no hand): the one after this turn's. */
+const rowNext = (setup: DuelSetup, s: DuelState): EnergyType | null => (setup.row.length ? setup.row[s.turn % setup.row.length] : null);
+
+/**
+ * Where a tool can go right now: the cards it can be used on (empty when it can't be used), and
+ * Spare Energy's types. A tool aimed at nothing (Look Ahead) lists your card on the field.
+ */
+export function toolTargets(setup: DuelSetup, s: DuelState, tool: ToolId): { cards: number[]; types?: EnergyType[] } {
+  const none = { cards: [] as number[] };
+  if (!atTurn(s) || needsBring(setup, s) || toolsLeft(setup, s) <= 0) return none;
+  const me = s.you[s.yi];
+  switch (tool) {
+    case "patch":
+      return { cards: attachTargets(s).filter((i) => s.you[i].cur < setup.you[i].hp) };
+    case "cure":
+      return me.cond || me.conf || s.fx.confused ? { cards: [s.yi] } : none;
+    case "switch":
+      return { cards: swapTargets(s) };
+    case "power":
+      return s.fx.power || !setup.you[s.yi].moves.length ? none : { cards: [s.yi] };
+    case "spare": {
+      const types = spareTypes(setup.hand ? s.hand : null, rowNext(setup, s));
+      return types.length ? { cards: attachTargets(s), types } : none;
+    }
+    case "look":
+      return s.fx.look ? none : { cards: [s.yi] };
+    case "wind": {
+      const out: number[] = [];
+      for (let i = 0; i < s.you.length; i++) if (s.you[i].out && inDuel(s, i)) out.push(i);
+      return { cards: out };
+    }
+  }
+}
+
+/**
+ * A tool used now (a `{ tool }` step): the table changes and the turn goes on, waiting on your action.
+ * Null when it can't be used (none left, nothing to use it on, the wrong card or type).
+ */
+export function applyTool(setup: DuelSetup, s0: DuelState, st: DuelToolStep): DuelState | null {
+  const def = TOOLS[st.tool];
+  if (!def) return null;
+  const at = toolTargets(setup, s0, st.tool);
+  if (!at.cards.length) return null;
+  const card = st.card ?? (at.cards.includes(s0.yi) ? s0.yi : at.cards[0]);
+  if (!at.cards.includes(card)) return null;
+  if (st.tool === "spare" && (!st.type || !at.types?.includes(st.type))) return null;
+  const s = cloneState(s0);
+  const name = (i: number) => setup.you[i].short;
+  let text = "";
+  switch (st.tool) {
+    case "patch": {
+      const n = heal(setup, s.you[card], setup.you[card], patchAmount());
+      text = `your ${name(card)} heals ${n}.`;
+      break;
+    }
+    case "cure":
+      cure(s.you[card]);
+      s.fx.confused = false;
+      text = `your ${name(card)} is cured.`;
+      break;
+    case "switch":
+      // Like a swap, the card that leaves is cured; the new one still gets this turn's move.
+      cure(s.you[s.yi]);
+      s.yi = card;
+      s.fx.aceYou = false;
+      if (setup.hand) s.fx.arrived = card;
+      text = `${name(card)} comes in.`;
+      break;
+    case "power":
+      s.fx.power = powerAmount();
+      text = `your ${name(card)}'s attack this turn does ${powerAmount()} more.`;
+      break;
+    case "spare": {
+      const t = st.type!;
+      if (setup.hand && s.hand) {
+        // From the hand, which then draws the row's next Energy; the turn's own Energy is still to pick.
+        s.hand.splice(s.hand.indexOf(t), 1);
+        if (setup.row.length) s.hand.push(setup.row[(s.drawn ?? 0) % setup.row.length]);
+        s.drawn = (s.drawn ?? 0) + 1;
+        s.pending = s.hand[0] ?? null;
+      }
+      s.you[card].energy.push(t);
+      text = `${t} Energy goes on your ${name(card)}.`;
+      break;
+    }
+    case "look":
+      s.fx.look = LOOK_TURNS;
+      text = "you can see further ahead for three turns.";
+      break;
+    case "wind": {
+      const c = s.you[card];
+      c.out = false;
+      c.energy = [];
+      c.cur = Math.max(10, Math.floor(setup.you[card].hp / 20) * 10);
+      text = `your ${name(card)} comes back with ${c.cur} HP.`;
+      break;
+    }
+  }
+  s.used = [...(s.used ?? []), st.tool];
+  // The log keeps this turn's earlier tools and adds this one (the last exchange is already on screen).
+  s.log = [...s0.log.filter((l) => l.kind === "tool" && l.turn === s0.turn).map((l) => ({ ...l })), { kind: "tool", side: "you", card, tool: st.tool, turn: s0.turn, type: st.tool === "spare" ? st.type : undefined, text: `You use ${def.name}: ${text}` }];
+  return s;
+}
+
+/** The tools part of the view (null when the duel allows none). */
+function toolsView(setup: DuelSetup, s: DuelState): DuelToolsView | null {
+  if (!setup.tools) return null;
+  const targets: DuelToolsView["targets"] = {};
+  for (const id of Object.keys(TOOLS) as ToolId[]) {
+    const t = toolTargets(setup, s, id);
+    if (t.cards.length) targets[id] = t;
+  }
+  return {
+    cap: setup.tools,
+    used: (s.used ?? []).slice(),
+    left: toolsLeft(setup, s),
+    targets,
+    power: s.fx.power ?? 0,
+    look: s.fx.look ?? 0,
+  };
+}
+
 /**
  * One step as the server takes it: a card to send out ({ next }) when one is needed, else a turn.
  * After a turn the next one begins straight away unless a card is needed or the duel is over, so a
@@ -985,6 +1134,7 @@ export function applyStep(setup: DuelSetup, s: DuelState, st: DuelStep): DuelSta
     return t;
   }
   if (needsBring(setup, s)) return null;
+  if ("tool" in st) return applyTool(setup, s, st);
   if ("next" in st) {
     if (!needsNext(s) || !nexts(s).includes(st.next)) return null;
     return begin(setup, s, st.next);
@@ -1051,9 +1201,11 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
   // row[N], so the same three show (nothing new comes into view until the turn begins). Rules 5: the
   // hand, then the next three it draws.
   const drawn = s.drawn ?? 0;
+  // Look Ahead: six instead of three.
+  const ahead = s.fx.look ? 6 : 3;
   const next = s.over ? [] : setup.hand
-    ? Array.from({ length: 3 }, (_, k) => setup.row[(drawn + k) % setup.row.length])
-    : setup.row.slice(s.turn, s.turn + 3);
+    ? Array.from({ length: ahead }, (_, k) => setup.row[(drawn + k) % setup.row.length])
+    : Array.from({ length: Math.min(ahead, Math.max(0, setup.row.length - s.turn)) }, (_, k) => setup.row[s.turn + k]);
   return {
     turn: s.turn,
     turnCap: TURN_CAP,
@@ -1072,6 +1224,8 @@ export function viewOf(setup: DuelSetup, s: DuelState, trainer: Pick<DuelTrainer
     rules: setup.rules ?? 1,
     event: turnNow ? ev(s.event, s.turn) : null,
     forecast: s.over ? null : ev(eventAt(setup, s.turn + 1), s.turn + 1),
+    later: s.over || !s.fx.look ? null : ev(eventAt(setup, s.turn + 2), s.turn + 2),
+    tools: toolsView(setup, s),
     inPlay: {
       weather: s.fx.weather ? { kind: s.fx.weather, turnsLeft: s.fx.weatherLeft } : null,
       crit: s.fx.crit,

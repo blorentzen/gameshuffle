@@ -163,5 +163,21 @@ export interface DuelAction {
   use?: number;
 }
 
-/** One step of a duel: the cards you bring (rules 4, first), a card to send out (the lead, or after a knockout), or a turn. */
-export type DuelStep = { bring: number[] } | { next: number } | DuelAction;
+/**
+ * The road's tools (picks 2026-10-25, https://claude.ai/artifact/2Jvhc2QgmCGMZSTcLMME1o): Patch Up,
+ * Cure All, Quick Switch, Power Up, Spare Energy, Look Ahead and Second Wind (tools.ts has their words).
+ */
+export type ToolId = "patch" | "cure" | "switch" | "power" | "spare" | "look" | "wind";
+
+/**
+ * A tool used during your turn, before your action (it doesn't end the turn): on card `card` (your
+ * card index; tools.ts says which tools take one), and Spare Energy's `type` from your hand.
+ */
+export interface DuelToolStep {
+  tool: ToolId;
+  card?: number;
+  type?: EnergyType;
+}
+
+/** One step of a duel: the cards you bring (rules 4, first), a card to send out (the lead, or after a knockout), a tool, or a turn. */
+export type DuelStep = { bring: number[] } | { next: number } | DuelToolStep | DuelAction;

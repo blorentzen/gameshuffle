@@ -33,6 +33,8 @@ export interface BoardRow {
   /** The Daily Duel's day board: today's official duel was played in Hard (picks 2026-10-23) or Easy (2026-10-24). */
   hard?: boolean;
   easy?: boolean;
+  /** The Daily Duel: used a tool in today's official duel (a bag mark). */
+  tools?: boolean;
 }
 
 export interface BoardView {

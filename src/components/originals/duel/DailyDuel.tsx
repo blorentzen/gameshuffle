@@ -23,7 +23,7 @@ import { DailyBoard, DailyBoardJoin, guestRequestId, storedGuestId, useDailyBoar
 import { EVENTS, track } from "@/lib/analytics/events";
 import type { BoardView } from "@/lib/daily/boardTypes";
 import { reportDaily, type DailiesEntry } from "@/lib/originals/dailies";
-import type { DuelAct, DuelStep } from "@/lib/originals/duel/types";
+import type { DuelAct, DuelStep, DuelToolStep } from "@/lib/originals/duel/types";
 import type { DuelCardView, DuelHintView, DuelHome, DuelRunView } from "@/lib/originals/duel/view";
 import { DuelArena } from "./DuelArena";
 import { framesBetween, type Frame } from "./duelBeats";
@@ -32,6 +32,7 @@ import { DuelStart, LEVEL_KEY, openLevel, readLevel, type DuelLevelPick } from "
 import { DuelZoom } from "./DuelZoom";
 import { setDuelCredit } from "./DuelPictureCredit";
 import { reducedMotion } from "./duelLook";
+import { DuelVersus, versusTone, type VersusInfo } from "./DuelVersus";
 
 /** Where this browser remembers Normal or Hard. */
 
@@ -187,12 +188,24 @@ export function DailyDuel() {
     if (top !== undefined) window.scrollTo({ top: Math.max(0, window.scrollY + top - 80), behavior: reducedMotion() ? "auto" : "smooth" });
   });
 
+  // The moment before the battle (battle intro picks 2026-10-25): it plays while the duel loads, short for practice.
+  const [intro, setIntro] = useState<{ info: VersusInfo; short: boolean } | null>(null);
   const start = useCallback(async (mode: "official" | "practice", want: DuelLevelPick = "normal") => {
     if (busy) return;
     setBusy(true);
+    const t = home?.trainer;
+    if (t && home) setIntro({
+      short: mode === "practice",
+      info: {
+        kicker: home.number >= 1 ? `Daily Duel #${home.number}` : "The warm-up duel",
+        name: t.name, title: t.title, cards: home.team.length, picture: t.picture, tone: versusTone(home.tier),
+        you: { name: "You", line: home.bring < home.pack.length ? `Bring ${home.bring} of your six` : "Your six" },
+      },
+    });
     const res = await duelFetch("/api/daily-duel", { method: "POST", makeGuest: true, body: JSON.stringify({ action: "start", mode, level: want }) }).catch(() => null);
     setBusy(false);
     if (!res?.ok) {
+      setIntro(null);
       const err = ((await res?.json().catch(() => ({}))) as { error?: string } | undefined)?.error;
       toast.error(err === "official_first" ? "Finish today's duel first: practice opens after it." : err === "hard_off" ? "Hard isn't open for this duel. Pick Normal to play." : err === "easy_off" ? "Easy isn't open for this duel. Pick Normal to play." : err === "not_ready" ? "Today's duel isn't ready yet. Try again in a moment." : err === "rate_limited" ? "Slow down a little, then try again." : "Couldn't start the duel. Try again in a moment.");
       return;
@@ -203,7 +216,7 @@ export function DailyDuel() {
     setHolding(false);
     take(body.run, { fresh: true });
     scrollToArena();
-  }, [busy, take, toast]);
+  }, [busy, home, take, toast]);
 
   const send = useCallback(async (step: DuelStep) => {
     if (!run || busy || staging) return;
@@ -221,6 +234,7 @@ export function DailyDuel() {
     setBusy(false);
     if (fresh) take(fresh.run, { quiet: true });
     if (status === 422) toast.error("That isn't allowed right now.");
+    else if (status === 409 && "tool" in step) toast.error("That tool isn't in your bag any more.");
     else if (!fresh) toast.error("Couldn't send that. Check your connection.");
   }, [busy, run, staging, take, toast]);
 
@@ -236,6 +250,11 @@ export function DailyDuel() {
     return hint;
   }, [run]);
   const onBring = useCallback((cards: number[]) => void send({ bring: cards }), [send]);
+  /** A Trainer Road tool from the bag (the turn goes on). On the official duel it ends the solo bonus, like the professor. */
+  const onTool = useCallback((st: DuelToolStep) => {
+    if (run?.official) setRun((r) => (r ? { ...r, asked: true } : r));
+    void send(st);
+  }, [run, send]);
   const onZoom = useCallback((card: DuelCardView, owner: string) => setZoom({ card, owner }), []);
   /** The professor's plans on the start card. On a scored day asking ends today's solo bonus. */
   const onAsk = useCallback(async () => {
@@ -262,7 +281,12 @@ export function DailyDuel() {
   }, [boards]);
   const onViews = useCallback((day: BoardView | null) => setToday(day), []);
 
-  const zoomer = <DuelZoom card={zoom?.card ?? null} owner={zoom?.owner ?? ""} onClose={() => setZoom(null)} />;
+  const zoomer = (
+    <>
+      <DuelZoom card={zoom?.card ?? null} owner={zoom?.owner ?? ""} onClose={() => setZoom(null)} />
+      <DuelVersus info={intro?.info ?? null} short={intro?.short} onDone={() => setIntro(null)} />
+    </>
+  );
 
   if (failed) return <p className="duel-note">The Daily Duel couldn&apos;t load. Refresh the page to try again.</p>;
   if (!home) return <p className="duel-note" aria-live="polite">Loading today&apos;s duel…</p>;
@@ -287,7 +311,7 @@ export function DailyDuel() {
   if (run && frame && (run.status === "playing" || holding)) {
     return (
       <>
-        <DuelArena run={run} play={frame.play} motion={frame.motion} busy={busy || staging || run.status !== "playing"} staging={staging} offset={offset} onNext={onNext} onBring={onBring} onTurn={onTurn} onTip={onTip} onZoom={onZoom} onSkip={endBeats} />
+        <DuelArena run={run} play={frame.play} motion={frame.motion} busy={busy || staging || run.status !== "playing"} staging={staging} offset={offset} onNext={onNext} onBring={onBring} onTurn={onTurn} onTip={onTip} onTool={onTool} onZoom={onZoom} onSkip={endBeats} />
         {zoomer}
       </>
     );

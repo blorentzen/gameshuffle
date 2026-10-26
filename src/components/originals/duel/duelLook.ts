@@ -155,6 +155,8 @@ export type ScoreRow =
   /** Confused: the card hit itself. */
   | { key: string; at: number; kind: "self"; side: "you" | "foe"; card: string; damage: number; ko: boolean }
   | { key: string; at: number; kind: "wake"; side: "you" | "foe"; card: string }
+  /** A tool you used this turn (tools picks 2026-10-25): its name and the card it went on. */
+  | { key: string; at: number; kind: "tool"; side: "you"; tool: string; card: string }
   /** An Energy played (side = whose), or a card coming back in with Energy after a knockout (`back`). */
   | { key: string; at: number; kind: "energy"; side: "you" | "foe"; card: string; type: EnergyType | null; back: number };
 
@@ -193,6 +195,8 @@ export function scoreRows(log: readonly DuelLogLine[], you: readonly Named[], fo
       rows.push({ key: `t${i}`, at: i, kind: "tick", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card), cond: l.cond, damage: l.damage ?? 0, ko: false });
     } else if (l.kind === "self" && l.side) {
       rows.push({ key: `x${i}`, at: i, kind: "self", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card), damage: l.damage ?? 0, ko: false });
+    } else if (l.kind === "tool" && l.tool) {
+      rows.push({ key: `u${i}`, at: i, kind: "tool", side: "you", tool: l.text.match(/^You use (.+?):/)?.[1] ?? "", card: l.tool === "look" ? "" : nameOf(you, l.card) });
     } else if (l.kind === "wake" && l.side) {
       rows.push({ key: `k${i}`, at: i, kind: "wake", side: l.side, card: nameOf(l.side === "you" ? you : foe, l.card) });
     } else if (l.kind === "energy" && l.side) {

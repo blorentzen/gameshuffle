@@ -45,6 +45,7 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/daily-dex",
   "/daily-trivia",
   "/daily-duel",
+  "/pokemon-trainers",
   "/mmr-card",
   "/lounge",
   "/weekly",

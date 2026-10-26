@@ -18,6 +18,7 @@ import type { RoadPathView, RoadProgressView, RoadStepView } from "@/lib/origina
 import { TrainerArt } from "../TrainerArt";
 import { RoadTrainerCard } from "./RoadCard";
 import { RoadEncounterCard } from "./RoadEncounter";
+import { RoadBagLine } from "./RoadMart";
 
 export function useRoadPath(region: string | null, refresh = 0): { progress: RoadProgressView | null; path: RoadPathView | null; loaded: boolean } {
   const [state, setState] = useState<{ progress: RoadProgressView | null; path: RoadPathView | null; loaded: boolean }>({ progress: null, path: null, loaded: false });
@@ -65,6 +66,7 @@ export function RoadPathBox({ region, signUpHref }: { region: string; signUpHref
         <p className="road-path__sub">{path.game}: {path.gyms.length} {word}s in order, the {path.leagueLabel} back to back, then the end-game battle. Clearing it opens the next region.</p>
         {lead && <p className="road-path__lead">{lead}</p>}
         {!signedIn && <p className="road-path__lead"><Link href={signUpHref}>Make a free account</Link> to follow the path: your {word}s, the League and your trainer level stay with you.</p>}
+        {signedIn && <RoadBagLine region={region} signedIn />}
       </div>
 
       <div className="road-path__part">

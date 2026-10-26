@@ -15,23 +15,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
-import { IconArrowRight, IconRoute, IconSkull, IconStar, IconStarFilled, IconSwords } from "@tabler/icons-react";
+import { IconArrowRight, IconBackpack, IconRoute, IconSkull, IconStar, IconStarFilled, IconSwords } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { guestRequestId, storedGuestId } from "@/components/originals/DailyBoard";
 import { formatTime } from "@/lib/originals/dailies";
 import type { DuelCardView } from "@/lib/originals/duel/view";
 import type { RoadBoardRow, RoadPathResult, RoadPathView, RoadProgressView, RoadRunView, RoadTeamHome } from "@/lib/originals/duel/roadView";
-import { pathSpot } from "@/lib/originals/duel/roadPath";
+import { pathSpot, regionPath } from "@/lib/originals/duel/roadPath";
 import { useRoadPath } from "./RoadPath";
 import { battleLabel, encounterLine } from "./RoadEncounter";
 import { DuelArena } from "../DuelArena";
 import { DuelScoreCard, LevelTag, PracticeButton } from "../DuelEnd";
 import { DuelModePick, DuelTeamCards, LEVEL_KEY, openLevel, readLevel, type DuelLevelPick } from "../DuelStart";
 import { DuelZoom } from "../DuelZoom";
+import { RoadBagLine } from "./RoadMart";
 import { CardThumb } from "../DuelBits";
 import { TrainerArt } from "../TrainerArt";
 import { reducedMotion } from "../duelLook";
 import { useDuelPlay } from "../useDuelPlay";
+import { DuelVersus, versusKicker, versusTone, type VersusInfo } from "../DuelVersus";
 import { EVENTS, track } from "@/lib/analytics/events";
 
 export interface RoadTeamOption {
@@ -150,12 +152,32 @@ export function RoadDuel({ region, person, teams, next }: {
     if (top !== undefined) window.scrollTo({ top: Math.max(0, window.scrollY + top - 80), behavior: reducedMotion() ? "auto" : "smooth" });
   });
 
-  const start = async (want: DuelLevelPick) => {
+  // The moment before the battle (battle intro picks 2026-10-25): it plays while the duel loads, short on a replay.
+  const [intro, setIntro] = useState<{ info: VersusInfo; short: boolean } | null>(null);
+  const versusInfo = (): VersusInfo | null => {
+    const t = home?.trainer;
+    if (!t || !home) return null;
+    const p = spot ? regionPath(spot.region) : null;
+    const kicker = home.encounter?.role === "villain" ? versusKicker(home.tier, true)
+      : spot?.kind === "gym" && p ? `${spot.region === "alola" ? "Grand trial" : "Badge"} ${spot.index + 1} of ${p.gyms.length}`
+      : spot?.kind === "league" && p ? (home.tier === "champion" ? "Champion battle" : `${p.leagueLabel}, challenge ${spot.index + 1} of ${p.league.length}`)
+      : spot?.kind === "endgame" ? "End-game battle"
+      : versusKicker(home.tier);
+    return {
+      kicker, name: t.name, title: t.title, cards: home.team.length, picture: t.picture, tone: versusTone(home.tier),
+      you: { name: progress?.name || "You", line: progress ? `Level ${progress.level}` : "Trainer" },
+    };
+  };
+
+  const start = async (want: DuelLevelPick, replay = false) => {
     if (starting) return;
     setStarting(true);
+    const info = versusInfo();
+    if (info) setIntro({ info, short: replay });
     const res = await roadFetch("/api/trainer-road", { method: "POST", makeGuest: true, body: JSON.stringify({ action: "start", team: selected, level: want }) }).catch(() => null);
     setStarting(false);
     if (!res?.ok) {
+      setIntro(null);
       const err = ((await res?.json().catch(() => ({}))) as { error?: string } | undefined)?.error;
       toast.error(err === "hard_off" ? "Hard isn't open for this duel. Pick Normal to play." : err === "easy_off" ? "Easy isn't open for this duel. Pick Normal to play." : err === "not_ready" ? "This duel isn't ready yet. Try again in a moment." : err === "rate_limited" ? "Slow down a little, then try again." : "Couldn't start the duel. Try again in a moment.");
       return;
@@ -166,7 +188,12 @@ export function RoadDuel({ region, person, teams, next }: {
     scrollToArena();
   };
 
-  const zoomer = <DuelZoom card={zoom?.card ?? null} owner={zoom?.owner ?? ""} onClose={() => setZoom(null)} />;
+  const zoomer = (
+    <>
+      <DuelZoom card={zoom?.card ?? null} owner={zoom?.owner ?? ""} onClose={() => setZoom(null)} />
+      <DuelVersus info={intro?.info ?? null} short={intro?.short} onDone={() => setIntro(null)} />
+    </>
+  );
   const onZoom = (card: DuelCardView, owner: string) => setZoom({ card, owner });
   const their = `${person.name}'s`;
   const run = play.run;
@@ -176,7 +203,7 @@ export function RoadDuel({ region, person, teams, next }: {
     return (
       <>
         <DuelArena run={run} play={play.frame.play} motion={play.frame.motion} busy={play.busy || play.staging || run.status !== "playing"} staging={play.staging} offset={play.offset}
-          onNext={play.onNext} onBring={play.onBring} onTurn={play.onTurn} onTip={play.onTip} onZoom={onZoom} onSkip={play.endBeats}
+          onNext={play.onNext} onBring={play.onBring} onTurn={play.onTurn} onTip={play.onTip} onTool={play.onTool} onZoom={onZoom} onSkip={play.endBeats}
           askBody="You'll lose this duel's solo bonus: 150 points off its score." />
         {zoomer}
       </>
@@ -189,7 +216,7 @@ export function RoadDuel({ region, person, teams, next }: {
     return (
       <>
         <RoadEnd run={run} home={home} team={team} next={next} region={region} person={person}
-          onAgain={(l) => void start(l)} onBack={() => play.clear()} onZoom={onZoom} />
+          onAgain={(l) => void start(l, true)} onBack={() => play.clear()} onZoom={onZoom} />
         {board}
         {zoomer}
       </>
@@ -247,6 +274,9 @@ export function RoadDuel({ region, person, teams, next }: {
               <RoadPathLine team={selected} path={spot ? path : null} progress={progress} signedIn={home.signedIn} />
             )}
             <DuelModePick easy={home.easy} hard={{ can: home.hard.can, why: home.hard.can ? "ok" : "off" }} comeback={home.comeback} level={openLevel(level, home)} onLevel={pickLevel} offText="Not open for this duel" stars />
+            {home.signedIn && (
+              <RoadBagLine region={region} signedIn rule={openLevel(level, home) === "hard" ? "No tools in Hard." : "Use one in this duel; it ends the solo bonus."} />
+            )}
             <RoadYours home={home} />
             {home.current && (
               <p className="road-start__resume">You have a duel in progress against this team. <Button variant="ghost" size="small" onClick={() => { play.resume(home.current as RoadRunView); scrollToArena(); }}>Pick it up</Button></p>
@@ -336,7 +366,7 @@ function RoadEnd({ run, home, team, next, region, person, onAgain, onBack, onZoo
         <p className="duel-result__kicker">{team.gameLabel} team<LevelTag level={run.level} /></p>
         <h2 id="duel-result-title" className="duel-result__title">{won ? `You beat ${name} in ${turnsWord(run.turns)}` : `${name} wins this one`}</h2>
         {won && <div className="road-end__stars"><RoadStars n={stars} size={34} />{run.best && home.signedIn && <span className="road-end__best">New best</span>}</div>}
-        {run.score && <DuelScoreCard score={run.score} won={won} level={run.level} askedNote="You asked the professor in this duel, so there's no solo bonus." />}
+        {run.score && <DuelScoreCard score={run.score} won={won} level={run.level} askedNote={(run.tools ?? 0) > 0 ? "You used a tool in this duel, so there's no solo bonus." : "You asked the professor in this duel, so there's no solo bonus."} />}
         <dl className="duel-result__stats">
           {won ? <div><dt>Turns</dt><dd>{run.turns}</dd></div> : <div><dt>Knocked out</dt><dd>{knocked} of {p.foe.length}</dd></div>}
           {run.par != null && <div><dt>Par</dt><dd>{run.par}</dd></div>}
@@ -370,11 +400,12 @@ function RoadEnd({ run, home, team, next, region, person, onAgain, onBack, onZoo
   );
 }
 
-/** What the duel did to your path: the milestones, XP (and a new level), tokens and a new card color. */
+/** What the duel did to your path: the milestones, XP (and a new level), prize money, tools, tokens and a new card color. */
 function RoadPathGains({ gains }: { gains: RoadPathResult }) {
   const levelUp = gains.level > gains.levelBefore;
   const newColor = gains.color !== gains.colorBefore;
-  if (!gains.outcomes.length && !gains.xp) return null;
+  const tools = gains.tools ?? [];
+  if (!gains.outcomes.length && !gains.xp && !gains.prize && !tools.length) return null;
   return (
     <div className="road-gains" role="status">
       {gains.outcomes.map((o, i) => (
@@ -386,8 +417,15 @@ function RoadPathGains({ gains }: { gains: RoadPathResult }) {
           </div>
         </div>
       ))}
+      {tools.length > 0 && (
+        <p className="road-gains__tools">
+          <IconBackpack size={16} stroke={2} aria-hidden="true" />
+          <span>For your bag: {tools.map((t) => (t.count > 1 ? `${t.name} ×${t.count}` : t.name)).join(", ")}</span>
+        </p>
+      )}
       <p className="road-gains__xp">
         {gains.xp > 0 && <span><b>+{gains.xp.toLocaleString("en-US")} XP</b>{levelUp ? `, up to level ${gains.level}` : ""}</span>}
+        {!!gains.prize && <span>Prize money: {gains.prize}</span>}
         {gains.tokens > 0 && <span className="road-gains__tokens">+{gains.tokens.toLocaleString("en-US")} tokens</span>}
         {newColor && <span>Your trainer card turned {gains.colorLabel.toLowerCase()}.</span>}
       </p>
@@ -424,6 +462,7 @@ function RoadBoard({ home, team }: { home: RoadTeamHome; team: RoadTeamOption })
                     <span className="daily-board__who">
                       {r.profile ? <Link href={r.profile}>{r.name}</Link> : <span>{r.name}</span>}
                       {r.hard && <span className="daily-board__hard">Hard</span>}{r.easy && <span className="daily-board__hard daily-board__easy">Easy</span>}
+                      {r.tools && <span className="daily-board__tool" title="Used a tool"><IconBackpack size={14} stroke={2} aria-hidden="true" /><span className="sr-only">Used a tool</span></span>}
                     </span>
                   </TableCell>
                   <TableCell>{r.won ? <RoadStars n={r.stars} size={14} /> : "Lost"}</TableCell>

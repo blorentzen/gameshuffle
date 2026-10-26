@@ -11,7 +11,8 @@
  *   2  Who fights this turn: keep your card on the field (back to the battle, where only attacks and
  *      End turn are left), or swap one in (that sends the turn: no attack). Skipped when nothing can
  *      come in.
- * Ask the professor sits at the bottom of both steps. On a scored day's official duel the first ask
+ * Tools (picks 2026-10-25) sit above the Energy in step 1, when the duel allows them and you have some
+ * (DuelTools). Ask the professor sits at the bottom of both steps. On a scored day's official duel the first ask
  * ends the solo bonus (the arena asks first). Closing the window keeps what's picked.
  *
  * The card rows are our own drawing (CascadeDS has no picture option list: on the CDS fix list);
@@ -102,7 +103,7 @@ function CardRow({ card, foe, add, picked, tip, field, onPick, onZoom, disabled 
   );
 }
 
-export function DuelTurn({ open, step, play, attach, use, now, hint, bar, event, busy, ask, onUse, onAttach, onNext, onKeep, onSwap, onStep, onClose, onZoom }: {
+export function DuelTurn({ open, step, play, attach, use, now, hint, bar, event, tools, busy, ask, onUse, onAttach, onNext, onKeep, onSwap, onStep, onClose, onZoom }: {
   open: boolean;
   step: TurnStep;
   play: DuelPlayView;
@@ -117,6 +118,8 @@ export function DuelTurn({ open, step, play, attach, use, now, hint, bar, event,
   bar: ReactNode;
   /** This turn's event, as a card at the top (it stays while the window is open). */
   event: ReactNode;
+  /** Your tools for this turn (DuelTools), when the duel allows them. */
+  tools?: ReactNode;
   busy: boolean;
   /** Ask the professor: shown when there's no tip yet; `costs` = it ends the solo bonus. */
   ask: { show: boolean; costs: boolean; busy: boolean; onAsk: () => void; escape: boolean };
@@ -190,6 +193,7 @@ export function DuelTurn({ open, step, play, attach, use, now, hint, bar, event,
 
       {step === 1 && (
         <>
+          {tools}
           <div className="duel-turnwin__hand">
             {hand ? (
               <span className="duel-hand" role="group" aria-label="Your Energy">

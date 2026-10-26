@@ -48,10 +48,12 @@ export function WeatherTile({ kind, size }: { kind: "rain" | "sun" | "sand"; siz
   return <span className={`duel-evtile duel-evtile--${size}`} style={{ background: EVENT_LOOK[kind].bg }} aria-hidden="true"><Glyph size={size === "lg" ? 30 : 15} stroke={2} /></span>;
 }
 
-export function DuelEventsBar({ turn, event, forecast, weather, outcome, hint, picture, staging = false, onShow, turnRef, inWindow = false }: {
+export function DuelEventsBar({ turn, event, forecast, later = null, weather, outcome, hint, picture, staging = false, onShow, turnRef, inWindow = false }: {
   turn: number;
   event: DuelEventView | null;
   forecast: DuelEventView | null;
+  /** Look Ahead (a tool): the event the turn after next. */
+  later?: DuelEventView | null;
   weather: DuelInPlay["weather"];
   outcome: string | null;
   hint: DuelHintView | null;
@@ -65,6 +67,7 @@ export function DuelEventsBar({ turn, event, forecast, weather, outcome, hint, p
   inWindow?: boolean;
 }) {
   const next = staging ? null : forecast;
+  const after = staging ? null : later;
   // The weather chip covers a weather event that started this turn (one chip, with its turns left).
   // In the turn window this turn's event has its own card above the chips, so it isn't repeated.
   const startedNow = !!event && isWeather(event.kind) && weather?.kind === event.kind;
@@ -77,7 +80,7 @@ export function DuelEventsBar({ turn, event, forecast, weather, outcome, hint, p
       <span className={`duel-ev ${className}`}><span aria-hidden="true" className="duel-ev__in">{children}</span><span className="sr-only">{label}</span></span>
     );
   const w = weather && showWeather ? WEATHER_CHIP[weather.kind] : null;
-  if (inWindow && !w && !eventChip && !next) return null;
+  if (inWindow && !w && !eventChip && !next && !after) return null;
   return (
     <div className={`duel-evbar${inWindow ? " duel-evbar--window" : ""}`} role="group" aria-label="Events">
       {!inWindow && <span className="duel-evbar__turn" ref={turnRef} tabIndex={-1}>{turn > 0 ? `Turn ${turn}` : "Today's six"}</span>}
@@ -105,6 +108,15 @@ export function DuelEventsBar({ turn, event, forecast, weather, outcome, hint, p
             <span><span className="duel-ev__k">Next</span> {next.title}</span>
           </>
         ))
+      )}
+      {after && (
+        <span className="duel-ev duel-ev--next duel-ev--later">
+          <span aria-hidden="true" className="duel-ev__in">
+            <EventTile event={after} picture={picture} size="sm" next />
+            <span><span className="duel-ev__k">In 2 turns</span> {after.title}</span>
+          </span>
+          <span className="sr-only">{`In two turns (Look Ahead): ${after.title}. ${after.short}`}</span>
+        </span>
       )}
     </div>
   );

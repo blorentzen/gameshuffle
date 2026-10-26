@@ -77,9 +77,11 @@ export function framesBetween(prev: DuelPlayView | null, next: DuelPlayView, non
   if (!prev) return [{ play: next, motion: { foe: "summon", you: next.yi >= 0 && !next.needsNext ? "summon" : null, nonce, beatKey }, ms: 0 }];
   const last = (from: DuelPlayView, n: number): Frame => ({ play: next, motion: { foe: motionFor(from, next, "foe"), you: motionFor(from, next, "you"), nonce: n, beatKey }, ms: 0 });
   const log = next.log;
-  // Only an exchange (your turn, then theirs) has beats; a card sent out, a quiet refresh or
+  // Tools used this turn sit at the top of its log; they already show on the board.
+  const first = Math.max(0, log.findIndex((l) => l.kind !== "tool"));
+  // Only an exchange (your turn, then theirs) has beats; a card sent out, a tool, a quiet refresh or
   // reduced motion goes straight to the end.
-  const exchange = log[0]?.kind === "energy" && log[0].side === "you";
+  const exchange = log[first]?.kind === "energy" && log[first].side === "you";
   if (opts.quiet) return [{ play: next, motion: { foe: null, you: null, nonce, beatKey }, ms: 0 }];
   if (!exchange || reducedMotion()) return [last(prev, nonce)];
 
@@ -105,7 +107,7 @@ export function framesBetween(prev: DuelPlayView | null, next: DuelPlayView, non
     if (side === "you") b.yi = i; else b.fi = i;
   };
 
-  let i = 0;
+  let i = first;
   // Your Energy goes on (it shows on the card already: no beat of its own).
   for (; log[i]?.kind === "energy" && log[i].side === "you"; i++) {
     const t = energyOf(log[i]);

@@ -7,7 +7,9 @@
  *                                            act = { move: i } | { swap: i } | { wait: true }
  *   POST { action: "tip" }                 → { hint }: the professor's play for this turn (null between turns;
  *                                            on a rules 6 day's official duel asking ends the solo bonus)
- * Errors: 404 not_found, 409 over / busy, 422 illegal (not allowed right now), 400 bad_request.
+ *   POST { tool, card?, type? }            → { run }: a Trainer Road tool from the account's bag (Easy and Normal;
+ *                                            on the official duel it ends the solo bonus too)
+ * Errors: 404 not_found, 409 over / busy / no_tool, 422 illegal (not allowed right now), 400 bad_request.
  * Hidden (404) in production until DUEL_PUBLIC.
  */
 
@@ -15,7 +17,7 @@ import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { DUEL_PUBLIC } from "@/lib/games-visibility";
 import { firePlayer as duelPlayer, ipOf } from "@/lib/fireRound/player";
-import { act, getRunView, tipFor } from "@/lib/originals/duel/store";
+import { act, getRunView, tipFor, withDuelBag } from "@/lib/originals/duel/store";
 import { stepOf } from "@/lib/originals/duel/steps";
 
 export const runtime = "nodejs";
@@ -27,7 +29,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const player = await duelPlayer(req);
   const run = player ? await getRunView(id, player) : null;
-  return run ? NextResponse.json({ run }, { headers: noStore }) : NextResponse.json({ error: "not_found" }, { status: 404 });
+  return run ? NextResponse.json({ run: await withDuelBag(run, player) }, { headers: noStore }) : NextResponse.json({ error: "not_found" }, { status: 404 });
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -47,8 +49,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!st) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const r = await act(id, player, st);
   if (!r.ok) {
-    const status = r.error === "not_found" ? 404 : r.error === "over" || r.error === "busy" ? 409 : r.error === "illegal" ? 422 : r.error === "not_ready" ? 503 : 400;
+    const status = r.error === "not_found" ? 404 : r.error === "over" || r.error === "busy" || r.error === "no_tool" ? 409 : r.error === "illegal" ? 422 : r.error === "not_ready" ? 503 : 400;
     return NextResponse.json({ error: r.error }, { status });
   }
-  return NextResponse.json({ run: r.run }, { headers: noStore });
+  return NextResponse.json({ run: await withDuelBag(r.run, player) }, { headers: noStore });
 }
