@@ -1,6 +1,6 @@
 /**
  * The signed-in player's MMR card.
- *   GET   → { card, pro }   (card is null until the first save)
+ *   GET   → { card, pro, looks }   (card is null until the first save; looks = GS Pro or Supporter looks)
  *   PATCH { loungeName?, looks?, activeLook?, followTwitch?, showOnProfile?, goal?, goalKeep?, weeklyReport? } → { card, freeSaved, lineRefused }
  *         lineRefused: a look's own line (GS Pro) had blocked words and was saved without it.
  *         goal: { mmr, game } sets tonight's goal (GS Pro, 403 pro_required otherwise), null clears it;
@@ -12,6 +12,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isProUser } from "@/lib/subscription-server";
+import { hasLooks } from "@/lib/support/looks";
 import { cardFor, cardView, resetToken, saveCard } from "@/lib/mmr/store";
 import { rateLimit } from "@/lib/ratelimit";
 
@@ -26,8 +27,8 @@ async function authUserId(): Promise<string | null> {
 export async function GET() {
   const userId = await authUserId();
   if (!userId) return NextResponse.json({ error: "signin" }, { status: 401 });
-  const [card, pro] = await Promise.all([cardFor(userId), isProUser(userId)]);
-  return NextResponse.json({ card: card ? cardView(card) : null, pro });
+  const [card, pro, looks] = await Promise.all([cardFor(userId), isProUser(userId), hasLooks(userId)]);
+  return NextResponse.json({ card: card ? cardView(card) : null, pro, looks });
 }
 
 export async function PATCH(req: NextRequest) {

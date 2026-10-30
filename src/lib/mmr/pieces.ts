@@ -40,8 +40,6 @@ export interface PieceDef {
   isNew?: boolean;
   /** GS Pro: tried in the preview, saved only with GS Pro. */
   pro?: boolean;
-  /** Only the Rolling layout reads this switch (the other layouts always show their big number). */
-  rollingOnly?: boolean;
 }
 
 /** Every piece, in list order (the order details fill a layout's slots unless GS Pro sets its own). */
@@ -51,7 +49,7 @@ export const PIECES: PieceDef[] = [
   { id: "game", group: "who", label: "Game" },
   { id: "division", group: "who", label: "Division name", note: "The emblem has its own setting." },
   { id: "line", group: "who", label: "A line of your own", note: "Up to 40 characters, like Road to Master.", pro: true },
-  { id: "mmr", group: "numbers", label: "MMR", note: "The MMR slide. A change still plays on its own slide when this is off.", rollingOnly: true },
+  { id: "mmr", group: "numbers", label: "MMR", note: "With world rank as the big number, turn this off to leave MMR off the card." },
   { id: "world", group: "numbers", label: "World rank" },
   { id: "country", group: "numbers", label: "Country rank", note: "Like #412 in the US.", isNew: true },
   { id: "top", group: "numbers", label: "Top %", note: "Your world rank against everyone who played this season, like Top 9%.", isNew: true },
@@ -107,6 +105,25 @@ export interface MmrInfo {
   /** GS Pro: a line of your own on the card. */
   line: string;
   moments: Record<MmrMoment, boolean>;
+  /** Strip, Sticker and Rolling's MMR slide: tonight's run and/or last 10 under the number instead of their usual spot. */
+  under: MmrUnder;
+  /** The Overlay panel's "Type !mmr in chat" line (only drawn while GameShuffle's bot is in the streamer's chat). */
+  chat: boolean;
+}
+
+export type MmrUnder = "none" | "tonight" | "last10" | "both";
+export const UNDER_CHOICES: { v: MmrUnder; label: string }[] = [
+  { v: "none", label: "Nothing" }, { v: "tonight", label: "Tonight's run" }, { v: "last10", label: "Last 10" }, { v: "both", label: "Both" },
+];
+/** The layouts with a line under the number. */
+export const UNDER_LAYOUTS: MmrLayout[] = ["strip", "sticker", "rolling"];
+const UNDER_PIECES: Record<MmrUnder, MmrPiece[]> = { none: [], tonight: ["tonight"], last10: ["last10"], both: ["tonight", "last10"] };
+
+/** The pieces under the number on this layout: picked, switched on, and (on Rolling) only while the MMR slide is on. */
+export function underPieces(info: Pick<MmrInfo, "under" | "on">, layout: MmrLayout): MmrPiece[] {
+  if (!UNDER_LAYOUTS.includes(layout)) return [];
+  if (layout === "rolling" && !info.on.mmr) return [];
+  return UNDER_PIECES[info.under].filter((p) => info.on[p]);
 }
 
 export const LINE_MAX = 40;
@@ -133,6 +150,8 @@ export const DEFAULT_INFO: MmrInfo = {
   order: null,
   line: "",
   moments: allMoments(),
+  under: "none",
+  chat: true,
 };
 
 /** The preset these switches match, or null for your own mix. */
@@ -190,7 +209,8 @@ export function cleanInfo(raw: unknown, legacyShow: unknown, layout: MmrLayout):
   let order: MmrPiece[] | null = Array.isArray(r.order) ? pieceOrder({ order: r.order.filter((v): v is MmrPiece => typeof v === "string" && (PIECE_IDS as string[]).includes(v)) }) : null;
   if (order && order.join() === PIECE_IDS.join()) order = null;
   const line = typeof r.line === "string" ? r.line.replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, LINE_MAX) : "";
-  return { on, big: r.big === "world" ? "world" : "mmr", recent: r.recent === 5 ? 5 : 3, order, line, moments };
+  const under: MmrUnder = r.under === "tonight" || r.under === "last10" || r.under === "both" ? r.under : "none";
+  return { on, big: r.big === "world" ? "world" : "mmr", recent: r.recent === 5 ? 5 : 3, order, line, moments, under, chat: r.chat !== false };
 }
 
 /** The GS Pro choices in these pieces, by label (tonight's goal is GS Pro through the goal itself). */
@@ -230,18 +250,20 @@ export const LAYOUT_SPOTS: Record<MmrLayout, { fixed: MmrPiece[]; slots: number;
 export const bigIsWorld = (info: MmrInfo, v: Pick<MmrView, "worldRank">) => info.big === "world" && v.worldRank != null;
 
 /** The details a layout shows, in order, leaving out pieces with nothing to show (`has`).
- *  When world rank is the big number, MMR takes world rank's place in the order, always on. */
+ *  When world rank is the big number, MMR takes world rank's place in the order while its switch is on. */
 export function detailsFor(layout: MmrLayout, info: MmrInfo, has: (p: Shown) => boolean, worldBig = false, loose: MmrPiece[] = []): Shown[] {
   // `loose`: pieces that lost their own spot this time (the strip's progress when it doesn't fit) and join the details.
   const fixed = LAYOUT_SPOTS[layout].fixed.filter((p) => !loose.includes(p));
+  // Pieces under the number have that spot instead.
+  const under = underPieces(info, layout);
   const out: Shown[] = [];
   for (const id of pieceOrder(info)) {
     if (id === "world" && worldBig) {
-      // Deck and panel give world rank a spot of their own, where MMR goes instead.
-      if (!fixed.includes("world") && has("mmr")) out.push("mmr");
+      // Deck and panel give world rank a spot of their own, where MMR goes instead (its switch can leave it off).
+      if (!fixed.includes("world") && info.on.mmr && has("mmr")) out.push("mmr");
       continue;
     }
-    if (fixed.includes(id) || !info.on[id] || !has(id)) continue;
+    if (fixed.includes(id) || under.includes(id) || !info.on[id] || !has(id)) continue;
     out.push(id);
   }
   return out;

@@ -19,6 +19,7 @@ import { DEFAULT_LOOKS, normalizeLook, type LookBrand, type LookFor, type ToolLo
 
 export interface LookContext {
   signedIn: boolean;
+  /** May use the paid looks: GS Pro, or Supporter looks (the server's `looks`). */
   pro: boolean;
   /** The account's brand colors (the site brand without GS Pro). */
   brand: LookBrand | null;
@@ -30,6 +31,8 @@ export interface LookContext {
 }
 
 interface Remote extends Omit<LookContext, "signedIn"> {
+  /** GS Pro or Supporter looks (older servers leave it out: `pro` stands in). */
+  looksOk?: boolean;
   looks: ToolLooks;
   saved: Record<ToolLookId, boolean>;
 }
@@ -108,7 +111,7 @@ const NO_CONTEXT: LookContext = { signedIn: false, pro: false, brand: null, avat
 
 function contextFrom(r: Remote | null, signedIn: boolean): LookContext {
   if (!r) return { ...NO_CONTEXT, signedIn };
-  return { signedIn, pro: r.pro, brand: r.brand, avatarUrl: r.avatarUrl, color: r.color ?? null, eightBall: r.eightBall };
+  return { signedIn, pro: r.looksOk ?? r.pro, brand: r.brand, avatarUrl: r.avatarUrl, color: r.color ?? null, eightBall: r.eightBall };
 }
 
 /** Who is looking (GS Pro, brand, picture, own 8-ball answers) without any one tool's look. */

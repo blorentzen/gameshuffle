@@ -196,6 +196,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       ] },
       { id: "platform-moderation", label: "People", iconName: "users", group: "Community", tabs: [
         { id: "platform-moderation", label: "Moderation" },
+        { id: "platform-time-trials", label: "Time trial reports" },
         { id: "platform-staff", label: "Staff & roles" },
       ] },
       { id: "platform-pricing", label: "Pricing", iconName: "credit-card", group: "Money" },

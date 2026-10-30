@@ -22,7 +22,7 @@ export const MK8DX_TRACKS: Track[] = [
   { id: "flower-shy-guy-falls", name: "Shy Guy Falls", cup: "Flower", image: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/flower/shy-guy-falls.webp", game: "mk8dx" },
   { id: "star-sunshine-airport", name: "Sunshine Airport", cup: "Star", image: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/star/sunshine-airport.webp", game: "mk8dx" },
   { id: "star-dolphin-shoals", name: "Dolphin Shoals", cup: "Star", image: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/star/dolphin-shoals.webp", game: "mk8dx" },
-  { id: "star-electrodome", name: "Electrodome", cup: "Star", image: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/star/electrodome.webp", game: "mk8dx" },
+  { id: "star-electrodome", name: "Electrodrome", cup: "Star", image: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/star/electrodome.webp", game: "mk8dx" },
   { id: "star-mount-wario", name: "Mount Wario", cup: "Star", image: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/star/mount-wario.webp", game: "mk8dx" },
   { id: "special-cloudtop-cruise", name: "Cloudtop Cruise", cup: "Special", image: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/special/cloudtop-cruise.webp", game: "mk8dx" },
   { id: "special-bone-dry-dunes", name: "Bone-Dry Dunes", cup: "Special", image: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/special/bone-dry-dunes.webp", game: "mk8dx" },

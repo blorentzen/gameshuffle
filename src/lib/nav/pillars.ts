@@ -163,6 +163,7 @@ export const PILLARS: Pillar[] = [
           { label: "Mario Kart lounge", href: "/competitive/mario-kart-8-deluxe", blurb: "Normalised placement scoring across a session." },
           { label: "Lounge stats", href: "/lounge", blurb: "Any lounge player's season, plus boards for the people you know.", footer: true },
           { label: "MMR card", href: "/mmr-card", blurb: "Your lounge MMR on stream, live, with a moment every event. Free.", footer: true },
+          { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart World and 8 Deluxe. Add yours from a screenshot.", footer: true },
         ],
       },
       {

@@ -1,3 +1,5 @@
+import { trackSummary } from "@/lib/timeTrials/store";
+import { trackPath, ttTrack, TT_GAME_ORDER } from "@/lib/timeTrials/tracks";
 import { CHECKLISTS, CHECKLISTS_PATH, checklistUrl } from "@/data/tcg-checklists";
 import type { MetadataRoute } from "next";
 import { publishedGuidesAsync } from "@/lib/guides/store";
@@ -222,6 +224,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: lm("/lounge"),
       changeFrequency: "daily",
       priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/time-trials`,
+      changeFrequency: "daily",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/time-trials/mario-kart-world`,
+      changeFrequency: "daily",
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/time-trials/mario-kart-8-deluxe`,
+      changeFrequency: "daily",
+      priority: 0.5,
     },
     {
       url: `${baseUrl}/bracket-generator`,
@@ -663,11 +680,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch lounge players", err);
   }
 
+  // Time trial boards with at least three players (thinner boards are noindex).
+  let ttRoutes: MetadataRoute.Sitemap = [];
+  try {
+    for (const g of TT_GAME_ORDER) {
+      for (const s of await trackSummary(g)) {
+        const t = ttTrack(g, s.track);
+        if (t && s.players >= 3) ttRoutes.push({ url: `${baseUrl}${trackPath(t, s.cc)}`, changeFrequency: "daily" as const, priority: 0.4 });
+      }
+    }
+  } catch (err) {
+    console.error("Sitemap: failed to fetch time trial boards", err);
+    ttRoutes = [];
+  }
+
   // One entry per URL. The blocks above overlap (the pillar map also lists
   // /pokemon-tcg, which the deck block adds too), so keep the first position
   // and the higher priority whenever a URL turns up twice.
   return dedupeByUrl([
     ...staticRoutes,
+    ...ttRoutes,
     ...championshipRoutes,
     ...deckRoutes,
     ...ideaRoutes,

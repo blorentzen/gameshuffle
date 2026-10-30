@@ -7,6 +7,7 @@ import { IconTile } from "@/components/ui/IconTile";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
 import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
 import { ProTerms } from "@/components/billing/ProTerms";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { SupportInstead } from "@/components/support/SupportMoment";
 import { useToast } from "@/components/toast/ToastProvider";
 
@@ -14,8 +15,8 @@ import { useToast } from "@/components/toast/ToastProvider";
  * The one "this is GS Pro" moment, used wherever a free account reaches a Pro
  * feature (brand themes, a full My Cards, past seasons, more Discord servers,
  * Twitch). It names what's locked, offers the 14-day trial when the account
- * still has one (the checkout buttons start it), offers Support as the quiet second choice
- * (Britton's pick, 2026-10-19), and links to the full plan.
+ * still has one (one button starts it; the yearly price is on /gs-pro), offers Support as the quiet
+ * second choice (Britton's pick, 2026-10-19), and links to what's included.
  * Renders nothing for Pro accounts.
  */
 export function ProTrialPrompt({ title, children, from, compact = false }: {
@@ -31,6 +32,7 @@ export function ProTrialPrompt({ title, children, from, compact = false }: {
   const who = useTrialEligibility();
   const toast = useToast();
   if (!who || who.isPro) return null;
+  const included = <ArrowLink href={`/gs-pro?from=${encodeURIComponent(from)}#included`} className="pro-trial__more">See what&apos;s included</ArrowLink>;
   return (
     <Card variant="outlined" padding={compact ? "medium" : "large"} className="pro-trial">
       <div className="pro-trial__head">
@@ -40,15 +42,17 @@ export function ProTrialPrompt({ title, children, from, compact = false }: {
       </div>
       {children && <div className="pro-trial__body">{children}</div>}
       {who.signedIn ? (
-        <>
+        <div className="pro-trial__act">
+          <ProUpgradeCtaButtons single hasUsedTrial={who.hasUsedTrial} from={from} onError={(m) => toast.error(m)} after={included} />
           <ProTerms className="pro-trial__terms" hasUsedTrial={who.hasUsedTrial} />
-          <ProUpgradeCtaButtons hasUsedTrial={who.hasUsedTrial} from={from} onError={(m) => toast.error(m)} />
-        </>
+        </div>
       ) : (
-        <p className="pro-trial__terms"><Link href="/signup?redirect=/account?tab=plans">Create a free account</Link> to start your 14-day GS Pro trial.</p>
+        <div className="pro-trial__act">
+          <p className="pro-trial__terms"><Link href="/signup?redirect=/account?tab=plans">Create a free account</Link> to start your 14-day GS Pro trial.</p>
+          {included}
+        </div>
       )}
       <SupportInstead from={from} />
-      <Link href={`/gs-pro?from=${encodeURIComponent(from)}`} className="pro-trial__more">See everything in GS Pro</Link>
     </Card>
   );
 }

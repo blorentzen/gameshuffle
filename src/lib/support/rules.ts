@@ -35,6 +35,21 @@ export const SUPPORT_LEVELS: SupportLevelDef[] = [
 ];
 export const supportLevel = (id: unknown): SupportLevelDef | null => SUPPORT_LEVELS.find((l) => l.id === id) ?? null;
 export const levelGrantsPro = (id: unknown) => !!supportLevel(id)?.pro;
+
+/**
+ * Supporter looks (picks 2026-10-29, https://claude.ai/artifact/TPhBuiHQDNXsSpFV6Qzcjz): with the
+ * switch on, the $3 Supporter level also unlocks every look (MMR card looks, profile and community
+ * skins, brand themes, custom CSS, dice and coin looks), which makes it a sale like Backer. GS Pro
+ * keeps what things do (streamer and Discord tools, AI, the MMR card's goal and recap).
+ */
+export const SUPPORTER_LOOKS_PERK = "Supporter looks: MMR card themes, fonts, foil and your picture, profile skins and brand themes, dice and coin looks";
+/** A level's perks as the give form shows them, with Supporter looks while that switch is on. */
+export function levelPerks(level: SupportLevelDef, looksOn: boolean): string[] {
+  if (level.id !== "supporter" || !looksOn) return level.perks;
+  return [SUPPORTER_LOOKS_PERK, ...level.perks];
+}
+/** Whether a level unlocks looks: every level with GS Pro, and Supporter while the switch is on. */
+export const levelGrantsLooks = (id: unknown, looksOn: boolean) => !!supportLevel(id)?.pro || (id === "supporter" && looksOn);
 /** Wall and credits order: Champions first, then Backers, then everyone else. */
 export const levelRank = (id: string | null | undefined) => (id === "champion" ? 0 : id === "backer" ? 1 : 2);
 /** The first this many supporters keep a Founding badge for good. */

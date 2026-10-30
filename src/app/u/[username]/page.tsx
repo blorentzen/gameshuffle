@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ownerHasPro } from "@/lib/profile/proLooks";
+import { ownerHasLooks } from "@/lib/support/looks";
 import { FOUNDING_BRAIN_ANSWERS } from "@/lib/chatbrain/rules";
 import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
@@ -54,11 +55,15 @@ import { resolveProfileLayout, visibleSections, type ProfileSectionKey } from "@
 import { DailiesCards } from "@/components/originals/DailiesCards";
 import { MmrCard } from "@/components/mmr/MmrCard";
 import { profileMmr } from "@/lib/mmr/store";
+import { playerBests } from "@/lib/timeTrials/store";
+import { formatTime as ttFormat, ordinal as ttOrdinal } from "@/lib/timeTrials/rules";
+import { trackPath as ttPath, ttTrack, TT_GAMES } from "@/lib/timeTrials/tracks";
 import "@/styles/mmr-card.css";
 import { RoadTrainerCard } from "@/components/originals/duel/road/RoadCard";
 import { roadProgressView } from "@/lib/originals/duel/roadProgress";
 import { roadShown } from "@/lib/games-visibility";
 import "@/styles/road-card.css";
+import "@/styles/time-trials.css";
 import { dailiesShown } from "@/lib/originals/dailies";
 import { resolveProfileSkin, skinBackground, skinBackgroundLayout, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
 import { resolveProfileLinks, resolveProfileSpotlight, spotlightEmbedUrl } from "@/lib/profile/links";
@@ -256,7 +261,8 @@ export default async function PublicProfilePage({
   // and the gate strips anything but allowlisted values / our own image origin.
   const { data: skinRow } = await supabase.from("users").select("profile_skin").eq("id", profile.id).maybeSingle();
   // Skins and custom CSS are GS Pro: shown while the owner has it (kept either way).
-  const ownerPro = await ownerHasPro(profile.id);
+  // Skins and custom CSS are looks: GS Pro, or support sold with looks (Supporter looks, 2026-10-29).
+  const ownerPro = await ownerHasLooks(profile.id);
   const skin = resolveProfileSkin(ownerPro ? (skinRow as { profile_skin?: unknown } | null)?.profile_skin : null);
   const skinBg = skinBackground(skin);
 
@@ -319,12 +325,13 @@ export default async function PublicProfilePage({
   const thisSeason = currentSeasonKey();
   const seasonHistory = await ownerHasPro(profile.id as string);
   const season = isSeasonKey(sp.season) && seasonHistory && recentSeasonKeys().includes(sp.season) ? sp.season : thisSeason;
-  const [enrichment, seasonData, rivals, mmr, road] = await Promise.all([
+  const [enrichment, seasonData, rivals, mmr, road, ttBests] = await Promise.all([
     getProfileEnrichment(profile.id as string),
     userSeason(profile.id as string, season).catch(() => null),
     rivalsFor(profile.id as string).catch(() => []),
     profileMmr(profile.id as string).catch(() => null),
     roadShown() ? roadProgressView(profile.id as string).catch(() => null) : Promise.resolve(null),
+    playerBests(`u:${profile.id as string}`).catch(() => []),
   ]);
   let authorPosts = COMMUNITY_PUBLICLY_ENABLED
     ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")
@@ -477,6 +484,29 @@ export default async function PublicProfilePage({
     </div>
   ) : null;
 
+  // Time trials (picks 2026-10-29): their best places, once they've added a time.
+  const ttRecords = ttBests.filter((b) => b.place === 1).length;
+  const timeTrialsWidget = ttBests.length ? (
+    <div className="pcard profile-tt" id="time-trials">
+      <h3 className="pcard__title"><Link href="/time-trials">Time trials</Link></h3>
+      <p className="profile-tt__sum">{ttBests.length} {ttBests.length === 1 ? "track" : "tracks"}{ttRecords ? `, ${ttRecords} ${ttRecords === 1 ? "record" : "records"}` : ""}</p>
+      <ul className="profile-tt__list">
+        {ttBests.slice(0, 6).map((b) => {
+          const t = ttTrack(b.game, b.track);
+          if (!t) return null;
+          return (
+            <li key={`${b.game}-${b.track}-${b.cc}`}>
+              <Link href={ttPath(t, b.cc)}>{t.name}</Link>
+              <span className="profile-tt__meta">{TT_GAMES[b.game].short}{TT_GAMES[b.game].classes.length > 1 ? ` ${b.cc}cc` : ""}</span>
+              <b>{ttFormat(b.timeMs)}</b>
+              <span className="profile-tt__meta">{ttOrdinal(b.place)} of {b.total}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  ) : null;
+
   // Trainer Road's trainer card (phase 2 picks, 2026-10-23), once they've earned anything on the road.
   const roadWidget = road ? (
     <div className="pcard profile-road">
@@ -541,6 +571,7 @@ export default async function PublicProfilePage({
     favGames: favGamesWidget,
     dailies: dailiesWidget,
     mmr: mmrWidget,
+    timeTrials: timeTrialsWidget,
     road: roadWidget,
     topFriends: topFriendsWidget,
     communities: communitiesWidget,

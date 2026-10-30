@@ -98,6 +98,9 @@ export function TrialOfferBanner({ isEligible, onLearnMore }: TrialOfferBannerPr
           lineHeight: 1,
           cursor: "pointer",
           padding: "var(--spacing-4) var(--spacing-6)",
+          // A tap target of at least 24px (text-size check); 32px leaves room for a thumb.
+          minWidth: 32,
+          minHeight: 32,
           borderRadius: "var(--radius-4)",
         }}
       >

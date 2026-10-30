@@ -17,7 +17,11 @@ import { IconHeart } from "@tabler/icons-react";
 import { useOriginalsHost } from "@/components/originals/OriginalsHost";
 import { useSupportStatus } from "@/components/support/useSupportStatus";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { supportLevel } from "@/lib/support/rules";
 import "@/styles/support.css";
+
+/** The lowest monthly level, "$3". */
+const FROM_PRICE = `$${(supportLevel("supporter")?.cents ?? 300) / 100}`;
 
 const KEY = "gs-support-moment";
 const WEEK = 7 * 86_400_000;
@@ -86,18 +90,19 @@ export function SupportMoment({ from, title = "Enjoying GameShuffle?", ready = t
 }
 
 /**
- * The quiet second choice under a GS Pro wall's buttons. Since the levels (2026-10-19) it
- * says the Backer level includes GS Pro and lands on that level; it used to be "Support
- * GameShuffle instead". In the US only, and not for someone who already supports us.
+ * The quiet second choice under a GS Pro wall's buttons: backing GameShuffle from $3 a month, the
+ * lowest way in (Britton, 2026-10-29; it led with the $9 Backer level from 2026-10-19). It lands on the
+ * Supporter level; the form shows Backer, with GS Pro, beside it. In the US only, and not for someone
+ * who already supports us.
  */
 export function SupportInstead({ from }: { from: string }) {
   const status = useSupportStatus();
   if (!status || !status.available || status.supporter) return null;
   return (
     <p className="support-instead">
-      Or back GameShuffle:{" "}
-      <Link href={`/support?level=backer&from=${encodeURIComponent(`wall-${from}`)}#give`} onClick={() => track(EVENTS.supportClicked, { from: `wall-${from}` })}>
-        <IconHeart size={15} stroke={2} aria-hidden="true" /> GS Pro comes with the $9 Backer level
+      Or{" "}
+      <Link href={`/support?level=supporter&from=${encodeURIComponent(`wall-${from}`)}#give`} onClick={() => track(EVENTS.supportClicked, { from: `wall-${from}` })}>
+        <IconHeart size={15} stroke={2} aria-hidden="true" /> back GameShuffle from {FROM_PRICE} a month
       </Link>
     </p>
   );

@@ -61,14 +61,14 @@ export function PlatformSwitchesTab() {
             <ul className="switches__list">
               {SWITCHES.filter((s) => s.group === group).map((s) => {
                 const row = rows.get(s.key);
-                const on = !!row?.enabled;
+                const on = row ? row.enabled : !!s.defaultOn;
                 const by = row?.updated_by ? names[row.updated_by] : null;
                 return (
                   <li key={s.key} className="switches__row">
                     <div className="switches__text">
                       <div className="switches__name">{s.name} <Badge variant={on ? "success" : "default"} size="small">{on ? "On" : "Off"}</Badge></div>
                       <p className="switches__desc">{s.description}</p>
-                      <p className="switches__meta">{row ? `Changed ${when(row.updated_at)}${by ? ` by ${by}` : ""}` : "Never changed"} · <span className="switches__key">{s.key}</span></p>
+                      <p className="switches__meta">{row ? `Changed ${when(row.updated_at)}${by ? ` by ${by}` : ""}` : `Never changed (${s.defaultOn ? "on" : "off"} by default)`} · <span className="switches__key">{s.key}</span></p>
                       {s.key === "organizer_billing_enabled" && <CircuitNoticePanel on={on} />}
                     </div>
                     <Switch aria-label={s.name} checked={on} disabled={!canEdit || busy === s.key} onChange={(e) => void flip(s.key, e.target.checked)} />

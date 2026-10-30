@@ -4,7 +4,7 @@
  * row. Add a switch here when code starts reading a new flag. Client-safe.
  */
 
-export type SwitchGroup = "Shop" | "Events" | "Circuit" | "Sign-in";
+export type SwitchGroup = "Shop" | "Events" | "Circuit" | "Sign-in" | "Support";
 
 export interface SwitchDef {
   key: string;
@@ -15,6 +15,8 @@ export interface SwitchDef {
   /** Confirmation text when turning it on / off. */
   turnOn: string;
   turnOff: string;
+  /** What the code does while the switch has no row yet (getPlatformFlag's fallback). Off unless set. */
+  defaultOn?: boolean;
 }
 
 export const SWITCHES: SwitchDef[] = [
@@ -59,6 +61,12 @@ export const SWITCHES: SwitchDef[] = [
     description: "Shows Continue with Facebook on sign-in and sign-up, and Facebook in Settings ▸ Sign-in & security. Needs Facebook turned on in Supabase ▸ Authentication ▸ Providers (live and dev) with the Meta app's ID and secret.",
     turnOn: "Everyone sees Continue with Facebook on sign-in and sign-up, and can connect Facebook in Settings.",
     turnOff: "The Facebook buttons disappear. People who already connected Facebook can still see and disconnect it in Settings.",
+  },
+  {
+    key: "support_supporter_looks", group: "Support", name: "Supporter looks", defaultOn: true,
+    description: "On (the default): the $3 Supporter level also unlocks every look (MMR card looks, profile and community skins, brand themes, custom CSS, dice and coin looks), checkout collects sales tax and the Terms like Backer, and looks walls offer Supporter first. Off: new Supporter subscriptions are a thank-you only (a gift, no tax). Needs support-m4.sql.",
+    turnOn: "New Supporter subscriptions are sold with looks and taxed. Looks walls offer Supporter at $3 first. People who already give $3 a month as a thank-you keep that until they choose Supporter again.",
+    turnOff: "New Supporter subscriptions go back to a thank-you with no looks, and looks walls offer GS Pro only. Anyone who bought Supporter with looks keeps them.",
   },
 ];
 

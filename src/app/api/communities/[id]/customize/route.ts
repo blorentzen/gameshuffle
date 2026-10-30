@@ -4,7 +4,8 @@
  * `[id]` is the gs_communities id. See `supabase/community-customization-m1.sql`.
  */
 
-import { isDefaultSkin, ownerHasPro } from "@/lib/profile/proLooks";
+import { isDefaultSkin } from "@/lib/profile/proLooks";
+import { ownerHasLooks } from "@/lib/support/looks";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { updateCommunityCustomization, updateCommunitySkinCss } from "@/lib/communities/membership";
@@ -46,7 +47,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { css, warnings: w } = sanitizeCustomCss(body.css);
     warnings = w;
     // Backgrounds and custom CSS are GS Pro (the rest of this save is free).
-    const pro = await ownerHasPro(user.id);
+    const pro = await ownerHasLooks(user.id);
     const r2 = pro || (isDefaultSkin(skin) && !css)
       ? await updateCommunitySkinCss(user.id, id, skin, css)
       : { ok: false as const, reason: "pro_required" };

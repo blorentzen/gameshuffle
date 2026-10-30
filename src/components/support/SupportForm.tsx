@@ -20,7 +20,7 @@ import { PaidPlansWaitlist } from "@/components/billing/PaidPlansWaitlist";
 import { useSupportStatus } from "@/components/support/useSupportStatus";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
-  SUPPORT_AMOUNTS, SUPPORT_DEFAULT, SUPPORT_LEVELS, WALL_NAME_MAX, WALL_NOTE_MAX, amountProblem, centsFromInput, dollars, supportLevel,
+  SUPPORT_AMOUNTS, SUPPORT_DEFAULT, SUPPORT_LEVELS, WALL_NAME_MAX, WALL_NOTE_MAX, amountProblem, centsFromInput, dollars, levelPerks, supportLevel,
   type SupportKind, type SupportLevel,
 } from "@/lib/support/rules";
 
@@ -137,7 +137,7 @@ export function SupportForm({ canceled = false, back = "/support", thanks = true
                 <span className="support-level__name">{l.name}</span>
                 <span className="support-level__price">{dollars(l.cents)} a month</span>
                 <span className="support-level__perks">
-                  {l.perks.map((p) => <span key={p} className="support-level__perk">{p}</span>)}
+                  {levelPerks(l, !!status?.supporterLooks).map((p) => <span key={p} className="support-level__perk">{p}</span>)}
                 </span>
               </Card>
             );

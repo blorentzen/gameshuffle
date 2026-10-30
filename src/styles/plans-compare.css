@@ -1,0 +1,35 @@
+/* What's included (PlansCompare.tsx): a table on wide screens, one plan at a time on phones. */
+.plans-compare { display: grid; gap: var(--spacing-16); margin: var(--spacing-48) 0; min-width: 0; }
+.plans-compare__wide { display: grid; gap: var(--spacing-16); min-width: 0; }
+.plans-compare__phone { display: none; gap: var(--spacing-12); }
+@media (max-width: 759px) {
+  .plans-compare__wide { display: none; }
+  .plans-compare__phone { display: grid; }
+}
+
+.plans-compare__table { min-width: 720px; font-size: var(--font-size-14); }
+.plans-compare__table th, .plans-compare__table td { vertical-align: top; }
+.plans-compare__plan { display: block; font-family: var(--font-display); font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.plans-compare__price { display: block; font-size: var(--font-size-14); font-weight: 600; color: var(--text-secondary); margin-top: var(--spacing-2); }
+.plans-compare__hl { background: color-mix(in srgb, var(--primary-500) 6%, transparent); }
+.plans-compare__group td { font-size: var(--font-size-12); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); background: var(--bg-secondary, transparent); padding-top: var(--spacing-12); }
+.plans-compare__feature { width: 32%; color: var(--text-primary); }
+.plans-compare__feature a, .plans-compare__phone-row dt a { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
+.plans-compare__yes { display: inline-flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; border-radius: 50%; background: var(--success-100, #e3f4ea); color: var(--success-700, #1d7a45); }
+.plans-compare__no { color: var(--text-secondary); }
+
+.plans-compare__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.plans-compare__phone-head { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); }
+.plans-compare__phone-head b { color: var(--text-primary); }
+.plans-compare__phone-group h3 { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+.plans-compare__phone-group dl { margin: 0; }
+.plans-compare__phone-row { display: flex; justify-content: space-between; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-bottom: 1px solid var(--border-default); font-size: var(--font-size-14); }
+.plans-compare__phone-row dt { color: var(--text-primary); min-width: 0; }
+.plans-compare__phone-row dd { margin: 0; color: var(--text-secondary); text-align: right; max-width: 50%; }
+/* Plan names read as names (CDS headers are all caps), and the plan columns share the width evenly. */
+.plans-compare__table th { text-transform: none; letter-spacing: normal; }
+.plans-compare__table { table-layout: fixed; }
+.plans-compare__table th:first-child, .plans-compare__table td.plans-compare__feature { width: 26%; }
+/* Each plan's name above its price (CDS keeps header text on one line). */
+.plans-compare__table th { white-space: normal; }
+.plans-compare__th { display: grid; gap: var(--spacing-2); }

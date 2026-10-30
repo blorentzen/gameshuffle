@@ -24,6 +24,10 @@ export interface SupportStatus {
   monthly: { amountCents: number; status: string; cancelAtPeriodEnd: boolean; renewsAt: string | null; level: SupportLevel } | null;
   progress: { goalCents: number; raisedCents: number } | null;
   supportersThisMonth: number;
+  /** May use looks: GS Pro, or support sold with them. */
+  looks?: boolean;
+  /** The $3 Supporter level sells looks right now. */
+  supporterLooks?: boolean;
 }
 
 // One lookup per page load, shared by every ask and thank-you on the page.
@@ -41,6 +45,17 @@ export function useSupportStatus(): SupportStatus | null {
   useEffect(() => {
     let active = true;
     void load().then((v) => { if (active) setState(v); });
+    return () => { active = false; };
+  }, []);
+  return state;
+}
+
+/** The same, plus whether the lookup has finished (a failed lookup finishes with null). */
+export function useSupportLookup(): { status: SupportStatus | null; done: boolean } {
+  const [state, setState] = useState<{ status: SupportStatus | null; done: boolean }>({ status: null, done: false });
+  useEffect(() => {
+    let active = true;
+    void load().then((v) => { if (active) setState({ status: v, done: true }); });
     return () => { active = false; };
   }, []);
   return state;

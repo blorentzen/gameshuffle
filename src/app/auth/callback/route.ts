@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { syncProfileFromOAuth } from "@/lib/auth/syncOAuthProfile";
+import { claimForUser } from "@/lib/timeTrials/claim";
+import { TT_MOVED_COOKIE } from "@/lib/timeTrials/moved";
 import { PASSWORD_LATER_COOKIE } from "@/lib/auth/passwordNudge";
 import { NextResponse } from "next/server";
 import { offerGuestClaims } from "@/lib/tournaments/claims";
@@ -62,6 +64,12 @@ export async function GET(request: Request) {
   }
   // Sync OAuth profile data to public.users
   const { data: { user } } = await supabase.auth.getUser();
+  // Times added with /gs-tt before Discord was connected move to the account; the page says how many.
+  const ttMoved = user ? await claimForUser(user) : 0;
+  const withMoved = (res: NextResponse) => {
+    if (ttMoved > 0) res.cookies.set(TT_MOVED_COOKIE, String(ttMoved), { path: "/", maxAge: 600, sameSite: "lax" });
+    return res;
+  };
   if (user) {
     await syncProfileFromOAuth(supabase, user);
 
@@ -82,8 +90,8 @@ export async function GET(request: Request) {
     if (!hasPassword && !putOff && !redirect.startsWith("/reset-password")) {
       const setPasswordUrl = new URL("/signup/set-password", request.url);
       setPasswordUrl.searchParams.set("return_to", redirect);
-      return NextResponse.redirect(setPasswordUrl);
+      return withMoved(NextResponse.redirect(setPasswordUrl));
     }
   }
-  return NextResponse.redirect(`${origin}${redirect}`);
+  return withMoved(NextResponse.redirect(`${origin}${redirect}`));
 }

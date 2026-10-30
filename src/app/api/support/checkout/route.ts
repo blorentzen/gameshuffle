@@ -1,5 +1,5 @@
 /**
- * POST /api/support/checkout { kind: "once" | "monthly", cents, level?, wallName?, wallNote?, showOnWall?, turnstileToken }
+ * POST /api/support/checkout { kind: "once" | "monthly", cents, level?, wallName?, wallNote?, showOnWall?, turnstileToken, returnTo? }
  * → { url } for Stripe Checkout (src/lib/support/store.ts). Anyone can give
  * once (any amount from $3); monthly is a level (supporter, backer or
  * champion; Backer and Champion include GS Pro) and needs an account. An
@@ -17,6 +17,7 @@ import { rateLimit } from "@/lib/ratelimit";
 import { startSupportCheckout } from "@/lib/support/store";
 import { supportLevel } from "@/lib/support/rules";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { CHECKOUT_RETURN_PATHS } from "@/lib/stripe/checkoutReturn";
 
 export const runtime = "nodejs";
 
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
   const where = paidPlanAvailability(req);
   if (!where.available) return NextResponse.json({ error: "us_only", message: "Support is open in the US for now. Thank you for wanting to help!" }, { status: 403 });
 
-  const body = (await req.json().catch(() => ({}))) as { kind?: unknown; cents?: unknown; level?: unknown; wallName?: unknown; wallNote?: unknown; showOnWall?: unknown; turnstileToken?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { kind?: unknown; cents?: unknown; level?: unknown; wallName?: unknown; wallNote?: unknown; showOnWall?: unknown; turnstileToken?: unknown; returnTo?: unknown };
   const token = typeof body.turnstileToken === "string" ? body.turnstileToken : null;
   if (!(await verifyTurnstileToken(token, ip === "unknown" ? undefined : ip))) return NextResponse.json({ error: "captcha" }, { status: 400 });
   const kind = body.kind === "monthly" ? "monthly" : "once";
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
   const res = await startSupportCheckout({
     kind, cents: cents ?? 0, level: supportLevel(body.level)?.id ?? null, user: user ? { id: user.id, email: user.email ?? null } : null,
     wallName: body.wallName, wallNote: body.wallNote, showOnWall: body.showOnWall === true, origin,
+    returnTo: typeof body.returnTo === "string" && CHECKOUT_RETURN_PATHS.includes(body.returnTo) ? body.returnTo : null,
   });
   if (!res.ok) return NextResponse.json({ error: res.error, message: res.message }, { status: res.error === "failed" ? 500 : res.error === "sign_in" ? 401 : res.error === "already_pro" ? 409 : 400 });
   return NextResponse.json({ url: res.url });

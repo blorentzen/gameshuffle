@@ -9,6 +9,8 @@ import { handleGsTag } from "./commands/tags";
 import { handleGsRemind } from "./commands/remind";
 import { handleGsProfile } from "./commands/profile";
 import { handleGsMmr, handleGsRoom } from "./commands/mmr";
+import { handleGsTt, handleTtButton, ttAutocomplete, TT_NO_PREFIX, TT_OK_PREFIX, TT_REPORT_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX } from "./commands/timeTrials";
+import { handleTtSaveButton, handleTtSaveCommand, TT_IMPORT_PREFIX, TT_SAVE_COMMAND } from "./commands/ttImport";
 import {
   BRAIN_ANSWER_PREFIX,
   BRAIN_MODAL_PREFIX,
@@ -54,7 +56,9 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
 
   // Application commands (slash commands)
   if (type === INTERACTION_TYPE.APPLICATION_COMMAND) {
-    const data = interaction.data as { name: string };
+    const data = interaction.data as { name: string; type?: number };
+    // Message commands (Apps menu on a message): "Save to GameShuffle" on Quaxly's time trials list.
+    if (data.type === 3 && data.name === TT_SAVE_COMMAND) return handleTtSaveCommand(interaction);
     switch (data.name) {
       case "gs-randomize":
         return handleRandomize(interaction);
@@ -78,6 +82,8 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleGsMmr(interaction);
       case "gs-room":
         return handleGsRoom(interaction);
+      case "gs-tt":
+        return handleGsTt(interaction);
       case "gs-brain":
         return handleGsBrain(interaction);
       case "gs-weekly":
@@ -102,6 +108,14 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     // Poll vote: "poll:{pollId}:{optionId}"
     if (customId.startsWith(POLL_VOTE_PREFIX)) {
       return handlePollVote(interaction);
+    }
+
+    // Time trials: "Save N times" from Save to GameShuffle.
+    if (customId.startsWith(TT_IMPORT_PREFIX)) return handleTtSaveButton(interaction, customId);
+
+    // Time trials: confirm or cancel a read screenshot, undo, verify (server managers), report.
+    if ([TT_OK_PREFIX, TT_NO_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_REPORT_PREFIX].some((p) => customId.startsWith(p))) {
+      return handleTtButton(interaction, customId);
     }
 
     // Trivia on stream: a choice, or the Answer button that opens a form.
@@ -170,6 +184,7 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
   // Autocomplete: /gs-randomize's game, from every game with chat rolls,
   // narrowed by what's typed so far (Discord shows at most 25).
   if (type === INTERACTION_TYPE.AUTOCOMPLETE) {
+    if ((interaction.data as { name?: string }).name === "gs-tt") return ttAutocomplete(interaction);
     const focused = ((interaction.data as { options?: { name: string; value: string; focused?: boolean }[] }).options ?? [])
       .find((o) => o.focused)?.value?.toString().trim().toLowerCase() ?? "";
     const choices = Object.values(CHAT_GAMES)

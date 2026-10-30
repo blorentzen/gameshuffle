@@ -9,6 +9,9 @@
  *   Rolling (in the Look tab when that layout is picked): shape, name and emblem, motion, each slide's
  *     time, the progress mark, and for GS Pro a time per slide.
  * GS Pro choices can be tried in the preview; a free save keeps their free versions (look.ts).
+ * Feedback round (2026-10-29): the MMR switch works on every layout (locked on while MMR is the big
+ * number), the country as a code, flag or both, Under the number (Strip, Sticker, Rolling), and the
+ * panel's chat line switch.
  */
 
 import { useId } from "react";
@@ -16,11 +19,14 @@ import { Accordion, Button, Card, Chip, IconButton, Input, Switch } from "@empac
 import { IconArrowDown, IconArrowUp } from "@tabler/icons-react";
 import { SortableList, moveWithin } from "@/components/ui/SortableList";
 import { Select } from "@/components/ui/Select";
-import { NUMBER_CHOICES, type MmrLook } from "@/lib/mmr/look";
+import { NUMBER_CHOICES, type MmrCountry, type MmrLook } from "@/lib/mmr/look";
 import {
-  LAYOUT_SPOTS, LINE_MAX, MOMENTS, PIECES, PIECE_GROUPS, PIECE_IDS, PRESETS, applyPreset, pieceDef, pieceOrder, presetOf,
-  type MmrInfo, type MmrPiece, type PieceDef,
+  LAYOUT_SPOTS, LINE_MAX, MOMENTS, PIECES, PIECE_GROUPS, PIECE_IDS, PRESETS, UNDER_CHOICES, UNDER_LAYOUTS, applyPreset, pieceDef, pieceOrder, presetOf,
+  type MmrInfo, type MmrPiece, type MmrUnder, type PieceDef,
 } from "@/lib/mmr/pieces";
+
+const COUNTRY_CHOICES: { v: MmrCountry; label: string }[] = [{ v: "flag", label: "Flag" }, { v: "code", label: "Code" }, { v: "both", label: "Both" }];
+const UNDER_ON: Record<MmrUnder, MmrPiece[]> = { none: [], tonight: ["tonight"], last10: ["last10"], both: ["tonight", "last10"] };
 import {
   ROLL_MOTIONS, ROLL_PROGRESS, ROLL_SECS, ROLL_SHAPES, rollSlides, type MmrRolling, type RollSecs, type RollSlide,
 } from "@/lib/mmr/rolling";
@@ -33,10 +39,14 @@ function PieceLabel({ p }: { p: PieceDef }) {
   return <span className="mmr-info__label">{p.label}{p.isNew && <Tag kind="new" />}{p.pro && <Tag kind="pro" />}</span>;
 }
 
-export function MmrWhatsOn({ look, onInfo, pro, lineWarn }: {
+export function MmrWhatsOn({ look, onInfo, onLook, pro, chat = false, lineWarn }: {
   look: MmrLook;
   onInfo: (info: MmrInfo) => void;
+  /** Look fields shown here (the country's flag or code). */
+  onLook: (patch: Partial<MmrLook>) => void;
   pro: boolean;
+  /** GameShuffle's bot answers !mmr in this streamer's chat. */
+  chat?: boolean;
   /** The last save left the line off (blocked words). */
   lineWarn: boolean;
 }) {
@@ -87,23 +97,58 @@ export function MmrWhatsOn({ look, onInfo, pro, lineWarn }: {
         <p className="mmr-studio__note">{worldBig ? "Your MMR moves to the details. Before you have a world rank, MMR stays the big number." : "World rank sits with the details."}</p>
       </fieldset>}
 
+      {UNDER_LAYOUTS.includes(look.layout) && (
+        <fieldset className="mmr-studio__set">
+          <legend>Under the number</legend>
+          <div className="mmr-studio__chips">
+            {UNDER_CHOICES.map((u) => (
+              <Chip key={u.v} label={u.label} clickable selected={info.under === u.v}
+                onClick={() => set({ under: u.v, on: { ...info.on, ...Object.fromEntries(UNDER_ON[u.v].map((p) => [p, true])) } })} />
+            ))}
+          </div>
+          <p className="mmr-studio__note">
+            {rolling ? "Sits under the MMR on its slide, instead of on slides of their own." : look.layout === "strip" ? "Sits under the number, instead of in the details or its own column." : "Sits under the number, instead of in the details."}
+          </p>
+        </fieldset>
+      )}
+
+      {look.layout === "panel" && (
+        <fieldset className="mmr-studio__set">
+          <legend>Chat line</legend>
+          <Switch
+            label={'"Type !mmr in chat" at the bottom'}
+            helperText={chat ? "GameShuffle's bot answers !mmr in your Twitch chat." : "Shows only while GameShuffle's bot is in your Twitch chat, which comes with GS Pro's Twitch setup."}
+            checked={info.chat}
+            onChange={(e) => set({ chat: e.target.checked })}
+          />
+        </fieldset>
+      )}
+
       {PIECE_GROUPS.map((g) => (
         <fieldset key={g.id} className="mmr-studio__set">
           <legend>{g.label}</legend>
           <div className="mmr-info__list">
-            {PIECES.filter((p) => p.group === g.id && (rolling || !p.rollingOnly)).map((p) => {
+            {PIECES.filter((p) => p.group === g.id).map((p) => {
               const lockedWorld = p.id === "world" && worldBig && !rolling;
+              // MMR as the big number can't be switched off (on Rolling the switch is the MMR slide).
+              const lockedMmr = p.id === "mmr" && !worldBig && !rolling;
               const lockedGoal = p.id === "goal" && !pro;
-              const note = lockedWorld ? "It's the big number." : lockedGoal ? "Part of GS Pro, with a goal set under Tonight's goal." : p.note;
+              const locked = lockedWorld || lockedMmr;
+              const note = locked ? "It's the big number." : lockedGoal ? "Part of GS Pro, with a goal set under Tonight's goal." : p.id === "mmr" && rolling ? "The MMR slide. A change still plays on its own slide when this is off." : p.note;
               return (
                 <div key={p.id} className="mmr-info__piece">
                   <Switch
                     label={<PieceLabel p={p} />}
                     helperText={note}
-                    checked={lockedWorld ? true : lockedGoal ? false : info.on[p.id]}
-                    disabled={lockedWorld || lockedGoal}
+                    checked={locked ? true : lockedGoal ? false : info.on[p.id]}
+                    disabled={locked || lockedGoal}
                     onChange={(e) => set({ on: { ...info.on, [p.id]: e.target.checked } })}
                   />
+                  {p.id === "cc" && info.on.cc && (
+                    <div className="mmr-studio__chips mmr-info__sub" role="group" aria-label="Show the country as">
+                      {COUNTRY_CHOICES.map((c) => <Chip key={c.v} label={c.label} clickable selected={look.country === c.v} onClick={() => onLook({ country: c.v })} />)}
+                    </div>
+                  )}
                   {p.id === "recent" && info.on.recent && (
                     <div className="mmr-studio__chips mmr-info__sub" role="group" aria-label="How many recent events">
                       {([3, 5] as const).map((n) => <Chip key={n} label={`Latest ${n}`} clickable selected={info.recent === n} onClick={() => set({ recent: n })} />)}

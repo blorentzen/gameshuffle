@@ -1,7 +1,11 @@
 /**
  * POST /api/stripe/checkout
  *
- * Body: { interval: 'monthly' | 'annual' }
+ * Body: { interval: 'monthly' | 'annual', returnTo?: '/mmr-card' }
+ *
+ * `returnTo` (an allowlisted page) brings the buyer back there instead of Plans & billing, with
+ * ?checkout=success&plan=pro&session_id= or ?checkout=canceled&plan=pro (the MMR card studio's
+ * try-before-paying path, 2026-10-29; the page waits for the webhook to turn GS Pro on).
  *
  * Creates (or reuses) a Stripe Customer for the authenticated user and
  * a Checkout Session for the Pro subscription. New users get a 14-day
@@ -28,6 +32,7 @@ import { getStripe, getStripePriceId } from "@/lib/stripe/client";
 import { resolveStripePriceId } from "@/lib/pricing/catalog";
 import { paidPlanAvailability } from "@/lib/billing/availability";
 import { getProAccess } from "@/lib/subscription-server";
+import { CHECKOUT_RETURN_PATHS } from "@/lib/stripe/checkoutReturn";
 
 export const runtime = "nodejs";
 
@@ -64,6 +69,7 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const interval = body.interval as string | undefined;
+  const returnTo = typeof body.returnTo === "string" && CHECKOUT_RETURN_PATHS.includes(body.returnTo) ? body.returnTo : null;
   if (interval !== "monthly" && interval !== "annual") {
     return NextResponse.json({ error: "invalid_interval" }, { status: 400 });
   }
@@ -152,8 +158,10 @@ export async function POST(request: Request) {
           "Charges appear as EMPAC* GS PRO. GameShuffle is built by Empac.",
       },
     },
-    success_url: `${baseUrl}/account?tab=plans&checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${baseUrl}/account?tab=plans&checkout=canceled`,
+    success_url: returnTo
+      ? `${baseUrl}${returnTo}?checkout=success&plan=pro&session_id={CHECKOUT_SESSION_ID}`
+      : `${baseUrl}/account?tab=plans&checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: returnTo ? `${baseUrl}${returnTo}?checkout=canceled&plan=pro` : `${baseUrl}/account?tab=plans&checkout=canceled`,
     client_reference_id: user.id,
     metadata: { gs_user_id: user.id, interval },
   });

@@ -19,14 +19,14 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalS
 import { IconFlameFilled, IconQuote, IconStarFilled } from "@tabler/icons-react";
 import { divisionLook } from "@/lib/mmr/look";
 import { placeWord, signed, type MmrView } from "@/lib/mmr/rules";
-import { recentWhen, type MmrInfo } from "@/lib/mmr/pieces";
+import { recentWhen, underPieces, type MmrInfo, type Shown } from "@/lib/mmr/pieces";
 import {
   ROLL_HOLD_MS, ROLL_MOVE_MS, jumpTarget, nextSlide, resumeAfter, rollSlides, slideSecs, slideText, type RollSlide,
 } from "@/lib/mmr/rolling";
 import { goalProgress, type GoalProgress } from "@/lib/mmr/goal";
 import { MmrEmblem } from "./MmrEmblem";
 import { PIECE_ICONS } from "./pieceIcons";
-import { Brand, BrandTab, Delta, FxLayers, MmrNumber, Squares, cardClass, cardSummary, cardVars, momentOf, playMoment, type MomentFx } from "./cardParts";
+import { Brand, BrandTab, CountryTag, Delta, FontLink, FxLayers, MmrNumber, Squares, UnderLine, cardClass, cardSummary, cardVars, momentOf, playMoment, type MomentFx } from "./cardParts";
 import type { MmrCardProps } from "./MmrCard";
 import type { MmrPending } from "@/lib/lounge/pending";
 
@@ -67,13 +67,16 @@ export function MmrRolling({ view, look, play, className, fit = "frame", pending
   const div = divisionLook(v.division);
   const g = goal != null && info.on.goal ? goalProgress(goal, v.mmr, v.mmr != null ? v.mmr - v.tonight.delta : null) : null;
   const idShown = look.emblem !== "off" || info.on.name || info.on.division;
+  const ticker = r.motion === "ticker" && !reduce;
+  // Tonight's run and last 10 under the MMR (they leave their own slides). The ticker shows every piece in its line instead.
+  const slideInfo = useMemo<MmrInfo>(() => (ticker ? { ...info, under: "none" } : info), [info, ticker]);
+  const under: Shown[] = ticker ? [] : underPieces(info, "rolling").filter((p) => slideText(p, v, info, g) != null);
   const slides = useMemo(
-    () => rollSlides(info, r, (p) => slideText(p, v, info, g) != null, idShown),
+    () => rollSlides(slideInfo, r, (p) => slideText(p, v, info, g) != null, idShown),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [info, r.pin, v, g?.goal, g?.reached, idShown],
+    [slideInfo, r.pin, v, g?.goal, g?.reached, idShown],
   );
   const slidesKey = slides.join();
-  const ticker = r.motion === "ticker" && !reduce;
   const motion = reduce || r.motion === "ticker" ? "fade" : r.motion;
 
   const [st, setSt] = useState<RollState>({ pos: 0, temp: false, out: null, n: 0 });
@@ -146,10 +149,10 @@ export function MmrRolling({ view, look, play, className, fit = "frame", pending
 
   const vars = { ...cardVars(look, div, fx.glyphs, v.pct), "--mmr-rmove": `${ROLL_MOVE_MS}ms` } as CSSProperties;
   const cls = cardClass(look, fit, className);
-  const summary = cardSummary(v, info, g, [...slides.filter((s): s is Exclude<RollSlide, "id"> => s !== "id"), ...(info.on.delta ? (["delta"] as const) : [])]);
+  const summary = cardSummary(v, info, g, [...slides.filter((s): s is Exclude<RollSlide, "id"> => s !== "id"), ...under, ...(info.on.delta ? (["delta"] as const) : [])]);
 
   const emblem = <span className={`mmr-emb${look.emblem === "name" ? " mmr-emb--name" : look.emblem === "off" ? " mmr-emb--off" : ""}`}><MmrEmblem d={div} frame={look.emblem} avatar={v.avatar} /></span>;
-  const flag = info.on.cc && v.country ? <span className="mmr-flag">{v.country}</span> : null;
+  const flag = info.on.cc && v.country ? <CountryTag code={v.country} mode={look.country} /> : null;
   const who = (info.on.name || flag || info.on.division) ? (
     <span className="mmr-rwho">
       {(info.on.name || flag) && <span className="mmr-rname">{info.on.name && <span>{v.name}</span>}{flag}</span>}
@@ -158,7 +161,7 @@ export function MmrRolling({ view, look, play, className, fit = "frame", pending
   ) : null;
   const head = r.pin && idShown ? <div className="mmr-rhead">{emblem}{who}</div> : null;
 
-  const ctx: SlideCtx = { v, info, g, shape: r.shape, flame: m.streak && v.streak >= 3, roll: m.roll ? look.number : "still", deltaOn: info.on.delta || inMoment, playN: play?.id ?? 0, peakOn: m.peak, emblem, who, pending: pending ?? null };
+  const ctx: SlideCtx = { v, info, g, shape: r.shape, flame: m.streak && v.streak >= 3, roll: m.roll ? look.number : "still", deltaOn: info.on.delta || inMoment, playN: play?.id ?? 0, peakOn: m.peak, emblem, who, pending: pending ?? null, under };
   const slideCls = (dir: "in" | "out") => `mmr-rs mmr-rs--${dir}-${motion}`;
   const viewport = (
     <div className={`mmr-rvp${ticker ? " mmr-rvp--ticker" : ""}${ticker && st.temp ? " is-moment" : ""}`}>
@@ -178,6 +181,7 @@ export function MmrRolling({ view, look, play, className, fit = "frame", pending
 
   return (
     <div className={cls} data-layout="rolling" data-shape={r.shape} style={vars}>
+      <FontLink look={look} />
       <span className="mmr-sr">{summary}</span>
       <div className="mmr-moment" ref={momentRef} aria-hidden="true">
         <div className={`mmr-roll mmr-roll--${r.shape} mmr-skin`}>
@@ -219,6 +223,8 @@ interface SlideCtx {
   who: ReactNode;
   /** A submitted table not yet verified: said under the MMR. */
   pending: MmrPending | null;
+  /** Tonight's run and/or last 10 under the MMR, in the line the game usually takes. */
+  under: Shown[];
 }
 
 /** One slide: a small label, the big value, and what sits under it. */
@@ -240,7 +246,7 @@ function Slide({ s, c }: { s: RollSlide; c: SlideCtx }) {
         <>
           {label}
           <span className="mmr-rval"><MmrNumber value={v.mmr} mode={c.roll} />{c.deltaOn && v.last && <span key={`d-${c.playN}`} className="mmr-rdelta"><Delta last={v.last} place /></span>}</span>
-          {tags.length ? <span className="mmr-rtags">{tags}</span> : c.pending ? <span className="mmr-rsub">{placeWord(c.pending.place)}: about {signed(c.pending.delta)}, waiting to verify</span> : sub}
+          {tags.length ? <span className="mmr-rtags">{tags}</span> : c.pending ? <span className="mmr-rsub">{placeWord(c.pending.place)}: about {signed(c.pending.delta)}, waiting to verify</span> : c.under.length ? <UnderLine pieces={c.under} view={v} /> : sub}
         </>
       );
     }

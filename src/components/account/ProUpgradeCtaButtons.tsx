@@ -35,9 +35,13 @@ interface ProUpgradeCtaButtonsProps {
   onError?: (message: string) => void;
   /** Short place name for analytics (Upgrade Clicked `from`). */
   from?: string;
+  /** One button, monthly (walls: the yearly price lives on /gs-pro and in Plans & billing). */
+  single?: boolean;
+  /** Shown on the same row after the button(s), like a "See what's included" link. */
+  after?: React.ReactNode;
 }
 
-export function ProUpgradeCtaButtons({ hasUsedTrial: given, onError, from = "plans" }: ProUpgradeCtaButtonsProps) {
+export function ProUpgradeCtaButtons({ hasUsedTrial: given, onError, from = "plans", single = false, after }: ProUpgradeCtaButtonsProps) {
   // Pages that don't know (the marketing /gs-pro page) let the buttons look it up, so nobody is offered a trial they already used.
   const looked = useTrialEligibility();
   const hasUsedTrial = given ?? looked?.hasUsedTrial ?? false;
@@ -92,15 +96,18 @@ export function ProUpgradeCtaButtons({ hasUsedTrial: given, onError, from = "pla
         onClick={() => checkout("monthly")}
         disabled={working}
       >
-        {working ? "Redirecting…" : hasUsedTrial ? `${usd(pro.monthly)} / month` : `Start trial · ${usd(pro.monthly)} / mo after`}
+        {working ? "Redirecting…" : single ? (hasUsedTrial ? `Get GS Pro · ${usd(pro.monthly)} a month` : "Start free trial") : hasUsedTrial ? `${usd(pro.monthly)} / month` : `Start trial · ${usd(pro.monthly)} / mo after`}
       </Button>
-      <Button
-        variant="secondary"
-        onClick={() => checkout("annual")}
-        disabled={working}
-      >
-        {working ? "Redirecting…" : hasUsedTrial ? `${usd(pro.annual)} / year` : `Start trial · ${usd(pro.annual)} / yr after${save ? ` (save ~${save}%)` : ""}`}
-      </Button>
+      {!single && (
+        <Button
+          variant="secondary"
+          onClick={() => checkout("annual")}
+          disabled={working}
+        >
+          {working ? "Redirecting…" : hasUsedTrial ? `${usd(pro.annual)} / year` : `Start trial · ${usd(pro.annual)} / yr after${save ? ` (save ~${save}%)` : ""}`}
+        </Button>
+      )}
+      {after}
     </div>
   );
 }

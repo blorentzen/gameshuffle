@@ -38,7 +38,11 @@ import { againstRoomFor, loungeProfile, rivalsFor, type LoungeProfile } from "@/
 import { createClient } from "@/lib/supabase/server";
 import { isProUser } from "@/lib/subscription-server";
 import { countryName } from "@/lib/lounge/countries";
+import { playerBests } from "@/lib/timeTrials/store";
+import { formatTime as ttFormat, ordinal as ttOrdinal } from "@/lib/timeTrials/rules";
+import { trackPath as ttPath, ttTrack, TT_GAMES, type TtGame } from "@/lib/timeTrials/tracks";
 import "@/styles/lounge.css";
+import "@/styles/time-trials.css";
 
 /**
  * /lounge/<name>: one Mario Kart lounge player (competitive dashboard picks, 2026-10-20; laid out
@@ -484,12 +488,39 @@ export default async function LoungePlayerPage({ params, searchParams }: Params)
     </div>
   );
 
+  // Time trials (picks 2026-10-29): a confirmed player's bests in this lounge's game.
+  const ttGame: TtGame = game === "mk8dx" ? "mk8dx" : "mkworld";
+  const ttBests = profile.confirmed ? (await playerBests(`u:${profile.confirmed.userId}`).catch(() => [])).filter((b) => b.game === ttGame) : [];
+  const times = ttBests.length ? (
+    <section className="lounge-sec lounge-sec--flat" aria-label="Time trials">
+      <p className="lounge-note">{p.name}&apos;s best {TT_GAMES[ttGame].label} time trial times, with their place on each board.</p>
+      <TableScroll label="Time trials">
+        <Table className="tt-cup__table">
+          <TableHeader><TableRow><TableHead>Track</TableHead><TableHead>Time</TableHead><TableHead>Place</TableHead></TableRow></TableHeader>
+          <TableBody>
+            {ttBests.map((b) => {
+              const t = ttTrack(b.game, b.track);
+              return t ? (
+                <TableRow key={`${b.track}-${b.cc}`}>
+                  <TableCell><Link href={ttPath(t, b.cc)}>{t.name}</Link>{TT_GAMES[b.game].classes.length > 1 ? ` (${b.cc}cc)` : ""}</TableCell>
+                  <TableCell className="tt-board__time">{ttFormat(b.timeMs)}</TableCell>
+                  <TableCell>{ttOrdinal(b.place)} of {b.total}</TableCell>
+                </TableRow>
+              ) : null;
+            })}
+          </TableBody>
+        </Table>
+      </TableScroll>
+    </section>
+  ) : null;
+
   const tabs = [
     { id: "overview", label: "Overview", content: overview },
     { id: "events", label: "Events", content: events },
     { id: "teammates", label: "Teammates", content: teammates },
     { id: "play", label: "How they play", badge: "GS Pro", content: howTheyPlay },
     { id: "career", label: "Career", content: <CareerTab name={cur.name} game={game} /> },
+    ...(times ? [{ id: "times", label: "Time trials", content: times }] : []),
   ];
 
   return (

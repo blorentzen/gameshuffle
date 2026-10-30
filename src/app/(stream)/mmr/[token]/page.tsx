@@ -8,7 +8,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cardByToken, liveFor } from "@/lib/mmr/store";
-import { fontStylesheet } from "@/lib/mmr/look";
 import { MmrLive } from "@/components/mmr/MmrLive";
 import { ObsRoute } from "@/components/mmr/ObsRoute";
 import "@/styles/mmr-card.css";
@@ -23,11 +22,9 @@ export default async function MmrObsPage({ params, searchParams }: { params: Pro
   if (!card) notFound();
   const lookId = look && /^[a-z0-9-]{1,24}$/.test(look) ? look : null;
   const initial = await liveFor(card, { look: lookId });
-  const font = initial.look ? fontStylesheet(initial.look.font) : null;
   return (
     <main className="mmr-obs">
       <ObsRoute />
-      {font && <link rel="stylesheet" href={font} />}
       <MmrLive token={token} initial={initial} lookId={lookId} fit="obs" recap={view === "recap"} />
     </main>
   );

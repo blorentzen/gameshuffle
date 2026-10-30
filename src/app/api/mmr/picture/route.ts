@@ -1,12 +1,12 @@
 /**
- * POST /api/mmr/picture (multipart: file) → { url } — a GS Pro MMR card's own background
+ * POST /api/mmr/picture (multipart: file) → { url } — an MMR card's own background (GS Pro or Supporter looks)
  * (PNG, JPG, WebP or an animated GIF, up to 4 MB), stored with the other uploads.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import { isProUser } from "@/lib/subscription-server";
+import { hasLooks } from "@/lib/support/looks";
 import { rateLimit } from "@/lib/ratelimit";
 import { isR2Configured, uploadToR2 } from "@/lib/storage/r2";
 
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "signin" }, { status: 401 });
-  if (!(await isProUser(user.id))) return NextResponse.json({ error: "pro_required" }, { status: 403 });
+  if (!(await hasLooks(user.id))) return NextResponse.json({ error: "pro_required" }, { status: 403 });
   if (!isR2Configured()) return NextResponse.json({ error: "storage_off" }, { status: 503 });
   if (!(await rateLimit(`mmr-picture:${user.id}`, { max: 10, windowMs: 10 * 60_000 })).ok) return NextResponse.json({ error: "slow_down" }, { status: 429 });
   const form = await req.formData().catch(() => null);

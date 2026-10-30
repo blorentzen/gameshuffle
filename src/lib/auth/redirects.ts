@@ -48,6 +48,7 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/pokemon-trainers",
   "/mmr-card",
   "/lounge",
+  "/time-trials",
   "/weekly",
   "/chat-brain",
   "/arcade",

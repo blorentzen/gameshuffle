@@ -2,7 +2,8 @@
  * GET /api/mmr/lookup?name=<lounge name>&game=<mkworld12p|mkworld24p|mk8dx>
  * → { ok: true, source } for the studio's "Find me" and its live preview (with the country rank
  *   and the season's player count, so every piece the studio can switch on has its number), or
- *   { ok: false, reason: "not_found" | "unavailable" }. Signed in, rate limited.
+ *   { ok: false, reason: "not_found" | "unavailable" }. Rate limited per account, or per connection for visitors
+ *   building a card before making an account (try before paying, 2026-10-29).
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -17,8 +18,9 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "signin" }, { status: 401 });
-  if (!(await rateLimit(`mmr-lookup:${user.id}`, { max: 30, windowMs: 60_000 })).ok) return NextResponse.json({ error: "slow_down" }, { status: 429 });
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const key = user ? `mmr-lookup:${user.id}` : `mmr-lookup-ip:${ip}`;
+  if (!(await rateLimit(key, { max: user ? 30 : 15, windowMs: 60_000 })).ok) return NextResponse.json({ error: "slow_down" }, { status: 429 });
   const name = (req.nextUrl.searchParams.get("name") ?? "").trim();
   const game = req.nextUrl.searchParams.get("game");
   if (!name || name.length > 40 || !isMmrGame(game)) return NextResponse.json({ error: "bad_request" }, { status: 400 });

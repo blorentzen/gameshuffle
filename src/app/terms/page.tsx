@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { LegalPage, LegalSubSection, LegalContact, type LegalSection } from "@/components/legal/LegalPage";
 import { circuitLaunch } from "@/lib/tournaments/circuit";
 import { circuitLaunchState } from "@/lib/tournaments/circuit-resolve";
+import { supporterLooksOn } from "@/lib/support/looks";
 
 /** Re-render hourly (and on the billing switch, which revalidates this path) so §3.4 follows the Circuit launch. */
 export const revalidate = 3600;
@@ -117,13 +118,7 @@ const SECTIONS: LegalSection[] = [
           <p>Community owners who offer prizes for tokens, raffles or other activities in their communities are responsible for those prizes.</p>
           <p>Tokens you earn by playing in a streamer&apos;s chat or through GameShuffle&apos;s Twitch extension are the same Arcade Tokens, on these same terms. They can never be bought with Twitch Bits or any other purchase. When you use the extension on Twitch, Twitch&apos;s own terms apply as well.</p>
         </LegalSubSection>
-        <LegalSubSection number="3.6" title="Supporting GameShuffle">
-          <p>You can choose to support GameShuffle with a one-time payment, or monthly at one of the levels on our <a href="/support">support page</a>: Supporter, Backer or Champion. Support is a payment to Britton Lorentzen, doing business as Empac and GameShuffle. GameShuffle is not a charity, and support is not a charitable donation or tax-deductible.</p>
-          <p>One-time support and the Supporter level do not purchase a subscription plan, Arcade Tokens, or access to any feature. As a thank-you, supporters may receive a Supporter badge on their profile and a small heart beside their name on our leaderboards, shown for one year after a one-time payment or while monthly support is active, a card they can choose to share, and may choose to have a name and short note shown on our public supporters wall and our credits page. The first 100 people to support GameShuffle receive a Founding supporter badge that stays on their profile after their support ends. These are thank-yous only: they never add features, items or Arcade Tokens. Names and notes must follow our content standards (section 6.3), and we may remove any of them at any time.</p>
-          <p>The Backer and Champion levels include GameShuffle Pro for as long as the level is active, with the same features as a GameShuffle Pro subscription (section 5), plus the thank-yous above; Champions are also listed first on the supporters wall and the credits page. Because they include GameShuffle Pro, Backer and Champion payments are a purchase, and applicable sales tax is added at checkout like a GameShuffle Pro subscription. They do not include a free trial. If you already pay for GameShuffle Pro another way, choose Supporter or end that subscription first; we do not charge twice for Pro. When a Backer or Champion level ends, GameShuffle Pro ends with it unless you have it another way, and the same downgrade rules apply as when a GameShuffle Pro subscription ends. Changing level starts the new level at once and ends the old one, with the unused part of the old level credited to your account in Stripe.</p>
-          <p>Support payments are processed in US dollars by Stripe and are currently available only with a billing address in the United States. If support is started with a billing address outside the United States, we will refund it and cancel any monthly support. Monthly support renews each month until you cancel it, which you can do at any time from Account ▸ Support or the Stripe Customer Portal; cancellation takes effect at the end of the current monthly period and no further payments are taken. Monthly support requires a GameShuffle account.</p>
-          <p>Because support is voluntary, payments are generally not refundable. If you made a mistake, such as choosing the wrong amount, contact us at billing@gameshuffle.co within 30 days of the payment and we will refund it. We may change or stop offering support at any time; if we stop, monthly support is cancelled and no further payments are taken.</p>
-        </LegalSubSection>
+        <SupportTerms />
       </>
     ),
   },
@@ -440,12 +435,27 @@ const SECTIONS: LegalSection[] = [
   },
 ];
 
+/** §3.6: support levels, with the Supporter looks paragraph while the $3 level sells looks (the switch revalidates this path). */
+async function SupportTerms() {
+  const looks = await supporterLooksOn();
+  return (
+    <LegalSubSection number="3.6" title="Supporting GameShuffle">
+      <p>You can choose to support GameShuffle with a one-time payment, or monthly at one of the levels on our <a href="/support">support page</a>: Supporter, Backer or Champion. Support is a payment to Britton Lorentzen, doing business as Empac and GameShuffle. GameShuffle is not a charity, and support is not a charitable donation or tax-deductible.</p>
+      <p>{looks ? "One-time support does not" : "One-time support and the Supporter level do not"} purchase a subscription plan, Arcade Tokens, or access to any feature. As a thank-you, supporters may receive a Supporter badge on their profile and a small heart beside their name on our leaderboards, shown for one year after a one-time payment or while monthly support is active, a card they can choose to share, and may choose to have a name and short note shown on our public supporters wall and our credits page. The first 100 people to support GameShuffle receive a Founding supporter badge that stays on their profile after their support ends. These are thank-yous only: they never add features, items or Arcade Tokens. Names and notes must follow our content standards (section 6.3), and we may remove any of them at any time.</p>
+      {looks && <p>While it is active, the Supporter level includes Supporter looks: the choices that change how things look on GameShuffle, such as MMR card looks, profile and community skins, brand themes, custom CSS, and dice and coin looks. It does not include GameShuffle Pro&apos;s other features. Because it includes Supporter looks, the Supporter level is a purchase, and applicable sales tax is added at checkout. When the level ends, your saved looks are kept and your pages show the free versions until you have looks again.</p>}
+      <p>The Backer and Champion levels include GameShuffle Pro for as long as the level is active, with the same features as a GameShuffle Pro subscription (section 5), plus the thank-yous above; Champions are also listed first on the supporters wall and the credits page. Because they include GameShuffle Pro, Backer and Champion payments are a purchase, and applicable sales tax is added at checkout like a GameShuffle Pro subscription. They do not include a free trial. If you already pay for GameShuffle Pro another way, choose Supporter or end that subscription first; we do not charge twice for Pro. When a Backer or Champion level ends, GameShuffle Pro ends with it unless you have it another way, and the same downgrade rules apply as when a GameShuffle Pro subscription ends. Changing level starts the new level at once and ends the old one, with the unused part of the old level credited to your account in Stripe.</p>
+      <p>Support payments are processed in US dollars by Stripe and are currently available only with a billing address in the United States. If support is started with a billing address outside the United States, we will refund it and cancel any monthly support. Monthly support renews each month until you cancel it, which you can do at any time from Account ▸ Support or the Stripe Customer Portal; cancellation takes effect at the end of the current monthly period and no further payments are taken. Monthly support requires a GameShuffle account.</p>
+      <p>Because support is voluntary, payments are generally not refundable. If you made a mistake, such as choosing the wrong amount, contact us at billing@gameshuffle.co within 30 days of the payment and we will refund it. We may change or stop offering support at any time; if we stop, monthly support is cancelled and no further payments are taken.</p>
+    </LegalSubSection>
+  );
+}
+
 export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
       intro="The rules for using GameShuffle: accounts, subscriptions, tournaments, and your rights."
-      effectiveDate="October 20, 2026"
+      effectiveDate="October 29, 2026"
       sections={SECTIONS}
       current="terms"
     />

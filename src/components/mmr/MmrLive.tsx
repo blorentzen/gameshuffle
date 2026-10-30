@@ -96,9 +96,9 @@ export function MmrLive({ token, initial, fit = "obs", look: lookOverride, lookI
   if (recap) {
     // The recap is GS Pro; a lapsed or free card says so instead of drawing it.
     if (!data.pro) return <p className="mmr-obs-note">The night recap is part of GS Pro.</p>;
-    return <MmrCard view={view} look={look} fit={fit} recap={data.ok ? nightRecap(data.source) : null} goal={data.ok ? data.goal ?? null : null} />;
+    return <MmrCard view={view} look={look} fit={fit} recap={data.ok ? nightRecap(data.source) : null} goal={data.ok ? data.goal ?? null : null} chat={data.ok && !!data.chat} />;
   }
-  return <MmrCard view={view} look={look} play={play} fit={fit} pending={data.ok ? data.pending ?? null : null} goal={data.ok ? data.goal ?? null : null} />;
+  return <MmrCard view={view} look={look} play={play} fit={fit} pending={data.ok ? data.pending ?? null : null} goal={data.ok ? data.goal ?? null : null} chat={data.ok && !!data.chat} />;
 }
 
 /** The made-up night on a loop (a win, a loss, a win, a climb into Platinum, a third straight win and a new peak). */

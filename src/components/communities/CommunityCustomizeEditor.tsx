@@ -13,8 +13,7 @@
  * saving puts the page back exactly as it was.
  */
 
-import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
-import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
+import { LooksPrompt, useLooks } from "@/components/billing/LooksOnly";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Drawer, Input, Textarea, Switch } from "@empac/cascadeds";
@@ -58,9 +57,9 @@ export function CommunityCustomizeEditor({
   const snapRef = useRef<SkinSnapshot | null>(null);
   const savedRef = useRef(false);
 
-  // Backgrounds, card style and custom CSS are GS Pro: free owners don't get a live preview of them.
-  const who = useTrialEligibility();
-  const canStyle = !!who?.isPro;
+  // Backgrounds, card style and custom CSS are looks (GS Pro or Supporter looks): others don't get a live preview of them.
+  const who = useLooks();
+  const canStyle = !!who?.looks;
 
   useEffect(() => {
     if (!canStyle) return;
@@ -163,11 +162,11 @@ export function CommunityCustomizeEditor({
             </label>
           )}
 
-          {/* Appearance — background + card style (reuses the profile skin gate). GS Pro. */}
+          {/* Appearance: background + card style (reuses the profile skin gate). Looks. */}
           {who && !canStyle && (
-            <ProTrialPrompt title="Backgrounds and custom CSS are part of GS Pro" from="community-style" compact>
+            <LooksPrompt what="Backgrounds and custom CSS" from="community-style" compact>
               <p>Give your community page its own background, card style and CSS. Everything else here is free.</p>
-            </ProTrialPrompt>
+            </LooksPrompt>
           )}
           {canStyle && (<>
           <div className="hub-form__field">

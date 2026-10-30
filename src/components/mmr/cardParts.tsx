@@ -11,7 +11,9 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import {
   IconFlameFilled, IconLaurelWreathFilled, IconSparklesFilled, IconStarFilled, IconTargetArrow, IconTrendingDown, IconTrendingUp,
 } from "@tabler/icons-react";
-import { divisionLook, lookVars, type DivisionLook, type MmrLook } from "@/lib/mmr/look";
+import { divisionLook, fontStylesheet, lookVars, type DivisionLook, type MmrLook } from "@/lib/mmr/look";
+import { flagUrl } from "@/lib/lounge/flags";
+import { mmrRubik } from "./mmrFonts";
 import { MMR_GAMES, fmtMmr, milestoneTier, placeWord, signed, type MmrView, type Square } from "@/lib/mmr/rules";
 import { pieceText, type MmrInfo, type Shown } from "@/lib/mmr/pieces";
 import { goalText, type GoalProgress } from "@/lib/mmr/goal";
@@ -261,7 +263,39 @@ export function cardVars(look: MmrLook, div: DivisionLook, glyphs: DivisionLook,
 }
 
 export const cardClass = (look: MmrLook, fit: "frame" | "obs", className?: string) =>
-  `mmr mmr--${fit} mmr-sf-${look.surface} mmr-fill-${look.fill} mmr-bd-${look.border} mmr-brand-${look.brand}${look.foil ? " mmr-foil" : ""}${className ? ` ${className}` : ""}`;
+  `mmr ${mmrRubik.variable} mmr--${fit} mmr-sf-${look.surface} mmr-fill-${look.fill} mmr-bd-${look.border} mmr-brand-${look.brand} mmr-align-${look.align}${look.foil ? " mmr-foil" : ""}${className ? ` ${className}` : ""}`;
+
+/** The look's Google Fonts stylesheet (the paid fonts and "Any Google Font"), hoisted into the page head once. */
+export function FontLink({ look }: { look: MmrLook }) {
+  const href = fontStylesheet(look);
+  return href ? <link rel="stylesheet" href={href} precedence="mmr-font" /> : null;
+}
+
+/** The country beside the name: the code, the flag (our own pictures; emoji flags are letters on Windows), or both.
+ *  A code we have no flag for stays a code. */
+export function CountryTag({ code, mode }: { code: string; mode: MmrLook["country"] }) {
+  const flag = mode === "code" ? null : flagUrl(code);
+  if (!flag) return <span className="mmr-flag">{code}</span>;
+  // eslint-disable-next-line @next/next/no-img-element -- a tiny same-origin SVG inside an OBS source
+  const img = <img className="mmr-flag__img" src={flag} alt="" />;
+  return mode === "both" ? <span className="mmr-flag mmr-flag--both">{img}{code}</span> : <span className="mmr-flag mmr-flag--pic">{img}</span>;
+}
+
+/** Tonight's run and/or last 10 under the number (Strip, Sticker, Rolling's MMR slide). */
+export function UnderLine({ pieces, view }: { pieces: Shown[]; view: MmrView }) {
+  if (!pieces.length) return null;
+  const t = view.tonight;
+  return (
+    <span className="mmr-under">
+      {pieces.includes("tonight") && (
+        <span className="mmr-under__item"><small>Tonight</small><b className={t.delta > 0 ? "up" : t.delta < 0 ? "down" : undefined}>{signed(t.delta)} · {t.w}-{t.l}</b></span>
+      )}
+      {pieces.includes("last10") && view.squares.length > 0 && (
+        <span className="mmr-under__item"><small>Last 10</small><Squares marks={view.squares} /></span>
+      )}
+    </span>
+  );
+}
 
 /** For screen readers, everything the card shows at once (nothing takes turns here). `extra`: the other pieces shown. */
 export function cardSummary(view: MmrView, info: MmrInfo, g: GoalProgress | null, extra: Shown[]): string {

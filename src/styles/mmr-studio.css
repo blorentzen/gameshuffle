@@ -101,3 +101,32 @@
 .mmr-rolling-ctl__fold .empac-accordion__trigger { padding: var(--spacing-12) 0; min-height: 44px; }
 .mmr-rolling-ctl__fold .empac-accordion__trigger-title { font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
 .mmr-rolling-ctl__fold .empac-accordion__content-inner { padding: 0 0 var(--spacing-16); }
+
+/* Feedback round (2026-10-29): Line up, border color, Any Google Font. */
+.mmr-studio__inline { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-8); }
+.mmr-studio__inline-label { font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); }
+.mmr-studio__fontpick { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-8); }
+.mmr-studio__fontform { display: grid; gap: var(--spacing-12); grid-template-columns: minmax(0, 1fr); align-items: end; }
+@media (min-width: 560px) { .mmr-studio__fontform { grid-template-columns: minmax(0, 1fr) auto; } }
+
+/* Keep these looks (try before paying, 2026-10-29; tightened the same day): one panel under the preview, the two
+   choices side by side once the panel has room (a container query, so it follows the studio's column). */
+.keep-looks { display: grid; gap: var(--spacing-16); }
+.keep-looks__head { display: flex; align-items: center; gap: var(--spacing-12); }
+.keep-looks__title { margin: 0; font-size: var(--font-size-18); }
+.keep-looks__used { margin: var(--spacing-4) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.keep-looks__choices { container-type: inline-size; }
+.keep-looks__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-16); }
+.keep-looks__choice + .keep-looks__choice { padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
+@container (min-width: 460px) {
+  .keep-looks__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--spacing-20); }
+  .keep-looks__choice + .keep-looks__choice { padding-top: 0; border-top: 0; }
+}
+.keep-looks__choice { display: grid; grid-template-rows: auto 1fr auto; gap: var(--spacing-8); min-width: 0; }
+.keep-looks__name { margin: 0; font-family: var(--font-display); font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.keep-looks__price { display: block; margin-top: var(--spacing-2); font-family: var(--font-body, inherit); font-size: var(--font-size-14); font-weight: 600; color: var(--text-secondary); }
+.keep-looks__line { margin: 0; font-size: var(--font-size-14); line-height: 1.45; color: var(--text-secondary); }
+.keep-looks__check { display: grid; gap: var(--spacing-8); }
+.keep-looks__free { margin: 0; padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); font-size: var(--font-size-14); color: var(--text-secondary); }
+.keep-looks__outside { display: grid; gap: var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.keep-looks .empac-button { white-space: normal; height: auto; min-height: 4rem; text-align: center; }

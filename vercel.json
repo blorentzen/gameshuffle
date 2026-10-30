@@ -106,6 +106,10 @@
       "schedule": "0 15 1 * *"
     },
     {
+      "path": "/api/cron/tt-records",
+      "schedule": "0 15 2 * *"
+    },
+    {
       "path": "/api/cron/lounge",
       "schedule": "*/15 * * * *"
     },
