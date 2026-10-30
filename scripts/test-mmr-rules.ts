@@ -6,7 +6,7 @@
  */
 import {
   DEMO_EVENTS, FALLBACK_RANKS, demoSource, formSquares, gameForSlug, milestoneTier, placeWord, seasonNumbers, setsPeak, signed,
-  splitDivision, standing, stepsFrom, tonightRun, viewOf, winStreak, withEvent, type MmrChange,
+  splitDivision, standing, stepsFrom, tonightRun, viewOf, winStreak, withEvent, timeOrderedIds, type MmrChange,
 } from "../src/lib/mmr/rules";
 import { DEFAULT_LOOK, cleanFontName, cleanLook, divisionLook, fontOf, fontStylesheet, freeLook, lookVars, proUsed } from "../src/lib/mmr/look";
 import { flagUrl } from "../src/lib/lounge/flags";
@@ -332,6 +332,18 @@ eq(slideText("tonight", n5, DEFAULT_INFO, null)?.sub, "4 wins, 1 loss", "tonight
   eq([cellFor(skins, "supporter", false), cellFor(skins, "supporter", true), cellFor(skins, "pro", false)], [false, true, true], "the Supporter column follows the switch");
   ok(rows.every((r) => cellFor(r, "supporter", false) !== undefined && cellFor(r, "backer", true) !== undefined), "every row has a cell for every plan");
   ok(rows.filter((r) => r.label.includes("Twitch")).every((r) => cellFor(r, "supporter", true) === false), "Supporter never includes the Twitch tools");
+}
+
+// Ids in time order (2026-10-30: a strike numbered apart from tables made a live card replay its last five events)
+{
+  const row = (id: number, reason: string, mmr: number, at: string): MmrChange => ({ id, mmr, delta: 0, at, reason, place: null, score: null, tier: null });
+  const raw = [row(126817, "Strike", 6589, "2026-10-30T23:18:00Z"), row(1153259, "Table", 6639, "2026-10-30T23:13:00Z"), row(1153250, "Table", 6629, "2026-10-30T22:36:00Z"), row(0, "Placement", 6000, "2026-10-01T00:00:00Z")];
+  const fixed = timeOrderedIds(raw);
+  eq(fixed.map((c) => c.id), [1153259.01, 1153259, 1153250, 0], "a strike after the newest table gets an id just above it");
+  ok(fixed.every((c, i) => c.mmr === raw[i].mmr && c.reason === raw[i].reason), "only the ids change");
+  eq(raw[0].id, 126817, "the list given isn't changed");
+  eq(timeOrderedIds([row(1153250, "TableDelete", 6616, "2026-10-30T23:30:00Z"), row(126817, "Strike", 6589, "2026-10-30T23:18:00Z"), ...raw.slice(1)]).map((c) => c.id), [1153259.02, 1153259.01, 1153259, 1153250, 0], "two in a row: two hundredths");
+  eq(timeOrderedIds(raw.slice(1)).map((c) => c.id), [1153259, 1153250, 0], "ids already in order stay as they are");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

@@ -22,7 +22,7 @@ import { isBlockedText } from "@/lib/text/filter";
 import { accountAvatar, type AccountRow } from "@/lib/discord/faces";
 import { LoungeUnavailable, countryCountAbove, loungePlayer, loungeStats, unverifiedTables } from "./mkcentral";
 import { pendingFor } from "@/lib/lounge/pending";
-import { gameForSlug, isMmrGame, milestoneTier, viewOf, type MmrGame, type MmrView } from "./rules";
+import { gameForSlug, isMmrGame, milestoneTier, timeOrderedIds, viewOf, type MmrGame, type MmrView } from "./rules";
 import { cleanGoal, goalActive, type MmrGoal } from "./goal";
 import type { MmrCardView, MmrLiveResult, MmrMilestone } from "./types";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
@@ -348,7 +348,8 @@ export async function liveFor(card: MmrCard, opts: { look?: string | null; since
       division: player.division,
       worldRank: player.worldRank,
       steps,
-      changes: player.changes,
+      // Ids that rise with time: the live card tells new changes from old by them (timeOrderedIds).
+      changes: timeOrderedIds(player.changes),
       since,
       avatar,
       countryRank: countryAbove == null ? null : countryAbove + 1,
