@@ -36,8 +36,9 @@ import { resolveStripePriceId } from "@/lib/pricing/catalog";
 import { getProAccess } from "@/lib/subscription-server";
 import { isStaffRole, normalizeTier } from "@/lib/subscription";
 import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
+import { supporterLooksOn } from "@/lib/support/looks";
 import {
-  FOUNDING_SUPPORTERS, SUPPORTER_BADGE_DAYS, WALL_NAME_MAX, WALL_NOTE_MAX, amountProblem, dollars, levelRank, supportLevel, tidyWall,
+  FOUNDING_SUPPORTERS, SUPPORTER_BADGE_DAYS, WALL_NAME_MAX, WALL_NOTE_MAX, amountProblem, dollars, levelGrantsPro, levelRank, supportLevel, tidyWall,
   type SupportCost, type SupportKind, type SupportLevel, type SupportLevelDef,
 } from "@/lib/support/rules";
 
@@ -103,10 +104,15 @@ async function proTaxCode(stripe: Stripe): Promise<string | null> {
   return typeof product.tax_code === "string" ? product.tax_code : product.tax_code?.id ?? null;
 }
 
-/** Backer and Champion each have a product of their own (gs_support_backer, gs_support_champion) carrying GS Pro's tax code. */
+/**
+ * Backer and Champion each have a product of their own (gs_support_backer, gs_support_champion) carrying
+ * GS Pro's tax code; so does Supporter with looks (gs_support_supporter), since looks make it a sale too.
+ */
 const levelProducts = new Map<SupportLevel, Promise<string>>();
 function levelProduct(stripe: Stripe, level: SupportLevelDef): Promise<string> {
   const id = `gs_support_${level.id}`;
+  const name = level.pro ? `GameShuffle ${level.name} (includes GS Pro)` : `GameShuffle ${level.name} (includes Supporter looks)`;
+  const description = level.pro ? `Monthly ${level.name} support for GameShuffle, with GS Pro included.` : `Monthly ${level.name} support for GameShuffle, with Supporter looks included.`;
   const ready = levelProducts.get(level.id) ?? (async () => {
     const existing = await stripe.products.retrieve(id).catch((err: { code?: string }) => {
       if (err?.code === "resource_missing") return null;
@@ -116,8 +122,8 @@ function levelProduct(stripe: Stripe, level: SupportLevelDef): Promise<string> {
       const taxCode = await proTaxCode(stripe);
       await stripe.products.create({
         id,
-        name: `GameShuffle ${level.name} (includes GS Pro)`,
-        description: `Monthly ${level.name} support for GameShuffle, with GS Pro included.`,
+        name,
+        description,
         ...(taxCode ? { tax_code: taxCode } : {}),
         metadata: { gs_kind: "support", gs_support_level: level.id },
       }).catch((err: { code?: string }) => {
@@ -149,6 +155,8 @@ export async function startSupportCheckout(args: {
   wallNote: unknown;
   showOnWall: boolean;
   origin: string;
+  /** An allowlisted page to come back to instead of /support/thanks (it fulfils the session itself). */
+  returnTo?: string | null;
 }): Promise<CheckoutResult> {
   // Monthly support is a level; the level sets the amount.
   const level = args.kind === "monthly" ? supportLevel(args.level ?? "supporter") : null;
@@ -159,6 +167,9 @@ export async function startSupportCheckout(args: {
   if (args.kind === "monthly" && !args.user) return { ok: false, error: "sign_in" };
   const stripe = getStripe();
   const admin = createServiceClient();
+  // Supporter looks: with the switch on, the Supporter level unlocks looks and is sold like Backer.
+  const looks = level?.id === "supporter" && (await supporterLooksOn());
+  const sale = !!level?.pro || looks;
   if (level?.pro && args.user) {
     // Already paying for GS Pro another way (a GS Pro plan, a trial, Circuit 256): Supporter adds the thanks without a second charge.
     const access = await getProAccess(args.user.id, admin);
@@ -175,6 +186,7 @@ export async function startSupportCheckout(args: {
     gs_kind: "support",
     gs_support_kind: args.kind,
     ...(level ? { gs_support_level: level.id } : {}),
+    ...(looks ? { gs_support_looks: "1" } : {}),
     ...(args.user ? { gs_user_id: args.user.id } : {}),
     ...(name ? { wall_name: name } : {}),
     ...(note ? { wall_note: note } : {}),
@@ -193,26 +205,26 @@ export async function startSupportCheckout(args: {
     }
   }
 
-  // A level with GS Pro must be taxed like GS Pro, so it never falls back to an untaxed inline product.
-  const product = level?.pro
+  // A level that's a sale (GS Pro or looks) must be taxed, so it never falls back to an untaxed inline product.
+  const product = sale && level
     ? await levelProduct(stripe, level).catch((err) => { console.error("[support] level product setup failed:", err); return null; })
     : await supportProduct(stripe).catch((err) => { console.error("[support] product setup failed, using an inline product:", err); return null; });
-  if (level?.pro && !product) return { ok: false, error: "failed" };
+  if (sale && !product) return { ok: false, error: "failed" };
   const productRef = product
     ? { product }
     : { product_data: { name: args.kind === "monthly" ? "Monthly support for GameShuffle" : "Support for GameShuffle", metadata: { gs_kind: "support" } } };
-  const description = level ? `${level.name}: monthly support for GameShuffle${level.pro ? ", GS Pro included" : ""}` : "Monthly support for GameShuffle";
+  const description = level ? `${level.name}: monthly support for GameShuffle${level.pro ? ", GS Pro included" : looks ? ", Supporter looks included" : ""}` : "Monthly support for GameShuffle";
   try {
     const session = await stripe.checkout.sessions.create({
       mode: args.kind === "monthly" ? "subscription" : "payment",
       line_items: [{
         quantity: 1,
         price_data: args.kind === "monthly"
-          ? { currency: "usd", unit_amount: cents, recurring: { interval: "month" as const }, ...(level?.pro ? { tax_behavior: "exclusive" as const } : {}), ...productRef }
+          ? { currency: "usd", unit_amount: cents, recurring: { interval: "month" as const }, ...(sale ? { tax_behavior: "exclusive" as const } : {}), ...productRef }
           : { currency: "usd", unit_amount: cents, ...productRef },
       }],
-      // A level with GS Pro is a sale: Stripe Tax from the billing address, and the Terms, as on GS Pro's checkout.
-      ...(level?.pro ? {
+      // A level with GS Pro or looks is a sale: Stripe Tax from the billing address, and the Terms, as on GS Pro's checkout.
+      ...(sale ? {
         automatic_tax: { enabled: true },
         consent_collection: { terms_of_service: "required" as const },
         custom_text: { terms_of_service_acceptance: { message: "I agree to the [Terms of Service](https://www.gameshuffle.co/terms) and [Privacy Policy](https://www.gameshuffle.co/privacy)." } },
@@ -227,8 +239,10 @@ export async function startSupportCheckout(args: {
       ...(args.kind === "monthly"
         ? { subscription_data: { metadata, description } }
         : { payment_intent_data: { metadata, description: "Support for GameShuffle", statement_descriptor_suffix: "SUPPORT" }, submit_type: "pay" as const }),
-      success_url: `${args.origin}/support/thanks?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${args.origin}/support?canceled=1`,
+      success_url: args.returnTo
+        ? `${args.origin}${args.returnTo}?checkout=success&plan=${level?.id ?? "support"}&session_id={CHECKOUT_SESSION_ID}`
+        : `${args.origin}/support/thanks?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: args.returnTo ? `${args.origin}${args.returnTo}?checkout=canceled&plan=${level?.id ?? "support"}` : `${args.origin}/support?canceled=1`,
     });
     return session.url ? { ok: true, url: session.url } : { ok: false, error: "failed" };
   } catch (err) {
@@ -274,6 +288,7 @@ const meta = (m: Stripe.Metadata | null | undefined) => ({
   wallName: m?.wall_name || null,
   wallNote: m?.wall_note || null,
   showOnWall: m?.show_on_wall === "1",
+  looks: m?.gs_support_looks === "1",
 });
 
 async function thank(userId: string | null, email: string | null, name: string | null, cents: number, monthly: boolean, onWall: boolean, sessionId: string, level: SupportLevel | null = null) {
@@ -359,8 +374,9 @@ export async function recordSupportSubscription(sub: Stripe.Subscription): Promi
     updated_at: new Date().toISOString(),
   };
   const save = (r: Record<string, unknown>) => admin.from("support_subscriptions").upsert(r, { onConflict: "stripe_subscription_id" });
-  let { error } = await save({ ...row, level: m.level });
-  // Before support-m3.sql there's no level column: keep the supporter without it.
+  let { error } = await save({ ...row, level: m.level, looks: m.looks || levelGrantsPro(m.level) });
+  // Before support-m4.sql there's no looks column, and before support-m3.sql no level: keep the supporter without them.
+  if (error && ["PGRST204", "42703"].includes(error.code ?? "")) ({ error } = await save({ ...row, level: m.level }));
   if (error && ["PGRST204", "42703"].includes(error.code ?? "")) ({ error } = await save(row));
   if (error) { if (!supportMissing(error)) console.error("[support] subscription save failed:", error); return false; }
   const created = !before;

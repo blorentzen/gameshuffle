@@ -7,7 +7,7 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { isProUser } from "@/lib/subscription-server";
+import { hasLooks } from "@/lib/support/looks";
 import { getBrandThemeForOwner } from "@/lib/theme/brand-server";
 import { DEFAULT_BRAND_THEME_ID } from "@/lib/theme/brand";
 import { accountAvatar, type AccountRow } from "@/lib/discord/faces";
@@ -80,7 +80,7 @@ export async function saveLook<T extends ToolLookId>(ownerUserId: string, tool: 
     .maybeSingle();
   const storedRaw = ((data as { config?: Record<string, unknown> } | null)?.config ?? null);
   const stored = storedRaw ? normalizeLook(tool, storedRaw) : null;
-  const hasPro = pro ?? (await isProUser(ownerUserId));
+  const hasPro = pro ?? (await hasLooks(ownerUserId));
   const next = mergeForSave(tool, normalizeLook(tool, incoming), stored, hasPro);
   const config = { ...(storedRaw ?? {}), ...(next as unknown as Record<string, unknown>) };
   const { error } = await admin
@@ -128,7 +128,7 @@ export function drawnLook<T extends ToolLookId>(tool: T, look: LookFor<T>, pro: 
 
 /** Dice colors and table for an overlay event. */
 export async function diceForOverlay(ownerUserId: string): Promise<{ look: DiceLook; dieColor: string; pipColor: string; table: DiceLook["table"] | null }> {
-  const [look, pro] = await Promise.all([readLook(ownerUserId, "dice"), isProUser(ownerUserId)]);
+  const [look, pro] = await Promise.all([readLook(ownerUserId, "dice"), hasLooks(ownerUserId)]);
   const brand = pro && look.matchBrand ? await lookBrand(ownerUserId) : null;
   const drawn = diceDrawn(look, { pro, brand });
   return { look, dieColor: drawn.dieColor, pipColor: drawn.pipColor, table: look.showTable ? look.table : null };
@@ -136,7 +136,7 @@ export async function diceForOverlay(ownerUserId: string): Promise<{ look: DiceL
 
 /** The coin as drawn for an overlay event. */
 export async function coinForOverlay(ownerUserId: string): Promise<{ look: CoinLook; paint: CoinPaint }> {
-  const [look, pro] = await Promise.all([readLook(ownerUserId, "coin"), isProUser(ownerUserId)]);
+  const [look, pro] = await Promise.all([readLook(ownerUserId, "coin"), hasLooks(ownerUserId)]);
   const [brand, avatarUrl] = await Promise.all([
     pro && look.matchBrand ? lookBrand(ownerUserId) : Promise.resolve(null),
     pro && look.picture ? accountPicture(ownerUserId) : Promise.resolve(null),

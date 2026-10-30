@@ -28,6 +28,7 @@ import type { IconName } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
 import { PaidPlansWaitlist } from "@/components/billing/PaidPlansWaitlist";
+import { PlansCompare } from "@/components/billing/PlansCompare";
 import { BackingPair } from "@/components/support/BackingPair";
 import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
@@ -467,6 +468,9 @@ export default function GsProPage() {
       </DarkBand>
 
       <Container>
+        {/* What each plan includes, where every "See what's included" link lands (try before paying picks, 2026-10-29). */}
+        <PlansCompare titleClassName="pricing-page__section-title" from="gs-pro" />
+
         {/* GS Pro and Support, the two ways to back GameShuffle, side by side (Britton's picks, 2026-10-19). */}
         <section className="pricing-page__backing" aria-labelledby="backing-title">
           <h2 id="backing-title" className="pricing-page__section-title">Two ways to back GameShuffle</h2>

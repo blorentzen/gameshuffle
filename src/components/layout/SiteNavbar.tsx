@@ -40,6 +40,8 @@ const HERO_ROUTES = new Set([
   "/welcome",
   "/mmr-card",
   "/lounge",
+  "/time-trials",
+  "/time-trials/import",
   "/game-nights/halloween-party-games",
   "/game-nights/christmas-party-games",
   "/apps",
@@ -116,6 +118,8 @@ function isHeroPath(pathname: string): boolean {
   if (HERO_ROUTES.has(pathname)) return true;
   // Trainer Road: the front page, each region and each trainer open on the band.
   if (/^\/pokemon-trainers(\/[^/]+){0,2}$/.test(pathname)) return true;
+  // Time trials: each game's page and each track's board.
+  if (/^\/time-trials(\/[^/]+){1,2}$/.test(pathname)) return true;
   // Lounge head-to-head (/lounge/compare/<a>/<b>) opens on the same band.
   if (/^\/lounge\/compare\/[^/]+\/[^/]+$/.test(pathname)) return true;
   for (const { prefix, notIds } of HERO_DETAIL) {

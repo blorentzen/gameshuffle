@@ -25,6 +25,8 @@ export interface MmrLiveData {
   pending?: MmrPending | null;
   /** Tonight's goal (GS Pro), when one is set for this night and this look's game. */
   goal?: number | null;
+  /** GameShuffle's bot answers !mmr in this streamer's Twitch chat (the panel's chat line shows only then). */
+  chat?: boolean;
   fetchedAt: string;
 }
 

@@ -50,7 +50,7 @@ export function DiceLookFields({ look, onChange, pro, brand, stream = false, fro
         disabled={!pro}
         onChange={(e) => set("matchBrand", e.target.checked)}
       />
-      {!pro && <ProLookNote from={from}>Wooden and rust dice and your brand colors come with GS Pro.</ProLookNote>}
+      {!pro && <ProLookNote from={from} what="Wooden and rust dice and your brand colors" />}
     </>
   );
 }

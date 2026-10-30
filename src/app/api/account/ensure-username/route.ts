@@ -10,6 +10,8 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { ensureUsername } from "@/lib/social/usernameAssign";
 import { syncProfileFromOAuth } from "@/lib/auth/syncOAuthProfile";
 import { claimSupportGifts } from "@/lib/support/store";
+import { claimForUser } from "@/lib/timeTrials/claim";
+import { TT_MOVED_COOKIE } from "@/lib/timeTrials/moved";
 
 export const runtime = "nodejs";
 
@@ -23,6 +25,9 @@ export async function POST() {
     await syncProfileFromOAuth(supabase, user).catch((err) => console.error("[ensure-username] oauth sync failed:", err));
   }
 
+  // Time trials added in Discord before linking an account move to it.
+  const ttMoved = await claimForUser(user);
+
   // Support given while signed out with this confirmed email counts as theirs from now on.
   if (user.email_confirmed_at) await claimSupportGifts(user.id, user.email).catch(() => 0);
 
@@ -32,13 +37,13 @@ export async function POST() {
     .eq("id", user.id)
     .maybeSingle();
   const p = profile as { username: string | null; display_name: string | null; gamertags: { discord?: string; twitch?: string } | null } | null;
-  if (p?.username) return NextResponse.json({ ok: true, username: p.username });
-
-  const username = await ensureUsername(user.id, {
+  const username = p?.username ?? await ensureUsername(user.id, {
     discord: p?.gamertags?.discord ?? null,
     twitch: p?.gamertags?.twitch ?? null,
     displayName: p?.display_name ?? null,
     email: user.email ?? null,
   });
-  return NextResponse.json({ ok: true, username });
+  const res = NextResponse.json({ ok: true, username });
+  if (ttMoved > 0) res.cookies.set(TT_MOVED_COOKIE, String(ttMoved), { path: "/", maxAge: 600, sameSite: "lax" });
+  return res;
 }

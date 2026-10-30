@@ -8,10 +8,13 @@ import {
   DEMO_EVENTS, FALLBACK_RANKS, demoSource, formSquares, gameForSlug, milestoneTier, placeWord, seasonNumbers, setsPeak, signed,
   splitDivision, standing, stepsFrom, tonightRun, viewOf, winStreak, withEvent, type MmrChange,
 } from "../src/lib/mmr/rules";
-import { DEFAULT_LOOK, cleanLook, divisionLook, freeLook, lookVars, proUsed } from "../src/lib/mmr/look";
+import { DEFAULT_LOOK, cleanFontName, cleanLook, divisionLook, fontOf, fontStylesheet, freeLook, lookVars, proUsed } from "../src/lib/mmr/look";
+import { flagUrl } from "../src/lib/lounge/flags";
+import { cleanDraft, draftFor, isDraftPlan } from "../src/lib/mmr/draft";
+import { COMPARE_GROUPS, cellFor } from "../src/data/plans-compare";
 import {
   DEFAULT_INFO, FREE_PIECES, LAYOUT_SPOTS, PIECE_IDS, PRESETS, applyPreset, bigIsWorld, cleanInfo, countryShort, detailsFor, fitSlots,
-  pieceOrder, pieceText, presetOf, topPercent, topText, winPercent, type MmrInfo, type Shown,
+  pieceOrder, pieceText, presetOf, topPercent, topText, underPieces, winPercent, type MmrInfo, type Shown,
 } from "../src/lib/mmr/pieces";
 import {
   DEFAULT_ROLLING, ROLL_PIECES, cleanRolling, freeRolling, jumpTarget, nextSlide, proRollingUsed, resumeAfter, rollRound, rollSlides, slideSecs, slideText,
@@ -82,11 +85,44 @@ eq(viewOf(demo, demo.changes[1].id).division, "Platinum", "8,026 crossed into Pl
 
 // Looks
 const bad = cleanLook({ layout: "banner", colors: "rainbow", font: "comic", custom: ["red", "#00ff00"], picture: "javascript:alert(1)", show: { world: false }, game: "mk64", id: "BAD ID" });
-eq([bad.layout, bad.colors, bad.font, bad.custom, bad.picture, bad.info.on.world, bad.info.on.peak, bad.game, bad.id], ["deck", "gs", "gs", DEFAULT_LOOK.custom, null, false, true, "mkworld12p", "main"], "junk input falls back");
+eq([bad.layout, bad.colors, bad.font, bad.custom, bad.picture, bad.info.on.world, bad.info.on.peak, bad.game, bad.id], ["deck", "gs", "rubik", DEFAULT_LOOK.custom, null, false, true, "mkworld12p", "main"], "junk input falls back");
 const pro = cleanLook({ colors: "neon", fill: "dots", emblem: "picture", font: "bebas", border: "two", foil: true, brand: "off" });
 eq(proUsed(pro).length, 7, "seven GS Pro choices counted");
 const fl = freeLook(pro);
-eq([fl.colors, fl.fill, fl.emblem, fl.font, fl.border, fl.foil, fl.brand], ["gs", "gradient", "tile", "gs", "one", false, "inside"], "a free card keeps its look minus GS Pro");
+eq([fl.colors, fl.fill, fl.emblem, fl.font, fl.border, fl.foil, fl.brand], ["gs", "gradient", "tile", "rubik", "one", false, "inside"], "a free card keeps its look minus GS Pro");
+
+// Feedback round (2026-10-29)
+eq(cleanLook({ font: "gs" }).font, "rubik", "the old default font moves to Rubik");
+eq(cleanLook({ font: "gabarito" }).font, "gabarito", "GameShuffle's font stays a choice");
+eq(freeLook(cleanLook({ font: "gabarito" })).font, "gabarito", "GameShuffle's font is free");
+eq(freeLook(cleanLook({ font: "kanit" })).font, "rubik", "a paid font falls back to the default");
+eq(freeLook(cleanLook({ font: "google", fontName: "Orbitron", fontWeight: 900 })).font, "rubik", "any Google Font is paid");
+ok(proUsed(cleanLook({ font: "google", fontName: "Orbitron" })).includes("Any Google Font"), "Any Google Font counted as paid");
+eq(DEFAULT_LOOK.font, "rubik", "new looks start on Rubik");
+eq(cleanLook({}).country, "code", "a saved look without the setting keeps the code");
+eq(DEFAULT_LOOK.country, "flag", "new looks start on the flag");
+eq(cleanLook({ country: "both" }).country, "both", "flag and code kept");
+eq(cleanLook({ accent: "#12AB34" }).accent, "#12ab34", "any color for Your color");
+eq(cleanLook({ accent: "url(x)" }).accent, DEFAULT_LOOK.accent, "a bad color falls back");
+eq(lookVars(cleanLook({ colors: "accent", accent: "#12ab34" }), divisionLook("Gold"))["--mmr-hl"], "#12ab34", "a picked color is the accent");
+eq(cleanLook({ edge: "custom", edgeColor: "nope" }).edgeColor, DEFAULT_LOOK.edgeColor, "a bad border color falls back");
+eq(lookVars(cleanLook({ border: "one", edge: "white" }), divisionLook("Gold"))["--mmr-edge"], "#ffffff", "a white border");
+eq(lookVars(cleanLook({ border: "one", edge: "division" }), divisionLook("Gold"))["--mmr-edge"], divisionLook("Gold").c, "a border in the division's color");
+eq(lookVars(cleanLook({ colors: "accent", accent: "#12ab34", border: "one" }), divisionLook("Gold"))["--mmr-edge"], "#12ab34", "the border matches the accent by default");
+const keptFree = freeLook(cleanLook({ country: "both", edge: "custom", edgeColor: "#ff0000", align: "center" }));
+eq([keptFree.country, keptFree.edge, keptFree.edgeColor, keptFree.align], ["both", "custom", "#ff0000", "center"], "country, border color and line up are free");
+eq(cleanLook({ align: "middle" }).align, "left", "line up falls back to left");
+eq(cleanFontName("Exo 2<script>"), "Exo 2script", "font names keep letters, digits and spaces");
+eq(fontStylesheet(DEFAULT_LOOK), null, "the default font is self-hosted");
+eq(fontStylesheet(cleanLook({ font: "gabarito" })), null, "GameShuffle's font is self-hosted");
+ok(fontStylesheet(cleanLook({ font: "kanit" }))?.includes("family=Kanit:ital,wght@1,900"), "a listed font's stylesheet");
+eq(fontStylesheet(cleanLook({ font: "google", fontName: "Exo 2", fontWeight: 700 })), "https://fonts.googleapis.com/css2?family=Exo+2:wght@700&display=swap", "any Google Font's stylesheet");
+eq(fontStylesheet(cleanLook({ font: "google", fontName: "" })), null, "no stylesheet before a name");
+eq(fontOf(cleanLook({ font: "google", fontName: "" }))[2], "italic", "a nameless Google Font draws the default");
+eq(lookVars(DEFAULT_LOOK, divisionLook("Gold"))["--mmr-fs"], "italic", "Rubik is italic");
+eq(flagUrl("US"), "/images/flags/us.svg", "a flag by code");
+eq(flagUrl("uk"), "/images/flags/gb.svg", "UK means the British flag");
+eq(flagUrl("ZZ"), null, "no flag for an unknown code");
 eq(proUsed(fl), [], "nothing GS Pro left after freeLook");
 eq(proUsed(DEFAULT_LOOK), [], "the default look is free");
 const vars = lookVars(cleanLook({ fill: "picture", picture: "https://gs-ugc.empac.co/mmr/x.gif" }), divisionLook("Gold"));
@@ -257,6 +293,46 @@ eq(slideText("country", n0, DEFAULT_INFO, null), { label: "Country rank", value:
 ok(/^Set on [A-Z][a-z]{2} \d{1,2}$/.test(slideText("peak", n5, DEFAULT_INFO, null)?.sub ?? ""), "peak slide says when it was set");
 eq(slideText("tonight", n0, DEFAULT_INFO, null)?.sub, "No events yet", "tonight before any event");
 eq(slideText("tonight", n5, DEFAULT_INFO, null)?.sub, "4 wins, 1 loss", "tonight after the night");
+
+// Feedback round: MMR beside world rank, under the number, the chat line
+{
+  const v = viewOf(night);
+  const has = (p: Shown) => pieceText(p, v, DEFAULT_INFO, null) != null;
+  const worldNoMmr: MmrInfo = { ...DEFAULT_INFO, big: "world", on: { ...DEFAULT_INFO.on, mmr: false } };
+  ok(!detailsFor("strip", worldNoMmr, has, true).includes("mmr"), "world rank big with MMR off: no MMR detail");
+  ok(detailsFor("strip", { ...worldNoMmr, on: { ...worldNoMmr.on, mmr: true } }, has, true).includes("mmr"), "world rank big with MMR on: MMR is a detail");
+  const both: MmrInfo = { ...DEFAULT_INFO, under: "both", on: { ...DEFAULT_INFO.on, tonight: true, last10: true } };
+  eq(underPieces(both, "strip"), ["tonight", "last10"], "both under the number on the strip");
+  eq(underPieces(both, "deck"), [], "the deck has no line under the number");
+  eq(underPieces({ ...both, on: { ...both.on, mmr: false } }, "rolling"), [], "Rolling with the MMR slide off keeps its slides");
+  eq(underPieces({ ...both, on: { ...both.on, tonight: false } }, "sticker"), ["last10"], "a piece switched off stays off");
+  ok(!detailsFor("sticker", both, has).includes("tonight"), "tonight under the number leaves the details");
+  ok(!rollSlides(both, DEFAULT_ROLLING, () => true).includes("tonight"), "tonight under the MMR leaves its slide");
+  ok(rollSlides({ ...both, under: "none" }, DEFAULT_ROLLING, () => true).includes("tonight"), "tonight keeps its slide otherwise");
+  eq([cleanInfo({}, null, "deck").under, cleanInfo({}, null, "deck").chat], ["none", true], "under and the chat line default");
+  eq([cleanInfo({ under: "both", chat: false }, null, "strip").under, cleanInfo({ under: "both", chat: false }, null, "strip").chat], ["both", false], "under and the chat line kept");
+  eq(cleanInfo({ under: "everything" }, null, "strip").under, "none", "a bad under falls back");
+}
+
+// Try before paying: the draft kept in the browser, and What's included
+{
+  const now = Date.UTC(2026, 9, 29, 20);
+  const d = cleanDraft({ v: 1, owner: null, savedAt: now - 1000, loungeName: "  Kevo ", looks: [{ id: "main", font: "kanit" }, { id: "BAD ID" }], activeLook: "nope", picture: true }, now);
+  eq([d?.loungeName, d?.looks.length, d?.looks[0].font, d?.looks[1].id, d?.activeLook, d?.picture, d?.owner], ["Kevo", 2, "kanit", "look-2", "main", true, null], "a draft cleaned");
+  eq(cleanDraft({ v: 1, savedAt: now - 8 * 86_400_000, looks: [{}] }, now), null, "a draft older than a week is gone");
+  eq(cleanDraft({ v: 1, savedAt: now, looks: [] }, now), null, "a draft with no looks is nothing");
+  eq(cleanDraft({ v: 2, savedAt: now, looks: [{}] }, now), null, "an unknown draft version is ignored");
+  eq(cleanDraft("junk", now), null, "junk is no draft");
+  ok(cleanDraft({ v: 1, savedAt: now, looks: [{ picture: "blob:http://x/1" }] }, now)?.looks[0].picture === null, "a draft never keeps a device picture's address");
+  const mine = cleanDraft({ v: 1, owner: "u1", savedAt: now, looks: [{}] }, now);
+  eq([draftFor(d, "u1") === d, draftFor(mine, "u1") === mine, draftFor(mine, "u2"), draftFor(mine, null)], [true, true, null, null], "a visitor's draft counts for anyone, an account's only for it");
+  eq([isDraftPlan("pro"), isDraftPlan("backer"), isDraftPlan("champion")], [true, true, false], "the panel's plans");
+  const rows = COMPARE_GROUPS.flatMap((g) => g.rows);
+  const skins = rows.find((r) => r.label.startsWith("Profile and community skins"))!;
+  eq([cellFor(skins, "supporter", false), cellFor(skins, "supporter", true), cellFor(skins, "pro", false)], [false, true, true], "the Supporter column follows the switch");
+  ok(rows.every((r) => cellFor(r, "supporter", false) !== undefined && cellFor(r, "backer", true) !== undefined), "every row has a cell for every plan");
+  ok(rows.filter((r) => r.label.includes("Twitch")).every((r) => cellFor(r, "supporter", true) === false), "Supporter never includes the Twitch tools");
+}
 
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

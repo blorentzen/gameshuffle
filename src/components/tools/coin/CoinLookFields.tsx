@@ -51,7 +51,7 @@ export function CoinLookFields({ look, onChange, pro, hasPicture, from = "coin-l
         disabled={!pro}
         onChange={(e) => set("matchBrand", e.target.checked)}
       />
-      {!pro && <ProLookNote from={from}>A picture on your coin and your brand colors come with GS Pro.</ProLookNote>}
+      {!pro && <ProLookNote from={from} what="A picture on your coin and your brand colors" />}
     </>
   );
 }

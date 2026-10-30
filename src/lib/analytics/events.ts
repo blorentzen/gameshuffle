@@ -188,6 +188,12 @@ export const EVENTS = {
   loungeWeeklySwitched: "Lounge Weekly Switched",
   /** A lounge name confirmed by Discord on /lounge ({games}: how many lounge games). */
   loungeConfirmed: "Lounge Confirmed",
+  /** Time trials (picks 2026-10-29): a time saved on the site {game, proof: none|screenshot|video, read: yes|no}. */
+  ttAdded: "Time Trial Added",
+  /** A screenshot sent to be read {game, result: read|unread|cap}. */
+  ttScreenshotRead: "Time Trial Screenshot Read",
+  /** A paste import saved {game, count}. */
+  ttImported: "Time Trial Imported",
   /** A room read on /lounge ({players, format}: how many names, players per team). */
   loungeRoomRead: "Lounge Room Read",
   /** A player opened from the lounge lookup (props: { via: suggestion | enter | fc | recent | did-you-mean }). */

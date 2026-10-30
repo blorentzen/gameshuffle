@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ownerHasPro } from "@/lib/profile/proLooks";
+import { ownerHasLooks } from "@/lib/support/looks";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container, Card, Button } from "@empac/cascadeds";
@@ -181,7 +182,8 @@ export default async function CommunityHomePage({ params, searchParams }: { para
   // CSS re-sanitized on read (only sanitized CSS is ever stored).
   const { skin: communitySkin, cssRaw } = await getCommunitySkinCss(community.id).catch(() => ({ skin: null as ReturnType<typeof resolveProfileSkin> | null, cssRaw: null }));
   // Backgrounds and custom CSS are GS Pro: shown while the owner has it (kept either way).
-  const ownerPro = community.ownerUserId ? await ownerHasPro(community.ownerUserId) : false;
+  // A community's skin and CSS are looks: the owner's GS Pro, or their support sold with looks.
+  const ownerPro = community.ownerUserId ? await ownerHasLooks(community.ownerUserId) : false;
   const skin = (ownerPro ? communitySkin : null) ?? resolveProfileSkin(null);
   const skinBg = skinBackground(skin);
   const communityCss = ownerPro ? sanitizeCustomCss(cssRaw).css : "";

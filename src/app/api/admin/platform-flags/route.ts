@@ -62,5 +62,7 @@ export async function PUT(req: NextRequest) {
     revalidatePath("/terms");
     revalidatePath("/gs-circuit");
   }
+  // The Terms (§3.6) describe the Supporter level by this switch.
+  if (body.key === "support_supporter_looks") revalidatePath("/terms");
   return NextResponse.json({ ok: true });
 }

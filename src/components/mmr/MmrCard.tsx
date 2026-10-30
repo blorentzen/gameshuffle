@@ -14,6 +14,10 @@
  * steps back, a new division adds its banner, sparks and the layout's own move, a world-rank
  * milestone gets a laurel banner, tonight's goal a gold one. The number rolls like the
  * randomizer's reels, or counts up.
+ * Feedback round (2026-10-29): the country as a code, flag or both; the panel's "Type !mmr in chat"
+ * only while GameShuffle's bot answers it (`chat`) and its own switch allows; MMR beside world rank
+ * follows its switch; tonight's run and last 10 can sit under the number (Strip, Sticker); the Deck card
+ * gets shorter when its foot is empty; the panel's tiles share their row; Line up left or center.
  */
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -21,7 +25,7 @@ import { IconChartLine, IconChevronsUp, IconClock, IconFlag, IconLaurelWreathFil
 import { divisionLook, type MmrLook } from "@/lib/mmr/look";
 import { MMR_GAMES, fmtMmr, milestoneTier, placeWord, signed, type MmrView } from "@/lib/mmr/rules";
 import {
-  LAYOUT_SPOTS, TURN_MS, bigIsWorld, detailsFor, fitSlots, pieceText, recentWhen, toNextText, type MmrInfo, type MmrPiece, type Shown,
+  LAYOUT_SPOTS, TURN_MS, bigIsWorld, detailsFor, fitSlots, pieceText, recentWhen, toNextText, underPieces, type MmrInfo, type MmrPiece, type Shown,
 } from "@/lib/mmr/pieces";
 import type { NightRecap } from "@/lib/lounge/recap";
 import type { MmrPending } from "@/lib/lounge/pending";
@@ -29,7 +33,7 @@ import { goalProgress, type GoalProgress } from "@/lib/mmr/goal";
 import { MmrEmblem } from "./MmrEmblem";
 import { PIECE_ICONS } from "./pieceIcons";
 import {
-  Brand, BrandTab, Delta, Dots, FxLayers, GoalChip, MmrNumber, Squares, StreakChip, World, cardClass, cardSummary, cardVars, playMoment,
+  Brand, BrandTab, CountryTag, Delta, Dots, FontLink, FxLayers, GoalChip, MmrNumber, Squares, StreakChip, UnderLine, World, cardClass, cardSummary, cardVars, playMoment,
   type MmrPlay, type MomentFx,
 } from "./cardParts";
 import { MmrRolling } from "./MmrRolling";
@@ -120,6 +124,8 @@ export interface MmrCardProps {
   recap?: NightRecap | null;
   /** "frame": a page preview (keeps its OBS proportions, scrolls on narrow screens); "obs": fills the browser source. */
   fit?: "frame" | "obs";
+  /** GameShuffle's bot answers !mmr in the streamer's chat: the panel's "Type !mmr in chat" line may show. */
+  chat?: boolean;
 }
 
 /** The card in its look's layout: the Rolling layout has its own component (MmrRolling.tsx). */
@@ -151,7 +157,7 @@ function useStripRoom(active: boolean, deps: unknown[]) {
   return { lineRef, progRef, fits };
 }
 
-function FixedCard({ view, look, play, className, fit = "frame", recap, pending, goal }: MmrCardProps) {
+function FixedCard({ view, look, play, className, fit = "frame", recap, pending, goal, chat = false }: MmrCardProps) {
   const div = divisionLook(view.division);
   const info = look.info;
   const m = info.moments;
@@ -173,6 +179,8 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
   const layout = recap ? null : look.layout;
   const strip = useStripRoom(layout === "strip" && info.on.progress, [view.division, view.toNext, info.on.division, look.font]);
   const details = layout ? detailsFor(layout, info, has, worldBig, layout === "strip" && !strip.fits ? ["progress"] : []) : [];
+  // Tonight's run and last 10 under the number (Strip, Sticker), when picked there.
+  const under = layout ? underPieces(info, layout).filter((p) => has(p)) : [];
   const slots = layout ? fitSlots(details, LAYOUT_SPOTS[layout].slots) : { shown: [], turns: [] };
   const at = useTurn(slots.turns.length);
   const turn = slots.turns.length ? slots.turns[at] : null;
@@ -181,14 +189,16 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
   const vars = cardVars(look, div, fx.glyphs, view.pct);
   const cls = cardClass(look, fit, className);
   const game = MMR_GAMES[view.game];
-  const summary = cardSummary(view, info, g, [...details, ...(["last10", "recent", "streak", "delta"] as MmrPiece[]).filter((p) => on(p) && !details.includes(p))]);
+  const summary = cardSummary(view, info, g, [...details, ...under, ...(["last10", "recent", "streak", "delta"] as MmrPiece[]).filter((p) => on(p) && !details.includes(p) && !under.includes(p))]);
 
   const fxLayers = <FxLayers fx={fx} />;
   const emblem = <span className={`mmr-emb${look.emblem === "name" ? " mmr-emb--name" : look.emblem === "off" ? " mmr-emb--off" : ""}`}><MmrEmblem d={div} frame={look.emblem} avatar={view.avatar} /></span>;
-  const flag = info.on.cc && view.country ? <span className="mmr-flag">{view.country}</span> : null;
+  const flag = info.on.cc && view.country ? <CountryTag code={view.country} mode={look.country} /> : null;
+  // The chat line only when the bot would answer and the look keeps it.
+  const chatLine = chat && info.chat;
   const big = <MmrNumber value={worldBig ? view.worldRank : view.mmr} prefix={worldBig ? "#" : ""} mode={m.roll ? look.number : "still"} />;
   // World rank's own spot (deck and panel): MMR goes there when world rank is the big number.
-  const worldSpot = worldBig ? (view.mmr != null ? <span className="mmr-world">{fmtMmr(view.mmr)} MMR</span> : null) : info.on.world ? <World rank={view.worldRank} /> : null;
+  const worldSpot = worldBig ? (info.on.mmr && view.mmr != null ? <span className="mmr-world">{fmtMmr(view.mmr)} MMR</span> : null) : info.on.world ? <World rank={view.worldRank} /> : null;
   const pendingChip = pending ? <span className="mmr-chip mmr-chip--pending"><IconClock aria-hidden />{placeWord(pending.place)}: about {signed(pending.delta)}, waiting to verify</span> : null;
   const newPeak = m.peak && view.last?.peak ? <span key={`peak-${view.peak}`} className="mmr-chip mmr-chip--peak mmr-chip--pop"><IconStarFilled aria-hidden />New peak</span> : null;
   // The flame on its own, when the streak isn't a piece on this card.
@@ -221,7 +231,7 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
             <div className="mmr-cell"><i><IconChevronsUp aria-hidden /></i><span><small>New division</small><b>{recap.newDivisions.length ? recap.newDivisions[recap.newDivisions.length - 1] : "None tonight"}</b></span></div>
             <div className="mmr-cell"><i><IconFlag aria-hidden /></i><span><small>Tonight&apos;s events</small><Squares marks={recap.squares.slice(-10)} /></span></div>
           </div>
-          <div className="mmr-panel__foot"><span>Type !tonight in chat</span>{g && <span className="mmr-chips"><GoalChip g={g} /></span>}<Brand brand={look.brand} /></div>
+          <div className="mmr-panel__foot">{chatLine && <span>Type !tonight in chat</span>}{g && <span className="mmr-chips"><GoalChip g={g} /></span>}<Brand brand={look.brand} /></div>
         </div>
       </div>
     );
@@ -243,14 +253,14 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
             <div className="mmr-panel__num">{big}{info.on.delta && <Delta last={view.last} place />}</div>
           </div>
           {details.length > 0 && (
-            <div className="mmr-panel__cells">
+            <div className={`mmr-panel__cells mmr-cells-${Math.min(6, slots.shown.length + (turn ? 1 : 0))}`}>
               {slots.shown.map((p) => <PieceTile key={p} p={p} c={ctx} />)}
               {turn && <div className="mmr-turn mmr-turn--tile" key={`turn-${turn}`}><PieceTile p={turn} c={ctx} dots={<Dots n={slots.turns.length} at={at} />} /></div>}
             </div>
           )}
           {recentOn && <Recent view={view} n={info.recent} />}
           <div className="mmr-panel__foot">
-            <span>Type !mmr in chat</span>
+            {chatLine && <span>Type !mmr in chat</span>}
             <span className="mmr-chips">
               {on("goal") && <GoalChip g={g} />}
               {pendingChip}
@@ -276,8 +286,8 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
             {(info.on.division || info.on.progress) && <span className="mmr-strip__div" ref={strip.lineRef}>{info.on.division && <b>{view.division}</b>}{info.on.progress && <span ref={strip.progRef} className={strip.fits ? undefined : "mmr-strip__off"}>{toNextText(view)}</span>}</span>}
             {slot && <span className={`mmr-strip__slot${twoLines ? " mmr-strip__slot--two" : ""}`}>{slot}</span>}
           </div>
-          {on("last10") && <div className="mmr-strip__sq"><small>Last 10</small><Squares marks={view.squares} five /></div>}
-          <div className="mmr-strip__num">{big}{info.on.delta && <Delta last={view.last} place={false} />}</div>
+          {on("last10") && !under.includes("last10") && <div className="mmr-strip__sq"><small>Last 10</small><Squares marks={view.squares} five /></div>}
+          <div className="mmr-strip__num">{big}{info.on.delta && <Delta last={view.last} place={false} />}<UnderLine pieces={under} view={view} /></div>
           <Brand brand={look.brand} />
         </div>
       </div>
@@ -290,6 +300,7 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
         <div className="mmr-c">
           {emblem}
           {big}
+          <UnderLine pieces={under} view={view} />
           {(info.on.name || flag || info.on.division) && (
             <span className="mmr-sticker__name">{info.on.name && view.name}{flag}{(info.on.name || flag) && info.on.division ? " · " : ""}{info.on.division && <b>{view.division}</b>}</span>
           )}
@@ -302,8 +313,11 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
   } else {
     const progress = info.on.progress;
     const streakShown = details.includes("streak");
+    // Nothing set for the foot (no details, progress or world rank): the card fits what's on it, keeping one row for
+    // the chips that come and go (a pending table, the flame, a new peak) so its height never changes on stream.
+    const short = !progress && !worldSpot && details.length === 0;
     body = (
-      <div className="mmr-deck" style={recentRows ? { aspectRatio: `640 / ${392 + recentRows * 34}` } : undefined}>
+      <div className={`mmr-deck${short ? " mmr-deck--short" : ""}`} style={recentRows && !short ? { aspectRatio: `640 / ${392 + recentRows * 34}` } : undefined}>
         <span className="mmr-deck__ghost mmr-deck__ghost--1" aria-hidden="true" />
         <span className="mmr-deck__ghost mmr-deck__ghost--2" aria-hidden="true" />
         <div className="mmr-deck__card mmr-skin">
@@ -345,6 +359,7 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
 
   return (
     <div className={cls} data-layout={recap ? "panel" : look.layout} style={vars}>
+      <FontLink look={look} />
       <span className="mmr-sr">{recap ? `${view.name} tonight: ${recap.events} events, ${recap.wins}-${recap.losses}, ${signed(recap.net)}. Now ${recap.mmr != null ? fmtMmr(recap.mmr) : "no MMR"}, ${recap.division}.` : summary}</span>
       <div className="mmr-moment" ref={momentRef} aria-hidden="true">
         {body}

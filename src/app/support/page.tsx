@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PlansCompare } from "@/components/billing/PlansCompare";
 import Link from "next/link";
 import { Card, Container, Progress } from "@empac/cascadeds";
 import { IconAward, IconCheck, IconCrown, IconHeart, IconStar } from "@tabler/icons-react";
@@ -115,6 +116,8 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
             <p className="support-wall__more"><Link href="/credits">See everyone in the credits</Link></p>
           </section>
         )}
+
+        <PlansCompare from="support-page" />
 
         <section className="support-pro" aria-labelledby="support-two">
           <h2 id="support-two">Two ways to back GameShuffle</h2>

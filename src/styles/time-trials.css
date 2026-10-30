@@ -1,0 +1,119 @@
+/* Time trials: the hub, a track's board, the add form and the import (picks 2026-10-29).
+   Sizes use the CDS tokens (the root font size is 10px). */
+
+.tt-body { display: grid; gap: var(--spacing-24); padding-block: var(--spacing-24) var(--spacing-48); }
+.tt-sec { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.tt-sec--flat { padding-top: 0; border-top: 0; }
+.tt-sec h2 { margin: 0; font-size: var(--font-size-20); }
+.tt-note { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); max-width: 72ch; }
+.tt-note code, .tt-mine code { font-size: var(--font-size-14); }
+.tt-muted { color: var(--text-secondary); }
+.tt-num { font-variant-numeric: tabular-nums; }
+.tt-mine { margin: 0; font-size: var(--font-size-16); display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-12); align-items: baseline; }
+.tt-pills { display: flex; flex-wrap: wrap; gap: var(--spacing-12); align-items: center; }
+
+/* Hub: a table per cup. */
+.tt-cup { display: grid; gap: var(--spacing-8); }
+.tt-cup h3 { margin: var(--spacing-8) 0 0; font-size: var(--font-size-16); }
+.tt-cup__table { min-width: 32rem; }
+.tt-track { display: inline-flex; align-items: center; gap: var(--spacing-12); color: inherit; text-decoration: none; font-weight: 600; }
+.tt-track:hover .tt-track__name, .tt-track:focus-visible .tt-track__name { text-decoration: underline; }
+.tt-track__text { display: grid; gap: var(--spacing-2, 2px); min-width: 0; }
+.tt-track__count { font-weight: 400; font-size: var(--font-size-14); color: var(--text-secondary); }
+.tt-track__pic { width: 6.4rem; height: 3.6rem; border-radius: var(--radius-6); object-fit: cover; flex: none; background: var(--background-secondary); }
+.tt-track__pic--blank { display: inline-grid; place-items: center; font-weight: 700; font-size: var(--font-size-16); color: var(--text-secondary); }
+.tt-rec { display: grid; gap: var(--spacing-2, 2px); }
+.tt-rec b { font-variant-numeric: tabular-nums; }
+.tt-rec span { color: var(--text-secondary); font-size: var(--font-size-14); }
+
+/* A track's board. */
+/* Track art is small (180 to 290px wide), so it stays near its own size; height: auto lets aspect-ratio beat the height attribute. */
+.tt-hero-pic { width: 100%; max-width: 26rem; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-16); display: block; }
+.tt-board { display: grid; gap: var(--spacing-16); min-width: 0; }
+.tt-board[aria-busy="true"] .tt-board__table { opacity: 0.6; }
+.tt-board__controls { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-24); align-items: center; justify-content: space-between; }
+.tt-board__scopes { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.tt-board__table { min-width: 52rem; }
+.tt-board__place { font-weight: 700; font-variant-numeric: tabular-nums; width: 6rem; }
+.tt-board__who { display: inline-flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
+.tt-board__who a { font-weight: 600; }
+.tt-board__discord { color: #5865f2; flex: none; }
+.tt-board__tag { font-size: var(--font-size-12); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--brand-ink, var(--primary-700)); }
+.tt-board__time { font-variant-numeric: tabular-nums; font-weight: 700; font-size: var(--font-size-16); white-space: nowrap; }
+.tt-board__proof { display: grid; gap: var(--spacing-4); }
+.tt-board__proof a { display: inline-flex; align-items: center; gap: var(--spacing-4); }
+.tt-board__none { color: var(--text-secondary); }
+.tt-board__verified { display: inline-flex; align-items: center; gap: var(--spacing-4); font-size: var(--font-size-14); color: var(--success-700, #1f7a46); }
+.tt-board__date { white-space: nowrap; color: var(--text-secondary); font-size: var(--font-size-14); }
+.tt-board__you td { background: var(--primary-50); }
+.tt-board__gap td { border-top: 2px dashed var(--border-default); }
+.tt-board__empty { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.tt-board__count { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.tt-cup-links { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-24); }
+
+/* Player search. */
+.tt-search { display: grid; gap: var(--spacing-8); max-width: 52rem; }
+.tt-search__label { font-weight: 600; font-size: var(--font-size-16); }
+.tt-search__results { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--spacing-8); }
+.tt-search__results li { display: flex; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
+.tt-search__results a { font-weight: 600; }
+.tt-search__note { display: inline-flex; align-items: center; gap: var(--spacing-4); color: var(--text-secondary); font-size: var(--font-size-14); }
+.tt-search__none { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+
+/* The add form (in the Add a time window) and the import. */
+.tt-add { display: grid; gap: var(--spacing-16); }
+.tt-add__field { display: grid; gap: var(--spacing-8); }
+.tt-add__label { font-weight: 600; font-size: var(--font-size-14); }
+.tt-add__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.tt-add__shot { display: grid; gap: var(--spacing-8); padding-bottom: var(--spacing-16); border-bottom: 1px solid var(--border-default); justify-items: start; }
+.tt-add__shot > .empac-alert { justify-self: stretch; }
+.tt-add__hint { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.tt-add__proof { margin: 0; display: inline-flex; align-items: center; gap: var(--spacing-4); color: var(--success-700, #1f7a46); font-size: var(--font-size-14); font-weight: 600; }
+.tt-add__time input { font-variant-numeric: tabular-nums; font-size: var(--font-size-20); letter-spacing: 0.02em; }
+.tt-add__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-12); }
+.tt-add--done { text-align: left; }
+.tt-add--done p { margin: 0; font-size: var(--font-size-16); }
+.tt-add__big { font-size: var(--font-size-36, 3.6rem) !important; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tt-add__place { color: var(--text-secondary); }
+
+.tt-import { display: grid; gap: var(--spacing-16); max-width: 96rem; }
+.tt-import__rows { display: grid; gap: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.tt-import__rows h2 { margin: 0; font-size: var(--font-size-20); }
+.tt-import__table { min-width: 56rem; }
+.tt-import__line { color: var(--text-secondary); font-size: var(--font-size-14); max-width: 28rem; overflow-wrap: anywhere; }
+
+@media (max-width: 40rem) {
+  .tt-board__controls { align-items: flex-start; }
+  .tt-track__pic { width: 4.8rem; height: 2.7rem; }
+}
+
+/* The profile's Time trials section. */
+.profile-tt .pcard__title a { color: inherit; text-decoration: none; }
+.profile-tt .pcard__title a:hover { text-decoration: underline; }
+.profile-tt__sum { margin: 0 0 var(--spacing-8); color: var(--text-secondary); font-size: var(--font-size-14); }
+.profile-tt__list { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--spacing-8); }
+.profile-tt__list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--spacing-12); align-items: baseline; padding-bottom: var(--spacing-8); border-bottom: 1px solid var(--border-default); }
+.profile-tt__list li:last-child { border-bottom: 0; padding-bottom: 0; }
+.profile-tt__list a { font-weight: 600; overflow-wrap: anywhere; }
+.profile-tt__list b { font-variant-numeric: tabular-nums; text-align: right; }
+.profile-tt__meta { color: var(--text-secondary); font-size: var(--font-size-14); }
+.profile-tt__list li > .profile-tt__meta:last-child { text-align: right; }
+
+/* Connect Discord (1A, 2A): one flat line, the tile beside the words and the button after them. */
+.tt-connect { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
+.tt-connect__text { flex: 1 1 26rem; min-width: 0; margin: 0; font-size: var(--font-size-16); color: var(--text-primary); }
+.tt-connect__error { flex-basis: 100%; margin: 0; font-size: var(--font-size-14); color: var(--error-700, #b3261e); }
+.tt-connect--compact { padding-top: var(--spacing-12); }
+.tt-connect--compact .tt-connect__text { font-size: var(--font-size-14); color: var(--text-secondary); flex-basis: 100%; }
+.tt-body > .tt-connect { padding-top: 0; border-top: 0; max-width: 96rem; }
+
+/* Import: Quaxly first, then screenshots or a paste, then the check table. */
+.tt-import__quaxly, .tt-import__other { display: grid; gap: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); min-width: 0; }
+.tt-import__quaxly h2, .tt-import__other h2 { margin: 0; font-size: var(--font-size-20); }
+.tt-import__quaxly code, .tt-import__other code { font-size: var(--font-size-14); }
+.tt-import__install { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+.tt-import__install .tt-note { flex: 1 1 22rem; }
+.tt-import__note { color: var(--text-secondary); font-size: var(--font-size-14); }
+.tt-import__row--off td { color: var(--text-secondary); }
+.tt-link { display: grid; gap: var(--spacing-12); justify-items: start; }
+.tt-links { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-24); }

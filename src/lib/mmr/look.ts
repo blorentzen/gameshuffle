@@ -7,6 +7,12 @@
  * picture as the emblem, hiding the GameShuffle line, and more saved looks.
  * Gradients are a glow on the card's own surface, never a full-color fill (Britton, 2026-10-20).
  * What's on the card (the pieces, the big number, the moments) is `info`, from pieces.ts.
+ * Feedback round (2026-10-29, picks https://claude.ai/artifact/5UPZ1gdJ62AgrQLbcaaMLW, all as recommended):
+ * the default font is Rubik Black Italic (self-hosted; GameShuffle's font stays a free choice, and
+ * looks saved on the old default "gs" moved to it), about a dozen Google Fonts plus any Google Font by
+ * name for paid looks, the country as a code, a flag or both (new looks start on the flag), any one
+ * accent color and a border color of its own for free, and a Line up choice (left or center).
+ * Paid looks come with GS Pro or Supporter looks (src/lib/support/looks.ts).
  */
 
 import { BRAND_THEMES } from "@/lib/theme/brand";
@@ -19,7 +25,19 @@ export type MmrLayout = "deck" | "panel" | "strip" | "sticker" | "rolling";
 export type MmrSurface = "dark" | "light" | "glass";
 export type MmrFill = "solid" | "gradient" | "glyphs" | "stripes" | "dots" | "picture";
 export type MmrFrame = "tile" | "crest" | "coin" | "name" | "off" | "picture";
-export type MmrFont = "gs" | "bebas" | "chakra" | "fredoka" | "grotesk";
+export type MmrFont =
+  | "rubik" | "gabarito"
+  | "kanit" | "exo" | "titan" | "mplus" | "russo" | "lilita" | "bungee" | "bebas" | "chakra" | "fredoka" | "grotesk"
+  | "google";
+const FONT_IDS: readonly MmrFont[] = ["rubik", "gabarito", "kanit", "exo", "titan", "mplus", "russo", "lilita", "bungee", "bebas", "chakra", "fredoka", "grotesk", "google"];
+/** The two free fonts: the default and GameShuffle's own. */
+export const FREE_FONTS: readonly MmrFont[] = ["rubik", "gabarito"];
+/** The country beside the name: the two-letter code, its flag, or both. */
+export type MmrCountry = "code" | "flag" | "both";
+/** A one-color border's color: the accent, white, the division's color, or your own. */
+export type MmrEdge = "accent" | "white" | "division" | "custom";
+/** Where the number (and a lone panel tile) sits. */
+export type MmrAlign = "left" | "center";
 export type MmrBorder = "none" | "one" | "two";
 export type MmrBrand = "inside" | "tab" | "mark" | "off";
 
@@ -31,6 +49,7 @@ export interface MmrLook {
   surface: MmrSurface;
   /** "division", "gs", "accent", a brand theme id, or "custom". */
   colors: string;
+  /** "Your color": a profile accent key, or any color as #rrggbb (free). */
   accent: string;
   custom: [string, string];
   fill: MmrFill;
@@ -38,8 +57,18 @@ export interface MmrLook {
   picture: string | null;
   emblem: MmrFrame;
   font: MmrFont;
+  /** "Any Google Font" (paid looks): the family name and the weight /api/mmr/font found for it. */
+  fontName: string;
+  fontWeight: number;
+  /** The country piece as a code, a flag or both. */
+  country: MmrCountry;
   border: MmrBorder;
+  /** A one-color border's color (free), and your own when `edge` is "custom". */
+  edge: MmrEdge;
+  edgeColor: string;
   foil: boolean;
+  /** Line up: the number (and a lone panel tile) on the left or centered. */
+  align: MmrAlign;
   brand: MmrBrand;
   /** How the number moves when it changes (the "number moves" moment can turn it off). */
   number: "roll" | "count";
@@ -61,9 +90,15 @@ export const DEFAULT_LOOK: MmrLook = {
   fill: "glyphs",
   picture: null,
   emblem: "tile",
-  font: "gs",
+  font: "rubik",
+  fontName: "",
+  fontWeight: 400,
+  country: "flag",
   border: "none",
+  edge: "accent",
+  edgeColor: "#ffd25a",
   foil: false,
+  align: "left",
   brand: "inside",
   number: "roll",
   info: DEFAULT_INFO,
@@ -79,7 +114,7 @@ export const LOOK_CHOICES: { id: keyof MmrLook; label: string; opts: { v: string
   { id: "layout", label: "Layout", opts: [{ v: "deck", label: "Deck card" }, { v: "panel", label: "Overlay panel" }, { v: "strip", label: "Squares strip" }, { v: "sticker", label: "Sticker" }, { v: "rolling", label: "Rolling" }] },
   { id: "surface", label: "Surface", opts: [{ v: "dark", label: "Dark" }, { v: "light", label: "Light" }, { v: "glass", label: "See-through" }] },
   { id: "colors", label: "Colors", opts: [
-    { v: "division", label: "Division colors" }, { v: "gs", label: "GameShuffle blue" }, { v: "accent", label: "Your accent" },
+    { v: "division", label: "Division colors" }, { v: "gs", label: "GameShuffle blue" }, { v: "accent", label: "Your color" },
     ...BRANDS.map((t) => ({ v: t.id, label: t.name, pro: true })),
     { v: "custom", label: "Your two colors", pro: true },
   ] },
@@ -92,8 +127,11 @@ export const LOOK_CHOICES: { id: keyof MmrLook; label: string; opts: { v: string
     { v: "picture", label: "Your picture", pro: true },
   ] },
   { id: "font", label: "Font", opts: [
-    { v: "gs", label: "GameShuffle" }, { v: "bebas", label: "Bebas Neue", pro: true }, { v: "chakra", label: "Chakra Petch", pro: true },
-    { v: "fredoka", label: "Fredoka", pro: true }, { v: "grotesk", label: "Space Grotesk", pro: true },
+    { v: "rubik", label: "Rubik Italic" }, { v: "gabarito", label: "GameShuffle" },
+    { v: "kanit", label: "Kanit Italic", pro: true }, { v: "exo", label: "Exo 2 Italic", pro: true }, { v: "titan", label: "Titan One", pro: true },
+    { v: "mplus", label: "M PLUS Rounded", pro: true }, { v: "russo", label: "Russo One", pro: true }, { v: "lilita", label: "Lilita One", pro: true },
+    { v: "bungee", label: "Bungee", pro: true }, { v: "bebas", label: "Bebas Neue", pro: true }, { v: "chakra", label: "Chakra Petch", pro: true },
+    { v: "fredoka", label: "Fredoka", pro: true }, { v: "grotesk", label: "Space Grotesk", pro: true }, { v: "google", label: "Any Google Font", pro: true },
   ] },
   { id: "border", label: "Border", opts: [{ v: "none", label: "None" }, { v: "one", label: "One color" }, { v: "two", label: "Two colors", pro: true }] },
   { id: "foil", label: "Finish", opts: [{ v: false, label: "Plain" }, { v: true, label: "Foil", pro: true }] },
@@ -124,7 +162,7 @@ export function freeLook(look: MmrLook): MmrLook {
     colors: pro("colors") ? "gs" : look.colors,
     fill: pro("fill") ? "gradient" : look.fill,
     emblem: pro("emblem") ? "tile" : look.emblem,
-    font: "gs",
+    font: FREE_FONTS.includes(look.font) ? look.font : "rubik",
     border: look.border === "two" ? "one" : look.border,
     foil: false,
     brand: look.brand === "off" ? "inside" : look.brand,
@@ -134,6 +172,12 @@ export function freeLook(look: MmrLook): MmrLook {
 }
 
 const HEX = /^#[0-9a-f]{6}$/i;
+/** The weights /api/mmr/font tries, heaviest first. */
+export const FONT_WEIGHTS = [900, 800, 700, 600, 400];
+/** A Google Font family name as typed: letters, digits and spaces, up to 40 characters. */
+export function cleanFontName(v: unknown): string {
+  return typeof v === "string" ? v.replace(/[^A-Za-z0-9 ]/g, "").replace(/\s+/g, " ").trim().slice(0, 40) : "";
+}
 const pick = <T extends string>(v: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(v as T) ? (v as T) : fallback);
 
 /** A look from untrusted input (the studio, the database), with every value checked. */
@@ -151,14 +195,22 @@ export function cleanLook(raw: unknown, fallbackId = "main"): MmrLook {
     layout,
     surface: pick(r.surface, ["dark", "light", "glass"] as const, d.surface),
     colors: colorIds.includes(String(r.colors)) ? String(r.colors) : d.colors,
-    accent: PROFILE_ACCENTS.some((a) => a.key === r.accent) ? String(r.accent) : d.accent,
+    accent: PROFILE_ACCENTS.some((a) => a.key === r.accent) || (typeof r.accent === "string" && HEX.test(r.accent)) ? String(r.accent).toLowerCase() : d.accent,
     custom,
     fill: pick(r.fill, ["solid", "gradient", "glyphs", "stripes", "dots", "picture"] as const, d.fill),
     picture,
     emblem: pick(r.emblem, ["tile", "crest", "coin", "name", "off", "picture"] as const, d.emblem),
-    font: pick(r.font, ["gs", "bebas", "chakra", "fredoka", "grotesk"] as const, d.font),
+    // "gs" was the default until 2026-10-29 (GameShuffle's font): those looks moved to the new default.
+    font: r.font === "gs" ? "rubik" : pick(r.font, FONT_IDS, d.font),
+    fontName: cleanFontName(r.fontName),
+    fontWeight: FONT_WEIGHTS.includes(Number(r.fontWeight)) ? Number(r.fontWeight) : 400,
+    // Looks saved before flags keep the code; new looks start on the flag.
+    country: pick(r.country, ["code", "flag", "both"] as const, "code"),
     border: pick(r.border, ["none", "one", "two"] as const, d.border),
+    edge: pick(r.edge, ["accent", "white", "division", "custom"] as const, d.edge),
+    edgeColor: typeof r.edgeColor === "string" && HEX.test(r.edgeColor) ? r.edgeColor.toLowerCase() : d.edgeColor,
     foil: r.foil === true,
+    align: r.align === "center" ? "center" : "left",
     brand: pick(r.brand, ["inside", "tab", "mark", "off"] as const, d.brand),
     number: r.number === "count" ? "count" : "roll",
     // A look saved before the pieces had switches has `show` instead: it keeps exactly what its layout showed.
@@ -216,7 +268,7 @@ export function palette(look: MmrLook, div: DivisionLook): { g2: string; hl: str
   if (look.colors === "division") return { g2: shade(div.c2, -0.04), hl: div.c, hl2: div.c2 };
   if (look.colors === "gs") return { g2: "#4b5cf5", hl: "#5b8cff", hl2: "#c949e9" };
   if (look.colors === "accent") {
-    const a = PROFILE_ACCENTS.find((x) => x.key === look.accent)?.color ?? "#5b6cff";
+    const a = HEX.test(look.accent) ? look.accent : PROFILE_ACCENTS.find((x) => x.key === look.accent)?.color ?? "#5b6cff";
     return { g2: shade(a, -0.1), hl: a, hl2: shade(a, 0.4) };
   }
   if (look.colors === "custom") return { g2: look.custom[0], hl: look.custom[1], hl2: look.custom[0] };
@@ -224,18 +276,44 @@ export function palette(look: MmrLook, div: DivisionLook): { g2: string; hl: str
   return t ? { g2: t.primary, hl: t.accent, hl2: t.primary } : { g2: "#4b5cf5", hl: "#5b8cff", hl2: "#c949e9" };
 }
 
-export const FONTS: Record<MmrFont, [string, number]> = {
-  gs: ['"Gabarito", "Outfit", system-ui, sans-serif', 800],
-  bebas: ['"Bebas Neue", "Gabarito", sans-serif', 400],
-  chakra: ['"Chakra Petch", "Outfit", sans-serif', 700],
-  fredoka: ['"Fredoka", "Outfit", sans-serif', 700],
-  grotesk: ['"Space Grotesk", "Outfit", sans-serif', 700],
+const GS = 'var(--gs-font-display), "Gabarito", "Outfit", system-ui, sans-serif';
+/** Each font: its family stack, weight and style. Rubik is self-hosted (mmrFonts.ts, --gs-font-mmr). */
+export const FONTS: Record<Exclude<MmrFont, "google">, [string, number, "normal" | "italic"]> = {
+  rubik: [`var(--gs-font-mmr), "Rubik", ${GS}`, 900, "italic"],
+  gabarito: [GS, 800, "normal"],
+  kanit: [`"Kanit", ${GS}`, 900, "italic"],
+  exo: [`"Exo 2", ${GS}`, 900, "italic"],
+  titan: [`"Titan One", ${GS}`, 400, "normal"],
+  mplus: [`"M PLUS Rounded 1c", ${GS}`, 900, "normal"],
+  russo: [`"Russo One", ${GS}`, 400, "normal"],
+  lilita: [`"Lilita One", ${GS}`, 400, "normal"],
+  bungee: [`"Bungee", ${GS}`, 400, "normal"],
+  bebas: [`"Bebas Neue", ${GS}`, 400, "normal"],
+  chakra: [`"Chakra Petch", ${GS}`, 700, "normal"],
+  fredoka: [`"Fredoka", ${GS}`, 700, "normal"],
+  grotesk: [`"Space Grotesk", ${GS}`, 700, "normal"],
 };
+const GOOGLE_FAMILY: Partial<Record<MmrFont, string>> = {
+  kanit: "Kanit:ital,wght@1,900", exo: "Exo+2:ital,wght@1,900", titan: "Titan+One", mplus: "M+PLUS+Rounded+1c:wght@900",
+  russo: "Russo+One", lilita: "Lilita+One", bungee: "Bungee", bebas: "Bebas+Neue", chakra: "Chakra+Petch:wght@700",
+  fredoka: "Fredoka:wght@700", grotesk: "Space+Grotesk:wght@700",
+};
+/** A family name as Google's stylesheet address wants it ("Exo 2" → "Exo+2"). */
+export const googleFamily = (name: string) => cleanFontName(name).split(" ").map(encodeURIComponent).join("+");
 
-/** The Google Fonts stylesheet for a GS Pro font (GameShuffle's own fonts are on every page). */
-export function fontStylesheet(font: MmrFont): string | null {
-  const fam = { bebas: "Bebas+Neue", chakra: "Chakra+Petch:wght@700", fredoka: "Fredoka:wght@700", grotesk: "Space+Grotesk:wght@700" } as Record<string, string>;
-  return fam[font] ? `https://fonts.googleapis.com/css2?family=${fam[font]}&display=swap` : null;
+/** The look's font: family stack, weight and style ("Any Google Font" falls back to the default until it has a name). */
+export function fontOf(look: Pick<MmrLook, "font" | "fontName" | "fontWeight">): [string, number, "normal" | "italic"] {
+  if (look.font === "google") {
+    const name = cleanFontName(look.fontName);
+    return name ? [`"${name}", ${GS}`, look.fontWeight || 400, "normal"] : FONTS.rubik;
+  }
+  return FONTS[look.font] ?? FONTS.rubik;
+}
+
+/** The Google Fonts stylesheet for a look's font, or null (the free fonts are self-hosted). */
+export function fontStylesheet(look: Pick<MmrLook, "font" | "fontName" | "fontWeight">): string | null {
+  const fam = look.font === "google" ? (cleanFontName(look.fontName) ? `${googleFamily(look.fontName)}:wght@${look.fontWeight || 400}` : null) : GOOGLE_FAMILY[look.font];
+  return fam ? `https://fonts.googleapis.com/css2?family=${fam}&display=swap` : null;
 }
 
 /** CSS variables for a card in a division. */
@@ -243,7 +321,8 @@ export function lookVars(look: MmrLook, div: DivisionLook): Record<string, strin
   const p = palette(look, div);
   const light = look.surface === "light" && look.fill !== "picture";
   const acc = light ? (luminance(p.hl) > 0.3 ? shade(p.hl, -0.5) : p.hl) : luminance(p.hl) < 0.12 ? shade(p.hl, 0.45) : p.hl;
-  const [fam, fw] = FONTS[look.font] ?? FONTS.gs;
+  const [fam, fw, fs] = fontOf(look);
+  const edge = look.edge === "white" ? "#ffffff" : look.edge === "division" ? div.c : look.edge === "custom" ? look.edgeColor : p.hl;
   return {
     "--mmr-g2": p.g2,
     "--mmr-hl": p.hl,
@@ -256,6 +335,8 @@ export function lookVars(look: MmrLook, div: DivisionLook): Record<string, strin
     "--mmr-dslot": shade(div.c2, -0.2),
     "--mmr-font": fam,
     "--mmr-fw": String(fw),
+    "--mmr-fs": fs,
+    "--mmr-edge": edge,
     ...(look.fill === "picture" && look.picture ? { "--mmr-picture": `url("${look.picture.replace(/"/g, "")}")` } : {}),
   };
 }

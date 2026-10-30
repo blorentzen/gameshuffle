@@ -237,6 +237,37 @@ const commands = [
     ],
   },
   {
+    name: "gs-tt",
+    description: "Mario Kart time trials: add a time, see a track's board or a player's bests.",
+    options: [
+      {
+        name: "add", description: "Add a time trial time (type it, or attach the result screenshot).", type: 1,
+        options: [
+          { name: "track", description: "The track (start typing).", type: 3, required: true, autocomplete: true },
+          { name: "time", description: "Your time, like 1:52.384. Leave out to read it from a screenshot.", type: 3, required: false, max_length: 12 },
+          { name: "class", description: "Speed class (150cc if left out).", type: 3, required: false, choices: [{ name: "150cc", value: "150" }, { name: "200cc", value: "200" }] },
+          { name: "screenshot", description: "The result screen, as proof (I'll read the time if you leave it out).", type: 11, required: false },
+          { name: "video", description: "A video link as proof (YouTube, Twitch, Streamable, Medal).", type: 3, required: false, max_length: 300 },
+        ],
+      },
+      {
+        name: "track", description: "A track's top ten (this server's when it has times there).", type: 1,
+        options: [
+          { name: "track", description: "The track (start typing).", type: 3, required: true, autocomplete: true },
+          { name: "class", description: "Speed class (150cc if left out).", type: 3, required: false, choices: [{ name: "150cc", value: "150" }, { name: "200cc", value: "200" }] },
+          { name: "board", description: "Whose times (this server if it has some).", type: 3, required: false, choices: [{ name: "This server", value: "server" }, { name: "Everyone", value: "everyone" }] },
+        ],
+      },
+      {
+        name: "player", description: "A player's best times. Leave the name out for yours.", type: 1,
+        options: [
+          { name: "name", description: "Their name on GameShuffle (optional).", type: 3, required: false, max_length: 40 },
+          { name: "game", description: "Just one game (both if left out).", type: 3, required: false, choices: [{ name: "Mario Kart World", value: "mkworld" }, { name: "Mario Kart 8 Deluxe", value: "mk8dx" }] },
+        ],
+      },
+    ],
+  },
+  {
     name: "gs-room",
     description: "What each place pays in a lounge room, and who's favored. Paste the room's names.",
     options: [
@@ -331,6 +362,14 @@ const commands = [
   {
     name: "gs-profile",
     description: "Share your GameShuffle profile so others can follow + connect.",
+  },
+  // A message command (Apps menu on a message), for Quaxly's time trials list: reads it and saves your
+  // times (migration picks 2026-10-29). Works anywhere the person added GameShuffle to their account.
+  {
+    name: "Save to GameShuffle",
+    type: 3, // MESSAGE
+    integration_types: [0, 1],
+    contexts: [0, 1, 2],
   },
 ];
 

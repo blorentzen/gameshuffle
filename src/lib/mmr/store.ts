@@ -10,6 +10,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isProUser } from "@/lib/subscription-server";
+import { hasLooks } from "@/lib/support/looks";
 import { gsDay, gsDayStart } from "@/lib/time/gsClock";
 import { keyFromPublicUrl } from "@/lib/storage/r2";
 import { DEFAULT_LOOK, MAX_LOOKS, cleanLook, freeLook, proUsed, type MmrLook } from "./look";
@@ -18,11 +19,14 @@ import { PIECE_IDS } from "./pieces";
 /** What the profile badge can show: the sticker as it has always looked on a profile. */
 const PROFILE_PIECES = ["name", "division", "delta", "goal"];
 import { isBlockedText } from "@/lib/text/filter";
+import { accountAvatar, type AccountRow } from "@/lib/discord/faces";
 import { LoungeUnavailable, countryCountAbove, loungePlayer, loungeStats, unverifiedTables } from "./mkcentral";
 import { pendingFor } from "@/lib/lounge/pending";
 import { gameForSlug, isMmrGame, milestoneTier, viewOf, type MmrGame, type MmrView } from "./rules";
 import { cleanGoal, goalActive, type MmrGoal } from "./goal";
 import type { MmrCardView, MmrLiveResult, MmrMilestone } from "./types";
+import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
+import { isCommandOff } from "@/lib/twitch/commands/toggles";
 
 export interface MmrCard extends Omit<MmrCardView, "goal"> {
   userId: string;
@@ -138,7 +142,8 @@ export type SaveResult =
  *  choices tried in the preview are saved as their free versions (and named in `freeSaved`). */
 export async function saveCard(userId: string, input: SaveInput): Promise<SaveResult> {
   const admin = createServiceClient();
-  const [current, pro] = await Promise.all([cardFor(userId), isProUser(userId, admin)]);
+  // Looks (Supporter looks, GS Pro) set what the card may look like; goal, recap and following Twitch stay GS Pro.
+  const [current, pro, looksOk] = await Promise.all([cardFor(userId), isProUser(userId, admin), hasLooks(userId)]);
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   const freeSaved = new Set<string>();
   let lineRefused = false;
@@ -159,8 +164,8 @@ export async function saveCard(userId: string, input: SaveInput): Promise<SaveRe
       lineRefused = true;
       return { ...l, info: { ...l.info, line: "" } };
     });
-    looks = looks.slice(0, pro ? MAX_LOOKS.pro : MAX_LOOKS.free);
-    if (!pro) looks = looks.map((l) => { proUsed(l).forEach((p) => freeSaved.add(p)); return freeLook(l); });
+    looks = looks.slice(0, looksOk ? MAX_LOOKS.pro : MAX_LOOKS.free);
+    if (!looksOk) looks = looks.map((l) => { proUsed(l).forEach((p) => freeSaved.add(p)); return freeLook(l); });
     // Ids must be unique; a clash gets a fresh one.
     const seen = new Set<string>();
     looks = looks.map((l, i) => { const id = seen.has(l.id) ? `look-${i + 1}` : l.id; seen.add(id); return { ...l, id }; });
@@ -250,18 +255,48 @@ async function noteMilestone(card: MmrCard, game: MmrGame, season: number | null
   return next;
 }
 
-async function avatarFor(userId: string): Promise<string | null> {
-  const { data } = await createServiceClient().from("users").select("avatar_url").eq("id", userId).maybeSingle();
-  const url = (data as { avatar_url?: string | null } | null)?.avatar_url ?? null;
-  return url && /^https:\/\//.test(url) ? url : null;
+const CHAT_TTL_MS = 5 * 60_000;
+const chatCache = new Map<string, { at: number; on: boolean }>();
+/** Whether GameShuffle's bot answers !mmr in this streamer's Twitch chat: GS Pro (the Twitch setup), the bot's
+ *  chat subscription live, and !mmr not switched off on the Commands page. Kept 5 minutes (the OBS link polls). */
+export async function chatAnswersMmr(userId: string, pro: boolean): Promise<boolean> {
+  if (!pro) return false;
+  const hit = chatCache.get(userId);
+  if (hit && Date.now() - hit.at < CHAT_TTL_MS) return hit.on;
+  let on = false;
+  try {
+    const { data } = await createServiceClient().from("twitch_eventsub_subscriptions").select("status")
+      .eq("user_id", userId).eq("type", "channel.chat.message").limit(5);
+    if (((data ?? []) as { status: string }[]).some((r) => r.status === "enabled")) {
+      const community = await resolveCommunityIdForOwner(userId);
+      on = !community || !(await isCommandOff(community, "mmr"));
+    }
+  } catch (err) {
+    console.error("[mmr] chat check failed:", err);
+  }
+  chatCache.set(userId, { at: Date.now(), on });
+  return on;
+}
+
+/** The account's picture by the site's rule (accountAvatar): their Twitch or Discord picture, else their generated one. */
+export async function accountPicture(userId: string): Promise<string | null> {
+  const { data } = await createServiceClient().from("users")
+    .select("id, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar").eq("id", userId).maybeSingle();
+  if (!data) return null;
+  const url = accountAvatar(data as AccountRow);
+  return /^(https:\/\/|data:image\/)/.test(url) ? url : null;
 }
 
 /** Everything a card shows right now. */
 export async function liveFor(card: MmrCard, opts: { look?: string | null; since?: string | null; /** false: skip the country rank (a caller that never shows it). */ country?: boolean } = {}): Promise<MmrLiveResult> {
-  const [pro, stream, avatar] = await Promise.all([isProUser(card.userId), streamFor(card.userId), avatarFor(card.userId)]);
+  const [pro, looksOk, stream] = await Promise.all([isProUser(card.userId), hasLooks(card.userId), streamFor(card.userId)]);
+  // The panel's chat line and the recap's (cached, never throws).
+  const chatOn = chatAnswersMmr(card.userId, pro);
   const chosen = opts.look ? card.looks.find((l) => l.id === opts.look) : null;
   const raw = chosen ?? pickLook(card, card.followTwitch && pro ? stream.gameSlug : null);
-  const look = pro ? raw : freeLook(raw);
+  const look = looksOk ? raw : freeLook(raw);
+  // Only the picture emblem (GS Pro or Supporter looks) draws it.
+  const avatar = look.emblem === "picture" ? await accountPicture(card.userId) : null;
   if (!card.loungeName && !card.loungePlayerId) return { ok: false, reason: "no_name", look, pro };
 
   let player;
@@ -302,6 +337,7 @@ export async function liveFor(card: MmrCard, opts: { look?: string | null; since
     milestone,
     pending,
     goal,
+    chat: await chatOn,
     fetchedAt: new Date().toISOString(),
     source: {
       name: player.name,

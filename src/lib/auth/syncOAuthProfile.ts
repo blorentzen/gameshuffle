@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { mergeIdentityAcrossSurfaces } from "@/lib/identity/merge";
 import { ensureUsername } from "@/lib/social/usernameAssign";
 
@@ -19,7 +20,10 @@ import { ensureUsername } from "@/lib/social/usernameAssign";
 type IdentityData = { provider_id?: string; sub?: string; full_name?: string; name?: string; preferred_username?: string; avatar_url?: string; picture?: string; custom_claims?: { global_name?: string } };
 type Gamertags = { discord?: string; twitch?: string; [k: string]: unknown };
 
-export async function syncProfileFromOAuth(supabase: SupabaseClient, user: User): Promise<void> {
+export async function syncProfileFromOAuth(_session: SupabaseClient, user: User): Promise<void> {
+  // The provider ids come from the verified sign-in (`user`), so the server writes them with the
+  // service role: people can't change their own discord_id / twitch_id (users-column-lock-m2.sql).
+  const supabase = createServiceClient();
   const identities = user.identities || [];
   const discordIdentity = identities.find((i) => i.provider === "discord");
   const twitchIdentity = identities.find((i) => i.provider === "twitch");

@@ -2487,6 +2487,9 @@
 .pro-trial__body p { margin: 0; }
 .pro-trial__terms { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .pro-trial__more { font-size: var(--font-size-14); font-weight: 600; }
+.looks-prompt__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-20); }
+/* A wall's button row and the small line under it read as one unit. */
+.pro-trial__act { display: grid; gap: var(--spacing-8); }
 
 /* SeasonPicker (community season board, profile Season tab). */
 .season-picker { max-width: 26rem; margin: 0 0 var(--spacing-12); }

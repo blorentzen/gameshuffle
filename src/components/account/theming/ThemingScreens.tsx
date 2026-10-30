@@ -4,7 +4,7 @@
  * Account ▸ Theming: Theme · Profile page · Walk-up song. How your public
  * surfaces look (profile, live page, overlay). Your own dashboard's light or
  * dark setting is in Settings ▸ General. Brand themes, skins and custom CSS
- * are GS Pro; the accent color, status, links and layout are free.
+ * are looks (GS Pro, or Supporter looks); the accent color, status, links and layout are free.
  */
 
 import Link from "next/link";
@@ -12,7 +12,7 @@ import { Button, ColorPicker, Select } from "@empac/cascadeds";
 import { AdminField, AdminScreen, AdminSection, SaveStatus } from "@/components/account/admin/AdminKit";
 import { useProfileStore } from "@/components/account/profile/ProfileStore";
 import { LoadingLines } from "@/components/loading/LoadingLines";
-import { ProOnly } from "@/components/billing/ProOnly";
+import { LooksOnly, looksName, useLooks } from "@/components/billing/LooksOnly";
 import { ThemeProPrompt } from "@/components/account/ThemeProPrompt";
 import { ThemeTab } from "@/components/account/ThemeTab";
 import { ProfileSkinEditor } from "@/components/account/ProfileSkinEditor";
@@ -29,6 +29,7 @@ const NONE = "none";
 
 export function ThemingThemeScreen() {
   const { loading, fields, set, extras, status } = useProfileStore();
+  const access = useLooks();
   return (
     <AdminScreen
       title="Theme"
@@ -43,7 +44,7 @@ export function ThemingThemeScreen() {
               from that color everywhere (owner-theme.ts skips the accent once
               a brand theme is on). */}
           <AdminSection title="Colors" intro="The color of your links, buttons and highlights on your profile, live page and overlay.">
-            <ProOnly
+            <LooksOnly
               fallback={
                 <>
                   {extras.persoAvailable && (
@@ -53,6 +54,7 @@ export function ThemingThemeScreen() {
                         <ColorPicker
                           variant="inline"
                           size="small"
+                          allowCustom={false}
                           aria-label="Your color"
                           presets={PROFILE_ACCENTS.map((a) => ({ value: a.color, label: a.label }))}
                           value={PROFILE_ACCENTS.find((a) => a.key === fields.accent)?.color ?? ""}
@@ -63,7 +65,7 @@ export function ThemingThemeScreen() {
                         />
                         {fields.accent && <Button variant="ghost" size="small" onClick={() => set({ accent: "" })}>Use GameShuffle blue</Button>}
                       </div>
-                      <p className="admin-field__help">Free. With GS Pro you can pick a full brand theme instead.</p>
+                      <p className="admin-field__help">Free. With {looksName(access)} you can pick a full brand theme instead.</p>
                     </div>
                   )}
                   <ThemeProPrompt />
@@ -71,16 +73,16 @@ export function ThemingThemeScreen() {
               }
             >
               <ThemeTab bare />
-            </ProOnly>
+            </LooksOnly>
           </AdminSection>
         </>
       )}
-      <ProOnly fallback={null}>
+      <LooksOnly fallback={null}>
         <ProfileSkinEditor />
-      </ProOnly>
-      <ProOnly fallback={null}>
+      </LooksOnly>
+      <LooksOnly fallback={null}>
         <ProfileCssEditor />
-      </ProOnly>
+      </LooksOnly>
     </AdminScreen>
   );
 }

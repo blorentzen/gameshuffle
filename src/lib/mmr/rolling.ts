@@ -15,7 +15,7 @@
  */
 
 import { MMR_GAMES, fmtMmr, signed, type MmrView } from "./rules";
-import { pieceOrder, pieceText, topText, type MmrInfo, type MmrPiece } from "./pieces";
+import { pieceOrder, pieceText, topText, underPieces, type MmrInfo, type MmrPiece } from "./pieces";
 import { countryName } from "@/lib/lounge/countries";
 import type { GoalProgress } from "./goal";
 
@@ -90,11 +90,13 @@ export const proRollingUsed = (r: MmrRolling): string[] => (r.perSlide && Object
 export const freeRolling = (r: MmrRolling): MmrRolling => ({ ...r, perSlide: null });
 
 /** The slides in order: the "id" slide first when the name and emblem roll, then each piece that's on
- *  and has something to show, in the look's order. Never empty: the MMR slide stands in. */
+ *  and has something to show, in the look's order (leaving out what sits under the MMR). Never empty: the MMR slide stands in. */
 export function rollSlides(info: MmrInfo, rolling: Pick<MmrRolling, "pin">, has: (p: MmrPiece) => boolean, idShown = true): RollSlide[] {
   const out: RollSlide[] = [];
   if (!rolling.pin && idShown) out.push("id");
-  for (const p of pieceOrder(info)) if (ROLL_PIECES.includes(p) && info.on[p] && has(p)) out.push(p);
+  // Tonight's run and last 10 can sit under the MMR instead of on slides of their own.
+  const under = underPieces(info, "rolling");
+  for (const p of pieceOrder(info)) if (ROLL_PIECES.includes(p) && info.on[p] && !under.includes(p) && has(p)) out.push(p);
   return out.length ? out : ["mmr"];
 }
 

@@ -2,14 +2,15 @@
 
 /**
  * Small pieces the tool look editors share: a row of choice chips (CDS Chip,
- * pressable) with GS Pro choices shown locked, and the one line that says
- * which choices come with GS Pro.
+ * pressable) with paid choices shown locked, and the one line that says
+ * which choices come with looks (GS Pro, or Supporter looks while that level sells them).
  */
 
 import Link from "next/link";
 import { Chip } from "@empac/cascadeds";
 import { IconLock } from "@tabler/icons-react";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { looksName, useLooks } from "@/components/billing/LooksOnly";
 
 export interface Choice<T extends string | number> {
   value: T;
@@ -50,12 +51,17 @@ export function ChoiceChips<T extends string | number>({ choices, value, onChang
   );
 }
 
-/** "Wooden and rust dice come with GS Pro." with a link, for anyone without it. */
-export function ProLookNote({ children, from }: { children: React.ReactNode; from: string }) {
+/** "Wooden and rust dice come with GS Pro." with a link, for anyone without looks. `what` is the sentence's subject. */
+export function ProLookNote({ what, from }: { what: string; from: string }) {
+  const access = useLooks();
+  if (access?.looks) return null;
+  const supporter = !!access?.supporterOffer;
   return (
     <p className="look-pro-note">
-      {children}{" "}
-      <Link href={`/gs-pro?from=${from}`} className={tagged(EVENTS.upgradeClicked, { from })}>See GS Pro</Link>
+      {what} come with {looksName(access)}.{" "}
+      {supporter
+        ? <Link href={`/support?level=supporter&from=${encodeURIComponent(`looks-${from}`)}#give`} className={tagged(EVENTS.supportClicked, { from: `looks-${from}` })}>Support for $3 a month</Link>
+        : <Link href={`/gs-pro?from=${from}`} className={tagged(EVENTS.upgradeClicked, { from })}>See GS Pro</Link>}
     </p>
   );
 }

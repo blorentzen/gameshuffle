@@ -26,6 +26,7 @@ import { PlatformPricingTab } from "@/components/account/PlatformPricingTab";
 import { PlatformEconomySnapshotTab } from "@/components/account/PlatformEconomySnapshotTab";
 import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
 import { PlatformModerationTab } from "@/components/account/PlatformModerationTab";
+import { PlatformTimeTrialsTab } from "@/components/account/PlatformTimeTrialsTab";
 import { PlatformShopTab } from "@/components/account/PlatformShopTab";
 import { PlatformGuidesTab } from "@/components/account/PlatformGuidesTab";
 import { PlatformDecksTab } from "@/components/account/PlatformDecksTab";
@@ -69,6 +70,7 @@ const SCREENS: ScreenMap = {
   "platform-tournaments": () => <PlatformTournamentsTab />,
   "platform-ticketing": () => <PlatformTicketingTab />,
   "platform-moderation": () => <PlatformModerationTab />,
+  "platform-time-trials": () => <PlatformTimeTrialsTab />,
   "platform-staff": () => <PlatformStaffTab />,
   "platform-pricing": () => <PlatformPricingTab />,
   "platform-support": () => <PlatformSupportTab />,
