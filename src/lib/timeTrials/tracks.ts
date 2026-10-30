@@ -21,6 +21,7 @@
 import { MK8DX_TRACKS } from "@/lib/randomizers/race/tracks/mk8dx";
 import { MKWORLD_TRACKS } from "@/lib/randomizers/race/tracks/mkworld";
 import mk8dx from "@/data/mk8dx-data.json";
+import { categoryQuery, type TtItems, type TtVehicle } from "./categories";
 
 export type TtGame = "mkworld" | "mk8dx";
 export type TtClass = 150 | 200;
@@ -119,15 +120,13 @@ export function ttCups(game: TtGame): { cup: string; tracks: TtTrack[] }[] {
   return out;
 }
 
-export function trackPath(t: Pick<TtTrack, "game" | "id">, cc?: TtClass): string {
+export function trackPath(t: Pick<TtTrack, "game" | "id">, cc?: TtClass, cat?: { items?: TtItems; vehicle?: TtVehicle }): string {
   const slug = ttTrack(t.game, t.id)?.slug ?? t.id;
-  const base = `/time-trials/${TT_GAMES[t.game].slug}/${slug}`;
-  return cc && cc !== TT_GAMES[t.game].classes[0] ? `${base}?cc=${cc}` : base;
+  return `/time-trials/${TT_GAMES[t.game].slug}/${slug}${categoryQuery({ cc, defaultCc: TT_GAMES[t.game].classes[0], items: cat?.items, vehicle: t.game === "mk8dx" ? cat?.vehicle : undefined })}`;
 }
 /** A game's page: /time-trials/mario-kart-world (the time trials page opened on that game). */
-export function gamePath(game: TtGame, cc?: TtClass): string {
-  const base = `/time-trials/${TT_GAMES[game].slug}`;
-  return cc && cc !== TT_GAMES[game].classes[0] ? `${base}?cc=${cc}` : base;
+export function gamePath(game: TtGame, cc?: TtClass, cat?: { items?: TtItems; vehicle?: TtVehicle }): string {
+  return `/time-trials/${TT_GAMES[game].slug}${categoryQuery({ cc, defaultCc: TT_GAMES[game].classes[0], items: cat?.items, vehicle: game === "mk8dx" ? cat?.vehicle : undefined })}`;
 }
 
 function slugify(s: string): string {

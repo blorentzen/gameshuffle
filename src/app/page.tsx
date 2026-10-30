@@ -96,7 +96,7 @@ const TOP_RANDOMIZERS = [
  */
 const POPULAR_PAGES: { label: string; sub: string; href: string }[] = [
   { label: "Mario Kart tournaments", sub: "Run one with random rounds", href: "/mario-kart-tournaments" },
-  { label: "Competitive Mario Kart", sub: "Live lounge scoring", href: "/competitive-mario-kart" },
+  { label: "Competitive Mario Kart", sub: "Lounge stats, time trials, MMR card", href: "/competitive-mario-kart" },
   { label: "How to host a trivia night", sub: "Rounds, rules and scoring", href: "/trivia/how-to-host" },
   { label: "Trivia team names", sub: "127 names in five themes", href: "/trivia/team-names" },
   { label: "Pokémon TCG rules", sub: "Damage, conditions, prizes", href: "/pokemon-tcg/rules" },

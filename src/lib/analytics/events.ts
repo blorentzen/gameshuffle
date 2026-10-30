@@ -198,6 +198,9 @@ export const EVENTS = {
   loungeRoomRead: "Lounge Room Read",
   /** A player opened from the lounge lookup (props: { via: suggestion | enter | fc | recent | did-you-mean }). */
   loungeSearchUsed: "Lounge Search Used",
+  /** The competitive Mario Kart hub: its player search {kind: lounge | tt | enter} and its tool links {to}. */
+  cmkSearchUsed: "Competitive Search Used",
+  cmkClicked: "Competitive Hub Clicked",
   /** A board tab opened on /lounge (props: { board: world | climbing | countries | gs }). */
   loungeBoardViewed: "Lounge Board Viewed",
   /** A lounge player's page shared from its header (props: { via: share | copy }). */

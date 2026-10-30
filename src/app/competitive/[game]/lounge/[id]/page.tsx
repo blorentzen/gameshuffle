@@ -623,7 +623,7 @@ export default function LoungeScoringPage() {
                 <Link href={`/login?redirect=${encodeURIComponent(`/competitive/${gameSlug}/lounge/${sessionId}`)}`} style={{ textDecoration: "none" }}>
                   <Button variant="primary">Log in to join</Button>
                 </Link>
-                <span>Watching needs no account. Racing does, so every result is tied to a real player.</span>
+                <span>Watching needs no account. Racing does, so every result belongs to a signed-in player.</span>
               </div>
             )}
             {isOrganizer && players.length >= 2 && (

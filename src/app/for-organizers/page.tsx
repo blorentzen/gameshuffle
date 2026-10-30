@@ -61,7 +61,7 @@ const TOOLKIT: {
     description:
       "Normalized placements, team modes, and a public viewer page that updates live as each race is scored. No spreadsheets.",
     href: "/competitive/mario-kart-8-deluxe",
-    cta: "See the competitive hub",
+    cta: "Try live scoring",
     accent: "#7c3aed",
   },
   {

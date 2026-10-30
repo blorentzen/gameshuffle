@@ -157,18 +157,20 @@ export const PILLARS: Pillar[] = [
     href: "/tournament",
     groups: [
       {
-        heading: "Find a match",
+        // Competitive Mario Kart picks 2026-10-30 (8A): the hub first, then its tools.
+        heading: "Mario Kart",
         items: [
-          { label: "Browse tournaments", href: "/tournament", blurb: "Open registration, live brackets and past results." },
-          { label: "Mario Kart lounge", href: "/competitive/mario-kart-8-deluxe", blurb: "Normalised placement scoring across a session." },
+          { label: "Competitive Mario Kart", href: "/competitive-mario-kart", blurb: "Lounge stats, time trials, the MMR card and tournaments in one place.", footer: true },
+          { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart World and 8 Deluxe. Add yours from a screenshot.", footer: true },
           { label: "Lounge stats", href: "/lounge", blurb: "Any lounge player's season, plus boards for the people you know.", footer: true },
           { label: "MMR card", href: "/mmr-card", blurb: "Your lounge MMR on stream, live, with a moment every event. Free.", footer: true },
-          { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart World and 8 Deluxe. Add yours from a screenshot.", footer: true },
+          { label: "Live scoring", href: "/competitive/mario-kart-8-deluxe", blurb: "Score a set between friends as you race." },
         ],
       },
       {
-        heading: "Run one",
+        heading: "Tournaments",
         items: [
+          { label: "Browse tournaments", href: "/tournament", blurb: "Open registration, live brackets and past results." },
           { label: "Create a tournament", href: "/tournament/create", blurb: "Brackets, points or the Heat to Mains ladder.", audience: "member" },
           { label: "How hosting works", href: "/host-a-tournament", blurb: "Formats, live scoring, guests and seasons, in one place." },
           ...(GUIDES_PUBLIC ? [{ label: "Guides", href: "/guides", blurb: "Formats, seeding, group sizes and the logistics nobody writes down." }] : []),

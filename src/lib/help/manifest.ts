@@ -201,8 +201,8 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "competitive-lounge",
-    title: "Competitive Lounge Scoring",
-    description: "Run normalized live scoring for a Mario Kart 8 Deluxe lounge across FFA and team modes.",
+    title: "Live scoring",
+    description: "Score a set of Mario Kart between friends live, in FFA or team modes, with everyone logging their own finish.",
     href: "/help/apps/competitive-lounge",
     category: "apps",
     keywords: ["competitive", "lounge", "scoring", "placements", "ffa", "teams", "live scoring", "mk8dx"],

@@ -19,6 +19,7 @@ import { formatTime } from "@/lib/timeTrials/rules";
 import { bestPerTrack } from "@/lib/timeTrials/importText";
 import type { CheckRow } from "@/lib/timeTrials/importRows";
 import { gamePath, TT_GAMES, TT_GAME_ORDER, ttCups, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import type { TtItems } from "@/lib/timeTrials/categories";
 
 const ERRORS: Record<string, string> = {
   empty: "Paste your times or add screenshots first.",
@@ -28,7 +29,6 @@ const ERRORS: Record<string, string> = {
   slow_down: "That's a lot of reading. Wait a few minutes and try again.",
   signin: "Sign in to import your times.",
   not_ready: "Time trials aren't open yet. Try again soon.",
-  no_items: "That's a no-items list. Our boards are with mushrooms, so use Quaxly's Shrooms list.",
   nothing_read: "We couldn't find times in those screenshots. Make sure they show Quaxly's list.",
   bad_image: "We couldn't open those pictures. Use PNG, JPEG or WebP screenshots.",
   bad_type: "Use PNG, JPEG or WebP screenshots.",
@@ -37,7 +37,7 @@ const ERRORS: Record<string, string> = {
   not_yours: "That list was read for a different Discord account.",
 };
 
-type Got = { ok?: boolean; game?: TtGame; rows?: CheckRow[]; title?: string | null; holders?: boolean; ai?: boolean; error?: string };
+type Got = { ok?: boolean; game?: TtGame; rows?: CheckRow[]; title?: string | null; holders?: boolean; ai?: boolean; items?: TtItems; error?: string };
 
 function noteText(r: CheckRow): string | null {
   switch (r.note) {
@@ -56,7 +56,7 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
   const [game, setGame] = useState<TtGame>("mk8dx");
   const [text, setText] = useState("");
   const [rows, setRows] = useState<CheckRow[] | null>(null);
-  const [meta, setMeta] = useState<{ title: string | null; holders: boolean; ai: boolean; from: "paste" | "screenshots" | "discord" } | null>(null);
+  const [meta, setMeta] = useState<{ title: string | null; holders: boolean; ai: boolean; items: TtItems; from: "paste" | "screenshots" | "discord" } | null>(null);
   const [busy, setBusy] = useState<"read" | "shots" | "save" | "draft" | null>(draftId ? "draft" : null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ saved: number; already: number; refused: number } | null>(null);
@@ -69,7 +69,7 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
     if (j.game) setGame(j.game);
     const list = j.rows ?? [];
     setRows(list.length ? list : null);
-    setMeta({ title: j.title ?? null, holders: !!j.holders, ai: !!j.ai, from });
+    setMeta({ title: j.title ?? null, holders: !!j.holders, ai: !!j.ai, items: j.items ?? "shrooms", from });
     if (!list.length && !j.error) setError("We didn't find any times in that. Each time needs its track, like \"MKS: 1:36.990\".");
   }
 
@@ -130,7 +130,7 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
       const res = await fetch("/api/time-trials/import", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game, rows: toSave.map((r) => ({ track: r.trackId, cc: r.cc, time: r.timeMs })) }),
+        body: JSON.stringify({ game, items: meta?.items ?? "shrooms", rows: toSave.map((r) => ({ track: r.trackId, cc: r.cc, time: r.timeMs })) }),
       });
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; saved?: number; already?: number; refused?: number; error?: string };
       if (!res.ok || !j.ok) { setError(ERRORS[j.error ?? ""] ?? "Those times couldn't be saved. Try again."); return; }
@@ -196,6 +196,7 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
           <h2 id={`${id}-check`}>Check what we read</h2>
           <p className="tt-note">
             {meta?.title ? <>{meta.title}. </> : null}
+            {meta ? <>These go on the {meta.items === "none" ? "no mushrooms" : "mushrooms"} boards. </> : null}
             {meta?.ai ? "We read this with AI, so check each row. " : ""}
             {toSave.length} {toSave.length === 1 ? "time is" : "times are"} ticked to save.
             {counts.already ? ` ${counts.already} you already have.` : ""}

@@ -90,3 +90,14 @@ export function parseTtPlayer(key: string): { kind: "u" | "i"; id: string } | nu
   const m = key.match(/^([ui]):([0-9a-f-]{36})$/);
   return m ? { kind: m[1] as "u" | "i", id: m[2] } : null;
 }
+
+/**
+ * Where a time's video stands (round 2, Britton 2026-10-29): every time shows in its place, Unverified
+ * until a reviewer checks a clip of the run's last 30 seconds and flips it to Verified. none = no clip
+ * yet, waiting = a clip in the review queue, checked = Verified, rejected = the clip didn't match.
+ */
+export type VideoState = "none" | "waiting" | "checked" | "rejected";
+
+export function isVerified(v: VideoState): boolean {
+  return v === "checked";
+}

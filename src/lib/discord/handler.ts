@@ -9,7 +9,7 @@ import { handleGsTag } from "./commands/tags";
 import { handleGsRemind } from "./commands/remind";
 import { handleGsProfile } from "./commands/profile";
 import { handleGsMmr, handleGsRoom } from "./commands/mmr";
-import { handleGsTt, handleTtButton, ttAutocomplete, TT_NO_PREFIX, TT_OK_PREFIX, TT_REPORT_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX } from "./commands/timeTrials";
+import { handleGsTt, handleTtButton, handleTtClipModal, ttAutocomplete, TT_CLIP_MODAL_PREFIX, TT_CLIP_PREFIX, TT_NO_PREFIX, TT_OK_PREFIX, TT_REPORT_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX } from "./commands/timeTrials";
 import { handleTtSaveButton, handleTtSaveCommand, TT_IMPORT_PREFIX, TT_SAVE_COMMAND } from "./commands/ttImport";
 import {
   BRAIN_ANSWER_PREFIX,
@@ -114,7 +114,7 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     if (customId.startsWith(TT_IMPORT_PREFIX)) return handleTtSaveButton(interaction, customId);
 
     // Time trials: confirm or cancel a read screenshot, undo, verify (server managers), report.
-    if ([TT_OK_PREFIX, TT_NO_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_REPORT_PREFIX].some((p) => customId.startsWith(p))) {
+    if ([TT_OK_PREFIX, TT_NO_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_REPORT_PREFIX, TT_CLIP_PREFIX].some((p) => customId.startsWith(p))) {
       return handleTtButton(interaction, customId);
     }
 
@@ -169,6 +169,7 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
   // Modal submits (forms opened by a button)
   if (type === INTERACTION_TYPE.MODAL_SUBMIT) {
     const customId = (interaction.data as { custom_id: string }).custom_id;
+    if (customId.startsWith(TT_CLIP_MODAL_PREFIX)) return handleTtClipModal(interaction, customId);
     if (customId.startsWith(BRAIN_MODAL_PREFIX)) {
       return handleBrainModalSubmit(interaction);
     }

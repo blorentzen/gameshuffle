@@ -3,13 +3,14 @@ import { notFound } from "next/navigation";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { TimeTrialsHub } from "@/components/timeTrials/TimeTrialsHub";
 import { gameBySlug, gamePath, isClassFor, TT_GAMES, type TtClass } from "@/lib/timeTrials/tracks";
+import { readCategory } from "@/lib/timeTrials/categories";
 import "@/styles/time-trials.css";
 
 /** One game's time trials: /time-trials/mario-kart-world, /time-trials/mario-kart-8-deluxe (picks 2026-10-29, 7A). */
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ game: string }>; searchParams: Promise<{ cc?: string }> };
+type Props = { params: Promise<{ game: string }>; searchParams: Promise<{ cc?: string; items?: string; vehicle?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const info = gameBySlug((await params).game);
@@ -29,7 +30,7 @@ export default async function TimeTrialsGamePage({ params, searchParams }: Props
   return (
     <>
       <MarketingJsonLd breadcrumb={{ label: info.label, path: gamePath(info.id), parent: { label: "Time trials", path: "/time-trials" } }} />
-      <TimeTrialsHub game={info.id} cc={cc} gamePage />
+      <TimeTrialsHub game={info.id} cc={cc} {...readCategory(info.id, sp)} gamePage />
     </>
   );
 }
