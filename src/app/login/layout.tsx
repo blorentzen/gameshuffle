@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Log In",
   description: "Log in to your GameShuffle account to access your saved configurations, tournaments, and competitive tools.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Log In | GameShuffle",
     description: "Log in to your GameShuffle account.",
     url: "https://www.gameshuffle.co/login",

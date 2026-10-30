@@ -31,10 +31,11 @@ import {
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
-  title: "Mario Kart Tournaments: brackets, seasons and a random draw",
+  title: "Mario Kart Tournaments: brackets and random draws",
   description:
-    "Run Mario Kart 8 Deluxe and Mario Kart World tournaments where the draw picks the karts, the tracks and the items. Set what goes in the pool, reveal it live to the lobby and your chat, and run brackets, points, or the Heat to Mains ladder. Free to start with an account.",
+    "Run Mario Kart 8 Deluxe and World tournaments where the draw picks the karts, tracks and items: brackets, points or Heat to Mains. Free to start.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Mario Kart Tournaments | GameShuffle",
     description:
       "Brackets and seasons where nobody knows what they are racing until the round opens. MK8DX and Mario Kart World, free to start.",

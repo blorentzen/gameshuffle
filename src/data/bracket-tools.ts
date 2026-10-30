@@ -71,7 +71,7 @@ export const BRACKET_TOOLS: Record<ToolPage, BracketToolCopy> = {
     path: "/round-robin-generator",
     name: "Round robin generator",
     metaTitle: "Round Robin Generator: Free Schedule Maker",
-    description: "Free round robin generator: everyone plays everyone, split into rounds, with standings that update as you enter results. Up to 64 players or teams; print it or share a link.",
+    description: "Free round robin generator: everyone plays everyone, split into rounds, with live standings. Up to 64 players or teams; print it or share a link.",
     lede: "Paste your players or teams and get a round-by-round schedule where everyone plays everyone. Enter results and the standings keep up.",
     steps: [
       { name: "Paste the names", text: "One per line, from 3 to 64 players or teams." },
@@ -107,7 +107,7 @@ export const BRACKET_TOOLS: Record<ToolPage, BracketToolCopy> = {
     path: "/swiss-pairing-generator",
     name: "Swiss pairing generator",
     metaTitle: "Swiss Pairing Generator: Free Swiss Tournament Tool",
-    description: "Free Swiss pairing generator: pairs each round by record with no rematches, handles byes and tiebreakers, and adds a Top 4 or Top 8 cut. Up to 64 players; print or share a link.",
+    description: "Free Swiss pairing generator: pairs each round by record with no rematches, handles byes and tiebreakers, and adds a top cut. Up to 64 players.",
     lede: "Paste your players and pair round 1. Enter results, pair the next round, and the standings and tiebreakers work themselves out.",
     steps: [
       { name: "Paste the names", text: "One per line, from 4 to 64. The suggested rounds and top cut follow the size of the field." },

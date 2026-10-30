@@ -7,6 +7,7 @@ import { DailyShuffle } from "@/components/originals/DailyShuffle";
 import { NewHereLine } from "@/components/welcome/NewHereLine";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/daily" },
   title: "The Daily Shuffle: guess the Nintendo character",
   description: "A daily character guessing game: one character a day from 130 across Nintendo and Smash's guests. A new hint after every miss, five guesses and a last chance.",
   alternates: { canonical: "https://www.gameshuffle.co/daily" },

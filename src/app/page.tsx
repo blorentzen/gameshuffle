@@ -48,6 +48,7 @@ export const metadata: Metadata = {
   description:
     "Free Mario Kart and Mario Party randomizers, daily puzzles, tournaments and trivia nights for any game night. GameShuffle Pro turns your whole chat into players.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Shuffle up your game night",
     url: "https://www.gameshuffle.co/",
     images: ["/images/opengraph/gameshuffle-main-og.jpg"],

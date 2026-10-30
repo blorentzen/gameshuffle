@@ -12,6 +12,8 @@ import {
 import type { Idea } from "@/lib/ideas/types";
 
 export const metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/ideas" },
+  alternates: { canonical: "https://www.gameshuffle.co/ideas" },
   title: "Idea Board",
   description:
     "Vote on game ideas, randomizer concepts, and feature requests for GameShuffle, and see what's planned and shipped.",

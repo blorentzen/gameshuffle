@@ -6,8 +6,9 @@ import { DiscordPlug } from "@/components/discord/DiscordPlug";
 import { WeeklyChallenge } from "@/components/originals/WeeklyChallenge";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/weekly" },
   title: "The Weekly Challenge: guess what the crowd said",
-  description: "A new GameShuffle challenge every Monday: answer the week's question, guess the crowd's top three answers, and score when the board is revealed. Plus one mission for every game night and a public leaderboard.",
+  description: "A new challenge every Monday: answer the week's question, guess the crowd's top three answers and score when the board is revealed.",
   alternates: { canonical: "https://www.gameshuffle.co/weekly" },
 };
 

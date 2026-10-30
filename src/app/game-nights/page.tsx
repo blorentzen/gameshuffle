@@ -12,6 +12,7 @@ import { shopVisibleToVisitors } from "@/lib/store/visibility";
 import { ShopLine } from "@/components/store/ShopEntry";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/game-nights" },
   title: "Game nights",
   description: "Find game nights near you, or host your own. Set the games, the vibe, and who it's for.",
   alternates: { canonical: "/game-nights" },

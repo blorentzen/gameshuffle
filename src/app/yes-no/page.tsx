@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "Can't decide? Hit the button for a random Yes or No (add Maybe if you like). A free yes-or-no decision maker with a running tally. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/yes-no" },
-  openGraph: { title: "Free Yes or No Decision Maker", url: "https://www.gameshuffle.co/yes-no" },
+  openGraph: { siteName: "GameShuffle", title: "Free Yes or No Decision Maker", url: "https://www.gameshuffle.co/yes-no" },
 };
 
 export default function YesNoPage() {

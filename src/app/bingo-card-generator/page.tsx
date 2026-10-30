@@ -8,9 +8,10 @@ import { IconLayoutGrid } from "@tabler/icons-react";
 export const metadata: Metadata = {
   title: "Bingo Card Generator: free custom bingo cards",
   description:
-    "A free bingo card generator. Type your own squares or start from a Twitch, Mario Kart, or game-night template, then generate a random 5×5 card you can print or play along with. No account required.",
+    "A free bingo card generator: type your own squares or start from a Twitch, Mario Kart or game night template, then print or play along. No account.",
   alternates: { canonical: "https://www.gameshuffle.co/bingo-card-generator" },
   openGraph: {
+    siteName: "GameShuffle",
     title: "Free Bingo Card Generator",
     url: "https://www.gameshuffle.co/bingo-card-generator",
   },

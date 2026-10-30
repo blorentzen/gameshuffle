@@ -165,7 +165,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     path: "/host-a-tournament",
     metaTitle: "Host a Tournament Online: Free Bracket & League Software",
     metaDescription:
-      "Host a tournament for any game, free. Single and double-elimination brackets, round-robin, points, or the Heat → Mains ladder, plus championship seasons with a running table. Live scoring on a public page, your stream overlay and chat, automatic reminders, and guests who don't need an account.",
+      "Host a tournament for any game, free: brackets, round robin, points or Heat to Mains, seasons, live scoring, reminders and guests without accounts.",
     breadcrumbLabel: "Host a Tournament",
     eyebrow: "Tournaments",
     status: "live",
@@ -222,7 +222,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     path: "/pokemon-tcg-companion",
     metaTitle: "Pokémon TCG Companion and Damage Counter",
     metaDescription:
-      "A free companion for the Pokémon Trading Card Game: damage counters, Special Conditions, Prize cards, turns and attacks worked out, with rule reminders and card art. Runs in your browser.",
+      "A free companion for the Pokémon TCG: damage counters, Special Conditions, Prize cards and attacks worked out, with rule reminders. In your browser.",
     breadcrumbLabel: "Pokémon TCG Companion",
     eyebrow: "TCG Companion",
     status: "new",

@@ -26,6 +26,8 @@ export const OG_CONTENT_TYPE = "image/png";
 export type CardArt =
   | { kind: "cover"; src: string }
   | { kind: "banner"; src: string }
+  /** A small 16:9 picture (track art), framed and tilted at the right: too small to fill a banner. */
+  | { kind: "picture"; src: string }
   | { kind: "glyphs"; glyphs: [GlyphName, GlyphName, GlyphName] };
 
 export interface EventCardInput {
@@ -107,6 +109,29 @@ export async function bannerArt(src: string | null | undefined): Promise<CardArt
   }
 }
 
+/** A 16:9 picture from our own storage (track art on cdn.empac.co), for the framed "picture" art. */
+export async function pictureArt(src: string | null | undefined, opts: { trimBottom?: number } = {}): Promise<CardArt | null> {
+  if (!src) return null;
+  let url: URL;
+  try { url = new URL(src); } catch { return null; }
+  if (!allowedImageHost(url)) return null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length > 8 * 1024 * 1024) return null;
+    // Track art carries its name in a strip along the bottom; the card's title already says it.
+    let input: Buffer = buf;
+    if (opts.trimBottom) {
+      const m = await sharp(buf).metadata();
+      if (m.width && m.height) input = await sharp(buf).extract({ left: 0, top: 0, width: m.width, height: Math.round(m.height * (1 - opts.trimBottom)) }).toBuffer();
+    }
+    return { kind: "picture", src: await pngData(input, 800, 450) };
+  } catch {
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------- drawing
 
 export function glyphSvg(name: GlyphName, color: string, strokeWidth = 1.6): string {
@@ -176,6 +201,12 @@ export async function renderEventCard(card: EventCardInput, init?: { headers?: R
           <div style={{ position: "absolute", right: 84, top: 95, width: 330, height: 440, display: "flex", borderRadius: 22, overflow: "hidden", border: "2px solid rgba(255,255,255,0.16)", boxShadow: "0 30px 80px rgba(0,0,0,0.55)", transform: "rotate(3deg)", opacity: dim ? 0.45 : 1 }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse */}
             <img src={art.src} width={330} height={440} alt="" />
+          </div>
+        )}
+        {art.kind === "picture" && (
+          <div style={{ position: "absolute", right: 64, top: 200, width: 400, height: 225, display: "flex", borderRadius: 20, overflow: "hidden", border: "3px solid rgba(255,255,255,0.22)", boxShadow: "0 30px 80px rgba(0,0,0,0.55)", transform: "rotate(3deg)", opacity: dim ? 0.45 : 1 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse */}
+            <img src={art.src} width={400} height={225} alt="" />
           </div>
         )}
         {art.kind === "glyphs" && (

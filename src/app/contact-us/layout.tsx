@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Contact Us",
   description: "Get in touch with the GameShuffle team. Have a feature idea, found a bug, or need help? We want to hear from you.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Contact Us | GameShuffle",
     description: "Get in touch with the GameShuffle team.",
     url: "https://www.gameshuffle.co/contact-us",

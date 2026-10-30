@@ -25,7 +25,7 @@ import "@/styles/road-card.css";
 
 export const metadata: Metadata = {
   title: "Trainer Road: duel every Pokémon Gym Leader and Champion",
-  description: "Every Pokémon Gym Leader, Elite Four member, Champion, rival, villain boss and villain team grunt from Kanto to Paldea, with the teams they use in the games. Pick one and duel them with Pokémon cards.",
+  description: "Every Pokémon Gym Leader, Elite Four member, Champion, rival and villain from Kanto to Paldea, with their teams from the games. Duel any of them.",
   ...shareMeta({
     title: "Trainer Road: duel every Pokémon Gym Leader and Champion",
     description: "Every Pokémon Gym Leader, Elite Four member, Champion, rival, villain boss and villain team grunt from Kanto to Paldea, with the teams they use in the games.",

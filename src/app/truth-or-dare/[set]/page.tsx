@@ -22,7 +22,7 @@ export async function generateMetadata({
     title: `${s.title} Truth or Dare: free prompt generator`,
     description: `${s.description} Free online truth-or-dare, no account required.`,
     alternates: { canonical: `https://www.gameshuffle.co/truth-or-dare/${s.slug}` },
-    openGraph: { title: `${s.title} Truth or Dare`, url: `https://www.gameshuffle.co/truth-or-dare/${s.slug}` },
+    openGraph: { siteName: "GameShuffle", title: `${s.title} Truth or Dare`, url: `https://www.gameshuffle.co/truth-or-dare/${s.slug}` },
   };
 }
 

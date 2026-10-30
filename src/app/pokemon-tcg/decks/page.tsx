@@ -31,8 +31,9 @@ const HUB_URL = `${SITE}/pokemon-tcg/decks`;
 export const metadata: Metadata = {
   title: "Pokémon TCG Decks: Standard 2026 Deck Lists & Guides",
   description:
-    "Browse Standard 2026 Pokémon TCG deck lists: competitive, beginner, and meme builds with full lists, budget swaps, and matchups. Build any of them from GameShuffle singles.",
+    "Standard 2026 Pokémon TCG deck lists: competitive, beginner and meme builds with full lists, budget swaps and matchups.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Pokémon TCG Decks: Standard 2026 Deck Lists & Guides",
     description:
       "Standard 2026 Pokémon TCG deck lists and guides: competitive, beginner, and meme builds, buildable from GameShuffle singles.",

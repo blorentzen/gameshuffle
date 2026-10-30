@@ -11,10 +11,11 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 import { ArrowLink } from "@/components/ui/ArrowLink";
 
 export const metadata: Metadata = {
-  title: "Free Tools: wheel spinner, dice, tier lists, bingo, 8-ball & more",
+  title: "Free tools: wheel spinner, dice, tier lists and more",
   description:
-    "Free GameShuffle tools you can use right in your browser, no account needed: a wheel spinner, dice roller, coin flip, name picker, stream timer, tier list maker, bingo generator, magic 8-ball, yes/no, truth or dare, and a game night kit. On GameShuffle Pro, they go live on your stream overlay.",
+    "Free browser tools, no account needed: wheel spinner, dice roller, coin flip, name picker, tier list maker, bingo cards, truth or dare and more.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Free GameShuffle stream & party tools",
     url: "https://www.gameshuffle.co/tools",
     images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gameshuffle-tools-og.jpg"],

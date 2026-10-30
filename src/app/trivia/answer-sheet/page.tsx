@@ -13,7 +13,7 @@ import "@/styles/trivia-seo.css";
 
 const PATH = `${TRIVIA_PATH}/answer-sheet`;
 const TITLE = "Printable Trivia Answer Sheet Maker (Free)";
-const DESCRIPTION = "Make a printable trivia answer sheet in seconds: pick the number of rounds and questions, add a final wager and a tiebreaker, and print one for every team. Free, no sign-up.";
+const DESCRIPTION = "Make a printable trivia answer sheet: pick the rounds and questions, add a final wager and a tiebreaker, and print one for every team. Free.";
 
 export const metadata: Metadata = triviaMetadata({ title: TITLE, description: DESCRIPTION, path: PATH });
 

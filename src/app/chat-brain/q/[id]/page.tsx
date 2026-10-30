@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title: `${p.text} · Chat Brain`,
     description: "Answer in 5 seconds. The most popular answers become the board in Chat Brain, a GameShuffle Original.",
     robots: { index: false, follow: true },
-    openGraph: { title: p.text, description: "Answer in 5 seconds on GameShuffle.", images: [{ url: image, width: 1200, height: 630 }] },
+    openGraph: { siteName: "GameShuffle", title: p.text, description: "Answer in 5 seconds on GameShuffle.", images: [{ url: image, width: 1200, height: 630 }] },
     twitter: { card: "summary_large_image", title: p.text, images: [image] },
   };
 }

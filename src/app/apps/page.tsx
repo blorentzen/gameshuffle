@@ -15,10 +15,11 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 import { ArrowLink } from "@/components/ui/ArrowLink";
 
 export const metadata: Metadata = {
-  title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
+  title: "Apps: randomizers, tournaments and tools",
   description:
-    "Every GameShuffle tool in one place: the Mario Kart 8 Deluxe and Mario Kart World randomizers, the competitive lounge scoring hub, the tournament builder, the Pokémon TCG companion, and game nights with digital score sheets and tools. Free to use, no account required.",
+    "Every GameShuffle tool in one place: Mario Kart and party game randomizers, tournaments, live scoring, the Pokémon TCG companion and game night tools.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "GameShuffle Apps",
     url: "https://www.gameshuffle.co/apps",
     images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gameshuffle-apps-og.jpg"],

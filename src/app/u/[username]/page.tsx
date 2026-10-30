@@ -113,6 +113,7 @@ export async function generateMetadata({
     robots: { index: false, follow: true },
     description: `View ${displayName}'s GameShuffle profile: tournaments, saved configurations, and competitive stats.`,
     openGraph: {
+      siteName: "GameShuffle",
       title: `${displayName} | GameShuffle`,
       description: `View ${displayName}'s GameShuffle profile.`,
       url: `https://www.gameshuffle.co/u/${username}`,

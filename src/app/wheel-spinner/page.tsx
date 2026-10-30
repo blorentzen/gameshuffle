@@ -8,8 +8,9 @@ import { FreeToolShell } from "@/components/tools/FreeToolShell";
 export const metadata: Metadata = {
   title: "Free Wheel Spinner: Random Picker Wheel",
   description:
-    "A free online wheel spinner. Add your options, spin the wheel, and let it pick a random winner. No account, no download. Remove winners for raffles and elimination. Put it on your stream with GameShuffle Pro.",
+    "A free online wheel spinner: add your options, spin and get a random winner. Remove winners for raffles. No account or download needed.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Free Wheel Spinner: GameShuffle",
     description:
       "Spin a random picker wheel for free. Add options, spin, pick a winner. No account needed.",

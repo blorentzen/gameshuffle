@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/data-request" },
   title: "Data Request",
   description:
     "Submit a privacy-related request: access, correction, deletion, portability, or marketing opt-out. We respond within 30 days.",

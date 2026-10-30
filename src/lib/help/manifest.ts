@@ -342,14 +342,14 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "chat-brain-stream",
     title: "Chat Brain on stream",
-    description: "Play Chat Brain boards on stream: chat as one team, a speed round, or 1v1 and Teams with chat playing along. Put up a token prize, survey your chat and play the board it makes.",
+    description: "Play Chat Brain boards on stream: chat as one team, a speed round, or 1v1 and teams with chat playing along. Add a prize or survey your chat.",
     href: "/help/streaming/chat-brain",
     category: "streaming",
     keywords: ["chat brain", "!cb", "!a", "survey", "!cb ask", "survey your chat", "1v1", "teams", "face-off", "steal", "trust chat", "play along", "speed round", "!cb start speed", "co-stream", "costream", "shared chat", "prize", "tokens", "live page", "guess what people said", "overlay"],
   },
   {
     id: "mods",
-    title: "Mods",
+    title: "Mods for your stream",
     description: "Let your Twitch mods help run your stream: they join with one command, and you choose Standard or Full access for each.",
     href: "/help/streaming/mods",
     category: "streaming",
@@ -410,7 +410,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "overview",
     title: "What is GameShuffle Pro?",
-    description: "Everything Pro unlocks, the Free vs. Pro comparison, and pricing.",
+    description: "What GS Pro adds for streamers and organizers, how it compares with a free account, and what it costs.",
     href: "/help/pro/overview",
     category: "pro",
     keywords: ["pro", "subscription", "features", "pricing", "plans"],
@@ -418,7 +418,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "free-trial",
     title: "Pro Free Trial",
-    description: "How the 14-day free trial works, reminders, and how to cancel.",
+    description: "How the 14-day GS Pro free trial works, when we remind you before it ends, and how to cancel any time.",
     href: "/help/pro/free-trial",
     category: "pro",
     keywords: ["free trial", "trial", "14 days", "payment method", "cancel before billed"],
@@ -470,7 +470,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "deleting-account",
     title: "Deleting Your Account",
-    description: "Permanently delete your account and what gets removed when you do.",
+    description: "How to delete your GameShuffle account for good, what gets removed when you do, and what happens to a subscription.",
     href: "/help/account/deleting-account",
     category: "account",
     keywords: ["delete account", "remove data", "GDPR", "CCPA", "permanent deletion"],

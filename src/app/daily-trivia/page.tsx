@@ -20,6 +20,7 @@ import "@/styles/fire-round.css";
  */
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/daily-trivia" },
   title: "Fire Round: free daily trivia quiz",
   description: "Free daily trivia quiz: 60 seconds, the same questions for everyone and a new leaderboard every day. Type answers or pick from four, then keep playing by category.",
   alternates: { canonical: "https://www.gameshuffle.co/daily-trivia" },

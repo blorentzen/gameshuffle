@@ -14,7 +14,7 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 const PATH = "/name-every-pokemon";
 const SITE = "https://www.gameshuffle.co";
 const TITLE = "Name Every Pokémon Quiz: Can You Name All 1,025?";
-const DESCRIPTION = "How many Pokémon can you name from memory? Type all 1,025 in 15 minutes, or one generation at a time. Close spellings count, your best is kept, and you can share your score. Free.";
+const DESCRIPTION = "How many Pokémon can you name from memory? Type all 1,025 in 15 minutes, or one generation at a time. Close spellings count. Free.";
 
 export const metadata: Metadata = {
   title: TITLE,

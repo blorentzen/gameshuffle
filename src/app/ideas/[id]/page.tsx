@@ -21,10 +21,14 @@ export async function generateMetadata({
   const idea = await getIdea(id, null);
   if (!idea) return { title: "Idea", robots: { index: false, follow: false } };
   const indexable = INDEXABLE.includes(idea.status); // D6
+  const url = `https://www.gameshuffle.co/ideas/${id}`;
   return {
     title: idea.title,
     description: idea.body.slice(0, 155),
     robots: indexable ? undefined : { index: false, follow: false },
+    alternates: { canonical: url },
+    // The folder's opengraph-image.tsx still draws the picture (same segment).
+    openGraph: { siteName: "GameShuffle", type: "article", url, title: idea.title, description: idea.body.slice(0, 155) },
   };
 }
 

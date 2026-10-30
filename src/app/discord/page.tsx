@@ -19,7 +19,7 @@ const SHARE_DESCRIPTION = "Play the Daily, the Weekly and Chat Brain together in
 export const metadata: Metadata = {
   title: "Discord Bot for Game Nights and Daily Games",
   description:
-    "Add GameShuffle to your Discord server: play the Daily, the Weekly and Chat Brain together in a Discord Activity, share Wordle-style results in the channel, and roll a setup for any game night with /gs-randomize. Free for one server.",
+    "Add GameShuffle to your Discord server: play the Daily, the Weekly and Chat Brain together, share results in the channel and roll setups. Free for one server.",
   // A page's openGraph replaces the root layout's, so it restates siteName,
   // type and locale. The image comes from opengraph-image.jpg (twitter-image.jpg
   // for X) beside this file.

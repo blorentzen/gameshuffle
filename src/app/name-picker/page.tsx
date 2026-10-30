@@ -7,9 +7,9 @@ import { IconUserSearch } from "@tabler/icons-react";
 export const metadata: Metadata = {
   title: "Random Name Picker: pick a winner, free",
   description:
-    "A free random name picker. Paste a list of names or entries and draw one or more random winners, perfect for giveaways, raffles, and stream shout-outs. No account required.",
+    "A free random name picker: paste a list and draw one or more winners for giveaways, raffles and stream shout-outs. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/name-picker" },
-  openGraph: { title: "Free Random Name Picker", url: "https://www.gameshuffle.co/name-picker" },
+  openGraph: { siteName: "GameShuffle", title: "Free Random Name Picker", url: "https://www.gameshuffle.co/name-picker" },
 };
 
 export default function NamePickerPage() {

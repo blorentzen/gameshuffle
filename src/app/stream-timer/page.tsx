@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "A free stream countdown timer for 'starting soon', BRB, and break screens, with a transparent OBS browser-source overlay. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/stream-timer" },
-  openGraph: { title: "Free Stream Timer", url: "https://www.gameshuffle.co/stream-timer" },
+  openGraph: { siteName: "GameShuffle", title: "Free Stream Timer", url: "https://www.gameshuffle.co/stream-timer" },
 };
 
 export default function StreamTimerPage() {

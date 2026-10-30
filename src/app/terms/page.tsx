@@ -37,8 +37,9 @@ async function CircuitTerms() {
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Read the GameShuffle Terms of Service. Covers account usage, GameShuffle Pro subscriptions, user content, tournaments, intellectual property, dispute resolution, and your rights as a user.",
+  description: "The GameShuffle Terms of Service: accounts, GS Pro subscriptions, user content, tournaments, intellectual property, disputes and your rights.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Terms of Service | GameShuffle",
     description: "GameShuffle Terms of Service: accounts, subscriptions, tournaments, and your rights.",
     url: "https://www.gameshuffle.co/terms",

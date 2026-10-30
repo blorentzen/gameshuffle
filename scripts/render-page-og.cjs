@@ -103,6 +103,16 @@ function specsFor(titles) {
   add("/pokemon-tcg/decks", "Deck Lists", "Pokémon TCG Standard 2026", A(CARDS));
   add("/sms", "Text Messages", "Alerts on your phone", G("message", "device-mobile", "bell", "checks", "message-circle"));
   add("/ideas", "Idea Board", "Vote on what we build next", G("bulb", "thumb-up", "sparkles", "message-circle", "rocket"));
+  // Competitive Mario Kart (SEO pass, 2026-10-30): the hub, time trials, lounge stats, MMR card, randomizers, checklists.
+  add("/competitive-mario-kart", "Competitive", "Lounge stats, time trials, MMR card", A(MKW));
+  add("/time-trials", "Time Trials", "Every track's best times", A(MK8));
+  add("/time-trials/mario-kart-world", "Mario Kart World", "Time trial boards", A(MKW), "public/images/opengraph/pages/time-trials-mario-kart-world.jpg");
+  add("/time-trials/mario-kart-8-deluxe", "Mario Kart 8 Deluxe", "Time trial boards", A(MK8), "public/images/opengraph/pages/time-trials-mario-kart-8-deluxe.jpg");
+  add("/time-trials/players/[slug]", "Time Trials", "A player's best times", A(MK8), "public/images/opengraph/pages/time-trials-player.jpg");
+  add("/lounge", "Lounge Stats", "Any player's season and rank", G("chart-line", "trophy", "crown", "steering-wheel", "users"));
+  add("/mmr-card", "MMR Card", "Your lounge rank on stream", G("device-tv", "broadcast", "trophy", "crown", "chart-line"));
+  add("/randomizers", "Randomizers", "Rolls for every game night", A(MK8));
+  add("/pokemon-tcg/checklists", "Card Checklists", "Tick off the ones you have", A(CARDS));
   // Dynamic routes can't hold a static image file (the production build fails): their
   // opengraph-image.tsx / twitter-image.tsx read these from public instead.
   add("/ideas/[id]", "Idea Board", "Vote on what we build next", G("bulb", "thumb-up", "sparkles", "message-circle", "rocket"), "public/images/opengraph/pages/ideas.jpg");
@@ -137,7 +147,8 @@ async function titlesFromDev() {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
       if (e.isDirectory()) walk(p);
-      else if (e.name === "opengraph-image.jpg") routes.push(p.slice(path.join(APP, "src/app").length).replace(/\/opengraph-image\.jpg$/, "") || "/");
+      // Every help and guide page (2026-10-30: walking existing images skipped new help articles).
+      else if (e.name === "page.tsx") routes.push(p.slice(path.join(APP, "src/app").length).replace(/\/page\.tsx$/, "") || "/");
     }
   };
   walk(path.join(APP, "src/app/help"));

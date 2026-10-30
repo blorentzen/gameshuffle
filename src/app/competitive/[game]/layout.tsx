@@ -15,6 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ game: str
     title: `${name} live scoring`,
     description: `Live scoring for ${name}: a set between friends on the standard table, everyone logging their own finish from their phone.`,
     openGraph: {
+      siteName: "GameShuffle",
       title: `${name} live scoring | GameShuffle`,
       description: `Live scoring for ${name}: the standard table, team modes and standings anyone can follow.`,
       url,

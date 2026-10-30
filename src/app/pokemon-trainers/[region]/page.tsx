@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ region: s
   if (!v) return {};
   const heading = regionHeading(v.region, v.sections);
   const gym = v.sections.find((s) => s.tier === "gym");
-  const title = `${heading}: teams and duels`;
+  const title = heading;
   return {
     ...shareMeta({ title, description: `Every trainer from ${v.region.name} with the Pokémon they use in the games. Pick one and duel them with Pokémon cards.`, path: roadPath(region) }),
     title,
