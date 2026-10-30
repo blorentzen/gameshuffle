@@ -5,8 +5,8 @@ import { TRIVIA_PATH, occasionUrl, type Faq } from "@/data/trivia-seo";
 import { triviaMetadata } from "@/lib/trivia/seoMeta";
 
 const PATH = `${TRIVIA_PATH}/how-to-host`;
-const TITLE = "How to Host a Trivia Night: Rules, Rounds and a Checklist";
-const DESCRIPTION = "How to host a trivia night that runs smoothly: how many rounds and questions, team sizes, scoring with jokers and wagers, the rules to read out, and a checklist for the night.";
+const TITLE = "How to Host a Trivia Night: Rounds and a Checklist";
+const DESCRIPTION = "How to host a trivia night: how many rounds and questions, team sizes, scoring with jokers and wagers, rules to read out and a checklist for the night.";
 
 export const metadata: Metadata = triviaMetadata({ title: TITLE, description: DESCRIPTION, path: PATH, article: true });
 

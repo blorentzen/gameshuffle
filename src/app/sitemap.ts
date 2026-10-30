@@ -38,7 +38,8 @@ export const revalidate = 3600; // regenerate every hour
  * left out too, as thin or short-lived pages; those pages carry their own
  * robots rules.
  */
-const UNLISTED = new Set(["/beta", "/features", "/tcg-companion"]);
+// /players signs visitors in first (the page redirects), so a crawler would only see /login.
+const UNLISTED = new Set(["/beta", "/features", "/tcg-companion", "/players"]);
 /** Tool pages marked noindex (prototypes), kept out of the tool list below. */
 const NOINDEX_TOOLS = new Set(["shuffle-dice"]);
 /** Registry entries whose page is listed elsewhere in the sitemap. */
@@ -475,12 +476,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.2,
     },
-    {
-      url: `${baseUrl}/data-request`,
-      lastModified: lm("/data-request"),
-      changeFrequency: "yearly",
-      priority: 0.2,
-    },
+    // /data-request is left out: it's noindex.
     {
       url: `${baseUrl}/sms`,
       lastModified: lm("/sms"),
@@ -684,9 +680,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let ttRoutes: MetadataRoute.Sitemap = [];
   try {
     for (const g of TT_GAME_ORDER) {
-      for (const s of await trackSummary(g)) {
-        const t = ttTrack(g, s.track);
-        if (t && s.players >= 3) ttRoutes.push({ url: `${baseUrl}${trackPath(t, s.cc)}`, changeFrequency: "daily" as const, priority: 0.4 });
+      for (const items of ["shrooms", "none"] as const) {
+        for (const s of await trackSummary(g, items)) {
+          const t = ttTrack(g, s.track);
+          if (t && s.players >= 3) ttRoutes.push({ url: `${baseUrl}${trackPath(t, s.cc, { items })}`, changeFrequency: "daily" as const, priority: 0.4 });
+        }
       }
     }
   } catch (err) {

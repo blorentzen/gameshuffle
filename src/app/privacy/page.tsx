@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "Learn how GameShuffle collects, uses, and protects your data. We use cookieless analytics by default and never sell your information.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Privacy Policy | GameShuffle",
     description: "How GameShuffle handles your data: cookieless analytics, no data selling, full self-service deletion.",
     url: "https://www.gameshuffle.co/privacy",

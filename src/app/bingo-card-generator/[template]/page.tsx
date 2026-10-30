@@ -1,3 +1,4 @@
+import { previewText } from "@/lib/og/meta";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ProToolCta } from "@/components/tools/ProToolCta";
@@ -21,9 +22,10 @@ export async function generateMetadata({
   if (!t) return { title: "Bingo Card Generator" };
   return {
     title: `${t.title} Bingo Card Generator`,
-    description: `${t.description} Free 5×5 bingo card generator. Print it or play along, no account required.`,
+    description: previewText(`${t.description} Free 5×5 bingo cards to print or play along.`, 160),
     alternates: { canonical: `https://www.gameshuffle.co/bingo-card-generator/${t.slug}` },
     openGraph: {
+      siteName: "GameShuffle",
       title: `${t.title} Bingo`,
       url: `https://www.gameshuffle.co/bingo-card-generator/${t.slug}`,
     },

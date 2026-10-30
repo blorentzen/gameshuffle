@@ -31,9 +31,11 @@ export async function generateMetadata({ params }: { params: Promise<{ region: s
   if (!v) return {};
   const many = v.teams.length > 1;
   const games = [...new Set(v.teams.map((t) => t.gameLabel))];
-  const title = `${v.person.name}'s Pokémon team${many ? "s" : ""}: ${v.role}`;
-  const description = `${v.bio ? `${v.bio} ` : ""}${v.person.name}'s team${many ? "s" : ""} in ${games.join(", ")}, in battle order. Duel ${v.person.name} with Pokémon cards.`.slice(0, 300);
-  return { title, description, ...shareMeta({ title, description: previewText(description), path: roadPath(region, trainer) }) };
+  // The eyebrow names the region ("Johto Gym Leader"), so two regions' Team Rocket pages don't share a title.
+  const title = `${v.person.name}'s Pokémon team${many ? "s" : ""}: ${v.eyebrow}`;
+  // Search shows about 160 characters: the teams and the duel first, the bio after.
+  const description = previewText(`${v.person.name}'s team${many ? "s" : ""} in ${games.join(", ")}, in battle order, and a Pokémon card duel against them.${v.bio ? ` ${v.bio}` : ""}`, 160);
+  return { title, description, ...shareMeta({ title, description, path: roadPath(region, trainer) }) };
 }
 
 export default async function TrainerPage({ params }: { params: Promise<{ region: string; trainer: string }> }) {

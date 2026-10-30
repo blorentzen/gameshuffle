@@ -30,7 +30,7 @@ import "@/styles/welcome.css";
 export const dynamic = "force-dynamic";
 
 const TITLE = "What is GameShuffle? Free game night tools, daily puzzles and more";
-const DESCRIPTION = "GameShuffle is a free site for game nights: randomizers for 17 games, three daily puzzles, tournaments, trivia nights and party games, plus tools for streamers. Start here.";
+const DESCRIPTION = "GameShuffle is a free site for game nights: randomizers for 17 games, daily puzzles, tournaments, trivia nights, party games and tools for streamers.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },

@@ -26,7 +26,7 @@ export const revalidate = 3600;
 
 const PATH = "/game-nights/christmas-party-games";
 const TITLE = "Christmas Party Games: Free Games for Your Holiday Party";
-const DESCRIPTION = "Free Christmas party games for kids and adults: Christmas trivia, holiday bingo, festive truth or dare, a wheel of house rules and party games everyone plays on their phones. No app to download.";
+const DESCRIPTION = "Free Christmas party games for kids and adults: Christmas trivia, holiday bingo, festive truth or dare and party games played on phones. No app needed.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },

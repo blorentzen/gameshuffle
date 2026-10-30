@@ -23,7 +23,7 @@ export async function generateMetadata({
     title: `${t.title} Tier List Maker`,
     description: `${t.description} Free drag-and-drop tier list. No account required.`,
     alternates: { canonical: `https://www.gameshuffle.co/tier-list-maker/${t.slug}` },
-    openGraph: { title: `${t.title} Tier List`, url: `https://www.gameshuffle.co/tier-list-maker/${t.slug}` },
+    openGraph: { siteName: "GameShuffle", title: `${t.title} Tier List`, url: `https://www.gameshuffle.co/tier-list-maker/${t.slug}` },
   };
 }
 

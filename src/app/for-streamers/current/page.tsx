@@ -21,8 +21,9 @@ const PAGE_BG = "color-mix(in srgb, var(--text-primary) 4%, var(--surface-defaul
 export const metadata: Metadata = {
   title: "For current streamers: turn your viewers into players",
   description:
-    "Already streaming? GameShuffle Pro turns passive viewers into participants: chat commands, channel-point rewards, a token economy, live polls, and an overlay that reacts on screen, synced across Twitch and Discord.",
+    "Already streaming? GS Pro turns viewers into players with chat commands, channel-point rewards, polls and an overlay that reacts, on Twitch and Discord.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "GameShuffle for current streamers",
     url: "https://www.gameshuffle.co/for-streamers/current",
   },

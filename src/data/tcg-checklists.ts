@@ -230,7 +230,7 @@ export const CHECKLISTS: Checklist[] = [
     slug: "30th-celebration-pikachu",
     title: "30th Celebration Pikachu Checklist: All 30 Artists",
     h1: "30th Celebration Pikachu checklist",
-    description: "Every Pikachu in Pokémon TCG 30th Celebration, 023 to 052 of 128, with the artist who drew each one, plus Pikachu ex 053 and 054, and the Japanese set numbers. Tick them off as you pull them.",
+    description: "Every Pikachu in Pokémon TCG 30th Celebration, 023 to 052, with each artist, plus Pikachu ex 053 and 054. Tick them off as you pull them.",
     lede: "Thirty Pikachu, each drawn by a different artist, numbered 023 to 052 in the 30th Celebration set, plus the two Pikachu ex. The Japanese numbers are beside each card. Tick each one as you pull it; your ticks stay on this device.",
     set: { name: "30th Celebration", total: "128", released: "2026-09-16" },
     checked: "2026-10-13",

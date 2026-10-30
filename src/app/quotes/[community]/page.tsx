@@ -150,6 +150,7 @@ export async function generateMetadata({
     robots: { index: false, follow: true },
     description: `Random quote pool for ${name}'s chat. Fires from \`!quote\` in stream.`,
     openGraph: {
+      siteName: "GameShuffle",
       title: `${name}'s Quotes | GameShuffle`,
       description: `Random quote pool for ${name}'s chat.`,
       url: `https://www.gameshuffle.co/quotes/${community.slug}`,

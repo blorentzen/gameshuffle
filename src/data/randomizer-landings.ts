@@ -221,7 +221,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Mario Party 3",
     metaTitle: "Mario Party 3 Randomizer: Boards, Characters & Minigames",
     metaDescription:
-      "Free Mario Party 3 randomizer for the N64 classic on Switch Online. Roll one of six Battle Royale boards and the turns, give everyone a character, and spin all 71 minigames.",
+      "Free Mario Party 3 randomizer: roll one of six Battle Royale boards and the turns, give everyone a character, and spin all 71 minigames.",
     h1: "Mario Party 3 Randomizer",
     lead: "A free Mario Party 3 randomizer for the N64 classic on Nintendo Switch Online. Roll a Battle Royale board and the turns, give up to four players a character, and spin a minigame or a whole set list.",
     overview:
@@ -367,7 +367,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Pokémon Stadium",
     metaTitle: "Pokémon Stadium Rental Randomizer: Random Rental Teams",
     metaDescription:
-      "Free Pokémon Stadium and Stadium 2 rental randomizer. A random team of 6 rental Pokémon for up to 4 players, legal for the cup you pick, with each rental's level and moves.",
+      "Free Pokémon Stadium and Stadium 2 rental randomizer: a random team of 6 rentals for up to 4 players, legal for your cup, with levels and moves.",
     h1: "Pokémon Stadium Rental Randomizer",
     lead: "Random rental teams for Pokémon Stadium and Pokémon Stadium 2. Pick a cup and everyone gets 6 different rentals, ready to battle, with the moves listed so you can find each one in the rental menu.",
     overview:
@@ -426,7 +426,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Mario Kart 64",
     metaTitle: "Mario Kart 64 Randomizer: Characters, Tracks & Battles",
     metaDescription:
-      "Free Mario Kart 64 randomizer for the N64 classic on Nintendo Switch Online. A different character for up to 4 players, random tracks from all 16 courses, battle courses and items.",
+      "Free Mario Kart 64 randomizer for the N64 classic on Switch Online: a different character for up to 4 players, random tracks, battle courses and items.",
     h1: "Mario Kart 64 Randomizer",
     lead: "Roll Mario Kart 64 the way the N64 plays it: a different character for up to four players, tracks from all four cups, and a battle course for Battle mode.",
     overview:
@@ -453,7 +453,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Perfect Dark",
     metaTitle: "Perfect Dark Randomizer: Random Combat Simulator Matches",
     metaDescription:
-      "Free Perfect Dark Combat Simulator randomizer. Roll the scenario, arena, weapon set, time limit and simulants, plus a character for each of up to 4 players, with teams and chaos options.",
+      "Free Perfect Dark Combat Simulator randomizer: roll the scenario, arena, weapons, time limit and simulants, plus a character for up to 4 players.",
     h1: "Perfect Dark Randomizer",
     lead: "Roll a whole Perfect Dark Combat Simulator match: the scenario, arena, weapon set, time limit and simulants, plus a character for everyone. Made for Nintendo Switch Online nights.",
     overview:
@@ -482,7 +482,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Overwatch",
     metaTitle: "Overwatch Hero Randomizer: Random Hero Roulette",
     metaDescription:
-      "Free Overwatch hero randomizer. A random hero for up to six players, with role queue (1 Tank, 2 Damage, 2 Support), role filters, no repeats across a night, and a random map.",
+      "Free Overwatch hero randomizer: a random hero for up to six players with role queue, role filters, no repeats across a night and a random map.",
     h1: "Overwatch Hero Randomizer",
     lead: "Hero roulette for Overwatch: a random hero for you or your whole stack, with role queue, no repeats across the night, and a random map.",
     overview:
@@ -539,7 +539,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Pokémon Fire Red and Leaf Green",
     metaTitle: "Pokémon Fire Red & Leaf Green Run Challenge: Random Runs",
     metaDescription:
-      "Free Pokémon Fire Red and Leaf Green run challenge. A random starter, Pokémon to catch before every gym, and a level cap and team size for each leader, all catchable on your version. Share the run as a link.",
+      "Free Fire Red and Leaf Green run challenge: a random starter, catches before every gym, level caps and a team size per leader. Share the run as a link.",
     h1: "Pokémon Fire Red & Leaf Green Run Challenge",
     lead: "A Nuzlocke-style run through Kanto. You get a starter, a list of Pokémon to catch before every gym, and a level cap and team size for each leader. Every run is a link you can share.",
     overview:
@@ -597,7 +597,7 @@ export function randomizerMetadata(slug: string): import("next").Metadata {
   return {
     title: { absolute: l.metaTitle },
     description: l.metaDescription,
-    openGraph: { title: l.metaTitle, description: l.metaDescription, url: canonical, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
+    openGraph: { siteName: "GameShuffle", type: "website", title: l.metaTitle, description: l.metaDescription, url: canonical, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
     twitter: { card: "summary_large_image", title: l.metaTitle, description: l.metaDescription, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
     alternates: { canonical },
   };

@@ -65,8 +65,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "GameShuffle Circuit: run bigger tournaments",
     description:
-      `GameShuffle Circuit is the organizer plan for bigger events. Every format is free for one full lobby: brackets, points, Swiss with a top cut and deck lists, and Heat to Mains, for any game. Circuit 64 and Circuit 256 raise the field and add live randomized rounds, text reminders, championship series, co-organizers, custom branding and seeding. ${(await launchCopy()).short}`.trim(),
+      `The organizer plan for bigger events: larger fields, randomized rounds, championship series, co-organizers, branding and text reminders. ${(await launchCopy()).short}`.trim(),
     openGraph: {
+      siteName: "GameShuffle",
       title: "GameShuffle Circuit",
       url: "https://www.gameshuffle.co/gs-circuit",
     },

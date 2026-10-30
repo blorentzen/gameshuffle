@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const info = gameBySlug((await params).game);
   if (!info || info.slug !== (await params).game) return { title: "Not found", robots: { index: false } };
   const title = `${info.label} time trial leaderboards`;
-  const description = `The fastest ${info.label} time trial times on every track${info.classes.length > 1 ? ", at 150cc and 200cc" : ""}, added by players on GameShuffle and in Discord. Add yours from a screenshot or bring them from Quaxly.`;
+  const description = `The fastest ${info.label} time trial times on every track${info.classes.length > 1 ? ", at 150cc and 200cc" : ""}. Add yours from a screenshot or bring them from Quaxly.`;
   const url = `https://www.gameshuffle.co${gamePath(info.id)}`;
   return { title, description, alternates: { canonical: url }, openGraph: { title, description, url, siteName: "GameShuffle", type: "website" } };
 }

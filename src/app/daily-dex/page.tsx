@@ -9,6 +9,7 @@ import { DAILY_DEX_PUBLIC } from "@/lib/games-visibility";
 import { NewHereLine } from "@/components/welcome/NewHereLine";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/daily-dex" },
   title: "The Daily Dex: guess the Pokémon",
   description: "A daily Pokémon guessing game: one Pokémon a day from all 1,025. A new hint after every miss, arrows on generation, height and weight, five guesses and a last chance.",
   alternates: { canonical: "https://www.gameshuffle.co/daily-dex" },

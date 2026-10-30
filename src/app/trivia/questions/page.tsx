@@ -14,7 +14,7 @@ export const revalidate = 86400;
 
 const PATH = `${TRIVIA_PATH}/questions`;
 const TITLE = "Video Game Trivia Questions and Answers by Game";
-const DESCRIPTION = "Trivia questions with answers for Mario Kart, Mario Party, Smash, Pokémon, Overwatch and more, each checked against a source. Quiz yourself or play them as a trivia night.";
+const DESCRIPTION = "Trivia questions with answers for Mario Kart, Mario Party, Smash, Pokémon, Overwatch and more, each checked against a source.";
 
 export const metadata: Metadata = triviaMetadata({ title: TITLE, description: DESCRIPTION, path: PATH });
 

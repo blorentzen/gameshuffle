@@ -7,6 +7,7 @@ import { supportCredits } from "@/lib/support/store";
 import "../../styles/support.css";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/credits" },
   title: "Credits",
   description: "GameShuffle is made possible by the people who support it. Every supporter who asked to be named, Champions first.",
   alternates: { canonical: "https://www.gameshuffle.co/credits" },

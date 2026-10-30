@@ -17,10 +17,11 @@ import { STREAMER_TOOLKIT } from "@/data/streamer-toolkit";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
-  title: "Stream with GameShuffle: turn your stream into a game night",
+  title: "For streamers: turn your stream into a game night",
   description:
-    "GameShuffle turns your stream into a game night your chat plays: chat rolls for every game, channel-point rewards, overlay tools, Stream Bingo, chat drafts, live polls and Twitch and Discord together. Free tools to start, GS Pro for the full kit.",
+    "Turn your stream into a game night chat plays: chat rolls for every game, Stream Bingo, polls, drafts and an overlay, on Twitch and Discord.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Stream with GameShuffle",
     url: "https://www.gameshuffle.co/for-streamers",
   },

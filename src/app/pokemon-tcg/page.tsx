@@ -72,6 +72,7 @@ export const metadata: Metadata = {
   title: { absolute: META.title },
   description: META.description,
   openGraph: {
+    siteName: "GameShuffle",
     title: META.title,
     description: META.description,
     url: `https://www.gameshuffle.co${TCG_HUB_PATH}`,

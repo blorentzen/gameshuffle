@@ -48,7 +48,7 @@ export const OCCASIONS: OccasionPage[] = [
     label: "Office trivia",
     h1: "Office trivia night",
     title: "Office Trivia Night: Free Template and Questions",
-    description: "Run an office trivia night in a lunch hour: four family-safe rounds of 6, a picture round, teams on their phones and scoring done for you. Free to host, works on a video call too.",
+    description: "Run an office trivia night in a lunch hour: four family-safe rounds, a picture round, teams on their phones and scoring done for you. Free to host.",
     lede: "Four family-safe rounds of 6 that fit a lunch hour, with a picture round and a quick lightning round to finish. Teams answer on their phones, the scores add up on their own, and it works just as well on a video call as in a meeting room.",
     facts: ["4 rounds of 6", "About 45 minutes", "Family-safe questions", "No wagers or bets", "In the room or on a call"],
     howTo: [
@@ -76,7 +76,7 @@ export const OCCASIONS: OccasionPage[] = [
     label: "Party trivia",
     h1: "Party trivia night",
     title: "Party Trivia Night: Free Template for Friends",
-    description: "Host a trivia night at home: five rounds with a picture round, a confidence round and a final wager. Friends play on their phones, the TV shows the questions. Free to host.",
+    description: "Host a trivia night at home: five rounds with a picture round, a confidence round and a final wager. Friends play on their phones. Free to host.",
     lede: "Five rounds for a night in with friends: general knowledge, a picture round, a confidence round where teams bet 1 to 5 on their answers, pop culture, and a final question to wager on. About 75 minutes, and the scores take care of themselves.",
     facts: ["5 rounds", "About 75 minutes", "Picture round", "Confidence round", "Final wager"],
     howTo: [
@@ -103,7 +103,7 @@ export const OCCASIONS: OccasionPage[] = [
     label: "Fundraiser trivia",
     h1: "Fundraiser trivia night",
     title: "Fundraiser Trivia Night: How to Run One",
-    description: "Plan a trivia night fundraiser for a school, team or charity: five family-safe rounds with jokers on every regular round and a big final wager. Free to host on GameShuffle.",
+    description: "Plan a trivia night fundraiser for a school, team or charity: five family-safe rounds, jokers and a final wager. Free to host on GameShuffle.",
     lede: "A trivia night is one of the easiest fundraisers to run: tables of friends, a host with a microphone and a few rounds of questions. This template has five family-safe rounds, a joker on every regular round and a big final wager that keeps every table in it until the end.",
     facts: ["5 rounds", "Jokers on every round", "Family-safe questions", "Big final wager", "Up to 40 teams"],
     howTo: [
@@ -157,7 +157,7 @@ export const OCCASIONS: OccasionPage[] = [
     label: "Trivia on stream",
     h1: "Trivia on your Twitch stream",
     title: "Twitch Trivia: Run a Trivia Night on Stream",
-    description: "Run trivia on your Twitch stream: chat answers with !a, viewers play on your live page or in Discord, answers stay hidden until the reveal and stream delay doesn't matter. GS Pro.",
+    description: "Run trivia on your Twitch stream: chat answers with !a, viewers play on your live page or in Discord, and answers stay hidden until the reveal.",
     lede: "Three rounds of 6 built for chat: viewers answer in Twitch chat, on your live page or in Discord, all into one scoreboard. Answers stay hidden until you reveal them and every question runs 45 seconds, so stream delay never costs anyone a point.",
     facts: ["3 rounds of 6", "About 25 minutes", "45 seconds a question", "Up to 3,000 viewers", "GS Pro"],
     howTo: [
@@ -211,17 +211,17 @@ export const MAX_TOPIC_QUESTIONS = 30;
 
 export const QUESTION_TOPICS: QuestionTopic[] = [
   { slug: "mario-kart", label: "Mario Kart", h1: "Mario Kart trivia quiz (with answers)", title: "Mario Kart Trivia Quiz: Questions and Answers", description: "A Mario Kart trivia quiz with answers: tracks, racers, items and history from Super Mario Kart to Mario Kart 8 Deluxe and Mario Kart World. Checked by GameShuffle.", gameSlugs: ["mario-kart", "mario-kart-8-deluxe", "mario-kart-world", "mario-kart-64"], keywords: ["mario kart"], max: 50 },
-  { slug: "mario", label: "Mario", h1: "Mario quiz: Super Mario trivia questions with answers", title: "Mario Quiz: Super Mario Trivia with Answers", description: "A Super Mario quiz with answers: power-ups, enemies, worlds and secrets from Donkey Kong and Super Mario Bros. to Odyssey and Wonder, plus the movies. Checked by GameShuffle.", gameSlugs: ["mario-series"], keywords: ["mario", "bowser", "luigi", "peach", "yoshi"], max: 50 },
+  { slug: "mario", label: "Mario", h1: "Mario quiz: Super Mario trivia questions with answers", title: "Mario Quiz: Super Mario Trivia with Answers", description: "A Super Mario quiz with answers: power-ups, enemies, worlds and secrets from Super Mario Bros. to Odyssey, Wonder and the movies. Checked by GameShuffle.", gameSlugs: ["mario-series"], keywords: ["mario", "bowser", "luigi", "peach", "yoshi"], max: 50 },
   { slug: "nintendo", label: "Nintendo", h1: "Nintendo trivia questions (with answers)", title: "Nintendo Trivia Questions and Answers", description: "Nintendo trivia questions with answers: Mario, Zelda, Pokémon, Kirby, Smash and more, checked by GameShuffle.", gameSlugs: ["mario-series", "mario-kart", "super-smash-bros", "pokemon", "zelda", "kirby", "mario-kart-8-deluxe", "mario-kart-world", "mario-kart-64", "super-smash-bros-ultimate", "splatoon-3", "kirby-air-riders", "super-mario-party-jamboree", "mario-party-superstars"], keywords: ["nintendo", "mario", "zelda", "pokémon", "pokemon", "kirby", "smash", "splatoon", "metroid", "donkey kong"], max: 50 },
   { slug: "pokemon", label: "Pokémon", h1: "Pokémon quiz: trivia questions with answers", title: "Pokémon Quiz: Trivia Questions and Answers", description: "A Pokémon quiz with answers: starters, Legendary Pokémon, regions, types, the anime and the card game, from easy to hard. Checked by GameShuffle.", gameSlugs: ["pokemon", "pokemon-stadium", "pokemon-stadium-2"], keywords: ["pokémon", "pokemon", "pikachu"], max: 50 },
-  { slug: "zelda", label: "Zelda", h1: "Zelda quiz: Legend of Zelda trivia questions with answers", title: "Zelda Quiz: Legend of Zelda Trivia with Answers", description: "A Legend of Zelda quiz with answers: Link, the Triforce, Hyrule's peoples, items and every era from the 1986 original to Breath of the Wild, Tears of the Kingdom and Echoes of Wisdom. Checked by GameShuffle.", gameSlugs: ["zelda"], keywords: ["zelda", "hyrule"], max: 50 },
-  { slug: "kirby", label: "Kirby", h1: "Kirby quiz: Kirby trivia questions with answers", title: "Kirby Quiz: Kirby Trivia with Answers", description: "A Kirby quiz with answers: Copy Abilities, Dream Land, King Dedede and Meta Knight, bosses and every game from Kirby's Dream Land to Forgotten Land and Kirby Air Riders. Checked by GameShuffle.", gameSlugs: ["kirby", "kirby-air-riders"], keywords: ["kirby"], max: 50 },
+  { slug: "zelda", label: "Zelda", h1: "Zelda quiz: Legend of Zelda trivia questions with answers", title: "Zelda Quiz: Legend of Zelda Trivia with Answers", description: "A Legend of Zelda quiz with answers: Link, the Triforce, Hyrule and its items, from the 1986 original to Tears of the Kingdom. Checked by GameShuffle.", gameSlugs: ["zelda"], keywords: ["zelda", "hyrule"], max: 50 },
+  { slug: "kirby", label: "Kirby", h1: "Kirby quiz: Kirby trivia questions with answers", title: "Kirby Quiz: Kirby Trivia with Answers", description: "A Kirby quiz with answers: Copy Abilities, Dream Land, King Dedede, Meta Knight and every game up to Kirby Air Riders. Checked by GameShuffle.", gameSlugs: ["kirby", "kirby-air-riders"], keywords: ["kirby"], max: 50 },
   { slug: "mario-party", label: "Mario Party", h1: "Mario Party trivia questions (with answers)", title: "Mario Party Trivia Questions and Answers", description: "Mario Party trivia questions with answers: boards, minigames and characters from Jamboree, Superstars and the classics.", gameSlugs: ["super-mario-party-jamboree", "mario-party-superstars", "mario-party", "mario-party-2", "mario-party-3"], keywords: ["mario party"] },
-  { slug: "smash", label: "Super Smash Bros.", h1: "Super Smash Bros. quiz (with answers)", title: "Super Smash Bros. Quiz: Trivia with Answers", description: "A Super Smash Bros. quiz with answers: fighters, guests, stages, items and history from the Nintendo 64 original to Ultimate, plus name the fighter from their portrait. Checked by GameShuffle.", gameSlugs: ["super-smash-bros", "super-smash-bros-ultimate"], keywords: ["smash"], pictureCategories: ["Picture: game characters"], max: 50 },
+  { slug: "smash", label: "Super Smash Bros.", h1: "Super Smash Bros. quiz (with answers)", title: "Super Smash Bros. Quiz: Trivia with Answers", description: "A Super Smash Bros. quiz with answers: fighters, stages, items and history from the N64 original to Ultimate, plus name the fighter from a portrait.", gameSlugs: ["super-smash-bros", "super-smash-bros-ultimate"], keywords: ["smash"], pictureCategories: ["Picture: game characters"], max: 50 },
   { slug: "overwatch", label: "Overwatch", h1: "Overwatch trivia questions (with answers)", title: "Overwatch Trivia Questions and Answers", description: "Overwatch trivia questions with answers: name the hero from their portrait, plus roles, lore and history, checked by GameShuffle.", gameSlugs: ["overwatch"], keywords: ["overwatch"], pictureCategories: ["Picture: Overwatch heroes"] },
   { slug: "marvel-rivals", label: "Marvel Rivals", h1: "Marvel Rivals trivia questions (with answers)", title: "Marvel Rivals Trivia Questions and Answers", description: "Marvel Rivals trivia questions with answers: heroes, roles, teams and seasons, checked by GameShuffle.", gameSlugs: ["marvel-rivals"], keywords: ["marvel rivals"] },
-  { slug: "halloween", label: "Halloween", h1: "Halloween trivia questions (with answers)", title: "Halloween Trivia Questions and Answers", description: "Halloween trivia questions with answers: where Halloween comes from, candy, monsters, movies, music and spooky games, checked by GameShuffle. Play them as a Halloween trivia night.", gameSlugs: [], keywords: [], categories: ["Halloween"], max: 50 },
-  { slug: "christmas", label: "Christmas", h1: "Christmas trivia questions (with answers)", title: "Christmas Trivia Questions and Answers", description: "Christmas trivia questions with answers: traditions, Santa and his reindeer, carols and Christmas songs, holiday movies, food and Christmas around the world, checked by GameShuffle. Play them as a Christmas trivia night.", gameSlugs: [], keywords: [], categories: ["Christmas"], max: 50 },
+  { slug: "halloween", label: "Halloween", h1: "Halloween trivia questions (with answers)", title: "Halloween Trivia Questions and Answers", description: "Halloween trivia questions with answers: where Halloween comes from, candy, monsters, movies and music. Play them as a Halloween trivia night.", gameSlugs: [], keywords: [], categories: ["Halloween"], max: 50 },
+  { slug: "christmas", label: "Christmas", h1: "Christmas trivia questions (with answers)", title: "Christmas Trivia Questions and Answers", description: "Christmas trivia questions with answers: traditions, Santa's reindeer, carols, holiday movies and food. Checked by GameShuffle, ready for a trivia night.", gameSlugs: [], keywords: [], categories: ["Christmas"], max: 50 },
   { slug: "video-games", label: "Video games", h1: "Video game trivia questions (with answers)", title: "Video Game Trivia Questions and Answers", description: "Video game trivia questions with answers, from Nintendo classics to today's hits, checked by GameShuffle. Play them as a trivia night with friends.", gameSlugs: [], keywords: [], allVideoGames: true },
 ];
 

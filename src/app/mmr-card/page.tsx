@@ -27,7 +27,7 @@ import "@/styles/tools.css";
 
 export const dynamic = "force-dynamic";
 
-const DESCRIPTION = "Your Mario Kart lounge MMR on stream, live: the number, your division, how far to the next one and tonight's run, with a moment each time an event is verified. Free with a GameShuffle account.";
+const DESCRIPTION = "Your Mario Kart lounge MMR on stream, live: your number, division, distance to the next one and tonight's run, with a moment for each event. Free.";
 
 export const metadata: Metadata = {
   title: "MMR card for Mario Kart lounge",

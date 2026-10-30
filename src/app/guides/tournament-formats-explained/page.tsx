@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co/guides/${SLUG}` },
-  openGraph: { title: `${meta.title} | GameShuffle`, description: meta.description, url: `https://www.gameshuffle.co/guides/${SLUG}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle`, description: meta.description, url: `https://www.gameshuffle.co/guides/${SLUG}` },
 };
 
 export default function Page() {

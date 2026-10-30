@@ -15,8 +15,9 @@ import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 export const metadata: Metadata = {
   title: "For organizers: run your events on GameShuffle",
   description:
-    "Running tournaments, leagues, or community game nights? GameShuffle gives organizers brackets, points, and Heat-to-Mains ladders for Mario Kart, random-character rounds for Smash, Mario Party, Splatoon, Kirby and fighting games, championship seasons, live scoring, text reminders, and public pages to join, all announced across Discord and Twitch. Free to run.",
+    "Run tournaments, leagues and community game nights: brackets, points, Swiss and random-character rounds, live scoring, reminders and public pages. Free to run.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "GameShuffle for organizers",
     url: "https://www.gameshuffle.co/for-organizers",
   },

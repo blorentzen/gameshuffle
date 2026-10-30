@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   title: "Help Center",
   description: "Guides, troubleshooting, and contact info for GameShuffle: getting started, GameShuffle Pro, integrations, and account management.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Help Center | GameShuffle",
     description: "Guides, troubleshooting, and contact info for GameShuffle.",
     url: "https://www.gameshuffle.co/help",

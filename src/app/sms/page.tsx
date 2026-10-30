@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: "Text Messages (SMS)",
   description: "How GameShuffle text messages work: what we send, how you opt in and out, message frequency, and rates. We never sell or share your number.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "GameShuffle Text Messages (SMS)",
     description: "What we text, how to opt in and out, frequency and rates.",
     url: "https://www.gameshuffle.co/sms",

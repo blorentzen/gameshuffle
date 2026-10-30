@@ -5,6 +5,8 @@ import { GameNightTools } from "@/components/game-nights/GameNightTools";
 import { COMPANION_TOOLS } from "@/lib/game-nights/companion/tools";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/game-nights/tools", images: [{ url: "/game-nights/opengraph-image.jpg", width: 1200, height: 630 }] },
+  alternates: { canonical: "https://www.gameshuffle.co/game-nights/tools" },
   title: "Game night tools: turn order & teams",
   description: "Free tools for your game night: randomly decide turn order and split players into balanced teams. No account needed.",
 };

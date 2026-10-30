@@ -1,3 +1,4 @@
+import { previewText } from "@/lib/og/meta";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -55,10 +56,11 @@ export async function generateMetadata({
   const image = shareImage(fm.og_image);
   return {
     title: fm.title,
-    description: fm.meta_description,
+    description: previewText(fm.meta_description, 160),
     openGraph: {
+      siteName: "GameShuffle",
       title: fm.title,
-      description: fm.meta_description,
+      description: previewText(fm.meta_description, 160),
       url,
       type: "article",
       images: [image],
@@ -66,7 +68,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary_large_image",
       title: fm.title,
-      description: fm.meta_description,
+      description: previewText(fm.meta_description, 160),
       images: [image],
     },
     alternates: { canonical: url },

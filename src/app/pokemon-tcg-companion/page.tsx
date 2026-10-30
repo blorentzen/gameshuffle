@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: content.metaTitle,
   description: content.metaDescription,
   openGraph: {
+    siteName: "GameShuffle",
     title: content.metaTitle,
     description: content.metaDescription,
     url: `https://www.gameshuffle.co${content.path}`,

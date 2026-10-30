@@ -21,8 +21,9 @@ import "@/styles/daily-duel.css";
  */
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/daily-duel" },
   title: "The Daily Duel: a Pokémon card duel every day",
-  description: "A free daily card duel: today's trainer brings their team from the games, you get the same six Pokémon cards as everyone, and your score counts turns, time and going solo.",
+  description: "A free daily card duel: today's trainer brings their team from the games, you get the same six Pokémon cards as everyone, and your score counts turns.",
   alternates: { canonical: "https://www.gameshuffle.co/daily-duel" },
   ...(DUEL_PUBLIC ? {} : { robots: { index: false, follow: false } }),
 };

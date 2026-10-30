@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Accessibility Statement",
   description: "GameShuffle's commitment to WCAG 2.1 Level AA accessibility, what we test, known limitations, and how to report a barrier.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Accessibility Statement | GameShuffle",
     description: "Our WCAG 2.1 Level AA commitment, current conformance, and how to report a barrier.",
     url: "https://www.gameshuffle.co/accessibility",

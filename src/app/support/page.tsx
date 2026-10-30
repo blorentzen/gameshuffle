@@ -11,8 +11,9 @@ import { FOUNDING_SUPPORTERS, dollars, goalPercent, supportLevel } from "@/lib/s
 import "../../styles/support.css";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/support" },
   title: "Support GameShuffle",
-  description: "GameShuffle is independent and has no ads. Support it once, or monthly as a Supporter, a Backer (GS Pro included) or a Champion, to keep the servers on and new games coming.",
+  description: "GameShuffle is independent with no ads. Support it once, or monthly as a Supporter, a Backer (GS Pro included) or a Champion, to keep it running.",
   alternates: { canonical: "https://www.gameshuffle.co/support" },
 };
 export const dynamic = "force-dynamic";

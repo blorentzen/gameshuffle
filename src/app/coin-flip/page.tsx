@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "A free online coin flip. Heads or tails, settled instantly, for quick decisions, game nights, and streams. Keeps a running tally. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/coin-flip" },
-  openGraph: { title: "Free Coin Flip", url: "https://www.gameshuffle.co/coin-flip" },
+  openGraph: { siteName: "GameShuffle", title: "Free Coin Flip", url: "https://www.gameshuffle.co/coin-flip" },
 };
 
 export default function CoinFlipPage() {

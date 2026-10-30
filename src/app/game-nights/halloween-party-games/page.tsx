@@ -26,7 +26,7 @@ export const revalidate = 3600;
 
 const PATH = "/game-nights/halloween-party-games";
 const TITLE = "Halloween Party Games: Free Games for Your Halloween Party";
-const DESCRIPTION = "Free Halloween party games for kids and adults: spooky truth or dare, Halloween bingo, a wheel of house rules, Halloween trivia and party games everyone plays on their phones. No app to download.";
+const DESCRIPTION = "Free Halloween party games for kids and adults: spooky truth or dare, Halloween bingo, trivia and party games played on phones. No app needed.";
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },

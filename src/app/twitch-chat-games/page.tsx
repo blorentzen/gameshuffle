@@ -9,7 +9,7 @@ import "@/styles/chat-games.css";
 
 const PATH = "/twitch-chat-games";
 const TITLE = `Twitch Chat Games: ${CHAT_GAMES_GUIDE.length} Games Your Chat Can Play`;
-const DESCRIPTION = "Games your Twitch chat can play while you stream: survey boards, trivia, bingo, polls, drafts, viewer battles and games that run while you're on a break. What chat does and the command that starts each one.";
+const DESCRIPTION = "Games your Twitch chat can play while you stream: survey boards, trivia, bingo, polls, drafts and viewer battles, with the command that starts each.";
 
 export const metadata: Metadata = {
   title: TITLE,

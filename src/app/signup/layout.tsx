@@ -4,6 +4,7 @@ export const metadata: Metadata = {
   title: "Create Account",
   description: "Join GameShuffle for free. Save your randomizer setups, create tournaments, and unlock competitive tools for Mario Kart and more.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Create a Free Account | GameShuffle",
     description: "Join GameShuffle free. Save configurations, run tournaments, and access competitive tools.",
     url: "https://www.gameshuffle.co/signup",

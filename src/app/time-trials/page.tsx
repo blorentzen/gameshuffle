@@ -12,7 +12,7 @@ import "@/styles/time-trials.css";
 
 export const dynamic = "force-dynamic";
 
-const DESCRIPTION = "The fastest time trial times on every Mario Kart World and Mario Kart 8 Deluxe track, added by players on GameShuffle and in Discord. Add yours from a screenshot or bring them from Quaxly.";
+const DESCRIPTION = "The fastest time trial times on every Mario Kart World and Mario Kart 8 Deluxe track. Add yours from a screenshot or bring them from Quaxly.";
 
 export const metadata: Metadata = {
   title: "Mario Kart time trial leaderboards",

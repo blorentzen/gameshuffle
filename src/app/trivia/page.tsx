@@ -7,7 +7,7 @@ import { triviaMetadata } from "@/lib/trivia/seoMeta";
 
 export const metadata: Metadata = triviaMetadata({
   title: "Free Trivia Night App: Teams Play on Their Phones",
-  description: "Host a trivia night in minutes: pick a template, fill the rounds from a checked question pack or your own, and teams answer on their phones while the TV shows the rest. Free to host.",
+  description: "Host a trivia night in minutes: pick a template, fill the rounds from a checked question pack, and teams answer on their phones. Free to host.",
   path: "/trivia",
 });
 

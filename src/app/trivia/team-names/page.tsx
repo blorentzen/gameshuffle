@@ -11,7 +11,7 @@ import { triviaMetadata } from "@/lib/trivia/seoMeta";
 import "@/styles/trivia-seo.css";
 
 const PATH = `${TRIVIA_PATH}/team-names`;
-const TITLE = "Trivia Team Name Generator: Funny, Gaming and Office Names";
+const TITLE = "Trivia Team Name Generator: Funny and Gaming Names";
 const DESCRIPTION = "Free trivia team name generator with 120+ names: funny, gaming, office, puns and clean names for kids. Pick a theme, get six names, copy your favorite. No sign-up.";
 
 export const metadata: Metadata = triviaMetadata({ title: TITLE, description: DESCRIPTION, path: PATH });

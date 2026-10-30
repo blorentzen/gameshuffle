@@ -35,7 +35,7 @@ import "@/styles/lounge.css";
 
 export const dynamic = "force-dynamic";
 
-const DESCRIPTION = "Look up any Mario Kart lounge player by name or friend code: MMR, division, world rank, nights, formats and partners. The world's top 10, this week's climbers, countries and divisions, from MKCentral's lounge.";
+const DESCRIPTION = "Look up any Mario Kart lounge player by name or friend code: MMR, division, world rank, nights and partners, plus this week's climbers.";
 
 export const metadata: Metadata = {
   title: "Mario Kart lounge stats",

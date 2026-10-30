@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description:
     "A free online Truth or Dare generator. Tap Truth, Dare, or Random for an endless supply of prompts: clean, party, and couples sets. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/truth-or-dare" },
-  openGraph: { title: "Free Truth or Dare Generator", url: "https://www.gameshuffle.co/truth-or-dare" },
+  openGraph: { siteName: "GameShuffle", title: "Free Truth or Dare Generator", url: "https://www.gameshuffle.co/truth-or-dare" },
 };
 
 export default function TruthOrDarePage() {

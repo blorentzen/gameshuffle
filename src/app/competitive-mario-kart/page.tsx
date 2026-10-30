@@ -39,14 +39,14 @@ import "@/styles/competitive-hub.css";
 export const dynamic = "force-dynamic";
 
 const PATH = "/competitive-mario-kart";
-const TITLE = "Competitive Mario Kart: lounge stats, time trials and MMR card";
+const TITLE = "Competitive Mario Kart: lounge stats and time trials";
 const DESCRIPTION = "Lounge stats for any player, time trial boards for every Mario Kart World and 8 Deluxe track, your lounge MMR live on stream, and Mario Kart tournaments, on one page.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: `https://www.gameshuffle.co${PATH}` },
-  openGraph: { title: TITLE, description: DESCRIPTION, url: `https://www.gameshuffle.co${PATH}`, siteName: "GameShuffle", type: "website", images: ["https://cdn.empac.co/gameshuffle/images/opengraph/mk-lounge-og.jpg"] },
+  openGraph: { title: TITLE, description: DESCRIPTION, url: `https://www.gameshuffle.co${PATH}`, siteName: "GameShuffle", type: "website" },
 };
 
 const FAQ = [
