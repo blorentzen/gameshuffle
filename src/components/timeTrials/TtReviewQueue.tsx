@@ -3,7 +3,9 @@
 /**
  * The reviewers' queue (round 2, 5A/6A): clips to check, oldest first, and open report tickets. A clip
  * that checks out flips the time to Verified; one that doesn't asks for a reason the player sees.
- * Staff also manage the time trial reviewers here. Used on /time-trials/review and Platform ▸ Time trials.
+ * Staff also manage the time trial reviewers here, and the short names players taught the import reader
+ * (three players picking the same track for a name makes it read for everyone; staff can block one).
+ * Used on /time-trials/review and Platform ▸ Time trials.
  */
 
 import { useEffect, useState } from "react";
@@ -13,8 +15,9 @@ import { IconCamera, IconCircleCheck, IconVideo } from "@tabler/icons-react";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { QueueTicket, QueueVideo, Reviewer } from "@/lib/timeTrials/review";
+import type { CommunityAlias } from "@/lib/timeTrials/aliases";
 
-type Queue = { videos: QueueVideo[]; tickets: QueueTicket[]; reviewers: Reviewer[] | null; staff: boolean };
+type Queue = { videos: QueueVideo[]; tickets: QueueTicket[]; reviewers: Reviewer[] | null; aliases: CommunityAlias[] | null; staff: boolean };
 
 const when = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
 const STATE: Record<QueueTicket["state"], string> = { open: "New", waiting_review: "Owner answered", waiting_owner: "Waiting on the owner", kept: "Kept", removed: "Removed" };
@@ -116,6 +119,20 @@ export function TtReviewQueue() {
     </div>
   ) : null;
 
+  const shortNames = q.aliases ? (q.aliases.length === 0 ? <EmptyState title="No short names learned yet" description="When three players pick the same track for a name the import reader didn't know, it reads for everyone and shows up here." /> : (
+    <div className="tt-reviewers">
+      <p className="tt-note">These read for everyone&apos;s pastes. Block one that points at the wrong track; players who picked it still get their own pick.</p>
+      <ul className="tt-queue">
+        {q.aliases.map((a) => (
+          <li key={`${a.game}|${a.alias}|${a.trackId}`} className="tt-queue__item tt-queue__item--row">
+            <span><code>{a.alias}</code> reads as <b>{a.trackName}</b><span className="tt-muted"> · {a.gameLabel} · {a.players} players</span></span>
+            <Button variant="ghost" size="small" onClick={() => { void confirm({ title: `Stop reading "${a.alias}" as ${a.trackName}?`, body: "It stops reading for everyone. Players who picked it keep their own pick.", confirmLabel: "Block it" }).then((ok) => { if (ok) void post({ action: "alias_block", game: a.game, alias: a.alias, track: a.trackId }, "Blocked"); }); }}>Block</Button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )) : null;
+
   return (
     <Tabs
       variant="underline"
@@ -123,6 +140,7 @@ export function TtReviewQueue() {
         { id: "clips", label: "Clips to check", badge: q.videos.length || undefined, content: clips },
         { id: "reports", label: "Reports", badge: q.tickets.length || undefined, content: reports },
         ...(reviewers ? [{ id: "reviewers", label: "Reviewers", content: reviewers }] : []),
+        ...(shortNames ? [{ id: "short-names", label: "Short names", content: shortNames }] : []),
       ]}
     />
   );

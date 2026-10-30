@@ -19,7 +19,7 @@ export function parseTime(raw: string): number | null {
     min = +m[1]; sec = +m[2]; ms = +m[3].padEnd(3, "0");
   } else if ((m = s.match(/^(\d{1,2})[:'](\d{2})$/))) {
     min = +m[1]; sec = +m[2];
-  } else if ((m = s.match(/^(\d{1,3})[.,](\d{1,3})$/))) {
+  } else if ((m = s.match(/^(\d{1,3})[.,"](\d{1,3})$/))) {
     sec = +m[1]; ms = +m[2].padEnd(3, "0");
   } else if ((m = s.match(/^(\d)(\d{2})(\d{3})$/))) {
     // 152384 = 1:52.384, as some people type it.

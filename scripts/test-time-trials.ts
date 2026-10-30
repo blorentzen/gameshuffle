@@ -213,6 +213,24 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   eq(readQuaxly("MKS: 1:36.990 - #4\nWP: 1:40.640 - 2nd", "mk8dx")!.hasHolders, false, "placed: #4 and 2nd are places too");
   eq(readQuaxly("MKS: 1:36.990 - qwacks", "mk8dx")!.rows[0].holder, "qwacks", "placed: a name after a dash is still a holder");
 
+  // Mario Kart World short names (MKCentral's codes), and the SNES courses.
+  const wq = readQuaxly("150cc Shrooms\n**MBC**: `1:47.342`\n**BCi**: `1:52.001`\n**rMC1**: `1:20.500`\n**CC2**: `1:58.000`", "mkworld")!;
+  eq(wq.rows.map((r) => r.trackName), ["Mario Bros. Circuit", "Boo Cinema", "SNES Mario Circuit 1", "Crown City"], "world: short names read");
+
+  // The Players' Page profile table, copied from a browser (tabs between cells), with a 200cc heading.
+  const pp = readLines("Switch-200cc Course\tTime\tVid\tPos.\tPRSR\tARR\tDate\nMario Kart Stadium\t1'34\"352\t\t1\t1.0000\t26.0 / Newbie\t2025-07-16\nWii Moo Moo Meadows\t58\"734\t\t3\t0.98\t12.0\t2025-08-01\n(DS) Cheep Cheep Beach\t1'50\"010\t\t2\t0.99\t3.0\t2025-09-01\nSubtotals\t1:23:45.678", "mk8dx");
+  eq(pp.map((r) => [r.trackName, r.timeMs, r.cc]), [["Mario Kart Stadium", 94352, 200], ["Wii Moo Moo Meadows", 58734, 200], ["DS Cheep Cheep Beach", 110010, 200]], "players' page: names, times (one under a minute), class from the heading, no subtotal");
+
+  // An MKLeaderboards profile row: code, name, time, ranks, gap.
+  const mkl = readLines("MKS | Mario Kart Stadium | 1:35.258 | 9 | 2 | 2 | + 0.901", "mk8dx");
+  eq([mkl[0].trackName, mkl[0].timeMs], ["Mario Kart Stadium", 95258], "mkleaderboards: the row's track and time");
+
+  // A short name players taught the reader.
+  const learned = new Map([["dkm", "bcp4-dk-mountain"]]);
+  const dk = ttTracks("mk8dx").find((t) => t.name.includes("DK Mountain"));
+  const taught = readLines("dkm 2:05.110", "mk8dx", dk ? new Map([["dkm", dk.id]]) : learned);
+  eq([taught[0].trackName, taught[0].via], [dk?.name ?? null, "learned"], "learned: dkm reads as the track players picked");
+
   // Mario Kart World: full names.
   const world = readQuaxly("Shrooms\nDK Spaceport: 1:52.384\nCrown City: 2:01.006\nGreat ? Block Ruins: 2:10.500")!;
   eq(world.game, "mkworld", "World list: game from the names");

@@ -224,3 +224,30 @@
 /* Grid items keep to the column on phones (the board's table scrolls inside its own scroller). */
 .tt-filters, .tt-board, .tt-ticket { min-width: 0; max-width: 100%; }
 .tt-seg .empac-subnav { max-width: 100%; }
+
+/* Import, pasting picks 2026-10-30: the three ways, the reader's help, the type-in grid, row tags. */
+.tt-import__ways .empac-tabs__list { margin-bottom: var(--spacing-16); }
+.tt-import__way { display: grid; gap: var(--spacing-12); min-width: 0; }
+.tt-import__track { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-4) var(--spacing-8); }
+.tt-chip--ai { background: #efe9ff; color: #4b2bb3; border-color: transparent; }
+.tt-pastehelp { margin-top: var(--spacing-8); }
+.tt-pastehelp__body { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); gap: var(--spacing-24); padding-bottom: var(--spacing-8); }
+.tt-pastehelp__body h3 { margin: 0 0 var(--spacing-8); font-size: var(--font-size-16); }
+.tt-pastehelp__body > div { display: grid; gap: var(--spacing-8); align-content: start; min-width: 0; }
+.tt-pastehelp__list { margin: 0 0 var(--spacing-8); padding-left: 0; list-style: none; display: grid; gap: var(--spacing-4); font-size: var(--font-size-14); }
+.tt-pastehelp__list code, .tt-pastehelp__abbr code { font-size: var(--font-size-14); }
+.tt-pastehelp__fmt { margin: 0; padding: var(--spacing-12); border-radius: var(--radius-8); background: var(--background-secondary); font-size: var(--font-size-14); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tt-pastehelp__abbr { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: var(--spacing-4) var(--spacing-16); font-size: var(--font-size-14); }
+.tt-pastehelp__abbr code { display: inline-block; min-width: 5.2rem; }
+.tt-typein { display: grid; gap: var(--spacing-16); min-width: 0; }
+.tt-typein__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); }
+.tt-typein__hint { font-size: var(--font-size-14); margin-left: auto; }
+.tt-typein__row { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-6, 6px) var(--spacing-16); }
+.tt-typein__name { flex: 1; min-width: 0; font-weight: 600; font-size: var(--font-size-14); overflow-wrap: break-word; }
+/* CDS sets a 275px floor on its Input (a bare input without icons); a time needs about 13rem, so the track
+   name keeps the room. */
+.tt-typein__row .tt-typein__input { flex: none; width: 13rem; min-width: 0; font-variant-numeric: tabular-nums; font-family: var(--font-mono, ui-monospace, Menlo, monospace); }
+.tt-typein__row .tt-typein__input--new { background: var(--primary-50); border-color: var(--primary-300, #9fb4ff); }
+@media (max-width: 40rem) { .tt-typein__hint { margin-left: 0; } }
+/* CDS prints field helpers at 12px; this one is a sentence people read, so it keeps the 14px floor. */
+.tt-import .empac-form-field__helper { font-size: var(--font-size-14); }

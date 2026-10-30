@@ -28,7 +28,7 @@ export function toCheckRows(rows: (QuaxlyRow | ImportRow)[], game: TtGame, cc: T
     const rowCc = "cc" in r ? r.cc : cc;
     const base: CheckRow = {
       line: r.line, game, trackId: r.trackId, trackName: r.trackName, trackText: r.trackId ? null : (r.trackText ?? null),
-      cc: rowCc, timeMs: r.timeMs, holder: "holder" in r ? r.holder : null, keep: false, note: null, savedMs: null,
+      cc: rowCc, timeMs: r.timeMs, holder: "holder" in r ? r.holder : null, keep: false, note: null, savedMs: null, via: r.via ?? null, video: r.video ?? null,
     };
     if (!r.trackId || !r.timeMs) return { ...base, note: "unclear" };
     if (mine && !mine.has(i)) return { ...base, note: "others" };

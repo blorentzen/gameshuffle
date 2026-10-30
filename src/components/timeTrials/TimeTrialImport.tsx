@@ -1,16 +1,20 @@
 "use client";
 
 /**
- * Bring your times (picks 2026-10-29: 5A, and the migration picks 1A-6A). The Discord way first:
- * Save to GameShuffle on Quaxly's reply, with "Add to my apps" so it works in any server. Then
- * screenshots of Quaxly's reply (phones can't copy an embed) or a paste. Every row is checked before
- * anything saves: ticked when it's readable, yours, under the world record and faster than what's
- * saved; the others say why. A list read in Discord opens here with ?d=.
+ * Bring your times (picks 2026-10-29: 5A, and the migration picks 1A-6A; pasting picks 2026-10-30). The
+ * Discord way first: Save to GameShuffle on Quaxly's reply, with "Add to my apps" so it works in any
+ * server. Mario Kart World times on MKCentral come in one press. Then a paste (with what the reader
+ * understands folded under it), screenshots of Quaxly's reply, or typing them in. Every row is checked
+ * before anything saves: ticked when it's readable, yours, under the world record and faster than what's
+ * saved; the others say why. Rows matched by AI or a learned short name are tagged, and the tracks a
+ * player picks for names the reader didn't know are remembered. A list read in Discord opens here with ?d=.
  */
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Alert, Button, Checkbox, Chip, FormField, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from "@empac/cascadeds";
-import { IconBrandDiscord, IconPhoto } from "@tabler/icons-react";
+import { Alert, Button, Checkbox, Chip, FormField, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, Textarea } from "@empac/cascadeds";
+import { IconBrandDiscord, IconCloudDownload, IconPhoto, IconSparkles, IconUsers, IconVideo } from "@tabler/icons-react";
+import { TtTypeIn } from "./TtTypeIn";
+import { TtPasteHelp } from "./TtPasteHelp";
 import { Select } from "@/components/ui/Select";
 import { TableScroll } from "@/components/ui/TableScroll";
 import { ArrowLink } from "@/components/ui/ArrowLink";
@@ -35,6 +39,11 @@ const ERRORS: Record<string, string> = {
   too_big: "One of those pictures is over 8 MB.",
   gone: "That list from Discord has expired. Use Save to GameShuffle on Quaxly's reply again.",
   not_yours: "That list was read for a different Discord account.",
+  cap_some: "We've used today's AI reads, so a few rows below still need their track picked.",
+  no_discord: "Connect Discord first: MKCentral finds you by your Discord account.",
+  mkc_none: "MKCentral doesn't have a player with your Discord account. Check that the same Discord is connected on MKCentral.",
+  mkc_empty: "Your MKCentral timesheet has no Mario Kart World times yet.",
+  mkc_down: "MKCentral isn't answering right now. Try again in a minute.",
 };
 
 type Got = { ok?: boolean; game?: TtGame; rows?: CheckRow[]; title?: string | null; holders?: boolean; ai?: boolean; items?: TtItems; error?: string };
@@ -56,19 +65,23 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
   const [game, setGame] = useState<TtGame>("mk8dx");
   const [text, setText] = useState("");
   const [rows, setRows] = useState<CheckRow[] | null>(null);
-  const [meta, setMeta] = useState<{ title: string | null; holders: boolean; ai: boolean; items: TtItems; from: "paste" | "screenshots" | "discord" } | null>(null);
-  const [busy, setBusy] = useState<"read" | "shots" | "save" | "draft" | null>(draftId ? "draft" : null);
+  const [meta, setMeta] = useState<{ title: string | null; holders: boolean; ai: boolean; items: TtItems; from: "paste" | "screenshots" | "discord" | "mkcentral" | "typed" } | null>(null);
+  const [busy, setBusy] = useState<"read" | "shots" | "save" | "draft" | "mkc" | null>(draftId ? "draft" : null);
+  const [way, setWay] = useState("paste");
+  /** Tracks picked for names the reader didn't know, by row: remembered on save (pick 2A). */
+  const [picked, setPicked] = useState<Record<number, { alias: string; trackId: string }>>({});
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ saved: number; already: number; refused: number } | null>(null);
   const groups = useMemo(() => ttCups(game).map((c) => ({ label: c.cup, options: c.tracks.map((t) => ({ value: t.id, label: t.name })) })), [game]);
   const classes = TT_GAMES[game].classes;
   const command = game === "mk8dx" ? "/dx display_time" : "/display_time";
 
-  function take(j: Got, from: "paste" | "screenshots" | "discord") {
+  function take(j: Got, from: "paste" | "screenshots" | "discord" | "mkcentral" | "typed") {
     if (j.error) setError(ERRORS[j.error] ?? ERRORS.failed);
     if (j.game) setGame(j.game);
     const list = j.rows ?? [];
     setRows(list.length ? list : null);
+    setPicked({});
     setMeta({ title: j.title ?? null, holders: !!j.holders, ai: !!j.ai, items: j.items ?? "shrooms", from });
     if (!list.length && !j.error) setError("We didn't find any times in that. Each time needs its track, like \"MKS: 1:36.990\".");
   }
@@ -92,6 +105,17 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
     try {
       const res = await fetch("/api/time-trials/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, game }) });
       take((await res.json().catch(() => ({ error: "failed" }))) as Got, "paste");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function readMkcentral() {
+    setError(null); setSaved(null);
+    setBusy("mkc");
+    try {
+      const res = await fetch("/api/time-trials/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source: "mkcentral" }) });
+      take((await res.json().catch(() => ({ error: "mkc_down" }))) as Got, "mkcentral");
     } finally {
       setBusy(null);
     }
@@ -130,13 +154,13 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
       const res = await fetch("/api/time-trials/import", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game, items: meta?.items ?? "shrooms", rows: toSave.map((r) => ({ track: r.trackId, cc: r.cc, time: r.timeMs })) }),
+        body: JSON.stringify({ game, items: meta?.items ?? "shrooms", rows: toSave.map((r) => ({ track: r.trackId, cc: r.cc, time: r.timeMs, video: r.video ?? null })), learned: Object.values(picked) }),
       });
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; saved?: number; already?: number; refused?: number; error?: string };
       if (!res.ok || !j.ok) { setError(ERRORS[j.error ?? ""] ?? "Those times couldn't be saved. Try again."); return; }
       setSaved({ saved: j.saved ?? 0, already: j.already ?? 0, refused: j.refused ?? 0 });
       trackEvent(EVENTS.ttImported, { game, count: j.saved ?? 0, from: meta?.from ?? "paste" });
-      setRows(null); setText(""); setMeta(null);
+      setRows(null); setText(""); setMeta(null); setPicked({});
     } finally {
       setBusy(null);
     }
@@ -166,19 +190,65 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
         )}
       </section>
 
+      {/* MKCentral keeps Mario Kart World times only. */}
+      {game === "mkworld" && (
+        <section className="tt-import__quaxly" aria-labelledby={`${id}-mkc`}>
+          <h2 id={`${id}-mkc`}>From MKCentral</h2>
+          <p className="tt-note">The times on your MKCentral timesheet come over in one press. We find you by your connected Discord account.</p>
+          <div className="tt-add__actions">
+            <Button variant="secondary" iconBefore={IconCloudDownload} onClick={() => void readMkcentral()} loading={busy === "mkc"} disabled={!!busy && busy !== "mkc"}>Bring my MKCentral times</Button>
+          </div>
+        </section>
+      )}
+
       <section className="tt-import__other" aria-labelledby={`${id}-other`}>
         <h2 id={`${id}-other`}>Or bring the list here</h2>
-        <p className="tt-note">Add screenshots of Quaxly&apos;s reply (scroll and take a few for a long list), or paste it. A spreadsheet or any list with track names works too.</p>
+        <p className="tt-note">Paste a list, add screenshots of Quaxly&apos;s reply, or type your times in. You check every row before anything saves.</p>
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" multiple hidden onChange={(e) => { if (e.target.files?.length) void readScreenshots(e.target.files); e.target.value = ""; }} />
-        <div className="tt-add__actions">
-          <Button variant="secondary" iconBefore={IconPhoto} onClick={() => fileRef.current?.click()} loading={busy === "shots"} disabled={!!busy && busy !== "shots"}>Add screenshots</Button>
-        </div>
-        <FormField label="Or paste it" htmlFor={`${id}-text`}>
-          <Textarea id={`${id}-text`} value={text} onChange={(e) => setText(e.target.value)} rows={8} maxLength={12000} fullWidth placeholder={"150cc Shrooms\nMKS: 1:36.990\nWP: 1:40.640"} />
-        </FormField>
-        <div className="tt-add__actions">
-          <Button variant="primary" onClick={() => void readPaste()} loading={busy === "read"} disabled={!!busy && busy !== "read"}>Read my times</Button>
-        </div>
+        <Tabs
+          variant="pills"
+          activeTab={way}
+          onChange={setWay}
+          className="tt-import__ways"
+          tabs={[
+            {
+              id: "paste",
+              label: "Paste a list",
+              content: (
+                <div className="tt-import__way">
+                  <FormField label="Your list" htmlFor={`${id}-text`} helperText="Quaxly's reply, a spreadsheet, the Players' Page or any list with track names">
+                    <Textarea id={`${id}-text`} value={text} onChange={(e) => setText(e.target.value)} rows={8} maxLength={12000} fullWidth placeholder={game === "mk8dx" ? "150cc Shrooms\nMKS: 1:36.990\nWP: 1:40.640" : "150cc Shrooms\nMBC: 1:47.342\nCrown City 1:58.000"} />
+                  </FormField>
+                  <div className="tt-add__actions">
+                    <Button variant="primary" onClick={() => void readPaste()} loading={busy === "read"} disabled={!!busy && busy !== "read"}>Read my times</Button>
+                  </div>
+                  <TtPasteHelp game={game} />
+                </div>
+              ),
+            },
+            {
+              id: "shots",
+              label: "Screenshots",
+              content: (
+                <div className="tt-import__way">
+                  <p className="tt-note">Screenshots of Quaxly&apos;s reply. For a long list, scroll and take a few (up to 8).</p>
+                  <div className="tt-add__actions">
+                    <Button variant="primary" iconBefore={IconPhoto} onClick={() => fileRef.current?.click()} loading={busy === "shots"} disabled={!!busy && busy !== "shots"}>Add screenshots</Button>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "type",
+              label: "Type them in",
+              content: (
+                <div className="tt-import__way">
+                  <TtTypeIn key={game} game={game} onCheck={(r, items) => { setError(null); setSaved(null); setRows(r.length ? r : null); setPicked({}); setMeta({ title: null, holders: false, ai: false, items, from: "typed" }); }} />
+                </div>
+              ),
+            },
+          ]}
+        />
       </section>
 
       {busy === "draft" && <p className="tt-note" role="status">Opening the list you read in Discord…</p>}
@@ -198,6 +268,7 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
             {meta?.title ? <>{meta.title}. </> : null}
             {meta ? <>These go on the {meta.items === "none" ? "no mushrooms" : "mushrooms"} boards. </> : null}
             {meta?.ai ? "We read this with AI, so check each row. " : ""}
+            {!meta?.ai && rows.some((r) => r.via === "ai") ? "Rows marked Read by AI were matched by AI, so check them. " : ""}
             {toSave.length} {toSave.length === 1 ? "time is" : "times are"} ticked to save.
             {counts.already ? ` ${counts.already} you already have.` : ""}
             {meta?.holders && counts.others ? ` ${counts.others} ${counts.others === 1 ? "is" : "are"} under other names.` : ""}
@@ -220,8 +291,21 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
                     <TableRow key={i} className={r.keep ? undefined : "tt-import__row--off"}>
                       <TableCell><Checkbox checked={r.keep} disabled={locked} onChange={(e) => update(i, { keep: e.target.checked })} aria-label={`Save ${r.trackName ?? r.trackText ?? "this row"}`} /></TableCell>
                       <TableCell>
-                        {r.trackId ? r.trackName : (
-                          <Select value="" onChange={(v) => { const t = String(v); const name = groups.flatMap((g) => g.options).find((o) => o.value === t)?.label ?? null; update(i, { trackId: t || null, trackName: name, keep: !!(t && r.timeMs), note: null }); }} groups={groups} placeholder={r.trackText ? `"${r.trackText.slice(0, 30)}": pick the track` : "Pick the track"} searchable aria-label="Track" />
+                        {r.trackId ? (
+                          <span className="tt-import__track">
+                            {r.trackName}
+                            {r.via === "ai" && <span className="tt-chip tt-chip--ai"><IconSparkles size={13} aria-hidden="true" /> Read by AI, check it</span>}
+                            {r.via === "learned" && <span className="tt-chip tt-chip--ok"><IconUsers size={13} aria-hidden="true" /> Short name players use</span>}
+                            {r.video && <span className="tt-chip"><IconVideo size={13} aria-hidden="true" /> Video comes too</span>}
+                          </span>
+                        ) : (
+                          <Select value="" onChange={(v) => {
+                            const t = String(v);
+                            const name = groups.flatMap((g) => g.options).find((o) => o.value === t)?.label ?? null;
+                            update(i, { trackId: t || null, trackName: name, keep: !!(t && r.timeMs), note: null });
+                            // Remember the pick for a name the reader didn't know (pick 2A).
+                            if (t && r.trackText) setPicked((p) => ({ ...p, [i]: { alias: r.trackText!, trackId: t } }));
+                          }} groups={groups} placeholder={r.trackText ? `"${r.trackText.slice(0, 30)}": pick the track` : "Pick the track"} searchable aria-label="Track" />
                         )}
                       </TableCell>
                       {classes.length > 1 && (

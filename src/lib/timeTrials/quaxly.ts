@@ -63,6 +63,45 @@ function byAbbr(code: string): TtTrack | null {
   return abbrMap.get(key) ?? (ABBR_ALIASES[key] ? abbrMap.get(ABBR_ALIASES[key].toLowerCase()) ?? null : null);
 }
 
+/**
+ * Mario Kart World short names (research 2026-10-30): MKCentral's own track codes and a Japanese time
+ * trial list agree on all 30 Grand Prix courses; the ten SNES courses from version 1.8.0 rest on the
+ * French World Timesheet and the MKWorld Players' Page news. CC1/CC2 and PS1/PS2 are the same course
+ * in two cups. Note "MKW" in a paste usually means Mario Kart Wii, so it never picks the game.
+ */
+const MKWORLD_ABBR: Record<string, string> = {
+  MBC: "Mario Bros. Circuit", CC: "Crown City", CC1: "Crown City", CC2: "Crown City", WS: "Whistlestop Summit", DKS: "DK Spaceport",
+  rDH: "Desert Hills", rSGB: "Shy Guy Bazaar", rWS: "Wario Stadium", rAF: "Airship Fortress", rDKP: "DK Pass", SP: "Starview Peak",
+  rSHS: "Sky-High Sundae", rWSh: "Wario Shipyard", rKTB: "Koopa Troopa Beach", KTB: "Koopa Troopa Beach", FO: "Faraway Oasis",
+  PS: "Peach Stadium", PS1: "Peach Stadium", PS2: "Peach Stadium", rPB: "Peach Beach", SSS: "Salty Salty Speedway", rDDJ: "Dino Dino Jungle",
+  GBR: "Great ? Block Ruins", CCF: "Cheep Cheep Falls", DD: "Dandelion Depths", BCi: "Boo Cinema", DBB: "Dry Bones Burnout",
+  rMMM: "Moo Moo Meadows", rCM: "Choco Mountain", rTF: "Toad's Factory", BC: "Bowser's Castle", AH: "Acorn Heights", rMC: "Mario Circuit",
+  RR: "Rainbow Road",
+  rMC1: "SNES Mario Circuit 1", rMC2: "SNES Mario Circuit 2", rMC3: "SNES Mario Circuit 3", rGV1: "SNES Ghost Valley 1",
+  rGV2: "SNES Ghost Valley 2", rGV3: "SNES Ghost Valley 3", rCI1: "SNES Choco Island 1", rCI2: "SNES Choco Island 2",
+  rKB1: "SNES Koopa Beach 1", rVL1: "SNES Vanilla Lake 1",
+};
+let worldMap: Map<string, TtTrack> | null = null;
+function byWorldAbbr(code: string): TtTrack | null {
+  if (!worldMap) {
+    worldMap = new Map();
+    const byName = new Map(ttTracks("mkworld").map((t) => [t.name, t]));
+    for (const [abbr, name] of Object.entries(MKWORLD_ABBR)) { const t = byName.get(name); if (t) worldMap.set(abbr.toLowerCase(), t); }
+  }
+  return worldMap.get(code.trim().toLowerCase()) ?? null;
+}
+
+/** A Mario Kart World track from its short name (MKCentral's track codes). */
+export function worldTrack(code: string): TtTrack | null {
+  return byWorldAbbr(code);
+}
+
+/** Every short name the reader knows for a game, for the import page's list (abbreviation, track). */
+export function shortNames(game: TtGame): { abbr: string; name: string }[] {
+  if (game === "mk8dx") return MK8DX_ABBR.map((abbr) => ({ abbr, name: byAbbr(abbr)?.name ?? "" })).filter((r) => r.name);
+  return Object.entries(MKWORLD_ABBR).map(([abbr, name]) => ({ abbr, name }));
+}
+
 /** For the tests: every abbreviation with its track. */
 export function abbreviationTable(): { abbr: string; track: TtTrack | null }[] {
   return MK8DX_ABBR.map((abbr) => ({ abbr, track: byAbbr(abbr) }));
@@ -80,6 +119,9 @@ export interface QuaxlyRow {
   timeMs: number | null;
   /** The name under the time on a server board, else null. */
   holder: string | null;
+  /** Matched by AI or a learned short name (the check table tags it). */
+  via?: "ai" | "learned" | null;
+  video?: string | null;
 }
 
 export interface QuaxlyList {
@@ -120,17 +162,30 @@ export function readTitle(line: string): { cc: TtClass | null; items: QuaxlyItem
   return { cc: cc ? (Number(cc[1]) as TtClass) : null, items: none ? "none" : shrooms ? "shrooms" : null };
 }
 
-/** A track from a list's name for it: an MK8DX abbreviation first, then the name. */
-export function trackFor(text: string, game: TtGame): TtTrack | null {
+/**
+ * Short names players taught the reader (picked a track for a name it didn't know): the player's own,
+ * plus ones three players agree on. Lowercase name → track id.
+ */
+export type Learned = Map<string, string>;
+
+/** A track from a list's name for it: the game's short names first, then learned ones, then the name. */
+export function trackFor(text: string, game: TtGame, learned?: Learned | null): TtTrack | null {
   const t = text.trim();
-  if (game === "mk8dx") {
-    const a = byAbbr(t);
-    if (a) return a;
-  }
+  const a = game === "mk8dx" ? byAbbr(t) : byWorldAbbr(t);
+  if (a) return a;
+  const id = learned?.get(t.toLowerCase());
+  if (id) { const l = ttTracks(game).find((x) => x.id === id); if (l) return l; }
   return matchTrack(t, game);
 }
 
-function parseAs(lines: string[], game: TtGame): QuaxlyList {
+/** Whether a track came from a learned short name (for the check table's tag). */
+export function learnedHit(text: string, game: TtGame, learned?: Learned | null): boolean {
+  const t = text.trim();
+  if ((game === "mk8dx" ? byAbbr(t) : byWorldAbbr(t)) || !learned?.has(t.toLowerCase())) return false;
+  return !matchTrack(t, game);
+}
+
+function parseAs(lines: string[], game: TtGame, learned?: Learned | null): QuaxlyList {
   const classes = TT_GAMES[game].classes;
   let cc: TtClass = classes[0];
   let items: QuaxlyItems = null;
@@ -143,7 +198,7 @@ function parseAs(lines: string[], game: TtGame): QuaxlyList {
     if (!line || SUMMARY.test(line)) { last = null; continue; }
     const m = line.match(ROW);
     if (m) {
-      const track = trackFor(m[1], game);
+      const track = trackFor(m[1], game, learned);
       const row: QuaxlyRow = { line: line.slice(0, 200), trackId: track?.id ?? null, trackName: track?.name ?? null, trackText: m[1].trim(), timeMs: parseTime(m[2]), holder: null };
       // A name on the same line after the time ("MKS: 1:36.990 qwacks") is the holder. A place out of
       // a total ("1:38.991 - 4/9", Quaxly's own-player view) or a bare place ("#4", "4th") isn't a name.
@@ -178,9 +233,9 @@ function parseAs(lines: string[], game: TtGame): QuaxlyList {
  * Reads a Quaxly list (pasted text, or an embed flattened by embedText). With no game given, it
  * tries both and keeps the one more rows match. Null when there's no line with a track and time.
  */
-export function readQuaxly(text: string, game?: TtGame): QuaxlyList | null {
+export function readQuaxly(text: string, game?: TtGame, learned?: Learned | null): QuaxlyList | null {
   const lines = plainDiscord(text).split(/\r?\n/).slice(0, 800);
-  const tries = (game ? [game] : (["mk8dx", "mkworld"] as TtGame[])).map((g) => parseAs(lines, g));
+  const tries = (game ? [game] : (["mk8dx", "mkworld"] as TtGame[])).map((g) => parseAs(lines, g, learned));
   const score = (l: QuaxlyList) => l.rows.filter((r) => r.trackId && r.timeMs).length;
   const best = tries.sort((a, b) => score(b) - score(a))[0];
   return best && best.rows.length ? best : null;
