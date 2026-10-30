@@ -331,7 +331,7 @@ export default async function PublicProfilePage({
     rivalsFor(profile.id as string).catch(() => []),
     profileMmr(profile.id as string).catch(() => null),
     roadShown() ? roadProgressView(profile.id as string).catch(() => null) : Promise.resolve(null),
-    playerBests(`u:${profile.id as string}`).catch(() => []),
+    playerBests(`u:${profile.id as string}`).then((bs) => bs.filter((b) => b.items === "shrooms" && b.vehicle === "any")).catch(() => []),
   ]);
   let authorPosts = COMMUNITY_PUBLICLY_ENABLED
     ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")

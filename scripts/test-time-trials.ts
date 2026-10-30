@@ -4,6 +4,9 @@ import { readLines, linesLookRight, bestPerTrack } from "../src/lib/timeTrials/i
 import { TT_GAMES, TT_GAME_ORDER, ttTracks, ttTrack, ttCups, trackKey, trackFromKey, searchTracks, matchTrack, trackPath, gameBySlug, isClassFor, trackBySegment, gamePath } from "../src/lib/timeTrials/tracks";
 import { abbreviationTable, readQuaxly, embedText, yourRows, newBests, readTitle, nameKey } from "../src/lib/timeTrials/quaxly";
 import { toCheckRows, checkSummary } from "../src/lib/timeTrials/importRows";
+import { readCategory, categoryQuery, categoryText, vehiclesFor, isItems, isVehicle } from "../src/lib/timeTrials/categories";
+import { playerPagePath, readPlayerSlug } from "../src/lib/timeTrials/playerPath";
+import { isVerified } from "../src/lib/timeTrials/rules";
 import { fasterThanRecord, recordFor } from "../src/lib/timeTrials/records";
 
 let pass = 0, fail = 0;
@@ -231,6 +234,34 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   eq(checkSummary(rows), { keep: 1, already: 1, unclear: 1, record: 1, others: 1 }, "check summary");
   const plain = toCheckRows(readLines("MKS 1:40.000\nWP 1:45.000", "mk8dx"), "mk8dx", 150, null, new Map());
   eq(plain.map((r) => r.keep), [true, true], "a plain paste is all yours");
+}
+
+// ── round 2: categories, addresses, players pages ───────────────
+{
+  eq(readCategory("mk8dx", {}), { items: "shrooms", vehicle: "any" }, "default category");
+  eq(readCategory("mk8dx", { items: "none", vehicle: "scooty" }), { items: "none", vehicle: "scooty" }, "no mushrooms, Mr. Scooty");
+  eq(readCategory("mkworld", { items: "none", vehicle: "teddy" }), { items: "none", vehicle: "any" }, "no vehicle boards in World");
+  eq(readCategory("mk8dx", { items: "mushrooms", vehicle: "kart" }), { items: "shrooms", vehicle: "any" }, "unknown values fall back");
+  eq(vehiclesFor("mk8dx"), ["any", "inside_drift", "scooty", "teddy"], "MK8DX vehicle boards");
+  eq(vehiclesFor("mkworld"), ["any"], "World: the open board only");
+  ok(isItems("none") && !isItems("nita"), "items values");
+  ok(isVehicle("inside_drift") && !isVehicle("bike"), "vehicle values");
+  eq(categoryQuery({ cc: 150, defaultCc: 150, items: "shrooms", vehicle: "any" }), "", "defaults leave no query");
+  eq(categoryQuery({ cc: 200, defaultCc: 150, items: "none", vehicle: "teddy" }), "?cc=200&items=none&vehicle=teddy", "every part in the query");
+  eq(categoryText("mk8dx", 200, "none", "scooty", true), "200cc, no mushrooms, Mr. Scooty", "category words");
+  eq(categoryText("mkworld", 150, "shrooms", "any", false), "mushrooms", "World category words");
+  eq(trackPath({ game: "mk8dx", id: "flower-mario-circuit" }, 150, { items: "none", vehicle: "inside_drift" }), "/time-trials/mario-kart-8-deluxe/mario-circuit?items=none&vehicle=inside_drift", "track address with a category");
+  eq(trackPath({ game: "mkworld", id: "flower-dk-spaceport" }, 150, { items: "none", vehicle: "scooty" }), "/time-trials/mario-kart-world/dk-spaceport?items=none", "World drops the vehicle");
+  eq(gamePath("mk8dx", 200, { items: "none" }), "/time-trials/mario-kart-8-deluxe?cc=200&items=none", "game page with a category");
+
+  eq(playerPagePath("u:11111111-1111-1111-1111-111111111111", "/u/quinn"), "/time-trials/players/quinn", "public account page");
+  eq(playerPagePath("u:11111111-1111-1111-1111-111111111111", null), "/time-trials/players/u-11111111-1111-1111-1111-111111111111", "private account page");
+  eq(playerPagePath("i:22222222-2222-2222-2222-222222222222", null), "/time-trials/players/i-22222222-2222-2222-2222-222222222222", "Discord player page");
+  eq(readPlayerSlug("me"), { kind: "me" }, "me");
+  eq(readPlayerSlug("Quinn"), { kind: "username", username: "quinn" }, "username slug");
+  eq(readPlayerSlug("i-22222222-2222-2222-2222-222222222222"), { kind: "key", player: "i:22222222-2222-2222-2222-222222222222" }, "Discord slug");
+  eq(readPlayerSlug("bad slug!"), null, "bad slug");
+  ok(isVerified("checked") && !isVerified("waiting") && !isVerified("none") && !isVerified("rejected"), "only a checked clip is Verified");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

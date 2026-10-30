@@ -37,6 +37,26 @@ export function IconAction({ label, icon: Icon, variant = "tertiary", onClick, d
   );
 }
 
+/**
+ * IconAction for a link (a proof screenshot, a clip): the same CDS IconButton look and Tooltip on an
+ * <a>, since CDS IconButton only renders a button. Opens in a new tab.
+ */
+export function IconLinkAction({ label, icon: Icon, href }: { label: string; icon: TablerIcon; href: string }) {
+  const wrap = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    wrap.current?.querySelector(".empac-tooltip-trigger")?.setAttribute("tabindex", "-1");
+  }, []);
+  return (
+    <span ref={wrap} className="icon-action">
+      <Tooltip content={label} position="top">
+        <a className="empac-icon-button empac-icon-button--tertiary empac-icon-button--small" href={href} target="_blank" rel="noopener noreferrer nofollow" aria-label={label}>
+          <Icon size={18} stroke={2} />
+        </a>
+      </Tooltip>
+    </span>
+  );
+}
+
 /** A row's icon actions, side by side. */
 export function RowActions({ children }: { children: ReactNode }) {
   return <span className="row-actions">{children}</span>;

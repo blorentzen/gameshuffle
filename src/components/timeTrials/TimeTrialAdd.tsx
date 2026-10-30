@@ -1,23 +1,24 @@
 "use client";
 
 /**
- * Add a time trial time (picks 2026-10-29). Game, track, class and time, then proof: a
- * screenshot (we read the track and time from it, the player checks, nothing saves
- * until they press Add) or a video link. Used in the Add a time window on the hub and
- * every board.
+ * Add a time trial time (picks 2026-10-29; round 2). The result screenshot comes first and is required:
+ * we read the track and time from it, the player checks, nothing saves until they press Add. Then the
+ * fields in pairs (track and time, items and speed) and the vehicle (Mario Kart 8 Deluxe). Only a time
+ * that lands in its board's top ten is asked for a clip of the run's last 30 seconds, after saving (round
+ * 2 tightening, 6A): it shows as Unverified until a reviewer checks one. Used in the Add a time window.
  */
 
 import { useId, useMemo, useRef, useState } from "react";
 import { Alert, Button, Chip, FormField, Input } from "@empac/cascadeds";
-import { IconCamera, IconCheck, IconLink } from "@tabler/icons-react";
+import { IconCamera, IconCheck, IconLink, IconVideo } from "@tabler/icons-react";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import { track as trackEvent, EVENTS } from "@/lib/analytics/events";
 import { formatGap, formatTime, ordinal, parseTime } from "@/lib/timeTrials/rules";
 import { TT_GAMES, TT_GAME_ORDER, ttCups, ttTrack, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
-import { TtConnectDiscord } from "./TtConnectDiscord";
+import { categoryText, ITEMS, VEHICLES, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 
-export interface AddedTime { timeId: string; best: boolean; previousMs: number | null; place: number; total: number }
+export interface AddedTime { timeId: string; best: boolean; previousMs: number | null; place: number; total: number; needsVideo?: boolean; videoAdded?: boolean }
 
 type Read = { game: TtGame | null; trackId: string | null; cc: TtClass | null; timeMs: number | null; notResult: boolean };
 
@@ -40,13 +41,11 @@ const SAVE_ERRORS: Record<string, string> = {
   slow_down: "That's a lot of times. Wait a few minutes and try again.",
   signin: "Sign in to add a time.",
   faster_than_record: "That's faster than the world record on this track. Check the time.",
+  screenshot_required: "Add your result screenshot first. It's your proof.",
 };
 
-export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, onAdded, discordLinked = true, returnTo = "/time-trials" }: {
-  game: TtGame; track?: string | null; cc?: TtClass | null; onAdded?: (r: AddedTime, info: { game: TtGame; track: string; cc: TtClass; timeMs: number }) => void;
-  /** False shows the Connect Discord line under the form (1A). */
-  discordLinked?: boolean;
-  returnTo?: string;
+export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, items: startItems = "shrooms", vehicle: startVehicle = "any", onAdded }: {
+  game: TtGame; track?: string | null; cc?: TtClass | null; items?: TtItems; vehicle?: TtVehicle; onAdded?: (r: AddedTime, info: { game: TtGame; track: string; cc: TtClass; timeMs: number }) => void;
 }) {
   const id = useId();
   const toast = useToast();
@@ -54,8 +53,11 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
   const [game, setGame] = useState<TtGame>(startGame);
   const [trackId, setTrackId] = useState<string>(startTrack && ttTrack(startGame, startTrack) ? startTrack : "");
   const [cc, setCc] = useState<TtClass>(startCc && (TT_GAMES[startGame].classes as number[]).includes(startCc) ? startCc : TT_GAMES[startGame].classes[0]);
+  const [items, setItems] = useState<TtItems>(startItems);
+  const [vehicle, setVehicle] = useState<TtVehicle>(startGame === "mk8dx" ? startVehicle : "any");
   const [time, setTime] = useState("");
-  const [video, setVideo] = useState("");
+  const [clip, setClip] = useState("");
+  const [clipNote, setClipNote] = useState<string | null>(null);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [read, setRead] = useState<Read | null>(null);
   const [readNote, setReadNote] = useState<string | null>(null);
@@ -72,6 +74,7 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
     setGame(g);
     setTrackId("");
     setCc(TT_GAMES[g].classes[0]);
+    if (g !== "mk8dx") setVehicle("any");
     setRead(null);
   }
 
@@ -85,7 +88,6 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; proofUrl?: string; read?: Read | null; error?: string };
       if (!res.ok || !j.ok) { setError(READ_ERRORS[j.error ?? ""] ?? "That picture didn't upload. Try again."); return; }
       setProofUrl(j.proofUrl ?? null);
-      setVideo("");
       if (!j.read) {
         setReadNote(READ_ERRORS[j.error ?? "failed"] ?? READ_ERRORS.failed);
         trackEvent(EVENTS.ttScreenshotRead, { game, result: j.error === "cap" ? "cap" : "unread" });
@@ -108,6 +110,7 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
 
   async function save() {
     setError(null);
+    if (!proofUrl) { setError(SAVE_ERRORS.screenshot_required); return; }
     if (!trackId) { setError(SAVE_ERRORS.bad_track); return; }
     if (!timeMs) { setError(SAVE_ERRORS.bad_time); return; }
     setBusy("save");
@@ -115,11 +118,11 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       const res = await fetch("/api/time-trials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game, track: trackId, cc, time: timeMs, proofUrl, video: proofUrl ? undefined : video || undefined, read: !!read?.timeMs && read.timeMs === timeMs }),
+        body: JSON.stringify({ game, track: trackId, cc, items, vehicle, time: timeMs, proofUrl, read: !!read?.timeMs && read.timeMs === timeMs }),
       });
       const j = (await res.json().catch(() => ({}))) as AddedTime & { ok?: boolean; error?: string };
       if (!res.ok || !j.ok) { setError(SAVE_ERRORS[j.error ?? ""] ?? "That time couldn't be saved. Try again."); return; }
-      trackEvent(EVENTS.ttAdded, { game, proof: proofUrl ? "screenshot" : video ? "video" : "none", read: read?.timeMs === timeMs ? "yes" : "no" });
+      trackEvent(EVENTS.ttAdded, { game, items, vehicle, top: j.needsVideo ? "yes" : "no", read: read?.timeMs === timeMs ? "yes" : "no" });
       setDone({ r: j, timeMs });
       toast.success(j.best ? "New best saved" : "Time saved");
       onAdded?.(j, { game, track: trackId, cc, timeMs });
@@ -128,18 +131,45 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
     }
   }
 
+  async function addClip() {
+    if (!done) return;
+    setBusy("save"); setClipNote(null);
+    try {
+      const res = await fetch(`/api/time-trials/${done.r.timeId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "video", url: clip }) });
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!j.ok) { setClipNote(j.error === "bad_video" ? "Use a YouTube, Twitch, Streamable or Medal link." : "That clip couldn't be added. Try again."); return; }
+      setDone({ ...done, r: { ...done.r, videoAdded: true } });
+      toast.success("Clip added. A reviewer will check it.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (done) {
     const t = ttTrack(game, trackId);
+    const askClip = done.r.needsVideo && !done.r.videoAdded;
     return (
       <div className="tt-add tt-add--done" role="status">
         <p className="tt-add__big">{formatTime(done.timeMs)}</p>
         <p>
-          {t?.name}{classes.length > 1 ? ` (${cc}cc)` : ""}.{" "}
-          {done.r.best && done.r.previousMs != null ? `New best, ${formatGap(done.r.previousMs - done.timeMs)} faster than before.` : done.r.best ? "Your first time on this track." : done.r.previousMs != null ? `Your best is still ${formatTime(done.r.previousMs)}.` : ""}
+          {t?.name} ({categoryText(game, cc, items, vehicle, classes.length > 1)}).{" "}
+          {done.r.best && done.r.previousMs != null ? `New best, ${formatGap(done.r.previousMs - done.timeMs)} faster than before.` : done.r.best ? "Your first time on this board." : done.r.previousMs != null ? `Your best is still ${formatTime(done.r.previousMs)}.` : ""}
         </p>
         <p className="tt-add__place">{ordinal(done.r.place)} of {done.r.total} on GameShuffle</p>
+        {askClip && (
+          <div className="tt-add__clip">
+            <p className="tt-add__clip-head">Top-ten times need a clip</p>
+            <p className="tt-note">A clip of the run&apos;s last 30 seconds. Your time shows as Unverified until a reviewer checks it. Add the link now, or later from the board.</p>
+            <FormField label="Video link" htmlFor={`${id}-clip`} helperText="YouTube, Twitch, Streamable or Medal">
+              <Input id={`${id}-clip`} value={clip} onChange={(e) => setClip(e.target.value)} iconBefore={IconLink} inputMode="url" autoComplete="off" fullWidth />
+            </FormField>
+            {clipNote && <Alert variant="error">{clipNote}</Alert>}
+          </div>
+        )}
+        {done.r.videoAdded && <p className="tt-note">Your clip is in the review queue. The time shows as Verified once it&apos;s checked.</p>}
         <div className="tt-add__actions">
-          <Button variant="secondary" onClick={() => { setDone(null); setTime(""); setVideo(""); setProofUrl(null); setRead(null); setReadNote(null); }}>Add another time</Button>
+          {askClip && <Button variant="primary" iconBefore={IconVideo} loading={busy === "save"} disabled={!clip.trim()} onClick={() => void addClip()}>Add clip</Button>}
+          <Button variant="secondary" onClick={() => { setDone(null); setTime(""); setClip(""); setProofUrl(null); setRead(null); setReadNote(null); }}>{askClip ? "Later" : "Add another time"}</Button>
         </div>
       </div>
     );
@@ -158,10 +188,11 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
 
       <div className="tt-add__shot">
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ""; }} />
-        <Button type="button" variant="secondary" iconBefore={IconCamera} loading={busy === "read"} onClick={() => fileRef.current?.click()}>
-          {proofUrl ? "Use a different screenshot" : "Read my screenshot"}
+        <span className="tt-add__label">Result screenshot</span>
+        <Button type="button" variant={proofUrl ? "secondary" : "primary"} iconBefore={IconCamera} loading={busy === "read"} onClick={() => fileRef.current?.click()}>
+          {proofUrl ? "Use a different screenshot" : "Add your screenshot"}
         </Button>
-        <p className="tt-add__hint">The result screen fills in the track and time for you to check, and counts as proof.</p>
+        <p className="tt-add__hint">Needed for every time: it&apos;s your proof. We read the track and time from it for you to check.</p>
         {proofUrl && (
           <p className="tt-add__proof"><IconCheck size={18} aria-hidden="true" /> Screenshot added as proof</p>
         )}
@@ -169,26 +200,35 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
         {readNote && <Alert variant="info">{readNote}</Alert>}
       </div>
 
-      <FormField label="Track" htmlFor={`${id}-track`}>
-        <Select id={`${id}-track`} value={trackId} onChange={(v) => setTrackId(String(v))} groups={groups} placeholder="Pick a track" searchable fullWidth />
-      </FormField>
+      <div className="tt-add__pair">
+        <FormField label="Track" htmlFor={`${id}-track`}>
+          <Select id={`${id}-track`} value={trackId} onChange={(v) => setTrackId(String(v))} groups={groups} placeholder="Pick a track" searchable fullWidth />
+        </FormField>
+        <FormField label="Time" htmlFor={`${id}-time`} helperText="Like 1:52.384" errorText={time && !timeMs ? "Type the time like 1:52.384" : undefined}>
+          <Input id={`${id}-time`} value={time} onChange={(e) => setTime(e.target.value)} inputMode="decimal" autoComplete="off" placeholder="1:52.384" className="tt-add__time" fullWidth />
+        </FormField>
+      </div>
 
-      {classes.length > 1 && (
-        <div className="tt-add__field" role="group" aria-labelledby={`${id}-cc`}>
-          <span id={`${id}-cc`} className="tt-add__label">Speed class</span>
+      <div className="tt-add__pair">
+        <div className="tt-add__field" role="group" aria-labelledby={`${id}-items`}>
+          <span id={`${id}-items`} className="tt-add__label">Items</span>
           <div className="tt-add__chips">
-            {classes.map((c) => <Chip key={c} label={`${c}cc`} clickable selected={c === cc} onClick={() => setCc(c)} />)}
+            {ITEMS.map((i) => <Chip key={i.id} label={i.label} clickable selected={i.id === items} onClick={() => setItems(i.id)} />)}
           </div>
         </div>
-      )}
+        {classes.length > 1 && (
+          <div className="tt-add__field" role="group" aria-labelledby={`${id}-cc`}>
+            <span id={`${id}-cc`} className="tt-add__label">Speed class</span>
+            <div className="tt-add__chips">
+              {classes.map((c) => <Chip key={c} label={`${c}cc`} clickable selected={c === cc} onClick={() => setCc(c)} />)}
+            </div>
+          </div>
+        )}
+      </div>
 
-      <FormField label="Time" htmlFor={`${id}-time`} helperText="Like 1:52.384" errorText={time && !timeMs ? "Type the time like 1:52.384" : undefined}>
-        <Input id={`${id}-time`} value={time} onChange={(e) => setTime(e.target.value)} inputMode="decimal" autoComplete="off" placeholder="1:52.384" className="tt-add__time" fullWidth />
-      </FormField>
-
-      {!proofUrl && (
-        <FormField label="Video proof (optional)" htmlFor={`${id}-video`} helperText="A YouTube, Twitch, Streamable or Medal link">
-          <Input id={`${id}-video`} value={video} onChange={(e) => setVideo(e.target.value)} iconBefore={IconLink} inputMode="url" autoComplete="off" fullWidth />
+      {game === "mk8dx" && (
+        <FormField label="Vehicle" htmlFor={`${id}-vehicle`} helperText="Pick one for the inside drift, Mr. Scooty and Teddy Buggy boards. Every time also counts on the open board.">
+          <Select id={`${id}-vehicle`} value={vehicle} onChange={(v) => setVehicle(String(v) as TtVehicle)} options={VEHICLES.map((v) => ({ value: v.id, label: v.long }))} fullWidth />
         </FormField>
       )}
 
@@ -196,7 +236,6 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       <div className="tt-add__actions">
         <Button type="submit" variant="primary" loading={busy === "save"} disabled={busy === "read"}>Add time</Button>
       </div>
-      {!discordLinked && <TtConnectDiscord returnTo={returnTo} compact />}
     </form>
   );
 }

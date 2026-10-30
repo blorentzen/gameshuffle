@@ -490,7 +490,7 @@ export default async function LoungePlayerPage({ params, searchParams }: Params)
 
   // Time trials (picks 2026-10-29): a confirmed player's bests in this lounge's game.
   const ttGame: TtGame = game === "mk8dx" ? "mk8dx" : "mkworld";
-  const ttBests = profile.confirmed ? (await playerBests(`u:${profile.confirmed.userId}`).catch(() => [])).filter((b) => b.game === ttGame) : [];
+  const ttBests = profile.confirmed ? (await playerBests(`u:${profile.confirmed.userId}`).catch(() => [])).filter((b) => b.game === ttGame && b.items === "shrooms" && b.vehicle === "any") : [];
   const times = ttBests.length ? (
     <section className="lounge-sec lounge-sec--flat" aria-label="Time trials">
       <p className="lounge-note">{p.name}&apos;s best {TT_GAMES[ttGame].label} time trial times, with their place on each board.</p>

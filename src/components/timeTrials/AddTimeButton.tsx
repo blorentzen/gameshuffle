@@ -8,9 +8,10 @@ import { Button, Modal } from "@empac/cascadeds";
 import { IconPlus } from "@tabler/icons-react";
 import { TimeTrialAdd } from "./TimeTrialAdd";
 import type { TtClass, TtGame } from "@/lib/timeTrials/tracks";
+import type { TtItems, TtVehicle } from "@/lib/timeTrials/categories";
 
-export function AddTimeButton({ game, track, cc, signedIn, discordLinked = true, returnTo, variant = "primary", label = "Add a time" }: {
-  game: TtGame; track?: string | null; cc?: TtClass | null; signedIn: boolean; discordLinked?: boolean; returnTo: string; variant?: "primary" | "secondary"; label?: string;
+export function AddTimeButton({ game, track, cc, items, vehicle, signedIn, returnTo, variant = "primary", label = "Add a time" }: {
+  game: TtGame; track?: string | null; cc?: TtClass | null; items?: TtItems; vehicle?: TtVehicle; signedIn: boolean; returnTo: string; variant?: "primary" | "secondary"; label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [added, setAdded] = useState(false);
@@ -27,7 +28,7 @@ export function AddTimeButton({ game, track, cc, signedIn, discordLinked = true,
         title="Add a time"
         size="medium"
       >
-        <TimeTrialAdd game={game} track={track} cc={cc} onAdded={() => setAdded(true)} discordLinked={discordLinked} returnTo={returnTo} />
+        <TimeTrialAdd game={game} track={track} cc={cc} items={items} vehicle={vehicle} onAdded={() => setAdded(true)} />
       </Modal>
     </>
   );

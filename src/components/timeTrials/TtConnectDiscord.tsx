@@ -7,7 +7,7 @@
  * board. Connecting goes through the usual identity link and comes back to this page.
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@empac/cascadeds";
 import { IconBrandDiscord } from "@tabler/icons-react";
 import { IconTile } from "@/components/ui/IconTile";
@@ -15,7 +15,7 @@ import { startOAuth } from "@/lib/auth/oauth";
 
 export const CONNECT_DISCORD_LINE = "Connect Discord so the times you add with /gs-tt land on this account, and you show up on your servers' boards.";
 
-export function TtConnectDiscord({ returnTo, compact = false }: { returnTo: string; compact?: boolean }) {
+export function TtConnectDiscord({ returnTo, compact = false, text = CONNECT_DISCORD_LINE }: { returnTo: string; compact?: boolean; text?: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const connect = async () => {
@@ -28,7 +28,7 @@ export function TtConnectDiscord({ returnTo, compact = false }: { returnTo: stri
   return (
     <div className={`tt-connect${compact ? " tt-connect--compact" : ""}`}>
       {!compact && <IconTile icon={IconBrandDiscord} tone="violet" />}
-      <p className="tt-connect__text">{CONNECT_DISCORD_LINE}</p>
+      <p className="tt-connect__text">{text}</p>
       <Button variant="secondary" size={compact ? "small" : "medium"} iconBefore={compact ? IconBrandDiscord : undefined} onClick={connect} loading={busy}>Connect Discord</Button>
       {error && <p className="tt-connect__error" role="alert">{error}</p>}
     </div>

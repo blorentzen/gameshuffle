@@ -1,11 +1,12 @@
 "use client";
 
-/** Find a player with times by name: their profile (public accounts) or their name when they play from Discord. */
+/** Find a player with times by name; each opens their time trials page (accounts and Discord players alike). */
 
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { Avatar, Search } from "@empac/cascadeds";
 import { IconBrandDiscord } from "@tabler/icons-react";
+import { playerPagePath } from "@/lib/timeTrials/playerPath";
 
 type Found = { player: string; name: string; avatar: string | null; profile: string | null; discord: boolean };
 
@@ -49,7 +50,7 @@ export function TtPlayerSearch() {
             {shown.map((p) => (
               <li key={p.player}>
                 <Avatar size="small" src={p.avatar ?? undefined} initials={p.name.slice(0, 1).toUpperCase()} alt="" />
-                {p.profile ? <Link href={`${p.profile}#time-trials`}>{p.name}</Link> : <span>{p.name}</span>}
+                <Link href={playerPagePath(p.player, p.profile)}>{p.name}</Link>
                 {p.discord && <span className="tt-search__note"><IconBrandDiscord size={16} aria-hidden="true" /> Plays from Discord</span>}
               </li>
             ))}

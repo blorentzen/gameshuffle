@@ -22,6 +22,7 @@ import { embedText, readQuaxly, yourRows, nameKey, type QuaxlyList } from "@/lib
 import { toCheckRows, checkSummary } from "@/lib/timeTrials/importRows";
 import { bestsMap, dropDraft, loadQuaxlyDraft, saveImported, saveQuaxlyDraft } from "@/lib/timeTrials/importFlow";
 import { gamePath, TT_GAMES, type TtGame } from "@/lib/timeTrials/tracks";
+import type { TtItems } from "@/lib/timeTrials/categories";
 import { LINK_LINE, LINK_URL } from "./timeTrials";
 
 /** The message command's name as Discord shows it under Apps. */
@@ -79,9 +80,12 @@ function ownList(msg: Msg, userId: string, names: string[], text: string): boole
   return keys.some((k) => nameKey(header).includes(k)) || keys.some((k) => nameKey(text.split("\n")[0] ?? "").includes(k));
 }
 
+function listItems(list: QuaxlyList): TtItems {
+  return list.items === "none" ? "none" : "shrooms";
+}
 function listLabel(list: QuaxlyList): string {
   const g = TT_GAMES[list.game];
-  return `${g.label}${g.classes.length > 1 ? `, ${list.cc}cc` : ""} with mushrooms`;
+  return `${g.label}${g.classes.length > 1 ? `, ${list.cc}cc` : ""}, ${listItems(list) === "none" ? "no mushrooms" : "with mushrooms"}`;
 }
 
 export async function handleTtSaveCommand(interaction: Record<string, unknown>): Promise<Response> {
@@ -95,7 +99,6 @@ export async function handleTtSaveCommand(interaction: Record<string, unknown>):
   if (!list || !list.rows.some((r) => r.trackId && r.timeMs)) {
     return privateReply("I couldn't find time trial times in that message. Use Save to GameShuffle on Quaxly's reply to `/dx display_time` (or `/display_time` for Mario Kart World), with yourself as the player.");
   }
-  if (list.items === "none") return privateReply("That's a no-items list. GameShuffle's boards are with mushrooms, so run Quaxly's command with Shrooms and save that one.");
   if (!(await rateLimit(`tt-save:${user.id}`, { max: 10, windowMs: 10 * 60_000 })).ok) return privateReply("That's a lot of lists. Wait a few minutes and try again.");
   if (!(await ttReady())) return privateReply("Time trials aren't open yet. Try again soon.");
 
@@ -119,9 +122,9 @@ export async function handleTtSaveButton(interaction: Record<string, unknown>, c
   after(async () => {
     const actor = await discordActor(user);
     const { list, mine } = loaded.draft;
-    const bests = await bestsMap(actor.player, list.game);
+    const bests = await bestsMap(actor.player, list.game, listItems(list));
     const rows = toCheckRows(list.rows, list.game, list.cc, new Set(mine), bests).filter((r) => r.keep && r.trackId && r.timeMs);
-    const tally = await saveImported(actor, list.game, rows.map((r) => ({ track: r.trackId!, cc: r.cc, time: r.timeMs! })), loaded.guildId);
+    const tally = await saveImported(actor, list.game, rows.map((r) => ({ track: r.trackId!, cc: r.cc, time: r.timeMs! })), loaded.guildId, listItems(list));
     await dropDraft(draftId);
     const lines = [tally.saved ? `Saved **${tally.saved} ${tally.saved === 1 ? "time" : "times"}** on ${listLabel(list)}.` : "Nothing new to save: those times are already on GameShuffle."];
     if (tally.already) lines.push(`${tally.already} ${tally.already === 1 ? "was" : "were"} already there.`);
@@ -149,7 +152,7 @@ export async function saveReplyFor(interaction: Record<string, unknown>, user: {
       : `This list is someone else's. Run \`${list.game === "mk8dx" ? "/dx display_time" : "/display_time"}\` with yourself as the player, then save that one.`;
     return { content, components: [] };
   }
-  const bests = await bestsMap(actor.player, list.game);
+  const bests = await bestsMap(actor.player, list.game, listItems(list));
   const rows = toCheckRows(list.rows, list.game, list.cc, mineIdx, bests);
   const sum = checkSummary(rows.filter((_, i) => mineIdx.has(i)));
   const draftId = await saveQuaxlyDraft(actor, user.id, guildId, { kind: "quaxly", list, mine: [...mineIdx], names });

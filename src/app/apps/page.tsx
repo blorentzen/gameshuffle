@@ -228,13 +228,12 @@ export default function AppsPage() {
               isNew
             />
             <AppCard
-              title="MK8DX Competitive Hub"
-              description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
+              title="Competitive Mario Kart"
+              description="Lounge stats for any player, time trial boards for every track, your lounge MMR on stream, tournaments and live scoring, for Mario Kart World and 8 Deluxe."
               imageSrc="/images/bg/MK8DX_Background_Music.jpg"
               imageAlt="Mario Kart 8 Deluxe competitive"
-              href="/competitive/mario-kart-8-deluxe"
+              href="/competitive-mario-kart"
               ctaLabel="Open the hub"
-              learnMoreHref="/competitive-mario-kart"
             />
             <AppCard
               title="Browse & Create Tournaments"

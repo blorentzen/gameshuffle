@@ -9,20 +9,21 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { addTime, playerBests } from "./store";
 import { isClassFor, ttTrack, type TtClass, type TtGame } from "./tracks";
+import type { TtItems } from "./categories";
 import type { TtActor } from "./players";
 import type { QuaxlyList } from "./quaxly";
 
-/** Your saved bests for one game, keyed "<track id>|<cc>". */
-export async function bestsMap(player: TtActor["player"], game: TtGame): Promise<Map<string, number>> {
+/** Your saved bests on one game's open boards for an items setting, keyed "<track id>|<cc>". */
+export async function bestsMap(player: TtActor["player"], game: TtGame, items: TtItems = "shrooms"): Promise<Map<string, number>> {
   const bests = await playerBests(player);
-  return new Map(bests.filter((b) => b.game === game).map((b) => [`${b.track}|${b.cc}`, b.timeMs]));
+  return new Map(bests.filter((b) => b.game === game && b.items === items && b.vehicle === "any").map((b) => [`${b.track}|${b.cc}`, b.timeMs]));
 }
 
 export interface SaveTally { saved: number; already: number; refused: number; skipped: number }
 
 /** Saves rows that beat the saved best (source "import", no proof); the record floor is checked in addTime. */
-export async function saveImported(actor: TtActor, game: TtGame, rows: { track: string; cc: number; time: number }[], guildId: string | null = null): Promise<SaveTally> {
-  const bests = await bestsMap(actor.player, game);
+export async function saveImported(actor: TtActor, game: TtGame, rows: { track: string; cc: number; time: number }[], guildId: string | null = null, items: TtItems = "shrooms"): Promise<SaveTally> {
+  const bests = await bestsMap(actor.player, game, items);
   const tally: SaveTally = { saved: 0, already: 0, refused: 0, skipped: 0 };
   const seen = new Set<string>();
   for (const r of rows.slice(0, 300)) {
@@ -31,7 +32,7 @@ export async function saveImported(actor: TtActor, game: TtGame, rows: { track: 
     seen.add(k);
     const saved = bests.get(k);
     if (saved != null && saved <= r.time) { tally.already++; continue; }
-    const res = await addTime({ player: actor.player, userId: actor.userId, identityId: actor.identityId, game, track: r.track, cc: r.cc as TtClass, timeMs: r.time, proof: "none", proofUrl: null, readByAi: false, source: "import", guildId });
+    const res = await addTime({ player: actor.player, userId: actor.userId, identityId: actor.identityId, game, track: r.track, cc: r.cc as TtClass, items, vehicle: "any", timeMs: r.time, proof: "none", proofUrl: null, readByAi: false, source: "import", guildId });
     if (res.ok) tally.saved++;
     else if (res.error === "faster_than_record") tally.refused++;
     else tally.skipped++;
