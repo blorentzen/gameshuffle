@@ -104,6 +104,10 @@ export function plainDiscord(text: string): string {
 }
 
 const TIME_TEXT = /(\d{1,2}[:'.]\d{2}[."':,]\d{1,3})/;
+/** A list's closing line, never a holder. */
+const SUMMARY = /^(total|average|avg|sum|overall)\b/i;
+/** A place on a line after a time: "4/9", "# 4 / 9", "4th", "#4". */
+const PLACE_TEXT = /^#?\s*\d{1,4}(\s*\/\s*\d{1,5}|st|nd|rd|th)?$/i;
 const ROW = /^\s*([^:]{1,40}?)\s*[:\-–]\s*(\d{1,2}[:'.]\d{2}[."':,]\d{1,3})\s*(.*)$/;
 const HEADING = /^(nitro|retro|dlc|bcp|booster|wave\s*\d|base|bonus|new|original|super mario kart|snes)\b.*$|\btracks?\s*$|\bcourses?\s*$|\bcup\s*$/i;
 
@@ -135,14 +139,16 @@ function parseAs(lines: string[], game: TtGame): QuaxlyList {
   let last: QuaxlyRow | null = null;
   for (const raw of lines) {
     const line = raw.trim();
-    if (!line) continue;
+    // A blank line or a summary ("total time: 2h 54m…, average ranking: 3.4") ends a row: what follows isn't its holder.
+    if (!line || SUMMARY.test(line)) { last = null; continue; }
     const m = line.match(ROW);
     if (m) {
       const track = trackFor(m[1], game);
       const row: QuaxlyRow = { line: line.slice(0, 200), trackId: track?.id ?? null, trackName: track?.name ?? null, trackText: m[1].trim(), timeMs: parseTime(m[2]), holder: null };
-      // A name on the same line after the time ("MKS: 1:36.990 qwacks") is the holder.
+      // A name on the same line after the time ("MKS: 1:36.990 qwacks") is the holder. A place out of
+      // a total ("1:38.991 - 4/9", Quaxly's own-player view) or a bare place ("#4", "4th") isn't a name.
       const after = m[3].replace(/^[\s|·,–-]+/, "").replace(/\(.*?\)|\[.*?\]/g, "").trim();
-      if (after && !TIME_TEXT.test(after)) row.holder = after.slice(0, 60);
+      if (after && !TIME_TEXT.test(after) && !PLACE_TEXT.test(after)) row.holder = after.slice(0, 60);
       rows.push(row);
       last = row;
       continue;

@@ -197,6 +197,22 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   eq(yourRows(own, [], true).mine.length, 3, "own list: all yours when it's yours");
   eq(yourRows(own, [], false).mine.length, 0, "own list: none when it's someone else's");
 
+  // Quaxly's own-player view (Münch's list, 2026-10-30): the title names the player and each time ends
+  // with its place on the server, "1:38.991 - 4/9". The place isn't a holder, so the list is one player's.
+  const placed = embedText({
+    title: "Mūnch 150cc Shrooms",
+    description: "__Nitro tracks__\n**MKS**: `1:38.991 - 4/9`\n**WP**: `1:40.640 - 1/13`\n**SSC**: `1:49.940 - 2/14`\n**ED**: `1:58.636 - 3/13`\n__Booster Course Pass__\n**bDKM**: `2:16.723 - 10/16`\n**bRRW**: `2:34.547 - 3/13`\n\ntotal time: 2h 54m 08s 304ms, average ranking: 3.4",
+  });
+  const pl = readQuaxly(placed)!;
+  eq([pl.game, pl.cc, pl.items], ["mk8dx", 150, "shrooms"], "placed: title read with the player's name in it");
+  eq(pl.hasHolders, false, "placed: a place isn't a holder");
+  eq(pl.rows.map((r) => r.holder), [null, null, null, null, null, null], "placed: no holders");
+  eq(pl.rows.map((r) => r.timeMs), [98991, 100640, 109940, 118636, 136723, 154547], "placed: every time read");
+  eq(pl.rows.every((r) => r.trackId), true, "placed: every track known (bRRW too)");
+  eq(yourRows(pl, ["Mūnch"], true).mine.length, 6, "placed: all yours when it's your list");
+  eq(readQuaxly("MKS: 1:36.990 - #4\nWP: 1:40.640 - 2nd", "mk8dx")!.hasHolders, false, "placed: #4 and 2nd are places too");
+  eq(readQuaxly("MKS: 1:36.990 - qwacks", "mk8dx")!.rows[0].holder, "qwacks", "placed: a name after a dash is still a holder");
+
   // Mario Kart World: full names.
   const world = readQuaxly("Shrooms\nDK Spaceport: 1:52.384\nCrown City: 2:01.006\nGreat ? Block Ruins: 2:10.500")!;
   eq(world.game, "mkworld", "World list: game from the names");
