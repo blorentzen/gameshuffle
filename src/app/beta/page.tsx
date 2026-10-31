@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   description:
     "Join the GameShuffle Streamer Beta. Turn your stream into an interactive game night with chat-driven randomizers, live scoring, tournaments, overlay tools, and a token economy. Runs at least 30 days with Pro included.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "GameShuffle Streamer Beta",
     url: "https://www.gameshuffle.co/beta",
     images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gameshuffle-beta-program-og.jpg"],
@@ -214,6 +215,7 @@ export default function BetaPage() {
           <div className="beta-features-carousel" style={{ marginTop: "var(--spacing-64)" }}>
             <h3 className="beta-section__subtitle">Plus everything else</h3>
             <AutoplayCarousel
+            label="Plus everything else"
               slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
               gap={20}
               showArrows

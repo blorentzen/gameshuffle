@@ -14,7 +14,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Accordion, Button, CarouselItem, Container, type IconName } from "@empac/cascadeds";
+import { Button, CarouselItem, Container, type IconName } from "@empac/cascadeds";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -22,16 +22,20 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
+import { FaqList } from "@/components/marketing/FaqList";
+import { PlansPanel } from "@/components/marketing/PlansPanel";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import {
   DrawShot, PoolShot, LadderShot, SeasonShot, RevealShot,
 } from "@/components/marketing/MkTournamentShots";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
-  title: "Mario Kart Tournaments: brackets, seasons and a random draw",
+  title: "Mario Kart Tournaments: brackets and random draws",
   description:
-    "Run Mario Kart 8 Deluxe and Mario Kart World tournaments where the draw picks the karts, the tracks and the items. Set what goes in the pool, reveal it live to the lobby and your chat, and run brackets, points, or the Heat to Mains ladder. Free to start with an account.",
+    "Run Mario Kart 8 Deluxe and World tournaments where the draw picks the karts, tracks and items: brackets, points or Heat to Mains. Free to start.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Mario Kart Tournaments | GameShuffle",
     description:
       "Brackets and seasons where nobody knows what they are racing until the round opens. MK8DX and Mario Kart World, free to start.",
@@ -77,7 +81,7 @@ const FAQ: { q: string; a: string }[] = [
           { q: "What is the Heat to Mains format?", a: "A sprint-car ladder. The field splits into heats, winning your heat locks you into the A Main, and the top finishers of each lower main transfer up. Nobody is eliminated after one bad race." },
           { q: "Which Mario Kart games are supported?", a: "Mario Kart 8 Deluxe and Mario Kart World, each with its own tracks, vehicles and build rules. You can also name any other game and write its own rules, though the draw is deepest on these two." },
           { q: "Do players need an account?", a: "No. Organizers can add guests by name, so people can race without signing up. Championship seasons are the exception and are accounts-only, so points stay tied to real players all season." },
-          { q: "Is it free?", a: "Yes, creating and running is free with an account, and joining is open to everyone. Larger fields fall under GameShuffle Circuit, which is free while it is in preview." },
+          { q: "Is it free?", a: "Yes, creating and running is free with an account, and joining is open to everyone. Every format is free for one full lobby of your game; bigger fields are part of GameShuffle Circuit, and the Circuit page says what that costs today." },
 ];
 
 const REST: { title: string; body: string; icon: IconName }[] = [
@@ -107,7 +111,7 @@ export default function MarioKartTournamentsPage() {
         <MarketingHeroField category="compete" />
         <Container>
           <div className="pro-hero__content">
-            <p className="marketing-eyebrow">Mario Kart · tournaments</p>
+            <p className="marketing-eyebrow">Mario Kart</p>
             <h1 className="pro-hero__title">Nobody knows what they&rsquo;re racing until it starts.</h1>
             <p className="pro-hero__sub">
               Brackets and seasons where the draw picks the karts, the tracks and the items. You
@@ -139,7 +143,8 @@ export default function MarioKartTournamentsPage() {
             who has mained the same kart for six years.
           </p>
 
-          <div className="pro-spotlights">
+          {/* Phones swipe through them; wider screens keep them alternating (Britton's picks, 2026-10-19). */}
+          <ResponsiveCarousel className="pro-spotlights" label="Where the fun comes from">
             <Reveal>
               <ProSpotlight
                 eyebrow="The draw"
@@ -183,7 +188,7 @@ export default function MarioKartTournamentsPage() {
                 cta={{ label: "See what GameShuffle Pro adds", href: "/gs-pro" }}
               />
             </Reveal>
-          </div>
+          </ResponsiveCarousel>
         </section>
       </Container>
 
@@ -217,6 +222,7 @@ export default function MarioKartTournamentsPage() {
             Everything around the racing, handled.
           </p>
           <AutoplayCarousel
+            label="The rest of the night"
             slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
             gap={20}
             showArrows
@@ -232,18 +238,26 @@ export default function MarioKartTournamentsPage() {
           </AutoplayCarousel>
         </section>
 
+        {/* Free, GS Circuit and GS Pro before the FAQ (Britton's pick, 2026-10-19): Circuit used to come up only in the last answer. */}
+        <PlansPanel
+          id="plans"
+          title="Free to run. Bigger when you need it."
+          intro="Every format is free for one full lobby. Plans only add size and stream tools."
+          rows={["account", "circuit", "pro"]}
+          from="mario-kart-tournaments"
+          cta={{ account: { label: "Start a tournament", href: "/tournament/create" } }}
+          copy={{
+            account: { name: "One full lobby, every format", body: "Brackets, Swiss, points or Heat to Mains, live scoring and a public page, free with an account." },
+            circuit: { name: "Fields of 64 or 256", body: "Championship seasons, co-organizers, your branding and live randomized rounds." },
+            pro: { name: "Put the draw on your stream", body: "The draw on your OBS overlay, chat voting on picks and bans, standings live for viewers." },
+          }}
+        />
+
         <section className="beta-section rand-landing__faq">
           <h2 className="pricing-page__section-title mkt-section-title" style={{ marginBottom: "var(--spacing-24)" }}>
             Frequently asked questions
           </h2>
-          {/* Open by default: CDS Accordion only mounts an item once it's opened,
-              so collapsed answers would be missing from the HTML (and from search). */}
-          <Accordion
-            variant="bordered"
-            allowMultiple
-            defaultOpenIds={FAQ.map((_, i) => String(i))}
-            items={FAQ.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
-          />
+          <FaqList items={FAQ} />
         </section>
       </Container>
 

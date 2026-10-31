@@ -13,6 +13,7 @@
 import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import { TCG_SHOP_URL } from "@/data/shop";
+import { JoinByCode } from "@/components/companion/JoinByCode";
 
 interface Props {
   onEnterAsGuest: () => void;
@@ -20,7 +21,7 @@ interface Props {
 
 export function CompanionEntry({ onEnterAsGuest }: Props) {
   return (
-    <div className="companion-entry">
+    <main className="companion-entry">
       <div className="companion-entry__card">
         <h1 className="companion-entry__title">TCG Companion</h1>
         <p className="companion-entry__lede">
@@ -46,6 +47,8 @@ export function CompanionEntry({ onEnterAsGuest }: Props) {
           Guest mode lets you play right now, though your game won&apos;t save
           when you leave.
         </p>
+        {/* Play together: an opponent's code joins their game, no account needed. */}
+        <JoinByCode />
 
         {/* Signing in unlocks My Cards — a conversion nudge toward a free
             account (the destination redirects to login for guests). */}
@@ -60,7 +63,13 @@ export function CompanionEntry({ onEnterAsGuest }: Props) {
             Shop our Pokémon cards ↗
           </a>
         </p>
+
+        <p className="companion-entry__cards">
+          Need a deck? Read our{" "}
+          <Link href="/pokemon-tcg/decks">Pokémon deck guides</Link>
+          {" "}or visit the <Link href="/pokemon-tcg">Pokémon TCG hub</Link>.
+        </p>
       </div>
-    </div>
+    </main>
   );
 }

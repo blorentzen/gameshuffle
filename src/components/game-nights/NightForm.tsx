@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { TagCombobox } from "@/components/ui/TagCombobox";
 import { useRouter } from "next/navigation";
-import { Button, Chip, Input, Select, Textarea } from "@empac/cascadeds";
+import { Button, Chip, Input, Textarea } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS } from "@/data/board-games";
 import { CADENCES } from "@/lib/game-nights/seriesSchedule";
 import { GamesBroughtInput } from "./GamesBroughtInput";
@@ -261,6 +262,21 @@ export function NightForm({
     }
   }
 
+  // Archive: off every list, still loads by link. Undo any time.
+  const [archivedAt, setArchivedAt] = useState<string | null>(initial?.archived_at ?? null);
+  const [archiving, setArchiving] = useState(false);
+  async function toggleArchive() {
+    if (!nightId) return;
+    const archive = !archivedAt;
+    if (archive && !(await confirm({ title: "Archive this night?", body: "It leaves browse and every list. The page still works for anyone with the link, and you can unarchive it any time.", confirmLabel: "Archive" }))) return;
+    setArchiving(true);
+    const res = await fetch(`/api/game-nights/${nightId}/archive`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ archived: archive }) });
+    const j = await res.json().catch(() => ({}));
+    setArchiving(false);
+    if (j.ok) { setArchivedAt(j.archivedAt ?? null); toast.success(archive ? "It's off every list now." : "It's back in the lists.", { title: archive ? "Archived" : "Unarchived" }); }
+    else toast.error(j.error || "Please try again.", { title: "Couldn't save" });
+  }
+
   async function remove() {
     if (!nightId || !(await confirm({ title: "Delete this night?", body: "This can’t be undone.", confirmLabel: "Delete night" }))) return;
     setDeleting(true);
@@ -481,7 +497,10 @@ export function NightForm({
       <div className="bgn-actions">
         {editing ? (
           <>
-            <span style={{ marginRight: "auto" }}>
+            <span style={{ marginRight: "auto", display: "inline-flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
+              <Button variant="secondary" onClick={toggleArchive} disabled={archiving || deleting}>
+                {archiving ? "Saving…" : archivedAt ? "Unarchive" : "Archive"}
+              </Button>
               <Button variant="ghost" onClick={remove} disabled={deleting || coverBusy}>
                 {deleting ? "Deleting…" : "Delete night"}
               </Button>

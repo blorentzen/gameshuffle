@@ -1,24 +1,26 @@
 "use client";
 
 /**
- * PlatformGrowthTab — the lifecycle / growth admin view (staff/admin). Shows
- * signups, mutually-exclusive activity segments (by last_seen_at), churn (from
- * the deletion log, with reasons), and marketing opt-ins. Each activity segment
- * exports its consent-respecting (opted-in only) email list for remarketing.
+ * Platform admin ▸ Overview ▸ Growth: signups, who's still around (groups by
+ * last visit, each exportable as a list of people who opted in to marketing
+ * email), and why people deleted their accounts. Data from
+ * /api/admin/lifecycle; the export only ever includes opted-in addresses.
  */
 
 import { useEffect, useState } from "react";
-import { Button } from "@empac/cascadeds";
+import { Alert, Badge, Button, EmptyState, StatCard, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
+import { IconDownload, IconMail, IconUserMinus, IconUserPlus, IconUsers } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { AdminHeader, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
 
 type ActivitySegment = "active" | "dormant" | "at_risk" | "cold" | "never_seen";
 
-const SEGMENTS: { key: ActivitySegment; label: string; hint: string }[] = [
-  { key: "active", label: "Active", hint: "Seen in the last 7 days" },
-  { key: "dormant", label: "Dormant", hint: "7-30 days" },
-  { key: "at_risk", label: "At risk", hint: "30-90 days" },
-  { key: "cold", label: "Cold", hint: "90+ days" },
-  { key: "never_seen", label: "Never active", hint: "No activity recorded" },
+const SEGMENTS: { key: ActivitySegment; label: string; hint: string; tone: "success" | "info" | "warning" | "default" }[] = [
+  { key: "active", label: "Active", hint: "In the last 7 days", tone: "success" },
+  { key: "dormant", label: "Drifting", hint: "7 to 30 days ago", tone: "info" },
+  { key: "at_risk", label: "At risk", hint: "30 to 90 days ago", tone: "warning" },
+  { key: "cold", label: "Gone quiet", hint: "Over 90 days ago", tone: "default" },
+  { key: "never_seen", label: "Never came back", hint: "No visit after signing up", tone: "default" },
 ];
 
 interface Summary {
@@ -33,129 +35,100 @@ interface Summary {
   generatedAt: string;
 }
 
-function Metric({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
-  return (
-    <div
-      style={{
-        flex: "1 1 9rem",
-        minWidth: "9rem",
-        padding: "var(--spacing-16)",
-        borderRadius: "var(--radius-12, 12px)",
-        border: "1px solid var(--border-default)",
-        background: "var(--surface-default)",
-      }}
-    >
-      <div style={{ fontSize: "var(--font-size-28)", fontWeight: "var(--font-weight-bold)", lineHeight: 1.1 }}>
-        {value}
-      </div>
-      <div style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginTop: 4 }}>{label}</div>
-      {sub ? <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{sub}</div> : null}
-    </div>
-  );
-}
+const fmt = (n: number) => n.toLocaleString("en-US");
+const share = (n: number, of: number) => (of > 0 ? `${Math.round((n / of) * 100)}%` : "-");
+const ICON = 20;
 
 export function PlatformGrowthTab() {
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    (async () => {
-      try {
-        const res = await fetch("/api/admin/lifecycle", { cache: "no-store" });
-        if (!alive) return;
-        if (!res.ok) {
-          setError(true);
-          return;
-        }
-        const body = await res.json();
-        setSummary(body.summary as Summary);
-      } catch {
-        if (alive) setError(true);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
+    fetch("/api/admin/lifecycle", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((body) => { if (alive) setSummary(body.summary as Summary); })
+      .catch(() => { if (alive) setError(true); });
+    return () => { alive = false; };
   }, []);
 
   return (
-    <div className="account-card">
-      <h2 className="account-tab__heading">Growth &amp; Lifecycle</h2>
-      <p className="account-tab__intro" style={{ marginTop: 0 }}>
-        Signups, activity, and churn across the user base. Export any segment&rsquo;s marketing
-        opt-ins for a remarketing campaign (only opted-in emails are included).
-      </p>
+    <div className="account-card admin-screen">
+      <AdminHeader title="Growth" intro="Signups, who's still around, and why people leave. Each group can be downloaded as a mailing list of the people in it who opted in to marketing email." />
 
-      {loading ? (
+      {error ? (
+        <Alert variant="error">Couldn&apos;t load the growth numbers. Reload the page to try again.</Alert>
+      ) : !summary ? (
         <LoadingLines label="Loading" />
-      ) : error || !summary ? (
-        <p style={{ color: "var(--text-secondary)" }}>Couldn&rsquo;t load lifecycle data.</p>
       ) : (
         <>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-12)", marginBottom: "var(--spacing-24)" }}>
-            <Metric label="Total users" value={summary.totalUsers} />
-            <Metric label="Signups" value={summary.signups7d} sub={`${summary.signups30d} in 30d`} />
-            <Metric label="Marketing opt-ins" value={summary.marketingOptIns} />
-            <Metric label="Churn (30d)" value={summary.churn30d} sub={`${summary.churnTotal} all-time`} />
-          </div>
+          <AdminStats label="Growth">
+            <StatCard label="Accounts" value={fmt(summary.totalUsers)} icon={<IconUsers size={ICON} />} variant="accent" />
+            <StatCard label="Signups this week" value={fmt(summary.signups7d)} source={`${fmt(summary.signups30d)} in 30 days`} icon={<IconUserPlus size={ICON} />} />
+            <StatCard label="Opted in to marketing" value={fmt(summary.marketingOptIns)} source={`${share(summary.marketingOptIns, summary.totalUsers)} of accounts`} icon={<IconMail size={ICON} />} />
+            <StatCard label="Deleted, last 30 days" value={fmt(summary.churn30d)} source={`${fmt(summary.churnTotal)} all time`} icon={<IconUserMinus size={ICON} />} />
+          </AdminStats>
 
-          <h3 className="stream-tools__heading">Activity segments</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)", marginBottom: "var(--spacing-24)" }}>
-            {SEGMENTS.map((s) => (
-              <div
-                key={s.key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--spacing-12)",
-                  padding: "var(--spacing-12) var(--spacing-16)",
-                  borderRadius: 8,
-                  border: "1px solid var(--border-default)",
-                  background: "var(--surface-default)",
-                }}
-              >
-                <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-                  <strong>{s.label}</strong>{" "}
-                  <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>· {s.hint}</span>
-                </div>
-                <span style={{ fontWeight: "var(--font-weight-bold)", minWidth: "3rem", textAlign: "right" }}>
-                  {summary.segments[s.key] ?? 0}
-                </span>
-                <a
-                  href={`/api/admin/lifecycle/export?segment=${s.key}`}
-                  className="hub-detail__header-link-action"
-                  style={{ textDecoration: "none" }}
-                >
-                  <Button variant="secondary" size="small">
-                    Export opted-in
-                  </Button>
-                </a>
-              </div>
-            ))}
-          </div>
+          <AdminSection title="Who's still around" intro="Every account in one group, by when it last visited.">
+            <AdminTable label="Accounts by last visit">
+              <Table variant="striped">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Group</TableHead>
+                    <TableHead>Last visit</TableHead>
+                    <TableHead align="right">Accounts</TableHead>
+                    <TableHead align="right">Share</TableHead>
+                    <TableHead align="right">Mailing list</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {SEGMENTS.map((s) => {
+                    const count = summary.segments[s.key] ?? 0;
+                    return (
+                      <TableRow key={s.key}>
+                        <TableCell><Badge variant={s.tone} size="small">{s.label}</Badge></TableCell>
+                        <TableCell>{s.hint}</TableCell>
+                        <TableCell align="right" className="admin-num">{fmt(count)}</TableCell>
+                        <TableCell align="right" className="admin-num">{share(count, summary.totalUsers)}</TableCell>
+                        <TableCell align="right">
+                          <Button
+                            variant="secondary"
+                            size="small"
+                            iconBefore={IconDownload}
+                            disabled={count === 0}
+                            aria-label={`Download the ${s.label} mailing list`}
+                            onClick={() => { window.location.href = `/api/admin/lifecycle/export?segment=${s.key}`; }}
+                          >
+                            Download
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </AdminTable>
+          </AdminSection>
 
-          <h3 className="stream-tools__heading">Why people leave</h3>
-          {summary.churnReasons.length === 0 ? (
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-              No deletions logged yet.
-            </p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              {summary.churnReasons.map((r) => (
-                <div
-                  key={r.reason}
-                  style={{ display: "flex", justifyContent: "space-between", padding: "4px 8px", fontSize: "var(--font-size-14)" }}
-                >
-                  <span>{r.label}</span>
-                  <span style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)" }}>{r.count}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <AdminSection title="Why people leave" intro="The reason picked when someone deletes their account.">
+            {summary.churnReasons.length === 0 ? (
+              <EmptyState variant="bordered" icon={<IconUserMinus size={28} />} title="No one has deleted an account yet" description="Reasons show here once someone does." />
+            ) : (
+              <AdminTable label="Reasons for deleting an account">
+                <Table variant="striped">
+                  <TableHeader><TableRow><TableHead>Reason</TableHead><TableHead align="right">Accounts</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {summary.churnReasons.map((r) => (
+                      <TableRow key={r.reason}>
+                        <TableCell>{r.label}</TableCell>
+                        <TableCell align="right" className="admin-num">{fmt(r.count)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </AdminTable>
+            )}
+          </AdminSection>
         </>
       )}
     </div>

@@ -6,7 +6,9 @@
 
 import { NextResponse } from "next/server";
 import { sessionFrom } from "@/lib/activity/session";
+import { after } from "next/server";
 import { ChatBrainNotReady, submitAnswer } from "@/lib/chatbrain/store";
+import { noteAnswer, personFor, promptTopic } from "@/lib/discord/promptPosts";
 
 export const runtime = "nodejs";
 
@@ -27,6 +29,11 @@ export async function POST(req: Request) {
   if (typeof body?.promptId !== "string" || typeof body.answer !== "string") return NextResponse.json({ ok: false, error: "bad_body" }, { status: 400 });
   try {
     const r = await submitAnswer({ promptId: body.promptId, raw: body.answer, who: { identityId: s.iid }, source: "activity" });
+    // Played from a server channel: show it on that server's posts of this question.
+    if (s.gid && (r.ok || r.error === "already_answered")) {
+      const promptId = body.promptId;
+      after(async () => noteAnswer({ guildId: s.gid, topic: await promptTopic(promptId), person: await personFor({ identityId: s.iid }), name: s.name }));
+    }
     return r.ok
       ? NextResponse.json({ ok: true, same: r.same })
       : NextResponse.json({ ok: false, error: r.error, message: MESSAGES[r.error] }, { status: r.error === "failed" ? 500 : 409 });

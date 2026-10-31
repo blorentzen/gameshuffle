@@ -13,7 +13,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { createClient } from "@/lib/supabase/client";
 import type { SessionEventRow } from "@/lib/sessions/queries";
 import { SessionActivityFeed } from "./SessionActivityFeed";
@@ -105,9 +105,9 @@ export function RealtimeActivityFeed({
       <SessionActivityFeed events={visibleEvents} />
       {showViewAll && (
         <div className="hub-detail__activity-footer">
-          <Link href={viewAllHref!} className="hub-detail__activity-view-all">
-            View all activity →
-          </Link>
+          <ArrowLink href={viewAllHref!} className="hub-detail__activity-view-all">
+            View all activity
+          </ArrowLink>
         </div>
       )}
     </div>

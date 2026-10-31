@@ -11,9 +11,11 @@
  * Mega ex allowance, evolution-clears-conditions toggle).
  */
 
-import { Modal } from "@empac/cascadeds";
+import { Card, Modal, Select, Switch } from "@empac/cascadeds";
 import { useState } from "react";
 import { useSession } from "@/lib/companion/SessionContext";
+import { JoinByCode } from "./JoinByCode";
+import { DeckChoice } from "./DeckChoice";
 import {
   GAME_FORMATS,
   formatByKey,
@@ -25,10 +27,12 @@ import { TablerIcon } from "./TablerIcon";
 interface Props {
   isOpen: boolean;
   onApplied: () => void;
+  /** Closing without starting (back to the resume list). Without it, closing starts the game with the picked format, since there's nothing behind this window. */
+  onClose?: () => void;
 }
 
-export function GameSettingsModal({ isOpen, onApplied }: Props) {
-  const { dispatch } = useSession();
+export function GameSettingsModal({ isOpen, onApplied, onClose }: Props) {
+  const { dispatch, live } = useSession();
   const [format, setFormat] = useState<GameFormatKey>("standard");
   const [custom, setCustom] = useState({
     prizeCount: 6,
@@ -53,7 +57,7 @@ export function GameSettingsModal({ isOpen, onApplied }: Props) {
   return (
     <Modal
       isOpen={isOpen}
-      onClose={handleConfirm}
+      onClose={onClose ?? handleConfirm}
       title="New Game"
       size="large"
       primaryAction={{ label: "Start game", onClick: handleConfirm }}
@@ -64,105 +68,60 @@ export function GameSettingsModal({ isOpen, onApplied }: Props) {
           tapping Reset Game.
         </p>
 
-        <div className="companion-settings__formats">
-          {GAME_FORMATS.map((def) => {
-            const selected = def.key === format;
-            return (
-              <button
-                key={def.key}
-                type="button"
-                className={`companion-settings__format${
-                  selected ? " companion-settings__format--selected" : ""
-                }`}
-                onClick={() => setFormat(def.key)}
-              >
-                <span className="companion-settings__format-icon">
-                  <TablerIcon name={def.icon} size="20" />
-                </span>
-                <span className="companion-settings__format-body">
-                  <span className="companion-settings__format-label">
-                    {def.label}
-                  </span>
-                  <span className="companion-settings__format-desc">
-                    {def.description}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
+        {/* One CDS Card per format, laid out like the site's other icon tiles: icon on top, then title and text. */}
+        <div className="companion-settings__formats" role="group" aria-label="Format">
+          {GAME_FORMATS.map((def) => (
+            <Card
+              key={def.key}
+              variant="outlined"
+              padding="small"
+              interactive
+              selected={def.key === format}
+              onClick={() => setFormat(def.key)}
+              className="companion-settings__format"
+            >
+              <span className="companion-settings__format-icon" aria-hidden>
+                <TablerIcon name={def.icon} size="20" />
+              </span>
+              <span className="companion-settings__format-body">
+                <span className="companion-settings__format-label">{def.label}</span>
+                <span className="companion-settings__format-desc">{def.description}</span>
+              </span>
+            </Card>
+          ))}
         </div>
+
+        <DeckChoice />
 
         {format === "custom" && (
           <div className="companion-settings__custom">
             <div className="companion-settings__custom-title">Custom rules</div>
 
-            <label className="companion-settings__field">
-              <span>Prize cards per player</span>
-              <input
-                type="number"
-                min={1}
-                max={12}
-                value={custom.prizeCount}
-                onChange={(e) =>
-                  setCustom((c) => ({
-                    ...c,
-                    prizeCount: clamp(
-                      Number.parseInt(e.target.value, 10) || 1,
-                      1,
-                      12,
-                    ),
-                  }))
-                }
+            <div className="companion-settings__fields">
+              <Select
+                floatingLabel="Prize cards per player"
+                value={String(custom.prizeCount)}
+                onChange={(v) => setCustom((c) => ({ ...c, prizeCount: clamp(Number(v) || 1, 1, 12) }))}
+                options={Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
               />
-            </label>
-
-            <label className="companion-settings__field">
-              <span>Bench slots per player</span>
-              <input
-                type="number"
-                min={1}
-                max={5}
-                value={custom.benchSize}
-                onChange={(e) =>
-                  setCustom((c) => ({
-                    ...c,
-                    benchSize: clamp(
-                      Number.parseInt(e.target.value, 10) || 1,
-                      1,
-                      5,
-                    ),
-                  }))
-                }
+              <Select
+                floatingLabel="Bench slots per player"
+                value={String(custom.benchSize)}
+                onChange={(v) => setCustom((c) => ({ ...c, benchSize: clamp(Number(v) || 1, 1, 5) }))}
+                options={Array.from({ length: 5 }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
               />
-            </label>
-
-            <label className="companion-settings__toggle">
-              <input
-                type="checkbox"
-                checked={custom.allowMega}
-                onChange={(e) =>
-                  setCustom((c) => ({ ...c, allowMega: e.target.checked }))
-                }
-              />
-              <span>Allow Mega ex / VMAX (3-prize cards)</span>
-            </label>
-
-            <label className="companion-settings__toggle">
-              <input
-                type="checkbox"
-                checked={custom.evolutionClearsConditions}
-                onChange={(e) =>
-                  setCustom((c) => ({
-                    ...c,
-                    evolutionClearsConditions: e.target.checked,
-                  }))
-                }
-              />
-              <span>
-                Evolving clears conditions (TCG-accurate; off lets
-                Poison / Burn carry across evolution)
-              </span>
-            </label>
+            </div>
+            <Switch
+              checked={custom.allowMega}
+              onChange={(e) => setCustom((c) => ({ ...c, allowMega: e.target.checked }))}
+              label="Allow Mega ex / VMAX (3-prize cards)"
+            />
+            <Switch
+              checked={custom.evolutionClearsConditions}
+              onChange={(e) => setCustom((c) => ({ ...c, evolutionClearsConditions: e.target.checked }))}
+              label="Evolving clears conditions"
+              helperText="Accurate to the card game. Off lets Poison and Burn carry across evolution."
+            />
           </div>
         )}
 
@@ -177,6 +136,8 @@ export function GameSettingsModal({ isOpen, onApplied }: Props) {
             {effective.allowMega ? "Mega allowed" : "no Mega"}
           </strong>
         </div>
+        {/* Play together: the opponent at the same table joins the host's game instead. */}
+        {!live && <JoinByCode compact />}
       </div>
     </Modal>
   );

@@ -13,6 +13,7 @@
  */
 
 import "server-only";
+import { botTokenFor } from "@/lib/discord/apps";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
@@ -31,15 +32,17 @@ export interface DiscordEmbed {
   footer?: { text: string };
   timestamp?: string;
   thumbnail?: { url: string };
-  author?: { name: string; icon_url?: string };
+  image?: { url: string };
+  author?: { name: string; icon_url?: string; url?: string };
 }
 
 export type DiscordAdapterResult =
   | { ok: true; messageId: string }
   | { ok: false; error: string; retryable: boolean };
 
+/** The bot token of the app this request or job is for (apps.ts: the main app unless inside withDiscordApp). */
 function botToken(): string | null {
-  return process.env.DISCORD_BOT_TOKEN ?? null;
+  return botTokenFor();
 }
 
 async function request<T>(
@@ -197,6 +200,22 @@ export async function editEmbed(args: {
   return { ok: true, messageId: result.data.id };
 }
 
+/** Replace a message's embeds and buttons (the "answered here" line on Chat Brain and Weekly posts). */
+export async function editComponentsMessage(args: {
+  channelId: string;
+  messageId: string;
+  embeds: DiscordEmbed[];
+  components: unknown[];
+}): Promise<DiscordAdapterResult> {
+  const result = await request<DiscordMessage>("PATCH", `/channels/${args.channelId}/messages/${args.messageId}`, {
+    embeds: args.embeds,
+    components: args.components,
+    allowed_mentions: { parse: [] },
+  });
+  if (!result.ok) return result;
+  return { ok: true, messageId: result.data.id };
+}
+
 // ---------------------------------------------------------------------------
 // Threads — used in Phase 1.2 for round-anchored discussion. Defined
 // here so the adapter is feature-complete; not yet called.
@@ -301,6 +320,44 @@ export async function listGuildRoles(
     }))
     .sort((a, b) => b.position - a.position);
   return { ok: true, roles };
+}
+
+/** Make a role (the lounge's division roles). Needs the bot's Manage Roles permission;
+ *  the role lands under the bot's own role, so the bot can hand it out. Not mentionable. */
+export async function createGuildRole(
+  guildId: string,
+  role: { name: string; color?: number },
+): Promise<{ ok: true; role: DiscordGuildRole } | { ok: false; error: string }> {
+  const r = await request<{ id: string; name: string; position: number; managed?: boolean }>("POST", `/guilds/${guildId}/roles`, {
+    name: role.name.slice(0, 100),
+    color: role.color ?? 0,
+    mentionable: false,
+    hoist: false,
+  });
+  if (!r.ok) return { ok: false, error: r.error };
+  return { ok: true, role: { id: r.data.id, name: r.data.name, position: r.data.position, managed: Boolean(r.data.managed) } };
+}
+
+// ---------------------------------------------------------------------------
+// Server picture — for the Discord bot tab's server header and picker.
+// ---------------------------------------------------------------------------
+
+const iconCache = new Map<string, { url: string | null; at: number }>();
+const ICON_TTL_MS = 3600_000;
+
+/** The server's icon on Discord's CDN, or null (no icon set, or the bot can't
+ *  read the server). Cached for an hour per server so the tab doesn't call
+ *  Discord on every load. */
+export async function guildIconUrl(guildId: string): Promise<string | null> {
+  const hit = iconCache.get(guildId);
+  if (hit && Date.now() - hit.at < ICON_TTL_MS) return hit.url;
+  const result = await request<{ id: string; icon: string | null }>("GET", `/guilds/${guildId}`);
+  const icon = result.ok ? result.data.icon : null;
+  const url = icon ? `https://cdn.discordapp.com/icons/${guildId}/${icon}.${icon.startsWith("a_") ? "gif" : "png"}?size=128` : null;
+  // A failed read is cached too (briefly treated as "no icon"), so a server
+  // the bot left doesn't cost a Discord call on every page load.
+  iconCache.set(guildId, { url, at: Date.now() });
+  return url;
 }
 
 // ---------------------------------------------------------------------------
@@ -445,5 +502,11 @@ export async function syncPresetAutoMod(
 
 export async function deleteAutoModRule(guildId: string, ruleId: string): Promise<boolean> {
   const r = await request("DELETE", `/guilds/${guildId}/auto-moderation/rules/${ruleId}`);
+  return r.ok;
+}
+
+/** Take the bot out of a server (account deletion; the bot leaves rather than lingering unowned). */
+export async function leaveGuild(guildId: string): Promise<boolean> {
+  const r = await request("DELETE", `/users/@me/guilds/${guildId}`);
   return r.ok;
 }

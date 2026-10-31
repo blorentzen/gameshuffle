@@ -22,8 +22,8 @@ export default function MK8DXRandomizerPage() {
           heroProps={mk8dxHero}
         />
       </Suspense>
-      <RandomizerLanding landing={RANDOMIZER_LANDINGS["mario-kart-8-deluxe"]} />
       <RandomizerNudge gameName="Mario Kart 8 Deluxe" />
+      <RandomizerLanding landing={RANDOMIZER_LANDINGS["mario-kart-8-deluxe"]} />
     </>
   );
 }

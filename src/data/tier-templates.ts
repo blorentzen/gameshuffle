@@ -22,7 +22,8 @@ import type { HeroGame } from "@/lib/heroes/types";
 
 export interface TemplateItem {
   label: string;
-  image: string;
+  /** Left out for words-only templates. */
+  image?: string;
 }
 
 export interface TierTemplate {
@@ -52,8 +53,18 @@ const charsOf = (d: GameData): TemplateItem[] =>
   (d.characters ?? []).map((c) => ({ label: c.name, image: c.img }));
 const vehiclesOf = (d: GameData): TemplateItem[] =>
   (d.vehicles ?? []).map((v) => ({ label: v.name, image: v.img }));
-const tracksOf = (d: GameData): TemplateItem[] =>
-  (d.cups ?? []).flatMap((cup) => (cup.courses ?? []).map((c) => ({ label: c.name, image: c.img })));
+/** Retro tracks that share a name get their console in front, as the game shows them
+ *  ("N64 Rainbow Road"): Tier Wars and break mode key items by name. */
+const tracksOf = (d: GameData): TemplateItem[] => {
+  const courses = (d.cups ?? []).flatMap((cup) => cup.courses ?? []);
+  const uses = new Map<string, number>();
+  for (const c of courses) uses.set(c.name, (uses.get(c.name) ?? 0) + 1);
+  return courses.map((c) => {
+    const type = (c as { type?: string }).type;
+    const label = (uses.get(c.name) ?? 0) > 1 && type && type !== "Standard" ? `${type} ${c.name}` : c.name;
+    return { label, image: c.img };
+  });
+};
 
 const MK8DX = mk8dx as unknown as GameData;
 const MKWORLD = mkworld as unknown as GameData;
@@ -191,6 +202,32 @@ export const TIER_TEMPLATES: TierTemplate[] = [
     title: "Best Party Games",
     description: "Rank the best local-multiplayer and party games for game night.",
     items: FAVORITE_GAME_CATALOG.map((g) => ({ label: g.name, image: g.image })),
+  },
+  {
+    slug: "halloween-treats",
+    group: "Game night",
+    title: "Halloween Treats",
+    description: "Rank every trick-or-treat haul staple, from full-size bars to the house that gives out toothbrushes.",
+    // Words only, and kinds of treat rather than brands.
+    items: [
+      "Full-size candy bars", "Fun-size candy bars", "Peanut butter cups", "Candy corn", "Gummy worms", "Lollipops",
+      "Caramel apples", "Sour candy", "Jelly beans", "Licorice", "Taffy", "Candy necklaces", "Popcorn balls",
+      "Chocolate coins", "Malted milk balls", "Peppermints", "Bubble gum", "Caramels", "Candy straws", "Raisins",
+      "Toothbrushes", "Pennies",
+    ].map((label) => ({ label })),
+  },
+  {
+    slug: "christmas-movies",
+    group: "Game night",
+    title: "Christmas Movies",
+    description: "Rank the holiday classics, from Home Alone to the one your family watches every year.",
+    // Words only: the movie titles, no posters.
+    items: [
+      "Home Alone", "Elf", "A Christmas Story", "It's a Wonderful Life", "The Polar Express", "How the Grinch Stole Christmas",
+      "The Muppet Christmas Carol", "Miracle on 34th Street", "National Lampoon's Christmas Vacation", "The Santa Clause",
+      "Rudolph the Red-Nosed Reindeer", "A Charlie Brown Christmas", "The Nightmare Before Christmas", "Klaus", "Arthur Christmas",
+      "Frosty the Snowman", "Jingle All the Way", "White Christmas", "Scrooged", "The Holiday",
+    ].map((label) => ({ label })),
   },
 ].filter((t) => t.items.length > 0);
 

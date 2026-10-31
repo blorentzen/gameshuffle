@@ -13,6 +13,8 @@
  */
 
 import { useState } from "react";
+import { Button, Input } from "@empac/cascadeds";
+import { IconPencil } from "@tabler/icons-react";
 import { useSession } from "@/lib/companion/SessionContext";
 import type { PlayerId } from "@/lib/companion/types";
 import { WinCounter } from "./WinCounter";
@@ -70,8 +72,10 @@ function NameField({
 
   if (!editing) {
     return (
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="small"
+        iconBefore={IconPencil}
         className="companion-player-header__name"
         onClick={() => {
           setEditNonce((n) => n + 1);
@@ -79,14 +83,8 @@ function NameField({
         }}
         aria-label={`Edit name: ${value}`}
       >
-        <span
-          className="companion-player-header__name-pencil"
-          aria-hidden="true"
-        >
-          ✎
-        </span>
         <span className="companion-player-header__name-text">{value}</span>
-      </button>
+      </Button>
     );
   }
 
@@ -123,9 +121,10 @@ function NameEditor({
   };
 
   return (
-    <input
+    <Input
       ref={setRef}
-      type="text"
+      size="small"
+      aria-label="Player name"
       className="companion-player-header__name-input"
       value={draft}
       maxLength={24}

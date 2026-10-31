@@ -85,8 +85,20 @@ const AiGrouping = z.object({
 export async function aiGroups(promptId: string): Promise<{ ok: true; groups: { label: string; keys: string[] }[] } | { ok: false; error: string }> {
   const { data: p } = await createServiceClient().from("brain_prompts").select("text").eq("id", promptId).maybeSingle();
   if (!p) return { ok: false, error: "not_found" };
-  const answers = await answersFor(promptId);
-  const { groups } = autoGroup(answers);
+  return aiGroupAnswers((p as { text: string }).text, await answersFor(promptId));
+}
+
+/**
+ * The same meaning-merge pass on any set of answers (a survey round on stream
+ * runs it on chat's answers before they're saved). `effort` low suits the
+ * quick passes while a round is open.
+ */
+export async function aiGroupAnswers(
+  question: string,
+  answers: { raw: string; normalized: string }[],
+  opts: { effort?: "low" | "medium" } = {},
+): Promise<{ ok: true; groups: { label: string; keys: string[] }[] } | { ok: false; error: string }> {
+  const { groups } = autoGroup(answers.map((a, i) => ({ id: String(i), raw: a.raw, normalized: a.normalized })));
   if (groups.length < 2) return { ok: false, error: "too_few" };
   // The long tail (one-off answers past the first 300 keys) can't reach a board anyway.
   const input = groups.slice(0, 300).map((g) => ({ key: g.key, count: g.count, examples: answers.filter((a) => a.normalized === g.key).slice(0, 3).map((a) => a.raw) }));
@@ -94,9 +106,9 @@ export async function aiGroups(promptId: string): Promise<{ ok: true; groups: { 
     system: `You group survey answers for a party game where people guess the most popular answers to a question.
 Merge answers that mean the same thing for this question: synonyms, brand vs generic, singular vs plural, obvious misspellings. Like the TV survey games, when a broad answer is common (for example "snacks") and other answers are just examples of it ("chips", "pretzels"), merge the examples into the broad answer, unless an example is popular enough to stand on its own (about 10% of all answers or more). Do not merge answers that are only loosely related. Give each group a short, friendly label as a player would say it.
 Copy keys exactly as given. Every input key appears in exactly one group; a key with nothing to merge is a group of one.`,
-    prompt: `Question: ${(p as { text: string }).text}\n\nAnswers (key, how many people gave it, example spellings):\n${JSON.stringify(input)}`,
+    prompt: `Question: ${question}\n\nAnswers (key, how many people gave it, example spellings):\n${JSON.stringify(input)}`,
     schema: AiGrouping,
-    effort: "medium",
+    effort: opts.effort ?? "medium",
     maxTokens: 16000,
   });
   if (!r.ok) return { ok: false, error: r.error };

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@empac/cascadeds";
@@ -28,7 +30,9 @@ import { boardGameLengthLabel as lengthLabel } from "@/data/board-games";
 import { gameArtFallback } from "@/data/game-night-visuals";
 import { partyModuleOf } from "@/lib/game-nights/modules";
 import { liveNightForEvent } from "@/lib/game-nights/module-server";
+import { leagueForNight } from "@/lib/trivia/leagues";
 import { nightGame } from "@/lib/nights/games";
+import { cardDate, previewText, shareMeta } from "@/lib/og/meta";
 
 interface AttendeeRow {
   id: string;
@@ -58,12 +62,41 @@ function fmtWhen(iso: string | null, tz: string | null): string {
   }
 }
 
+/** One read per request for the metadata and the page (RLS: a draft reads as missing to everyone but its host). */
+const loadNight = cache(getNight);
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const night = await loadNight(id).catch(() => null);
+  if (!night) return { title: "Game night not found", robots: { index: false, follow: false } };
+
+  const isPublic = night.visibility === "public";
+  const date = cardDate(night.starts_at, night.timezone);
+  // An unlisted night is link-only: its place stays out of the preview.
+  const where = night.location_type === "online" ? "Online" : isPublic ? night.place : null;
+  const description = previewText(
+    night.description?.trim() ||
+    [`Game night: ${nightKindLabel(night.kind)}`, date, where].filter(Boolean).join(". ") + ". See who's going and RSVP on GameShuffle.",
+  );
+  const past = night.status === "ended" || (night.starts_at ? new Date(night.starts_at).getTime() < Date.now() : false);
+  // Worth finding only while it's public, coming up and on. The page still loads by link.
+  const hidden = !isPublic || night.status !== "scheduled" || !!night.archived_at || past;
+
+  return {
+    title: night.title,
+    description,
+    ...(hidden ? { robots: { index: false, follow: isPublic } } : {}),
+    ...shareMeta({ title: night.title, description, path: `/game-nights/${night.id}` }),
+  };
+}
+
 export default async function NightPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const night = await getNight(id);
+  const night = await loadNight(id);
   const partyMod = night ? partyModuleOf(night.modules) : null;
   const partyLive = partyMod ? await liveNightForEvent(id).catch(() => null) : null;
   if (!night) notFound();
+  const triviaLeague = await leagueForNight(id).catch(() => null);
 
   const supabase = await createClient();
   const {
@@ -183,7 +216,10 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       artKind={night.kind}
       badges={
         <>
-          <span className={`lounge-status lounge-status--${isPast ? "complete" : "open"}`}>{isPast ? "Past" : "Upcoming"}</span>
+          {night.status === "cancelled"
+            ? <span className="lounge-status lounge-status--cancelled">Cancelled</span>
+            : <span className={`lounge-status lounge-status--${isPast ? "complete" : "open"}`}>{isPast ? "Past" : "Upcoming"}</span>}
+          {night.archived_at && <span className="lounge-status lounge-status--complete">Archived</span>}
           {night.kind && night.kind !== "board" && <span className="bg-badge bg-badge--kind">{nightKindLabel(night.kind, true)}</span>}
           {level && <span className="bg-badge bg-badge--level">{level}</span>}
           {(night.genres ?? []).slice(0, 4).map((g) => <span key={g} className="bg-tag">{g}</span>)}
@@ -217,6 +253,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       }
       calendarDescription={night.description}
       pageUrl={pageUrl}
+      shareScope={night.visibility === "public" ? "public" : "link"}
       shareToFeed={night.visibility === "public" ? (
         <ShareToFeedButton
           entityType="board_game_night"
@@ -257,10 +294,25 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
             </>
           )}
         </div>
+        {triviaLeague && (
+          <div className="comp-card">
+            <EventPanelHead heading="Trivia league" />
+            <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-12)" }}>
+              This night is a week of {triviaLeague.title}.{triviaLeague.code ? ` Playing now: join with code ${triviaLeague.code}.` : " Standings and teams are on the league page."}
+            </p>
+            <Link href={triviaLeague.code ? `/trivia/play/${triviaLeague.code}` : `/trivia/leagues/${triviaLeague.slug}`} style={{ textDecoration: "none" }}>
+              <Button variant="secondary" fullWidth>{triviaLeague.code ? "Play tonight" : "See the league"}</Button>
+            </Link>
+          </div>
+        )}
         </>
       )}
       moreFromOrganizer={moreFromOrganizer}
-      schema={{ status: night.status === "cancelled" ? "cancelled" : isPast ? "ended" : "scheduled", registrationOpen: !isPast && night.status === "scheduled", price: lowestPrice, lat: night.lat, lng: night.lng }}
+      /* Structured data is for search, and an unlisted night isn't in search:
+         it would only publish the address and coordinates of a link-only night. */
+      schema={night.visibility === "public"
+        ? { status: night.status === "cancelled" ? "cancelled" : isPast ? "ended" : "scheduled", registrationOpen: !isPast && night.status === "scheduled", price: lowestPrice, lat: night.lat, lng: night.lng }
+        : undefined}
       style={pageStyle}
       slots={[
         {

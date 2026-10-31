@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { CompanionPage } from "./CompanionPage";
 import { CompanionEntry } from "./CompanionEntry";
+import { LiveJoin } from "./LiveJoin";
 
 const GUEST_SESSION_KEY = "gs_companion_guest";
 /** Dispatched manually after we set sessionStorage from this tab —
@@ -38,6 +39,11 @@ interface Props {
    *  client skips the resume picker AND the game-settings modal and
    *  dispatches LOAD_SAVED_STATE on mount. */
   autoResume?: import("@/lib/companion/saveStates").CompanionSavedState | null;
+  /** Play together: a shared game's code from `?play=`. Its join card is the
+   *  way in, for guests too (no guest chooser first). */
+  liveCode?: string | null;
+  /** `?deck=<id>`: start with this saved deck list (signed in). */
+  startDeck?: string | null;
 }
 
 type DecisionKind = "loading" | "entry" | "auth" | "guest";
@@ -70,6 +76,8 @@ export function CompanionShell({
   tier,
   savedGames = [],
   autoResume = null,
+  liveCode = null,
+  startDeck = null,
 }: Props) {
   const getSnapshot = useCallback(
     () => readDecision(isAuthenticated),
@@ -103,6 +111,10 @@ export function CompanionShell({
     window.dispatchEvent(new Event(LOCAL_CHANGE_EVENT));
   }, []);
 
+  if (liveCode) {
+    return <LiveJoin code={liveCode} isAuthenticated={isAuthenticated} displayName={displayName} tier={tier} />;
+  }
+
   if (decision === "loading") {
     return <div className="companion-page" />;
   }
@@ -120,6 +132,7 @@ export function CompanionShell({
       }
       savedGames={savedGames}
       autoResume={autoResume}
+      startDeck={startDeck}
     />
   );
 }

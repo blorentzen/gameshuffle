@@ -21,9 +21,10 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getBaseUrl } from "@/lib/env";
 import {
-  getEventMeta, listAttendees, offerToken, promotionRecipient,
+  getEventMeta, listAttendees, offerToken, planLimited, promotionRecipient, seatLimit,
   type Attendee, type EventMeta,
 } from "./attendees";
+import { noteCircuitWaitlist } from "@/lib/tournaments/circuit-resolve";
 import { deliver } from "./notify";
 import { sendWaitlistOfferEmail, sendWaitlistPromotedEmail } from "@/lib/email/waitlist";
 import { isPaidEvent, ticketSeatsBeyondRows } from "./tickets";
@@ -32,7 +33,9 @@ import type { EventType } from "./calendar";
 
 export type WaitlistError =
   | "not_found" | "not_waitlisted" | "no_offer" | "offer_expired" | "pay" | "too_late"
-  | "waitlist_full" | "already_in" | "no_waitlist" | "failed";
+  | "waitlist_full" | "already_in" | "no_waitlist" | "failed"
+  /** The organizer's Circuit plan is full: upgrading is what lets more in. */
+  | "circuit_cap";
 export type WaitlistResult = { ok: true; attendee: Attendee | null } | { ok: false; error: WaitlistError };
 
 const seatTarget = (type: EventType, meta: EventMeta) => (type === "tournament" ? (meta.autoAccept ? "confirmed" : "registered") : "going");
@@ -54,10 +57,11 @@ async function seatsInUse(type: EventType, eventId: string, attendees: Attendee[
   return attendees.filter((a) => seats.includes(a.status)).length + (await ticketSeatsBeyondRows(type, eventId));
 }
 
-/** Free seats (Infinity when there's no cap). */
+/** Free seats (Infinity when there's no cap). The cap is the event's own limit or the organizer's Circuit limit, whichever is smaller. */
 async function freeSeats(type: EventType, meta: EventMeta, attendees: Attendee[]): Promise<number> {
-  if (meta.capacity == null) return Number.POSITIVE_INFINITY;
-  return meta.capacity - (await seatsInUse(type, meta.id, attendees));
+  const limit = seatLimit(meta);
+  if (limit == null) return Number.POSITIVE_INFINITY;
+  return limit - (await seatsInUse(type, meta.id, attendees));
 }
 
 function claimLink(type: EventType, meta: EventMeta, a: Attendee): string {
@@ -231,7 +235,8 @@ export async function claim(type: EventType, eventId: string, attendeeId: string
     if (!(await seat(type, meta, a, "waitlisted"))) return { ok: false, error: "too_late" };
     // Two people can claim the last spot at the same moment: whoever pushed it over goes back in line.
     const after = await listAttendees(type, eventId);
-    if (meta.capacity != null && (await seatsInUse(type, eventId, after)) > meta.capacity) {
+    const limit = seatLimit(meta);
+    if (limit != null && (await seatsInUse(type, eventId, after)) > limit) {
       await updateRow(type, eventId, a.id, { status: "waitlisted", waitlisted_at: a.waitlistedAt ?? new Date().toISOString() });
       return { ok: false, error: "too_late" };
     }
@@ -337,7 +342,10 @@ export async function joinWaitlist(type: EventType, eventId: string, who: { user
   }
   // A seat might be free right now (or it's standby time): fill straight away.
   await fillOpenSeats(type, eventId);
-  return { ok: true, attendee: await findAttendee(type, eventId, attendeeId), attendeeId };
+  const joined = await findAttendee(type, eventId, attendeeId);
+  // Waiting because the organizer's Circuit plan is full: tell them people are in line.
+  if (type === "tournament" && joined?.status === "waitlisted" && planLimited(meta)) await noteCircuitWaitlist(eventId);
+  return { ok: true, attendee: joined, attendeeId };
 }
 
 // ─── organizer controls ──────────────────────────────────────────────────────
@@ -359,12 +367,22 @@ export async function setWaitlistCap(type: EventType, eventId: string, cap: numb
   return !error;
 }
 
+/**
+ * The organizer's own over-the-cap powers (offer now, seat now) go past their
+ * own limit, never past their Circuit plan's: that is the upgrade.
+ */
+async function atPlanLimit(type: EventType, meta: EventMeta): Promise<boolean> {
+  if (meta.circuitCap == null) return false;
+  return (await seatsInUse(type, meta.id, await listAttendees(type, meta.id))) >= meta.circuitCap;
+}
+
 /** Offer a spot to anyone in line, even past the cap (the organizer's call). */
 export async function offerTo(type: EventType, eventId: string, attendeeId: string): Promise<WaitlistResult> {
   const meta = await getEventMeta(type, eventId);
   const a = await findAttendee(type, eventId, attendeeId);
   if (!meta || !a) return { ok: false, error: "not_found" };
   if (a.status !== "waitlisted") return { ok: false, error: "not_waitlisted" };
+  if (await atPlanLimit(type, meta)) return { ok: false, error: "circuit_cap" };
   const expiresAt = offerExpiry(meta.startsAt) ?? new Date(Date.now() + 15 * 60 * 1000);
   return (await offer(type, meta, a, expiresAt, await isPaidEvent(type, eventId))) ? { ok: true, attendee: a } : { ok: false, error: "failed" };
 }
@@ -375,6 +393,8 @@ export async function seatNow(type: EventType, eventId: string, attendeeId: stri
   const a = await findAttendee(type, eventId, attendeeId);
   if (!meta || !a) return { ok: false, error: "not_found" };
   if (a.status !== "waitlisted" && a.status !== "offered") return { ok: false, error: "not_waitlisted" };
+  // An offer already holds a seat; anyone else can't go past the organizer's Circuit plan.
+  if (a.status === "waitlisted" && (await atPlanLimit(type, meta))) return { ok: false, error: "circuit_cap" };
   return (await seat(type, meta, a, a.status)) ? { ok: true, attendee: a } : { ok: false, error: "failed" };
 }
 
@@ -394,7 +414,10 @@ export interface MyWaitlist {
   /** 1-based place in line, while waitlisted. */
   position: number | null;
   lineLength: number;
+  /** The seats: the event's own limit or the organizer's Circuit limit, whichever is smaller. */
   capacity: number | null;
+  /** The organizer's Circuit plan is what's full (an upgrade moves the line). */
+  planLimited: boolean;
   seatsTaken: number;
   offerExpiresAt: string | null;
   /** The last stretch: open spots go to whoever claims first. */
@@ -419,12 +442,31 @@ export async function myWaitlist(type: EventType, eventId: string, attendeeId: s
     attendeeId: me?.id ?? null,
     position: pos >= 0 ? pos + 1 : null,
     lineLength: line.length,
-    capacity: meta.capacity,
+    capacity: seatLimit(meta),
+    planLimited: planLimited(meta),
     seatsTaken: inUse,
     offerExpiresAt: me?.status === "offered" ? me.offerExpiresAt ?? null : null,
     standby,
-    spotOpen: standby && meta.capacity != null && inUse < meta.capacity,
+    spotOpen: standby && seatLimit(meta) != null && inUse < (seatLimit(meta) as number),
     paid: await isPaidEvent(type, eventId),
     waitlistFull: meta.waitlistCap != null && line.length >= meta.waitlistCap,
   };
+}
+
+/**
+ * An organizer's Circuit plan just grew (a new or upgraded subscription): offer
+ * the new seats to the people waiting in each of their open tournaments, in
+ * line order. Called from the Stripe subscription sync.
+ */
+export async function fillCircuitWaitlists(organizerId: string): Promise<number> {
+  const svc = createServiceClient();
+  const { data: tours } = await svc.from("tournaments").select("id").eq("organizer_id", organizerId).in("status", ["open", "in_progress"]);
+  let offered = 0;
+  for (const t of (tours ?? []) as { id: string }[]) {
+    const { count } = await svc.from("tournament_participants").select("id", { count: "exact", head: true }).eq("tournament_id", t.id).eq("status", "waitlisted");
+    if (!count) continue;
+    const r = await fillOpenSeats("tournament", t.id).catch(() => null);
+    offered += r?.touched.length ?? 0;
+  }
+  return offered;
 }

@@ -8,11 +8,17 @@ import {
 } from "@/lib/subscription";
 import type { CompanionSavedState } from "@/lib/companion/saveStates";
 import { CompanionShell } from "./CompanionShell";
+import { normalizeCode } from "@/lib/companion/liveRules";
+import { SITE_URL } from "@/lib/seo";
 
+// The app itself (sign-in chooser, then the board): kept out of search so the
+// landing page, /pokemon-tcg-companion, is the one that ranks. Links still count.
 export const metadata: Metadata = {
   title: "TCG Companion",
   description:
-    "A TCG-agnostic digital accessory kit: damage counters, condition tracking, prize counts, coin flips, and dice for the table. Ships with Pokémon Mode.",
+    "Open the free GameShuffle TCG Companion: damage counters, condition tracking, prize counts, coin flips and dice for your Pokémon TCG table.",
+  alternates: { canonical: `${SITE_URL}/tcg-companion` },
+  robots: { index: false, follow: true },
 };
 
 /**
@@ -24,7 +30,7 @@ export const metadata: Metadata = {
  * client-only signal for the "continue as guest" opt-in.
  */
 interface PageProps {
-  searchParams?: Promise<{ resume?: string | string[] }>;
+  searchParams?: Promise<{ resume?: string | string[]; play?: string | string[]; deck?: string | string[] }>;
 }
 
 export default async function Page({ searchParams }: PageProps) {
@@ -44,12 +50,12 @@ export default async function Page({ searchParams }: PageProps) {
       ? resumeIdRaw
       : null;
 
-  // Best-effort display name — falls back to the email local-part so
-  // there's always something. The full account UI is outside scope.
-  const displayName =
+  // The account's GameShuffle name (set from the profile below), else what the
+  // sign-in gave us. Never the email address.
+  let displayName: string | null =
     (user?.user_metadata?.display_name as string | undefined) ??
-    user?.user_metadata?.full_name ??
-    (user?.email ? user.email.split("@")[0] : null);
+    (user?.user_metadata?.full_name as string | undefined) ??
+    null;
 
   // Resolve effective subscription tier for the Companion's gating
   // surfaces (save state, online play, full customization). Staff
@@ -61,10 +67,11 @@ export default async function Page({ searchParams }: PageProps) {
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("subscription_tier, role, circuit_tier, circuit_status")
+      .select("subscription_tier, role, circuit_tier, circuit_status, display_name, username")
       .eq("id", user.id)
       .maybeSingle();
     role = (profile?.role as string | null) ?? null;
+    displayName = (profile?.display_name as string | null) || (profile?.username as string | null) || displayName;
     resolvedTier = effectiveTier({
       tier: normalizeTier(profile?.subscription_tier as string | null),
       role,
@@ -111,6 +118,11 @@ export default async function Page({ searchParams }: PageProps) {
     autoResume = savedGames.find((s) => s.id === resumeId) ?? null;
   }
 
+  // Play together: `?play=CODE` joins (or gets back into) a shared game.
+  const liveCode = normalizeCode(typeof params.play === "string" ? params.play : null);
+  // "Play in the companion" from a saved deck list (the deck API checks it's theirs).
+  const startDeck = user && typeof params.deck === "string" && /^[0-9a-f-]{36}$/i.test(params.deck) ? params.deck : null;
+
   return (
     <CompanionShell
       isAuthenticated={!!user}
@@ -118,6 +130,8 @@ export default async function Page({ searchParams }: PageProps) {
       tier={tier}
       savedGames={savedGames}
       autoResume={autoResume}
+      liveCode={liveCode}
+      startDeck={startDeck}
     />
   );
 }

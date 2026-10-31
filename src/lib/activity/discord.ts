@@ -26,11 +26,12 @@ export function activityApp(): { clientId: string; clientSecret: string; botToke
 
 /**
  * Where an Activity session really is, from Discord rather than the page:
- * GET /applications/{app}/activity-instances/{instance} (bot token). Only a
- * server channel counts, and only for someone connected to that instance, so
- * the results card can't be pointed at another server's channel.
+ * GET /applications/{app}/activity-instances/{instance} (bot token), and only
+ * for someone connected to that instance. The instance id names the room for
+ * playing together (any call, DMs included); the channel only counts when it's
+ * a server channel, so the results card can't be pointed at another server.
  */
-export async function verifiedChannel(instanceId: string, userId: string): Promise<{ channelId: string; guildId: string } | null> {
+export async function verifiedInstance(instanceId: string, userId: string): Promise<{ instanceId: string; channelId: string | null; guildId: string | null } | null> {
   const app = activityApp();
   if (!app?.botToken || !/^[\w-]{1,100}$/.test(instanceId)) return null;
   const res = await fetch(`${API}/applications/${app.clientId}/activity-instances/${encodeURIComponent(instanceId)}`, {
@@ -38,9 +39,16 @@ export async function verifiedChannel(instanceId: string, userId: string): Promi
   }).catch(() => null);
   if (!res?.ok) return null;
   const inst = (await res.json().catch(() => null)) as { location?: { kind?: string; channel_id?: string; guild_id?: string }; users?: string[] } | null;
-  const loc = inst?.location;
-  if (loc?.kind !== "gc" || !loc.channel_id || !loc.guild_id || !inst?.users?.includes(userId)) return null;
-  return { channelId: loc.channel_id, guildId: loc.guild_id };
+  if (!inst?.users?.includes(userId)) return null;
+  const loc = inst.location;
+  const server = loc?.kind === "gc" && !!loc.channel_id && !!loc.guild_id;
+  return { instanceId, channelId: server ? loc!.channel_id! : null, guildId: server ? loc!.guild_id! : null };
+}
+
+/** The server channel an Activity session is in (the results card), or null. */
+export async function verifiedChannel(instanceId: string, userId: string): Promise<{ channelId: string; guildId: string } | null> {
+  const v = await verifiedInstance(instanceId, userId);
+  return v?.channelId && v.guildId ? { channelId: v.channelId, guildId: v.guildId } : null;
 }
 
 export interface DiscordMe { id: string; username: string; global_name: string | null; avatar: string | null }

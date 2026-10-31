@@ -58,7 +58,7 @@ export function ClaimOffers({ verified }: { verified: boolean }) {
   return (
     <>
       <p className="claim-flow__p">
-        Someone entered {offers.length === 1 ? "this tournament" : "these tournaments"} as a guest using your email address.
+        Someone entered {offers.length === 1 ? "this tournament" : "these tournaments"}{" "}as a guest using your email address.
         Tick the ones that were you and link them to keep the results. Leave anything that wasn&apos;t.
       </p>
       <div className="claim-offers">

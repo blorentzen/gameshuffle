@@ -10,7 +10,7 @@ import "server-only";
 import { z } from "zod";
 import { draftStructured, type AiResult } from "@/lib/ai/claude";
 
-export const AI_FORMATS = ["ffa_points", "single_elim", "double_elim", "heat_mains"] as const;
+export const AI_FORMATS = ["ffa_points", "single_elim", "double_elim", "heat_mains", "swiss"] as const;
 export type AiFormat = (typeof AI_FORMATS)[number];
 
 export interface TournamentDraft { format: AiFormat; formatWhy: string; description: string; rules: string; announcement: string }
@@ -19,7 +19,8 @@ const FORMAT_NOTES = `Formats GameShuffle runs:
 - ffa_points: everyone races or plays together each round, points by placement add up. Best for racing and party games, any size.
 - single_elim: 1v1 bracket, lose once and you're out. Fast; best for fighting games and 8 to 32 players.
 - double_elim: 1v1 bracket with a losers bracket. Fairer, takes about twice as long.
-- heat_mains: heats seed a ladder of mains (C, B, A), like sprint car racing. Best for racing games with 12 or more players. Not for Mario Party or Smash.`;
+- heat_mains: heats seed a ladder of mains (C, B, A), like sprint car racing. Best for racing games with 12 or more players. Not for Mario Party or Smash.
+- swiss: 1v1, everyone plays every round against someone on the same record, then the best records play a top cut bracket. The standard for card games like Pokémon TCG and for fighting-game locals; nobody is knocked out early.`;
 
 const SYSTEM = `You help people run game tournaments on GameShuffle. Be practical and specific to the game. Rules are short bullet-style lines (one rule per line, no markdown symbols): match length, settings, tie-breaks, conduct, what happens on a disconnect. The organizer is hosting, not GameShuffle: write the description and announcement in their voice ("we", "our"), and only mention GameShuffle as where to sign up. Never invent prizes, dates, sponsors or links; if they matter, write a placeholder like [prize]. Don't use em dashes or en dashes.`;
 

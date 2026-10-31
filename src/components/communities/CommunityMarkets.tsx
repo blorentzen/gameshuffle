@@ -9,6 +9,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button, Input } from "@empac/cascadeds";
+import { IconArrowRight } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 
 interface Outcome { outcomeId: string; optionKey: string; label: string; pickerCount: number }
@@ -66,11 +67,11 @@ export function CommunityMarkets({
   return (
     <>
       {isMember ? (
-        <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>
+        <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
           Your balance: <strong style={{ color: "var(--text-secondary)" }}>{balance.toLocaleString()} 🪙</strong> · leave the stake empty to just predict.
         </p>
       ) : (
-        <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>Join the community to predict and bet.</p>
+        <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>Join the community to predict and bet.</p>
       )}
 
       {markets.map((m) => {
@@ -121,7 +122,7 @@ export function CommunityMarkets({
       })}
 
       <Link href={`/live/${slug}`} style={{ textDecoration: "none" }}>
-        <Button variant="ghost" size="small">Open the live page →</Button>
+        <Button variant="ghost" size="small" iconAfter={IconArrowRight}>Open the live page</Button>
       </Link>
     </>
   );

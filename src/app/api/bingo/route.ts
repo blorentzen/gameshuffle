@@ -1,13 +1,13 @@
 /**
  * GET / POST /api/bingo — the streamer's Stream Bingo controls (GS Pro).
- *   GET  → { isPro, hasCommunity, game } (the current game, if any)
- *   POST → open a game. Body: { pattern (a pattern id or "series"), callInterval?, prizeTokens?, prizeText? }
+ *   GET  → { isPro, hasCommunity, game, patterns } (the current game, if any, and the saved patterns)
+ *   POST → open a game. Body: { pattern (a pattern id, "series" or "custom:<id>"), doorsSeconds?, callInterval?, prizeTokens?, prizeText? }
+ *          doorsSeconds: the sign-up window, 30-600 (left out = 2 minutes, 0 = none)
  */
 
 import { NextResponse } from "next/server";
 import { bingoOwner } from "@/lib/bingo/owner";
-import { getCurrentGame, openGame, tickAuto, viewOf } from "@/lib/bingo/stream";
-import type { Pattern } from "@/lib/originals/bingo";
+import { getCurrentGame, listPatterns, openGame, tickAuto, viewOf, type OpenGameInput } from "@/lib/bingo/stream";
 
 export const runtime = "nodejs";
 
@@ -16,7 +16,8 @@ export async function GET() {
   if ("error" in ctx) return NextResponse.json({ ok: false, error: ctx.error }, { status: ctx.status });
   let game = ctx.communityId ? await getCurrentGame(ctx.communityId) : null;
   if (game) game = await tickAuto(game);
-  return NextResponse.json({ ok: true, isPro: ctx.isPro, hasCommunity: !!ctx.communityId, game: game ? await viewOf(game) : null });
+  const patterns = ctx.communityId && ctx.isPro ? await listPatterns(ctx.communityId) : [];
+  return NextResponse.json({ ok: true, isPro: ctx.isPro, hasCommunity: !!ctx.communityId, game: game ? await viewOf(game) : null, patterns });
 }
 
 export async function POST(request: Request) {
@@ -24,12 +25,13 @@ export async function POST(request: Request) {
   if ("error" in ctx) return NextResponse.json({ ok: false, error: ctx.error }, { status: ctx.status });
   if (!ctx.isPro) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
   if (!ctx.communityId) return NextResponse.json({ ok: false, error: "no_community" }, { status: 400 });
-  const body = (await request.json().catch(() => null)) as { pattern?: string; callInterval?: number | null; prizeTokens?: number; prizeText?: string | null } | null;
+  const body = (await request.json().catch(() => null)) as { pattern?: string; doorsSeconds?: number | null; callInterval?: number | null; prizeTokens?: number; prizeText?: string | null } | null;
   if (!body) return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   const r = await openGame({
     communityId: ctx.communityId,
     createdBy: ctx.userId,
-    pattern: (body.pattern ?? "line") as Pattern | "series",
+    pattern: (body.pattern ?? "line") as OpenGameInput["pattern"],
+    doorsSeconds: typeof body.doorsSeconds === "number" ? body.doorsSeconds : undefined,
     callInterval: typeof body.callInterval === "number" ? body.callInterval : null,
     prizeTokens: typeof body.prizeTokens === "number" ? body.prizeTokens : 0,
     prizeText: typeof body.prizeText === "string" ? body.prizeText : null,

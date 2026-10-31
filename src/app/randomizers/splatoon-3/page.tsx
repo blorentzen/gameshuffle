@@ -22,7 +22,7 @@ export default function SplatoonRandomizerPage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["splatoon-3"].hero} primary={{ href: "#play", label: "Randomize now" }} />
+        <BrowseHero eyebrow="New randomizer" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["splatoon-3"].hero} primary={{ href: "#play", label: "Randomize now" }} />
         <div id="play">
         <Container className="tool-page">
           <NewBanner />
@@ -31,9 +31,9 @@ export default function SplatoonRandomizerPage() {
           </Suspense>
         </Container>
         </div>
+        <RandomizerNudge gameName={SPLATOON3.label} saves="your Splatoon setups" />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName={SPLATOON3.label} saves="your Splatoon setups" />
     </>
   );
 }

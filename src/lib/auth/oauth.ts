@@ -6,7 +6,7 @@ import { reportAuthError } from "@/lib/auth/report";
 import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
- * Starts a Twitch or Discord sign-in (or, with `link`, connects it to the
+ * Starts a Twitch, Discord or Facebook sign-in (or, with `link`, connects it to the
  * signed-in account). Every button uses this so a failure to even start shows
  * a plain message instead of nothing, and so the error page after a failed
  * round trip knows which provider was tried (sessionStorage, not the return
@@ -19,7 +19,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 
 const ATTEMPT_KEY = "gs-oauth-attempt";
 
-export type OAuthProvider = "twitch" | "discord";
+export type OAuthProvider = "twitch" | "discord" | "facebook";
 
 export function rememberAttempt(provider: OAuthProvider, surface: string): void {
   try { sessionStorage.setItem(ATTEMPT_KEY, JSON.stringify({ provider, surface, at: Date.now() })); } catch { /* optional */ }

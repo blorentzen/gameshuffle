@@ -3,6 +3,7 @@ import { ToolPageShell } from "@/components/game-nights/companion/ToolPageShell"
 import { ChaosCupBuilder } from "@/components/game-nights/companion/ChaosCupBuilder";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/game-nights/tools/chaos-cup", images: [{ url: "/game-nights/opengraph-image.jpg", width: 1200, height: 630 }] },
   title: "Chaos Cup: a Mario Kart cup with a twist every race",
   description: "Run a Mario Kart cup where every race gets a modifier: item rules, Mirror or 200cc, and handicaps for the leader. Let your stream chat vote on each one.",
   alternates: { canonical: "https://www.gameshuffle.co/game-nights/tools/chaos-cup" },

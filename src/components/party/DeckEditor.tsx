@@ -4,18 +4,20 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert, Badge, Button, Checkbox, Chip, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs, Textarea } from "@empac/cascadeds";
-import { IconPlus, IconPencil } from "@tabler/icons-react";
+import { IconPlus, IconPencil, IconSparkles } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PARTY_FAMILY } from "@/data/party";
 import { DECK_FAMILIES, deckFamily } from "@/lib/cards/families";
 import { cardParts } from "@/data/party/cards";
 import { rowToCard, validateCard, type CardDraft, type DeckCardRow } from "@/lib/party/deck";
 import { IconAction } from "@/components/actions/IconAction";
+import { AiDeckModal } from "@/components/ai/AiDeckModal";
 
 /**
  * Card deck editor, shared by Platform Admin -> Decks (the official deck),
- * Game Modules (a Pro+ user's own deck) and /mod/[streamer] (a streamer's deck,
- * edited by their mods). `scope` is "official", "me" or the streamer's user id.
+ * My Stuff -> Decks (a Pro user's own deck) and /mod/[streamer] (a streamer's
+ * deck, edited by their mods). `scope` is "official", "me" or the streamer's
+ * user id. `ai` adds "Make cards with AI" (drafts only; see AiDeckModal).
  */
 
 type Kind = DeckCardRow["kind"];
@@ -38,19 +40,19 @@ const blank = (kind: Kind): CardDraft => ({
 });
 
 /** One deck per game family (Mario Party, Smash), switched with the chips on top. */
-export function DeckEditor({ scope, intro }: { scope: string; intro?: React.ReactNode }) {
+export function DeckEditor({ scope, intro, ai = false }: { scope: string; intro?: React.ReactNode; ai?: boolean }) {
   const [family, setFamily] = useState(PARTY_FAMILY);
   return (
     <>
       <div className="party-chips" role="group" aria-label="Which game's deck">
         {DECK_FAMILIES.map((f) => <Chip key={f.id} clickable selected={family === f.id} variant={family === f.id ? "primary" : "default"} label={f.label} onClick={() => setFamily(f.id)} />)}
       </div>
-      <FamilyDeckEditor key={family} scope={scope} family={family} intro={intro} />
+      <FamilyDeckEditor key={family} scope={scope} family={family} intro={intro} ai={ai} />
     </>
   );
 }
 
-function FamilyDeckEditor({ scope, family, intro }: { scope: string; family: string; intro?: React.ReactNode }) {
+function FamilyDeckEditor({ scope, family, intro, ai }: { scope: string; family: string; intro?: React.ReactNode; ai: boolean }) {
   const fam = deckFamily(family)!;
   const toast = useToast();
   const official = scope === "official";
@@ -62,6 +64,7 @@ function FamilyDeckEditor({ scope, family, intro }: { scope: string; family: str
   const [publishing, setPublishing] = useState<DeckCardRow | null>(null);
   const [familySafe, setFamilySafe] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [drafting, setDrafting] = useState(false);
 
   const base = `/api/decks/${encodeURIComponent(scope)}`;
   const load = useCallback(async () => {
@@ -115,6 +118,20 @@ function FamilyDeckEditor({ scope, family, intro }: { scope: string; family: str
       toast.success("Card is live"); setPublishing(null); setFamilySafe(false);
     }
   };
+  /** AI drafts go in one by one through the normal create path (same checks). */
+  const addDrafts = async (cards: CardDraft[]) => {
+    let added = 0;
+    for (const card of cards) {
+      const r = await fetch(base, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ family, action: "create", card }) }).catch(() => null);
+      if (r?.ok) added++;
+    }
+    await load();
+    if (added) toast.success(added === 1 ? "1 card added as a draft" : `${added} cards added as drafts`);
+    else toast.error("Couldn't add those cards. Please try again.");
+    if (added && kind !== cards[0].kind && cards[0].kind !== "moment") setKind(cards[0].kind);
+    if (added) setStatus("draft");
+    return added;
+  };
   const retire = async (c: DeckCardRow, restore = false) => {
     if (await send(`${base}/cards/${c.id}`, "PATCH", { action: restore ? "restore" : "retire" })) toast.success(restore ? "Card is live again" : "Card retired");
   };
@@ -140,7 +157,21 @@ function FamilyDeckEditor({ scope, family, intro }: { scope: string; family: str
         <Select floatingLabel="Show" value={status} onChange={(v) => setStatus(String(v))}
           options={[{ value: "all", label: "Everything" }, { value: "live", label: "Live" }, { value: "draft", label: "Drafts" }, { value: "retired", label: "Retired" }]} />
         <Button variant="primary" iconBefore={IconPlus} onClick={() => setEditing({ id: null, draft: blank(kind) })}>New {KINDS.find((k) => k.id === kind)!.one.toLowerCase()}</Button>
+        {ai && !official && kind !== "moment" && (
+          <Button variant="secondary" iconBefore={IconSparkles} onClick={() => setDrafting(true)}>Make cards with AI</Button>
+        )}
       </div>
+      {ai && !official && (
+        <AiDeckModal
+          family={family}
+          familyLabel={fam.label}
+          initialKind={kind === "moment" ? "chance" : kind}
+          isOpen={drafting}
+          onClose={() => setDrafting(false)}
+          onAdd={addDrafts}
+          avoid={data.cards.map((c) => c.title)}
+        />
+      )}
 
       {list.length === 0 ? <p className="party-muted">No {KINDS.find((k) => k.id === kind)!.label.toLowerCase()} here yet.</p> : (
         <ul className="deck-editor__list">

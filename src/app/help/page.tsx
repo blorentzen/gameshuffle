@@ -2,12 +2,27 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, Card } from "@empac/cascadeds";
 import { HelpSearch } from "@/components/help/HelpSearch";
-import { HELP_CATEGORIES, articlesInCategory } from "@/lib/help/manifest";
+import { HELP_CATEGORIES, articlesInCategory, type HelpCategoryId } from "@/lib/help/manifest";
+import { IconBroadcast, IconDice5, IconLifebuoy, IconRocket, IconSparkles, IconTrophy, IconUserCircle, IconUsersGroup, type Icon } from "@tabler/icons-react";
+import { IconTile, type TileTone } from "@/components/ui/IconTile";
+
+/** Each category card's tile (the shared IconTile, above the title). */
+const CATEGORY_TILES: Record<HelpCategoryId, { icon: Icon; tone: TileTone }> = {
+  "getting-started": { icon: IconRocket, tone: "teal" },
+  apps: { icon: IconDice5, tone: "blue" },
+  tournaments: { icon: IconTrophy, tone: "orange" },
+  streaming: { icon: IconBroadcast, tone: "violet" },
+  community: { icon: IconUsersGroup, tone: "green" },
+  pro: { icon: IconSparkles, tone: "magenta" },
+  troubleshooting: { icon: IconLifebuoy, tone: "red" },
+  account: { icon: IconUserCircle, tone: "blue" },
+};
 
 export const metadata: Metadata = {
   title: "Help Center",
   description: "Guides, troubleshooting, and contact info for GameShuffle: getting started, GameShuffle Pro, integrations, and account management.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Help Center | GameShuffle",
     description: "Guides, troubleshooting, and contact info for GameShuffle.",
     url: "https://www.gameshuffle.co/help",
@@ -39,8 +54,10 @@ export default function HelpLandingPage() {
       <section aria-label="Help categories" className="help-landing__categories">
         {HELP_CATEGORIES.map((cat) => {
           const articles = articlesInCategory(cat.id);
+          const tile = CATEGORY_TILES[cat.id];
           return (
             <Card key={cat.id} variant="outlined" padding="medium">
+              {tile && <IconTile icon={tile.icon} tone={tile.tone} className="help-landing__cat-tile" />}
               <h2 className="help-landing__cat-title">{cat.label}</h2>
               <p className="help-landing__cat-blurb">{cat.blurb}</p>
               <ul className="help-landing__links">

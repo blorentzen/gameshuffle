@@ -45,6 +45,15 @@ export function seasonLabel(key: string): string {
   return new Date(Date.UTC(y, m - 1, 15)).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
+/** The last `n` seasons, newest first, ending with the current one. */
+export function recentSeasonKeys(n = 12, from: string = seasonKey()): string[] {
+  const [y0, m0] = from.split("-").map(Number);
+  return Array.from({ length: n }, (_, i) => {
+    const total = y0 * 12 + (m0 - 1) - i;
+    return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`;
+  });
+}
+
 export function isSeasonKey(v: unknown): v is string {
   return typeof v === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(v);
 }

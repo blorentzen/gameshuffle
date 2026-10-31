@@ -60,3 +60,14 @@ next-env.d.ts
 .env.sentry-build-plugin
 .env*.local
 .lifestyle-candidates/
+
+# Facebook Instant Game build output (scripts/build-instant-game.ts)
+instant-game/dist/
+instant-game/*.zip
+instant-game/facebook-kit/
+instant-game/listing/*.mp4
+
+# Twitch extension build output (scripts/build-twitch-extension.ts)
+twitch-extension/dist/
+twitch-extension/*.zip
+twitch-extension/twitch-kit/

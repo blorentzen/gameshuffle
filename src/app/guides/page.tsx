@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   description:
     "How to run a tournament, host a game night, and get a chat playing along. Practical guides on formats, seeding, mixed skill levels and keeping an evening moving, from the team behind GameShuffle.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "GameShuffle Guides",
     description: "How to run a tournament, host a game night, and get a chat playing along.",
     url: "https://www.gameshuffle.co/guides",

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co${HREF}` },
-  openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
 
@@ -60,9 +60,6 @@ export default function Page() {
         release day. Heroes show as role-colored tiles with names instead of portraits, which keeps a whole team easy to read on
         a phone. Portraits may come later.
       </p>
-
-      <h2>Sharing it</h2>
-      <p><strong>Copy heroes</strong> gives you everyone&apos;s hero, and the map if you rolled one, as text for chat or Discord.</p>
 
       <h2>On stream</h2>
       <p>

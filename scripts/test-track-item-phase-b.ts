@@ -50,8 +50,10 @@ async function main() {
 
   section("/auth/callback — open-redirect allowlist");
 
+  // The allowlist and safeRedirect moved out of the callback into a shared
+  // module (src/lib/auth/redirects.ts) that the callback and /auth/confirm use.
   const callbackSource = await fs.readFile(
-    new URL("../src/app/auth/callback/route.ts", import.meta.url),
+    new URL("../src/lib/auth/redirects.ts", import.meta.url),
     "utf8"
   );
 
@@ -190,7 +192,7 @@ async function main() {
   section("Phase B migration — public-read RLS policies");
 
   const migrationSource = await fs.readFile(
-    new URL("../supabase/phase-b-public-read-policies.sql", import.meta.url),
+    new URL("../supabase/archive/phase-b-public-read-policies.sql", import.meta.url),
     "utf8"
   );
 
@@ -241,8 +243,9 @@ async function main() {
     "utf8"
   );
 
-  await test("signInWithOAuth is called with provider:twitch", () => {
-    assert.match(modalSource, /provider:\s*['"]twitch['"]/);
+  await test("Twitch sign-in starts through startOAuth", () => {
+    // Every Twitch/Discord button goes through startOAuth (src/lib/auth/oauth.ts).
+    assert.match(modalSource, /startOAuth\(\s*['"]twitch['"]/);
   });
 
   await test("Redirect path is built from streamerSlug (not hardcoded)", () => {

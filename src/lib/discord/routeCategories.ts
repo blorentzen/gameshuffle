@@ -23,6 +23,8 @@ export const ROUTE_CATEGORIES: readonly RouteCategoryDef[] = [
   { key: "game_nights", label: "Game nights", desc: "Game-night posts announced from the feed", glyph: "🎮" },
   { key: "weekly", label: "Weekly Challenge", desc: "Monday post: the new Weekly Challenge and last week's winner (only if you route it)", glyph: "🏆" },
   { key: "chatbrain", label: "Chat Brain", desc: "A daily survey question with an Answer button; answers build the boards (only if you route it)", glyph: "🧠" },
+  { key: "trivia", label: "Trivia on stream", desc: "Each question of your stream's trivia night with answer buttons; answers count with chat's (only if you route it)", glyph: "❓" },
+  { key: "lounge", label: "Mario Kart lounge", desc: "Rank-ups and the weekly board for members who confirmed their lounge name (only if you turn them on)", glyph: "🏁" },
   { key: "announcements", label: "Announcements", desc: "Manual + scheduled announcements", glyph: "📣" },
 ] as const;
 

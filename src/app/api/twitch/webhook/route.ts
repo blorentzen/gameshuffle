@@ -16,11 +16,14 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { after } from "next/server";
 import { answerFromChat, openWindowFor, recordGuess } from "@/lib/chatbrain/stream";
+import { answerFromChat as breakAnswerFromChat, endBreakForOwner } from "@/lib/break/store";
+import { answerFromChat as triviaAnswerFromChat } from "@/lib/trivia/stream";
 import { collectionForTwitchSender } from "@/lib/collection/server";
 import { lobbyPicks } from "@/lib/twitch/commands/shuffle";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo, sendChatMessage } from "@/lib/twitch/client";
 import { recordSubscriptionStatus } from "@/lib/twitch/eventsub";
+import { postLiveAlerts } from "@/lib/discord/liveAlerts";
 import { resolveRandomizerSlug } from "@/lib/twitch/categories";
 import { updateRedemptionStatus } from "@/lib/twitch/channelPoints";
 import {
@@ -302,6 +305,8 @@ async function handleNotification(payload: NotificationPayload) {
 
 interface ChatMessageEvent {
   broadcaster_user_id?: string;
+  /** Shared Chat: the channel the message was typed in (null outside a shared session). */
+  source_broadcaster_user_id?: string | null;
   chatter_user_id?: string;
   chatter_user_login?: string;
   chatter_user_name?: string;
@@ -367,14 +372,45 @@ async function handleChatMessage(event: ChatMessageEvent) {
     );
   }
 
+  // Break mode fast lane: while a break round is open in this channel, a
+  // short message shaped like an answer ("1", "over", a year, a name) is that
+  // viewer's answer. Stored silently; the dispatcher never sees it.
+  const consumed = await breakAnswerFromChat({
+    ownerUserId: connection.user_id,
+    platform: "twitch",
+    viewer: senderId,
+    name: event.chatter_user_name || event.chatter_user_login || null,
+    text,
+  }).catch((err) => { console.error("[twitch-webhook] break answer failed", err); return false; });
+  if (consumed) return;
+
+  // Trivia on stream: `!a <answer>` (or a bare letter on a multiple-choice
+  // question) while the streamer's trivia question is open. Silent, before
+  // Chat Brain so `!a` goes to whichever game is actually asking.
+  const triviaTaken = await triviaAnswerFromChat({
+    ownerUserId: connection.user_id,
+    platform: "twitch",
+    viewer: senderId,
+    name: event.chatter_user_name || event.chatter_user_login || null,
+    text,
+  }).catch((err) => { console.error("[twitch-webhook] trivia answer failed", err); return false; });
+  if (triviaTaken) return;
+
   // Chat Brain fast lane: `!a <answer>` (or !answer / !cb <answer>) while a
   // window is open in this channel goes straight to the guess table, skipping
   // the dispatcher and its cooldowns. Silent. No open window → the normal
   // dispatcher handles it (so `!cb` subcommands still work).
+  // In a Twitch Shared Chat session a message can arrive through another
+  // channel's subscription: the channel it was typed in decides which chat it
+  // plays for (a Chat Brain co-stream), else this channel's window.
   const brainAnswer = answerFromChat(text);
-  if (brainAnswer && (await openWindowFor(broadcasterId))) {
+  const source = event.source_broadcaster_user_id || broadcasterId;
+  const brainChannel = brainAnswer
+    ? source !== broadcasterId && (await openWindowFor(source)) ? source : (await openWindowFor(broadcasterId)) ? broadcasterId : null
+    : null;
+  if (brainAnswer && brainChannel) {
     await recordGuess({
-      broadcasterId,
+      broadcasterId: brainChannel,
       platform: "twitch",
       viewer: senderId,
       name: event.chatter_user_name || event.chatter_user_login || null,
@@ -458,6 +494,11 @@ async function maybeWelcomeBack(args: {
 
 interface StreamOnlineEvent {
   broadcaster_user_id?: string;
+  /** The stream's id (Twitch sends it as `id`). */
+  id?: string;
+  broadcaster_user_login?: string;
+  broadcaster_user_name?: string;
+  started_at?: string;
 }
 
 interface StreamOfflineEvent {
@@ -538,6 +579,9 @@ async function markStreamLive(ownerUserId: string, live: boolean) {
 async function handleStreamOnline(event: StreamOnlineEvent) {
   const broadcasterId = event.broadcaster_user_id;
   if (!broadcasterId) return;
+
+  // Discord go-live alerts: any broadcaster someone watches, connected or not.
+  await postLiveAlerts({ ...event, broadcaster_user_id: broadcasterId }).catch((err) => console.error("[twitch-webhook] live alerts failed:", err));
 
   const connection = await getConnectionByTwitchUserId(broadcasterId);
   if (!connection) {
@@ -656,6 +700,9 @@ async function handleStreamOffline(event: StreamOfflineEvent) {
   // Clear the public live flag immediately (independent of the session
   // grace period below — the badge reflects Twitch's actual offline event).
   await markStreamLive(connection.user_id, false);
+
+  // A break can't outlast the stream.
+  await endBreakForOwner(connection.user_id).catch((err) => console.error("[twitch-webhook] break end failed", err));
 
   // Phase 2 grace period: instead of ending the live session immediately,
   // start a 1h grace timer. If stream.online arrives before the timer

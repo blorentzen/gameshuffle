@@ -13,10 +13,9 @@
  * the in-modal picker re-rolls when the face count changes.
  */
 
-import { Modal } from "@empac/cascadeds";
-import { useEffect, useState } from "react";
-import { useMode, useSession } from "@/lib/companion/SessionContext";
-import { rollDie } from "@/lib/companion/rng";
+import { Button, Chip, Modal } from "@empac/cascadeds";
+import { useEffect, useRef, useState } from "react";
+import { useMode, useSession, type DieResult } from "@/lib/companion/SessionContext";
 import { DicePips } from "./DicePips";
 
 const ANIM_MS = 900;
@@ -57,40 +56,16 @@ export function DiceRollModal({ isOpen, onClose }: Props) {
       />
 
       {mode.diceFaceOptions.length > 1 && (
-        <div className="companion-dice-modal__picker">
+        <div className="companion-dice-modal__picker" role="group" aria-label="Die">
           {mode.diceFaceOptions.map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={`companion-dice-modal__picker-btn${
-                faces === n ? " companion-dice-modal__picker-btn--selected" : ""
-              }`}
-              onClick={() => handlePickFaces(n)}
-              disabled={reveal == null}
-            >
-              d{n}
-            </button>
+            <Chip key={n} label={`d${n}`} clickable selected={faces === n} variant={faces === n ? "primary" : "default"} onClick={() => handlePickFaces(n)} disabled={reveal == null} />
           ))}
         </div>
       )}
 
       <div className="companion-dice-modal__actions">
-        <button
-          type="button"
-          className="companion-dice-modal__btn companion-dice-modal__btn--secondary"
-          onClick={onClose}
-          disabled={reveal == null}
-        >
-          Close
-        </button>
-        <button
-          type="button"
-          className="companion-dice-modal__btn companion-dice-modal__btn--primary"
-          onClick={handleRollAgain}
-          disabled={reveal == null}
-        >
-          Roll again
-        </button>
+        <Button variant="secondary" onClick={onClose} disabled={reveal == null}>Close</Button>
+        <Button variant="primary" onClick={handleRollAgain} disabled={reveal == null}>Roll again</Button>
       </div>
     </Modal>
   );
@@ -102,21 +77,28 @@ interface BodyProps {
 }
 
 function DiceRollBody({ faces, onReveal }: BodyProps) {
-  const { dispatch } = useSession();
-  // Pure-React idiom: useState's lazy initializer runs exactly once
-  // per mount, so the RNG fires once and the rendered result is
-  // stable across re-renders.
-  const [value] = useState<number>(() => rollDie(faces));
+  const { dispatch, random } = useSession();
+  // One roll per mount (the ref survives React's dev double-run of effects).
+  // In a shared game the server rolls and logs it for both phones.
+  const [result, setResult] = useState<DieResult | null>(null);
+  const asked = useRef(false);
+  useEffect(() => {
+    if (asked.current) return;
+    asked.current = true;
+    void random.die(faces).then(setResult);
+  }, [random, faces]);
   const [settled, setSettled] = useState(false);
 
   useEffect(() => {
+    if (!result) return;
     const t = setTimeout(() => {
-      dispatch({ type: "LOG_DICE_ROLL", faces, result: value });
+      if (!result.logged) dispatch({ type: "LOG_DICE_ROLL", faces, result: result.value });
       setSettled(true);
-      onReveal(value);
+      onReveal(result.value);
     }, ANIM_MS);
     return () => clearTimeout(t);
-  }, [dispatch, faces, value, onReveal]);
+  }, [dispatch, faces, result, onReveal]);
+  const value = result?.value ?? 1;
 
   // d6 gets the canonical pip face. Larger dice (a future mode might
   // ship d10/d20) fall back to the digit display since there's no

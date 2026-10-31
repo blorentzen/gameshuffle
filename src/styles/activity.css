@@ -82,6 +82,9 @@
   padding-top: var(--spacing-4);
 }
 .gs-activity .daily { max-width: none; margin-bottom: 0; }
+/* Under the pinned tabs instead of the site nav. */
+.gs-activity .daily__guess { top: calc(var(--gs-act-top) + 6rem); }
+.gs-activity .daily__grid tr { scroll-margin-top: calc(var(--gs-act-top) + 14rem); }
 .gs-activity__brain { display: flex; flex-direction: column; gap: var(--spacing-12); }
 .gs-activity__muted { color: var(--text-secondary); font-size: var(--font-size-14); margin: 0; }
 
@@ -132,3 +135,160 @@
 @media (max-width: 30rem) {
   .gs-activity__welcome-modal .empac-modal__footer > * { flex: 1 1 100%; }
 }
+
+/* Trivia tab: the server's trivia night on stream, else a practice round. */
+.gs-activity__trivia { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.gs-activity__trivia-card { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.gs-activity__trivia-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.gs-activity__trivia-title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-bold); flex: 1 1 auto; min-width: 0; }
+.gs-activity__trivia-clock { font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+.gs-activity__trivia-glyph { width: 4.8rem; height: 4.8rem; border-radius: var(--radius-12, 12px); display: grid; place-items: center; background: var(--primary-50, #eef0ff); color: var(--brand-ink, var(--text-primary)); }
+.gs-activity__trivia-prompt { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); line-height: var(--line-height-relaxed, 1.5); }
+.gs-activity__trivia-pic { max-width: 100%; max-height: 22rem; border-radius: var(--radius-12, 12px); object-fit: contain; align-self: flex-start; }
+.gs-activity__trivia-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--spacing-8); }
+.gs-activity__trivia-choices > * { justify-content: flex-start; text-align: left; }
+.gs-activity__trivia-form { display: flex; gap: var(--spacing-8); align-items: center; }
+.gs-activity__trivia-form > :first-child { flex: 1; min-width: 0; }
+.gs-activity__trivia-reveal, .gs-activity__trivia-verdict { margin: 0; font-size: var(--font-size-16); }
+.gs-activity__trivia-verdict.is-correct { color: var(--success-ink); font-weight: var(--font-weight-semibold); }
+.gs-activity__trivia-verdict.is-close { color: var(--warning-ink); font-weight: var(--font-weight-semibold); }
+.gs-activity__trivia-standings, .gs-activity__trivia-recap { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-6); }
+.gs-activity__trivia-standings li { display: flex; justify-content: space-between; gap: var(--spacing-8); font-size: var(--font-size-14); font-variant-numeric: tabular-nums; }
+.gs-activity__trivia-recap li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: var(--spacing-8); font-size: var(--font-size-14); align-items: start; }
+.gs-activity__trivia-recap li.is-correct svg { color: var(--success-ink); }
+.gs-activity__trivia-recap li:not(.is-correct) svg { color: var(--text-tertiary); }
+
+/* Play together: everyone in the call in one room (ActivityRoom). */
+.gs-room { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.gs-room__status { padding: var(--spacing-16) 0; }
+.gs-room__note p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.gs-room__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12); }
+.gs-room__title { display: flex; align-items: center; gap: var(--spacing-8); margin: 0; font-size: var(--font-size-20); font-family: var(--gs-font-display, inherit); }
+.gs-room__sub { margin: var(--spacing-4) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.gs-room__faces { display: flex; align-items: center; gap: var(--spacing-4); flex-wrap: wrap; }
+.gs-room__more { font-size: var(--font-size-12); color: var(--text-secondary); font-weight: var(--font-weight-semibold); }
+.gs-room__waiting { margin: 0; padding: var(--spacing-12) var(--spacing-16); border-radius: var(--radius-12, 12px); background: var(--primary-50, #eef0ff); color: var(--text-primary); font-size: var(--font-size-14); }
+.gs-room__lobby { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.gs-room__games { display: grid; grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr)); gap: var(--spacing-12); }
+.gs-room__game { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.gs-room__game-title { display: flex; align-items: center; gap: var(--spacing-8); margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.gs-room__game-blurb, .gs-room__hint { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.gs-room__form { display: flex; flex-direction: column; gap: var(--spacing-12); margin-top: var(--spacing-4); }
+.gs-room__form--row { flex-direction: row; flex-wrap: wrap; align-items: flex-end; }
+.gs-room__form--row > :first-child { flex: 1 1 16rem; min-width: 0; }
+
+.gs-room__players { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-6); }
+.gs-room__player { display: flex; align-items: center; gap: var(--spacing-8); min-width: 0; font-size: var(--font-size-14); }
+.gs-room__player.is-away { opacity: 0.6; }
+.gs-room__player.is-me .gs-room__pname { font-weight: var(--font-weight-bold); }
+.gs-room__pname { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.gs-room__crown { display: inline-flex; color: var(--warning-ink, #9a5f00); }
+.gs-room__place { width: 3.2rem; flex: 0 0 auto; color: var(--text-secondary); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.gs-room__score { font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+
+.gs-room__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8); }
+.gs-room__progress { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+.gs-room__clock { min-width: 4.4rem; text-align: center; padding: var(--spacing-4) var(--spacing-10, 10px); border-radius: 99px; background: var(--primary-50, #eef0ff); color: var(--brand-ink, var(--text-primary)); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+.gs-room__clock.is-last { background: var(--warning-50, #fff4dd); color: var(--warning-ink, #9a5f00); }
+.gs-room__stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem); gap: var(--spacing-16); align-items: start; }
+@media (max-width: 40rem) { .gs-room__stage { grid-template-columns: minmax(0, 1fr); } }
+.gs-room__round { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--surface-primary, #fff); }
+.gs-room__side { padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--surface-primary, #fff); }
+.gs-room__intro { display: flex; flex-direction: column; gap: var(--spacing-4); padding: var(--spacing-16) 0; text-align: center; }
+.gs-room__eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.gs-room__big { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-bold); font-family: var(--gs-font-display, inherit); text-wrap: balance; }
+.gs-room__answered { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); font-variant-numeric: tabular-nums; }
+.gs-room__points { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-12); font-size: var(--font-size-14); }
+.gs-room__points li { display: inline-flex; align-items: center; gap: var(--spacing-4); }
+.gs-room__host { display: inline-flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.gs-room__done { display: flex; flex-direction: column; gap: var(--spacing-12); align-items: stretch; }
+.gs-room__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+
+.gs-room__rolls { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.gs-room__roll-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr)); gap: var(--spacing-12); }
+.gs-room__roll { display: flex; flex-direction: column; gap: var(--spacing-8); padding: var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--surface-primary, #fff); min-width: 0; }
+.gs-room__roll.is-me { border-color: var(--brand-ink, var(--primary-600)); box-shadow: 0 0 0 1px var(--brand-ink, var(--primary-600)); }
+.gs-room__roll-name { margin: 0; font-weight: var(--font-weight-bold); font-size: var(--font-size-14); }
+.gs-room__slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.4rem, 1fr)); gap: var(--spacing-8); }
+.gs-room__slot { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
+.gs-room__slot-art { width: 100%; aspect-ratio: 1; border-radius: var(--radius-12, 12px); background: var(--surface-secondary, #f2f3f7); }
+.gs-room__slot figcaption { display: flex; flex-direction: column; font-size: var(--font-size-12); line-height: 1.3; overflow-wrap: anywhere; }
+.gs-room__slot figcaption span { color: var(--text-secondary); }
+.gs-room__rerolls { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+.gs-room__setup { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.gs-room__setup-list { margin: 0; padding-left: var(--spacing-20, 20px); display: grid; gap: var(--spacing-4); font-size: var(--font-size-14); }
+/* Five tabs don't fit a phone with icons: labels only below 30rem, so the last tab isn't cut off. */
+@media (max-width: 30rem) {
+  .gs-activity__tabs .empac-tabs__tab-icon { display: none; }
+  .gs-activity__tabs .empac-tabs__tab { padding-inline: var(--spacing-8); }
+}
+/* The live night panels inside the room's card: the card already spaces them. */
+.gs-room__round > .party-section { padding-top: 0; gap: var(--spacing-16); }
+
+/* Who's playing the Daily in this call (DailyCallStrip): squares only, never the guesses. */
+.gs-callstrip { display: flex; flex-direction: column; gap: var(--spacing-8); margin-bottom: var(--spacing-16); }
+.gs-callstrip__label { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.gs-callstrip__scroll { overflow-x: auto; border-radius: var(--radius-12, 12px); }
+.gs-callstrip__scroll:focus-visible { outline: 2px solid var(--border-focus, var(--primary-600)); outline-offset: 2px; }
+.gs-callstrip__list { list-style: none; margin: 0; padding: 0 0 var(--spacing-4); display: flex; gap: var(--spacing-8); width: max-content; }
+.gs-callstrip__player { display: flex; align-items: center; gap: var(--spacing-8); flex: 0 0 auto; padding: var(--spacing-8) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-primary, #fff); }
+.gs-callstrip__player.is-me { border-color: var(--brand-ink, var(--primary-600)); }
+.gs-callstrip__player.is-not_started { opacity: 0.7; }
+.gs-callstrip__text { display: flex; flex-direction: column; line-height: 1.25; }
+.gs-callstrip__name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); white-space: nowrap; }
+.gs-callstrip__status { font-size: var(--font-size-12); color: var(--text-secondary); white-space: nowrap; }
+.gs-callstrip__player.is-solved .gs-callstrip__status { color: var(--success-ink, #137a47); font-weight: var(--font-weight-semibold); }
+.gs-callstrip__rows { display: flex; flex-direction: column; gap: 2px; }
+.gs-callstrip__row { display: flex; gap: 2px; }
+.gs-callstrip__sq { width: 0.8rem; height: 0.8rem; border-radius: 2px; background: var(--border-default, #d7d9e3); }
+.gs-callstrip__sq.is-match { background: #1f9d55; }
+.gs-callstrip__sq.is-close { background: #d9a10b; }
+/* Bingo's card is built for a phone; on a wide Discord window it stays card-sized. */
+.gs-room__round .bingo-live__card { max-width: 44rem; width: 100%; align-self: center; }
+
+/* Chat Brain boards in the room: the board, strikes and the answer box. */
+.gs-room__strikes { display: inline-flex; gap: var(--spacing-4); margin-left: auto; }
+.gs-room__strike { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 6px; border: 1px solid var(--border-default); color: var(--text-tertiary, #9a9cb0); }
+.gs-room__strike.is-on { background: var(--color-error-600, #c62828); border-color: transparent; color: #fff; }
+.gs-room__question { margin: 0; font-size: var(--font-size-20); font-weight: var(--font-weight-bold); line-height: 1.3; text-wrap: balance; }
+.gs-room__board { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); gap: var(--spacing-6, 6px); }
+.gs-room__slot-row { display: grid; grid-template-columns: 2.8rem minmax(0, 1fr) 3.6rem; align-items: center; gap: var(--spacing-8); padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-8, 8px); background: var(--primary-50, #eef0ff); color: var(--text-secondary); }
+.gs-room__slot-row.is-found { background: var(--color-success-50, #e7f6ee); color: var(--text-primary); }
+.gs-room__slot-row.is-missed { background: var(--surface-secondary, #f2f3f7); color: var(--text-primary); }
+.gs-room__slot-rank { font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+.gs-room__slot-label { min-width: 0; overflow-wrap: anywhere; font-weight: var(--font-weight-semibold); }
+.gs-room__slot-label small { font-weight: var(--font-weight-medium, 500); color: var(--text-secondary); }
+.gs-room__slot-points { text-align: right; font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+
+/* "What is this game?" (GameInfo.tsx): a CDS IconButton beside a game's name opens a CDS Popover.
+   The Popover's own trigger is a hidden anchor laid over the button, so the panel lines up with it
+   and the button stays the one control. */
+.gs-gameinfo { position: relative; display: inline-flex; flex: 0 0 auto; vertical-align: middle; }
+.gs-gameinfo .empac-popover-trigger { position: absolute; inset: 0; visibility: hidden; pointer-events: none; }
+.gs-gameinfo .empac-icon-button { color: var(--text-secondary); }
+.gs-gameinfo .empac-icon-button[aria-expanded="true"] { background-color: var(--background-secondary); color: var(--text-primary); }
+/* Never wider than the frame: Discord's window can be 300px wide. */
+.gs-gameinfo__pop.empac-popover { min-width: 0; width: min(32rem, calc(100vw - 16px)); max-width: calc(100vw - 16px); }
+.gs-gameinfo__pop:focus { outline: none; }
+.gs-gameinfo__pop:focus-visible { outline: 2px solid var(--border-focus, var(--primary-600)); outline-offset: 2px; }
+.gs-gameinfo__card { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.gs-gameinfo__title { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-bold); color: var(--text-primary); }
+.gs-gameinfo__body { display: flex; flex-direction: column; gap: var(--spacing-6); }
+.gs-gameinfo__body p { margin: 0; font-size: var(--font-size-14); line-height: 1.45; color: var(--text-primary); }
+.gs-gameinfo__body .gs-gameinfo__meta { margin-top: var(--spacing-2, 2px); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+
+/* A tab's header line: the game's name and its info button. */
+.gs-gameinfo-head { display: flex; align-items: center; gap: var(--spacing-4); min-width: 0; margin-bottom: var(--spacing-12); }
+.gs-gameinfo-head__title { margin: 0; min-width: 0; font-family: var(--gs-font-display, inherit); font-size: var(--font-size-18); font-weight: var(--font-weight-bold); line-height: 1.25; overflow-wrap: anywhere; }
+.gs-activity__brain > .gs-gameinfo-head { margin-bottom: 0; }
+
+/* Play together: the room's title and each lobby card's title with their buttons, and the named lists. */
+.gs-room__title-row,
+.gs-room__game-head { display: flex; align-items: center; gap: var(--spacing-4); min-width: 0; }
+.gs-gameinfo-list { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
+.gs-gameinfo-list__label { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.gs-gameinfo-list__items { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 var(--spacing-12); }
+.gs-gameinfo-list__item { display: inline-flex; align-items: center; gap: var(--spacing-2, 2px); min-width: 0; font-size: var(--font-size-14); color: var(--text-primary); }
+
+/* The corner window shows no game, so no panel either. */
+@media (max-height: 300px) { .gs-gameinfo__pop { display: none; } }

@@ -20,6 +20,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import { AiRecapButton } from "@/components/ai/AiRecapButton";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { GameChipIcon, GameCover } from "@/components/games/GameCover";
+import { SupportMoment } from "@/components/support/SupportMoment";
 
 /**
  * A live party night on one person's phone (or the host's screen). Polls the
@@ -355,6 +356,7 @@ export function LivePartyNight({ code }: { code: string }) {
       )}
 
       {ended && <ChatBrainAsk source="night" eyebrow="Before you go" title="Help write a new party game" />}
+      {ended && <SupportMoment from="night" title="Fun night?" />}
 
       {!ended && me.seat === null && !me.isHost && (
         <section className="party-section">
@@ -684,6 +686,8 @@ export function LivePartyNight({ code }: { code: string }) {
       {me.isHost && !ended && night.hasCards && (
         <section className="party-section party-live__host">
           <h3 className="party-h3">Cards</h3>
+          <p className="party-muted">Want different cards next time? Write your own in{" "}
+            <Link href="/account/stuff?tab=decks" target="_blank">My Stuff ▸ Decks</Link> (opens in a new tab).</p>
           <div className="party-row">
             <Select floatingLabel="Chance cards" value={chanceN} onChange={(v) => setChanceN(String(v))} options={["0", "1", "2", "3", "4"].map((n) => ({ value: n, label: n === "0" ? "None" : `${n} to deal` }))} />
             <Select floatingLabel="Mix" value={mix} onChange={(v) => setMix(String(v))} options={[{ value: "both", label: "Helps and crutches" }, { value: "help", label: "Helps only" }, { value: "crutch", label: "Crutches only" }]} />

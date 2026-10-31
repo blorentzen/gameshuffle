@@ -153,6 +153,34 @@ const BY_PREFIX: { prefix: string; intent: Intent }[] = [
     },
   },
   {
+    prefix: "/account?tab=plans",
+    intent: {
+      action: "start your GS Pro trial",
+      lede: "Free to make, and the trial is 14 days. Cancel any time before it ends.",
+      loginLede: "Sign in, then start your trial from Plans.",
+      points: [
+        "Chat rolls, the OBS overlay and live polls on stream",
+        "Server tools for your Discord",
+        "Your own brand theme on your profile and stream",
+        "No caps on saved setups or tournaments",
+      ],
+    },
+  },
+  {
+    prefix: "/discord/add",
+    intent: {
+      action: "add GameShuffle to Discord",
+      lede: "Free for one server. Sign up with Discord in one tap, then pick your server.",
+      loginLede: "Sign in, then pick the server to add GameShuffle to.",
+      points: [
+        "Play the Daily, the Weekly and Chat Brain together in Discord",
+        "Wordle-style results in your channel, never the answer",
+        "Roll a setup for any game night with /gs-randomize",
+        "Your Daily streak saved to your profile",
+      ],
+    },
+  },
+  {
     prefix: "/hub",
     intent: {
       action: "run your stream",
@@ -262,6 +290,43 @@ const BY_PREFIX: { prefix: string; intent: Intent }[] = [
  * the prefix table.
  */
 const BY_PATTERN: { test: RegExp; intent: Intent }[] = [
+  // The MMR card's "Keep these looks" buttons (try before paying, 2026-10-29): the card waits in this browser.
+  {
+    test: /^\/mmr-card\?(?:.*&)?then=pro(?:&|$)/,
+    intent: {
+      action: "keep your MMR card's looks",
+      lede: "Your card waits in this browser. Next: GS Pro checkout, then back to your card with every look saved.",
+      loginLede: "Your card waits in this browser. Sign in, then GS Pro checkout opens.",
+      points: ["Every look on your card: fonts, colors, your picture, foil", "Twitch and Discord tools and AI with GS Pro", "Your OBS link, ready when you're back"],
+    },
+  },
+  {
+    test: /^\/mmr-card\?(?:.*&)?then=(?:supporter|backer)(?:&|$)/,
+    intent: {
+      action: "keep your MMR card's looks",
+      lede: "Your card waits in this browser. Next: monthly support checkout, then back to your card with every look saved.",
+      loginLede: "Your card waits in this browser. Sign in, then support checkout opens.",
+      points: ["Every look on your card: fonts, colors, your picture, foil", "Monthly support keeps the free games free", "Your OBS link, ready when you're back"],
+    },
+  },
+  {
+    test: /^\/mmr-card\?(?:.*&)?then=free(?:&|$)/,
+    intent: {
+      action: "save your MMR card",
+      lede: "Your card waits in this browser. Make your free account to save it and get your OBS link.",
+      loginLede: "Your card waits in this browser. Sign in to save it and get your OBS link.",
+      points: ["Your card saved to your account", "A private OBS link that follows your lounge MMR live", "Anyone's MMR with /gs-mmr in Discord"],
+    },
+  },
+  {
+    test: /^\/mmr-card(?:\?|$)/,
+    intent: {
+      action: "make your MMR card",
+      lede: "Free. Your lounge MMR on stream, live, from a private OBS link.",
+      loginLede: "Sign in to open your MMR card.",
+      points: ["Your card saved to your account", "A private OBS link that follows your lounge MMR live", "Anyone's MMR with /gs-mmr in Discord"],
+    },
+  },
   {
     test: /^\/tournament\/[^/]+\/manage\/check-in/,
     intent: {

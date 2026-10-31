@@ -85,6 +85,15 @@ export interface SlotState {
    *  Travels with the piece through MOVE_PIECE; cleared on REMOVE_PIECE. */
   cardId: string | null;
   cardImage: string | null;
+  /** The turn this piece came into play or last evolved (turns.number), for
+   *  the "can't evolve the turn it came into play" reminder. Optional: older
+   *  saves and games without turn tracking don't have it. */
+  enteredTurn?: number | null;
+  /** The Pokémon Tool attached, by name (one at a time). */
+  tool?: string | null;
+  /** The card's rules data (attacks, Weakness, Resistance, retreat, types),
+   *  copied from the catalog when placed so the attack picker works offline. */
+  rules?: import("./pokemonRules").CardRules | null;
 }
 
 export interface CoinFlipEntry {
@@ -116,10 +125,16 @@ export interface ExtraConditionDef {
   icon: string;
   /** Hex/CSS color for the badge background. */
   color: string;
+  /** Icon color on that background when white wouldn't read (a light color like yellow). Defaults to white. */
+  ink?: string;
   /** Long-form educational text — surfaced in the Resolve modal so
    *  new players learn what each condition does and how to track it
    *  on their physical cards. Two short sentences is the target. */
   description: string;
+  /** One short line for the icon key ("Can't attack or retreat this turn"). */
+  effect?: string;
+  /** Where the rule is explained in full (a rules page anchor). */
+  learnMore?: string;
   /** Optional mutual-exclusion group. Toggling on a condition in
    *  this group auto-clears any other condition in the same group
    *  on the same slot. Used to enforce Pokémon's "only one of
@@ -176,6 +191,9 @@ export interface SessionState {
    *  RESET_GAME and APPLY_GAME_SETTINGS so a new game starts
    *  un-linked. */
   loadedFromSaveId: string | null;
+  /** Whose turn it is and what they've used this turn. Null until the
+   *  players flip for who goes first (and for older saves). */
+  turn?: import("./pokemonRules").TurnState | null;
 }
 
 /** Direction the win-resource counter moves on a KO. */

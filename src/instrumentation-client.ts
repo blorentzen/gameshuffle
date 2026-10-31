@@ -46,6 +46,16 @@ Sentry.init({
   // Drop any event whose stack originates in an injected in-app-browser script
   // (they run from app:// origins, not ours).
   denyUrls: [/^app:\/\//],
+
+  // Drop errors thrown entirely inside code injected into the page (browser
+  // extensions, userscripts): none of their frames has a web address, e.g. an
+  // extension's "executors/200.js" reading 'M_ID' on /randomizers/overwatch
+  // (GAMESHUFFLE-60, 2026-10-20). Our own code always runs from an http(s) URL.
+  beforeSend(event) {
+    const frames = event.exception?.values?.flatMap((v) => v.stacktrace?.frames ?? []) ?? [];
+    if (frames.length && frames.every((f) => !/^(https?:|webpack|app:\/\/\/_next)/.test(f.filename ?? ""))) return null;
+    return event;
+  },
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

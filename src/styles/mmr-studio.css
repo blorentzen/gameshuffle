@@ -1,0 +1,189 @@
+/*
+ * /mmr-card: the MMR card's page and studio (src/app/mmr-card, src/components/mmr/MmrStudio.tsx).
+ * The containers rule: the preview's stream backdrop is the one boxed surface; the name form,
+ * the choices, the OBS link and the saved looks sit flat under thin lines.
+ */
+
+.mmr-page__body { display: grid; gap: var(--spacing-32); max-width: 112rem; margin: 0 auto; padding: var(--spacing-32) var(--spacing-16) var(--spacing-48); text-align: start; }
+.mmr-page__body h2 { margin: 0; font-size: var(--font-size-24); line-height: 1.2; }
+.mmr-page__body h3 { margin: 0; font-size: var(--font-size-18); }
+.mmr-page__body section { display: grid; gap: var(--spacing-12); min-width: 0; }
+.mmr-page__flat { padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.mmr-page__lede, .mmr-page__body p { margin: 0; font-size: var(--font-size-16); line-height: 1.55; color: var(--text-secondary); max-width: 72ch; }
+.mmr-page__list b, .mmr-page__steps b, .mmr-page__body > section p b, .mmr-page__also b { color: var(--text-primary); }
+.mmr-page__list, .mmr-page__steps { margin: 0; padding-left: 2.2rem; display: grid; gap: var(--spacing-8); font-size: var(--font-size-16); line-height: 1.55; color: var(--text-secondary); max-width: 76ch; }
+.mmr-page__split { display: grid; gap: var(--spacing-20); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .mmr-page__split { grid-template-columns: 1fr 1fr; } }
+.mmr-page__split > div { display: grid; gap: var(--spacing-8); align-content: start; }
+.mmr-page__cta { display: inline-flex; align-items: center; min-height: 4.4rem; padding: 0 var(--spacing-20); border-radius: var(--radius-8, 8px); background: var(--bg-primary, #2766ec); color: var(--text-on-primary, #fff); font-weight: 700; font-size: var(--font-size-16); text-decoration: none; margin-right: var(--spacing-12); }
+.mmr-page__muted { color: var(--text-secondary); font-size: var(--font-size-14); }
+.mmr-page__also { font-size: var(--font-size-14) !important; padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+
+/* The stream-like backdrop the cards sit on. */
+.mmr-stage { border-radius: var(--radius-16, 16px); padding: var(--spacing-20); background: radial-gradient(60% 80% at 80% 20%, rgba(255, 200, 80, .2), transparent 60%), radial-gradient(70% 90% at 10% 90%, rgba(60, 180, 255, .26), transparent 60%), linear-gradient(135deg, #3a2a7a, #1d2f5c 45%, #0f3b39); min-width: 0; }
+.mmr-stage .mmr-frame { display: grid; justify-items: center; }
+.mmr-showcase { display: grid; gap: var(--spacing-24); grid-template-columns: minmax(0, 1fr); }
+.mmr-showcase__item { margin: 0; display: grid; gap: var(--spacing-8); min-width: 0; }
+.mmr-showcase__item figcaption { font-size: var(--font-size-12); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-tertiary); }
+
+/* ── Studio ── */
+.mmr-studio { display: grid; gap: var(--spacing-32); }
+.mmr-studio h2 { margin: 0; font-size: var(--font-size-20); }
+.mmr-studio > section { display: grid; gap: var(--spacing-12); }
+.mmr-studio > section + section, .mmr-studio > * + .mmr-studio__grid, .mmr-studio__grid + section, .mmr-studio__grid + .mmr-studio__use, .mmr-studio__use + section { padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.mmr-studio__find { display: grid; gap: var(--spacing-12); grid-template-columns: minmax(0, 1fr); align-items: end; }
+@media (min-width: 760px) { .mmr-studio__find { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; } }
+.mmr-studio__field { display: grid; gap: var(--spacing-4); min-width: 0; }
+.mmr-studio__field > label { font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); }
+.mmr-studio__note { margin: 0; font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); }
+.mmr-studio__note--warn { color: var(--text-warning, #b45309); }
+.mmr-studio__grid { display: grid; gap: var(--spacing-24); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1100px) { .mmr-studio__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 42rem); } .mmr-studio__view { position: sticky; top: calc(var(--gs-nav-offset, 64px) + 16px); transition: var(--gs-nav-slide, none); } }
+.mmr-studio__view { display: grid; gap: var(--spacing-12); min-width: 0; }
+.mmr-studio__stage { border-radius: var(--radius-16, 16px); padding: var(--spacing-20) var(--spacing-12); background: radial-gradient(60% 80% at 80% 20%, rgba(255, 200, 80, .2), transparent 60%), radial-gradient(70% 90% at 10% 90%, rgba(60, 180, 255, .26), transparent 60%), linear-gradient(135deg, #3a2a7a, #1d2f5c 45%, #0f3b39); min-width: 0; }
+.mmr-studio__stage .mmr-frame { display: grid; justify-items: center; }
+.mmr-studio__try { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
+.mmr-studio__ctl { display: grid; gap: var(--spacing-16); min-width: 0; }
+.mmr-studio__set { display: grid; gap: var(--spacing-8); border: 0; margin: 0; padding: 0 0 var(--spacing-16); border-bottom: 1px solid var(--border-default); min-width: 0; }
+.mmr-studio__set:last-child { border-bottom: 0; }
+.mmr-studio__set legend { padding: 0; margin-bottom: var(--spacing-8); font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.mmr-studio__chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.mmr-studio__pro { font-size: var(--font-size-12); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-accent, #7a3fd0); margin-right: var(--spacing-4); }
+.mmr-studio__pair { display: flex; flex-wrap: wrap; gap: var(--spacing-20); }
+.mmr-studio__swatch { display: inline-flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
+.mmr-studio__upload { display: grid; gap: var(--spacing-8); justify-items: start; font-size: var(--font-size-14); color: var(--text-secondary); }
+.mmr-studio__checks { display: grid; gap: var(--spacing-8); }
+.mmr-studio__link { display: grid; gap: var(--spacing-8); grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.mmr-studio__steps { margin: 0; padding-left: 2.2rem; display: grid; gap: var(--spacing-8); font-size: var(--font-size-16); line-height: 1.5; color: var(--text-secondary); max-width: 76ch; }
+.mmr-studio__switches { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-16); }
+.mmr-studio__look-list { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--border-default); }
+.mmr-studio__look-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--spacing-8) var(--spacing-12); align-items: center; padding: var(--spacing-12) 0; border-bottom: 1px solid var(--border-default); }
+@media (min-width: 760px) { .mmr-studio__look-list li { grid-template-columns: minmax(0, 1fr) auto auto auto; } }
+.mmr-studio__look-game { font-size: var(--font-size-14); color: var(--text-secondary); }
+.mmr-studio__look-on { font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); }
+.mmr-sr-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+.mmr-studio__sub { margin: var(--spacing-16) 0 0; font-size: var(--font-size-16); }
+
+/* Lounge night (picks 2026-10-20): tonight's goal, the weekly report switch, and Share the night. */
+.mmr-studio__goalform { display: grid; gap: var(--spacing-12); grid-template-columns: minmax(0, 1fr); align-items: end; max-width: 64rem; }
+@media (min-width: 760px) { .mmr-studio__goalform { grid-template-columns: minmax(0, 1fr) auto auto; } }
+.mmr-studio__share { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); }
+.mmr-studio__share .mmr-studio__note { flex: 1 1 28rem; }
+
+/* The choices beside the preview, in three tabs: Look, What's on the card, Moments ("What's on the card" picks, 2026-10-21). */
+.mmr-studio__tabs { min-width: 0; max-width: 100%; }
+.mmr-studio__tabs .empac-tabs__header { overflow-x: auto; max-width: 100%; }
+.mmr-studio__tabs .empac-tabs__tab { flex: none; white-space: nowrap; }
+@media (max-width: 400px) { .mmr-studio__tabs .empac-tabs__tab { padding-inline: var(--spacing-8); } }
+.mmr-studio__pane { display: grid; gap: var(--spacing-16); min-width: 0; }
+.mmr-info .empac-switch-helper { font-size: var(--font-size-14); line-height: 1.4; }
+.mmr-info { display: grid; gap: var(--spacing-16); min-width: 0; }
+.mmr-info__list { display: grid; gap: var(--spacing-12); }
+.mmr-info__piece { display: grid; gap: var(--spacing-8); min-width: 0; }
+.mmr-info__label { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.mmr-info__sub { padding-left: 5.2rem; }
+.mmr-studio__tag { display: inline-flex; align-items: center; padding: 0.2rem 0.8rem; border-radius: 99rem; font-size: var(--font-size-12); font-weight: 700; letter-spacing: .04em; line-height: 1.5; }
+.mmr-studio__tag--new { background: var(--primary-100, #e0ebff); color: var(--primary-800, #1c2882); }
+.mmr-studio__tag--pro { background: color-mix(in srgb, var(--accent-500, #c949e9) 14%, #fff); color: #6a2fc0; }
+.mmr-order { display: grid; border-top: 1px solid var(--border-default); }
+.mmr-order__row { display: flex; align-items: center; gap: var(--spacing-8); min-height: 4.4rem; padding: var(--spacing-4) 0; border-bottom: 1px solid var(--border-default); background: var(--surface-default, transparent); }
+.mmr-order__name { flex: 1; min-width: 0; font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); }
+.mmr-order__own { font-size: var(--font-size-12); color: var(--text-secondary); white-space: nowrap; }
+
+/* Rolling's own choices, under Layout in the Look tab (rolling picks 2026-10-21). */
+.mmr-rolling-ctl { display: grid; gap: var(--spacing-16); margin-top: var(--spacing-8); padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); min-width: 0; }
+.mmr-rolling-ctl__fold { border-bottom: 1px solid var(--border-default); }
+.mmr-rolling-ctl__times { display: grid; gap: var(--spacing-8); grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
+.mmr-rolling-ctl__fold .empac-accordion__trigger { padding: var(--spacing-12) 0; min-height: 44px; }
+.mmr-rolling-ctl__fold .empac-accordion__trigger-title { font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.mmr-rolling-ctl__fold .empac-accordion__content-inner { padding: 0 0 var(--spacing-16); }
+
+/* Feedback round (2026-10-29): Line up, border color, Any Google Font. */
+.mmr-studio__inline { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-8); }
+.mmr-studio__inline-label { font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); }
+.mmr-studio__fontpick { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-8); }
+.mmr-studio__fontform { display: grid; gap: var(--spacing-12); grid-template-columns: minmax(0, 1fr); align-items: end; }
+@media (min-width: 560px) { .mmr-studio__fontform { grid-template-columns: minmax(0, 1fr) auto; } }
+
+/* Keep these looks (try before paying, 2026-10-29; tightened the same day): one panel under the preview, the two
+   choices side by side once the panel has room (a container query, so it follows the studio's column). */
+.keep-looks { display: grid; gap: var(--spacing-16); }
+.keep-looks__head { display: flex; align-items: center; gap: var(--spacing-12); }
+.keep-looks__title { margin: 0; font-size: var(--font-size-18); }
+.keep-looks__used { margin: var(--spacing-4) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.keep-looks__choices { container-type: inline-size; }
+.keep-looks__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-16); }
+.keep-looks__choice + .keep-looks__choice { padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
+@container (min-width: 460px) {
+  .keep-looks__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--spacing-20); }
+  .keep-looks__choice + .keep-looks__choice { padding-top: 0; border-top: 0; }
+}
+.keep-looks__choice { display: grid; grid-template-rows: auto 1fr auto; gap: var(--spacing-8); min-width: 0; }
+.keep-looks__name { margin: 0; font-family: var(--font-display); font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.keep-looks__price { display: block; margin-top: var(--spacing-2); font-family: var(--font-body, inherit); font-size: var(--font-size-14); font-weight: 600; color: var(--text-secondary); }
+.keep-looks__line { margin: 0; font-size: var(--font-size-14); line-height: 1.45; color: var(--text-secondary); }
+.keep-looks__check { display: grid; gap: var(--spacing-8); }
+.keep-looks__free { margin: 0; padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); font-size: var(--font-size-14); color: var(--text-secondary); }
+.keep-looks__outside { display: grid; gap: var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.keep-looks .empac-button { white-space: normal; height: auto; min-height: 4rem; text-align: center; }
+/* MKCentral's credit for the division medals, under the line above it. */
+.mmr-page__credit { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* ── Studio rounds 1 and 2 (2026-10-30, picks https://claude.ai/artifact/LhQzo8t9w4LNPRkbHodt1s): one rhythm.
+   Section headings 20px, 24px and a thin line between sections, 16px between groups, fields 48px, chips 32px,
+   notes 14px under what they explain. ── */
+
+/* Start from a ready-made card: six CDS cards, three across on tablets, a sideways row on phones. */
+.mmr-starts { display: grid; gap: var(--spacing-12); min-width: 0; }
+.mmr-starts__row { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 1000px) { .mmr-starts__row { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 639px) {
+  .mmr-starts__row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: var(--spacing-8); }
+  .mmr-starts__row > .mmr-start { flex: 0 0 min(46%, 18rem); scroll-snap-align: start; }
+}
+.mmr-start.empac-card { display: grid; gap: var(--spacing-4); align-content: start; text-align: start; min-width: 0; }
+/* The pictures are 4:3 with the backdrop drawn in, so they set the box's height themselves. Never `aspect-ratio`
+   here: inside the CDS card's button it made Chrome spend over a minute on one layout when the studio changed. */
+.mmr-start__pic { display: block; margin-bottom: var(--spacing-4); border-radius: var(--radius-8, 8px); overflow: hidden; background: #1d2f5c; }
+.mmr-start__pic img { display: block; width: 100%; height: auto; }
+.mmr-start__name { font-size: var(--font-size-16); font-weight: 700; line-height: 1.25; color: var(--text-primary); }
+.mmr-start__note { font-size: var(--font-size-14); line-height: 1.35; color: var(--text-secondary); }
+
+/* Under the preview: the card's size in OBS, beside the link. */
+.mmr-studio__obsline { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--spacing-8) var(--spacing-12); padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); font-size: var(--font-size-14); color: var(--text-secondary); }
+.mmr-studio__obsline b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* Style and More: dropdowns two across, on one edge. */
+.mmr-studio__two { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 420px) { .mmr-studio__two { grid-template-columns: minmax(0, 1fr); } }
+.mmr-studio__more { display: grid; gap: var(--spacing-16); padding: var(--spacing-8) 0 var(--spacing-16); }
+
+/* Folded groups: the title on the left, how many are on beside the arrow. */
+.mmr-fold { border-bottom: 1px solid var(--border-default); }
+.mmr-fold .empac-accordion__trigger { padding: var(--spacing-12) 0; min-height: 4.8rem; }
+.mmr-fold .empac-accordion__content-inner { padding: 0 0 var(--spacing-16); }
+.mmr-fold__title { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-12); width: 100%; font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.mmr-fold__count { margin-left: auto; padding-right: var(--spacing-12); font-size: var(--font-size-14); font-weight: 400; color: var(--text-secondary); white-space: nowrap; }
+
+/* How many details are on, against the layout's room. */
+.mmr-meter-wrap { display: grid; gap: var(--spacing-8); }
+.mmr-meter { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); border-radius: var(--radius-8, 8px); background: var(--bg-secondary, #eef1f8); font-size: var(--font-size-14); color: var(--text-secondary); }
+.mmr-meter b { font-size: var(--font-size-16); color: var(--text-primary); }
+.mmr-meter__marks { display: inline-flex; gap: var(--spacing-4); }
+.mmr-meter__marks i { width: 2.2rem; height: .6rem; border-radius: 99rem; background: var(--border-default); }
+.mmr-meter__marks i.on { background: var(--bg-primary, #2f5bea); }
+
+/* Tonight's goal, under its switch. */
+.mmr-studio__goal { display: grid; gap: var(--spacing-8); }
+.mmr-studio__goal .mmr-studio__goalform { max-width: none; }
+
+/* Below the studio: Add it to OBS beside After the stream. */
+.mmr-studio__use { display: grid; gap: var(--spacing-24); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .mmr-studio__use { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+/* Lined up with the preview and the controls above. */
+@media (min-width: 1100px) { .mmr-studio__use { grid-template-columns: minmax(0, 1fr) minmax(0, 42rem); } }
+.mmr-studio__use > section, .mmr-studio__after { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; }
+.mmr-studio__item { display: grid; gap: var(--spacing-8); min-width: 0; }
+.mmr-studio__item + .mmr-studio__item { padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); }
+.mmr-studio__after .mmr-studio__sub { margin: 0; }
+@media (max-width: 899px) { .mmr-studio__after { padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); } }

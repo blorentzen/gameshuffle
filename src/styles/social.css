@@ -1,0 +1,311 @@
+/*
+ * /social/daily — the 9:16 stage the Daily's social videos are filmed from
+ * (DailySocialStage.tsx). It reuses the hero's ground (.browse-hero in
+ * events.css: gradient, auroras, glyph field) recomposed for a portrait frame,
+ * and sizes everything in vw/vh so any 9:16 window films the same picture.
+ * Text keeps clear of the top 11% and bottom 20%, where Reels, Shorts and
+ * TikTok put their own buttons.
+ *
+ * Nothing moves until the root has `go`; every step is timed from then.
+ */
+
+.social-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11vh 8vw 20vh;
+  text-align: center;
+  background: radial-gradient(120% 115% at 50% 42%, var(--primary-900, #1c1e5f) 0%, #0b0d14 72%);
+}
+/* The two auroras, moved to opposite corners of the tall frame. */
+.social-stage::before { top: -22vmax; left: -16vmax; width: 72vmax; height: 72vmax; }
+.social-stage::after { top: auto; bottom: -26vmax; right: -18vmax; width: 72vmax; height: 72vmax; }
+.social-stage > div { position: relative; z-index: 1; }
+
+.social-stage__top { display: flex; flex-direction: column; align-items: center; }
+.social-stage__logo { width: 52vw; height: auto; }
+.social-stage__eyebrow { margin: 2.2vh 0 0; font: 600 3.4vw/1.2 var(--font-body); letter-spacing: 0.14em; text-transform: uppercase; color: #aab0ff; }
+
+.social-stage__mid { position: relative; flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.social-stage__label {
+  margin: 0;
+  padding: 0.8vh 3.2vw;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  font: 600 3.2vw/1.2 var(--font-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #d6d9f6;
+  background: rgba(255, 255, 255, 0.06);
+}
+.social-stage__hint { margin: 3.2vh 0 0; width: 100%; font: 700 7.6vw/1.2 var(--font-display); color: #fff; text-wrap: balance; }
+.social-stage__line { display: block; overflow: hidden; padding-bottom: 0.12em; }
+.social-stage__line > span { display: inline-block; }
+/* The hidden copy the lines are measured in: same width and type, never seen. */
+.social-stage__measure { position: absolute; left: 0; right: 0; visibility: hidden; pointer-events: none; }
+.social-stage__ask { margin: 3.6vh 0 0; font: 500 4.6vw/1.3 var(--font-body); color: #d6d9f6; }
+
+.social-stage__cta { display: flex; flex-direction: column; align-items: center; }
+.social-stage__pill {
+  display: inline-block;
+  padding: 1.6vh 6vw;
+  border-radius: 999px;
+  font: 700 4.6vw/1.2 var(--font-display);
+  color: #141a4a;
+  background: #fff;
+  box-shadow: 0 1vh 4vh rgba(0, 0, 0, 0.35);
+}
+.social-stage__sub { margin: 1.8vh 0 0; font: 500 3.3vw/1.3 var(--font-body); color: #c3c7ef; }
+
+/* Before `go`: everything waits off. */
+.social-stage:not(.go) :is(.social-stage__logo, .social-stage__eyebrow, .social-stage__label, .social-stage__ask, .social-stage__pill, .social-stage__sub) { opacity: 0; }
+.social-stage:not(.go) .social-stage__line > span { transform: translateY(105%); }
+
+@keyframes social-fade { from { opacity: 0; transform: translateY(1.6vh); } to { opacity: 1; transform: none; } }
+@keyframes social-rise { from { transform: translateY(105%); } to { transform: none; } }
+@keyframes social-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+
+.go .social-stage__logo { animation: social-fade 0.9s 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__eyebrow { animation: social-fade 0.9s 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__label { animation: social-fade 0.8s 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__line > span { animation: social-rise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__ask { animation: social-fade 0.9s var(--ask-at, 5s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .social-stage__pill {
+  animation: social-fade 0.9s var(--cta-at, 6s) cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    social-pulse 2.2s calc(var(--cta-at, 6s) + 1.6s) ease-in-out 2;
+}
+.go .social-stage__sub { animation: social-fade 0.9s calc(var(--cta-at, 6s) + 0.25s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .go :is(.social-stage__logo, .social-stage__eyebrow, .social-stage__label, .social-stage__ask, .social-stage__pill, .social-stage__sub, .social-stage__line > span) { animation: none; }
+}
+
+/*
+ * /social/winners — yesterday's top 5 (WinnersStage.tsx). The same ground and
+ * safe areas; each part (intro, a daily's countdown, the end card) fills the
+ * space under the logo in turn, timed from `go` by --at / --len.
+ */
+.winners-stage { justify-content: flex-start; }
+.winners-logo { width: 40vw; }
+.winners-scene {
+  position: absolute;
+  z-index: 1;
+  left: 7vw;
+  right: 7vw;
+  top: calc(11vh + 10vw);
+  bottom: 20vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+}
+.winners-scene .social-stage__eyebrow { margin: 0; }
+/* The Dex's part keeps its own warm label (its colors, as on its share image). */
+.winners-scene--dex .social-stage__eyebrow { color: #ffc98f; }
+.winners-scene--fire .social-stage__eyebrow { color: #ffb48a; }
+.winners-scene--duel .social-stage__eyebrow { color: #ffe08a; }
+.winners-big { margin: 0; font: 800 11vw/1.04 var(--font-display); color: #fff; text-wrap: balance; }
+.winners-date { margin: 2.4vh 0 0; font: 500 4.8vw/1.3 var(--font-body); color: #d6d9f6; }
+.winners-scene--end .social-stage__pill { margin-top: 4vh; }
+
+.winners-answer {
+  margin: 1.8vh 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2.6vw;
+  padding: 0.9vh 4.4vw 0.9vh 1.2vh;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  font: 500 4.2vw/1.2 var(--font-body);
+  color: #e6e8ff;
+}
+.winners-answer strong { font-weight: 700; color: #fff; }
+.winners-answer__art { width: 10vw; height: 10vw; object-fit: contain; border-radius: 50%; background: rgba(255, 255, 255, 0.1); }
+.winners-answer .type-tile { width: 10vw; height: 10vw; border-radius: 2.4vw; }
+.winners-answer .type-tile svg { width: 6vw; height: 6vw; }
+/* Fire Round has no answer: a flame tile and what the round was. */
+.winners-answer__tile { width: 10vw; height: 10vw; flex: none; border-radius: 2.4vw; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #d9363e, #ff7a2f); }
+.winners-answer__tile svg { width: 6vw; height: 6vw; }
+
+/* The Daily Duel: the day's trainer's picture (their card's art) where the puzzles show the answer. */
+.winners-trainer { margin: 1.8vh 0 0; display: inline-flex; align-items: center; gap: 3.6vw; padding: 0.9vh 4.4vw 0.9vh 0.9vh; border-radius: 3.4vw; border: 1px solid rgba(255, 224, 138, 0.35); background: rgba(255, 255, 255, 0.08); }
+.winners-trainer__art { width: 26vw; aspect-ratio: 5 / 2; border-radius: 2vw; box-shadow: 0 0 0 0.5vw #f5c84c; }
+.winners-trainer__line { margin: 0; display: grid; gap: 0.2vh; text-align: left; font: 500 3.6vw/1.15 var(--font-body); color: #e6e8ff; }
+.winners-trainer__line strong { font: 800 4.6vw/1.1 var(--font-display); color: #fff; }
+.winners-rows { list-style: none; margin: 3vh 0 0; padding: 0; width: 100%; display: grid; gap: 1.4vh; }
+.winners-row {
+  display: grid;
+  grid-template-columns: 9vw 11vw minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 3vw;
+  padding: 1.5vh 3.6vw;
+  border-radius: 4vw;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  text-align: left;
+}
+.winners-row--first {
+  border-color: rgba(255, 214, 102, 0.5);
+  background: linear-gradient(90deg, rgba(255, 214, 102, 0.22), rgba(255, 255, 255, 0.06));
+  box-shadow: 0 0 6vw rgba(255, 200, 80, 0.2);
+}
+.winners-row__place {
+  position: relative;
+  width: 9vw;
+  height: 9vw;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font: 800 4.8vw/1 var(--font-display);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+.winners-row--p1 .winners-row__place { color: #3d2a00; background: linear-gradient(135deg, #ffe08a, #e2a91b); }
+.winners-row--p2 .winners-row__place { color: #2a2f40; background: linear-gradient(135deg, #f1f3f8, #aeb4c6); }
+.winners-row--p3 .winners-row__place { color: #3a1f08; background: linear-gradient(135deg, #f3c39a, #b8743d); }
+.winners-row__crown {
+  position: absolute;
+  left: 50%;
+  top: -5.6vw;
+  width: 6.4vw;
+  height: 6.4vw;
+  color: #ffd666;
+  transform: translateX(-50%) rotate(-12deg);
+  filter: drop-shadow(0 0.4vh 0.8vh rgba(0, 0, 0, 0.35));
+}
+.winners-row__avatar { width: 11vw; height: 11vw; border-radius: 50%; object-fit: cover; background: rgba(255, 255, 255, 0.1); }
+.winners-row__avatar--initial { display: grid; place-items: center; font: 700 4.8vw/1 var(--font-display); color: #fff; }
+.winners-row__who { min-width: 0; display: grid; gap: 0.8vh; }
+.winners-row__name { overflow: hidden; font: 700 5vw/1.15 var(--font-display); color: #fff; white-space: nowrap; text-overflow: ellipsis; }
+.winners-row--first .winners-row__name { font-size: 5.6vw; }
+.winners-row__dots { display: flex; gap: 1.2vw; }
+.winners-row__dot { width: 2.8vw; height: 2.8vw; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.35); }
+.winners-row__dot--miss { border-color: transparent; background: rgba(255, 255, 255, 0.4); }
+.winners-row__dot--win { border-color: transparent; background: #4ade80; }
+.winners-row__dot--save { border-color: transparent; background: #fbbf24; }
+.winners-row__stats { display: grid; justify-items: end; gap: 0.6vh; font: 600 3.9vw/1.1 var(--font-body); color: #e6e8ff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.winners-row__stats span { display: inline-flex; align-items: center; gap: 1vw; }
+.winners-row__stats svg { width: 4.2vw; height: 4.2vw; }
+.winners-row__streak { color: #ffb36b; }
+.winners-row__fire { font: 600 3.6vw/1.2 var(--font-body); color: #ffd3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.winners-row__score { font: 800 4.8vw/1 var(--font-display); color: #fff; }
+.winners-row__duel { font-size: 3.4vw; line-height: 1.1; }
+
+/* A later game's ground (the Dex's warm, Fire Round's ember), faded in over the first game's for its part of the video. */
+.winners-stage > .winners-warm { position: absolute; inset: 0; z-index: 0; opacity: 0; pointer-events: none; }
+.winners-stage .winners-warm__in { position: absolute; inset: 0; background: radial-gradient(120% 115% at 50% 42%, var(--primary-900, #1c1e5f) 0%, #0b0d14 72%); }
+.winners-stage .winners-warm__in::before { top: -22vmax; left: -16vmax; width: 72vmax; height: 72vmax; }
+.winners-stage .winners-warm__in::after { top: auto; bottom: -26vmax; right: -18vmax; width: 72vmax; height: 72vmax; }
+
+/* Timing: nothing shows before `go`. */
+.winners-stage:not(.go) :is(.winners-in, .winners-row) { opacity: 0; }
+@keyframes winners-scene { 0% { opacity: 0; } 6% { opacity: 1; } 94% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes winners-appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes winners-vanish { from { opacity: 1; } to { opacity: 0; } }
+@keyframes winners-slide { from { opacity: 0; transform: translateX(-7vw); } to { opacity: 1; transform: none; } }
+@keyframes winners-pop { 0% { opacity: 0; transform: scale(0.84); } 70% { opacity: 1; transform: scale(1.04); } 100% { opacity: 1; transform: none; } }
+.winners-stage.go .winners-scene { animation: winners-scene var(--len) linear var(--at) both; }
+.winners-stage.go .winners-scene--end { animation: winners-appear 0.5s ease var(--at) both; }
+.winners-stage.go .winners-in { animation: social-fade 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) var(--at) both; }
+.winners-stage.go .winners-row { animation: winners-slide 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) var(--at) both; }
+.winners-stage.go .winners-row--first { animation: winners-pop 0.75s cubic-bezier(0.2, 1.4, 0.3, 1) var(--at) both; }
+.winners-stage.go .winners-warm { animation: winners-appear 0.7s ease var(--warm-in) both; }
+.winners-stage.go .winners-warm__in { animation: winners-vanish 0.7s ease var(--warm-out) both; }
+
+.winners-stage .winners-empty { margin: auto 0; display: grid; justify-items: center; gap: 4vh; }
+.winners-empty__text { margin: 0; max-width: 34ch; font: 600 4.6vw/1.4 var(--font-body); color: #d6d9f6; }
+
+/* The start screen for filming on a phone (not in the video). */
+.winners-start { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 1.6rem; background: rgba(8, 10, 24, 0.74); backdrop-filter: blur(6px); }
+.winners-start__card {
+  width: min(100%, 44rem);
+  display: grid;
+  gap: 1.2rem;
+  padding: 2.4rem 2rem;
+  border-radius: 1.6rem;
+  color: var(--text-primary, #171a2e);
+  background: var(--surface-default, #fff);
+  box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.4);
+}
+.winners-start__title { margin: 0; font: 700 var(--font-size-24)/1.2 var(--font-display); }
+.winners-start__date { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.winners-start__steps { margin: 0; padding-left: 2rem; display: grid; gap: 0.6rem; font-size: var(--font-size-16); line-height: 1.45; }
+.winners-start__actions { display: flex; flex-wrap: wrap; gap: 1rem; }
+
+/*
+ * /social/clip — "tool moment" videos (ClipStage.tsx): the hook, one of our
+ * pages in a phone-sized window, then the pill. Same ground and safe areas.
+ */
+/* overflow: clip, not hidden: a page that scrolls something into view must not move the stage. */
+.clip-stage { justify-content: flex-start; gap: 2.4vh; overflow: clip; }
+.clip-stage__top { display: flex; flex-direction: column; align-items: center; gap: 1.6vh; }
+.clip-stage__logo { width: 34vw; }
+.clip-stage__hook { margin: 0; max-width: 88vw; font: 800 6.6vw/1.12 var(--font-display); color: #fff; text-wrap: balance; }
+.clip-stage__window {
+  position: relative;
+  flex: 1;
+  width: 84vw;
+  min-height: 0;
+  overflow: clip;
+  border-radius: 5vw;
+  border: 0.6vw solid rgba(255, 255, 255, 0.22);
+  background: var(--bg-primary, #f6f6fa);
+  box-shadow: 0 2vh 6vh rgba(0, 0, 0, 0.45);
+}
+.clip-stage__page { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; background: #fff; }
+/*
+ * At the end the window shrinks up and the pill lands on the ground under it,
+ * still above the platforms' buttons (Britton's pick, 2026-10-19: nothing
+ * covers the page; it used to float over the window's bottom).
+ */
+.clip-stage > .clip-stage__cta { position: absolute; z-index: 2; left: 0; right: 0; bottom: 20.5vh; display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+@keyframes clip-dock { to { margin-bottom: 13vh; } }
+
+.clip-stage:not(.go) :is(.clip-stage__hook, .clip-stage__window) { opacity: 0; }
+/*
+ * The end card (announce videos, 2026-10-23): at --cta-at the window steps away, the hook or
+ * caption goes, and a card takes the frame between the safe areas: logo, title, lines, then the
+ * pill on its own row above the platforms' buttons (nothing lands on the window's edge).
+ */
+.clip-stage > .clip-stage__end { position: absolute; z-index: 2; left: 8vw; right: 8vw; top: 13vh; bottom: 32vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.6vh; pointer-events: none; }
+.clip-stage__end-logo { width: 44vw; height: auto; }
+.clip-stage__end-title { margin: 0; font: 800 10.4vw/1.05 var(--font-display); color: #fff; text-wrap: balance; }
+.clip-stage__end-lines { list-style: none; margin: 0.6vh 0 0; padding: 0; display: grid; gap: 1.8vh; width: 100%; }
+.clip-stage__end-lines li { box-sizing: border-box; display: flex; align-items: center; gap: 3vw; padding: 1.5vh 4vw; border-radius: 3vw; background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); font: 600 4.4vw/1.25 var(--font-body); color: #eef0ff; text-align: start; }
+.clip-stage__end-lines li::before { content: ""; flex: none; width: 2.6vw; height: 2.6vw; border-radius: 50%; background: #f5c84c; box-shadow: 0 0 2vw rgba(245, 200, 76, 0.6); }
+.clip-stage--card > .clip-stage__cta { bottom: 22vh; }
+.clip-stage--card .social-stage__pill { padding: 2vh 7vw; font-size: 5.4vw; }
+.clip-stage:not(.go) .clip-stage__end > * { opacity: 0; }
+@keyframes clip-away { to { opacity: 0; transform: translateY(-3vh) scale(0.9); } }
+@keyframes clip-gone { to { opacity: 0; } }
+.go.clip-stage--card .clip-stage__window { animation: clip-rise 0.8s 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both, clip-away 0.55s var(--cta-at, 16s) cubic-bezier(0.4, 0, 0.6, 1) both; }
+.go.clip-stage--card .clip-stage__top { animation: clip-gone 0.35s var(--cta-at, 16s) ease forwards; }
+.go .clip-stage__end > * { animation: social-fade 0.7s calc(var(--cta-at, 16s) + 0.35s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .clip-stage__end-title { animation-delay: calc(var(--cta-at, 16s) + 0.5s); }
+.go .clip-stage__end-lines > li { animation: social-fade 0.6s calc(var(--cta-at, 16s) + 0.8s + var(--i, 0) * 0.35s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .clip-stage__end-lines { animation: none; }
+.go.clip-stage--card .clip-stage__cta .social-stage__pill { animation: social-fade 0.8s calc(var(--cta-at, 16s) + 2s) cubic-bezier(0.2, 0.8, 0.2, 1) both, social-pulse 2.2s calc(var(--cta-at, 16s) + 3.2s) ease-in-out 1; }
+
+/* The recorder's tap dot and captions (scripts/.tmp/rec/social-clip.cjs): a finger to follow, and what's happening in words, in the hook's place. */
+.clip-finger { position: absolute; z-index: 3; left: 50%; top: 60%; width: 7.5vw; height: 7.5vw; margin: -3.75vw 0 0 -3.75vw; border-radius: 50%; background: rgba(255, 255, 255, 0.5); border: 0.5vw solid #fff; box-shadow: 0 0.6vh 2vh rgba(0, 0, 0, 0.35); opacity: 0; pointer-events: none; transition: left 0.38s cubic-bezier(0.3, 0.7, 0.2, 1), top 0.38s cubic-bezier(0.3, 0.7, 0.2, 1), opacity 0.25s ease; }
+.clip-finger.is-on { opacity: 1; }
+.clip-finger.is-tap { animation: clip-tap 0.45s ease; }
+@keyframes clip-tap { 0% { transform: scale(1); } 35% { transform: scale(0.7); background: rgba(255, 255, 255, 0.9); } 100% { transform: scale(1); } }
+.clip-stage__top { position: relative; }
+.clip-stage__top.has-caption .clip-stage__hook { animation: clip-hook-out 0.3s ease forwards !important; }
+@keyframes clip-hook-out { to { opacity: 0; } }
+.clip-caption { position: absolute; left: 50%; top: calc(34vw * 46 / 335 + 1.6vh); width: 88vw; margin: 0; transform: translateX(-50%); font: 800 6.6vw/1.12 var(--font-display); color: #fff; text-wrap: balance; opacity: 0; }
+.clip-caption.is-in { animation: clip-caption-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes clip-caption-in { from { opacity: 0; transform: translate(-50%, 1.2vh); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes clip-rise { from { opacity: 0; transform: translateY(4vh) scale(0.97); } to { opacity: 1; transform: none; } }
+.go .clip-stage__logo { animation: social-fade 0.7s 0.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .clip-stage__hook { animation: social-fade 0.8s 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .clip-stage__window { animation: clip-rise 0.8s 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both, clip-dock 0.7s var(--cta-at, 16s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.go .clip-stage__cta .social-stage__pill { animation: social-fade 0.8s var(--cta-at, 16s) cubic-bezier(0.2, 0.8, 0.2, 1) both, social-pulse 2.2s calc(var(--cta-at, 16s) + 1.2s) ease-in-out 1; }
+.go .clip-stage__cta .social-stage__sub { animation: social-fade 0.8s calc(var(--cta-at, 16s) + 0.25s) cubic-bezier(0.2, 0.8, 0.2, 1) both; }

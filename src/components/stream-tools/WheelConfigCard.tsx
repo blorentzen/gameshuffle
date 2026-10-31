@@ -10,10 +10,11 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Button, Input } from "@empac/cascadeds";
+import { Button, Input, Select } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { Wheel, WheelSegment } from "@/lib/wheels/types";
 
+const NEW_WHEEL = "new";
 const MAX_SEGMENTS = 60;
 const MAX_LABEL = 60;
 
@@ -117,19 +118,13 @@ export function WheelConfigCard({ live }: { live?: ReactNode }) {
       <h3 className="stream-tools__heading">🎡 Wheel</h3>
 
       <div className="stream-tools__row">
-        <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-          Editing
-          <select
-            value={selectedId}
-            onChange={(e) => onSelect(e.target.value)}
-            style={{ height: 34, borderRadius: 8, border: "1px solid var(--border-default)", padding: "0 var(--spacing-8)", background: "var(--surface-default)", color: "var(--text-primary)" }}
-          >
-            <option value="">New wheel…</option>
-            {wheels.map((w) => (
-              <option key={w.id} value={w.id}>{w.name}</option>
-            ))}
-          </select>
-        </label>
+        {/* CDS Select treats "" as no choice, so "new" stands in for a new wheel. */}
+        <Select
+          floatingLabel="Editing"
+          value={selectedId || NEW_WHEEL}
+          onChange={(v) => onSelect(v === NEW_WHEEL ? "" : String(v))}
+          options={[{ value: NEW_WHEEL, label: "New wheel" }, ...wheels.map((w) => ({ value: w.id, label: w.name }))]}
+        />
         <Input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} placeholder="Wheel name" />
       </div>
 
@@ -192,7 +187,7 @@ export function WheelConfigCard({ live }: { live?: ReactNode }) {
         </Button>
         <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
           Colors, theme &amp; viewer entries in{" "}
-          <Link href="/account/streamer?tab=wheels">Account → Wheels</Link>.
+          <Link href="/account/streaming?tab=wheels">Streaming ▸ Overlay ▸ Wheels</Link>.
         </span>
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Container, Input, Textarea, Select, Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -19,6 +19,13 @@ export default function SubmitIdeaPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<IdeaCategory>("game_idea");
+  // Links can preselect a category (/discord's "Suggest it" sends ?category=randomizer).
+  // One read of the URL after hydration (as on /signup), not a cascading render.
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get("category");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (c && (IDEA_CATEGORIES as readonly string[]).includes(c)) setCategory(c as IdeaCategory);
+  }, []);
   const [token, setToken] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

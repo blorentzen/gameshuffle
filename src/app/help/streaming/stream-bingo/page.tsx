@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co${HREF}` },
-  openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
 
@@ -19,7 +19,7 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>Stream Bingo</h1>
       <p>
-        Stream Bingo is number bingo for your viewers. They take a card on your <code>/live</code> page, numbers get called
+        Stream Bingo is number bingo for your viewers. They take a card on your <code>/live</code>{" "}page, numbers get called
         by you, your mods or a timer, and the first real bingo wins your prize. It&apos;s a GameShuffle Pro feature.
       </p>
 

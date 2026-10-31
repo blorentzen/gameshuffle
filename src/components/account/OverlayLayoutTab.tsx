@@ -12,11 +12,14 @@
  * gs_overlay_layouts.
  */
 
+import { MmrOverlay } from "@/components/mmr/MmrOverlay";
+import { LoungeRoomOverlay } from "@/components/lounge/LoungeRoomOverlay";
 import type { ComponentType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { Button, Checkbox } from "@empac/cascadeds";
+import { Accordion, Button, Checkbox, IconButton, RangeSlider, Select } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { BrandThemeBar } from "@/components/account/BrandThemeBar";
 import {
@@ -26,6 +29,7 @@ import {
   resolvedAnchor,
   offsetForAnchorAt,
   isPlacementEnabled,
+  type Anchor,
   type ElementPlacement,
   type LayoutProfile,
   type OverlayFormat,
@@ -33,6 +37,8 @@ import {
 import { DEFAULT_TIERS, DEFAULT_BINGO_PROMPTS } from "@/lib/modules/registry";
 import { DiceOverlay } from "@/components/overlay/DiceOverlay";
 import { CoinOverlay } from "@/components/overlay/CoinOverlay";
+import { useToolLook } from "@/components/tools/looks/useToolLook";
+import { coinLetter, coinPaint, diceDrawn, DEFAULT_COIN_LOOK } from "@/lib/tools/looks";
 import { PartyCardOverlay } from "@/components/overlay/PartyCardOverlay";
 import { OracleOverlay } from "@/components/overlay/OracleOverlay";
 import { NamePickerOverlay } from "@/components/overlay/NamePickerOverlay";
@@ -45,12 +51,15 @@ import { ComboOverlay } from "@/components/overlay/ComboOverlay";
 import { WheelOverlay } from "@/components/overlay/WheelOverlay";
 import { NumberBingoOverlay } from "@/components/overlay/NumberBingoOverlay";
 import { DraftOverlay } from "@/components/overlay/DraftOverlay";
+import { ChatBrainOverlay } from "@/components/overlay/ChatBrainOverlay";
+import { TriviaOverlay } from "@/components/overlay/TriviaOverlay";
+import { BreakScreenOverlay } from "@/components/overlay/BreakScreenOverlay";
 import { PollOverlay } from "@/components/overlay/PollOverlay";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
-import { IconBallBowling, IconCar, IconCards, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
+import { IconChartLine, IconBallBowling, IconBrain, IconBulb, IconCar, IconCards, IconChartBar, IconChecklist, IconCoffee, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconUsersGroup, IconWorld } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type OverlayElement = {
@@ -73,6 +82,8 @@ const TOOLS: OverlayElement[] = [
   { id: "poll", label: "Poll", icon: IconChecklist },
   { id: "number_bingo", label: "Number Bingo", icon: IconGridDots },
   { id: "chat_draft", label: "Chat Draft", icon: IconChecklist },
+  { id: "chat_brain", label: "Chat Brain", icon: IconBrain },
+  { id: "trivia", label: "Trivia", icon: IconBulb },
 ];
 
 /** Apps — the larger game surfaces on the overlay. More (overlay wheel, the
@@ -84,18 +95,27 @@ const APPS: OverlayElement[] = [
   { id: "randomizer_mk8dx", label: "MK8DX Combo", icon: IconCar },
   { id: "randomizer_mkw", label: "MK World Combo", icon: IconWorld },
   { id: "wheel", label: "Wheel", icon: IconRotate },
+  { id: "break_screen", label: "Break screen", icon: IconCoffee },
   { id: "chat", label: "Chat", icon: IconMessageCircle },
   { id: "viewers", label: "Viewer Count", icon: IconEye },
+  { id: "mmr", label: "MMR card", icon: IconChartLine },
+  { id: "lounge_room", label: "Tonight's room", icon: IconUsersGroup },
 ];
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
 
-type ElementCategory = "tools" | "apps";
 
 // Reference resolution per format. The frame renders at the reference
 // resolution and is scaled to the responsive on-screen width so the real
 // components size exactly as they will on stream. `cap` bounds the on-screen
 // width (portrait is tall, so it's capped smaller to stay on screen).
+/** The 3x3 snap grid, row by row. */
+const ANCHORS: { id: Anchor; label: string }[] = [
+  { id: "top-left", label: "top left" }, { id: "top-center", label: "top centre" }, { id: "top-right", label: "top right" },
+  { id: "mid-left", label: "middle left" }, { id: "center", label: "centre" }, { id: "mid-right", label: "middle right" },
+  { id: "bottom-left", label: "bottom left" }, { id: "bottom-center", label: "bottom centre" }, { id: "bottom-right", label: "bottom right" },
+];
+
 const FORMATS: {
   id: OverlayFormat;
   label: string;
@@ -103,16 +123,19 @@ const FORMATS: {
   refH: number;
   cap: number;
 }[] = [
-  { id: "landscape", label: "16:9", refW: 1920, refH: 1080, cap: 1280 },
-  { id: "portrait", label: "9:16", refW: 1080, refH: 1920, cap: 520 },
+  // The preview fills its column (up to real size); the cap only stops a
+  // portrait canvas from running off the bottom of the screen.
+  { id: "landscape", label: "16:9", refW: 1920, refH: 1080, cap: 1920 },
+  { id: "portrait", label: "9:16", refW: 1080, refH: 1920, cap: 600 },
 ];
 
 type Profiles = Partial<Record<OverlayFormat, LayoutProfile>>;
 
-export function OverlayLayoutTab() {
+export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
   const [profiles, setProfiles] = useState<Profiles>({});
   const [format, setFormat] = useState<OverlayFormat>("landscape");
-  const [category, setCategory] = useState<ElementCategory>("tools");
+  // "Only this one": dim every piece but the selected one (one piece at a time).
+  const [focusOne, setFocusOne] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [preview, setPreview] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -123,6 +146,18 @@ export function OverlayLayoutTab() {
   // The streamer's saved brand theme, applied to the preview frame so the stage
   // renders with their ACTUAL colors (WYSIWYG with the live overlay).
   const { vars: brandVars } = useBrandTheme();
+  // The dice and coin preview in the streamer's saved looks (Tool looks), as the overlay draws them.
+  const diceLook = useToolLook("dice", { toast: false });
+  const coinLook = useToolLook("coin", { toast: false });
+  const diceSample = useMemo(() => {
+    const d = diceDrawn(diceLook.look, { pro: diceLook.pro, brand: diceLook.brand });
+    return { values: [4, 2], dieColor: d.dieColor, pipColor: d.pipColor, table: diceLook.look.showTable ? diceLook.look.table : null };
+  }, [diceLook.look, diceLook.pro, diceLook.brand]);
+  const coinSample = useMemo(() => {
+    const c = coinLook.look;
+    const paint = coinPaint({ ...c, heads: coinLetter(c.heads, DEFAULT_COIN_LOOK.heads), tails: coinLetter(c.tails, DEFAULT_COIN_LOOK.tails) }, { pro: coinLook.pro, brand: coinLook.brand, avatarUrl: coinLook.avatarUrl });
+    return { result: "heads" as const, paint };
+  }, [coinLook.look, coinLook.pro, coinLook.brand, coinLook.avatarUrl]);
   const stageRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<string | null>(null);
@@ -143,7 +178,9 @@ export function OverlayLayoutTab() {
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+    // Re-run once loading ends: while loading the component returns early, so
+    // the root isn't mounted yet and the preview was stuck at its 720px default.
+  }, [loading]);
 
   useEffect(() => {
     let alive = true;
@@ -173,8 +210,6 @@ export function OverlayLayoutTab() {
       i === 12 ? "★" : DEFAULT_BINGO_PROMPTS[i % DEFAULT_BINGO_PROMPTS.length],
     );
     return {
-      dice: { values: [4, 2], dieColor: "#eef1f6", pipColor: "#1b2740" },
-      coin: { result: "heads" as const, headsColor: "#e6b23c", tailsColor: "#d9a94f" },
       party_card: {
         kind: "crutch" as const,
         title: "Mushroom diet",
@@ -298,6 +333,43 @@ export function OverlayLayoutTab() {
           ],
         },
       },
+      chat_brain: {
+        id: "sample", mode: "host" as const, status: "playing" as const, boardIndex: 0, boardCount: 3,
+        question: "Name something people bring to a game night",
+        slots: [
+          { rank: 1, label: "Snacks", points: 38, found: true },
+          { rank: 2, label: null, points: null, found: false },
+          { rank: 3, label: "Drinks", points: 17, found: true },
+          { rank: 4, label: null, points: null, found: false },
+          { rank: 5, label: null, points: null, found: false },
+          { rank: 6, label: null, points: null, found: false },
+        ],
+        strikes: 1, score: 55, seconds: 30, phase: "guessing" as const,
+        window: { opensAt: new Date(0).toISOString(), closesAt: new Date(8.64e15).toISOString(), guesses: 41 },
+        last: null,
+        leaning: [{ label: "Board games", share: 0.46 }, { label: "Cards", share: 0.21 }],
+        playalong: [{ name: "Sam", points: 55 }, { name: "Riley", points: 38 }, { name: "Jo", points: 17 }],
+        canOverrule: false, familySafe: true, prize: 0,
+      },
+      trivia: {
+        id: "sample", title: "Friday trivia", status: "live" as const, phase: "question" as const,
+        round: { index: 0, count: 3, title: "Gaming", style: "Classic", questionCount: 6 }, questionIndex: 2,
+        question: { prompt: "Which console was released first?", kind: "choice" as const, options: ["Nintendo 64", "PlayStation", "Sega Saturn", "Dreamcast"], imageUrl: null, category: "Gaming" },
+        closesAt: new Date(8.64e15).toISOString(), answer: null, answered: 37, gotIt: null,
+        standings: [{ name: "speedyriley", score: 4 }, { name: "samthegreat", score: 3 }, { name: "jo_plays", score: 3 }], you: null,
+      },
+      break_screen: {
+        id: "sample", status: "running" as const, phase: "open" as const,
+        phaseEndsAt: new Date(8.64e15).toISOString(), answerUntil: new Date(8.64e15).toISOString(), countdownEndsAt: new Date(8.64e15).toISOString(),
+        game: { id: "higher-lower" as const, name: "Higher or Lower", howTo: "Type 1 or 2" },
+        next: { id: "over-under" as const, name: "Over or Under" },
+        gameRound: 3, gameRounds: 5,
+        round: { layout: "choice" as const, prompt: "Which one debuted first?", hint: "Type 1 or 2", tag: "Mario Kart World", options: [{ key: "1", label: "Wario" }, { key: "2", label: "Yoshi" }] },
+        reveal: null,
+        leaders: [{ name: "speedyriley", points: 14 }, { name: "samthegreat", points: 11 }, { name: "jo_plays", points: 9 }, { name: "kaizen", points: 6 }],
+        players: 9, answering: 12, backBy: null, startedAt: new Date(0).toISOString(), endingRequested: false,
+        champion: null, handicap: null, nextPick: null, found: null, bingo: null, chatStreak: 2, show: "panel" as const, streamer: "You",
+      },
       number_bingo: {
         status: "open" as const,
         patternLabel: "Four corners",
@@ -420,11 +492,11 @@ export function OverlayLayoutTab() {
   const selectedScale = selectedEl?.scale ?? 1;
   const selectedEnabled = selected ? isPlacementEnabled(format, selected, profiles[format]) : true;
 
-  // The whole overlay always renders (so you see the finished picture), but
-  // only the active category (Tools or Apps) is interactive — you click/drag the
-  // real UI to move it, and select from the palette for hidden/overlapping ones.
-  const activeList = category === "apps" ? APPS : TOOLS;
-  const isActiveId = (id: string) => activeList.some((a) => a.id === id);
+  // The whole overlay always renders (so you see the finished picture). Every
+  // piece can be clicked or dragged, unless "Only this one" is on, which dims
+  // the rest and leaves just the selected piece to move.
+  const dimmed = (id: string) => !preview && focusOne && !!selected && id !== selected;
+  const pieceLabel = (t: OverlayElement) => (isPlacementEnabled(format, t.id, profiles[format]) ? t.label : `${t.label} (hidden)`);
 
   // Placement (and the selection outline) goes on the component's own root via
   // `style` — the root shrink-wraps its visible card, so the outline hugs the
@@ -432,9 +504,9 @@ export function OverlayLayoutTab() {
   const renderComponent = (toolId: string, style: CSSProperties) => {
     switch (toolId) {
       case "dice":
-        return <DiceOverlay payload={samples.dice} style={style} />;
+        return <DiceOverlay payload={diceSample} style={style} />;
       case "coin":
-        return <CoinOverlay payload={samples.coin} style={style} />;
+        return <CoinOverlay payload={coinSample} style={style} />;
       case "oracle":
         return <OracleOverlay payload={samples.oracle} style={style} />;
       case "party_card":
@@ -463,8 +535,18 @@ export function OverlayLayoutTab() {
         return <NumberBingoOverlay bingo={samples.number_bingo} style={style} />;
       case "chat_draft":
         return <DraftOverlay draft={samples.chat_draft} style={style} />;
+      case "chat_brain":
+        return <ChatBrainOverlay game={samples.chat_brain} style={style} />;
+      case "trivia":
+        return <TriviaOverlay trivia={samples.trivia} style={style} />;
+      case "break_screen":
+        return <BreakScreenOverlay view={samples.break_screen} style={style} />;
       case "chat":
         return <ChatTimelineOverlay sample style={style} />;
+      case "mmr":
+        return <MmrOverlay sample style={style} />;
+      case "lounge_room":
+        return <LoungeRoomOverlay sample style={style} />;
       case "viewers":
         return <ViewerCountOverlay sample style={style} />;
       default:
@@ -474,30 +556,42 @@ export function OverlayLayoutTab() {
 
   return (
     <div className="overlay-layout-tab" ref={rootRef}>
-      <h2 className="account-tab__heading">Overlay Layout</h2>
-      <p className="account-tab__intro">
-        Position each tool and app on your OBS overlay, shown at real size with sample data, so it
-        matches what viewers see. Use the <strong>Tools / Apps</strong> switch to choose which set
-        you&rsquo;re arranging, then <strong>click a piece right in the preview</strong> (or a chip
-        below) to select it and <strong>drag it</strong> where you want. Tune its size + visibility,
-        then hit Preview to see the finished overlay. Each aspect ratio saves separately (16:9 for
-        Twitch, 9:16 for a vertical/TikTok co-stream); untouched formats use the smart defaults.
-      </p>
+      {!bare && (
+        <>
+          <h2 className="account-tab__heading">Overlay Layout</h2>
+          <p className="account-tab__intro">
+            Position each tool and app on your OBS overlay, shown at real size with sample data, so it
+            matches what viewers see. Use the <strong>Tools / Apps</strong>{" "}switch to choose which set
+            you&rsquo;re arranging, then <strong>click a piece right in the preview</strong> (or a chip
+            below) to select it and <strong>drag it</strong> where you want. Tune its size and visibility,
+            then hit Preview to see the finished overlay. Each aspect ratio saves separately (16:9 for
+            Twitch, 9:16 for a vertical or TikTok co-stream); untouched formats use the smart defaults.
+          </p>
+        </>
+      )}
       <BrandThemeBar context="this preview" />
-      <OverlayLinks token={overlayToken} activeFormat={format} />
-
-      {!preview && (
+      {/* The OBS links and the safe-area note sit in one collapsed panel so
+          the editor starts near the top; open by default until there's a link. */}
+      <Accordion
+        variant="bordered"
+        className="overlay-obs"
+        defaultOpenIds={overlayToken ? [] : ["obs"]}
+        items={[{
+          id: "obs",
+          title: "Add to OBS or Streamlabs",
+          description: "Your overlay links, and where the safe area keeps pieces clear of your webcam and chat.",
+          content: (
+            <>
+              <OverlayLinks token={overlayToken} activeFormat={format} onRegenerated={setOverlayToken} />
         <p
           style={{
             fontSize: "var(--font-size-12)",
             color: "var(--text-secondary)",
             margin: "0 0 var(--spacing-16)",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
+            lineHeight: 1.6,
           }}
         >
+          {/* Inline, not flex: a flex row split the sentence into pieces. */}
           <span
             aria-hidden
             style={{
@@ -506,6 +600,8 @@ export function OverlayLayoutTab() {
               height: 15,
               border: "1px dashed var(--border-default)",
               borderRadius: 3,
+              verticalAlign: "middle",
+              marginRight: 8,
             }}
           />
           The dashed box is the <strong>safe area</strong>. Keep tools inside it so they never
@@ -516,90 +612,56 @@ export function OverlayLayoutTab() {
               ? "Portrait reserves the top handle, bottom captions, and the right action rail (like/comment/share)."
               : "Square keeps even margins on all sides."}
         </p>
-      )}
+            </>
+          ),
+        }]}
+      />
 
-      {/* Aspect ratio + preview toggle */}
-      <div style={{ display: "flex", gap: "var(--spacing-8)", marginBottom: "var(--spacing-24)", flexWrap: "wrap", alignItems: "center" }}>
-        {FORMATS.map((f) => (
-          <Button
-            key={f.id}
-            variant={f.id === format ? "primary" : "secondary"}
-            size="small"
-            onClick={() => {
-              setFormat(f.id);
-              setSelected(null);
-            }}
-          >
-            {f.label}
-          </Button>
-        ))}
-        <span style={{ width: 1, height: 22, background: "var(--border-default)", margin: "0 4px" }} />
+      {/* Toolbar: the piece you're editing, whether to see only it, the
+          shape (each saves its own layout) and preview. The piece list
+          replaced a row of chips plus a Tools / Apps switch. */}
+      <div className="overlay-toolbar">
+        {!preview && (
+          <div className="overlay-toolbar__piece">
+            <Select
+              aria-label="Piece to edit"
+              size="small"
+              fullWidth
+              placeholder="Pick a piece to edit"
+              value={selected ?? ""}
+              onChange={(v) => setSelected(String(v) || null)}
+              groups={[
+                { label: "Tools", options: TOOLS.map((t) => ({ value: t.id, label: pieceLabel(t) })) },
+                { label: "Apps", options: APPS.map((t) => ({ value: t.id, label: pieceLabel(t) })) },
+              ]}
+            />
+          </div>
+        )}
+        {!preview && (
+          <div className="overlay-toolbar__group" role="group" aria-label="Show">
+            <Button variant={focusOne ? "secondary" : "primary"} size="small" onClick={() => setFocusOne(false)}>All pieces</Button>
+            <Button variant={focusOne ? "primary" : "secondary"} size="small" disabled={!selected} onClick={() => setFocusOne(true)}>Only this one</Button>
+          </div>
+        )}
+        <div className="overlay-toolbar__group" role="group" aria-label="Shape">
+          {FORMATS.map((f) => (
+            <Button
+              key={f.id}
+              variant={f.id === format ? "primary" : "secondary"}
+              size="small"
+              onClick={() => {
+                setFormat(f.id);
+                setSelected(null);
+              }}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
         <Button variant={preview ? "primary" : "secondary"} size="small" onClick={() => setPreview((p) => !p)}>
           {preview ? "◉ Preview" : "○ Preview"}
         </Button>
       </div>
-
-      {/* Category toggle — which set of overlay pieces you're arranging. The
-          full overlay stays visible; this just controls which handles show. */}
-      {!preview && (
-        <div style={{ display: "flex", gap: "var(--spacing-8)", marginBottom: "var(--spacing-24)", alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ fontSize: "var(--font-size-12)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-            Arranging
-          </span>
-          {(["tools", "apps"] as const).map((c) => (
-            <Button
-              key={c}
-              variant={c === category ? "primary" : "secondary"}
-              size="small"
-              onClick={() => {
-                setCategory(c);
-                setSelected(null);
-              }}
-            >
-              {c === "tools" ? "🛠️ Tools" : "🎮 Apps"}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {/* Selection palette — click a chip to select any piece, including ones
-          that are hidden or stacked behind another. The selected piece gets a
-          ring in the preview; drag the piece itself to move it. */}
-      {!preview && (
-        <div style={{ display: "flex", gap: "var(--spacing-6)", flexWrap: "wrap", alignItems: "center", marginBottom: "var(--spacing-24)" }}>
-          <span style={{ fontSize: "var(--font-size-12)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.04em", marginRight: 2 }}>
-            Select
-          </span>
-          {activeList.map((t) => {
-            const enabled = isPlacementEnabled(format, t.id, profiles[format]);
-            const isSel = selected === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setSelected(t.id)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "4px 10px",
-                  borderRadius: 999,
-                  fontSize: "var(--font-size-12)",
-                  fontWeight: "var(--font-weight-semibold)",
-                  cursor: "pointer",
-                  border: isSel ? "2px solid var(--bg-primary)" : "1px solid var(--border-default)",
-                  background: isSel ? "color-mix(in srgb, var(--bg-primary) 12%, var(--surface-default))" : "var(--surface-default)",
-                  color: enabled ? "var(--text-primary)" : "var(--text-tertiary)",
-                }}
-              >
-                <t.icon size={16} stroke={1.8} />
-                {t.label}
-                {!enabled ? <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>(hidden)</span> : null}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)", alignItems: "flex-start" }}>
         {/* Stage — scaled real-component frame; click/drag the UI directly */}
@@ -637,7 +699,7 @@ export function OverlayLayoutTab() {
           >
             {ALL_ELEMENTS.map((t) => {
               if (!isPlacementEnabled(format, t.id, profiles[format])) return null;
-              const interactive = !preview && isActiveId(t.id);
+              const interactive = !preview && !dimmed(t.id);
               const isSel = selected === t.id;
               // Placement + interactivity + selection ring all ride on the
               // component's own root, so the outline is concentric with the item.
@@ -645,26 +707,17 @@ export function OverlayLayoutTab() {
                 ...placementStyle(format, t.id, profiles[format]),
                 cursor: interactive ? "grab" : "default",
                 pointerEvents: interactive ? "auto" : "none",
-                // Dim the set you're NOT arranging so the active pieces pop and
-                // are easier to place. Preview shows everything at full.
-                opacity: preview || isActiveId(t.id) ? 1 : 0.3,
+                // "Only this one" dims everything else. Preview shows everything at full.
+                opacity: dimmed(t.id) ? 0.15 : 1,
                 transition: "opacity 140ms ease",
                 outline: isSel && !preview ? "3px solid var(--bg-primary)" : undefined,
                 outlineOffset: 6,
                 borderRadius: 12,
                 touchAction: "none",
-                // Stack by role while editing so BOTH Tools and Apps place the
-                // same way: the selected piece sits above everything (beating
-                // Apps' high intrinsic z-index like the wheel's 9999), and the
-                // set you're arranging sits above the dimmed set. Preview mode
-                // restores the real overlay stacking.
-                zIndex: preview
-                  ? undefined
-                  : isSel
-                    ? 100000
-                    : isActiveId(t.id)
-                      ? 3
-                      : 1,
+                // While editing, the selected piece sits above everything
+                // (beating Apps' high intrinsic z-index like the wheel's 9999).
+                // Preview restores the real overlay stacking.
+                zIndex: preview ? undefined : isSel ? 100000 : dimmed(t.id) ? 1 : 3,
               };
               return (
                 // Boxless wrapper — just carries the pointer handler + title; the
@@ -721,11 +774,11 @@ export function OverlayLayoutTab() {
           >
             {selected ? (
               <>
-                <strong style={{ fontSize: "var(--font-size-14)", whiteSpace: "nowrap" }}>
+                <strong style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-6)", fontSize: "var(--font-size-14)", whiteSpace: "nowrap" }}>
                   {(() => {
                     const el = ALL_ELEMENTS.find((t) => t.id === selected);
                     if (!el) return null;
-                    return <><el.icon size={16} stroke={1.8} /> {el.label}</>;
+                    return <><el.icon size={16} stroke={1.8} aria-hidden />{el.label}</>;
                   })()}
                 </strong>
                 <Checkbox
@@ -740,25 +793,43 @@ export function OverlayLayoutTab() {
                     })
                   }
                 />
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--font-size-14)", whiteSpace: "nowrap" }}>
-                  Size {Math.round(selectedScale * 100)}%
-                  <input
-                    type="range"
+                <div className="overlay-size">
+                  <RangeSlider
+                    label={`Size ${Math.round(selectedScale * 100)}%`}
                     min={50}
-                    max={150}
+                    max={200}
                     step={5}
+                    size="small"
                     value={Math.round(selectedScale * 100)}
-                    style={{ width: 160 }}
-                    onChange={(e) =>
+                    onChange={(v) =>
                       updateElement(selected, {
-                        scale: Number(e.target.value) / 100,
+                        scale: v / 100,
                         anchor: resolvedAnchor(format, selected, profiles[format]),
                         offsetPct: anchorToOffset(format, selected, profiles[format]),
                         enabled: selectedEnabled,
                       })
                     }
                   />
-                </label>
+                </div>
+                {/* Snap to a corner, an edge or the centre of the safe area. */}
+                <span className="overlay-anchor__label" aria-hidden>Snap to</span>
+                <div className="overlay-anchor" role="group" aria-label="Snap to">
+                  {ANCHORS.map((a) => {
+                    const on = selectedEl?.anchor === a.id && !selectedEl?.offsetPct?.x && !selectedEl?.offsetPct?.y;
+                    return (
+                      <IconButton
+                        key={a.id}
+                        size="small"
+                        variant={on ? "primary" : "tertiary"}
+                        aria-label={`Snap to ${a.label}`}
+                        aria-pressed={on}
+                        onClick={() => updateElement(selected, { anchor: a.id, offsetPct: { x: 0, y: 0 }, scale: selectedScale, enabled: selectedEnabled })}
+                      >
+                        <span className="overlay-anchor__dot" aria-hidden />
+                      </IconButton>
+                    );
+                  })}
+                </div>
                 <Button
                   variant="ghost"
                   size="small"
@@ -777,16 +848,16 @@ export function OverlayLayoutTab() {
               </>
             ) : (
               <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-                Click a piece in the preview (or a chip above) to select it, then drag it to move it.
-                Selecting shows its size + visibility here. Everything is at real size;{" "}
-                <strong>Preview</strong> shows the clean overlay.
+                Pick a piece above, or click it in the preview, then drag it to move it. Its size,
+                where it snaps and whether it shows on this shape appear here. Everything is at real
+                size; <strong>Preview</strong> shows the clean overlay.
               </p>
             )}
           </div>
         )}
       </div>
 
-      <div style={{ display: "flex", gap: "var(--spacing-8)", marginTop: "var(--spacing-16)", alignItems: "center" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-8)", marginTop: "var(--spacing-16)", alignItems: "center" }}>
         <Button variant="primary" loading={saving} onClick={save}>
           Save {fmt.label} layout
         </Button>
@@ -795,9 +866,11 @@ export function OverlayLayoutTab() {
         </Button>
       </div>
 
-      <div style={{ marginTop: "var(--spacing-24)" }}>
-        <ChatOverlaySettings />
-      </div>
+      {!bare && (
+        <div style={{ marginTop: "var(--spacing-24)" }}>
+          <ChatOverlaySettings />
+        </div>
+      )}
     </div>
   );
 }
@@ -820,11 +893,34 @@ function anchorToOffset(format: OverlayFormat, toolId: string, layout?: LayoutPr
 function OverlayLinks({
   token,
   activeFormat,
+  onRegenerated,
 }: {
   token: string | null;
   activeFormat: OverlayFormat;
+  /** A new link was made (the old one stops working). */
+  onRegenerated: (token: string) => void;
 }) {
   const toast = useToast();
+  const confirm = useConfirm();
+  const [regenerating, setRegenerating] = useState(false);
+  // Moved here from the hub's "Stream info" window (2026-10-10), beside the links it replaces.
+  const regenerate = async () => {
+    if (!(await confirm({
+      title: "Make a new overlay link?",
+      body: "The links you have now stop working right away, so you'll need to paste the new one into OBS or Streamlabs.",
+      confirmLabel: "Make a new link",
+    }))) return;
+    setRegenerating(true);
+    const res = await fetch("/api/twitch/overlay/regenerate", { method: "POST" }).catch(() => null);
+    const body = res ? await res.json().catch(() => ({})) : {};
+    setRegenerating(false);
+    if (!res?.ok || !body.overlayToken) {
+      toast.error("Couldn't make a new link. Try again.");
+      return;
+    }
+    onRegenerated(body.overlayToken as string);
+    toast.success("New link ready. Paste it into OBS or Streamlabs.");
+  };
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   const card: CSSProperties = {
@@ -844,7 +940,7 @@ function OverlayLinks({
         <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-12)" }}>
           Connect your Twitch integration to get your overlay browser-source link.
         </p>
-        <Link href="/account/streamer?tab=integrations" style={{ textDecoration: "none" }}>
+        <Link href="/account/streaming?tab=integrations" style={{ textDecoration: "none" }}>
           <Button variant="secondary" size="small">
             Connect Twitch
           </Button>
@@ -905,6 +1001,7 @@ function OverlayLinks({
                 </div>
                 <input
                   readOnly
+                  aria-label={`${r.label} overlay link`}
                   value={url}
                   onFocus={(e) => e.currentTarget.select()}
                   style={{
@@ -933,6 +1030,14 @@ function OverlayLinks({
         Use the 16:9 link for a normal stream and the 9:16 link for a vertical / TikTok layout. Each
         uses the arrangement you saved for that aspect ratio.
       </p>
+      <div style={{ marginTop: "var(--spacing-12)", display: "flex", alignItems: "center", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
+        <Button variant="ghost" size="small" onClick={() => void regenerate()} disabled={regenerating}>
+          {regenerating ? "Making a new link…" : "Make a new link"}
+        </Button>
+        <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+          If a link got out (say, shown on stream), make a new one; the old links stop working.
+        </span>
+      </div>
     </div>
   );
 }

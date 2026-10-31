@@ -9,13 +9,14 @@
  *   startTab     the game a "Play" button asked for, if one did in the last few minutes
  * Who the person is comes from Discord (/users/@me), never from the page, and
  * so does where they are: `instanceId` is checked with Discord's
- * activity-instances API, and only a confirmed server channel goes in the
- * session (for the results card).
+ * activity-instances API: the instance goes in the session (the room for
+ * playing together), and a confirmed server channel too (for the results card).
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { exchangeCode, verifiedChannel } from "@/lib/activity/discord";
+import { exchangeCode, verifiedInstance } from "@/lib/activity/discord";
+import { discordAvatarUrl, rememberAvatar } from "@/lib/discord/faces";
 import { signSession } from "@/lib/activity/session";
 import { accountForDiscord } from "@/lib/daily/results";
 import { resolveIdentity } from "@/lib/economy/identity";
@@ -45,9 +46,11 @@ export async function POST(req: Request) {
     resolveIdentity({ platform: "discord", platformId: x.me.id, displayName: name }),
     accountForDiscord(x.me.id).catch(() => null),
     takeIntent(x.me.id).catch(() => null),
-    typeof body?.instanceId === "string" ? verifiedChannel(body.instanceId, x.me.id).catch(() => null) : Promise.resolve(null),
+    typeof body?.instanceId === "string" ? verifiedInstance(body.instanceId, x.me.id).catch(() => null) : Promise.resolve(null),
   ]);
-  const session = signSession({ did: x.me.id, iid: identityId, uid: userId, name, avatar: x.me.avatar, cid: where?.channelId ?? null, gid: where?.guildId ?? null });
+  // For the drawn results card in the channel. Best effort, after the reply.
+  after(() => rememberAvatar(identityId, discordAvatarUrl(x.me.id, x.me.avatar)));
+  const session = signSession({ did: x.me.id, iid: identityId, uid: userId, name, avatar: x.me.avatar, cid: where?.channelId ?? null, gid: where?.guildId ?? null, ins: where?.instanceId ?? null });
   return NextResponse.json({
     ok: true,
     accessToken: x.accessToken,

@@ -7,6 +7,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@empac/cascadeds";
+import { Lever } from "./live/Lever";
 import { flipCoinAction } from "@/app/hub/sessions/[slug]/actions";
 
 export function CoinControl() {
@@ -30,13 +31,10 @@ export function CoinControl() {
   };
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
-      <Button variant="primary" loading={pending} onClick={flip}>
-        🪙 Flip coin
-      </Button>
-      {result ? (
-        <span style={{ fontWeight: "var(--font-weight-semibold)" }}>→ {result}</span>
-      ) : null}
-    </div>
+    <Lever
+      label="Coin"
+      actions={<Button variant="secondary" size="small" className="hub-lever__main" loading={pending} onClick={flip}>Flip the coin</Button>}
+      status={result ? <>It&rsquo;s <strong>{result}</strong></> : null}
+    />
   );
 }

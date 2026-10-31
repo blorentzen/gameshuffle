@@ -31,6 +31,8 @@ export interface ActivitySession {
   /** The server channel and server this launch is in, as Discord confirmed it (the results card); absent in DMs. */
   cid?: string | null;
   gid?: string | null;
+  /** The Activity instance (everyone in the same call shares it), as Discord confirmed it: the play-together room. */
+  ins?: string | null;
   /** Expiry, seconds since epoch. */
   exp: number;
 }

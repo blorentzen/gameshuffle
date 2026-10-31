@@ -1,6 +1,9 @@
+import { trackSummary } from "@/lib/timeTrials/store";
+import { trackPath, ttTrack, TT_GAME_ORDER } from "@/lib/timeTrials/tracks";
+import { CHECKLISTS, CHECKLISTS_PATH, checklistUrl } from "@/data/tcg-checklists";
 import type { MetadataRoute } from "next";
 import { publishedGuidesAsync } from "@/lib/guides/store";
-import { GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
+import { DUEL_PUBLIC, ROAD_PUBLIC, FIRE_ROUND_PUBLIC, GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 import { createPublicClient } from "@/lib/supabase/public";
 import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
@@ -10,23 +13,37 @@ import { SITE_URL } from "@/lib/seo";
 import { getDeckSlugs } from "@/lib/decks";
 import { getBattleBoxSlugs } from "@/lib/battle-boxes";
 import { TCG_HUB_LIVE } from "@/data/tcg-hub";
+import { RULES_PATH, RULE_PAGES } from "@/data/tcg-rules";
+import { OCCASIONS, TRIVIA_PATH, occasionUrl, topicUrl } from "@/data/trivia-seo";
+import { liveTopics } from "@/lib/trivia/topics";
+import { listPublicLeagues } from "@/lib/trivia/leagues";
+import { createServiceClient } from "@/lib/supabase/admin";
+import { loungePagePath } from "@/lib/lounge/lines";
+import type { MmrGame } from "@/lib/mmr/rules";
 import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
 import { publicDestinations } from "@/lib/nav/pillars";
 import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import LASTMOD from "@/data/sitemap-lastmod.json";
+import { ROAD_REGIONS, roadPath } from "@/lib/originals/duel/road";
+import { allRoadPeople } from "@/lib/originals/duel/roadPages";
 
 export const revalidate = 3600; // regenerate every hour
 
 /**
  * Public pages deliberately left out: /beta (a sign-up gate), /features (a
- * redirect). Profiles, quote pools and tournament instances are left out too,
- * as thin or short-lived pages; those pages carry their own robots rules.
+ * redirect), /tcg-companion (the app shell, noindex; its landing page is
+ * /pokemon-tcg-companion). Profiles, quote pools and tournament instances are
+ * left out too, as thin or short-lived pages; those pages carry their own
+ * robots rules.
  */
-const UNLISTED = new Set(["/beta", "/features"]);
+// /players signs visitors in first (the page redirects), so a crawler would only see /login.
+const UNLISTED = new Set(["/beta", "/features", "/tcg-companion", "/players"]);
 /** Tool pages marked noindex (prototypes), kept out of the tool list below. */
 const NOINDEX_TOOLS = new Set(["shuffle-dice"]);
+/** Registry entries whose page is listed elsewhere in the sitemap. */
+const LISTED_ELSEWHERE = new Set(["trivia"]);
 
 /**
  * When a page's content last changed, from src/data/sitemap-lastmod.json
@@ -78,6 +95,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/game-nights/christmas-party-games`,
+      lastModified: lm("/game-nights/christmas-party-games"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/game-nights/halloween-party-games`,
+      lastModified: lm("/game-nights/halloween-party-games"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/welcome`,
+      lastModified: lm("/welcome"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/credits`,
+      lastModified: lm("/credits"),
+      changeFrequency: "weekly",
+      priority: 0.4,
+    },
+    {
+      url: `${baseUrl}/discord`,
+      lastModified: lm("/discord"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/for-organizers`,
       lastModified: lm("/for-organizers"),
       changeFrequency: "weekly",
@@ -102,11 +149,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      url: `${baseUrl}/daily-dex`,
+      lastModified: lm("/daily-dex"),
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
+    {
       url: `${baseUrl}/weekly`,
       lastModified: lm("/weekly"),
       changeFrequency: "weekly",
       priority: 0.7,
     },
+    {
+      url: `${baseUrl}/trivia`,
+      lastModified: lm("/trivia"),
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    // Trivia pages written for search: occasions, the hosting guide, the free tools.
+    ...OCCASIONS.map((o) => ({ url: `${baseUrl}${occasionUrl(o.slug)}`, lastModified: lm(`${TRIVIA_PATH}/[occasion]`), changeFrequency: "monthly" as const, priority: 0.6 })),
+    ...["how-to-host", "team-names", "answer-sheet"].map((p) => ({ url: `${baseUrl}${TRIVIA_PATH}/${p}`, lastModified: lm(`${TRIVIA_PATH}/${p}`), changeFrequency: "monthly" as const, priority: 0.6 })),
+    // Fire Round: solo trivia, a new shared round every day.
+    ...(FIRE_ROUND_PUBLIC ? [{ url: `${baseUrl}/daily-trivia`, lastModified: lm("/daily-trivia"), changeFrequency: "daily" as const, priority: 0.8 }] : []),
+    ...(DUEL_PUBLIC ? [{ url: `${baseUrl}/daily-duel`, lastModified: lm("/daily-duel"), changeFrequency: "daily" as const, priority: 0.8 }] : []),
+    // Trainer Road: the front page, each region, each trainer (their teams and a duel).
+    ...(ROAD_PUBLIC ? [
+      { url: `${baseUrl}/pokemon-trainers`, lastModified: lm("/pokemon-trainers"), changeFrequency: "monthly" as const, priority: 0.8 },
+      ...ROAD_REGIONS.map((r) => ({ url: `${baseUrl}${roadPath(r.slug)}`, lastModified: lm("/pokemon-trainers/[region]"), changeFrequency: "monthly" as const, priority: 0.7 })),
+      ...allRoadPeople().map((p) => ({ url: `${baseUrl}${roadPath(p.region, p.slug)}`, lastModified: lm("/pokemon-trainers/[region]/[trainer]"), changeFrequency: "monthly" as const, priority: 0.6 })),
+    ] : []),
     {
       url: `${baseUrl}/wheel-spinner`,
       lastModified: lm("/wheel-spinner"),
@@ -128,6 +199,63 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: `${baseUrl}/name-picker`,
       lastModified: lm("/name-picker"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/twitch-chat-games`,
+      lastModified: lm("/twitch-chat-games"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/name-every-pokemon`,
+      lastModified: lm("/name-every-pokemon"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/mmr-card`,
+      lastModified: lm("/mmr-card"),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/lounge`,
+      lastModified: lm("/lounge"),
+      changeFrequency: "daily",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/time-trials`,
+      changeFrequency: "daily",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/time-trials/mario-kart-world`,
+      changeFrequency: "daily",
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/time-trials/mario-kart-8-deluxe`,
+      changeFrequency: "daily",
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/bracket-generator`,
+      lastModified: lm("/bracket-generator"),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/round-robin-generator`,
+      lastModified: lm("/round-robin-generator"),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/swiss-pairing-generator`,
+      lastModified: lm("/swiss-pairing-generator"),
       changeFrequency: "monthly",
       priority: 0.7,
     },
@@ -227,6 +355,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }] : []),
+    {
+      url: `${baseUrl}/randomizers/pokemon`,
+      lastModified: lm("/randomizers/pokemon"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    },
     ...(STADIUM_PUBLIC ? [{
       url: `${baseUrl}/randomizers/pokemon-stadium`,
       lastModified: lm("/randomizers/pokemon-stadium"),
@@ -337,6 +471,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.2,
     },
     {
+      url: `${baseUrl}/cookie-policy`,
+      lastModified: lm("/cookie-policy"),
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    // /data-request is left out: it's noindex.
+    {
       url: `${baseUrl}/sms`,
       lastModified: lm("/sms"),
       changeFrequency: "yearly" as const,
@@ -366,10 +507,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    // The game nights hub (browse + host). Individual nights stay out, like tournaments.
+    { url: `${baseUrl}/game-nights`, lastModified: lm("/game-nights"), changeFrequency: "daily", priority: 0.8 },
     // Free game-night tools: the hub plus every registered tool (the tool pages
     // were missing from the sitemap entirely until 2026-09-29).
     { url: `${baseUrl}/game-nights/tools`, lastModified: lm("/game-nights/tools"), changeFrequency: "monthly", priority: 0.6 },
-    ...COMPANION_TOOLS.filter((t) => !NOINDEX_TOOLS.has(t.id)).map((t) => ({
+    ...COMPANION_TOOLS.filter((t) => !NOINDEX_TOOLS.has(t.id) && !LISTED_ELSEWHERE.has(t.id)).map((t) => ({
       url: `${baseUrl}${t.href}`,
       lastModified: lm(t.href),
       changeFrequency: "monthly" as const,
@@ -455,9 +598,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: "monthly" as const,
         priority: 0.6,
       })),
+      {
+        url: `${baseUrl}${RULES_PATH}`,
+        lastModified: lm(RULES_PATH),
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+      },
+      ...RULE_PAGES.map((p) => ({
+        url: `${baseUrl}${RULES_PATH}/${p.slug}`,
+        lastModified: lm(`${RULES_PATH}/${p.slug}`),
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+      })),
       ...getBattleBoxSlugs().map((slug) => ({
         url: `${baseUrl}/pokemon-tcg/decks/battle-box/${slug}`,
         lastModified: lm("/pokemon-tcg/decks/battle-box/[slug]"),
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      })),
+      { url: `${baseUrl}${CHECKLISTS_PATH}`, lastModified: lm(CHECKLISTS_PATH), changeFrequency: "monthly" as const, priority: 0.5 },
+      ...CHECKLISTS.map((c) => ({
+        url: `${baseUrl}${checklistUrl(c.slug)}`,
+        lastModified: lm(`${CHECKLISTS_PATH}/[slug]`),
         changeFrequency: "monthly" as const,
         priority: 0.6,
       })),
@@ -488,10 +650,74 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch ideas", err);
   }
 
-  return [
+  // Game trivia question pages: only the ones with enough approved questions.
+  const triviaTopics = await liveTopics().catch(() => []);
+  const triviaRoutes: MetadataRoute.Sitemap = triviaTopics.length
+    ? [
+        { url: `${baseUrl}${TRIVIA_PATH}/questions`, lastModified: lm(`${TRIVIA_PATH}/questions`), changeFrequency: "weekly", priority: 0.6 },
+        ...triviaTopics.map((t) => ({ url: `${baseUrl}${topicUrl(t.slug)}`, lastModified: lm(`${TRIVIA_PATH}/questions/[topic]`), changeFrequency: "weekly" as const, priority: 0.6 })),
+      ]
+    : [];
+  // Trivia leagues: the weekly bar nights ("trivia night near me" lands on these).
+  const leagues = await listPublicLeagues().catch(() => []);
+  triviaRoutes.push(...leagues.map((l) => ({ url: `${baseUrl}${TRIVIA_PATH}/leagues/${l.slug}`, lastModified: new Date(l.updated_at), changeFrequency: "weekly" as const, priority: 0.5 })));
+
+  // Lounge players who confirmed their lounge name on GameShuffle (everyone else's page is noindex).
+  let loungeRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const { data: links } = await createServiceClient().from("lounge_links").select("game, name, checked_at").order("mmr", { ascending: false }).limit(2000);
+    loungeRoutes = ((links ?? []) as { game: MmrGame; name: string; checked_at: string | null }[]).map((l) => ({
+      url: `${baseUrl}${loungePagePath(l.name, l.game)}`,
+      lastModified: l.checked_at ? new Date(l.checked_at) : undefined,
+      changeFrequency: "daily" as const,
+      priority: 0.4,
+    }));
+  } catch (err) {
+    console.error("Sitemap: failed to fetch lounge players", err);
+  }
+
+  // Time trial boards with at least three players (thinner boards are noindex).
+  let ttRoutes: MetadataRoute.Sitemap = [];
+  try {
+    for (const g of TT_GAME_ORDER) {
+      for (const items of ["shrooms", "none"] as const) {
+        for (const s of await trackSummary(g, items)) {
+          const t = ttTrack(g, s.track);
+          if (t && s.players >= 3) ttRoutes.push({ url: `${baseUrl}${trackPath(t, s.cc, { items })}`, changeFrequency: "daily" as const, priority: 0.4 });
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Sitemap: failed to fetch time trial boards", err);
+    ttRoutes = [];
+  }
+
+  // One entry per URL. The blocks above overlap (the pillar map also lists
+  // /pokemon-tcg, which the deck block adds too), so keep the first position
+  // and the higher priority whenever a URL turns up twice.
+  return dedupeByUrl([
     ...staticRoutes,
+    ...ttRoutes,
     ...championshipRoutes,
     ...deckRoutes,
     ...ideaRoutes,
-  ];
+    ...triviaRoutes,
+    ...loungeRoutes,
+  ]);
+}
+
+function dedupeByUrl(entries: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
+  const at = new Map<string, number>();
+  const out: MetadataRoute.Sitemap = [];
+  for (const e of entries) {
+    const key = String(e.url).replace(/\/$/, "");
+    const i = at.get(key);
+    if (i === undefined) {
+      at.set(key, out.length);
+      out.push(e);
+    } else if ((e.priority ?? 0) > (out[i].priority ?? 0)) {
+      out[i] = { ...e, url: out[i].url, lastModified: e.lastModified ?? out[i].lastModified };
+    }
+  }
+  return out;
 }

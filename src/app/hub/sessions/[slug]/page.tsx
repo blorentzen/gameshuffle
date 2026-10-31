@@ -1,9 +1,16 @@
 /**
- * /hub/sessions/[slug] — session detail page.
+ * /hub/sessions/[slug]: one stream's page, shaped by its state (rebuilt
+ * 2026-10-10, audit + mockups https://claude.ai/artifact/4npmxxzygb6MWZemkxtQ54):
  *
- * Per gs-pro-v1-phase-4a-spec.md §5. Server-rendered shell with state-
- * specific main panels; the active state delegates to a client component
- * for real-time updates via Supabase channels.
+ *   before (draft / scheduled / ready)  Plan · Games
+ *   live (active / ending)              Control room · Games · Activity · Settings
+ *   after (ended / cancelled)           Recap · Activity
+ *
+ * The control room puts everything touched during a stream on one screen:
+ * rolls and picks and bans, the tools' run buttons, prediction and bounty,
+ * the lobby (with Kick) and recent activity. Channel points, tool setup and
+ * the overlay link live in Account ▸ Streaming now. Old tab ids
+ * (stream-tools, markets, viewers, redemptions) open the control room.
  *
  * All platform data is read through the adapter abstraction
  * (gs-pro-v1-phase-3a-spec.md). Components do not parse `platforms`
@@ -15,7 +22,7 @@ import { getBaseUrl } from "@/lib/env";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Alert, Badge, Breadcrumb, Button, Card } from "@empac/cascadeds";
+import { Alert, Breadcrumb, Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { requireHubAccess } from "@/lib/capabilities/hub-access";
@@ -25,25 +32,28 @@ import { getAllAdaptersForSession } from "@/lib/adapters/dispatcher";
 import type { ConnectionHealth, StreamStatusResult } from "@/lib/adapters/types";
 import { type GsSession } from "@/lib/sessions/types";
 import { WRAP_UP_DURATION_MS } from "@/lib/sessions/constants";
-import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
+import { formatEventShort } from "@/lib/time/format";
 import { Countdown } from "@/components/hub/Countdown";
 import { InviteButton } from "@/components/social/InviteButton";
 import { SessionActions } from "@/components/hub/SessionActions";
-import { StreamToolsTabContent } from "@/components/hub/StreamToolsTabContent";
 import { RealtimeActivityFeed } from "@/components/hub/RealtimeActivityFeed";
-import { PlatformBadge } from "@/components/hub/PlatformBadge";
 import { SessionDetailTabs, type SessionDetailTabDef } from "@/components/hub/SessionDetailTabs";
-import { SessionStatusStrip } from "@/components/hub/SessionStatusStrip";
-import { UserAvatar, type UserAvatarUser } from "@/components/UserAvatar";
-import { getGameArtwork } from "@/lib/games/artwork";
-
-type SessionHeaderAvatarUser = UserAvatarUser;
+import { SessionStatusLine } from "@/components/hub/SessionStatusStrip";
+import { HubToolsRun } from "@/components/hub/HubToolsRun";
+import { TokenAllowanceBadge } from "@/components/hub/TokenAllowanceBadge";
+import { GameCover } from "@/components/games/GameCover";
+import { getGameName } from "@/data/game-registry";
+import { ModParticipantsPanel } from "@/app/mod/[streamer]/ModParticipantsPanel";
 import { SessionConfigureTab } from "@/components/hub/tabs/SessionConfigureTab";
 import { SessionModulesTab } from "@/components/hub/tabs/SessionModulesTab";
 import { DashboardLiveControls } from "@/components/hub/DashboardLiveControls";
-import { SessionRedemptionsTab } from "@/components/hub/tabs/SessionRedemptionsTab";
-import { SessionViewersTab } from "@/components/hub/tabs/SessionViewersTab";
 import { SessionMarketsTab } from "@/components/hub/tabs/SessionMarketsTab";
+import { PublicLobbySurface } from "@/components/hub/ConfigureSections";
+import { HubLiveProvider } from "@/components/hub/live/HubLiveProvider";
+import { GameRolls, LastRoll } from "@/components/hub/live/OnScreenNow";
+import { RunningNow } from "@/components/hub/live/RunningNow";
+import { LiveGamesPanel } from "@/components/hub/live/LiveGamesPanel";
+import { hubGameActions } from "@/lib/hub/gameActions";
 import type { SessionEventRow, ParticipantRow } from "@/lib/sessions/queries";
 
 interface PageProps {
@@ -51,34 +61,25 @@ interface PageProps {
   searchParams: Promise<{ tab?: string }>;
 }
 
-type DetailTabId =
-  | "overview"
-  | "configure"
-  | "modules"
-  | "viewers"
-  | "redemptions"
-  | "activity"
-  | "stream-tools";
+type Phase = "plan" | "live" | "recap";
 
-const DEFAULT_TAB: DetailTabId = "overview";
+const phaseOf = (status: GsSession["status"]): Phase =>
+  status === "active" || status === "ending" ? "live" : status === "ended" || status === "cancelled" ? "recap" : "plan";
 
-function parseActiveTab(raw: string | undefined): DetailTabId {
-  if (
-    raw === "overview" ||
-    raw === "configure" ||
-    raw === "modules" ||
-    raw === "viewers" ||
-    raw === "redemptions" ||
-    raw === "activity" ||
-    raw === "stream-tools"
-  ) {
-    return raw;
-  }
-  return DEFAULT_TAB;
+/** Which tab a ?tab= value opens in each phase (old ids from the 8-tab page land somewhere sensible). */
+function resolveTab(raw: string | undefined, phase: Phase, raceGame: boolean): string {
+  const t = raw ?? "";
+  if (phase === "plan") return t === "modules" ? "modules" : "configure";
+  if (phase === "recap") return t === "activity" ? "activity" : "overview";
+  if (["lobby", "live-games", "predictions", "modules", "activity", "configure"].includes(t)) return t;
+  if (t === "picks") return raceGame ? "picks" : "overview";
+  if (t === "markets") return "predictions";
+  if (t === "viewers") return "lobby";
+  return "overview"; // overview, stream-tools, redemptions, anything else
 }
 
 export const metadata: Metadata = {
-  title: "Session",
+  title: "Stream",
   robots: { index: false, follow: false },
 };
 
@@ -88,35 +89,27 @@ interface PlatformConnectionCard {
   streamStatus: StreamStatusResult | null;
 }
 
+const PLATFORM_NAMES: Record<PlatformConnectionCard["platform"], string> = { twitch: "Twitch", discord: "Discord", youtube: "YouTube", kick: "Kick" };
+
 export default async function SessionDetailPage({
   params,
   searchParams,
 }: PageProps) {
   const { slug } = await params;
   const { tab: tabParam } = await searchParams;
-  const activeTab = parseActiveTab(tabParam);
   await requireHubAccess(`/hub/sessions/${slug}`);
   const session = await getSessionBySlug(slug);
   if (!session) notFound();
 
-  // Verify ownership. Layout already gated on hub.access; here we ensure
-  // the session belongs to the requesting user (or staff). RLS would
-  // also catch this for reads but we want a deliberate 404 instead of a
-  // silent empty page.
+  // Verify ownership (the layout gate is hub.access; this is the owner check).
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) notFound();
-  if (session.owner_user_id !== user.id) {
-    // Staff impersonation could legitimately view; check via the same
-    // pattern the layout uses. For Phase 4A we keep it simple — if not
-    // the owner, the staff role check we already passed at the layer
-    // is enough. (Layout's `hasCapability(hub.access)` returns true for
-    // staff regardless of impersonated tier.)
-    // TODO Phase 4B: surface "viewing as another user's session" UI.
-    notFound();
-  }
+  if (session.owner_user_id !== user.id) notFound();
+
+  const phase = phaseOf(session.status);
 
   const adapters = await getAllAdaptersForSession(session.id);
   const platformCards: PlatformConnectionCard[] = await Promise.all(
@@ -138,27 +131,21 @@ export default async function SessionDetailPage({
   const events = await listSessionEvents(session.id, { limit: 25 });
   const participants = await listActiveParticipants(session.id);
 
-  // Bundle the per-tab queries with the existing live-slug lookup so
-  // the page's data fetch stays in one round trip. Each is independent
-  // of the others; Promise.all keeps them parallel.
   const admin = createServiceClient();
   const [
     { data: profile },
     { data: connectionRow },
     { data: raceRow },
+    { data: discordServer },
   ] = await Promise.all([
     admin
       .from("users")
-      .select(
-        "username, twitch_username, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, discord_guild_id, socials"
-      )
+      .select("username, twitch_username, socials, timezone")
       .eq("id", session.owner_user_id)
       .maybeSingle(),
     admin
       .from("twitch_connections")
-      .select(
-        "id, twitch_login, twitch_display_name, public_lobby_enabled, channel_points_enabled, channel_point_cost, channel_point_reward_id"
-      )
+      .select("id, public_lobby_enabled")
       .eq("user_id", session.owner_user_id)
       .maybeSingle(),
     admin
@@ -167,10 +154,17 @@ export default async function SessionDetailPage({
       .eq("session_id", session.id)
       .eq("module_id", "race_randomizer")
       .maybeSingle(),
+    admin
+      .from("discord_guilds")
+      .select("guild_id")
+      .eq("owner_user_id", session.owner_user_id)
+      .is("removed_at", null)
+      .limit(1)
+      .maybeSingle(),
   ]);
 
-  // Live-view slug — username first (canonical custom slug), then
-  // twitch_username fallback.
+  const tz = (profile?.timezone as string | null) ?? null;
+  // Live-view slug: username first (canonical custom slug), then twitch_username.
   const liveSlug =
     (profile?.username as string | null) ??
     (profile?.twitch_username as string | null) ??
@@ -184,12 +178,9 @@ export default async function SessionDetailPage({
         ? [session.config.game]
         : [];
 
-  // Lazy-seed per-game race_randomizer slices from templates so the
-  // chat commands (!gs-race / !gs-track / etc.) always find a config
-  // for whatever game the streamer pivots to. Idempotent — existing
-  // slices are preserved. Best-effort: errors are logged inside.
-  // After seeding, re-read the row so the UI hydrates against the
-  // freshly-written config.
+  // Lazy-seed per-game race_randomizer slices from templates so the chat
+  // commands always find a config for whatever game the streamer pivots to.
+  // Idempotent; re-read the row so the UI hydrates against fresh config.
   const { ensureRaceRandomizerSlices } = await import(
     "@/lib/modules/store"
   );
@@ -210,15 +201,12 @@ export default async function SessionDetailPage({
     rawRaceConfig =
       (seededRow?.config as Record<string, unknown> | null) ?? rawRaceConfig;
   }
-  const raceSessionLive =
-    session.status === "active" || session.status === "ending";
+  const raceSessionLive = phase === "live";
 
-  // Phase 4B — when this session is a draft and a sibling session is
-  // still wrapping up (status='ending'), the user can't activate until
-  // the wrap-up completes. Compute the enable timestamp so the action
-  // button can render a countdown.
+  // A draft can't start while another session is still wrapping up; work
+  // out when it can so the Start button shows a countdown.
   let blockingEndingEnableAt: string | null = null;
-  if (session.status === "draft" || session.status === "scheduled" || session.status === "ready") {
+  if (phase === "plan") {
     const { data: ending } = await admin
       .from("gs_sessions")
       .select("id")
@@ -247,80 +235,36 @@ export default async function SessionDetailPage({
     }
   }
 
-  const isActive = session.status === "active" || session.status === "ending";
-  const showRecapAction =
-    session.status === "ended" || session.status === "cancelled";
-  const showLiveAction = isActive && !!liveSlug;
+  const currentGame = phase === "live"
+    ? session.active_game ?? configuredGamesList[0] ?? null
+    : configuredGamesList[0] ?? null;
+  const viewersInLobby = participants.filter((p) => !p.is_broadcaster).length;
+  // What this game can do on stream (just in time: rolls, picks and bans,
+  // predictions only where the game has them). Null for a queue.
+  const gameActions = phase === "live" ? hubGameActions(currentGame) : null;
+  const activeTab = resolveTab(tabParam, phase, !!gameActions?.race);
+  const lobbyConnection = connectionRow
+    ? {
+        publicLobbyEnabled: (connectionRow.public_lobby_enabled as boolean | null) !== false,
+        channelPointsEnabled: false,
+        channelPointCost: 500,
+        channelPointRewardId: null,
+      }
+    : null;
 
-  // Build tab contents. Each tab renders independently; CDS Tabs only
-  // displays the active one's content but mounts all of them so realtime
-  // subscriptions etc. wire up consistently. Performance is fine at this
-  // surface area.
-  const dashboardContent = (
-    <div className="hub-detail__section-stack">
-      {platformCards.length > 0 && (
-        <section className="hub-detail__section">
-          <h2 className="hub-detail__section-title">Platform connections</h2>
-          <div className="hub-detail__platform-grid">
-            {platformCards.map((card) => (
-              <PlatformCard key={card.platform} card={card} />
-            ))}
-          </div>
-        </section>
-      )}
-      <section className="hub-detail__section">
-        <h2 className="hub-detail__section-title">
-          {showRecapAction ? "Wrap-up summary" : "At a glance"}
-        </h2>
-        <StateSpecificPanel session={session} participants={participants} />
-      </section>
-
-      {/* Live-only controls — manual roll, picks/bans round lifecycle,
-          ballot picker, apply editor. Hidden when the session isn't
-          active/ending so draft/scheduled/ended views stay focused on
-          "at a glance" + recap. Configuration of the same modules
-          lives on the Modules tab (surface="config").
-          Scoped to a SINGLE game — whichever the streamer is currently
-          playing — to keep the Dashboard focused on the moment. Other
-          configured games' setup stays on Modules. */}
-      {raceSessionLive && (
-        <DashboardLiveControls
-          sessionId={session.id}
-          sessionSlug={session.slug}
-          initialActiveGameSlug={
-            session.active_game ??
-            configuredGamesList[0] ??
-            (session.config?.game as string | null) ??
-            null
-          }
-          legacyDefaultSlug={configuredGamesList[0]}
-          rawRaceConfig={rawRaceConfig}
-        />
-      )}
-
-      <section className="hub-detail__section">
-        <h2 className="hub-detail__section-title">Recent activity</h2>
-        <RealtimeActivityFeed
-          sessionId={session.id}
-          initialEvents={serializeEvents(events)}
-          limit={10}
-          viewAllHref={`/hub/sessions/${session.slug}?tab=activity`}
-        />
-      </section>
-      {liveSlug ? (
-        <section className="hub-detail__section">
-          <InviteButton
-            kind="session"
-            targetId={session.id}
-            targetName={session.name}
-            link={`/live/${liveSlug}`}
-            label="Invite followers"
-          />
-        </section>
-      ) : null}
-      <SessionMetadata session={session} liveSlug={liveSlug} />
-    </div>
-  );
+  // One alert when a connection needs fixing, in plain words (the per-session
+  // connection cards repeated Setup in developer terms).
+  const broken = platformCards.filter((c) => !c.health.healthy);
+  const setupAlert = broken.length > 0 && phase !== "recap" ? (
+    <Alert variant="warning" title={broken.some((c) => c.platform === "twitch") ? "Twitch needs attention" : `${broken.map((c) => PLATFORM_NAMES[c.platform]).join(" and ")} needs attention`}>
+      <span className="hub-home__alert-body">
+        {broken.some((c) => c.platform === "twitch")
+          ? "The bot may not be able to read or post in your chat, so commands and rolls could go quiet."
+          : "Posts there may not go out."}{" "}
+        <Link href="/account/streaming?tab=integrations">Fix in Setup</Link>
+      </span>
+    </Alert>
+  ) : null;
 
   const configureContent = (
     <SessionConfigureTab
@@ -331,13 +275,7 @@ export default async function SessionDetailPage({
       initial={{
         name: session.name,
         description: session.description ?? null,
-        configuredGames:
-          Array.isArray(session.configured_games) &&
-          session.configured_games.length > 0
-            ? session.configured_games
-            : session.config?.game
-              ? [session.config.game]
-              : [],
+        configuredGames: configuredGamesList,
         scheduledAt: session.scheduled_at,
         openMode: session.open_mode ?? null,
         announceAt: session.announce_at ?? null,
@@ -350,19 +288,8 @@ export default async function SessionDetailPage({
             : null,
       }}
       showTwitchNotConnectedWarning={!connectionRow}
-      connection={
-        connectionRow
-          ? {
-              publicLobbyEnabled:
-                (connectionRow.public_lobby_enabled as boolean | null) !== false,
-              channelPointsEnabled: !!connectionRow.channel_points_enabled,
-              channelPointCost:
-                (connectionRow.channel_point_cost as number | null) ?? 500,
-              channelPointRewardId:
-                (connectionRow.channel_point_reward_id as string | null) ?? null,
-            }
-          : null
-      }
+      // While live, the lobby's visibility sits on the Lobby tab.
+      connection={phase === "live" ? null : lobbyConnection}
     />
   );
 
@@ -379,10 +306,7 @@ export default async function SessionDetailPage({
   const initialQueueRotation: "fifo" | "random" =
     queueCfg.rotation === "random" ? "random" : "fifo";
 
-  // Discord routing health for the Race Setup "Share via Discord"
-  // option — the radio is only selectable when both pieces are in
-  // place. Read here so the gate is server-truth (rather than a
-  // client probe that might race the connection state).
+  // "Share via Discord" needs a connected server AND a public invite.
   const profileSocials =
     (profile?.socials as { discord_invite?: string } | null) ?? {};
   const discordInviteUrl =
@@ -390,11 +314,9 @@ export default async function SessionDetailPage({
     profileSocials.discord_invite.trim().length > 0
       ? profileSocials.discord_invite.trim()
       : null;
-  const discordShareAvailable = !!(
-    profile?.discord_guild_id && discordInviteUrl
-  );
+  const discordShareAvailable = !!(discordServer && discordInviteUrl);
 
-  const modulesContent = (
+  const gamesContent = (
     <SessionModulesTab
       sessionId={session.id}
       sessionSlug={session.slug}
@@ -407,513 +329,267 @@ export default async function SessionDetailPage({
     />
   );
 
-  const redemptionsContent = (
-    <SessionRedemptionsTab
-      connection={
-        connectionRow
-          ? {
-              publicLobbyEnabled:
-                (connectionRow.public_lobby_enabled as boolean | null) !== false,
-              channelPointsEnabled: !!connectionRow.channel_points_enabled,
-              channelPointCost:
-                (connectionRow.channel_point_cost as number | null) ?? 500,
-              channelPointRewardId:
-                (connectionRow.channel_point_reward_id as string | null) ?? null,
-            }
-          : null
-      }
-    />
-  );
-
-  const viewersPhase: "pre" | "live" | "post" = isActive
-    ? "live"
-    : session.status === "ended" || session.status === "cancelled"
-      ? "post"
-      : "pre";
-  const viewersContent = (
-    <SessionViewersTab
-      sessionId={session.id}
-      initialParticipants={serializeParticipants(participants)}
-      phase={viewersPhase}
-    />
-  );
-
   const activityContent = (
-    <section className="hub-detail__section">
-      <h2 className="hub-detail__section-title">Full activity</h2>
-      <RealtimeActivityFeed
-        sessionId={session.id}
-        initialEvents={serializeEvents(events)}
-      />
+    <section className="hub-panel" aria-labelledby="hub-activity-all">
+      <h2 id="hub-activity-all" className="hub-panel__title">Everything that happened</h2>
+      <RealtimeActivityFeed sessionId={session.id} initialEvents={serializeEvents(events)} />
     </section>
   );
 
-  const marketsContent = (
-    <section className="hub-detail__section">
-      {liveSlug ? (
-        <SessionMarketsTab
-          streamerSlug={liveSlug}
-          ownerUserId={session.owner_user_id}
-        />
-      ) : (
-        <p>Markets need a public slug. Set a username under /account first.</p>
+  const lobbyList = liveSlug ? (
+    <ModParticipantsPanel streamerSlug={liveSlug} sessionId={session.id} initialParticipants={serializeParticipants(participants)} />
+  ) : (
+    <p className="hub-panel__empty">Set a username in Account ▸ Profile to manage the lobby here.</p>
+  );
+
+  // The control room: the game on stream's rolls, what's running with its
+  // next step, then the overlay tools, all as aligned rows and cards (one
+  // primary button: the main roll). Status sits beside them: the last roll,
+  // the lobby and activity.
+  const controlRoom = (
+    <div className="hub-control">
+      {session.grace_period_expires_at && (
+        <Alert variant="warning" title="Your stream went offline">
+          The session ends on its own <Countdown to={session.grace_period_expires_at} /> unless you go live again.
+        </Alert>
       )}
-    </section>
+      <div className="hub-control__grid">
+        <div className="hub-control__main">
+          <GameRolls
+            key={gameActions?.slug ?? "queue"}
+            sessionId={session.id}
+            actions={gameActions}
+            rawRaceConfig={rawRaceConfig}
+            legacyDefaultSlug={configuredGamesList[0]}
+          />
+          <RunningNow sessionSlug={session.slug} liveSlug={liveSlug} actions={gameActions} />
+          <HubToolsRun slug={session.slug} />
+        </div>
+        <aside className="hub-control__side">
+          <LastRoll />
+          <section className="hub-panel" aria-labelledby="hub-lobby">
+            <div className="hub-panel__head">
+              <h2 id="hub-lobby" className="hub-panel__title">Lobby <span className="hub-page__group-count">{viewersInLobby}</span></h2>
+              <Link className="hub-panel__link" href={`/hub/sessions/${session.slug}?tab=lobby`}>Manage</Link>
+            </div>
+            <div className="hub-control__lobby" tabIndex={0} role="region" aria-label="Who's in the lobby">{lobbyList}</div>
+          </section>
+          <section className="hub-panel" aria-labelledby="hub-activity">
+            <h2 id="hub-activity" className="hub-panel__title">Activity</h2>
+            <RealtimeActivityFeed
+              sessionId={session.id}
+              initialEvents={serializeEvents(events)}
+              limit={6}
+              viewAllHref={`/hub/sessions/${session.slug}?tab=activity`}
+            />
+          </section>
+        </aside>
+      </div>
+    </div>
   );
 
-  const tabs: SessionDetailTabDef[] = [
-    // URL id stays "overview" so any pre-existing deep links / bookmarks
-    // keep landing on the right tab. Label is the rename to "Dashboard"
-    // per the UX redesign — see /hub UX brief 2026-05-15.
-    { id: "overview", label: "Dashboard", content: dashboardContent },
-    { id: "activity", label: "Activity", content: activityContent },
-    { id: "modules", label: "Modules", content: modulesContent },
-    {
-      id: "stream-tools",
-      label: "Stream Tools",
-      content: <StreamToolsTabContent slug={session.slug} />,
-    },
-    { id: "markets", label: "Markets", content: marketsContent },
-    {
-      id: "viewers",
-      label: "Viewers",
-      content: viewersContent,
-      badge: participants.filter((p) => !p.is_broadcaster).length || undefined,
-    },
-    { id: "redemptions", label: "Redemptions", content: redemptionsContent },
-    { id: "configure", label: "Settings", content: configureContent },
-  ];
+  const lobbyTab = (
+    <div className="hub-lobby">
+      <section className="hub-panel" aria-labelledby="hub-lobby-all">
+        <h2 id="hub-lobby-all" className="hub-panel__title">Who&rsquo;s in <span className="hub-page__group-count">{viewersInLobby}</span></h2>
+        {lobbyList}
+      </section>
+      <div className="hub-lobby__side">
+        <PublicLobbySurface initial={lobbyConnection} sessionId={session.id} initialPublicLobby={(session.feature_flags?.public_lobby as boolean | null | undefined) ?? null} />
+        <section className="hub-panel" aria-labelledby="hub-lobby-chat">
+          <h2 id="hub-lobby-chat" className="hub-panel__title">From chat</h2>
+          <ul className="hub-lobby__commands">
+            <li><code>!gs-join</code> / <code>!gs-leave</code> get in and out</li>
+            {gameActions && <li><code>!gs-shuffle</code> rolls a viewer their own {gameActions.noun}</li>}
+            <li><code>!gs-lobby</code> lists who&rsquo;s in</li>
+            <li><code>!gs-kick @name</code> and <code>!gs-clear</code> for you and your mods</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  );
+
+  let tabs: SessionDetailTabDef[];
+  if (phase === "plan") {
+    tabs = [
+      { id: "configure", label: "Plan", content: <div className="hub-plan"><PlanChecklist session={session} games={configuredGamesList} hasDiscord={!!discordServer} tz={tz} />{configureContent}</div> },
+      { id: "modules", label: "Games", content: gamesContent },
+    ];
+  } else if (phase === "live") {
+    // Just in time: Picks & bans only for a game that has it, and the
+    // predictions tab says Bounties where there are no prediction markets.
+    tabs = [
+      { id: "overview", label: "Control room", content: controlRoom },
+      { id: "lobby", label: "Lobby", badge: viewersInLobby, content: lobbyTab },
+      ...(gameActions?.race
+        ? [{
+            id: "picks",
+            label: "Picks & bans",
+            content: (
+              <DashboardLiveControls
+                sessionId={session.id}
+                sessionSlug={session.slug}
+                initialActiveGameSlug={currentGame ?? (session.config?.game as string | null) ?? null}
+                legacyDefaultSlug={configuredGamesList[0]}
+                rawRaceConfig={rawRaceConfig}
+                part="picks"
+              />
+            ),
+          }]
+        : []),
+      { id: "live-games", label: "Live games", content: <LiveGamesPanel /> },
+      ...(liveSlug
+        ? [{
+            id: "predictions",
+            label: gameActions?.markets ? "Predictions" : "Bounties",
+            content: (
+              <div className="hub-predict">
+                <div className="hub-predict__head">
+                  <p className="hub-panel__empty">
+                    {gameActions?.markets
+                      ? "Chat bets tokens on how a race goes, and bounties pay whoever does something first."
+                      : "Bounties pay tokens to whoever does something first."}{" "}
+                    Same as running them from chat.
+                  </p>
+                  <TokenAllowanceBadge ownerUserId={session.owner_user_id} />
+                </div>
+                <SessionMarketsTab streamerSlug={liveSlug} ownerUserId={session.owner_user_id} markets={!!gameActions?.markets} />
+              </div>
+            ),
+          }]
+        : []),
+      { id: "modules", label: "Games", content: gamesContent },
+      { id: "activity", label: "Activity", content: activityContent },
+      { id: "configure", label: "Settings", content: configureContent },
+    ];
+  } else {
+    const recap = await loadSessionNumbers(session.id);
+    tabs = [
+      {
+        id: "overview",
+        label: "Recap",
+        content: (
+          <div className="hub-recap">
+            <div className="hub-stats hub-stats--four">
+              <div className="hub-stats__item"><span className="hub-stats__label">Viewers who played</span><span className="hub-stats__value">{recap.players}</span></div>
+              <div className="hub-stats__item"><span className="hub-stats__label">Rolls</span><span className="hub-stats__value">{recap.rolls}</span></div>
+              <div className="hub-stats__item"><span className="hub-stats__label">Picks and bans rounds</span><span className="hub-stats__value">{recap.rounds}</span></div>
+              <div className="hub-stats__item"><span className="hub-stats__label">Ballots</span><span className="hub-stats__value">{recap.ballots}</span></div>
+            </div>
+            <section className="hub-panel" aria-labelledby="hub-recap-feed">
+              <h2 id="hub-recap-feed" className="hub-panel__title">What happened</h2>
+              <RealtimeActivityFeed sessionId={session.id} initialEvents={serializeEvents(events)} limit={10} viewAllHref={`/hub/sessions/${session.slug}?tab=activity`} />
+            </section>
+            {liveSlug && (
+              <section className="hub-panel">
+                <SessionMarketsTab streamerSlug={liveSlug} ownerUserId={session.owner_user_id} part="history" />
+              </section>
+            )}
+          </div>
+        ),
+      },
+      { id: "activity", label: "Activity", content: activityContent },
+    ];
+  }
+
+  const isTest = !!session.feature_flags?.test_session;
+  const extra = phase === "live"
+    ? [currentGame ? `Playing ${getGameName(currentGame)}` : null, `${viewersInLobby} in the lobby`].filter(Boolean).join(" · ")
+    : phase === "recap" && currentGame ? getGameName(currentGame) : null;
 
   return (
-    <div className="hub-detail">
+    <div className="hub-detail hub-session">
       <Breadcrumb
         items={[
-          { label: "Hub", href: "/hub" },
+          { label: "Stream hub", href: "/hub" },
           { label: session.name },
         ]}
         separator="chevron"
       />
 
-      <SessionHeader
-        session={session}
-        blockingEndingEnableAt={blockingEndingEnableAt}
-        liveSlug={showLiveAction ? liveSlug : null}
-        showRecapLink={showRecapAction}
-        avatarUser={{
-          id: session.owner_user_id,
-          avatar_source:
-            (profile?.avatar_source as
-              | "initials"
-              | "dicebear"
-              | "twitch"
-              | "discord"
-              | undefined) ?? "dicebear",
-          avatar_seed: (profile?.avatar_seed as string | null) ?? null,
-          avatar_options:
-            (profile?.avatar_options as Record<string, string> | null) ?? null,
-          twitch_avatar: (profile?.twitch_avatar as string | null) ?? null,
-          discord_avatar: (profile?.discord_avatar as string | null) ?? null,
-        }}
-      />
+      <header className="hub-session__head">
+        <span className="hub-session__cover">{currentGame && <GameCover slug={currentGame} name={getGameName(currentGame)} />}</span>
+        <div className="hub-session__titles">
+          <h1 className="hub-detail__title">{session.name}{isTest && <span className="hub-rows__tag">Test</span>}</h1>
+          <SessionStatusLine session={session} tz={tz} extra={extra} />
+        </div>
+        <div className="hub-detail__header-actions">
+          {phase === "live" && liveSlug && (
+            <>
+              <Link href={`/live/${encodeURIComponent(liveSlug)}`} target="_blank" rel="noopener noreferrer" className="hub-detail__header-link-action">
+                <Button variant="secondary">Live page ↗</Button>
+              </Link>
+              <Link href={`/mod/${encodeURIComponent(liveSlug)}`} target="_blank" rel="noopener noreferrer" className="hub-detail__header-link-action">
+                <Button variant="secondary">Mod view ↗</Button>
+              </Link>
+            </>
+          )}
+          {phase !== "recap" && liveSlug && (
+            <InviteButton kind="session" targetId={session.id} targetName={session.name} link={`/live/${liveSlug}`} label="Invite followers" />
+          )}
+          {phase === "recap" && session.status === "ended" && (
+            <>
+              <Link href={`/hub/sessions/${session.slug}/recap`} target="_blank" rel="noopener noreferrer" className="hub-detail__header-link-action">
+                <Button variant="secondary">Public recap ↗</Button>
+              </Link>
+              <AiRecapButton target={{ kind: "stream", sessionId: session.id }} link={`${getBaseUrl()}/hub/sessions/${session.slug}/recap`} size="medium" />
+            </>
+          )}
+          <SessionActions session={session} blockingEndingEnableAt={blockingEndingEnableAt} />
+        </div>
+      </header>
 
-      <SessionStatusStrip session={session} />
+      {setupAlert}
 
-      <SessionDetailTabs tabs={tabs} initialTab={activeTab} />
+      {phase === "live" ? (
+        <HubLiveProvider sessionId={session.id} renderedGame={currentGame}>
+          <SessionDetailTabs tabs={tabs} initialTab={activeTab} />
+        </HubLiveProvider>
+      ) : (
+        <SessionDetailTabs tabs={tabs} initialTab={activeTab} />
+      )}
     </div>
   );
 }
 
-function SessionHeader({
-  session,
-  blockingEndingEnableAt,
-  liveSlug,
-  showRecapLink,
-  avatarUser,
-}: {
-  session: GsSession;
-  blockingEndingEnableAt: string | null;
-  /** Live-view slug for the action row link. Null when the session
-   *  isn't active/ending or the streamer has no resolvable slug. */
-  liveSlug: string | null;
-  showRecapLink: boolean;
-  /** Streamer's avatar identity. The header thumbnail is the streamer's
-   *  avatar (DiceBear/Twitch/Discord) — not game artwork. Future:
-   *  `session.config.custom_event_image_url` overrides when a streamer
-   *  uploads a session-specific event banner (upload UI deferred). */
-  avatarUser: SessionHeaderAvatarUser;
-}) {
-  const isTest = !!session.feature_flags?.test_session;
-  const isLive = session.status === "active" || session.status === "ending";
-  // Custom event image override (future upload feature). For now this is
-  // always undefined; the slot exists so when the upload lands we only
-  // need to wire the upload UI, not the read path.
-  const customEventImageUrl =
-    typeof session.config?.custom_event_image_url === "string"
-      ? (session.config.custom_event_image_url as string)
-      : null;
-  const categoryEntry = isLive ? getGameArtwork(session.active_game) : null;
+/** Before a stream: what's set, what isn't, at a glance. */
+function PlanChecklist({ session, games, hasDiscord, tz }: { session: GsSession; games: string[]; hasDiscord: boolean; tz: string | null }) {
+  const steps: { done: boolean; title: string; detail: string }[] = [
+    { done: true, title: "Name", detail: session.name },
+    { done: games.length > 0, title: "Games", detail: games.length ? games.map(getGameName).join(", ") : "Pick what you'll play, or leave it empty for a viewer queue" },
+    { done: !!session.scheduled_at, title: "When", detail: session.scheduled_at ? formatEventShort(session.scheduled_at, tz) : "Start it by hand, or schedule it so it opens and announces itself" },
+    { done: hasDiscord, title: "Announce", detail: hasDiscord ? "Twitch chat and your Discord server" : "Twitch chat (connect Discord in Setup to post there too)" },
+  ];
   return (
-    <header className="hub-detail__header">
-      <div className="hub-detail__header-artwork">
-        {customEventImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={customEventImageUrl}
-            alt=""
-            className="hub-detail__header-event-image"
-            loading="lazy"
-          />
-        ) : (
-          <UserAvatar user={avatarUser} size={56} alt="" />
-        )}
-      </div>
-      <div className="hub-detail__header-main">
-        <h1 className="hub-detail__title">{session.name}</h1>
-        <div className="hub-detail__header-badges">
-          {isTest && <Badge variant="info" size="small">Test session</Badge>}
-          {categoryEntry && (
-            <span className="hub-detail__header-category">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={categoryEntry.artworkUrl}
-                alt=""
-                className="hub-detail__header-category-art"
-                loading="lazy"
-              />
-              <span className="hub-detail__header-category-meta">
-                <span className="hub-detail__header-category-label">
-                  Current Category
-                </span>
-                <span className="hub-detail__header-category-name">
-                  {categoryEntry.name}
-                </span>
-              </span>
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="hub-detail__header-actions">
-        <SessionActions
-          session={session}
-          blockingEndingEnableAt={blockingEndingEnableAt}
-        />
-        {liveSlug && (
-          <Link
-            href={`/live/${encodeURIComponent(liveSlug)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hub-detail__header-link-action"
-          >
-            <Button variant="secondary">Live view ↗</Button>
-          </Link>
-        )}
-        {/* Mod view — same surface the streamer's active mods see, useful
-         *  for previewing setup + operating tools mid-stream. Auto-grants
-         *  access on /mod/[slug] when caller is the streamer themselves. */}
-        {liveSlug && (
-          <Link
-            href={`/mod/${encodeURIComponent(liveSlug)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hub-detail__header-link-action"
-          >
-            <Button variant="secondary">Mod view ↗</Button>
-          </Link>
-        )}
-        {showRecapLink && (
-          <Link
-            href={`/hub/sessions/${session.slug}/recap`}
-            className="hub-detail__header-link-action"
-          >
-            <Button variant="secondary">Recap ↗</Button>
-          </Link>
-        )}
-        {showRecapLink && (
-          <AiRecapButton target={{ kind: "stream", sessionId: session.id }} link={`${getBaseUrl()}/hub/sessions/${session.slug}/recap`} size="medium" />
-        )}
-      </div>
-    </header>
+    <ol className="hub-plan__steps" aria-label="Before you go live">
+      {steps.map((st, i) => (
+        <li key={st.title} className={st.done ? "is-done" : ""}>
+          <span className="hub-plan__n" aria-hidden="true">{st.done ? "✓" : i + 1}</span>
+          <span><strong>{st.title}</strong> {st.detail}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
-function PlatformCard({ card }: { card: PlatformConnectionCard }) {
-  return (
-    <Card variant="outlined" padding="medium">
-      <div className="hub-detail__platform-card">
-        <div className="hub-detail__platform-card-header">
-          <PlatformBadge platform={card.platform} />
-          {card.health.healthy ? (
-            <Badge variant="success" size="small">Connected</Badge>
-          ) : (
-            <Badge variant="warning" size="small">Needs attention</Badge>
-          )}
-        </div>
-        {!card.health.healthy && (
-          <p className="hub-detail__platform-card-reason">
-            {card.health.reason}
-          </p>
-        )}
-        {!card.health.healthy && card.health.userActionRequired && (
-          <Link href="/account/streamer?tab=integrations">
-            <Badge variant="info" size="small">Reconnect →</Badge>
-          </Link>
-        )}
-        {card.streamStatus?.isLive && (
-          <p className="hub-detail__platform-card-stream">
-            <Badge variant="success" size="small">LIVE</Badge>
-            {card.streamStatus.gameName ? ` ${card.streamStatus.gameName}` : ""}
-          </p>
-        )}
-        {card.streamStatus && !card.streamStatus.isLive && (
-          <p className="hub-detail__platform-card-stream hub-detail__platform-card-stream--offline">
-            Offline
-          </p>
-        )}
-      </div>
-    </Card>
-  );
-}
-
-function StateSpecificPanel({
-  session,
-  participants,
-}: {
-  session: GsSession;
-  participants: ParticipantRow[];
-}) {
-  switch (session.status) {
-    case "draft":
-      return <DraftPanel session={session} />;
-    case "scheduled":
-      return <ScheduledPanel session={session} />;
-    case "ready":
-      return <ReadyPanel session={session} />;
-    case "active":
-      return (
-        <ActivePanel session={session} participantCount={participants.length} />
-      );
-    case "ending":
-      return <EndingPanel session={session} />;
-    case "ended":
-      return <EndedPanel session={session} />;
-    case "cancelled":
-      return <CancelledPanel session={session} />;
+/** A finished stream in numbers. */
+async function loadSessionNumbers(sessionId: string): Promise<{ players: number; rolls: number; rounds: number; ballots: number }> {
+  const admin = createServiceClient();
+  const [{ count: players }, { count: rolls }, { data: rounds }] = await Promise.all([
+    admin.from("session_participants").select("id", { count: "exact", head: true }).eq("session_id", sessionId).eq("is_broadcaster", false),
+    admin.from("session_events").select("id", { count: "exact", head: true }).eq("session_id", sessionId).in("event_type", ["shuffle", "race_randomized"]),
+    admin.from("session_picks_bans_rounds").select("id").eq("session_id", sessionId),
+  ]);
+  const roundIds = ((rounds ?? []) as { id: string }[]).map((r) => r.id);
+  let ballots = 0;
+  if (roundIds.length) {
+    const { count } = await admin.from("session_picks_bans_ballots").select("id", { count: "exact", head: true }).in("round_id", roundIds);
+    ballots = count ?? 0;
   }
+  return { players: players ?? 0, rolls: rolls ?? 0, rounds: roundIds.length, ballots };
 }
 
-function DraftPanel({ session }: { session: GsSession }) {
-  return (
-    <Card variant="flat" padding="medium">
-      <p className="hub-detail__panel-text">
-        Draft session, not yet activated. Use the activate action above
-        to begin streaming behavior.
-      </p>
-      <p className="hub-detail__panel-meta">
-        Created {formatRelativeTime(session.created_at)}.
-      </p>
-    </Card>
-  );
-}
-
-function ScheduledPanel({ session }: { session: GsSession }) {
-  const windowHours = session.scheduled_eligibility_window_hours ?? 4;
-  const windowOpensAt = session.scheduled_at
-    ? new Date(
-        Date.parse(session.scheduled_at) - windowHours * 3600_000
-      ).toISOString()
-    : null;
-  return (
-    <Card variant="flat" padding="medium">
-      <p className="hub-detail__panel-text">
-        Scheduled for{" "}
-        <strong>
-          {session.scheduled_at
-            ? new Date(session.scheduled_at).toLocaleString()
-            : "-"}
-        </strong>
-        .
-      </p>
-      <p className="hub-detail__panel-meta">
-        Eligibility window opens{" "}
-        <strong>
-          <Countdown to={windowOpensAt} />
-        </strong>{" "}
-        ({windowHours}h before / after the scheduled time).
-      </p>
-    </Card>
-  );
-}
-
-function ReadyPanel({ session }: { session: GsSession }) {
-  const windowHours = session.scheduled_eligibility_window_hours ?? 4;
-  const windowClosesAt = session.scheduled_at
-    ? new Date(
-        Date.parse(session.scheduled_at) + windowHours * 3600_000
-      ).toISOString()
-    : null;
-  return (
-    <Card variant="flat" padding="medium">
-      <Alert variant="info">
-        Eligibility window is open. Activate this session to start
-        streaming behavior. Window closes{" "}
-        <strong>
-          <Countdown to={windowClosesAt} />
-        </strong>
-        .
-      </Alert>
-    </Card>
-  );
-}
-
-function ActivePanel({
-  session,
-  participantCount,
-}: {
-  session: GsSession;
-  participantCount: number;
-}) {
-  const inGrace = !!session.grace_period_expires_at;
-  const autoTimeoutAt = session.auto_timeout_at;
-  return (
-    <Card variant="flat" padding="medium">
-      <div className="hub-detail__active-grid">
-        <div>
-          <span className="hub-detail__stat-label">Participants</span>
-          <span className="hub-detail__stat-value">{participantCount}</span>
-        </div>
-        <div>
-          <span className="hub-detail__stat-label">Activated</span>
-          <span className="hub-detail__stat-value">
-            {formatRelativeTime(session.activated_at)}
-          </span>
-        </div>
-        <div>
-          <span className="hub-detail__stat-label">Auto-end</span>
-          <span className="hub-detail__stat-value">
-            <Countdown to={autoTimeoutAt} />
-          </span>
-        </div>
-      </div>
-      {inGrace && (
-        <div className="hub-detail__grace-banner">
-          <Alert variant="warning">
-            Stream offline. Grace period ends{" "}
-            <strong>
-              <Countdown to={session.grace_period_expires_at} />
-            </strong>
-            . Bring the stream back online to keep the session running.
-          </Alert>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function EndingPanel({ session }: { session: GsSession }) {
-  // Wrap-up runs on a 60s timer per Phase 2 constants. We don't expose the
-  // exact wrap-up start to the client, so render a simple "wrapping up"
-  // indicator without a precise countdown.
-  void session;
-  return (
-    <Card variant="flat" padding="medium">
-      <Alert variant="info">
-        Session is wrapping up. Recap will be posted to chat when complete.
-        Read-only until the lifecycle sweep marks it ended.
-      </Alert>
-    </Card>
-  );
-}
-
-function EndedPanel({ session }: { session: GsSession }) {
-  const durationSeconds =
-    session.activated_at && session.ended_at
-      ? Math.max(
-          0,
-          Math.floor(
-            (Date.parse(session.ended_at) - Date.parse(session.activated_at)) / 1000
-          )
-        )
-      : null;
-  return (
-    <Card variant="flat" padding="medium">
-      <div className="hub-detail__active-grid">
-        <div>
-          <span className="hub-detail__stat-label">Ended</span>
-          <span className="hub-detail__stat-value">
-            {formatRelativeTime(session.ended_at)}
-          </span>
-        </div>
-        <div>
-          <span className="hub-detail__stat-label">Duration</span>
-          <span className="hub-detail__stat-value">
-            {durationSeconds !== null ? formatDuration(durationSeconds) : "-"}
-          </span>
-        </div>
-        <div>
-          <span className="hub-detail__stat-label">Ended via</span>
-          <span className="hub-detail__stat-value">
-            {session.ended_via ?? "-"}
-          </span>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function CancelledPanel({ session }: { session: GsSession }) {
-  return (
-    <Card variant="flat" padding="medium">
-      <p className="hub-detail__panel-text">
-        Cancelled {formatRelativeTime(session.ended_at ?? session.updated_at)}.
-        Use the restart action above to clone this session into a new draft.
-      </p>
-    </Card>
-  );
-}
-
-function SessionMetadata({
-  session,
-  liveSlug,
-}: {
-  session: GsSession;
-  liveSlug: string | null;
-}) {
-  // Public live URL — what viewers click to follow along (lobby +
-  // shuffle feed). Only shown when the streamer has a slug we can
-  // resolve (username or twitch_username); otherwise the link target
-  // would 404, so render plain text.
-  const liveHref = liveSlug ? `/live/${encodeURIComponent(liveSlug)}` : null;
-  return (
-    <footer className="hub-detail__metadata">
-      <div>
-        <span className="hub-detail__metadata-label">Slug</span>
-        {liveHref ? (
-          <Link
-            href={liveHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hub-detail__metadata-link"
-            title="Open the public viewer page in a new tab"
-          >
-            <code>{session.slug}</code> ↗
-          </Link>
-        ) : (
-          <code>{session.slug}</code>
-        )}
-      </div>
-      <div>
-        <span className="hub-detail__metadata-label">ID</span>
-        <code>{session.id}</code>
-      </div>
-      <div>
-        <span className="hub-detail__metadata-label">Created</span>
-        <span>{formatRelativeTime(session.created_at)}</span>
-      </div>
-    </footer>
-  );
-}
-
-// Serializers — Realtime + ActivityFeed are client components, so the props
+// Serializers: Realtime + ActivityFeed are client components, so the props
 // must be plain serializable values.
 function serializeParticipants(rows: ParticipantRow[]): ParticipantRow[] {
   return rows.map((row) => ({ ...row }));

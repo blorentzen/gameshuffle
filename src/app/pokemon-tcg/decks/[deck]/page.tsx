@@ -1,3 +1,4 @@
+import { previewText } from "@/lib/og/meta";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -20,6 +21,12 @@ import { DeckViewTracker } from "@/components/tcg/DeckViewTracker";
 import type { TcgCard } from "@/lib/scrydex/types";
 import { TCG_HUB_LIVE } from "@/data/tcg-hub";
 import { TCG_SHOP_URL } from "@/data/shop";
+import { SITE_URL } from "@/lib/seo";
+import { deckUrl, shareImage } from "@/lib/decks/seo";
+import { CompanionNote, splitAfterSection } from "@/components/tcg/CompanionNote";
+import { SaveGuideDeck } from "@/components/tcg/decks/SaveGuideDeck";
+import { NewHereLine } from "@/components/welcome/NewHereLine";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 
 /**
  * Deck detail page — `/pokemon-tcg/decks/[deck]`. Renders one deck guide.
@@ -27,7 +34,7 @@ import { TCG_SHOP_URL } from "@/data/shop";
  * and to the `/pokemon-tcg` shop page (internal-link authority funnel).
  */
 
-const SITE = "https://www.gameshuffle.co";
+const SITE = SITE_URL;
 
 export function generateStaticParams() {
   return getDeckSlugs().map((deck) => ({ deck }));
@@ -44,22 +51,27 @@ export async function generateMetadata({
   const d = getDeckBySlug(deck);
   if (!d) return {};
   const fm = d.frontmatter;
+  // Built from SITE_URL + slug (always www), not the frontmatter canonical.
+  const url = deckUrl(fm.slug);
+  const image = shareImage(fm.og_image);
   return {
     title: fm.title,
-    description: fm.meta_description,
+    description: previewText(fm.meta_description, 160),
     openGraph: {
+      siteName: "GameShuffle",
       title: fm.title,
-      description: fm.meta_description,
-      url: fm.canonical,
+      description: previewText(fm.meta_description, 160),
+      url,
       type: "article",
-      images: fm.og_image ? [fm.og_image] : undefined,
+      images: [image],
     },
     twitter: {
       card: "summary_large_image",
       title: fm.title,
-      description: fm.meta_description,
+      description: previewText(fm.meta_description, 160),
+      images: [image],
     },
-    alternates: { canonical: fm.canonical },
+    alternates: { canonical: url },
     // The deck cluster funnels to /pokemon-tcg — hold indexing until the
     // whole TCG surface is live (shares the shop page's launch flag).
     robots: TCG_HUB_LIVE ? undefined : { index: false, follow: false },
@@ -94,7 +106,15 @@ export default async function Page({
   const d = getDeckBySlug(deck);
   if (!d) notFound();
   const fm = d.frontmatter;
+  const url = deckUrl(fm.slug);
   const related = relatedAcrossTiers(d);
+  // The companion note goes right after the guide's "How to Play It" section
+  // (or before "What to Buy" / "Related" for guides without one).
+  const [guideTop, guideRest] = splitAfterSection(
+    d.body,
+    /^## How to Play It/,
+    /^## (What to Buy|Related)\b/,
+  );
 
   // Beginner "matched pair" cross-links (Battle Box). Absent for solo decks.
   const battleBox = fm.battle_box_partner ? getBattleBoxForDeck(fm.slug) : null;
@@ -115,20 +135,20 @@ export default async function Page({
     "@graph": [
       {
         "@type": "TechArticle",
-        headline: fm.title,
+        headline: fm.h1,
         description: fm.meta_description,
         dateModified: fm.last_verified,
         author: { "@type": "Organization", name: "GameShuffle" },
         publisher: { "@type": "Organization", name: "GameShuffle" },
-        mainEntityOfPage: fm.canonical,
-        ...(fm.og_image ? { image: `${SITE}${fm.og_image}` } : {}),
+        mainEntityOfPage: url,
+        image: shareImage(fm.og_image),
       },
       {
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Pokémon TCG", item: `${SITE}/pokemon-tcg` },
           { "@type": "ListItem", position: 2, name: "Decks", item: `${SITE}/pokemon-tcg/decks` },
-          { "@type": "ListItem", position: 3, name: fm.archetype, item: fm.canonical },
+          { "@type": "ListItem", position: 3, name: fm.archetype, item: url },
         ],
       },
     ],
@@ -155,7 +175,7 @@ export default async function Page({
 
         {/* Header */}
         <header className="deck-detail__header">
-          <h1 className="deck-detail__title">{fm.title}</h1>
+          <h1 className="deck-detail__title">{fm.h1}</h1>
           {/* Tier badges (one per tier the deck belongs to) */}
           <div className="deck-detail__stats">
             {orderedTierBadges(fm.tiers).map((b) => (
@@ -212,27 +232,27 @@ export default async function Page({
           <aside className="deck-battlebox-note">
             <p className="deck-battlebox-note__lead">
               🥊 Part of the{" "}
-              <strong>
-                {battleBox.frontmatter.title.split("—")[0].trim()}
-              </strong>
+              <strong>{battleBox.frontmatter.name}</strong>
               , a matched pair built to learn the game together.
             </p>
             <div className="deck-battlebox-note__links">
-              <Link
-                href={`/pokemon-tcg/decks/battle-box/${battleBox.frontmatter.slug}`}
-              >
-                See the Battle Box →
-              </Link>
-              <Link href={`/pokemon-tcg/decks/${partner.frontmatter.slug}`}>
-                Play against {partner.frontmatter.archetype} →
-              </Link>
+              <ArrowLink href={`/pokemon-tcg/decks/battle-box/${battleBox.frontmatter.slug}`}>
+                See the Battle Box
+              </ArrowLink>
+              <ArrowLink href={`/pokemon-tcg/decks/${partner.frontmatter.slug}`}>
+                Play against {partner.frontmatter.archetype}
+              </ArrowLink>
             </div>
           </aside>
         ) : null}
 
         {/* Guide body — decklist tables show inline card thumbnails when a
             marquee set is available (cardsByName). */}
-        <DeckBody markdown={d.body} cardsByName={cardsByName} />
+        <DeckBody markdown={guideTop} cardsByName={cardsByName} />
+        <CompanionNote />
+        {guideRest ? (
+          <DeckBody markdown={guideRest} cardsByName={cardsByName} />
+        ) : null}
         {marqueeCards.length > 0 ? (
           <TcgAttribution className="tcg-featured__attr" />
         ) : null}
@@ -241,7 +261,8 @@ export default async function Page({
             store; secondary keeps the internal funnel to the deck index. */}
         <section className="deck-cta">
           <p className="deck-cta__text">
-            Build this deck from GameShuffle singles.
+            Build this deck from GameShuffle singles, or save the list to see
+            how much of it you own and play it in the companion.
           </p>
           <div className="deck-cta__actions">
             <a
@@ -251,9 +272,10 @@ export default async function Page({
               style={{ textDecoration: "none" }}
             >
               <Button variant="primary" size="large">
-                Shop the cards →
+                Shop the cards
               </Button>
             </a>
+            <SaveGuideDeck slug={fm.slug} />
             <Link href="/pokemon-tcg/decks" style={{ textDecoration: "none" }}>
               <Button variant="secondary" size="large">
                 Browse all decks
@@ -261,6 +283,7 @@ export default async function Page({
             </Link>
           </div>
         </section>
+        <NewHereLine from="deck-guide" />
 
         {/* Related / cluster links */}
         <section className="deck-related">
@@ -273,10 +296,10 @@ export default async function Page({
               const primary = orderedTierBadges(r.frontmatter.tiers)[0];
               return (
                 <li key={r.frontmatter.slug}>
-                  <Link href={`/pokemon-tcg/decks/${r.frontmatter.slug}`}>
+                  <ArrowLink href={`/pokemon-tcg/decks/${r.frontmatter.slug}`}>
                     {primary ? `${primary.label}: ` : ""}
-                    {r.frontmatter.archetype} →
-                  </Link>
+                    {r.frontmatter.archetype}
+                  </ArrowLink>
                 </li>
               );
             })}

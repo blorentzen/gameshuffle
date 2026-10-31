@@ -7,12 +7,15 @@
   font-size: var(--font-size-14);
   color: var(--text-tertiary);
 }
+/* Underlined at rest: links can't be told apart by colour alone (WCAG 1.4.1). */
 .deck-breadcrumb a {
   color: var(--text-secondary);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 0.2em;
 }
 .deck-breadcrumb a:hover {
-  text-decoration: underline;
+  text-decoration-color: currentColor;
 }
 .deck-breadcrumb__current {
   color: var(--text-primary);
@@ -121,6 +124,10 @@ a.deck-detail__winrate-src {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md, 0.5rem);
 }
+.deck-prose__table-wrap:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+}
 .deck-prose table {
   width: 100%;
   border-collapse: collapse;
@@ -160,12 +167,19 @@ a.deck-detail__winrate-src {
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
+/* A long button label wraps instead of running past a phone screen. */
+.deck-cta a { display: inline-block; max-width: 100%; }
+.deck-cta .empac-button { white-space: normal; max-width: 100%; height: auto; min-height: 48px; line-height: 1.3; }
+@media (max-width: 30rem) {
+  .deck-cta { padding: var(--spacing-20); }
+}
 .deck-cta__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-12);
   justify-content: center;
 }
+.deck-save { text-decoration: none; }
 
 /* ── Related / cluster links ────────────────────────────────────────── */
 .deck-related {
@@ -185,7 +199,7 @@ a.deck-detail__winrate-src {
   text-decoration: none;
   font-size: var(--font-size-16);
 }
-.deck-related__list a:hover {
+.deck-related__list a:not(.arrow-link):hover {
   text-decoration: underline;
 }
 
@@ -317,16 +331,8 @@ a.deck-detail__winrate-src {
   border-color: var(--brand-ink, var(--border-default));
   background: var(--background-secondary);
 }
-.deck-tile__browse-arrow {
-  font-size: var(--font-size-32);
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
-  color: var(--brand-ink, var(--text-primary));
-}
 .deck-tile__browse-cta {
   font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--brand-ink, var(--text-primary));
 }
 .deck-tile__badges {
   display: flex;
@@ -414,12 +420,15 @@ a.deck-detail__winrate-src {
 }
 .deck-battlebox-note__links a {
   color: var(--brand-ink, var(--text-primary));
-  font-weight: var(--font-weight-medium);
-  text-decoration: none;
   font-size: var(--font-size-14);
 }
-.deck-battlebox-note__links a:hover {
-  text-decoration: underline;
+/* Companion pointer: sits inside the guide, right after its play section,
+   with the guide's own section spacing around it. */
+.deck-companion-note {
+  margin: var(--spacing-32) 0 0;
+}
+.deck-companion-note + .deck-prose > *:first-child {
+  margin-top: var(--spacing-48);
 }
 /* ── Deck promotional card fan (top cards as fanned foreground imagery) ──
    Cards overlap left-to-right; the main card (--i:0) is upright + on top,

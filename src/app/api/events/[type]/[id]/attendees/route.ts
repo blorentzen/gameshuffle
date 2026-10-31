@@ -9,7 +9,7 @@ import type { EventType } from "@/lib/events/calendar";
 function parseType(t: string): EventType | null {
   return t === "tournament" || t === "game-night" ? t : null;
 }
-import { attendeesToCsv, canManageEvent, countTaken, getEventMeta, listAttendees } from "@/lib/events/attendees";
+import { attendeesToCsv, canManageEvent, countTaken, getEventMeta, planLimited, listAttendees } from "@/lib/events/attendees";
 
 export const runtime = "nodejs";
 
@@ -28,5 +28,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ type
       headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${slug}-attendees.csv"` },
     });
   }
-  return NextResponse.json({ attendees, capacity: meta?.capacity ?? null, taken: countTaken(type, attendees), waitlistCap: meta?.waitlistCap ?? null });
+  return NextResponse.json({
+    attendees,
+    capacity: meta?.capacity ?? null,
+    // Tournaments: the organizer's Circuit player limit (null = none) and whether it, not their own limit, is the one that's full.
+    circuitCap: meta?.circuitCap ?? null,
+    planLimited: meta ? planLimited(meta) : false,
+    isOwner: !!meta && meta.ownerId === user?.id,
+    taken: countTaken(type, attendees),
+    waitlistCap: meta?.waitlistCap ?? null,
+  });
 }

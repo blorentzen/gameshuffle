@@ -24,13 +24,23 @@ export type ArtCategory =
   | "heroes"
   /* The Daily Shuffle: a calendar day, a guess, the racing wheel, a streak flame. */
   | "daily"
+  /* The Daily Dex: a Poké Ball and type icons. */
+  | "dex"
+  /* Support GameShuffle: hearts, a coffee, the servers it keeps on. */
+  | "support"
   /* The Weekly Challenge: trophies, a week on the calendar, a ranked list. */
   | "weekly"
   /* Communities: people, conversations, a home base. */
   | "community"
   /* GameShuffle Originals together (the Discord Activity): the Daily's puzzle,
      the Weekly's calendar, Chat Brain's brain, a trophy and sparkles. */
-  | "originals";
+  | "originals"
+  /* Fire Round: a flame, the clock, a lightning bolt, a bright idea, a trophy. */
+  | "fire"
+  /* The Daily Duel: crossed swords, cards, a lightning bolt (Energy), a crown and a Poké Ball. */
+  | "duel"
+  /* Halloween week: ghosts, pumpkins, bats, candy (the glyph fields swap to it, see IconField). */
+  | "spooky";
 
 /** Map an event onto its art family. */
 export function artCategoryFor(type: "tournament" | "game-night", kind?: string | null): ArtCategory {

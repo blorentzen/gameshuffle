@@ -27,7 +27,7 @@ export function NewSessionButton({ defaultTest = false }: Props) {
   return (
     <>
       <Button variant="primary" onClick={() => setOpen(true)}>
-        {defaultTest ? "New test stream" : "New session"}
+        {defaultTest ? "New test stream" : "New stream"}
       </Button>
       {/* Keying on isOpen ensures form state resets each time the modal
           re-opens (no leftover name/description from a prior open). */}

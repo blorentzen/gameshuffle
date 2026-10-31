@@ -13,6 +13,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { createPoll, listPollsForCommunity, isPollError } from "@/lib/polls/store";
+import { streamOwnerFor } from "@/lib/mods/acting";
 
 export const runtime = "nodejs";
 
@@ -20,24 +21,26 @@ type OwnerCtx =
   | { error: string; status: number }
   | { userId: string; isPro: boolean; communityId: string | null };
 
+/** The streamer whose polls these are: the signed-in account, or the streamer a Full-access mod acts for (src/lib/mods/acting.ts). */
 export async function ownerContext(): Promise<OwnerCtx> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "unauthenticated", status: 401 };
+  const { ownerUserId } = await streamOwnerFor(user.id);
 
   const { data: prof } = await createServiceClient()
     .from("users")
     .select("subscription_tier, role, circuit_tier, circuit_status")
-    .eq("id", user.id)
+    .eq("id", ownerUserId)
     .maybeSingle();
   const p = prof as { subscription_tier: string | null; role: string | null; circuit_tier: string | null; circuit_status: string | null } | null;
   const isPro =
     effectiveTier({ tier: normalizeTier(p?.subscription_tier ?? null), role: p?.role ?? null, circuitTier: p?.circuit_tier ?? null, circuitStatus: p?.circuit_status ?? null }) ===
     "pro";
-  const communityId = await resolveCommunityIdForOwner(user.id);
-  return { userId: user.id, isPro, communityId };
+  const communityId = await resolveCommunityIdForOwner(ownerUserId);
+  return { userId: ownerUserId, isPro, communityId };
 }
 
 export async function GET() {

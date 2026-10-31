@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { IconBroadcast, IconDice5, IconTrophy, IconUsers } from "@tabler/icons-react";
 import { PILLARS, type PillarId } from "@/lib/nav/pillars";
+import { IconTile, type TileTone } from "@/components/ui/IconTile";
 
 /**
  * The homepage's four doors — Play, Compete, Community, Stream.
@@ -32,6 +33,9 @@ const ICON: Record<PillarId, typeof IconDice5> = {
   stream: IconBroadcast,
 };
 
+/** Each door's tile color (the shared IconTile set). */
+const TONE: Record<PillarId, TileTone> = { play: "blue", compete: "orange", community: "green", stream: "magenta" };
+
 export function PillarDoors() {
   return (
     <section className="pillars" aria-labelledby="pillars-heading">
@@ -49,9 +53,7 @@ export function PillarDoors() {
             .slice(0, 3);
           return (
             <Link key={p.id} href={p.href} className="pillars__door">
-              <span className="pillars__glyph" aria-hidden>
-                {(() => { const I = ICON[p.id]; return <I size={28} stroke={1.75} />; })()}
-              </span>
+              <IconTile icon={ICON[p.id]} tone={TONE[p.id]} className="pillars__glyph" />
               <span className="pillars__label">{p.label}</span>
               <span className="pillars__intent">{p.intent}</span>
               <span className="pillars__links">

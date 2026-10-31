@@ -15,6 +15,9 @@ import type { TcgCard } from "@/lib/scrydex/types";
 import { DeckCardFan } from "@/components/tcg/DeckCardFan";
 import { TCG_HUB_LIVE } from "@/data/tcg-hub";
 import { TCG_SHOP_URL } from "@/data/shop";
+import { shopVisibleToVisitors } from "@/lib/store/visibility";
+import { ShopLine } from "@/components/store/ShopEntry";
+import { ARROW_HOST_CLASS, ArrowCue } from "@/components/ui/ArrowLink";
 
 /**
  * Deck hub — `/pokemon-tcg/decks`. Topic-cluster authority node: reads all
@@ -28,8 +31,9 @@ const HUB_URL = `${SITE}/pokemon-tcg/decks`;
 export const metadata: Metadata = {
   title: "Pokémon TCG Decks: Standard 2026 Deck Lists & Guides",
   description:
-    "Browse Standard 2026 Pokémon TCG deck lists: competitive, beginner, and meme builds with full lists, budget swaps, and matchups. Build any of them from GameShuffle singles.",
+    "Standard 2026 Pokémon TCG deck lists: competitive, beginner and meme builds with full lists, budget swaps and matchups.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Pokémon TCG Decks: Standard 2026 Deck Lists & Guides",
     description:
       "Standard 2026 Pokémon TCG deck lists and guides: competitive, beginner, and meme builds, buildable from GameShuffle singles.",
@@ -41,6 +45,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
+  const shopVisible = await shopVisibleToVisitors();
   const decks = getAllDecks();
   const featured = getFeaturedByTier();
   const battleBoxes = getAllBattleBoxes();
@@ -115,6 +120,7 @@ export default async function Page() {
           <Link href="/pokemon-tcg">GameShuffle singles</Link>, with budget
           swaps called out on each page.
         </p>
+        {shopVisible && <ShopLine placement="tcg" />}
 
         {/* Featured — one per tier */}
         {DECK_TIERS.some((t) => featured[t]) && (
@@ -177,7 +183,7 @@ export default async function Page() {
                   <Link
                     key={bf.slug}
                     href={`/pokemon-tcg/decks/battle-box/${bf.slug}`}
-                    className="deck-tile deck-tile--featured"
+                    className={`deck-tile deck-tile--featured ${ARROW_HOST_CLASS}`}
                   >
                     <div className="deck-tile__badges">
                       <Badge variant="info" size="small">
@@ -189,11 +195,9 @@ export default async function Page() {
                         </Badge>
                       ) : null}
                     </div>
-                    <h3 className="deck-tile__name">
-                      {bf.title.split("—")[0].trim()}
-                    </h3>
+                    <h3 className="deck-tile__name">{bf.name}</h3>
                     <p className="deck-tile__desc">{bf.meta_description}</p>
-                    <div className="deck-tile__meta">Two decks · Full guide →</div>
+                    <div className="deck-tile__meta">Two decks · <ArrowCue>Full guide</ArrowCue></div>
                   </Link>
                 );
               })}
@@ -221,7 +225,7 @@ export default async function Page() {
               style={{ textDecoration: "none" }}
             >
               <Button variant="primary" size="large">
-                Shop the cards →
+                Shop the cards
               </Button>
             </a>
             <Link href="/pokemon-tcg" style={{ textDecoration: "none" }}>

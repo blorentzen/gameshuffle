@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { IconCheck } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { getStoredLeadSource } from "@/lib/analytics/leadSource";
 import { authContextFor, type AuthContext } from "@/lib/auth/auth-context";
 import { describeAuthError } from "@/lib/auth/errors";
+import { PASSWORD_HINT, passwordProblem } from "@/lib/auth/passwordRules";
 import { startOAuth } from "@/lib/auth/oauth";
+import { providerList, useSignInProviders } from "@/lib/auth/providers";
 import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
 
 /** Signup event props, tagged with the campaign lead source when the visitor
@@ -30,6 +32,12 @@ function postAuthRedirectSuffix(): string {
   if (typeof window === "undefined") return "";
   const redirect = new URLSearchParams(window.location.search).get("redirect");
   return redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
+}
+
+// Where a new account goes after the sign-up itself: where it was headed, else the welcome page
+// with three first steps (Britton's picks, 2026-10-19). The "Log in instead" link keeps the plain one.
+function signupRedirectSuffix(): string {
+  return postAuthRedirectSuffix() || `?redirect=${encodeURIComponent("/welcome?new=1")}`;
 }
 
 export default function SignupPage() {
@@ -52,6 +60,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const providers = useSignInProviders();
   const [success, setSuccess] = useState(false);
   // Supabase obfuscates a repeat signup of an existing email: no error, no
   // email, and an empty `identities` array. We detect that and route the user
@@ -61,12 +70,11 @@ export default function SignupPage() {
   const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [turnstileReady, setTurnstileReady] = useState(false);
+  // Bumped after each try: a token works once, so the widget fetches a new challenge.
+  const [captchaRound, setCaptchaRound] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   // Marketing emails — opt-in (default OFF). Honors privacy policy commitment.
   const [marketingOptIn, setMarketingOptIn] = useState(false);
-  const turnstileRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<string | null>(null);
   const router = useRouter();
 
   // Prefill from a soft-signup link (e.g. tournament guest join): ?prefillName / ?prefillEmail.
@@ -78,27 +86,7 @@ export default function SignupPage() {
     if (e) setEmail(e);
   }, []);
 
-  // Render Turnstile widget once the script is loaded and the ref is available
-  useEffect(() => {
-    if (!turnstileReady || !turnstileRef.current || !TURNSTILE_SITE_KEY) return;
-    if (widgetIdRef.current) return; // already rendered
-
-    const id = (window as any).turnstile.render(turnstileRef.current, {
-      sitekey: TURNSTILE_SITE_KEY,
-      callback: (token: string) => setCaptchaToken(token),
-      "expired-callback": () => setCaptchaToken(null),
-      "error-callback": () => setCaptchaToken(null),
-      theme: "light",
-    });
-    widgetIdRef.current = id;
-  }, [turnstileReady]);
-
-  const resetTurnstile = () => {
-    if ((window as any).turnstile && widgetIdRef.current) {
-      (window as any).turnstile.reset(widgetIdRef.current);
-      setCaptchaToken(null);
-    }
-  };
+  const resetTurnstile = () => setCaptchaRound((n) => n + 1);
 
   // Resend the signup confirmation — the recovery path for an unconfirmed
   // account. For an already-confirmed account Supabase returns an error; we
@@ -135,6 +123,13 @@ export default function SignupPage() {
       return;
     }
 
+    // Checked here so a missing symbol doesn't cost the security check a round trip.
+    const problem = passwordProblem(password);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
@@ -146,14 +141,14 @@ export default function SignupPage() {
         data: {
           display_name: displayName,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}`,
+        emailRedirectTo: `${window.location.origin}/auth/callback${signupRedirectSuffix()}`,
       },
     });
 
     resetTurnstile();
 
     if (error) {
-      setError(describeAuthError({ code: error.code, message: error.message, provider: "email" }).message);
+      setError(describeAuthError({ code: error.code, message: error.message, provider: "email", reasons: (error as { reasons?: string[] }).reasons }).message);
       setLoading(false);
     } else if (data.user && (data.user.identities?.length ?? 0) === 0) {
       // Email already registered — Supabase returns an obfuscated user with no
@@ -245,7 +240,7 @@ export default function SignupPage() {
 
 
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {(["discord", "twitch"] as const).map((provider) => (
+                {providers.map(({ id: provider, label, icon }) => (
                   <Button
                     key={provider}
                     variant="secondary"
@@ -254,13 +249,13 @@ export default function SignupPage() {
                     onClick={async () => {
                       trackEvent("Signup", signupProps(provider));
                       setError(null);
-                      const problem = await startOAuth(provider, `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}`, { surface: "signup" });
+                      const problem = await startOAuth(provider, `${window.location.origin}/auth/callback${signupRedirectSuffix()}`, { surface: "signup" });
                       if (problem) setError(problem);
                     }}
                   >
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                      <img src={`/images/icons/${provider}.svg`} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
-                      Sign up with {provider === "discord" ? "Discord" : "Twitch"}
+                      <img src={icon} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
+                      Sign up with {label}
                     </span>
                   </Button>
                 ))}
@@ -269,7 +264,7 @@ export default function SignupPage() {
                   Twitch already age-verify, and blocking it just loses signups).
                   Consent is still captured via this continue-notice. */}
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", lineHeight: 1.5, margin: "0.25rem 0 0", textAlign: "center" }}>
-                By continuing with Discord or Twitch, you confirm you&apos;re at least 13 and agree to our{" "}
+                By continuing with {providerList(providers)}, you confirm you&apos;re at least 13 and agree to our{" "}
                 <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Terms of Service</a>{" "}
                 and{" "}
                 <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Privacy Policy</a>.
@@ -298,22 +293,15 @@ export default function SignupPage() {
               />
               <Input
                 type="password"
-                placeholder="Password (min 8 characters)"
+                placeholder="Password"
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <p className="auth-page__hint">{PASSWORD_HINT}</p>
 
-              {TURNSTILE_SITE_KEY && (
-                <>
-                  <Script
-                    src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
-                    strategy="afterInteractive"
-                    onReady={() => setTurnstileReady(true)}
-                  />
-                  <div ref={turnstileRef} style={{ display: "flex", justifyContent: "center" }} />
-                </>
-              )}
+              <TurnstileWidget onToken={setCaptchaToken} resetKey={captchaRound} center />
 
               <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "var(--font-size-12)", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
                 <input

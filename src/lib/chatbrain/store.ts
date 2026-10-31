@@ -103,12 +103,68 @@ function identityColumns(who: AnswerIdentity): Record<string, string> {
   return { anon_key: anonKey(who.anonId) };
 }
 
-/** Prompts this person already answered (so the page shows them something new). */
+/**
+ * Every key one person's answers can be filed under: their account and each
+ * chat identity linked to it (Discord, Twitch, the account wallet). The Weekly
+ * saves to the account while Discord and the Activity save to the Discord
+ * identity, and the Weekly's question is also an open Chat Brain question, so
+ * "has this person answered?" has to look under all of them: one answer per
+ * person, wherever they gave it. An anonymous browser is only itself.
+ */
+export interface PersonKeys { userId: string | null; identityIds: string[]; anonKeys: string[] }
+
+export async function personKeys(who: AnswerIdentity): Promise<PersonKeys> {
+  if ("anonId" in who) return { userId: null, identityIds: [], anonKeys: [anonKey(who.anonId)] };
+  const svc = createServiceClient();
+  const identityIds = new Set<string>();
+  let userId: string | null = "userId" in who ? who.userId : null;
+  if ("identityId" in who) {
+    identityIds.add(who.identityId);
+    const { data } = await svc.from("gs_identities").select("platform, platform_id, gs_account_id").eq("id", who.identityId).maybeSingle();
+    const ident = data as { platform: string; platform_id: string; gs_account_id: string | null } | null;
+    userId = ident?.gs_account_id ?? null;
+    // An identity seen before its account linked Discord or Twitch may not carry the link yet.
+    if (!userId && ident && (ident.platform === "discord" || ident.platform === "twitch")) {
+      const { data: u } = await svc.from("users").select("id").eq(ident.platform === "discord" ? "discord_id" : "twitch_id", ident.platform_id).maybeSingle();
+      userId = (u as { id: string } | null)?.id ?? null;
+    }
+  }
+  if (userId) {
+    const { data } = await svc.from("gs_identities").select("id").eq("gs_account_id", userId).limit(20);
+    for (const r of (data ?? []) as { id: string }[]) identityIds.add(r.id);
+  }
+  return { userId, identityIds: [...identityIds], anonKeys: [] };
+}
+
+/** A PostgREST `or` filter matching any of a person's keys (ids are uuids or hex, so safe to inline). */
+function keysFilter(k: PersonKeys): string | null {
+  const parts = [
+    ...(k.userId ? [`user_id.eq.${k.userId}`] : []),
+    ...(k.identityIds.length ? [`identity_id.in.(${k.identityIds.join(",")})`] : []),
+    ...(k.anonKeys.length ? [`anon_key.in.(${k.anonKeys.join(",")})`] : []),
+  ];
+  return parts.length ? parts.join(",") : null;
+}
+
+/** This person's answer to one prompt's current edition, under any of their keys. */
+export async function personAnswer(promptId: string, who: AnswerIdentity | PersonKeys): Promise<{ id: string; raw: string; source: string } | null> {
+  const keys = "anonKeys" in who ? who : await personKeys(who);
+  const filter = keysFilter(keys);
+  if (!filter) return null;
+  const svc = createServiceClient();
+  const { data: p } = await svc.from("brain_prompts").select("edition").eq("id", promptId).maybeSingle();
+  const edition = (p as { edition: number } | null)?.edition ?? 1;
+  const { data } = await svc.from("brain_answers").select("id, raw, source").eq("prompt_id", promptId).eq("edition", edition).or(filter).limit(1).maybeSingle();
+  return (data as { id: string; raw: string; source: string } | null) ?? null;
+}
+
+/** Prompts this person already answered, under any of their keys (so the page shows them something new). */
 async function answeredBy(who: AnswerIdentity | null, prompts: PromptRef[]): Promise<Set<string>> {
   if (!who || !prompts.length) return new Set();
+  const filter = keysFilter(await personKeys(who));
+  if (!filter) return new Set();
   const edition = new Map(prompts.map((p) => [p.id, p.edition ?? 1]));
-  const [col, val] = Object.entries(identityColumns(who))[0];
-  const { data } = await createServiceClient().from("brain_answers").select("prompt_id, edition").eq(col, val).in("prompt_id", [...edition.keys()]);
+  const { data } = await createServiceClient().from("brain_answers").select("prompt_id, edition").or(filter).in("prompt_id", [...edition.keys()]);
   return new Set(((data ?? []) as { prompt_id: string; edition: number }[]).filter((r) => r.edition === edition.get(r.prompt_id)).map((r) => r.prompt_id));
 }
 
@@ -148,6 +204,9 @@ export async function submitAnswer(input: { promptId: string; raw: string; who: 
   // their saved choices; signed-out answers send theirs with the answer.
   const audience = input.audience ?? ("userId" in input.who ? await getAudience(input.who.userId) : null) ?? EMPTY_AUDIENCE;
   const edition = row.edition ?? 1;
+  // One answer per person: an answer under any of their keys (the Weekly on
+  // their account, Discord on their Discord identity) already counts.
+  if (await personAnswer(input.promptId, input.who)) return { ok: false, error: "already_answered" };
   const { error } = await svc.from("brain_answers").insert({
     prompt_id: input.promptId, raw, normalized, source, edition, ...identityColumns(input.who),
     age_band: audience.ageBand, gender: audience.gender, country: audience.country,
@@ -240,14 +299,20 @@ export async function adminSetStatus(id: string, status: PromptStatus): Promise<
  * A signed-in player's answer that they may change while the prompt is open
  * (the Weekly survey): insert, or update their existing answer in place.
  */
+/**
+ * Saves or changes an account's answer (the Weekly). If they already answered
+ * under any of their keys, that one answer changes, wherever it was given, so
+ * nobody counts twice on the board.
+ */
 export async function upsertUserAnswer(input: { promptId: string; userId: string; raw: string; source: string }): Promise<{ ok: true } | { ok: false; error: AnswerError }> {
   const first = await submitAnswer({ promptId: input.promptId, raw: input.raw, who: { userId: input.userId }, source: input.source });
   if (first.ok || first.error !== "already_answered") return first;
   const raw = input.raw.trim().replace(/\s+/g, " ");
-  const { data: p } = await createServiceClient().from("brain_prompts").select("edition").eq("id", input.promptId).maybeSingle();
+  const prior = await personAnswer(input.promptId, { userId: input.userId });
+  if (!prior) return { ok: false, error: "failed" };
   const { error } = await createServiceClient().from("brain_answers")
     .update({ raw, normalized: normalize(raw), group_id: null })
-    .eq("prompt_id", input.promptId).eq("user_id", input.userId).eq("edition", (p as { edition: number } | null)?.edition ?? 1);
+    .eq("id", prior.id);
   return error ? { ok: false, error: "failed" } : { ok: true };
 }
 

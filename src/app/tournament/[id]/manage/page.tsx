@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useSyncExternalStore } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Container, Button, Input, Accordion, Switch, Select, Modal } from "@empac/cascadeds";
+import { Badge, Card, Container, Button, Dropdown, Input, Accordion, Switch, Select, Modal, Tabs, Textarea, type DropdownMenuItem } from "@empac/cascadeds";
+import { Select as OptionSelect } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
+import { reservedNameError } from "@/lib/reservedName";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -35,6 +37,7 @@ import type { LivePointer } from "@/lib/tournaments/randomizer";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
+import { offerExpiry, seatStatuses } from "@/lib/events/waitlistRules";
 import { listRaces, raceIndex } from "@/lib/tournaments/races";
 import { AttendeeTable } from "@/components/events/AttendeeTable";
 import { TicketingManager } from "@/components/events/TicketingManager";
@@ -42,6 +45,12 @@ import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { IconTrophy, IconSparkles, IconScale, IconDice5 } from "@tabler/icons-react";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { biggerFieldLine } from "@/lib/tournaments/circuit";
+import { SwissRunPanel } from "@/components/tournament/swiss/SwissRunPanel";
+import { SwissSettingsFields, DeckListSettingsFields } from "@/components/tournament/swiss/SwissSettingsFields";
+import { OrganizerDeckLists } from "@/components/tournament/decks/TournamentDeckLists";
+import { isSwissState, swissSettingsOf } from "@/lib/tournaments/swiss";
+import { deckListSettingsOf, deckListsOn, isDeckListGame } from "@/lib/tournaments/deckLists";
 
 /** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
 function toDatetimeLocal(iso: string): string {
@@ -51,6 +60,13 @@ function toDatetimeLocal(iso: string): string {
 }
 
 type TrackMode = "guided" | "ffa" | "randomized" | "limited";
+
+/** The manage page's tabs (2026-10-13): Run appears once there's something to run. */
+type ManageTab = "run" | "players" | "rules" | "page";
+const noopSubscribe = () => () => {};
+const readTabParam = () => new URLSearchParams(window.location.search).get("tab");
+/** What each count on the Players tab shows in the table. */
+const COUNT_FILTERS: Record<string, string[]> = { pending: ["registered"], confirmed: ["confirmed", "checked_in"], checkedin: ["checked_in"] };
 
 interface Tournament {
   id: string;
@@ -76,10 +92,12 @@ interface Tournament {
   heat_mains?: HeatMains | null;
   group_bracket?: GroupBracket | null;
   flights?: FlightsState | null;
+  swiss?: unknown;
   header_image_url?: string | null;
   brand_theme?: string | null;
   championship_id?: string | null;
   event_number?: number | null;
+  archived_at?: string | null;
 }
 
 interface CoOrganizer {
@@ -132,10 +150,15 @@ export default function ManageTournamentPage() {
   const [lobbyDraft, setLobbyDraft] = useState("");
   const [inviteEmails, setInviteEmails] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
-  const [inviteMode, setInviteMode] = useState<"user" | "email">("user");
-  // Once the event is running, the organizer flips between a run-focused
-  // Dashboard and the full Settings, so the live view isn't cluttered.
-  const [view, setView] = useState<"dashboard" | "settings">("dashboard");
+  const [inviteMode, setInviteMode] = useState<"user" | "email" | "guest">("user");
+  // Tabs: Run, Players, Format & rules, Page & team. The tab rides in ?tab=.
+  const urlTab = useSyncExternalStore(noopSubscribe, readTabParam, () => null);
+  const [pickedTab, setPickedTab] = useState<ManageTab | null>(null);
+  // Players: which count the table is showing (null = everyone).
+  const [peopleFilter, setPeopleFilter] = useState<string | null>(null);
+  // Max players on Format & rules: the typed value until it's saved (null = showing the saved one).
+  const [maxDraft, setMaxDraft] = useState<string | null>(null);
+  const [maxBusy, setMaxBusy] = useState(false);
   const [userQuery, setUserQuery] = useState("");
   const [userResults, setUserResults] = useState<{ id: string; username: string | null; display_name: string; avatar_url: string | null }[]>([]);
   const [userSearchBusy, setUserSearchBusy] = useState(false);
@@ -145,6 +168,11 @@ export default function ManageTournamentPage() {
   const [coBusy, setCoBusy] = useState(false);
   const [headerBusy, setHeaderBusy] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  // Swiss and tournament deck lists, once supabase/swiss-m1.sql has run.
+  const [swissReady, setSwissReady] = useState(false);
+  useEffect(() => {
+    fetch("/api/tournaments/swiss-ready").then((r) => (r.ok ? r.json() : null)).then((d) => setSwissReady(!!d?.ready)).catch(() => {});
+  }, []);
   const [headerEditSrc, setHeaderEditSrc] = useState<string | null>(null);
   const headerFileRef = useRef<HTMLInputElement | null>(null);
   // Big-screen display customization (settings.display) — subtitle edited locally,
@@ -158,8 +186,37 @@ export default function ManageTournamentPage() {
   const [hmSeries, setHmSeries] = useState(2);
   const [hmHeatSize, setHmHeatSize] = useState<number | "auto">("auto");
   const [guestName, setGuestName] = useState("");
+  // This tournament's GameShuffle Circuit access once billing is on (null while loading).
+  const [circuit, setCircuit] = useState<{ billingEnabled: boolean; graceLabel: string | null; source: string | null; playerCap: number | null; paidFeatures: boolean } | null>(null);
+  useEffect(() => {
+    fetch(`/api/tournaments/billing-status?tournament=${tournamentId}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { billingEnabled?: boolean; graceUntil?: string | null; tournament?: { source: string; playerCap: number | null; paidFeatures: boolean } | null } | null) => {
+        if (!d) return;
+        setCircuit({
+          billingEnabled: !!d.billingEnabled,
+          graceLabel: d.graceUntil ? new Date(d.graceUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "America/Los_Angeles" }) : null,
+          source: d.tournament?.source ?? null,
+          playerCap: d.tournament?.playerCap ?? null,
+          paidFeatures: d.tournament?.paidFeatures ?? !d.billingEnabled,
+        });
+      })
+      .catch(() => {});
+  }, [tournamentId]);
+  /** The small label beside a Circuit section's title. */
+  const circuitTag = !circuit?.billingEnabled
+    ? "GS Circuit · free in preview"
+    : circuit.source === "grace" ? `GS Circuit · free until ${circuit.graceLabel}`
+    : circuit.source === "grandfathered" ? "GS Circuit · kept from before launch"
+    : circuit.paidFeatures ? "GS Circuit · included"
+    : "GS Circuit plan";
+  /** Under a Circuit section's title when this tournament doesn't have it. */
+  const circuitLocked = (what: string) => circuit?.billingEnabled && !circuit.paidFeatures ? (
+    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", margin: "0 0 0.75rem" }}>
+      {what} is part of GameShuffle Circuit. <Link href="/gs-circuit">See the plans</Link>
+    </p>
+  ) : null;
   const [savedFlash, setSavedFlash] = useState(false);
-  const [showPending, setShowPending] = useState(false);
   const [scheduleInput, setScheduleInput] = useState("");
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [raceBusy, setRaceBusy] = useState(false);
@@ -172,6 +229,14 @@ export default function ManageTournamentPage() {
   const [crewResults, setCrewResults] = useState<{ id: string; slug: string; name: string }[]>([]);
   const [crewSearchBusy, setCrewSearchBusy] = useState(false);
   const toast = useToast();
+  // Back from an upgrade (Circuit checkout returns here): say what happens next, once.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("circuit_checkout") !== "success") return;
+    toast.success("You're on GameShuffle Circuit. Anyone waiting is being offered a spot, in line order.");
+    url.searchParams.delete("circuit_checkout");
+    window.history.replaceState(null, "", url.pathname + url.search);
+  }, [toast]);
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
   const savedTimer = useRef<NodeJS.Timeout>(undefined);
   const flashSaved = () => {
@@ -377,7 +442,12 @@ export default function ManageTournamentPage() {
   );
 
   const updateTournament = async (updates: Partial<Tournament>) => {
-    await supabase.from("tournaments").update(updates).eq("id", tournamentId);
+    const { error: saveError } = await supabase.from("tournaments").update(updates).eq("id", tournamentId);
+    if (saveError) {
+      // A refused save (the GameShuffle name, an official-only change) keeps the old values on screen.
+      toast.error(reservedNameError(saveError.message) ?? "Please try again.", { title: "Couldn't save" });
+      return;
+    }
     setTournament((prev) => prev ? { ...prev, ...updates } as Tournament : prev);
     flashSaved();
     // Location changed → refresh coords for the events browser (best effort).
@@ -488,6 +558,33 @@ export default function ManageTournamentPage() {
     }
   };
 
+  // Archive: off every list and search, still loads by link. Undo any time.
+  const toggleArchive = async () => {
+    const archiving = !tournament?.archived_at;
+    if (archiving && !(await confirm({ title: "Archive this tournament?", body: "It leaves browse, your profile and every list. The page still works for anyone with the link, and you can unarchive it any time.", confirmLabel: "Archive", cancelLabel: "Keep it" }))) return;
+    setScheduleBusy(true);
+    const res = await fetch(`/api/tournament/${tournamentId}/archive`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ archived: archiving }) });
+    const j = await res.json().catch(() => ({}));
+    setScheduleBusy(false);
+    if (j.ok) {
+      setTournament((prev) => prev ? { ...prev, archived_at: j.archivedAt ?? null } as Tournament : prev);
+      toast.success(archiving ? "It's off every list now." : "It's back in the lists.", { title: archiving ? "Archived" : "Unarchived" });
+    } else toast.error(j.error || "Please try again.", { title: "Couldn't save" });
+  };
+
+  // A draft nobody joined can be deleted; anything published is archived instead.
+  const deleteDraft = async () => {
+    if (!(await confirm({ title: "Delete this draft?", body: "It's gone for good. Nobody has joined it yet.", confirmLabel: "Delete draft", cancelLabel: "Keep it" }))) return;
+    setScheduleBusy(true);
+    const res = await fetch(`/api/tournament/${tournamentId}/draft`, { method: "DELETE" });
+    const j = await res.json().catch(() => ({}));
+    setScheduleBusy(false);
+    if (j.ok) {
+      toast.success("Draft deleted.");
+      router.push("/account/stuff?tab=tournaments");
+    } else toast.error(j.error || "Please try again.", { title: "Couldn't delete" });
+  };
+
   // Current-race pointer → broadcasts to the overlay, /live, and chat.
   const setRace = async (body: { action: "set"; key: string | null } | { action: "next" | "prev" }) => {
     setRaceBusy(true);
@@ -562,6 +659,14 @@ export default function ManageTournamentPage() {
       const current = participants.filter((p) => ["registered", "confirmed", "checked_in", "offered"].includes(p.status)).length;
       if (current >= cap) {
         toast.error(`This tournament is capped at ${cap} ${cap === 1 ? "entry" : "entries"}. Raise the max in Settings to add more.`, { title: "Roster full" });
+        return;
+      }
+    }
+    // The same Circuit field size the public join enforces, once Circuit billing is on.
+    if (circuit?.billingEnabled && circuit.playerCap != null) {
+      const seated = participants.filter((p) => ["registered", "confirmed", "checked_in", "offered"].includes(p.status)).length;
+      if (seated >= circuit.playerCap) {
+        toast.error(`Your plan lets up to ${circuit.playerCap} players into this tournament. ${biggerFieldLine(circuit.playerCap)}`, { title: "Roster full" });
         return;
       }
     }
@@ -706,12 +811,9 @@ export default function ManageTournamentPage() {
   // Points scoring (FFA/points, and legacy rows with no format) — the only path
   // that records per-race placements/points. Elim + Heat→Mains resolve results
   // from their own boards, so their scoring tables stay hidden.
-  const isPoints = !isElim && tournament.format !== "heat_mains";
-  // Dashboard vs Settings split — only splits once the event is running; before
-  // that (draft/open) everything shows so the organizer can set it all up.
+  const isPoints = !isElim && tournament.format !== "heat_mains" && tournament.format !== "swiss";
+  // Running (or finished): the Run tab opens first and Mario Party / Smash tools move there.
   const isRunning = tournament.status === "in_progress" || tournament.status === "complete";
-  const showDashboard = !isRunning || view === "dashboard";
-  const showSettings = !isRunning || view === "settings";
   const nameOf = (id: string | null) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD");
   const eligibleForBracket = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in");
   // Double elim v1 requires a power-of-2 count (byes are a v2 refinement).
@@ -915,6 +1017,7 @@ export default function ManageTournamentPage() {
     { value: "single_elim", label: "Single Elim" },
     { value: "double_elim", label: "Double Elim" },
     { value: "heat_mains", label: "Heat → Mains" },
+    ...(swissReady || tournament.format === "swiss" ? [{ value: "swiss", label: "Swiss" }] : []),
   ];
   const SETUP_MODES: { value: string; label: string }[] = [
     { value: "ffa", label: "FFA" },
@@ -923,12 +1026,14 @@ export default function ManageTournamentPage() {
     { value: "4v4", label: "4v4" },
     { value: "6v6", label: "6v6" },
   ];
-  const hasRunState = !!(tournament.bracket || tournament.heat_mains || tournament.group_bracket || tournament.flights);
+  const swissStarted = isSwissState(tournament.swiss) && tournament.swiss.list.length > 0;
+  const hasRunState = !!(tournament.bracket || tournament.heat_mains || tournament.group_bracket || tournament.flights) || swissStarted;
   const setupLocked = tournament.status === "complete" || tournament.status === "cancelled";
   // Changing format tears down any generated run state so it can be re-seeded.
   const changeFormat = async (fmt: string) => {
     if (fmt === tournament.format) return;
-    await updateTournament({ format: fmt, bracket: null, heat_mains: null, group_bracket: null, flights: null });
+    if (swissStarted && !(await confirm({ title: "Change the format?", body: "The Swiss rounds played so far are cleared.", confirmLabel: "Change format" }))) return;
+    await updateTournament({ format: fmt, bracket: null, heat_mains: null, group_bracket: null, flights: null, ...(swissReady ? { swiss: null } : {}) });
   };
   const changeMode = async (m: string) => {
     if (m !== tournament.mode) await updateTournament({ mode: m });
@@ -1043,12 +1148,12 @@ export default function ManageTournamentPage() {
   const checkedInCount = participants.filter((p) => p.status === "checked_in").length;
   // Registration cap + spots. Field size is tier-gated (GS Circuit); until
   // billing launches everything is free, so the note is anticipatory.
-  const fieldCap = tournament.max_participants ?? null;
+  // Seats: the organizer's own limit, or their Circuit plan's when that's lower (after launch).
+  const planCap = circuit?.billingEnabled ? circuit.playerCap : null;
+  const fieldCap = [tournament.max_participants ?? null, planCap].filter((n): n is number => n != null).reduce<number | null>((m, n) => (m == null ? n : Math.min(m, n)), null);
   const spotsLeft = fieldCap != null ? Math.max(0, fieldCap - confirmedCount) : null;
   const freeCap = getGameLobbySize(tournament.game_slug); // one full lobby of this game
-  const nearFreeCap = (fieldCap != null && fieldCap > freeCap) || confirmedCount >= freeCap;
-
-  const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
+  const nearFreeCap = (tournament.max_participants ?? 0) > freeCap || confirmedCount >= freeCap;
 
   // Team assignment (team modes only). `mode` like "2v2" → team size 2.
   const isTeamMode = tournament.mode !== "ffa";
@@ -1063,22 +1168,163 @@ export default function ManageTournamentPage() {
     }
   };
 
+  // ---- Tabs and the Players tab ----
+  const locationLabel = (tournament.settings?.locationType ?? "online") === "in_person" ? (tournament.settings?.location || "In person") : "Online";
+  const moreItems: DropdownMenuItem[] = [
+    ...(isOwner && tournament.status !== "draft" ? [{ label: tournament.archived_at ? "Unarchive" : "Archive", onClick: () => void toggleArchive() }] : []),
+    ...(isOwner && tournament.status !== "cancelled" && tournament.status !== "complete" && tournament.status !== "draft" ? [{ label: "Cancel tournament", danger: true, onClick: () => void cancelTournament() }] : []),
+    ...(isOwner && tournament.status === "draft" && participants.length === 0 ? [{ label: "Delete draft", danger: true, onClick: () => void deleteDraft() }] : []),
+  ];
+  const runHasContent = tournament.format === "swiss" || isRunning
+    || (tournament.status !== "draft" && (isBracketFormat || isGroupFormat || isHeatMains || useFlights));
+  const tabList: { id: ManageTab; label: string; badge?: number }[] = [
+    ...(runHasContent ? [{ id: "run" as const, label: "Run" }] : []),
+    { id: "players", label: "Players", badge: participants.length || undefined },
+    { id: "rules", label: "Format & rules" },
+    ...(isOwner || !setupLocked ? [{ id: "page" as const, label: "Page & team" }] : []),
+  ];
+  const wantedTab = pickedTab ?? (urlTab as ManageTab | null);
+  const tab: ManageTab = wantedTab && tabList.some((t) => t.id === wantedTab) ? wantedTab : (isRunning && runHasContent ? "run" : "players");
+  const selectTab = (id: string) => {
+    setPickedTab(id as ManageTab);
+    const sp = new URLSearchParams(window.location.search);
+    sp.set("tab", id);
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}?${sp.toString()}`);
+  };
+  const countTiles: { key: string; label: string; value: number | string; filterable: boolean }[] = [
+    { key: "all", label: "Signed up", value: participants.length, filterable: true },
+    ...(pendingCount > 0 || tournament.acceptance_mode !== "auto" ? [{ key: "pending", label: "To accept", value: pendingCount, filterable: true }] : []),
+    { key: "confirmed", label: "Confirmed", value: confirmedCount, filterable: true },
+    { key: "spots", label: fieldCap != null ? "Spots left" : "Spots", value: spotsLeft != null ? spotsLeft : "No limit", filterable: false },
+    { key: "checkedin", label: "Checked in", value: checkedInCount, filterable: true },
+  ];
+  // Max players: raising it with people waiting asks first, then the new room goes to the line in order.
+  const seatsTaken = participants.filter((p) => seatStatuses("tournament").includes(p.status)).length;
+  const waitingCount = participants.filter((p) => p.status === "waitlisted").length;
+  const maxTyped = maxDraft === null ? tournament.max_participants ?? null : maxDraft.trim() === "" ? null : Number(maxDraft);
+  const saveMax = async () => {
+    const next = maxTyped;
+    if (next !== null && (!Number.isInteger(next) || next < 2 || next > 1024)) { toast.error("Max players is a whole number from 2 to 1024, or empty for no limit."); return; }
+    const current = tournament.max_participants ?? null;
+    if (next === current) { setMaxDraft(null); return; }
+    const room = next === null ? waitingCount : Math.max(0, next - seatsTaken);
+    if (waitingCount > 0 && room > 0 && (current === null ? false : next === null || next > current)) {
+      const offers = Math.min(room, waitingCount);
+      const until = offerExpiry(tournament.date_time);
+      const who = offers === waitingCount
+        ? (waitingCount === 1 ? "The person waiting is" : `The ${waitingCount} people waiting are`)
+        : `The first ${offers} of the ${waitingCount} people waiting are`;
+      const body = until
+        ? `${who} offered a spot in line order, with until ${until.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })} to take it.${next !== null && room > waitingCount ? ` The other ${room - waitingCount} ${room - waitingCount === 1 ? "spot opens" : "spots open"} to anyone.` : ""}`
+        : "It's close to the start, so everyone waiting hears there's room, and the first to claim a spot gets it.";
+      const ok = await confirm({ title: next === null ? "Remove the limit?" : `Make room for ${next}?`, body, confirmLabel: "Make room", cancelLabel: "Cancel" });
+      if (!ok) return;
+    }
+    setMaxBusy(true);
+    try {
+      const res = await fetch(`/api/tournament/${tournamentId}/capacity`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ max: next }) });
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; max?: number | null; offered?: number; standby?: boolean; planCap?: number | null };
+      if (!j.ok) { toast.error(j.error || "Couldn't save that. Try again."); return; }
+      setTournament((prev) => (prev ? { ...prev, max_participants: j.max ?? null } : prev));
+      setMaxDraft(null);
+      toast.success(j.offered ? `Saved. ${j.offered} ${j.offered === 1 ? "person was" : "people were"} offered a spot.` : j.standby && waitingCount ? "Saved. Everyone waiting heard there's room." : "Saved.");
+      if (j.planCap) toast.info(`Your GameShuffle Circuit plan fits ${j.planCap} players, so anyone past that waits until you upgrade.`);
+    } finally {
+      setMaxBusy(false);
+    }
+  };
+
+  // Reloads the table whenever the page changes someone (accept, drop, team, crew).
+  const peopleKey = participants.map((p) => `${p.id}:${p.status}:${p.team ?? ""}:${p.community_id ?? ""}`).join("|");
+  const acceptAllPending = async () => {
+    for (const p of participants.filter((x) => x.status === "registered")) {
+      await updateParticipant(p.id, { status: "confirmed" });
+    }
+  };
+  const byId = new Map(participants.map((p) => [p.id, p]));
+  const personDetail = (a: { id: string }) => {
+    const p = byId.get(a.id);
+    if (!p) return null;
+    const claim = claimInfo[p.id];
+    return (
+      <>
+        {p.users?.email_verified && <VerifiedBadge />}
+        {contacts[p.id]?.discord && <span>@{contacts[p.id]!.discord}</span>}
+        {contacts[p.id]?.friendCode && <span>FC: {contacts[p.id]!.friendCode}</span>}
+        {claim && (
+          <span className={`claim-state claim-state--${claim.state}`}>
+            {claim.state === "open" && "Guest · not claimed yet"}
+            {claim.state === "expired" && "Guest · claim link expired"}
+            {claim.state === "revoked" && "Guest · link withdrawn"}
+            {claim.state === "unlinked" && "Guest · unlinked"}
+            {claim.state === "claimed" && <>Claimed by {claim.claimedByName ?? "an account"}</>}
+          </span>
+        )}
+        {claim?.state === "claimed" && <Button variant="ghost" size="small" onClick={() => unlinkClaim(p.id, p.display_name)}>Unlink</Button>}
+        {!p.user_id && p.status !== "dropped" && claim?.state !== "open" && <Button variant="ghost" size="small" onClick={() => issueManualLink(p.id, p.display_name)}>Claim link</Button>}
+        {crewIds.length > 0 && p.status !== "dropped" && (
+          <OptionSelect
+            size="small"
+            aria-label={`Crew for ${p.display_name}`}
+            value={p.community_id ?? ""}
+            onChange={(v) => assignCrew(p.id, (v as string) || null)}
+            options={[{ value: "", label: "No crew" }, ...crewIds.map((cid) => ({ value: cid, label: communityMeta[cid]?.name ?? "Crew" }))]}
+          />
+        )}
+        {isTeamMode && p.status !== "dropped" && (
+          <OptionSelect
+            size="small"
+            aria-label={`Team for ${p.display_name}`}
+            value={p.team ? String(p.team) : ""}
+            onChange={(v) => updateParticipant(p.id, { team: v ? Number(v) : null })}
+            options={[{ value: "", label: "No team" }, ...Array.from({ length: maxTeams }, (_, i) => ({ value: String(i + 1), label: `Team ${i + 1}` }))]}
+          />
+        )}
+      </>
+    );
+  };
+  const personActions = (a: { id: string }) => {
+    const p = byId.get(a.id);
+    if (!p) return null;
+    if (p.status === "registered") return (
+      <>
+        <Button variant="primary" size="small" onClick={() => updateParticipant(p.id, { status: "confirmed" })}>Accept</Button>
+        <Button variant="ghost" size="small" onClick={() => removeParticipant(p.id)}>Reject</Button>
+      </>
+    );
+    if (p.status === "confirmed" || p.status === "checked_in") return <Button variant="ghost" size="small" onClick={() => updateParticipant(p.id, { status: "dropped" })}>Drop</Button>;
+    if (p.status === "dropped") return <Button variant="ghost" size="small" onClick={() => removeParticipant(p.id)}>Remove</Button>;
+    return null;
+  };
+  // Build restrictions, in one line for the folded card.
+  const buildSummary = (() => {
+    if (!gd) return "";
+    const st = tournament.settings ?? {};
+    const list = (v: unknown, any: string, word: string) => {
+      const a = (Array.isArray(v) ? v : ["Any"]) as string[];
+      return a.includes("Any") ? any : `${a.join(" or ")} ${word}`.trim();
+    };
+    const parts = [list(st.allowedWeights, "Any weight", "only")];
+    if (gd.hasDrift) parts.push(list(st.allowedDrift, "Any drift", "drift only"));
+    else if (gd.vehicleTypes.length > 0) parts.push(list(st.allowedVehicleTypes, "Any vehicle", "only"));
+    const banned = (st.bannedCharacters as string[] | undefined)?.length ?? 0;
+    const allowed = (st.allowedCharacters as string[] | undefined)?.length ?? 0;
+    parts.push(st.characterMode === "allowed" && allowed > 0 ? `${allowed} characters allowed` : banned > 0 ? `${banned} ${banned === 1 ? "character" : "characters"} banned` : "No characters banned");
+    return parts.join(" · ");
+  })();
+
   return (
     <main style={{ paddingTop: "2rem", paddingBottom: "5rem", minHeight: "100%", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       <Container>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem", marginBottom: "2rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1.25rem" }}>
             <div style={{ minWidth: 0 }}>
               <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, marginBottom: "0.5rem" }}>
                 Manage: {tournament.title}
                 {!isOwner && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--primary-ink-600)", background: "var(--primary-100)", padding: "0.15rem 0.5rem", borderRadius: "0.4rem", marginLeft: "0.6rem", verticalAlign: "middle" }}>Co-organizer</span>}
               </h1>
-              {tournament.date_time && (
-                <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Starts {formatEventTime(tournament.date_time, viewerTz)}</p>
-              )}
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                <span className={`lounge-status lounge-status--${tournament.status}`}>{STATUS_LABELS[tournament.status]}</span>
                 <span style={{ fontSize: "var(--font-size-12)", color: savedFlash ? "var(--success-700, #17A710)" : "var(--text-tertiary)", transition: "color 0.2s" }}>
                   {savedFlash ? "✓ Saved" : "· Auto-saves"}
                 </span>
@@ -1097,134 +1343,75 @@ export default function ManageTournamentPage() {
             </div>
           </div>
 
-          {/* Dashboard / Settings switch — only while the event is running, so the
-              live view stays focused on running it. */}
-          {isRunning && (
-            <div style={{ display: "inline-flex", border: "1px solid var(--border-default)", borderRadius: "0.6rem", overflow: "hidden", marginBottom: "1.5rem" }}>
-              {([["dashboard", "Dashboard"], ["settings", "Settings"]] as const).map(([v, label]) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setView(v)}
-                  style={{
-                    padding: "0.5rem 1.1rem", fontSize: "var(--font-size-14)", fontWeight: 600, border: "none", cursor: "pointer",
-                    background: view === v ? "var(--bg-primary, var(--primary-500))" : "transparent",
-                    color: view === v ? "var(--text-on-primary, #fff)" : "var(--text-secondary)",
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+          {/* Status: where the event stands, its next step, and the rest under More. */}
+          <div className="manage-status">
+            <div className="manage-status__info">
+              <span className={`lounge-status lounge-status--${tournament.status}`}>{STATUS_LABELS[tournament.status]}{tournament.archived_at ? " · Archived" : ""}</span>
+              <span className="manage-status__when">{tournament.date_time ? formatEventTime(tournament.date_time, viewerTz) : "No date yet"} · {locationLabel}</span>
             </div>
-          )}
-
-          {/* Status + schedule */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem"}}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-              <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Status: {STATUS_LABELS[tournament.status]}</span>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                {nextStatus && (
-                  <Button variant="primary" size="small" onClick={() => updateTournament({ status: nextStatus })}>
-                    Move to {STATUS_LABELS[nextStatus]}
-                  </Button>
-                )}
-                {isOwner && tournament.status !== "cancelled" && tournament.status !== "complete" && (
-                  <Button variant="danger" size="small" loading={scheduleBusy} onClick={cancelTournament}>
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Schedule — moving the time emails + notifies everyone signed up. */}
-            {tournament.status !== "cancelled" && tournament.status !== "complete" && (
-              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.9rem", paddingTop: "0.9rem", borderTop: "1px solid var(--border-subtle)" }}>
-                <label style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Date &amp; time</label>
-                <input
-                  type="datetime-local"
-                  value={scheduleInput}
-                  onChange={(e) => setScheduleInput(e.target.value)}
-                  style={{ height: 34, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 8px", background: "var(--surface-default)", color: "var(--text-primary)", maxWidth: "100%" }}
-                />
-                <Button variant="secondary" size="small" loading={scheduleBusy} onClick={rescheduleTournament} disabled={!scheduleInput}>
-                  Update time &amp; notify
+            <div className="manage-status__actions">
+              {nextStatus && (
+                <Button variant="primary" size="small" onClick={() => updateTournament({ status: nextStatus })}>
+                  Move to {STATUS_LABELS[nextStatus]}
                 </Button>
-                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", flexBasis: "100%" }}>
-                  In your timezone. Participants are emailed and notified of any change.
-                </span>
-              </div>
-            )}
-
-            {/* Where — online or a physical venue/address. */}
-            <div style={{ marginTop: "0.9rem", paddingTop: "0.9rem", borderTop: "1px solid var(--border-subtle)" }}>
-              <label style={{ fontSize: "var(--font-size-14)", fontWeight: 600, display: "block", marginBottom: "0.5rem" }}>Where</label>
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-                {(["online", "in_person"] as const).map((val) => (
-                  <Button
-                    key={val}
-                    variant={(tournament.settings?.locationType ?? "online") === val ? "primary" : "secondary"}
-                    size="small"
-                    onClick={() => updateTournament({ settings: { ...tournament.settings, locationType: val, ...(val === "online" ? { location: null } : {}) } })}
-                  >
-                    {val === "online" ? "Online" : "In person"}
-                  </Button>
-                ))}
-                {(tournament.settings?.locationType ?? "online") === "in_person" && (
-                  <input
-                    type="text"
-                    defaultValue={tournament.settings?.location ?? ""}
-                    onBlur={(e) => updateTournament({ settings: { ...tournament.settings, location: e.target.value.trim() || null } })}
-                    placeholder="Venue or address"
-                    style={{ flex: "1 1 260px", height: 34, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 8px", background: "var(--surface-default)", color: "var(--text-primary)" }}
-                  />
-                )}
-              </div>
+              )}
+              {moreItems.length > 0 && (
+                <Dropdown align="end" items={moreItems} trigger={<Button variant="secondary" size="small" loading={scheduleBusy} aria-haspopup="menu">More</Button>} />
+              )}
             </div>
           </div>
 
-          {/* Registration — the at-a-glance numbers, the who-can-join rule, and
-              the invite paths, all together at the top. */}
-          <div className="comp-card" hidden={!showSettings} style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1rem" }}>Registration</h2>
+          <div className="manage-tabs">
+            <Tabs variant="underline" activeTab={tab} onChange={selectTab} tabs={tabList.map((t) => ({ id: t.id, label: t.label, badge: t.badge, content: null }))} />
+          </div>
 
-            {/* Stat cards. Pending is clickable to review. */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "var(--spacing-12, 0.75rem)", marginBottom: "1.25rem" }}>
-              {[
-                { key: "total", label: "Total", value: participants.length },
-                { key: "pending", label: "Pending", value: pendingCount, pending: true },
-                { key: "confirmed", label: "Confirmed", value: confirmedCount },
-                { key: "spots", label: fieldCap != null ? "Spots left" : "Spots", value: spotsLeft != null ? spotsLeft : "∞" },
-                { key: "checkedin", label: "Checked In", value: checkedInCount },
-              ].map((s) => {
-                const clickable = !!s.pending && pendingCount > 0;
-                return (
-                  <div
-                    key={s.key}
-                    onClick={clickable ? () => setShowPending(true) : undefined}
-                    role={clickable ? "button" : undefined}
-                    tabIndex={clickable ? 0 : undefined}
-                    onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") setShowPending(true); } : undefined}
-                    style={{
-                      padding: "0.85rem 0.75rem",
-                      textAlign: "center",
-                      cursor: clickable ? "pointer" : "default",
-                      borderRadius: "0.6rem",
-                      background: "var(--background-secondary)",
-                      border: `1px solid ${clickable ? "var(--primary-500)" : "var(--border-subtle)"}`,
-                    }}
-                  >
-                    <div style={{ fontSize: "var(--font-size-24)", fontWeight: 700, lineHeight: 1.1 }}>{s.value}</div>
-                    <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em", marginTop: "0.25rem" }}>{s.label}</div>
-                    {clickable && (
-                      <div style={{ fontSize: "var(--font-size-12)", color: "var(--bg-primary, var(--primary-500))", fontWeight: 600, marginTop: "0.2rem" }}>Review →</div>
-                    )}
-                  </div>
-                );
-              })}
+          {tab === "players" && (
+            <>
+          {/* The one list of people: counts that filter it, then the table with Accept, check-in, teams and crews on each row. */}
+          <div className="comp-card manage-card">
+            <div className="manage-counts" role="group" aria-label="Show people by status">
+              {countTiles.map((c) => c.filterable ? (
+                <Card
+                  key={c.key}
+                  variant="outlined"
+                  padding="small"
+                  interactive
+                  selected={(peopleFilter ?? "all") === c.key}
+                  onClick={() => setPeopleFilter(c.key === "all" ? null : c.key)}
+                  className="manage-count"
+                  aria-label={`${c.label}: ${c.value}. Show them in the list.`}
+                >
+                  <span className="manage-count__value">{c.value}</span>
+                  <span className="manage-count__label">{c.label}</span>
+                </Card>
+              ) : (
+                <Card key={c.key} variant="outlined" padding="small" className="manage-count">
+                  <span className="manage-count__value">{c.value}</span>
+                  <span className="manage-count__label">{c.label}</span>
+                </Card>
+              ))}
             </div>
+            {/* Field size once Circuit has launched: what this tournament's plan allows. */}
+            {circuit?.billingEnabled && nearFreeCap && circuit.source !== "subscription" && circuit.source !== "override" && circuit.source !== "preview" && (
+              <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "0.6rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
+                <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+                  <IconSparkles size={14} stroke={1.9} aria-hidden />{" "}
+                  {circuit.source === "grace"
+                    ? <>GameShuffle Circuit is free for you until {circuit.graceLabel}, so this field can go past {freeCap} players.</>
+                    : circuit.source === "grandfathered"
+                      ? <>You made this tournament before GameShuffle Circuit launched, so it keeps every Circuit feature, including a field past {freeCap} players.</>
+                      : <>On the free plan, up to {freeCap} players get a spot and anyone after that joins the waitlist. Upgrade to <strong>GameShuffle Circuit</strong> (64 or 256 players) and they&rsquo;re offered spots in line order.</>}
+                </span>
+                {circuit.source === "free" && (
+                  <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
+                    <Button variant="primary" size="small">See Circuit plans</Button>
+                  </Link>
+                )}
+              </div>
+            )}
 
-            {/* Field-size / GS Circuit upgrade note — free while billing's off. */}
-            {nearFreeCap && (
+            {/* Field-size / GS Circuit note while it's in preview (billing off). */}
+            {!circuit?.billingEnabled && nearFreeCap && (
               <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "0.6rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
                 <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                   <IconSparkles size={14} stroke={1.9} aria-hidden /> Fields over {freeCap} players will be part of{" "}<strong>GameShuffle Circuit</strong>{" "}at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
@@ -1235,484 +1422,101 @@ export default function ManageTournamentPage() {
               </div>
             )}
 
-            {/* Who can enter: accounts only, or anyone by name. */}
-            <div style={{ paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                <div>
-                  <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Who can enter</span>
-                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.15rem", maxWidth: "44ch" }}>
-                    {tournament.championship_id
-                      ? "Season points stay tied to real players, so championship events are accounts only."
-                      : entryPolicy === "accounts_only"
-                        ? "Every entrant has an account, so you can see their history before you seed."
-                        : "Anyone can enter by name. Easier to fill, but you will know less about who is coming."}
-                  </p>
-                </div>
-                <div style={{ display: "flex", gap: "0.4rem" }}>
-                  {([["open", "Anyone"], ["accounts_only", "Accounts only"]] as const).map(([v, label]) => (
-                    <Button
-                      key={v}
-                      variant={entryPolicy === v ? "primary" : "secondary"}
-                      size="small"
-                      disabled={policyLocked}
-                      onClick={() => void changeEntryPolicy(v)}
-                    >{label}</Button>
-                  ))}
-                </div>
-              </div>
-              {policyBlock && (
-                <div role="alert" style={{ marginTop: "0.75rem", padding: "0.75rem 0.9rem", borderRadius: "0.5rem", border: "1px solid var(--warning-400, #e0a106)", background: "color-mix(in srgb, var(--warning-500, #e0a106) 10%, var(--surface-default))" }}>
-                  <p style={{ margin: 0, fontSize: "var(--font-size-13, 13px)", fontWeight: 600 }}>
-                    {policyBlock.length} {policyBlock.length === 1 ? "guest is" : "guests are"} already entered.
-                  </p>
-                  <p style={{ margin: "0.25rem 0 0", fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
-                    {policyBlock.join(", ")}. Remove them from the roster first, or leave this set to Anyone. Nothing has been changed.
-                  </p>
-                </div>
+            <AttendeeTable
+              type="tournament"
+              eventId={tournamentId}
+              capacity={tournament.max_participants ?? null}
+              checkInHref={`/tournament/${tournamentId}/manage/check-in`}
+              compact
+              hideStats
+              statusFilter={peopleFilter ? COUNT_FILTERS[peopleFilter] ?? null : null}
+              reloadKey={peopleKey}
+              rowDetail={personDetail}
+              rowActions={personActions}
+              toolbarStart={(
+                <>
+                  {pendingCount > 0 && <Button variant="primary" size="small" onClick={acceptAllPending}>Accept all ({pendingCount})</Button>}
+                  {isTeamMode && activeCount > 0 && <Button variant="ghost" size="small" onClick={autoBalanceTeams}>Auto-balance teams</Button>}
+                </>
               )}
-            </div>
-
-            {/* Verified email requirement. */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
-              <div>
-                <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Require verified email</span>
-                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.15rem" }}>Only players with a verified email can join.</p>
-              </div>
-              <Switch
-                checked={!!tournament.settings?.requireVerified}
-                onChange={() => updateTournament({ settings: { ...tournament.settings, requireVerified: !tournament.settings?.requireVerified } })}
-              />
-            </div>
-
-            {/* The draw, and what to do about anyone who never checked in. Both
-                belong here rather than in their own cards: they are the last
-                two decisions an organizer makes about the field before it goes
-                into a format. Each hides itself when its migration is absent. */}
+            />
             <CheckInClosePanel
               tournamentId={tournamentId}
               startsAt={tournament.date_time}
               enabled={(tournament as { check_in_enabled?: boolean }).check_in_enabled}
               opensMinutes={(tournament as { check_in_opens_minutes?: number }).check_in_opens_minutes}
             />
-            <SeedingPanel
-              tournamentId={tournamentId}
-              entrants={participants.map((p) => ({ id: p.id, display_name: p.display_name, user_id: p.user_id, status: p.status }))}
-              isChampionship={!!tournament.championship_id}
-              format={tournament.format ?? "ffa"}
-              heatSize={(tournament.settings as { heatSize?: number } | null)?.heatSize}
+          </div>
+
+          {/* Add people: find a player, invite by email, or add a walk-in guest. */}
+          <div className="comp-card manage-card">
+            <h2 className="manage-card__title">Add people</h2>
+            <div className="manage-switch">
+            <Tabs
+              variant="pills"
+              size="small"
+              activeTab={inviteMode}
+              onChange={(id) => setInviteMode(id as "user" | "email" | "guest")}
+              tabs={[
+                { id: "user", label: "Find a player", content: null },
+                { id: "email", label: "Invite by email", content: null },
+                { id: "guest", label: "Add a guest", content: null },
+              ]}
             />
-
-            {/* Invite players — one section, toggle between an existing GS account
-                and an email invite for people not on GameShuffle yet. */}
-            <div style={{ paddingTop: "1rem", marginTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Invite players</span>
-                <div style={{ display: "inline-flex", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" }}>
-                  {([["user", "Invite user"], ["email", "Invite by email"]] as const).map(([mode, label]) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setInviteMode(mode)}
-                      style={{
-                        padding: "0.35rem 0.85rem",
-                        fontSize: "var(--font-size-12)",
-                        fontWeight: 600,
-                        border: "none",
-                        cursor: "pointer",
-                        background: inviteMode === mode ? "var(--bg-primary, var(--primary-500))" : "transparent",
-                        color: inviteMode === mode ? "var(--text-on-primary, #fff)" : "var(--text-secondary)",
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {inviteMode === "user" ? (
-                <div>
-                  <input
-                    type="text"
-                    value={userQuery}
-                    onChange={(e) => setUserQuery(e.target.value)}
-                    placeholder="Search players by username or name…"
-                    style={{ width: "100%", maxWidth: 420, height: 34, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 8px", background: "var(--surface-default)", color: "var(--text-primary)" }}
-                  />
-                  {userQuery.trim().length >= 2 && (
-                    <div style={{ marginTop: "0.5rem", maxWidth: 420, display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-                      {userSearchBusy && userResults.length === 0 && (
-                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Searching…</p>
-                      )}
-                      {!userSearchBusy && userResults.length === 0 && (
-                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>No players found.</p>
-                      )}
-                      {userResults.map((u) => {
-                        const invited = invitedIds.includes(u.id);
-                        return (
-                          <div key={u.id} style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.4rem 0.6rem", borderRadius: "0.5rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            {u.avatar_url
-                              ? <img src={u.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
-                              : <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--primary-100)", color: "var(--primary-ink-600)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{u.display_name.charAt(0).toUpperCase()}</span>}
-                            <span style={{ flex: 1, minWidth: 0 }}>
-                              <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--text-primary)" }}>{u.display_name}</span>
-                              {u.username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: 6 }}>@{u.username}</span>}
-                            </span>
-                            <Button variant={invited ? "ghost" : "secondary"} size="small" disabled={invited} onClick={() => inviteUser(u)}>
-                              {invited ? "Invited ✓" : "Invite"}
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
-                    Find anyone on GameShuffle by username or name. They get an in-app notification with a link to join.
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
-                    <input type="text" value={inviteEmails} onChange={(e) => setInviteEmails(e.target.value)} placeholder="email@example.com, another@example.com…"
-                      style={{ flex: "1 1 260px", height: 34, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 8px", background: "var(--surface-default)", color: "var(--text-primary)" }} />
-                    <Button variant="primary" size="small" loading={inviteBusy} disabled={!inviteEmails.trim()} onClick={sendEmailInvites}>Send invites</Button>
-                  </div>
-                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
-                    For players who aren&rsquo;t on GameShuffle yet. They&rsquo;ll get an email with a link to join.
-                  </p>
-                </div>
-              )}
-
-              {/* Add a walk-in guest (no account) — a roster add, kept with the
-                  other ways to bring players in. */}
-              <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
-                <label className="account-card__label" style={{ display: "block", marginBottom: "0.35rem" }}>Add a guest</label>
-                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
-                  <input
-                    type="text"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") addGuest(); }}
-                    placeholder="Guest player name…"
-                    style={{ flex: "1 1 260px", height: 34, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 8px", background: "var(--surface-default)", color: "var(--text-primary)" }}
-                  />
-                  <Button variant="secondary" size="small" onClick={addGuest} disabled={!guestName.trim()}>Add guest</Button>
-                </div>
-                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
-                  A walk-in without a GameShuffle account. They&rsquo;ll appear in the participants list right away.
-                </p>
-              </div>
             </div>
-          </div>
-
-          {/* Crews — organizer buckets players into crews (communities). Standings
-              roll up per crew (card above) and show live on the OBS overlay. */}
-          <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>Crews <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>multi-crew tournament</span></h2>
-            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
-              Add the communities battling here, then assign each player to a crew below. Players on a crew can also self-assign from the public page.
-            </p>
-
-            {/* Configured crews */}
-            {crewIds.length > 0 && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "1rem" }}>
-                {crewIds.map((cid) => {
-                  const meta = communityMeta[cid];
-                  const count = participants.filter((p) => p.community_id === cid).length;
-                  return (
-                    <span key={cid} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.6rem", borderRadius: "999px", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)", fontSize: "var(--font-size-12)" }}>
-                      <strong style={{ fontWeight: 600 }}>{meta?.name ?? "Crew"}</strong>
-                      <span style={{ color: "var(--text-tertiary)" }}>{count}</span>
-                      <button onClick={() => removeCrew(cid)} aria-label={`Remove ${meta?.name ?? "crew"}`} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", lineHeight: 1, padding: 0 }}>×</button>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Add-crew search */}
-            <div style={{ position: "relative", maxWidth: 440 }}>
-              <Input value={crewQuery} onChange={(e) => setCrewQuery(e.target.value)} placeholder="Search communities by name or @handle" />
-              {crewQuery.trim().length >= 2 && (
-                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 10, background: "var(--surface-default)", border: "1px solid var(--border-default)", borderRadius: "0.5rem", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
-                  {crewSearchBusy && <div style={{ padding: "0.6rem 0.8rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Searching…</div>}
-                  {!crewSearchBusy && crewResults.length === 0 && <div style={{ padding: "0.6rem 0.8rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>No communities found.</div>}
-                  {crewResults.map((c) => (
-                    <button key={c.id} onClick={() => addCrew(c)} disabled={crewIds.includes(c.id)} style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.55rem 0.8rem", border: "none", background: "none", cursor: crewIds.includes(c.id) ? "default" : "pointer", textAlign: "left", fontSize: "var(--font-size-12)", color: "var(--text-primary)", opacity: crewIds.includes(c.id) ? 0.5 : 1 }}>
-                      <span style={{ fontWeight: 600 }}>{c.name}</span>
-                      <span style={{ color: "var(--text-tertiary)" }}>{crewIds.includes(c.id) ? "Added" : `@${c.slug}`}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Tickets + payouts (free tournaments simply have no tiers). */}
-          <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
-            <TicketingManager type="tournament" eventId={tournamentId} />
-          </div>
-
-          {/* Attendee tools — check-in, waitlist, message, export. The roster
-              below keeps the tournament-specific controls (accept, teams, drop). */}
-          <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.75rem" }}>Attendees</h2>
-            <AttendeeTable type="tournament" eventId={tournamentId} capacity={tournament.max_participants ?? null} checkInHref={`/tournament/${tournamentId}/manage/check-in`} compact />
-          </div>
-
-          {/* Participants — just the roster (invites live in Registration up top). */}
-          <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ fontSize: "var(--font-size-18)" }}>Participants ({participants.length})</h2>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                {isTeamMode && activeCount > 0 && (
-                  <Button variant="ghost" size="small" onClick={autoBalanceTeams}>Auto-balance teams</Button>
-                )}
-                {pendingCount > 0 && tournament.acceptance_mode === "manual" && (
-                  <Button variant="primary" size="small" onClick={async () => {
-                    for (const p of participants.filter((p) => p.status === "registered")) {
-                      await updateParticipant(p.id, { status: "confirmed" });
-                    }
-                  }}>Accept All ({pendingCount})</Button>
-                )}
-              </div>
-            </div>
-
-            {participants.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>No one has signed up yet. Invite players or add a guest from Registration above, or share the link.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {participants.map((p) => (
-                  <div key={p.id} className="manage-participant-row">
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", display: "inline-flex", alignItems: "center" }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
-                      {contacts[p.id]?.discord && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{contacts[p.id]!.discord}</span>}
-                      {contacts[p.id]?.friendCode && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {contacts[p.id]!.friendCode}</span>}
-                      {claimInfo[p.id] && (
-                        <span className={`claim-state claim-state--${claimInfo[p.id].state}`}>
-                          {claimInfo[p.id].state === "open" && "Guest · not claimed yet"}
-                          {claimInfo[p.id].state === "expired" && "Guest · claim link expired"}
-                          {claimInfo[p.id].state === "revoked" && "Guest · link withdrawn"}
-                          {claimInfo[p.id].state === "unlinked" && "Guest · unlinked"}
-                          {claimInfo[p.id].state === "claimed" && <>Claimed by {claimInfo[p.id].claimedByName ?? "an account"}</>}
-                        </span>
-                      )}
-                      {claimInfo[p.id]?.state === "claimed" && (
-                        <Button variant="ghost" size="small" onClick={() => unlinkClaim(p.id, p.display_name)}>Unlink</Button>
-                      )}
-                      {!p.user_id && p.status !== "dropped" && claimInfo[p.id]?.state !== "open" && (
-                        <Button variant="ghost" size="small" onClick={() => issueManualLink(p.id, p.display_name)}>Claim link</Button>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                      {crewIds.length > 0 && p.status !== "dropped" && (
-                        <select
-                          value={p.community_id ?? ""}
-                          onChange={(e) => assignCrew(p.id, e.target.value || null)}
-                          aria-label={`Crew for ${p.display_name}`}
-                          style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", fontSize: "var(--font-size-12)", background: "var(--surface-default)", color: "var(--text-primary)", maxWidth: 130 }}
-                        >
-                          <option value="">No crew</option>
-                          {crewIds.map((cid) => (
-                            <option key={cid} value={cid}>{communityMeta[cid]?.name ?? "Crew"}</option>
-                          ))}
-                        </select>
-                      )}
-                      {isTeamMode && p.status !== "dropped" && (
-                        <select
-                          value={p.team ?? ""}
-                          onChange={(e) => updateParticipant(p.id, { team: e.target.value ? Number(e.target.value) : null })}
-                          aria-label={`Team for ${p.display_name}`}
-                          style={{
-                            height: 28,
-                            borderRadius: 6,
-                            border: "1px solid var(--border-default)",
-                            padding: "0 6px",
-                            fontSize: "var(--font-size-12)",
-                            background: p.team ? `${TEAM_HEX[(p.team - 1) % TEAM_HEX.length]}22` : "var(--surface-default)",
-                            color: "var(--text-primary)",
-                          }}
-                        >
-                          <option value="">No team</option>
-                          {Array.from({ length: maxTeams }, (_, i) => i + 1).map((n) => (
-                            <option key={n} value={n}>Team {n}</option>
-                          ))}
-                        </select>
-                      )}
-                      <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : p.status === "dropped" ? "complete" : "waiting"}`} style={{ fontSize: "var(--font-size-10)" }}>
-                        {p.status.replace("_", " ")}
-                      </span>
-                      {p.status === "registered" && (
-                        <>
-                          <Button variant="primary" size="small" onClick={() => updateParticipant(p.id, { status: "confirmed" })}>Accept</Button>
-                          <Button variant="ghost" size="small" onClick={() => removeParticipant(p.id)}>Reject</Button>
-                        </>
-                      )}
-                      {p.status === "confirmed" && (
-                        <>
-                          <Button variant="primary" size="small" onClick={() => updateParticipant(p.id, { status: "checked_in" })}>Check In</Button>
-                          <Button variant="ghost" size="small" onClick={() => updateParticipant(p.id, { status: "dropped" })}>Drop</Button>
-                        </>
-                      )}
-                      {p.status === "checked_in" && (
-                        <Button variant="ghost" size="small" onClick={() => updateParticipant(p.id, { status: "dropped" })}>Drop</Button>
-                      )}
-                      {p.status === "dropped" && (
-                        <Button variant="ghost" size="small" onClick={() => removeParticipant(p.id)}>Remove</Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Team access (GS Circuit) — co-organizers who can edit alongside the
-              owner. Owner-only; RLS lets them edit but not manage the roster. */}
-          {showSettings && isOwner && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
-              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
-                Team access <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> GS Circuit · free in preview</span>
-              </h2>
-              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
-                Add co-organizers by GameShuffle username. They can edit this tournament and run it with you, but only you can delete it or change the team.
-              </p>
-
-              {coOrganizers.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem" }}>
-                  {coOrganizers.map((c) => (
-                    <div key={c.userId} style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.5rem 0.7rem", borderRadius: "0.5rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {c.avatarUrl
-                        ? <img src={c.avatarUrl} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
-                        : <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--primary-100)", color: "var(--primary-ink-600)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{c.displayName.charAt(0).toUpperCase()}</span>}
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--text-primary)" }}>{c.displayName}</span>
-                        {c.username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: 6 }}>@{c.username}</span>}
-                      </span>
-                      <Button variant="ghost" size="small" disabled={coBusy} onClick={() => removeCoOrganizer(c.userId)}>Remove</Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", maxWidth: 440 }}>
-                <Input value={coUsername} onChange={(e) => setCoUsername(e.target.value)} placeholder="GameShuffle username" style={{ flex: "1 1 220px" }}
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void addCoOrganizer(); } }} />
-                <Button variant="secondary" loading={coBusy} onClick={addCoOrganizer} disabled={!coUsername.trim()}>Add co-organizer</Button>
-              </div>
-            </div>
-          )}
-
-          {/* Page branding (GS Circuit) — custom header image + brand color
-              theme that re-skins the public tournament page. */}
-          {showSettings && !setupLocked && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
-              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
-                Page branding <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> GS Circuit · free in preview</span>
-              </h2>
-              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>Make your public tournament page feel like your event.</p>
-
-              <div style={{ marginBottom: "1.25rem" }}>
-                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Header image</label>
-                {tournament.header_image_url ? (
-                  <div>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={tournament.header_image_url} alt="" style={{ width: "100%", maxWidth: 640, aspectRatio: "16 / 5", objectFit: "cover", borderRadius: "0.6rem", border: "1px solid var(--border-default)", display: "block" }} />
-                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.5rem" }}>
-                      <Button variant="secondary" size="small" loading={headerBusy} onClick={() => headerFileRef.current?.click()}>Replace</Button>
-                      <Button variant="secondary" size="small" onClick={() => setHeaderEditSrc(tournament.header_image_url ? `/api/tournament/${tournamentId}/header/raw` : null)}>Adjust</Button>
-                      <Button variant="ghost" size="small" loading={headerBusy} onClick={removeHeader}>Remove</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button variant="secondary" size="small" loading={headerBusy} onClick={() => headerFileRef.current?.click()}>Upload header image</Button>
-                )}
-                <input ref={headerFileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
-                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { const url = URL.createObjectURL(f); setHeaderEditSrc(url); } }} />
-                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>Shown as a banner at the top of your public page. Best at <strong>1600 × 500px</strong> (a wide 16:5 image); we&rsquo;ll let you crop and position it after you pick one.</p>
-              </div>
-
-              <div>
-                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Brand color theme</label>
-                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                  {BRAND_THEMES.map((bt) => {
-                    const active = (tournament.brand_theme || "default") === bt.id;
-                    return (
-                      <button key={bt.id} type="button" onClick={() => updateTournament({ brand_theme: bt.id })} title={bt.name}
-                        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, border: `2px solid ${active ? "var(--primary-500)" : "var(--border-default)"}`, borderRadius: "0.6rem", padding: "0.35rem", background: "var(--surface-default)", cursor: "pointer" }}>
-                        <span style={{ width: 52, height: 28, borderRadius: "0.35rem", background: bt.gradient, display: "block" }} />
-                        <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{bt.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Big-screen display customization (GS Circuit) — an accent + subtitle
-              that skin the chrome-free /display board. */}
-          {showSettings && !setupLocked && (() => {
-            const display = (tournament.settings?.display ?? {}) as { accent?: string; subtitle?: string };
-            const ACCENTS: { id: string; hex: string | null; name: string }[] = [
-              { id: "none", hex: null, name: "Default" },
-              { id: "indigo", hex: "#5457e5", name: "Indigo" },
-              { id: "violet", hex: "#8b5cf6", name: "Violet" },
-              { id: "emerald", hex: "#10b981", name: "Emerald" },
-              { id: "amber", hex: "#f59e0b", name: "Amber" },
-              { id: "rose", hex: "#e11d64", name: "Rose" },
-              { id: "sky", hex: "#0ea5e9", name: "Sky" },
-            ];
-            const saveDisplay = (patch: { accent?: string | null; subtitle?: string }) => {
-              const next = { ...display, ...patch };
-              if (!next.accent) delete next.accent;
-              if (!next.subtitle) delete next.subtitle;
-              void updateTournament({ settings: { ...tournament.settings, display: next } });
-            };
-            return (
-              <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
-                <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
-                  Display board <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> GS Circuit · free in preview</span>
-                </h2>
-                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
-                  Skin the big-screen <a href={`/tournament/${tournamentId}/display`} target="_blank" rel="noopener noreferrer">display board</a> for your venue or stream.
-                </p>
-
-                <div style={{ marginBottom: "1.25rem" }}>
-                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Accent color</label>
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    {ACCENTS.map((a) => {
-                      const active = (display.accent || null) === a.hex;
+            {inviteMode === "user" && (
+              <div className="manage-field">
+                <Input type="search" aria-label="Search players by username or name" value={userQuery} onChange={(e) => setUserQuery(e.target.value)} placeholder="Search players by username or name…" fullWidth />
+                {userQuery.trim().length >= 2 && (
+                  <div className="manage-results">
+                    {userSearchBusy && userResults.length === 0 && <p className="manage-help">Searching…</p>}
+                    {!userSearchBusy && userResults.length === 0 && <p className="manage-help">No players found.</p>}
+                    {userResults.map((u) => {
+                      const invited = invitedIds.includes(u.id);
                       return (
-                        <button key={a.id} type="button" onClick={() => saveDisplay({ accent: a.hex })} title={a.name}
-                          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, border: `2px solid ${active ? "var(--primary-500)" : "var(--border-default)"}`, borderRadius: "0.6rem", padding: "0.35rem", background: "var(--surface-default)", cursor: "pointer" }}>
-                          <span style={{ width: 52, height: 28, borderRadius: "0.35rem", background: a.hex ?? "linear-gradient(135deg,#5457e5,#8b5cf6)", display: "block" }} />
-                          <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.name}</span>
-                        </button>
+                        <div key={u.id} className="manage-result">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          {u.avatar_url
+                            ? <img src={u.avatar_url} alt="" className="manage-result__avatar" />
+                            : <span className="manage-result__avatar manage-result__avatar--letter" aria-hidden>{u.display_name.charAt(0).toUpperCase()}</span>}
+                          <span className="manage-result__name">
+                            <strong>{u.display_name}</strong>
+                            {u.username && <span className="manage-help"> @{u.username}</span>}
+                          </span>
+                          <Button variant={invited ? "ghost" : "secondary"} size="small" disabled={invited} onClick={() => inviteUser(u)}>
+                            {invited ? "Invited ✓" : "Invite"}
+                          </Button>
+                        </div>
                       );
                     })}
                   </div>
-                </div>
-
-                <div>
-                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Subtitle <span style={{ fontWeight: 400, color: "var(--text-tertiary)" }}>(optional tagline under the title)</span></label>
-                  <Input
-                    type="text"
-                    value={displaySubtitle}
-                    maxLength={80}
-                    placeholder="e.g. Presented by GameShuffle"
-                    onChange={(e) => setDisplaySubtitle(e.target.value)}
-                    onBlur={() => saveDisplay({ subtitle: displaySubtitle.trim() })}
-                  />
-                </div>
+                )}
+                <p className="manage-help">They get an in-app notification with a link to join.</p>
               </div>
-            );
-          })()}
+            )}
+            {inviteMode === "email" && (
+              <div className="manage-field">
+                <div className="manage-row">
+                  <span className="manage-grow"><Input type="text" aria-label="Email addresses" value={inviteEmails} onChange={(e) => setInviteEmails(e.target.value)} placeholder="email@example.com, another@example.com…" fullWidth /></span>
+                  <Button variant="primary" size="small" loading={inviteBusy} disabled={!inviteEmails.trim()} onClick={sendEmailInvites}>Send invites</Button>
+                </div>
+                <p className="manage-help">For players who aren&rsquo;t on GameShuffle yet. They&rsquo;ll get an email with a link to join.</p>
+              </div>
+            )}
+            {inviteMode === "guest" && (
+              <div className="manage-field">
+                <div className="manage-row">
+                  <span className="manage-grow"><Input type="text" aria-label="Guest player name" value={guestName} onChange={(e) => setGuestName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addGuest(); }} placeholder="Guest player name…" fullWidth /></span>
+                  <Button variant="secondary" size="small" onClick={addGuest} disabled={!guestName.trim()}>Add guest</Button>
+                </div>
+                <p className="manage-help">A walk-in without a GameShuffle account. They&rsquo;re in the list right away.</p>
+              </div>
+            )}
+          </div>
 
           {/* Lobby codes — a main code plus optional named codes per flight/lobby. */}
-          <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.35rem" }}>Lobby codes</h2>
+          <div className="comp-card manage-card">
+            <h2 className="manage-card__title">Lobby codes</h2>
             <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
               Only visible to confirmed participants. Running several lobbies at once? Add a code per flight or lobby and name it so everyone knows which is theirs.
             </p>
@@ -1772,52 +1576,277 @@ export default function ManageTournamentPage() {
             </div>
           </div>
 
+          {/* Crews: a multi-crew tournament. Folded away until it's in use. */}
+          <div className="comp-card manage-card">
+            <Accordion
+              variant="flush"
+              defaultOpenIds={crewIds.length > 0 ? ["crews"] : []}
+              items={[{
+                id: "crews",
+                title: "Crews",
+                description: crewIds.length > 0 ? `${crewIds.length} ${crewIds.length === 1 ? "crew" : "crews"} battling` : "Run it as a battle between communities, each player on a crew.",
+                content: (
+                  <div className="manage-sub">
+            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+              Add the communities battling here, then assign each player to a crew below. Players on a crew can also self-assign from the public page.
+            </p>
+
+            {/* Configured crews */}
+            {crewIds.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "1rem" }}>
+                {crewIds.map((cid) => {
+                  const meta = communityMeta[cid];
+                  const count = participants.filter((p) => p.community_id === cid).length;
+                  return (
+                    <span key={cid} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.6rem", borderRadius: "999px", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)", fontSize: "var(--font-size-12)" }}>
+                      <strong style={{ fontWeight: 600 }}>{meta?.name ?? "Crew"}</strong>
+                      <span style={{ color: "var(--text-tertiary)" }}>{count}</span>
+                      <button onClick={() => removeCrew(cid)} aria-label={`Remove ${meta?.name ?? "crew"}`} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", lineHeight: 1, padding: 0 }}>×</button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add-crew search */}
+            <div style={{ position: "relative", maxWidth: 440 }}>
+              <Input value={crewQuery} onChange={(e) => setCrewQuery(e.target.value)} placeholder="Search communities by name or @handle" />
+              {crewQuery.trim().length >= 2 && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 10, background: "var(--surface-default)", border: "1px solid var(--border-default)", borderRadius: "0.5rem", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
+                  {crewSearchBusy && <div style={{ padding: "0.6rem 0.8rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Searching…</div>}
+                  {!crewSearchBusy && crewResults.length === 0 && <div style={{ padding: "0.6rem 0.8rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>No communities found.</div>}
+                  {crewResults.map((c) => (
+                    <button key={c.id} onClick={() => addCrew(c)} disabled={crewIds.includes(c.id)} style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.55rem 0.8rem", border: "none", background: "none", cursor: crewIds.includes(c.id) ? "default" : "pointer", textAlign: "left", fontSize: "var(--font-size-12)", color: "var(--text-primary)", opacity: crewIds.includes(c.id) ? 0.5 : 1 }}>
+                      <span style={{ fontWeight: 600 }}>{c.name}</span>
+                      <span style={{ color: "var(--text-tertiary)" }}>{crewIds.includes(c.id) ? "Added" : `@${c.slug}`}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+                  </div>
+                ),
+              }]}
+            />
+          </div>
+
+          {/* Deck lists (Pokémon TCG): who's in, who's missing, anything to look at. */}
+          {swissReady && deckListsOn(tournament) && (
+            <div className="comp-card manage-card">
+              <h2 className="manage-card__title">Deck lists</h2>
+              <OrganizerDeckLists tournamentId={tournamentId} />
+            </div>
+          )}
+
+          {/* Tickets and payouts: hidden while paid entry is paused, unless this event already sold tickets. */}
+          <TicketingManager type="tournament" eventId={tournamentId} hideWhenPaused className="comp-card manage-card" />
+            </>
+          )}
+
+          {tab === "rules" && (
+            <>
+          {setupLocked && <p className="manage-note">This tournament has {tournament.status === "cancelled" ? "been cancelled" : "finished"}, so its format is fixed.</p>}
+          {/* When, where and who can sign up. */}
+          <div className="comp-card manage-card">
+            <h2 className="manage-card__title">When, where and sign-ups</h2>
+            {tournament.status !== "cancelled" && tournament.status !== "complete" && (
+              <div className="manage-field">
+                <span className="manage-field__label">Date and time</span>
+                <div className="manage-row">
+                  <Input type="datetime-local" aria-label="Date and time" value={scheduleInput} onChange={(e) => setScheduleInput(e.target.value)} />
+                  <Button variant="secondary" size="small" loading={scheduleBusy} onClick={rescheduleTournament} disabled={!scheduleInput}>
+                    Update time and notify
+                  </Button>
+                </div>
+                <p className="manage-help">In your timezone. Everyone signed up is emailed and notified of any change.</p>
+              </div>
+            )}
+            {/* Where — online or a physical venue/address. */}
+            <div className="manage-setting manage-setting--stack">
+              <span className="manage-field__label">Where</span>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                {(["online", "in_person"] as const).map((val) => (
+                  <Button
+                    key={val}
+                    variant={(tournament.settings?.locationType ?? "online") === val ? "primary" : "secondary"}
+                    size="small"
+                    onClick={() => updateTournament({ settings: { ...tournament.settings, locationType: val, ...(val === "online" ? { location: null } : {}) } })}
+                  >
+                    {val === "online" ? "Online" : "In person"}
+                  </Button>
+                ))}
+                {(tournament.settings?.locationType ?? "online") === "in_person" && (
+                  <span className="manage-grow">
+                    <Input
+                      type="text"
+                      aria-label="Venue or address"
+                      defaultValue={tournament.settings?.location ?? ""}
+                      onBlur={(e) => updateTournament({ settings: { ...tournament.settings, location: e.target.value.trim() || null } })}
+                      placeholder="Venue or address"
+                      fullWidth
+                    />
+                  </span>
+                )}
+              </div>
+            </div>
+            {/* Who can enter: accounts only, or anyone by name. */}
+            <div className="manage-setting">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div>
+                  <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Who can enter</span>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.15rem", maxWidth: "44ch" }}>
+                    {tournament.championship_id
+                      ? "Season points stay tied to real players, so championship events are accounts only."
+                      : entryPolicy === "accounts_only"
+                        ? "Every entrant has an account, so you can see their history before you seed."
+                        : "Anyone can enter by name. Easier to fill, but you will know less about who is coming."}
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: "0.4rem" }}>
+                  {([["open", "Anyone"], ["accounts_only", "Accounts only"]] as const).map(([v, label]) => (
+                    <Button
+                      key={v}
+                      variant={entryPolicy === v ? "primary" : "secondary"}
+                      size="small"
+                      disabled={policyLocked}
+                      onClick={() => void changeEntryPolicy(v)}
+                    >{label}</Button>
+                  ))}
+                </div>
+              </div>
+              {policyBlock && (
+                <div role="alert" style={{ marginTop: "0.75rem", padding: "0.75rem 0.9rem", borderRadius: "0.5rem", border: "1px solid var(--warning-400, #e0a106)", background: "color-mix(in srgb, var(--warning-500, #e0a106) 10%, var(--surface-default))" }}>
+                  <p style={{ margin: 0, fontSize: "var(--font-size-13, 13px)", fontWeight: 600 }}>
+                    {policyBlock.length} {policyBlock.length === 1 ? "guest is" : "guests are"} already entered.
+                  </p>
+                  <p style={{ margin: "0.25rem 0 0", fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
+                    {policyBlock.join(", ")}. Remove them from the roster first, or leave this set to Anyone. Nothing has been changed.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Verified email requirement. */}
+            <div className="manage-setting manage-setting--row">
+              <div>
+                <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Require verified email</span>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.15rem" }}>Only players with a verified email can join.</p>
+              </div>
+              <Switch
+                aria-label="Require verified email"
+                checked={!!tournament.settings?.requireVerified}
+                onChange={() => updateTournament({ settings: { ...tournament.settings, requireVerified: !tournament.settings?.requireVerified } })}
+              />
+            </div>
+            <div className="manage-setting manage-setting--row">
+              <div>
+                <span className="manage-field__label">Accept people</span>
+                <p className="manage-help">{tournament.acceptance_mode === "auto" ? "Everyone who signs up is in straight away while there's room." : "You accept each person before they're in."}</p>
+              </div>
+              <div className="manage-row">
+                {([["auto", "Automatically"], ["manual", "By hand"]] as const).map(([v, label]) => (
+                  <Button key={v} variant={(tournament.acceptance_mode === "auto" ? "auto" : "manual") === v ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ acceptance_mode: v })}>{label}</Button>
+                ))}
+              </div>
+            </div>
+            {(tournament.status === "draft" || tournament.status === "open") && (
+              <div className="manage-setting manage-setting--row">
+                <div>
+                  <label className="manage-field__label" htmlFor="manage-max">Max players</label>
+                  <p className="manage-help">
+                    {seatsTaken} {seatsTaken === 1 ? "is" : "are"} in{waitingCount > 0 ? ` · ${waitingCount} waiting` : ""}
+                    {maxTyped !== null && Number.isFinite(maxTyped) && maxTyped < seatsTaken ? ". Nobody already in loses their spot; new sign-ups wait until the field is under the new number." : ""}
+                  </p>
+                </div>
+                <div className="manage-row">
+                  <span className="manage-max">
+                    <Input
+                      id="manage-max"
+                      type="number"
+                      min={2}
+                      max={1024}
+                      placeholder="No limit"
+                      value={maxDraft ?? (tournament.max_participants != null ? String(tournament.max_participants) : "")}
+                      onChange={(e) => setMaxDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") void saveMax(); }}
+                    />
+                  </span>
+                  <Button variant="secondary" size="small" loading={maxBusy} disabled={maxDraft === null} onClick={() => void saveMax()}>Save</Button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Tournament setup — change the format, team mode, and rules without
               deleting and recreating. Changing the format (or group rules) resets
               any generated bracket so it can be re-seeded. */}
-          {showSettings && !setupLocked && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
-              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.5rem" }}>Tournament setup</h2>
+          {!setupLocked && (
+            <div className="comp-card manage-card manage-card--spaced">
+              <h2 className="manage-card__title">Format and seeding</h2>
               {hasRunState && (
                 <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginBottom: "0.75rem" }}>
                   Heads up: changing the format or group rules will clear the bracket you&rsquo;ve already generated so it can be re-seeded.
                 </p>
               )}
               <div style={{ marginBottom: "1rem" }}>
-                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Format</label>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Format</label>
                 <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                   {SETUP_FORMATS.map((f) => (
                     <Button key={f.value} variant={tournament.format === f.value ? "primary" : "secondary"} size="small" onClick={() => changeFormat(f.value)}>{f.label}</Button>
                   ))}
                 </div>
               </div>
+              {tournament.format === "swiss" && (
+                <div style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <SwissSettingsFields
+                    value={swissSettingsOf(tournament.settings, isDeckListGame(tournament.game_slug))}
+                    onChange={(next) => void updateTournament({ settings: { ...tournament.settings, swiss: next } })}
+                    players={eligibleForBracket.length}
+                    disabled={swissStarted}
+                  />
+                  {swissStarted && <p className="swiss-help">Rounds and the top cut were fixed when round 1 was paired.</p>}
+                </div>
+              )}
+              {isDeckListGame(tournament.game_slug) && swissReady && (
+                <div className="swiss-decks-panel" style={{ marginTop: 0, marginBottom: "1rem" }}>
+                  <div className="swiss-decks-panel__head"><span className="account-card__label">Deck lists</span><Badge variant="info" size="small">Pokémon TCG</Badge></div>
+                  <DeckListSettingsFields
+                    value={deckListSettingsOf(tournament.settings)}
+                    onChange={(next) => void updateTournament({ settings: { ...tournament.settings, deckLists: next } })}
+                    swiss={tournament.format === "swiss"}
+                  />
+                </div>
+              )}
+              {/* Swiss is 1v1: no team mode. */}
+              {tournament.format !== "swiss" && (
               <div style={{ marginBottom: isGroupFormat ? "1rem" : 0 }}>
-                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Team mode</label>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Team mode</label>
                 <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                   {SETUP_MODES.map((m) => (
                     <Button key={m.value} variant={tournament.mode === m.value ? "primary" : "secondary"} size="small" onClick={() => changeMode(m.value)}>{m.label}</Button>
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Points fields: single scoreboard vs multiple flights (large fields).
                   Changing the shape re-seeds, so it clears an existing board. */}
               {isPoints && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-subtle)" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)", paddingTop: "var(--spacing-16)", borderTop: "1px solid var(--border-subtle)" }}>
                   <div>
-                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>How it runs</label>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>How it runs</label>
                     <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                       <Button variant={!useFlights ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, useFlights: false }, flights: null })}>One scoreboard</Button>
                       <Button variant={useFlights ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, useFlights: true }, flights: null })}>Multiple flights</Button>
                     </div>
-                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6, 6px)" }}>
                       {useFlights ? "For big fields: split into flights each round, re-seeded from the standings." : "Everyone scores into one running standings."}
                     </p>
                   </div>
                   {useFlights && (
                     <>
                       <div>
-                        <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Players per flight</label>
+                        <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Players per flight</label>
                         <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                           {[8, 12, 16, 24].map((n) => (
                             <Button key={n} variant={flightRules.flightSize === n ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, flightSize: n }, flights: null })}>{n}</Button>
@@ -1825,7 +1854,7 @@ export default function ManageTournamentPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Rounds</label>
+                        <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Rounds</label>
                         <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                           {[2, 3, 4, 5, 6].map((n) => (
                             <Button key={n} variant={flightRules.rounds === n ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, flightRounds: n }, flights: null })}>{n}</Button>
@@ -1833,7 +1862,7 @@ export default function ManageTournamentPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Races per round <span style={{ fontWeight: 400, color: "var(--text-tertiary)" }}>(1 = score by round)</span></label>
+                        <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Races per round <span style={{ fontWeight: 400, color: "var(--text-tertiary)" }}>(1 = score by round)</span></label>
                         <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                           {[1, 2, 3, 4, 6].map((n) => (
                             <Button key={n} variant={flightRules.racesPerRound === n ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, racesPerRound: n }, flights: null })}>{n}</Button>
@@ -1841,24 +1870,24 @@ export default function ManageTournamentPage() {
                         </div>
                       </div>
                       <div>
-                        <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Re-seed between rounds</label>
+                        <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Re-seed between rounds</label>
                         <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                           <Button variant={flightRules.reseed === "standings" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, flightReseed: "standings" }, flights: null })}>Group by standings</Button>
                           <Button variant={flightRules.reseed === "snake" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, flightReseed: "snake" }, flights: null })}>Spread across flights</Button>
                         </div>
-                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6, 6px)" }}>
                           {flightRules.reseed === "snake" ? "Leaders spread out so every flight is balanced." : "Leaders grouped together, so the top flight is the toughest."}
                         </p>
                       </div>
                     </>
                   )}
                   <div>
-                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>When players tie on points</label>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>When players tie on points</label>
                     <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                       <Button variant={tournament.settings?.tieBreak !== "runoff" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, tieBreak: "shared" } })}>Same placement</Button>
                       <Button variant={tournament.settings?.tieBreak === "runoff" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, tieBreak: "runoff" } })}>Play a runoff</Button>
                     </div>
-                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6, 6px)" }}>
                       {tournament.settings?.tieBreak === "runoff"
                         ? "Tied players share a place until you break it with a runoff race or by editing points."
                         : "Tied players officially share the placement (both 2nd, same medal)."}
@@ -1868,9 +1897,9 @@ export default function ManageTournamentPage() {
               )}
 
               {isElim && (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-subtle)" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)", paddingTop: "var(--spacing-16)", borderTop: "1px solid var(--border-subtle)" }}>
                   <div>
-                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Players per lobby</label>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Players per lobby</label>
                     <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
                       {[2, 3, 4, 6, 8].map((n) => (
                         <Button key={n} variant={!lobbyCustom && elimLobbySize === n ? "primary" : "secondary"} size="small" onClick={() => { setLobbyCustom(false); void changeLobbyRule({ lobbySize: n, advance: Math.max(1, Math.min(elimAdvance, n - 1)) }); }}>{n}</Button>
@@ -1884,13 +1913,13 @@ export default function ManageTournamentPage() {
                           style={{ width: 72, height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", background: "var(--surface-default)", color: "var(--text-primary)" }} />
                       )}
                     </div>
-                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6, 6px)" }}>
                       {elimLobbySize <= 2 ? "2 = classic 1v1 bracket." : `Lobbies of ${elimLobbySize}; ${isDoubleElim ? "everyone else gets a second chance in a lower bracket." : "everyone else is knocked out."}`}
                     </p>
                   </div>
                   {elimLobbySize > 2 && (
                     <div>
-                      <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>How many move on from each lobby</label>
+                      <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>How many move on from each lobby</label>
                       <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                         {Array.from({ length: elimLobbySize - 1 }, (_, i) => i + 1).map((n) => (
                           <Button key={n} variant={elimAdvance === n ? "primary" : "secondary"} size="small" onClick={() => changeLobbyRule({ advance: n })}>{n}</Button>
@@ -1903,12 +1932,12 @@ export default function ManageTournamentPage() {
                       the shape re-seeds, so it clears an existing board. */}
                   {isDoubleElim && useLobbies && (
                     <div>
-                      <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>When both brackets finish</label>
+                      <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>When both brackets finish</label>
                       <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                         <Button variant={tournament.settings?.grandFinal !== false ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, grandFinal: true }, bracket: null, group_bracket: null })}>Grand final</Button>
                         <Button variant={tournament.settings?.grandFinal === false ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, grandFinal: false }, bracket: null, group_bracket: null })}>Separate brackets</Button>
                       </div>
-                      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6, 6px)" }}>
                         {tournament.settings?.grandFinal !== false
                           ? "Winners champion and losers champion meet in a grand final for 1st/2nd."
                           : "No grand final: the winners champion takes 1st and the losers bracket fills the rest, so the two can run at the same time."}
@@ -1920,12 +1949,12 @@ export default function ManageTournamentPage() {
                       board, only how you tap, so no re-seed needed. */}
                   {useLobbies && (
                     <div>
-                      <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Reporting each lobby</label>
+                      <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Reporting each lobby</label>
                       <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                         <Button variant={tournament.settings?.lobbyReporting !== "placement" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, lobbyReporting: "advance" } })}>Tap who advances</Button>
                         <Button variant={tournament.settings?.lobbyReporting === "placement" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, lobbyReporting: "placement" } })}>Tap full placement</Button>
                       </div>
-                      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6, 6px)" }}>
                         {tournament.settings?.lobbyReporting === "placement"
                           ? "Tap every player in finishing order in each lobby. Best when you're tracking points or full standings."
                           : "Just tap who moves on; the final lobby is tapped in order for the podium."}
@@ -1934,100 +1963,52 @@ export default function ManageTournamentPage() {
                   )}
                 </div>
               )}
+            {/* Swiss pairs round 1 at random and seeds its top cut from the standings, so it has no draw. */}
+            {tournament.format !== "swiss" && (
+              <SeedingPanel
+                tournamentId={tournamentId}
+                entrants={participants.map((p) => ({ id: p.id, display_name: p.display_name, user_id: p.user_id, status: p.status }))}
+                isChampionship={!!tournament.championship_id}
+                format={tournament.format ?? "ffa"}
+                heatSize={(tournament.settings as { heatSize?: number } | null)?.heatSize}
+              />
+            )}
+
             </div>
           )}
 
-          {/* Pending registrations modal */}
-          <Modal isOpen={!!manualLink} onClose={() => setManualLink(null)} title={manualLink ? `Claim link for ${manualLink.name}` : "Claim link"} size="small">
-            {manualLink && (
-              <div className="manual-claim">
-                <p className="manual-claim__lede">
-                  Give this to {manualLink.name} in person, or let them scan it. It works once, for 72 hours, and you&apos;ll see who claimed it.
-                </p>
-                {/* SVG generated server-side by the qrcode library, from our own URL. */}
-                <div className="manual-claim__qr" aria-label={`QR code for ${manualLink.name}'s claim link`} role="img" dangerouslySetInnerHTML={{ __html: manualLink.svg }} />
-                <Input value={manualLink.url} readOnly aria-label="Claim link" onFocus={(e) => e.currentTarget.select()} />
-                <div className="manual-claim__row">
-                  <Button variant="primary" size="small" onClick={copyManualLink}>Copy link</Button>
-                  <Button variant="ghost" size="small" onClick={() => setManualLink(null)}>Done</Button>
-                </div>
-              </div>
-            )}
-          </Modal>
-          <Modal isOpen={showPending} onClose={() => setShowPending(false)} title="Pending registrations" size="small">
-            {participants.filter((p) => p.status === "registered").length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)" }}>No pending registrations right now.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                {participants.filter((p) => p.status === "registered").map((p) => (
-                  <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem", padding: "0.5rem 0.25rem", borderBottom: "1px solid var(--border-subtle, var(--border-default))" }}>
-                    <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", minWidth: 0 }}>
-                      {p.display_name}{p.users?.email_verified && <VerifiedBadge />}
-                      {contacts[p.id]?.discord && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{contacts[p.id]!.discord}</span>}
-                      {contacts[p.id]?.friendCode && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {contacts[p.id]!.friendCode}</span>}
-                      {claimInfo[p.id] && (
-                        <span className={`claim-state claim-state--${claimInfo[p.id].state}`}>
-                          {claimInfo[p.id].state === "open" && "Guest · not claimed yet"}
-                          {claimInfo[p.id].state === "expired" && "Guest · claim link expired"}
-                          {claimInfo[p.id].state === "revoked" && "Guest · link withdrawn"}
-                          {claimInfo[p.id].state === "unlinked" && "Guest · unlinked"}
-                          {claimInfo[p.id].state === "claimed" && <>Claimed by {claimInfo[p.id].claimedByName ?? "an account"}</>}
-                        </span>
-                      )}
-                      {claimInfo[p.id]?.state === "claimed" && (
-                        <Button variant="ghost" size="small" onClick={() => unlinkClaim(p.id, p.display_name)}>Unlink</Button>
-                      )}
-                      {!p.user_id && p.status !== "dropped" && claimInfo[p.id]?.state !== "open" && (
-                        <Button variant="ghost" size="small" onClick={() => issueManualLink(p.id, p.display_name)}>Claim link</Button>
-                      )}
-                    </span>
-                    <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
-                      <Button variant="primary" size="small" onClick={() => updateParticipant(p.id, { status: "confirmed" })}>Accept</Button>
-                      <Button variant="ghost" size="small" onClick={() => removeParticipant(p.id)}>Decline</Button>
-                    </div>
-                  </div>
-                ))}
-                <Button
-                  variant="secondary"
-                  size="small"
-                  style={{ marginTop: "0.75rem" }}
-                  onClick={async () => {
-                    for (const p of participants.filter((x) => x.status === "registered")) {
-                      await updateParticipant(p.id, { status: "confirmed" });
-                    }
-                  }}
-                >
-                  Accept all ({pendingCount})
-                </Button>
-              </div>
-            )}
-          </Modal>
+          {/* Mario Party: shared round rolls + mission bonus points (any standard format) */}
+          {!isRunning && isPartyGame(tournament.game_slug) && (
+            <PartyTournamentPanel
+              gameSlug={tournament.game_slug}
+              settings={tournament.settings}
+              participants={participants}
+              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
+            />
+          )}
 
-          {/* Header image crop / position editor (banner branding). */}
-          {headerEditSrc && (
-            <BannerEditModal
-              imageSrc={headerEditSrc}
-              aspect={16 / 5}
-              outW={1600}
-              outH={500}
-              title="Position your banner"
-              onCancel={() => { if (headerEditSrc.startsWith("blob:")) URL.revokeObjectURL(headerEditSrc); setHeaderEditSrc(null); }}
-              onConfirm={async (blob) => {
-                await uploadHeader(blob);
-                if (headerEditSrc.startsWith("blob:")) URL.revokeObjectURL(headerEditSrc);
-                setHeaderEditSrc(null);
-              }}
+          {/* Smash: rules, best-of sets with striking, round rolls, crew battles, mission points */}
+          {!isRunning && isSmashGame(tournament.game_slug) && (
+            <SmashTournamentPanel
+              settings={tournament.settings}
+              participants={participants}
+              format={tournament.format ?? ""}
+              bracket={tournament.bracket}
+              onReport={reportMatchWinner}
+              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
             />
           )}
 
           {/* MK-specific config (race / tracks / build restrictions). Only for
               games that carry rich data; other games run bracket/points/heat→mains
               on named participants without a track/build layer. */}
-          {showSettings && gd && (
+          {gd && (
           <>
-          {/* Race Settings */}
-          <div className="comp-card" style={{ marginBottom: "2rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1.5rem" }}>Race Settings</h2>
+          {/* Races and tracks: race settings, the tracks, and randomized rounds in one card. */}
+          <div className="comp-card manage-card">
+          <h2 className="manage-card__title">Races and tracks</h2>
+          <div className="manage-sub">
+            <h3 className="manage-sub__title">Race settings</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1rem" }}>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Races</label>
@@ -2058,9 +2039,9 @@ export default function ManageTournamentPage() {
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>CPU</label>
                 <Select
-                  value={tournament.settings?.cpu || "hard"}
+                  value={tournament.settings?.cpu === "none" ? "no cpu" : tournament.settings?.cpu || "hard"}
                   onChange={(v) => updateTournament({ settings: { ...tournament.settings, cpu: v } })}
-                  options={["easy", "normal", "hard", "no cpu"].map((c) => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1) }))}
+                  options={[{ value: "easy", label: "Easy" }, { value: "normal", label: "Normal" }, { value: "hard", label: "Hard" }, { value: "no cpu", label: "No CPU" }]}
                 />
               </div>
             </div>
@@ -2103,8 +2084,8 @@ export default function ManageTournamentPage() {
           </div>
 
           {/* Track Selection */}
-          <div className="comp-card" style={{ marginBottom: "2rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1rem" }}>Tracks</h2>
+          <div className="manage-sub">
+            <h3 className="manage-sub__title">Tracks</h3>
 
             {/* Mode selector */}
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
@@ -2308,11 +2289,20 @@ export default function ManageTournamentPage() {
             initialRounds={Array.isArray(tournament.settings?.rounds) ? tournament.settings.rounds : []}
             initialLive={tournament.settings?.randomizerLive ?? null}
             syncedLive={(tournament.settings?.randomizerLive ?? null) as LivePointer | null}
+            bare
           />
+          </div>
 
-          {/* Build Restrictions */}
-          <div className="comp-card" style={{ marginBottom: "2rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1.5rem" }}>Build Restrictions</h2>
+          {/* Build restrictions: folded to one line that says what's set. */}
+          <div className="comp-card manage-card">
+            <Accordion
+              variant="flush"
+              items={[{
+                id: "build",
+                title: "Build restrictions",
+                description: buildSummary,
+                content: (
+                  <div className="manage-build">
 
             {/* Weight Class Filter */}
             <div style={{ marginBottom: "1.25rem" }}>
@@ -2457,40 +2447,269 @@ export default function ManageTournamentPage() {
               )}
             </div>
 
-            {/* Additional Notes */}
-            <div>
-              <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Additional Build Notes</label>
-              <textarea
-                className="save-setup-input"
-                value={tournament.settings?.buildNotes || ""}
-                onChange={(e) => setTournament((prev) => prev ? { ...prev, settings: { ...prev.settings, buildNotes: e.target.value } } : prev)}
-                onBlur={(e) => updateTournament({ settings: { ...tournament.settings, buildNotes: e.target.value } })}
-                placeholder="Any other build restrictions or notes..."
-                rows={2}
-                style={{ resize: "vertical" }}
-              />
-            </div>
+                  </div>
+                ),
+              }]}
+            />
           </div>
           </>
           )}
 
-          {/* Rules */}
-          <div className="comp-card" hidden={!showSettings} style={{ marginBottom: "2rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1rem" }}>Rules & Notes</h2>
-            <textarea
-              className="save-setup-input"
-              value={tournament.rules || ""}
-              onChange={(e) => setTournament((prev) => prev ? { ...prev, rules: e.target.value } : prev)}
-              onBlur={(e) => updateTournament({ rules: e.target.value })}
-              placeholder="Any additional rules, instructions, or notes for participants..."
-              rows={5}
-              style={{ resize: "vertical" }}
-            />
+          {/* Rules for players, with the build notes when the game has builds. */}
+          <div className="comp-card manage-card">
+            <h2 className="manage-card__title">Rules for players</h2>
+            <div className="manage-field">
+              <label className="manage-field__label" htmlFor="manage-rules">Rules and notes</label>
+              <Textarea
+                id="manage-rules"
+                value={tournament.rules || ""}
+                onChange={(e) => setTournament((prev) => prev ? { ...prev, rules: e.target.value } : prev)}
+                onBlur={(e) => updateTournament({ rules: e.target.value })}
+                placeholder="Any rules, instructions or notes for players…"
+                rows={5}
+                fullWidth
+              />
+            </div>
+            {gd && (
+              <div className="manage-field">
+                <label className="manage-field__label" htmlFor="manage-build-notes">Build notes</label>
+                <Textarea
+                  id="manage-build-notes"
+                  value={tournament.settings?.buildNotes || ""}
+                  onChange={(e) => setTournament((prev) => prev ? { ...prev, settings: { ...prev.settings, buildNotes: e.target.value } } : prev)}
+                  onBlur={(e) => updateTournament({ settings: { ...tournament.settings, buildNotes: e.target.value } })}
+                  placeholder="Any other build restrictions or notes…"
+                  rows={2}
+                  fullWidth
+                />
+                <p className="manage-help">Shown with the build restrictions on your tournament page.</p>
+              </div>
+            )}
           </div>
+            </>
+          )}
+
+          {tab === "page" && (
+            <div className="comp-card manage-card">
+              <p className="manage-circuit-note"><IconSparkles size={14} stroke={1.9} aria-hidden /> {circuitTag}</p>
+          {/* Team access (GS Circuit) — co-organizers who can edit alongside the
+              owner. Owner-only; RLS lets them edit but not manage the roster. */}
+          {isOwner && (
+            <section className="manage-sub">
+              <h3 className="manage-sub__title">Co-organizers</h3>
+              {circuitLocked("Team access")}
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                Add co-organizers by GameShuffle username. They can edit this tournament and run it with you, but only you can delete it or change the team.
+              </p>
+
+              {coOrganizers.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem" }}>
+                  {coOrganizers.map((c) => (
+                    <div key={c.userId} style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.5rem 0.7rem", borderRadius: "0.5rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {c.avatarUrl
+                        ? <img src={c.avatarUrl} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
+                        : <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--primary-100)", color: "var(--primary-ink-600)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{c.displayName.charAt(0).toUpperCase()}</span>}
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--text-primary)" }}>{c.displayName}</span>
+                        {c.username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: 6 }}>@{c.username}</span>}
+                      </span>
+                      <Button variant="ghost" size="small" disabled={coBusy} onClick={() => removeCoOrganizer(c.userId)}>Remove</Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", maxWidth: 440 }}>
+                <Input value={coUsername} onChange={(e) => setCoUsername(e.target.value)} placeholder="GameShuffle username" style={{ flex: "1 1 220px" }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void addCoOrganizer(); } }} />
+                <Button variant="secondary" loading={coBusy} onClick={addCoOrganizer} disabled={!coUsername.trim()}>Add co-organizer</Button>
+              </div>
+            </section>
+          )}
+
+          {/* Page branding (GS Circuit) — custom header image + brand color
+              theme that re-skins the public tournament page. */}
+          {!setupLocked && (
+            <section className="manage-sub">
+              <h3 className="manage-sub__title">Your tournament page</h3>
+              {circuitLocked("Page branding")}
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>Make your public tournament page feel like your event.</p>
+
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Header image</label>
+                {tournament.header_image_url ? (
+                  <div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={tournament.header_image_url} alt="" style={{ width: "100%", maxWidth: 640, aspectRatio: "16 / 5", objectFit: "cover", borderRadius: "0.6rem", border: "1px solid var(--border-default)", display: "block" }} />
+                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.5rem" }}>
+                      <Button variant="secondary" size="small" loading={headerBusy} onClick={() => headerFileRef.current?.click()}>Replace</Button>
+                      <Button variant="secondary" size="small" onClick={() => setHeaderEditSrc(tournament.header_image_url ? `/api/tournament/${tournamentId}/header/raw` : null)}>Adjust</Button>
+                      <Button variant="ghost" size="small" loading={headerBusy} onClick={removeHeader}>Remove</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="secondary" size="small" loading={headerBusy} onClick={() => headerFileRef.current?.click()}>Upload header image</Button>
+                )}
+                <input ref={headerFileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
+                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { const url = URL.createObjectURL(f); setHeaderEditSrc(url); } }} />
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>Shown as a banner at the top of your public page. Best at <strong>1600 × 500px</strong> (a wide 16:5 image); we&rsquo;ll let you crop and position it after you pick one.</p>
+              </div>
+
+              <div>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Brand color theme</label>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  {BRAND_THEMES.map((bt) => {
+                    const active = (tournament.brand_theme || "default") === bt.id;
+                    return (
+                      <button key={bt.id} type="button" onClick={() => updateTournament({ brand_theme: bt.id })} title={bt.name}
+                        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, border: `2px solid ${active ? "var(--primary-500)" : "var(--border-default)"}`, borderRadius: "0.6rem", padding: "0.35rem", background: "var(--surface-default)", cursor: "pointer" }}>
+                        <span style={{ width: 52, height: 28, borderRadius: "0.35rem", background: bt.gradient, display: "block" }} />
+                        <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{bt.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Big-screen display customization (GS Circuit) — an accent + subtitle
+              that skin the chrome-free /display board. */}
+          {!setupLocked && (() => {
+            const display = (tournament.settings?.display ?? {}) as { accent?: string; subtitle?: string };
+            const ACCENTS: { id: string; hex: string | null; name: string }[] = [
+              { id: "none", hex: null, name: "Default" },
+              { id: "indigo", hex: "#5457e5", name: "Indigo" },
+              { id: "violet", hex: "#8b5cf6", name: "Violet" },
+              { id: "emerald", hex: "#10b981", name: "Emerald" },
+              { id: "amber", hex: "#f59e0b", name: "Amber" },
+              { id: "rose", hex: "#e11d64", name: "Rose" },
+              { id: "sky", hex: "#0ea5e9", name: "Sky" },
+            ];
+            const saveDisplay = (patch: { accent?: string | null; subtitle?: string }) => {
+              const next = { ...display, ...patch };
+              if (!next.accent) delete next.accent;
+              if (!next.subtitle) delete next.subtitle;
+              void updateTournament({ settings: { ...tournament.settings, display: next } });
+            };
+            return (
+              <section className="manage-sub">
+                <h3 className="manage-sub__title">Display board</h3>
+                {circuitLocked("Display board customization")}
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                  Skin the big-screen <a href={`/tournament/${tournamentId}/display`} target="_blank" rel="noopener noreferrer">display board</a> for your venue or stream.
+                </p>
+
+                <div style={{ marginBottom: "1.25rem" }}>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Accent color</label>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    {ACCENTS.map((a) => {
+                      const active = (display.accent || null) === a.hex;
+                      return (
+                        <button key={a.id} type="button" onClick={() => saveDisplay({ accent: a.hex })} title={a.name}
+                          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, border: `2px solid ${active ? "var(--primary-500)" : "var(--border-default)"}`, borderRadius: "0.6rem", padding: "0.35rem", background: "var(--surface-default)", cursor: "pointer" }}>
+                          <span style={{ width: 52, height: 28, borderRadius: "0.35rem", background: a.hex ?? "linear-gradient(135deg,#5457e5,#8b5cf6)", display: "block" }} />
+                          <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Subtitle <span style={{ fontWeight: 400, color: "var(--text-tertiary)" }}>(optional tagline under the title)</span></label>
+                  <Input
+                    type="text"
+                    value={displaySubtitle}
+                    maxLength={80}
+                    placeholder="e.g. Presented by GameShuffle"
+                    onChange={(e) => setDisplaySubtitle(e.target.value)}
+                    onBlur={() => saveDisplay({ subtitle: displaySubtitle.trim() })}
+                  />
+                </div>
+              </section>
+            );
+          })()}
+
+            </div>
+          )}
+
+          {/* Claim link window */}
+          <Modal isOpen={!!manualLink} onClose={() => setManualLink(null)} title={manualLink ? `Claim link for ${manualLink.name}` : "Claim link"} size="small">
+            {manualLink && (
+              <div className="manual-claim">
+                <p className="manual-claim__lede">
+                  Give this to {manualLink.name}{" "}in person, or let them scan it. It works once, for 72 hours, and you&apos;ll see who claimed it.
+                </p>
+                {/* SVG generated server-side by the qrcode library, from our own URL. */}
+                <div className="manual-claim__qr" aria-label={`QR code for ${manualLink.name}'s claim link`} role="img" dangerouslySetInnerHTML={{ __html: manualLink.svg }} />
+                <Input value={manualLink.url} readOnly aria-label="Claim link" onFocus={(e) => e.currentTarget.select()} />
+                <div className="manual-claim__row">
+                  <Button variant="primary" size="small" onClick={copyManualLink}>Copy link</Button>
+                  <Button variant="ghost" size="small" onClick={() => setManualLink(null)}>Done</Button>
+                </div>
+              </div>
+            )}
+          </Modal>
+
+          {/* Header image crop / position editor (banner branding). */}
+          {headerEditSrc && (
+            <BannerEditModal
+              imageSrc={headerEditSrc}
+              aspect={16 / 5}
+              outW={1600}
+              outH={500}
+              title="Position your banner"
+              onCancel={() => { if (headerEditSrc.startsWith("blob:")) URL.revokeObjectURL(headerEditSrc); setHeaderEditSrc(null); }}
+              onConfirm={async (blob) => {
+                await uploadHeader(blob);
+                if (headerEditSrc.startsWith("blob:")) URL.revokeObjectURL(headerEditSrc);
+                setHeaderEditSrc(null);
+              }}
+            />
+          )}
+
+          {tab === "run" && (
+            <>
+          {/* Swiss: the round console (pairings, results, clock, drops, top cut, finish). */}
+          {tournament.format === "swiss" && (
+            <div className="comp-card manage-card">
+              <h2 className="manage-card__title">Swiss</h2>
+              <SwissRunPanel
+                tournamentId={tournamentId}
+                status={tournament.status}
+                decksRequired={deckListsOn(tournament)}
+                onStatus={(status) => setTournament((prev) => (prev ? { ...prev, status } : prev))}
+              />
+            </div>
+          )}
+
+          {/* Mario Party: shared round rolls + mission bonus points (any standard format) */}
+          {isRunning && isPartyGame(tournament.game_slug) && (
+            <PartyTournamentPanel
+              gameSlug={tournament.game_slug}
+              settings={tournament.settings}
+              participants={participants}
+              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
+            />
+          )}
+
+          {/* Smash: rules, best-of sets with striking, round rolls, crew battles, mission points */}
+          {isRunning && isSmashGame(tournament.game_slug) && (
+            <SmashTournamentPanel
+              settings={tournament.settings}
+              participants={participants}
+              format={tournament.format ?? ""}
+              bracket={tournament.bracket}
+              onReport={reportMatchWinner}
+              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
+            />
+          )}
 
           {/* Live race control — sets the "current race" that appears on the
               overlay, the /live page, and chat. Works across every format. */}
-          {showDashboard && (() => {
+          {(() => {
             // Only while the tournament is actually running — not during
             // registration (draft/open) or after it's done.
             if (tournament.status !== "in_progress") return null;
@@ -2544,14 +2763,14 @@ export default function ManageTournamentPage() {
           })()}
 
           {/* Bracket — single elimination (Phase 3) */}
-          {showDashboard && isBracketFormat && tournament.status !== "draft" && (
+          {isBracketFormat && tournament.status !== "draft" && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Bracket</h2>
                 {tournament.bracket && (
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {bracketChampion(tournament.bracket!) && (
-                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeBracketPlacements}>Finalize placements →</Button>
+                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeBracketPlacements}>Finalize placements</Button>
                     )}
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ bracket: null })}>Clear</Button>
                   </div>
@@ -2586,37 +2805,15 @@ export default function ManageTournamentPage() {
             </div>
           )}
 
-          {/* Mario Party: shared round rolls + mission bonus points (any standard format) */}
-          {showDashboard && isPartyGame(tournament.game_slug) && (
-            <PartyTournamentPanel
-              gameSlug={tournament.game_slug}
-              settings={tournament.settings}
-              participants={participants}
-              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
-            />
-          )}
-
-          {/* Smash: rules, best-of sets with striking, round rolls, crew battles, mission points */}
-          {showDashboard && isSmashGame(tournament.game_slug) && (
-            <SmashTournamentPanel
-              settings={tournament.settings}
-              participants={participants}
-              format={tournament.format ?? ""}
-              bracket={tournament.bracket}
-              onReport={reportMatchWinner}
-              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
-            />
-          )}
-
           {/* Group Knockout — lobby ladder (seed → report lobbies → finalize) */}
-          {showDashboard && isGroupFormat && tournament.status !== "draft" && (
+          {isGroupFormat && tournament.status !== "draft" && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Bracket · lobbies of {elimLobbySize}</h2>
                 {gb && (
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {isGroupComplete(gb) && (
-                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeGroupPlacements}>Finalize placements →</Button>
+                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeGroupPlacements}>Finalize placements</Button>
                     )}
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ group_bracket: null })}>Clear</Button>
                   </div>
@@ -2648,14 +2845,14 @@ export default function ManageTournamentPage() {
           )}
 
           {/* Heat → Mains — consi ladder (seed → run heats/mains → finalize) */}
-          {showDashboard && isHeatMains && tournament.status !== "draft" && (
+          {isHeatMains && tournament.status !== "draft" && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Heat → Mains</h2>
                 {hm && (
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {heatMainsStage(hm) === "complete" && (
-                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeHeatMains}>Finalize placements →</Button>
+                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeHeatMains}>Finalize placements</Button>
                     )}
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ heat_mains: null })}>Clear</Button>
                   </div>
@@ -2697,14 +2894,14 @@ export default function ManageTournamentPage() {
           )}
 
           {/* Flights — multi-flight rounds for large points fields. */}
-          {showDashboard && useFlights && tournament.status !== "draft" && (
+          {useFlights && tournament.status !== "draft" && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Flights</h2>
                 {fl && (
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {isFlightsComplete(fl) && (
-                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeFlights}>Finalize placements →</Button>
+                      <Button variant="primary" size="small" loading={finalizing} onClick={finalizeFlights}>Finalize placements</Button>
                     )}
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ flights: null })}>Clear</Button>
                   </div>
@@ -2774,7 +2971,7 @@ export default function ManageTournamentPage() {
           {/* Crew Standings — per-crew (community) roll-up for multi-crew events.
               Shows for any format once ≥2 crews are represented; auto-broadcasts
               to the OBS overlay (see the crew-overlay effect above). */}
-          {showDashboard && crewStandings.length >= 2 && (tournament.status === "in_progress" || tournament.status === "complete") && (
+          {crewStandings.length >= 2 && (tournament.status === "in_progress" || tournament.status === "complete") && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}><IconTrophy size={18} stroke={1.9} aria-hidden /> Crew Standings</h2>
@@ -2803,12 +3000,12 @@ export default function ManageTournamentPage() {
           )}
 
           {/* Race Scoring — per-race entry + live cumulative standings (points, no flights) */}
-          {showDashboard && isPoints && !useFlights && (tournament.status === "in_progress" || tournament.status === "complete") && (
+          {isPoints && !useFlights && (tournament.status === "in_progress" || tournament.status === "complete") && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Race Scoring</h2>
                 {liveStandings.some((s) => s.racesPlayed > 0) && (
-                  <Button variant="primary" size="small" onClick={finalizeStandings}>Finalize standings →</Button>
+                  <Button variant="primary" size="small" onClick={finalizeStandings}>Finalize standings</Button>
                 )}
               </div>
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
@@ -2934,7 +3131,7 @@ export default function ManageTournamentPage() {
 
           {/* Final Results — manual placement/points (points, no flights; elim,
               Heat→Mains + flights write their standings from their own finalize) */}
-          {showDashboard && isPoints && !useFlights && (tournament.status === "in_progress" || tournament.status === "complete") && (
+          {isPoints && !useFlights && (tournament.status === "in_progress" || tournament.status === "complete") && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Final Results</h2>
@@ -2979,6 +3176,8 @@ export default function ManageTournamentPage() {
                 </div>
               )}
             </div>
+          )}
+            </>
           )}
 
         </div>

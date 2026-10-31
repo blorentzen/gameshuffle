@@ -8,12 +8,13 @@
  * through `resolveQotdForCommunity`, so the Discord post always names the
  * same question chat would give today.
  *
- * Opt-in only: a streamer must explicitly set the `qotd` flag in
- * `users.discord_event_subscriptions`. Unlike the other Discord events
+ * Opt-in only: a streamer must explicitly set the `qotd` flag in the
+ * server's `discord_guilds.event_subscriptions`. Each connected server posts
+ * the same question at its own hour (GS Pro). Unlike the other Discord events
  * (which react to something the streamer just did), this posts on a
  * schedule — so it defaults OFF and is never enabled implicitly.
  *
- * Idempotence: the (community, local day) slot is CLAIMED in
+ * Idempotence: the (community, local day, server) slot is CLAIMED in
  * `gs_qotd_discord_posts` before posting, so a retry or overlapping run
  * can't double-post. A failed post releases its claim so the next run can
  * retry the same day.
@@ -27,14 +28,18 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { resolveQotdForCommunity, qotdDayKey } from "@/lib/qotd";
 import { postQotdToDiscord } from "@/lib/adapters/discord";
+import { isProUser } from "@/lib/subscription-server";
 
 export const runtime = "nodejs";
 
+/** One connected server, with its owner's timezone. */
 interface CandidateRow {
   id: string;
-  discord_event_subscriptions: Record<string, boolean> | null;
+  guild_id: string;
+  is_main: boolean;
+  event_subscriptions: Record<string, boolean> | null;
+  qotd_hour: number | null;
   timezone: string | null;
-  discord_qotd_hour: number | null;
 }
 
 /** Current hour (0-23) in a streamer's timezone; falls back to Pacific. */
@@ -61,26 +66,31 @@ export async function GET(request: Request) {
 
   const admin = createServiceClient();
 
-  // Candidates: Discord installed with a channel configured. The explicit
-  // qotd opt-in is re-checked in code below (and again, authoritatively,
-  // inside postQotdToDiscord).
+  // Candidates: every connected server with a channel (discord_guilds). The
+  // explicit qotd opt-in is re-checked below and again inside postQotdToDiscord.
   const { data, error } = await admin
-    .from("users")
-    .select("id, discord_event_subscriptions, timezone, discord_qotd_hour")
-    .not("discord_guild_id", "is", null)
-    .not("discord_channel_id", "is", null);
+    .from("discord_guilds")
+    .select("guild_id, owner_user_id, is_main, event_subscriptions, qotd_hour, users!inner(timezone)")
+    .is("removed_at", null)
+    .not("default_channel_id", "is", null);
   if (error) {
     console.error("[cron/qotd-discord] candidate query failed:", error);
     return NextResponse.json({ error: "sweep_failed" }, { status: 500 });
   }
+  const rows: CandidateRow[] = ((data ?? []) as unknown as { guild_id: string; owner_user_id: string; is_main: boolean; event_subscriptions: Record<string, boolean> | null; qotd_hour: number | null; users: { timezone: string | null } | { timezone: string | null }[] }[])
+    .map((r) => ({ id: r.owner_user_id, guild_id: r.guild_id, is_main: r.is_main, event_subscriptions: r.event_subscriptions, qotd_hour: r.qotd_hour, timezone: (Array.isArray(r.users) ? r.users[0] : r.users)?.timezone ?? null }));
 
-  // Runs hourly: only post for streamers whose chosen local hour matches now
-  // (default noon). The per-day dedup below still guarantees once per day.
-  const candidates = ((data as CandidateRow[] | null) ?? []).filter((r) => {
-    if (r.discord_event_subscriptions?.qotd !== true) return false;
-    const target = typeof r.discord_qotd_hour === "number" ? r.discord_qotd_hour : 12;
+  // Runs hourly: only post for servers whose chosen local hour matches now
+  // (default noon). The per-server, per-day claim below still guarantees once a day.
+  const due = rows.filter((r) => {
+    if (r.event_subscriptions?.qotd !== true) return false;
+    const target = typeof r.qotd_hour === "number" ? r.qotd_hour : 12;
     return currentHourInTz(r.timezone) === target;
   });
+  // QOTD is a GS Pro tool: a lapsed account's servers stop posting it.
+  const proByOwner = new Map<string, boolean>();
+  for (const id of new Set(due.map((r) => r.id))) proByOwner.set(id, await isProUser(id));
+  const candidates = due.filter((r) => proByOwner.get(r.id));
 
   let posted = 0;
   let skipped = 0;
@@ -110,11 +120,12 @@ export async function GET(request: Request) {
         .insert({
           community_id: communityId,
           posted_on: postedOn,
+          guild_id: row.guild_id,
           owner_user_id: row.id,
           response_id: pick.id,
         });
       if (claimErr) {
-        // 23505 = already claimed for this (community, day).
+        // 23505 = already claimed for this (community, day, server).
         if ((claimErr as { code?: string }).code !== "23505") {
           console.error("[cron/qotd-discord] claim failed:", claimErr.message);
         }
@@ -125,6 +136,7 @@ export async function GET(request: Request) {
       const result = await postQotdToDiscord({
         ownerUserId: row.id,
         question: pick.question,
+        guildId: row.guild_id,
       });
       if (result.ok) {
         posted++;
@@ -136,7 +148,8 @@ export async function GET(request: Request) {
         .from("gs_qotd_discord_posts")
         .delete()
         .eq("community_id", communityId)
-        .eq("posted_on", postedOn);
+        .eq("posted_on", postedOn)
+        .eq("guild_id", row.guild_id);
       if (result.reason === "not_subscribed" || result.reason === "no_routing") {
         skipped++;
       } else {

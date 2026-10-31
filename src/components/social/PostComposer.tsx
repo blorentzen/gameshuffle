@@ -14,7 +14,8 @@
 
 import { useEffect, useState } from "react";
 import { TagCombobox } from "@/components/ui/TagCombobox";
-import { MentionInput, Modal, Select, Input, Button, Icon, Tabs, type MentionUser } from "@empac/cascadeds";
+import { MentionInput, Modal, Input, Button, Icon, Tabs, type MentionUser } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";

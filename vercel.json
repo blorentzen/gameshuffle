@@ -58,6 +58,10 @@
       "schedule": "*/10 * * * *"
     },
     {
+      "path": "/api/cron/shop-holds",
+      "schedule": "*/10 * * * *"
+    },
+    {
       "path": "/api/cron/mailerlite-sync",
       "schedule": "0 9 * * *"
     },
@@ -68,6 +72,14 @@
     {
       "path": "/api/cron/polls-sweep",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/duel-days",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/road-duels",
+      "schedule": "5-59/10 * * * *"
     },
     {
       "path": "/api/cron/discord-reminders",
@@ -86,8 +98,28 @@
       "schedule": "10 7,8 * * 1"
     },
     {
+      "path": "/api/cron/daily-boards",
+      "schedule": "15 7,8 * * *"
+    },
+    {
       "path": "/api/cron/hero-rosters",
       "schedule": "0 15 1 * *"
+    },
+    {
+      "path": "/api/cron/tt-records",
+      "schedule": "0 15 2 * *"
+    },
+    {
+      "path": "/api/cron/lounge",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/lounge-tables",
+      "schedule": "20 * * * *"
+    },
+    {
+      "path": "/api/cron/lounge-weekly",
+      "schedule": "0 16,17 * * 1"
     }
   ]
 }

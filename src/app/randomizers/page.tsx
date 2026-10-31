@@ -8,8 +8,9 @@ import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { randomizerCatalog } from "@/data/randomizer-catalog";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/randomizers" },
   title: "All randomizers: Mario Kart, Mario Party, Pokémon & more",
-  description: "Every free GameShuffle randomizer in one place: Mario Kart 8 Deluxe, Mario Kart World, every Mario Party, Pokémon Stadium, the Fire Red & Leaf Green run challenge, GoldenEye 007 and more. No account needed.",
+  description: "Every free GameShuffle randomizer: Mario Kart 8 Deluxe, Mario Kart World, every Mario Party, Smash, Pokémon, GoldenEye and more. No account needed.",
   alternates: { canonical: "https://www.gameshuffle.co/randomizers" },
 };
 

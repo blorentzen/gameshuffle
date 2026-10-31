@@ -21,7 +21,11 @@ import { BADGE_RANK, SURVEY_PREDICTIONS, type WeeklyItem } from "@/lib/originals
 import type { BoardAnswer } from "@/lib/chatbrain/rules";
 import type { BoardRow } from "@/lib/weekly/store";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { DailiesInvite, DailiesNext, DailiesYours, sendReferralFinish } from "@/components/originals/Dailies";
+import { ShareButton } from "@/components/share/ShareButton";
+import { reportDaily } from "@/lib/originals/dailies";
 import { GS_TIME_ZONE } from "@/lib/time/gsClock";
+import { SupportMoment } from "@/components/support/SupportMoment";
 
 type Ballot = Record<string, number>;
 
@@ -34,6 +38,8 @@ interface WeeklyData {
     week: string; number: number; kind: "tier" | "survey"; title: string; items: WeeklyItem[];
     agenda: { title: string; text: string } | null; players: number; revealAt: string; myBallot: Ballot | null;
     myAnswer: string | null; myPredictions: string[] | null;
+    /** The same question answered in Chat Brain (on Discord, say): prefills the answer. */
+    answeredInBrain?: string | null;
   };
   last?: null | {
     week: string; number: number; kind: "tier" | "survey"; title: string; items: WeeklyItem[]; crowd: Record<string, number>; players: number;
@@ -83,6 +89,15 @@ export function WeeklyChallenge() {
     return () => { alive = false; };
   }, [api]);
 
+  // The today bar on every daily's page learns whether this week is answered.
+  const cur = data?.ready && !data.preview ? data.current : undefined;
+  const answered = !!cur && (cur.kind === "survey" ? !!cur.myAnswer : !!cur.myBallot);
+  useEffect(() => {
+    if (cur) reportDaily("weekly", { day: cur.week, number: cur.number, state: answered ? "done" : "fresh" });
+    // Came from a friend's link: answering the week counts for them once.
+    if (cur && answered && !activity) sendReferralFinish(api, "weekly", cur.week, null);
+  }, [cur, answered, activity, api]);
+
   if (!data) return <LoadingLines label="Loading this week&apos;s challenge" />;
   if (!data.ready || !data.current) {
     return <Alert variant="info" title="The Weekly Challenge is almost here">It needs one more update on our side. Check back soon.</Alert>;
@@ -106,9 +121,12 @@ export function WeeklyChallenge() {
     } else toast.error(d?.error === "closed" ? "This week has closed." : "Couldn't save your ranking. Try again.");
   };
 
-  const myAnswer = answer ?? c.myAnswer ?? "";
-  const myGuesses = guesses ?? c.myPredictions ?? Array(SURVEY_PREDICTIONS).fill("");
-  const surveyReady = !!myAnswer.trim() && myGuesses.filter((g) => g.trim()).length === SURVEY_PREDICTIONS;
+  const myAnswer = answer ?? c.myAnswer ?? c.answeredInBrain ?? "";
+  // Guesses are optional, so a saved play can hold fewer than three: keep three boxes.
+  const savedGuesses = (c.myPredictions ?? []).slice(0, SURVEY_PREDICTIONS);
+  const myGuesses = guesses ?? [...savedGuesses, ...Array(SURVEY_PREDICTIONS - savedGuesses.length).fill("")];
+  const surveyReady = !!myAnswer.trim();
+  const surveyLocked = !!c.myAnswer;
   const surveyChanged = answer !== null || guesses !== null;
 
   const lockSurvey = async () => {
@@ -120,9 +138,9 @@ export function WeeklyChallenge() {
       setData({ ...data, current: { ...c, myAnswer: d.answer, myPredictions: d.predictions, players: d.players } });
       setAnswer(null); setGuesses(null);
       track(EVENTS.weeklySubmitted, { kind: "survey" });
-      toast.success(c.myPredictions ? "Answers updated" : "Answers locked in");
+      toast.success(surveyLocked ? "Answers updated" : "Answers locked in");
     } else {
-      toast.error(d?.error === "closed" ? "This week has closed." : d?.error === "blocked" ? "Let's keep it clean. Try different words." : d?.error === "bad_entry" ? "Give your answer and three different guesses." : "Couldn't save. Try again.");
+      toast.error(d?.error === "closed" ? "This week has closed." : d?.error === "blocked" ? "Let's keep it clean. Try different words." : d?.error === "bad_entry" ? "Give your own answer first." : "Couldn't save. Try again.");
     }
   };
 
@@ -147,20 +165,23 @@ export function WeeklyChallenge() {
           </div>
           <span className="weekly__eyebrow">This week&apos;s survey</span>
           <h2 className="weekly__title">{c.title}</h2>
-          <p className="party-muted">Give your own answer, then guess what the crowd&apos;s top three answers will be. On Monday the board is revealed, and each guess that&apos;s on it scores that answer&apos;s points. You can change everything until the week ends.</p>
+          <p className="party-muted">Give your answer, then guess up to three of the crowd&apos;s top answers. On Monday the board is revealed and each guess on it scores that answer&apos;s points. You can change anything until the week ends.</p>
           {data.signedIn ? (
             <div className="weekly__survey">
+              {!c.myAnswer && c.answeredInBrain && (
+                <p className="party-muted">You already answered this one in Chat Brain, so it&apos;s filled in. Lock it in to play the Weekly. It stays one answer, wherever you change it.</p>
+              )}
               <Input floatingLabel="Your answer" value={myAnswer} maxLength={40} onChange={(e) => setAnswer(e.target.value)} placeholder="First thing that comes to mind" />
-              <span className="weekly__eyebrow">Your guesses at the crowd&apos;s top three</span>
+              <span className="weekly__eyebrow">Your guesses at the crowd&apos;s top three (optional)</span>
               {myGuesses.map((g, i) => (
                 <Input key={i} floatingLabel={`Guess ${i + 1}`} value={g} maxLength={40}
                   onChange={(e) => setGuesses(myGuesses.map((x, j) => (j === i ? e.target.value : x)))} />
               ))}
               <span className="party-row">
-                <Button variant="primary" disabled={!!data.preview || busy || !surveyReady || (!!c.myPredictions && !surveyChanged)} onClick={() => void lockSurvey()}>
-                  {c.myPredictions ? (surveyChanged ? "Update my answers" : "Locked in") : "Lock in my answers"}
+                <Button variant="primary" disabled={!!data.preview || busy || !surveyReady || (surveyLocked && !surveyChanged)} onClick={() => void lockSurvey()}>
+                  {surveyLocked ? (surveyChanged ? "Update my answers" : "Locked in") : "Lock in my answers"}
                 </Button>
-                {!surveyReady && <span className="party-muted">Your answer and three guesses.</span>}
+                {!surveyReady && <span className="party-muted">Give your answer to lock in. Guesses are optional.</span>}
               </span>
             </div>
           ) : (
@@ -205,9 +226,30 @@ export function WeeklyChallenge() {
       </section>
       )}
 
+      {/* Share it with a picture (src/components/share); Discord's Activity has its own sharing. */}
+      {answered && !activity && (
+        <span className="party-row">
+          <ShareButton
+            request={{ kind: "weekly" }}
+            text={(url) => `I answered this week's GameShuffle Weekly Challenge: "${c.title}". What would you say?\n${url}`}
+            game="weekly"
+            fallbackUrl="https://www.gameshuffle.co/weekly"
+            title="The Weekly Challenge"
+          />
+        </span>
+      )}
+      {answered && (
+        <div className="dailies-pair">
+          <DailiesNext current="weekly" onPick={activity?.pickDaily} />
+          <DailiesInvite current="weekly" />
+        </div>
+      )}
+      {answered && <DailiesYours current="weekly" />}
+      {answered && <SupportMoment from="weekly" title="Enjoying the Weekly?" />}
+
       {(!data.signedIn || (c.kind === "survey" ? c.myPredictions : c.myBallot)) && (activity
         ? activity.showTab && <span className="party-row"><Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button></span>
-        : <ChatBrainAsk source="weekly" eyebrow="While you wait for Monday" title="Answer one more question?" />
+        : <ChatBrainAsk source="weekly" eyebrow="While you wait for Monday" title="Answer a Chat Brain question" />
       )}
 
       {c.agenda && (
@@ -221,7 +263,7 @@ export function WeeklyChallenge() {
 
       {last && (
         <section className="weekly__card">
-          <span className="weekly__eyebrow">Last week&apos;s reveal · week {last.number}</span>
+          <span className="weekly__eyebrow">Last week&apos;s reveal</span>
           {last.kind === "survey" ? (
             <>
               <h2 className="weekly__title">{last.title}</h2>

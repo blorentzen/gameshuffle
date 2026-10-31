@@ -95,7 +95,8 @@
 }
 
 .companion-page__tier-badge--pro {
-  background-color: var(--primary-ink-500);
+  /* The raw ramp for a fill: the --primary-ink-* text aliases turn light in dark mode. */
+  background-color: var(--primary-600);
   color: var(--empac-white);
 }
 
@@ -247,27 +248,12 @@
   gap: var(--spacing-12);
 }
 
-.companion-player-header__name {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4) var(--spacing-6);
-  border: 1px solid transparent;
-  background-color: transparent;
-  border-radius: var(--radius-4);
-  font-family: inherit;
+/* The name is a CDS ghost Button with a pencil; editing swaps in a CDS Input. */
+.companion-player-header__name.empac-button {
+  max-width: 60%;
   font-size: var(--font-size-16);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  cursor: pointer;
-  text-align: left;
-  max-width: 60%;
-}
-
-.companion-player-header__name:hover {
-  background-color: var(--surface-hover);
-  border-color: var(--border-default);
+  justify-content: flex-start;
 }
 
 .companion-player-header__name-text {
@@ -276,34 +262,8 @@
   white-space: nowrap;
 }
 
-/* Always visible (not hover-only) so the edit affordance reads on touch
-   devices too, sitting to the left of the name. */
-.companion-player-header__name-pencil {
-  flex-shrink: 0;
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-  opacity: 0.65;
-  transition: opacity 120ms ease, color 120ms ease;
-}
-
-.companion-player-header__name:hover .companion-player-header__name-pencil {
-  opacity: 1;
-  color: var(--text-secondary);
-}
-
 .companion-player-header__name-input {
-  appearance: none;
-  border: 1px solid var(--primary-500);
-  background-color: var(--background-elevated);
-  border-radius: var(--radius-4);
-  padding: var(--spacing-4) var(--spacing-8);
-  font-family: inherit;
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
   max-width: 60%;
-  outline: none;
-  box-shadow: var(--shadow-focus);
 }
 
 /* Primary vs secondary rank — for v1 they render identically. The
@@ -356,12 +316,14 @@
   }
 }
 
-/* ---------- Active battle row (P2 active | utilities | P1 active) ---------- */
+/* ---------- Active battle row (their Active | utilities | your Active) ----------
+   "top" is the player at the top of this phone's board (P2, or P1 on the
+   second phone of a shared game); "bottom" is this phone's player. */
 
 .companion-active-battle {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  grid-template-areas: "p2 utils p1";
+  grid-template-areas: "top utils bottom";
   gap: var(--spacing-12);
   align-items: stretch;
   /* Card-sized height — taller than the original 140px min, but
@@ -377,8 +339,8 @@
   min-width: 0;
 }
 
-.companion-active-battle__slot--p2 { grid-area: p2; }
-.companion-active-battle__slot--p1 { grid-area: p1; }
+.companion-active-battle__slot--top { grid-area: top; }
+.companion-active-battle__slot--bottom { grid-area: bottom; }
 .companion-active-battle__utilities { grid-area: utils; }
 
 .companion-active-battle__slot .companion-slot {
@@ -393,9 +355,9 @@
   .companion-active-battle {
     grid-template-columns: 1fr;
     grid-template-areas:
-      "p2"
+      "top"
       "utils"
-      "p1";
+      "bottom";
     grid-template-rows: 1fr auto 1fr;
     height: auto;
     min-height: min(60vh, 360px);
@@ -403,11 +365,23 @@
   }
 
   .companion-active-battle__utilities {
-    /* Mobile: one row, evenly spread — Menu, Dice/Coin, Turn info. */
+    /* Mobile: Undo, Menu, the coin and dice, Turn info. Wraps (centred)
+       when they don't fit on one line instead of running off the edge. */
     flex-direction: row;
-    justify-content: space-between;
-    gap: var(--spacing-16);
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-8) var(--spacing-12);
     padding: var(--spacing-4) 0;
+  }
+  /* Undo, Menu and Help stack their icon over a short label so all five
+     controls (with the coin and dice) share one row. */
+  .companion-active-battle__utilities .empac-button {
+    flex-direction: column;
+    gap: 2px;
+    height: auto;
+    min-height: 0;
+    padding: var(--spacing-6) var(--spacing-8);
+    font-size: var(--font-size-12);
   }
 }
 
@@ -505,36 +479,15 @@
   .companion-slot--active {
     min-height: 250px;
   }
-  .companion-slot__art {
-    object-position: center 25%;
-  }
-
   /* Bench info bar stacks: name on its own line, then energy + damage on a
      row (space-between via the outer edges of a 2-col grid). */
-  .companion-slot--bench .companion-slot__inner--art .companion-slot__content {
-    grid-template-columns: 1fr 1fr;
-  }
-  .companion-slot--bench
-    .companion-slot__inner--art
-    .companion-slot__content
-    .companion-slot__name {
-    grid-column: 1 / -1;
-    justify-self: center;
-  }
-  .companion-slot--bench
-    .companion-slot__inner--art
-    .companion-slot__content
-    .companion-slot__energy-meter {
-    justify-self: start;
-  }
+
+  
+  
 
   /* Damage counter runs large on desktop — dial it back on mobile. */
-  .companion-slot__damage {
-    font-size: var(--font-size-20);
-  }
-  .companion-slot--active .companion-slot__damage {
-    font-size: var(--font-size-28);
-  }
+
+  
 }
 
 .companion-slot--empty {
@@ -548,32 +501,13 @@
   background-color: var(--background-elevated);
 }
 
-.companion-slot__name {
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
-.companion-slot__damage {
-  font-family: var(--font-display);
-  font-size: var(--font-size-24);
-  font-weight: var(--font-weight-bold);
-  color: var(--error-ink);
-}
 
-.companion-slot--active .companion-slot__damage {
-  font-size: var(--font-size-36);
-}
 
-.companion-slot__max-hp {
-  color: var(--text-secondary);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-regular);
-  margin-left: var(--spacing-2);
-}
+
+
+
+
 
 .companion-slot__position {
   font-size: var(--font-size-10);
@@ -611,23 +545,7 @@
   gap: var(--spacing-6);
 }
 
-.companion-win__btn {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  background-color: var(--background-elevated);
-  color: var(--text-primary);
-  border-radius: var(--radius-full);
-  width: 28px;
-  height: 28px;
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  line-height: 1;
-}
-
-.companion-win__btn:hover {
-  background-color: var(--surface-hover);
-}
+/* + and − are CDS IconButtons (IconAction). */
 
 .companion-win__value {
   font-family: var(--font-display);
@@ -786,593 +704,226 @@
   color: var(--text-primary);
 }
 
-.companion-actions__damage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-4);
-}
-
-.companion-actions__damage-label {
+/* Whole card on the left, HP and damage beside it (stacked on narrow phones). */
+.companion-actions__where {
+  margin: calc(var(--spacing-8) * -1) 0 0;
   font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--text-secondary);
 }
-
-.companion-actions__damage-value {
+.companion-actions__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.companion-actions__top--card {
+  display: grid;
+  grid-template-columns: minmax(0, 17.2rem) minmax(0, 1fr);
+  align-items: start;
+}
+@media (max-width: 380px) {
+  .companion-actions__top--card {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+}
+.companion-actions__card {
+  width: 100%;
+  max-width: 17.2rem;
+  aspect-ratio: 63 / 88;
+  height: auto;
+  border-radius: var(--radius-8);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.companion-actions__vitals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  min-width: 0;
+  width: 100%;
+}
+.companion-actions__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-actions__hp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.companion-actions__hp-value {
   font-family: var(--font-display);
-  font-size: var(--font-size-48);
+  font-size: var(--font-size-32);
   font-weight: var(--font-weight-bold);
-  color: var(--error-ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.companion-actions__hp-max {
+  font-family: inherit;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+.companion-actions__hp-bar {
+  display: block;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--background-secondary);
+  overflow: hidden;
+}
+.companion-actions__hp-bar > span {
+  display: block;
+  height: 100%;
+  background-color: var(--success-500);
+  border-radius: inherit;
+}
+.companion-actions__damage {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: var(--spacing-6) var(--spacing-8);
+}
+.companion-actions__damage-value {
+  justify-self: end;
+  font-family: var(--font-display);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--error-ink, var(--text-primary));
   line-height: 1;
 }
 
-.companion-actions__damage-max {
-  color: var(--text-secondary);
-  font-size: var(--font-size-20);
-  font-weight: var(--font-weight-regular);
+.companion-actions__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
-
-.companion-actions__buttons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--spacing-8);
-}
-
-.companion-actions__btn {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  background-color: var(--background-elevated);
-  color: var(--text-primary);
-  border-radius: var(--radius-8);
-  padding: var(--spacing-10);
-  font-family: var(--font-display);
-  font-size: var(--font-size-18);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-}
-
-.companion-actions__btn:hover {
-  background-color: var(--surface-hover);
-}
-
-.companion-actions__btn--add {
-  border-color: var(--error-300);
-  color: var(--error-ink);
-}
-
-.companion-actions__btn--sub {
-  border-color: var(--primary-300);
-  color: var(--primary-ink-700);
-}
-
-.companion-actions__btn--reset {
-  grid-column: 1 / -1;
-  font-size: var(--font-size-14);
-}
-
-.companion-actions__remove {
-  appearance: none;
-  background-color: transparent;
-  border: 1px solid var(--error-300);
-  color: var(--error-ink);
-  border-radius: var(--radius-8);
-  padding: var(--spacing-8);
+.companion-actions__facts li {
+  white-space: nowrap;
   font-size: var(--font-size-12);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
+  padding: var(--spacing-2) var(--spacing-8);
+  border-radius: var(--radius-full);
+  background-color: var(--background-secondary);
+  color: var(--text-secondary);
 }
 
-.companion-actions__remove:hover {
-  background-color: var(--error-50);
+
+
+
+.companion-actions__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--spacing-8);
+  width: 100%;
+}
+
+.companion-actions__hint {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
 }
 
 /* ---------- Place piece form ---------- */
 
-.companion-place {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
-  background-color: var(--background-elevated);
-  color: var(--text-primary);
-}
 
-.companion-place__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  font-size: var(--font-size-12);
-}
 
-.companion-place__field > span {
-  font-weight: var(--font-weight-medium);
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: var(--font-size-10);
-}
 
-.companion-place__field input[type="text"],
-.companion-place__field input[type="number"] {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-8) var(--spacing-10);
-  font-size: var(--font-size-14);
-  color: var(--text-primary);
-  /* Sits directly on the modal body — using `--background-elevated`
-     would match the modal background and disappear. The page-level
-     `--background-secondary` token sits a step below so it reads as
-     an interactive field surface in both themes. */
-  background-color: var(--background-secondary);
-  font-family: inherit;
-}
 
-.companion-place__field input:focus {
-  outline: 2px solid var(--primary-500);
-  outline-offset: 1px;
-}
 
-.companion-place__ko {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-}
 
-.companion-place__ko-btn {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  background-color: var(--background-secondary);
-  color: var(--text-primary);
-  border-radius: var(--radius-8);
-  padding: var(--spacing-8) var(--spacing-12);
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-}
 
-.companion-place__ko-btn-label {
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-}
 
-.companion-place__ko-btn-count {
-  font-size: var(--font-size-12);
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
 
-.companion-place__ko-btn--selected {
-  background-color: color-mix(in srgb, var(--primary-500) 14%, transparent);
-  border-color: var(--primary-ink-500);
-}
 
-.companion-place__ko-btn--selected .companion-place__ko-btn-label,
-.companion-place__ko-btn--selected .companion-place__ko-btn-count {
-  color: var(--primary-ink-700);
-}
 
-/* Evolve / Edit-piece editor inside SlotActionsModal — name, HP,
-   and card-type all editable inline. Commits happen on blur/Enter
-   for the text inputs; card-type buttons commit on click. */
-.companion-actions__evolve {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-10);
-  margin-top: var(--spacing-8);
-}
 
-.companion-actions__evolve-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-}
 
-.companion-actions__evolve-label {
-  font-size: var(--font-size-10);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  font-weight: var(--font-weight-medium);
-}
 
-.companion-actions__evolve-input {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-8) var(--spacing-10);
-  font-size: var(--font-size-14);
-  color: var(--text-primary);
-  /* Sunken bg vs the modal's elevated body so the field stays
-     legible as an input in both themes. */
-  background-color: var(--background-secondary);
-  font-family: inherit;
-}
 
-.companion-actions__evolve-input:focus {
-  outline: 2px solid var(--primary-500);
-  outline-offset: 1px;
-}
 
-.companion-actions__evolve-ko {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-}
 
-/* --- Energy management UI (inside the slot's action sheet) ---
-   One row per energy type: color chip + icon + label, then a
-   counter group on the right with - / count / + buttons. */
-.companion-actions__energy-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-  margin-top: var(--spacing-8);
-}
 
-.companion-actions__energy-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--spacing-8);
-  padding: var(--spacing-6) var(--spacing-8);
-  background-color: var(--background-secondary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-}
 
-.companion-actions__energy-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-full);
-  background-color: var(--energy-color, var(--gray-500));
-  color: var(--text-primary);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.25),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
 
-.companion-actions__energy-chip--invert {
-  color: var(--empac-white);
-}
 
-.companion-actions__energy-label {
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-}
 
-.companion-actions__energy-counter {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-8);
-}
 
-.companion-actions__energy-btn {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-6);
-  border: 1px solid var(--border-default);
-  background-color: var(--background-elevated);
-  color: var(--text-primary);
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-bold);
-  cursor: pointer;
-  font-family: inherit;
-  line-height: 1;
-}
 
-.companion-actions__energy-btn:hover:not(:disabled) {
-  border-color: var(--primary-ink-500);
-  color: var(--primary-ink-700);
-}
 
-.companion-actions__energy-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
 
-.companion-actions__energy-count {
-  min-width: 18px;
-  text-align: center;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
 
-.companion-actions__energy-clear {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: var(--spacing-8);
-  padding: var(--spacing-6) var(--spacing-12);
-  background-color: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  color: var(--text-secondary);
-  font-size: var(--font-size-12);
-  font-family: inherit;
-  cursor: pointer;
-}
 
-.companion-actions__energy-clear:hover {
-  color: var(--error-ink);
-  border-color: var(--error-500);
-}
 
-.companion-place__actions {
-  display: flex;
-  gap: var(--spacing-8);
-  justify-content: flex-end;
-}
 
-.companion-place__btn {
-  appearance: none;
-  border-radius: var(--radius-6);
-  padding: var(--spacing-8) var(--spacing-14);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  font-family: inherit;
-  border: 1px solid transparent;
-}
 
-.companion-place__btn--secondary {
-  background-color: transparent;
-  border-color: var(--border-default);
-  color: var(--text-primary);
-}
 
-.companion-place__btn--primary {
-  background-color: var(--primary-ink-500);
-  color: var(--empac-white);
-  border-color: var(--primary-ink-500);
-}
 
-.companion-place__btn--primary:hover {
-  background-color: var(--primary-ink-600);
-}
+
+
+
+
+
+
+
+
+
 
 /* =============================================================
    Wave 2 — conditions + checkup + KO + game-over
    ============================================================= */
-
 /* ---------- Condition badges on the slot face ----------
    Sits underneath the name/damage primary content as a status row.
    A subtle top margin separates it from the damage line; the
    badges themselves use mode-driven colors via `--condition-color`
    (set inline on each badge) and a Tabler icon inside. */
 
-.companion-slot__conditions {
-  display: flex;
-  gap: var(--spacing-6);
-  align-items: center;
-  justify-content: center;
-  margin-top: var(--spacing-2);
-}
 
-.companion-slot__condition {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: var(--radius-full);
-  background-color: var(--condition-color, var(--gray-600));
-  color: var(--empac-white);
-  line-height: 0;
-  /* Soft drop + inner highlight so the badge reads as raised
-     against the panel surface. */
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.25),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
+
 
 /* Active slot — bigger badge + bigger icon so they read clearly
    from across the table. CDS Icon is rendered at fixed pixel sizes,
    so we scale the WRAPPER and use CSS transform to scale the SVG
    up proportionally. */
-.companion-slot--active .companion-slot__condition {
-  width: 32px;
-  height: 32px;
-}
 
-.companion-slot--active .companion-slot__condition svg {
-  width: 20px;
-  height: 20px;
-}
+
+
 
 /* --- Energy badges ---
    Small chips under the condition row showing attached energies.
    Renders only types with count > 0. Each chip has the type's
    color as background + a count beside the icon. The `--invert`
    variant flips text to white for darker color backgrounds. */
-.companion-slot__energies {
-  display: flex;
-  gap: var(--spacing-4);
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-top: var(--spacing-2);
-}
 
-.companion-slot__energy {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px 2px 4px;
-  border-radius: var(--radius-full);
-  background-color: var(--energy-color, var(--gray-500));
-  color: var(--text-primary);
-  font-size: var(--font-size-10);
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.25),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
 
-.companion-slot__energy--invert {
-  color: var(--empac-white);
-}
 
-.companion-slot__energy svg {
-  flex-shrink: 0;
-}
 
-.companion-slot__energy-count {
-  font-variant-numeric: tabular-nums;
-}
 
-.companion-slot--active .companion-slot__energy {
-  font-size: var(--font-size-12);
-  padding: 3px 8px 3px 6px;
-  gap: 4px;
-}
 
-.companion-slot--active .companion-slot__energy svg {
-  width: 14px;
-  height: 14px;
-}
 
-/* ---------- Conditions row inside SlotActionsModal ---------- */
 
-.companion-actions__conditions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-  padding-top: var(--spacing-8);
-  border-top: 1px solid var(--border-subtle);
-}
 
-.companion-actions__conditions-label {
-  font-size: var(--font-size-10);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-}
 
-.companion-actions__conditions-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-8);
-}
 
-/* 3-up variant for the Status row (Asleep / Paralyzed / Confused). */
-.companion-actions__conditions-row--three {
-  grid-template-columns: 1fr 1fr 1fr;
-}
 
-.companion-actions__condition {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-6);
-  padding: var(--spacing-8) var(--spacing-10);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-8);
-  /* Sunken bg so the chip pops against the modal's elevated body. */
-  background-color: var(--background-secondary);
-  cursor: pointer;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-medium);
-}
 
-.companion-actions__condition input[type="checkbox"] {
-  margin: 0;
-  accent-color: var(--condition-color, var(--primary-500));
-}
-
-/* When toggled on, tint the chip using the inline-set
-   `--condition-color` var so each condition's swatch matches the
-   slot badge. Falls back to primary if the mode somehow forgot to
-   set one. */
-.companion-actions__condition--on {
-  border-color: var(--condition-color, var(--primary-500));
-  background-color: color-mix(
-    in srgb,
-    var(--condition-color, var(--primary-500)) 14%,
-    transparent
-  );
-  color: var(--text-primary);
-}
-
-/* ---------- Exit row (Knockout + Discard) ---------- */
-
-.companion-actions__exit {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-  padding-top: var(--spacing-8);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.companion-actions__knockout {
-  appearance: none;
-  background-color: var(--error-500);
-  color: var(--empac-white);
-  border: 1px solid var(--error-500);
-  border-radius: var(--radius-8);
-  padding: var(--spacing-10) var(--spacing-12);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.companion-actions__knockout:hover {
-  background-color: var(--error-600);
-}
 
 /* ---------- Checkup prompt button (in PlayerArea) ---------- */
 
+/* The Resolve button is a CDS Button; this only centres it under the board. */
 .companion-checkup-prompt {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-6);
   margin: var(--spacing-4) auto 0;
-  padding: var(--spacing-6) var(--spacing-12);
-  background-color: var(--primary-ink-500);
-  color: var(--empac-white);
-  border: 1px solid var(--primary-500);
-  border-radius: var(--radius-full);
-  font-family: inherit;
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  line-height: 1;
-}
-
-.companion-checkup-prompt:hover {
-  background-color: var(--primary-ink-600);
-}
-
-.companion-checkup-prompt[disabled] {
-  background-color: var(--gray-500);
-  border-color: var(--gray-500);
-  cursor: default;
-}
-
-.companion-checkup-prompt__icon {
-  font-size: var(--font-size-14);
 }
 
 /* ---------- Checkup modal body ---------- */
@@ -1694,9 +1245,10 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-full);
+  /* Square: conditions are square tags in the board's icon language. */
+  border-radius: 6px;
   background-color: var(--condition-color, var(--primary-500));
-  color: var(--empac-white);
+  color: var(--condition-ink, var(--empac-white));
   flex-shrink: 0;
 }
 
@@ -1719,17 +1271,12 @@
   justify-content: flex-end;
 }
 
-.companion-resolve__action-btn {
-  appearance: none;
-  background-color: var(--condition-color, var(--primary-500));
-  color: var(--empac-white);
-  border: 1px solid var(--condition-color, var(--primary-500));
-  border-radius: var(--radius-6);
-  padding: var(--spacing-6) var(--spacing-12);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  font-family: inherit;
-  cursor: pointer;
+/* CDS Buttons tinted with the condition's colour, darkened until white text clears 4.5:1
+   (Poison purple is about 3.9:1 with white as it is). */
+.companion-resolve__action-btn.empac-button {
+  background-color: color-mix(in srgb, var(--condition-color, var(--primary-500)) 72%, #000);
+  border-color: color-mix(in srgb, var(--condition-color, var(--primary-500)) 72%, #000);
+  color: var(--empac-white, #fff);
   white-space: nowrap;
 }
 
@@ -1944,29 +1491,6 @@
   50% { border-color: var(--primary-ink-500); }
 }
 
-/* ---------- Action sheet: promote/retreat (drag fallback) ---------- */
-.companion-actions__move {
-  appearance: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-8);
-  width: 100%;
-  padding: var(--spacing-10) var(--spacing-12);
-  margin-bottom: var(--spacing-8);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-8);
-  background: var(--background-secondary);
-  color: var(--text-primary);
-  font: inherit;
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-}
-.companion-actions__move:hover {
-  background: var(--background-elevated);
-  border-color: var(--primary-400);
-}
-
 /* ---------- Entry chooser (real account gate, with guest option) ---------- */
 
 .companion-entry,
@@ -2134,37 +1658,17 @@
 
 /* ---------- Feedback floating button ---------- */
 
+/* The feedback trigger is a CDS Button; this only pins it to the corner. */
 .companion-feedback {
-  appearance: none;
   position: fixed;
   bottom: var(--spacing-16);
   right: var(--spacing-16);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-6);
-  padding: var(--spacing-8) var(--spacing-12);
-  background-color: var(--primary-ink-600);
-  color: var(--empac-white);
-  border: 1px solid var(--primary-600);
   border-radius: var(--radius-full);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  font-family: inherit;
-  cursor: pointer;
-  text-decoration: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   /* Sits above the navbar (100) but below modal/cookie chrome
      (9999) so a tester clicking it while a Modal is open won't
      accidentally pre-empt the open dialog. */
   z-index: 400;
-}
-
-.companion-feedback:hover {
-  background-color: var(--primary-ink-700);
-}
-
-.companion-feedback__icon {
-  font-size: var(--font-size-14);
 }
 
 /* ---------- Feedback modal form ---------- */
@@ -2177,57 +1681,17 @@
   color: var(--text-primary);
 }
 
-.companion-feedback-form__field {
+.companion-feedback-form__message {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
 }
 
-.companion-feedback-form__field > span {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: var(--font-size-10);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  font-weight: var(--font-weight-medium);
-}
-
 .companion-feedback-form__count {
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: var(--font-weight-regular);
-  font-size: var(--font-size-10);
+  align-self: flex-end;
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
-}
-
-.companion-feedback-form__field input,
-.companion-feedback-form__field select,
-.companion-feedback-form__field textarea {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-8) var(--spacing-10);
-  font-size: var(--font-size-14);
-  font-family: inherit;
-  color: var(--text-primary);
-  /* Sunken vs the modal body so the input reads as a form field
-     instead of blending into the surrounding surface. */
-  background-color: var(--background-secondary);
-}
-
-.companion-feedback-form__field textarea {
-  resize: vertical;
-  min-height: 100px;
-  line-height: var(--line-height-snug);
-}
-
-.companion-feedback-form__field input:focus,
-.companion-feedback-form__field select:focus,
-.companion-feedback-form__field textarea:focus {
-  outline: 2px solid var(--primary-500);
-  outline-offset: 1px;
+  font-variant-numeric: tabular-nums;
 }
 
 .companion-feedback-form__error {
@@ -2240,38 +1704,6 @@
   display: flex;
   gap: var(--spacing-8);
   justify-content: flex-end;
-}
-
-.companion-feedback-form__btn {
-  appearance: none;
-  border-radius: var(--radius-6);
-  padding: var(--spacing-8) var(--spacing-14);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  font-family: inherit;
-  border: 1px solid transparent;
-}
-
-.companion-feedback-form__btn--secondary {
-  background-color: transparent;
-  border-color: var(--border-default);
-  color: var(--text-primary);
-}
-
-.companion-feedback-form__btn--primary {
-  background-color: var(--primary-ink-500);
-  color: var(--empac-white);
-  border-color: var(--primary-ink-500);
-}
-
-.companion-feedback-form__btn--primary:hover {
-  background-color: var(--primary-ink-600);
-}
-
-.companion-feedback-form__btn[disabled] {
-  opacity: 0.5;
-  cursor: default;
 }
 
 .companion-feedback-form__thanks {
@@ -2382,43 +1814,7 @@
   justify-content: center;
 }
 
-.companion-coin-modal__btn,
-.companion-dice-modal__btn {
-  appearance: none;
-  border-radius: var(--radius-8);
-  padding: var(--spacing-10) var(--spacing-16);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  font-family: inherit;
-  border: 1px solid transparent;
-  min-width: 110px;
-}
-
-.companion-coin-modal__btn--primary,
-.companion-dice-modal__btn--primary {
-  background-color: var(--primary-ink-500);
-  border-color: var(--primary-ink-500);
-  color: var(--empac-white);
-}
-
-.companion-coin-modal__btn--primary:hover,
-.companion-dice-modal__btn--primary:hover {
-  background-color: var(--primary-ink-600);
-}
-
-.companion-coin-modal__btn--secondary,
-.companion-dice-modal__btn--secondary {
-  background-color: transparent;
-  border-color: var(--border-default);
-  color: var(--text-primary);
-}
-
-.companion-coin-modal__btn[disabled],
-.companion-dice-modal__btn[disabled] {
-  opacity: 0.5;
-  cursor: default;
-}
+/* Close / Flip again / Roll again are CDS Buttons (no styles of their own). */
 
 .companion-dice-modal__picker {
   display: flex;
@@ -2427,24 +1823,7 @@
   gap: var(--spacing-6);
 }
 
-.companion-dice-modal__picker-btn {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  /* Sunken vs modal body so the unselected face buttons remain
-     visible against the modal surface in both themes. */
-  background-color: var(--background-secondary);
-  color: var(--text-primary);
-  padding: var(--spacing-4) var(--spacing-10);
-  font-size: var(--font-size-12);
-  cursor: pointer;
-}
-
-.companion-dice-modal__picker-btn--selected {
-  background-color: var(--primary-ink-500);
-  border-color: var(--primary-ink-500);
-  color: var(--empac-white);
-}
+/* The die faces are CDS Chips. */
 
 /* =============================================================
    Canonical d6 pip face
@@ -2940,15 +2319,8 @@
 /* Damage on the dark panel uses --error-300 — the same semantic
    error color, just shifted up the ramp for legibility on the
    dark surface. */
-.companion-slot[data-slot-theme="lightning"] .companion-slot__damage,
-.companion-slot[data-slot-theme="metal"] .companion-slot__damage,
-.companion-slot[data-slot-theme="colorless"] .companion-slot__damage {
-  color: var(--error-ink);
-}
 
-.companion-slot[data-slot-theme="lightning"] .companion-slot__max-hp,
-.companion-slot[data-slot-theme="metal"] .companion-slot__max-hp,
-.companion-slot[data-slot-theme="colorless"] .companion-slot__max-hp,
+
 .companion-slot[data-slot-theme="lightning"] .companion-slot__position,
 .companion-slot[data-slot-theme="metal"] .companion-slot__position,
 .companion-slot[data-slot-theme="colorless"] .companion-slot__position {
@@ -2958,20 +2330,14 @@
 /* Damage stays the canonical error red on the white panel — the
    prior per-theme overrides are gone now that contrast lives on
    the panel itself. Force the color in case any cascade lingers. */
-.companion-slot[data-slot-theme] .companion-slot__damage {
-  color: var(--error-ink);
-  text-shadow: none;
-}
 
-.companion-slot[data-slot-theme] .companion-slot__name,
+
 .companion-slot[data-slot-theme] .companion-slot__position {
   color: var(--slot-panel-text, var(--text-primary));
   text-shadow: none;
 }
 
-.companion-slot[data-slot-theme] .companion-slot__max-hp {
-  color: var(--text-secondary);
-}
+
 
 /* ---------- ThemePicker UI ---------- */
 
@@ -2996,53 +2362,23 @@
   gap: var(--spacing-6);
 }
 
-.companion-theme__chip {
-  appearance: none;
-  border: 2px solid transparent;
-  background-color: transparent;
-  border-radius: var(--radius-8);
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-4);
-  width: 56px;
-  transition: transform 100ms ease;
-}
-
-.companion-theme__chip:hover {
-  transform: scale(1.05);
-}
-
-.companion-theme__chip--selected {
-  border-color: var(--text-primary);
-}
-
+/* Each theme is a CDS Chip whose icon is a small swatch of the slot texture. */
 .companion-theme__chip-fill {
   display: block;
-  width: 48px;
-  height: 32px;
-  border-radius: var(--radius-6);
+  width: 22px;
+  height: 16px;
+  border-radius: var(--radius-4);
   background-color: var(--background-elevated);
   border: 1px solid var(--border-default);
 }
 
-.companion-theme__chip-label {
-  font-size: var(--font-size-10);
-  color: var(--text-primary);
-  font-weight: var(--font-weight-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 /* "None" chip — dashed outline + slash to read as unstyled. */
-.companion-theme__chip--none .companion-theme__chip-fill {
+.companion-theme__chip-fill--none {
   border-style: dashed;
   position: relative;
   background-color: var(--background-secondary);
 }
-.companion-theme__chip--none .companion-theme__chip-fill::after {
+.companion-theme__chip-fill--none::after {
   content: "";
   position: absolute;
   top: 50%;
@@ -3055,7 +2391,7 @@
 
 /* Per-theme preview fills — same visual recipes as the slot
    versions, scaled to the 48×32 chip. */
-.companion-theme__chip[data-style-preview-theme="grass"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="grass"] {
   background:
     repeating-linear-gradient(
       135deg,
@@ -3064,19 +2400,19 @@
     );
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="fire"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="fire"] {
   background:
     radial-gradient(circle at 50% 90%, #ffb84a 0%, transparent 60%),
     linear-gradient(180deg, #b71f1f 0%, #f76e2a 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="water"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="water"] {
   background:
     radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
     linear-gradient(180deg, #2575b3 0%, #4ca9cd 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="lightning"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="lightning"] {
   background:
     repeating-linear-gradient(
       -60deg,
@@ -3085,33 +2421,33 @@
     );
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="psychic"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="psychic"] {
   background:
     radial-gradient(circle at 70% 30%, #ee7ad9 0%, transparent 55%),
     linear-gradient(135deg, #6b3ea3 0%, #b45cb1 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="fighting"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="fighting"] {
   background: linear-gradient(180deg, #c26f4d 0%, #8f4a2d 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="darkness"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="darkness"] {
   background:
     radial-gradient(circle, rgba(255, 255, 255, 0.5) 0.6px, transparent 1px) 0 0 / 12px 12px,
     linear-gradient(180deg, #1c1d28 0%, #3a3c52 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="metal"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="metal"] {
   background: linear-gradient(180deg, #dcdfe2 0%, #99a2a6 50%, #6f7780 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="dragon"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="dragon"] {
   background:
     radial-gradient(circle at 50% 25%, #f5e08a 0%, transparent 55%),
     linear-gradient(180deg, #b8862e 0%, #8a6217 100%);
   border-color: transparent;
 }
-.companion-theme__chip[data-style-preview-theme="colorless"] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme="colorless"] {
   background: linear-gradient(180deg, #f0eee5 0%, #b3b3a3 100%);
   border-color: transparent;
 }
@@ -3121,12 +2457,12 @@
    reads as a true preview of the rendered slot. Tile size is
    smaller to fit the 48×32 chip. */
 
-.companion-theme__chip[data-style-preview-theme] .companion-theme__chip-fill {
+.companion-theme__chip-fill[data-style-preview-theme] {
   position: relative;
   overflow: hidden;
 }
 
-.companion-theme__chip[data-style-preview-theme] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme]::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -3137,80 +2473,51 @@
   opacity: 0.2;
 }
 
-.companion-theme__chip[data-style-preview-theme="grass"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="grass"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 21c.5 -4.5 2.5 -8 7 -10'/><path d='M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="fire"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="fire"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="water"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="water"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M7.502 19.423c2.602 2.105 6.395 2.105 8.996 0c2.602 -2.105 3.262 -5.708 1.566 -8.546l-4.89 -7.26c-.42 -.625 -1.287 -.803 -1.936 -.397a1.376 1.376 0 0 0 -.41 .397l-4.893 7.26c-1.695 2.838 -1.035 6.441 1.567 8.546z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="lightning"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="lightning"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a4a08' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11'/></svg>");
   opacity: 0.28;
 }
-.companion-theme__chip[data-style-preview-theme="psychic"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="psychic"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="fighting"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="fighting"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0 -18z'/><path d='M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0 -10z'/><path d='M12 11a1 1 0 1 0 0 2a1 1 0 0 0 0 -2z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="darkness"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="darkness"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3h.393a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z'/></svg>");
   opacity: 0.28;
 }
-.companion-theme__chip[data-style-preview-theme="metal"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="metal"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f262b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3'/></svg>");
   opacity: 0.2;
 }
-.companion-theme__chip[data-style-preview-theme="dragon"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="dragon"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z'/></svg>");
 }
-.companion-theme__chip[data-style-preview-theme="colorless"] .companion-theme__chip-fill::after {
+.companion-theme__chip-fill[data-style-preview-theme="colorless"]::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232e2f30' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/></svg>");
   opacity: 0.22;
 }
 
 /* ---------- "Customize" details disclosure in modals ---------- */
 
-.companion-place__style,
-.companion-actions__style {
-  border-top: 1px solid var(--border-subtle);
-  padding-top: var(--spacing-8);
-}
 
-.companion-place__style-summary,
-.companion-actions__style-summary {
-  cursor: pointer;
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  list-style: none;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-6);
-  user-select: none;
-}
 
-.companion-place__style-summary::-webkit-details-marker,
-.companion-actions__style-summary::-webkit-details-marker {
-  display: none;
-}
 
-.companion-place__style-summary::before,
-.companion-actions__style-summary::before {
-  content: "▸";
-  color: var(--text-secondary);
-  transition: transform 100ms ease;
-}
 
-.companion-place__style[open] .companion-place__style-summary::before,
-.companion-actions__style[open] .companion-actions__style-summary::before {
-  transform: rotate(90deg);
-}
+
+
+
+
 
 /* =============================================================
    Game Settings modal — pre-game format picker.
@@ -3222,6 +2529,7 @@
   gap: var(--spacing-16);
   background-color: var(--background-elevated);
   color: var(--text-primary);
+  container-type: inline-size;
 }
 
 .companion-settings__lede {
@@ -3231,57 +2539,47 @@
   line-height: var(--line-height-snug);
 }
 
+/* Two by two on a phone, one row of four once the window is wide enough. */
 .companion-settings__formats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-10);
 }
+@container (min-width: 600px) {
+  .companion-settings__formats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
 
-.companion-settings__format {
-  appearance: none;
+/* Format tiles are CDS Cards (frame, hover and selected come from CDS), set out like
+   the site's other icon tiles (Chat Brain, the admin kit): icon tile on top, then title and text. */
+.companion-settings__format.empac-card {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: flex-start;
-  gap: var(--spacing-8);
-  padding: var(--spacing-12);
-  background-color: var(--background-secondary);
-  border: 2px solid var(--border-default);
-  border-radius: var(--radius-8);
-  cursor: pointer;
-  font-family: inherit;
+  gap: var(--spacing-10);
+  height: 100%;
   text-align: left;
-  transition: border-color 100ms ease, background-color 100ms ease;
+  font-family: inherit;
+  width: 100%;
 }
 
-.companion-settings__format:hover {
-  border-color: var(--primary-300);
-}
-
-.companion-settings__format--selected {
-  border-color: var(--primary-ink-500);
-  background-color: color-mix(
-    in srgb,
-    var(--primary-500) 10%,
-    var(--background-secondary)
-  );
-}
-
+/* The site's icon tile (globals.css .icon-tile values; a circle means Energy in the companion). */
 .companion-settings__format-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  background-color: var(--primary-ink-500);
-  color: var(--empac-white);
-  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: var(--tile-md);
+  height: var(--tile-md);
+  border-radius: var(--tile-md-radius);
+  background: var(--tile-blue);
+  box-shadow: var(--tile-shadow);
+  color: #fff;
 }
+.companion-settings__format-icon svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
 
 .companion-settings__format-body {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: var(--spacing-4);
   min-width: 0;
 }
 
@@ -3315,40 +2613,10 @@
   letter-spacing: 0.05em;
 }
 
-.companion-settings__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-}
-
-.companion-settings__field > span {
-  font-size: var(--font-size-12);
-  color: var(--text-primary);
-  font-weight: var(--font-weight-medium);
-}
-
-.companion-settings__field input[type="number"] {
-  appearance: none;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-6) var(--spacing-10);
-  font-size: var(--font-size-14);
-  color: var(--text-primary);
-  background-color: var(--background-elevated);
-  font-family: inherit;
-  width: 80px;
-}
-
-.companion-settings__toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  font-size: var(--font-size-12);
-  color: var(--text-primary);
-}
-
-.companion-settings__toggle input {
-  margin: 0;
+.companion-settings__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--spacing-10);
 }
 
 .companion-settings__summary {
@@ -3569,50 +2837,7 @@
   flex-shrink: 0;
 }
 
-.companion-resume__resume-btn {
-  appearance: none;
-  background-color: var(--primary-ink-500);
-  color: var(--empac-white);
-  border: 1px solid var(--primary-500);
-  border-radius: var(--radius-6);
-  padding: var(--spacing-6) var(--spacing-12);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.companion-resume__resume-btn:hover:not(:disabled) {
-  background-color: var(--primary-ink-600);
-}
-
-.companion-resume__resume-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.companion-resume__delete-btn {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  color: var(--text-secondary);
-  padding: var(--spacing-6);
-  cursor: pointer;
-}
-
-.companion-resume__delete-btn:hover:not(:disabled) {
-  color: var(--error-ink);
-  border-color: var(--error-500);
-}
-
-.companion-resume__delete-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+/* Resume is a CDS Button; delete is a CDS IconButton (IconAction) that asks first. */
 /* ═══════════ Card art on a slot (piece placed from My Cards) ═══════════ */
 /* The two-selector head beats the themed `.companion-slot[data-slot-theme]
    .companion-slot__inner` panel rule (a picked card also sets a type theme),
@@ -3623,276 +2848,71 @@
   padding: 0;
   overflow: hidden;
 }
-.companion-slot__inner--art,
-.companion-slot[data-slot-theme] .companion-slot__inner--art {
-  position: relative;
-  flex: 1 1 auto;
-  width: 100%;
-  max-width: 100%;
-  /* Art goes edge-to-edge and takes center stage; the copy sits in a bottom
-     bar (justify-end) so it never covers the card's subject. */
-  justify-content: flex-end;
-  padding: 0;
-  background: none;
-  box-shadow: none;
-  /* The slot (`.companion-slot--art`) clips to its border radius, so the art
-     fills a full rectangle here — no inner radius, or the corners leak the
-     slot background. */
-  border-radius: 0;
-}
-.companion-slot__art {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 18%;
-  z-index: 0;
-  user-select: none;
-  -webkit-user-drag: none;
-}
+
+/* The card's art window only (the band TypeCard uses: x 11%, y 13%, 78% wide,
+   30.5% tall of a 63:88 card), scaled to cover the slot whatever its shape.
+   The frame gives the container size the crop is measured against. */
+
+
 /* Copy sits above the art. The type tag + conditions are excluded — they pin
    themselves absolutely in the top corners and must keep that (this rule would
    otherwise force them back into flow). */
-.companion-slot__inner--art
-  > *:not(.companion-slot__art):not(.companion-slot__type-tag):not(.companion-slot__conditions) {
-  position: relative;
-  z-index: 2;
-}
+
 /* Copy wrapper: transparent on normal slots (dissolves via `display:
    contents`), a frosted-glass plate over card art. The glass is theme-aware —
    it tints from the elevated-surface token (light in light mode, dark in dark)
    so the art stays sharp everywhere except behind the text. */
-.companion-slot__content {
-  display: contents;
-}
-.companion-slot__inner--art .companion-slot__content {
-  /* Single-row info bar: name (left) · energy (center) · damage (right), all
-     vertically centered. Shorter than a stack, so more art shows through. */
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: var(--spacing-8);
-  /* Frosted bar spanning the slot width; the slot clips the bottom corners.
-     Generous horizontal padding so the name / damage don't sit edge-to-edge.
-     border-box so the padding is inset, not added on top of the 100% width
-     (otherwise the bar overflows the slot). */
-  box-sizing: border-box;
-  width: 100%;
-  padding: var(--spacing-6) var(--spacing-12);
-  background: rgba(255, 255, 255, 0.5); /* fallback where color-mix is absent */
-  background: color-mix(in srgb, var(--background-elevated) 68%, transparent);
-  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 55%, transparent);
-  -webkit-backdrop-filter: blur(8px) saturate(1.05);
-  backdrop-filter: blur(8px) saturate(1.05);
-}
+
+
 /* name (left) · energy (center) · damage (right) via order + self-alignment,
    so we don't have to reorder the DOM (which non-art slots also render). */
-.companion-slot__inner--art .companion-slot__content .companion-slot__name {
-  order: 1;
-  justify-self: start;
-  text-align: left;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.companion-slot__inner--art .companion-slot__content .companion-slot__energy-meter {
-  order: 2;
-  justify-self: center;
-}
-.companion-slot__inner--art .companion-slot__content .companion-slot__damage {
-  order: 3;
-  justify-self: end;
-}
+
+
+
 /* Consolidate on art slots to cut cognitive load: the big-active / small-bench
    layout + player headers convey position (label is redundant), so the bottom
    bar keeps name + HP/damage + energy while conditions move to the top-right
    corner (below). */
-.companion-slot__inner--art .companion-slot__content .companion-slot__position {
-  display: none;
-}
+
 /* Conditions pinned top-right on art slots — balances the type tag top-left.
    Excluded from the copy-lift rule above so it keeps its absolute position. */
-.companion-slot__inner--art .companion-slot__conditions {
-  position: absolute;
-  top: var(--spacing-6);
-  right: var(--spacing-6);
-  z-index: 3;
-  margin-top: 0;
-}
+
 /* Corner type badge — a labeled pill (colored type icon + type name) in the
    top-left of the art slot; legible for every type since the icon carries the
    color and the label stays dark on the light pill. */
-.companion-slot__type-tag {
-  position: absolute;
-  top: var(--spacing-6);
-  left: var(--spacing-6);
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-4);
-  max-width: calc(100% - var(--spacing-12));
-  padding: 2px var(--spacing-8) 2px var(--spacing-6);
-  border-radius: var(--radius-full, 999px);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--type-color, var(--text-primary));
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-  font-size: var(--font-size-10);
-  line-height: 1;
-}
-.companion-slot__type-tag-label {
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  font-weight: var(--font-weight-bold);
-  color: var(--gray-900, #1a1a1a);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.companion-slot__type-tag {
-  min-width: 0;
-}
-.companion-slot--active .companion-slot__type-tag {
-  font-size: var(--font-size-12);
-}
+
+
+
+
 
 /* Always-visible energy meter — bolt + total (or the per-type badges when
    energy is attached). Tap opens the focused energy applicator. */
-.companion-slot__energy-meter {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-4);
-  cursor: pointer;
-  color: var(--text-secondary);
-}
-.companion-slot__energy-meter:hover {
-  color: var(--text-primary);
-}
-.companion-slot__energy-meter-zero {
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-}
-.companion-slot__inner--art .companion-slot__energy-meter {
-  color: var(--text-secondary);
-}
 
-/* Energy applicator modal */
-.companion-energy {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-16);
-}
-.companion-energy__clear {
-  align-self: flex-start;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--error-ink);
-  font-size: var(--font-size-14);
-  text-decoration: underline;
-}
+
+
+
 /* Legible theme-aware copy on the glass — overrides any themed-slot text color
    that assumed the type-pattern panel. */
-.companion-slot__inner--art .companion-slot__content .companion-slot__name,
-.companion-slot__inner--art .companion-slot__content .companion-slot__damage {
-  color: var(--text-primary);
-  text-shadow: none;
-}
-.companion-slot__inner--art .companion-slot__content .companion-slot__max-hp,
-.companion-slot__inner--art .companion-slot__content .companion-slot__position {
-  color: var(--text-secondary);
-  text-shadow: none;
-}
+
+
 
 /* ═══════════ "From My Cards" picker in the place-piece modal ═══════════ */
-.companion-place__mycards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-8);
-  padding: var(--spacing-12);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-8);
-  background: var(--background-secondary);
-}
-.companion-place__mycards-title,
-.companion-place__mycards-sub,
-.companion-place__picked-label {
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-secondary);
-}
-.companion-place__mycards-sub {
-  margin-top: var(--spacing-4);
-}
-.companion-place__mycards-search {
-  width: 100%;
-  padding: var(--spacing-8) var(--spacing-10);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  background: var(--background-elevated);
-  color: var(--text-primary);
-  font-size: var(--font-size-14);
-}
-.companion-place__mycards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
-  gap: var(--spacing-8);
-  max-height: 22rem;
-  overflow-y: auto;
-}
-.companion-place__mycard {
-  border: none;
-  background: none;
-  padding: 0;
-  cursor: pointer;
-  border-radius: var(--radius-6);
-  transition: box-shadow 0.12s ease;
-}
+
+
+
+
+
+
 /* Inset highlight ring on hover — no transform/scale, so it can't nudge the
    card past the scrollable grid edge and flicker the scrollbar (the old
    `scale()` caused hover "jumping"). Inset keeps it clip-safe too. */
-.companion-place__mycard:hover {
-  box-shadow: inset 0 0 0 2px var(--primary-500);
-}
-.companion-place__mycards-note {
-  margin: 0;
-  font-size: var(--font-size-14);
-  color: var(--text-tertiary);
-}
-.companion-place__mycards-or {
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-  text-align: center;
-}
-.companion-place__picked {
-  display: flex;
-  gap: var(--spacing-12);
-  align-items: center;
-}
-.companion-place__picked-art {
-  width: 5.4rem;
-  border-radius: var(--radius-6);
-  box-shadow: var(--shadow-20);
-}
-.companion-place__picked-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-}
-.companion-place__mycards-clear {
-  align-self: flex-start;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--primary-ink-600);
-  font-size: var(--font-size-14);
-  text-decoration: underline;
-}
+
+
+
+
+
+
+
 
 /* Card-data attribution footer (Scrydex / Pokémon Company) — required now that
    real card art renders on the board. */
@@ -3903,48 +2923,1563 @@
   text-align: center;
 }
 
-/* ═══════════ Slot action sheet — exclusive accordion ═══════════ */
-.companion-actions--accordion {
+/* ---------- Turn bar (who's up, once-a-turn plays, Attack, End turn) ----------
+   Sticks under the site nav (and slides with it) so the turn is always in
+   reach on a long phone board. */
+.companion-turnbar {
+  position: sticky;
+  top: calc(var(--gs-nav-offset, 0px) + var(--spacing-8));
+  transition: var(--gs-nav-slide);
+  z-index: 30;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-8);
-}
-.companion-acc {
+  gap: var(--spacing-6);
+  padding: var(--spacing-8) var(--spacing-12);
+  background-color: var(--background-elevated);
   border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--bg-primary);
   border-radius: var(--radius-8);
-  overflow: hidden;
-  background: var(--background-elevated);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
 }
-.companion-acc__header {
-  display: flex;
+.companion-turnbar--setup {
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-8);
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--spacing-12) var(--spacing-16);
+  justify-content: space-between;
+  gap: var(--spacing-8) var(--spacing-16);
+}
+.companion-turnbar--quiet {
+  position: static;
+  flex-direction: row;
+  padding: 0;
   background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
+  border: 0;
+  box-shadow: none;
+}
+.companion-turnbar__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+  flex: 1 1 24rem;
+}
+.companion-turnbar__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+.companion-turnbar__title {
+  margin: 0;
+  font-family: var(--font-display);
   font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-bold);
   color: var(--text-primary);
-  text-align: left;
 }
-.companion-acc.is-open .companion-acc__header {
-  border-bottom: 1px solid var(--border-subtle);
-}
-.companion-acc__label {
-  flex: 1;
-}
-.companion-acc__summary {
+.companion-turnbar__number {
+  font-family: inherit;
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
   color: var(--text-secondary);
 }
-.companion-acc__body {
+.companion-turnbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+.companion-turnbar__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+.companion-turnbar__chip-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.companion-turnbar__note,
+.companion-turnbar__done {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+.companion-turnbar__note--alert {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.companion-resolve__intro {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+/* ---------- Attack picker ---------- */
+.companion-attack {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
-  padding: var(--spacing-16);
+}
+.companion-attack__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-8);
+}
+.companion-attack__target {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+.companion-attack__option {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+.companion-attack__option > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+/* The attack's Energy cost as circles; faded until the Pokémon has it. */
+.companion-attack__cost {
+  flex: none;
+  display: flex;
+  gap: var(--spacing-2);
+  padding-top: var(--spacing-2);
+  opacity: 0.5;
+}
+.companion-attack__cost--met {
+  opacity: 1;
+}
+.companion-attack__free {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.companion-attack__stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+.companion-attack__stepper > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.companion-attack__hint {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-secondary);
+}
+.companion-attack__stepper-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  flex: none;
+}
+.companion-attack__value {
+  min-width: 4.4rem;
+  text-align: center;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.companion-attack__math {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-10) var(--spacing-12);
+  border-radius: var(--radius-8);
+  background-color: var(--background-secondary);
+}
+.companion-attack__total {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.companion-attack__steps {
+  min-width: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+.companion-attack__outcome {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.companion-attack__outcome--ko {
+  /* Green that darkens on light and lightens on dark (mixed with the text colour). */
+  color: color-mix(in srgb, var(--success-600) 70%, var(--text-primary));
+}
+
+/* ---------- Icon language (glyphs.tsx): circle = Energy/type, square = condition ---------- */
+.gs-energy-dot {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: var(--dot-size, 22px);
+  height: var(--dot-size, 22px);
+  border-radius: 50%;
+  background-color: var(--dot-color);
+  color: #2b2410;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+  line-height: 0;
+}
+.gs-energy-dot--light-ink {
+  color: #ffffff;
+}
+.gs-energy-dot__count {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background-color: #0b0e26;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #eef0ff;
+  font-size: 1rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 13px;
+  text-align: center;
+}
+.gs-cond-tag {
+  flex: none;
+  box-sizing: border-box;
+  display: inline-grid;
+  place-items: center;
+  width: var(--tag-size, 22px);
+  height: var(--tag-size, 22px);
+  border-radius: 6px;
+  background-color: var(--cond-color);
+  border: 1.5px solid var(--cond-color);
+  color: var(--cond-ink, #ffffff);
+  line-height: 0;
+}
+.gs-cond-tag--off {
+  background: none;
+  border: 1.5px dashed var(--border-default);
+  color: var(--text-secondary);
+}
+.gs-any-energy {
+  flex: none;
+  display: inline-block;
+  width: var(--dot-size, 14px);
+  height: var(--dot-size, 14px);
+  border-radius: 50%;
+  background: conic-gradient(#e2453f 0 25%, #4ca9cd 0 50%, #65b16a 0 75%, #e0bf1f 0);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.2);
+}
+.gs-token {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: var(--token-size, 30px);
+  height: var(--token-size, 30px);
+  border-radius: 50%;
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: calc(var(--token-size, 30px) / 3);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+.gs-token--10 { background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 45%), #c81e1e; }
+.gs-token--50 { background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 45%), #c2410c; }
+.gs-token--100 { background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 45%), #a16207; }
+
+/* ---------- Help sheet: the icon key ---------- */
+.companion-key {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+  padding-top: var(--spacing-12);
+}
+.companion-key__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.companion-key__title {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-key__note {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-key__energy {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--spacing-8) var(--spacing-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.companion-key__energy li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+.companion-key__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.companion-key__row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+.companion-key__symbol {
+  flex: none;
+  min-width: 5.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+.companion-key__text {
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-snug);
+  color: var(--text-secondary);
+}
+.companion-key__text strong {
+  color: var(--text-primary);
+}
+.companion-key__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-2) var(--spacing-8) var(--spacing-2) var(--spacing-2);
+  border-radius: var(--radius-full);
+  background-color: #b91c1c;
+  color: #ffffff;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+.companion-key__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.companion-key__chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-10);
+  border-radius: var(--radius-full);
+  background-color: var(--background-secondary);
+  font-size: var(--font-size-12);
+  color: var(--text-primary);
+}
+.companion-help__more {
+  margin: var(--spacing-16) 0 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+/* A card's art window at any size (CardArt): TypeCard's crop, covering the box. */
+.companion-art {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  container-type: size;
+  background-color: var(--background-secondary);
+}
+.companion-art img {
+  --ax: 0.11;
+  --ay: 0.13;
+  --aw: 0.78;
+  --ah: 0.305;
+  --aspect: 0.716;
+  --iw: max(calc(100cqw / var(--aw)), calc(100cqh * var(--aspect) / var(--ah)));
+  position: absolute;
+  max-width: none;
+  width: var(--iw);
+  height: auto;
+  left: calc((100cqw - var(--aw) * var(--iw)) / 2 - var(--ax) * var(--iw));
+  top: calc((100cqh - var(--ah) * var(--iw) / var(--aspect)) / 2 - var(--ay) * var(--iw) / var(--aspect));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ---------- Counter tray ---------- */
+.companion-counters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-14, 1.4rem);
+}
+.companion-counters__who {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+.companion-counters__art {
+  flex: none;
+  width: 6.4rem;
+  height: 3.6rem;
+  border-radius: var(--radius-6);
+}
+.companion-counters__hp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+.companion-counters__hp-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+.companion-counters__ko {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-counters__total {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-10) var(--spacing-12);
+  border-radius: var(--radius-8);
+  background-color: var(--background-secondary);
+}
+.companion-counters__number {
+  font-family: var(--font-display);
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--error-ink, var(--text-primary));
+  min-width: 4.4rem;
+}
+.companion-counters__as {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+.companion-counters__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-counters__stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+.companion-counters__none {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-counters__mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+  border-radius: var(--radius-8);
+  background-color: var(--background-secondary);
+}
+.companion-counters__mode .empac-button {
+  width: 100%;
+  justify-content: center;
+}
+.companion-counters__tokens {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+}
+.companion-counters__token.empac-button {
+  height: auto;
+  min-height: 0;
+  padding: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-6);
+  border-radius: var(--radius-12);
+}
+.companion-counters__token .empac-button__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+.companion-counters__token-word {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-counters__recent {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-counters__footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+/* ---------- Add Energy picker ---------- */
+.companion-energy-pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.companion-energy-pick__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.companion-energy-pick__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-energy-pick__to {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.companion-energy-pick__targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.4rem, 1fr));
+  gap: var(--spacing-8);
+}
+.companion-energy-pick__target {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-12);
+  border: 1px solid var(--border-default);
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.companion-energy-pick__target.is-on {
+  border: 2px solid var(--primary-600);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-600) 25%, transparent);
+}
+.companion-energy-pick__target:focus-visible,
+.companion-energy-pick__suggest:focus-visible,
+.companion-energy-pick__type:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+}
+.companion-energy-pick__target-art {
+  width: 100%;
+  height: 4.4rem;
+}
+.companion-energy-pick__target-art--none {
+  display: block;
+  background-color: var(--background-tertiary, var(--background-elevated));
+}
+.companion-energy-pick__target-name {
+  padding: var(--spacing-6) var(--spacing-8) 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.companion-energy-pick__target-where {
+  padding: 0 var(--spacing-8) var(--spacing-6);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-energy-pick__suggest {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  width: 100%;
+  padding: var(--spacing-10) var(--spacing-12);
+  border-radius: var(--radius-12);
+  border: 2px solid var(--dot-color);
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.companion-energy-pick__suggest-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-energy-pick__suggest-text strong {
+  font-size: var(--font-size-16);
+  color: var(--text-primary);
+}
+.companion-energy-pick__suggest-add {
+  margin-left: auto;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.companion-energy-pick__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.6rem, 1fr));
+  gap: var(--spacing-6);
+}
+.companion-energy-pick__type {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8) var(--spacing-2);
+  border-radius: var(--radius-12);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-12);
+  cursor: pointer;
+}
+.companion-energy-pick__type:hover,
+.companion-energy-pick__suggest:hover,
+.companion-energy-pick__target:hover {
+  border-color: var(--primary-500);
+}
+.companion-energy-pick__note {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+
+/* ---------- A Pokémon on the board (Slot's occupied face) ---------- */
+.companion-slot--piece {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  align-items: stretch;
+  justify-content: stretch;
+  text-align: left;
+}
+.companion-piece {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  border-radius: inherit;
+  color: var(--text-primary);
+}
+.companion-slot--art .companion-piece {
+  color: #eef0ff;
+}
+/* Card art: the art window covers small slots; big slots (desktop Actives)
+   frame it at no more than ~1.5x over a blurred copy, so it never stretches. */
+.companion-piece__art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: size;
+  container-name: pieceart;
+  border-radius: inherit;
+  background-color: #0b0e26;
+}
+.companion-piece__art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(11, 14, 38, 0.4) 0%, rgba(11, 14, 38, 0) 26%, rgba(11, 14, 38, 0) 42%, rgba(11, 14, 38, 0.92) 100%);
+  pointer-events: none;
+}
+.companion-piece__ambient {
+  position: absolute;
+  inset: -24px;
+  width: calc(100% + 48px);
+  height: calc(100% + 48px);
+  max-width: none;
+  object-fit: cover;
+  filter: blur(22px) saturate(1.15) brightness(0.45);
+  opacity: 0;
+}
+.companion-piece__window {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: size;
+}
+.companion-piece__crop {
+  --ax: 0.11;
+  --ay: 0.13;
+  --aw: 0.78;
+  --ah: 0.305;
+  --aspect: 0.716;
+  --iw: max(calc(100cqw / var(--aw)), calc(100cqh * var(--aspect) / var(--ah)));
+  position: absolute;
+  max-width: none;
+  width: var(--iw);
+  height: auto;
+  left: calc((100cqw - var(--aw) * var(--iw)) / 2 - var(--ax) * var(--iw));
+  top: calc((100cqh - var(--ah) * var(--iw) / var(--aspect)) / 2 - var(--ay) * var(--iw) / var(--aspect));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+@container pieceart (min-width: 480px) {
+  .companion-piece__ambient {
+    opacity: 1;
+  }
+  .companion-piece__window {
+    /* Centred between the top icons and the name/HP block. */
+    inset: 44px auto 96px 50%;
+    margin-block: auto;
+    transform: translateX(-50%);
+    height: calc(100% - 140px);
+    max-height: 234px;
+    width: auto;
+    max-width: calc(100% - 32px);
+    aspect-ratio: 286 / 156;
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16), 0 16px 36px rgba(0, 0, 0, 0.5);
+  }
+}
+.companion-piece__flash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 3px var(--primary-500);
+  background-color: color-mix(in srgb, var(--primary-500) 22%, transparent);
+  animation: companion-piece-flash 1.2s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes companion-piece-flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.companion-piece__top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-6);
+  padding: var(--spacing-8);
+}
+.companion-piece__tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-4);
+}
+.companion-piece__new {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background-color: rgba(11, 14, 38, 0.82);
+  color: #eef0ff;
+}
+.companion-piece__info {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-6) var(--spacing-8) var(--spacing-8);
+}
+.companion-slot--active .companion-piece__info {
+  gap: var(--spacing-6);
+  padding: var(--spacing-8) var(--spacing-12) var(--spacing-12);
+}
+/* Without card art (a piece typed in by hand), the info sits on a panel so it
+   reads over the type pattern. */
+.companion-slot--piece:not(.companion-slot--art) .companion-piece__info {
+  margin: var(--spacing-4);
+  border-radius: var(--radius-8);
+  background-color: color-mix(in srgb, var(--background-elevated) 92%, transparent);
+}
+.companion-piece__where {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.companion-piece__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-6);
+  min-width: 0;
+}
+.companion-piece__name {
+  min-width: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.companion-slot--active .companion-piece__name {
+  font-family: var(--font-display);
+  font-size: var(--font-size-18);
+}
+.companion-piece__hp {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.companion-slot--active .companion-piece__hp {
+  font-size: var(--font-size-18);
+}
+.companion-piece__hp-max {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  opacity: 0.75;
+}
+.companion-piece__bar {
+  display: block;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background-color: var(--background-secondary);
+  overflow: hidden;
+}
+.companion-slot--art .companion-piece__bar {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+.companion-slot--active .companion-piece__bar {
+  height: 6px;
+}
+.companion-piece__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background-color: #4ade80;
+}
+.companion-piece__bar--low > span { background-color: #facc15; }
+.companion-piece__bar--danger > span { background-color: #f87171; }
+.companion-piece__energies {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-6);
+  min-width: 0;
+  min-height: 20px;
+}
+.companion-piece__energy {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px 2px 2px;
+  border-radius: var(--radius-full);
+  background-color: rgba(11, 14, 38, 0.62);
+  color: #eef0ff;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.companion-slot--piece:not(.companion-slot--art) .companion-piece__energy {
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+}
+.companion-piece__add-energy {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px dashed currentColor;
+  opacity: 0.7;
+}
+.companion-piece__damage {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: 3px var(--spacing-8) 3px 3px;
+  border-radius: var(--radius-full);
+  background-color: #b91c1c;
+  color: #ffffff;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.companion-slot--active .companion-piece__damage {
+  font-size: var(--font-size-14);
+}
+.companion-piece__damage--zero {
+  background-color: rgba(11, 14, 38, 0.5);
+  color: #eef0ff;
+  opacity: 0.85;
+}
+.companion-slot--piece:not(.companion-slot--art) .companion-piece__damage--zero {
+  background-color: var(--background-secondary);
+  color: var(--text-secondary);
+}
+@media (min-width: 601px) {
+  .companion-active-battle {
+    height: clamp(320px, 38vh, 460px);
+  }
+}
+
+/* ---------- A Pokémon's window: groups, condition chips, Energy, actions ---------- */
+.companion-actions__view {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+}
+.companion-actions__view > * {
+  max-width: 100%;
+}
+.companion-actions__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.companion-actions__damage-row {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+.companion-actions__damage-row .companion-actions__damage-value {
+  min-width: 4.4rem;
+  text-align: center;
+  justify-self: auto;
+}
+.companion-actions__hp-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+/* Facts from the card: one labelled line each (icon + words). */
+.companion-actions__facts {
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.companion-actions__facts li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: 0;
+  background: none;
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+  white-space: normal;
+}
+.companion-actions__conds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+.companion-actions__cond.empac-chip {
+  padding-left: var(--spacing-4);
+}
+/* A condition that's on keeps its own colour (not the generic selected blue). */
+.companion-actions__cond.empac-chip--selected,
+.companion-actions__cond.empac-chip--selected:hover {
+  background-color: color-mix(in srgb, var(--cond-color) 30%, transparent);
+  border-color: var(--cond-color);
+  box-shadow: inset 0 0 0 1px var(--cond-color);
+  color: var(--text-primary);
+}
+.companion-actions__energy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+.companion-actions__energy-chip2 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-2) var(--spacing-2) var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--background-secondary);
+}
+.companion-actions__energy-n {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.companion-actions__tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-8);
+}
+/* Knock Out: an outline in the danger colour, so it doesn't outweigh Attack. */
+.companion-actions__tile--danger.empac-button {
+  color: var(--error-ink, #b91c1c);
+  border-color: color-mix(in srgb, var(--error-500, #ef4444) 70%, transparent);
+}
+.companion-actions__tile--danger.empac-button:hover {
+  background-color: color-mix(in srgb, var(--error-500, #ef4444) 10%, transparent);
+}
+.companion-actions__tile.empac-button {
+  height: auto;
+  min-height: 6.2rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-4);
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+}
+
+/* ---------- Card picker tiles ---------- */
+.companion-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  width: 100%;
+}
+.companion-cards__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.4rem, 1fr));
+  gap: var(--spacing-8);
+}
+.companion-cards__tile {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0 0 var(--spacing-6);
+  overflow: hidden;
+  border-radius: var(--radius-10, 1rem);
+  border: 1px solid var(--border-default);
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.companion-cards__tile:hover {
+  border-color: var(--primary-500);
+}
+.companion-cards__tile:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+}
+.companion-cards__tile.is-on {
+  border: 2px solid var(--primary-600);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-600) 25%, transparent);
+}
+.companion-cards__tile--loading {
+  height: 10rem;
+  cursor: default;
+  animation: companion-cards-pulse 1.2s ease-in-out infinite alternate;
+}
+@keyframes companion-cards-pulse {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+.companion-cards__art {
+  width: 100%;
+  height: 5.8rem;
+}
+.companion-cards__art--none {
+  display: block;
+  background-color: var(--background-elevated);
+}
+.companion-cards__name {
+  padding: var(--spacing-6) var(--spacing-8) 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.companion-cards__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--spacing-8);
+  padding: 2px var(--spacing-8) 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-cards__facts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.companion-cards__set {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.companion-cards__note {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+/* ---------- Place a Pokémon (card first) ---------- */
+.companion-place2 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.companion-place2__sub {
+  margin: calc(var(--spacing-8) * -1) 0 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-place2__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--spacing-8);
+}
+.companion-place2__switch {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.companion-place2__note {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-place2__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--spacing-8);
+}
+
+/* Reduced motion: every companion animation (the coin, the dice, drop
+   pulses, and the windows that open outside the page) settles at once,
+   still landing on its final frame. */
+@media (prefers-reduced-motion: reduce) {
+  [class*="companion-"],
+  [class*="companion-"]::before,
+  [class*="companion-"]::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ---------- Play together (a game shared between two phones) ---------- */
+
+/* Turn bar on the phone whose turn it isn't. */
+.companion-turnbar__waiting {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+/* The strip under the turn bar: who's here, the code, the last move. */
+.companion-live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-8) var(--spacing-12);
+  background-color: var(--background-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+.companion-live__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-6) var(--spacing-12);
+}
+.companion-live__who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4) var(--spacing-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+.companion-live__player {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.companion-live__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--success-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success-500) 22%, transparent);
+}
+.companion-live__dot--away {
+  background-color: var(--text-tertiary, #9aa0b4);
+  box-shadow: none;
+}
+.companion-live__muted {
+  font-weight: var(--font-weight-regular);
+  color: var(--text-secondary);
+}
+.companion-live__end {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+.companion-live__code {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary-ink-600);
+  background-color: color-mix(in srgb, var(--primary-500) 10%, transparent);
+  border-radius: var(--radius-4, 4px);
+  padding: var(--spacing-2) var(--spacing-6);
+  white-space: nowrap;
+}
+.companion-live__last {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+.companion-live__ended {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+
+/* The Play together window. */
+.companion-together {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+.companion-together p {
+  margin: 0;
+  line-height: var(--line-height-snug);
+}
+.companion-together__muted {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-together__link {
+  text-decoration: none;
+}
+.companion-together__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-together__code {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-6);
+}
+.companion-together__char {
+  display: grid;
+  place-items: center;
+  width: 4rem;
+  height: 4.8rem;
+  border-radius: var(--radius-8);
+  border: 1px solid color-mix(in srgb, var(--primary-500) 30%, transparent);
+  background-color: color-mix(in srgb, var(--primary-500) 8%, transparent);
+  font-family: var(--font-display);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.companion-together__char--gap {
+  margin-left: var(--spacing-8);
+}
+.companion-together__ways {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.companion-together__ways li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-10);
+  padding: var(--spacing-8) var(--spacing-10);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  line-height: var(--line-height-snug);
+}
+.companion-together__tile {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: var(--radius-8);
+  background-color: color-mix(in srgb, var(--primary-500) 12%, transparent);
+  color: var(--primary-ink-600);
+}
+.companion-together__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+.companion-together__waiting,
+.companion-together__joined {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-10);
+  border-radius: var(--radius-8);
+  background-color: var(--background-secondary);
+}
+.companion-together__joined {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  background-color: color-mix(in srgb, var(--success-500) 12%, var(--background-secondary));
+}
+.companion-together__pulse {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--primary-500);
+  animation: companion-together-pulse 1.4s ease-in-out infinite;
+}
+@keyframes companion-together-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Join a game by code (entry, new game window, menu). */
+.companion-joincode {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding-top: var(--spacing-12);
+  border-top: 1px solid var(--border-subtle);
+}
+.companion-joincode__label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.companion-joincode--compact .companion-joincode__label {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-joincode__row {
+  display: flex;
+  gap: var(--spacing-6);
+}
+.companion-joincode__row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.companion-joincode__row input {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.companion-joincode__problem {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--error-700, #b91c1c);
+}
+
+/* The join card (?play=CODE). */
+.companion-join__eyebrow {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-join__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.companion-join__vs {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border-radius: var(--radius-8);
+  background-color: var(--background-primary);
+  text-align: center;
+}
+.companion-join__seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-join__seat strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+.companion-join__avatar {
+  display: grid;
+  place-items: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  margin-bottom: var(--spacing-2);
+  background-color: var(--text-secondary);
+  color: var(--background-primary);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-16);
+}
+.companion-join__avatar--host {
+  background-color: var(--bg-primary);
+  color: var(--text-on-primary);
+}
+.companion-join__versus {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-secondary);
+}
+.companion-join__label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.companion-join__link {
+  text-decoration: none;
+}
+
+/* The second phone while the host sets up the next game. */
+.companion-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-32) var(--spacing-16);
+  text-align: center;
+}
+.companion-waiting__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.companion-waiting__note {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+@media (prefers-reduced-motion: reduce) {
+  .companion-together__pulse { animation: none; opacity: 1; }
+}
+
+/* ---------- Play with a deck (TCG deck lists) ---------- */
+.companion-deckchoice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+.companion-deckchoice__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.companion-deckchoice__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--spacing-8);
+}
+.companion-deckchoice__note,
+.companion-deckchoice__none {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.companion-deckchoice__none a {
+  color: var(--primary-ink-600);
+  font-weight: var(--font-weight-semibold);
 }

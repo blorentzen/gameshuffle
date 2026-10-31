@@ -6,14 +6,15 @@
  *
  * Same style as every other GameShuffle share image (the static
  * opengraph-image.jpg files): the #2f66ec→#4b5cf5 wash, a faint field of Tabler
- * glyphs for the page, and Gabarito set as wordmark + title + subtitle. No word
- * repeats between those three lines, so the subtitle is picked against the
+ * glyphs for the page, the official logo file (never the name typed out), and
+ * Gabarito for the title + subtitle. No word repeats between those three lines, so the subtitle is picked against the
  * question (a question about chat drops "Chat Brain" from the subtitle).
  */
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { getPublicPrompt } from "@/lib/chatbrain/store";
+import { logo } from "@/lib/og/eventCard";
 
 export const runtime = "nodejs";
 
@@ -62,6 +63,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   font ??= readFile(join(process.cwd(), "src/app/fonts/gabarito-bold.ttf"));
   const w = story ? 1080 : 1200, h = story ? 1920 : 630;
   const field = `data:image/svg+xml;base64,${Buffer.from(glyphField(w, h)).toString("base64")}`;
+  const logoSrc = await logo();
+  // The white wordmark is 3829x526.
+  const logoW = story ? 560 : 420;
 
   return new ImageResponse(
     (
@@ -70,7 +74,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         {/* eslint-disable-next-line @next/next/no-img-element -- rendered by ImageResponse, not the browser */}
         <img src={field} width={w} height={h} style={{ position: "absolute", top: 0, left: 0 }} alt="" />
         <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", padding: story ? "0 90px" : "0 80px", textAlign: "center" }}>
-          <div style={{ display: "flex", fontSize: story ? 76 : 56, letterSpacing: -1 }}>GameShuffle</div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- rendered by ImageResponse, not the browser */}
+          <img src={logoSrc} width={logoW} height={Math.round((logoW * 526) / 3829)} alt="" />
           <div style={{ display: "flex", justifyContent: "center", fontSize: titleSize(p.text.length, story), lineHeight: 1.08, letterSpacing: -2, marginTop: story ? 56 : 18, maxWidth: story ? 900 : 1040 }}>{p.text}</div>
           <div style={{ display: "flex", fontSize: story ? 60 : 46, marginTop: story ? 64 : 26 }}>{subtitleFor(p.text)}</div>
         </div>

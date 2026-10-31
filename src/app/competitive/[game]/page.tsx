@@ -9,7 +9,8 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { loadCompetitiveConfig, listCompetitiveGames } from "@/lib/competitive/config";
 
 /**
- * The competitive hub for one game.
+ * Live scoring for one game (called the competitive hub and "Mario Kart lounge" until 2026-10-30,
+ * when /competitive-mario-kart became the competitive Mario Kart hub and this became Live scoring).
  *
  * Everything that varies by title (scoring table, lobby size, match formats,
  * community links) comes from `game_competitive_configs`, so a new competitive
@@ -69,16 +70,16 @@ export default async function CompetitiveGamePage({ params }: { params: Promise<
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">
-              Live lounge scoring <span className="new-badge">New</span>
+              Live scoring
             </p>
-            <h1 className="pro-hero__title">Competitive {config.displayName}</h1>
+            <h1 className="pro-hero__title">{config.displayName} live scoring</h1>
             <p className="pro-hero__sub">
               Score your next set live. {rounds} {round}s on the standard table, up to {config.lobbySize} players,
               and everyone logs their own finish from their phone. No forgotten scores, no screenshot disputes.
             </p>
             <div className="pro-hero__ctas">
               <Link href="#start" style={{ textDecoration: "none" }}>
-                <Button variant="primary" size="large">Start a lounge</Button>
+                <Button variant="primary" size="large">Start scoring</Button>
               </Link>
               <Link href="#scoring" style={{ textDecoration: "none" }}>
                 <Button variant="secondary" size="large">See the scoring</Button>
@@ -96,7 +97,7 @@ export default async function CompetitiveGamePage({ params }: { params: Promise<
           <LoungeStarter config={config} games={games.map((g) => ({ slug: g.gameSlug, name: g.displayName }))} />
 
           <section className="cmp-section">
-            <h2 className="cmp-section__title">How a lounge works</h2>
+            <h2 className="cmp-section__title">How live scoring works</h2>
             <ol className="cmp-steps">
               {[
                 { t: "Start it", d: `Pick a format and open a ${rounds}-${round} set on the standard table.` },
@@ -118,7 +119,7 @@ export default async function CompetitiveGamePage({ params }: { params: Promise<
               <div className="cmp-scoring__intro">
                 <h2 className="cmp-section__title">{config.displayName} standard scoring</h2>
                 <p>
-                  Points per finishing position, every {round}. The lounge uses this table automatically, so a
+                  Points per finishing position, every {round}. Live scoring uses this table automatically, so a
                   set adds up the same way it would anywhere else in the community.
                 </p>
               </div>
@@ -161,12 +162,13 @@ export default async function CompetitiveGamePage({ params }: { params: Promise<
             Settle it on the track
           </h2>
           <p style={{ margin: "0 auto var(--spacing-24)", lineHeight: "var(--line-height-relaxed)" }}>
-            A lounge is one set between friends. When you want brackets, seasons and a random draw on top, run a
-            tournament instead.
+            Live scoring is for one set between friends. For brackets, seasons and a random draw on top, run a
+            tournament. Lounge stats, time trials and the MMR card are on the{" "}
+            <Link href="/competitive-mario-kart">competitive Mario Kart</Link> page.
           </p>
           <div className="strm-finalcta">
             <Link href="#start" style={{ textDecoration: "none" }}>
-              <Button variant="primary" size="large">Start a lounge</Button>
+              <Button variant="primary" size="large">Start scoring</Button>
             </Link>
             <Link href="/mario-kart-tournaments" style={{ textDecoration: "none" }}>
               <Button variant="secondary" size="large">Run a tournament</Button>

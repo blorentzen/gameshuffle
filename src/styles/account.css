@@ -782,7 +782,7 @@ html.dark .gs-platform-icon {
 .onboarding-card__hint {
   margin: calc(var(--spacing-4) * -1) 0 var(--spacing-8);
   text-align: center;
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   color: var(--text-tertiary);
 }
 
@@ -894,6 +894,7 @@ html.dark .gs-platform-icon {
   font-weight: 500;
   cursor: pointer;
   padding: 0;
+  min-height: 2.4rem;
   transition: color 0.15s;
 }
 
@@ -1306,7 +1307,10 @@ html.dark .gs-platform-icon {
    hero's dark frosted pill the blue primary reads fine, so this is --plain-only. */
 .gs-nav-shell--plain .user-menu__signup .empac-button {
   background: #fff !important;
-  color: var(--primary-ink-700) !important;
+  /* The fixed step, not --primary-ink-700: the background is always white, and
+     the ink alias turns light in dark mode (light-on-white on any themed page
+     reached signed out). */
+  color: var(--primary-700) !important;
   border-color: #fff !important;
 }
 .gs-nav-shell--plain .user-menu__signup .empac-button::before {
@@ -1862,17 +1866,19 @@ html.dark .gs-platform-icon {
   border-radius: 999px;
   white-space: nowrap;
 }
+/* Inks mixed 30% toward the text color: darker in light mode, lighter in dark,
+   so 10px labels on a tinted pill clear 4.5:1 on the dark card too. */
 .cmd-ref__auth--viewer {
-  background: rgba(26, 143, 60, 0.15);
-  color: #1a8f3c;
+  background: color-mix(in srgb, var(--success-ink) 12%, transparent);
+  color: color-mix(in srgb, var(--success-ink) 70%, var(--text-primary));
 }
 .cmd-ref__auth--mod {
-  background: rgba(217, 138, 0, 0.18);
-  color: #b06f00;
+  background: color-mix(in srgb, var(--warning-ink) 14%, transparent);
+  color: color-mix(in srgb, var(--warning-ink) 70%, var(--text-primary));
 }
 .cmd-ref__auth--host {
-  background: rgba(225, 6, 0, 0.12);
-  color: #c01e1e;
+  background: color-mix(in srgb, var(--error-ink) 12%, transparent);
+  color: color-mix(in srgb, var(--error-ink) 70%, var(--text-primary));
 }
 .cmd-ref__desc {
   color: var(--text-secondary);
@@ -1965,6 +1971,23 @@ html.dark .gs-platform-icon {
   display: block !important;
 }
 
+/* Phones: the link lists fold into rows (SiteFooter.tsx FOLDED_SECTIONS, a CDS
+   Accordion in the footer's spare slot). Wider screens keep the columns. */
+.site-footer .empac-marketing-footer__trust { display: none; }
+@media (max-width: 40rem) {
+  .site-footer .empac-marketing-footer__sections,
+  .site-footer .empac-marketing-footer__description { display: none; }
+  .site-footer .empac-marketing-footer__trust { display: block; margin-top: var(--spacing-24); padding: 0; border-top: 1px solid rgba(255, 255, 255, 0.12); }
+  .site-footer__fold.empac-accordion--flush .empac-accordion__item { border-bottom-color: rgba(255, 255, 255, 0.12); }
+  .site-footer__fold.empac-accordion--flush .empac-accordion__item:last-child { border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+  .site-footer__fold .empac-accordion__trigger { padding: var(--spacing-14, 14px) 0; color: #fff; min-height: 44px; }
+  .site-footer__fold.empac-accordion--flush .empac-accordion__trigger:hover { color: #fff; }
+  .site-footer__fold .empac-accordion__trigger-title { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); letter-spacing: 0.05em; text-transform: uppercase; color: inherit; }
+  .site-footer__fold .empac-accordion__icon { color: rgba(255, 255, 255, 0.7); }
+  .site-footer__fold .empac-accordion__content-inner { padding: 0 0 var(--spacing-14, 14px); }
+  .site-footer__fold-links { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); }
+}
+
 /* The footer is always dark, so the wordmark is always the white variant
    (forced above). */
 .site-footer__logo-img {
@@ -2044,6 +2067,9 @@ html.dark .gs-platform-icon {
   gap: var(--spacing-20);
   margin-top: var(--spacing-32);
 }
+.help-landing__cat-tile {
+  margin-bottom: var(--spacing-12);
+}
 .help-landing__cat-title {
   margin: 0 0 var(--spacing-6);
   font-size: var(--font-size-20);
@@ -2116,9 +2142,9 @@ html.dark .gs-platform-icon {
   padding-left: var(--spacing-24);
 }
 
+/* Lists without a class get the shared prose markers (globals.css). */
 .help-article__body li {
   margin-bottom: var(--spacing-8);
-  list-style: revert;
 }
 
 .help-article__body a {
@@ -2159,63 +2185,12 @@ html.dark .gs-platform-icon {
 }
 
 
-/* ── Platform Shop tab (featured shop cards admin) ─────────────────────── */
-.platform-shop__intro {
-  color: var(--text-secondary);
-  margin: 0 0 var(--spacing-24);
-  max-width: 46rem;
-  line-height: var(--line-height-relaxed);
-}
-.platform-shop__heading {
-  font-size: var(--font-size-18);
-  font-weight: var(--font-weight-semibold);
-  margin: 0 0 var(--spacing-12);
-}
-.platform-shop__add,
-.platform-shop__list-section {
-  margin-bottom: var(--spacing-40);
-}
-.platform-shop__muted {
-  color: var(--text-tertiary);
-  font-size: var(--font-size-14);
-}
-.platform-shop__link-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--brand-ink, var(--text-primary));
-  font-size: var(--font-size-14);
-  text-decoration: underline;
-}
-.platform-shop__remove:hover {
-  color: var(--color-error, #c0392b);
-}
-.platform-shop__url {
-  color: inherit;
-  display: inline-block;
-  max-width: 32rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-decoration: none;
-}
-/* Add flow — visual card picker (browse + search results) */
-.platform-shop__picker-note {
-  margin: var(--spacing-16) 0 var(--spacing-12);
-}
-.platform-shop__picker {
-  margin-top: var(--spacing-8);
-}
-/* Equal-height cards: stretch the carousel item's child to fill (the CDS item
-   is a block, so the card wouldn't fill on its own). */
-.platform-shop__picker .empac-carousel__item {
-  display: flex;
-  flex-direction: column;
-}
-.platform-shop__picker .empac-carousel__item > * {
-  flex: 1;
-}
+/* ── Platform admin ▸ Shop ▸ Featured cards ──────────────────────────────── */
+.platform-shop__muted { margin: 0; color: var(--text-tertiary); font-size: var(--font-size-14); }
+.platform-shop__url { font-size: var(--font-size-14); color: var(--brand-ink, var(--text-primary)); }
+/* Add-a-card drawer: search, a grid of catalog cards, then the link form. */
+.platform-shop__drawer { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.platform-shop__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: var(--spacing-12); }
 .platform-shop__pick {
   display: flex;
   flex-direction: column;
@@ -2226,153 +2201,39 @@ html.dark .gs-platform-icon {
   background: var(--background-elevated);
   cursor: pointer;
   text-align: center;
-  transition:
-    transform 0.12s ease,
-    border-color 0.12s ease,
-    box-shadow 0.12s ease;
+  font: inherit;
+  color: inherit;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
-.platform-shop__pick:hover {
-  transform: translateY(-2px);
-  border-color: var(--brand-ink, var(--border-default));
-  box-shadow: var(--shadow-elevated, 0 4px 14px rgba(0, 0, 0, 0.12));
-}
-.platform-shop__pick-name {
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-primary);
-  line-height: var(--line-height-tight);
-}
-.platform-shop__picked {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-24);
-  padding: var(--spacing-16);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md, 0.5rem);
-  background: var(--background-secondary);
-}
-.platform-shop__picked-card {
-  display: flex;
-  gap: var(--spacing-12);
-  width: 18rem;
-}
-.platform-shop__picked-card > :first-child {
-  width: 6rem;
-  flex-shrink: 0;
-}
-.platform-shop__fields {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-8);
-  flex: 1;
-  min-width: 16rem;
-}
-/* Current list */
-.platform-shop__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
-}
+.platform-shop__pick:hover { transform: translateY(-2px); border-color: var(--brand-ink, var(--border-default)); box-shadow: var(--shadow-elevated, 0 4px 14px rgba(0, 0, 0, 0.12)); }
+.platform-shop__pick:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .platform-shop__pick, .platform-shop__pick:hover { transition: none; transform: none; } }
+.platform-shop__pick-name { font-size: var(--font-size-14); font-weight: var(--font-weight-medium); color: var(--text-primary); line-height: var(--line-height-tight); }
+.platform-shop__picked-card { display: flex; gap: var(--spacing-12); align-items: flex-start; }
+.platform-shop__picked-card > :first-child { width: 6rem; flex-shrink: 0; }
+.platform-shop__fields { display: flex; flex-direction: column; gap: var(--spacing-12); }
+/* The lists */
+.platform-shop__list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
 .platform-shop__row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-16);
+  gap: var(--spacing-12) var(--spacing-16);
   padding: var(--spacing-12);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md, 0.5rem);
   background: var(--background-elevated);
 }
-/* Sold rows read as sold via a muted surface + a grayed thumbnail — NOT a
-   blanket opacity that would wash out the (still-usable) controls. */
-.platform-shop__row.is-sold {
-  background: var(--background-secondary);
-}
-.platform-shop__row.is-sold .platform-shop__row-card {
-  filter: grayscale(1);
-  opacity: 0.7;
-}
-/* Drag handle for reordering featured (available) cards. */
-.platform-shop__drag {
-  flex-shrink: 0;
-  appearance: none;
-  border: 0;
-  background: none;
-  padding: var(--spacing-4);
-  font-size: var(--font-size-20);
-  line-height: 1;
-  color: var(--text-tertiary);
-  cursor: grab;
-  touch-action: none;
-}
-.platform-shop__drag:hover {
-  color: var(--text-secondary);
-}
-.platform-shop__drag:active {
-  cursor: grabbing;
-}
-.platform-shop__reorder-hint {
-  margin-bottom: var(--spacing-8);
-}
-.platform-shop__row-card {
-  width: 3.5rem;
-  flex-shrink: 0;
-}
-.platform-shop__row-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  flex: 1;
-  min-width: 0;
-}
-/* Name + status badge on one line so the badge hugs its text (a Badge in the
-   flex-column row-info would otherwise stretch full width). */
-.platform-shop__row-title {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  flex-wrap: wrap;
-}
-.platform-shop__row-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  flex-wrap: wrap;
-}
-/* Featured toggle — a compact starred checkbox in the row actions. */
-.platform-shop__feature {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-}
-/* Sold-date input sized to sit inline with the action buttons (bare input —
-   the row's "Sold" badge already labels the status). */
-.platform-shop__date-input {
-  width: 14rem;
-}
-
-/* Platform Shop — add-as-sold controls */
-.platform-shop__checkbox {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  font-size: var(--font-size-14);
-  color: var(--text-secondary);
-}
-.platform-shop__date-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-}
+/* Sold rows read as sold through a muted surface and a grey thumbnail, not a
+   blanket opacity that would wash out the controls. */
+.platform-shop__row.is-sold { background: var(--background-secondary); }
+.platform-shop__row.is-sold .platform-shop__row-card { filter: grayscale(1); opacity: 0.7; }
+.platform-shop__row-card { width: 3.5rem; flex-shrink: 0; }
+.platform-shop__row-info { display: flex; flex-direction: column; gap: var(--spacing-4); flex: 1 1 14rem; min-width: 0; }
+.platform-shop__row-title { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
+.platform-shop__row-actions { display: flex; align-items: center; gap: var(--spacing-6); flex: 0 0 auto; }
+@media (max-width: 640px) { .platform-shop__row-actions { flex: 1 1 100%; flex-wrap: wrap; } }
+.platform-shop__date { flex: 0 0 16rem; width: 16rem; min-width: 0; }
 
 /* My Cards tab (account My Stuff section) — attribution footer under the
    collection manager. */
@@ -2381,6 +2242,108 @@ html.dark .gs-platform-icon {
   padding-top: var(--spacing-16);
   border-top: 1px solid var(--border-subtle);
 }
+
+/* ---------- Deck lists (My Stuff ▸ My Collection ▸ Deck lists) ---------- */
+.tcg-decks__list { margin-top: var(--spacing-8); }
+.tcg-decks__row .empac-list__item-content { min-width: 0; flex: 1 1 auto; }
+/* Card art is a portrait 5:7 box; the cover is the deck's lead Pokémon. */
+.tcg-decks__cover {
+  width: 4rem;
+  aspect-ratio: 5 / 7;
+  object-fit: cover;
+  border-radius: var(--radius-8);
+  background: var(--background-secondary);
+  display: block;
+  flex-shrink: 0;
+}
+.tcg-decks__cover--none { border: 1px dashed var(--border-default); }
+.tcg-decks__name {
+  all: unset;
+  cursor: pointer;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.tcg-decks__name:hover { text-decoration: underline; }
+.tcg-decks__name:focus-visible { outline: 2px solid var(--brand-ink); outline-offset: 2px; border-radius: 2px; }
+.tcg-decks__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4) var(--spacing-12);
+  margin-top: var(--spacing-4);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.tcg-decks__progress { margin-top: var(--spacing-8); max-width: 24rem; }
+.tcg-decks__limit { margin-top: var(--spacing-16); font-size: var(--font-size-14); color: var(--text-secondary); }
+.tcg-decks__guides { text-decoration: none; }
+
+.tcg-decks__paste,
+.tcg-decks__deck { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.tcg-decks__textarea textarea { font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: var(--font-size-14); }
+.tcg-decks__hint { margin: calc(var(--spacing-8) * -1) 0 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+.tcg-decks__paste-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--spacing-8); }
+
+.tcg-decks__checks {
+  list-style: none;
+  margin: 0;
+  padding: var(--spacing-12) var(--spacing-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-secondary);
+}
+.tcg-decks__check { display: flex; align-items: baseline; gap: var(--spacing-10); font-size: var(--font-size-14); color: var(--text-primary); }
+.tcg-decks__check-mark {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  color: var(--background-primary);
+  transform: translateY(0.3rem);
+}
+.tcg-decks__check--ok .tcg-decks__check-mark { background: var(--success-ink); }
+.tcg-decks__check--warn .tcg-decks__check-mark { background: var(--warning-ink); }
+.tcg-decks__check--bad .tcg-decks__check-mark { background: var(--error-ink); }
+
+.tcg-decks__deck-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8) var(--spacing-12);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.tcg-decks__deck-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.tcg-decks__deck-actions a { text-decoration: none; }
+.tcg-decks__rename { display: flex; align-items: flex-end; gap: var(--spacing-8); }
+.tcg-decks__rename > :first-child { flex: 1 1 auto; min-width: 0; }
+.tcg-decks__owned { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.tcg-decks__owned a { color: var(--brand-ink); font-weight: var(--font-weight-semibold); }
+.tcg-decks__card { display: inline-flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
+.tcg-decks__thumb {
+  width: 2.4rem;
+  aspect-ratio: 5 / 7;
+  object-fit: cover;
+  border-radius: 3px;
+  background: var(--background-secondary);
+  flex-shrink: 0;
+}
+.tcg-decks__thumb--none { display: inline-block; border: 1px dashed var(--border-default); }
+.tcg-decks__unmatched { font-size: var(--font-size-12); color: var(--warning-ink); }
+.tcg-decks__mark { color: var(--text-tertiary); }
+.tcg-decks__have { color: var(--success-ink); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.tcg-decks__need { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 
 /* ---------- Stream Tools tab (overlay tool customization) ---------- */
 .stream-tools__section {
@@ -2587,9 +2550,8 @@ html.dark .gs-platform-icon {
   background: var(--background-subtle, var(--background-elevated));
 }
 /* Greyed, inactive GS Pro feature placeholder for Free accounts. */
-.dbot-locked {
-  opacity: 0.62;
-}
+/* Greyed by color, not opacity: faded text failed contrast (4.5:1). */
+.dbot-locked .account-card__title { color: var(--text-secondary); }
 .dbot-locked__head {
   display: flex;
   align-items: center;
@@ -2603,7 +2565,7 @@ html.dark .gs-platform-icon {
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full, 999px);
   padding: 2px var(--spacing-8);
@@ -2687,7 +2649,7 @@ html.dark .gs-platform-icon {
   gap: var(--spacing-8);
 }
 .dbot-followup__offset {
-  width: 92px;
+  width: 136px;
   flex-shrink: 0;
 }
 .dbot-announce-actions {
@@ -2941,7 +2903,9 @@ html.dark .gs-platform-icon {
 .poll-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-12);
+  /* Room for CDS floating labels, which sit above their field. */
+  gap: var(--spacing-20);
+  padding-top: var(--spacing-12);
   max-width: 640px;
 }
 .poll-optrow {
@@ -3139,6 +3103,10 @@ html.dark .gs-platform-icon {
   flex-direction: column;
   gap: var(--spacing-6);
 }
+.chat-ov-settings__count {
+  grid-column: 1 / -1;
+  max-width: 44rem;
+}
 .chat-ov-settings__roles {
   display: flex;
   flex-direction: column;
@@ -3154,17 +3122,6 @@ html.dark .gs-platform-icon {
   justify-content: flex-end;
 }
 
-/* Platform → Pricing: clickable price pills */
-.pricing-price {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  padding: var(--spacing-8) var(--spacing-12);
-  border-radius: var(--gs-radius-md, 0.9rem);
-  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.12));
-  background: var(--surface-default); cursor: pointer; text-align: left; font: inherit; color: inherit;
-}
-.pricing-price:hover { border-color: var(--bg-primary, var(--primary-600)); }
-.pricing-price__amount { font-weight: var(--font-weight-bold); font-size: var(--font-size-16); }
-.pricing-price__meta { font-size: var(--font-size-12); color: var(--text-tertiary); }
 
 /* Account → Security: phone + SMS preferences */
 .phone-row { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
@@ -3178,11 +3135,11 @@ html.dark .gs-platform-icon {
 
 /* Account → Security: two-factor */
 .twofa__head { display: flex; align-items: center; gap: var(--spacing-8); }
-.twofa__factors { list-style: none; margin: var(--spacing-12) 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.twofa__factors { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
 .twofa__factor { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); }
 .twofa__factor-name { display: block; font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); }
 .twofa__factor-meta { display: block; color: var(--text-tertiary); font-size: var(--font-size-12); }
-.twofa__codes-note { margin: 0 0 var(--spacing-12); font-size: var(--font-size-12); color: var(--text-secondary); }
+.twofa__codes-note { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
 .twofa__enroll { display: flex; flex-direction: column; gap: var(--spacing-12); align-items: center; text-align: center; }
 .twofa__qr { width: 200px; height: 200px; border-radius: var(--gs-radius-sm, 0.5rem); background: #fff; padding: 8px; }
 .twofa__secret { display: block; margin-top: var(--spacing-8); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.1em; word-break: break-all; }
@@ -3557,8 +3514,11 @@ html.dark .gs-platform-icon {
 @media (max-width: 640px) {
   .admin-filters { grid-template-columns: 1fr; }
 }
-/* Tables are wide by nature; scroll the table, never the page. */
+/* Tables are wide by nature; scroll the table, never the page. Positioned so
+   a visually hidden column header (.sr-only, absolutely positioned) stays
+   inside this scroll box instead of widening the page on phones. */
 .admin-table {
+  position: relative;
   overflow-x: auto;
   border: 1px solid var(--border-subtle, var(--border-default));
   border-radius: var(--gs-radius-md, 0.9rem);
@@ -3641,51 +3601,722 @@ html.dark .gs-platform-icon {
   text-wrap: balance;
 }
 
-/* ── Economy lever row ────────────────────────────────────────────────────
-   Text on the left, the control group on the right. Previously three grid
-   columns with Save in its own, pinned to the bottom of the card — which put
-   it below the input it saves and left the column ragged down the list. Save
-   now shares a row with the input, so the two always line up whatever the
-   helper text does. */
-.lever {
+.platform-view__body > .account-card { background: none; box-shadow: none; border-radius: 0; }
+.platform-view__body > .account-card + .account-card { margin-top: 0; padding-top: 0; }
+
+/* ── Platform admin kit (src/components/account/admin/AdminKit.tsx) ───────
+   One header, one stat grid, one section style for every admin screen. */
+.admin-screen { display: flex; flex-direction: column; gap: var(--spacing-28); min-width: 0; }
+.admin-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--spacing-12) var(--spacing-16); }
+.admin-head__text { flex: 1 1 28rem; min-width: 0; }
+.admin-head .admin-head__title { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); color: var(--text-primary); }
+.admin-head__intro { margin: var(--spacing-6) 0 0; max-width: 68ch; font-size: var(--font-size-16); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-head__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+
+/* Stats: 2 across until the screen is wide enough for 4 (or 3). Sized by the
+   screen's own width, not the window's, since the sidebar takes a share. */
+.admin-stats-wrap { container-type: inline-size; min-width: 0; }
+.admin-stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-12); }
+.admin-stats-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+@container (min-width: 640px) {
+  .admin-stats-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .admin-stats-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .admin-stats-grid > :last-child:nth-child(odd) { grid-column: auto; }
+}
+/* Cards in a row line up: the number sits right under the label and the
+   small print is pinned to the bottom, so a two-line note doesn't lift its
+   number out of line with the neighbours. */
+.admin-stats-grid .empac-stat-card { display: flex; flex-direction: column; min-width: 0; }
+.admin-stats-grid .empac-stat-card__content { flex: 1; flex-direction: column; align-items: stretch; }
+.admin-stats-grid .empac-stat-card__main { flex: 1; }
+.admin-stats-grid .empac-stat-card__source { margin-top: auto; padding-top: var(--spacing-4); }
+.admin-stats-grid .empac-stat-card__label { text-wrap: balance; }
+.admin-stats-grid .empac-stat-card__icon { flex: 0 0 auto; }
+/* Two across on a phone: drop the (decorative) icons so labels get the width
+   and don't wrap unevenly across a row. */
+@container (max-width: 420px) {
+  .admin-stats-grid .empac-stat-card { padding: var(--spacing-12) var(--spacing-14); }
+  .admin-stats-grid .empac-stat-card__icon { display: none; }
+  .admin-stats-grid .empac-stat-card__header { margin-bottom: var(--spacing-4); }
+  .admin-stats-grid .empac-stat-card__value { font-size: var(--font-size-28); }
+}
+
+.admin-section { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.admin-section__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); }
+.admin-section .admin-section__title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-section__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.admin-section__intro { margin: calc(-1 * var(--spacing-4)) 0 0; max-width: 68ch; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); gap: var(--spacing-12); }
+.admin-charts .admin-chart { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.admin-chart__title { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+.admin-updated { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+/* A one-line pointer to another view ("Tokens in the last hour… Token economy"). */
+.admin-pointer { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-primary); font-size: var(--font-size-14); color: var(--text-secondary); }
+.admin-pointer svg { flex: 0 0 auto; color: var(--text-tertiary); }
+.admin-pointer__text { flex: 1 1 20rem; min-width: 0; }
+.admin-pointer__text strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.admin-pointer a { font-weight: var(--font-weight-semibold); color: var(--brand-ink, var(--text-primary)); white-space: nowrap; }
+.admin-table:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; }
+.admin-table .empac-table { min-width: 100%; }
+.admin-num { font-variant-numeric: tabular-nums; }
+.admin-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); gap: var(--spacing-28) var(--spacing-16); align-items: start; min-width: 0; }
+.admin-chart__empty { margin: 0; min-height: 12rem; display: grid; place-items: center; text-align: center; padding: var(--spacing-16); font-size: var(--font-size-14); color: var(--text-tertiary); }
+/* Phones: a wide admin table keeps its first column in place while the rest
+   scrolls sideways, so each row stays readable (legibility over fit). */
+@media (max-width: 640px) {
+  .admin-table .empac-table__head:first-child,
+  .admin-table .empac-table__cell:first-child { position: sticky; left: 0; z-index: 1; max-width: 45vw; background-color: var(--background-elevated); box-shadow: 1px 0 0 var(--border-default); }
+  .admin-table .empac-table__head:first-child { background-color: var(--background-secondary); }
+  .admin-table .empac-table--striped .empac-table__row:nth-child(even) .empac-table__cell:first-child { background-color: var(--background-secondary); }
+}
+/* CDS Table brings its own scroll box; the admin wrapper is the (focusable)
+   scroller instead, so drop the inner one and its second border. */
+.admin-table .empac-table-container { overflow: visible; border: 0; border-radius: 0; }
+.admin-row-actions { display: inline-flex; align-items: center; justify-content: flex-end; gap: var(--spacing-4); white-space: nowrap; }
+/* The shared icon tile (globals.css .icon-tile values), beside the section title. */
+.admin-section__icon { width: var(--tile-md); height: var(--tile-md); flex: 0 0 auto; border-radius: var(--tile-md-radius); display: grid; place-items: center; color: #fff; background: var(--tile-blue); box-shadow: var(--tile-shadow); }
+.admin-section__icon svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
+.admin-section__icon--accent { background: var(--tile-magenta); }
+.admin-section__head:has(.admin-section__icon) .admin-section__title { flex: 1; min-width: 0; }
+.admin-panel { display: flex; flex-direction: column; gap: var(--spacing-10); min-width: 0; padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-primary); }
+.admin-panel .admin-panel__title { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-panel p { margin: 0; }
+.originals-admin__weeks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--spacing-12); align-items: stretch; }
+.originals-admin .admin-panel.originals-admin__today { flex-direction: row; align-items: center; gap: var(--spacing-16); }
+.originals-admin .originals-admin__answer { margin: 2px 0 4px; font-size: var(--font-size-20); font-weight: var(--font-weight-semibold); }
+/* Counts on admin tabs are just counts, not alerts: neutral, not CDS's red. */
+.platform-view .empac-tabs__tab-badge { background: var(--background-tertiary, var(--background-secondary)); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.platform-view .empac-tabs__tab--active .empac-tabs__tab-badge { background: color-mix(in srgb, var(--primary-500) 14%, var(--background-elevated)); color: var(--brand-ink, var(--primary-600)); }
+/* CDS Progress only names its bar through `label`, which it also prints over
+   the bar. Where the number is already written beside it, keep the name and
+   hide the print. (Known CDS gap; raise upstream.) */
+.admin-progress-quiet .empac-progress__label { display: none; }
+
+/* Autosave note in a screen header (SaveStatus). */
+.save-status { display: inline-flex; align-items: center; gap: var(--spacing-6); font-size: var(--font-size-14); color: var(--text-tertiary); white-space: nowrap; }
+.save-status--error { color: var(--error-ink, var(--error-600)); white-space: normal; }
+.save-status--saving svg { animation: save-spin 0.9s linear infinite; }
+@keyframes save-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .save-status--saving svg { animation: none; } }
+
+/* Older self-contained cards inside a screen become its sections, so a screen
+   is one card with sections, never a card in a card. */
+.admin-screen .account-card { background: none; box-shadow: none; border-radius: 0; padding: 0; margin: 0; }
+.admin-screen .account-card + .account-card { margin-top: 0; }
+.admin-screen > .account-card { padding-top: var(--spacing-28); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.admin-screen > .admin-head + .account-card { padding-top: 0; border-top: 0; }
+.admin-screen .account-card h2,
+.admin-screen .account-card h2.account-tab__heading { margin: 0 0 var(--spacing-8); font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); }
+.admin-screen .account-card > .account-tab__intro { margin-bottom: var(--spacing-16); }
+.brand-mode .empac-tabs__panel { padding-top: var(--spacing-16); }
+/* Labelled fields (AdminField) and the form column they sit in. */
+.admin-form { display: flex; flex-direction: column; gap: var(--spacing-20); max-width: 52rem; min-width: 0; }
+.admin-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--spacing-20) var(--spacing-24); min-width: 0; }
+.admin-field { display: flex; flex-direction: column; gap: var(--spacing-6); min-width: 0; }
+.admin-field__label { display: inline-flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-field__help { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); line-height: var(--line-height-relaxed); }
+.admin-field__error { margin: 0; font-size: var(--font-size-12); color: var(--error-ink, var(--error-600)); }
+.settings-verified { margin: 0; display: inline-flex; align-items: center; gap: var(--spacing-6); font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--success-ink, var(--success-600)); }
+.settings-unverified { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.settings-delete { display: flex; flex-direction: column; gap: var(--spacing-16); padding: var(--spacing-16); border: 1px solid color-mix(in srgb, var(--error-500) 40%, var(--border-default)); border-radius: var(--radius-12, 12px); background: color-mix(in srgb, var(--error-500) 6%, transparent); }
+.settings-delete__warn { margin: 0; font-weight: var(--font-weight-semibold); color: var(--error-ink, var(--error-600)); }
+.settings-delete__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.profile-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-6); }
+.profile-genres { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.cmd-reply { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 46ch; }
+.cmd-reply--off { color: var(--text-tertiary); font-style: italic; }
+.cmd-vars { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-8) var(--spacing-16); font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Tool color fields (stream-tools/fields.tsx) on CDS ColorPicker. */
+.tool-color { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); font-size: var(--font-size-14); flex-wrap: wrap; width: 100%; }
+.tool-color__brand { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border-default); background: var(--brand-primary); }
+/* Streaming ▸ Overlay ▸ Tool looks */
+.tool-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); }
+.tool-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto auto; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); }
+.tool-row + .tool-row { border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.tool-row__icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--background-secondary); color: var(--text-secondary); }
+.tool-row__text { display: flex; flex-direction: column; min-width: 0; font-size: var(--font-size-14); }
+.tool-row__text span { color: var(--text-tertiary); font-size: var(--font-size-12); }
+.tool-row__swatches { display: inline-flex; gap: 4px; }
+.tool-row__swatches i { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border-default); display: inline-block; }
+.tool-panel, .tool-panel-form { display: flex; flex-direction: column; gap: var(--spacing-16); width: 100%; align-self: stretch; align-items: stretch; }
+.tool-panel-form { padding-top: var(--spacing-8); }
+.stream-tools__bare { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.schedule-editor, .schedule-rows { display: flex; flex-direction: column; gap: var(--spacing-12); }
+/* Columns in px-sized rem (10px root): the time field needs ~150px for its clock button. */
+.schedule-row { display: grid; grid-template-columns: minmax(11rem, 13rem) minmax(15rem, 16rem) minmax(0, 1fr) auto; gap: var(--spacing-8); align-items: center; }
+@media (max-width: 640px) { .schedule-row { grid-template-columns: 1fr 1fr auto; } .schedule-row > :nth-child(3) { grid-column: 1 / -1; grid-row: 2; } }
+/* A screen wrapping an older tab component: its own repeat of the title goes. */
+/* Every h2.account-tab__heading in an older tab is that tab's own title,
+   which the screen header already shows (Engagement's sits in a flex row). */
+.admin-screen--wrap h2.account-tab__heading:not(.account-tab__heading--section) { display: none; }
+.admin-screen--wrap > .account-tab { display: flex; flex-direction: column; gap: var(--spacing-20); }
+/* Streaming ▸ Get started (free accounts) */
+.streaming-hero { display: flex; flex-direction: column; gap: var(--spacing-12); padding: var(--spacing-24); border-radius: var(--radius-12, 12px); color: #fff; background: radial-gradient(120% 140% at 0% 0%, #4b5cf5 0%, #2f3fae 38%, #151a4a 100%); }
+.streaming-hero__badge { width: fit-content; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); padding: 2px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.16); }
+.streaming-hero__terms { margin: 0; color: rgba(255, 255, 255, 0.88); font-size: var(--font-size-14); }
+.streaming-hero__more { color: #fff; font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); width: fit-content; }
+.streaming-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--spacing-12); }
+.streaming-step { display: flex; flex-direction: column; gap: var(--spacing-6); padding: var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); font-size: var(--font-size-14); }
+.streaming-step span:last-child { color: var(--text-secondary); }
+.streaming-step__num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: var(--font-weight-bold); font-size: var(--font-size-12); background: color-mix(in srgb, var(--primary-500) 16%, transparent); color: var(--brand-ink, var(--primary-600)); }
+.streaming-step.is-done .streaming-step__num { background: color-mix(in srgb, var(--success-500) 18%, transparent); color: var(--success-ink, var(--success-600)); }
+.streaming-unlocks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-8) var(--spacing-16); font-size: var(--font-size-14); }
+.streaming-unlocks li { display: flex; align-items: center; gap: var(--spacing-8); }
+.streaming-unlocks svg { color: var(--success-ink, var(--success-600)); flex: 0 0 auto; }
+.dbot-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-8); }
+/* My Stuff: event, season and saved-game rows (StuffList on CDS List) */
+.stuff-list { container: stuff / inline-size; }
+.stuff-list .stuff-row.empac-list__item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-4); }
+.stuff-list .stuff-row .empac-list__item-icon { width: auto; height: auto; color: inherit; }
+.stuff-list .stuff-row .empac-list__item-content { display: flex; flex-direction: column; gap: 2px; }
+.stuff-list .stuff-row .empac-list__item-suffix { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--spacing-8); margin-left: 0; color: inherit; font-size: inherit; }
+.stuff-row__title { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); text-decoration: none; overflow-wrap: anywhere; }
+.stuff-row__title:hover { text-decoration: underline; }
+.stuff-row__meta { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+@container stuff (max-width: 520px) {
+  .stuff-list .stuff-row.empac-list__item { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .stuff-list .stuff-row .empac-list__item-suffix { grid-column: 2; justify-content: flex-start; }
+}
+.stuff-thumb { position: relative; display: block; width: 45px; height: 60px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--surface-sunken); }
+.stuff-thumb img, .stuff-thumb .game-cover { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 0; aspect-ratio: auto; }
+.stuff-thumb .game-cover--blank { font-size: var(--font-size-16); }
+.stuff-thumb .evart { position: absolute; inset: 0; }
+/* A thumbnail is too small for the band's off-edge glyph: centre it whole. */
+.stuff-thumb .evart__feature { right: auto; left: 50%; top: 50%; width: 72%; height: auto; transform: translate(-50%, -50%); }
+.stuff-thumb--icon { display: grid; place-items: center; color: var(--brand-ink, var(--primary-600)); background: color-mix(in srgb, var(--primary-500) 12%, transparent); }
+.stuff-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-8); }
+.stuff-subgroup { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.stuff-subgroup__title { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+/* Table cells on My Stuff ▸ Purchases */
+.stuff-cell__title { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.stuff-cell__sub { display: block; margin-top: 2px; font-size: var(--font-size-12); color: var(--text-secondary); max-width: 34ch; white-space: normal; }
+.stuff-cell__actions { display: inline-flex; align-items: center; gap: var(--spacing-4); }
+/* Streaming ▸ Discord bot: each part's sections get the screen's rhythm
+   (they sat flush against each other once the cards were flattened), and
+   everything inside a section is spaced by gap, not stray margins. */
+.dbot-part { display: flex; flex-direction: column; gap: var(--spacing-28); min-width: 0; }
+.dbot-part > .account-card { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.dbot-part > .account-card + .account-card { padding-top: var(--spacing-28); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.dbot-part > .account-card > * { margin-top: 0; margin-bottom: 0; }
+.dbot-part > .account-card > :is(button, .empac-button) { align-self: flex-start; }
+.dbot-part .dbot-muted { margin: 0; }
+.dbot-part > .account-card h2.account-card__title { margin: 0; }
+/* The connected server: picture, name, default channel, slot count. */
+.dbot-server { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); }
+.dbot-server__text { flex: 1 1 22rem; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dbot-server__eyebrow { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
+.dbot-server__name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); color: var(--text-primary); overflow-wrap: anywhere; }
+.dbot-server__meta { font-size: var(--font-size-14); color: var(--text-secondary); }
+.dbot-server__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.dbot-server__actions .empac-select { min-width: 20rem; }
+.dbot-server-card .dbot-servers__note { margin: 0; }
+.overlay-size { width: 22rem; max-width: 100%; }
+/* My Stuff ▸ Tickets ▸ Receipt (a CDS Modal). Printing shows only the receipt. */
+.ticket-receipt { display: flex; flex-direction: column; gap: var(--spacing-16); font-size: var(--font-size-14); }
+.ticket-receipt__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--spacing-12); padding-bottom: var(--spacing-12); border-bottom: 1px solid var(--border-default); }
+.ticket-receipt__head strong { font-size: var(--font-size-18); }
+.ticket-receipt__head span { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.ticket-receipt dl { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-6); }
+.ticket-receipt dl div { display: flex; justify-content: space-between; gap: var(--spacing-12); }
+.ticket-receipt dt { color: var(--text-secondary); }
+.ticket-receipt dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.ticket-receipt__facts dd { font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.ticket-receipt__lines { padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); }
+.ticket-receipt__total { padding-top: var(--spacing-8); margin-top: var(--spacing-4); border-top: 1px solid var(--border-default); font-weight: var(--font-weight-bold); }
+.ticket-receipt__total dt { color: var(--text-primary); }
+.ticket-receipt__note { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+@media print {
+  body:has(.ticket-receipt) * { visibility: hidden; }
+  .ticket-receipt, .ticket-receipt * { visibility: visible; }
+  .ticket-receipt { position: absolute; top: 0; left: 0; width: 100%; padding: 24px; color: #000; background: #fff; }
+}
+.setup-view { display: flex; flex-direction: column; gap: var(--spacing-12); }
+/* Overlay ▸ Layout toolbar: piece picker, show all / only this one, shape, preview. */
+.overlay-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-16); margin-bottom: var(--spacing-20); }
+.overlay-toolbar__piece { flex: 0 1 26rem; min-width: 18rem; }
+.overlay-toolbar__group { display: inline-flex; gap: var(--spacing-6); }
+.overlay-anchor { display: grid; grid-template-columns: repeat(3, auto); gap: 2px; }
+.overlay-anchor .empac-icon-button { width: 22px; height: 22px; min-width: 0; padding: 0; }
+.overlay-anchor__dot { width: 8px; height: 8px; border-radius: 2px; border: 1.5px solid currentColor; display: block; }
+.overlay-anchor [aria-pressed="true"] .overlay-anchor__dot { background: currentColor; }
+.overlay-obs { margin-bottom: var(--spacing-20); }
+.overlay-obs .empac-accordion__content > div:first-child { margin-bottom: var(--spacing-12); }
+.overlay-anchor__label { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+/* Account ▸ Profile ▸ Games ▸ My gaming collection */
+.gcol { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.gcol__add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); }
+.gcol__kind { display: inline-flex; gap: var(--spacing-6); }
+.gcol__search { flex: 1 1 26rem; min-width: 0; }
+.gcol__search--board { display: flex; gap: var(--spacing-8); align-items: center; }
+.gcol__filters { display: flex; flex-wrap: wrap; gap: var(--spacing-6); }
+.gcol__shelf { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(9.2rem, 1fr)); gap: var(--spacing-16) var(--spacing-12); }
+.gcol__item { position: relative; min-width: 0; }
+.gcol__open.empac-card { display: flex; flex-direction: column; gap: var(--spacing-6); background: transparent; box-shadow: none; border: 0; text-align: left; }
+.gcol__cover { position: relative; display: block; border-radius: var(--radius-8, 8px); overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14); }
+.gcol__cover .game-cover { border-radius: 0; }
+.gcol__kindtag { position: absolute; left: 6px; bottom: 6px; font-size: var(--font-size-10); font-weight: var(--font-weight-bold); padding: 1px 6px; border-radius: 4px; background: rgba(23, 26, 38, 0.82); color: #fff; }
+.gcol__name { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-primary); line-height: 1.3; overflow-wrap: anywhere; }
+.gcol__star { position: absolute; top: 4px; right: 4px; }
+.gcol__star .empac-icon-button { width: 28px; height: 28px; min-width: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.94); color: #6b7280; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); }
+.gcol__star.is-on .empac-icon-button { color: #c99300; }
+.gcol__details { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.gcol__details-head { display: flex; align-items: center; gap: var(--spacing-12); }
+.gcol__details-cover { width: 6rem; flex: 0 0 auto; }
+.gcol__details-text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); }
+.profile-other-genre { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); max-width: 44rem; }
+
+/* My Stuff ▸ Decks: what each kind of card does. */
+.decks-kinds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 26rem;
-  gap: var(--spacing-16);
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--spacing-12);
 }
-.lever__label { margin: 0; font-weight: var(--font-weight-semibold); color: var(--text-primary); }
-.lever__key {
-  margin: var(--spacing-4) 0 0;
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-  font-family: var(--font-mono);
-}
-.lever__helper {
-  margin: var(--spacing-8) 0 0;
+.decks-kinds__item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: var(--spacing-12);
+  row-gap: var(--spacing-4);
+  align-content: start;
+  padding: var(--spacing-16);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg, 12px);
   font-size: var(--font-size-14);
   color: var(--text-secondary);
   line-height: var(--line-height-relaxed);
 }
-.lever__control { display: flex; flex-direction: column; gap: var(--spacing-6); min-width: 0; }
-.lever__unit {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.decks-kinds__item strong {
+  color: var(--text-primary);
+  font-size: var(--font-size-16);
+  align-self: center;
 }
-.lever__row { display: flex; align-items: center; gap: var(--spacing-8); }
-.lever__row > :first-child { flex: 1; min-width: 0; }
-.lever__updated { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
-@media (max-width: 860px) {
-  .lever { grid-template-columns: 1fr; }
+.decks-kinds__item > span:last-child { grid-column: 1 / -1; }
+.decks-kinds__icon {
+  grid-row: 1;
+  display: inline-grid;
+  place-items: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 1rem;
+  background: var(--bg-primary-subtle, var(--primary-50));
+  color: var(--brand-ink, var(--primary-600));
 }
 
+/* Streaming ▸ Bingo */
+.bingo-steps--streamer { padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-lg, 12px); }
+.stream-bingo__goal { display: flex; align-items: center; gap: var(--spacing-12); }
+.stream-bingo__goal p { margin: 0; }
+.stream-bingo__patterns { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: var(--spacing-8); }
+.stream-bingo__patterns > li { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-md, 8px); }
+.stream-bingo__pattern-name { flex: 1; min-width: 0; font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }
+.stream-bingo__draw { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.stream-bingo__draw p { margin: 0; }
+.stream-bingo__grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--spacing-6); width: min(100%, 28rem); }
+.stream-bingo__cell { aspect-ratio: 1; border: 1px solid var(--border-default); border-radius: var(--radius-md, 8px); background: var(--bg-surface, transparent); color: var(--text-secondary); font: inherit; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); cursor: pointer; }
+.stream-bingo__cell:hover:not(:disabled) { border-color: var(--brand-ink, var(--primary-600)); }
+.stream-bingo__cell:focus-visible { outline: 2px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; }
+.stream-bingo__cell.is-on { background: var(--brand-ink, var(--primary-600)); border-color: transparent; color: #fff; }
+.stream-bingo__cell.is-free { cursor: default; opacity: 0.8; }
+.stream-bingo .party-row > .empac-select { flex: 0 1 26rem; min-width: 16rem; }
+.stream-bingo__last--doors { font-size: var(--font-size-32); font-variant-numeric: tabular-nums; }
+
+/* Discord bot ▸ Go-live alerts */
+.dbot-warn { margin: 0; font-size: var(--font-size-14); color: var(--text-warning, #9a5b00); }
+.dbot-alerts__routing { display: grid; grid-template-columns: repeat(2, minmax(0, 22rem)); gap: var(--spacing-12); }
+.dbot-alerts__add { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-12) var(--spacing-20); }
+.dbot-alerts__add-part { display: flex; align-items: center; gap: var(--spacing-8); min-width: 0; }
+.dbot-alerts__add-part > :first-child { flex: 1; min-width: 0; }
+.dbot-alerts__list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-md, 8px); overflow: hidden; }
+.dbot-alerts__item { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-10, 10px) var(--spacing-12); }
+.dbot-alerts__item + .dbot-alerts__item { border-top: 1px solid var(--border-default); }
+.dbot-alerts__item.is-off .dbot-alerts__text { opacity: 0.6; }
+.dbot-alerts__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dbot-alerts__name { font-weight: var(--font-weight-semibold); overflow-wrap: anywhere; }
+.dbot-alerts__meta { display: flex; flex-wrap: wrap; gap: 0 var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.dbot-alerts__meta > span { white-space: nowrap; }
+@media (max-width: 480px) {
+  .dbot-alerts__item { flex-wrap: wrap; }
+  .dbot-alerts__text { flex-basis: calc(100% - 5.6rem); }
+  .dbot-alerts__item > :last-child { margin-left: auto; }
+}
+.dbot-alerts__edit { display: flex; flex-direction: column; gap: var(--spacing-10, 10px); }
+.dbot-alerts__edit p { margin: 0; }
+.dbot-alerts__preview { font-size: var(--font-size-14); padding: var(--spacing-10, 10px) var(--spacing-12); border-radius: var(--radius-md, 8px); background: var(--surface-sunken, rgba(0, 0, 0, 0.04)); overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .dbot-alerts__routing, .dbot-alerts__add { grid-template-columns: 1fr; }
+}
+
+/* Streaming ▸ Setup ▸ Twitch: channel points reward */
+.channel-points { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); margin-top: var(--spacing-12); }
+.channel-points__cost { width: 16rem; }
+
+/* ── Streaming ▸ Chat ▸ Commands (CommandsScreen): one searchable list ── */
+.cmds__toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin-bottom: var(--spacing-12); }
+.cmds__search { flex: 1 1 28rem; min-width: 0; }
+.cmds__toolbar > .empac-select { flex: 0 0 18rem; }
+.cmds { display: flex; flex-direction: column; gap: var(--spacing-24); padding-top: var(--spacing-12); }
+.cmds__setup { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); max-width: 80ch; }
+.cmds__group-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-12); border-bottom: 1px solid var(--border-default); padding-bottom: var(--spacing-6, 6px); }
+.cmds__group-title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-bold); }
+.cmds__group-count { font-size: var(--font-size-12); color: var(--text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cmds__group-blurb { margin: var(--spacing-6, 6px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.cmds__rows { list-style: none; margin: var(--spacing-4) 0 0; padding: 0; }
+.cmds__row { border-bottom: 1px solid var(--border-subtle, var(--border-default)); }
+.cmds__main { display: grid; grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr) 11rem auto; gap: var(--spacing-12); align-items: center; padding: var(--spacing-10, 10px) 0; }
+.cmds__typed { all: unset; cursor: pointer; justify-self: start; max-width: 100%; border-radius: var(--radius-4, 4px); }
+.cmds__typed code { display: inline-block; max-width: 100%; overflow-wrap: anywhere; font-size: var(--font-size-14); }
+.cmds__typed:hover code { text-decoration: underline; }
+.cmds__typed:focus-visible { outline: 2px solid var(--primary-600); outline-offset: 2px; }
+.cmds__summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6, 6px); font-size: var(--font-size-14); color: var(--text-secondary); min-width: 0; }
+.cmds__summary > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.cmds__who { font-size: var(--font-size-12); color: var(--text-tertiary); }
+/* Off rows read quieter without dropping below contrast (the switch says off). */
+.cmds__row.is-off .cmds__typed code { color: var(--text-secondary); background: transparent; box-shadow: inset 0 0 0 1px var(--border-default); }
+.cmds__more { display: grid; grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr); gap: var(--spacing-12); padding: 0 0 var(--spacing-14, 14px); font-size: var(--font-size-14); color: var(--text-secondary); }
+.cmds__facts { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-4); }
+.cmds__facts > div { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: var(--spacing-8); }
+.cmds__facts dt { color: var(--text-tertiary); }
+.cmds__facts dd { margin: 0; overflow-wrap: anywhere; }
+.cmds__explain { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.cmds__explain p { margin: 0; }
+.cmds__chat { display: flex; flex-direction: column; gap: 2px; padding: var(--spacing-8) var(--spacing-10, 10px); border-radius: var(--radius-8, 8px); background: var(--background-secondary); font-size: var(--font-size-14); }
+.cmds__chat b { font-weight: var(--font-weight-semibold); margin-right: var(--spacing-4); color: var(--text-primary); }
+.cmds__reply { overflow-wrap: anywhere; }
+.cmds__reply b { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
+.cmds__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
+.cmds__note { margin: 0 0 var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.cmds__ours { color: var(--text-primary); }
+.cmds__vars { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.cmds__vars > div { display: flex; flex-direction: column; gap: 2px; }
+.cmds__vars dd { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+@media (max-width: 760px) {
+  .cmds__main { grid-template-columns: minmax(0, 1fr) auto; }
+  .cmds__summary { grid-column: 1 / -1; grid-row: 2; }
+  .cmds__who { display: none; }
+  .cmds__more { grid-template-columns: minmax(0, 1fr); }
+}
+/* CDS Chip "warning" text is amber-700 on amber, about 3.3:1; use the
+   contrast-safe warning ink (raise upstream with CascadeDS). */
+.cmds__summary .empac-chip--warning .empac-chip__label { color: var(--warning-ink); }
+
+/* Mods tab: self-serve join note and the pending row's two buttons. */
+.mods-join { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); margin-bottom: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--background-secondary); font-size: var(--font-size-14); color: var(--text-secondary); }
+.mods-join strong { color: var(--text-primary); }
+.mods-join > div { flex: 1 1 32rem; min-width: 0; }
+/* Active mods: access picker + Revoke on one line (wraps under the name on phones). */
+.mods-row__actions { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
+.mods-row__access { min-width: 14rem; }
+.mods-join__row-actions { display: inline-flex; gap: var(--spacing-6, 6px); flex-wrap: wrap; }
+
+/* Break mode tab (BreakModeTab) */
+.break-tab { display: flex; flex-direction: column; gap: var(--spacing-24); }
+.break-tab__start { display: flex; flex-wrap: wrap; gap: var(--spacing-12); align-items: center; }
+.break-tab__start > :first-child { flex: 0 1 320px; min-width: 220px; }
+.break-tab__note { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.break-tab__games { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); gap: var(--spacing-12); }
+.break-tab__live { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.break-tab__prompt { margin: 0; font-size: var(--font-size-18); font-weight: 700; }
+.break-tab__reveal { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.break-tab__stats { display: flex; flex-wrap: wrap; gap: var(--spacing-16); font-size: var(--font-size-14); color: var(--text-secondary); }
+.break-tab__stats b { color: var(--text-primary); }
+.break-tab__leaders { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-4); max-width: 360px; counter-reset: bl; }
+.break-tab__leaders li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: var(--spacing-8); font-size: var(--font-size-14); }
+.break-tab__leaders li::before { counter-increment: bl; content: counter(bl); color: var(--text-secondary); font-weight: 700; }
+.break-tab__leaders span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.break-tab__leaders b { font-variant-numeric: tabular-nums; }
+.break-tab__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+
+/* Platform ▸ Originals ▸ Break mode (PlatformBreakTab) */
+.break-admin__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); }
+.break-admin__prompt { margin: 0; font-size: var(--font-size-16); font-weight: 600; }
+.break-admin__meta { margin: var(--spacing-4) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.break-admin__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); margin-top: var(--spacing-12); }
+.break-admin__list.is-compact { gap: 0; }
+.break-admin__row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--spacing-12); align-items: center; padding: var(--spacing-8) 0; border-bottom: 1px solid var(--border-subtle); }
+.break-admin__row .break-admin__prompt { font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.break-admin__row .break-admin__meta { margin: 0; white-space: nowrap; }
+@media (max-width: 640px) { .break-admin__row { grid-template-columns: minmax(0, 1fr) auto; } .break-admin__row .break-admin__meta { grid-column: 1; } }
+
+/* Platform ▸ Library (PlatformGuidesTab, PlatformDecksTab, PlatformGamesTab) */
+.admin-library-open { display: inline; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; font: inherit; font-weight: var(--font-weight-semibold); color: var(--brand-ink, var(--text-primary)); text-decoration: underline; text-underline-offset: 2px; }
+.admin-library-open:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; border-radius: 2px; }
+.admin-library-form { max-width: none; gap: var(--spacing-16); }
+.admin-library-form__lead { font-size: var(--font-size-14); color: var(--text-secondary); }
+.admin-library-form__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: var(--spacing-16); min-width: 0; }
+.admin-library-game { display: inline-flex; align-items: center; gap: var(--spacing-10, 10px); min-width: 16rem; }
+.admin-library-game__thumb { flex: 0 0 3.2rem; width: 3.2rem; }
+.admin-library-game__thumb .game-cover { border-radius: 4px; }
+.admin-library-game__thumb .game-cover--blank { font-size: var(--font-size-12); }
+.admin-library-game__text { display: flex; flex-direction: column; min-width: 0; }
+.admin-library-game__name { font-weight: var(--font-weight-semibold); color: var(--text-primary); overflow-wrap: break-word; }
+a.admin-library-game__name { color: var(--brand-ink, var(--text-primary)); text-decoration: underline; text-underline-offset: 2px; }
+.admin-library-pitch { min-width: 24rem; max-width: 56ch; white-space: normal; }
+
+/* Platform ▸ Chat bot ▸ Variables, Chaos events, Engagement (PlatformVariablesTab, PlatformEventsTab, PlatformEngagementTab) */
+.admin-chatbot-token { font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: var(--font-size-14); color: var(--text-primary); white-space: nowrap; }
+.admin-chatbot-wrap { display: block; min-width: 22rem; max-width: 52ch; white-space: normal; }
+.admin-chatbot-example { display: block; max-width: 24ch; overflow-wrap: anywhere; color: var(--text-secondary); }
+.admin-chatbot-line { min-width: 24rem; max-width: 48ch; white-space: normal; overflow-wrap: break-word; }
+.admin-chatbot-effects { display: flex; flex-direction: column; gap: 2px; min-width: 14rem; font-size: var(--font-size-14); }
+.admin-chatbot-activity { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6) var(--spacing-8); }
+.admin-chatbot-filter { max-width: 28rem; }
+.admin-chatbot-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); }
+.admin-chatbot-modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); width: 100%; }
+.admin-chatbot-modal-note { font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-chatbot-game { display: block; min-width: 9rem; }
+/* A row's name opens its editor (the Edit button can sit off-screen on phones). */
+.admin-chatbot-open { display: inline; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; font: inherit; font-weight: var(--font-weight-semibold); color: var(--brand-ink, var(--text-primary)); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.admin-chatbot-open .admin-chatbot-token { color: inherit; }
+.admin-chatbot-open:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; border-radius: 2px; }
+@media (max-width: 640px) {
+  .admin-chatbot-wrap { min-width: 18rem; }
+  .admin-chatbot-line { min-width: 18rem; }
+  /* The first column is pinned at 45vw on phones: its text fills that width
+     (less the cell's 8px padding) and wraps inside it. */
+  .admin-table .empac-table__cell:first-child .admin-chatbot-wrap,
+  .admin-table .empac-table__cell:first-child .admin-chatbot-line { min-width: calc(45vw - 1.6rem); max-width: calc(45vw - 1.6rem); }
+}
+
+/* Platform ▸ Events ▸ Tournaments, Ticket sales (PlatformTournamentsTab, PlatformTicketingTab) */
+.admin-filters.admin-events-filters { grid-template-columns: minmax(0, 1fr) repeat(2, minmax(12rem, 16rem)); }
+@media (max-width: 640px) { .admin-filters.admin-events-filters { grid-template-columns: 1fr 1fr; } .admin-events-filters > :first-child { grid-column: 1 / -1; } }
+@media (min-width: 641px) { .admin-events-title { min-width: 16rem; } }
+.admin-events-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); }
+.admin-events-form { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.admin-events-modal-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); width: 100%; }
+
+/* Platform ▸ People ▸ Moderation, Staff and roles (PlatformModerationTab, PlatformStaffTab) */
+.admin-people-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-12); }
+.admin-panel.admin-people-item { gap: var(--spacing-8); }
+.admin-people-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6) var(--spacing-8); min-width: 0; }
+.admin-panel .admin-people-name { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); overflow-wrap: anywhere; }
+.admin-people-link { display: inline-flex; align-items: center; gap: 2px; font-size: var(--font-size-14); color: var(--brand-ink, var(--text-primary)); text-decoration: underline; text-underline-offset: 2px; }
+.admin-people-link:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; border-radius: 2px; }
+.admin-panel .admin-people-reason { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+.admin-people-quote { margin: 0; padding: var(--spacing-8) var(--spacing-12); border-left: 3px solid var(--border-default); border-radius: 0 6px 6px 0; background: var(--background-elevated); font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-panel .admin-people-time { font-size: var(--font-size-12); color: var(--text-tertiary); }
+.admin-people-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); padding-top: var(--spacing-4); }
+.admin-people-form { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.admin-people-help { margin: 0; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-people-modal-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); width: 100%; }
+.admin-people-nowrap { white-space: nowrap; }
+
+/* Platform ▸ Chat bot ▸ Commands (PlatformDefaultCommandsTab) */
+.admin-cmds-name { font-weight: var(--font-weight-semibold); color: var(--text-primary); white-space: nowrap; }
+.admin-cmds-kind { display: block; white-space: nowrap; }
+.admin-cmds-nowrap { white-space: nowrap; }
+.admin-cmds-reply { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-width: 20rem; max-width: 38ch; margin-top: 2px; font-size: var(--font-size-12); line-height: var(--line-height-relaxed); color: var(--text-tertiary); overflow-wrap: anywhere; }
+.admin-cmds-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); }
+.admin-cmds-modal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); width: 100%; }
+.admin-cmds-form { max-width: none; }
+.admin-cmds-group { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; margin: 0; padding: 0; border: 0; }
+.admin-cmds-group + .admin-cmds-group { padding-top: var(--spacing-20); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+/* Floated so the legend is an ordinary flex item instead of sitting on the
+   fieldset's top border (browser default). */
+.admin-cmds-group__title { float: left; width: 100%; margin: 0; padding: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-cmds-replies { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.admin-cmds-replies__intro { margin: 0; max-width: 68ch; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-cmds-replies__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); }
+.admin-cmds-replies__count { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.admin-cmds-replies__text { display: block; min-width: 16rem; max-width: 52ch; white-space: normal; overflow-wrap: anywhere; }
+.admin-cmds-replies__text--off { color: var(--text-tertiary); }
+.admin-cmds-reply-form { gap: var(--spacing-16); }
+
+/* Platform ▸ Pricing and ▸ Token economy (PlatformPricingTab, PlatformEconomySnapshotTab,
+   TokenEconomyPanels, PlatformEconomyTab, PlatformComplianceTab) */
+.admin-money-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-primary); min-width: 0; }
+.admin-money-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--spacing-8) var(--spacing-16); padding: var(--spacing-14, 14px) var(--spacing-16); }
+.admin-money-row + .admin-money-row { border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.admin-money-row__text { min-width: 0; }
+.admin-money-row__name { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-money-row__help { margin: var(--spacing-2, 2px) 0 0; max-width: 68ch; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-money-row__meta { margin: var(--spacing-4) 0 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+.admin-money-row__value { font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); color: var(--text-primary); white-space: nowrap; text-align: right; }
+@media (max-width: 640px) {
+  .admin-money-row { grid-template-columns: minmax(0, 1fr) auto; padding: var(--spacing-12) var(--spacing-14, 14px); }
+  .admin-money-row__text { grid-column: 1 / -1; }
+  .admin-money-row__value { text-align: left; }
+}
+.admin-money-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: var(--spacing-12); align-items: stretch; }
+.admin-panel.admin-money-plan { gap: var(--spacing-8); }
+.admin-money-plan__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6) var(--spacing-8); }
+.admin-panel .admin-money-plan__head .admin-panel__title { margin-right: var(--spacing-4); }
+.admin-panel .admin-money-plan__for { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-tertiary); }
+.admin-panel .admin-money-plan__blurb { font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-money-limits { margin: 0; display: grid; gap: var(--spacing-4); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle, var(--border-default)); border-bottom: 1px solid var(--border-subtle, var(--border-default)); font-size: var(--font-size-14); }
+.admin-money-limits > div { display: flex; justify-content: space-between; gap: var(--spacing-12); }
+.admin-money-limits dt { color: var(--text-secondary); }
+.admin-money-limits dd { margin: 0; font-weight: var(--font-weight-semibold); color: var(--text-primary); text-align: right; }
+.admin-money-plan__prices { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin-top: auto; padding-top: var(--spacing-4); }
+.admin-money-price { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6); }
+.admin-money-price__amount { font-weight: var(--font-weight-bold); }
+.admin-money-plan__free { font-size: var(--font-size-14); color: var(--text-tertiary); }
+.admin-money-modal__note { margin: 0; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-money-modal__ids { margin: 0; font-size: var(--font-size-12); line-height: var(--line-height-relaxed); color: var(--text-tertiary); overflow-wrap: anywhere; }
+.admin-money-nowrap { white-space: nowrap; }
+.admin-money-note { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; max-width: 36ch; font-size: var(--font-size-14); color: var(--text-secondary); }
+.admin-money-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--spacing-8) var(--spacing-16); }
+.admin-money-filters .admin-field { width: min(100%, 26rem); }
+.admin-money-count { margin: 0 0 var(--spacing-10, 10px); font-size: var(--font-size-14); color: var(--text-tertiary); }
+.admin-money-more { display: flex; justify-content: flex-start; }
+.admin-money-positive { color: var(--warning-ink, var(--text-primary)); font-weight: var(--font-weight-semibold); }
+.admin-money-negative { color: var(--success-ink, var(--text-primary)); font-weight: var(--font-weight-semibold); }
+.admin-money-row--plain { grid-template-columns: minmax(0, 1fr); }
+.admin-money-row--plain .admin-money-row__name { line-height: 1; }
+.admin-money-modal-footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); width: 100%; }
+.admin-library-guides .admin-table .empac-table__cell { white-space: nowrap; }
+.admin-library-guides .admin-table .empac-table__cell:first-child { white-space: normal; min-width: 16rem; }
+
+/* Platform ▸ Chat bot ▸ Chaos events ▸ Add / Edit event (platform-events/EventEditorModal) */
+.admin-chaos { display: flex; flex-direction: column; gap: var(--spacing-20); min-width: 0; }
+.admin-chaos-form { display: flex; flex-direction: column; gap: var(--spacing-20); min-width: 0; }
+.admin-chaos-section { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
+.admin-chaos-section + .admin-chaos-section,
+.admin-chaos-form + .admin-chaos-section { padding-top: var(--spacing-20); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.admin-chaos-section__title { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-chaos-narrow { max-width: 28rem; }
+.admin-chaos-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-12) var(--spacing-16); min-width: 0; }
+@media (max-width: 420px) { .admin-chaos-pair { grid-template-columns: 1fr; } }
+.admin-chaos-note { margin: 0; max-width: 68ch; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-chaos-note--small { font-size: var(--font-size-12); color: var(--text-tertiary); }
+.admin-chaos-empty { margin: 0; padding: var(--spacing-12) var(--spacing-16); border: 1px dashed var(--border-default); border-radius: var(--radius-12, 12px); font-size: var(--font-size-14); color: var(--text-secondary); }
+.admin-chaos-line .admin-chaos-vars { margin-top: var(--spacing-4); }
+.admin-chaos-soon { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-6) var(--spacing-8); font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.admin-chaos-soon > span { flex: 1 1 24rem; min-width: 0; }
+.admin-chaos-code,
+.admin-chaos-json textarea,
+textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: var(--font-size-14); }
+.admin-chaos-code { white-space: nowrap; color: var(--text-primary); }
+.admin-chaos-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); width: 100%; }
+
+/* Effects list and the inline effect form */
+.admin-chaos-effects { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.admin-chaos-effect-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.admin-chaos-effect { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); padding: var(--spacing-10, 10px) var(--spacing-12) var(--spacing-10, 10px) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-primary); }
+.admin-chaos-effect__text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 20rem; min-width: 0; }
+.admin-chaos-effect__name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-chaos-effect__sum { font-size: var(--font-size-14); line-height: var(--line-height-relaxed); color: var(--text-secondary); overflow-wrap: anywhere; }
+.admin-chaos-effect__actions { display: flex; gap: var(--spacing-4); }
+.admin-chaos-effect-form { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; padding: var(--spacing-16); border: 1px solid var(--border-strong, var(--border-default)); border-radius: var(--radius-12, 12px); background: var(--background-elevated, var(--background-primary)); }
+.admin-chaos-effect-form__title { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.admin-chaos-effect-form__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); }
+
+/* Variables reference under the chat line */
+.admin-chaos-vars__body { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.admin-chaos-vars__note { margin: 0; font-size: var(--font-size-12); line-height: var(--line-height-relaxed); color: var(--text-tertiary); }
+.admin-chaos-vars__desc { display: block; min-width: 18rem; max-width: 44ch; white-space: normal; color: var(--text-secondary); }
+.admin-chaos-vars__eg { display: block; min-width: 10rem; max-width: 26ch; white-space: normal; overflow-wrap: anywhere; color: var(--text-secondary); }
+@media (max-width: 640px) {
+  .admin-chaos-vars__desc { min-width: 14rem; }
+}
+.admin-chaos-alert { scroll-margin: var(--spacing-16); }
+.admin-chaos-alert:empty { display: none; }
+
+/* Break mode ▸ Know the Channel (KnowTheChannelPanel) */
+.ktc { display: flex; flex-direction: column; gap: var(--spacing-20); }
+.ktc__add { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.ktc__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--spacing-12); }
+@media (max-width: 600px) { .ktc__row { grid-template-columns: minmax(0, 1fr); } }
+.ktc__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.ktc__group { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.ktc__h { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.ktc__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.ktc__item { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; padding: var(--spacing-10, 10px) var(--spacing-12); border: 1px solid var(--border-subtle, var(--border-default)); border-radius: var(--gs-radius-md, 0.9rem); }
+.ktc__text { min-width: 0; flex: 1 1 18rem; display: flex; flex-direction: column; gap: 2px; }
+.ktc__q { margin: 0; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); overflow-wrap: anywhere; }
+.ktc__a { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-4); overflow-wrap: anywhere; }
+.ktc__item-actions { display: flex; gap: var(--spacing-6, 6px); }
+.ktc__form { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.ktc__lead { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* ── Restored 2026-10-11 ─────────────────────────────────────────────────
+   The admin redesign (96bec07b) dropped these rules by accident while their
+   screens still use them: Notifications, the Discord server picker, Shop
+   orders and refunds, and Switches. */
 /* Account › Notifications */
 .notif-prefs__title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); }
 .notif-prefs__sub { margin: var(--spacing-4) 0 var(--spacing-16); font-size: var(--font-size-14); color: var(--text-secondary); }
 .notif-prefs__list { display: grid; gap: var(--spacing-16); }
 .notif-prefs__list .empac-switch { min-width: 0; }
+/* Discord Bot tab: which server the settings are for (up to 5 with GS Pro). */
+.dbot-servers { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12); margin-bottom: var(--spacing-12); }
+.dbot-servers > :first-child { flex: 1 1 26rem; min-width: 0; max-width: 42rem; }
+.dbot-servers__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.shop-admin__open { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font: inherit; font-weight: var(--font-weight-semibold); color: var(--brand-ink); text-decoration: underline; text-underline-offset: 2px; }
+.shop-admin__order { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.shop-admin__order-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.shop-admin__cols { display: grid; gap: var(--spacing-20); grid-template-columns: minmax(0, 1fr); }
+.shop-admin__h { margin: 0 0 var(--spacing-8); font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.shop-admin__address { font-style: normal; font-size: var(--font-size-16); line-height: var(--line-height-relaxed); }
+.shop-admin__items { list-style: none; margin: 0 0 var(--spacing-12); padding: 0; display: flex; flex-direction: column; gap: var(--spacing-4); }
+.shop-admin__items li { display: flex; justify-content: space-between; gap: var(--spacing-12); font-variant-numeric: tabular-nums; }
+.shop-admin__action { display: flex; flex-direction: column; gap: var(--spacing-8); padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); }
+.shop-admin__action p { margin: 0; }
+.shop-admin__row { display: flex; gap: var(--spacing-12); align-items: flex-end; }
+.shop-admin__row > :first-child { flex: 1; min-width: 0; }
+.shop-admin__row--wrap { flex-wrap: wrap; align-items: center; }
+.shop-admin__row--wrap > :first-child { flex: 0 1 auto; }
+.shop-admin__form { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.shop-admin__grid { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); }
+.shop-admin__totals { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-4); font-size: var(--font-size-14); }
+.shop-admin__totals div { display: flex; justify-content: space-between; gap: var(--spacing-12); }
+.shop-admin__totals dt { color: var(--text-secondary); }
+.shop-admin__totals dd { margin: 0; font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.shop-admin__totals div:last-child { padding-top: var(--spacing-4); border-top: 1px solid var(--border-default); }
+/* Platform ▸ Shop orders ▸ Refund */
+.shop-refund { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.shop-refund__lines { display: flex; flex-direction: column; gap: var(--spacing-10, 10px); }
+.shop-refund__line { display: grid; grid-template-columns: minmax(0, 1fr) 8rem 7rem; gap: var(--spacing-12); align-items: center; }
+.shop-refund__name { display: flex; flex-direction: column; min-width: 0; }
+.shop-refund__amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); }
+.shop-refund__footer { display: flex; flex-wrap: wrap; gap: var(--spacing-8); justify-content: flex-end; width: 100%; }
+/* Platform admin ▸ Switches */
+.switches { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.switches__group { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.switches__h { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.switches__list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-md, 8px); }
+.switches__row { display: flex; gap: var(--spacing-16); align-items: center; justify-content: space-between; padding: var(--spacing-14, 14px) var(--spacing-16); }
+.switches__row + .switches__row { border-top: 1px solid var(--border-default); }
+.switches__text { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
+.switches__name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-weight: var(--font-weight-semibold); font-size: var(--font-size-16); }
+.switches__desc { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: var(--line-height-relaxed); }
+.switches__meta { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+.switches__key { font-family: var(--font-family-mono, ui-monospace, monospace); font-size: var(--font-size-12); }
+.switches__code { margin: 0; font-size: var(--font-size-13, 1.3rem); color: var(--text-tertiary); }
+@media (min-width: 720px) { .shop-admin__cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-width: 560px) { .shop-admin__row { flex-direction: column; align-items: stretch; } }
+@media (max-width: 480px) { .shop-refund__line { grid-template-columns: minmax(0, 1fr) 7rem; } .shop-refund__amt { grid-column: 1 / -1; text-align: left; } }
+/* Switches: the Circuit launch email panel under the Circuit billing switch. */
+.switches__notice { margin-top: var(--spacing-8); padding: var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); display: flex; flex-direction: column; gap: var(--spacing-8); align-items: flex-start; }
+.switches__notice-title { margin: 0; font-weight: 700; font-size: var(--font-size-14); }
+/* Mods ▸ Add mod manually: inputs and Add wrap onto their own lines on phones (the Discord row was 600px wide at 320). */
+.mods-add__row { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: flex-start; }
+.mods-add__row > * { flex: 1 1 16rem; min-width: 0; }
+.mods-add__row > .empac-button { flex: 0 0 auto; }
+
+/* Platform ▸ Support: the goal and its cost lines. */
+.support-admin__goal { max-width: 24rem; }
+.support-admin__post { display: grid; gap: var(--spacing-8, 8px); max-width: 60rem; margin-bottom: var(--spacing-16, 16px); }
+.support-admin__costs { display: grid; gap: var(--spacing-8, 8px); margin-top: var(--spacing-12, 12px); }
+.support-admin__cost { display: grid; grid-template-columns: minmax(0, 1fr) 10rem auto; gap: var(--spacing-8, 8px); align-items: center; }
+@media (max-width: 40rem) { .support-admin__cost { grid-template-columns: minmax(0, 1fr) 8rem; } .support-admin__cost > :last-child { grid-column: 1 / -1; justify-self: start; } }
+
+/* ── Account ▸ Invite friends (src/components/account/invite/InviteFriendsScreen.tsx) ── */
+.invite-link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+.invite-link > :first-child { flex: 1 1 28rem; min-width: 0; }
+.invite-link__note { margin: 0; }
+.invite-rules { margin: 0; padding-left: var(--spacing-20); display: grid; gap: var(--spacing-6, 6px); color: var(--text-secondary); }
+.invite-rules strong { color: var(--text-primary); }
+
+/* Which Discord app (picks 2026-10-30): GameShuffle or GameShuffle Competitive, then that app's servers. */
+.discord-apps { display: grid; gap: var(--spacing-20); min-width: 0; }
+.discord-apps__switch { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.discord-apps__servers { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--border-default); }
+.discord-apps__server { display: grid; gap: var(--spacing-8); padding: var(--spacing-12) 0; border-bottom: 1px solid var(--border-default); min-width: 0; }
+.discord-apps__server-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8) var(--spacing-12); }
+.discord-apps__server-row { display: grid; grid-template-columns: minmax(0, 32rem) auto; gap: var(--spacing-12); align-items: center; }
+@media (max-width: 560px) { .discord-apps__server-row { grid-template-columns: minmax(0, 1fr) auto; } }
+.discord-apps__note { font-size: var(--font-size-14); color: var(--text-warning, #b45309); }

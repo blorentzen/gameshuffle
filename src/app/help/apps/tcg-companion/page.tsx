@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co${HREF}` },
-  openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
 
@@ -48,8 +48,8 @@ export default function Page() {
 
       <h2>My Cards (your collection)</h2>
       <p>
-        <strong>My Cards</strong> is a searchable card collection you can browse and build. It&apos;s
-        free, but it needs a signed-in account (no guests). Find it at <strong>Account</strong> &rsaquo;
+        <strong>My Cards</strong>{" "}is a searchable card collection you can browse and build. It&apos;s
+        free, but it needs a signed-in account (no guests). Find it at <strong>Account</strong>{" "}&rsaquo;
         <strong> My Stuff</strong> &rsaquo; <strong>My Cards</strong>, or from the My Cards link in the
         Companion&apos;s header and entry screen.
       </p>
@@ -58,6 +58,10 @@ export default function Page() {
       <p>
         There&apos;s an always-on feedback button in the app, we read it. You&apos;ll also find a
         <strong> Shop our Pokemon cards</strong> link that opens our TCGplayer storefront in a new tab.
+      </p>
+      <p>
+        Looking for a deck to play? The <Link href="/pokemon-tcg">Pokémon TCG hub</Link>{" "}has deck
+        guides from beginner to competitive, plus the singles to build them.
       </p>
 
       <h2>Still need help?</h2>

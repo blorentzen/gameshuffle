@@ -7,8 +7,9 @@
  *   2. Exchange the code for an access token (Discord OAuth2 token
  *      endpoint). This also returns the `guild` payload — that's how
  *      we know which server the bot landed in.
- *   3. Persist `discord_guild_id` + `discord_guild_name` on the
- *      streamer's users row.
+ *   3. Add the server to the account (discord_guilds via addGuild): a
+ *      server another account has is refused, and so is a new server past
+ *      the plan's limit. Reinstalling into a connected server refreshes it.
  *   4. Redirect back to Account → Integrations with a success flash.
  *
  * The streamer still needs to pick a channel (and optional ping role)
@@ -19,7 +20,9 @@
 import { NextResponse } from "next/server";
 import { getBaseUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
+import { addGuild } from "@/lib/discord/guilds";
+import { addAppGuild } from "@/lib/discord/appGuilds";
+import { appKeys } from "@/lib/discord/apps";
 
 export const runtime = "nodejs";
 
@@ -32,9 +35,10 @@ function appBaseUrl(): string {
   return getBaseUrl();
 }
 
-function failureRedirect(reason: string): NextResponse {
-  const url = new URL(`${appBaseUrl()}/account`);
-  url.searchParams.set("tab", "integrations");
+function failureRedirect(reason: string, comp = false): NextResponse {
+  const url = new URL(`${appBaseUrl()}/account/streaming`);
+  url.searchParams.set("tab", comp ? "discord-bot" : "discord");
+  if (comp) url.searchParams.set("app", "comp");
   url.searchParams.set("discord_install_error", reason);
   return NextResponse.redirect(url);
 }
@@ -73,25 +77,30 @@ export async function GET(request: Request) {
     return failureRedirect("missing_code_or_state");
   }
 
-  const cookieState = request.headers
+  // The cookie is "<app>.<state>" (older cookies from before the second app: the state alone, the main app).
+  const rawCookie = request.headers
     .get("cookie")
     ?.split("; ")
     .find((c) => c.startsWith(`${STATE_COOKIE}=`))
     ?.slice(STATE_COOKIE.length + 1);
+  const [cookieApp, cookieState] = rawCookie?.includes(".") ? rawCookie.split(".", 2) as [string, string] : ["main", rawCookie];
+  const comp = cookieApp === "comp";
   if (!cookieState || cookieState !== incomingState) {
-    return failureRedirect("state_mismatch");
+    return failureRedirect("state_mismatch", comp);
   }
 
-  const clientId = process.env.DISCORD_APPLICATION_ID;
-  const clientSecret = process.env.DISCORD_CLIENT_SECRET;
+  const keys = appKeys(comp ? "comp" : "main");
+  const clientId = keys?.applicationId;
+  const clientSecret = keys?.clientSecret;
   if (!clientId || !clientSecret) {
     console.error(
       "[discord-bot-install] missing DISCORD_APPLICATION_ID or DISCORD_CLIENT_SECRET",
     );
-    return failureRedirect("server_misconfigured");
+    return failureRedirect("server_misconfigured", comp);
   }
 
-  const redirectUri = `${appBaseUrl()}/api/discord/bot/install/callback`;
+  // Must equal the one the start route sent: both come from the request host (www on production).
+  const redirectUri = `${new URL(request.url).origin}/api/discord/bot/install/callback`;
 
   // Exchange the code. Discord returns `guild` because we passed
   // `scope=bot` — that's the server the user just authorized.
@@ -113,38 +122,32 @@ export async function GET(request: Request) {
       console.error(
         `[discord-bot-install] token exchange failed (${res.status}): ${body}`,
       );
-      return failureRedirect("token_exchange_failed");
+      return failureRedirect("token_exchange_failed", comp);
     }
     tokenPayload = (await res.json()) as DiscordTokenResponse;
   } catch (err) {
     console.error("[discord-bot-install] token exchange threw:", err);
-    return failureRedirect("token_exchange_threw");
+    return failureRedirect("token_exchange_threw", comp);
   }
 
   if (!tokenPayload.guild?.id) {
     // Bot scope without guild means the user didn't actually install
     // the bot — they only authorized the OAuth grant. Treat as failure.
-    return failureRedirect("no_guild_installed");
+    return failureRedirect("no_guild_installed", comp);
   }
 
-  // Persist routing on the streamer's users row. Channel + role stay
-  // null until the streamer picks them in the Account UI.
-  const admin = createServiceClient();
-  const { error: updateErr } = await admin
-    .from("users")
-    .update({
-      discord_guild_id: tokenPayload.guild.id,
-      discord_guild_name: tokenPayload.guild.name,
-    })
-    .eq("id", user.id);
-  if (updateErr) {
-    console.error("[discord-bot-install] users write failed:", updateErr);
-    return failureRedirect("db_write_failed");
-  }
+  // One row per server (discord_guilds): refuses a server another account
+  // has, and a new server past the plan's limit (1 free, 5 with GS Pro).
+  const added = comp
+    ? await addAppGuild(user.id, "comp", tokenPayload.guild.id, tokenPayload.guild.name)
+    : await addGuild(user.id, tokenPayload.guild.id, tokenPayload.guild.name);
+  if (!added.ok) return failureRedirect(added.error, comp);
 
-  const success = new URL(`${appBaseUrl()}/account`);
-  success.searchParams.set("tab", "integrations");
-  success.searchParams.set("discord_installed", "1");
+  const success = new URL(`${appBaseUrl()}/account/streaming`);
+  success.searchParams.set("tab", comp ? "discord-bot" : "discord");
+  if (comp) success.searchParams.set("app", "comp");
+  success.searchParams.set("discord_installed", added.added ? "1" : "again");
+  success.searchParams.set("guild", added.guild.guildId);
   const response = NextResponse.redirect(success);
   // Clear the state cookie so a refresh of this URL doesn't re-trigger
   // a code reuse attempt.

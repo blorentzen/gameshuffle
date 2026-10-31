@@ -26,7 +26,7 @@ export default async function StadiumRandomizerPage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["pokemon-stadium"].hero} primary={{ href: "#play", label: "Randomize teams" }} />
+        <BrowseHero eyebrow="New randomizer" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["pokemon-stadium"].hero} primary={{ href: "#play", label: "Randomize teams" }} />
         <div id="play">
           <Container className="tool-page">
             <NewBanner />
@@ -35,9 +35,9 @@ export default async function StadiumRandomizerPage() {
             </Suspense>
           </Container>
         </div>
+        <RandomizerNudge gameName="Pokémon Stadium" saves="your rental teams" streamReady={false} />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Pokémon Stadium" saves="your rental teams" streamReady={false} />
     </>
   );
 }

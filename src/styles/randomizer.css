@@ -291,7 +291,8 @@ html.dark .gs-portrait-bg {
 .kart-slot--portrait:only-child .kart-slot__tile { width: 14.4rem; align-items: center; }
 
 .kart-slot span {
-  font-size: var(--font-size-12);
+  /* The rolled part's name: reading text, so 14px (sizing rule, 2026-10-20). */
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-bold);
   text-align: center;
   line-height: var(--line-height-tight);
@@ -771,23 +772,20 @@ html.dark .gs-portrait-bg {
     transform: none;
   }
 }
+/* Cards in a row line up (Britton, 2026-10-19: "keep them consistent sizes
+   ... so they don't stagger"): the picture is always 16:9, the card fills its
+   grid cell or carousel slide, and the buttons sit at the bottom however long
+   the title and description run. */
+.app-card { display: flex; flex-direction: column; height: 100%; }
+.app-card > .empac-card__content { flex: 1; display: flex; flex-direction: column; }
+.app-card__actions { margin-top: auto; padding-top: var(--spacing-16); }
 /* "Learn more" — a text link beside the single primary CTA (not a 2nd button). */
 /* Card title as a link to the tool (exact-match anchor text). Reads as a heading. */
 .app-card__title-link { color: inherit; text-decoration: none; }
 .app-card__title-link:hover { text-decoration: underline; text-underline-offset: 0.2em; }
 .app-card__title-link:focus-visible { outline: 2px solid var(--border-focus, var(--bg-primary)); outline-offset: 2px; border-radius: var(--radius-4, 4px); }
 
-.app-card__learn {
-  color: var(--brand-ink);
-  font-weight: 600;
-  font-size: var(--font-size-14);
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-.app-card__learn:hover {
-  color: var(--brand-primary);
-  text-decoration: underline;
-}
+.app-card__learn { font-size: var(--font-size-14); }
 
 /* Homepage "quick launch" wayfinder — icon tiles for the most popular tools. */
 .home-tiles {
@@ -823,41 +821,29 @@ html.dark .gs-portrait-bg {
   border-color: transparent;
   color: #fff;
 }
+/* The tile is the shared icon tile (globals.css .icon-tile values), colored by
+   tool family: pick something at random (blue), run your stream (violet), build
+   a board (teal), play a party game (orange), run a whole night (green). Over
+   the hover gradient it keeps its colors and gains a light ring. */
 .home-tile__icon {
-  display: inline-flex;
-  line-height: 1;
-  /* CDS (Tabler) icon inherits currentColor: brand at rest, white on hover
-     (over the gradient fill). */
-  color: var(--brand-primary);
-  transition: color 0.2s ease;
-}
-.home-tile:hover .home-tile__icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--tile-md);
+  height: var(--tile-md);
+  border-radius: var(--tile-md-radius);
   color: #fff;
+  background: var(--tile-bg, var(--tile-blue));
+  box-shadow: var(--tile-shadow);
+  transition: box-shadow 0.2s ease;
 }
-
-/* ── Tool families ────────────────────────────────────────────────────────
-   The icon sits in a tinted chip so the glyph reads as an object rather than
-   a floating outline, and the tint groups tools by what they DO. Every tint is
-   a color-mix into the surface, so it flips with the theme instead of being a
-   fixed pastel that turns muddy in dark mode. On hover the gradient fill takes
-   over and the chip steps out of the way. */
-.home-tile__icon {
-  width: 4.8rem;
-  height: 4.8rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--gs-radius-md, 0.8rem);
-  background: color-mix(in srgb, var(--tool-tone, var(--brand-primary)) 14%, var(--surface-default));
-  color: var(--tool-tone, var(--brand-primary));
-  transition: color 0.2s ease, background 0.2s ease;
-}
-.home-tile:hover .home-tile__icon { background: rgba(255, 255, 255, 0.18); }
-
-.home-tile__icon--pick { --tool-tone: var(--primary-500, #2766ec); }
-.home-tile__icon--stream { --tool-tone: var(--accent-500, #a855f7); }
-.home-tile__icon--board { --tool-tone: #0ea5e9; }
-.home-tile__icon--party { --tool-tone: #f97316; }
-.home-tile__icon--kit { --tool-tone: #17a710; }
+.home-tile__icon svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
+.home-tile:hover .home-tile__icon { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6); }
+.home-tile__icon--pick { --tile-bg: var(--tile-blue); }
+.home-tile__icon--stream { --tile-bg: var(--tile-violet); }
+.home-tile__icon--board { --tile-bg: var(--tile-teal); }
+.home-tile__icon--party { --tile-bg: var(--tile-orange); }
+.home-tile__icon--kit { --tile-bg: var(--tile-green); }
 .home-tile__label {
   font-size: var(--font-size-16);
   font-weight: 600;
@@ -866,7 +852,7 @@ html.dark .gs-portrait-bg {
 /* Optional descriptor line — a brief "what it does" under the label (tools
    page). Homepage wayfinder tiles omit it. */
 .home-tile__desc {
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   color: var(--text-tertiary);
   text-align: center;
   line-height: 1.4;
@@ -1106,6 +1092,8 @@ html.dark .gs-portrait-bg {
 .party-rules dt { font-size: var(--font-size-13, 1.3rem); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
 .party-rules dd { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-8); }
 .party-rules dd .party-muted { flex-basis: 100%; }
+/* The lock button sits in its own dd: a dl row may only hold dt and dd (axe definition-list). */
+.party-rules dd.party-rules__lock { display: block; }
 
 .party-seats { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-12); }
 .party-seat { display: grid; grid-template-columns: auto 1fr auto; gap: var(--spacing-12); align-items: center; padding: var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); }
@@ -1180,6 +1168,9 @@ html.dark .gs-portrait-bg {
 .night-results, .night-next { display: grid; gap: var(--spacing-8); padding: var(--spacing-12) 0; }
 .party-live__host { padding: var(--spacing-16); border-radius: var(--radius-16, 16px); background: var(--bg-secondary); }
 .deck-editor { display: flex; flex-direction: column; gap: var(--spacing-16); }
+/* The kind tabs switch the list below, so their own panels are empty: hide them. */
+.deck-editor > .empac-tabs .empac-tabs__panel { display: none; }
+.deck-editor > .party-row > .empac-select, .deck-editor > .party-row > :first-child { flex: 0 1 20rem; min-width: 14rem; }
 .deck-editor__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); }
 .deck-editor__card--muted { opacity: .72; }
 .deck-editor__stats { margin-left: auto; font-size: var(--font-size-12); font-variant-numeric: tabular-nums; }
@@ -1204,7 +1195,8 @@ html.dark .gs-portrait-bg {
 .smash-set__games { margin: 0; }
 
 /* Personalized randomizers (collections) */
-.collection-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-10, 10px) var(--spacing-16); padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); margin-bottom: var(--spacing-16); text-align: left; }
+/* Flat note above the tool (refinement round 2): no box. */
+.collection-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12) var(--spacing-16); padding: 0; margin-bottom: var(--spacing-16); text-align: left; }
 .collection-bar__text { display: flex; align-items: flex-start; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
 .collection-bar__text strong { color: var(--text-primary); }
 .collection-bar__text svg { flex: none; margin-top: 2px; }
@@ -1315,6 +1307,13 @@ html.dark .gs-portrait-bg {
 .party-ref__char-art img { max-width: 84%; max-height: 84%; object-fit: contain; }
 .party-ref__char-name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); }
 .party-ref__char .party-ref__flag { margin: 0; }
+/* Phones (Britton's picks, 2026-10-19): two columns of minigame names, four characters across. */
+@media (max-width: 640px) {
+  .party-ref__names { columns: 2; column-gap: var(--spacing-16); }
+  .party-ref__names li { font-size: var(--font-size-14); }
+  .party-ref__roster { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--spacing-12) var(--spacing-8); }
+  .party-ref__char-name { font-size: var(--font-size-12); }
+}
 
 /* ── Odd One Out (GameShuffle Original) on a phone ─────────────────────────── */
 .oddone { display: flex; flex-direction: column; gap: var(--spacing-16); }
@@ -1432,13 +1431,26 @@ html.dark .gs-portrait-bg {
 /* ── The Daily Shuffle ─────────────────────────────────────────────────────── */
 .daily { display: flex; flex-direction: column; gap: var(--spacing-20); max-width: 64rem; margin-bottom: var(--spacing-64); }
 .daily__meta { display: flex; align-items: center; gap: var(--spacing-12); }
-.daily__guess { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
+/* The guess box stays in reach while the grid grows (Britton, 2026-10-21: no scrolling back up for
+   the next guess). It sticks under the nav inside the game only, like Fire Round's bar; rows keep a
+   scroll margin so a new row never lands under it. */
+.daily__guess { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; position: sticky; top: calc(var(--gs-nav-offset, 64px) + var(--spacing-8)); transition: var(--gs-nav-slide, top 0.2s ease); z-index: 5; padding: var(--spacing-12) var(--spacing-16); border-radius: var(--radius-12, 12px); background: var(--surface-default); border: 1px solid var(--border-default); box-shadow: 0 6px 18px rgba(20, 10, 30, 0.08); }
+.daily__grid tr { scroll-margin-top: calc(var(--gs-nav-offset, 64px) + 10rem); scroll-margin-bottom: var(--spacing-16); }
 .daily__guess > :first-child { flex: 1 1 24rem; }
+/* Start today's puzzle (DailyStart.tsx): the first hint and the clock wait for this tap. */
+.daily-start { display: grid; gap: var(--spacing-16, 16px); padding: var(--spacing-20, 20px); border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: var(--surface-default); }
+.daily-start__go { display: flex; align-items: center; gap: var(--spacing-12, 12px); flex-wrap: wrap; }
+.daily-start__note { flex: 1 1 26rem; margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); text-align: start; }
+/* Solved in 0:42 on the end screen. */
+.daily-time { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); margin: 0; font-size: var(--font-size-16); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.daily-time svg { color: var(--brand-ink, var(--text-secondary)); flex: none; }
 .daily__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
 /* Fact grid (one row per guess). Legibility first: columns keep a readable
    width and the grid scrolls sideways on phones, with the guess column pinned. */
 /* Everything in the Daily reads left, like its header (the tool page centres by default). */
-.daily { min-width: 0; max-width: 100%; text-align: start; }
+/* One fixed column for every daily (Britton, 2026-10-16: the Shuffle and the Dex came out different widths,
+   each sized by its widest card), centred like the today bar and the Weekly. */
+.daily { min-width: 0; width: 100%; max-width: 72rem; margin-inline: auto; text-align: start; }
 .daily .empac-alert, .daily .empac-alert * { text-align: start; }
 /* The grid is the one scroller (the CDS table container inside stays put), and it takes keyboard focus so arrow keys can scroll it (WCAG 2.1.1). */
 .daily__grid > .empac-table-container { overflow: visible; }
@@ -1463,6 +1475,37 @@ html.dark .gs-portrait-bg {
 .daily__legend { margin: 0; padding: var(--spacing-8, 8px) var(--spacing-12); font-size: var(--font-size-12); color: var(--text-secondary); border-top: 1px solid var(--border-default); position: sticky; left: 0; }
 .daily__scroll-hint { display: none; margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); text-align: start; }
 @media (max-width: 40rem) { .daily__scroll-hint { display: block; } }
+/* Before the first guess: two lanes of characters drifting past, then how to play (DailyParade.tsx). */
+.daily-parade { position: relative; overflow: hidden; display: grid; gap: var(--spacing-8, 8px); min-height: 10.4rem; padding-block: var(--spacing-4, 4px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.daily-parade__lane { display: flex; gap: var(--spacing-16, 16px); width: max-content; animation: daily-drift 60s linear infinite; }
+.daily-parade__lane--back { animation-duration: 84s; animation-direction: reverse; }
+.daily-parade__lane img { width: 5.6rem; height: 5.6rem; object-fit: contain; opacity: 0.9; }
+.daily-parade__lane--back img { width: 4.4rem; height: 4.4rem; opacity: 0.55; }
+@keyframes daily-drift { from { transform: translateX(0); } to { transform: translateX(-33.3333%); } }
+@media (prefers-reduced-motion: reduce) { .daily-parade__lane { animation: none; } }
+/* Discord's small corner window has no room for it. */
+@media (max-height: 300px) { .daily-parade { display: none; } }
+/* How to play inside the Start card: three short lines, side by side when there's room. */
+.daily-steps { list-style: none; margin: 0; padding: var(--spacing-16, 16px) 0 0; border-top: 1px solid var(--border-default); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--spacing-12, 12px) var(--spacing-20, 20px); text-align: start; }
+.daily-step { display: flex; align-items: flex-start; gap: var(--spacing-10, 10px); min-width: 0; }
+/* A list marker inside the Start card's steps, so it stays small; colors from the shared tile tokens. */
+.daily-step__icon { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--tile-blue); }
+.daily-step__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.4; }
+.daily-step__text strong { color: var(--text-primary); }
+/* Phones (Britton's picks, 2026-10-19): tighter page, one lane of characters. */
+@media (max-width: 40rem) {
+  .daily-page.tool-page { padding-block: var(--spacing-16) var(--spacing-32); gap: var(--spacing-12); }
+  .daily-page .dailies-bar { margin-bottom: var(--spacing-8); }
+  .daily-page .daily { gap: var(--spacing-16); margin-bottom: var(--spacing-16); }
+  .daily-start { padding: var(--spacing-16); }
+  .daily-parade { min-height: 6.4rem; }
+  .daily-parade__lane--back { display: none; }
+}
+
+/* All-Stars: the hint ladder (newest last) and the line promising the next one. */
+.daily__ladder { margin: 0; padding-inline-start: 2rem; display: grid; gap: var(--spacing-4, 4px); text-align: start; }
+.daily__next-hint { margin: 0; font-size: var(--font-size-14); text-align: start; }
 .daily__silhouette { display: flex; align-items: center; gap: var(--spacing-12); }
 .daily__silhouette img { width: 7.2rem; height: 7.2rem; object-fit: contain; filter: brightness(0); opacity: 0.85; }
 html.dark .daily__silhouette img { filter: brightness(0) invert(1); }
@@ -1476,6 +1519,33 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .daily__hints { grid-area: hints; display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
 .daily__done { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); padding: var(--spacing-20); border-radius: var(--radius-16, 16px); background: color-mix(in srgb, var(--bg-primary, #4b5cf5) 8%, var(--surface-default)); }
 .daily__answer-img { width: 9.6rem; height: 9.6rem; object-fit: contain; }
+/* The result (Britton's picks, 2026-10-19): the answer beside the verdict, then Copy and Next on one row. */
+.daily-result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-14, 14px); width: 100%; }
+.daily-result .daily__answer-img, .daily-result .dex-answer { flex: none; }
+.daily-result__text { flex: 1 1 16rem; display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); min-width: 0; }
+.daily-result__text .oddone__verdict { line-height: 1.3; }
+.daily-result__text .daily-score { justify-content: flex-start; margin-block: var(--spacing-4); }
+.daily-result__next, .daily-result__signin { margin: 0; font-size: var(--font-size-14); }
+.daily-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+.daily-actions > .party-row { display: contents; }
+.daily-actions .dailies-next__done { flex-basis: 100%; margin: 0; align-self: auto; }
+/* Containers and gaps (Britton's picks, 2026-10-19, https://claude.ai/artifact/SGrYdQmo7MKyFHoL7mYefK):
+   the result is the page's one panel and everything in it sits flat on it; the sections below sit flat
+   on the page between thin lines, 24px+ apart. */
+.daily__done { gap: var(--spacing-16); }
+.daily__done { --daily-panel-line: color-mix(in srgb, var(--text-primary) 12%, transparent); }
+.daily > .daily-board, .daily > .brain-ask-flat { border-top: 1px solid var(--border-default); padding-top: var(--spacing-24); margin-top: var(--spacing-8); }
+.daily > .daily-accordion { border-top: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); margin-top: var(--spacing-8); }
+.daily-accordion .empac-accordion__trigger { padding-inline: 0; }
+.daily-accordion .empac-accordion__content-inner { padding-inline: 0; }
+@media (max-width: 40rem) {
+  .daily__done { padding: var(--spacing-16); }
+  /* Phones: the end screen's buttons take the panel's width, one per line, instead of two ragged widths. */
+  .daily-actions > :not(.dailies-next__done), .daily-actions > .party-row > * { flex: 1 1 100%; }
+  .daily-actions .empac-button { width: 100%; justify-content: center; }
+  .daily-result .daily__answer-img { width: 8.8rem; height: 8.8rem; }
+  .daily-result .dex-answer { width: 13rem; }
+}
 .daily__stats { list-style: none; margin: var(--spacing-8) 0 0; padding: 0; display: flex; gap: var(--spacing-24); }
 .daily__stats li { display: flex; flex-direction: column; align-items: center; }
 .daily__stats strong { font-size: var(--font-size-24); font-variant-numeric: tabular-nums; }
@@ -1508,6 +1578,14 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .home-play__eyebrow { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand-ink, var(--text-secondary)); }
 .home-play__title { margin: 0; font-size: var(--font-size-24); line-height: 1.2; }
 .home-play__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; flex: 1; }
+/* The three dailies in a row, the Weekly as a wide row under them (Britton, 2026-10-19; matches the today bar). Phones keep the carousel. */
+@media (min-width: 900px) {
+  .home-play--wide-week { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .home-play--wide-week > .home-play__card--wide { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--spacing-24, 24px); row-gap: var(--spacing-6, 6px); align-items: center; padding-block: var(--spacing-20, 20px); }
+  .home-play--wide-week > .home-play__card--wide > * { grid-column: 1; }
+  .home-play--wide-week > .home-play__card--wide > a { grid-column: 2; grid-row: 1 / span 4; }
+  .home-play--wide-week > .home-play__card--wide .home-play__title { font-size: var(--font-size-20); }
+}
 .home-play__meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
 
 /* Splatoon 3 randomizer: the kit under each player's weapon, and the battle list. */
@@ -1535,7 +1613,7 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .type-card__type { font-size: var(--font-size-12); font-weight: 700; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--chip-color) 70%, #000); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
 .type-card__moves { list-style: none; margin: 6px 0 0; padding: 6px 0 0; border-top: 1px solid rgba(255, 255, 255, 0.28); display: grid; gap: 1px; font-size: var(--font-size-13, 1.3rem); }
 .type-card--dark .type-card__moves { border-top-color: rgba(0, 0, 0, 0.2); }
-.type-card-disclaimer { margin: var(--spacing-24, 24px) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); max-width: 70ch; }
+.type-card-disclaimer { margin: var(--spacing-24, 24px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); max-width: 70ch; }
 
 /* "Image coming soon" placeholder (ImageComingSoon): beta games before their art lands. */
 .image-coming-soon { display: grid; place-items: center; align-content: center; gap: var(--spacing-8, 8px); width: 100%; height: 100%; min-height: 14rem; aspect-ratio: 16 / 9; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); font-family: var(--gs-font-display, inherit); font-weight: 700; font-size: var(--font-size-16); }
@@ -1698,9 +1776,12 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 
 /* What each Bonus Star rewards: a grid of small cards, not an accordion. */
 .party-bonus { display: grid; gap: var(--spacing-12); }
-.party-bonus__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-12); }
-.party-bonus__grid > li { display: flex; }
-.party-bonus__card.empac-card { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--spacing-10); align-content: start; width: 100%; text-align: start; }
+/* One framed list (containers rule), two columns where there's room; ShowAll cuts it on phones. */
+.party-bonus__list { list-style: none; margin: 0; padding: 0 var(--spacing-16); display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr)); column-gap: var(--spacing-24);
+  border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.party-bonus__row { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--spacing-12); align-content: start; padding: var(--spacing-12) 0; border-top: 1px solid var(--border-default); text-align: start; }
+.party-bonus__row:first-child { border-top: 0; }
+@media (min-width: 640px) { .party-bonus__row:nth-child(2) { border-top: 0; } }
 .party-bonus__icon { grid-row: span 2; display: grid; place-items: center; width: 3.2rem; height: 3.2rem; border-radius: 50%; background: #fff4cc; color: #c98a00; }
 .party-bonus__name { font-size: var(--font-size-16); }
 .party-bonus__rewards { font-size: var(--font-size-14); color: var(--text-secondary, #5b6080); }
@@ -1716,6 +1797,9 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 /* Narrow cards (phones) always hold two lines, so every page's carousel spaces the same. */
 @container (max-width: 24rem) { .more-rand__title { min-height: calc(2 * 1.3em + 2 * var(--spacing-10, 10px)); box-sizing: border-box; } }
 .more-rand__new { position: absolute; top: var(--spacing-8, 8px); left: var(--spacing-8, 8px); }
+/* The last card: all the randomizers. */
+.more-rand__media--all { display: grid; place-items: center; background: linear-gradient(135deg, #2f66ec, #4b5cf5); }
+.more-rand__all-tile { display: grid; place-items: center; width: 5.6rem; height: 5.6rem; border-radius: 16px; color: #fff; background: rgba(255, 255, 255, 0.16); }
 /* The run deck shows up to three cards at once; catches fit the card's own width. */
 .frlg-seg.empac-card { container-type: inline-size; height: 100%; }
 @container (max-width: 40rem) {
@@ -1801,3 +1885,407 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .party-tv__cover { width: 14rem; flex-shrink: 0; }
 .party-tv__cover .game-cover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4); }
 .night-games__name { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+
+/* The Daily Dex (DailyDex.tsx): type tiles stand in for Pokémon art (TypeTile in TypeCard.tsx), two types split on the diagonal. */
+.type-tile { display: inline-grid; place-items: center; flex: 0 0 auto; width: 3.2rem; height: 3.2rem; border-radius: 9px; color: #fff;
+  background: linear-gradient(135deg, var(--type-color) 0 50%, var(--type-color-2) 50% 100%); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.type-tile--dark { color: #1d1600; }
+.type-tile--small { width: 2.4rem; height: 2.4rem; border-radius: 7px; }
+.type-tile--large { width: 5.2rem; height: 5.2rem; border-radius: 14px; }
+.dex-parade { min-height: 8.8rem; }
+.dex-parade .daily-parade__lane { gap: var(--spacing-12, 12px); }
+.dex-parade__mon { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); padding: var(--spacing-4, 4px) var(--spacing-10, 10px) var(--spacing-4, 4px) var(--spacing-4, 4px);
+  border: 1px solid var(--border-default); border-radius: 999px; background: var(--surface-default); white-space: nowrap; }
+.dex-parade__name { font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); }
+.dex-parade .daily-parade__lane--back .dex-parade__mon { opacity: 0.55; }
+.dex-parade .daily-parade__lane--back .dex-parade__name { font-size: var(--font-size-12); }
+@media (max-width: 40rem) { .dex-parade { min-height: 4.4rem; } }
+/* The last chance: the first letter, then a square per letter; spaces and punctuation as they are. */
+.dex-reveal { display: grid; gap: var(--spacing-8, 8px); justify-items: start; text-align: start; }
+.dex-reveal__word { display: flex; flex-wrap: wrap; gap: var(--spacing-4, 4px); }
+.dex-reveal__cell { display: grid; place-items: center; width: 3.2rem; height: 3.8rem; border-radius: 8px; font-size: var(--font-size-20); font-weight: 700;
+  border: 2px solid var(--border-default); background: var(--surface-default); color: var(--text-primary); }
+.dex-reveal__cell--first { border-color: var(--color-success-500, #1a8a57); background: color-mix(in srgb, var(--color-success-500, #1a8a57) 14%, var(--surface-default)); }
+.dex-reveal__cell--gap { width: 1.2rem; border: 0; background: none; }
+.dex-reveal__cell--mark { width: auto; min-width: 1.2rem; border: 0; background: none; }
+.dex-answer { width: min(100%, 22rem); }
+.daily__who .type-tile { margin-bottom: 2px; }
+
+/* Daily leaderboards (DailyBoard.tsx): score chips under the verdict, the guest join card, and the board. */
+.daily-score { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--spacing-6, 6px); }
+.daily-score__chip { font-size: var(--font-size-12); font-weight: 600; padding: var(--spacing-6, 6px) var(--spacing-10, 10px); border-radius: 999px;
+  border: 1px solid var(--border-default); background: var(--surface-default); color: var(--text-primary); }
+.daily-score__chip--points { border-color: transparent; background: color-mix(in srgb, var(--color-success-500, #1a8a57) 14%, var(--surface-default)); color: var(--color-success-700, #11603b); }
+.daily-score__chip--tokens { border-color: transparent; background: color-mix(in srgb, var(--color-warning-500, #e2a336) 18%, var(--surface-default)); color: var(--color-warning-800, #7a5306); }
+html.dark .daily-score__chip--points { color: var(--color-success-300, #6fd6a2); }
+html.dark .daily-score__chip--tokens { color: var(--color-warning-300, #f2c96b); }
+.daily-join { display: grid; gap: var(--spacing-8, 8px); width: min(100%, 44rem); margin-inline: auto; padding: var(--spacing-14, 14px); text-align: start;
+  border: 1px dashed var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.daily-join__title { margin: 0; font-size: var(--font-size-16); }
+.daily-join__text { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; }
+.daily-join__row { display: flex; gap: var(--spacing-8, 8px); align-items: flex-start; }
+.daily-join__row > :first-child { flex: 1; min-width: 0; }
+.daily-join__error { margin: 0; font-size: var(--font-size-14); color: var(--color-error-600, #c0392b); }
+.daily-board .daily-join { width: 100%; margin: 0 0 var(--spacing-12); padding: 0; border: 0; border-radius: 0; background: none; }
+.daily-join__row { margin-top: var(--spacing-4); }
+.daily-board { display: grid; gap: var(--spacing-12, 12px); text-align: start; }
+.daily-board__title { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold, 600); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+/* The tabs are a bar here: the board below changes with them. */
+.daily-board__tabs .empac-tabs__content { display: none; }
+.daily-board__table { position: relative; overflow-x: auto; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+/* The board is the one scroller (it takes keyboard focus); the CDS table container inside stays put, or axe flags a scroller nobody can reach. */
+.daily-board__table > .empac-table-container { overflow: visible; }
+.daily-board__table table { font-variant-numeric: tabular-nums; }
+.daily-board__table tr.daily-board__you td { background: color-mix(in srgb, var(--color-warning-500, #e2a336) 12%, var(--surface-default)); }
+.daily-board__who { display: inline-flex; align-items: center; gap: var(--spacing-12, 12px); min-width: 0; }
+/* A supporter's heart, right after the name (picks 2026-10-19). */
+.daily-board__heart { flex: none; margin-left: calc(-1 * var(--spacing-8, 8px)); color: var(--support-ink); }
+/* Where someone played, on their picture (DailyBoard.tsx PLACES): a badge per place, a dashed ring for guests, a key under the board. */
+.daily-board__av { flex: none; }
+.daily-board__av .empac-avatar__badge { min-width: 14px; height: 14px; bottom: -5px; right: -8px; padding: 0 2px; box-shadow: 0 0 0 1.5px var(--surface-default); }
+.daily-board__av .empac-avatar__badge svg { width: 9px; height: 9px; }
+.daily-board__av--guest.empac-avatar { background: var(--surface-default); color: var(--text-secondary); outline: 1.5px dashed var(--text-secondary); outline-offset: -1.5px; }
+.daily-board__key { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-20); margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+.daily-board__key > span { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+.daily-board__short { display: none; text-decoration: none; }
+.daily-board__prize { font-weight: 600; color: var(--color-warning-800, #7a5306); }
+html.dark .daily-board__prize { color: var(--color-warning-300, #f2c96b); }
+.daily-board__dots { display: inline-flex; gap: 3px; vertical-align: middle; }
+.daily-board__time { font-variant-numeric: tabular-nums; color: var(--text-secondary); white-space: nowrap; }
+.daily-board__dot { width: 1rem; height: 1rem; border-radius: 50%; border: 1.5px solid var(--border-strong, #b9bccc); }
+.daily-board__dot--miss { background: var(--border-strong, #b9bccc); }
+.daily-board__dot--win { background: var(--color-success-500, #1a8a57); border-color: var(--color-success-500, #1a8a57); }
+.daily-board__dot--saved { background: var(--color-warning-500, #e2a336); border-color: var(--color-warning-500, #e2a336); }
+.daily-board__empty { margin: 0; padding: var(--spacing-12, 12px); font-size: var(--font-size-14); border: 1px dashed var(--border-default); border-radius: var(--radius-12, 12px); }
+.daily-board__foot { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Phones: room for the name (smaller dots, tighter cells, "Pts"). */
+@media (max-width: 40rem) {
+  .daily-board__table th, .daily-board__table td { padding-inline: var(--spacing-6, 6px) !important; }
+  .daily-board__table th:first-child, .daily-board__table td:first-child { padding-left: var(--spacing-10, 10px) !important; }
+  .daily-board__dot { width: 0.8rem; height: 0.8rem; }
+  .daily-board__dots { gap: 2px; }
+  .daily-board__long { display: none; }
+  .daily-board__short { display: inline; }
+}
+
+
+/* ── The dailies together: today bar, Next up, streak cards (src/components/originals/Dailies.tsx) ── */
+.dailies--shuffle { --dailies-ink: #5a3fd6; --dailies-tile: var(--tile-shuffle); }
+.dailies--dex { --dailies-ink: #c4471f; --dailies-tile: var(--tile-dex); }
+.dailies--weekly { --dailies-ink: #12806e; --dailies-tile: var(--tile-weekly); }
+.dailies--fire { --dailies-ink: #b42318; --dailies-tile: var(--tile-fire); }
+.dailies--duel { --dailies-ink: #8a5d00; --dailies-tile: var(--tile-duel); }
+html.dark .dailies--shuffle { --dailies-ink: #a99bff; }
+html.dark .dailies--dex { --dailies-ink: #f0a070; }
+html.dark .dailies--weekly { --dailies-ink: #5fd3bd; }
+html.dark .dailies--fire { --dailies-ink: #ff9a7a; }
+html.dark .dailies--duel { --dailies-ink: #f5c84c; }
+
+.dailies-bar { width: 100%; margin: 0 auto var(--spacing-16); min-width: 0; max-width: 72rem; }
+.dailies-bar .empac-subnav, .dailies-bar .empac-subnav__wrapper { background: transparent; }
+.dailies-bar .empac-subnav--pills .empac-subnav__wrapper { padding: var(--spacing-4) 0; }
+/* Three equal cells, the status under each name, so all of today fits across a phone. */
+.dailies-bar .empac-subnav__container { display: grid; grid-template-columns: repeat(var(--dailies-n, 3), minmax(0, 1fr)); max-width: none; padding: 2px; gap: var(--spacing-8); overflow: visible; }
+/* Each cell's colour comes from the bar (CDS SubNav items take no class): --dailies-c1..c3 name a game's ink, set inline by DailiesBar. */
+.dailies-bar { --ink-shuffle: #5a3fd6; --ink-dex: #c4471f; --ink-fire: #b42318; --ink-duel: #8a5d00; --ink-weekly: #12806e; }
+html.dark .dailies-bar { --ink-shuffle: #a99bff; --ink-dex: #f0a070; --ink-fire: #ff9a7a; --ink-duel: #f5c84c; --ink-weekly: #5fd3bd; }
+.dailies-bar .empac-subnav__item:nth-child(1) { --dailies-ink: var(--dailies-c1, var(--ink-shuffle)); }
+.dailies-bar .empac-subnav__item:nth-child(2) { --dailies-ink: var(--dailies-c2, var(--ink-dex)); }
+.dailies-bar .empac-subnav__item:nth-child(3) { --dailies-ink: var(--dailies-c3, var(--ink-fire)); }
+.dailies-bar .empac-subnav__item:nth-child(4) { --dailies-ink: var(--dailies-c4, var(--ink-duel)); }
+.dailies-bar .empac-subnav--pills .empac-subnav__item { flex-wrap: wrap; align-content: center; justify-content: flex-start; text-align: left; gap: 2px var(--spacing-8); min-width: 0; padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: var(--background-primary); color: var(--text-primary); white-space: normal; }
+.dailies-bar .empac-subnav__item > span:not(.empac-subnav__badge) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.dailies-bar .empac-subnav__badge, .dailies-bar .empac-subnav--pills .empac-subnav__item--active .empac-subnav__badge { flex-basis: 100%; justify-content: flex-start; height: auto; min-width: 0; padding: 0 0 0 18px; background: none; color: var(--text-secondary); font-weight: var(--font-weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.dark .dailies-bar .empac-subnav__badge, html.dark .dailies-bar .empac-subnav--pills .empac-subnav__item--active .empac-subnav__badge { background: none; }
+.dailies-bar .empac-subnav__item::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--dailies-ink); }
+.dailies-bar .empac-subnav--pills .empac-subnav__item--active,
+.dailies-bar .empac-subnav--pills .empac-subnav__item--active:hover { background: var(--background-primary); color: var(--text-primary); border-color: var(--dailies-ink); box-shadow: inset 0 0 0 1px var(--dailies-ink); }
+
+/* Four dailies (the Daily Duel joined 2026-10-21): four across, a little tighter on a phone (the dot
+   goes, the status drops to 12px, a label); two by two below 360px so nothing is cut off. */
+@media (max-width: 40rem) {
+  .dailies-bar--4 .empac-subnav__container { gap: var(--spacing-6, 6px); }
+  .dailies-bar--4 .empac-subnav--pills .empac-subnav__item { padding: var(--spacing-8) var(--spacing-8); gap: 2px var(--spacing-6, 6px); }
+  .dailies-bar--4 .empac-subnav__item::before { display: none; }
+  .dailies-bar.dailies-bar--4 .empac-subnav--pills .empac-subnav__item { border-top: 3px solid var(--dailies-ink); }
+  .dailies-bar--4 .empac-subnav__badge, .dailies-bar--4 .empac-subnav--pills .empac-subnav__item--active .empac-subnav__badge { padding-left: 0; font-size: var(--font-size-12); }
+}
+@media (max-width: 22.5rem) {
+  .dailies-bar--4 .empac-subnav__container { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* The Weekly under the bar (Britton, 2026-10-19: the three dailies stay together, the Weekly drops below): a plain line, no box. */
+.dailies-week { display: flex; align-items: center; gap: var(--spacing-10, 10px); min-width: 0; margin: var(--spacing-8) 0 0; padding: 0 var(--spacing-4); font-size: var(--font-size-14); color: var(--text-secondary); text-align: start; }
+.dailies-week::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--dailies-ink); }
+.dailies-week__text { flex: 1; min-width: 0; margin: 0; }
+.dailies-week__text b { color: var(--text-primary); font-weight: var(--font-weight-semibold, 600); }
+.dailies-week__go { flex: none; text-decoration: none; }
+.dailies-week__go .empac-button { color: var(--dailies-ink); }
+
+/* Next up and Invite friends: side by side on a laptop, stacked on a phone, same height, full width. */
+.dailies-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: var(--spacing-12); align-self: stretch; align-items: stretch; width: 100%; margin-top: var(--spacing-8); }
+.dailies-pair > * { min-width: 0; }
+.dailies-next { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: 100%; height: 100%; text-align: start; }
+.dailies-next > .empac-button, .dailies-next__link, .dailies-invite__more { margin-top: auto; }
+/* Shared icon tile values (globals.css .icon-tile), in the game's gradient. */
+.dailies-next__tile, .dailies-invite__tile, .dailies-card__tile { flex: none; width: var(--tile-md); height: var(--tile-md); border-radius: var(--tile-md-radius); display: grid; place-items: center; color: #fff; background: var(--dailies-tile, var(--tile-blue)); box-shadow: var(--tile-shadow); }
+:is(.dailies-next__tile, .dailies-invite__tile, .dailies-card__tile) svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
+.dailies-next__eyebrow { margin-top: var(--spacing-4); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.dailies-next__title { margin: 0; font-size: var(--font-size-18); }
+.dailies-next__text { margin: 0 0 var(--spacing-4); color: var(--text-secondary); }
+.dailies-next__link { text-decoration: none; }
+.dailies-next__done { margin: 0; align-self: center; }
+
+.dailies-cards { width: 100%; align-self: stretch; display: grid; gap: var(--spacing-8); margin-top: var(--spacing-8); text-align: start; }
+.dailies-cards__title { margin: 0; font-size: var(--font-size-16); }
+.dailies-cards__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); gap: var(--spacing-12); }
+.dailies-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; padding: var(--spacing-16); border: 1px solid var(--border-default); border-top: 4px solid var(--dailies-ink); border-radius: var(--radius-16, 16px); background: var(--background-primary); }
+.dailies-card--current { border-color: var(--dailies-ink); }
+.dailies-card__head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); }
+.dailies-card__line { display: contents; }
+/* One game's streak as a strip inside its result (the Shuffle and the Dex): streak and stats on one line, the 14 days under. */
+.dailies-cards--strip { margin-top: 0; }
+.dailies-cards--strip .dailies-cards__grid { grid-template-columns: minmax(0, 1fr); }
+.dailies-cards--strip .dailies-card { gap: var(--spacing-10, 10px); padding: var(--spacing-2, 2px) 0 var(--spacing-2, 2px) var(--spacing-14, 14px); border: 0; border-left: 4px solid var(--dailies-ink); border-radius: 0; background: none; }
+.dailies-cards--strip .dailies-card__line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-20); }
+.dailies-card__name { font-weight: var(--font-weight-semibold); font-size: var(--font-size-15, 1.5rem); }
+.dailies-card__streak { display: flex; align-items: center; gap: 6px; margin: 0; }
+.dailies-card__streak svg { color: var(--dailies-ink); }
+.dailies-card__streak strong { font-size: var(--font-size-28, 2.8rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.dailies-card__streak span { color: var(--text-secondary); font-size: var(--font-size-14); }
+.dailies-card__stats { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-16); margin: 0; }
+.dailies-card__stats div { display: flex; flex-direction: column; }
+.dailies-card__stats dt { order: 2; font-size: var(--font-size-12); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
+.dailies-card__stats dd { order: 1; margin: 0; font-weight: var(--font-weight-bold); font-size: var(--font-size-16); font-variant-numeric: tabular-nums; }
+.dailies-card__recent { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 3px; max-width: 26rem; }
+.dailies-card__day { aspect-ratio: 1; border-radius: 3px; border: 1px solid var(--border-default); }
+.dailies-card__day--won { background: var(--dailies-ink); border-color: transparent; }
+.dailies-card__day--saved { background: color-mix(in srgb, var(--dailies-ink) 35%, transparent); border-color: var(--dailies-ink); }
+.dailies-card__day--missed { background: var(--border-strong, var(--gray-400)); border-color: transparent; }
+.dailies-card__day--played { background: var(--dailies-ink); border-color: transparent; }
+
+/* ── The Daily Dex's card of the day (src/components/originals/DexCardOfDay.tsx) ── */
+.dex-cotd { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-20); align-items: center; width: 100%; align-self: stretch; padding: var(--spacing-16) 0 0; border-top: 1px solid var(--daily-panel-line, var(--border-default)); text-align: start; }
+.dex-cotd__card { width: 13.2rem; max-width: 100%; transform: rotate(-3deg); filter: drop-shadow(0 8px 16px rgba(60, 30, 10, 0.25)); }
+.dex-cotd__card img { display: block; width: 100%; height: auto; border-radius: 6px; }
+.dex-cotd__body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-4); min-width: 0; }
+.dex-cotd__kicker { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dailies-ink, #c4471f); }
+html.dark .dex-cotd__kicker { color: #f0a070; }
+.dex-cotd__name { margin: 0; font-size: var(--font-size-18); }
+.dex-cotd__meta { margin: 0 0 var(--spacing-12); color: var(--text-secondary); font-size: var(--font-size-14); }
+.tcg-attribution.dex-cotd__attr { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+.dex-cotd .party-row { gap: var(--spacing-12); }
+/* Phones (Britton's pick, 2026-10-19): a smaller card beside its name, the buttons stacked (they may wrap on the narrowest phones). */
+@media (max-width: 40rem) {
+  .dex-cotd { grid-template-columns: 8.4rem minmax(0, 1fr); gap: var(--spacing-16); }
+  .dex-cotd__card { width: 8.4rem; }
+  /* The two buttons take the column's width, one per line (2026-10-20: they sat at two ragged widths). */
+  .dex-cotd .party-row { align-self: stretch; flex-direction: column; align-items: stretch; gap: var(--spacing-8); }
+  .dex-cotd .party-row > * { max-width: 100%; }
+  .dex-cotd .party-row .empac-button { width: 100%; justify-content: center; white-space: normal; text-align: center; }
+}
+/* The card credits at the foot of the Daily Dex, in place of the fan-made line. */
+.tcg-attribution.daily-credits { margin: var(--spacing-24, 24px) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); max-width: 70ch; }
+
+/* ── Referral links on the dailies (Dailies.tsx: InvitedNote, DailiesInvite) ── */
+.dailies-invited { width: 100%; margin: 0 auto var(--spacing-16); max-width: 72rem; }
+.dailies-invite { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-6, 6px); width: 100%; height: 100%; text-align: start; }
+.dailies-invite__tile { background: var(--tile-blue); }
+.dailies-invite__link { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); width: 100%; }
+.dailies-invite__link code { flex: 1 1 18rem; min-width: 0; padding: var(--spacing-8) var(--spacing-10, 10px); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--background-secondary); font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dailies-invite__more { font-size: var(--font-size-14); }
+.dailies-invite__nudge { margin: var(--spacing-8) 0 0; }
+
+/* ── What a guess did: the new row lights up (Britton's pick, 2026-10-16) ── */
+@keyframes daily-row-flash { from { background-color: color-mix(in srgb, #f6c34a 45%, transparent); } to { background-color: transparent; } }
+.daily__row--new td { animation: daily-row-flash 2.4s ease-out; }
+.daily__row--new td:first-child { box-shadow: inset 3px 0 0 #e0a400; }
+@media (prefers-reduced-motion: reduce) { .daily__row--new td { animation: none; background-color: color-mix(in srgb, #f6c34a 30%, transparent); } }
+
+/* The Daily Dex's list shrinking to what still fits */
+.dex-fit { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-16); margin-top: calc(var(--spacing-8) * -1); color: var(--text-secondary); font-size: var(--font-size-14); }
+.dex-fit strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* ── Help bought with tokens on the last chance (src/components/originals/DailyHelp.tsx) ── */
+.dex-reveal__cell--bought { border-color: #d99a10; background: color-mix(in srgb, #e8a21c 26%, var(--surface-default)); }
+.daily-help { display: grid; gap: var(--spacing-8); width: 100%; padding: var(--spacing-12) var(--spacing-14, 14px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-secondary); text-align: start; }
+.daily-help__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-4) var(--spacing-12); }
+.daily-help__title { margin: 0; font-size: var(--font-size-16); }
+.daily-help__balance { color: var(--text-secondary); font-size: var(--font-size-14); font-variant-numeric: tabular-nums; }
+.daily-help__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); padding: var(--spacing-8) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--background-primary); }
+.daily-help__what { display: flex; flex-direction: column; font-weight: var(--font-weight-semibold); min-width: 0; }
+.daily-help__what small { font-weight: var(--font-weight-medium); color: var(--text-secondary); font-size: var(--font-size-12); }
+.daily-help__guest { margin: 0; color: var(--text-secondary); }
+
+/* ── Random Pokémon generator (/randomizers/pokemon, 2026-10-20) ─────────────── */
+.pokegen { width: 100%; text-align: left; }
+.pokegen__count .empac-tabs__content { display: none; }
+.pokegen__grid { list-style: none; margin: var(--spacing-24, 24px) 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr)); gap: var(--spacing-12, 12px); }
+@media (max-width: 30em) { .pokegen__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pokegen__slot { position: relative; display: grid; min-width: 0; }
+.pokegen__slot > .pokeball-slot { border: 1px dashed var(--border-default); border-radius: 14px; padding: var(--spacing-16, 16px) 0; }
+/* Each card's own refresh, in its top corner (the card's buttons change only that card). */
+.pokegen__refresh { position: absolute; top: var(--spacing-6, 6px); right: var(--spacing-6, 6px); z-index: 2; }
+.pokegen__refresh button { box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); }
+.pokegen__note { margin: var(--spacing-16, 16px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* ── Refinement round 2 (Britton's picks, 2026-10-20) ─────────────────────────
+   One setup surface: the tab bar joins the intro card under it, one shadow
+   around both and a thin line between them. Only where the intro card is the
+   first thing in the tab (Smash/Splatoon/Kirby wrap it in .party > section,
+   the rest in a section). */
+.randomizer-controls:has(+ * > .kart-intro:first-child, + * > section:first-child > .kart-intro:first-child) {
+  margin-bottom: 0;
+  padding: 1.2rem 1.6rem;
+  border-radius: var(--radius-md, 0.5rem) var(--radius-md, 0.5rem) 0 0;
+  border-bottom: 1px solid var(--border-default);
+  clip-path: inset(-2rem -2rem 0 -2rem);
+  position: relative;
+  z-index: 1;
+}
+@media only screen and (max-width: 640px) {
+  /* Room for every tab on a phone (Smash has three). */
+  .randomizer-controls:has(+ * > .kart-intro:first-child, + * > section:first-child > .kart-intro:first-child) { padding: 0.6rem 0.6rem 1.2rem; }
+}
+.randomizer-controls + * > .kart-intro:first-child,
+.randomizer-controls + * > section:first-child > .kart-intro:first-child {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  clip-path: inset(0 -2rem -2rem -2rem);
+}
+
+/* Player cards grow in place (Britton's pick, 2026-10-20; SeatCard in
+   PlayerCard.tsx). Before the first roll a card is a short row: the game's own
+   random tile (5.6rem) beside the name field and the card's buttons. On the
+   first roll the tile stays in the left column and grows into the picture
+   (11.2rem on a desktop card, down to 8.4rem on phones: 40% of the card less
+   5rem, so a narrow card keeps room for the name field) while the details
+   unfold beside the name field: the rolled name, then the game's own details,
+   a short stagger apart. Nothing
+   in the row moves out of its place, and re-rolls only spin the picture (the
+   reel in KartSlot). Transitions sit on the rolled state only, so a card that
+   mounts rolled doesn't animate and going back to a seat is one step. Nothing
+   with text is scaled: the tile's box changes size and the picture fills it.
+   Scoped to .player-card--grow (HeroRoulette, Stadium and the players
+   directory keep their own .player-card). */
+.player-card--grow {
+  --pc-tile: 5.6rem;
+  --pc-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Flex, not grid: the picture's percentage width then resolves against the
+     card, so the size can follow the card's width and still transition. */
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1.4rem;
+  padding: 1.4rem;
+}
+.player-card--grow.player-card--rolled { --pc-tile: clamp(8.4rem, 40% - 5rem, 11.2rem); }
+
+/* The picture: the main slot fills a box that grows. */
+.player-card--grow .player-card__pic {
+  position: relative;
+  flex: none;
+  width: var(--pc-tile);
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: 1.2rem;
+  overflow: hidden;
+}
+/* Mario Kart's pictures are cut-out icons: give them a tile to stand on. */
+.player-card--grow .player-card__pic:has(> .kart-slot:not(.kart-slot--portrait)) {
+  background: linear-gradient(160deg, var(--background-tertiary), var(--border-default));
+}
+.player-card--grow .player-card__pic > .kart-slot { width: 100%; height: 100%; gap: 0; }
+.player-card--grow .player-card__pic > .kart-slot > img {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  padding: 0.4rem;
+  object-fit: contain;
+  border-radius: 0;
+}
+.player-card--grow .player-card__pic .kart-slot .kart-slot__tile { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; }
+/* The name shows beside the picture (SlotCaptionContext); this is the copy
+   drawn before that spot exists. */
+.player-card--grow .player-card__pic .kart-slot > span:not(.kart-slot__tile) { display: none; }
+.player-card--grow .player-card__pic .kart-slot__tile > .random-tile { font-size: var(--font-size-32); }
+.player-card--grow .player-card__pic .kart-slot__tile > .random-tile--smash { -webkit-text-stroke: 2px #26272c; }
+
+/* The name field and buttons keep the seat's height, so they stay put. */
+.player-card--grow .player-card__main { display: grid; flex: 1 1 0; min-width: 0; text-align: start; }
+.player-card--grow .player-card__header { min-height: 5.6rem; padding: 0; border: 0; }
+
+/* The details unfold under the name field. */
+.player-card--grow .player-card__more { display: grid; grid-template-rows: 0fr; }
+.player-card--grow.player-card--seat .player-card__more { visibility: hidden; }
+.player-card--grow .player-card__inner { display: grid; gap: 0.8rem; align-content: start; min-height: 0; overflow: hidden; }
+.player-card--grow .player-card__inner > * { opacity: 0; transform: translateY(0.8rem); }
+.player-card--grow .player-card__pick {
+  margin: 0;
+  padding-top: 0.4rem;
+  font-family: var(--font-display, inherit);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+/* While the reel spins the name stays on one line, so the card doesn't
+   change height with every name that flies past. */
+.player-card--grow .kart-slot__caption--spinning { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* Room inside the clip for focus rings and the parts' reel. */
+.player-card--grow .player-card__details { display: grid; gap: 0.8rem; justify-items: start; margin: 0 -0.4rem; padding: 0 0.4rem 0.4rem; }
+/* While the picture's reel spins, details that name the pick wait (hidden at
+   once, back with a fade when it lands); the parts spin with it. */
+.player-card--grow .player-card__details > * { transition: opacity 0.25s ease; }
+.player-card--grow.player-card--spinning .player-card__details > :not(.player-card__parts) { opacity: 0; transition: none; }
+
+/* Mario Kart's vehicle, wheels and glider (and Kirby's machine) beside the
+   picture, in one row however narrow the card: each part up to 8.8rem. */
+.player-card--grow .player-card__parts { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 8.8rem); justify-content: start; gap: 1rem; width: 100%; margin: 0; padding: 0; list-style: none; }
+.player-card--grow .player-card__parts > .kart-slot { min-width: 0; gap: 0.4rem; }
+.player-card--grow .player-card__parts > .kart-slot > img { width: 100%; height: 4.8rem; max-height: none; object-fit: contain; }
+.player-card--grow .player-card__parts .kart-slot .kart-slot__tile { width: 6.4rem; }
+.player-card--grow .player-card__parts > .kart-slot > span:not(.kart-slot__tile) {
+  /* Part names are reading text: 14px everywhere, two lines kept so a long
+     name in the reel doesn't make the card jump. */
+  min-height: 3.4rem;
+  font-size: var(--font-size-14);
+  line-height: 1.2;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+/* A lone part (Mario Kart World's vehicle, Kirby's machine) sits beside its name. */
+.player-card--grow .player-card__parts--row { grid-auto-columns: minmax(0, auto); }
+.player-card--grow .player-card__parts--row > .kart-slot { flex-direction: row; align-items: center; gap: 1rem; }
+.player-card--grow .player-card__parts--row > .kart-slot > img { flex: none; width: 8rem; }
+.player-card--grow .player-card__parts--row .kart-slot .kart-slot__tile { flex: none; width: 5.6rem; }
+.player-card--grow .player-card__parts--row > .kart-slot > span:not(.kart-slot__tile) { min-height: 0; text-align: start; }
+.player-card--grow .player-card__parts > .kart-slot { opacity: 0; transform: translateY(1rem); }
+.player-card--grow .player-card__save { justify-content: flex-start; padding: 0; }
+.player-card--grow .splat-kit { width: 100%; margin: 0; }
+
+/* The rolled state, with the motion. */
+.player-card--grow.player-card--rolled .player-card__pic { transition: width 0.5s var(--pc-ease); }
+.player-card--grow.player-card--rolled .player-card__more { grid-template-rows: 1fr; transition: grid-template-rows 0.5s var(--pc-ease); }
+.player-card--grow.player-card--rolled .player-card__inner > * { opacity: 1; transform: none; transition: opacity 0.3s ease 0.2s, transform 0.35s ease 0.2s; }
+.player-card--grow.player-card--rolled .player-card__inner > :nth-child(2) { transition-delay: 0.28s; }
+.player-card--grow.player-card--rolled .player-card__parts > .kart-slot { opacity: 1; transform: none; transition: opacity 0.3s ease 0.32s, transform 0.4s cubic-bezier(0.2, 1.3, 0.3, 1) 0.32s; }
+.player-card--grow.player-card--rolled .player-card__parts > .kart-slot:nth-child(2) { transition-delay: 0.4s; }
+.player-card--grow.player-card--rolled .player-card__parts > .kart-slot:nth-child(3) { transition-delay: 0.48s; }
+
+@media (max-width: 35em) {
+  .player-card--grow { gap: 1rem; padding: 1.2rem; }
+  .player-card--grow .player-card__parts { gap: 0.6rem; }
+  .player-card--grow .player-card__parts > .kart-slot > img { height: 4rem; }
+}
+
+/* Reduced motion, or the page's Rolling animation switch off: one step. */
+.player-card--still :is(.player-card__pic, .player-card__more, .player-card__inner > *, .player-card__details > *, .player-card__parts > .kart-slot) { transition: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .player-card--grow :is(.player-card__pic, .player-card__more, .player-card__inner > *, .player-card__details > *, .player-card__parts > .kart-slot) { transition: none !important; }
+}

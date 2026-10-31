@@ -10,9 +10,11 @@
  * controls (configure, manual reroll, end session) live on /hub.
  */
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { Accordion, Container, Tabs, ToastContainer, type ToastProps } from "@empac/cascadeds";
+import { ArrowLink } from "@/components/ui/ArrowLink";
+import { Accordion, Container, Tabs } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
 import type { RaceGame } from "@/lib/randomizers/race";
@@ -34,7 +36,8 @@ import { LiveActivityTab } from "./tabs/LiveActivityTab";
 import { LiveHowToPlayTab } from "./tabs/LiveHowToPlayTab";
 import { LivePicksBansTab } from "./tabs/LivePicksBansTab";
 import { LiveVotingTab } from "./tabs/LiveVotingTab";
-import { LiveLobbyTab } from "./tabs/LiveLobbyTab";
+import { EVENTS, tagged } from "@/lib/analytics/events";
+import { LiveLobbyTab, YourRoll } from "./tabs/LiveLobbyTab";
 import { LiveRacesTab } from "./tabs/LiveRacesTab";
 import { LiveLeaderboardTab } from "./tabs/LiveLeaderboardTab";
 import { LiveMarketsTab } from "./tabs/LiveMarketsTab";
@@ -48,6 +51,10 @@ import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
 import { LiveBingoCard } from "./LiveBingoCard";
+import { LiveBreakCard } from "./LiveBreakCard";
+import { LiveTriviaCard } from "./LiveTriviaCard";
+import { LiveChatBrainCard } from "./LiveChatBrainCard";
+import { LiveSiteHost } from "./LiveSiteHost";
 import { LiveDraftCard } from "./LiveDraftCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
@@ -55,6 +62,7 @@ import { LiveTournamentRace } from "./LiveTournamentRace";
 import type { RecapHighlight } from "@/lib/sessions/recap";
 import { UserAvatar, type UserAvatarUser } from "@/components/UserAvatar";
 import { GameCover } from "@/components/games/GameCover";
+import { TrialNote } from "@/components/billing/TrialNote";
 
 /** Map a `RaceGame` enum back to the kebab slug stored in
  *  `gs_sessions.config.game` / `configured_games`. */
@@ -126,6 +134,10 @@ export interface SessionStateProps {
    *  keeps them fresh via the live-ballots-{id} channel (debounced
    *  500ms). */
   initialBallots: PicksBansBallot[];
+  /** Whether the lobby (who's in, what they rolled) shows on this page: the
+   *  session's own setting, else the streamer's default. Off = the tab is
+   *  Standings and the lobby grid is left out. */
+  showLobby?: boolean;
 }
 
 /** Upcoming scheduled-lobby metadata (Spec 02 §5). Passed alongside
@@ -178,6 +190,8 @@ interface LiveStreamViewProps {
   brandStyle?: CSSProperties;
   /** The streamer's recurring stream schedule — shown in the offline state. */
   streamSchedule?: StreamSchedule | null;
+  /** `?tab=` from the URL: opens that tab first (`room` or `lobby` = Lobby). */
+  initialTab?: string | null;
 }
 
 export function LiveStreamView({
@@ -189,20 +203,26 @@ export function LiveStreamView({
   initialLeaderboard,
   brandStyle,
   streamSchedule,
+  initialTab,
 }: LiveStreamViewProps) {
   const streamerName =
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
 
   if (!sessionState) {
     return (
-      <div style={{ display: "contents", ...brandStyle }}>
+      <main style={brandStyle}>
       <Container>
         <div className="live-page">
           <StreamerHeader streamer={streamer} />
           <LiveTournamentRace ownerUserId={streamer.userId} />
           {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
-          <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-          <LiveDraftCard communityId={initialLeaderboard.communityId} />
+          <LiveSiteHost streamerSlug={streamer.slug}>
+            <LiveBreakCard communityId={initialLeaderboard.communityId} />
+            <LiveTriviaCard communityId={initialLeaderboard.communityId} />
+            <LiveChatBrainCard communityId={initialLeaderboard.communityId} />
+            <LiveBingoCard communityId={initialLeaderboard.communityId} />
+            <LiveDraftCard communityId={initialLeaderboard.communityId} />
+          </LiveSiteHost>
           {upcoming && (
             <UpcomingLobbyCard streamerName={streamerName} upcoming={upcoming} />
           )}
@@ -214,35 +234,30 @@ export function LiveStreamView({
           <section className="live-page__not-live">
             <p className="live-page__not-live-headline">
               {upcoming
-                ? `${streamerName} has a session coming up.`
-                : `${streamerName} doesn’t have an active GameShuffle session right now.`}
+                ? `${streamerName} has a stream coming up.`
+                : `${streamerName} isn’t running a GameShuffle stream right now.`}
             </p>
             <p className="live-page__not-live-sub">
               {upcoming
-                ? "The lobby opens at the time above. This page fills with the race state + picks/bans + recent activity once it does. Catch the stream below in the meantime."
-                : "When they start one, this page fills with the race state + picks/bans + recent activity. Catch the stream above in the meantime."}
+                ? "The lobby opens at the time above. Then this page shows who's in, what they rolled and the votes as they happen."
+                : "When they start one, this page shows who's in, what they rolled and the votes as they happen."}
             </p>
             {streamer.twitchHandle && (
               <p>
-                <a
-                  href={`https://www.twitch.tv/${streamer.twitchHandle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="live-page__twitch-link"
-                >
-                  Watch on Twitch →
-                </a>
+                <ArrowLink href={`https://www.twitch.tv/${streamer.twitchHandle}`} external className="live-page__twitch-link">
+                  Watch on Twitch
+                </ArrowLink>
               </p>
             )}
             <p>
-              <Link href={`/u/${streamer.slug}`} className="live-page__twitch-link">
-                View {streamerName}&rsquo;s full profile →
-              </Link>
+              <ArrowLink href={`/u/${streamer.slug}`} className="live-page__twitch-link">
+                View {streamerName}&rsquo;s full profile
+              </ArrowLink>
             </p>
             <p>
-              <Link href={`/c/${streamer.slug}`} className="live-page__twitch-link">
-                Join the {streamerName} community →
-              </Link>
+              <ArrowLink href={`/c/${streamer.slug}`} className="live-page__twitch-link">
+                Join the {streamerName} community
+              </ArrowLink>
             </p>
           </section>
           {streamSchedule && (
@@ -256,7 +271,7 @@ export function LiveStreamView({
               check rank + balance between streams. */}
           <section className="live-page__offline-leaderboard">
             <h2 className="live-page__offline-leaderboard-heading">
-              Community Leaderboard
+              Community leaderboard
             </h2>
             <LiveLeaderboardTab
               streamerSlug={streamer.slug}
@@ -266,12 +281,12 @@ export function LiveStreamView({
           {recap && <LastStreamRecap recap={recap} />}
         </div>
       </Container>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div style={{ display: "contents", ...brandStyle }}>
+    <main style={brandStyle}>
     <RealtimeLiveView
       sessionId={sessionState.sessionId}
       initialSession={sessionState.initialSession}
@@ -286,9 +301,10 @@ export function LiveStreamView({
         streamer={streamer}
         sessionState={sessionState}
         initialLeaderboard={initialLeaderboard}
+        initialTab={initialTab === "lobby" ? "room" : initialTab ?? null}
       />
     </RealtimeLiveView>
-    </div>
+    </main>
   );
 }
 
@@ -296,9 +312,10 @@ interface ShellProps {
   streamer: StreamerProps;
   sessionState: SessionStateProps;
   initialLeaderboard: LiveStreamViewProps["initialLeaderboard"];
+  initialTab: string | null;
 }
 
-function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellProps) {
+function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTab }: ShellProps) {
   const live = useLiveState();
   // Active game flips in real time when the streamer changes their
   // Twitch category — the gs_sessions UPDATE flows through the
@@ -326,74 +343,41 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
   // straight to the Picks & Bans tab when they click the action.
   // Play, not "how-to-play": the page used to open on instructions during a
   // live stream. The instructions are an accordion inside Play now.
-  const [activeTab, setActiveTab] = useState<string>("play");
+  const [activeTab, setActiveTab] = useState<string>(initialTab ?? "play");
   const [historyView, setHistoryView] = useState<string>("races");
 
-  // Toast queue + the set of round IDs we've already announced. The
-  // initial set is seeded with whatever rounds are open at SSR time
-  // so we don't fire toasts for rounds the viewer arrived to find
-  // already in progress — only for rounds that newly open after
-  // they're on the page.
-  const [toasts, setToasts] = useState<ToastProps[]>([]);
-  const [seenOpenRoundIds, setSeenOpenRoundIds] = useState<Set<string>>(
-    () =>
-      new Set(
-        live.rounds
-          .filter((r) => r.status === "open")
-          .map((r) => r.id)
-      )
-  );
-
-  // Diff the live open rounds against what we've already announced.
-  // New ones get a toast; closed/applied/cancelled rounds drop out
-  // of the seen set so a future re-open of the same game (different
-  // round id) fires a fresh toast. Render-time sentinel update per
-  // React's "storing-information-from-previous-renders" pattern —
-  // avoids the setState-in-effect cascade.
+  // "Picks/bans open!" alerts through the site's toasts (a local CDS
+  // ToastContainer only draws in the browser, so the page never hydrated
+  // cleanly). Rounds already open when the viewer arrived aren't announced:
+  // the first run only records them. Fired from an effect because toasting
+  // updates another component's state.
+  const toast = useToast();
   const currentOpenRoundIds = useMemo(
-    () =>
-      new Set(
-        live.rounds
-          .filter((r) => r.status === "open")
-          .map((r) => r.id)
-      ),
+    () => live.rounds.filter((r) => r.status === "open").map((r) => r.id).sort().join(","),
     [live.rounds]
   );
-  const newOpenRoundIds = useMemo(
-    () =>
-      [...currentOpenRoundIds].filter((id) => !seenOpenRoundIds.has(id)),
-    [currentOpenRoundIds, seenOpenRoundIds]
-  );
-  if (newOpenRoundIds.length > 0) {
-    setSeenOpenRoundIds(currentOpenRoundIds);
-    const newToasts: ToastProps[] = newOpenRoundIds.map((roundId: string) => {
+  const announcedRounds = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const open = new Set(currentOpenRoundIds ? currentOpenRoundIds.split(",") : []);
+    if (!announcedRounds.current) { announcedRounds.current = open; return; }
+    for (const roundId of open) {
+      if (announcedRounds.current.has(roundId)) continue;
       const round = live.rounds.find((r) => r.id === roundId);
       const gameLabel =
-        round?.game_slug === "mario-kart-8-deluxe"
-          ? "MK8DX"
-          : round?.game_slug === "mario-kart-world"
-            ? "MKWorld"
+        round?.game_slug === "mario-kart-8-deluxe" ? "MK8DX"
+          : round?.game_slug === "mario-kart-world" ? "MKWorld"
             : "this game";
-      const toastId = `round-open-${roundId}`;
-      const dismiss = () =>
-        setToasts((prev) => prev.filter((t) => t.id !== toastId));
-      return {
-        id: toastId,
+      let id = "";
+      id = toast.toast({
         variant: "success",
         title: "Picks/bans open!",
         message: `Cast your ballot for ${gameLabel}. The streamer just opened a round.`,
-        onClose: dismiss,
-        action: {
-          label: "Open Picks & Bans",
-          onClick: () => {
-            setActiveTab("play");
-            dismiss();
-          },
-        },
-      };
-    });
-    setToasts((prev) => [...prev, ...newToasts]);
-  }
+        action: { label: "Open Picks & Bans", onClick: () => { setActiveTab("play"); toast.dismiss(id); } },
+      });
+    }
+    // Closed rounds drop out, so a later round for the same game is announced fresh.
+    announcedRounds.current = open;
+  }, [currentOpenRoundIds, live.rounds, toast]);
 
   // Resolve the viewer's auth state on mount + on auth-change events.
   // Supabase Auth's session is HTTP-only-cookie-backed but the client
@@ -526,8 +510,12 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
           ),
         }]}
       />
+      <YourRoll twitchUserId={viewerTwitchUserId} />
       <section className="live-section">
-        <h2 className="live-section__title">Picks &amp; bans</h2>
+        <h2 className="live-section__title">
+          Picks &amp; bans
+          {hasOpenRound && <span className="live-section__live">Round open</span>}
+        </h2>
         <LivePicksBansTab
           sessionId={sessionState.sessionId}
           game={liveGame}
@@ -539,24 +527,18 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
             setAuthOpen(true);
           }}
         />
-      </section>
-      {/* Only while a round is open. Empty the rest of the time, which is why
-          it used to be a tab you could not press. */}
-      {hasOpenRound && (
-        <section className="live-section">
-          <h2 className="live-section__title">
-            Live voting <span className="live-section__live">Round open</span>
-          </h2>
+        {/* The room's tally, under your own ballot, only while a round is
+            open (it was a separate Live voting section that pointed back
+            here). */}
+        {hasOpenRound && (
           <LiveVotingTab
-            game={sessionState.game}
-            gameSlug={gameSlugFromRaceGame(sessionState.game)}
+            game={liveGame}
+            gameSlug={gameSlugFromRaceGame(liveGame)}
           />
-        </section>
-      )}
-      <section className="live-section">
-        <h2 className="live-section__title">Events</h2>
-        <LiveEventsTab streamerSlug={streamer.slug} />
+        )}
       </section>
+      {/* Only while a modifier or challenge is running. */}
+      <LiveEventsTab streamerSlug={streamer.slug} hideWhenEmpty title="Events" />
     </div>
   );
 
@@ -575,12 +557,15 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
     </div>
   );
 
+  const showLobby = sessionState.showLobby !== false;
   const roomPanel = (
     <div className="live-panel">
-      <section className="live-section">
-        <h2 className="live-section__title">Lobby</h2>
-        <LiveLobbyTab />
-      </section>
+      {showLobby && (
+        <section className="live-section">
+          <h2 className="live-section__title">Lobby</h2>
+          <LiveLobbyTab />
+        </section>
+      )}
       <section className="live-section">
         <h2 className="live-section__title">Standings</h2>
         <LiveLeaderboardTab streamerSlug={streamer.slug} initial={initialLeaderboard} />
@@ -659,7 +644,8 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
   const tabs = [
     { id: "play", label: "Play", badge: hasOpenRound ? "LIVE" : undefined, content: playPanel },
     ...(showPredict ? [{ id: "predict", label: "Predict", content: predictPanel }] : []),
-    { id: "room", label: "Room", content: roomPanel },
+    // Id stays "room" so old links keep working; the old /lobby page lands here.
+    { id: "room", label: showLobby ? "Lobby" : "Standings", content: roomPanel },
     ...(showHistory ? [{ id: "history", label: "History", content: historyPanel }] : []),
   ];
 
@@ -707,9 +693,14 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
           </div>
         </div>
 
-        <LivePollCard communityId={initialLeaderboard.communityId} />
-        <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
-        <LiveDraftCard communityId={initialLeaderboard.communityId} />
+        <LiveSiteHost streamerSlug={streamer.slug}>
+          <LiveBreakCard communityId={initialLeaderboard.communityId} />
+          <LiveTriviaCard communityId={initialLeaderboard.communityId} />
+          <LiveChatBrainCard communityId={initialLeaderboard.communityId} />
+          <LivePollCard communityId={initialLeaderboard.communityId} />
+          <LiveBingoCard communityId={initialLeaderboard.communityId} />
+          <LiveDraftCard communityId={initialLeaderboard.communityId} />
+        </LiveSiteHost>
 
         {actionStatus && (
           <div
@@ -733,13 +724,19 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
 
         <footer className="live-page__footer">
           <p>
-            <Link href="/">GameShuffle</Link> · the chat-first + tactile
-            randomizer for kart streamers · gameshuffle.co
+            Runs on <Link href="/">GameShuffle</Link>: randomizers, chat games and live votes for streams.
+          </p>
+          {/* Viewers who stream are the next streamers (Britton's pick, 2026-10-19). */}
+          <p className="live-page__footer-pro">
+            Streaming yourself?{" "}
+            <Link href="/gs-pro" className={tagged(EVENTS.upgradeClicked, { from: "live-footer" })}>
+              Bring chat rolls, picks and bans to your channel with GS Pro
+            </Link>
+            <TrialNote trial=", free for 14 days." otherwise="." outside=", in the US for now." />
           </p>
         </footer>
       </div>
 
-      <ToastContainer toasts={toasts} />
 
       <AuthPromptModal
         isOpen={authOpen}
@@ -765,8 +762,8 @@ function SessionEndedPanel({
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
   const headline =
     reason === "cancelled"
-      ? `${streamerName} cancelled this session.`
-      : `${streamerName}'s session has ended.`;
+      ? `${streamerName} cancelled this stream.`
+      : `${streamerName}'s stream has ended.`;
   return (
     <Container>
       <div className="live-page">
@@ -776,19 +773,14 @@ function SessionEndedPanel({
           <p className="live-page__not-live-headline">{headline}</p>
           <p className="live-page__not-live-sub">
             {reason === "ended"
-              ? "Thanks for watching. When the streamer goes live again, this page will populate with the new session."
-              : "When the streamer kicks off another session, this page will populate again."}
+              ? "Thanks for watching. This page fills in again when they go live."
+              : "This page fills in again when they start their next stream."}
           </p>
           {streamer.twitchHandle && (
             <p>
-              <a
-                href={`https://www.twitch.tv/${streamer.twitchHandle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="live-page__twitch-link"
-              >
-                Watch on Twitch →
-              </a>
+              <ArrowLink href={`https://www.twitch.tv/${streamer.twitchHandle}`} external className="live-page__twitch-link">
+                Watch on Twitch
+              </ArrowLink>
             </p>
           )}
           <p className="live-page__brand">
@@ -935,7 +927,7 @@ function UpcomingLobbyCard({
 
   return (
     <section className="live-page__upcoming" aria-live="polite">
-      <p className="live-page__upcoming-eyebrow">Upcoming session</p>
+      <p className="live-page__upcoming-eyebrow">Upcoming stream</p>
       <h2 className="live-page__upcoming-title">
         {upcoming.sessionName?.trim() || `${streamerName}’s game night`}
       </h2>

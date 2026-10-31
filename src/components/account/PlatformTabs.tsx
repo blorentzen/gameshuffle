@@ -5,14 +5,15 @@
  * (`src/app/account/platform/page.tsx`). The page server-gates on staff/admin
  * before rendering this, so these tabs never reach a non-staff session.
  *
- * The tab catalog + default live in `src/lib/account/nav.ts` — add new
- * platform tabs there and add their render block below.
+ * The views, their tabs and the default live in `src/lib/account/nav.ts`;
+ * SectionTabs draws the tab bar. Add a new screen to nav.ts and to SCREENS.
  */
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { SectionTabs, type ScreenMap } from "@/components/account/SectionTabs";
 import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
 import { PlatformGrowthTab } from "@/components/account/PlatformGrowthTab";
+import { PlatformRevenueTab } from "@/components/account/PlatformRevenueTab";
+import { PlatformSupportTab } from "@/components/account/PlatformSupportTab";
 import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
 import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab";
 import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
@@ -25,51 +26,57 @@ import { PlatformPricingTab } from "@/components/account/PlatformPricingTab";
 import { PlatformEconomySnapshotTab } from "@/components/account/PlatformEconomySnapshotTab";
 import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
 import { PlatformModerationTab } from "@/components/account/PlatformModerationTab";
+import { PlatformTimeTrialsTab } from "@/components/account/PlatformTimeTrialsTab";
 import { PlatformShopTab } from "@/components/account/PlatformShopTab";
 import { PlatformGuidesTab } from "@/components/account/PlatformGuidesTab";
 import { PlatformDecksTab } from "@/components/account/PlatformDecksTab";
 import { PlatformWeeklyTab } from "@/components/account/PlatformWeeklyTab";
 import { PlatformChatBrainTab } from "@/components/account/PlatformChatBrainTab";
+import { PlatformTriviaTab } from "@/components/account/PlatformTriviaTab";
+import { PlatformBreakTab } from "@/components/account/PlatformBreakTab";
+import { PlatformShopOrdersTab, PlatformShopProductsTab, PlatformShopStatesTab } from "@/components/account/PlatformShopOrdersTab";
+import { PlatformSwitchesTab } from "@/components/account/PlatformSwitchesTab";
+import { TokenActivityPanel, TokenStreamersPanel } from "@/components/account/TokenEconomyPanels";
 import { PlatformOriginalsTab } from "@/components/account/PlatformOriginalsTab";
 import { PlatformAiTab } from "@/components/account/PlatformAiTab";
 import { PlatformGamesTab } from "@/components/account/PlatformGamesTab";
 
 export function PlatformTabs() {
-  return (
-    <Suspense>
-      <PlatformTabsContent />
-    </Suspense>
-  );
+  return <SectionTabs route="/account/platform" screens={SCREENS} />;
 }
 
-function PlatformTabsContent() {
-  const searchParams = useSearchParams();
-  const activeTab = searchParams.get("tab") || "platform-health";
-
-  return (
-    <>
-      {activeTab === "platform-health" && <PlatformHealthTab />}
-      {activeTab === "platform-growth" && <PlatformGrowthTab />}
-      {activeTab === "platform-events" && <PlatformEventsTab />}
-      {activeTab === "platform-decks" && <PlatformDecksTab />}
-      {activeTab === "platform-originals" && <PlatformOriginalsTab />}
-      {activeTab === "platform-ai" && <PlatformAiTab />}
-      {activeTab === "platform-games" && <PlatformGamesTab />}
-      {activeTab === "platform-weekly" && <PlatformWeeklyTab />}
-      {activeTab === "platform-chat-brain" && <PlatformChatBrainTab />}
-      {activeTab === "platform-variables" && <PlatformVariablesTab />}
-      {activeTab === "platform-default-commands" && <PlatformDefaultCommandsTab />}
-      {activeTab === "platform-compliance" && <PlatformComplianceTab />}
-      {activeTab === "platform-tournaments" && <PlatformTournamentsTab />}
-      {activeTab === "platform-engagement" && <PlatformEngagementTab />}
-      {activeTab === "platform-ticketing" && <PlatformTicketingTab />}
-      {activeTab === "platform-economy" && <PlatformEconomyTab />}
-      {activeTab === "platform-pricing" && <PlatformPricingTab />}
-      {activeTab === "platform-snapshot" && <PlatformEconomySnapshotTab />}
-      {activeTab === "platform-staff" && <PlatformStaffTab />}
-      {activeTab === "platform-moderation" && <PlatformModerationTab />}
-      {activeTab === "platform-shop" && <PlatformShopTab />}
-      {activeTab === "platform-guides" && <PlatformGuidesTab />}
-    </>
-  );
-}
+const SCREENS: ScreenMap = {
+  "platform-health": () => <PlatformHealthTab />,
+  "platform-growth": () => <PlatformGrowthTab />,
+  "platform-revenue": () => <PlatformRevenueTab />,
+  "platform-ai": () => <PlatformAiTab />,
+  "platform-switches": () => <PlatformSwitchesTab />,
+  "platform-shop-orders": () => <PlatformShopOrdersTab />,
+  "platform-shop-products": () => <PlatformShopProductsTab />,
+  "platform-shop-states": () => <PlatformShopStatesTab />,
+  "platform-shop": () => <PlatformShopTab />,
+  "platform-originals": () => <PlatformOriginalsTab />,
+  "platform-chat-brain": () => <PlatformChatBrainTab />,
+  "platform-weekly": () => <PlatformWeeklyTab />,
+  "platform-trivia": () => <PlatformTriviaTab />,
+  "platform-break": () => <PlatformBreakTab />,
+  "platform-guides": () => <PlatformGuidesTab />,
+  "platform-decks": () => <PlatformDecksTab />,
+  "platform-games": () => <PlatformGamesTab />,
+  "platform-default-commands": () => <PlatformDefaultCommandsTab />,
+  "platform-variables": () => <PlatformVariablesTab />,
+  "platform-events": () => <PlatformEventsTab />,
+  "platform-engagement": () => <PlatformEngagementTab />,
+  "platform-tournaments": () => <PlatformTournamentsTab />,
+  "platform-ticketing": () => <PlatformTicketingTab />,
+  "platform-moderation": () => <PlatformModerationTab />,
+  "platform-time-trials": () => <PlatformTimeTrialsTab />,
+  "platform-staff": () => <PlatformStaffTab />,
+  "platform-pricing": () => <PlatformPricingTab />,
+  "platform-support": () => <PlatformSupportTab />,
+  "platform-snapshot": () => <PlatformEconomySnapshotTab part="overview" />,
+  "platform-token-streamers": () => <TokenStreamersPanel />,
+  "platform-token-history": () => <PlatformEconomySnapshotTab part="history"><TokenActivityPanel embedded /></PlatformEconomySnapshotTab>,
+  "platform-economy": () => <PlatformEconomyTab />,
+  "platform-compliance": () => <PlatformComplianceTab />,
+};

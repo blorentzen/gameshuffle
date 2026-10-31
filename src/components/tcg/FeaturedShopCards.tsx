@@ -1,3 +1,4 @@
+import { IconArrowRight } from "@tabler/icons-react";
 import { Button, CarouselItem } from "@empac/cascadeds";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { CardImage } from "@/components/tcg/CardImage";
@@ -19,9 +20,12 @@ export function FeaturedShopCards({
   cards,
   heading = "Featured cards in the shop",
   intro,
+  credits = true,
 }: {
   cards: FeaturedShopCard[];
   heading?: string;
+  /** False when the page prints the card credits once at its foot (the Pokémon hub). */
+  credits?: boolean;
   /** Optional lead paragraph, shown only when real cards are configured. */
   intro?: string;
 }) {
@@ -50,6 +54,7 @@ export function FeaturedShopCards({
             </p>
           ) : null}
           <AutoplayCarousel
+            label={heading}
             slidesToShow={{ mobile: 2, tablet: 3, desktop: 5 }}
             gap={16}
             showArrows
@@ -97,7 +102,7 @@ export function FeaturedShopCards({
                 className="tcg-card-browse"
               >
                 <span className="tcg-card-browse__arrow" aria-hidden="true">
-                  →
+                  <IconArrowRight stroke={2} />
                 </span>
                 <span className="tcg-card-browse__name">Shop all cards</span>
                 <span className="tcg-card-browse__cta">
@@ -106,10 +111,11 @@ export function FeaturedShopCards({
               </a>
             </CarouselItem>
           </AutoplayCarousel>
-          <TcgAttribution className="tcg-featured__attr" />
+          {credits && <TcgAttribution className="tcg-featured__attr" />}
         </>
       ) : (
         <AutoplayCarousel
+          label={heading}
           slidesToShow={{ mobile: 2, tablet: 3, desktop: 5 }}
           gap={16}
           showArrows

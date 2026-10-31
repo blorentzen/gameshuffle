@@ -22,13 +22,14 @@ export interface OrganizerInfo {
  * count, Follow button. Eventbrite's "Organized by" block, on our follow graph.
  * Hidden follow when viewing your own event.
  */
-export function OrganizerCard({ organizer, roleLabel = "Hosted by", isYou = false }: { organizer: OrganizerInfo; roleLabel?: string; isYou?: boolean }) {
+export function OrganizerCard({ organizer, roleLabel = "Hosted by", isYou = false, official = false }: { organizer: OrganizerInfo; roleLabel?: string; isYou?: boolean; official?: boolean }) {
   const { user } = useAuth();
   const [state, setState] = useState(organizer.followState ?? null);
   const [count, setCount] = useState<number | null>(organizer.followerCount ?? null);
 
   // Client-rendered pages: fetch follow state + counts once we know the viewer.
   useEffect(() => {
+    if (official) return; // GameShuffle itself: no profile to follow
     if (organizer.followState !== undefined && organizer.followerCount !== undefined) return;
     let cancelled = false;
     fetch(`/api/account/follow?userId=${encodeURIComponent(organizer.userId)}`)
@@ -40,7 +41,22 @@ export function OrganizerCard({ organizer, roleLabel = "Hosted by", isYou = fals
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [organizer.userId, organizer.followState, organizer.followerCount, user?.id]);
+  }, [organizer.userId, organizer.followState, organizer.followerCount, user?.id, official]);
+
+  // An official event: GameShuffle is the host (supabase/official-events-m1.sql).
+  if (official) {
+    return (
+      <div className="event-shell__organizer event-shell__organizer--official">
+        {/* eslint-disable-next-line @next/next/no-img-element -- our own monogram */}
+        <img className="event-shell__organizer-logo" src="/images/fg/logos/gs-monogram.png" alt="" width={44} height={44} />
+        <div className="event-shell__organizer-body">
+          <span className="event-shell__organizer-role">{roleLabel}</span>
+          <span className="event-shell__organizer-name"><Link href="/">GameShuffle</Link></span>
+          <span className="event-shell__organizer-meta">An official GameShuffle event{isYou ? " · you run it" : ""}</span>
+        </div>
+      </div>
+    );
+  }
 
   const name = organizer.displayName || organizer.username || "a GameShuffle member";
   const profileHref = organizer.username ? `/u/${organizer.username}` : null;

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "A free online dice roller. Roll one or many d6 dice in a tap, great for board games, tabletop, decisions, and stream game nights. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/dice-roller" },
-  openGraph: { title: "Free Dice Roller", url: "https://www.gameshuffle.co/dice-roller" },
+  openGraph: { siteName: "GameShuffle", title: "Free Dice Roller", url: "https://www.gameshuffle.co/dice-roller" },
 };
 
 export default function DiceRollerPage() {

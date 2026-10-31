@@ -1,0 +1,107 @@
+/* /social/overlays: a 1280×720 "stream" behind the real OBS overlay pieces,
+   for guide screenshots. The pieces keep their own styles (overlay.css); this
+   only draws the stage and the index list. The root font is 10px, so type
+   uses the pixel-named tokens. */
+
+.overlay-showcase {
+  min-height: 100vh;
+  background: #05060c;
+  color: #fff;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* Dev only: keep the Next.js dev badge out of the shots. */
+body:has(.overlay-showcase) nextjs-portal {
+  display: none;
+}
+
+.overlay-showcase__stage {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  /* The pieces are position: fixed; a transform makes the stage their frame. */
+  transform: translateZ(0);
+  background:
+    radial-gradient(ellipse 55% 45% at 78% 22%, rgba(124, 92, 255, 0.38), transparent 70%),
+    radial-gradient(ellipse 45% 55% at 12% 88%, rgba(0, 190, 255, 0.24), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 50% 60%, rgba(255, 120, 60, 0.12), transparent 70%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.022) 0 2px, transparent 2px 46px),
+    linear-gradient(160deg, #161c40 0%, #0c1026 55%, #1c1031 100%);
+}
+
+/* A glowing floor grid toward the horizon: reads as "a game" without any game's art. */
+.overlay-showcase__stage::before {
+  content: "";
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: 0;
+  height: 2400px;
+  background-image:
+    linear-gradient(rgba(140, 160, 255, 0.26) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(140, 160, 255, 0.26) 2px, transparent 2px);
+  background-size: 64px 64px;
+  transform: perspective(400px) rotateX(50deg);
+  transform-origin: bottom;
+  mask-image: linear-gradient(to top, #000 0%, transparent 45%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* A soft horizon line where the floor meets the sky. */
+.overlay-showcase__stage::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 48%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(150, 170, 255, 0.45), transparent);
+  box-shadow: 0 0 24px 6px rgba(124, 92, 255, 0.25);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.overlay-showcase__index {
+  max-width: 64rem;
+  padding: 32px 24px;
+}
+
+.overlay-showcase__index h1 {
+  margin: 0 0 8px;
+  font-size: var(--font-size-24, 24px);
+}
+
+.overlay-showcase__index p {
+  margin: 0 0 20px;
+  font-size: var(--font-size-14, 14px);
+  opacity: 0.75;
+}
+
+.overlay-showcase__index ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.overlay-showcase__index a {
+  display: inline-flex;
+  gap: 12px;
+  align-items: baseline;
+  color: #9db4ff;
+  font-size: var(--font-size-16, 16px);
+  text-decoration: none;
+}
+
+.overlay-showcase__index a:hover,
+.overlay-showcase__index a:focus-visible {
+  text-decoration: underline;
+}
+
+.overlay-showcase__index code {
+  font-size: var(--font-size-13, 13px);
+  color: rgba(255, 255, 255, 0.6);
+}

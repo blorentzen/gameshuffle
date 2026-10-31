@@ -19,7 +19,7 @@ export default async function TournamentBrowsePage() {
   const canCreate = !!user && isEmailVerified(user);
 
   return (
-    <>
+    <main>
       <BrowseHero
         eyebrow="Compete"
         title="Run the bracket. Crown a winner."
@@ -42,11 +42,15 @@ export default async function TournamentBrowsePage() {
               createHref: canCreate ? "/tournament/create" : null,
               createLabel: "Create tournament",
               searchPlaceholder: "Tournaments, games, organizers",
-              emptyText: "No tournaments match. Try Everything under When, or widen the filters.",
+              emptyText: "No tournaments match. Try another tab, or widen the filters.",
               // Status tabs replace When here: Registration is upcoming and
               // Completed is past by definition, so offering both would let a
               // viewer pick a contradictory pair.
               statusTabs: true,
+              // Phones: a square of art beside the text, five per group, then
+              // Show more (refinement round 2, Britton's pick 2026-10-20).
+              groupCap: 5,
+              compactOnPhones: true,
               // Format and availability are the two questions someone scanning
               // tournaments actually asks: what kind of bracket is this, and
               // can I still get in. Both were on the row already, format only
@@ -63,6 +67,6 @@ export default async function TournamentBrowsePage() {
         </Suspense>
         </section>
       </Container>
-    </>
+    </main>
   );
 }

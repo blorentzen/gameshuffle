@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Accordion,
   Badge,
   Button,
   CarouselItem,
@@ -10,7 +9,11 @@ import {
   Stack,
 } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
+import { IconCards, IconStarFilled } from "@tabler/icons-react";
+import { ARROW_HOST_CLASS, ArrowCue, ArrowLink } from "@/components/ui/ArrowLink";
+import { IconTile } from "@/components/ui/IconTile";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
+import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import {
   COMPANION,
@@ -44,6 +47,9 @@ import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
 import { CompanionCTAs } from "@/components/tcg/CompanionCTAs";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { shopVisibleToVisitors } from "@/lib/store/visibility";
+import { ShopLine } from "@/components/store/ShopEntry";
+import { TrialNote } from "@/components/billing/TrialNote";
 
 /**
  * GameShuffle TCG hub (`/pokemon-tcg`) — dual-purpose brand page: sells
@@ -63,9 +69,10 @@ import { DarkBand } from "@/components/marketing/DarkBand";
  */
 
 export const metadata: Metadata = {
-  title: META.title,
+  title: { absolute: META.title },
   description: META.description,
   openGraph: {
+    siteName: "GameShuffle",
     title: META.title,
     description: META.description,
     url: `https://www.gameshuffle.co${TCG_HUB_PATH}`,
@@ -102,32 +109,13 @@ function ShopButton({
   );
 }
 
-/** Relative "Sold …" label for FOMO recency. Server-side; exact date past a
- *  month. */
-function soldLabel(iso: string | null): string {
-  if (!iso) return "Sold";
-  const then = new Date(iso).getTime();
-  const days = Math.floor((Date.now() - then) / 86_400_000);
-  if (days <= 0) return "Sold today";
-  if (days === 1) return "Sold yesterday";
-  if (days < 7) return `Sold ${days} days ago`;
-  if (days < 28) {
-    const w = Math.floor(days / 7);
-    return `Sold ${w} week${w > 1 ? "s" : ""} ago`;
-  }
-  return `Sold ${new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })}`;
-}
-
 export default async function Page() {
   // Admin-managed featured shop cards — read-only from the DB (0 credits;
   // never resolves live so an anon page view can't drive credit spend).
   // Falls back to FPO cards if none are configured yet.
-  const shopCards = await getPublicFeaturedShopCards();
+  const [shopCards, shopVisible] = await Promise.all([getPublicFeaturedShopCards(), shopVisibleToVisitors()]);
   const recentlySold = await getRecentlySoldCards(12);
+  const topReview = REVIEWS.find((r) => r.featured) ?? REVIEWS[0];
 
   // Top pick per tier, pulled from the real deck cluster (content/decks).
   // For a beginner featured deck that's half of a Battle Box, surface BOTH
@@ -164,15 +152,14 @@ export default async function Page() {
   return (
     <main>
       <MarketingJsonLd
-        breadcrumb={{ label: "GameShuffle TCG", path: TCG_HUB_PATH }}
+        breadcrumb={{ label: "Pokémon TCG", path: TCG_HUB_PATH }}
         faq={FAQ}
       />
 
       {/* Hero — full-bleed module using the card art as a background */}
+      {/* The card art is a decorative background: no role="img" on a section that holds links and buttons. */}
       <section
         className="tcg-hero"
-        role="img"
-        aria-label={HERO.imageAlt}
         style={{
           backgroundImage: `linear-gradient(90deg, rgba(8,11,18,0.94) 0%, rgba(8,11,18,0.78) 48%, rgba(8,11,18,0.5) 100%), url(${HERO.image})`,
         }}
@@ -203,7 +190,9 @@ export default async function Page() {
           cards={shopCards}
           heading="Featured cards in the shop"
           intro="Our highest-value singles, straight from the GameShuffle TCG store. Tap a card to grab it on TCGplayer."
+          credits={false}
         />
+        {shopVisible && <ShopLine placement="tcg" />}
 
         {/* Featured decks — right below the featured cards. Top pick per tier
             (both halves of a beginner Battle Box); final slide is a "Browse
@@ -222,6 +211,7 @@ export default async function Page() {
             </p>
             <div className="deck-carousel">
             <AutoplayCarousel
+            label="Featured decks"
               slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }}
               gap={20}
               showArrows
@@ -265,19 +255,17 @@ export default async function Page() {
               <CarouselItem key="browse-all">
                 <Link
                   href="/pokemon-tcg/decks"
-                  className="deck-tile deck-tile--browse"
+                  className={`deck-tile deck-tile--browse ${ARROW_HOST_CLASS}`}
                 >
-                  <span className="deck-tile__browse-arrow" aria-hidden="true">
-                    →
-                  </span>
+                  <IconTile icon={IconCards} tone="blue" />
                   <h3 className="deck-tile__name">Browse all decks</h3>
                   <p className="deck-tile__desc">
                     Every Standard 2026 deck guide: competitive, beginner
                     &amp; family, and meme.
                   </p>
-                  <span className="deck-tile__browse-cta">
+                  <ArrowCue className="deck-tile__browse-cta">
                     See the full deck index
-                  </span>
+                  </ArrowCue>
                 </Link>
               </CarouselItem>
             </AutoplayCarousel>
@@ -300,6 +288,7 @@ export default async function Page() {
               lately. Don&rsquo;t miss the next one.
             </p>
             <AutoplayCarousel
+            label="Recently sold"
               slidesToShow={{ mobile: 2, tablet: 3, desktop: 5 }}
               gap={16}
               showArrows
@@ -327,69 +316,33 @@ export default async function Page() {
                       </div>
                       <div className="tcg-card__meta">
                         <span className="tcg-card__name">{name}</span>
-                        <span className="tcg-card__set">
-                          {soldLabel(row.sold_at)}
-                        </span>
+                        {/* No dates (Britton, 2026-10-13: too many cards moving to keep sale dates current).
+                            The sale date only orders the carousel, newest first. */}
+                        <span className="tcg-card__set">Recently sold</span>
                       </div>
                     </a>
                   </CarouselItem>
                 );
               })}
             </AutoplayCarousel>
-            <TcgAttribution className="tcg-featured__attr" />
+            {/* Buyer reviews as one line here instead of their own band (Britton's pick, 2026-10-19). */}
+            {topReview && (
+              <figure className="tcg-sold-review">
+                {topReview.rating ? (
+                  <span className="tcg-sold-review__stars" role="img" aria-label={`${topReview.rating} out of 5 stars`}>
+                    {Array.from({ length: topReview.rating }, (_, i) => <IconStarFilled key={i} size={16} aria-hidden />)}
+                  </span>
+                ) : null}
+                <span className="tcg-sold-review__src">Verified buyers on TCGplayer</span>
+                <blockquote className="tcg-sold-review__quote">&ldquo;{topReview.quote}&rdquo;</blockquote>
+                <figcaption className="tcg-sold-review__by">
+                  {topReview.author} · <a href={TCG_SHOP_URL} target="_blank" rel="noopener noreferrer">Read more reviews</a>
+                </figcaption>
+              </figure>
+            )}
           </section>
         )}
       </Container>
-
-      {/* Reviews — carousel, wide cards. Sits right below Recently sold. */}
-      {REVIEWS.length > 0 && (
-        <section className="tcg-reviews-band">
-          <Container>
-            <h2 className="tcg-h2" style={{ marginBottom: "var(--spacing-8)" }}>
-              What buyers are saying
-            </h2>
-            <p className="tcg-reviews__source">
-              Verified buyer reviews from our TCGplayer store.
-            </p>
-            <AutoplayCarousel
-              slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }}
-              gap={20}
-              showArrows
-              showDots
-              loop
-              arrowPosition="bottom"
-            >
-              {[...REVIEWS]
-                .sort((a, b) => Number(b.featured ?? false) - Number(a.featured ?? false))
-                .map((r) => (
-                <CarouselItem key={r.quote.slice(0, 24)}>
-                  <figure className="tcg-review">
-                    <div className="tcg-review__top">
-                      {r.rating ? (
-                        <div
-                          className="tcg-review__stars"
-                          aria-label={`${r.rating} out of 5 stars`}
-                        >
-                          {"★".repeat(r.rating)}
-                        </div>
-                      ) : null}
-                      <blockquote className="tcg-review__quote">
-                        &ldquo;{r.quote}&rdquo;
-                      </blockquote>
-                    </div>
-                    <figcaption className="tcg-review__by">
-                      {r.author}
-                      {r.source ? (
-                        <span className="tcg-review__src"> · {r.source}</span>
-                      ) : null}
-                    </figcaption>
-                  </figure>
-                </CarouselItem>
-              ))}
-            </AutoplayCarousel>
-          </Container>
-        </section>
-      )}
 
       {/* Companion module — the centerpiece. Same treatment as the CTA modules:
           a curved premium dark band. `dark` keeps CDS component variants dark
@@ -400,6 +353,11 @@ export default async function Page() {
             <p className="tcg-companion__eyebrow">{COMPANION.eyebrow}</p>
             <h2 className="tcg-companion__title">{COMPANION.heading}</h2>
             <p className="tcg-companion__body">{COMPANION.body}</p>
+            <p className="tcg-companion__more">
+              <ArrowLink href={COMPANION.learnMore.href}>{COMPANION.learnMore.label}</ArrowLink>
+              <ArrowLink href="/pokemon-tcg/rules">Pokémon TCG rules in plain words</ArrowLink>
+              <ArrowLink href="/pokemon-tcg/checklists">Card checklists</ArrowLink>
+            </p>
           </div>
 
           <div className="tcg-rtb-grid">
@@ -413,6 +371,10 @@ export default async function Page() {
               </div>
             ))}
           </div>
+
+          <p className="tcg-companion__pro">
+            Playing on a call? <Link href="/gs-pro">Play together on two phones with GS Pro</Link><TrialNote trial=", free for 14 days." otherwise="." outside=", in the US for now." />
+          </p>
 
           <CompanionCTAs
             openHref={COMPANION.cta.href}
@@ -441,15 +403,10 @@ export default async function Page() {
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="tcg-h2">Frequently asked questions</h2>
-          {/* Open by default: CDS Accordion only mounts an item once it's opened,
-              so collapsed answers would be missing from the HTML (and from search). */}
-          <Accordion
-            variant="bordered"
-            allowMultiple
-            defaultOpenIds={FAQ.map((_, i) => String(i))}
-            items={FAQ.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
-          />
+          <FaqList items={FAQ} />
         </section>
+        {/* The card credits once, at the foot of the page. */}
+        <TcgAttribution className="tcg-hub__credits" />
       </Container>
     </main>
   );

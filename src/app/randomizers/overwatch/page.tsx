@@ -24,16 +24,16 @@ export default function Page() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} accent="orange" field="heroes" image={GAME_ART["overwatch"].hero} primary={{ href: "#play", label: "Roll heroes" }} />
+        <BrowseHero eyebrow="New randomizer" title={landing.h1} sub={landing.lead} accent="orange" field="heroes" image={GAME_ART["overwatch"].hero} primary={{ href: "#play", label: "Roll heroes" }} />
         <div id="play">
           <Container className="tool-page">
             <NewBanner />
             <HeroRoulette game={liveRoster(OVERWATCH)} />
           </Container>
         </div>
+        <RandomizerNudge gameName="Overwatch" saves="your tournaments and game nights" />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Overwatch" saves="your tournaments and game nights" />
     </>
   );
 }

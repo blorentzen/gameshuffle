@@ -63,6 +63,12 @@ export interface ChatGame {
   streamerOnly?: boolean;
   /** What can follow `!gs-shuffle`, for help text ("tank, damage or support"). */
   argHint?: string;
+  /** What the streamer's own roll is called on the stream page's button
+   *  ("Roll my fighter"). Defaults to "pick". */
+  noun?: string;
+  /** Named versions of the roll the stream page offers (a role, a cup), each
+   *  the same words chat would type after `!gs-shuffle`. */
+  choices?: { label: string; arg: string }[];
   roll(ctx: RollContext): ChatRoll;
   /** Where a viewer battle is played, rolled once for everyone (a Smash stage). */
   battleSetting?(): string;
@@ -80,6 +86,7 @@ function kartGame(entry: TwitchGameEntry): ChatGame {
     slug: entry.slug,
     title: entry.title,
     lobbyCap: entry.lobbyCap,
+    noun: "combo",
     roll: ({ owned }) => {
       const combo: KartCombo = randomizeKartCombo(applyToKartData(entry.data, owned), [], [], []);
       const parts = [
@@ -102,6 +109,7 @@ const mk64: ChatGame = {
   slug: "mario-kart-64",
   title: "Mario Kart 64",
   lobbyCap: 4,
+  noun: "racer",
   roll: () => {
     const c = pick(MK64_CHARACTERS)!;
     return done("mario-kart-64", [{ label: "Racer", name: c.name, kind: "art", img: getImagePath(c.img) }], `🧑 ${c.name}`);
@@ -114,6 +122,7 @@ const smash: ChatGame = {
   slug: ULTIMATE.slug,
   title: "Super Smash Bros. Ultimate",
   lobbyCap: 8,
+  noun: "fighter",
   // `taken` is only filled for a viewer battle (everyone different); a single roll can repeat, like the game.
   roll: ({ owned, taken }) => {
     const pool = fighterPool(ULTIMATE, { echoes: "separate", miis: false, exclude: [...offSet(owned, "fighters")] });
@@ -138,6 +147,7 @@ function partyGame(game: PartyGame, title: string): ChatGame {
     title,
     lobbyCap: 4,
     unique: true,
+    noun: "character",
     roll: ({ owned, taken }) => {
       const [name] = drawCharacters(game, 1, { unlockables: true, exclude: [...offSet(owned, "characters"), ...taken] });
       const c = game.characters.find((x) => x.name === name)!;
@@ -163,6 +173,8 @@ function heroGame(base: HeroGame, title: string, lobbyCap: number): ChatGame {
     title,
     lobbyCap,
     argHint: base.roles.map((r) => r.label.toLowerCase()).join(", ").replace(/, ([^,]*)$/, " or $1"),
+    noun: "hero",
+    choices: [{ label: "Any role", arg: "" }, ...base.roles.map((r) => ({ label: r.label, arg: r.id }))],
     roll: ({ arg }) => {
       const game = liveRoster(base);
       const word = arg.trim().toLowerCase().split(/\s+/)[0] ?? "";
@@ -188,6 +200,7 @@ const splatoon: ChatGame = {
   slug: SPLATOON3.slug,
   title: "Splatoon 3",
   lobbyCap: 8,
+  noun: "weapon kit",
   roll: () => {
     const [w] = drawWeapons(weaponPool(SPLATOON3), 1);
     const color = SPLATOON3.classes.find((c) => c.id === w.cls)?.color;
@@ -205,6 +218,7 @@ const kirby: ChatGame = {
   slug: AIR_RIDERS.slug,
   title: "Kirby Air Riders",
   lobbyCap: 16,
+  noun: "rider and machine",
   roll: () => {
     const [r] = drawCombos(riderPool(AIR_RIDERS), machinePool(AIR_RIDERS), 1);
     const rider = AIR_RIDERS.riders.find((x) => x.name === r.rider)!;
@@ -227,6 +241,7 @@ const goldeneye: ChatGame = {
   slug: "goldeneye-007",
   title: "GoldenEye 007",
   lobbyCap: 4,
+  noun: "character",
   roll: () => {
     // Names only: no Bond art (trademark), same as the randomizer.
     const [name] = rollGoldenEye(1, { freshSave: false, noOddjob: true, cast: "main" });
@@ -238,6 +253,7 @@ const perfectDark: ChatGame = {
   slug: "perfect-dark",
   title: "Perfect Dark",
   lobbyCap: 4,
+  noun: "character",
   roll: () => {
     const [name] = rollPerfectDark(1, { freshSave: false, cast: "main" });
     return done("perfect-dark", [{ label: "Character", name, kind: "icon", img: perfectDarkTile(name), color: "#8a1c2b" }], `🕶️ ${name}`);
@@ -261,6 +277,9 @@ function stadium(slug: string, title: string): ChatGame {
     lobbyCap: 4,
     streamerOnly: true,
     argHint: game.cups.map((c) => c.id).join(", ").replace(/, ([^,]*)$/, " or $1"),
+    noun: "team",
+    // Poké Cup first: it's what a bare `!gs-shuffle` rolls.
+    choices: [...game.cups].sort((a, b) => Number(b.id === "poke") - Number(a.id === "poke")).map((c) => ({ label: c.name, arg: c.id })),
     roll: ({ arg }) => {
       const word = arg.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/\s+/)[0] ?? "";
       const cup = stadiumCup(game, game.cups.some((c) => c.id === word) ? word : "poke");

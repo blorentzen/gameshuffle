@@ -17,6 +17,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   Alert,
   Button,
@@ -24,6 +25,7 @@ import {
   Modal,
   Radio,
   RadioGroup,
+  Select,
   Switch,
 } from "@empac/cascadeds";
 import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
@@ -33,7 +35,6 @@ import type {
 } from "@/lib/modules/types";
 import { GameArtwork } from "@/components/hub/GameArtwork";
 import { useToast } from "@/components/toast/ToastProvider";
-import { DeckEditor } from "@/components/party/DeckEditor";
 
 interface GameDef {
   slug: string;
@@ -76,7 +77,7 @@ export function GameModulesTab() {
   }, []);
 
   useEffect(() => {
-    void refreshCustomized();
+    void Promise.resolve().then(refreshCustomized);
   }, [refreshCustomized]);
 
   const editingGame = editingSlug
@@ -134,18 +135,10 @@ export function GameModulesTab() {
         ))}
       </div>
 
-      <section className="game-modules__deck">
-        <h3 className="account-tab__heading">Mario Party cards</h3>
-        <DeckEditor
-          scope="me"
-          intro={
-            <p className="account-tab__intro">
-              Write your own house rules, Chance cards and missions. They&apos;re dealt in your party nights and live
-              nights, and your mods can edit them too from your mod page.
-            </p>
-          }
-        />
-      </section>
+      <p className="account-tab__intro">
+        Looking for your Chance cards, missions and house rules? They moved to{" "}
+        <Link href="/account/stuff?tab=decks">My Stuff ▸ Decks</Link>.
+      </p>
 
       {editingGame && (
         <GameDefaultsModal
@@ -397,30 +390,14 @@ function GameDefaultsModal({
               </span>
             </label>
 
-            <label
-              className="hub-form__field"
-              htmlFor={`series-${game.slug}`}
-            >
-              <span className="hub-form__label">
-                Default series length
-              </span>
-              <select
-                id={`series-${game.slug}`}
-                className="hub-form__select"
+            <div className="hub-form__field">
+              <Select
+                floatingLabel="Default series length"
                 value={String(config.defaultSeriesLength ?? 1)}
-                onChange={(e) =>
-                  patch({
-                    defaultSeriesLength: parseInt(e.target.value, 10),
-                  })
-                }
-              >
-                {SERIES_PRESETS.map((n) => (
-                  <option key={n} value={String(n)}>
-                    {n === 1 ? "1 race" : `${n} races`}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={(v) => patch({ defaultSeriesLength: parseInt(String(v), 10) })}
+                options={SERIES_PRESETS.map((n) => ({ value: String(n), label: n === 1 ? "1 race" : `${n} races` }))}
+              />
+            </div>
 
             {game.hasRallies && (
               <RadioGroup

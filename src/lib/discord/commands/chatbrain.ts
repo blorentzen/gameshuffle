@@ -18,7 +18,9 @@
 
 import { resolveIdentity } from "@/lib/economy/identity";
 import { MAX_ANSWER_LENGTH, sameLine } from "@/lib/chatbrain/rules";
-import { ChatBrainNotReady, getPublicPrompt, hasAnswered, listOpenPrompts, promptNeedingAnswers, submitAnswer } from "@/lib/chatbrain/store";
+import { ChatBrainNotReady, getPublicPrompt, listOpenPrompts, personAnswer, promptNeedingAnswers, submitAnswer } from "@/lib/chatbrain/store";
+import { after } from "next/server";
+import { answeredNames, interactionName, noteAnswer, personFor, promptTopic, recordInteractionPost, type AnsweredHere } from "@/lib/discord/promptPosts";
 import type { DiscordEmbed } from "@/lib/adapters/discord/adapter";
 import { ephemeralMessage } from "../respond";
 import { activityLive, launchActivity } from "../activityLaunch";
@@ -62,12 +64,14 @@ function moreLink(): string {
 }
 
 /** The question card: embed + an Answer button + a link to more questions. */
-export function brainQuestionMessage(prompt: { id: string; text: string }, opts: { title?: string } = {}): { embeds: DiscordEmbed[]; components: unknown[] } {
+export function brainQuestionMessage(prompt: { id: string; text: string }, opts: { title?: string; answered?: AnsweredHere | null } = {}): { embeds: DiscordEmbed[]; components: unknown[] } {
   return {
     embeds: [{
       title: opts.title ?? "Chat Brain",
       description: `**${prompt.text}**\n\nTap **Answer** and say the first thing that comes to mind. Once enough people answer, the top answers become a board you can play on GameShuffle.`,
       color: COLOR,
+      // Who in this server has answered (names only, never answers): src/lib/discord/promptPosts.ts.
+      ...(opts.answered ? { fields: [{ name: `✅ ${opts.answered.count} answered here`, value: answeredNames(opts.answered).slice(0, 1024) }] } : {}),
       footer: { text: "Chat Brain · a GameShuffle Original" },
     }],
     components: [{
@@ -106,6 +110,7 @@ export async function handleGsBrain(interaction: Record<string, unknown>): Promi
     if (interaction.guild_id && canManage(interaction)) {
       const prompt = await promptNeedingAnswers({ category });
       if (!prompt) return ephemeralMessage("No questions are open right now. Check back soon.");
+      after(async () => recordInteractionPost(interaction, { topic: await promptTopic(prompt.id), kind: "brain", ref: prompt.id, payload: { text: prompt.text } }));
       return reply(brainQuestionMessage(prompt), false);
     }
     return await personalQuestion(user, category);
@@ -122,8 +127,14 @@ export async function handleBrainAnswerButton(interaction: Record<string, unknow
   if (!user?.id) return ephemeralMessage("Couldn't tell who you are. Try again.");
   const prompt = await getPublicPrompt(promptId);
   if (!prompt?.open) return nextButtons("This question has closed. Try another one.", prompt?.category ?? null);
-  if (await hasAnswered(promptId, { identityId: await identityFor(user) })) {
-    return nextButtons("You already answered this one.", prompt.category);
+  // One answer per person: the Weekly (on their account) counts too.
+  const identityId = await identityFor(user);
+  const prior = await personAnswer(promptId, { identityId });
+  if (prior) {
+    after(async () => noteAnswer({ guildId: interaction.guild_id as string | undefined, topic: await promptTopic(promptId), person: await personFor({ identityId }), name: interactionName(interaction) }));
+    return nextButtons(prior.source === "weekly"
+      ? `You already answered this in this week's Weekly: **${prior.raw}**. Change it with /gs-weekly.`
+      : `You already answered this one: **${prior.raw}**.`, prompt.category);
   }
   // Labels cap at 45 characters and placeholders at 100, so a long question
   // rides in the placeholder (the card behind the form shows it in full).
@@ -173,7 +184,11 @@ export async function handleBrainModalSubmit(interaction: Record<string, unknown
   if (!user?.id) return ephemeralMessage("Couldn't tell who you are. Try again.");
   const raw = modalValue(data, "answer");
   const prompt = await getPublicPrompt(promptId);
-  const result = await submitAnswer({ promptId, raw, who: { identityId: await identityFor(user) }, source: "discord" });
+  const identityId = await identityFor(user);
+  const result = await submitAnswer({ promptId, raw, who: { identityId }, source: "discord" });
+  if (result.ok || result.error === "already_answered") {
+    after(async () => noteAnswer({ guildId: interaction.guild_id as string | undefined, topic: await promptTopic(promptId), person: await personFor({ identityId }), name: interactionName(interaction) }));
+  }
   if (result.ok) return nextButtons(`Got it: **${raw.trim().slice(0, MAX_ANSWER_LENGTH)}**. ${sameLine(result.same)} Once enough people answer, the board goes up on GameShuffle.`, prompt?.category ?? null);
   const why: Record<string, string> = {
     empty: "That answer was empty. Tap Answer to try again.",

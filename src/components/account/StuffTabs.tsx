@@ -1,69 +1,49 @@
 "use client";
 
 /**
- * Client tab switcher for the account "My Stuff" section — Setups & Games,
- * Tournaments, and My Cards (the collection, moved here from the TCG Hub since
- * it's a private, auth-gated surface). The shared shell + sidebar live in
- * `src/app/account/layout.tsx`; the page server-resolves `isPro`.
+ * The My Stuff section: Events (Tournaments · Game nights) · Purchases
+ * (Tickets · Shop orders · Payouts) · Saved configs · Decks · My Collection (Cards ·
+ * Deck lists). Views and
+ * tabs live in src/lib/account/nav.ts; My Games and Board Games moved to
+ * Account ▸ Profile ▸ Games (their old links forward there). The page
+ * server-resolves `isPro`, whether to show Payouts and the profile timezone
+ * event times are shown in. Every screen is an AdminScreen; event lists use
+ * the rows in ./stuff/StuffList.
  */
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { SectionTabs, type ScreenMap } from "@/components/account/SectionTabs";
 import { SetupsTab } from "@/components/account/SetupsTab";
 import { TournamentsTab } from "@/components/account/TournamentsTab";
 import { CollectionManager } from "@/components/tcg/CollectionManager";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
-import { BoardGamesManager } from "@/components/account/BoardGamesManager";
 import { GameNightsTab } from "@/components/account/GameNightsTab";
 import { TicketsTab } from "@/components/account/TicketsTab";
 import { PayoutsTab } from "@/components/account/PayoutsTab";
-import { MyGamesPanel } from "@/components/collection/CollectionEditor";
-import { COLLECTION_GAMES } from "@/lib/collection/catalog";
+import { ShopOrdersTab } from "@/components/account/ShopOrdersTab";
+import { DecksTab } from "@/components/account/stuff/DecksTab";
+import { TcgDecksTab } from "@/components/tcg/decks/TcgDecksTab";
+import { AdminScreen } from "@/components/account/admin/AdminKit";
+import { MAX_SHOWCASE } from "@/lib/scrydex/types";
 
-export function StuffTabs({ isPro }: { isPro: boolean }) {
-  return (
-    <Suspense>
-      <StuffTabsContent isPro={isPro} />
-    </Suspense>
-  );
-}
-
-function StuffTabsContent({ isPro }: { isPro: boolean }) {
-  const tab = useSearchParams().get("tab") || "setups";
-
-  if (tab === "tournaments") return <TournamentsTab />;
-
-  if (tab === "my-games") {
-    return (
-      <div className="account-card">
-        <h2 className="account-tab__heading">My Games</h2>
-        <p className="account-tab__intro">
-          Tell us what you own or have unlocked, and the randomizers only roll what you can actually pick. The base game starts switched on; DLC and unlockables start off until you tick them.
-        </p>
-        <MyGamesPanel games={COLLECTION_GAMES} />
-      </div>
-    );
-  }
-
-  if (tab === "game-nights") return <GameNightsTab />;
-
-  if (tab === "board-games") return <BoardGamesManager />;
-
-  if (tab === "tickets") return <TicketsTab />;
-
-  if (tab === "payouts") return <PayoutsTab />;
-
-  if (tab === "my-cards") {
-    return (
-      <div className="account-mycards">
-        <h2 style={{ marginBottom: "var(--spacing-16)" }}>My Cards</h2>
-        <CollectionManager isPro={isPro} />
+export function StuffTabs({ isPro, unlimitedCards = false, showPayouts = false, showShopOrders = true, timeZone = null }: { isPro: boolean; unlimitedCards?: boolean; showPayouts?: boolean; showShopOrders?: boolean; timeZone?: string | null }) {
+  const screens: ScreenMap = {
+    tournaments: () => <TournamentsTab timeZone={timeZone} />,
+    "game-nights": () => <GameNightsTab timeZone={timeZone} />,
+    tickets: () => <TicketsTab timeZone={timeZone} />,
+    ...(showShopOrders ? { orders: () => <ShopOrdersTab /> } : {}),
+    // Organizer payouts only once paid entry is on, or for someone who has a payout account.
+    ...(showPayouts ? { payouts: () => <PayoutsTab /> } : {}),
+    setups: () => <SetupsTab />,
+    decks: () => <DecksTab isPro={unlimitedCards} />,
+    "my-cards": () => (
+      <AdminScreen title="My Collection" intro={`The Pokémon cards you own. Star your favorites: the top ${MAX_SHOWCASE} show on your public profile.`}>
+        <CollectionManager isPro={isPro} unlimited={unlimitedCards} />
         <footer className="account-mycards__attr">
           <TcgAttribution />
         </footer>
-      </div>
-    );
-  }
-
-  return <SetupsTab />;
+      </AdminScreen>
+    ),
+    "tcg-decks": () => <TcgDecksTab isPro={isPro} />,
+  };
+  return <SectionTabs route="/account/stuff" screens={screens} />;
 }

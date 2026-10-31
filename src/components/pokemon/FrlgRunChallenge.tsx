@@ -11,8 +11,9 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Badge, Button, Card, Carousel, Checkbox, Progress, Select } from "@empac/cascadeds";
-import { IconCopy, IconDice5, IconLink } from "@tabler/icons-react";
+import { Badge, Button, Card, Checkbox, Progress, Select } from "@empac/cascadeds";
+import { LabeledCarousel } from "@/components/ui/LabeledCarousel";
+import { IconDice5, IconLink } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { PokemonDisclaimer, type ShowcaseArt } from "@/components/pokemon/TypeCard";
@@ -23,7 +24,7 @@ import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { EVENTS, track } from "@/lib/analytics/events";
-import { FRLG_VERSIONS, METHOD_LABEL, buildRun, checklistIds, newSeed, runText, type FrlgVersion, type RunOptions } from "@/lib/pokemon/frlgRun";
+import { FRLG_VERSIONS, METHOD_LABEL, buildRun, checklistIds, newSeed, type FrlgVersion, type RunOptions } from "@/lib/pokemon/frlgRun";
 
 /** The run a first visit opens on, so the page shows a real run straight away. */
 const SAMPLE_SEED = "kanto1";
@@ -129,7 +130,6 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
       <div className="randomizer-controls">
         <span className="party-muted">Seed <strong>{seed}</strong> · {versionLabel} · {options.catches} catch{options.catches > 1 ? "es" : ""} per badge</span>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-          <Button variant="secondary" size="small" iconBefore={IconCopy} onClick={() => copy(runText(run), "Run copied")}>Copy run</Button>
           <Button variant="secondary" size="small" iconBefore={IconLink} onClick={() => copy(shareUrl(), "Link copied")}>Copy link</Button>
         </div>
       </div>
@@ -163,7 +163,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
 
         {/* One card per part of the run; ticking it complete moves to the next. */}
         <div className="frlg-run__deck" ref={deckRef}>
-          <Carousel slidesToShow={{ mobile: 1, tablet: 2, desktop: 2 }} gap={16} showDots showArrows arrowPosition="bottom" touch keyboard>
+          <LabeledCarousel label="Your run, part by part" slidesToShow={{ mobile: 1, tablet: 2, desktop: 2 }} gap={16} showDots showArrows arrowPosition="bottom" touch keyboard>
             <Card variant="elevated" padding="large" className="frlg-seg">
               <div className="frlg-seg__head">
                 <div>
@@ -223,7 +223,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
                 </Card>
               );
             })}
-          </Carousel>
+          </LabeledCarousel>
         </div>
         <PokemonDetails pokemon={details} onClose={() => setDetails(null)} nameOf={speciesName}>
           {details?.where && (

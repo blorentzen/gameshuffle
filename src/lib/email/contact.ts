@@ -17,6 +17,7 @@ const FROM_NAME = "GameShuffle";
 export const CONTACT_TOPIC_LABELS: Record<string, string> = {
   general: "General question",
   bug: "Bug report",
+  correction: "Something's wrong on a page",
   feature: "Feature request",
   account: "Account help",
   billing: "Billing or subscription",

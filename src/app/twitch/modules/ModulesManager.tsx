@@ -23,6 +23,8 @@ interface Props {
   communityDisplayName: string | null;
   catalog: ModuleCatalogRow[];
   enablement: CommunityModuleRow[];
+  /** Inside a page that already has its own title (Streaming ▸ Chat ▸ Modules). */
+  embedded?: boolean;
 }
 
 interface RowState extends ModuleCatalogRow {
@@ -41,6 +43,7 @@ export function ModulesManager({
   communityDisplayName,
   catalog,
   enablement,
+  embedded = false,
 }: Props) {
   const initialRows: RowState[] = catalog.map((m) => {
     const existing = enablement.find((e) => e.module_key === m.module_key);
@@ -81,7 +84,7 @@ export function ModulesManager({
 
   return (
     <div className="modules-manager">
-      <header className="modules-manager__header">
+      {!embedded && <header className="modules-manager__header">
         <h1>Modules</h1>
         <p className="modules-manager__subtitle">
           Community:{" "}
@@ -93,7 +96,7 @@ export function ModulesManager({
           live page. Compliance restrictions (e.g. region gating on
           prediction markets) still apply when enabled.
         </p>
-      </header>
+      </header>}
 
       {error && (
         <p className="modules-manager__error" role="alert">

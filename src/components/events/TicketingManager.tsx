@@ -3,7 +3,8 @@
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Card, Input, Modal, Select, Switch } from "@empac/cascadeds";
+import { Alert, Button, Card, Input, Modal, Switch } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { EventType } from "@/lib/events/calendar";
 import type { EventTicketing, PromoCode, TicketOrder, TicketTier } from "@/lib/events/tickets";
@@ -40,7 +41,14 @@ const toLocalInput = (iso: string | null): string => {
 };
 const fromLocalInput = (v: string): string | null => (v ? new Date(v).toISOString() : null);
 
-export function TicketingManager({ type, eventId }: { type: EventType; eventId: string }) {
+export function TicketingManager({ type, eventId, hideWhenPaused = false, className }: {
+  type: EventType;
+  eventId: string;
+  /** While paid entry is paused and the event has no orders, show nothing instead of the notice. */
+  hideWhenPaused?: boolean;
+  /** Extra class on the root, so a page can give it its card frame. */
+  className?: string;
+}) {
   const toast = useToast();
   const availability = usePaidAvailability();
   const [account, setAccount] = useState<ConnectAccount | null | undefined>(undefined);
@@ -163,16 +171,19 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
   // Paid entry off: a notice instead of tiers and payouts, unless this event already
   // has orders (then the full manager stays, so they can still be refunded).
   if (availability && !availability.paidEntry && orders.length === 0) {
+    if (hideWhenPaused) return null;
     return (
-      <div className="ticketing">
+      <div className={className ? `ticketing ${className}` : "ticketing"}>
         <h2 className="event-shell__h2">Tickets &amp; payouts</h2>
         <PaidEntryNotice />
       </div>
     );
   }
 
+  // Until we know whether paid entry is open, a page that hides the paused state shows nothing.
+  if (hideWhenPaused && !availability) return null;
   return (
-    <div className="ticketing">
+    <div className={className ? `ticketing ${className}` : "ticketing"}>
       <h2 className="event-shell__h2">Tickets &amp; payouts</h2>
 
       {/* Payout account (same card as Account → My Stuff → Payouts) */}

@@ -7,16 +7,26 @@ import { createClient } from "@/lib/supabase/client";
 /**
  * The second step at sign-in. Shown when the password succeeded but the session
  * is still `aal1` while the account has a verified factor — i.e. Supabase is
- * waiting for the other half. A recovery code is accepted as the fallback; it
- * is consumed server-side and then removes the block for this sign-in.
+ * waiting for the other half. A recovery code is accepted as the fallback: the
+ * server uses it up, turns two-factor sign-in off (the authenticator is
+ * presumably lost), signs this browser back in and emails the person; this
+ * screen then says so and asks them to set it up again.
  */
-export function MfaChallenge({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+export function MfaChallenge({ onDone, onCancel, allowRecovery = true, cancelLabel = "Sign in as someone else" }: {
+  onDone: () => void;
+  onCancel: () => void;
+  /** Offer "Use a recovery code" (on everywhere unless a caller has a reason to hide it). */
+  allowRecovery?: boolean;
+  cancelLabel?: string;
+}) {
   const [factorId, setFactorId] = useState<string | null>(null);
   const [factorType, setFactorType] = useState<"totp" | "phone">("totp");
   const [code, setCode] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // After a recovery code: two-factor is off now. "signedIn" = this browser was signed straight back in.
+  const [reset, setReset] = useState<{ signedIn: boolean } | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -34,8 +44,12 @@ export function MfaChallenge({ onDone, onCancel }: { onDone: () => void; onCance
     try {
       if (useRecovery) {
         const r = await fetch("/api/account/mfa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "recovery.consume", code }) });
-        if (!r.ok) { setError("That recovery code isn't valid or has already been used."); return; }
-        onDone();
+        const j = (await r.json().catch(() => ({}))) as { error?: string; signedIn?: boolean };
+        if (!r.ok) {
+          setError(j.error === "reset_failed" ? "Your code worked, but we couldn't finish signing you in. Try again in a minute." : "That recovery code isn't valid or has already been used.");
+          return;
+        }
+        setReset({ signedIn: !!j.signedIn });
         return;
       }
       if (!factorId) { setError("No second factor found on this account."); return; }
@@ -47,6 +61,19 @@ export function MfaChallenge({ onDone, onCancel }: { onDone: () => void; onCance
       onDone();
     } finally { setBusy(false); }
   };
+
+  if (reset) {
+    return (
+      <div className="auth-page__form auth-mfa">
+        <h2 className="auth-mfa__title">Two-factor sign-in is off</h2>
+        <p className="auth-mfa__subtitle">
+          You used a recovery code, so we turned two-factor sign-in off and your other codes stopped working. We&apos;ve emailed you too.
+          {reset.signedIn ? " Set it up again from Settings once you're in." : " Sign in again with your password, then set it up again from Settings."}
+        </p>
+        <Button variant="primary" fullWidth onClick={reset.signedIn ? onDone : onCancel}>{reset.signedIn ? "Continue" : "Sign in again"}</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page__form auth-mfa">
@@ -75,10 +102,12 @@ export function MfaChallenge({ onDone, onCancel }: { onDone: () => void; onCance
       </form>
 
       <div className="auth-mfa__links">
-        <button type="button" className="auth-mfa__link" onClick={() => { setUseRecovery((v) => !v); setCode(""); setError(null); }}>
-          {useRecovery ? "Use my authenticator instead" : "Use a recovery code"}
-        </button>
-        <button type="button" className="auth-mfa__link" onClick={onCancel}>Sign in as someone else</button>
+        {allowRecovery && (
+          <button type="button" className="auth-mfa__link" onClick={() => { setUseRecovery((v) => !v); setCode(""); setError(null); }}>
+            {useRecovery ? "Use my authenticator instead" : "Use a recovery code"}
+          </button>
+        )}
+        <button type="button" className="auth-mfa__link" onClick={onCancel}>{cancelLabel}</button>
       </div>
     </div>
   );

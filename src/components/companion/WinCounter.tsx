@@ -6,6 +6,8 @@
  * decrement-on-KO flow to the slot's `koValue`.
  */
 
+import { IconMinus, IconPlus } from "@tabler/icons-react";
+import { IconAction } from "@/components/actions/IconAction";
 import { useSession, useMode } from "@/lib/companion/SessionContext";
 import type { PlayerId } from "@/lib/companion/types";
 
@@ -30,25 +32,11 @@ export function WinCounter({ player }: Props) {
     <div className="companion-win">
       <div className="companion-win__label">{mode.winCounterLabel}</div>
       <div className="companion-win__row">
-        <button
-          type="button"
-          className="companion-win__btn"
-          onClick={() => dispatch({ type: "ADJUST_WIN_COUNTER", player, delta: undoDelta })}
-          aria-label="Undo (return one)"
-        >
-          +
-        </button>
+        <IconAction icon={IconPlus} label={`Give ${state.playerNames[player]} back one prize card`} onClick={() => dispatch({ type: "ADJUST_WIN_COUNTER", player, delta: undoDelta })} />
         <div className="companion-win__value" aria-live="polite">
           {value}
         </div>
-        <button
-          type="button"
-          className="companion-win__btn"
-          onClick={() => dispatch({ type: "ADJUST_WIN_COUNTER", player, delta: takeDelta })}
-          aria-label="Take one"
-        >
-          −
-        </button>
+        <IconAction icon={IconMinus} label={`${state.playerNames[player]} takes one prize card`} onClick={() => dispatch({ type: "ADJUST_WIN_COUNTER", player, delta: takeDelta })} />
       </div>
     </div>
   );

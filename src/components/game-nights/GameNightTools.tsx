@@ -115,7 +115,7 @@ export function GameNightTools() {
       <div className="account-card bgn-tools__teamscard">
         <h2>Teams</h2>
         <p className="bgn-tools__hint">Split everyone into balanced random teams.</p>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", marginBottom: "var(--spacing-12)" }}>
+        <div className="bgn-tools__count">
           <label htmlFor="team-count" style={{ fontSize: "var(--font-size-14)" }}>Teams</label>
           <Select
             id="team-count"

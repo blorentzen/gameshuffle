@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Badge, Button, Icon, IconButton, Input, Modal, Select, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from "@empac/cascadeds";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Badge, Button, Icon, IconButton, Input, Modal, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { SortableList } from "@/components/ui/SortableList";
 import { lineOrder, timeLeft } from "@/lib/events/waitlistRules";
+import { biggerFieldLine } from "@/lib/tournaments/circuit";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { EventType } from "@/lib/events/calendar";
@@ -27,12 +29,35 @@ const STATUS_VARIANT: Record<AttendeeStatus, "default" | "success" | "warning" |
   registered: "warning", confirmed: "success", checked_in: "info", dropped: "outline", waitlisted: "warning", offered: "info", going: "success", maybe: "default", declined: "outline",
 };
 
-export function AttendeeTable({ type, eventId, capacity: capacityProp = null, checkInHref, compact = false }: { type: EventType; eventId: string; capacity?: number | null; checkInHref: string; compact?: boolean }) {
+/**
+ * Optional hooks for a manage page that adds its own controls to the rows (the
+ * tournament page puts Accept / Reject, teams, crews and claim links here, so
+ * the attendee table is the one list of people).
+ */
+export interface AttendeeTableExtras {
+  /** The statuses to show (from counts the page draws itself); null or empty = everyone. */
+  statusFilter?: string[] | null;
+  /** Changes when the page changed people itself, so the table reloads. */
+  reloadKey?: string | number;
+  /** Under the name: contact details, guest claim state, team or crew pickers. */
+  rowDetail?: (a: Attendee) => ReactNode;
+  /** A last column of actions for the row. */
+  rowActions?: (a: Attendee) => ReactNode;
+  /** Buttons before the table's own (Accept all, Auto-balance teams). */
+  toolbarStart?: ReactNode;
+  /** The page shows its own counts, so the table's "11 / 12 players" line is hidden. */
+  hideStats?: boolean;
+}
+
+export function AttendeeTable({ type, eventId, capacity: capacityProp = null, checkInHref, compact = false, statusFilter, reloadKey, rowDetail, rowActions, toolbarStart, hideStats = false }: { type: EventType; eventId: string; capacity?: number | null; checkInHref: string; compact?: boolean } & AttendeeTableExtras) {
   const toast = useToast();
   const [rows, setRows] = useState<Attendee[]>([]);
   const [capacity, setCapacity] = useState<number | null>(capacityProp);
   const [taken, setTaken] = useState(0);
   const [waitlistCap, setWaitlistCap] = useState<number | null>(null);
+  // Tournaments: the organizer's GameShuffle Circuit player limit, when it's lower than their own.
+  const [plan, setPlan] = useState<{ circuitCap: number | null; limited: boolean; isOwner: boolean }>({ circuitCap: null, limited: false, isOwner: false });
+  const [upgrading, setUpgrading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
@@ -42,24 +67,40 @@ export function AttendeeTable({ type, eventId, capacity: capacityProp = null, ch
   const load = useCallback(async () => {
     const r = await fetch(`/api/events/${type}/${eventId}/attendees`, { cache: "no-store" });
     if (r.ok) {
-      const j = (await r.json()) as { attendees: Attendee[]; capacity: number | null; taken: number; waitlistCap?: number | null };
+      const j = (await r.json()) as { attendees: Attendee[]; capacity: number | null; taken: number; waitlistCap?: number | null; circuitCap?: number | null; planLimited?: boolean; isOwner?: boolean };
       setRows(j.attendees); setCapacity(j.capacity); setTaken(j.taken); setWaitlistCap(j.waitlistCap ?? null);
+      setPlan({ circuitCap: j.circuitCap ?? null, limited: !!j.planLimited, isOwner: !!j.isOwner });
     }
     setLoading(false);
   }, [type, eventId]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); }, [load, reloadKey]);
 
   const statuses = useMemo(() => [...new Set(rows.map((r) => r.status))], [rows]);
   const visible = useMemo(() => {
     const needle = q.trim().toLowerCase();
+    const want = statusFilter?.length ? statusFilter : status ? [status] : null;
     return rows.filter((r) =>
-      (!status || r.status === status) &&
+      (!want || want.includes(r.status)) &&
       (!needle || r.displayName.toLowerCase().includes(needle) || (r.username ?? "").toLowerCase().includes(needle) || (r.email ?? "").toLowerCase().includes(needle)),
     );
-  }, [rows, q, status]);
+  }, [rows, q, status, statusFilter]);
   const waitlisted = rows.filter((r) => r.status === "waitlisted").length;
   const checkedIn = rows.filter((r) => !!r.checkedInAt || r.status === "checked_in").length;
-  const seatFree = capacity == null || taken < capacity;
+  // The seats: their own limit or their Circuit plan's, whichever is smaller.
+  const limit = plan.limited ? plan.circuitCap : capacity;
+  const seatFree = limit == null || taken < limit;
+  const planFull = plan.limited && plan.circuitCap != null && (taken >= plan.circuitCap || waitlisted > 0);
+  const nextTier: "circuit_64" | "circuit_256" | null = plan.circuitCap == null ? null : plan.circuitCap < 64 ? "circuit_64" : plan.circuitCap < 256 ? "circuit_256" : null;
+  const upgrade = async () => {
+    if (!nextTier) return;
+    setUpgrading(true);
+    try {
+      const r = await fetch("/api/stripe/circuit/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tier: nextTier, interval: "monthly", returnTo: `/tournament/${eventId}/manage` }) });
+      const j = await r.json().catch(() => ({}));
+      if (j.url) { window.location.assign(j.url); return; }
+      toast.error("Couldn't open checkout. Try again, or see the plans page.");
+    } finally { setUpgrading(false); }
+  };
 
   const toggleCheckIn = async (a: Attendee, checked: boolean) => {
     setBusy(a.id);
@@ -92,12 +133,15 @@ export function AttendeeTable({ type, eventId, capacity: capacityProp = null, ch
   return (
     <div className="attendees">
       <div className="attendees__toolbar">
-        <div className="attendees__stats">
-          <span><strong>{taken}</strong>{capacity != null ? ` / ${capacity}` : ""} {type === "tournament" ? "players" : "going"}</span>
-          <span><strong>{checkedIn}</strong> checked in</span>
-          {waitlisted > 0 && <span><strong>{waitlisted}</strong> waitlisted</span>}
-        </div>
+        {!hideStats && (
+          <div className="attendees__stats">
+            <span><strong>{taken}</strong>{limit != null ? ` / ${limit}` : ""} {type === "tournament" ? "players" : "going"}</span>
+            <span><strong>{checkedIn}</strong> checked in</span>
+            {waitlisted > 0 && <span><strong>{waitlisted}</strong> waitlisted</span>}
+          </div>
+        )}
         <div className="attendees__actions">
+          {toolbarStart}
           {waitlisted > 0 && seatFree && <Button variant="secondary" size="small" onClick={() => void promote()} disabled={busy === "promote"}>Offer the open spot</Button>}
           {capacity != null && (
             <Select size="small" aria-label="Waitlist limit" value={waitlistCap == null ? "" : String(waitlistCap)}
@@ -106,13 +150,28 @@ export function AttendeeTable({ type, eventId, capacity: capacityProp = null, ch
           )}
           <Button variant="secondary" size="small" onClick={() => setMsgOpen(true)} disabled={rows.length === 0}>Message attendees</Button>
           <Link href={checkInHref} style={{ textDecoration: "none" }}><Button variant="secondary" size="small">Check-in scanner</Button></Link>
-          <a href={`/api/events/${type}/${eventId}/attendees?csv=1`} style={{ textDecoration: "none" }}><Button variant="ghost" size="small">Export CSV</Button></a>
+          <a href={`/api/events/${type}/${eventId}/attendees?csv=1`} style={{ textDecoration: "none" }}><Button variant="secondary" size="small">Export CSV</Button></a>
         </div>
       </div>
+      {planFull && plan.circuitCap != null && (
+        <div className="attendees__plan">
+          <p className="attendees__plan-text">
+            <strong>{waitlisted > 0 ? `${waitlisted} ${waitlisted === 1 ? "person is" : "people are"} waiting.` : "Your field is full."}</strong>{" "}
+            Your plan fits {plan.circuitCap} players{capacity != null ? ` (you set ${capacity})` : ""}. {biggerFieldLine(plan.circuitCap)}{" "}
+            {plan.isOwner ? "Upgrade and the people waiting are offered spots in line order." : "The organizer can upgrade, and then the people waiting are offered spots in line order."}
+          </p>
+          {plan.isOwner && (
+            <div className="attendees__plan-actions">
+              {nextTier && <Button variant="primary" size="small" loading={upgrading} disabled={upgrading} onClick={() => void upgrade()}>{nextTier === "circuit_64" ? "Upgrade to Circuit 64" : "Upgrade to Circuit 256"}</Button>}
+              <Link href="/gs-circuit" style={{ textDecoration: "none" }}><Button variant="ghost" size="small">See the plans</Button></Link>
+            </div>
+          )}
+        </div>
+      )}
 
-      <WaitlistPanel type={type} eventId={eventId} rows={rows} onChanged={load} />
+      <WaitlistPanel type={type} eventId={eventId} rows={rows} onChanged={load} planCap={plan.circuitCap} />
 
-      {!compact && rows.length > 6 && (
+      {!compact && statusFilter == null && rows.length > 6 && (
         <div className="attendees__filters">
           <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, handle or email" fullWidth />
           <Select value={status} onChange={(v) => setStatus(v as string)} options={[{ value: "", label: "All statuses" }, ...statuses.map((s) => ({ value: s, label: STATUS_LABEL[s] }))]} />
@@ -122,7 +181,7 @@ export function AttendeeTable({ type, eventId, capacity: capacityProp = null, ch
       {loading ? (
         <LoadingLines label="Loading attendees" />
       ) : visible.length === 0 ? (
-        <p className="attendees__empty">{rows.length === 0 ? "No one has signed up yet. Share the link!" : "No attendees match."}</p>
+        <p className="attendees__empty">{rows.length === 0 ? "No one has signed up yet. Share the link!" : statusFilter?.length ? "No one here right now." : "No attendees match."}</p>
       ) : (
         <div className="attendees__table">
           <Table dense hoverable>
@@ -131,8 +190,9 @@ export function AttendeeTable({ type, eventId, capacity: capacityProp = null, ch
                 <TableHead>Attendee</TableHead>
                 <TableHead>Status</TableHead>
                 {type === "tournament" && !compact && <TableHead>Friend code</TableHead>}
-                <TableHead>Joined</TableHead>
-                <TableHead style={{ textAlign: "right" }}>Checked in</TableHead>
+                <TableHead className="attendees__col-joined">Joined</TableHead>
+                <TableHead className="attendees__col-check">Checked in</TableHead>
+                {rowActions && <TableHead><span className="sr-only">Actions</span></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -144,17 +204,19 @@ export function AttendeeTable({ type, eventId, capacity: capacityProp = null, ch
                       <span className="attendees__name">
                         {a.username ? <Link href={`/u/${a.username}`}>{a.displayName}</Link> : a.displayName}
                         {!a.userId && <span className="attendees__guest"> · guest{a.email ? ` (${a.email})` : ""}</span>}
+                        {rowDetail && <span className="attendees__detail">{rowDetail(a)}</span>}
                       </span>
                     </span>
                   </TableCell>
                   <TableCell><Badge variant={STATUS_VARIANT[a.status]} size="small">{STATUS_LABEL[a.status]}</Badge></TableCell>
                   {type === "tournament" && !compact && <TableCell>{a.friendCode ?? <span style={{ color: "var(--text-tertiary)" }}>–</span>}</TableCell>}
-                  <TableCell>{a.joinedAt ? new Date(a.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "–"}</TableCell>
-                  <TableCell style={{ textAlign: "right" }}>
-                    {canCheckIn(a) ? (
+                  <TableCell className="attendees__col-joined">{a.joinedAt ? new Date(a.joinedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "–"}</TableCell>
+                  <TableCell className="attendees__col-check">
+                    <span className="attendees__check">{canCheckIn(a) ? (
                       <Switch size="small" checked={!!a.checkedInAt || a.status === "checked_in"} disabled={busy === a.id} onChange={(e) => void toggleCheckIn(a, e.target.checked)} aria-label={`Check in ${a.displayName}`} />
-                    ) : <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>–</span>}
+                    ) : <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>–</span>}</span>
                   </TableCell>
+                  {rowActions && <TableCell><span className="attendees__row-actions">{rowActions(a)}</span></TableCell>}
                 </TableRow>
               ))}
             </TableBody>
@@ -172,7 +234,7 @@ export function AttendeeTable({ type, eventId, capacity: capacityProp = null, ch
  * spot to anyone, seat someone straight in, or take an offer back. Live offers
  * sit above the line with their time left.
  */
-function WaitlistPanel({ type, eventId, rows, onChanged }: { type: EventType; eventId: string; rows: Attendee[]; onChanged: () => Promise<void> | void }) {
+function WaitlistPanel({ type, eventId, rows, onChanged, planCap = null }: { type: EventType; eventId: string; rows: Attendee[]; onChanged: () => Promise<void> | void; planCap?: number | null }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [order, setOrder] = useState<Attendee[] | null>(null);
@@ -185,7 +247,11 @@ function WaitlistPanel({ type, eventId, rows, onChanged }: { type: EventType; ev
     setBusy(true);
     try {
       const r = await fetch(`/api/events/${type}/${eventId}/waitlist`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (r.ok) toast.success(ok); else toast.error("That didn't work. Try again.");
+      if (r.ok) toast.success(ok);
+      else {
+        const j = await r.json().catch(() => ({}));
+        toast.error(j?.error === "circuit_cap" ? `Your plan fits ${planCap ?? "this many"} players. Upgrade to GameShuffle Circuit to let more in.` : "That didn't work. Try again.");
+      }
       setOrder(null);
       await onChanged();
     } finally { setBusy(false); }
@@ -233,7 +299,7 @@ function WaitlistPanel({ type, eventId, rows, onChanged }: { type: EventType; ev
           )}
         </SortableList>
       )}
-      <p className="waitlist-panel__hint">Offer now works even when you&apos;re full: it goes over your cap. Paid events: an offer means they buy a ticket into the spot.</p>
+      <p className="waitlist-panel__hint">Offer now works even when you&apos;re full: it goes over your own limit{planCap != null ? `, though not past your plan's ${planCap} players` : ""}. Paid events: an offer means they buy a ticket into the spot.</p>
     </section>
   );
 }

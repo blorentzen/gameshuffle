@@ -13,8 +13,9 @@ import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 export const metadata: Metadata = {
   title: "For new streamers: start with something to play",
   description:
-    "Thinking about streaming? GameShuffle gives even a small audience something to do together from day one, with free tools and no account needed, and grows with your channel. We love working with early streamers to grow together.",
+    "Thinking about streaming? GameShuffle gives a small audience something to play together from day one, with free tools and no account needed.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "GameShuffle for new streamers",
     url: "https://www.gameshuffle.co/for-streamers/aspiring",
   },

@@ -135,3 +135,21 @@ export async function countRecoveryCodes(userId: string): Promise<number> {
 export async function clearRecoveryCodes(userId: string): Promise<void> {
   await createServiceClient().from("gs_mfa_recovery_codes").delete().eq("user_id", userId);
 }
+
+/**
+ * A recovery code was used, so the account's authenticator is presumably lost:
+ * turn two-factor sign-in off (every factor), void the other codes, and bring
+ * back the "set up two-factor" nudge. Removing a verified factor signs the
+ * account out everywhere (Supabase), so the caller signs this browser back in.
+ */
+export async function turnOffMfaAfterRecovery(userId: string): Promise<void> {
+  const svc = createServiceClient();
+  const { data, error } = await svc.auth.admin.mfa.listFactors({ userId });
+  if (error) throw new Error(error.message);
+  for (const f of data?.factors ?? []) {
+    const { error: delErr } = await svc.auth.admin.mfa.deleteFactor({ id: f.id, userId });
+    if (delErr) throw new Error(delErr.message);
+  }
+  await clearRecoveryCodes(userId);
+  await svc.from("users").update({ mfa_prompt_dismissed_at: null }).eq("id", userId);
+}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { notFound, redirect } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
@@ -48,7 +49,7 @@ export default async function ManageNightPage({ params }: { params: Promise<{ id
           Manage night
         </h1>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-16)", flexWrap: "wrap" }}>
-          <Link href={`/game-nights/${id}`}>View public page →</Link>
+          <ArrowLink href={`/game-nights/${id}`}>View public page</ArrowLink>
           <Link href={`/game-nights/${id}/display`} target="_blank" rel="noopener noreferrer">Display mode ↗</Link>
           <SaveTemplateButton nightId={id} />
         </div>

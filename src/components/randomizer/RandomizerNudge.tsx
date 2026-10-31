@@ -1,67 +1,44 @@
-import { DarkBand } from "@/components/marketing/DarkBand";
-import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
+import { Container } from "@empac/cascadeds";
+import { PlansPanel, type PlanRow } from "@/components/marketing/PlansPanel";
+import { NewHereLine } from "@/components/welcome/NewHereLine";
 
 /**
- * Conversion module under the free randomizers. Two paths, auth-aware:
- *  1. a free GameShuffle account (save setups, competitive scoring, tournaments)
- *  2. GS Pro (this randomizer live on the OBS overlay, chat-driven)
- * Server component so the CTA label/href match the viewer's state in the initial
- * HTML (no hydration flash). Full-bleed — render OUTSIDE the tool Container, at
- * the bottom of the randomizer page.
+ * "Take {game} further", right under every randomizer (Britton's picks,
+ * 2026-10-19, https://claude.ai/artifact/QaSjiFxbYHkNBAQq53xvpq): a free
+ * account, GS Pro (this game on your stream) and GS Circuit (a tournament with
+ * random picks), as one PlansPanel. It used to be a dark band at the very
+ * bottom of the page, thousands of pixels below the tool. Render it between
+ * the randomizer and its RandomizerLanding. Server component.
  */
 export function RandomizerNudge({
   gameName,
   saves = "your kart builds and game-night setups",
   streamReady = true,
+  tournament = true,
 }: {
   gameName: string;
   /** What a free account saves, in this randomizer's terms. */
   saves?: string;
-  /** This game runs on the Pro overlay and chat. False hides the Pro card. */
+  /** This game runs on the Pro overlay and chat. False leaves out the GS Pro row. */
   streamReady?: boolean;
+  /** Tournaments fit this game. False leaves out the GS Circuit row (a solo run challenge). */
+  tournament?: boolean;
 }) {
+  const rows: PlanRow[] = ["account", ...(streamReady ? (["pro"] as const) : []), ...(tournament ? (["circuit"] as const) : [])];
   return (
-    <DarkBand premium curved curveEdges="top" curveColor="var(--surface-default)">
-      <div className={`rand-nudge${streamReady ? "" : " rand-nudge--single"}`}>
-        <div className="rand-nudge__card">
-          <p className="marketing-eyebrow">Free account</p>
-          <h3 className="rand-nudge__title">Save your setups, play for keeps</h3>
-          <p className="rand-nudge__body">
-            A free GameShuffle account saves {saves},
-            unlocks competitive lounge scoring, and lets you run tournaments with
-            friends.
-          </p>
-          <AuthAwareCTA
-            variant="primary"
-            size="large"
-            overrides={{
-              anon: { label: "Create your free account", href: "/signup" },
-              free: { label: "Explore your account", href: "/account/stuff?tab=setups" },
-              pro: { label: "Open My Stuff", href: "/account/stuff?tab=setups" },
-            }}
-          />
-        </div>
-
-        {streamReady && <div className="rand-nudge__card">
-          <p className="marketing-eyebrow">GameShuffle Pro</p>
-          <h3 className="rand-nudge__title">Put {gameName} on your stream</h3>
-          <p className="rand-nudge__body">
-            Go Pro to run this randomizer live on your OBS overlay, driven by your
-            chat and channel-point rewards, with a public lobby your viewers can
-            join.
-          </p>
-          <AuthAwareCTA
-            variant="secondary"
-            size="large"
-            trackFrom="randomizer-nudge"
-            overrides={{
-              anon: { label: "Explore GS Pro", href: "/gs-pro" },
-              free: { label: "Upgrade to Pro", href: "/gs-pro" },
-              pro: { label: "Open your hub", href: "/hub" },
-            }}
-          />
-        </div>}
-      </div>
-    </DarkBand>
+    <Container>
+      <NewHereLine from="randomizer" />
+      <PlansPanel
+        id="take-it-further"
+        title={`Take ${gameName} further`}
+        rows={rows}
+        from="randomizer-nudge"
+        copy={{
+          account: { name: "Save your setups", body: `A free account saves ${saves} and keeps your group's scores across game nights.` },
+          pro: { name: `Put ${gameName} on your stream`, body: "Chat rolls along with !gs-shuffle and !gs setup, viewers join your lobby, and every roll shows on your OBS overlay." },
+          circuit: { name: `Run a ${gameName} tournament`, body: "Brackets, Swiss or points, with random picks each round. GS Circuit adds fields of 64 or 256 and season standings." },
+        }}
+      />
+    </Container>
   );
 }

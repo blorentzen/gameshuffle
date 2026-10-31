@@ -15,11 +15,14 @@ import "server-only";
  * ready instead of breaking the page.
  */
 
+import { SHOWCASE_CARDS } from "@/data/pokemon/showcase-cards";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { CHAT_BRAIN_BANK } from "@/data/originals/chat-brain-questions";
 import { FOUNDING_BRAIN_ANSWERS, LAUNCH_BOARDS, questionKey } from "@/lib/chatbrain/rules";
 import { updatesConfigured } from "@/lib/chatbrain/updates";
-import { PUZZLES, answerFor, dayKey, puzzleFor, puzzleNumber } from "@/lib/originals/daily";
+import { DEX_PUZZLE_ID, PUZZLES, answerFor, dayKey, puzzleFor, puzzleNumber } from "@/lib/originals/daily";
+import { DEX_EPOCH, DEX_PUZZLE, dexAnswer, dexNumber } from "@/lib/originals/dailyDex";
+import { DAILY_DEX_PUBLIC } from "@/lib/games-visibility";
 import { addWeeks, weekNumber, weekOf } from "@/lib/originals/weekly";
 import { countEntries, ensureWeek, leaderboard } from "@/lib/weekly/store";
 
@@ -44,6 +47,17 @@ export interface OriginalsOverview {
     upcoming: DailyDay[];
     plays: { day: string; players: number; solved: number; avgGuesses: number | null }[] | null;
     missing: { game: string; name: string; what: "facts" | "clue" }[];
+  };
+  dex: {
+    launched: boolean;
+    epoch: string;
+    /** The next answers from today (or from launch, before it), with whether their three nods are written. */
+    upcoming: { day: string; number: number; answer: string; nods: boolean; card: boolean }[];
+    /** Nods written for the next 90 answers. */
+    ahead: { days: number; ready: number };
+    /** Cards of the day picked (and in this database) for the next 90 answers. */
+    cards: { days: number; ready: number };
+    plays: { day: string; players: number; solved: number; avgGuesses: number | null }[] | null;
   };
   weekly: null | {
     weeks: { label: string; number: number; kind: string; title: string; players: number; swapped: boolean }[];
@@ -113,7 +127,8 @@ async function chatBrain(): Promise<OriginalsOverview["chatBrain"]> {
 async function daily(): Promise<OriginalsOverview["daily"]> {
   const today = dayKey();
   const from = shiftDay(today, -6);
-  const { data, error } = await createServiceClient().from("daily_results").select("day, guesses, solved").gte("day", from).limit(50_000);
+  // The Daily Shuffle only: the Daily Dex keeps its rows under its own puzzle id.
+  const { data, error } = await createServiceClient().from("daily_results").select("day, guesses, solved").gte("day", from).neq("puzzle", DEX_PUZZLE_ID).limit(50_000);
   let plays: OriginalsOverview["daily"]["plays"] = null;
   if (!error) {
     const byDay = new Map<string, { players: number; solved: number; guesses: number }>();
@@ -132,7 +147,8 @@ async function daily(): Promise<OriginalsOverview["daily"]> {
   for (const p of Object.values(PUZZLES)) {
     for (const c of p.characters) {
       if (c.traits.some((t) => t === null)) missing.push({ game: p.game, name: c.name, what: "facts" });
-      else if (!c.clue) missing.push({ game: p.game, name: c.name, what: "clue" });
+      // All-Stars hints come from its ladder (written nods + facts), not the old single clue.
+      else if (!c.clue && !(c.ladder ?? []).some((h) => h.after === 0)) missing.push({ game: p.game, name: c.name, what: "clue" });
     }
   }
   return {
@@ -140,6 +156,49 @@ async function daily(): Promise<OriginalsOverview["daily"]> {
     upcoming: Array.from({ length: 7 }, (_, i) => dailyDay(shiftDay(today, i + 1))),
     plays,
     missing,
+  };
+}
+
+/** How many days of Daily Dex hints to keep written ahead. */
+const DEX_AHEAD = 90;
+
+async function dex(): Promise<OriginalsOverview["dex"]> {
+  const today = dayKey();
+  const start = today < DEX_EPOCH ? DEX_EPOCH : today;
+  const hasNods = (name: string) => (DEX_PUZZLE.characters.find((c) => c.name === name)?.ladder ?? []).filter((h) => h.after < 3).length === 3;
+  const ahead = Array.from({ length: DEX_AHEAD }, (_, i) => dexAnswer(shiftDay(start, i)).name);
+  // The card of the day: a showcase pick for the answer, and that card in this database's catalog.
+  const dexOf = (name: string) => DEX_PUZZLE.characters.findIndex((c) => c.name === name) + 1;
+  const pickIds = [...new Set(ahead.map((n) => SHOWCASE_CARDS[dexOf(n)]).filter((id): id is string => !!id))];
+  const { data: inCatalog } = pickIds.length ? await createServiceClient().from("tcg_cards").select("id").in("id", pickIds) : { data: [] };
+  const stored = new Set(((inCatalog ?? []) as { id: string }[]).map((r) => r.id));
+  const hasCard = (name: string) => { const id = SHOWCASE_CARDS[dexOf(name)]; return !!id && stored.has(id); };
+  const { data, error } = await createServiceClient().from("daily_results").select("day, guesses, solved").gte("day", shiftDay(today, -6)).eq("puzzle", DEX_PUZZLE_ID).limit(50_000);
+  let plays: OriginalsOverview["dex"]["plays"] = null;
+  if (!error) {
+    const byDay = new Map<string, { players: number; solved: number; guesses: number }>();
+    for (const r of (data ?? []) as { day: string; guesses: number; solved: boolean }[]) {
+      const d = byDay.get(r.day) ?? { players: 0, solved: 0, guesses: 0 };
+      d.players += 1;
+      if (r.solved) { d.solved += 1; d.guesses += r.guesses; }
+      byDay.set(r.day, d);
+    }
+    plays = Array.from({ length: 7 }, (_, i) => shiftDay(today, i - 6)).map((day) => {
+      const d = byDay.get(day);
+      return { day, players: d?.players ?? 0, solved: d?.solved ?? 0, avgGuesses: d?.solved ? Math.round((d.guesses / d.solved) * 10) / 10 : null };
+    });
+  }
+  return {
+    launched: DAILY_DEX_PUBLIC,
+    epoch: DEX_EPOCH,
+    upcoming: Array.from({ length: 14 }, (_, i) => {
+      const day = shiftDay(start, i);
+      const answer = dexAnswer(day).name;
+      return { day, number: dexNumber(day), answer, nods: hasNods(answer), card: hasCard(answer) };
+    }),
+    ahead: { days: DEX_AHEAD, ready: ahead.filter(hasNods).length },
+    cards: { days: DEX_AHEAD, ready: ahead.filter(hasCard).length },
+    plays,
   };
 }
 
@@ -161,6 +220,6 @@ async function weekly(): Promise<OriginalsOverview["weekly"]> {
 }
 
 export async function originalsOverview(): Promise<OriginalsOverview> {
-  const [cb, d, w] = await Promise.all([chatBrain().catch(() => null), daily(), weekly()]);
-  return { chatBrain: cb, daily: d, weekly: w };
+  const [cb, d, x, w] = await Promise.all([chatBrain().catch(() => null), daily(), dex(), weekly()]);
+  return { chatBrain: cb, daily: d, dex: x, weekly: w };
 }

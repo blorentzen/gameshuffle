@@ -13,7 +13,10 @@ import { isMailerLiteConfigured, upsertSubscriber } from "@/lib/marketing/mailer
 
 export const ML_PAID_WAITLIST_GROUP = "200274817777141320";
 
-export async function joinPaidPlansWaitlist(args: { email: string; name?: string | null; country: string | null; product: "pro" | "circuit"; origin: string }): Promise<boolean> {
+/** What someone is waiting for outside the US: a paid plan, Support, or GS Pro and Support together. */
+export type WaitlistProduct = "pro" | "circuit" | "support" | "both";
+
+export async function joinPaidPlansWaitlist(args: { email: string; name?: string | null; country: string | null; product: WaitlistProduct; origin: string }): Promise<boolean> {
   const email = args.email.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return false;
   if (!isProduction && process.env.ALLOW_NONPROD_EMAIL !== "true") {

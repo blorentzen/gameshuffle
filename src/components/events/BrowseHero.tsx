@@ -22,7 +22,8 @@ export interface BrowseHeroProps {
   title: string;
   sub: ReactNode;
   /** Warm gold for the tabletop half, cyan for the competitive half. */
-  accent: "gold" | "cyan" | "violet" | "blue" | "orange" | "red";
+  /** Pillar tints, plus one per GameShuffle game (daily, dex, weekly, brain: each game's own colors, as on its share image). */
+  accent: "gold" | "cyan" | "violet" | "blue" | "orange" | "red" | "daily" | "dex" | "weekly" | "brain" | "fire" | "duel";
   /**
    * Which glyph family drifts behind the copy, when there is no photo. Matches
    * the cards below it.
@@ -36,20 +37,40 @@ export interface BrowseHeroProps {
   photo?: LifestyleSlot;
   /** A specific photo (a game's key art from the CDN) instead of a library slot. */
   image?: { src: string; alt: string; width: number; height: number; focus?: string };
+  /**
+   * A small picture (a time trial track's art) blurred across the right of the band, fading into the
+   * navy behind the title (track header picks, 2026-10-30). Too small to show sharp at this size, so
+   * it's colour and a hint of shape, never a photo; the glyph field steps aside for it.
+   */
+  backdrop?: string | null;
   primary?: { href: string; label: string } | null;
   secondary?: { href: string; label: string } | null;
   /** A second column beside the copy (the homepage's showcase). Stacks under it on narrow screens. */
   aside?: ReactNode;
+  /** Buttons of your own in place of primary/secondary (e.g. links that must not be prefetched). */
+  actions?: ReactNode;
+  /**
+   * Phones only: less padding, a smaller curve and `subShort` in place of `sub`,
+   * for tool pages where the tool should start on the first screen (the dailies).
+   */
+  compact?: boolean;
+  /** The one-line description a `compact` hero shows on phones. */
+  subShort?: ReactNode;
+  /** A small line under the buttons (the homepage's "New here?" link). */
+  note?: ReactNode;
 }
 
-export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary, aside }: BrowseHeroProps) {
+export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, backdrop, primary, secondary, aside, actions, compact, subShort, note }: BrowseHeroProps) {
   const shot = image ?? (photo ? lifestyle(photo) : null);
   const copy = (
     <div className="browse-hero__inner">
       <p className="marketing-eyebrow">{eyebrow}</p>
       <h1 className="browse-hero__title">{title}</h1>
-      <p className="browse-hero__sub">{sub}</p>
-      {(primary || secondary) && (
+      <p className="browse-hero__sub">
+        {compact && subShort ? <><span className="browse-hero__sub-full">{sub}</span><span className="browse-hero__sub-short">{subShort}</span></> : sub}
+      </p>
+      {actions && <div className="browse-hero__cta">{actions}</div>}
+      {!actions && (primary || secondary) && (
         <div className="browse-hero__cta">
           {primary && (
             <Link href={primary.href} style={{ textDecoration: "none" }}>
@@ -63,10 +84,11 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, p
           )}
         </div>
       )}
+      {note && <p className="browse-hero__note">{note}</p>}
     </div>
   );
   return (
-    <header className={`browse-hero browse-hero--${accent}${aside ? " browse-hero--split" : ""}`}>
+    <header className={`browse-hero browse-hero--${accent}${aside ? " browse-hero--split" : ""}${compact ? " browse-hero--compact" : ""}${backdrop ? " browse-hero--backdrop" : ""}`}>
       {shot && (
         /* Under the aurora and the glyph field, not over them: the photo is
            ground for the brand layers, so the band stays recognisably ours
@@ -86,7 +108,12 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, p
       {/* The glyph field is what a band wears when it has no photograph. With
           one, it is a screen door over someone's face: two competing textures
           fighting for the same surface, and the photo loses. */}
-      {!shot && (
+      {backdrop && !shot && (
+        <span className="browse-hero__backdrop" aria-hidden>
+          <Image src={backdrop} alt="" fill sizes="320px" />
+        </span>
+      )}
+      {!shot && !backdrop && (
         <IconField category={field} seed={`hero-${field}`} opacity={0.085} className="browse-hero__field" />
       )}
       {/* Veils the field under the copy column only. The pattern is welcome on
@@ -101,7 +128,8 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, p
         ) : copy}
       </Container>
       <svg className="browse-hero__curve" viewBox="0 0 1440 72" preserveAspectRatio="none" aria-hidden>
-        <path d="M0,72 H1440 V34 C 940,2 520,70 0,30 Z" fill="var(--background-primary)" />
+        {/* The page's own background: a page that tints the area under the hero sets --browse-hero-curve to match. */}
+        <path d="M0,72 H1440 V34 C 940,2 520,70 0,30 Z" fill="var(--browse-hero-curve, var(--background-primary))" />
       </svg>
     </header>
   );

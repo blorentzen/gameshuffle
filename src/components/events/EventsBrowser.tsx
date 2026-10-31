@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { IconMapPin } from "@tabler/icons-react";
 import { TOURNAMENT_FORMATS, formatLabel } from "@/data/tournament-formats";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Button, Chip, Drawer, Input, Select, Tabs } from "@empac/cascadeds";
+import { Button, Chip, Drawer, Input, Tabs } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { IconAdjustments } from "@tabler/icons-react";
 import { boardGameLevelLabel, BOARD_GAME_LEVELS } from "@/data/board-games";
 import { EventCard } from "./EventCard";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { artCategoryFor } from "./EventHeaderArt";
 import { NIGHT_KINDS, nightKindLabel } from "@/lib/game-nights/types";
 import { matchScore, isGoodMatch, haversineMiles, formatMiles, type ViewerPrefs } from "@/lib/game-nights/match";
@@ -84,8 +87,16 @@ export interface EventsBrowserConfig {
   statusTabs?: boolean;
   /** Default When when the URL has none. */
   defaultWhen?: When;
-  /** Optional cross-rail to the other hub, rendered under the grid. */
+  /** Optional cross-rail to the other hub, rendered under the grid. It swipes on phones. */
   crossRail?: { heading: string; href: string; linkLabel: string; items: BrowseEvent[] } | null;
+  /** Show this many events per time group, then "Show N more this week"
+   *  (Britton's pick for /game-nights, 2026-10-19). Unset shows every one. */
+  groupCap?: number;
+  /** Leave the create button out of the list heading when the page's header
+   *  already has it (game nights: the hero's "Host a night"). Default true. */
+  createInHead?: boolean;
+  /** Event cards turn into a small picture beside the text on phones. */
+  compactOnPhones?: boolean;
 }
 
 type Sort = "soon" | "near" | "match";
@@ -130,6 +141,15 @@ const WHEN_OPTIONS: { value: When; label: string }[] = [
   { value: "all", label: "Everything" },
 ];
 
+/** The group's own words after "Show 4 more": "this week", "tonight", "later on". */
+const GROUP_MORE: Record<string, string> = {
+  Tonight: "tonight", Tomorrow: "tomorrow", "This week": "this week", "This month": "this month",
+  Later: "later on", "Date to be announced": "without a date yet", "Recent results": "results",
+};
+function groupMoreLabel(label: string): string {
+  return GROUP_MORE[label] ?? "";
+}
+
 function fmtDate(iso: string | null, tz: string | null): string {
   if (!iso) return "Date TBA";
   try {
@@ -164,8 +184,14 @@ const STATUS_TABS: { id: string; label: string }[] = [
   { id: "open", label: "Registration" },
   { id: "in_progress", label: "In progress" },
   { id: "complete", label: "Completed" },
-  { id: "cancelled", label: "Cancelled" },
 ];
+
+const noopSubscribe = () => () => {};
+
+/** A full-width filter Select ("Any" choices have empty values; the shared Select shows them). */
+function FilterSelect({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  return <Select value={value} onChange={(v) => onChange(String(v))} fullWidth options={options} />;
+}
 
 export function EventsBrowser({ events, config, viewerPrefs = null }: { events: BrowseEvent[]; config: EventsBrowserConfig; viewerPrefs?: ViewerPrefs | null }) {
   const router = useRouter();
@@ -190,6 +216,9 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
   const [radius, setRadius] = useState(Number(params.get("radius") ?? 0) || 0);
   const [status, setStatus] = useState(params.get("status") ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // CDS Drawer renders differently on the server than in the browser, so the
+  // filters drawer mounts after hydration (it broke /tournament and /game-nights).
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(initialNear);
   const [geo, setGeo] = useState<GeoState>(initialNear ? "ok" : "idle");
   const firstRender = useRef(true);
@@ -278,9 +307,12 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     if (coords && radius > 0) list = list.filter((r) => r.event.online || (r.distance != null && r.distance <= radius));
 
     const bySoon = (a: { event: BrowseEvent }, b: { event: BrowseEvent }) => {
+      const aPast = a.event.phase === "past", bPast = b.event.phase === "past";
+      // Results go after anything live or coming up, and newest first.
+      if (aPast !== bPast) return aPast ? 1 : -1;
       const av = a.event.starts_at ? Date.parse(a.event.starts_at) : Infinity;
       const bv = b.event.starts_at ? Date.parse(b.event.starts_at) : Infinity;
-      return when === "past" ? bv - av : av - bv;
+      return when === "past" || aPast ? bv - av : av - bv;
     };
     if (sort === "near") list.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity) || bySoon(a, b));
     else if (sort === "match") list.sort((a, b) => b.score - a.score || bySoon(a, b));
@@ -353,8 +385,11 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
      different query. */
   const resultKey = `${query}|${genre}|${level}|${kind}|${game}|${online}|${price}|${format}|${openSpots}|${when}|${radius}|${status}|${sort}`;
   const [shown, setShown] = useState(PAGE);
+  // Groups opened past the cap ("Show 4 more this week").
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
   useEffect(() => {
     setShown(PAGE);
+    setOpenGroups([]);
   }, [resultKey]);
 
   /* ── Server paging ────────────────────────────────────────────────────────
@@ -366,12 +401,12 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
      `serverRows` is null while we have not fetched, which is also the state on
      first paint, so the server-rendered rows are what a crawler sees. */
   const [serverRows, setServerRows] = useState<BrowseEvent[] | null>(null);
-  const [serverCursor, setServerCursor] = useState<{ startsAt: string | null; id: string } | null>(null);
+  const [serverCursor, setServerCursor] = useState<{ startsAt: string | null; id: string; seg?: string } | null>(null);
   const [serverTotal, setServerTotal] = useState(0);
   const [serverMode, setServerMode] = useState(true);
   const [fetching, setFetching] = useState(false);
 
-  const queryString = useCallback((cursor?: { startsAt: string | null; id: string } | null) => {
+  const queryString = useCallback((cursor?: { startsAt: string | null; id: string; seg?: string } | null) => {
     const sp = new URLSearchParams({ type: config.type });
     if (query.trim()) sp.set("q", query.trim());
     if (genre) sp.set("genre", genre);
@@ -385,7 +420,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     if (status) sp.set("status", status);
     if (!config.statusTabs && when) sp.set("when", when);
     if (coords && radius > 0) { sp.set("lat", String(coords.lat)); sp.set("lng", String(coords.lng)); sp.set("radius", String(radius)); }
-    if (cursor) { sp.set("cursorId", cursor.id); if (cursor.startsAt) sp.set("cursorAt", cursor.startsAt); }
+    if (cursor) { sp.set("cursorId", cursor.id); if (cursor.startsAt) sp.set("cursorAt", cursor.startsAt); if (cursor.seg) sp.set("cursorSeg", cursor.seg); }
     return sp.toString();
   }, [config.type, config.statusTabs, query, genre, level, kind, game, online, price, format, openSpots, status, when, coords, radius]);
 
@@ -413,6 +448,17 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     return () => { cancelled = true; };
   }, [serverMode, queryString]);
 
+  /* Both Show more buttons can leave the page (the last page, an opened
+     group), so the first card they add takes focus instead of the page body. */
+  const listRef = useRef<HTMLDivElement>(null);
+  const focusHref = useRef<string | null>(null);
+  useEffect(() => {
+    const href = focusHref.current;
+    if (!href) return;
+    const card = listRef.current?.querySelector<HTMLElement>(`a.bgn-card[href="${CSS.escape(href)}"]`);
+    if (card) { focusHref.current = null; card.focus(); }
+  });
+
   const loadMore = async () => {
     if (!serverCursor) return;
     setFetching(true);
@@ -420,6 +466,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
       const r = await fetch(`/api/events/browse?${queryString(serverCursor)}`, { cache: "no-store" });
       if (!r.ok) return;
       const page = await r.json();
+      focusHref.current = page.rows[0]?.href ?? null;
       setServerRows((prev) => [...(prev ?? []), ...page.rows]);
       setServerCursor(page.nextCursor);
       setServerTotal(page.total);
@@ -451,13 +498,32 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     const now = new Date();
     const out: { key: string; label: string; rows: typeof visible }[] = [];
     for (const r of visible) {
-      const label = bucketLabel(r.event.starts_at, now);
+      const label = r.event.phase === "past" ? "Recent results" : bucketLabel(r.event.starts_at, now);
       const last = out[out.length - 1];
       if (last && last.label === label) last.rows.push(r);
       else out.push({ key: label, label, rows: [r] });
     }
     return out;
   }, [visible, groupable]);
+
+  /** How many of a group's rows wait behind its own "Show N more". */
+  const hiddenIn = (g: { key: string; label: string; rows: unknown[] }) => {
+    const cap = config.groupCap && g.label && !openGroups.includes(g.key) ? config.groupCap : 0;
+    // A button for one more event costs as much room as the event, so a group one over the cap shows whole.
+    return cap && g.rows.length > cap + 1 ? g.rows.length - cap : 0;
+  };
+  /* The next page lands at the end of the last group. While that group is
+     still cut to the cap, its own button comes first: "Show more" would add
+     cards nobody sees (found 2026-10-20). Loading more opens the last group,
+     so what it adds there shows. */
+  const lastGroup = groups[groups.length - 1];
+  const lastCapped = !!lastGroup && hiddenIn(lastGroup) > 0;
+  const showMore = () => {
+    if (lastGroup?.label) setOpenGroups((o) => (o.includes(lastGroup.key) ? o : [...o, lastGroup.key]));
+    if (serverDecorated) { void loadMore(); return; }
+    focusHref.current = rows[shown]?.event.href ?? null;
+    setShown((n) => n + PAGE);
+  };
 
   const results = (
     <>
@@ -471,16 +537,19 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         )}
       </div>
     ) : (
-      <>
-      {groups.map((g) => (
+      <div ref={listRef}>
+      {groups.map((g) => {
+        const hidden = hiddenIn(g);
+        const groupRows = hidden ? g.rows.slice(0, g.rows.length - hidden) : g.rows;
+        return (
         <section key={g.key} className="bgn-group">
           {g.label && (
             <h2 className="bgn-group__title">
               {g.label} <span className="bgn-group__count">{g.rows.length}</span>
             </h2>
           )}
-          <div className="bgn-grid">
-        {g.rows.map(({ event: e, score, distance }) => {
+          <div className={`bgn-grid${config.compactOnPhones ? " bgn-grid--compact" : ""}`}>
+        {groupRows.map(({ event: e, score, distance }) => {
           const lvl = boardGameLevelLabel(e.level);
           return (
             <EventCard
@@ -518,20 +587,24 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
           );
         })}
           </div>
+          {hidden > 0 && (
+            <div className="bgn-group__more">
+              <Button variant="ghost" size="small" onClick={() => { focusHref.current = g.rows[groupRows.length]?.event.href ?? null; setOpenGroups((o) => [...o, g.key]); }}>
+                {`Show ${hidden} more ${groupMoreLabel(g.label)}`.trim()}
+              </Button>
+            </div>
+          )}
         </section>
-      ))}
-      {remaining > 0 && (
+        );
+      })}
+      {remaining > 0 && !lastCapped && (
         <div className="bgn-more">
-          <Button
-            variant="secondary"
-            loading={fetching}
-            onClick={() => (serverDecorated ? void loadMore() : setShown((n) => n + PAGE))}
-          >
+          <Button variant="secondary" loading={fetching} onClick={showMore}>
             Show more ({remaining} left)
           </Button>
         </div>
       )}
-      </>
+      </div>
     )}
     </>
   );
@@ -560,7 +633,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", lineHeight: "var(--line-height-tight)", margin: 0 }}>
           {config.heading}
         </h2>
-        {config.createHref && (
+        {config.createHref && config.createInHead !== false && (
           <Link href={config.createHref} style={{ textDecoration: "none" }}>
             <Button variant="secondary">{config.createLabel ?? "Create"}</Button>
           </Link>
@@ -601,7 +674,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         </div>
       )}
 
-      <Drawer
+      {hydrated && <Drawer
         open={filtersOpen}
         onClose={() => setFiltersOpen(false)}
         position="right"
@@ -620,39 +693,39 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
           {config.filters.game && gameOptions.length > 0 && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Game</label>
-              <Select value={game} onChange={(v) => setGame(v as string)} fullWidth options={[{ value: "", label: "Any game" }, ...gameOptions.map((g) => ({ value: g, label: g }))]} />
+              <FilterSelect value={game} onChange={setGame} options={[{ value: "", label: "Any game" }, ...gameOptions.map((g) => ({ value: g, label: g }))]} />
             </div>
           )}
           {config.filters.format && formatOptions.length > 0 && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Format</label>
-              <Select value={format} onChange={(v) => setFormat(v as string)} fullWidth
+              <FilterSelect value={format} onChange={setFormat}
                 options={[{ value: "", label: "Any format" }, ...formatOptions]} />
             </div>
           )}
           {config.filters.openSpots && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Availability</label>
-              <Select value={openSpots ? "open" : ""} onChange={(v) => setOpenSpots(v === "open")} fullWidth
+              <FilterSelect value={openSpots ? "open" : ""} onChange={(v) => setOpenSpots(v === "open")}
                 options={[{ value: "", label: "Any" }, { value: "open", label: "Has room" }]} />
             </div>
           )}
           {config.filters.genre && genreOptions.length > 0 && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Genre</label>
-              <Select value={genre} onChange={(v) => setGenre(v as string)} fullWidth options={[{ value: "", label: "Any genre" }, ...genreOptions.map((g) => ({ value: g, label: g }))]} />
+              <FilterSelect value={genre} onChange={setGenre} options={[{ value: "", label: "Any genre" }, ...genreOptions.map((g) => ({ value: g, label: g }))]} />
             </div>
           )}
           {config.filters.kind && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Playing</label>
-              <Select value={kind} onChange={(v) => setKind(v as string)} fullWidth options={[{ value: "", label: "Anything" }, ...NIGHT_KINDS.map((k) => ({ value: k.value, label: k.short }))]} />
+              <FilterSelect value={kind} onChange={setKind} options={[{ value: "", label: "Anything" }, ...NIGHT_KINDS.map((k) => ({ value: k.value, label: k.short }))]} />
             </div>
           )}
           {config.filters.level && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Skill level</label>
-              <Select value={level} onChange={(v) => setLevel(v as string)} fullWidth options={[{ value: "", label: "Any level" }, ...BOARD_GAME_LEVELS.map((l) => ({ value: l.value, label: l.label }))]} />
+              <FilterSelect value={level} onChange={setLevel} options={[{ value: "", label: "Any level" }, ...BOARD_GAME_LEVELS.map((l) => ({ value: l.value, label: l.label }))]} />
             </div>
           )}
           {/* Price used to hang off the `online` flag, so a hub could not offer
@@ -662,13 +735,13 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
           {config.filters.online && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Where</label>
-              <Select value={online} onChange={(v) => setOnline(v as string)} fullWidth options={[{ value: "", label: "Online + in person" }, { value: "online", label: "Online" }, { value: "in_person", label: "In person" }]} />
+              <FilterSelect value={online} onChange={setOnline} options={[{ value: "", label: "Online + in person" }, { value: "online", label: "Online" }, { value: "in_person", label: "In person" }]} />
             </div>
           )}
           {config.filters.price && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Price</label>
-              <Select value={price} onChange={(v) => setPrice(v as string)} fullWidth options={[{ value: "", label: "Any price" }, { value: "free", label: "Free" }, { value: "paid", label: "Ticketed" }]} />
+              <FilterSelect value={price} onChange={setPrice} options={[{ value: "", label: "Any price" }, { value: "free", label: "Free" }, { value: "paid", label: "Ticketed" }]} />
             </div>
           )}
           <div className="bgn-filters__field">
@@ -689,7 +762,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
             </div>
           </div>
         </div>
-      </Drawer>
+      </Drawer>}
 
       {geo === "denied" && <p className="bgn-filters__note">Location access was blocked, so we can&apos;t sort by distance. You can still search and filter.</p>}
       {geo === "unsupported" && <p className="bgn-filters__note">Your browser doesn&apos;t support location, so distance sorting isn&apos;t available.</p>}
@@ -707,9 +780,9 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         <section className="events-browser__cross">
           <div className="bgn-browse__head">
             <h2 className="events-browser__cross-heading">{config.crossRail.heading}</h2>
-            <Link href={config.crossRail.href} className="events-browser__cross-link">{config.crossRail.linkLabel} →</Link>
+            <ArrowLink href={config.crossRail.href} className="events-browser__cross-link">{config.crossRail.linkLabel}</ArrowLink>
           </div>
-          <div className="bgn-foryou__row">
+          <ResponsiveCarousel className="bgn-foryou__row" label={config.crossRail.heading}>
             {config.crossRail.items.map((e) => (
               <EventCard
                 key={`${e.type}-${e.id}`} href={e.href} title={e.title} seed={e.id} cover={e.cover}
@@ -720,7 +793,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
                 countLabel={e.goingCount != null ? `${e.goingCount} going` : null}
               />
             ))}
-          </div>
+          </ResponsiveCarousel>
         </section>
       )}
     </>

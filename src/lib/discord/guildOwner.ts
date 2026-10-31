@@ -5,8 +5,7 @@
  */
 
 import "server-only";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { isProUser } from "@/lib/subscription-server";
+import { guildContext } from "./guilds";
 
 const MANAGE_GUILD = BigInt(32); // 1 << 5
 const ADMINISTRATOR = BigInt(8); // 1 << 3
@@ -33,20 +32,15 @@ export function canManageGuild(interaction: Record<string, unknown>): boolean {
   }
 }
 
-/** The GameShuffle streamer linked to a Discord guild, + whether they're Pro. */
+/**
+ * The GameShuffle streamer linked to a Discord guild, + whether the bot's Pro
+ * tools are on there: the owner has Pro (a server beyond the main one is
+ * paused without it, and pausing only happens without Pro).
+ */
 export async function guildOwner(
   guildId: string | null,
 ): Promise<{ ownerId: string; isPro: boolean } | null> {
-  if (!guildId) return null;
-  const { data } = await createServiceClient()
-    .from("users")
-    .select("id, subscription_tier, role")
-    .eq("discord_guild_id", guildId)
-    .maybeSingle();
-  const u = data as { id: string; subscription_tier: string | null; role: string | null } | null;
-  if (!u) return null;
-  return {
-    ownerId: u.id,
-    isPro: await isProUser(u.id),
-  };
+  const ctx = await guildContext(guildId);
+  if (!ctx) return null;
+  return { ownerId: ctx.ownerId, isPro: ctx.isPro && ctx.active };
 }

@@ -12,7 +12,7 @@
 import type { ComponentType } from "react";
 import {
   IconBolt, IconBug, IconCircleDot, IconCrown, IconDroplet, IconEye, IconFeather, IconFlame, IconFlask,
-  IconGhost, IconHandStop, IconHexagon, IconLeaf, IconMoon, IconMountain, IconShield, IconSnowflake,
+  IconGhost, IconHandStop, IconHexagon, IconLeaf, IconMoon, IconMountain, IconShield, IconSnowflake, IconWand,
 } from "@tabler/icons-react";
 
 type TablerIcon = ComponentType<{ size?: number | string; stroke?: number; "aria-hidden"?: boolean }>;
@@ -35,6 +35,8 @@ export const POKEMON_TYPES: Record<string, { color: string; ink: "light" | "dark
   Dragon: { color: "#5439c4", ink: "light", Icon: IconCrown },
   Dark: { color: "#4a3b33", ink: "light", Icon: IconMoon },
   Steel: { color: "#71808f", ink: "light", Icon: IconShield },
+  // Generation 6 on (the Daily Dex covers every Pokémon).
+  Fairy: { color: "#b34a8c", ink: "light", Icon: IconWand },
 };
 const FALLBACK = POKEMON_TYPES.Normal;
 
@@ -83,6 +85,26 @@ export function TypeCard({ dex, name, types, level, moves, picked = false, art }
       </div>
       {moves?.length ? <ul className="type-card__moves">{moves.map((m) => <li key={m}>{m}</li>)}</ul> : null}
     </div>
+  );
+}
+
+/**
+ * A small type tile (the type's color and our icon) that stands in for a
+ * Pokémon's picture where a list needs one: the Daily Dex's guesses and
+ * parade. Two types split the tile on the diagonal.
+ */
+export function TypeTile({ types, label, size = "medium" }: { types: string[]; label?: string; size?: "small" | "medium" | "large" }) {
+  const main = POKEMON_TYPES[types[0]] ?? FALLBACK;
+  const second = types[1] ? POKEMON_TYPES[types[1]] ?? FALLBACK : main;
+  const Icon = main.Icon;
+  return (
+    <span
+      className={`type-tile type-tile--${size} type-tile--${main.ink}`}
+      style={{ "--type-color": main.color, "--type-color-2": second.color } as React.CSSProperties}
+      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
+    >
+      <Icon size={size === "large" ? 30 : size === "small" ? 14 : 18} stroke={1.75} aria-hidden />
+    </span>
   );
 }
 

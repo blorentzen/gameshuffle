@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     status: p.get("status") ?? undefined,
     when: p.get("when") ?? undefined,
     box,
-    cursor: cursorId ? { startsAt: p.get("cursorAt") || null, id: cursorId } : null,
+    cursor: cursorId ? { startsAt: p.get("cursorAt") || null, id: cursorId, ...(p.get("cursorSeg") === "results" ? { seg: "results" as const } : p.get("cursorSeg") === "coming" ? { seg: "coming" as const } : {}) } : null,
     limit: Math.min(Number(p.get("limit")) || PAGE_SIZE, 60),
   };
 

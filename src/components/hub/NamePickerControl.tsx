@@ -8,7 +8,8 @@
  */
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { Button, Input } from "@empac/cascadeds";
+import { Button, Checkbox, Chip, Input, Select } from "@empac/cascadeds";
+import { Lever } from "./live/Lever";
 import {
   clearRaffleAction,
   drawRaffleAction,
@@ -63,6 +64,7 @@ export function NamePickerControl({ slug }: { slug: string }) {
   // Keep the manage list fresh while it's open.
   useEffect(() => {
     if (!manage) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loadEntries sets state after its server action resolves
     void loadEntries();
     const id = window.setInterval(() => void loadEntries(), 8000);
     return () => window.clearInterval(id);
@@ -118,47 +120,33 @@ export function NamePickerControl({ slug }: { slug: string }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-        <select
-          value={count}
-          onChange={(e) => setCount(Number(e.target.value))}
+    <Lever
+      label="Raffle"
+      hint={entries != null ? `${entries} ${entries === 1 ? "entry" : "entries"}` : undefined}
+      option={
+        <Select
+          size="small"
           aria-label="Number of winners"
-          style={{
-            height: 36,
-            borderRadius: "var(--radius-8, 0.5rem)",
-            border: "1px solid var(--border-default)",
-            padding: "0 var(--spacing-8)",
-            background: "var(--surface-default)",
-            color: "var(--text-primary)",
-          }}
-        >
-          {COUNTS.map((n) => (
-            <option key={n} value={n}>
-              {n} {n === 1 ? "winner" : "winners"}
-            </option>
-          ))}
-        </select>
-        <Button variant="primary" loading={pending} onClick={draw}>
-          🎟️ Draw{entries != null ? ` (${entries})` : ""}
-        </Button>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: "var(--font-size-14)" }}>
-          <input type="checkbox" checked={remove} onChange={(e) => setRemove(e.target.checked)} />
-          Remove winners
-        </label>
-        <Button variant="ghost" onClick={() => setManage((m) => !m)} disabled={pending}>
-          {manage ? "Done" : "Manage entries"}
-        </Button>
-        <Button variant="ghost" onClick={clear} disabled={pending || !entries}>
-          Clear
-        </Button>
-        {result ? <span style={{ fontWeight: "var(--font-weight-semibold)" }}>{result}</span> : null}
-      </div>
-
+          value={String(count)}
+          onChange={(v) => setCount(Number(v))}
+          options={COUNTS.map((n) => ({ value: String(n), label: `${n} ${n === 1 ? "winner" : "winners"}` }))}
+        />
+      }
+      actions={
+        <>
+          <Button variant="secondary" size="small" className="hub-lever__main" loading={pending} onClick={draw}>Draw {count === 1 ? "a winner" : "winners"}</Button>
+          <Checkbox size="small" label="Remove winners" checked={remove} onChange={(e) => setRemove(e.target.checked)} />
+          <Button variant="ghost" size="small" onClick={() => setManage((m) => !m)} disabled={pending}>{manage ? "Done" : "Entries"}</Button>
+          <Button variant="ghost" size="small" onClick={clear} disabled={pending || !entries}>Clear</Button>
+        </>
+      }
+      status={result ? <strong>{result}</strong> : null}
+    >
       {manage && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)", maxWidth: 420 }}>
-          <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
+        <div className="hub-lever__panel">
+          <div className="hub-lever__add">
             <Input
+              size="small"
               value={newName}
               onChange={(e) => setNewName(e.target.value.slice(0, 80))}
               onKeyDown={(e) => {
@@ -167,49 +155,23 @@ export function NamePickerControl({ slug }: { slug: string }) {
                   addEntry();
                 }
               }}
-              placeholder="Add an entrant by name…"
+              placeholder="Add someone by name"
+              aria-label="Add an entrant"
               fullWidth
             />
-            <Button variant="secondary" onClick={addEntry} disabled={pending || !newName.trim()}>
-              Add
-            </Button>
+            <Button variant="secondary" size="small" onClick={addEntry} disabled={pending || !newName.trim()}>Add</Button>
           </div>
           {entryList.length === 0 ? (
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-              No entrants yet. Viewers join with <strong>!enter</strong>, or add them here.
-            </p>
+            <p className="hub-lever__note">No entries yet. Viewers enter with <code>!enter</code>, or add them here.</p>
           ) : (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <div className="hub-lever__chips">
               {entryList.map((en) => (
-                <span
-                  key={en.id}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "3px 8px",
-                    borderRadius: 999,
-                    border: "1px solid var(--border-default)",
-                    background: "var(--surface-default)",
-                    fontSize: "var(--font-size-14)",
-                  }}
-                >
-                  {en.displayName}
-                  <button
-                    type="button"
-                    aria-label={`Remove ${en.displayName}`}
-                    onClick={() => removeEntry(en.id)}
-                    disabled={pending}
-                    style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-secondary)", lineHeight: 1, fontSize: 16 }}
-                  >
-                    ×
-                  </button>
-                </span>
+                <Chip key={en.id} size="small" label={en.displayName} removable disabled={pending} onRemove={() => removeEntry(en.id)} />
               ))}
             </div>
           )}
         </div>
       )}
-    </div>
+    </Lever>
   );
 }

@@ -4,6 +4,9 @@
  * link that opens the viewer's maps app. Rendered only when the night has
  * geocoded coords; the text address still shows without it.
  */
+
+import { ArrowLink } from "@/components/ui/ArrowLink";
+
 export function NightMap({
   lat,
   lng,
@@ -38,12 +41,8 @@ export function NightMap({
         referrerPolicy={gkey ? "strict-origin-when-cross-origin" : "no-referrer"}
       />
       <div className="bgn-map__directions-row">
-        <a className="bgn-map__directions" href={googleHref} target="_blank" rel="noopener noreferrer">
-          Google Maps →
-        </a>
-        <a className="bgn-map__directions" href={appleHref} target="_blank" rel="noopener noreferrer">
-          Apple Maps →
-        </a>
+        <ArrowLink className="bgn-map__directions" href={googleHref} external>Google Maps</ArrowLink>
+        <ArrowLink className="bgn-map__directions" href={appleHref} external>Apple Maps</ArrowLink>
       </div>
     </div>
   );

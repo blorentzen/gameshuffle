@@ -9,15 +9,14 @@
  * the Mario Kart randomizer pieces (intro card, Options drawer, player cards).
  */
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Badge, Button, Card, IconButton, Input, Switch } from "@empac/cascadeds";
 import { CardActions } from "@/components/randomizer/CardActions";
 import { seatLabel } from "@/lib/randomizers/seats";
-import { IconCopy, IconDice5, IconHeart, IconMap2, IconRefresh, IconShield, IconStar, IconSword, IconUsersGroup } from "@tabler/icons-react";
+import { IconDice5, IconHeart, IconMap2, IconRefresh, IconShield, IconStar, IconSword, IconUsersGroup } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { RollingText, useRollFrames } from "@/components/randomizer/RollingText";
-import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { heroPool, mapModes, rerollHero, rollHeroes, rollMap, rollTeamUpComp, seatRoles } from "@/lib/heroes/roll";
 import type { Hero, HeroGame, HeroMap, HeroRole, HeroTeamUp, RoleIcon } from "@/lib/heroes/types";
@@ -64,10 +63,8 @@ function HeroTile({ game, hero, reel, queueRole }: { game: HeroGame; hero: Hero 
 }
 
 export function HeroRoulette({ game }: { game: HeroGame }) {
-  const toast = useToast();
   const [players, setPlayers] = useState(1);
   const [names, setNames] = useState<string[]>(Array(MAX_PLAYERS).fill(""));
-  const seatName = useCallback((i: number) => names[i]?.trim() || `Player ${i + 1}`, [names]);
   const [roles, setRoles] = useState<string[]>([]);
   const [roleQueue, setRoleQueue] = useState(false);
   const [noRepeats, setNoRepeats] = useState(false);
@@ -113,11 +110,6 @@ export function HeroRoulette({ game }: { game: HeroGame }) {
     setHeroes((h) => h.filter((_, j) => j !== seat));
     setPlayers((p) => p - 1);
   };
-  const copy = () => {
-    const lines = [`${game.label} heroes`, ...Array.from({ length: players }, (_, i) => `${seatName(i)}: ${heroes[i]?.name ?? "?"}`)];
-    if (map) lines.push(`Map: ${map.name} (${map.mode})`);
-    navigator.clipboard.writeText(lines.join("\n")).then(() => { toast.success("Heroes copied"); track(EVENTS.resultCopied, { tool: game.slug }); }, () => toast.error("Couldn't copy that"));
-  };
 
   const roleSummary = roles.length ? game.roles.filter((r) => roles.includes(r.id)).map((r) => r.label).join(", ") : "";
   const allModes = mapModes(game);
@@ -126,7 +118,6 @@ export function HeroRoulette({ game }: { game: HeroGame }) {
     <div className="hero-roulette">
       <div className="randomizer-controls">
         <span className="party-muted">{game.heroes.length} heroes · roster checked {new Date(`${game.checkedOn}T12:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
-        <Button variant="secondary" size="small" iconBefore={IconCopy} disabled={!heroes.some(Boolean)} onClick={copy}>Copy heroes</Button>
       </div>
 
       <section aria-labelledby="hero-roll-h">

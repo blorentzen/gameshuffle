@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { ProToolCta } from "@/components/tools/ProToolCta";
 import { FreeToolShell } from "@/components/tools/FreeToolShell";
 import { TruthOrDareTool } from "@/components/tools/TruthOrDareTool";
-import { TruthOrDarePicker } from "@/components/tools/TruthOrDarePicker";
 import { TRUTH_OR_DARE_SETS, getTruthOrDareSet } from "@/data/truth-or-dare";
 import { IconMessageQuestion } from "@tabler/icons-react";
 
@@ -23,7 +22,7 @@ export async function generateMetadata({
     title: `${s.title} Truth or Dare: free prompt generator`,
     description: `${s.description} Free online truth-or-dare, no account required.`,
     alternates: { canonical: `https://www.gameshuffle.co/truth-or-dare/${s.slug}` },
-    openGraph: { title: `${s.title} Truth or Dare`, url: `https://www.gameshuffle.co/truth-or-dare/${s.slug}` },
+    openGraph: { siteName: "GameShuffle", title: `${s.title} Truth or Dare`, url: `https://www.gameshuffle.co/truth-or-dare/${s.slug}` },
   };
 }
 
@@ -39,8 +38,7 @@ export default async function TruthOrDareSetPage({
   return (
     <main>
       <FreeToolShell icon={IconMessageQuestion} eyebrow="Truth or dare" name={`${s.title} Truth or Dare`} lede={<>{s.description}</>} crumbs={[{ label: "Truth or Dare", href: "/truth-or-dare" }, { label: s.title }]}>
-        <TruthOrDareTool truths={s.truths} dares={s.dares} />
-        <TruthOrDarePicker currentSlug={s.slug} />
+        <TruthOrDareTool truths={s.truths} dares={s.dares} currentSlug={s.slug} />
       </FreeToolShell>
       <ProToolCta />
     </main>

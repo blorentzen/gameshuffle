@@ -21,6 +21,8 @@ export const runtime = "nodejs";
 const THEMES = ["default", "midnight", "mint", "sunset", "mono"];
 const ANIMATIONS = ["slide", "fade", "none"];
 const ROLES = ["broadcaster", "moderator", "vip", "subscriber", "viewer"];
+/** "Each message stays" choices, in seconds (null = until pushed out). */
+const STAY_SECONDS = [15, 30, 60, 120];
 
 async function tierFor(userId: string): Promise<string> {
   const admin = createServiceClient();
@@ -76,7 +78,11 @@ export async function POST(req: NextRequest) {
   }
   if (typeof body.hideCommands === "boolean") patch.hideCommands = body.hideCommands;
   if (typeof body.showGsBadge === "boolean") patch.showGsBadge = body.showGsBadge;
-  if (typeof body.maxMessages === "number") patch.maxMessages = Math.min(Math.max(Math.round(body.maxMessages), 3), 30);
+  if (typeof body.maxMessages === "number") patch.maxMessages = Math.min(Math.max(Math.round(body.maxMessages), 1), 25);
+  if (body.messageSeconds === null) patch.messageSeconds = null;
+  else if (typeof body.messageSeconds === "number" && STAY_SECONDS.includes(body.messageSeconds)) patch.messageSeconds = body.messageSeconds;
+  if (body.textSize === "s" || body.textSize === "m" || body.textSize === "l") patch.textSize = body.textSize;
+  if (typeof body.newestFirst === "boolean") patch.newestFirst = body.newestFirst;
 
   await saveChatOverlaySettings(user.id, patch);
   return NextResponse.json({ ok: true });

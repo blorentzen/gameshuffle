@@ -153,13 +153,15 @@
    rendered as unstyled text wherever a tournament carried them. */
 .lounge-status--waiting,
 .lounge-status--open {
-  background: color-mix(in srgb, var(--warning-500) 18%, var(--surface-default));
+  /* 14%, not 18%: on a tinted page (event pages mix the surface) 18% left the
+     ink at 4.47:1, just under AA. */
+  background: color-mix(in srgb, var(--warning-500) 14%, var(--surface-default));
   color: var(--warning-ink);
 }
 
 .lounge-status--in_progress,
 .lounge-status--live {
-  background: color-mix(in srgb, var(--success-500) 18%, var(--surface-default));
+  background: color-mix(in srgb, var(--success-500) 14%, var(--surface-default));
   color: var(--success-ink);
 }
 
@@ -192,6 +194,10 @@
   vertical-align: middle;
   margin-left: 0.35rem;
 }
+/* On the light --success-100 pill, --success-ink was 3.95:1 at 12px; a darker shade passes. */
+html:not(.dark) .verified-badge { color: color-mix(in srgb, var(--success-ink) 72%, #000); }
+/* --success-100 stays light in dark mode while --success-ink turns light: use the dark surface tint. */
+html.dark .verified-badge { background: var(--surface-success); color: var(--success-300); }
 
 .lounge-player-list {
   display: flex;
@@ -618,8 +624,10 @@
 
 .lounge-mode-badge {
   padding: 0.2rem 0.6rem;
-  background: var(--primary-100);
-  color: var(--primary-ink-500);
+  /* Same recipe as the status pills: a tint that flips with the theme and the
+     700 ink, which clears AA (the fixed --primary-100 with the 500 ink didn't). */
+  background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
+  color: var(--primary-ink-700);
   border-radius: 0.25rem;
   font-size: var(--font-size-12);
   font-weight: 700;
@@ -1853,6 +1861,59 @@
   text-overflow: clip;
 }
 
+/* Tournament manage page (2026-10-13): a status bar, tabs (Run, Players,
+   Format & rules, Page & team), and cards built from sub-sections. */
+.manage-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  padding: var(--spacing-12) var(--spacing-16);
+  margin-bottom: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--background-primary);
+}
+.manage-status__info { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); min-width: 0; }
+.manage-status__when { font-size: var(--font-size-14); color: var(--text-secondary); }
+.manage-status__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.manage-tabs { margin-bottom: var(--spacing-20, 2rem); }
+/* These tab bars only switch: what they show is drawn below them, so CDS's empty panel takes no room. */
+.manage-tabs .empac-tabs__content,
+.manage-switch .empac-tabs__content { display: none; }
+.manage-card { display: flex; flex-direction: column; gap: var(--spacing-16); margin-bottom: var(--spacing-24); }
+.manage-card__title { margin: 0; font-size: var(--font-size-18); }
+/* Format and seeding: its rows carried their own margins; one gap instead keeps every row the same distance apart. */
+.manage-card--spaced > * { margin-top: 0 !important; margin-bottom: 0 !important; }
+.manage-sub { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.manage-sub + .manage-sub { padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
+.manage-sub__title { margin: 0; font-size: var(--font-size-16); }
+/* The counts that filter the people table: CDS Cards, one row on a laptop, wrapping on a phone. */
+.manage-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: var(--spacing-8); }
+.manage-count.empac-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font-family: inherit; width: 100%; }
+.manage-count__value { font-size: var(--font-size-24); font-weight: var(--font-weight-bold); line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--text-primary); }
+.manage-count__label { font-size: var(--font-size-12); color: var(--text-secondary); }
+.manage-field { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.manage-field__label { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.manage-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.manage-grow { flex: 1 1 26rem; min-width: 0; }
+.manage-max { width: 11rem; }
+.manage-help { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+.manage-setting { padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
+.manage-setting--row { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
+.manage-setting--stack { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.manage-note { margin: 0 0 var(--spacing-16); padding: var(--spacing-12) var(--spacing-16); border-radius: var(--radius-md, 0.5rem); background: var(--background-secondary); color: var(--text-secondary); font-size: var(--font-size-14); }
+.manage-circuit-note { margin: 0; display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); font-size: var(--font-size-12); color: var(--text-secondary); }
+.manage-build { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.manage-build > div { margin-bottom: 0 !important; }
+/* Find a player: the matches under the search box. */
+.manage-results { display: flex; flex-direction: column; gap: var(--spacing-4); max-width: 48rem; }
+.manage-result { display: flex; align-items: center; gap: var(--spacing-8); padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-md, 0.5rem); background: var(--background-secondary); border: 1px solid var(--border-subtle); }
+.manage-result__avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
+.manage-result__avatar--letter { display: grid; place-items: center; background: var(--primary-100); color: var(--primary-ink-600); font-size: var(--font-size-12); font-weight: var(--font-weight-bold); }
+.manage-result__name { flex: 1 1 auto; min-width: 0; font-size: var(--font-size-14); }
+
 /* Responsive */
 @media only screen and (max-width: 1024px) {
   .tournament-grid {
@@ -1943,6 +2004,12 @@
 
    Both axes deliberately: a big bracket is wide AND tall, and capping one just
    moves the problem to the other. */
+.bkt:focus-visible,
+.bracket-frame:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+}
+
 .bracket-frame {
   max-height: min(72vh, 760px);
   overflow: auto;
@@ -2767,3 +2834,48 @@
 .tr-round__picks .tr-round__player-name { margin-bottom: 0; color: var(--text-secondary); font-weight: 600; }
 .tr-round__picks strong { font-size: var(--font-size-16); }
 .tr-round__pick-detail { font-size: var(--font-size-12); color: var(--text-secondary); }
+
+/* The method switch only switches (its help and list are drawn below), and a random draw's names fold away. */
+.seeding .empac-tabs__content { display: none; }
+.seeding__fold { border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); }
+
+/* Tournament create form (2026-10-13): short cards, CDS pick cards for what
+   you're running (the site's icon tile on top), and More options folded away. */
+.create-card { display: flex; flex-direction: column; gap: var(--spacing-20, 2rem); margin-bottom: var(--spacing-24); }
+/* From the free bracket tools: the players come along as guests. */
+.create-handoff { margin-bottom: var(--spacing-24); }
+.create-card__head { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
+.create-card__title { margin: 0; font-size: var(--font-size-18); }
+/* Date and max players: side by side when there's room, stacked on a phone. */
+.create-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-16); }
+/* A text button under a grid starts at the grid's edge, not its own padding in. */
+.create-showall { display: block; margin-top: calc(-1 * var(--spacing-8)); }
+.create-showall .empac-button { padding-inline: 0; }
+.create-field { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.create-field .account-card__label { margin: 0; }
+.create-more { display: flex; flex-direction: column; gap: var(--spacing-20, 2rem); padding-top: var(--spacing-8); }
+.run-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); gap: var(--spacing-12); }
+.run-pick.empac-card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); height: 100%; width: 100%; text-align: left; font-family: inherit; }
+/* The shared icon tile (globals.css .icon-tile values). */
+.run-pick__icon { display: grid; place-items: center; flex: none; width: var(--tile-md); height: var(--tile-md); border-radius: var(--tile-md-radius); box-shadow: var(--tile-shadow); color: #fff; background: var(--tile-blue); }
+.run-pick__icon svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
+.run-pick__title { display: inline-flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-16); font-weight: var(--font-weight-bold); color: var(--text-primary); }
+.run-pick__text { font-size: var(--font-size-14); color: var(--text-secondary); line-height: var(--line-height-snug, 1.4); }
+.ai-tourney--bare { background: transparent; }
+
+/* A card that folds (Crews, Build restrictions, More options): its title lines up
+   with every other card title and is the same size; the card is the frame. */
+html .manage-card > .empac-accordion .empac-accordion__trigger,
+html .create-card > .empac-accordion .empac-accordion__trigger { padding: 0; background: none; }
+html .manage-card > .empac-accordion .empac-accordion__trigger-title,
+html .create-card > .empac-accordion .empac-accordion__trigger-title { font-size: var(--font-size-18); font-weight: var(--font-weight-bold); }
+html .manage-card > .empac-accordion .empac-accordion__content-inner,
+html .create-card > .empac-accordion .empac-accordion__content-inner { padding: var(--spacing-16) 0 0; }
+html .manage-card > .empac-accordion .empac-accordion__item,
+html .create-card > .empac-accordion .empac-accordion__item { border-bottom: none; }
+/* The seeding switch wraps on a phone instead of running off the edge; the folded names start at the edge. */
+.seeding .empac-tabs__header,
+.manage-switch .empac-tabs__header { flex-wrap: wrap; overflow: visible; }
+html .seeding__fold .empac-accordion__trigger { padding: var(--spacing-12) 0; background: none; }
+html .seeding__fold .empac-accordion__content-inner { padding: 0 0 var(--spacing-12); }
+html .seeding__fold .empac-accordion__item { border-bottom: none; }

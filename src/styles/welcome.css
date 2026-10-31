@@ -1,0 +1,255 @@
+/* /welcome: what GameShuffle is, for someone brand new. Six doors in the hero, then one flat
+   section per door (a thin line between sections, no cards around them; the live demo is each
+   section's one surface), then a free account, GS Pro beside Support, and the questions.
+   Root font size is 10px: size type with the tokens. */
+
+.welcome__body {
+  display: flex;
+  flex-direction: column;
+  padding-block: var(--spacing-40) var(--spacing-64);
+}
+
+/* Hero: the free line under the sentence, the doors in the second column. */
+.welcome-hero__free {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  margin: 0;
+  font-size: var(--font-size-16);
+  color: rgba(255, 255, 255, 0.86);
+}
+.welcome-hero__free svg { color: #8ee6a6; flex: none; }
+
+.welcome-doors {
+  padding: var(--spacing-24);
+  border-radius: 1.8rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.welcome-doors__title {
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--font-size-18);
+  line-height: 1.3;
+  color: #fff;
+}
+.welcome-doors__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-12);
+}
+.welcome-door {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  min-height: 5.6rem;
+  height: 100%;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: 1.2rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: var(--font-size-16);
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  transition: background 0.15s ease, translate 0.15s ease;
+}
+.welcome-door:hover { background: rgba(255, 255, 255, 0.18); translate: 0 -1px; }
+.welcome-door:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+@media (max-width: 420px) {
+  .welcome-doors { padding: var(--spacing-16); }
+  .welcome-doors__grid { gap: var(--spacing-8); }
+  .welcome-door { font-size: var(--font-size-14); padding: var(--spacing-8); gap: var(--spacing-8); }
+}
+
+/* Icon tiles: the shared icon tile (globals.css .icon-tile values), one colour per door. */
+.welcome-tile {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--tile-md);
+  height: var(--tile-md);
+  border-radius: var(--tile-md-radius);
+  color: #fff;
+  background: var(--tile-blue);
+  box-shadow: var(--tile-shadow);
+}
+.welcome-tile svg { width: var(--tile-md-glyph); height: var(--tile-md-glyph); }
+.welcome-tile--daily { background: var(--tile-violet); }
+.welcome-tile--home { background: var(--tile-blue); }
+.welcome-tile--online { background: var(--tile-teal); }
+.welcome-tile--stream { background: var(--tile-magenta); }
+.welcome-tile--tour { background: var(--tile-orange); }
+.welcome-tile--poke { background: var(--tile-red); }
+
+/* Every section after the first sits flat under a thin line. */
+.welcome__body > section + section {
+  border-top: 1px solid var(--border-default, #e3e5ee);
+  margin-top: var(--spacing-32);
+  padding-top: var(--spacing-32);
+}
+.welcome__body h2 {
+  margin: 0;
+  font-size: clamp(2.4rem, 3.4vw, 3.2rem);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+/* New accounts: three first steps (the one boxed thing, since it's what to press). */
+.welcome__body > .welcome-steps + section { border-top: 0; padding-top: 0; }
+.welcome-steps {
+  padding: var(--spacing-24);
+  border-radius: 1.6rem;
+  background: color-mix(in srgb, var(--bg-primary, #4b5cf5) 7%, var(--surface-default, #fff));
+}
+.welcome-steps h2 { font-size: var(--font-size-24); }
+.welcome-steps__list {
+  list-style: none;
+  margin: var(--spacing-16) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-12);
+}
+.welcome-steps__list li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  font-size: var(--font-size-18);
+}
+.welcome-steps__list li.is-done a { color: var(--text-secondary, #5a5f78); }
+.welcome-steps__num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  background: var(--bg-primary, #4b5cf5);
+  color: #fff;
+  font-size: var(--font-size-14);
+  font-weight: 700;
+}
+.welcome-steps__list li.is-done .welcome-steps__num { background: #2f9e44; }
+
+/* The numbers: one quiet line of real counts. */
+.welcome-stats ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12) var(--spacing-32);
+  font-size: var(--font-size-16);
+  color: var(--text-secondary, #5a5f78);
+  font-variant-numeric: tabular-nums;
+}
+.welcome-stats li { display: flex; align-items: center; gap: var(--spacing-8); }
+.welcome-stats li::before {
+  content: "";
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: #2f9e44;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #2f9e44 22%, transparent);
+}
+
+/* A door's section: the words beside the demo, stacked on phones. */
+.welcome-path {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 46rem);
+  align-items: center;
+  gap: var(--spacing-40);
+  scroll-margin-top: 8rem;
+}
+.welcome-path--flip .welcome-path__copy { order: 2; }
+.welcome-path__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+  min-width: 0;
+}
+.welcome-path__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand-ink, var(--primary-700));
+}
+.welcome-path__line {
+  margin: 0;
+  max-width: 60ch;
+  font-size: var(--font-size-18);
+  line-height: 1.6;
+  color: var(--text-secondary, #5a5f78);
+}
+.welcome-path__things {
+  list-style: none;
+  margin: var(--spacing-4) 0 var(--spacing-8);
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-12);
+  font-size: var(--font-size-16);
+  line-height: 1.45;
+}
+.welcome-path__things li { display: flex; align-items: flex-start; gap: var(--spacing-12); }
+.welcome-path__things svg { flex: none; margin-top: 0.2rem; color: var(--brand-ink, var(--primary-700)); }
+.welcome-path__copy a, .welcome-account a { text-decoration: none; }
+@media (max-width: 900px) {
+  .welcome-path { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-24); }
+  .welcome-path--flip .welcome-path__copy { order: 0; }
+}
+
+/* The demo: the homepage's live card, drawn here at rest until scrolled to. */
+.welcome-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-8);
+  min-width: 0;
+}
+.welcome-demo__stage { min-height: 22rem; }
+.welcome-demo__again { align-self: center; }
+/* The Pokémon counter tray is a real tool: on the same tinted panel, without its own frame. */
+.welcome-demo__stage--tool .rules-tool { margin: 0; border: 0; box-shadow: none; background: transparent; padding: 0; }
+
+.welcome-account { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-12); }
+.welcome-backing { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.welcome-faq { display: flex; flex-direction: column; gap: var(--spacing-16); }
+
+/* The door from other pages: one flat line under the tool, shown once. */
+.welcome-line {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  margin: var(--spacing-16) 0;
+  padding-block: var(--spacing-12);
+  border-top: 1px solid var(--border-default, #e3e5ee);
+  border-bottom: 1px solid var(--border-default, #e3e5ee);
+  font-size: var(--font-size-16);
+  line-height: 1.4;
+  color: var(--text-secondary, #5a5f78);
+}
+.welcome-line > svg { flex: none; color: var(--brand-ink, var(--primary-700)); }
+.welcome-line > span { flex: 1; min-width: 0; }
+.welcome-line a { color: var(--text-link, var(--primary-700)); font-weight: 600; }
+.welcome-line__close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-secondary, #5a5f78);
+  cursor: pointer;
+}
+.welcome-line__close:hover { background: var(--bg-secondary, rgba(0, 0, 0, 0.05)); }
+.welcome-line__close:focus-visible { outline: 2px solid var(--border-focus, #4b5cf5); outline-offset: 2px; }

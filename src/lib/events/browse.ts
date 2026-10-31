@@ -1,5 +1,6 @@
 import "server-only";
 
+import { notStaleOpenFilter } from "@/lib/events/lifecycle";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getGameName } from "@/data/game-registry";
 import type { BrowseEvent } from "@/components/events/EventsBrowser";
@@ -15,6 +16,8 @@ import { FORMAT_LABEL } from "@/data/tournament-formats";
  * "When" filter has something to show for Past without paging.
  */
 
+/** Completed tournaments stay browsable this long (the Completed tab). */
+const RESULTS_DAYS = 365;
 const PAST_DAYS = 30;
 const DEFAULT_LIMIT = 200;
 
@@ -43,7 +46,9 @@ export async function loadNightRows(limit = DEFAULT_LIMIT): Promise<BrowseEvent[
     .from("board_game_nights")
     .select("id, title, starts_at, timezone, place, lat, lng, cover_image_url, kind, level, genres, games, status, capacity, host_id")
     .eq("visibility", "public")
-    .in("status", ["scheduled", "cancelled"])
+    // Cancelled and archived nights leave browse entirely (their page still loads by link).
+    .in("status", ["scheduled"])
+    .is("archived_at", null)
     .or(`starts_at.gte.${since},starts_at.is.null`)
     .order("starts_at", { ascending: true, nullsFirst: false })
     .limit(limit);
@@ -95,19 +100,28 @@ export async function loadNightRows(limit = DEFAULT_LIMIT): Promise<BrowseEvent[
 
 export async function loadTournamentRows(limit = DEFAULT_LIMIT): Promise<BrowseEvent[]> {
   const svc = createServiceClient();
-  const since = new Date(Date.now() - PAST_DAYS * 86_400_000).toISOString();
+  const resultsSince = new Date(Date.now() - RESULTS_DAYS * 86_400_000).toISOString();
   const base = "id, title, game_slug, mode, format, status, date_time, max_participants, header_image_url, settings, organizer_id";
-  const run = (cols: string) =>
-    svc
+  // Cancelled and archived tournaments leave browse entirely (their page still
+  // loads by link), and so do stale opens and championship events (those live
+  // on their season page). Two reads so a year of results can never crowd out
+  // what's coming up: live and upcoming soonest first, results newest first.
+  const run = (cols: string, kind: "coming" | "results") => {
+    let q = svc
       .from("tournaments")
       .select(cols)
-      .in("status", ["open", "in_progress", "complete", "cancelled"])
-      .or(`date_time.gte.${since},date_time.is.null`)
-      .order("date_time", { ascending: true, nullsFirst: false })
-      .limit(limit);
+      .is("archived_at", null)
+      .is("championship_id", null);
+    q = kind === "coming"
+      ? q.in("status", ["open", "in_progress"]).or(notStaleOpenFilter()).order("date_time", { ascending: true, nullsFirst: false })
+      : q.eq("status", "complete").or(`date_time.gte.${resultsSince},date_time.is.null`).order("date_time", { ascending: false, nullsFirst: false });
+    return q.limit(limit);
+  };
   // Guarded: `lat`/`lng` arrive with tournament-location-m1.sql; fall back without them.
-  let res = await run(`${base}, lat, lng`);
-  if (res.error) res = await run(base);
+  const both = async (cols: string) => Promise.all([run(cols, "coming"), run(cols, "results")]);
+  let [coming, results] = await both(`${base}, lat, lng`);
+  if (coming.error || results.error) [coming, results] = await both(base);
+  const res = { data: [...((coming.data as unknown[]) ?? []), ...((results.data as unknown[]) ?? [])] };
   const data = res.data as unknown;
   const rows = ((data as unknown[]) ?? []) as {
     id: string; title: string; game_slug: string; mode: string; format: string | null; status: string; date_time: string | null; max_participants: number | null;
@@ -147,7 +161,7 @@ export async function loadTournamentRows(limit = DEFAULT_LIMIT): Promise<BrowseE
       gameCount: 0,
       game: t.settings?.game_label || getGameName(t.game_slug),
       format: t.format ?? null,
-      tags: [t.format ? FORMAT_LABEL[t.format] ?? t.format : null, t.mode?.toUpperCase() ?? null, t.settings?.requireVerified ? "Verified only" : null].filter((x): x is string => !!x),
+      tags: [t.format ? FORMAT_LABEL[t.format] ?? t.format : null, t.format === "swiss" ? null : t.mode?.toUpperCase() ?? null, t.settings?.requireVerified ? "Verified only" : null].filter((x): x is string => !!x),
       phase: t.status === "cancelled" ? "cancelled" : t.status === "complete" ? "past" : t.status === "in_progress" ? "live" : "upcoming",
       status: (t.status as BrowseEvent["status"]) ?? null,
       goingCount: count.get(t.id) ?? 0,

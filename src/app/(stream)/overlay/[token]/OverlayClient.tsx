@@ -15,6 +15,9 @@
  * per-connection channel is the upgrade path — no schema change required.
  */
 
+import { MmrOverlay } from "@/components/mmr/MmrOverlay";
+import { LoungeRoomOverlay } from "@/components/lounge/LoungeRoomOverlay";
+import type { RoomOverlayData } from "@/lib/lounge/roomServer";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { RollSlotArt } from "@/components/twitch/RollSlotArt";
 import { rollKind, rollSlots, rollTitle, type RollSlot } from "@/lib/twitch/chatRoll";
@@ -23,6 +26,13 @@ import { PollOverlay, type PollOverlayPayload } from "@/components/overlay/PollO
 import { NumberBingoOverlay, type NumberBingoOverlayPayload } from "@/components/overlay/NumberBingoOverlay";
 import { DraftOverlay } from "@/components/overlay/DraftOverlay";
 import type { StreamDraftView } from "@/lib/drafts/store";
+import { ChatBrainOverlay, ChatBrainSurveyOverlay } from "@/components/overlay/ChatBrainOverlay";
+import { BreakScreenOverlay } from "@/components/overlay/BreakScreenOverlay";
+import type { BreakView } from "@/lib/break/types";
+import type { StreamGameView } from "@/lib/chatbrain/streamGame";
+import type { StreamSurveyView } from "@/lib/chatbrain/survey";
+import type { TriviaStreamView } from "@/lib/trivia/stream";
+import { TriviaOverlay } from "@/components/overlay/TriviaOverlay";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay, type ViewerCountView } from "@/components/overlay/ViewerCountOverlay";
 import { AnthemPlayer, type AnthemEventPayload } from "@/components/overlay/AnthemPlayer";
@@ -85,6 +95,8 @@ interface EventsOverlayPayload {
     reward: number | null;
     penalty: number | null;
     targetName: string | null;
+    /** The event's own line (newer payloads). */
+    text?: string | null;
   }>;
 }
 
@@ -109,7 +121,13 @@ interface ApiResponse {
   poll?: PollOverlayPayload | null;
   bingo?: NumberBingoOverlayPayload | null;
   draft?: StreamDraftView | null;
+  brain?: StreamGameView | null;
+  brainSurvey?: StreamSurveyView | null;
+  trivia?: TriviaStreamView | null;
+  breakScreen?: BreakView | null;
   viewers?: ViewerCountView | null;
+  mmrToken?: string | null;
+  loungeRoom?: RoomOverlayData | null;
 }
 
 /** Render a generic tool overlay event by type. Add a case per tool. */
@@ -217,6 +235,7 @@ function tidyLabel(s: string): string {
 }
 
 function describeChallenge(c: EventsOverlayPayload["challenges"][number]): string {
+  if (c.text) return c.text;
   const cond = c.condition
     ? Object.values(c.condition)
         .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
@@ -241,7 +260,13 @@ export function OverlayClient({
   const [poll, setPoll] = useState<PollOverlayPayload | null>(null);
   const [bingo, setBingo] = useState<NumberBingoOverlayPayload | null>(null);
   const [draft, setDraft] = useState<StreamDraftView | null>(null);
+  const [brain, setBrain] = useState<StreamGameView | null>(null);
+  const [brainSurvey, setBrainSurvey] = useState<StreamSurveyView | null>(null);
+  const [trivia, setTrivia] = useState<TriviaStreamView | null>(null);
+  const [breakScreen, setBreakScreen] = useState<BreakView | null>(null);
   const [viewers, setViewers] = useState<ViewerCountView | null>(null);
+  const [mmrToken, setMmrToken] = useState<string | null>(null);
+  const [loungeRoom, setLoungeRoom] = useState<RoomOverlayData | null>(null);
   const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
   const [format, setFormat] = useState<OverlayFormat>("landscape");
   const [layouts, setLayouts] = useState<Partial<Record<OverlayFormat, LayoutProfile>>>({});
@@ -403,7 +428,13 @@ export function OverlayClient({
         setPoll(data.poll ?? null);
         setBingo(data.bingo ?? null);
         setDraft(data.draft ?? null);
+        setBrain(data.brain ?? null);
+        setBrainSurvey(data.brainSurvey ?? null);
+        setTrivia(data.trivia ?? null);
+        setBreakScreen(data.breakScreen ?? null);
         setViewers(data.viewers ?? null);
+        setMmrToken(data.mmrToken ?? null);
+        setLoungeRoom(data.loungeRoom ?? null);
         if (data.layouts) setLayouts(data.layouts);
         if (processToolEvents(data.overlayEvents, false) > 0) activity = true;
         if (activity) lastActivityRef.current = Date.now();
@@ -446,7 +477,13 @@ export function OverlayClient({
       setPoll(data.poll ?? null);
         setBingo(data.bingo ?? null);
         setDraft(data.draft ?? null);
+        setBrain(data.brain ?? null);
+        setBrainSurvey(data.brainSurvey ?? null);
+        setTrivia(data.trivia ?? null);
+        setBreakScreen(data.breakScreen ?? null);
       setViewers(data.viewers ?? null);
+      setMmrToken(data.mmrToken ?? null);
+        setLoungeRoom(data.loungeRoom ?? null);
       if (data.layouts) setLayouts(data.layouts);
       processToolEvents(data.overlayEvents, true);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
@@ -473,7 +510,7 @@ export function OverlayClient({
   //   - the shuffle card animation (existing)
   //   - the picks/bans status banner (new)
   // Either or both may be visible. Empty fragment when neither is active.
-  if (!active && !picksBans && !activeWheel && !events && !poll && !bingo && !draft && toolEvents.length === 0) return null;
+  if (!active && !picksBans && !activeWheel && !events && !poll && !bingo && !draft && !brain && !brainSurvey && !trivia && !breakScreen && toolEvents.length === 0) return null;
 
   const slots: RollSlot[] = active ? rollSlots(active.combo) : [];
   // A viewer battle: one tile per player under a heading, in place of "{name} drew".
@@ -511,6 +548,18 @@ export function OverlayClient({
         <DraftOverlay draft={draft} style={placementStyle(format, "chat_draft", layouts[format])} />
       )}
 
+      {breakScreen && (breakScreen.show === "full" || isPlacementEnabled(format, "break_screen", layouts[format])) && (
+        <BreakScreenOverlay view={breakScreen} full={breakScreen.show === "full"} style={placementStyle(format, "break_screen", layouts[format])} />
+      )}
+      {!brain && brainSurvey && isPlacementEnabled(format, "chat_brain", layouts[format]) && (
+        <ChatBrainSurveyOverlay survey={brainSurvey} style={placementStyle(format, "chat_brain", layouts[format])} />
+      )}
+      {trivia && isPlacementEnabled(format, "trivia", layouts[format]) && (
+        <TriviaOverlay trivia={trivia} style={placementStyle(format, "trivia", layouts[format])} />
+      )}
+      {brain && isPlacementEnabled(format, "chat_brain", layouts[format]) && (
+        <ChatBrainOverlay game={brain} style={placementStyle(format, "chat_brain", layouts[format])} />
+      )}
       {bingo && isPlacementEnabled(format, "number_bingo", layouts[format]) && (
         <NumberBingoOverlay bingo={bingo} style={placementStyle(format, "number_bingo", layouts[format])} />
       )}
@@ -522,6 +571,12 @@ export function OverlayClient({
       )}
 
       {/* All-up viewer count — hides itself when offline. */}
+      {mmrToken && isPlacementEnabled(format, "mmr", layouts[format]) && (
+        <MmrOverlay token={mmrToken} style={placementStyle(format, "mmr", layouts[format])} />
+      )}
+      {loungeRoom && isPlacementEnabled(format, "lounge_room", layouts[format]) && (
+        <LoungeRoomOverlay room={loungeRoom} style={placementStyle(format, "lounge_room", layouts[format])} />
+      )}
       {viewers?.live && isPlacementEnabled(format, "viewers", layouts[format]) && (
         <ViewerCountOverlay viewers={viewers} style={placementStyle(format, "viewers", layouts[format])} />
       )}

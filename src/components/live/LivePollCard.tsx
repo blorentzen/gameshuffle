@@ -10,10 +10,12 @@
 import { useEffect, useState } from "react";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useAnonViewerId } from "./useAnonViewerId";
+import { useLiveHost } from "./LiveHost";
 import type { Poll, PollTally } from "@/lib/polls/types";
 
 export function LivePollCard({ communityId }: { communityId: string | null }) {
   const anonId = useAnonViewerId();
+  const host = useLiveHost();
   const [poll, setPoll] = useState<Poll | null>(null);
   const [tally, setTally] = useState<PollTally | null>(null);
   const [voted, setVoted] = useState<Record<string, string>>({});
@@ -23,12 +25,12 @@ export function LivePollCard({ communityId }: { communityId: string | null }) {
     if (!communityId) return;
     let active = true;
     const fetchPoll = async () => {
-      const d = await fetch(`/api/polls/community/${communityId}`, { cache: "no-store" })
-        .then((r) => r.json())
-        .catch(() => null);
+      const d = await host.api(`/api/polls/community/${communityId}`);
       if (!active || !d?.ok) return;
       setPoll(d.poll ?? null);
       setTally(d.tally ?? null);
+      // The extension knows the viewer's earlier vote; the live page keeps its own per visit.
+      if (d.poll && typeof d.myVote === "string") setVoted((v) => (v[d.poll.id] ? v : { ...v, [d.poll.id]: d.myVote }));
     };
     void fetchPoll();
     const iv = window.setInterval(fetchPoll, 3500);
@@ -36,7 +38,7 @@ export function LivePollCard({ communityId }: { communityId: string | null }) {
       active = false;
       window.clearInterval(iv);
     };
-  }, [communityId]);
+  }, [communityId, host]);
 
   // Draft picks are polls too, but LiveDraftCard shows those with the team.
   if (!poll || poll.kind === "draft") return null;
@@ -47,16 +49,19 @@ export function LivePollCard({ communityId }: { communityId: string | null }) {
     if (!poll || !anonId || voting) return;
     setVoting(true);
     setVoted((v) => ({ ...v, [poll.id]: optionId })); // optimistic highlight
-    const res = await fetch(`/api/polls/${poll.id}/vote`, {
+    const d = await host.api(`/api/polls/${poll.id}/vote`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ optionId, anonSessionId: anonId }),
     });
     setVoting(false);
-    if (res.ok) {
+    if (d?.ok) {
       track(EVENTS.pollVoted);
-      const d = await res.json().catch(() => null);
-      if (d?.tally) setTally(d.tally as PollTally);
+      if (d.tally) setTally(d.tally as PollTally);
+    } else if (d?.error === "share_needed") {
+      // The extension: voting asks the viewer to share their Twitch id first.
+      setVoted((v) => { const next = { ...v }; delete next[poll.id]; return next; });
+      host.signIn("vote");
     }
   }
 

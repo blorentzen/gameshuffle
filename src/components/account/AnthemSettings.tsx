@@ -14,8 +14,10 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
+import { Alert, Input, RangeSlider, Switch } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useAutosave } from "@/lib/hooks/useAutosave";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   ANTHEM_MAX_DURATION_MS,
@@ -27,9 +29,8 @@ import {
 const MIN_DUR_SEC = ANTHEM_MIN_DURATION_MS / 1000;
 const MAX_DUR_SEC = ANTHEM_MAX_DURATION_MS / 1000;
 
-export function AnthemSettings() {
+export function AnthemSettings({ bare = false }: { bare?: boolean } = {}) {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [catalog, setCatalog] = useState<AnthemTrack[]>([]);
   const toast = useToast();
 
@@ -38,7 +39,6 @@ export function AnthemSettings() {
   const [startSec, setStartSec] = useState(0);
   const [durationSec, setDurationSec] = useState(MAX_DUR_SEC);
   const [volume, setVolume] = useState(0.8);
-  const [dirty, setDirty] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,48 +64,32 @@ export function AnthemSettings() {
   }, [load]);
 
   function touch<T>(setter: (v: T) => void) {
-    return (v: T) => {
-      setter(v);
-      setDirty(true);
-    };
+    return (v: T) => setter(v);
   }
 
-  async function save() {
-    setSaving(true);
-    try {
-      const res = await fetch("/api/account/anthem", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trackId,
-          startMs: startSec * 1000,
-          durationMs: durationSec * 1000,
-          volume,
-          enabled,
-        }),
-      });
-      if (!res.ok) {
-        toast.error("Couldn't save your anthem. Try again.");
-        return;
-      }
-      setDirty(false);
-      toast.success("Anthem saved");
-    } finally {
-      setSaving(false);
-    }
-  }
+  // Saves itself a moment after a change (site-wide autosave).
+  const anthem = { trackId, startMs: startSec * 1000, durationMs: durationSec * 1000, volume, enabled };
+  useAutosave(anthem, async (body) => {
+    const res = await fetch("/api/account/anthem", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    if (!res?.ok) { toast.error("Couldn't save your walk-up song. Try again."); return false; }
+    return true;
+  }, { ready: !loading, toast: "Walk-up song saved" });
 
   const hasCatalog = catalog.length > 0;
 
   return (
-    <div className="account-card" style={{ marginTop: "var(--spacing-24)" }}>
-      <h2 className="account-tab__heading">Walk-Up Anthem</h2>
-      <p className="account-tab__intro">
-        Your personal, MLB-style walk-up song. Pick a stream-safe track and a
-        10 to 15&nbsp;second moment, and it plays when you show up on a streamer&apos;s
-        channel, but only when <em>both</em> you and that streamer have anthems
-        switched on.
-      </p>
+    <div className={bare ? "anthem-settings" : "account-card"} style={bare ? undefined : { marginTop: "var(--spacing-24)" }}>
+      {!bare && (
+        <>
+          <h2 className="account-tab__heading">Walk-Up Anthem</h2>
+          <p className="account-tab__intro">
+            Your personal, MLB-style walk-up song. Pick a stream-safe track and a
+            10 to 15&nbsp;second moment, and it plays when you show up on a streamer&apos;s
+            channel, but only when <em>both</em> you and that streamer have anthems
+            switched on.
+          </p>
+        </>
+      )}
 
       {loading ? (
         <LoadingLines label="Loading" />
@@ -176,11 +160,6 @@ export function AnthemSettings() {
             </div>
           )}
 
-          <div style={{ marginTop: "var(--spacing-20)" }}>
-            <Button variant="primary" loading={saving} disabled={!dirty} onClick={() => void save()}>
-              Save anthem
-            </Button>
-          </div>
         </>
       )}
     </div>

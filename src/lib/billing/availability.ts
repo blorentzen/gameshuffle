@@ -40,6 +40,13 @@ export function paidPlanAvailability(request: Request): PaidPlanAvailability {
   return { available: !country || PAID_PLAN_COUNTRIES.has(country), country };
 }
 
+/** For a server page: can this visitor buy GS Pro or give support (US or unknown)? Reads the request's own headers. */
+export async function paidPlansHere(): Promise<boolean> {
+  const { headers } = await import("next/headers");
+  const h = await headers();
+  return paidPlanAvailability(new Request("https://www.gameshuffle.co/", { headers: { "x-vercel-ip-country": h.get("x-vercel-ip-country") ?? "", "cf-ipcountry": h.get("cf-ipcountry") ?? "" } })).available;
+}
+
 /** Is a billing country one we sell paid plans to? Missing is treated as yes (nothing to act on). */
 export function isPaidPlanCountry(country: string | null | undefined): boolean {
   return !country || PAID_PLAN_COUNTRIES.has(country.toUpperCase());

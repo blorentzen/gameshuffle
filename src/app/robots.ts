@@ -25,10 +25,15 @@ export default function robots(): MetadataRoute.Robots {
         "/stream/",
         "/stream-card",
         "/stream-card/",
+        "/social/",
+        // The MMR card's private OBS links.
+        "/mmr/",
         "/tournament/create",
         "/tournament/*/manage",
         "/login",
         "/signup",
+        // Redirects into sign-up or Discord's bot install.
+        "/discord/add",
         "/api/",
       ],
     },

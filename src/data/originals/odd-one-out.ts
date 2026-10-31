@@ -14,6 +14,8 @@ export interface WordPack {
   /** Shown to the odd one out so they can bluff along. */
   category: string;
   words: string[];
+  /** A holiday pack: only when picked, never dealt by "Mixed". */
+  seasonal?: boolean;
 }
 
 export const WORD_PACKS: WordPack[] = [
@@ -44,6 +46,14 @@ export const WORD_PACKS: WordPack[] = [
   {
     id: "everyday", label: "Everyday things", category: "Everyday things",
     words: ["Umbrella", "Toothbrush", "Alarm clock", "Backpack", "Headphones", "Sunglasses", "Remote control", "Pillow", "Wallet", "Keys", "Coffee mug", "Candle", "Ladder", "Mirror", "Suitcase", "Flashlight", "Blanket", "Stapler", "Doorbell", "Microwave", "Bicycle", "Tape measure", "Hairdryer", "Sticky notes", "Scissors", "Phone charger", "Water bottle", "Slippers", "Calendar", "Vacuum", "Paintbrush", "Lunchbox"],
+  },
+  {
+    id: "halloween", label: "Halloween", category: "Halloween", seasonal: true,
+    words: ["Ghost", "Vampire", "Zombie", "Witch", "Mummy", "Werewolf", "Skeleton", "Pumpkin", "Black cat", "Bat", "Spider web", "Haunted house", "Candy corn", "Trick-or-treat", "Jack-o'-lantern", "Broomstick", "Cauldron", "Graveyard", "Full moon", "Scarecrow", "Fog machine", "Monster", "Cape", "Mask", "Fangs", "Candy bag", "Coffin", "Potion", "Owl", "Hayride", "Costume party", "Scary movie"],
+  },
+  {
+    id: "christmas", label: "Christmas", category: "Christmas", seasonal: true,
+    words: ["Santa Claus", "Reindeer", "Snowman", "Christmas tree", "Candy cane", "Stocking", "Mistletoe", "Gingerbread house", "Sleigh", "Elf", "North Pole", "Wreath", "Ornament", "Hot cocoa", "Eggnog", "Snowflake", "Present", "Wrapping paper", "Chimney", "Carolers", "Ugly sweater", "Fruitcake", "Jingle bells", "Advent calendar", "Nutcracker", "Star topper", "Fireplace", "Mittens", "Sledding", "Snow globe", "Christmas lights", "Holly"],
   },
 ];
 

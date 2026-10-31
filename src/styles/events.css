@@ -71,7 +71,9 @@
   color: var(--text-secondary);
   margin: 0 0 var(--spacing-8);
 }
-.event-shell__presented a { color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-bold); }
+/* --brand-ink, not the button colour: it's the theme's text-safe shade, and the
+   button colour read 4.35:1 on the tinted page. */
+.event-shell__presented a { color: var(--brand-ink, var(--primary-ink-700)); font-weight: var(--font-weight-bold); }
 
 /* When / where facts with their affordances (calendar, map). */
 .event-shell__facts {
@@ -109,6 +111,11 @@
 
 .event-shell__layout { margin-top: var(--spacing-8); }
 .event-shell__main > .comp-card { margin-bottom: var(--spacing-20); }
+/* Cards inside the page's tabs (The night, Who's going…) sat flush: the rule
+   above only reaches direct children. :not([hidden]) so inactive panels stay
+   hidden (display would override the attribute). */
+.event-shell__main .empac-tabs__panel:not([hidden]) { display: flex; flex-direction: column; gap: var(--spacing-20); }
+.event-shell__main .empac-tabs__panel > .comp-card { margin: 0; }
 
 /* Organizer card */
 .event-shell__organizer-card { padding: var(--spacing-16) var(--spacing-20); }
@@ -126,6 +133,8 @@
 .event-shell__organizer-meta { font-size: var(--font-size-12); color: var(--text-secondary); }
 .event-shell__organizer-meta a { color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-semibold); text-decoration: none; }
 .event-shell__organizer-follow { flex: none; }
+/* An official event: GameShuffle's monogram where the host's avatar goes. */
+.event-shell__organizer-logo { width: 44px; height: 44px; flex: none; border-radius: 50%; object-fit: cover; }
 
 /* Good to know */
 .event-shell__h2 {
@@ -174,31 +183,11 @@
    so the row reads as one even band. */
 .event-shell__more-carousel .empac-carousel__slide > * { height: 100%; }
 
-/* Mobile jump bar → the action panel (which stacks under the body). */
-.event-shell__jump { display: none; }
 
 @media (max-width: 900px) {
   .event-shell__hero { height: 180px; }
   .event-shell__layout { grid-template-columns: minmax(0, 1fr); }
   .event-shell__aside { position: static; }
-  .event-shell { padding-bottom: calc(var(--spacing-64) + 3.5rem); }
-  .event-shell__jump {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: 16px;
-    z-index: 30;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 0.8rem 1rem;
-    border-radius: 999px;
-    background: var(--bg-primary, var(--primary-600));
-    color: var(--text-on-primary, #fff);
-    font-weight: var(--font-weight-bold);
-    text-decoration: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  }
 }
 
 /* Shared events browser additions (base card/filter styles live in game-nights.css) */
@@ -215,21 +204,44 @@
   border-top: 1px solid var(--border-subtle, var(--border-default));
 }
 .events-browser__cross-heading { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); margin: 0; }
-.events-browser__cross-link { font-weight: var(--font-weight-semibold); color: var(--bg-primary, var(--primary-600)); text-decoration: none; }
-.events-browser__cross-link:hover { text-decoration: underline; }
+.events-browser__cross-link { color: var(--brand-ink, var(--primary-600)); }
 
 /* ── Attendee table (organizer) ─────────────────────────────────────────── */
 .attendees { display: flex; flex-direction: column; gap: var(--spacing-12); }
 .attendees__toolbar { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
 .attendees__stats { display: flex; gap: var(--spacing-16); flex-wrap: wrap; font-size: var(--font-size-14); color: var(--text-secondary); }
 .attendees__stats strong { color: var(--text-primary); }
+/* The organizer's Circuit plan is full: who's waiting and the upgrade. */
+.attendees__plan { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-subtle, var(--border-default)); border-radius: var(--gs-radius-md, 0.9rem); background: var(--background-secondary, var(--surface-raised)); }
+.attendees__plan-text { margin: 0; flex: 1 1 28rem; font-size: var(--font-size-14); color: var(--text-secondary); line-height: var(--line-height-relaxed); }
+.attendees__plan-text strong { color: var(--text-primary); }
+.attendees__plan-actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
 .attendees__actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
+/* The waitlist limit is a short choice: don't let the select stretch across the row. */
+.attendees__actions > .empac-select { width: auto; flex: 0 0 auto; min-width: 17rem; }
 .attendees__filters { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; gap: var(--spacing-8); }
 .attendees__table { overflow-x: auto; }
 .attendees__who { display: inline-flex; align-items: center; gap: var(--spacing-8); }
 .attendees__name a { color: inherit; font-weight: var(--font-weight-semibold); text-decoration: none; }
 .attendees__name a:hover { text-decoration: underline; }
 .attendees__guest { color: var(--text-tertiary); font-size: var(--font-size-12); }
+/* A manage page's own bits under the name (contacts, claim state, team/crew) and its row actions. */
+.attendees__detail { display: flex; margin-top: 2px; align-items: center; flex-wrap: wrap; gap: var(--spacing-4) var(--spacing-8); font-size: var(--font-size-12); color: var(--text-tertiary); }
+.attendees__detail:empty { display: none; }
+/* Checked in: the heading and the switch share one centre line. */
+/* On a phone: Joined drops out, Checked in may wrap, and Accept sits over Reject, so the row fits the screen. */
+@media (max-width: 560px) {
+  .attendees__col-joined { display: none; }
+  .attendees__col-check { white-space: normal; }
+  .attendees__row-actions { flex-direction: column; align-items: flex-end; }
+  .attendees__table .empac-table--dense .empac-table__head,
+  .attendees__table .empac-table--dense .empac-table__cell { padding-inline: 6px; }
+}
+/* Narrow phones: the avatar goes so the name, check-in and Accept all fit. */
+@media (max-width: 420px) { .attendees__who > :first-child:not(.attendees__name) { display: none !important; } }
+.attendees__col-check { text-align: center !important; width: 1%; white-space: nowrap; }
+.attendees__check { display: flex; justify-content: center; align-items: center; }
+.attendees__row-actions { display: flex; justify-content: flex-end; gap: var(--spacing-4); white-space: nowrap; }
 .attendees__empty { margin: 0; padding: var(--spacing-16) 0; color: var(--text-secondary); font-size: var(--font-size-14); }
 @media (max-width: 640px) { .attendees__filters { grid-template-columns: 1fr; } }
 
@@ -469,7 +481,7 @@
 .browse-hero::before {
   top: -26rem;
   left: -10rem;
-  background: radial-gradient(circle, rgba(39, 102, 236, 0.55), transparent 62%);
+  background: radial-gradient(circle, var(--browse-hero-base, rgba(39, 102, 236, 0.55)), transparent 62%);
   animation: pro-aurora-a 20s ease-in-out infinite alternate;
 }
 .browse-hero::after {
@@ -489,6 +501,16 @@
 /* Hero shooters: Overwatch orange, Marvel Rivals red, matching their randomizer cards. */
 .browse-hero--orange { --browse-hero-accent: rgba(240, 138, 28, 0.32); }
 .browse-hero--red { --browse-hero-accent: rgba(212, 48, 61, 0.34); }
+/* Each GameShuffle game's own colors, matching its share image (scripts/render-originals-og.tsx):
+   both glows take the game's tint, so the header says which game it is. */
+.browse-hero--daily { --browse-hero-base: rgba(90, 63, 214, 0.62); --browse-hero-accent: rgba(201, 73, 233, 0.32); }
+.browse-hero--dex { --browse-hero-base: rgba(217, 80, 42, 0.55); --browse-hero-accent: rgba(232, 162, 28, 0.4); }
+.browse-hero--weekly { --browse-hero-base: rgba(22, 154, 133, 0.55); --browse-hero-accent: rgba(34, 197, 180, 0.32); }
+.browse-hero--brain { --browse-hero-base: rgba(200, 68, 122, 0.55); --browse-hero-accent: rgba(163, 60, 205, 0.34); }
+/* Fire Round: ember, a deeper red than the Dex's orange. */
+.browse-hero--fire { --browse-hero-base: rgba(196, 30, 58, 0.58); --browse-hero-accent: rgba(255, 112, 48, 0.36); }
+/* The Daily Duel: gold on navy (its share card's colors). */
+.browse-hero--duel { --browse-hero-base: rgba(22, 34, 96, 0.7); --browse-hero-accent: rgba(245, 190, 60, 0.4); }
 /* In-page anchors land below the floating nav. */
 #play, #answer, #updates { scroll-margin-top: 96px; }
 /* The glyph field sits above the aurora blobs but under the copy. It is the
@@ -515,6 +537,29 @@
   object-position: center 38%;
 }
 .browse-hero__field { z-index: 0; }
+/* A track's art behind the band (track header picks, 2026-10-30). The pictures are about 160px wide, so
+   anything under a 20px blur shows their pixel grid; the mask lets the art fade in from the navy behind
+   the title, so the text never sits on it. */
+.browse-hero__backdrop {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 68%;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.55) 28%, #000 62%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.55) 28%, #000 62%);
+}
+.browse-hero__backdrop img {
+  object-fit: cover;
+  object-position: center 35%;
+  filter: blur(20px) saturate(1.25);
+  opacity: 0.85;
+  transform: scale(1.12);
+}
+.browse-hero.browse-hero--backdrop .marketing-eyebrow { color: rgba(255, 255, 255, 0.82); }
 .browse-hero__veil {
   position: absolute;
   inset: 0;
@@ -576,12 +621,29 @@
   max-width: 46rem;
   margin: 0 0 var(--spacing-28, 2.8rem);
 }
+/* Compact on phones (the dailies): the tool starts on the first screen. */
+.browse-hero__sub-short { display: none; }
+@media (max-width: 40rem) {
+  .browse-hero--compact .browse-hero__inner { padding: calc(64px + var(--spacing-16)) 0 var(--spacing-32); }
+  .browse-hero--compact .browse-hero__title { margin-bottom: var(--spacing-8); }
+  .browse-hero--compact .browse-hero__sub { font-size: var(--font-size-16); margin-bottom: var(--spacing-8); }
+  .browse-hero--compact .browse-hero__sub-full { display: none; }
+  .browse-hero--compact .browse-hero__sub-short { display: inline; }
+  .browse-hero--compact .browse-hero__curve { height: 26px; }
+}
 .browse-hero__cta {
   display: flex;
   align-items: center;
   gap: var(--spacing-20);
   flex-wrap: wrap;
 }
+.browse-hero__note {
+  margin: var(--spacing-20) 0 0;
+  font-size: var(--font-size-16);
+  color: rgba(255, 255, 255, 0.82);
+}
+.browse-hero__note a { color: #fff; font-weight: 600; text-underline-offset: 0.3rem; }
+.browse-hero__note a:focus-visible { outline: 3px solid #fff; outline-offset: 2px; border-radius: 0.4rem; }
 .browse-hero__ghost {
   color: #fff;
   font-weight: 600;
@@ -640,9 +702,10 @@
   font-weight: var(--font-weight-bold);
 }
 .bgn-group__count {
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   color: var(--text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 .bgn-more { display: flex; justify-content: center; margin-top: var(--spacing-32); }
+.bgn-group__more { display: flex; justify-content: flex-start; margin-top: var(--spacing-12); }

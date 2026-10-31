@@ -31,89 +31,81 @@
 }
 
 /* ---------- Dice roller ---------- */
-.dice-tool__controls {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-16);
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.dice-tool__count {
-  display: inline-flex;
-  gap: var(--spacing-4);
-}
-.dice-tool__count-btn {
-  appearance: none;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-8);
-  background: var(--background-elevated);
-  color: var(--text-secondary);
-  font: inherit;
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-}
-.dice-tool__count-btn.is-active {
-  border-color: var(--primary-ink-500);
-  color: var(--text-primary);
-  box-shadow: 0 0 0 1px var(--primary-500);
-}
-.dice-tool__faces {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-16);
-  justify-content: center;
-}
-/* 3D physics tray (dice-box renders its canvas into __stage). dice-box sizes
-   its physics world to the canvas's client box, so the container needs a
-   DEFINITE size — a fixed height (not an aspect-ratio %-height chain, which can
-   collapse and let the canvas balloon to viewport height). overflow:hidden
-   keeps the render clipped to the tray no matter what. */
-.dice-tool__stage-wrap {
+/* The table (DiceTable): felt or wood inside a rim. The dice (the dice-box
+   canvas or the CSS cubes) sit in the felt area, inset inside the rim, so the
+   physics walls stop the dice at the felt's edge. dice-box sizes its world to
+   the canvas's box, so the table has a definite height. */
+.dice-table {
+  --rim: 14px;
   position: relative;
   width: 100%;
-  max-width: 460px;
-  height: 280px;
-  margin-inline: auto;
+  aspect-ratio: 16 / 10;
+  min-height: 240px;
+  max-height: 460px;
+  border-radius: 26px;
+  background: var(--table-rim);
+  box-shadow: inset 0 0 0 2px var(--table-rim-line), 0 14px 30px -18px rgba(0, 0, 0, 0.55);
+}
+.dice-table__felt {
+  position: absolute;
+  inset: var(--rim);
+  border-radius: 14px;
   overflow: hidden;
-  border-radius: var(--radius-16);
+  background: var(--table-felt);
+  box-shadow: inset 0 0 0 2px var(--table-rim-line), inset 0 18px 40px rgba(0, 0, 0, 0.35);
 }
-.dice-tool__stage-wrap.is-hidden {
-  display: none;
+.dice-table--green {
+  --table-rim: #6b4426;
+  --table-rim-line: #4a2d17;
+  --table-felt: radial-gradient(ellipse at 50% 40%, #2f8a5b 0%, #1f6b45 55%, #164f33 100%);
 }
-.dice-tool__stage {
-  width: 100%;
-  height: 100%;
+.dice-table--navy {
+  --table-rim: #0d1233;
+  --table-rim-line: #070a22;
+  --table-felt: radial-gradient(ellipse at 50% 40%, #2a3f8f 0%, #1b2a66 55%, #121d47 100%);
 }
-.dice-tool__stage canvas {
+.dice-table--wood {
+  --table-rim: #4a2d17;
+  --table-rim-line: #2e1b0c;
+  --table-felt:
+    radial-gradient(ellipse at 50% 40%, rgba(255, 228, 186, 0.16) 0%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.3) 100%),
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0) 0 70px, rgba(46, 24, 8, 0.38) 70px 72px),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0 2px, rgba(0, 0, 0, 0.045) 2px 5px, rgba(255, 255, 255, 0) 5px 9px),
+    linear-gradient(90deg, #95602f 0%, #b07440 28%, #9f6637 55%, #b47a49 80%, #9a6233 100%);
+}
+.dice-table__canvas,
+.dice-table__cubes {
+  position: absolute;
+  inset: 0;
+}
+.dice-table__canvas canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;
 }
-/* Idle state: slowly-spinning 3D dice sitting in the tray before the throw. */
-.dice-idle {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-16);
+.dice-table__cubes {
+  display: grid;
+  place-items: center;
+  padding: var(--spacing-16);
   pointer-events: none;
 }
-.dice-idle__row {
+.dice-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 34px;
-  transform-style: preserve-3d;
+  gap: 28px;
+  max-width: 100%;
 }
-.dice-idle__hint {
-  margin: 0;
-  color: var(--text-tertiary);
-  font-size: var(--font-size-12);
+.dice-table .dice-cube {
+  --die-size: 64px;
+  --die-half: 32px;
+}
+@media (max-width: 520px) {
+  .dice-table { --rim: 10px; border-radius: 20px; }
+  .dice-table__felt { border-radius: 12px; }
+  .dice-table .dice-cube { --die-size: 42px; --die-half: 21px; }
+  .dice-row { gap: 20px; }
 }
 .dice-cube {
   --die-size: 50px;
@@ -129,28 +121,18 @@
 .dice-cube:nth-child(4) { animation-duration: 9s; animation-direction: reverse; }
 .dice-cube:nth-child(5) { animation-duration: 7.5s; }
 .dice-cube:nth-child(6) { animation-duration: 8s; animation-direction: reverse; }
-/* Thrown: stop the idle spin and transition (tumble) to the landed value. */
-.dice-cube--thrown {
-  animation: none;
-  transition: transform 1.1s cubic-bezier(0.2, 0.75, 0.25, 1);
-}
-/* Instant: snap straight to the value, no spin, no transition. */
-.dice-cube--instant {
-  animation: none;
-  transition: none;
-}
 .dice-cube__face {
   position: absolute;
-  /* Faces sit flush (no overlap) so resting dice don't z-fight/artifact. */
+  /* Faces sit flush (no overlap) so resting dice don't z-fight. */
   inset: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   background: linear-gradient(
     145deg,
-    color-mix(in srgb, var(--die-face, #eef1f6), #fff 24%) 0%,
-    var(--die-face, #eef1f6) 60%,
-    color-mix(in srgb, var(--die-face, #eef1f6), #000 10%) 100%
+    color-mix(in srgb, var(--die-face, #ffffff), #fff 24%) 0%,
+    var(--die-face, #ffffff) 60%,
+    color-mix(in srgb, var(--die-face, #ffffff), #000 12%) 100%
   );
-  border: 1px solid rgba(20, 30, 50, 0.14);
+  border: 1px solid rgba(20, 30, 50, 0.16);
   box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.5);
   backface-visibility: hidden;
 }
@@ -167,89 +149,16 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .dice-cube { animation: none; }
-  .dice-cube--thrown { transition: none; }
 }
-
-/* CDS Tabs (mode switch) — center the pill header; the panel just holds the
-   dice stage, so it needs no extra chrome. */
-.dice-tabs {
-  width: 100%;
-}
-.dice-tabs .empac-tabs__header {
-  justify-content: center;
-}
-/* Zero the panel padding but never touch its `display` — the inactive panel is
-   hidden via the [hidden] attribute, and setting display would un-hide it. */
-.dice-tabs .empac-tabs__content,
-.dice-tabs [role="tabpanel"] {
-  padding: 0;
-}
-.dice-custom-stage {
-  position: relative;
-  width: 100%;
-  max-width: 460px;
-  height: 280px;
-  margin-inline: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-16);
-}
-/* No shared perspective/3D context here — each cube carries its own
-   perspective() so every die is viewed head-on. */
-.dice-custom-stage__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 34px;
-}
-.dice-custom__opts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-20);
-  justify-content: center;
-}
-.dice-swatch-group {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-6);
-}
-.dice-swatch-group__label {
-  font-size: var(--font-size-12);
+.dice-tool__parts {
   color: var(--text-secondary);
-  margin-right: var(--spacing-4);
-}
-.dice-swatch {
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border-radius: var(--radius-full);
-  border: 2px solid var(--border-default);
-  cursor: pointer;
-  overflow: hidden;
-}
-.dice-swatch.is-active {
-  border-color: var(--brand-ink);
-  box-shadow: 0 0 0 2px var(--brand-ink);
-}
-.dice-swatch--custom {
-  position: relative;
-  background: conic-gradient(red, #f5c542, #2e9e57, #2f6fd6, #9b5cc8, red);
-}
-.dice-swatch--custom input {
-  position: absolute;
-  inset: -4px;
-  opacity: 0;
-  cursor: pointer;
+  font-size: var(--font-size-16);
 }
 
-/* Recent-rolls history (both modes). */
+/* Recent rolls, under the table. */
 .dice-history {
   width: 100%;
-  max-width: 360px;
-  margin-top: var(--spacing-8);
+  max-width: 36rem;
   padding-top: var(--spacing-16);
   border-top: 1px solid var(--border-subtle);
 }
@@ -267,16 +176,17 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-6);
 }
 .dice-history__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-12);
-  padding: var(--spacing-6) var(--spacing-8);
-  border-radius: var(--radius-8);
-  background: var(--background-elevated);
+  padding: var(--spacing-6) 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.dice-history__row:first-child {
+  border-top: 0;
 }
 .dice-history__dice {
   display: flex;
@@ -284,9 +194,9 @@
   gap: var(--spacing-4);
 }
 .dice-history__die {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
   background: var(--background-secondary);
   border: 1px solid var(--border-default);
 }
@@ -303,82 +213,65 @@
   font-weight: var(--font-weight-bold);
   color: var(--brand-ink);
 }
-/* An actual die: rounded ivory cube with a soft 3D sheen + cast shadow. */
-.dice-tool__die {
-  width: 78px;
-  height: 78px;
-  border-radius: 16px;
-  background: linear-gradient(145deg, #ffffff 0%, #eef1f6 55%, #dfe4ec 100%);
-  border: 1px solid rgba(20, 30, 50, 0.1);
-  box-shadow:
-    inset 0 2px 3px rgba(255, 255, 255, 0.9),
-    inset 0 -4px 6px rgba(20, 30, 50, 0.14),
-    0 6px 12px rgba(20, 30, 50, 0.2);
-}
-.dice-tool__die .companion-pips {
-  padding: 16%;
-}
-.dice-tool__die .companion-pips__dot {
-  background-color: #1b2740;
-  box-shadow: inset 0 -1px 1px rgba(255, 255, 255, 0.35), inset 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-.dice-tool__opts {
-  display: flex;
-  justify-content: center;
-}
-.dice-tool__total {
-  font-size: var(--font-size-18);
-}
 
 /* ---------- Coin flip ---------- */
-.coin-tool__stage {
-  --coin-size: 128px;
-  perspective: 800px;
-  height: calc(var(--coin-size) + 20px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* The coin (Coin): one drawing for the free page, the overlay and the Layout
+   preview. Size comes from --coin-size on a parent; colors from the look. */
+.gs-coin {
+  width: var(--coin-size, 128px);
+  height: var(--coin-size, 128px);
+  perspective: calc(var(--coin-size, 128px) * 6);
 }
-/* A bit larger on desktop. */
-@media (min-width: 768px) {
-  .coin-tool__stage {
-    --coin-size: 176px;
-  }
-}
-.coin-tool__coin {
+.gs-coin__coin {
   position: relative;
-  width: var(--coin-size);
-  height: var(--coin-size);
+  width: 100%;
+  height: 100%;
   transform-style: preserve-3d;
-  transition: transform 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.coin-tool__face {
+.gs-coin__face {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: var(--font-weight-bold);
-  font-size: clamp(var(--font-size-18), 4vw, var(--font-size-24));
-  color: var(--empac-white);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
   backface-visibility: hidden;
-  box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.35), 0 8px 18px rgba(0, 0, 0, 0.25);
+  background: radial-gradient(circle at 35% 30%, var(--coin-light, #ffe08a), var(--coin-base, #e0a72c) 58%, var(--coin-dark, #b07a14));
+  color: var(--coin-ink, #6b4a06);
+  box-shadow:
+    inset 0 0 0 calc(var(--coin-size, 128px) * 0.04) rgba(255, 255, 255, 0.35),
+    inset 0 calc(var(--coin-size, 128px) * -0.06) calc(var(--coin-size, 128px) * 0.11) rgba(0, 0, 0, 0.25),
+    0 10px 18px -10px rgba(0, 0, 0, 0.5);
 }
-.coin-tool__face--heads {
-  background: radial-gradient(circle at 35% 30%, var(--primary-400), var(--primary-600));
-}
-.coin-tool__face--tails {
-  background: radial-gradient(circle at 35% 30%, #d9a334, #b07d16);
+.gs-coin__face--tails {
   transform: rotateY(180deg);
 }
-.coin-tool__result {
-  font-size: var(--font-size-18);
-  text-transform: capitalize;
+.gs-coin__text {
+  font-family: var(--font-display, sans-serif);
+  font-weight: 800;
+  font-size: calc(var(--coin-size, 128px) * 0.4);
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
 }
-.coin-tool__tally {
-  color: var(--text-secondary);
-  font-size: var(--font-size-14);
+.gs-coin__text--two {
+  font-size: calc(var(--coin-size, 128px) * 0.3);
+}
+.gs-coin__img {
+  width: 82%;
+  height: 82%;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 calc(var(--coin-size, 128px) * 0.015) rgba(255, 255, 255, 0.55);
+}
+.coin-tool__stage {
+  --coin-size: 168px;
+  width: 100%;
+  min-height: calc(var(--coin-size) + 64px);
+  display: grid;
+  place-items: center;
+}
+@media (min-width: 760px) {
+  .coin-tool__stage { --coin-size: 220px; }
 }
 
 /* ---------- Stream timer (tool) ---------- */
@@ -386,47 +279,29 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-4);
-  padding: var(--spacing-24) var(--spacing-32);
-  border-radius: var(--radius-16);
-  background: var(--background-elevated);
-  border: 1px solid var(--border-subtle);
+  gap: var(--spacing-8);
+  padding: var(--spacing-24) 0;
   min-width: 220px;
 }
 .timer-tool__time {
   font-family: var(--font-display);
-  font-size: clamp(3rem, 12vw, 5rem);
+  font-size: clamp(5.6rem, 12vw, 9.6rem);
   font-weight: var(--font-weight-bold);
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  padding-bottom: var(--spacing-12);
+  border-bottom: 4px solid var(--timer-accent, var(--brand-primary));
 }
 .timer-tool__label {
   color: var(--text-secondary);
+  font-size: var(--font-size-18);
   font-weight: var(--font-weight-semibold);
 }
-.timer-tool__controls {
+.tool-stage__action.timer-tool__controls {
   display: flex;
-  gap: var(--spacing-8);
-}
-.timer-tool__settings {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-16);
   flex-wrap: wrap;
   justify-content: center;
-}
-.timer-tool__mins {
-  display: inline-flex;
-  gap: var(--spacing-4);
-}
-.timer-tool__overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-8);
-  padding-top: var(--spacing-12);
-  border-top: 1px solid var(--border-subtle);
-  width: 100%;
+  gap: var(--spacing-12);
 }
 
 /* ---------- Stream timer (OBS overlay) ---------- */
@@ -724,48 +599,26 @@
 }
 
 /* ---------- Name / winner picker ---------- */
-.picker-tool {
-  max-width: 620px;
-}
-.picker-tool__controls {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-16);
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.picker-tool__count {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-8);
-  font-size: var(--font-size-14);
-  color: var(--text-secondary);
-}
-.picker-tool__num {
-  width: 64px;
-  padding: var(--spacing-6) var(--spacing-8);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-8);
-  background: var(--background-elevated);
-  color: var(--text-primary);
-  font: inherit;
-}
-.picker-tool__note {
-  color: var(--text-tertiary);
-  font-size: var(--font-size-12);
-}
-.picker-tool__winners {
+.picker-tool__stage {
   width: 100%;
-  padding: var(--spacing-20);
-  border-radius: var(--radius-12);
-  background: color-mix(in srgb, var(--primary-500) 10%, transparent);
-  border: 1px solid var(--primary-300);
+  min-height: 220px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--spacing-8);
   text-align: center;
 }
+.picker-tool__idle {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-18);
+}
 .picker-tool__winners-head {
-  margin: 0 0 var(--spacing-8);
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--brand-ink);
 }
 .picker-tool__winner-list {
@@ -774,12 +627,17 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-6);
+  gap: var(--spacing-8);
 }
 .picker-tool__winner {
   font-family: var(--font-display, sans-serif);
-  font-size: var(--font-size-24);
+  font-size: var(--font-size-32);
   font-weight: var(--font-weight-bold);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.picker-tool__num {
+  max-width: 12rem;
 }
 
 /* ---------- Bingo card generator ---------- */
@@ -928,7 +786,10 @@
   box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--bingo-accent) 65%, transparent);
   pointer-events: none;
 }
-.bingo-cell--free {
+/* Two classes, so it outranks .bingo-cell.is-marked (dark text: the free space is
+   always marked) and .bingo-cell:hover (light background). */
+.bingo-cell.bingo-cell--free,
+.bingo-cell.bingo-cell--free:hover {
   background: var(--bingo-accent);
   color: #fff;
   font-family: var(--font-display, sans-serif);
@@ -973,16 +834,20 @@
 }
 
 /* ---------- Magic 8-Ball ---------- */
-.eight-tool {
-  gap: var(--spacing-24);
+/* One ball (EightBall) for the free page and the stream overlay. */
+.eight-ball-wrap {
+  display: grid;
+  justify-items: center;
+  gap: var(--spacing-12);
 }
 .eight-ball {
   appearance: none;
   border: 0;
   width: 300px;
-  height: 300px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  height: auto;
   border-radius: 50%;
-  cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
@@ -990,6 +855,9 @@
   background: radial-gradient(circle at 34% 30%, #3a3f47 0%, #14161a 55%, #000 100%);
   box-shadow: inset 0 -10px 30px rgba(0, 0, 0, 0.7), inset 0 8px 18px rgba(255, 255, 255, 0.14),
     0 16px 40px rgba(0, 0, 0, 0.4);
+}
+button.eight-ball {
+  cursor: pointer;
 }
 .eight-ball.is-shaking {
   animation: eight-shake 0.4s ease-in-out infinite;
@@ -1000,9 +868,12 @@
   50% { transform: translate(5px, -5px) rotate(3deg); }
   75% { transform: translate(-4px, -3px) rotate(-2deg); }
 }
+@media (prefers-reduced-motion: reduce) {
+  .eight-ball.is-shaking { animation: none; }
+}
 .eight-ball__num {
-  width: 96px;
-  height: 96px;
+  width: 32%;
+  aspect-ratio: 1;
   border-radius: 50%;
   background: #fff;
   color: #111;
@@ -1013,12 +884,12 @@
   font-size: var(--font-size-36);
   font-weight: 800;
 }
-/* The window "glass": a circle of dark, murky liquid the die floats in, with a
-   deep inset shadow (recessed into the ball) and a glossy top-left highlight. */
+/* The window: dark, murky liquid the die floats in, recessed into the ball,
+   with a glossy top-left highlight. */
 .eight-ball__glass {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 72%;
+  aspect-ratio: 1;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1030,7 +901,6 @@
     inset 0 -8px 16px rgba(90, 120, 210, 0.16),
     inset 0 0 0 2px rgba(0, 0, 0, 0.5);
 }
-/* Glass gloss — a soft elliptical highlight in the upper-left. */
 .eight-ball__glass::after {
   content: "";
   position: absolute;
@@ -1043,59 +913,57 @@
   pointer-events: none;
 }
 .eight-ball__window {
-  /* Padding here is a mat around a fixed size, so keep the pre-reset geometry. */
-  box-sizing: content-box;
   position: relative;
-  /* Squat triangle, point-down — wide top holds the long first line, tapering
-     to the apex (fits multi-line answers more naturally than point-up). Sized
-     to leave a little liquid margin from the window edge all around. */
-  width: 172px;
-  height: 118px;
-  /* Nudge the die down so its text lands near the window's vertical center. */
-  top: 10px;
-  clip-path: polygon(11% 20%, 89% 20%, 50% 89%);
+  /* A squat triangle, point down: the wide top holds the long first line. */
+  width: 96%;
+  height: 66%;
+  top: 5%;
+  clip-path: polygon(6% 14%, 94% 14%, 50% 92%);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  /* Bias the text up toward the centroid (~1/3 down from the wide top base),
-     with room from the sloped edges. */
-  padding: 20px 8px 40px;
+  padding-top: 19%;
   text-align: center;
-  /* Gradient fill + drop-shadow make the die read as a solid piece floating
-     in the liquid (box-shadow is ignored under clip-path, so use a filter). */
-  background: linear-gradient(158deg, #2f57bd 0%, #14275e 80%);
+  background: linear-gradient(158deg, var(--eight-accent, #2f57bd) 0%, color-mix(in srgb, var(--eight-accent, #2f57bd), #000 58%) 80%);
   color: #dfe7ff;
+  /* box-shadow is ignored under clip-path, so the die's depth is a filter. */
   filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.55));
 }
 .eight-ball__window--yes { background: linear-gradient(158deg, #1f8043, #0e3c20); color: #e2f7e7; }
 .eight-ball__window--maybe { background: linear-gradient(158deg, #a87a16, #5a3f0b); color: #fff3d6; }
 .eight-ball__window--no { background: linear-gradient(158deg, #ac2d27, #591412); color: #ffe3e3; }
 .eight-ball__answer {
-  /* Narrow enough that long words drop to their own line and stay inside the
-     triangle's taper instead of overflowing the sloped edges. */
-  max-width: 100px;
-  font-size: var(--font-size-12);
+  /* Narrow, so long words drop to their own line inside the taper. */
+  max-width: 58%;
+  font-size: var(--font-size-14);
   font-weight: 700;
   line-height: 1.2;
 }
+.eight-ball__long {
+  margin: 0;
+  max-width: 36rem;
+  text-align: center;
+  font-family: var(--font-display, sans-serif);
+  font-size: var(--font-size-20);
+  font-weight: 700;
+  line-height: 1.3;
+}
 
 /* ---------- Yes / No decider ---------- */
-.yesno-tool {
-  gap: var(--spacing-20);
-}
 .yesno-face {
   appearance: none;
   border: 4px solid var(--border-default);
-  width: 220px;
-  height: 220px;
+  width: 240px;
+  max-width: 100%;
+  aspect-ratio: 1;
   border-radius: 50%;
   cursor: pointer;
   font-family: var(--font-display, sans-serif);
-  font-size: clamp(2.2rem, 9vw, 3.4rem);
+  font-size: var(--font-size-48);
   font-weight: 800;
   letter-spacing: 0.02em;
   color: var(--text-secondary);
-  background: var(--background-elevated);
+  background: var(--background-secondary, var(--background-elevated));
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .yesno-face.is-spinning {
@@ -1105,44 +973,41 @@
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
 }
+@media (prefers-reduced-motion: reduce) {
+  .yesno-face.is-spinning { animation: none; }
+}
 .yesno-face--yes {
-  background: var(--success-500, #2e9e57);
-  border-color: var(--success-600, #24824a);
+  background: var(--success-600, #24824a);
+  border-color: var(--success-700, #1d6b3c);
   color: #fff;
 }
 .yesno-face--no {
-  background: var(--error-500, #d5453f);
-  border-color: var(--error-600, #b8322c);
+  background: var(--error-600, #b8322c);
+  border-color: var(--error-700, #962824);
   color: #fff;
 }
 .yesno-face--maybe {
-  background: var(--warning-500, #d99a2b);
-  border-color: var(--warning-600, #bd831c);
+  background: var(--warning-700, #9a6512);
+  border-color: var(--warning-800, #7c510e);
   color: #fff;
-}
-.yesno-tool__tally {
-  color: var(--text-secondary);
-  font-size: var(--font-size-14);
 }
 
 /* ---------- Truth or Dare ---------- */
-.tod-tool {
-  gap: var(--spacing-20);
-}
-.tod-tool__buttons {
-  display: flex;
-  gap: var(--spacing-8);
-  flex-wrap: wrap;
-  justify-content: center;
-}
 .tod-card {
   width: 100%;
-  max-width: 460px;
+  max-width: 46rem;
+  min-height: 200px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
   padding: var(--spacing-28) var(--spacing-24);
   border-radius: var(--radius-16);
   text-align: center;
   color: #fff;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+.tod-card--idle {
+  background: linear-gradient(150deg, #3a3f63, #1f2340);
 }
 .tod-card--truth {
   background: linear-gradient(150deg, #2f6fd6, #1d3f86);
@@ -1165,6 +1030,26 @@
   font-size: var(--font-size-20);
   font-weight: var(--font-weight-semibold);
   line-height: 1.3;
+}
+.tool-stage__action.tod-tool__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-12);
+}
+/* The set list sits in the settings column. */
+.tod-tool .tier-templates {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  max-width: none;
+}
+.tod-tool .tier-templates__head {
+  font-family: var(--font-display, inherit);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  margin-bottom: var(--spacing-8);
 }
 
 /* ---------- Free-tools → Pro upsell ---------- */
@@ -1213,25 +1098,27 @@
    page's title. Same gradients as the pillar accents on the dark bands. */
 .header-mark { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-10, 10px); }
 .tool-page .header-mark + .tool-page__title { margin-top: calc(-1 * var(--spacing-8, 8px)); }
-.header-mark__tile { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); box-shadow: 0 6px 18px rgba(47, 102, 236, 0.28); }
-.header-mark--violet .header-mark__tile { background: linear-gradient(135deg, #7c3aed, #c949e9); box-shadow: 0 6px 18px rgba(124, 58, 237, 0.28); }
-.header-mark--gold .header-mark__tile { background: linear-gradient(135deg, #d97706, #fabe23); box-shadow: 0 6px 18px rgba(217, 119, 6, 0.28); }
-.header-mark--cyan .header-mark__tile { background: linear-gradient(135deg, #0e7490, #22c5e8); box-shadow: 0 6px 18px rgba(14, 116, 144, 0.28); }
+/* The shared 56px icon tile (design round 3): size, corners, shadow and tones from the --tile-* tokens. */
+.header-mark__tile { width: var(--tile-lg, 56px); height: var(--tile-lg, 56px); border-radius: var(--tile-lg-radius, 14px); display: grid; place-items: center; color: #fff; background: var(--tile-blue); box-shadow: var(--tile-shadow); }
+.header-mark--violet .header-mark__tile { background: var(--tile-magenta); }
+.header-mark--gold .header-mark__tile { background: var(--tile-orange); }
+.header-mark--cyan .header-mark__tile { background: var(--tile-teal); }
 .header-mark__eyebrow { margin: 0; }
 
 /* Compact header, side-by-side form (game-night tools; future task pages):
    icon tile on the left, eyebrow + title + one line on the right. */
 .compact-head { display: flex; align-items: flex-start; gap: var(--spacing-16, 16px); margin: var(--spacing-16, 16px) 0 var(--spacing-24, 24px); }
-.compact-head__tile { flex: 0 0 auto; width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); box-shadow: 0 6px 18px rgba(47, 102, 236, 0.28); margin-top: 2px; }
-.compact-head--gold .compact-head__tile { background: linear-gradient(135deg, #d97706, #fabe23); box-shadow: 0 6px 18px rgba(217, 119, 6, 0.28); }
-.compact-head--violet .compact-head__tile { background: linear-gradient(135deg, #7c3aed, #c949e9); box-shadow: 0 6px 18px rgba(124, 58, 237, 0.28); }
+.compact-head__tile { flex: 0 0 auto; width: var(--tile-lg, 56px); height: var(--tile-lg, 56px); border-radius: var(--tile-lg-radius, 14px); display: grid; place-items: center; color: #fff; background: var(--tile-blue); box-shadow: var(--tile-shadow); margin-top: 2px; }
+.compact-head--gold .compact-head__tile { background: var(--tile-orange); }
+.compact-head--violet .compact-head__tile { background: var(--tile-magenta); }
 .compact-head__text { display: grid; gap: var(--spacing-4, 4px); min-width: 0; }
 .compact-head__text .marketing-eyebrow { margin: 0; }
 .compact-head__title { margin: 0; font-size: var(--font-size-fluid-h2, var(--font-size-32)); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
 .compact-head__lede { margin: 0; font-size: var(--font-size-18); color: var(--text-secondary); line-height: var(--line-height-relaxed); max-width: 48rem; }
 
 /* Free tools (FreeToolShell): breadcrumb and compact header reading left, like
-   the game night tools. A toy (coin, 8-ball, dice) centres inside its own card. */
+   the game night tools. Toys with settings use ToolLayout (below); other tools
+   centre inside their own card (.tool-panel). */
 .free-tool { padding-block: var(--spacing-32) var(--spacing-64); }
 .free-tool__body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-24); }
 .free-tool__body > * { max-width: 100%; }
@@ -1244,4 +1131,186 @@
   border: 1px solid var(--border-subtle, var(--border-default));
   border-radius: var(--radius-16, 16px);
   box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.08));
+}
+
+/* One layout for every free tool with settings (ToolLayout, 2026-10-20): the
+   toy and its main button on the left, its settings on the right, in one
+   panel; phones stack toy first. A thin line, not a second box, separates the
+   two. Boards (tier list, bingo) keep their own layout. */
+.tool-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-24);
+  padding: var(--spacing-16);
+  background: var(--background-elevated);
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: var(--radius-16, 16px);
+  box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.08));
+}
+.tool-layout__stage {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-16);
+}
+.tool-layout__settings {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+  padding-top: var(--spacing-24);
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+@media (min-width: 760px) {
+  .tool-layout {
+    grid-template-columns: minmax(0, 1.65fr) minmax(220px, 1fr);
+    gap: var(--spacing-32);
+    padding: var(--spacing-24);
+  }
+  .tool-layout__settings {
+    align-self: start;
+    padding-top: 0;
+    padding-left: var(--spacing-32);
+    border-top: 0;
+    border-left: 1px solid var(--border-subtle, var(--border-default));
+  }
+}
+.tool-setting {
+  display: grid;
+  gap: var(--spacing-8);
+}
+.tool-setting__label {
+  font-family: var(--font-display, inherit);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+.tool-setting__note {
+  margin: 0;
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+}
+.tool-stage__action {
+  width: 100%;
+  max-width: 36rem;
+  display: grid;
+  justify-items: center;
+  gap: var(--spacing-8);
+}
+.tool-stage__result {
+  margin: 0;
+  min-height: 2.6rem;
+  font-size: var(--font-size-18);
+  text-align: center;
+}
+.tool-stage__tally {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+/* Look editors (dice, coin): choice chips, colors, the GS Pro line. */
+.look-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+.look-chips .empac-chip {
+  min-height: 32px;
+}
+.look-colors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+.look-colors.is-disabled {
+  opacity: 0.5;
+}
+.look-colors .empac-color-picker__palette {
+  min-width: 0;
+}
+.look-colors .empac-color-picker__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+/* A hairline so a white swatch shows on a white panel (and black on dark). */
+.look-colors .empac-color-picker__swatch:not(.empac-color-picker__swatch--selected) {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 28%, transparent);
+}
+.look-colors .empac-color-picker__swatch--selected {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--background-elevated), 0 0 0 4px var(--brand-ink);
+}
+.look-colors__any {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  min-height: 32px;
+  cursor: pointer;
+}
+.look-colors__any input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.look-colors__any-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-6);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: conic-gradient(#e0336d, #f5c542, #2e9e57, #2f66ec, #7b3fe4, #e0336d);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-primary) 28%, transparent);
+}
+.look-colors__any-swatch svg {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+.look-colors__any.is-on .look-colors__any-swatch {
+  box-shadow: 0 0 0 2px var(--background-elevated), 0 0 0 4px var(--brand-ink);
+}
+.look-colors__any:has(input:focus-visible) .look-colors__any-swatch {
+  outline: 2px solid var(--brand-ink);
+  outline-offset: 3px;
+}
+.look-colors__any-label {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.look-letters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-12);
+}
+.look-pro-note {
+  margin: 0;
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+}
+.look-pro-note a {
+  color: var(--brand-ink);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Tool looks drawer (Streaming ▸ Overlay ▸ Tool looks): the free pages' look
+   fields, with a live coin above them. */
+.tool-look-form {
+  gap: var(--spacing-20);
+}
+.tool-look-form__preview {
+  --coin-size: 104px;
+  display: flex;
+  justify-content: center;
+  padding-block: var(--spacing-8);
 }

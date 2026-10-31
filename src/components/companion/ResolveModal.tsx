@@ -19,11 +19,10 @@
  * lives in the reducer).
  */
 
-import { Modal } from "@empac/cascadeds";
-import { Icon } from "@empac/cascadeds";
+import { Button, Modal } from "@empac/cascadeds";
+import { TablerIcon } from "./TablerIcon";
 import { useState, type CSSProperties } from "react";
 import { useMode, useSession } from "@/lib/companion/SessionContext";
-import { flipCoin } from "@/lib/companion/rng";
 import { Coin3D } from "./Coin3D";
 import type {
   CoinFlipEntry,
@@ -35,24 +34,32 @@ import { ALL_POSITIONS } from "@/lib/companion/types";
 
 interface Props {
   isOpen: boolean;
-  player: PlayerId;
+  /** One player's Resolve, or "both" for the Checkup between turns. */
+  player: PlayerId | "both";
   onClose: () => void;
+  /** Between turns: the main button finishes the Checkup (ends the turn) and
+   *  a Back button closes without ending it. */
+  onDone?: () => void;
+  doneLabel?: string;
+  /** A line above the list (whose turn comes next). */
+  intro?: string;
 }
 
-export function ResolveModal({ isOpen, player, onClose }: Props) {
+export function ResolveModal({ isOpen, player, onClose, onDone, doneLabel, intro }: Props) {
   const { state, mode } = useSession();
-  const playerName = state.playerNames[player];
+  const players: PlayerId[] = player === "both" ? ["p1", "p2"] : [player];
 
-  // Active slots for this player with at least one condition,
-  // sorted active → bench 1..5 so the list reads top-down.
+  // Slots with at least one condition, sorted player then active → bench
+  // 1..5 so the list reads top-down.
   const slots = state.slots
     .filter((s) => {
-      if (s.player !== player || !s.occupied) return false;
+      if (!players.includes(s.player) || !s.occupied) return false;
       if (s.conditionA || s.conditionB) return true;
       return Object.values(s.extraConditions).some(Boolean);
     })
     .sort(
       (a, b) =>
+        players.indexOf(a.player) - players.indexOf(b.player) ||
         ALL_POSITIONS.indexOf(a.position) - ALL_POSITIONS.indexOf(b.position),
     );
 
@@ -60,11 +67,13 @@ export function ResolveModal({ isOpen, player, onClose }: Props) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`${playerName}: Resolve`}
+      title={player === "both" ? `${mode.displayName} Checkup` : `${state.playerNames[player]}: Resolve`}
       size="large"
-      primaryAction={{ label: "Done", onClick: onClose }}
+      primaryAction={{ label: doneLabel ?? "Done", onClick: onDone ?? onClose }}
+      secondaryAction={onDone ? { label: "Back", onClick: onClose } : undefined}
     >
       <div className="companion-resolve">
+        {intro && <p className="companion-resolve__intro">{intro}</p>}
         {slots.length === 0 ? (
           <p className="companion-resolve__empty">
             No conditions to resolve right now.
@@ -72,7 +81,7 @@ export function ResolveModal({ isOpen, player, onClose }: Props) {
         ) : (
           <div className="companion-resolve__slots">
             {slots.map((slot) => (
-              <ResolveSlotCard key={slot.position} slot={slot} player={player} />
+              <ResolveSlotCard key={`${slot.player}-${slot.position}`} slot={slot} player={slot.player} owner={player === "both" ? state.playerNames[slot.player] : null} />
             ))}
           </div>
         )}
@@ -94,9 +103,12 @@ export function ResolveModal({ isOpen, player, onClose }: Props) {
 function ResolveSlotCard({
   slot,
   player,
+  owner,
 }: {
   slot: SlotState;
   player: PlayerId;
+  /** The owner's name, shown when both players' Pokémon are listed. */
+  owner: string | null;
 }) {
   const mode = useMode();
   const positionLabel =
@@ -111,7 +123,7 @@ function ResolveSlotCard({
           {slot.name ?? "Unnamed"}
         </span>
         <span className="companion-resolve__slot-meta">
-          {positionLabel} · {slot.damage}
+          {owner ? `${owner}'s ` : ""}{positionLabel} · {slot.damage}
           {slot.maxHp != null && `/${slot.maxHp}`}
         </span>
       </div>
@@ -167,8 +179,8 @@ function PoisonRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
             +{mode.conditionADamage} applied
           </span>
         ) : (
-          <button
-            type="button"
+          <Button
+            size="small"
             className="companion-resolve__action-btn"
             style={
               {
@@ -178,7 +190,7 @@ function PoisonRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
             onClick={handleApply}
           >
             Apply +{mode.conditionADamage}
-          </button>
+          </Button>
         )
       }
     />
@@ -186,7 +198,7 @@ function PoisonRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
 }
 
 function BurnRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
-  const { dispatch } = useSession();
+  const { dispatch, random } = useSession();
   const mode = useMode();
   // Three-stage local state for this row:
   //   "ready"    — show the action button
@@ -197,7 +209,8 @@ function BurnRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
   );
   const [side, setSide] = useState<CoinFlipEntry["side"] | null>(null);
 
-  const handleResolve = () => {
+  const handleResolve = async () => {
+    setStage("flipping");
     // 1. Apply damage immediately so the slot updates.
     dispatch({
       type: "APPLY_DAMAGE_WITH_KO_CHECK",
@@ -205,11 +218,9 @@ function BurnRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
       position: slot.position,
       delta: mode.conditionBDamage,
     });
-    // 2. Pre-compute the flip and start the animation.
-    const outcome = flipCoin();
-    const result: CoinFlipEntry["side"] = outcome === 0 ? "a" : "b";
+    // 2. Flip (the server's flip in a shared game) and start the animation.
+    const { side: result, rollId } = await random.coin("resolve");
     setSide(result);
-    setStage("flipping");
     // 3. After the spin settles, dispatch the coin result so the
     //    reducer clears Burn (if heads) and logs the flip.
     window.setTimeout(() => {
@@ -218,6 +229,7 @@ function BurnRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
         player,
         position: slot.position,
         side: result,
+        rollId,
       });
       setStage("settled");
     }, 1200);
@@ -231,8 +243,8 @@ function BurnRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
       description={mode.conditionBDescription}
       action={
         stage === "ready" ? (
-          <button
-            type="button"
+          <Button
+            size="small"
             className="companion-resolve__action-btn"
             style={
               {
@@ -242,11 +254,15 @@ function BurnRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
             onClick={handleResolve}
           >
             Resolve {mode.conditionBLabel}
-          </button>
-        ) : stage === "flipping" && side ? (
-          <div className="companion-resolve__inline-coin">
-            <Coin3D resultSide={side} phase="flipping" />
-          </div>
+          </Button>
+        ) : stage === "flipping" ? (
+          side ? (
+            <div className="companion-resolve__inline-coin">
+              <Coin3D resultSide={side} phase="flipping" />
+            </div>
+          ) : (
+            <span className="companion-resolve__action-info">Flipping…</span>
+          )
         ) : (
           <span className="companion-resolve__action-applied">
             {side === "a"
@@ -268,7 +284,7 @@ function ExtraConditionRow({
   player: PlayerId;
   def: ExtraConditionDef;
 }) {
-  const { dispatch } = useSession();
+  const { dispatch, random } = useSession();
   const [stage, setStage] = useState<"ready" | "flipping" | "settled">(
     "ready",
   );
@@ -278,11 +294,11 @@ function ExtraConditionRow({
   // others (Paralyzed, Confused) are informational only.
   const hasAction = !!def.checkupCoinClear;
 
-  const handleFlip = () => {
-    const outcome = flipCoin();
-    const result: CoinFlipEntry["side"] = outcome === 0 ? "a" : "b";
-    setSide(result);
+  const handleFlip = async () => {
     setStage("flipping");
+    // The server's flip in a shared game.
+    const { side: result, rollId } = await random.coin("resolve");
+    setSide(result);
     window.setTimeout(() => {
       dispatch({
         type: "RESOLVE_EXTRA_COIN",
@@ -290,6 +306,7 @@ function ExtraConditionRow({
         position: slot.position,
         key: def.key,
         side: result,
+        rollId,
       });
       setStage("settled");
     }, 1200);
@@ -299,20 +316,22 @@ function ExtraConditionRow({
   if (hasAction) {
     if (stage === "ready") {
       actionContent = (
-        <button
-          type="button"
+        <Button
+          size="small"
           className="companion-resolve__action-btn"
           style={{ "--condition-color": def.color } as CSSProperties}
           onClick={handleFlip}
         >
           Flip for {def.label}
-        </button>
+        </Button>
       );
-    } else if (stage === "flipping" && side) {
-      actionContent = (
+    } else if (stage === "flipping") {
+      actionContent = side ? (
         <div className="companion-resolve__inline-coin">
           <Coin3D resultSide={side} phase="flipping" />
         </div>
+      ) : (
+        <span className="companion-resolve__action-info">Flipping…</span>
       );
     } else {
       actionContent = (
@@ -334,6 +353,7 @@ function ExtraConditionRow({
       label={def.label}
       icon={def.icon}
       color={def.color}
+      ink={def.ink}
       description={def.description}
       action={actionContent}
     />
@@ -348,26 +368,25 @@ function ConditionRow({
   label,
   icon,
   color,
+  ink,
   description,
   action,
 }: {
   label: string;
   icon: string;
   color: string;
+  ink?: string;
   description: string;
   action: React.ReactNode;
 }) {
   return (
     <div
       className="companion-resolve__row"
-      style={{ "--condition-color": color } as CSSProperties}
+      style={{ "--condition-color": color, ...(ink ? { "--condition-ink": ink } : {}) } as CSSProperties}
     >
       <div className="companion-resolve__row-head">
         <span className="companion-resolve__row-badge">
-          <Icon
-            name={icon as Parameters<typeof Icon>[0]["name"]}
-            size="18"
-          />
+          <TablerIcon name={icon} size="18" />
         </span>
         <span className="companion-resolve__row-label">{label}</span>
       </div>

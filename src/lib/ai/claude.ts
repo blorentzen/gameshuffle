@@ -28,6 +28,8 @@ export function aiConfigured(): boolean {
   return !!process.env.ANTHROPIC_API_KEY;
 }
 
+export type AiImage = { base64: string; mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif" };
+
 export type AiResult<T> = { ok: true; data: T } | { ok: false; error: "not_configured" | "refused" | "rate_limited" | "failed" };
 
 /**
@@ -40,14 +42,27 @@ export async function draftStructured<S extends z.ZodType>(args: {
   schema: S;
   effort?: "low" | "medium" | "high";
   maxTokens?: number;
+  /** A picture to read with the prompt (a screenshot), sent before the text. */
+  image?: AiImage;
+  /** Several pictures (screenshots of one long list), in order, sent before the text. */
+  images?: AiImage[];
 }): Promise<AiResult<z.infer<S>>> {
   if (!aiConfigured()) return { ok: false, error: "not_configured" };
+  const pictures = [...(args.image ? [args.image] : []), ...(args.images ?? [])];
   try {
     const res = await claude().messages.parse({
       model: CLAUDE_MODEL,
       max_tokens: args.maxTokens ?? 8000,
       system: args.system,
-      messages: [{ role: "user", content: args.prompt }],
+      messages: [{
+        role: "user",
+        content: pictures.length
+          ? [
+              ...pictures.map((p) => ({ type: "image" as const, source: { type: "base64" as const, media_type: p.mediaType, data: p.base64 } })),
+              { type: "text" as const, text: args.prompt },
+            ]
+          : args.prompt,
+      }],
       output_config: { effort: args.effort ?? "low", format: zodOutputFormat(args.schema) },
     });
     // Token counts for the admin usage view (only counted inside withAiTokens).

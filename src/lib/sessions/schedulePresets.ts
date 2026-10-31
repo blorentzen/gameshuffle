@@ -19,28 +19,28 @@ export type Recurrence = "none" | "daily" | "weekly" | "monthly";
 export const SCHEDULE_PRESETS: { value: SchedulePreset; label: string; help: string }[] = [
   {
     value: "manual",
-    label: "Manual / go-live",
-    help: "No set time. The lobby opens when you activate the session, or when you go live on Twitch. Best for spontaneous streams.",
+    label: "When I go live",
+    help: "No set time. The lobby opens when you press Start, or when you go live on Twitch. Best for spur-of-the-moment streams.",
   },
   {
     value: "auto_open",
-    label: "Scheduled + auto-open",
-    help: "Pick a start time. GameShuffle announces an hour ahead, then opens the lobby automatically the moment it arrives.",
+    label: "Scheduled, starts on its own",
+    help: "Pick a start time. GameShuffle posts a heads-up an hour before, then opens the lobby the moment it arrives.",
   },
   {
     value: "announce_only",
-    label: "Scheduled + announce only",
-    help: "Pick a start time. GameShuffle announces an hour ahead; you open the lobby yourself when you're ready.",
+    label: "Scheduled, I start it",
+    help: "Pick a start time. GameShuffle posts a heads-up an hour before; you press Start when you're ready.",
   },
   {
     value: "weekly",
     label: "Weekly game night",
-    help: "A recurring weekly session: announces ahead and auto-opens each week. Set the first start time below.",
+    help: "Every week: a heads-up an hour before, then it starts on its own. Set the first start time below.",
   },
   {
     value: "custom",
     label: "Custom",
-    help: "Every control à la carte: start time, how far ahead to announce, auto-open, queue timing, and recurrence.",
+    help: "Set each part yourself: the start time, how early the heads-up goes out, whether it starts on its own, the lobby and repeats.",
   },
 ];
 

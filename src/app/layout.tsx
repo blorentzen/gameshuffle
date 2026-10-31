@@ -17,9 +17,11 @@ import "../styles/live.css";
 import "../styles/marketing.css";
 import "../styles/tcg-hub.css";
 import "../styles/decks.css";
+import "../styles/tcg-rules.css";
 import "../styles/profile.css";
 import "../styles/randomizer.css";
 import "../styles/competitive.css";
+import "../styles/swiss.css";
 import "../styles/companion.css";
 import "../styles/tcg-catalog.css";
 import "../styles/ideas.css";
@@ -42,6 +44,7 @@ import { AuthHashErrorCatcher } from "@/components/auth/AuthHashErrorCatcher";
 import { LeadSourceTracker } from "@/components/analytics/LeadSourceTracker";
 import { isAppRoute } from "@/lib/theme/app-routes";
 import { isActivityPath } from "@/lib/activity/hosts";
+import { shopVisibleToVisitors } from "@/lib/store/visibility";
 import { SITE_URL } from "@/lib/seo";
 
 /** Cookie name for the user's manual theme preference. Read at SSR
@@ -122,6 +125,8 @@ export default async function RootLayout({
   // writes — see `src/middleware.ts`.
   const headerStore = await headers();
   const pathname = headerStore.get("x-pathname") ?? "/";
+  // The nav's Shop link shows only while visitors can see the shop (cached flags).
+  const shopVisible = isActivityPath(pathname) ? false : await shopVisibleToVisitors();
 
   // The Discord Activity runs in Discord's frame: the site's light brand look
   // (like the marketing pages), and none of the site chrome, sign-in,
@@ -174,7 +179,10 @@ export default async function RootLayout({
   const isFollowingSystem = themable && cookieTheme === undefined;
 
   return (
-    <html lang="en" data-theme={dataTheme} className={htmlClassName}>
+    // The inline script below adds `dark` before React hydrates when the OS
+    // prefers dark ("match system"), so the class can differ from the server's
+    // on purpose. This only silences <html>'s own attributes.
+    <html lang="en" data-theme={dataTheme} className={htmlClassName} suppressHydrationWarning>
       <head>
         {/* Pre-paint theme sync for "match system" users. Runs before
             paint and adds `dark` class if the OS prefers dark — CDS
@@ -212,7 +220,7 @@ export default async function RootLayout({
                 <Suspense fallback={null}>
                   <WelcomeToast />
                 </Suspense>
-                <ConditionalChrome>{children}</ConditionalChrome>
+                <ConditionalChrome shop={shopVisible}>{children}</ConditionalChrome>
               </ConfirmProvider>
             </ToastProvider>
           </AuthProvider>

@@ -12,12 +12,14 @@ import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, KIRBY_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import { GAME_ART } from "@/data/game-art";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 
 export const metadata: Metadata = {
-  title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
+  title: "Apps: randomizers, tournaments and tools",
   description:
-    "Every GameShuffle tool in one place: the Mario Kart 8 Deluxe and Mario Kart World randomizers, the competitive lounge scoring hub, the tournament builder, the Pokémon TCG companion, and game nights with digital score sheets and tools. Free to use, no account required.",
+    "Every GameShuffle tool in one place: Mario Kart and party game randomizers, tournaments, live scoring, the Pokémon TCG companion and game night tools.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "GameShuffle Apps",
     url: "https://www.gameshuffle.co/apps",
     images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gameshuffle-apps-og.jpg"],
@@ -34,7 +36,6 @@ export default function AppsPage() {
       <section className="marketing-hero">
         <MarketingHeroField category="mixed" />
         <Container>
-          <p className="marketing-eyebrow">Every app in one place</p>
           <h1 className="marketing-hero__title">All the GameShuffle apps</h1>
           <p className="marketing-hero__sub">
             The games you play on stream: randomizers, competitive scoring, tournaments, and a
@@ -216,17 +217,24 @@ export default function AppsPage() {
             />
             )}
             </ResponsiveCarousel>
-          <Link href="/randomizers" className="home-all-link"><Button variant="secondary">All randomizers →</Button></Link>
-          <h2 className="randomizer-index__heading">Compete, cards and game nights</h2>
-          <ResponsiveCarousel className="app-card-grid" label="Compete, cards and game nights">
+          <Link href="/randomizers" className="home-all-link"><Button variant="secondary">All randomizers</Button></Link>
+          <h2 className="randomizer-index__heading">More apps</h2>
+          <ResponsiveCarousel className="app-card-grid" label="More apps">
             <AppCard
-              title="MK8DX Competitive Hub"
-              description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
+              title="GameShuffle for Discord"
+              description="Play the Daily, the Weekly and Chat Brain together in Discord, share Wordle-style results in the channel, and roll a setup for any game night with /gs-randomize."
+              media={<EventHeaderArt category="daily" seed="apps-discord" motion="hover" />}
+              href="/discord"
+              ctaLabel="See what it does"
+              isNew
+            />
+            <AppCard
+              title="Competitive Mario Kart"
+              description="Lounge stats for any player, time trial boards for every track, your lounge MMR on stream, tournaments and live scoring, for Mario Kart World and 8 Deluxe."
               imageSrc="/images/bg/MK8DX_Background_Music.jpg"
               imageAlt="Mario Kart 8 Deluxe competitive"
-              href="/competitive/mario-kart-8-deluxe"
+              href="/competitive-mario-kart"
               ctaLabel="Open the hub"
-              learnMoreHref="/competitive-mario-kart"
             />
             <AppCard
               title="Browse & Create Tournaments"
@@ -247,6 +255,14 @@ export default function AppsPage() {
               learnMoreHref="/pokemon-tcg-companion"
             />
             <AppCard
+              title="Trivia Nights"
+              description="Host a pub-style quiz from a template: teams answer on their phones, the TV shows the questions, and scoring is done for you. Free to host."
+              media={<EventHeaderArt category="mystery" seed="apps-trivia" motion="hover" />}
+              href="/trivia"
+              ctaLabel="Host or join"
+              isNew
+            />
+            <AppCard
               title="Game Nights"
               description="Find or host in-person game nights, then run the table with digital score sheets, timers, and companion tools for Yahtzee, Clue, cribbage, and more."
               media={<EventHeaderArt category="board" seed="apps-game-nights" motion="hover" />}
@@ -258,7 +274,7 @@ export default function AppsPage() {
           </ResponsiveCarousel>
           <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
             Looking for wheel spinners, dice, tier lists &amp; more?{" "}
-            <Link href="/tools" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the free tools →</Link>
+            <ArrowLink href="/tools">Browse the free tools</ArrowLink>
           </p>
         </section>
 

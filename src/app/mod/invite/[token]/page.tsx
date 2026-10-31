@@ -168,7 +168,7 @@ function ModInviteContent({
       <>
         <h1 style={{ marginTop: 0 }}>Invite expired</h1>
         <Alert variant="warning">
-          Invite links are good for 14 days. Ask {streamerName} to send
+          Invite links are good for 14 days. Ask {streamerName}{" "}to send
           you a fresh one and you&rsquo;ll be in.
         </Alert>
       </>

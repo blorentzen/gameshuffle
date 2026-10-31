@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { ownerHasPro } from "@/lib/profile/proLooks";
+import { ownerHasLooks } from "@/lib/support/looks";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container, Card, Button } from "@empac/cascadeds";
@@ -21,7 +23,8 @@ import { COMMUNITY_SUBTYPES, communityPresentation } from "@/data/community-sect
 import { listNightsForCommunity } from "@/lib/game-nights/store";
 import { getLeaderboard } from "@/lib/economy/leaderboards";
 import { hostSeason, hostSeasonGames } from "@/lib/seasons/store";
-import { seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { isSeasonKey, recentSeasonKeys, seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { SeasonPicker } from "@/components/seasons/SeasonPicker";
 import { SeasonBoard, type SeasonBoardRow } from "@/components/seasons/SeasonBoard";
 import { getOpenMarketsForCommunity } from "@/lib/communities/markets";
 import { getAccountBalance } from "@/lib/economy/accountWallet";
@@ -29,6 +32,8 @@ import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
 import { listCommunityCrews, getViewerCrewTiers } from "@/lib/communities/crews";
 import { listCommunityBattles, getCrewRecord } from "@/lib/communities/battles";
 import { CommunityCrews } from "@/components/communities/CommunityCrews";
+import { CommunityTrivia } from "@/components/communities/CommunityTrivia";
+import { crewTriviaRecord } from "@/lib/trivia/crews";
 import { CommunityBattles } from "@/components/communities/CommunityBattles";
 import { listCommunityFeed } from "@/lib/social/feed";
 import { CommunityJoinButton } from "@/components/communities/CommunityJoinButton";
@@ -70,8 +75,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function CommunityHomePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CommunityHomePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ season?: string }> }) {
   const { slug } = await params;
+  const sp = await searchParams;
   const community = await getCommunityBySlug(slug);
   if (!community) notFound();
 
@@ -93,6 +99,8 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
   // Prediction markets are also economy/channel-only.
   const openMarkets = isChannel ? await getOpenMarketsForCommunity(community.id).catch(() => []) : [];
   const communityNights = await listNightsForCommunity(community.id).catch(() => []);
+  // Trivia nights the crew played as itself (hidden until it has played one).
+  const triviaRecord = await crewTriviaRecord(community.id).catch(() => null);
   const accountBalance = user ? await getAccountBalance(user.id).catch(() => 0) : 0;
   // Raffle (repeatable token sink) — channels only (they carry the economy).
   const raffleRow = community.kind === "channel" ? await getOpenRaffle(community.id).catch(() => null) : null;
@@ -117,8 +125,11 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
 
   const name = community.displayName || `@${community.slug}`;
   const isOwner = !!user && user.id === community.ownerUserId;
-  // Season: this month's live-night points at the owner's nights, overall and per game.
-  const season = currentSeasonKey();
+  // Season: a month's live-night points at the owner's nights, overall and per game.
+  // This month for everyone; past months (?season=) while the owner has GS Pro.
+  const thisSeason = currentSeasonKey();
+  const seasonHistory = community.ownerUserId ? await ownerHasPro(community.ownerUserId) : false;
+  const season = isSeasonKey(sp.season) && seasonHistory && recentSeasonKeys().includes(sp.season) ? sp.season : thisSeason;
   const seasonBoards: Record<string, SeasonBoardRow[]> = {};
   if (isChannel && community.ownerUserId) {
     const ownerId = community.ownerUserId;
@@ -170,9 +181,12 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
   // Community skin + custom CSS (parity with profile customization). Guarded;
   // CSS re-sanitized on read (only sanitized CSS is ever stored).
   const { skin: communitySkin, cssRaw } = await getCommunitySkinCss(community.id).catch(() => ({ skin: null as ReturnType<typeof resolveProfileSkin> | null, cssRaw: null }));
-  const skin = communitySkin ?? resolveProfileSkin(null);
+  // Backgrounds and custom CSS are GS Pro: shown while the owner has it (kept either way).
+  // A community's skin and CSS are looks: the owner's GS Pro, or their support sold with looks.
+  const ownerPro = community.ownerUserId ? await ownerHasLooks(community.ownerUserId) : false;
+  const skin = (ownerPro ? communitySkin : null) ?? resolveProfileSkin(null);
   const skinBg = skinBackground(skin);
-  const communityCss = sanitizeCustomCss(cssRaw).css;
+  const communityCss = ownerPro ? sanitizeCustomCss(cssRaw).css : "";
 
   const themeStyle: React.CSSProperties = {
     ...ownerTheme,
@@ -270,6 +284,12 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
           />
         </div>
       )}
+{/* Trivia record — nights played as the crew */}
+      {triviaRecord && !customization.hiddenSections.includes("crews") && (
+        <div style={{ order: orderOf("crews") }}>
+          <CommunityTrivia record={triviaRecord} />
+        </div>
+      )}
 {/* Crew battles — cross-community matches + record */}
       {!customization.hiddenSections.includes("battles") && (
         <div style={{ order: orderOf("battles") }}>
@@ -355,10 +375,11 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
         )}
       </Card>
 {/* Season — live-night points this month, channel communities only */}
-      {isChannel && !customization.hiddenSections.includes("leaderboard") && (seasonBoards.all?.length ?? 0) > 0 && (
+      {isChannel && !customization.hiddenSections.includes("leaderboard") && ((seasonBoards.all?.length ?? 0) > 0 || season !== thisSeason) && (
       <Card padding="large" style={{ order: orderOf("leaderboard") }}>
         <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-8)" }}>Season</h2>
-        <SeasonBoard seasonKey={season} boards={seasonBoards} emptyHint="No season points yet. Play a live night to get on the board." />
+        <SeasonPicker value={season} months={recentSeasonKeys()} allowPast={seasonHistory} ownerUpsell={isOwner} />
+        <SeasonBoard seasonKey={season} boards={seasonBoards} emptyHint={season === thisSeason ? "No season points yet. Play a live night to get on the board." : "No season points that month."} />
       </Card>
       )}
 {/* Leaderboard — economy, channel communities only */}
@@ -454,7 +475,7 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
             note={isOwner ? "Your community" : "You help run this"}
             customize={
               <>
-                <CommunityCustomizeEditor communityId={community.id} initial={{ ...customization, skin, css: cssRaw ?? "" }} recentPosts={recentPostOptions} />
+                <CommunityCustomizeEditor communityId={community.id} initial={{ ...customization, skin: communitySkin ?? resolveProfileSkin(null), css: cssRaw ?? "" }} recentPosts={recentPostOptions} />
                 <CommunityBannerUploader communityId={community.id} hasBanner={!!customization.bannerUrl} />
               </>
             }

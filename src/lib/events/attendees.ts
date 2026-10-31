@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { tournamentPlayerCap } from "@/lib/tournaments/circuit-resolve";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { canHoldTicket, type AttendeeStatus } from "./ticketEligibility";
 
@@ -61,6 +62,14 @@ export interface EventMeta {
   autoAccept: boolean;
   /** Optional limit on the waitlist's length (waitlist-offers-m1). */
   waitlistCap: number | null;
+  /**
+   * Tournaments: the organizer's GameShuffle Circuit player limit when there is
+   * one (a free organizer's one lobby, Circuit 64, Circuit 256); null when
+   * unlimited (preview, kept from before launch, the grace period, staff).
+   * The waitlist treats the smaller of this and `capacity` as the seats, so
+   * people past the plan's limit join the line and an upgrade lets them in.
+   */
+  circuitCap: number | null;
 }
 
 const ACTIVE_T: AttendeeStatus[] = ["registered", "confirmed", "checked_in"];
@@ -71,19 +80,20 @@ export async function getEventMeta(type: EventType, id: string): Promise<EventMe
   const svc = createServiceClient();
   if (type === "tournament") {
     // waitlist_cap arrives with waitlist-offers-m1; read without it before then.
-    const cols = "id, title, organizer_id, max_participants, date_time, acceptance_mode";
+    const cols = "id, title, organizer_id, max_participants, date_time, acceptance_mode, game_slug, created_at";
     let res = await svc.from("tournaments").select(`${cols}, waitlist_cap`).eq("id", id).maybeSingle();
     if (res.error) res = await svc.from("tournaments").select(cols).eq("id", id).maybeSingle() as typeof res;
     const data = res.data as Record<string, unknown> | null;
     if (!data) return null;
-    return { type, id, title: data.title as string, ownerId: data.organizer_id as string, capacity: (data.max_participants as number | null) ?? null, startsAt: (data.date_time as string | null) ?? null, href: `/tournament/${id}`, autoAccept: data.acceptance_mode === "auto", waitlistCap: (data.waitlist_cap as number | null) ?? null };
+    const circuit = await tournamentPlayerCap(svc, { id, organizer_id: data.organizer_id as string, game_slug: (data.game_slug as string | null) ?? null, created_at: (data.created_at as string | null) ?? null }).catch(() => Number.POSITIVE_INFINITY);
+    return { type, id, title: data.title as string, ownerId: data.organizer_id as string, capacity: (data.max_participants as number | null) ?? null, startsAt: (data.date_time as string | null) ?? null, href: `/tournament/${id}`, autoAccept: data.acceptance_mode === "auto", waitlistCap: (data.waitlist_cap as number | null) ?? null, circuitCap: Number.isFinite(circuit) ? circuit : null };
   }
   const cols = "id, title, host_id, capacity, starts_at";
   let res = await svc.from("board_game_nights").select(`${cols}, waitlist_cap`).eq("id", id).maybeSingle();
   if (res.error) res = await svc.from("board_game_nights").select(cols).eq("id", id).maybeSingle() as typeof res;
   const data = res.data as Record<string, unknown> | null;
   if (!data) return null;
-  return { type, id, title: data.title as string, ownerId: data.host_id as string, capacity: (data.capacity as number | null) ?? null, startsAt: (data.starts_at as string | null) ?? null, href: `/game-nights/${id}`, autoAccept: true, waitlistCap: (data.waitlist_cap as number | null) ?? null };
+  return { type, id, title: data.title as string, ownerId: data.host_id as string, capacity: (data.capacity as number | null) ?? null, startsAt: (data.starts_at as string | null) ?? null, href: `/game-nights/${id}`, autoAccept: true, waitlistCap: (data.waitlist_cap as number | null) ?? null, circuitCap: null };
 }
 
 export async function canManageEvent(type: EventType, id: string, userId: string | null | undefined): Promise<boolean> {
@@ -355,4 +365,16 @@ export function attendeesToCsv(type: EventType, rows: Attendee[]): string {
     ? [a.displayName, a.username, a.status, a.team, a.friendCode, a.discord, a.email, a.joinedAt, a.checkedInAt]
     : [a.displayName, a.username, a.status, a.joinedAt, a.checkedInAt]).map(cell).join(","));
   return [head.join(","), ...lines].join("\n") + "\n";
+}
+
+/** The seats the waitlist works to: the event's own limit or the organizer's Circuit limit, whichever is smaller (null = no limit). */
+export function seatLimit(meta: Pick<EventMeta, "capacity" | "circuitCap">): number | null {
+  if (meta.capacity == null) return meta.circuitCap;
+  if (meta.circuitCap == null) return meta.capacity;
+  return Math.min(meta.capacity, meta.circuitCap);
+}
+
+/** True when the organizer's Circuit plan, not their own limit, is what's keeping people out. */
+export function planLimited(meta: Pick<EventMeta, "capacity" | "circuitCap">): boolean {
+  return meta.circuitCap != null && (meta.capacity == null || meta.circuitCap < meta.capacity);
 }

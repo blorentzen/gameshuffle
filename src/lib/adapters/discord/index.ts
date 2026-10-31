@@ -21,6 +21,8 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
+import { isProUser } from "@/lib/subscription-server";
+import { activeGuilds } from "@/lib/discord/guilds";
 import { getGameName } from "@/data/game-registry";
 import { boxArt, catalogForApp } from "@/data/game-catalog";
 import { SITE_URL } from "@/lib/seo";
@@ -36,6 +38,7 @@ import type {
 import type { GsSession } from "@/lib/sessions/types";
 import type { RecapPayload } from "@/lib/sessions/service";
 import { createThreadFromMessage, editEmbed, postComponentsMessage, postEmbed, type DiscordEmbed } from "./adapter";
+import { loungeRecapField } from "@/lib/lounge/recapServer";
 import {
   announcementEmbed,
   qotdEmbed,
@@ -62,7 +65,8 @@ type DiscordEventKey =
   | "round_open"
   | "round_close"
   | "recap"
-  | "qotd";
+  | "qotd"
+  | "lounge";
 
 /**
  * Per-key subscription default, used when the streamer's flags column has
@@ -80,11 +84,17 @@ const SUB_DEFAULTS: Record<DiscordEventKey, boolean> = {
   round_close: true,
   recap: true,
   qotd: false,
+  // Lounge rank-ups (src/lib/lounge/discord.ts): opt-in, like QOTD.
+  lounge: false,
 };
 
 type DiscordEventFlags = Partial<Record<DiscordEventKey, boolean>>;
 
 interface StreamerDiscordRouting {
+  /** One of the servers the streamer connected (discord_guilds). */
+  guildId: string;
+  /** The main server: the one a session's channel override belongs to. */
+  isMain: boolean;
   /** Account/session default channel — per-session override wins, then
    *  account default. May be null when only per-category routes are set;
    *  `channelFor(routing, category)` layers category routes on top. */
@@ -119,81 +129,67 @@ function pingEnabled(flags: DiscordEventFlags, key: DiscordEventKey): boolean {
   return flags[key] === true;
 }
 
-/** Resolve the streamer's effective Discord routing for a specific
- *  session. Returns null when Discord isn't installed OR no channel
- *  is configured — caller treats null as "no-op for this session". */
-async function resolveRouting(
-  /** Null for non-session contexts (e.g. the daily QOTD post), which skips
-   *  the per-session channel override and uses the account default. */
+/**
+ * The streamer's Discord routing for every server that posts right now (all
+ * connected servers with GS Pro, the main one without; see discord/guilds.ts).
+ * Empty when none: callers treat that as "no-op". `guildId` narrows it to one
+ * server. Category routes are a Pro tool, so they only apply while the owner
+ * has Pro; otherwise each server posts to its default channel. A session's
+ * channel override belongs to the main server.
+ */
+async function resolveRoutings(
+  /** Null for non-session contexts (announcements, the daily QOTD post). */
   sessionId: string | null,
   ownerUserId: string,
-): Promise<StreamerDiscordRouting | null> {
+  opts: { guildId?: string | null } = {},
+): Promise<StreamerDiscordRouting[]> {
   const admin = createServiceClient();
+  const isPro = await isProUser(ownerUserId);
+  let guilds = await activeGuilds(ownerUserId, { isPro });
+  if (opts.guildId) guilds = guilds.filter((g) => g.guildId === opts.guildId);
+  if (guilds.length === 0) return [];
+
   const [profileRes, sessionRes, routesRes] = await Promise.all([
     admin
       .from("users")
-      .select(
-        "display_name, username, twitch_username, twitch_avatar, discord_avatar, discord_guild_id, discord_channel_id, discord_notify_role_id, discord_event_subscriptions, discord_event_pings",
-      )
+      .select("display_name, username, twitch_username, twitch_avatar, discord_avatar")
       .eq("id", ownerUserId)
       .maybeSingle(),
     sessionId
-      ? admin
-          .from("gs_sessions")
-          .select("discord_channel_id")
-          .eq("id", sessionId)
-          .maybeSingle()
+      ? admin.from("gs_sessions").select("discord_channel_id").eq("id", sessionId).maybeSingle()
       : Promise.resolve({ data: null }),
-    admin
-      .from("discord_channel_routes")
-      .select("category, channel_id")
-      .eq("user_id", ownerUserId),
+    isPro
+      ? admin.from("discord_channel_routes").select("guild_id, category, channel_id").in("guild_id", guilds.map((g) => g.guildId))
+      : Promise.resolve({ data: [] }),
   ]);
   const profile = profileRes.data as
-    | {
-        display_name: string | null;
-        username: string | null;
-        twitch_username: string | null;
-        twitch_avatar: string | null;
-        discord_avatar: string | null;
-        discord_guild_id: string | null;
-        discord_channel_id: string | null;
-        discord_notify_role_id: string | null;
-        discord_event_subscriptions: DiscordEventFlags | null;
-        discord_event_pings: DiscordEventFlags | null;
-      }
+    | { display_name: string | null; username: string | null; twitch_username: string | null; twitch_avatar: string | null; discord_avatar: string | null }
     | null;
-  if (!profile?.discord_guild_id) return null;
+  const sessionOverride = (sessionRes.data as { discord_channel_id: string | null } | null)?.discord_channel_id ?? null;
 
-  const sessionOverride =
-    (sessionRes.data as { discord_channel_id: string | null } | null)
-      ?.discord_channel_id ?? null;
-  const defaultChannelId = sessionOverride ?? profile.discord_channel_id;
-
-  const routes: Record<string, string> = {};
-  for (const r of (routesRes.data ?? []) as Array<{ category: string; channel_id: string }>) {
-    routes[r.category] = r.channel_id;
+  const routesByGuild = new Map<string, Record<string, string>>();
+  for (const r of (routesRes.data ?? []) as Array<{ guild_id: string; category: string; channel_id: string }>) {
+    const m = routesByGuild.get(r.guild_id) ?? {};
+    m[r.category] = r.channel_id;
+    routesByGuild.set(r.guild_id, m);
   }
 
-  const streamerName =
-    profile.display_name ??
-    profile.username ??
-    profile.twitch_username ??
-    "Streamer";
-
+  const streamerName = profile?.display_name ?? profile?.username ?? profile?.twitch_username ?? "Streamer";
   const liveUrl = await getLiveUrlForUser(ownerUserId).catch(() => null);
 
-  return {
-    defaultChannelId,
-    routes,
-    notifyRoleId: profile.discord_notify_role_id ?? null,
-    subscriptions: profile.discord_event_subscriptions ?? {},
-    eventPings: profile.discord_event_pings ?? {},
+  return guilds.map((g) => ({
+    guildId: g.guildId,
+    isMain: g.isMain,
+    defaultChannelId: (g.isMain ? sessionOverride : null) ?? g.defaultChannelId,
+    routes: routesByGuild.get(g.guildId) ?? {},
+    notifyRoleId: g.notifyRoleId,
+    subscriptions: g.eventSubscriptions as DiscordEventFlags,
+    eventPings: g.eventPings as DiscordEventFlags,
     streamerName,
-    twitchHandle: profile.twitch_username,
-    avatarUrl: profile.twitch_avatar ?? profile.discord_avatar ?? null,
+    twitchHandle: profile?.twitch_username ?? null,
+    avatarUrl: profile?.twitch_avatar ?? profile?.discord_avatar ?? null,
     liveUrl,
-  };
+  }));
 }
 
 /** Resolve the posting channel for a category: category route wins, else the
@@ -215,23 +211,32 @@ export async function postAnnouncementToCategory(args: {
   url?: string | null;
   /** Opt-in posts: only send if this category has its own route (no fallback to the default channel). */
   requireRoute?: boolean;
-}): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const routing = await resolveRouting(null, args.ownerUserId);
-  if (!routing) return { ok: false, reason: "no_routing" };
-  const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
-  if (!channelId) return { ok: false, reason: "no_channel" };
-  const result = await postEmbed({
-    channelId,
-    embed: announcementEmbed({
-      streamerName: routing.streamerName,
-      title: args.title,
-      body: args.body,
-      url: args.url ?? routing.liveUrl,
-      avatarUrl: routing.avatarUrl,
-      postedAt: new Date().toISOString(),
-    }),
-  });
-  return result.ok ? { ok: true } : { ok: false, reason: result.error };
+  /** One server; omitted = every server that posts. */
+  guildId?: string | null;
+}): Promise<{ ok: true; sent: number } | { ok: false; reason: string }> {
+  const routings = await resolveRoutings(null, args.ownerUserId, { guildId: args.guildId });
+  if (routings.length === 0) return { ok: false, reason: "no_routing" };
+  let sent = 0;
+  let firstError: string | null = null;
+  for (const routing of routings) {
+    const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
+    if (!channelId) continue;
+    const result = await postEmbed({
+      channelId,
+      embed: announcementEmbed({
+        streamerName: routing.streamerName,
+        title: args.title,
+        body: args.body,
+        url: args.url ?? routing.liveUrl,
+        avatarUrl: routing.avatarUrl,
+        postedAt: new Date().toISOString(),
+      }),
+    });
+    if (result.ok) sent += 1;
+    else firstError ??= result.error;
+  }
+  if (sent > 0) return { ok: true, sent };
+  return { ok: false, reason: firstError ?? "no_channel" };
 }
 
 /**
@@ -244,13 +249,19 @@ export async function postComponentsToCategory(args: {
   requireRoute?: boolean;
   embed: DiscordEmbed;
   components: unknown[];
-}): Promise<{ ok: true } | { ok: false; reason: string }> {
-  const routing = await resolveRouting(null, args.ownerUserId);
-  if (!routing) return { ok: false, reason: "no_routing" };
-  const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
-  if (!channelId) return { ok: false, reason: "no_channel" };
-  const result = await postComponentsMessage({ channelId, embeds: [args.embed], components: args.components });
-  return result.ok ? { ok: true } : { ok: false, reason: result.error };
+}): Promise<{ ok: true; posts: { messageId: string; channelId: string; guildId: string }[] } | { ok: false; reason: string }> {
+  const routings = await resolveRoutings(null, args.ownerUserId);
+  if (routings.length === 0) return { ok: false, reason: "no_routing" };
+  const posts: { messageId: string; channelId: string; guildId: string }[] = [];
+  let firstError: string | null = null;
+  for (const routing of routings) {
+    const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
+    if (!channelId) continue;
+    const result = await postComponentsMessage({ channelId, embeds: [args.embed], components: args.components });
+    if (result.ok) posts.push({ messageId: result.messageId, channelId, guildId: routing.guildId });
+    else firstError ??= result.error;
+  }
+  return posts.length ? { ok: true, posts } : { ok: false, reason: firstError ?? "no_channel" };
 }
 
 /**
@@ -267,11 +278,13 @@ export async function postComponentsToCategory(args: {
 export async function postQotdToDiscord(args: {
   ownerUserId: string;
   question: string;
+  /** The server to post in (each server posts at its own hour). */
+  guildId: string;
 }): Promise<
   | { ok: true }
   | { ok: false; reason: "no_routing" | "not_subscribed" | "post_failed"; error?: string }
 > {
-  const routing = await resolveRouting(null, args.ownerUserId);
+  const [routing] = await resolveRoutings(null, args.ownerUserId, { guildId: args.guildId });
   if (!routing) return { ok: false, reason: "no_routing" };
   if (!subEnabled(routing.subscriptions, "qotd")) {
     return { ok: false, reason: "not_subscribed" };
@@ -351,58 +364,80 @@ export class DiscordAdapter implements PlatformAdapter {
   }
 
   // ---- Lifecycle hooks ----------------------------------------------------
+  // Each hook runs once per server that posts. A server the bot can't reach
+  // (kicked, channel deleted, perms changed) soft-fails; any other failure is
+  // collected and thrown once at the end so the dispatcher records an
+  // `adapter_call_failed` event without stopping the other servers.
+
+  private async eachServer(fn: (routing: StreamerDiscordRouting) => Promise<void>): Promise<void> {
+    const routings = await resolveRoutings(this.sessionId, this.ownerUserId);
+    const errors: string[] = [];
+    for (const routing of routings) {
+      try {
+        await fn(routing);
+      } catch (err) {
+        errors.push(`${routing.guildId}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    if (errors.length) throw new Error(errors.join("; "));
+  }
+
+  /** Each server's "now live" message (guild id → message id), with the pre-multi-server column as the main server's. */
+  private async liveMessages(): Promise<{ map: Record<string, string>; legacy: string | null }> {
+    const { data } = await createServiceClient().from("gs_sessions").select("discord_live_messages, discord_live_message_id").eq("id", this.sessionId).maybeSingle();
+    const row = data as { discord_live_messages: Record<string, string> | null; discord_live_message_id: string | null } | null;
+    return { map: row?.discord_live_messages ?? {}, legacy: row?.discord_live_message_id ?? null };
+  }
+
+  private async saveLiveMessage(routing: StreamerDiscordRouting, messageId: string): Promise<void> {
+    const admin = createServiceClient();
+    const { map } = await this.liveMessages();
+    await admin
+      .from("gs_sessions")
+      .update({ discord_live_messages: { ...map, [routing.guildId]: messageId }, ...(routing.isMain ? { discord_live_message_id: messageId } : {}) })
+      .eq("id", this.sessionId);
+  }
+
+  private liveMessageFor(routing: StreamerDiscordRouting, live: { map: Record<string, string>; legacy: string | null }): string | null {
+    return live.map[routing.guildId] ?? (routing.isMain ? live.legacy : null);
+  }
 
   async onSessionActivated(session: GsSession): Promise<void> {
-    const routing = await resolveRouting(this.sessionId, this.ownerUserId);
-    if (!routing) return;
-    if (!subEnabled(routing.subscriptions, "stream_live")) return;
-    const channelId = channelFor(routing, "stream");
-    if (!channelId) return;
-
     // Skip GS Queue mode (no race game = nothing meaningful to embed
     // in the announcement). Per spec §Open decisions.
     const gameSlug = session.active_game ?? session.configured_games?.[0] ?? null;
     if (!gameSlug) return;
     const gameName = getGameName(gameSlug);
 
-    const ping = buildPing(routing, "stream_live");
-    const result = await postEmbed({
-      channelId: channelId,
-      embed: streamLiveEmbed({
-        streamerName: routing.streamerName,
-        twitchHandle: routing.twitchHandle,
-        gameName,
-        liveUrl: routing.liveUrl,
-        avatarUrl: routing.avatarUrl,
-        coverUrl: gameCoverUrl(gameSlug),
-        startedAt: session.activated_at ?? new Date().toISOString(),
-      }),
-      content: ping.content,
-      allowedMentions: ping.allowedMentions,
-    });
-    if (!result.ok) {
-      if (isMissingAccessError(result.error)) {
-        // Bot was kicked, channel deleted, or perms changed. Soft-fail
-        // — the streamer needs to reconfigure routing; retrying on
-        // every lifecycle event just spams the audit log + makes the
-        // session hub look broken when it's actually a config issue.
-        console.warn(
-          `[DiscordAdapter] missing access on channel ${channelId} — skipping post. Streamer should reconfigure routing on /account?tab=integrations.`,
-        );
-        return;
+    await this.eachServer(async (routing) => {
+      if (!subEnabled(routing.subscriptions, "stream_live")) return;
+      const channelId = channelFor(routing, "stream");
+      if (!channelId) return;
+      const ping = buildPing(routing, "stream_live");
+      const result = await postEmbed({
+        channelId,
+        embed: streamLiveEmbed({
+          streamerName: routing.streamerName,
+          twitchHandle: routing.twitchHandle,
+          gameName,
+          liveUrl: routing.liveUrl,
+          avatarUrl: routing.avatarUrl,
+          coverUrl: gameCoverUrl(gameSlug),
+          startedAt: session.activated_at ?? new Date().toISOString(),
+        }),
+        content: ping.content,
+        allowedMentions: ping.allowedMentions,
+      });
+      if (!result.ok) {
+        if (isMissingAccessError(result.error)) {
+          console.warn(`[DiscordAdapter] missing access on channel ${channelId} (server ${routing.guildId}): skipping. The streamer should reconfigure that server's channels.`);
+          return;
+        }
+        throw new Error(`postEmbed: ${result.error}`);
       }
-      // Throw so the dispatcher records an `adapter_call_failed` event —
-      // gives the streamer a self-diagnosing trail in their activity log.
-      throw new Error(`postEmbed: ${result.error}`);
-    }
-
-    // Persist the message id so subsequent events (game pivot, session
-    // end) can target the same message in-place.
-    const admin = createServiceClient();
-    await admin
-      .from("gs_sessions")
-      .update({ discord_live_message_id: result.messageId })
-      .eq("id", this.sessionId);
+      // Kept per server so later events (game pivot, session end) edit the same message.
+      await this.saveLiveMessage(routing, result.messageId);
+    });
   }
 
   async onSessionEnding(_session: GsSession): Promise<void> {
@@ -422,48 +457,34 @@ export class DiscordAdapter implements PlatformAdapter {
     // Subscription-gated to the same toggle as the initial announce —
     // the pivot edit is part of the stream-live story, not a separate
     // event the streamer can opt out of independently.
-    const routing = await resolveRouting(this.sessionId, this.ownerUserId);
-    if (!routing) return;
-    if (!subEnabled(routing.subscriptions, "stream_live")) return;
     if (!payload.nextGame) return;
-    const channelId = channelFor(routing, "stream");
-    if (!channelId) return;
-
-    const admin = createServiceClient();
-    const { data } = await admin
-      .from("gs_sessions")
-      .select("discord_live_message_id")
-      .eq("id", this.sessionId)
-      .maybeSingle();
-    const messageId = (data as { discord_live_message_id: string | null } | null)
-      ?.discord_live_message_id;
-    if (!messageId) return;
-
-    const editResult = await editEmbed({
-      channelId: channelId,
-      messageId,
-      embed: streamUpdateEmbed({
-        streamerName: routing.streamerName,
-        twitchHandle: routing.twitchHandle,
-        gameName: getGameName(payload.nextGame),
-        previousGameName: payload.previousGame
-          ? getGameName(payload.previousGame)
-          : null,
-        liveUrl: routing.liveUrl,
-        avatarUrl: routing.avatarUrl,
-        coverUrl: gameCoverUrl(payload.nextGame),
-        startedAt: session.activated_at ?? new Date().toISOString(),
-      }),
+    const nextGame = payload.nextGame;
+    const live = await this.liveMessages();
+    await this.eachServer(async (routing) => {
+      if (!subEnabled(routing.subscriptions, "stream_live")) return;
+      const channelId = channelFor(routing, "stream");
+      const messageId = this.liveMessageFor(routing, live);
+      if (!channelId || !messageId) return;
+      const editResult = await editEmbed({
+        channelId,
+        messageId,
+        embed: streamUpdateEmbed({
+          streamerName: routing.streamerName,
+          twitchHandle: routing.twitchHandle,
+          gameName: getGameName(nextGame),
+          previousGameName: payload.previousGame ? getGameName(payload.previousGame) : null,
+          liveUrl: routing.liveUrl,
+          avatarUrl: routing.avatarUrl,
+          coverUrl: gameCoverUrl(nextGame),
+          startedAt: session.activated_at ?? new Date().toISOString(),
+        }),
+      });
+      if (!editResult.ok && isMissingAccessError(editResult.error)) {
+        console.warn(`[DiscordAdapter] missing access editing live message on ${channelId}: skipping.`);
+        return;
+      }
+      if (!editResult.ok) throw new Error(`editEmbed: ${editResult.error}`);
     });
-    if (!editResult.ok && isMissingAccessError(editResult.error)) {
-      console.warn(
-        `[DiscordAdapter] missing access editing live message on ${channelId} — skipping. Streamer should reconfigure routing.`,
-      );
-      return;
-    }
-    if (!editResult.ok) {
-      throw new Error(`editEmbed: ${editResult.error}`);
-    }
   }
 
   async onPicksBansOpened(
@@ -471,46 +492,31 @@ export class DiscordAdapter implements PlatformAdapter {
     payload: { roundId: string; gameSlug: string },
   ): Promise<void> {
     void _session;
-    const routing = await resolveRouting(this.sessionId, this.ownerUserId);
-    if (!routing) return;
-    if (!subEnabled(routing.subscriptions, "round_open")) return;
-    const channelId = channelFor(routing, "rounds");
-    if (!channelId) return;
-
     const gameName = getGameName(payload.gameSlug);
-    const ping = buildPing(routing, "round_open");
-    const result = await postEmbed({
-      channelId: channelId,
-      embed: roundOpenEmbed({
-        streamerName: routing.streamerName,
-        gameName,
-        liveUrl: routing.liveUrl,
-        avatarUrl: routing.avatarUrl,
-      }),
-      content: ping.content,
-      allowedMentions: ping.allowedMentions,
-    });
-    if (!result.ok) {
-      throw new Error(`postEmbed: ${result.error}`);
-    }
-
-    // Spawn a thread off the announcement so round-specific banter
-    // doesn't drown the announcement channel. Best-effort — thread
-    // failure shouldn't bubble up and kill the dispatch.
-    try {
-      const threadName = `${gameName} picks & bans: ${new Date().toLocaleTimeString(
-        "en-US",
-        { hour: "numeric", minute: "2-digit" },
-      )}`;
-      await createThreadFromMessage({
-        channelId: channelId,
-        messageId: result.messageId,
-        name: threadName,
-        autoArchiveDurationMinutes: 60,
+    await this.eachServer(async (routing) => {
+      if (!subEnabled(routing.subscriptions, "round_open")) return;
+      const channelId = channelFor(routing, "rounds");
+      if (!channelId) return;
+      const ping = buildPing(routing, "round_open");
+      const result = await postEmbed({
+        channelId,
+        embed: roundOpenEmbed({ streamerName: routing.streamerName, gameName, liveUrl: routing.liveUrl, avatarUrl: routing.avatarUrl }),
+        content: ping.content,
+        allowedMentions: ping.allowedMentions,
       });
-    } catch (err) {
-      console.warn("[discord-adapter] thread create failed", err);
-    }
+      if (!result.ok) {
+        if (isMissingAccessError(result.error)) return;
+        throw new Error(`postEmbed: ${result.error}`);
+      }
+      // Spawn a thread off the announcement so round-specific banter
+      // doesn't drown the announcement channel. Best-effort.
+      try {
+        const threadName = `${gameName} picks & bans: ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+        await createThreadFromMessage({ channelId, messageId: result.messageId, name: threadName, autoArchiveDurationMinutes: 60 });
+      } catch (err) {
+        console.warn("[discord-adapter] thread create failed", err);
+      }
+    });
   }
 
   async onPicksBansClosed(
@@ -518,28 +524,25 @@ export class DiscordAdapter implements PlatformAdapter {
     payload: { roundId: string; gameSlug: string; ballotCount: number },
   ): Promise<void> {
     void _session;
-    const routing = await resolveRouting(this.sessionId, this.ownerUserId);
-    if (!routing) return;
-    if (!subEnabled(routing.subscriptions, "round_close")) return;
-    const channelId = channelFor(routing, "rounds");
-    if (!channelId) return;
-
-    const ping = buildPing(routing, "round_close");
-    const result = await postEmbed({
-      channelId: channelId,
-      embed: roundClosedEmbed({
-        streamerName: routing.streamerName,
-        gameName: getGameName(payload.gameSlug),
-        ballotCount: payload.ballotCount,
-        liveUrl: routing.liveUrl,
-        avatarUrl: routing.avatarUrl,
-      }),
-      content: ping.content,
-      allowedMentions: ping.allowedMentions,
+    await this.eachServer(async (routing) => {
+      if (!subEnabled(routing.subscriptions, "round_close")) return;
+      const channelId = channelFor(routing, "rounds");
+      if (!channelId) return;
+      const ping = buildPing(routing, "round_close");
+      const result = await postEmbed({
+        channelId,
+        embed: roundClosedEmbed({
+          streamerName: routing.streamerName,
+          gameName: getGameName(payload.gameSlug),
+          ballotCount: payload.ballotCount,
+          liveUrl: routing.liveUrl,
+          avatarUrl: routing.avatarUrl,
+        }),
+        content: ping.content,
+        allowedMentions: ping.allowedMentions,
+      });
+      if (!result.ok && !isMissingAccessError(result.error)) throw new Error(`postEmbed: ${result.error}`);
     });
-    if (!result.ok) {
-      throw new Error(`postEmbed: ${result.error}`);
-    }
   }
 
   async onRecapReady(
@@ -547,76 +550,58 @@ export class DiscordAdapter implements PlatformAdapter {
     recap: RecapPayload,
   ): Promise<void> {
     void _session;
-    const routing = await resolveRouting(this.sessionId, this.ownerUserId);
-    if (!routing) return;
-    if (!subEnabled(routing.subscriptions, "recap")) return;
-    const channelId = channelFor(routing, "recap");
-    if (!channelId) return;
-
-    const ping = buildPing(routing, "recap");
-    const result = await postEmbed({
-      channelId: channelId,
-      embed: recapEmbed({
-        streamerName: routing.streamerName,
-        sessionName: recap.session_name,
-        durationSeconds: recap.duration_seconds,
-        participantCount: recap.participant_count,
-        shuffleCount: recap.shuffle_count,
-        liveUrl: routing.liveUrl,
-        avatarUrl: routing.avatarUrl,
-        endedAt: recap.ended_at,
-      }),
-      content: ping.content,
-      allowedMentions: ping.allowedMentions,
+    // The night's lounge run (GS Pro, MMR card owners): one extra field on the recap.
+    const started = new Date(Date.parse(recap.ended_at) - recap.duration_seconds * 1000).toISOString();
+    const lounge = await loungeRecapField(this.ownerUserId, started).catch(() => null);
+    await this.eachServer(async (routing) => {
+      if (!subEnabled(routing.subscriptions, "recap")) return;
+      const channelId = channelFor(routing, "recap");
+      if (!channelId) return;
+      const ping = buildPing(routing, "recap");
+      const result = await postEmbed({
+        channelId,
+        embed: recapEmbed({
+          streamerName: routing.streamerName,
+          sessionName: recap.session_name,
+          durationSeconds: recap.duration_seconds,
+          participantCount: recap.participant_count,
+          shuffleCount: recap.shuffle_count,
+          liveUrl: routing.liveUrl,
+          avatarUrl: routing.avatarUrl,
+          endedAt: recap.ended_at,
+          lounge,
+        }),
+        content: ping.content,
+        allowedMentions: ping.allowedMentions,
+      });
+      if (!result.ok && !isMissingAccessError(result.error)) throw new Error(`postEmbed: ${result.error}`);
     });
-    if (!result.ok) {
-      throw new Error(`postEmbed: ${result.error}`);
-    }
   }
 
   async onSessionEnded(session: GsSession): Promise<void> {
-    // Best-effort: edit the live embed to "stream wrapped" so the
-    // announcement doesn't keep saying "🔴 Live" after the stream is
-    // over. The standalone recap embed (onRecapReady) is a separate
-    // post — these are intentionally distinct surfaces.
-    const routing = await resolveRouting(this.sessionId, this.ownerUserId);
-    if (!routing) return;
-    if (!subEnabled(routing.subscriptions, "stream_live")) return;
-
-    const admin = createServiceClient();
-    const { data } = await admin
-      .from("gs_sessions")
-      .select("discord_live_message_id")
-      .eq("id", this.sessionId)
-      .maybeSingle();
-    const messageId = (data as { discord_live_message_id: string | null } | null)
-      ?.discord_live_message_id;
-    if (!messageId) return;
-
-    const channelId = channelFor(routing, "stream");
-    if (!channelId) return;
+    // Best-effort: edit each server's live embed to "stream wrapped" so the
+    // announcement doesn't keep saying "🔴 Live" after the stream is over.
+    // The recap embed (onRecapReady) is a separate post.
+    const live = await this.liveMessages();
     const gameSlug = session.active_game ?? session.configured_games?.[0] ?? null;
-    const editResult = await editEmbed({
-      channelId,
-      messageId,
-      embed: streamEndedEmbed({
-        streamerName: routing.streamerName,
-        gameName: gameSlug ? getGameName(gameSlug) : null,
-        endedAt: session.ended_at ?? new Date().toISOString(),
-        avatarUrl: routing.avatarUrl,
-      }),
+    await this.eachServer(async (routing) => {
+      if (!subEnabled(routing.subscriptions, "stream_live")) return;
+      const channelId = channelFor(routing, "stream");
+      const messageId = this.liveMessageFor(routing, live);
+      if (!channelId || !messageId) return;
+      const editResult = await editEmbed({
+        channelId,
+        messageId,
+        embed: streamEndedEmbed({
+          streamerName: routing.streamerName,
+          gameName: gameSlug ? getGameName(gameSlug) : null,
+          endedAt: session.ended_at ?? new Date().toISOString(),
+          avatarUrl: routing.avatarUrl,
+        }),
+      });
+      if (!editResult.ok && isMissingAccessError(editResult.error)) return;
+      if (!editResult.ok) throw new Error(`editEmbed: ${editResult.error}`);
     });
-    if (!editResult.ok && isMissingAccessError(editResult.error)) {
-      console.warn(
-        `[DiscordAdapter] missing access editing end-of-stream message on ${channelId} — skipping.`,
-      );
-      return;
-    }
-    // onSessionEnded is best-effort by design (final embed swap) —
-    // non-403 errors get swallowed by the dispatcher's catch above us.
-    if (!editResult.ok) {
-      throw new Error(`editEmbed: ${editResult.error}`);
-    }
   }
 
   // ---- Direct actions — not supported on Discord (yet) -------------------

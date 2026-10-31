@@ -9,11 +9,12 @@
  * map screenshots, portraits from the character sheet (see game-art). Only rolls.
  */
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Badge, Button, Card, IconButton, Input, Select, Switch } from "@empac/cascadeds";
 import { CardActions } from "@/components/randomizer/CardActions";
+import { SeatCard } from "@/components/randomizer/PlayerCard";
 import { seatLabel } from "@/lib/randomizers/seats";
-import { IconBomb, IconClock, IconCopy, IconCrosshair, IconDice5, IconMap2, IconRefresh, IconTarget, IconWand } from "@tabler/icons-react";
+import { IconBomb, IconClock, IconCrosshair, IconDice5, IconMap2, IconRefresh, IconTarget, IconWand } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
@@ -21,12 +22,11 @@ import { RollingText } from "@/components/randomizer/RollingText";
 import { AiSetupBar } from "@/components/ai/AiSetupBar";
 import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
 import { goldeneyeMapArt, goldeneyePortrait } from "@/data/game-art";
-import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { GOLDENEYE_LENGTHS, GOLDENEYE_WEAPON_SETS } from "@/data/goldeneye/multiplayer";
 import {
-  characterPool, mapPool, matchText, rerollCharacter, rerollLength, rerollMap, rerollScenario, rerollWeapons, rollCharacters, rollMatch, scenarioPool,
+  characterPool, mapPool, rerollCharacter, rerollLength, rerollMap, rerollScenario, rerollWeapons, rollCharacters, rollMatch, scenarioPool,
   type GoldenEyeCast, type GoldenEyeMatch, type GoldenEyeOptions,
 } from "@/lib/goldeneye/roll";
 
@@ -34,11 +34,9 @@ const TEAM_COLORS = ["#2f66ec", "#d9502a"];
 type Part = "scenario" | "map" | "weapons" | "length";
 
 export function GoldenEyeRandomizer() {
-  const toast = useToast();
   const { trackEvent } = useAnalytics();
   const [players, setPlayers] = useState(4);
   const [names, setNames] = useState<string[]>(Array(4).fill(""));
-  const seatName = useCallback((i: number) => names[i]?.trim() || `Player ${i + 1}`, [names]);
   const [freshSave, setFreshSave] = useState(false);
   const [noOddjob, setNoOddjob] = useState(true);
   const [allowTeams, setAllowTeams] = useState(true);
@@ -98,9 +96,6 @@ export function GoldenEyeRandomizer() {
     if (o.cheat != null) setCheat(o.cheat);
     if (o.cast) setCast(o.cast);
   };
-  const seatNames = Array.from({ length: players }, (_, i) => seatName(i));
-  const hasAny = !!match || characters.some(Boolean);
-  const copy = () => hasAny && navigator.clipboard.writeText(matchText(match, characters, seatNames)).then(() => { toast.success("Match copied"); track(EVENTS.resultCopied, { tool: "goldeneye-007" }); }, () => toast.error("Couldn't copy the match"));
 
   const refresh = (part: Part, label: string) => (
     <IconButton variant="tertiary" size="small" aria-label={label} title={label} onClick={() => { reroll[part](); track(EVENTS.goldeneyePartRefreshed, { part }); }} disabled={!match}>
@@ -121,7 +116,6 @@ export function GoldenEyeRandomizer() {
     <div className="goldeneye-randomizer">
       <div className="randomizer-controls">
         <span className="party-muted">{players} players · {mapPool(opts).length} maps · {characterPool(opts).length} characters</span>
-        <Button variant="secondary" size="small" iconBefore={IconCopy} disabled={!hasAny} onClick={copy}>Copy match</Button>
       </div>
 
       <section aria-labelledby="ge-match-h">
@@ -218,23 +212,21 @@ export function GoldenEyeRandomizer() {
             const c = characters[i] ?? null;
             const team = match?.teams?.[i];
             return (
-              <div key={i} className="player-card">
-                <div className="player-card__header">
-                  <div className="player-card__name">
-                    <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
-                  </div>
+              <SeatCard key={i} rolled={Boolean(c)} animate={animate}
+                name={<Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />}
+                actions={
                   <CardActions
                     refreshLabel={`New character for ${seatLabel(names, i)}`} onRefresh={() => refreshOne(i)}
                     removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 2 ? () => removePlayer(i) : undefined} />
-                </div>
-                <ul className="player-card__slots">
-                  <KartSlot label="Character" portrait name={c} imageSrc={c ? goldeneyePortrait(c) : null} fallback={IMAGE_COMING_SOON} empty={<span className="slot-icon" aria-hidden><IconCrosshair size={56} stroke={1.5} /></span>} color={team ? TEAM_COLORS[team - 1] : "#3b3f4a"} pool={charReel} animate={animate} />
-                </ul>
-                <div className="goldeneye-player__meta">
-                  {team && <Badge variant={team === 1 ? "info" : "warning"} size="small">Team {team}</Badge>}
-                  {match?.handicaps[i] && <span className="party-muted">{match.handicaps[i]}</span>}
-                </div>
-              </div>
+                }
+                tile={<KartSlot label="Character" portrait name={c} imageSrc={c ? goldeneyePortrait(c) : null} fallback={IMAGE_COMING_SOON} empty={<span className="slot-icon" aria-hidden><IconCrosshair size={56} stroke={1.5} /></span>} color={team ? TEAM_COLORS[team - 1] : "#3b3f4a"} pool={charReel} animate={animate} />}>
+                {(team || match?.handicaps[i]) && (
+                  <div className="goldeneye-player__meta">
+                    {team && <Badge variant={team === 1 ? "info" : "warning"} size="small">Team {team}</Badge>}
+                    {match?.handicaps[i] && <span className="party-muted">{match.handicaps[i]}</span>}
+                  </div>
+                )}
+              </SeatCard>
             );
           })}
         </div>

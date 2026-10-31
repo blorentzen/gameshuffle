@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co${HREF}` },
-  openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
 
@@ -65,7 +65,7 @@ export default function Page() {
         The <strong>Overlay Layout</strong> editor shows your real overlay at full size with sample
         data. Switch between the <strong>Tools</strong> and <strong>Apps</strong> sets, click a piece
         in the preview (or its chip), then drag it where you want. In the inspector you can tune its
-        <strong> size</strong> and toggle <strong>Show on this format</strong> to hide pieces you
+        <strong> size</strong> and toggle <strong>Show on this format</strong>{" "}to hide pieces you
         don&apos;t use.
       </p>
       <p>

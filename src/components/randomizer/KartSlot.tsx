@@ -1,7 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { getImagePath } from "@/lib/images";
+
+/**
+ * A player card that grows in place (PlayerCard's SeatCard) puts its picture's
+ * slot in the left column and the rolled name beside it: `el` is where the
+ * caption goes, so the name still rolls with the reel. `onSpin` tells the card
+ * while the reel spins, so it can hold back details that would give the pick
+ * away before it lands.
+ */
+export interface SlotCaptionHost {
+  el: HTMLElement | null;
+  onSpin?: (spinning: boolean) => void;
+}
+export const SlotCaptionContext = createContext<SlotCaptionHost | null>(null);
 
 interface Part {
   name: string;
@@ -47,6 +61,9 @@ export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color
   // Bumped on every frame so the <img> remounts and replays its entry animation.
   const [frame, setFrame] = useState(0);
   const timers = useRef<number[]>([]);
+  const host = useContext(SlotCaptionContext);
+  const captionEl = host?.el ?? null;
+  const onSpin = host?.onSpin;
   // Keyed on name as well as image, so games without art yet (tiles only) still update.
   const prevKey = useRef<string>(`${imageSrc}|${name}`);
 
@@ -102,6 +119,10 @@ export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color
   }, [imageSrc, name, pool, animate, color]);
 
   useEffect(() => {
+    onSpin?.(phase === "spinning");
+  }, [phase, onSpin]);
+
+  useEffect(() => {
     const timersAtMount = timers;
     return () => {
       timersAtMount.current.forEach(clearTimeout);
@@ -114,16 +135,19 @@ export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color
         <span className="kart-slot__tile gs-portrait-bg" style={{ "--portrait-color": display.color ?? undefined } as React.CSSProperties}>
           {empty && !display.img && !display.name
             ? empty
-            : <img key={frame} src={display.img ? getImagePath(display.img) : display.name ? fallback : FALLBACK} alt={display.name || label} />}
+            : <img key={frame} src={display.img ? getImagePath(display.img) : display.name ? fallback : FALLBACK} alt={display.name ? "" : label} />}
         </span>
       ) : (
         <img
           key={frame}
           src={display.img ? getImagePath(display.img) : display.name ? fallback : FALLBACK}
-          alt={display.name || label}
+          // The caption (or, on a growing card, the heading beside it) says the name.
+          alt={display.name ? "" : label}
         />
       )}
-      <span>{display.name || (phase === "spinning" ? "…" : "???")}</span>
+      {captionEl
+        ? (display.name || phase === "spinning") && createPortal(<span className={`kart-slot__caption${phase === "spinning" ? " kart-slot__caption--spinning" : ""}`}>{display.name || "…"}</span>, captionEl)
+        : <span>{display.name || (phase === "spinning" ? "…" : "???")}</span>}
     </li>
   );
 }

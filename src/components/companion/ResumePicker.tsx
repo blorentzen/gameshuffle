@@ -11,24 +11,31 @@
  * round trip.
  */
 
-import { Icon, Modal } from "@empac/cascadeds";
+import { Button, Modal } from "@empac/cascadeds";
+import { IconTrash } from "@tabler/icons-react";
+import { IconAction } from "@/components/actions/IconAction";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useState } from "react";
 import { useSession } from "@/lib/companion/SessionContext";
 import { deleteCompanionSaveAction } from "@/app/tcg-companion/save/actions";
 import { formatByKey } from "@/lib/companion/gameSettings";
 import { defaultSaveName, type CompanionSavedState } from "@/lib/companion/saveStates";
+import type { LocalGame } from "@/lib/companion/autosave";
 import { useCompanionToasts } from "./ToastProvider";
 
 interface Props {
   isOpen: boolean;
   savedGames: CompanionSavedState[];
-  onResume: (save: CompanionSavedState) => void;
+  /** The game this browser kept on its own (autosave.ts), offered first. */
+  localGame?: LocalGame | null;
+  onResume: (save: CompanionSavedState | null) => void;
   onStartNew: () => void;
 }
 
 export function ResumePicker({
   isOpen,
   savedGames,
+  localGame = null,
   onResume,
   onStartNew,
 }: Props) {
@@ -37,6 +44,7 @@ export function ResumePicker({
   const [busyId, setBusyId] = useState<string | null>(null);
   const { dispatch } = useSession();
   const toasts = useCompanionToasts();
+  const confirm = useConfirm();
 
   const handleResume = (save: CompanionSavedState) => {
     dispatch({
@@ -47,6 +55,7 @@ export function ResumePicker({
         playerNames: save.sessionData.playerNames,
         winCounters: save.sessionData.winCounters,
         gameSettings: save.gameSettings,
+        turn: save.sessionData.turn ?? null,
       },
     });
     onResume(save);
@@ -60,9 +69,21 @@ export function ResumePicker({
     });
   };
 
+  const handleResumeLocal = (g: LocalGame) => {
+    dispatch({
+      type: "LOAD_SAVED_STATE",
+      saveId: g.loadedFromSaveId,
+      snapshot: { slots: g.slots, playerNames: g.playerNames, winCounters: g.winCounters, gameSettings: g.gameSettings, turn: g.turn ?? null },
+    });
+    onResume(null);
+    toasts.push({ variant: "success", title: "Game resumed", message: `${g.playerNames.p1} vs ${g.playerNames.p2}, right where you left it.` });
+  };
+
   const handleDelete = async (id: string) => {
-    setBusyId(id);
     const target = items.find((s) => s.id === id);
+    const label = target?.name?.trim() || (target ? defaultSaveName(formatByKey(target.gameSettings.format).label, target.updatedAt) : "this saved game");
+    if (!(await confirm({ title: `Delete "${label}"?`, body: "The saved game is removed for good.", confirmLabel: "Delete save" }))) return;
+    setBusyId(id);
     const result = await deleteCompanionSaveAction(id);
     if (result.ok) {
       setItems((prev) => prev.filter((s) => s.id !== id));
@@ -102,10 +123,29 @@ export function ResumePicker({
           Pick up where you left off, or start a fresh match.
         </p>
 
+        {localGame && (
+          <ul className="companion-resume__list">
+            <li className="companion-resume__item">
+              <div className="companion-resume__item-body">
+                <div className="companion-resume__item-name">Your last game on this device</div>
+                <div className="companion-resume__item-meta">
+                  {formatByKey(localGame.gameSettings.format).label} · Prizes left: {localGame.playerNames.p1} {localGame.winCounters.p1}, {localGame.playerNames.p2} {localGame.winCounters.p2}
+                </div>
+                <div className="companion-resume__item-time">Saved {formatRelative(localGame.savedAt)}</div>
+              </div>
+              <div className="companion-resume__item-actions">
+                <Button variant="primary" size="small" onClick={() => handleResumeLocal(localGame)}>Resume</Button>
+              </div>
+            </li>
+          </ul>
+        )}
+
         {items.length === 0 ? (
-          <p className="companion-resume__empty">
-            No saved games left.
-          </p>
+          localGame ? null : (
+            <p className="companion-resume__empty">
+              No saved games left.
+            </p>
+          )
         ) : (
           <ul className="companion-resume__list">
             {items.map((save) => {
@@ -131,23 +171,8 @@ export function ResumePicker({
                     </div>
                   </div>
                   <div className="companion-resume__item-actions">
-                    <button
-                      type="button"
-                      className="companion-resume__resume-btn"
-                      onClick={() => handleResume(save)}
-                      disabled={isDeleting}
-                    >
-                      Resume
-                    </button>
-                    <button
-                      type="button"
-                      className="companion-resume__delete-btn"
-                      onClick={() => handleDelete(save.id)}
-                      disabled={isDeleting}
-                      title="Delete this saved game"
-                    >
-                      <Icon name="trash" size="14" />
-                    </button>
+                    <Button variant="primary" size="small" onClick={() => handleResume(save)} disabled={isDeleting}>Resume</Button>
+                    <IconAction icon={IconTrash} variant="danger" label={`Delete ${displayName}`} onClick={() => void handleDelete(save.id)} disabled={isDeleting} />
                   </div>
                 </li>
               );

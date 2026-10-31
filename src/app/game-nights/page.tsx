@@ -8,13 +8,18 @@ import { loadNightRows, loadTournamentRows } from "@/lib/events/browse";
 import { SeriesManager } from "@/components/game-nights/SeriesManager";
 import { listSeries } from "@/lib/game-nights/series";
 import type { ViewerPrefs } from "@/lib/game-nights/match";
+import { shopVisibleToVisitors } from "@/lib/store/visibility";
+import { ShopLine } from "@/components/store/ShopEntry";
 
 export const metadata: Metadata = {
+  openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/game-nights" },
   title: "Game nights",
   description: "Find game nights near you, or host your own. Set the games, the vibe, and who it's for.",
+  alternates: { canonical: "/game-nights" },
 };
 
 export default async function GameNightsPage() {
+  const shopVisible = await shopVisibleToVisitors();
   const [nights, tournamentRail] = await Promise.all([loadNightRows(), loadTournamentRows(24)]);
   const supabase = await createClient();
   const {
@@ -40,7 +45,7 @@ export default async function GameNightsPage() {
   }
 
   return (
-    <>
+    <main>
       <BrowseHero
         eyebrow="Game nights, in real life"
         title="Find your table. Bring a game."
@@ -53,6 +58,7 @@ export default async function GameNightsPage() {
       />
 
       <Container>
+        {shopVisible && <ShopLine placement="game-nights" />}
         <section id="bgn-list" className="bgn-browse" style={{ margin: "var(--spacing-40) 0 var(--spacing-64)", scrollMarginTop: "6rem" }}>
         {mySeries.length > 0 && (
           <SeriesManager initial={mySeries.map((s) => ({ id: s.id, name: s.name, cadence: s.cadence, active: s.active, nextAt: s.nextAt }))} />
@@ -72,6 +78,11 @@ export default async function GameNightsPage() {
               // Price and availability apply just as much here: every card already
               // states a price, and a full night is the one result nobody wants.
               filters: { when: true, kind: true, genre: true, level: true, price: true, openSpots: true },
+              // Phones: 3 a group, compact cards, the hero already says Host a night
+              // (Britton's picks, 2026-10-19).
+              groupCap: 3,
+              createInHead: false,
+              compactOnPhones: true,
               crossRail: {
                 heading: "Also happening: tournaments",
                 href: "/tournament",
@@ -83,6 +94,6 @@ export default async function GameNightsPage() {
         </Suspense>
         </section>
       </Container>
-    </>
+    </main>
   );
 }

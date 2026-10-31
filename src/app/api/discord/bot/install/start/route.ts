@@ -19,6 +19,10 @@
  *   - Manage Events · Create Events                     (scheduled sessions)
  * Existing installs keep their earlier (narrower) grant until re-authorized.
  *
+ * `?app=comp` installs GameShuffle Competitive instead (picks 2026-10-30): its own client id, a narrower
+ * grant (COMP_PERMISSIONS: post, embed, attach, reactions, threads, read history, external emojis, and
+ * Manage Roles for division roles), its own server limit, and its servers kept in discord_app_guilds.
+ *
  * Per `specs/gs-pro-updates/gs-discord-cross-platform-spec.md`.
  */
 
@@ -26,11 +30,18 @@ import { NextResponse } from "next/server";
 import { getBaseUrl } from "@/lib/env";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
+import { isProUser } from "@/lib/subscription-server";
+import { listGuilds, serverLimit } from "@/lib/discord/guilds";
+import { listAppGuilds } from "@/lib/discord/appGuilds";
+import { appKeys } from "@/lib/discord/apps";
 
 export const runtime = "nodejs";
 
 const DISCORD_AUTHORIZE_URL = "https://discord.com/oauth2/authorize";
 const BOT_PERMISSIONS_BITFIELD = "581959747292214";
+/** GameShuffle Competitive: Add Reactions, View Channels, Send Messages, Embed Links, Attach Files, Read Message
+ *  History, Use External Emojis, Manage Roles (division roles), Send Messages in Threads. */
+const COMP_PERMISSIONS = "275146722368";
 const STATE_COOKIE = "gs-discord-install-state";
 const STATE_COOKIE_MAX_AGE_SECS = 60 * 10; // 10 minutes — long enough
                                             // for the user to land on Discord,
@@ -42,7 +53,7 @@ function appBaseUrl(): string {
   return getBaseUrl();
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   // Kill switch — bounce to the integrations tab with a flag the UI
   // can surface as a "temporarily disabled" banner. Same env var the
   // dispatcher checks (see src/lib/adapters/dispatcher.ts), so flipping
@@ -62,11 +73,25 @@ export async function GET() {
     // Not signed in → bounce to login with a return-to so the user
     // lands back on Account → Integrations after auth.
     const loginUrl = new URL(`${appBaseUrl()}/login`);
-    loginUrl.searchParams.set("redirect", "/account?tab=integrations");
+    loginUrl.searchParams.set("redirect", "/account/streaming?tab=discord");
     return NextResponse.redirect(loginUrl);
   }
 
-  const clientId = process.env.DISCORD_APPLICATION_ID;
+  // Which of our apps: GameShuffle, or GameShuffle Competitive once it exists here.
+  const comp = new URL(request.url).searchParams.get("app") === "comp";
+  const keys = appKeys(comp ? "comp" : "main");
+
+  // At the plan's server limit (per app): say so here rather than after Discord's consent screen.
+  const [servers, isPro] = await Promise.all([comp ? listAppGuilds(user.id, "comp") : listGuilds(user.id), isProUser(user.id)]);
+  if (servers.filter((g) => !g.removedAt).length >= serverLimit(isPro)) {
+    const url = new URL(`${appBaseUrl()}/account/streaming`);
+    url.searchParams.set("tab", comp ? "discord-bot" : "discord");
+    if (comp) url.searchParams.set("app", "comp");
+    url.searchParams.set("discord_install_error", "server_limit");
+    return NextResponse.redirect(url);
+  }
+
+  const clientId = keys?.applicationId;
   if (!clientId) {
     return NextResponse.json(
       { ok: false, error: "discord_application_id_unset" },
@@ -75,7 +100,11 @@ export async function GET() {
   }
 
   const state = randomBytes(24).toString("base64url");
-  const redirectUri = `${appBaseUrl()}/api/discord/bot/install/callback`;
+  // The host the visitor is on, not NEXT_PUBLIC_BASE_URL: production's base is
+  // the bare domain, but the app registers (and visitors land on) www, and
+  // Discord rejects a redirect_uri that isn't registered character for
+  // character. The callback builds the same value from its own request.
+  const redirectUri = `${new URL(request.url).origin}/api/discord/bot/install/callback`;
 
   const authorizeUrl = new URL(DISCORD_AUTHORIZE_URL);
   authorizeUrl.searchParams.set("client_id", clientId);
@@ -83,7 +112,7 @@ export async function GET() {
   // us register slash commands per-guild later (Phase 3 territory but
   // requested upfront so the consent screen lists it once).
   authorizeUrl.searchParams.set("scope", "bot applications.commands");
-  authorizeUrl.searchParams.set("permissions", BOT_PERMISSIONS_BITFIELD);
+  authorizeUrl.searchParams.set("permissions", comp ? COMP_PERMISSIONS : BOT_PERMISSIONS_BITFIELD);
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set("state", state);
@@ -91,7 +120,8 @@ export async function GET() {
   const response = NextResponse.redirect(authorizeUrl);
   // Signed via Next's secure cookie semantics — the callback verifies
   // this value matches what Discord echoes back on completion.
-  response.cookies.set(STATE_COOKIE, state, {
+  // The app rides in the cookie (the redirect address is the same for every app), checked by the callback.
+  response.cookies.set(STATE_COOKIE, `${comp ? "comp" : "main"}.${state}`, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co${HREF}` },
-  openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
 
@@ -64,7 +64,7 @@ export default function Page() {
       <h2>Saving a setup</h2>
       <p>
         Signed in, <strong>Save this setup</strong> keeps the board, rules, players, characters and set list together. Find it
-        later in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Setups &amp; Games</strong>.
+        later in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Saved configs</strong>.
       </p>
 
       <h2>Playing the whole night</h2>

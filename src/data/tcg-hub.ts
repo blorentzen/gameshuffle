@@ -67,8 +67,9 @@ export interface DeckRtb {
 // ── Hero ──────────────────────────────────────────────────────────────
 export const HERO = {
   eyebrow: "GameShuffle TCG",
-  // Non-breaking space keeps "with care." together so "care." never orphans.
-  h1: "Pokémon cards, handled with\u00A0care.",
+  // Leads with the page's keyword ("Pokémon TCG"). The non-breaking space keeps
+  // "free companion" together so "companion" never orphans.
+  h1: "Pokémon TCG decks, singles and a free\u00A0companion",
   subhead:
     "Singles to chase and ready-to-run decks, competitive to meme. Every card ships fast and protected, backed by a free companion app for game night.",
   image: "https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png",
@@ -123,7 +124,7 @@ export const FEATURED_CARDS: FeaturedCard[] = [
 
 // ── Companion tie-in ──────────────────────────────────────────────────
 export const COMPANION = {
-  eyebrow: "Free with every order, free for everyone",
+  eyebrow: "Free for everyone",
   heading: "A companion app that runs your whole table",
   body:
     "Buy the cards, then run the game with the free GameShuffle Companion. Damage, conditions, prizes, coin flips, dice. Everything the game needs, in one place, so nothing gets lost between turns. It's the real reason to make GameShuffle your shop: you're not just getting cards, you're getting the tool that makes game night better.",
@@ -297,8 +298,9 @@ export const FAQ: { q: string; a: string }[] = [
 ];
 
 export const META = {
-  title: "GameShuffle TCG: Pokémon Singles, Decks + the Companion App",
+  // Rendered absolute (no " | GameShuffle" suffix): the brand leads the title instead.
+  title: "GameShuffle TCG: Pokémon Singles, Decks + Companion App",
   description:
-    "Pokémon singles and ready-to-run decks (competitive, beginner, and meme) from GameShuffle TCG, shipped fast and protected, backed by a free companion app for running your games.",
+    "Pokémon singles and ready-to-run decks (competitive, beginner and meme) from GameShuffle TCG, plus a free companion for running your games.",
   ogImage: "https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg",
 } as const;

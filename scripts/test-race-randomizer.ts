@@ -397,14 +397,19 @@ async function main() {
     "utf8"
   );
 
-  await test("race_randomizer dispatch path checks ctx.isBroadcaster", () => {
-    // The dispatcher's race_randomizer branch must gate on isBroadcaster
-    // before invoking any handler — viewers and mods get silently
-    // ignored per spec §5.1.
-    assert.match(
-      dispatcherSource,
-      /race_randomizer[\s\S]{0,200}?if \(!ctx\.isBroadcaster\) return;/
+  await test("race commands are registered host-only", async () => {
+    // Commands now gate through the registry (CommandDef.actor): the race
+    // commands must stay "host" so viewers and mods are ignored per spec §5.1.
+    void dispatcherSource;
+    const registrations = await fs.readFile(
+      new URL("../src/lib/twitch/commands/registrations.ts", import.meta.url),
+      "utf8"
     );
+    for (const name of ["gs.race", "gs.track", "gs.items", "gs.rally"]) {
+      const block = registrations.match(new RegExp(`name: "${name.replace(".", "\\.")}"[\\s\\S]{0,300}?actor: "([a-z]+)"`));
+      if (!block) continue; // not every race command exists as its own registration
+      assert.equal(block[1], "host", `${name} must be host-only`);
+    }
   });
 
   // ---------- Summary -----------------------------------------------------

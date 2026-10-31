@@ -12,6 +12,8 @@
  * ever be one we host — no arbitrary/external URLs reach the DB or the page.
  */
 
+import { isDefaultSkin } from "@/lib/profile/proLooks";
+import { ownerHasLooks } from "@/lib/support/looks";
 import { NextResponse, type NextRequest } from "next/server";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
@@ -46,6 +48,9 @@ export async function PUT(req: NextRequest) {
     skin.bg = { kind: "none", color: null, gradient: null, image: null, fit: skin.bg.fit };
   }
 
+  // Skins are GS Pro; going back to the plain skin never needs it.
+  if (!isDefaultSkin(skin) && !(await ownerHasLooks(user.id))) return NextResponse.json({ error: "pro_required" }, { status: 403 });
+
   const admin = createServiceClient();
   const { error } = await admin.from("users").update({ profile_skin: skin }).eq("id", user.id);
   if (error) return NextResponse.json({ error: "migration_pending" }, { status: 503 });
@@ -57,6 +62,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   if (!isR2Configured()) return NextResponse.json({ error: "storage_unconfigured" }, { status: 503 });
+  if (!(await ownerHasLooks(user.id))) return NextResponse.json({ error: "pro_required" }, { status: 403 });
 
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");

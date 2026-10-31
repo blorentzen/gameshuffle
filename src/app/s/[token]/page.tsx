@@ -34,6 +34,7 @@ export async function generateMetadata({
     title: config.config_name,
     description: `Check out this ${gameLabel} configuration on GameShuffle: ${config.config_name}. Open it to load the full setup instantly.`,
     openGraph: {
+      siteName: "GameShuffle",
       title: `${config.config_name} | GameShuffle`,
       description: `A shared ${gameLabel} configuration. Open in GameShuffle to use it instantly.`,
       url: `https://www.gameshuffle.co/s/${token}`,

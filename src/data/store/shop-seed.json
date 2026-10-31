@@ -1,0 +1,307 @@
+{
+  "_about": "Source of truth for the GameShuffle shop (curated packs; TCGplayer stays the place for singles). This tracked copy is the one the app and scripts/seed-shop.ts read; docs/specs/shop/ is gitignored. The seed script creates Stripe Products and Prices (test mode) and shop_products rows from this file. Postage and dates are config, not code, maintained by Britton. Weights are estimates until a packed unit is weighed; update them here.",
+  "version": 2,
+  "currency": "usd",
+  "products": [
+    {
+      "sku": "thirty-set",
+      "kind": "bundle",
+      "name": "Anniversary Thirty Set (English)",
+      "price_cents": 6999,
+      "max_per_order": 1,
+      "ship_weight_oz": 4,
+      "sort_order": 10,
+      "active": true,
+      "stock_available": 5,
+      "stripe_description": "All 30 Pikachu from Pokémon TCG 30th Celebration (023/128 to 052/128) plus Pikachu ex 053/128 and 054/128. 32 English cards, sleeved, in number order, with a digital artist checklist.",
+      "blurb": "All 30 Pikachu from 30th Celebration plus Pikachu ex 053 and 054, sleeved and in order.",
+      "contents": [
+        "All 30 Pikachu, 01/30 to 30/30 (set numbers 023/128 to 052/128), each by a different artist",
+        "Pikachu ex 053/128 and 054/128",
+        "32 English cards, each in a penny sleeve, in number order, in 2 sealed team bags",
+        "Digital artist checklist"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "thirty-set-jp",
+      "kind": "bundle",
+      "name": "Anniversary Thirty Set (Japanese)",
+      "price_cents": 8999,
+      "max_per_order": 1,
+      "ship_weight_oz": 4,
+      "sort_order": 15,
+      "active": true,
+      "stock_available": 3,
+      "stripe_description": "All 30 Pikachu from the Japanese Pokémon TCG set 30th Celebration (M6a), 017/103 to 046/103, plus Pikachu ex 047/103 and 048/103. 32 Japanese cards, sleeved, in number order, with a digital artist checklist.",
+      "blurb": "All 30 Pikachu from the Japanese 30th Celebration set plus Pikachu ex 047 and 048, sleeved and in order.",
+      "contents": [
+        "All 30 Pikachu, 01/30 to 30/30 (set numbers 017/103 to 046/103), each by a different artist",
+        "Pikachu ex 047/103 and 048/103",
+        "32 Japanese cards, each in a penny sleeve, in number order, in 2 sealed team bags",
+        "Digital artist checklist with the Japanese set numbers",
+        "Card text is in Japanese"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "spark-spook-5",
+      "kind": "bundle",
+      "name": "Spark & Spook 5-Pack",
+      "price_cents": 2599,
+      "max_per_order": 5,
+      "ship_weight_oz": 5,
+      "sort_order": 20,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "Five Spark & Spook Halloween packs of real Pokémon TCG cards, each with a 30th Celebration Pikachu, 3 holo or reverse holo cards and an Energy card.",
+      "blurb": "Five Halloween treat packs, each with a 30th Celebration Pikachu and 3 holo or reverse holo cards.",
+      "contents": [
+        "5 Spark & Spook packs (10 cards each)",
+        "In every pack: 1 x 30th Celebration Pikachu, 3 x holo or reverse holo cards, 1 x Energy card, 5 regular non-holo Dark, Ghost and Team Rocket cards"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "thirty-hunt-3",
+      "kind": "bundle",
+      "name": "Thirty Hunt 3-Pack",
+      "price_cents": 2199,
+      "max_per_order": 5,
+      "ship_weight_oz": 4,
+      "sort_order": 30,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "Three Thirty Hunt collect-all-30 packs of real Pokémon TCG cards, each with a 30th Celebration Pikachu, 3 holo or reverse holo cards and an Energy card.",
+      "blurb": "Three collect-all-30 packs, each with a 30th Celebration Pikachu and 3 holo or reverse holo cards.",
+      "contents": [
+        "3 Thirty Hunt packs (14 cards each)",
+        "In every pack: 1 x 30th Celebration Pikachu, 3 x holo or reverse holo cards, 1 x Energy card, 9 regular non-holo cards, digital Collect all 30 checklist"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "ready-deck",
+      "kind": "bundle",
+      "name": "Ready-to-Play Deck",
+      "price_cents": 2299,
+      "max_per_order": 5,
+      "ship_weight_oz": 5,
+      "sort_order": 40,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "A 60-card playable Pokémon TCG deck in a deck box, with a Pikachu and an ex card inside.",
+      "blurb": "A 60-card deck you can play tonight, with a Pikachu and an ex inside.",
+      "contents": [
+        "60 cards: about 20 Pokémon of one type, 30 Trainers, 10 basic Energy",
+        "1 x 30th Celebration Pikachu",
+        "1 x ex card matched to the deck's type",
+        "Deck box, how-to-start card and a digital deck list"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "set-builder-100",
+      "kind": "bundle",
+      "name": "Set Builder 100",
+      "price_cents": 1999,
+      "max_per_order": 3,
+      "ship_weight_oz": 7.5,
+      "sort_order": 50,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "100 different Pokémon TCG Ascended Heroes cards in number order, with a digital checklist.",
+      "blurb": "100 different Ascended Heroes cards in number order, with a digital checklist.",
+      "contents": [
+        "100 unique Ascended Heroes commons and uncommons, no duplicates",
+        "Sorted in number order in a card box",
+        "Digital checklist of every number included"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "lights-out-10",
+      "kind": "bundle",
+      "name": "Lights Out 10-Pack",
+      "price_cents": 1899,
+      "max_per_order": 5,
+      "ship_weight_oz": 7,
+      "sort_order": 60,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "Ten Halloween treat bags of real Pokémon TCG cards, 10 cards each with a reverse holo or rare.",
+      "blurb": "Ten Halloween treat bags of 10 cards, each with a reverse holo or rare. Made for trick-or-treaters.",
+      "contents": [
+        "10 sealed treat bags",
+        "In every bag: 9 Dark, Ghost and Team Rocket cards and 1 reverse holo or rare"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "thirty-hunt-1",
+      "kind": "single",
+      "name": "Thirty Hunt",
+      "price_cents": 799,
+      "max_per_order": 4,
+      "ship_weight_oz": 1.3,
+      "sort_order": 70,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "One Thirty Hunt pack: 14 real Pokémon TCG cards with a 30th Celebration Pikachu, 3 holo or reverse holo cards and an Energy card.",
+      "blurb": "14 cards with a 30th Celebration Pikachu and 3 holo or reverse holo cards, plus a digital Collect all 30 checklist.",
+      "contents": [
+        "1 x 30th Celebration Pikachu",
+        "3 x holo or reverse holo cards",
+        "1 x Energy card",
+        "9 regular non-holo cards from the sets we stock",
+        "Digital Collect all 30 checklist"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    },
+    {
+      "sku": "spark-spook-1",
+      "kind": "single",
+      "name": "Spark & Spook",
+      "price_cents": 599,
+      "max_per_order": 4,
+      "ship_weight_oz": 0.9,
+      "sort_order": 80,
+      "active": true,
+      "stock_available": 0,
+      "stripe_description": "One Spark & Spook Halloween pack: 10 real Pokémon TCG cards with a 30th Celebration Pikachu, 3 holo or reverse holo cards and an Energy card.",
+      "blurb": "10 spooky cards with a 30th Celebration Pikachu and 3 holo or reverse holo cards.",
+      "contents": [
+        "1 x 30th Celebration Pikachu",
+        "3 x holo or reverse holo cards",
+        "1 x Energy card",
+        "5 regular non-holo Dark, Ghost and Team Rocket cards"
+      ],
+      "image_url": null,
+      "category": "tcg"
+    }
+  ],
+  "checkout": {
+    "session_minutes": 30,
+    "hold_sweep_minutes": 45,
+    "allowed_countries": [
+      "US"
+    ],
+    "blocked_states": [
+      "AA",
+      "AE",
+      "AP",
+      "AS",
+      "GU",
+      "MP",
+      "PR",
+      "VI",
+      "UM"
+    ],
+    "shipping_rate_display_name": "Free shipping",
+    "shipping_estimate_business_days": {
+      "min": 3,
+      "max": 7
+    },
+    "automatic_tax": true,
+    "allow_promotion_codes": true,
+    "hold_grace_minutes": 10,
+    "_blocked_states": "Stripe's US address form lists the Armed Forces codes and the territories as states; orders to them are refunded (50 states and DC only)."
+  },
+  "shipping": {
+    "_rule": "Every order ships tracked by USPS Ground Advantage (Britton, 2026-10-09): $4.99 under $25, free at $25 and up (subtotal before tax). stamped_mail false switches off the letter and flat methods below; set it true to bring them back (1 single = letter, 2 to flat_max_singles = flat).",
+    "stamped_mail": false,
+    "rate": {
+      "free_threshold_cents": 2500,
+      "standard_cents": 499,
+      "standard_label": "USPS Ground Advantage",
+      "free_label": "Free shipping",
+      "tax_code": "txcd_92010001"
+    },
+    "flat_max_singles": 4,
+    "ship_within_business_days": 2,
+    "timezone": "America/Los_Angeles",
+    "packaging_oz": {
+      "letter": 0.5,
+      "flat": 0.7,
+      "parcel": 1.0
+    },
+    "postage_cents": {
+      "_source": "USPS retail prices effective July 12, 2026. Confirm values marked confirm in Phase 0.",
+      "letter_first_oz": 82,
+      "letter_additional_oz": 29,
+      "letter_max_oz": 3.5,
+      "nonmachinable_surcharge": 49,
+      "nonmachinable_surcharge_confirm": true,
+      "flat_first_oz": 169,
+      "flat_additional_oz": 29,
+      "flat_additional_oz_confirm": true,
+      "flat_max_oz": 13
+    },
+    "parcel_carrier": "Rollo (USPS Ground Advantage)",
+    "reship_after_days": 14,
+    "no_ship_days": [
+      "2026-11-11",
+      "2026-11-26",
+      "2026-12-25",
+      "2027-01-01"
+    ],
+    "_no_ship_days": "USPS holidays (and any day Britton won't ship) inside the shop window; the ship-by date skips them and weekends."
+  },
+  "holiday": {
+    "banner_start": "2026-12-01T00:00:00-08:00",
+    "cutoff_lower48": "2026-12-13T23:59:59-08:00",
+    "cutoff_ak_hi": "2026-12-12T23:59:59-08:00",
+    "banner_end": "2026-12-26T00:00:00-08:00",
+    "_usps_recommended": "Ground Advantage and First-Class Mail by Thu Dec 17 (lower 48), Wed Dec 16 (Alaska and Hawaii)"
+  },
+  "nexus_monitor": {
+    "warn_orders": 150,
+    "warn_revenue_cents": 7500000,
+    "windows": [
+      "rolling_12_months",
+      "calendar_year"
+    ]
+  },
+  "utm": {
+    "source": "gameshuffle",
+    "medium": "site",
+    "campaign": "holiday-drop",
+    "placements": [
+      "nav",
+      "home-band",
+      "tcg",
+      "game-nights",
+      "email",
+      "discord"
+    ]
+  },
+  "contact": {
+    "_confirm": "Britton to confirm the shop's support email and the return address for envelopes.",
+    "support_email": "support@gameshuffle.co",
+    "return_address": null,
+    "alert_email": "support@gameshuffle.co"
+  },
+  "digital_lists": {
+    "_rule": "Britton, 2026-10-09: every checklist and deck list is digital, not printed. Each list shows in the order email and on the order page once it has a url; null keeps it hidden.",
+    "lists": [
+      { "id": "collect-all-30", "title": "Collect all 30 checklist", "url": "/pokemon-tcg/checklists/30th-celebration-pikachu", "skus": ["thirty-hunt-1", "thirty-hunt-3"] },
+      { "id": "thirty-set-artists", "title": "Artist checklist", "url": "/pokemon-tcg/checklists/30th-celebration-pikachu", "skus": ["thirty-set", "thirty-set-jp"] },
+      { "id": "set-builder-checklist", "title": "Set Builder checklist", "url": "/pokemon-tcg/checklists/ascended-heroes-commons-uncommons", "skus": ["set-builder-100"] },
+      { "id": "deck-list", "title": "Deck list", "url": null, "skus": ["ready-deck"] }
+    ]
+  },
+  "returns": {
+    "_rule": "Britton, 2026-10-09: Pokémon card products are final sale; no returns because of which Pikachu or hit is in a pack. Damage in transit and missing guaranteed contents: the buyer chooses a replacement or a refund, no photo or deadline required (same as our TCGplayer sales). Cards aim for Near Mint; some may be Lightly Played per TCGplayer's condition guidelines.",
+    "final_sale_categories": [
+      "tcg"
+    ]
+  }
+}

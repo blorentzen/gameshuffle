@@ -9,6 +9,7 @@
  * default wheel is the one `!spin` uses; the Hub can pick any wheel.
  */
 
+import { AdminRowMenu } from "@/components/account/admin/AdminKit";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -25,6 +26,7 @@ import { WheelStylePicker } from "@/components/wheel/WheelStylePicker";
 import { WHEEL_PRESETS, wheelPreset } from "@/data/wheel-presets";
 import { AiPackModal } from "@/components/ai/AiPackModal";
 import { IconSparkles } from "@tabler/icons-react";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import {
   DEFAULT_FILL_STYLE,
@@ -123,7 +125,8 @@ function draftToSegments(d: Draft): WheelSegment[] {
     });
 }
 
-export function WheelsTab() {
+export function WheelsTab({ bare = false }: { bare?: boolean } = {}) {
+  const confirm = useConfirm();
   const [wheels, setWheels] = useState<Wheel[]>([]);
   const [loading, setLoading] = useState(true);
   const [proRequired, setProRequired] = useState(false);
@@ -218,8 +221,10 @@ export function WheelsTab() {
     }
   }
 
-  async function remove(id: string) {
-    await fetch(`/api/account/wheels?id=${encodeURIComponent(id)}`, {
+  async function remove(w: { id: string; name: string }) {
+    const ok = await confirm({ title: `Delete ${w.name}?`, body: "The wheel and its slices go for good. Past spins stay in your history.", confirmLabel: `Delete ${w.name}` });
+    if (!ok) return;
+    await fetch(`/api/account/wheels?id=${encodeURIComponent(w.id)}`, {
       method: "DELETE",
     });
     await load();
@@ -239,13 +244,17 @@ export function WheelsTab() {
   }
 
   return (
-    <div className="account-card">
-      <h2 className="account-tab__heading">Wheels</h2>
-      <p className="account-tab__intro">
-        Build randomized wheels and spin them right on your overlay, from the
-        Hub or with <code>!spin</code> in chat. The <strong>default</strong>{" "}
-        wheel is what <code>!spin</code> uses.
-      </p>
+    <div className={bare ? "wheels-tab" : "account-card"}>
+      {!bare && (
+        <>
+          <h2 className="account-tab__heading">Wheels</h2>
+          <p className="account-tab__intro">
+            Build randomized wheels and spin them right on your overlay, from the
+            Hub or with <code>!spin</code> in chat. The <strong>default</strong>{" "}
+            wheel is what <code>!spin</code> uses.
+          </p>
+        </>
+      )}
 
       <div style={{ margin: "var(--spacing-16) 0", display: "flex", flexWrap: "wrap", gap: "var(--spacing-12)", alignItems: "center" }}>
         <Button
@@ -306,14 +315,12 @@ export function WheelsTab() {
                   {w.segments.length} segment{w.segments.length === 1 ? "" : "s"}
                 </span>
               </div>
-              <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
-                <Button variant="secondary" size="small" onClick={() => setDraft(toDraft(w))}>
+              <span className="admin-row-actions">
+                <Button variant="ghost" size="small" onClick={() => setDraft(toDraft(w))} aria-label={`Edit ${w.name}`}>
                   Edit
                 </Button>
-                <Button variant="ghost" size="small" onClick={() => void remove(w.id)}>
-                  Delete
-                </Button>
-              </div>
+                <AdminRowMenu label={`More for ${w.name}`} items={[{ label: `Delete ${w.name}`, danger: true, onClick: () => void remove(w) }]} />
+              </span>
             </div>
           ))}
         </div>

@@ -40,8 +40,9 @@ export function ProToolCta() {
             maxWidth: "52rem",
           }}
         >
-          Free to use solo. Create an account to save your setups, or go Pro to run every tool
-          live on your OBS overlay, driven by your chat and channel-point rewards.
+          Free to use solo. With a free account your dice, coin, timer and wheel looks follow you
+          to every device. GS Pro puts every tool on your OBS overlay in the same looks, run by
+          your chat and channel-point rewards.
         </p>
         <Stack direction="horizontal" gap={12} justify="center" wrap>
           <AuthAwareCTA

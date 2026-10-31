@@ -6,10 +6,20 @@ import {
   normalizeTier,
 } from "@/lib/subscription";
 import { StuffTabs } from "@/components/account/StuffTabs";
+import { createServiceClient } from "@/lib/supabase/admin";
+import { getPlatformFlag } from "@/lib/platform/flags";
+import { accountOrders } from "@/lib/store/lookup";
+import { isStaffRole } from "@/lib/subscription";
+
+/** Payouts shows once paid entry is on, or for an organizer who already has a payout account. */
+async function showPayoutsFor(userId: string): Promise<boolean> {
+  if (await getPlatformFlag("paid_tickets_enabled")) return true;
+  const { count, error } = await createServiceClient().from("gs_connect_accounts").select("user_id", { count: "exact", head: true }).eq("user_id", userId);
+  return !error && (count ?? 0) > 0;
+}
 
 /**
- * "My Stuff" section page — a player's personal content: Setups & Games,
- * Tournaments, and My Cards (the collection). Middleware already protects
+ * "My Stuff" section page: Events, Purchases, Saved configs and My Collection. Middleware already protects
  * `/account/*` for auth; we resolve `companion.collection` (currently a free
  * capability) so the My Cards tab shows the right add/upgrade state. The
  * shared shell + sidebar live in `src/app/account/layout.tsx`.
@@ -23,7 +33,7 @@ export default async function MyStuffPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("subscription_tier, role, circuit_tier, circuit_status")
+    .select("subscription_tier, role, circuit_tier, circuit_status, timezone")
     .eq("id", user.id)
     .maybeSingle();
   const capUser = {
@@ -32,8 +42,13 @@ export default async function MyStuffPage() {
     circuitTier: (profile?.circuit_tier as string | null) ?? null,
     circuitStatus: (profile?.circuit_status as string | null) ?? null,
   };
-  effectiveTier(capUser); // upgrades staff/admin for the capability check
-  const isPro = hasCapability(capUser, "companion.collection");
+  const canCollect = hasCapability(capUser, "companion.collection");
+  // Real GS Pro: no My Cards cap (free accounts hold MY_CARDS_FREE_LIMIT different cards).
+  const isPro = effectiveTier(capUser) === "pro";
 
-  return <StuffTabs isPro={isPro} />;
+  // Shop orders: hidden while the shop is (2026-10-10), except for staff and anyone with an order.
+  const showShopOrders = (await getPlatformFlag("shop_open", false)) || isStaffRole(capUser.role)
+    || (await accountOrders(user.id, user.email_confirmed_at ? user.email ?? null : null).catch(() => [])).length > 0;
+
+  return <StuffTabs isPro={canCollect} unlimitedCards={isPro} showPayouts={await showPayoutsFor(user.id)} showShopOrders={showShopOrders} timeZone={(profile?.timezone as string | null) ?? null} />;
 }

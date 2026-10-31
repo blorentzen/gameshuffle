@@ -31,32 +31,45 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
 import { Alert, Button, Card, Modal, Tabs } from "@empac/cascadeds";
-import { IconBrain, IconCalendarWeek, IconCheck, IconPuzzle } from "@tabler/icons-react";
+import { IconBrain, IconBulb, IconCalendarWeek, IconCheck, IconPuzzle, IconUsersGroup } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { DailyShuffle } from "@/components/originals/DailyShuffle";
+import { DailyDex } from "@/components/originals/DailyDex";
+import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { WeeklyChallenge } from "@/components/originals/WeeklyChallenge";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
+import { ActivityTrivia } from "@/components/activity/ActivityTrivia";
+import { ActivityRoom } from "@/components/activity/ActivityRoom";
+import { DailyCallStrip } from "@/components/activity/DailyCallStrip";
+import { GameHeader } from "@/components/activity/GameInfo";
+import type { RoomPeek } from "@/lib/activity/roomRules";
 import { OriginalsHostProvider, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { IconField } from "@/components/events/EventHeaderArt";
 import { SITE_URL } from "@/lib/seo";
 
-type TabId = "daily" | "weekly" | "brain";
-const TAB_IDS: TabId[] = ["daily", "weekly", "brain"];
-const TAB_NAMES: Record<TabId, string> = { daily: "The Daily", weekly: "The Weekly", brain: "Chat Brain" };
-const TAB_GLYPHS: Record<TabId, typeof IconPuzzle> = { daily: IconPuzzle, weekly: IconCalendarWeek, brain: IconBrain };
+type TabId = "daily" | "weekly" | "brain" | "trivia" | "room";
+const TAB_IDS: TabId[] = ["daily", "weekly", "brain", "trivia", "room"];
+const TAB_NAMES: Record<TabId, string> = { daily: "The Daily", weekly: "The Weekly", brain: "Chat Brain", trivia: "Trivia", room: "Play together" };
+const TAB_GLYPHS: Record<TabId, typeof IconPuzzle> = { daily: IconPuzzle, weekly: IconCalendarWeek, brain: IconBrain, trivia: IconBulb, room: IconUsersGroup };
+const GAME_NAMES: Record<string, string> = { quickfire: "quick-fire rounds", roll: "Roll for the call" };
+/** How often the other tabs check whether anyone is playing together in this call. */
+const PEEK_MS = 6_000;
 
 /** The site's drifting Tabler glyph field (as on its hero bands), for every navy surface here. */
 function Field({ seed, opacity = 0.12 }: { seed: string; opacity?: number }) {
   return <IconField category="originals" seed={seed} opacity={opacity} className="gs-activity__field" />;
 }
-const asTab = (x: string | null | undefined): TabId | null => (TAB_IDS.includes(x as TabId) ? (x as TabId) : null);
+const asTab = (x: string | null | undefined): TabId | null => (x === "dex" ? "daily" : TAB_IDS.includes(x as TabId) ? (x as TabId) : null);
+/** The Daily tab plays both dailies: a "Play the Dex" button (or ?tab=dex) opens it on the Dex. */
+type DailyGame = "shuffle" | "dex";
+const asDailyGame = (x: string | null | undefined): DailyGame => (x === "dex" ? "dex" : "shuffle");
 
 interface Player { id: string; name: string; avatar: string | null; linked: boolean }
 type Phase =
   | { kind: "starting" }
   | { kind: "outside" }
   | { kind: "error"; message: string }
-  | { kind: "ready"; session: string; player: Player; startTab: TabId };
+  | { kind: "ready"; session: string; player: Player; startTab: TabId; startGame: DailyGame };
 
 const ERRORS: Record<string, string> = {
   not_configured: "GameShuffle isn't set up for Discord yet. Try again later.",
@@ -94,11 +107,13 @@ function previewMode(): "linked" | "guest" | null {
 }
 
 async function startPreview(as: "linked" | "guest"): Promise<Phase> {
-  const name = new URLSearchParams(window.location.search).get("name");
-  const j = (await fetch(`/api/activity/dev-session?as=${as}${name ? `&name=${encodeURIComponent(name)}` : ""}`).then((r) => r.json()).catch(() => null)) as { ok?: boolean; session?: string; user?: Player } | null;
+  const q = new URLSearchParams(window.location.search);
+  const name = q.get("name");
+  const room = q.get("room");
+  const j = (await fetch(`/api/activity/dev-session?as=${as}${name ? `&name=${encodeURIComponent(name)}` : ""}${room ? `&room=${encodeURIComponent(room)}` : ""}`).then((r) => r.json()).catch(() => null)) as { ok?: boolean; session?: string; user?: Player } | null;
   if (!j?.ok || !j.session || !j.user) return { kind: "error", message: "Preview sign-in failed. Is the dev server using the dev database?" };
-  const tab = asTab(new URLSearchParams(window.location.search).get("tab")) ?? "daily";
-  return { kind: "ready", session: j.session, player: j.user, startTab: tab };
+  const asked = new URLSearchParams(window.location.search).get("tab");
+  return { kind: "ready", session: j.session, player: j.user, startTab: asTab(asked) ?? "daily", startGame: asDailyGame(asked) };
 }
 
 function inDiscord(): boolean {
@@ -115,14 +130,14 @@ async function start(clientId: string): Promise<Phase> {
   if (!j?.ok || !j.accessToken || !j.session || !j.user) return { kind: "error", message: ERRORS[j?.error ?? ""] ?? ERRORS.discord_unavailable };
   await sdk.commands.authenticate({ access_token: j.accessToken });
   // A Play button's choice, else a shared link's (custom_id), else today's Daily.
-  return { kind: "ready", session: j.session, player: j.user, startTab: asTab(j.startTab) ?? asTab(sdk.customId) ?? "daily" };
+  return { kind: "ready", session: j.session, player: j.user, startTab: asTab(j.startTab) ?? asTab(sdk.customId) ?? "daily", startGame: asDailyGame(j.startTab ?? sdk.customId) };
 }
 
 /** The Activity twin of a site API path. */
 function activityPath(path: string): string {
   return path
     .replace(/^\/api\/chat-brain(?=[/?]|$)/, "/api/activity/brain")
-    .replace(/^\/api\/(daily|weekly)(?=[/?]|$)/, "/api/activity/$1");
+    .replace(/^\/api\/(dailies|daily|weekly)(?=[/?]|$)/, "/api/activity/$1");
 }
 
 function avatarUrl(p: Player): string | null {
@@ -132,6 +147,7 @@ function avatarUrl(p: Player): string | null {
 export function ActivityApp({ clientId }: { clientId: string | null }) {
   const [phase, setPhase] = useState<Phase>({ kind: "starting" });
   const [tab, setTab] = useState<TabId>("daily");
+  const [dailyGame, setDailyGame] = useState<DailyGame>("shuffle");
   const toast = useToast();
   const [welcomeOpen, setWelcomeOpen] = useState(false);
   /** When "Sign up free" was tapped; null when we're not watching for a new account. */
@@ -141,7 +157,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
     const preview = previewMode();
     if (preview) {
       void startPreview(preview).then((p) => {
-        if (p.kind === "ready") { setTab(p.startTab); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
+        if (p.kind === "ready") { setTab(p.startTab); setDailyGame(p.startGame); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
         setPhase(p);
       });
       return;
@@ -154,7 +170,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
     });
     void signIn.then((p) => {
       if (p.kind === "error") signIn = null; // Try again starts a fresh sign-in.
-      if (p.kind === "ready") { setTab(p.startTab); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
+      if (p.kind === "ready") { setTab(p.startTab); setDailyGame(p.startGame); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
       setPhase(p);
     });
   }, [clientId]);
@@ -200,6 +216,30 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
     return () => { stopped = true; clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", onVisible); };
   }, [signupSince, session, toast]);
 
+  // Is anyone playing together in this call? Checked from the other tabs, so a
+  // game starting gets a "Join" toast and the tab shows how many are in.
+  const [peek, setPeek] = useState<RoomPeek | null>(null);
+  useEffect(() => {
+    if (!session || tab === "room") return;
+    let stopped = false;
+    let lastGame: string | null | undefined;
+    const check = async () => {
+      const r = await fetch("/api/activity/room?peek=1", { headers: { Authorization: `Bearer ${session}` }, cache: "no-store" }).catch(() => null);
+      const j = (await r?.json().catch(() => null)) as { ok?: boolean; ready?: boolean; inCall?: boolean; peek?: RoomPeek | null } | null;
+      if (stopped) return;
+      if (!j?.ok || j.ready === false || j.inCall === false) { stopped = true; clearInterval(timer); return; }
+      const p = j.peek ?? null;
+      setPeek(p);
+      if (lastGame !== undefined && p?.game && p.game !== lastGame) {
+        toast.info(`${p.host ?? "Someone"} started ${GAME_NAMES[p.game] ?? "a game"} in Play together.`, { action: { label: "Join", onClick: () => setTab("room") } });
+      }
+      lastGame = p?.game ?? null;
+    };
+    const timer = setInterval(() => void check(), PEEK_MS);
+    void check();
+    return () => { stopped = true; clearInterval(timer); };
+  }, [session, tab, toast]);
+
   const host = useMemo<OriginalsHost | null>(() => {
     if (!session) return null;
     return {
@@ -222,6 +262,11 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
           }
         },
         showTab: (t) => { setTab(t); window.scrollTo({ top: 0 }); },
+        pickDaily: (g) => {
+          if (g === "weekly") setTab("weekly");
+          else { setDailyGame(g); setTab("daily"); }
+          window.scrollTo({ top: 0 });
+        },
         signUp: startSignup,
       },
     };
@@ -294,25 +339,43 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
             onChange={(id) => setTab(asTab(id) ?? "daily")}
             className="gs-activity__tabs"
             tabs={[
-              { id: "daily", label: "Daily", icon: <IconPuzzle size={16} />, content: <DailyShuffle /> },
+              {
+                id: "daily", label: "Daily", icon: <IconPuzzle size={16} />,
+                content: (
+                  <DailiesProvider current={dailyGame}>
+                    <GameHeader game={dailyGame === "dex" ? "dex" : "daily"} />
+                    <DailiesBar current={dailyGame} onPick={host.activity?.pickDaily} />
+                    <DailyCallStrip active={tab === "daily"} game={dailyGame} />
+                    {dailyGame === "dex" ? <DailyDex key="dex" /> : <DailyShuffle key="shuffle" />}
+                  </DailiesProvider>
+                ),
+              },
+              {
+                id: "room", label: peek?.players && tab !== "room" ? `Together · ${peek.players}` : "Together", icon: <IconUsersGroup size={16} />,
+                content: <ActivityRoom active={tab === "room"} />,
+              },
               {
                 id: "weekly", label: "Weekly", icon: <IconCalendarWeek size={16} />,
                 content: (
-                  <>
+                  <DailiesProvider current="weekly">
+                    <GameHeader game="weekly" />
+                    <DailiesBar current="weekly" onPick={host.activity?.pickDaily} />
                     {!player.linked && <LinkNote onOpen={startSignup} />}
                     <WeeklyChallenge />
-                  </>
+                  </DailiesProvider>
                 ),
               },
               {
                 id: "brain", label: "Chat Brain", icon: <IconBrain size={16} />,
                 content: (
                   <div className="gs-activity__brain">
-                    <ChatBrainAsk source="activity" eyebrow="Chat Brain" title="Say the first thing that comes to mind" headingLevel="h2" />
+                    <GameHeader game="brain" />
+                    <ChatBrainAsk source="activity" eyebrow="Quick survey" title="Say the first thing that comes to mind" headingLevel="h2" />
                     <p className="gs-activity__muted">Once enough people answer a question, the top answers become a board you can play on GameShuffle.</p>
                   </div>
                 ),
               },
+              { id: "trivia", label: "Trivia", icon: <IconBulb size={16} />, content: <><GameHeader game="trivia" /><ActivityTrivia active={tab === "trivia"} /></> },
             ]}
           />
           </main>
@@ -328,7 +391,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
         secondaryAction={{ label: "Play without an account", onClick: () => { markWelcomeSeen(); setWelcomeOpen(false); } }}
       >
         <div className="gs-activity__welcome">
-          <p>Play the Daily, the Weekly and Chat Brain right here. A free GameShuffle account adds:</p>
+          <p>Play the Daily, the Weekly, Chat Brain and trivia right here, and quick-fire games with everyone in the call. A free GameShuffle account adds:</p>
           <ul>
             {ACCOUNT_POINTS.map((pt) => <li key={pt}><IconCheck size={16} stroke={2.2} aria-hidden /> {pt}</li>)}
           </ul>
@@ -356,7 +419,7 @@ function OutsideDiscord() {
         {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
         <img src="/images/fg/logos/gameshuffle-primary.svg" alt="GameShuffle" className="gs-activity__logo" width={180} height={32} />
         <h1 className="gs-activity__title">GameShuffle for Discord</h1>
-        <p className="gs-activity__muted">This page runs inside Discord. Open GameShuffle from the App Launcher in any server or DM to play the Daily, the Weekly and Chat Brain with your friends.</p>
+        <p className="gs-activity__muted">This page runs inside Discord. Open GameShuffle from the App Launcher in any server or DM to play the Daily, the Weekly, Chat Brain, trivia and quick-fire games with your friends in the call.</p>
         <p className="gs-activity__muted">Or play them on the site: <a href={`${SITE_URL}/daily`}>the Daily</a>, <a href={`${SITE_URL}/weekly`}>the Weekly</a> and <a href={`${SITE_URL}/chat-brain`}>Chat Brain</a>.</p>
       </Card>
     </main>

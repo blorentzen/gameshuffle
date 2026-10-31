@@ -101,8 +101,8 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
   );
 
   return (
-    <aside className="current-settings" aria-label="Current session settings">
-      <h3 className="current-settings__title">{session.name}</h3>
+    <aside className="current-settings" aria-label="This stream's settings">
+      <h2 className="current-settings__title">{session.name}</h2>
 
       <section className="current-settings__section">
         <p className="current-settings__label">Now playing</p>
@@ -111,8 +111,8 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
 
       {configuredGames.length > 1 && (
         <section className="current-settings__section">
-          <p className="current-settings__label">All games this session</p>
-          <div className="current-settings__scroller">
+          <p className="current-settings__label">All games this stream</p>
+          <div className="current-settings__scroller" role="region" aria-label="All games this stream" tabIndex={0}>
             <ul className="current-settings__game-chips">
               {configuredGames.map((slug) => (
                 <li key={slug}>
@@ -124,16 +124,14 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
         </section>
       )}
 
-      <section className="current-settings__section">
-        <p className="current-settings__label">
-          Races this round{races.length > 0 && (
-            <span className="current-settings__sub">
-              {" "}· {races.length}
-            </span>
-          )}
-        </p>
-        {races.length > 0 ? (
-          <div className="current-settings__scroller">
+      {/* Races and items show once they're rolled; an empty "Not yet rolled"
+          row is left out (Britton's pick, 2026-10-19). */}
+      {races.length > 0 && (
+        <section className="current-settings__section">
+          <p className="current-settings__label">
+            Races this round<span className="current-settings__sub"> · {races.length}</span>
+          </p>
+          <div className="current-settings__scroller" role="region" aria-label="Races this round" tabIndex={0}>
             <ul className="current-settings__race-tiles">
               {races.map((race) => (
                 <li key={race.key}>
@@ -142,38 +140,36 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
               ))}
             </ul>
           </div>
-        ) : (
-          <p className="current-settings__empty">
-            <em>Not yet rolled</em>
-          </p>
-        )}
-      </section>
+        </section>
+      )}
 
-      <section className="current-settings__section">
-        <p className="current-settings__label">
-          Current items
-          {currentItems.presetName && (
-            <span className="current-settings__sub">
-              {" "}· {currentItems.presetName}
-            </span>
-          )}
-        </p>
-        {currentItems.items.length > 0 ? (
-          <div className="current-settings__scroller">
-            <ul className="current-settings__item-tiles">
-              {currentItems.items.map((item) => (
-                <li key={item.id}>
-                  <ItemTileItem item={item} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="current-settings__empty">
-            <em>{currentItems.presetName ? "No catalog for this mode" : "Not yet rolled"}</em>
+      {(currentItems.items.length > 0 || currentItems.presetName) && (
+        <section className="current-settings__section">
+          <p className="current-settings__label">
+            Current items
+            {currentItems.presetName && (
+              <span className="current-settings__sub">
+                {" "}· {currentItems.presetName}
+              </span>
+            )}
           </p>
-        )}
-      </section>
+          {currentItems.items.length > 0 ? (
+            <div className="current-settings__scroller" role="region" aria-label="Current items" tabIndex={0}>
+              <ul className="current-settings__item-tiles">
+                {currentItems.items.map((item) => (
+                  <li key={item.id}>
+                    <ItemTileItem item={item} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="current-settings__empty">
+              <em>No catalog for this mode</em>
+            </p>
+          )}
+        </section>
+      )}
     </aside>
   );
 }
@@ -193,7 +189,7 @@ function ActiveGameRow({
         <div className="current-settings__active-game-img">
           <Image
             src={art.artworkUrl}
-            alt={art.name}
+            alt=""
             width={48}
             height={48}
             unoptimized
@@ -236,7 +232,7 @@ function RaceTileItem({ race }: { race: RaceTile }) {
       {race.image ? (
         <Image
           src={getImagePath(race.image)}
-          alt={race.name}
+          alt=""
           width={104}
           height={58}
           unoptimized
@@ -255,7 +251,7 @@ function ItemTileItem({ item }: { item: Item }) {
       {item.image ? (
         <Image
           src={getImagePath(item.image)}
-          alt={item.name}
+          alt=""
           width={40}
           height={40}
           unoptimized

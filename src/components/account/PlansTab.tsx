@@ -10,6 +10,7 @@
  *   Pro trialing → Trial end date + Manage Billing
  *   Pro ending   → cancel_at_period_end = true, "Access through {date}"
  *   Pro past_due → Payment failure banner + Manage Billing
+ *   Circuit 256  → "Included with GS Circuit 256" (it carries Pro), no checkout
  *   Free         → Start 14-day Pro trial / Go Pro (monthly vs annual)
  *
  * Checkout + portal flows are handled via the /api/stripe/* endpoints,
@@ -18,12 +19,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button, Card } from "@empac/cascadeds";
+import { Alert, Badge, Button, Card } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isStaffRole } from "@/lib/subscription";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
 import { BillingManager } from "./BillingManager";
+import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
+import { useSupportStatus } from "@/components/support/useSupportStatus";
+import { dollars, levelGrantsPro, supportLevel } from "@/lib/support/rules";
 import { circuitTier as getCircuitTier, type CircuitTierId } from "@/lib/tournaments/circuit";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
@@ -58,6 +63,8 @@ type BillingStatus =
   | "pro_active"
   | "pro_ending"
   | "pro_past_due"
+  | "circuit_pro"
+  | "support_pro"
   | "free";
 
 function formatDate(iso: string | null): string {
@@ -76,6 +83,7 @@ export function PlansTab() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const [billingStatus, setBillingStatus] = useState<BillingStatus>("loading");
+  const supportStatus = useSupportStatus();
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [userRow, setUserRow] = useState<UserBillingRow | null>(null);
   const [portalWorking, setPortalWorking] = useState(false);
@@ -86,6 +94,8 @@ export function PlansTab() {
   // Organizer billing is still in preview. The ladder must say so rather than
   // offering paid buttons the marketing page contradicts.
   const [billingEnabled, setBillingEnabled] = useState(false);
+  // Organizers who ran tournaments before Circuit launched: free Circuit until then (Terms §3.4).
+  const [circuitGraceLabel, setCircuitGraceLabel] = useState<string | null>(null);
   // Initial flash reflects the ?checkout=success/canceled query param Stripe
   // bounces us back with. Read once at mount (lazy initializer) so we don't
   // need an effect that would trigger the "setState in effect" lint.
@@ -126,6 +136,8 @@ export function PlansTab() {
           .from("subscriptions")
           .select("status, tier, price_id, current_period_end, cancel_at_period_end, trial_end")
           .eq("user_id", user.id)
+          // Pro rows only: GS Circuit plans live in the same table and were read as Pro.
+          .eq("product", "pro")
           .order("updated_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -152,7 +164,11 @@ export function PlansTab() {
     let cancelled = false;
     fetch("/api/tournaments/billing-status")
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (!cancelled && j) setBillingEnabled(!!j.billingEnabled); })
+      .then((j) => {
+        if (cancelled || !j) return;
+        setBillingEnabled(!!j.billingEnabled);
+        setCircuitGraceLabel(j.graceUntil ? new Date(j.graceUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" }) : null);
+      })
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
@@ -220,7 +236,9 @@ export function PlansTab() {
   const limitRows = aiLimits
     ? [...FREE_VS_PRO, { label: "AI uses", free: `${aiLimits.freePerDay} a day (setup, planner, tournament helper)`, pro: `${aiLimits.proPer30d} every 30 days, every AI tool` }]
     : FREE_VS_PRO;
-  const pro = describeProPlan(billingStatus, subscription);
+  // GS Pro from a Backer or Champion support level (no GS Pro plan of its own).
+  const proStatus: BillingStatus = billingStatus === "free" && levelGrantsPro(supportStatus?.level) ? "support_pro" : billingStatus;
+  const pro = describeProPlan(proStatus, subscription);
   const circuit = describeCircuitPlan(userRow);
   const proPrice = pricing.plans.pro ?? { monthly: 9, annual: 99 };
   const proSave =
@@ -259,7 +277,12 @@ export function PlansTab() {
         alert={pro.alert}
         learnMore={{ href: "/gs-pro", label: "Learn more about GameShuffle Pro" }}
       >
-        {pro.free ? (
+        {pro.viaSupport ? (
+          <>
+            <p style={{ ...mutedNote, marginTop: 0 }}>GS Pro comes with your Backer or Champion support and stays on while your support does.</p>
+            <div><Link href="/account?tab=support"><Button variant="secondary">Your support</Button></Link></div>
+          </>
+        ) : pro.free ? (
           <>
             <p className="plan-price">
               {usd(proPrice.monthly)}
@@ -293,6 +316,9 @@ export function PlansTab() {
         )}
       </PlanCard>
 
+      {/* Support GameShuffle: beside GS Pro, the same weight (Britton's picks, 2026-10-19). */}
+      <SupportPlanCard />
+
       {/* GameShuffle Circuit */}
       <PlanCard
         name="GameShuffle Circuit"
@@ -317,6 +343,7 @@ export function PlansTab() {
               onAnnualChange={setAnnual}
               currentTier={(userRow?.circuit_tier as CircuitTierId | null) ?? "free"}
               billingEnabled={billingEnabled}
+              graceLabel={circuitGraceLabel}
               busyTier={busyTier}
               onSubscribe={subscribeCircuit}
             />
@@ -337,9 +364,30 @@ export function PlansTab() {
 
 const mutedNote: React.CSSProperties = { color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 };
 
+/** Support GameShuffle in Plans & billing: where you stand, and the way to Account ▸ Support. */
+function SupportPlanCard() {
+  const s = useSupportStatus();
+  if (!s) return null;
+  const rows = [
+    ...(s.supporter && s.since ? [{ label: "Supporter since", value: new Date(s.since).toLocaleDateString(undefined, { month: "long", year: "numeric" }) }] : []),
+    ...(s.monthly ? [{ label: supportLevel(s.monthly.level)?.name ?? "Monthly", value: `${dollars(s.monthly.amountCents)} a month${s.monthly.renewsAt ? ` · ${s.monthly.cancelAtPeriodEnd ? "stops after" : "next"} ${formatDate(s.monthly.renewsAt)}` : ""}` }] : []),
+  ];
+  return (
+    <PlanCard
+      name="Support GameShuffle"
+      subtitle="For everyone: support once, or monthly as a Supporter, a Backer (GS Pro included) or a Champion, to keep the free games free."
+      status={s.supporter ? { label: s.monthly ? supportLevel(s.monthly.level)?.name ?? "Monthly supporter" : "Supporter", tone: "active" } : { label: "Not yet", tone: "muted" }}
+      rows={rows}
+      learnMore={{ href: "/support", label: "See the supporters wall" }}
+    >
+      <div><Link href="/account?tab=support"><Button variant={s.supporter ? "secondary" : "primary"}>{s.supporter ? "Your support" : "Support GameShuffle"}</Button></Link></div>
+    </PlanCard>
+  );
+}
+
 type PillTone = "active" | "trial" | "warn" | "muted";
 interface PlanStatus { label: string; tone: PillTone; }
-interface PlanDesc { status: PlanStatus; rows: { label: string; value: string }[]; alert?: string; free?: boolean; reactivate?: boolean; subscribed?: boolean; }
+interface PlanDesc { status: PlanStatus; rows: { label: string; value: string }[]; alert?: string; free?: boolean; reactivate?: boolean; subscribed?: boolean; viaSupport?: boolean; }
 
 function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | null): PlanDesc {
   switch (billingStatus) {
@@ -351,6 +399,10 @@ function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | nu
       return { status: { label: "Active", tone: "active" }, rows: sub?.current_period_end ? [{ label: "Renews", value: formatDate(sub.current_period_end) }] : [] };
     case "pro_ending":
       return { status: { label: "Canceling", tone: "warn" }, rows: sub?.current_period_end ? [{ label: "Access through", value: formatDate(sub.current_period_end) }] : [], reactivate: true };
+    case "circuit_pro":
+      return { status: { label: "Included with GS Circuit 256", tone: "active" }, rows: [] };
+    case "support_pro":
+      return { status: { label: "Included with your support", tone: "active" }, rows: [], viaSupport: true };
     case "pro_past_due":
       return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues while Stripe retries the payment. Update your card to keep it going." };
     default:
@@ -372,23 +424,8 @@ function describeCircuitPlan(u: UserBillingRow | null): PlanDesc {
 }
 
 function StatusPill({ status }: { status: PlanStatus }) {
-  const bg: Record<PillTone, string> = {
-    active: "color-mix(in srgb, var(--success-500, #16a34a) 16%, var(--surface-default))",
-    trial: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))",
-    warn: "color-mix(in srgb, var(--warning-500, #d97706) 18%, var(--surface-default))",
-    muted: "var(--background-secondary)",
-  };
-  const fg: Record<PillTone, string> = {
-    active: "var(--success-700, #15803d)",
-    trial: "var(--primary-700, var(--primary-600))",
-    warn: "var(--warning-700, #b45309)",
-    muted: "var(--text-tertiary)",
-  };
-  return (
-    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: 999, background: bg[status.tone], color: fg[status.tone], whiteSpace: "nowrap" }}>
-      {status.label}
-    </span>
-  );
+  const variant: Record<PillTone, "success" | "info" | "warning" | "default"> = { active: "success", trial: "info", warn: "warning", muted: "default" };
+  return <Badge variant={variant[status.tone]} size="small">{status.label}</Badge>;
 }
 
 function PlanCard({ name, subtitle, status, rows, alert, learnMore, children }: { name: string; subtitle: string; status: PlanStatus; rows?: { label: string; value: string }[]; alert?: string; learnMore?: { href: string; label: string }; children?: React.ReactNode }) {
@@ -419,7 +456,7 @@ function PlanCard({ name, subtitle, status, rows, alert, learnMore, children }: 
 
       {learnMore && (
         <div style={{ marginTop: "var(--spacing-12)" }}>
-          <a href={learnMore.href} style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--bg-primary, var(--primary-600))", textDecoration: "none" }}>{learnMore.label} →</a>
+          <ArrowLink href={learnMore.href} plain style={{ fontSize: "var(--font-size-14)" }}>{learnMore.label}</ArrowLink>
         </div>
       )}
     </Card>
@@ -431,13 +468,15 @@ function resolveBillingStatus(
   u: UserBillingRow | null
 ): BillingStatus {
   if (isStaffRole(u?.role ?? null)) return "staff";
-  if (!sub) return "free";
+  // GS Circuit 256 includes Pro, so it's never offered Pro again.
+  const circuitPro = u?.circuit_tier === "circuit_256" && !!u?.circuit_status && ["active", "trialing", "past_due"].includes(u.circuit_status);
+  if (!sub) return circuitPro ? "circuit_pro" : "free";
   if (sub.status === "trialing") return "pro_trialing";
   if (sub.status === "past_due") return "pro_past_due";
   if (sub.status === "active") {
     return sub.cancel_at_period_end ? "pro_ending" : "pro_active";
   }
   // canceled / incomplete_expired / unpaid / incomplete
-  return "free";
+  return circuitPro ? "circuit_pro" : "free";
 }
 

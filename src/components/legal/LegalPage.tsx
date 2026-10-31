@@ -11,6 +11,7 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { Card, Container, Stack } from "@empac/cascadeds";
+import { ARROW_HOST_CLASS, ArrowCue } from "@/components/ui/ArrowLink";
 
 export interface LegalSection {
   /** Stable URL anchor (kebab-case). */
@@ -39,7 +40,7 @@ export interface LegalPageProps {
   /** Slug of *this* page — controls which siblings appear in the footer strip.
    *  Non-policy pages (e.g. "tcg-attribution") aren't in the sibling set, so
    *  the footer strip shows all four policies for them. */
-  current: "privacy" | "terms" | "cookie-policy" | "accessibility" | "tcg-attribution";
+  current: "privacy" | "terms" | "cookie-policy" | "accessibility" | "tcg-attribution" | "shop-policies";
 }
 
 const DEFAULT_OPERATOR = "Britton Lorentzen, doing business as Empac and GameShuffle";
@@ -194,10 +195,10 @@ function SiblingStrip({ current }: { current: LegalPageProps["current"] }) {
         {others.map((slug) => {
           const s = SIBLINGS[slug];
           return (
-            <Card key={slug} variant="outlined" padding="medium" interactive href={s.href} className="legal-page-v2__sibling-card">
+            <Card key={slug} variant="outlined" padding="medium" interactive href={s.href} className={`legal-page-v2__sibling-card ${ARROW_HOST_CLASS}`}>
               <p className="legal-page-v2__sibling-title">{s.title}</p>
               <p className="legal-page-v2__sibling-blurb">{s.blurb}</p>
-              <p className="legal-page-v2__sibling-cta">Read &rarr;</p>
+              <p className="legal-page-v2__sibling-cta"><ArrowCue>Read</ArrowCue></p>
             </Card>
           );
         })}

@@ -6,8 +6,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { CommsIcons } from "@/components/social/CommsIcons";
+import { NavSupport } from "@/components/layout/NavSupport";
 import { NavMenu, type NavItem, type NavSection } from "@/components/layout/NavMenu";
 import { PILLARS, primaryItems, type Pillar } from "@/lib/nav/pillars";
+import { shopHref } from "@/lib/store/links";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -35,6 +37,13 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
  *  forward-facing marketing + app/tool landing pages, for one consistent nav. */
 const HERO_ROUTES = new Set([
   "/",
+  "/welcome",
+  "/mmr-card",
+  "/lounge",
+  "/time-trials",
+  "/time-trials/import",
+  "/game-nights/halloween-party-games",
+  "/game-nights/christmas-party-games",
   "/apps",
   "/tools",
   "/gs-pro",
@@ -74,8 +83,18 @@ const HERO_ROUTES = new Set([
   "/communities",
   // The Originals all open on the violet brand band.
   "/daily",
+  "/daily-dex",
+  "/daily-trivia",
+  "/daily-duel",
   "/weekly",
   "/chat-brain",
+  "/trivia",
+  "/shop",
+  // Also open on BrowseHero (they rendered a solid bar above it until 2026-10-19).
+  "/discord",
+  "/support",
+  "/credits",
+  "/support/thanks",
 ]);
 
 /** Detail routes that lead with a full-bleed hero but cannot be listed in
@@ -89,10 +108,20 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   { prefix: "/competitive/", notIds: new Set() },
   // A shared Chat Brain question (/chat-brain/q/<id>) opens on the same band.
   { prefix: "/chat-brain/q/", notIds: new Set() },
+  // A shared result (/r/<code>) opens on its game's band.
+  { prefix: "/r/", notIds: new Set() },
+  // A lounge player's season (/lounge/<name>); /lounge/find only redirects. Head-to-head pages are below.
+  { prefix: "/lounge/", notIds: new Set(["find", "compare"]) },
 ];
 
 function isHeroPath(pathname: string): boolean {
   if (HERO_ROUTES.has(pathname)) return true;
+  // Trainer Road: the front page, each region and each trainer open on the band.
+  if (/^\/pokemon-trainers(\/[^/]+){0,2}$/.test(pathname)) return true;
+  // Time trials: each game's page and each track's board.
+  if (/^\/time-trials(\/[^/]+){1,2}$/.test(pathname)) return true;
+  // Lounge head-to-head (/lounge/compare/<a>/<b>) opens on the same band.
+  if (/^\/lounge\/compare\/[^/]+\/[^/]+$/.test(pathname)) return true;
   for (const { prefix, notIds } of HERO_DETAIL) {
     if (!pathname.startsWith(prefix)) continue;
     const rest = pathname.slice(prefix.length);
@@ -102,7 +131,8 @@ function isHeroPath(pathname: string): boolean {
   return false;
 }
 
-export function SiteNavbar() {
+/** `shop`: visitors can see the shop (open or Coming soon), so the nav links to it. */
+export function SiteNavbar({ shop = false }: { shop?: boolean }) {
   const { user } = useAuth();
   const pathname = usePathname();
   // Event detail pages open on a hero image. They were rendering the 64px nav
@@ -230,6 +260,7 @@ export function SiteNavbar() {
     : [
         { label: "Log In", href: "/login" },
         { label: "Sign up", href: "/signup" },
+        { label: "New here? Start here", href: "/welcome" },
       ];
 
   // Mobile hamburger: CDS renders a FLAT link list with no group support, so we
@@ -245,6 +276,11 @@ export function SiteNavbar() {
       hdr(p.label),
       ...primaryItems(p, navCtx).flatMap((g) => g.items.map((i) => ({ label: i.label, href: i.href }))),
     ]),
+    ...(shop ? [hdr("Shop"), { label: "GameShuffle shop", href: shopHref("nav") }] : []),
+    // Support first, then GS Pro (support first plan, 2026-10-19; the bar's heart hides on phones).
+    hdr("Support and GS Pro"),
+    { label: "Support GameShuffle", href: "/support" },
+    ...(!isPaid ? [{ label: "GS Pro", href: "/gs-pro" }] : []),
   ];
 
   const floating = isHeroPage && !scrolled;
@@ -278,6 +314,11 @@ export function SiteNavbar() {
                 {PILLARS.map((p) => (
                   <NavMenu key={p.id} label={p.label} sections={pillarSections(p)} pathname={pathname} />
                 ))}
+                {shop && (
+                  <Link href={shopHref("nav")} className={`${pathname.startsWith("/shop") ? "is-active " : ""}${tagged(EVENTS.shopLinkClicked, { from: "nav" })}`}>
+                    Shop
+                  </Link>
+                )}
               </span>
             </span>
           }
@@ -292,17 +333,11 @@ export function SiteNavbar() {
                   <CommsIcons />
                 </span>
               )}
-              {/* Paid gets a standing affordance rather than a nav bucket: a
-                  pricing page is not a destination people seek out, it is a
-                  thing they want when they hit a wall. Signed-in free accounts
-                  only — a signed-out visitor cannot buy Pro without an account,
-                  so this would just compete with Sign up, and /gs-pro is
-                  already the Stream pillar's own entry. */}
-              {user && !isPaid && (
-                <Link href="/gs-pro" className={`gs-nav__upgrade ${tagged(EVENTS.upgradeClicked, { from: "navbar" })}`}>
-                  Go Pro
-                </Link>
-              )}
+              {/* Support leads (support first plan, 2026-10-19): a heart "Support"
+                  button for visitors and free accounts where "Go Pro" used to be,
+                  a thank-you heart for members and supporters. GS Pro keeps its
+                  row in the Stream pillar and its walls. */}
+              <NavSupport signedIn={!!user} paid={isPaid} />
               <span className="navbar-usermenu">
                 <UserMenu />
               </span>

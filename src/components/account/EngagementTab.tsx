@@ -110,7 +110,7 @@ export function EngagementTab() {
         <h2 className="account-tab__heading">Engagement</h2>
         <Alert variant="info">
           Connect Twitch on{" "}
-          <a href="/account/streamer?tab=integrations">Account → Integrations</a>{" "}
+          <a href="/account/streaming?tab=integrations">Streaming ▸ Setup</a>{" "}
           to start your community. Once it&rsquo;s set up, the
           engagement leaderboard will surface here.
         </Alert>
@@ -135,8 +135,8 @@ export function EngagementTab() {
           <p className="account-tab__intro" style={{ marginTop: 0 }}>
             Who&rsquo;s most engaged in your community right now.{" "}
             {data?.scope === "session"
-              ? "Scoped to the active session. Fires + commands during this stream."
-              : "Off-stream snapshot. Covers the last hour of activity."}
+              ? "Counting this stream: chaos events, hype and commands."
+              : "You're offline, so this covers the last hour."}
           </p>
         </div>
         <Button
@@ -164,7 +164,7 @@ export function EngagementTab() {
         <p className="account-tab__empty">
           No engagement signals logged yet. Have someone fire{" "}
           <code>!chaos</code>, <code>!hype</code>, or{" "}
-          <code>!hug @friend</code> and they&rsquo;ll show up here.
+          <code>!hug @friend</code>{" "}and they&rsquo;ll show up here.
         </p>
       ) : (
         <div

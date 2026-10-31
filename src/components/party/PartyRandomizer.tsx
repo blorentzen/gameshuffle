@@ -3,14 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Badge, Button, Card, Chip, Container, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
+  Badge, Button, Chip, Container, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
 import { IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconStarFilled } from "@tabler/icons-react";
+import { ShowAll } from "@/components/ui/ShowAll";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { CardActions } from "@/components/randomizer/CardActions";
+import { SeatCard } from "@/components/randomizer/PlayerCard";
 import { RandomTile } from "@/components/randomizer/RandomTile";
 import { withSeat } from "@/lib/randomizers/seats";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
@@ -382,33 +384,34 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         <div className="party-rules__row">
           <dt>Rules</dt>
           <dd>{ruleset ? <><strong>{roller("rulesetId", ruleset.label, rulesetNames)}</strong>{ruleset.edition === "switch2" && <Badge variant="info" size="small">Switch 2</Badge>}<span className="party-muted">{ruleset.blurb}</span></> : <span className="party-muted">Not rolled yet</span>}</dd>
-          {lockButton("rulesetId", "ruleset")}
+          <dd className="party-rules__lock">{lockButton("rulesetId", "ruleset")}</dd>
         </div>
         <div className="party-rules__row">
           <dt>Turns</dt>
           <dd>{setup ? <><strong>{roller("turns", String(setup.turns), (ruleset?.turns ?? [setup.turns]).map(String))}</strong>{ruleset?.turnLabels?.[String(setup.turns)] && <span className="party-muted">{ruleset.turnLabels[String(setup.turns)]}</span>}</> : <span className="party-muted">Not rolled yet</span>}{ruleset && ruleset.turns.length === 1 && <span className="party-muted">Fixed by {ruleset.label}</span>}</dd>
-          {lockButton("turns", "turn count")}
+          <dd className="party-rules__lock">{lockButton("turns", "turn count")}</dd>
         </div>
         <div className="party-rules__row">
           <dt>Bonus Stars</dt>
           <dd>{bonusMode ? <><strong>{roller("bonusModeId", bonusMode.label, bonusNames)}</strong><span className="party-muted">{bonusMode.blurb}</span></> : <span className="party-muted">Not rolled yet</span>}</dd>
-          {lockButton("bonusModeId", "Bonus Star mode")}
+          <dd className="party-rules__lock">{lockButton("bonusModeId", "Bonus Star mode")}</dd>
         </div>
       </dl>
 
       <section className="party-bonus" aria-labelledby="party-bonus-h">
         <h3 id="party-bonus-h" className="party-h3">What each Bonus Star rewards</h3>
-        <ul className="party-bonus__grid">
-          {game.bonusStars.map((b) => (
-            <li key={b.name}>
-              <Card variant="outlined" padding="medium" className="party-bonus__card">
+        {/* One framed list, not a card per star (containers rule), cut after four (Britton's picks, 2026-10-19). */}
+        <ShowAll height="28rem" label={`Show all ${game.bonusStars.length} Bonus Stars`}>
+          <ul className="party-bonus__list">
+            {game.bonusStars.map((b) => (
+              <li key={b.name} className="party-bonus__row">
                 <span className="party-bonus__icon" aria-hidden><IconStarFilled size={18} /></span>
                 <strong className="party-bonus__name">{b.name}</strong>
                 <span className="party-bonus__rewards">{b.rewards}</span>
-              </Card>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </ShowAll>
       </section>
     </div>
   );
@@ -420,7 +423,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
       <div className="kart-intro">
         <div className="kart-intro__content">
           <h2>Randomize your characters.</h2>
-          <p>Up to {game.seats} players, all different, with CPUs in any empty seats.</p>
+          <p>Everyone gets a different character, and CPUs take any empty seats.</p>
           <div className="kart-intro__actions">
             <Select
               floatingLabel="Players"
@@ -456,21 +459,15 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         {Array.from({ length: seats }, (_, i) => {
           const c = game.characters.find((x) => x.name === chars[i]);
           return (
-            <div key={i} className="player-card">
-              <div className="player-card__header">
-                <div className="player-card__name">
-                  {i < humans ? (
-                    <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24}
-                      onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
-                  ) : <span className="party-seat__cpu">{seatName(i)}</span>}
-                </div>
-                <CardActions refreshLabel={`New character for ${seatName(i)}`} onRefresh={() => rollCharacters(i)} />
-              </div>
-              <ul className="player-card__slots">
-                <KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? characterArt(game, c) ?? null : null} fallback={IMAGE_COMING_SOON} color={c?.color ?? null} pool={reelPool} animate={animateReel} empty={<RandomTile look="party" />} />
-              </ul>
+            <SeatCard key={i} rolled={Boolean(c)} animate={animateReel}
+              name={i < humans ? (
+                <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24}
+                  onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
+              ) : <span className="party-seat__cpu">{seatName(i)}</span>}
+              actions={<CardActions refreshLabel={`New character for ${seatName(i)}`} onRefresh={() => rollCharacters(i)} />}
+              tile={<KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? characterArt(game, c) ?? null : null} fallback={IMAGE_COMING_SOON} color={c?.color ?? null} pool={reelPool} animate={animateReel} empty={<RandomTile look="party" />} />}>
               {c?.buddy && <p className="party-muted">As a Jamboree Buddy: {c.buddy}</p>}
-            </div>
+            </SeatCard>
           );
         })}
       </div>
@@ -618,7 +615,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         {!hero.image && <IconField category="video" seed={game.slug} opacity={0.14} />}
         <Container>
           <div style={{ maxWidth: "600px", position: "relative", zIndex: 2 }}>
-            <p className="marketing-eyebrow">{hero.isNew ? "Free randomizer · New" : "Free randomizer"}</p>
+            <p className="marketing-eyebrow">{hero.isNew ? "New randomizer" : "Free randomizer"}</p>
             <h1 style={{ fontSize: "clamp(2.4rem, 4vw, 4.8rem)", fontWeight: 700, lineHeight: 1.1, marginBottom: "var(--spacing-16)" }}>{hero.title}</h1>
             <p>{hero.lead}</p>
             {/* Lead with the action: roll the board, rules and characters, then show them. */}
@@ -628,7 +625,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
                 rollCharacters();
                 setTab("setup");
                 toolRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }}>Randomize now →</Button>
+              }}>Randomize now</Button>
             </div>
           </div>
         </Container>

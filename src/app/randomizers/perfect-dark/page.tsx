@@ -20,16 +20,16 @@ export default function PerfectDarkRandomizerPage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} accent="violet" field="video" image={GAME_ART["perfect-dark"].hero} primary={{ href: "#play", label: "Roll a match" }} />
+        <BrowseHero eyebrow="New randomizer" title={landing.h1} sub={landing.lead} accent="violet" field="video" image={GAME_ART["perfect-dark"].hero} primary={{ href: "#play", label: "Roll a match" }} />
         <div id="play">
           <Container className="tool-page">
             <NewBanner />
             <PerfectDarkRandomizer />
           </Container>
         </div>
+        <RandomizerNudge gameName="Perfect Dark" saves="your tournaments and game nights" />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Perfect Dark" saves="your tournaments and game nights" />
     </>
   );
 }

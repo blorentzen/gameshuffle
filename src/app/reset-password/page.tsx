@@ -5,15 +5,20 @@
  * /auth/callback has exchanged the code for a session. With that session in
  * hand we call updateUser({ password }) to set a new password, then send the
  * user into the app. If there's no session (link expired / opened cold), we
- * point them back to /forgot-password.
+ * point them back to /forgot-password. An account with two-step verification
+ * enters its code first: Supabase refuses a password change from the aal1
+ * session a reset link gives.
  */
 
-import { describeAuthError } from "@/lib/auth/errors";
+import { describeSupabaseAuthError } from "@/lib/auth/errors";
+import { PASSWORD_HINT, passwordProblem } from "@/lib/auth/passwordRules";
+import { useSecondStep } from "@/lib/auth/useSecondStep";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -24,6 +29,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const second = useSecondStep(hasSession);
 
   useEffect(() => {
     const supabase = createClient();
@@ -36,8 +42,9 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    const problem = passwordProblem(password);
+    if (problem) {
+      setError(problem);
       return;
     }
     if (password !== confirm) {
@@ -49,7 +56,7 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      setError(describeAuthError({ code: error.code, message: error.message }).message);
+      setError(describeSupabaseAuthError(error).message);
       return;
     }
     setDone(true);
@@ -62,7 +69,7 @@ export default function ResetPasswordPage() {
         <div className="auth-page">
           <h1 className="auth-page__title">Set a new password</h1>
 
-          {checking ? (
+          {checking || (hasSession && second.state === "checking") ? (
             <LoadingLines label="Loading" />
           ) : done ? (
             <div className="auth-page__message">
@@ -77,18 +84,27 @@ export default function ResetPasswordPage() {
                 <a href="/forgot-password">Send a new reset link</a>
               </p>
             </div>
+          ) : second.state === "needed" ? (
+            <MfaChallenge
+              cancelLabel="Cancel and sign out"
+              onDone={second.passed}
+              onCancel={async () => { await createClient().auth.signOut(); router.push("/login"); }}
+            />
           ) : (
             <form onSubmit={handleSubmit} className="auth-page__form">
               {error && <div className="auth-page__error">{error}</div>}
+              <p className="auth-page__hint">{PASSWORD_HINT}</p>
               <Input
                 type="password"
-                placeholder="New password (min 8 characters)"
+                autoComplete="new-password"
+                placeholder="New password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
               <Input
                 type="password"
+                autoComplete="new-password"
                 placeholder="Confirm new password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}

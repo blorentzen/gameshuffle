@@ -36,6 +36,10 @@ export const SESSION_EVENT_TYPES = {
   adapter_call: "adapter_call",
   /** Phase 3A — adapter dispatch threw; payload records the failing event + error. */
   adapter_call_failed: "adapter_call_failed",
+  /** Break mode started (src/lib/break/store.ts). payload.minutes. */
+  break_started: "break_started",
+  /** Break mode ended. payload.champion { names, points } | null, payload.handicap. */
+  break_ended: "break_ended",
   /** Phase A — race randomizer rolled a track. payload includes track id, name, cup. */
   track_randomized: "track_randomized",
   /** Phase A — race randomizer rolled an item preset. payload includes preset id, name. */

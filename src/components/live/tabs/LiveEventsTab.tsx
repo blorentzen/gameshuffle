@@ -18,6 +18,11 @@ import { TokenIcon } from "@/components/TokenIcon";
 
 interface Props {
   streamerSlug: string;
+  /** Renders nothing while no modifier or challenge is active, so the live
+   *  page doesn't carry an empty Events section all stream. */
+  hideWhenEmpty?: boolean;
+  /** Section heading, shown only when there's something to show. */
+  title?: string;
 }
 
 const POLL_MS = 10_000;
@@ -37,6 +42,7 @@ function remaining(expiresAt: string, now: number): string {
 }
 
 function describeChallenge(c: LiveChallenge): string {
+  if (c.text) return c.text;
   const cond = c.condition
     ? Object.values(c.condition)
         .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
@@ -46,7 +52,7 @@ function describeChallenge(c: LiveChallenge): string {
   return cond ? `${tidy(c.variableType)}: ${cond}` : tidy(c.variableType);
 }
 
-export function LiveEventsTab({ streamerSlug }: Props) {
+export function LiveEventsTab({ streamerSlug, hideWhenEmpty, title }: Props) {
   const [events, setEvents] = useState<LiveEvents>({ modifiers: [], challenges: [] });
   const [now, setNow] = useState<number>(() => Date.now());
   const inflightRef = useRef<AbortController | null>(null);
@@ -108,9 +114,11 @@ export function LiveEventsTab({ streamerSlug }: Props) {
   );
   const challenges = events.challenges;
   const isEmpty = modifiers.length === 0 && challenges.length === 0;
+  if (isEmpty && hideWhenEmpty) return null;
 
   return (
     <div className="live-events">
+      {title && <h2 className="live-section__title">{title}</h2>}
       <div className="live-events__intro">
         <p>
           Live mayhem from <code>!chaos</code> and <code>!random</code>. Active

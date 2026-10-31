@@ -13,7 +13,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Alert, Input, Modal, Textarea } from "@empac/cascadeds";
+import { Alert, Button, Input, Modal, Textarea } from "@empac/cascadeds";
 import { GameMultiSelect } from "./GameMultiSelect";
 import { createDraftSessionAction } from "@/app/hub/sessions/new/actions";
 
@@ -40,14 +40,16 @@ export function NewSessionModal({
   const [description, setDescription] = useState("");
   const [configuredGames, setConfiguredGames] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [draft, setDraft] = useState<{ slug: string; name: string } | null>(null);
 
   const isTest = defaultTest;
 
   const submit = () => {
     setError(null);
+    setDraft(null);
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("Give your session a name.");
+      setError("Give your stream a name.");
       return;
     }
     startTransition(async () => {
@@ -58,7 +60,8 @@ export function NewSessionModal({
         isTestSession: isTest,
       });
       if (!result.ok || !result.slug) {
-        setError(result.error ?? "Could not create the session.");
+        setError(result.error ?? "Could not create the stream.");
+        setDraft(result.draft ?? null);
         return;
       }
       // Navigate into the new draft's detail page → Settings tab so the
@@ -72,7 +75,7 @@ export function NewSessionModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isTest ? "New test stream" : "New session"}
+      title={isTest ? "New test stream" : "New stream"}
       size="medium"
       primaryAction={{
         label: pending ? "Creating…" : "Create draft",
@@ -83,13 +86,27 @@ export function NewSessionModal({
       <div className="new-session-modal">
         <p className="new-session-modal__intro">
           {isTest
-            ? "Test streams mirror the real flow but skip auto-end + wrap-up. Set the basics now. You'll continue with scheduling, modules, and picks/bans on the Settings tab once the draft is created."
-            : "Set the basics now. You'll continue with scheduling, modules, and picks/bans on the Settings tab once the draft is created."}
+            ? "A test stream works like a real one but doesn't end on its own or wrap up. Name it now; you'll set the games and the schedule on the next page."
+            : "Name it now; you'll set the games, the schedule and picks and bans on the next page."}
         </p>
 
         {error && (
-          <Alert variant="error" onClose={() => setError(null)}>
+          <Alert variant={draft ? "warning" : "error"} onClose={() => { setError(null); setDraft(null); }}>
             {error}
+            {draft && (
+              <div className="new-session-modal__draft">
+                <Button
+                  variant="secondary"
+                  size="small"
+                  onClick={() => {
+                    router.push(`/hub/sessions/${draft.slug}`);
+                    onClose();
+                  }}
+                >
+                  Open &ldquo;{draft.name}&rdquo;
+                </Button>
+              </div>
+            )}
           </Alert>
         )}
 
@@ -109,14 +126,14 @@ export function NewSessionModal({
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional: what this session is about, prizes, rules, vibes…"
+            placeholder="Optional: what this stream is about, prizes, rules, vibes…"
             rows={3}
             fullWidth
           />
         </label>
 
         <div className="hub-form__field">
-          <span className="hub-form__label">Games for this session</span>
+          <span className="hub-form__label">Games for this stream</span>
           <GameMultiSelect
             value={configuredGames}
             onChange={setConfiguredGames}

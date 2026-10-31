@@ -1,254 +1,121 @@
 "use client";
 
 /**
- * Stream Tools tab — streamer-owned customization for the overlay tools (Pro):
- * dice/coin colors, oracle accent, and custom 8-Ball answers + Truth/Dare
- * prompts (standard set ships; streamers can author their own, char-limited).
- * Persists to `streamer_module_defaults` (gameSlug "*") via /api/account/module-defaults.
+ * Streaming ▸ Overlay ▸ Tool looks (GS Pro): how the tools look and what they
+ * say. One row per tool; Edit opens a side panel (CDS Drawer) and every change
+ * saves itself. Dice, coin and timer are the account's tool looks
+ * (src/lib/tools/looks.ts), the same ones the free tool pages, the overlay and
+ * the control room use, edited with the free pages' own fields; Oracle, Bingo
+ * and Tier list use the shared config cards the Hub uses too. Everything
+ * persists to `streamer_module_defaults` (gameSlug "*").
+ * The stream schedule moved to Streaming ▸ Setup ▸ Schedule.
  */
 
-import { useEffect, useState } from "react";
-import { Button } from "@empac/cascadeds";
-import { useToast } from "@/components/toast/ToastProvider";
-import { StreamScheduleEditor } from "@/components/account/StreamScheduleEditor";
+import { useState, useSyncExternalStore, type ComponentType, type ReactNode } from "react";
+import { Button, Drawer, Input, Select } from "@empac/cascadeds";
+import { IconChartBar, IconClock, IconCoin, IconCrystalBall, IconDice5, IconLayoutGrid } from "@tabler/icons-react";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
-import { BrandThemeBar } from "@/components/account/BrandThemeBar";
+import { AdminScreen } from "@/components/account/admin/AdminKit";
 import { BingoConfigCard } from "@/components/stream-tools/BingoConfigCard";
 import { TierListConfigCard } from "@/components/stream-tools/TierListConfigCard";
 import { OracleConfigCard } from "@/components/stream-tools/OracleConfigCard";
+import { AccentField } from "@/components/stream-tools/fields";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { useToolLook } from "@/components/tools/looks/useToolLook";
+import { DiceLookFields } from "@/components/tools/dice/DiceLookFields";
+import { CoinLookFields } from "@/components/tools/coin/CoinLookFields";
+import { Coin } from "@/components/tools/coin/Coin";
+import { coinLetter, coinPaint, diceDrawn, DEFAULT_COIN_LOOK } from "@/lib/tools/looks";
 
-interface DiceCfg {
-  dieColor: string;
-  pipColor: string;
-  defaultCount: number;
-}
-interface CoinCfg {
-  style: string;
-  headsColor: string;
-  tailsColor: string;
-}
-interface TimerCfg {
-  accentColor: string;
-  defaultSeconds: number;
-}
+const TIMER_PRESETS = [60, 180, 300, 600, 900];
+const CUSTOM = "custom";
 
-const DEFAULT_DICE: DiceCfg = { dieColor: "#eef1f6", pipColor: "#1b2740", defaultCount: 2 };
-const DEFAULT_COIN: CoinCfg = { style: "gold", headsColor: "#e6b23c", tailsColor: "#d9a94f" };
-const DEFAULT_TIMER: TimerCfg = { accentColor: "brand", defaultSeconds: 300 };
-const TIMER_PRESETS: { label: string; seconds: number }[] = [
-  { label: "1 min", seconds: 60 },
-  { label: "3 min", seconds: 180 },
-  { label: "5 min", seconds: 300 },
-  { label: "10 min", seconds: 600 },
-  { label: "15 min", seconds: 900 },
-];
-async function loadConfig<T>(moduleId: string): Promise<Partial<T> | null> {
-  try {
-    const res = await fetch(`/api/account/module-defaults?moduleId=${moduleId}&gameSlug=*`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const body = await res.json();
-    return (body.config as Partial<T> | null) ?? null;
-  } catch {
-    return null;
-  }
-}
+type ToolId = "dice" | "coin" | "oracle" | "timer" | "bingo" | "tierlist";
 
-async function saveConfig(moduleId: string, config: unknown): Promise<boolean> {
-  try {
-    const res = await fetch("/api/account/module-defaults", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ moduleId, gameSlug: "*", config }),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
+const noopSubscribe = () => () => {};
 
-function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-      <input
-        type="color"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ width: 34, height: 28, border: "1px solid var(--border-default)", borderRadius: 6, background: "none", padding: 0, cursor: "pointer" }}
-      />
-      {label}
-    </label>
-  );
-}
-
-/** Accent picker that follows the global brand theme by default ("brand"), with
- *  a Custom mode for a per-tool hex override. Store value is "brand" | hex. */
-function AccentField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  const brand = !value || value === "brand";
-  const segBtn = (active: boolean): React.CSSProperties => ({
-    padding: "3px 10px",
-    fontSize: "var(--font-size-12)",
-    fontWeight: "var(--font-weight-semibold)",
-    cursor: "pointer",
-    border: "none",
-    background: active ? "var(--bg-primary)" : "transparent",
-    color: active ? "var(--text-on-primary)" : "var(--text-secondary)",
-  });
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)", flexWrap: "wrap" }}>
-      <span>{label}</span>
-      <span style={{ display: "inline-flex", borderRadius: 999, border: "1px solid var(--border-default)", overflow: "hidden" }}>
-        <button type="button" style={segBtn(brand)} onClick={() => onChange("brand")}>Theme</button>
-        <button type="button" style={segBtn(!brand)} onClick={() => onChange(brand ? "#2f6fd6" : value)}>Custom</button>
-      </span>
-      {brand ? (
-        <span
-          title="Follows your brand theme (set it in the Theme tab)"
-          style={{ width: 34, height: 28, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--brand-primary)" }}
-        />
-      ) : (
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          style={{ width: 34, height: 28, border: "1px solid var(--border-default)", borderRadius: 6, background: "none", padding: 0, cursor: "pointer" }}
-        />
-      )}
-    </span>
-  );
-}
+const minutes = (s: number) => `${Math.round(s / 60)} minute${Math.round(s / 60) === 1 ? "" : "s"}`;
 
 export function StreamToolsTab() {
-  const [dice, setDice] = useState<DiceCfg>(DEFAULT_DICE);
-  const [coin, setCoin] = useState<CoinCfg>(DEFAULT_COIN);
-  const [timer, setTimer] = useState<TimerCfg>(DEFAULT_TIMER);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
-  const toast = useToast();
-  // Apply the streamer's saved brand theme so the "Theme" accent swatches show
-  // their real color (matching the live overlay), not the site default.
-  const { vars: brandVars } = useBrandTheme();
+  const diceLook = useToolLook("dice", { toast: "Dice look saved" });
+  const coinLook = useToolLook("coin", { toast: "Coin look saved" });
+  const timerLook = useToolLook("timer", { toast: "Timer saved" });
+  const dice = diceLook.look;
+  const coin = coinLook.look;
+  const timer = timerLook.look;
+  const setTimer = timerLook.setLook;
+  const loading = !diceLook.ready || !coinLook.ready || !timerLook.ready;
+  const { pro, brand, avatarUrl } = diceLook;
+  const [open, setOpen] = useState<ToolId | null>(null);
+  // The CDS Drawer renders differently on the server, so it mounts after hydration.
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  // Swatches and "Theme" accents show the streamer's real brand color.
+  const { vars: brandVars, theme } = useBrandTheme();
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const [d, c, t] = await Promise.all([
-        loadConfig<DiceCfg>("dice"),
-        loadConfig<CoinCfg>("coin"),
-        loadConfig<TimerCfg>("timer"),
-      ]);
-      if (!alive) return;
-      if (d) setDice({ ...DEFAULT_DICE, ...d });
-      if (c) setCoin({ ...DEFAULT_COIN, ...c });
-      if (t) setTimer({ ...DEFAULT_TIMER, ...t });
-      setLoading(false);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const accent = (v: string) => (!v || v === "brand" ? theme.primary : v);
+  const drawnDice = diceDrawn(dice, { pro, brand });
+  const paint = coinPaint({ ...coin, heads: coinLetter(coin.heads, DEFAULT_COIN_LOOK.heads), tails: coinLetter(coin.tails, DEFAULT_COIN_LOOK.tails) }, { pro, brand, avatarUrl });
+  const tools: { id: ToolId; name: string; icon: ComponentType<{ size?: number }>; summary: string; swatches: string[] }[] = [
+    { id: "dice", name: "Dice", icon: IconDice5, summary: `${dice.defaultCount} ${dice.defaultCount === 1 ? "die" : "dice"} by default, ${drawnDice.material.label.toLowerCase()}`, swatches: [drawnDice.dieColor, drawnDice.pipColor] },
+    { id: "coin", name: "Coin", icon: IconCoin, summary: `${coin.heads || "H"} and ${coin.tails || "T"}`, swatches: [paint.base] },
+    { id: "oracle", name: "Oracle", icon: IconCrystalBall, summary: "Magic 8-ball, yes or no, truth or dare", swatches: [] },
+    { id: "timer", name: "Timer", icon: IconClock, summary: `${minutes(timer.defaultSeconds)} by default`, swatches: [accent(timer.accentColor)] },
+    { id: "bingo", name: "Bingo", icon: IconLayoutGrid, summary: "Board size, free square and prompts", swatches: [] },
+    { id: "tierlist", name: "Tier list", icon: IconChartBar, summary: "Title and the items to rank", swatches: [] },
+  ];
+  const current = tools.find((t) => t.id === open) ?? null;
 
-  const save = async (moduleId: string, config: unknown, label: string) => {
-    setSaving(moduleId);
-    const ok = await saveConfig(moduleId, config);
-    setSaving(null);
-    // A toast per save so it's unmistakable the change landed (or didn't).
-    if (ok) toast.success("Your changes are live.", { title: `${label} saved` });
-    else toast.error("Please try again.", { title: `Couldn't save ${label}` });
+  const panel: Record<ToolId, ReactNode> = {
+    dice: (
+      <div className="tool-panel-form tool-look-form">
+        <DiceLookFields look={dice} onChange={diceLook.setLook} pro={pro} brand={brand} stream from="tool-looks" />
+      </div>
+    ),
+    coin: (
+      <div className="tool-panel-form tool-look-form">
+        <div className="tool-look-form__preview" aria-hidden="true"><Coin paint={paint} rotation={0} /></div>
+        <CoinLookFields look={coin} onChange={coinLook.setLook} pro={pro} hasPicture={!!avatarUrl} from="tool-looks" />
+      </div>
+    ),
+    timer: (
+      <div className="tool-panel-form">
+        <AccentField label="Accent" value={timer.accentColor} onChange={(v) => setTimer({ ...timer, accentColor: v })} />
+        <Select
+          fullWidth
+          floatingLabel="Default length"
+          value={TIMER_PRESETS.includes(timer.defaultSeconds) ? String(timer.defaultSeconds) : CUSTOM}
+          onChange={(v) => { if (v !== CUSTOM) setTimer({ ...timer, defaultSeconds: Number(v) }); }}
+          options={[...TIMER_PRESETS.map((s) => ({ value: String(s), label: minutes(s) })), { value: CUSTOM, label: "Another length" }]}
+        />
+        <Input type="number" min={1} max={1440} fullWidth floatingLabel="Length in minutes" value={String(Math.max(1, Math.round(timer.defaultSeconds / 60)))}
+          onChange={(e) => setTimer({ ...timer, defaultSeconds: Math.max(1, Math.min(1440, Number(e.target.value) || 1)) * 60 })} />
+      </div>
+    ),
+    oracle: <OracleConfigCard bare />,
+    bingo: <BingoConfigCard bare />,
+    tierlist: <TierListConfigCard bare />,
   };
 
-  if (loading) return <LoadingLines label="Loading" />;
-
   return (
-    <div className="stream-tools-tab" style={brandVars}>
-      <h2 className="account-tab__heading">Stream Tools</h2>
-      <p className="account-tab__intro">
-        Customize how your overlay tools look and what they say. These apply to the dice, coin,
-        oracle, timer, bingo, and tier-list tools triggered from chat, the Hub, and channel points.
-      </p>
-      <BrandThemeBar context="your tool accents" />
-
-      {/* Stream schedule — public "next stream" + weekly grid on /u, /c, /live. */}
-      <StreamScheduleEditor />
-
-      {/* Dice */}
-      <section className="stream-tools__section">
-        <h3 className="stream-tools__heading">🎲 Dice</h3>
-        <div className="stream-tools__row">
-          <ColorField label="Dice color" value={dice.dieColor} onChange={(v) => setDice({ ...dice, dieColor: v })} />
-          <ColorField label="Pip color" value={dice.pipColor} onChange={(v) => setDice({ ...dice, pipColor: v })} />
-          <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-            Default dice
-            <input
-              type="number"
-              min={1}
-              max={6}
-              value={dice.defaultCount}
-              onChange={(e) => setDice({ ...dice, defaultCount: Math.max(1, Math.min(6, Number(e.target.value) || 1)) })}
-              style={{ width: 56, height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", background: "var(--surface-default)", color: "var(--text-primary)" }}
-            />
-          </label>
-        </div>
-        <Button variant="secondary" size="small" loading={saving === "dice"} onClick={() => save("dice", dice, "Dice")}>
-          Save dice
-        </Button>
-      </section>
-
-      {/* Coin */}
-      <section className="stream-tools__section">
-        <h3 className="stream-tools__heading">🪙 Coin</h3>
-        <div className="stream-tools__row">
-          <ColorField label="Heads color" value={coin.headsColor} onChange={(v) => setCoin({ ...coin, headsColor: v })} />
-          <ColorField label="Tails color" value={coin.tailsColor} onChange={(v) => setCoin({ ...coin, tailsColor: v })} />
-        </div>
-        <Button variant="secondary" size="small" loading={saving === "coin"} onClick={() => save("coin", coin, "Coin")}>
-          Save coin
-        </Button>
-      </section>
-
-      {/* Oracle — shared config card (same component the Hub uses). */}
-      <OracleConfigCard />
-
-      {/* Timer */}
-      <section className="stream-tools__section">
-        <h3 className="stream-tools__heading">⏱️ Stream Timer</h3>
-        <div className="stream-tools__row">
-          <AccentField label="Accent" value={timer.accentColor} onChange={(v) => setTimer({ ...timer, accentColor: v })} />
-          <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-            Default duration
-            <select
-              value={TIMER_PRESETS.some((p) => p.seconds === timer.defaultSeconds) ? String(timer.defaultSeconds) : "custom"}
-              onChange={(e) => { if (e.target.value !== "custom") setTimer({ ...timer, defaultSeconds: Number(e.target.value) }); }}
-              style={{ height: 34, borderRadius: 8, border: "1px solid var(--border-default)", padding: "0 var(--spacing-8)", background: "var(--surface-default)", color: "var(--text-primary)" }}
-            >
-              {TIMER_PRESETS.map((p) => (
-                <option key={p.seconds} value={p.seconds}>{p.label}</option>
-              ))}
-              <option value="custom">Custom…</option>
-            </select>
-          </label>
-          <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-            Custom (min)
-            <input
-              type="number"
-              min={1}
-              max={1440}
-              value={Math.max(1, Math.round(timer.defaultSeconds / 60))}
-              onChange={(e) => setTimer({ ...timer, defaultSeconds: Math.max(1, Math.min(1440, Number(e.target.value) || 1)) * 60 })}
-              style={{ width: 72, height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", background: "var(--surface-default)", color: "var(--text-primary)" }}
-            />
-          </label>
-        </div>
-        <Button variant="secondary" size="small" loading={saving === "timer"} onClick={() => save("timer", timer, "Timer")}>
-          Save timer
-        </Button>
-      </section>
-
-      {/* Bingo + Tier List — shared config cards (same components the Hub uses). */}
-      <BingoConfigCard />
-      <TierListConfigCard />
-    </div>
+    <AdminScreen title="Tool looks" intro="How your tools look and what they say, on your overlay, in the control room and on the free tool pages when you're signed in. The dice and coin take your brand theme with Match my brand; the other tools follow it unless you give one its own color. Changes save as you go.">
+      {loading ? <LoadingLines label="Loading" /> : (
+        <ul className="tool-list" style={brandVars}>
+          {tools.map((t) => {
+            const Icon = t.icon;
+            return (
+              <li key={t.id} className="tool-row">
+                <span className="tool-row__icon" aria-hidden><Icon size={20} /></span>
+                <span className="tool-row__text"><strong>{t.name}</strong><span>{t.summary}</span></span>
+                <span className="tool-row__swatches" aria-hidden>{t.swatches.map((c, i) => <i key={i} style={{ background: c }} />)}</span>
+                <Button variant="ghost" size="small" onClick={() => setOpen(t.id)} aria-label={`Edit ${t.name}`}>Edit</Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {hydrated && <Drawer open={!!current} onClose={() => setOpen(null)} title={current?.name ?? "Tool look"} subtitle="Changes save as you go." size="standard">
+        <div className="tool-panel" style={brandVars}>{current ? panel[current.id] : null}</div>
+      </Drawer>}
+    </AdminScreen>
   );
 }

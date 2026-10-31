@@ -1,40 +1,35 @@
 "use client";
 
 /**
- * PlatformStaffTab — staff/admin-only directory for managing
- * platform roles.
+ * Platform admin ▸ People ▸ Staff & roles.
  *
- * Surfaces:
- *   - Current staff/admin list with role selector + Remove
- *   - User search to find candidates for promotion
- *   - Last 20 role changes from gs_role_audit_log
+ *   - Everyone with a role (staff, admin, beta tester), with a Change role
+ *     window for admins
+ *   - A search to find someone new to give a role to
+ *   - The last 20 role changes
  *
- * Authority asymmetry baked in:
- *   - Staff-tier callers see the page read-only
- *   - Only admin-tier callers see editable selectors
- *
- * The server enforces the same gate on PUT — UI hides controls
- * but never trusts the client.
+ * Authority asymmetry: staff see the page read-only; only admins get the
+ * Change role buttons. The server enforces the same gate on PUT (the UI hides
+ * controls but never trusts the client). Every change is logged with who made
+ * it, when, the before/after and an optional note.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
-  Badge,
-  Card,
-  Input,
-  Select,
+  Alert, Badge, Button, EmptyState, Input, Modal, Select, StatCard, Textarea,
+  Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow,
 } from "@empac/cascadeds";
+import { IconCrown, IconFlask, IconHistory, IconShieldCheck } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { AdminHeader, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
+import { normalizeTier } from "@/lib/subscription";
 
-/** Operational role only (the `users.role` column). Subscription
- *  tier is on a different column and surfaces as read-only context
- *  here — never mutated through this UI. `beta` = Pro access for
- *  testing, without any admin powers. */
+/** Operational role only (separate from the paid plan, which Stripe sets and
+ *  this screen never changes). `beta` = GS Pro for testing, no admin powers. */
 type OperationalRole = "staff" | "admin" | "beta";
-/** Sentinel sent to the API to clear the role column. */
-type RoleSelectValue = OperationalRole | "none";
+/** Sent to the API to clear the role. */
+type RoleValue = OperationalRole | "none";
 
 interface UserRow {
   id: string;
@@ -67,431 +62,241 @@ interface ApiResponse {
   audit: AuditRow[];
 }
 
-const ROLE_OPTIONS: { value: RoleSelectValue; label: string }[] = [
-  { value: "none", label: "No operational role" },
-  { value: "beta", label: "Beta tester (Pro access)" },
-  { value: "staff", label: "Staff" },
-  { value: "admin", label: "Admin" },
-];
+const ROLES: Record<RoleValue, { label: string; does: string; variant: "default" | "success" | "warning" | "info" | "outline"; action: string }> = {
+  none: { label: "No role", does: "An ordinary account. Their own plan decides what they get.", variant: "outline", action: "Remove role" },
+  beta: { label: "Beta tester", does: "GS Pro for free to test new features. No admin screens.", variant: "info", action: "Make beta tester" },
+  staff: { label: "Staff", does: "GS Pro, plus Platform admin to see everything and run day-to-day tools. Can't change roles or switches.", variant: "success", action: "Make staff" },
+  admin: { label: "Admin", does: "Everything staff can do, plus changing roles, switches, bans and appeals.", variant: "warning", action: "Make admin" },
+};
+const ROLE_OPTIONS = (["none", "beta", "staff", "admin"] as RoleValue[]).map((value) => ({ value, label: ROLES[value].label }));
 
-const ROLE_BADGE: Record<
-  "none" | OperationalRole,
-  { label: string; variant: "default" | "success" | "warning" | "info" }
-> = {
-  none: { label: "-", variant: "default" },
-  beta: { label: "Beta", variant: "info" },
-  staff: { label: "Staff", variant: "success" },
-  admin: { label: "Admin", variant: "warning" },
+const ERRORS: Record<string, string> = {
+  admin_only_for_role_mutations: "Only admins can change roles.",
+  cannot_demote_self: "You can't take admin away from yourself. Ask another admin.",
 };
 
-const TIER_LABEL: Record<string, string> = {
-  free: "Free",
-  member: "Member",
-  creator: "Creator",
-  pro: "Pro",
-};
-
-function displayUser(u: {
-  display_name: string | null;
-  username: string | null;
-  email: string | null;
-}): string {
-  return u.display_name ?? u.username ?? u.email ?? "(unknown)";
-}
+const PAGE = 25;
+const roleOf = (role: string | null | undefined): RoleValue => (role && role in ROLES ? (role as RoleValue) : "none");
+const nameOf = (u: { display_name: string | null; username: string | null; email: string | null }) => u.display_name ?? u.username ?? u.email ?? "Unknown account";
+const when = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
 
 export function PlatformStaffTab() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [savingUserId, setSavingUserId] = useState<string | null>(null);
+  // The search the shown results are for, so a search in flight shows as loading, not "no matches".
+  const [searchedFor, setSearchedFor] = useState("");
+  const [shown, setShown] = useState(PAGE);
+  const [editing, setEditing] = useState<UserRow | null>(null);
   const toast = useToast();
 
-  const load = useCallback(
-    async (searchTerm: string) => {
+  const load = useCallback(async (searchTerm: string) => {
+    try {
+      const url = searchTerm ? `/api/admin/staff?search=${encodeURIComponent(searchTerm)}` : "/api/admin/staff";
+      const res = await fetch(url, { cache: "no-store" });
+      if (res.status === 403) { setLoadError("Only staff and admins can see this screen."); return; }
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) { setLoadError("Couldn't load the roles. Try again in a minute."); return; }
+      setData(body as ApiResponse);
+      setSearchedFor(searchTerm);
       setLoadError(null);
-      try {
-        const url = searchTerm
-          ? `/api/admin/staff?search=${encodeURIComponent(searchTerm)}`
-          : "/api/admin/staff";
-        const res = await fetch(url, { cache: "no-store" });
-        if (res.status === 403) {
-          setLoadError("Forbidden. Staff only.");
-          return;
-        }
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.ok) {
-          setLoadError(body.error || `Load failed (${res.status}).`);
-          return;
-        }
-        setData(body as ApiResponse);
-      } catch {
-        setLoadError("Network error while loading.");
-      }
-    },
-    [],
-  );
+    } catch {
+      setLoadError("Couldn't reach GameShuffle. Check your connection and try again.");
+    }
+  }, []);
 
+  // One load on open, then 250ms after the last keystroke in the search.
   useEffect(() => {
-    void load("");
-  }, [load]);
-
-  // Debounce searches — 250ms after the last keystroke. Spares the
-  // search endpoint from one query per character.
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      void load(search.trim());
-    }, 250);
+    const handle = setTimeout(() => void load(search.trim()), search ? 250 : 0);
     return () => clearTimeout(handle);
   }, [search, load]);
 
-  const setRole = async (userId: string, role: RoleSelectValue) => {
-    if (!data?.canMutate) return;
-    setSavingUserId(userId);
-    setLoadError(null);
-    try {
-      const res = await fetch("/api/admin/staff", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, role }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok || !body.ok) {
-        setLoadError(body.error || `Save failed (${res.status}).`);
-        return;
-      }
-      toast.success("Role updated");
-      await load(search.trim());
-    } finally {
-      setSavingUserId(null);
+  const saveRole = async (user: UserRow, role: RoleValue, note: string) => {
+    const res = await fetch("/api/admin/staff", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: user.id, role, note: note.trim() || undefined }),
+    }).catch(() => null);
+    const body = await res?.json().catch(() => ({}));
+    if (!res?.ok || !body?.ok) {
+      toast.error(ERRORS[body?.error ?? ""] ?? "That didn't save. Try again.");
+      return false;
     }
+    toast.success(role === "none" ? `${nameOf(user)} no longer has a role` : `${nameOf(user)} is now ${role === "admin" ? "an admin" : role === "beta" ? "a beta tester" : "staff"}`);
+    await load(search.trim());
+    return true;
   };
 
-  const renderUserRow = (u: UserRow) => {
-    const display = displayUser(u);
-    const isSaving = savingUserId === u.id;
-    // role column is null / "user" for "no special role" — normalize any
-    // unrecognized value to the 'none' sentinel so the Select + badge render.
-    const roleKey: "none" | OperationalRole =
-      u.role && u.role in ROLE_BADGE ? (u.role as OperationalRole) : "none";
-    const badge = ROLE_BADGE[roleKey];
-    const tierLabel = u.subscription_tier
-      ? TIER_LABEL[u.subscription_tier] ?? u.subscription_tier
-      : "Free";
+  const header = (
+    <AdminHeader
+      title="Staff and roles"
+      intro="Who runs GameShuffle (staff and admins) and who gets GS Pro to test new features (beta testers)."
+    />
+  );
+
+  if (!data) {
     return (
-      <Card key={u.id} variant="outlined" padding="medium">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 100px 100px 240px",
-            gap: "var(--spacing-16)",
-            alignItems: "center",
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <p
-              style={{
-                margin: 0,
-                fontSize: "var(--font-size-16)",
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-primary)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {display}
-            </p>
-            <p
-              style={{
-                margin: "var(--spacing-4) 0 0",
-                fontSize: "var(--font-size-12)",
-                color: "var(--text-tertiary)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {u.username ?? "-"} · {u.email ?? "-"}
-            </p>
-          </div>
-          {/* Subscription tier — read-only context. Comes from
-              Stripe via users.subscription_tier; never mutated
-              through this surface. */}
-          <Badge variant="info" size="small">
-            {tierLabel}
-          </Badge>
-          {/* Operational role — what this tab actually mutates. */}
-          <Badge variant={badge.variant} size="default">
-            {badge.label}
-          </Badge>
-          <div>
-            {data?.canMutate ? (
-              <Select
-                value={roleKey}
-                onChange={(v) =>
-                  void setRole(u.id, v as RoleSelectValue)
-                }
-                options={ROLE_OPTIONS}
-                disabled={isSaving}
-                fullWidth
-              />
-            ) : (
-              <span
-                style={{
-                  fontSize: "var(--font-size-12)",
-                  color: "var(--text-tertiary)",
-                  fontStyle: "italic",
-                }}
-              >
-                Read-only (admin role required to mutate)
-              </span>
-            )}
-          </div>
-        </div>
-      </Card>
+      <div className="account-card admin-screen">
+        {header}
+        {loadError ? <Alert variant="error">{loadError}</Alert> : <LoadingLines label="Loading roles" />}
+      </div>
     );
+  }
+
+  const canEdit = data.canMutate;
+  const count = (r: OperationalRole) => data.staff.filter((u) => u.role === r).length;
+  const term = search.trim();
+  const more = Math.min(PAGE, data.staff.length - shown);
+
+  const peopleTable = (rows: UserRow[], label: string, empty: { title: string; description: string }) => (
+    <AdminTable label={label}>
+      <Table variant="striped" dense>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Person</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Paid plan</TableHead>
+            <TableHead>Email</TableHead>
+            {canEdit && <TableHead align="right"><span className="sr-only">Actions</span></TableHead>}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.length === 0 ? (
+            <TableRow><TableCell colSpan={canEdit ? 5 : 4}><TableEmpty title={empty.title} description={empty.description} /></TableCell></TableRow>
+          ) : rows.map((u) => {
+            const role = ROLES[roleOf(u.role)];
+            return (
+              <TableRow key={u.id}>
+                <TableCell>
+                  <strong>{nameOf(u)}</strong>
+                  {u.username && <span className="admin-table__sub">@{u.username}</span>}
+                </TableCell>
+                <TableCell><Badge variant={role.variant} size="small">{role.label}</Badge></TableCell>
+                <TableCell>{normalizeTier(u.subscription_tier) === "pro" ? "GS Pro" : "Free"}</TableCell>
+                <TableCell>{u.email ?? <span className="admin-table__sub">No email</span>}</TableCell>
+                {canEdit && (
+                  <TableCell align="right">
+                    <Button variant="ghost" size="small" onClick={() => setEditing(u)} aria-label={`Change role for ${nameOf(u)}`}>Change role</Button>
+                  </TableCell>
+                )}
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </AdminTable>
+  );
+
+  return (
+    <div className="account-card admin-screen">
+      {header}
+      {loadError && <Alert variant="error" onClose={() => setLoadError(null)}>{loadError}</Alert>}
+      {!canEdit && <Alert variant="info">Only admins can change roles. You can see who has one and every change made.</Alert>}
+
+      <AdminStats label="People with a role" columns={3}>
+        <StatCard label="Admins" value={count("admin").toLocaleString()} source="Change roles and switches" icon={<IconCrown size={20} />} />
+        <StatCard label="Staff" value={count("staff").toLocaleString()} source="Run Platform admin" icon={<IconShieldCheck size={20} />} />
+        <StatCard label="Beta testers" value={count("beta").toLocaleString()} source="GS Pro to test features" icon={<IconFlask size={20} />} />
+      </AdminStats>
+
+      <AdminSection
+        title="People with a role"
+        intro="A role is separate from what someone pays for: staff, admins and beta testers all get GS Pro whatever their paid plan says."
+      >
+        {peopleTable(data.staff.slice(0, shown), "People with a role", {
+          title: "No one has a role yet",
+          description: "Find someone below to give the first one.",
+        })}
+        {more > 0 && (
+          <div><Button variant="ghost" size="small" onClick={() => setShown((s) => s + PAGE)}>Show {more} more</Button></div>
+        )}
+      </AdminSection>
+
+      <AdminSection title={canEdit ? "Give someone a role" : "Look someone up"} intro="Search any account by email, username or display name.">
+        <Input type="search" fullWidth floatingLabel="Email, username or name" value={search} onChange={(e) => setSearch(e.target.value)} />
+        {term.length > 0 && term.length < 2 && <p className="admin-updated">Type at least 2 characters to search.</p>}
+        {term.length >= 2 && (searchedFor !== term ? <LoadingLines lines={2} label="Searching" /> : peopleTable(data.searchResults, `Search results for ${term}`, {
+          title: "No one matches that search",
+          description: "Check the spelling, or try their email address.",
+        }))}
+      </AdminSection>
+
+      <AdminSection title="Role history" intro="The last 20 role changes, newest first.">
+        {data.audit.length === 0 ? (
+          <EmptyState variant="bordered" icon={<IconHistory size={28} />} title="No role changes yet" description="Each change shows here with who made it and when." />
+        ) : (
+          <AdminTable label="Role history">
+            <Table variant="striped" dense>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Person</TableHead>
+                  <TableHead>Change</TableHead>
+                  <TableHead>Changed by</TableHead>
+                  <TableHead>When</TableHead>
+                  <TableHead>Note</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.audit.map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell><strong>{a.target === "(unknown)" ? "Unknown account" : a.target}</strong></TableCell>
+                    <TableCell className="admin-people-nowrap">{ROLES[roleOf(a.old_role)].label} to {ROLES[roleOf(a.new_role)].label}</TableCell>
+                    <TableCell>{a.changed_by === "(unknown)" ? "Unknown" : a.changed_by}</TableCell>
+                    <TableCell className="admin-people-nowrap">{when(a.changed_at)}</TableCell>
+                    <TableCell>{a.note ?? <span className="admin-table__sub">None</span>}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </AdminTable>
+        )}
+      </AdminSection>
+
+      {editing && <RoleModal user={editing} onClose={() => setEditing(null)} onSave={saveRole} />}
+    </div>
+  );
+}
+
+/** Change one person's role, with an optional note that goes in the history. */
+function RoleModal({ user, onClose, onSave }: {
+  user: UserRow;
+  onClose: () => void;
+  onSave: (user: UserRow, role: RoleValue, note: string) => Promise<boolean>;
+}) {
+  const current = roleOf(user.role);
+  const [role, setRole] = useState<RoleValue>(current);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const changed = role !== current;
+
+  const save = async () => {
+    setBusy(true);
+    const ok = await onSave(user, role, note);
+    setBusy(false);
+    if (ok) onClose();
   };
 
   return (
-    <div className="account-card">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: "var(--spacing-16)",
-          flexWrap: "wrap",
-          marginBottom: "var(--spacing-32)",
-        }}
-      >
-        <div>
-          <h2 className="account-tab__heading">Staff & roles</h2>
-          <p className="account-tab__intro" style={{ marginTop: 0 }}>
-            Manage the staff/admin pool and grant <strong>Beta tester</strong>{" "}
-            access (full GS Pro, no admin powers) to streamers testing new
-            features. <strong>Admin-only</strong> for mutations. Staff-tier
-            accounts see the page read-only. Every role change is logged to{" "}
-            <code>gs_role_audit_log</code> with who changed it, when, and the
-            before/after.
-          </p>
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Change ${nameOf(user)}'s role`}
+      size="small"
+      footer={
+        <div className="admin-people-modal-footer">
+          <Button variant="ghost" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button variant={role === "none" ? "danger" : "primary"} loading={busy} disabled={busy || !changed} onClick={() => void save()}>
+            {changed ? ROLES[role].action : "Pick a new role"}
+          </Button>
         </div>
+      }
+    >
+      <div className="admin-people-form">
+        <p className="admin-people-help">Now: <strong>{ROLES[current].label}</strong></p>
+        <Select floatingLabel="Role" value={role} onChange={(v) => setRole(String(v) as RoleValue)} options={ROLE_OPTIONS} fullWidth />
+        <p className="admin-people-help">{ROLES[role].does}</p>
+        <Textarea fullWidth floatingLabel="Note for the role history (optional)" value={note} rows={2} maxLength={300} onChange={(e) => setNote(e.target.value)} />
       </div>
-
-      {loadError && (
-        <div style={{ marginBottom: "var(--spacing-16)" }}>
-          <Alert variant="error" onClose={() => setLoadError(null)}>
-            {loadError}
-          </Alert>
-        </div>
-      )}
-
-      {data === null ? (
-        <LoadingLines label="Loading" />
-      ) : (
-        <>
-          {/* ── Current staff & admins ─────────────────────────── */}
-          <section style={{ marginBottom: "var(--spacing-32)" }}>
-            <h3
-              style={{
-                fontSize: "var(--font-size-14)",
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-secondary)",
-                margin: "0 0 var(--spacing-12)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              Staff, admins & beta testers ({data.staff.length})
-            </h3>
-            {data.staff.length === 0 ? (
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "var(--font-size-14)",
-                  color: "var(--text-tertiary)",
-                  fontStyle: "italic",
-                }}
-              >
-                No one has a staff, admin, or beta-tester role yet.
-                Search below to assign the first one.
-              </p>
-            ) : (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--spacing-12)",
-                }}
-              >
-                {data.staff.map(renderUserRow)}
-              </div>
-            )}
-          </section>
-
-          {/* ── Search for a user ──────────────────────────────── */}
-          <section style={{ marginBottom: "var(--spacing-32)" }}>
-            <h3
-              style={{
-                fontSize: "var(--font-size-14)",
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-secondary)",
-                margin: "0 0 var(--spacing-12)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              Find someone to promote
-            </h3>
-            <Input
-              placeholder="Search by email, username, or display name…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              fullWidth
-            />
-            {search.trim().length >= 2 && (
-              <div
-                style={{
-                  marginTop: "var(--spacing-12)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--spacing-12)",
-                }}
-              >
-                {data.searchResults.length === 0 ? (
-                  <p
-                    style={{
-                      margin: 0,
-                      fontSize: "var(--font-size-14)",
-                      color: "var(--text-tertiary)",
-                      fontStyle: "italic",
-                    }}
-                  >
-                    No matches.
-                  </p>
-                ) : (
-                  data.searchResults.map(renderUserRow)
-                )}
-              </div>
-            )}
-            {search.trim().length > 0 && search.trim().length < 2 && (
-              <p
-                style={{
-                  margin: "var(--spacing-8) 0 0",
-                  fontSize: "var(--font-size-12)",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                Type at least 2 characters to search.
-              </p>
-            )}
-          </section>
-
-          {/* ── Recent role changes ────────────────────────────── */}
-          <section>
-            <h3
-              style={{
-                fontSize: "var(--font-size-14)",
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-secondary)",
-                margin: "0 0 var(--spacing-12)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              Recent role changes
-            </h3>
-            {data.audit.length === 0 ? (
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "var(--font-size-14)",
-                  color: "var(--text-tertiary)",
-                  fontStyle: "italic",
-                }}
-              >
-                No role changes recorded yet.
-              </p>
-            ) : (
-              <Card variant="outlined" padding="medium">
-                <ul
-                  style={{
-                    margin: 0,
-                    padding: 0,
-                    listStyle: "none",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "var(--spacing-12)",
-                  }}
-                >
-                  {data.audit.map((a) => (
-                    <li
-                      key={a.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: "var(--spacing-16)",
-                        fontSize: "var(--font-size-14)",
-                        color: "var(--text-secondary)",
-                        lineHeight:
-                          "var(--line-height-relaxed)",
-                      }}
-                    >
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <strong
-                          style={{
-                            color:
-                              "var(--text-primary)",
-                          }}
-                        >
-                          {a.changed_by}
-                        </strong>{" "}
-                        changed{" "}
-                        <strong
-                          style={{
-                            color:
-                              "var(--text-primary)",
-                          }}
-                        >
-                          {a.target}
-                        </strong>
-                        : <code>{a.old_role ?? "(none)"}</code>{" "}
-                        → <code>{a.new_role ?? "(none)"}</code>
-                        {a.note && (
-                          <>
-                            {" "}
-                            <span
-                              style={{
-                                color:
-                                  "var(--text-tertiary)",
-                                fontStyle: "italic",
-                              }}
-                            >
-                              ({a.note})
-                            </span>
-                          </>
-                        )}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "var(--font-size-12)",
-                          color: "var(--text-tertiary)",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {new Date(a.changed_at).toLocaleString(
-                          undefined,
-                          {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          },
-                        )}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
-          </section>
-        </>
-      )}
-    </div>
+    </Modal>
   );
 }

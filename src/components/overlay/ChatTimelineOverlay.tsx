@@ -37,6 +37,9 @@ const SAMPLE_SETTINGS: ChatOverlaySettings = {
   hideCommands: true,
   showGsBadge: true,
   maxMessages: 12,
+  messageSeconds: null,
+  textSize: "m",
+  newestFirst: false,
 };
 
 export function ChatTimelineOverlay({
@@ -54,6 +57,15 @@ export function ChatTimelineOverlay({
   const [messages, setMessages] = useState<ChatOverlayMessage[]>([]);
   const sinceRef = useRef<string | null>(null);
   const maxRef = useRef<number>(12);
+  const [now, setNow] = useState(() => Date.now());
+  const stay = sample ? null : settings?.messageSeconds ?? null;
+
+  // A clock for "each message stays N seconds"; only runs when that's on.
+  useEffect(() => {
+    if (!stay) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [stay]);
 
   useEffect(() => {
     if (sample || !token) return;
@@ -106,15 +118,25 @@ export function ChatTimelineOverlay({
   }, [token, sample]);
 
   const activeSettings = sample ? SAMPLE_SETTINGS : settings;
-  const activeMessages = sample ? SAMPLE_MESSAGES : messages;
-  if (!sample && (!enabled || !settings || messages.length === 0)) return null;
+  const fresh = stay ? messages.filter((m) => !m.createdAt || now - Date.parse(m.createdAt) < stay * 1000) : messages;
+  const activeMessages = sample ? SAMPLE_MESSAGES : fresh;
+  if (!sample && (!enabled || !settings || fresh.length === 0)) return null;
   if (!activeSettings || activeMessages.length === 0) return null;
 
   const anim = activeSettings.animation ?? "slide";
+  const size = activeSettings.textSize ?? "m";
+  const ordered = activeSettings.newestFirst ? [...activeMessages].reverse() : activeMessages;
+  const cls = [
+    "chat-ov",
+    `chat-ov--${activeSettings.theme}`,
+    `chat-ov--anim-${anim}`,
+    `chat-ov--size-${size}`,
+    activeSettings.newestFirst ? "chat-ov--newest-first" : "",
+  ].filter(Boolean).join(" ");
 
   return (
-    <div className={`chat-ov chat-ov--${activeSettings.theme} chat-ov--anim-${anim}`} style={style}>
-      {activeMessages.map((m) => (
+    <div className={cls} style={style}>
+      {ordered.map((m) => (
         <div key={m.id} className="chat-ov__row">
           <span className="chat-ov__meta">
             {m.roles

@@ -114,6 +114,15 @@ export async function POST(req: Request) {
     console.error("[account/delete] YouTube teardown failed:", err);
   }
 
+  // 2c. Discord — remove GameShuffle's AutoMod rules and take the bot out of
+  //     each connected server. Best-effort.
+  try {
+    const { teardownDiscordServers } = await import("@/lib/discord/guilds");
+    await teardownDiscordServers(userId);
+  } catch (err) {
+    console.error("[account/delete] Discord teardown failed:", err);
+  }
+
   // 3. Confirmation email — best-effort. If this fails, the user still gets
   //    deleted; they just don't get the courtesy receipt.
   if (userEmail) {

@@ -1,0 +1,37 @@
+/* /c/<slug>/commands: a streamer's chat commands for viewers, and its print one-sheet. */
+.cmd-sheet { padding: var(--spacing-32) 0 var(--spacing-48); }
+.cmd-sheet__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--spacing-16) var(--spacing-24); align-items: flex-end; margin-bottom: var(--spacing-24); }
+.cmd-sheet__eyebrow { margin: 0 0 var(--spacing-6, 6px); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 0.08em; color: var(--brand-ink, var(--text-secondary)); }
+.cmd-sheet__title { margin: 0 0 var(--spacing-8); font-size: var(--font-size-32, 3.2rem); line-height: 1.15; text-wrap: balance; }
+.cmd-sheet__intro { margin: 0; max-width: 60ch; color: var(--text-secondary); font-size: var(--font-size-16); }
+.cmd-sheet__side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--spacing-8); }
+.cmd-sheet__actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
+.cmd-sheet__links { margin: 0; font-size: var(--font-size-14); }
+.cmd-sheet__links a, .cmd-sheet__foot a { color: var(--brand-ink, var(--link)); }
+/* Flowing columns, so short groups don't leave holes under them. */
+.cmd-sheet__grid { column-width: 34rem; column-gap: var(--spacing-16); }
+.cmd-sheet__grid > * { margin-bottom: var(--spacing-16); }
+.cmd-sheet__group { padding: var(--spacing-16) var(--spacing-20); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-elevated); break-inside: avoid; }
+.cmd-sheet__group-title { margin: 0 0 var(--spacing-10, 10px); font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.cmd-sheet__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-10, 10px); }
+.cmd-sheet__item { display: flex; flex-direction: column; gap: 2px; }
+.cmd-sheet__typed { font-size: var(--font-size-14); align-self: flex-start; overflow-wrap: anywhere; }
+.cmd-sheet__what { font-size: var(--font-size-14); color: var(--text-secondary); }
+.cmd-sheet__mods { margin-top: var(--spacing-24); padding: var(--spacing-12) var(--spacing-16); border: 1px dashed var(--border-default); border-radius: var(--radius-12, 12px); }
+.cmd-sheet__mods > summary { cursor: pointer; font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-4); }
+.cmd-sheet__mods[open] > summary { margin-bottom: var(--spacing-12); }
+.cmd-sheet__empty { color: var(--text-secondary); }
+.cmd-sheet__foot { margin-top: var(--spacing-32); font-size: var(--font-size-14); color: var(--text-tertiary); }
+@media (max-width: 640px) { .cmd-sheet__side { align-items: flex-start; } }
+
+/* The one-sheet: just the commands, two columns, no site chrome or buttons. */
+@media print {
+  .empac-navbar, header.site-nav, footer, .empac-marketing-footer, .cmd-sheet__side, .cmd-sheet__foot, .cookie-banner { display: none !important; }
+  .cmd-sheet { padding: 0; }
+  .cmd-sheet__grid { column-count: 2; column-gap: 10pt; }
+  .cmd-sheet__group { border-color: #bbb; background: #fff; padding: 8pt 10pt; }
+  .cmd-sheet__title { font-size: 20pt; }
+  .cmd-sheet__intro, .cmd-sheet__what { color: #333; }
+  .cmd-sheet__mods { border: 0; padding: 0; }
+  .cmd-sheet__mods:not([open]) { display: none; }
+}

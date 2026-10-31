@@ -1,0 +1,88 @@
+/* Competitive Mario Kart hub (/competitive-mario-kart, picks 2026-10-30). Sizes use the CDS tokens (10px root). */
+
+.cmk-body { display: grid; gap: var(--spacing-32, 3.2rem); padding-block: var(--spacing-32, 3.2rem) var(--spacing-48); }
+.cmk-k { margin: 0; font-family: var(--font-body); font-size: var(--font-size-12); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+.cmk-muted { color: var(--text-secondary); font-size: var(--font-size-14); }
+.cmk-big { font-family: var(--font-display); font-weight: 700; font-size: var(--font-size-28, 2.8rem); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cmk-big--sm { font-size: var(--font-size-20); }
+
+/* The search in the header: the lounge lookup's look, with a heading per group. */
+.cmk-search__group { list-style: none; padding: var(--spacing-8) var(--spacing-16) var(--spacing-4); font-size: var(--font-size-12); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+.cmk-search__list > ul + ul { border-top: 1px solid var(--border-default); }
+
+/* Your strip: three cells in one frame. */
+.cmk-you { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--background-primary, #fff); border: 1px solid var(--border-default); border-radius: var(--radius-12); }
+.cmk-you__cell { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); padding: var(--spacing-16) var(--spacing-20); min-width: 0; }
+.cmk-you__cell + .cmk-you__cell { border-left: 1px solid var(--border-default); }
+.cmk-you__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); }
+.cmk-you__emblem { width: 3.6rem; height: 3.6rem; display: inline-flex; flex: none; }
+.cmk-you__emblem > * { width: 100%; height: 100%; }
+
+/* The four tools, two by two. */
+.cmk-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-20); }
+.cmk-col { display: flex; flex-direction: column; gap: var(--spacing-20); min-width: 0; }
+.cmk-rec { font-weight: 700; color: var(--text-primary); }
+.cmk-tool { display: flex; flex-direction: column; gap: var(--spacing-16); padding: var(--spacing-20); background: var(--background-primary, #fff); border: 1px solid var(--border-default); border-radius: var(--radius-12); min-width: 0; }
+.cmk-tool__head { display: flex; gap: var(--spacing-16); align-items: flex-start; }
+.cmk-tool__head h2 { margin: 0 0 var(--spacing-4); font-size: var(--font-size-20); }
+.cmk-tool__head p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.cmk-tool__acts { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-24); }
+.cmk-peek { display: grid; gap: var(--spacing-4); padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); }
+.cmk-list { margin: 0; padding: 0; list-style: none; }
+.cmk-list li + li { border-top: 1px solid var(--border-default); }
+.cmk-row { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) 0; color: inherit; text-decoration: none; min-height: 4.8rem; }
+.cmk-row:hover b, .cmk-row:focus-visible b { text-decoration: underline; }
+.cmk-row__pic { width: 5.6rem; height: 3.2rem; border-radius: var(--radius-6); object-fit: cover; flex: none; background: var(--background-secondary); }
+.cmk-row__emblem { width: 3.2rem; height: 3.2rem; display: inline-flex; flex: none; }
+.cmk-row__emblem > * { width: 100%; height: 100%; }
+.cmk-row__main { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cmk-row__main b { font-weight: 600; font-size: var(--font-size-16); overflow-wrap: break-word; }
+.cmk-row__main small, .cmk-row__end small { font-size: var(--font-size-14); color: var(--text-secondary); }
+.cmk-row__end { flex: none; display: grid; gap: 2px; text-align: right; }
+.cmk-row__end b { font-variant-numeric: tabular-nums; font-size: var(--font-size-16); }
+.cmk-row__end .cmk-up { color: var(--success-700, #1d7a45); font-weight: 600; }
+.cmk-date { width: 5.2rem; flex: none; display: grid; justify-items: center; padding: var(--spacing-4) 0; border: 1px solid var(--border-default); border-radius: var(--radius-8); line-height: 1.15; }
+.cmk-date small { font-size: var(--font-size-12); font-weight: 600; text-transform: uppercase; color: var(--text-secondary); }
+.cmk-date b { font-size: var(--font-size-18, 1.8rem); }
+.cmk-date--icon { border: 0; color: var(--warning-700, #9a6400); }
+.cmk-mmr { border-radius: var(--radius-12); }
+
+/* The Quaxly band: navy, the steps beside the words. */
+.cmk-band { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: var(--spacing-32, 3.2rem); align-items: center; padding: var(--spacing-32, 3.2rem); border-radius: var(--radius-16); color: #fff; background: radial-gradient(120% 140% at 85% 0%, #2a2f78 0%, #151a45 50%, #0e1233 100%); }
+.cmk-band__eyebrow { margin: 0 0 var(--spacing-8); font-size: var(--font-size-12); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: #b9c8ff; }
+.cmk-band h2 { margin: 0 0 var(--spacing-8); font-size: var(--font-size-28, 2.8rem); color: #fff; }
+.cmk-band__intro p { margin: 0 0 var(--spacing-16); color: #dfe3f7; font-size: var(--font-size-16); }
+.cmk-band__acts { display: flex; flex-wrap: wrap; gap: var(--spacing-12); }
+.cmk-band__btn { text-decoration: none; }
+.cmk-band .tt-connect { border-top-color: rgba(255, 255, 255, .2); margin-top: var(--spacing-16); }
+.cmk-band .tt-connect__text { color: #dfe3f7; }
+.cmk-steps { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--spacing-12); }
+.cmk-steps li { display: flex; gap: var(--spacing-12); align-items: flex-start; padding: var(--spacing-12) var(--spacing-16); border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--radius-12); background: rgba(255, 255, 255, .06); }
+.cmk-steps__n { width: 2.8rem; height: 2.8rem; flex: none; display: grid; place-items: center; border-radius: var(--radius-8); background: #fff; color: #1b2160; font-weight: 700; }
+.cmk-steps b { display: block; font-size: var(--font-size-16); }
+.cmk-steps li > span:last-child { color: #d3d8f3; font-size: var(--font-size-14); }
+.cmk-steps code { background: rgba(255, 255, 255, .16); color: #fff; padding: 1px 6px; border-radius: 4px; font-size: var(--font-size-14); }
+
+/* Wherever you race: three columns, flat. */
+.cmk-sec { display: grid; gap: var(--spacing-16); padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); min-width: 0; }
+.cmk-sec > h2 { margin: 0; font-size: var(--font-size-24); }
+.cmk-where { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-32, 3.2rem); }
+.cmk-where > div { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); min-width: 0; }
+.cmk-where h3 { margin: var(--spacing-8) 0 0; font-size: var(--font-size-18, 1.8rem); }
+.cmk-where p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.cmk-cmds { margin: var(--spacing-4) 0 var(--spacing-8); padding: 0; list-style: none; display: grid; gap: var(--spacing-8); font-size: var(--font-size-14); }
+.cmk-cmds code { font-size: var(--font-size-14); }
+.cmk-links { display: grid; gap: var(--spacing-8); }
+
+@media (max-width: 60rem) {
+  .cmk-tools { grid-template-columns: 1fr; }
+  .cmk-where { grid-template-columns: 1fr; gap: var(--spacing-24); }
+  .cmk-band { grid-template-columns: 1fr; padding: var(--spacing-24) var(--spacing-20); gap: var(--spacing-20); }
+}
+@media (max-width: 48rem) {
+  .cmk-you { grid-template-columns: 1fr; }
+  .cmk-you__cell + .cmk-you__cell { border-left: 0; border-top: 1px solid var(--border-default); }
+  .cmk-tool { padding: var(--spacing-16); }
+}
+/* MKCentral's credit for the division medals. */
+.cmk-credit { margin: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); font-size: var(--font-size-14); color: var(--text-secondary); }

@@ -4,7 +4,7 @@
  * The server enforces this in aiAccess; the client only uses it to explain.
  */
 
-export type AiFeature = "pack" | "recap" | "setup" | "plan" | "tournament";
+export type AiFeature = "pack" | "recap" | "setup" | "plan" | "tournament" | "trivia" | "deck" | "channel" | "tt_read" | "tt_import";
 
 export const AI_FEATURES: Record<AiFeature, { free: boolean; label: string }> = {
   pack: { free: false, label: "Making lists with AI" },
@@ -12,7 +12,18 @@ export const AI_FEATURES: Record<AiFeature, { free: boolean; label: string }> = 
   setup: { free: true, label: "AI setup" },
   plan: { free: true, label: "The night planner" },
   tournament: { free: true, label: "The tournament helper" },
+  trivia: { free: false, label: "Trivia questions drafted with AI" },
+  deck: { free: false, label: "Deck cards drafted with AI" },
+  channel: { free: false, label: "Know the Channel questions drafted with AI" },
+  tt_read: { free: true, label: "Time trial screenshots read with AI" },
+  tt_import: { free: true, label: "Time trial lists read with AI" },
 };
+
+/**
+ * Features with their own daily cap (time trials), counted apart from the shared
+ * allowance so reading a screenshot never uses up someone's AI tries.
+ */
+export const OWN_CAP_FEATURES: AiFeature[] = ["tt_read", "tt_import"];
 
 export function isAiFeature(x: unknown): x is AiFeature {
   return typeof x === "string" && x in AI_FEATURES;

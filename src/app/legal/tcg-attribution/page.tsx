@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   description:
     "Attribution and intellectual-property notice for Pokémon Trading Card Game data and imagery shown in the GameShuffle TCG Companion. Card data provided by Scrydex.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "TCG Card Attribution & Rights | GameShuffle",
     description:
       "Attribution and IP notice for Pokémon TCG data and imagery in the GameShuffle Companion.",

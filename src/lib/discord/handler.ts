@@ -8,6 +8,9 @@ import { handleGsPoll, handlePollVote, POLL_VOTE_PREFIX } from "./commands/polls
 import { handleGsTag } from "./commands/tags";
 import { handleGsRemind } from "./commands/remind";
 import { handleGsProfile } from "./commands/profile";
+import { handleGsMmr, handleGsRoom } from "./commands/mmr";
+import { handleGsTt, handleTtButton, handleTtClipModal, ttAutocomplete, TT_CLIP_MODAL_PREFIX, TT_CLIP_PREFIX, TT_NO_PREFIX, TT_OK_PREFIX, TT_REPORT_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX } from "./commands/timeTrials";
+import { handleTtSaveButton, handleTtSaveCommand, TT_IMPORT_PREFIX, TT_SAVE_COMMAND } from "./commands/ttImport";
 import {
   BRAIN_ANSWER_PREFIX,
   BRAIN_MODAL_PREFIX,
@@ -33,9 +36,12 @@ import {
   handleWeeklyTierPick,
 } from "./commands/weekly";
 import { ephemeralMessage } from "./respond";
+import { handleTriviaAnswerButton, handleTriviaModalSubmit, handleTriviaPick } from "./commands/trivia";
+import { TRIVIA_ANSWER_PREFIX, TRIVIA_MODAL_PREFIX, TRIVIA_PICK_PREFIX } from "@/lib/trivia/discord";
 import { ACTIVITY_PLAY_PREFIX } from "@/lib/activity/channelCard";
 import { handleGsDaily, launchActivity, type ActivityTab } from "./activityLaunch";
 import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
+import type { DiscordAppId } from "./appIds";
 
 // Discord Interaction Types
 const INTERACTION_TYPE = {
@@ -46,12 +52,27 @@ const INTERACTION_TYPE = {
   MODAL_SUBMIT: 5,
 } as const;
 
-export function handleInteraction(interaction: Record<string, unknown>): Response | Promise<Response> {
+/** GameShuffle Competitive's slash commands (short names; the same handlers as the main app's gs- versions). */
+function handleCompCommand(interaction: Record<string, unknown>, name: string): Response | Promise<Response> {
+  switch (name) {
+    case "tt": return handleGsTt(interaction);
+    case "mmr": return handleGsMmr(interaction);
+    case "room": return handleGsRoom(interaction);
+    default: return ephemeralMessage(`Unknown command: \`${name}\``);
+  }
+}
+
+/** Every interaction for one of our Discord apps (`app`: which app's endpoint it arrived at). Buttons, menus and
+ *  forms are shared: an app only ever gets the ones on its own messages. */
+export function handleInteraction(interaction: Record<string, unknown>, app: DiscordAppId = "main"): Response | Promise<Response> {
   const type = interaction.type as number;
 
   // Application commands (slash commands)
   if (type === INTERACTION_TYPE.APPLICATION_COMMAND) {
-    const data = interaction.data as { name: string };
+    const data = interaction.data as { name: string; type?: number };
+    // Message commands (Apps menu on a message): "Save to GameShuffle" on Quaxly's time trials list.
+    if (data.type === 3 && data.name === TT_SAVE_COMMAND) return handleTtSaveCommand(interaction);
+    if (app === "comp") return handleCompCommand(interaction, data.name);
     switch (data.name) {
       case "gs-randomize":
         return handleRandomize(interaction);
@@ -71,6 +92,12 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleGsRemind(interaction);
       case "gs-profile":
         return handleGsProfile(interaction);
+      case "gs-mmr":
+        return handleGsMmr(interaction);
+      case "gs-room":
+        return handleGsRoom(interaction);
+      case "gs-tt":
+        return handleGsTt(interaction);
       case "gs-brain":
         return handleGsBrain(interaction);
       case "gs-weekly":
@@ -97,6 +124,18 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
       return handlePollVote(interaction);
     }
 
+    // Time trials: "Save N times" from Save to GameShuffle.
+    if (customId.startsWith(TT_IMPORT_PREFIX)) return handleTtSaveButton(interaction, customId);
+
+    // Time trials: confirm or cancel a read screenshot, undo, verify (server managers), report.
+    if ([TT_OK_PREFIX, TT_NO_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_REPORT_PREFIX, TT_CLIP_PREFIX].some((p) => customId.startsWith(p))) {
+      return handleTtButton(interaction, customId);
+    }
+
+    // Trivia on stream: a choice, or the Answer button that opens a form.
+    if (customId.startsWith(TRIVIA_PICK_PREFIX)) return handleTriviaPick(interaction);
+    if (customId.startsWith(TRIVIA_ANSWER_PREFIX)) return handleTriviaAnswerButton(interaction);
+
     // Chat Brain: "brainnext:{category}" checked before "brain:{promptId}".
     if (customId === BRAIN_PLAY) return handleBrainPlay(interaction);
     if (customId.startsWith(BRAIN_NEXT_PREFIX)) {
@@ -106,10 +145,10 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
       return handleBrainAnswerButton(interaction);
     }
 
-    // "Play" on the Activity's results card and morning summary: open the Activity on that game.
+    // "Play" on the Activity's results card, morning summary and trivia posts: open the Activity on that game.
     if (customId.startsWith(ACTIVITY_PLAY_PREFIX)) {
       const tab = customId.slice(ACTIVITY_PLAY_PREFIX.length);
-      return launchActivity(interactionUser.id, (["daily", "weekly", "brain"].includes(tab) ? tab : "daily") as ActivityTab);
+      return launchActivity(interactionUser.id, (["daily", "dex", "weekly", "brain", "trivia"].includes(tab) ? tab : "daily") as ActivityTab);
     }
 
     // Weekly Challenge: "weeklyts:" (lock in) checked before "weeklyt:" (a tier pick).
@@ -144,11 +183,15 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
   // Modal submits (forms opened by a button)
   if (type === INTERACTION_TYPE.MODAL_SUBMIT) {
     const customId = (interaction.data as { custom_id: string }).custom_id;
+    if (customId.startsWith(TT_CLIP_MODAL_PREFIX)) return handleTtClipModal(interaction, customId);
     if (customId.startsWith(BRAIN_MODAL_PREFIX)) {
       return handleBrainModalSubmit(interaction);
     }
     if (customId.startsWith(WEEKLY_MODAL_PREFIX)) {
       return handleWeeklyModalSubmit(interaction);
+    }
+    if (customId.startsWith(TRIVIA_MODAL_PREFIX)) {
+      return handleTriviaModalSubmit(interaction);
     }
     return ephemeralMessage("Unknown form.");
   }
@@ -156,6 +199,8 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
   // Autocomplete: /gs-randomize's game, from every game with chat rolls,
   // narrowed by what's typed so far (Discord shows at most 25).
   if (type === INTERACTION_TYPE.AUTOCOMPLETE) {
+    const acName = (interaction.data as { name?: string }).name;
+    if (acName === "gs-tt" || acName === "tt") return ttAutocomplete(interaction);
     const focused = ((interaction.data as { options?: { name: string; value: string; focused?: boolean }[] }).options ?? [])
       .find((o) => o.focused)?.value?.toString().trim().toLowerCase() ?? "";
     const choices = Object.values(CHAT_GAMES)

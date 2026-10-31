@@ -4,7 +4,7 @@
  *   /gs-weekly          server managers post this week's card to the channel;
  *                       anyone else gets it just for them (ephemeral)
  *   Play                `weekly:play`. Survey week: a form with your own answer
- *                       and three guesses, filled with what you sent before.
+ *                       and up to three optional guesses, filled with what you sent before.
  *                       Tier War week: a ranking message just for you
  *   form submit         `weeklym:{week}` → saveSurvey
  *   tier pick           `weeklyt:{week}:{item}:{ballot}` → the same message with
@@ -25,6 +25,9 @@
 
 import { resolveDiscordUser } from "@/lib/discord/user";
 import { addWeeks, revealAt, SURVEY_PREDICTIONS, weekNumber, weekOf } from "@/lib/originals/weekly";
+import { personAnswer } from "@/lib/chatbrain/store";
+import { after } from "next/server";
+import { answeredNames, interactionName, noteAnswer, recordInteractionPost, weekTopic, type AnsweredHere } from "@/lib/discord/promptPosts";
 import { TIERS } from "@/lib/originals/tierWars";
 import {
   WeeklyNotReady, agendaCard, countEntries, ensureWeek, getEntry, getWeek, leaderboard, saveBallot, saveSurvey,
@@ -77,14 +80,15 @@ function reply(data: Record<string, unknown>, ephemeral: boolean): Response {
 const linkButton = (label: string, url: string) => ({ type: 2, style: 5, label, url });
 
 /** This week's card: what the challenge is, when it's revealed, and Play. The Monday post uses it too. */
-export function weeklyCardMessage(week: WeekRow, opts: { players?: number; footerLine?: string | null } = {}): { embeds: DiscordEmbed[]; components: unknown[] } {
+export function weeklyCardMessage(week: WeekRow, opts: { players?: number; footerLine?: string | null; answered?: AnsweredHere | null } = {}): { embeds: DiscordEmbed[]; components: unknown[] } {
   const n = weekNumber(week.week_start);
   const agenda = agendaCard(week.agenda_card_id);
   const how = week.kind === "survey"
-    ? `**${week.title}**\n\nGive your own answer, then guess the crowd's top three. Each guess that makes the board scores its points. The board is revealed ${revealStamp(week.week_start)}.`
+    ? `**${week.title}**\n\nGive your own answer and, if you like, guess the crowd's top three. Each guess that makes the board scores its points. The board is revealed ${revealStamp(week.week_start)}.`
     : `**Tier War: ${week.title}**\n\nRank all six from S to D: ${week.items.map((i) => i.label).join(", ")}. You score a point for each one you place where the crowd does. The crowd's ranking is revealed ${revealStamp(week.week_start)}.`;
   const fields: { name: string; value: string; inline?: boolean }[] = [];
   if (opts.players !== undefined) fields.push({ name: "Playing so far", value: String(opts.players), inline: true });
+  if (opts.answered) fields.push({ name: `✅ ${opts.answered.count} ${week.kind === "survey" ? "answered" : "ranked"} here`, value: answeredNames(opts.answered).slice(0, 1024) });
   if (agenda) fields.push({ name: "Bonus at game nights", value: `${agenda.title}: ${agenda.text}`.slice(0, 1024) });
   return {
     embeds: [{
@@ -128,7 +132,9 @@ export async function handleGsWeekly(interaction: Record<string, unknown>): Prom
   try {
     const thisWeek = weekOf();
     const [week, players] = await Promise.all([ensureWeek(thisWeek), countEntries(thisWeek)]);
-    return reply(weeklyCardMessage(week, { players }), !(interaction.guild_id && canManage(interaction)));
+    const isPublic = !!(interaction.guild_id && canManage(interaction));
+    if (isPublic) after(async () => recordInteractionPost(interaction, { topic: await weekTopic(week), kind: "weekly", ref: week.week_start, payload: { showPlayers: true } }));
+    return reply(weeklyCardMessage(week, { players }), !isPublic);
   } catch (err) {
     const r = notReady(err);
     if (r) return r;
@@ -157,19 +163,21 @@ export async function handleWeeklyPlay(interaction: Record<string, unknown>): Pr
     const q = week.title;
     const label = q.length <= 45 ? q : "Your own answer";
     const placeholder = q.length <= 45 ? "First thing that comes to mind" : q.length <= 100 ? q : `${q.slice(0, 99)}…`;
-    const input = (id: string, l: string, p: string, value?: string | null) => ({
+    const input = (id: string, l: string, p: string, value?: string | null, required = true) => ({
       type: 1,
-      components: [{ type: 4, custom_id: id, style: 1, label: l, placeholder: p, min_length: 1, max_length: 40, required: true, ...(value ? { value } : {}) }],
+      components: [{ type: 4, custom_id: id, style: 1, label: l, placeholder: p, ...(required ? { min_length: 1 } : {}), max_length: 40, required, ...(value ? { value } : {}) }],
     });
     const guesses = mine?.predictions ?? [];
+    // The week's question is also a Chat Brain question: an answer given there fills in here.
+    const brainAnswer = !mine?.answer && week.prompt_id ? (await personAnswer(week.prompt_id, { userId: account.userId }).catch(() => null))?.raw ?? null : null;
     return Response.json({
       type: 9,
       data: {
         custom_id: `${WEEKLY_MODAL_PREFIX}${weekNumber(thisWeek)}`,
         title: `Weekly Challenge #${weekNumber(thisWeek)}`,
         components: [
-          input("answer", label, placeholder, mine?.answer),
-          ...Array.from({ length: SURVEY_PREDICTIONS }, (_, i) => input(`guess${i}`, `Guess a top answer (${i + 1} of ${SURVEY_PREDICTIONS})`, "What will most people say?", guesses[i])),
+          input("answer", label, placeholder, mine?.answer ?? brainAnswer),
+          ...Array.from({ length: SURVEY_PREDICTIONS }, (_, i) => input(`guess${i}`, `Guess a top answer (optional, ${i + 1} of ${SURVEY_PREDICTIONS})`, "What will most people say?", guesses[i], false)),
         ],
       },
     });
@@ -212,12 +220,14 @@ export async function handleWeeklyModalSubmit(interaction: Record<string, unknow
     const guesses = Array.from({ length: SURVEY_PREDICTIONS }, (_, i) => modalValue(data, `guess${i}`));
     const r = await saveSurvey(account.userId, modalValue(data, "answer"), guesses);
     if (r.ok) {
-      return afterSave(`Saved for this week. Your answer: **${r.answer}**. Your guesses: **${r.predictions.join("**, **")}**. The board is revealed ${revealStamp(thisWeek)}, and you can change these until then.`);
+      after(async () => noteAnswer({ guildId: interaction.guild_id as string | undefined, topic: await weekTopic(await ensureWeek(thisWeek)), person: `u:${account.userId}`, name: interactionName(interaction) }));
+      const guessed = r.predictions.length ? ` Your guesses: **${r.predictions.join("**, **")}**.` : " No guesses this week (they're optional).";
+      return afterSave(`Saved for this week. Your answer: **${r.answer}**.${guessed} The board is revealed ${revealStamp(thisWeek)}, and you can change these until then.`);
     }
     const why: Record<string, string> = {
       closed: "This week's challenge closed before your answers arrived. The next one opens Monday.",
       not_survey: "This week is a Tier War now. Tap **Change** to rank it.",
-      bad_entry: "Give your own answer and three different guesses. Tap **Change** to try again.",
+      bad_entry: "Give your own answer first. Tap **Change** to try again.",
       blocked: "One of those isn't allowed here. Tap **Change** to try different words.",
     };
     return afterSave(why[r.error] ?? "Couldn't save that. Try again in a moment.");
@@ -324,6 +334,7 @@ export async function handleWeeklyLock(interaction: Record<string, unknown>): Pr
     if (!r.ok) {
       return updateV2(tierMessage(week, ballot, r.error === "closed" ? "This week's challenge just closed. The next one opens Monday." : "Rank all six, then lock in.").components);
     }
+    after(async () => noteAnswer({ guildId: interaction.guild_id as string | undefined, topic: await weekTopic(week), person: `u:${account.userId}`, name: interactionName(interaction) }));
     const lines = week.items.map((it) => `**${TIERS[r.ballot[it.id]]}** ${it.label}`).join("\n");
     return updateV2([
       { type: 10, content: `### Locked in for Weekly Challenge #${weekNumber(thisWeek)}\n${lines}\n\nThe crowd's ranking is revealed ${revealStamp(thisWeek)}. You can change yours until then.` },

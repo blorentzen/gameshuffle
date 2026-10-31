@@ -18,7 +18,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Select, Switch } from "@empac/cascadeds";
+import { Alert, Badge, Button, Switch } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
@@ -27,7 +28,8 @@ type EventKey =
   | "round_open"
   | "round_close"
   | "recap"
-  | "qotd";
+  | "qotd"
+  | "lounge";
 type EventFlags = Partial<Record<EventKey, boolean>>;
 
 interface RoutingState {
@@ -79,6 +81,11 @@ const EVENT_LABELS: Array<{
     label: "Question of the Day",
     hint: "Posts today's !qotd question to your channel once a day, even when you're not streaming. Off unless you turn it on.",
   },
+  {
+    key: "lounge",
+    label: "Lounge rank-ups",
+    hint: "Posts when a member who confirmed their Mario Kart lounge name on GameShuffle reaches a new division. Off unless you turn it on.",
+  },
 ];
 
 /**
@@ -95,6 +102,7 @@ const SUB_DEFAULTS: Record<EventKey, boolean> = {
   round_close: true,
   recap: true,
   qotd: false,
+  lounge: false,
 };
 
 const subOn = (flags: EventFlags | null, key: EventKey) =>
@@ -102,8 +110,25 @@ const subOn = (flags: EventFlags | null, key: EventKey) =>
 const pingOn = (flags: EventFlags | null, key: EventKey) =>
   flags?.[key] === true;
 
+/** Plain-language versions of the install callback's failure codes. */
+const INSTALL_ERRORS: Record<string, string> = {
+  server_limit: "You're at your server limit: the bot runs in 1 server on a free account and up to 5 with GS Pro. Forget a server on the Discord Bot tab to make room.",
+  server_already_linked: "That server is already connected to another GameShuffle account. Whoever connected it can remove the bot from their Discord settings on GameShuffle, then you can add it here.",
+  access_denied: "Install cancelled. Nothing changed.",
+};
+
+interface ServerSummary { guildId: string; name: string | null; isMain: boolean; removed: boolean; active: boolean }
+
 export function DiscordBotRoutingCard() {
   const confirm = useConfirm();
+  // The server this card is set up for (?guild=, else the main one).
+  const [guildId, setGuildId] = useState<string | null>(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("guild") : null));
+  const [servers, setServers] = useState<ServerSummary[]>([]);
+  const [serverLimit, setServerLimit] = useState(1);
+  const withGuild = useCallback(
+    (url: string) => (guildId ? `${url}${url.includes("?") ? "&" : "?"}guild=${encodeURIComponent(guildId)}` : url),
+    [guildId],
+  );
   const [routing, setRouting] = useState<RoutingState | null>(null);
   const [channels, setChannels] = useState<ChannelOption[] | null>(null);
   const [roles, setRoles] = useState<RoleOption[] | null>(null);
@@ -115,21 +140,23 @@ export function DiscordBotRoutingCard() {
 
   const loadRouting = useCallback(async () => {
     try {
-      const res = await fetch("/api/discord/bot/routing");
+      const res = await fetch(withGuild("/api/discord/bot/routing"));
       const body = await res.json();
       if (!body.ok) {
         setError(body.error ?? "Couldn't load Discord routing.");
         return;
       }
       setRouting(body.routing);
+      setServers((body.servers as ServerSummary[]) ?? []);
+      setServerLimit((body.limit as number) ?? 1);
     } catch {
       setError("Network error loading Discord routing.");
     }
-  }, []);
+  }, [withGuild]);
 
   const loadChannels = useCallback(async () => {
     try {
-      const res = await fetch("/api/discord/bot/channels");
+      const res = await fetch(withGuild("/api/discord/bot/channels"));
       const body = await res.json();
       if (!body.ok) {
         if (res.status === 404) {
@@ -143,11 +170,11 @@ export function DiscordBotRoutingCard() {
     } catch {
       setError("Network error loading Discord channels.");
     }
-  }, []);
+  }, [withGuild]);
 
   const loadRoles = useCallback(async () => {
     try {
-      const res = await fetch("/api/discord/bot/roles");
+      const res = await fetch(withGuild("/api/discord/bot/roles"));
       const body = await res.json();
       if (!body.ok) {
         if (res.status === 404) {
@@ -161,7 +188,7 @@ export function DiscordBotRoutingCard() {
     } catch {
       setError("Network error loading Discord roles.");
     }
-  }, []);
+  }, [withGuild]);
 
   useEffect(() => {
     void loadRouting().finally(() => setLoading(false));
@@ -178,11 +205,14 @@ export function DiscordBotRoutingCard() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("discord_installed") === "1") {
-      setSuccess("GameShuffle bot installed. Pick a channel below.");
+    const installed = params.get("discord_installed");
+    if (installed === "1") {
+      setSuccess("GameShuffle bot added. Pick a channel for this server below.");
+    } else if (installed === "again") {
+      setSuccess("GameShuffle bot reconnected to this server. Your settings are as you left them.");
     }
     const err = params.get("discord_install_error");
-    if (err) setError(`Install failed: ${err.replace(/_/g, " ")}`);
+    if (err) setError(INSTALL_ERRORS[err] ?? `Install failed: ${err.replace(/_/g, " ")}`);
   }, []);
 
   const patchRouting = async (
@@ -193,7 +223,7 @@ export function DiscordBotRoutingCard() {
     setError(null);
     setSuccess(null);
     try {
-      const res = await fetch("/api/discord/bot/routing", {
+      const res = await fetch(withGuild("/api/discord/bot/routing"), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -255,7 +285,7 @@ export function DiscordBotRoutingCard() {
     setError(null);
     setSuccess(null);
     try {
-      const res = await fetch("/api/discord/bot/test-post", { method: "POST" });
+      const res = await fetch(withGuild("/api/discord/bot/test-post"), { method: "POST" });
       const body = await res.json();
       if (!body.ok) {
         const reasons: Record<string, string> = {
@@ -284,7 +314,7 @@ export function DiscordBotRoutingCard() {
 
   const removeBot = async () => {
     if (
-      !(await confirm({ title: "Stop GameShuffle posting to your Discord?", body: "You’ll also need to remove the bot from your server in Discord.", confirmLabel: "Stop posting" }))
+      !(await confirm({ title: `Forget ${routing?.guildName ?? "this server"}?`, body: "GameShuffle stops posting there, and its channel, role, log and AutoMod settings are cleared. Remove the bot from the server in Discord too.", confirmLabel: "Forget server" }))
     ) {
       return;
     }
@@ -292,23 +322,22 @@ export function DiscordBotRoutingCard() {
     setError(null);
     setSuccess(null);
     try {
-      const res = await fetch("/api/discord/bot/routing", { method: "DELETE" });
+      const res = await fetch(withGuild("/api/discord/bot/routing"), { method: "DELETE" });
       const body = await res.json();
       if (!body.ok) {
         setError(body.error ?? "Couldn't remove routing.");
         return;
       }
-      setRouting({
-        guildId: null,
-        guildName: null,
-        channelId: null,
-        notifyRoleId: null,
-        eventSubscriptions: null,
-        eventPings: null,
-      });
       setChannels(null);
       setRoles(null);
-      setSuccess("Discord routing removed.");
+      setSuccess("Server forgotten.");
+      // Show the next server (or the empty state) without a reload.
+      const next = servers.find((g) => g.guildId !== routing?.guildId);
+      const url = new URL(window.location.href);
+      if (next) url.searchParams.set("guild", next.guildId); else url.searchParams.delete("guild");
+      window.history.replaceState(null, "", url.toString());
+      if ((next?.guildId ?? null) === guildId) void loadRouting();
+      else setGuildId(next?.guildId ?? null);
     } catch {
       setError("Network error removing routing.");
     } finally {
@@ -405,7 +434,7 @@ export function DiscordBotRoutingCard() {
             style={{ textDecoration: "none" }}
           >
             <Button variant="primary" size="small">
-              Install in your Discord →
+              Install in your Discord
             </Button>
           </a>
         </div>
@@ -417,6 +446,32 @@ export function DiscordBotRoutingCard() {
             gap: "var(--spacing-16)",
           }}
         >
+          <div className="dbot-servers" style={{ marginBottom: 0 }}>
+            {servers.length > 1 ? (
+              <Select floatingLabel="Server" value={routing?.guildId ?? ""}
+                onChange={(v) => {
+                  const id = typeof v === "string" ? v : (v[0] ?? "");
+                  if (!id || id === routing?.guildId) return;
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("guild", id);
+                  window.history.replaceState(null, "", url.toString());
+                  setChannels(null);
+                  setRoles(null);
+                  setGuildId(id);
+                }}
+                options={servers.map((g) => ({ value: g.guildId, label: `${g.name ?? "Server"}${g.isMain ? " (main)" : ""}${g.removed ? " (bot removed)" : !g.active ? " (paused)" : ""}` }))} />
+            ) : <span />}
+            <div className="dbot-servers__actions">
+              <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
+                {servers.filter((g) => !g.removed).length} of {serverLimit} server{serverLimit === 1 ? "" : "s"}
+              </span>
+              {servers.filter((g) => !g.removed).length < serverLimit && (
+                <a href="/api/discord/bot/install/start" style={{ textDecoration: "none" }}>
+                  <Button variant="secondary" size="small">Add another server</Button>
+                </a>
+              )}
+            </div>
+          </div>
           <div
             style={{
               display: "flex",

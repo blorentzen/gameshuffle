@@ -6,19 +6,20 @@
  * forced through /signup/set-password before they can use the rest of
  * the app.
  *
- * Supabase doesn't expose `encrypted_password` to the client, but it
- * tracks every provider the user has authenticated through on
- * `auth.users.app_metadata.providers`. Password sign-in registers there
- * as `email` — that's our reliable "has password" signal.
+ * `app_metadata.has_password` is the signal, kept by a trigger on
+ * auth.users (supabase/auth-has-password-m1.sql). Until that runs we fall
+ * back to `app_metadata.providers` containing `email`, which misses a
+ * Twitch/Discord account that saved a password (Supabase only adds `email`
+ * there after an email sign-in).
  */
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { passwordFlag } from "@/lib/auth/passwordRules";
 
 /**
- * Returns `true` when the user has a password set (i.e. `email` is in
- * `app_metadata.providers`). Service-role lookup — never call from a
- * client component.
+ * Returns `true` when the user has a password set. Service-role lookup,
+ * never call from a client component.
  */
 export async function userHasPassword(userId: string): Promise<boolean> {
   try {
@@ -28,7 +29,7 @@ export async function userHasPassword(userId: string): Promise<boolean> {
     const providers = Array.isArray(data.user.app_metadata?.providers)
       ? (data.user.app_metadata!.providers as string[])
       : [];
-    return providers.includes("email");
+    return passwordFlag(data.user.app_metadata) ?? providers.includes("email");
   } catch (err) {
     console.warn("[auth-password] userHasPassword lookup failed:", err);
     // Fail closed — if we can't tell, assume yes so the user isn't

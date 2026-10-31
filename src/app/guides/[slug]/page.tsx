@@ -33,6 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     description: guide.description,
     alternates: { canonical: `https://www.gameshuffle.co/guides/${slug}` },
     openGraph: {
+      siteName: "GameShuffle",
       title: `${guide.title} | GameShuffle`,
       description: guide.description,
       url: `https://www.gameshuffle.co/guides/${slug}`,

@@ -74,8 +74,14 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     poll: { anchor: "bottom-center", scale: 1 },
     number_bingo: { anchor: "mid-right", scale: 1 },
     chat_draft: { anchor: "mid-left", scale: 1 },
+    chat_brain: { anchor: "mid-left", scale: 1 },
+    trivia: { anchor: "mid-left", scale: 1 },
+    break_screen: { anchor: "center", scale: 1 },
     chat: { anchor: "bottom-left", scale: 1 },
     viewers: { anchor: "top-right", scale: 1 },
+    // Off until the streamer turns it on: most use the MMR card's own OBS link.
+    mmr: { anchor: "bottom-right", scale: 0.8, enabled: false },
+    lounge_room: { anchor: "top-right", scale: 0.9, enabled: false },
   },
   portrait: {
     dice: { anchor: "center", scale: 0.9 },
@@ -92,8 +98,13 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     poll: { anchor: "bottom-center", scale: 0.9 },
     number_bingo: { anchor: "center", scale: 0.9 },
     chat_draft: { anchor: "center", scale: 0.9 },
+    chat_brain: { anchor: "center", scale: 0.9 },
+    trivia: { anchor: "center", scale: 0.9 },
+    break_screen: { anchor: "center", scale: 0.7 },
     chat: { anchor: "bottom-center", scale: 0.9 },
     viewers: { anchor: "top-right", scale: 0.9 },
+    mmr: { anchor: "bottom-center", scale: 0.7, enabled: false },
+    lounge_room: { anchor: "top-center", scale: 0.8, enabled: false },
   },
   square: {},
 };

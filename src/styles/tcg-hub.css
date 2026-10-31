@@ -177,9 +177,17 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+/* Phones keep two across (Britton's pick, 2026-10-19): four short cards
+   stacked one per row ran a whole screen. The card tightens instead. */
 @media (max-width: 560px) {
   .tcg-rtb-grid {
-    grid-template-columns: 1fr;
+    gap: var(--spacing-12);
+  }
+  .tcg-rtb {
+    padding: var(--spacing-16);
+  }
+  .tcg-rtb__title {
+    font-size: var(--font-size-16);
   }
 }
 .tcg-rtb {
@@ -255,6 +263,63 @@
 }
 .tcg-companion .tcg-rtb-grid {
   margin: 0 0 var(--spacing-40);
+}
+/* "How the companion works" link to the companion's landing page. */
+.tcg-companion__more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8) var(--spacing-24);
+  margin: var(--spacing-16) 0 0;
+  font-size: var(--font-size-16);
+}
+.tcg-companion__more .arrow-link { color: var(--text-primary); }
+.tcg-companion__more .arrow-link:focus-visible { outline-color: #fff; }
+
+/* ── One buyer review under Recently sold (replaced the reviews band,
+   Britton's pick 2026-10-19) ─────────────────────────────────────────── */
+.tcg-sold-review {
+  margin: var(--spacing-24) 0 0;
+  display: grid;
+  gap: var(--spacing-8);
+  max-width: 64rem;
+}
+.tcg-sold-review__stars {
+  display: inline-flex;
+  gap: var(--spacing-2, 0.2rem);
+  color: #b45309; /* amber-700: reads on the light page */
+}
+.tcg-sold-review__src {
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+.tcg-sold-review__quote {
+  margin: 0;
+  font-size: var(--font-size-18);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-primary);
+}
+.tcg-sold-review__by {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.tcg-sold-review__by a {
+  color: var(--brand-ink, var(--text-primary));
+}
+.tcg-companion__pro {
+  margin: 0 0 var(--spacing-24);
+  text-align: center;
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+}
+.tcg-companion__pro a {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.tcg-attribution.tcg-hub__credits {
+  margin: var(--spacing-32) 0 0;
 }
 
 /* ── Reviews (full-width band + carousel) ───────────────────────────── */

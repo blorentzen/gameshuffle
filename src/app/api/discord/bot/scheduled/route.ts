@@ -1,25 +1,28 @@
 /**
  * GET / DELETE /api/discord/bot/scheduled
  *
- * The streamer's upcoming scheduled Discord announcements (+ follow-ups) so they
- * can find and cancel them. GET lists pending; DELETE ?id= cancels one.
+ * One server's upcoming scheduled Discord announcements (+ follow-ups, ?guild=)
+ * so the streamer can find and cancel them. GET lists pending; DELETE ?id= cancels one.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { botServer } from "@/lib/discord/botServer";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+export async function GET(request: Request) {
+  const ctx = await botServer(request, { allowRemoved: true });
+  if (!ctx.ok) return ctx.response.status === 404 ? NextResponse.json({ ok: true, posts: [] }) : ctx.response;
 
+  // The picked server's posts; ones scheduled before servers had their own
+  // (no guild) show on the main server.
   const { data } = await createServiceClient()
     .from("discord_scheduled_posts")
     .select("id, category, content, fire_at")
-    .eq("user_id", user.id)
+    .eq("user_id", ctx.userId)
+    .or(ctx.guild.isMain ? `guild_id.eq.${ctx.guild.guildId},guild_id.is.null` : `guild_id.eq.${ctx.guild.guildId}`)
     .eq("status", "pending")
     .order("fire_at", { ascending: true })
     .limit(50);

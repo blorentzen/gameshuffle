@@ -1,0 +1,152 @@
+/*
+ * /support and /support/thanks (src/app/support/). Marketing page: light
+ * always. Type sizes use the CDS tokens (the root font-size is 10px).
+ */
+
+.support-page { display: grid; gap: var(--spacing-32, 32px); padding-block: var(--spacing-32, 32px) var(--spacing-48, 48px); }
+.support-page__cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--spacing-24, 24px); align-items: start; }
+@media (max-width: 48rem) { .support-page__cols { grid-template-columns: 1fr; } }
+.support-page h2 { margin: 0 0 var(--spacing-8, 8px); font-size: var(--font-size-24); line-height: 1.2; }
+.support-page__why { display: grid; gap: var(--spacing-16, 16px); }
+.support-page__why > p { margin: 0; font-size: var(--font-size-16); line-height: 1.6; color: var(--text-secondary); max-width: 62ch; }
+.support-goal { display: grid; gap: var(--spacing-8, 8px); padding: var(--spacing-16, 16px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.support-goal h3 { margin: 0; font-size: var(--font-size-18); }
+.support-goal .empac-progress__label { display: none; }
+.support-goal__line { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.support-costs { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-6, 6px); }
+.support-costs li { display: flex; justify-content: space-between; gap: var(--spacing-8, 8px); padding-bottom: var(--spacing-6, 6px); border-bottom: 1px dashed var(--border-default);
+  font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.support-page__give-title { font-size: var(--font-size-20) !important; }
+.support-form { display: grid; gap: var(--spacing-12, 12px); }
+/* The Once / Monthly pills are a switch here: the form below is the content. */
+.support-form__kind .empac-tabs__content { display: none; }
+.support-form__amounts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--spacing-8, 8px); }
+.support-form__amounts .empac-button { width: 100%; font-variant-numeric: tabular-nums; }
+.support-form__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.support-form__error { margin: 0; font-size: var(--font-size-14); color: var(--color-error-600, #c0392b); }
+/* CDS prints checkbox helper text at 12px; here it is reading text (14px floor). */
+.support-form .empac-checkbox-helper { font-size: var(--font-size-14); }
+.support-form__fine { margin: 0; font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); }
+.support-wall__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
+.support-wall__item { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-6, 6px); max-width: 100%; padding: var(--spacing-6, 6px) var(--spacing-12, 12px);
+  border: 1px solid var(--border-default); border-radius: 999px; background: var(--surface-default); font-size: var(--font-size-14); }
+.support-wall__heart { color: #c8447a; }
+.support-wall__name { font-weight: 600; }
+.support-wall__monthly { font-size: var(--font-size-10); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #7a5306; background: #fbf0d6; padding: 2px 6px; border-radius: 5px; }
+.support-wall__note { color: var(--text-secondary); overflow-wrap: anywhere; }
+.support-wall__note::before { content: "\201C"; }
+.support-wall__note::after { content: "\201D"; }
+.support-pro { display: grid; gap: var(--spacing-8, 8px); }
+.support-pro h2 { font-size: var(--font-size-20) !important; margin: 0 !important; }
+.support-pro p { margin: 0; color: var(--text-secondary); max-width: 62ch; }
+.support-pro__link { font-weight: 600; }
+.support-page__fine { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.support-thanks__lead { margin: 0; font-size: var(--font-size-18); line-height: 1.5; }
+.support-thanks__list { margin: 0; padding-inline-start: 2rem; display: grid; gap: var(--spacing-6, 6px); color: var(--text-secondary); }
+
+/* ── Support beside GS Pro (Britton's picks, 2026-10-19) ─────────────────────── */
+/* The heart tile: the site's gradient icon tile in Support's rose. */
+.support-tile { width: 4.4rem; height: 4.4rem; border-radius: var(--radius-12, 12px); display: inline-grid; place-items: center; flex: none; color: #fff;
+  background: linear-gradient(135deg, #e2457a, #a81e57); }
+.support-tile--small { width: 3.4rem; height: 3.4rem; border-radius: var(--radius-10, 10px); }
+/* After something fun finishes (SupportMoment): flat under a thin line, a prompt rather than a card. */
+.support-moment { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-12, 12px); align-items: start;
+  border-top: 1px solid var(--border-default); padding-top: var(--spacing-20, 20px); margin-top: var(--spacing-8, 8px); }
+.support-moment__body { display: grid; gap: var(--spacing-4, 4px); min-width: 0; }
+.support-moment__title { margin: 0; font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.support-moment__text { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.support-moment__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); margin-top: var(--spacing-8, 8px); }
+/* A supporter gets this instead of the ask. */
+.support-thankline { display: flex; align-items: center; gap: var(--spacing-6, 6px); margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--support-ink); }
+.support-thankline svg { flex: none; }
+/* Under a GS Pro wall's buttons (SupportInstead). */
+.support-instead { margin: var(--spacing-8, 8px) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.support-instead a { font-weight: 600; color: var(--support-ink); display: inline-flex; align-items: center; gap: var(--spacing-4, 4px); }
+.support-instead a svg { flex: none; }
+/* GS Pro and Support side by side (BackingPair): same size, same weight. */
+.backing-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr)); gap: var(--spacing-16, 16px); }
+.backing-card { display: grid; gap: var(--spacing-8, 8px); align-content: start; }
+.backing-card > .empac-card__body, .backing-card .empac-card__content { display: grid; gap: var(--spacing-8, 8px); }
+.backing-tile { width: 4.4rem; height: 4.4rem; border-radius: var(--radius-12, 12px); display: inline-grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, #2f66ec, #5a3fd6); }
+.backing-card__tiles { display: flex; gap: var(--spacing-8, 8px); margin-bottom: var(--spacing-8, 8px); }
+.backing-card__name { margin: var(--spacing-4, 4px) 0 0; font-size: var(--font-size-20); line-height: 1.2; }
+.backing-card__price { margin: 0; font-size: var(--font-size-14); font-weight: 600; color: var(--brand-ink, #2b46c4); }
+.backing-card__price--support { color: var(--support-ink); }
+.backing-card__text { margin: 0; font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); max-width: 48ch; }
+.backing-card__cta { margin-top: var(--spacing-8, 8px); }
+.backing-card__goal { display: grid; gap: var(--spacing-6, 6px); margin-top: var(--spacing-8, 8px); font-size: var(--font-size-13, 1.3rem); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.backing-card__goal .empac-progress__label { display: none; }
+/* Account ▸ Support GameShuffle (SupportScreen). */
+.support-account__you { display: flex; gap: var(--spacing-12, 12px); align-items: center; }
+.support-account__you-text { display: grid; gap: var(--spacing-4, 4px); min-width: 0; }
+.support-account__you-title { margin: 0; font-size: var(--font-size-18); font-weight: 700; }
+.support-account__you-line { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.support-account__row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--spacing-12, 12px);
+  border-top: 1px solid var(--border-default); padding-top: var(--spacing-12, 12px); margin-top: var(--spacing-12, 12px); }
+.support-account__row p { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); min-width: 0; flex: 1 1 24rem; }
+.support-account__wall { display: grid; gap: var(--spacing-12, 12px); max-width: 56rem; }
+.support-account__give { max-width: 56rem; }
+/* The thank-you page's share (SupporterShare). */
+.support-thanks__share { display: grid; gap: var(--spacing-12, 12px); justify-items: start; padding: var(--spacing-16, 16px) 0; border-top: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); }
+.support-thanks__share p { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); }
+
+/* ── Monthly levels (Britton's picks, 2026-10-19) ─────────────────────────────── */
+/* Three pressable CDS Cards; the tile sits above the name like the site's other icon tiles. */
+.support-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-8, 8px); }
+@media (max-width: 30rem) { .support-levels { grid-template-columns: 1fr; } }
+.support-level.empac-card { display: grid; gap: var(--spacing-4, 4px); align-content: start; text-align: start; min-width: 0; }
+.support-level__head { display: flex; justify-content: space-between; align-items: start; gap: var(--spacing-8, 8px); margin-bottom: var(--spacing-4, 4px); }
+/* The shared icon tile's size, corners and shadow (design round 3); the three levels keep the support colors. */
+.support-level__tile { width: var(--tile-md, 40px); height: var(--tile-md, 40px); border-radius: var(--tile-md-radius, 12px); display: inline-grid; place-items: center; color: #fff; flex: none; box-shadow: var(--tile-shadow);
+  background: linear-gradient(135deg, #e2457a, #a81e57); }
+.support-level__tile svg { width: var(--tile-md-glyph, 22px); height: var(--tile-md-glyph, 22px); }
+.support-level__tile--backer { background: linear-gradient(135deg, #7a4fe0, #4a2fb0); }
+.support-level__tile--champion { background: linear-gradient(135deg, #d99a1e, #9c5d06); }
+.support-level__yours { font-size: var(--font-size-10); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--support-ink); }
+.support-level__name { font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.support-level__price { font-size: var(--font-size-14); font-weight: 600; color: var(--support-ink); font-variant-numeric: tabular-nums; }
+.support-level__perks { display: grid; gap: var(--spacing-4, 4px); margin-top: var(--spacing-4, 4px); }
+.support-level__perk { font-size: var(--font-size-14); line-height: 1.4; color: var(--text-secondary); }
+@media (max-width: 30rem) {
+  .support-level.empac-card { grid-template-columns: auto minmax(0, 1fr); column-gap: var(--spacing-12, 12px); }
+  .support-level__head { grid-row: span 3; margin: 0; }
+  .support-level__perks { grid-column: 2; }
+}
+
+/* /support as a campaign page: the goal, what it pays for, Founding places and updates (flat), the give card beside them. */
+.support-goal__big { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8, 8px); }
+.support-goal__raised { font-size: var(--font-size-32, 3.2rem); font-weight: 800; line-height: 1; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.support-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8, 8px); }
+.support-checks li { display: flex; gap: var(--spacing-8, 8px); align-items: start; font-size: var(--font-size-15, 1.5rem); color: var(--text-primary); }
+.support-checks svg { flex: none; color: var(--support-ink); margin-top: 2px; }
+.support-checks__cents { margin-inline-start: auto; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.support-founding { margin: 0; display: flex; gap: var(--spacing-8, 8px); align-items: start; font-size: var(--font-size-14); color: var(--text-secondary); }
+.support-founding svg { flex: none; color: #b07a0c; margin-top: 2px; }
+.support-updates { display: grid; gap: var(--spacing-12, 12px); border-top: 1px solid var(--border-default); padding-top: var(--spacing-20, 20px); }
+.support-updates h3 { margin: 0; font-size: var(--font-size-18); }
+.support-updates ol { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12, 12px); }
+.support-updates li { display: grid; gap: var(--spacing-4, 4px); }
+.support-updates time { font-size: var(--font-size-12); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); }
+.support-updates p { margin: 0; font-size: var(--font-size-15, 1.5rem); line-height: 1.5; color: var(--text-primary); max-width: 62ch; }
+.support-wall__level { display: inline-flex; align-items: center; gap: 2px; font-size: var(--font-size-10); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 6px; border-radius: 5px; }
+.support-wall__level--champion { color: #7a4a00; background: #fbecc8; }
+.support-wall__level--backer { color: #45238f; background: #ece4fb; }
+.support-wall__more { margin: var(--spacing-12, 12px) 0 0; font-size: var(--font-size-14); }
+.support-wall__more a { font-weight: 600; color: var(--support-ink); }
+
+/* /credits ("Made possible by"). Flat groups under thin lines; names in columns. */
+.credits-page { display: grid; gap: var(--spacing-24, 24px); padding-block: var(--spacing-32, 32px) var(--spacing-48, 48px); }
+.credits-group { display: grid; gap: var(--spacing-12, 12px); }
+.credits-group + .credits-group { border-top: 1px solid var(--border-default); padding-top: var(--spacing-24, 24px); }
+.credits-group h2, .credits-join h2 { margin: 0; display: flex; align-items: center; gap: var(--spacing-8, 8px); font-size: var(--font-size-20); line-height: 1.2; }
+.credits-group--champions h2 svg { color: #b07a0c; }
+.credits-group--backers h2 svg { color: #5a35c4; }
+.credits-group--supporters h2 svg { color: var(--support-ink); }
+.credits-names { list-style: none; margin: 0; padding: 0; columns: 3 14rem; column-gap: var(--spacing-24, 24px); }
+.credits-names li { break-inside: avoid; padding-block: var(--spacing-4, 4px); font-size: var(--font-size-16); color: var(--text-primary); overflow-wrap: anywhere; }
+.credits-group--champions .credits-names li { font-size: var(--font-size-18); font-weight: 600; }
+.credits-empty { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); max-width: 62ch; }
+.credits-join { display: grid; gap: var(--spacing-8, 8px); justify-items: start; border-top: 1px solid var(--border-default); padding-top: var(--spacing-24, 24px); }
+.credits-join p { margin: 0; color: var(--text-secondary); }
+.credits-join__link { margin-top: var(--spacing-4, 4px); }

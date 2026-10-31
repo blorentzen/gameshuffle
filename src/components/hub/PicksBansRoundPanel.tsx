@@ -202,8 +202,8 @@ export function PicksBansRoundPanel({
 
         {!sessionLive && (
           <Alert variant="info">
-            Activate the session to open a picks/bans round. Once live,
-            viewers can vote at <code>/live/[your-slug]</code>.
+            Start the stream to open a picks and bans round. Once it&apos;s
+            live, viewers vote on your live page.
           </Alert>
         )}
 

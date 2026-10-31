@@ -1,6 +1,35 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
+/**
+ * Short addresses shown on our social videos (gameshuffle.co/dex, /wheel, …).
+ * Captions can't hold links on TikTok or Instagram, so people type what's on
+ * screen; each address lands on its page tagged `src=video-<code>` (the lead
+ * capture sends Plausible a "Lead" event and carries the tag to sign-up) and
+ * utm_source=video (Vercel and Plausible list it under sources). Temporary
+ * redirects, so an address can move to a new page later.
+ */
+const VIDEO_LINKS: [code: string, page: string][] = [
+  ["dex", "/daily-dex"],
+  ["duel", "/daily-duel"],
+  ["road", "/pokemon-trainers"],
+  ["shuffle", "/daily"],
+  ["quiz", "/daily-trivia"],
+  ["top5", "/daily"],
+  ["jamboree", "/randomizers/super-mario-party-jamboree"],
+  ["superstars", "/randomizers/mario-party-superstars"],
+  ["mkw", "/randomizers/mario-kart-world"],
+  ["smash", "/randomizers/super-smash-bros-ultimate"],
+  ["ow", "/randomizers/overwatch"],
+  ["nuzlocke", "/randomizers/pokemon-firered-leafgreen"],
+  ["jackbox", "/game-nights/tools/jackbox-picker"],
+  ["tiers", "/tier-list-maker"],
+  ["wheel", "/wheel-spinner"],
+  ["8ball", "/magic-8-ball"],
+  ["tod", "/truth-or-dare"],
+  ["tcg", "/pokemon-tcg-companion"],
+];
+
 // Base CSP directives (excluding frame-ancestors — set per-route)
 const baseCspDirectives = [
   "default-src 'self'",
@@ -17,7 +46,8 @@ const baseCspDirectives = [
   // Connect: API calls to Supabase, analytics, Sentry, Turnstile, Google Maps (Places)
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com https://discord.com https://maps.googleapis.com https://maps.gstatic.com https://places.googleapis.com",
   // Frames: JotForm contact form, Turnstile widget, Twitch player/clips embeds, map embeds (OSM + Google Maps Embed)
-  "frame-src https://form.jotform.com https://challenges.cloudflare.com https://player.twitch.tv https://clips.twitch.tv https://embed.twitch.tv https://www.twitch.tv https://www.openstreetmap.org https://www.google.com https://www.youtube-nocookie.com https://www.youtube.com",
+  // 'self': our own pages may show our pages (the /social/clip stage films a tool inside one).
+  "frame-src 'self' https://form.jotform.com https://challenges.cloudflare.com https://player.twitch.tv https://clips.twitch.tv https://embed.twitch.tv https://www.twitch.tv https://www.openstreetmap.org https://www.google.com https://www.youtube-nocookie.com https://www.youtube.com",
   // Workers: self + blob (Sentry uses blob workers)
   "worker-src 'self' blob:",
   // Object/base: none
@@ -106,9 +136,11 @@ const nextConfig: NextConfig = {
       },
 
       // ─── All other API routes ─────────────────────────────────────────
-      // Only gameshuffle.co frontend should call these
+      // Only gameshuffle.co frontend should call these. /api/instant/* and
+      // /api/twitch-ext/* set their own headers: the Facebook Instant Game calls
+      // from *.fbsbx.com and the Twitch extension from *.ext-twitch.tv.
       {
-        source: "/api/:path*",
+        source: "/api/:path((?!instant/|twitch-ext/).*)",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "https://gameshuffle.co" },
           { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },
@@ -199,9 +231,18 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      ...VIDEO_LINKS.map(([code, page]) => ({
+        source: `/${code}`,
+        destination: `${page}?src=video-${code}&utm_source=video&utm_medium=short-link&utm_campaign=${code}`,
+        permanent: false,
+      })),
       // `/competitive` on its own used to 404; send it to the only competitive
       // hub that exists rather than leaving a guessable path dead.
       { source: "/competitive", destination: "/competitive/mario-kart-8-deluxe", permanent: false },
+      // Fire Round's share link (the "Copy my score" line): a short address for the page.
+      { source: "/fire", destination: "/daily-trivia?src=share-fire", permanent: false },
+      // Fire Round moved beside the dailies on 2026-10-19 (it opened at /trivia/fire-round that morning).
+      { source: "/trivia/fire-round", destination: "/daily-trivia", permanent: true },
       // Nav IA (Play/Stream): "Features" folded into the GS Pro page, which
       // already carries the full Pro feature breakdown.
       {

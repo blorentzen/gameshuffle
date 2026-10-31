@@ -15,7 +15,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { lever } from "@/lib/pricing/catalog";
 import type { AiTokens } from "@/lib/ai/tokens";
-import type { AiFeature } from "@/lib/ai/features";
+import { OWN_CAP_FEATURES, type AiFeature } from "@/lib/ai/features";
 import { gsDay, gsDayStart } from "@/lib/time/gsClock";
 
 export type { AiFeature };
@@ -40,12 +40,21 @@ export async function aiLimits(): Promise<AiLimits> {
 async function remainingSince(userId: string, since: string, limit: number): Promise<number> {
   const { count, error } = await createServiceClient()
     .from("ai_usage").select("id", { count: "exact", head: true })
-    .eq("user_id", userId).gte("created_at", since);
+    .eq("user_id", userId).gte("created_at", since)
+    .not("feature", "in", `(${OWN_CAP_FEATURES.join(",")})`);
   if (error) {
     console.error("[ai] usage read failed:", error.message);
     return limit;
   }
   return Math.max(0, limit - (count ?? 0));
+}
+
+/** How many times an account used one feature since midnight Pacific (for features with their own cap). */
+export async function aiUsedToday(userId: string, feature: AiFeature): Promise<number> {
+  const { count, error } = await createServiceClient()
+    .from("ai_usage").select("id", { count: "exact", head: true })
+    .eq("user_id", userId).eq("feature", feature).gte("created_at", gsDayStart(gsDay()).toISOString());
+  return error ? 0 : count ?? 0;
 }
 
 /** GS Pro: generations left in the rolling 30 days (null = unlimited, for staff and admins). */

@@ -9,6 +9,7 @@
  * Always returns a BrandTheme — default when nothing is set.
  */
 
+import { ownerHasLooks } from "@/lib/support/looks";
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
@@ -29,6 +30,8 @@ export async function getBrandThemeForCommunityId(
 export async function getBrandThemeForOwner(
   ownerUserId: string,
 ): Promise<BrandTheme> {
+  // Brand themes are GS Pro: without it the owner's surfaces wear the site brand (their choice is kept).
+  if (!(await ownerHasLooks(ownerUserId))) return getBrandTheme(null);
   const admin = createServiceClient();
   const { data: userRow } = await admin
     .from("users")

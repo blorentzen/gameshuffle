@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co${HREF}` },
-  openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
 
@@ -53,7 +53,7 @@ export default function Page() {
       </ul>
       <p>
         Each stage is marked <strong>Starter</strong>, <strong>Counterpick</strong>, <strong>Sometimes legal</strong> or{" "}
-        <strong>Casual</strong>. <strong>Include stages some events allow</strong> adds the sometimes-legal ones, like Yoshi&apos;s
+        <strong>Casual</strong>. <strong>Include stages some events allow</strong>{" "}adds the sometimes-legal ones, like Yoshi&apos;s
         Island. It&apos;s the common competitive list, so check your event&apos;s own rules.
       </p>
       <p>
@@ -69,9 +69,8 @@ export default function Page() {
 
       <h2>Saving a setup</h2>
       <p>
-        Signed in, <strong>Save Complete Setup</strong> keeps everyone&apos;s fighters, the stage and rules, Custom Smash and the
-        squads. Find it in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Setups &amp;
-        Games</strong>, where you can open it again or copy a share link.
+        Signed in, <strong>Save Complete Setup</strong>{" "}keeps everyone&apos;s fighters, the stage and rules, Custom Smash and the
+        squads. Find it in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Saved configs</strong>, where you can open it again or copy a share link.
       </p>
 
       <h2>On stream</h2>

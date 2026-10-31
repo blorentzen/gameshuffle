@@ -23,7 +23,8 @@ export interface LikelyVote { voter: number; target: number }
 
 /** `pack` is a pack id, or a pack made on the spot (the one-device tool's AI pack). */
 export function dealPrompt(pack0: string | PromptPack, used: string[], rand: () => number = Math.random): LikelyRound {
-  const pack = (typeof pack0 === "string" ? promptPack(pack0) : pack0) ?? PROMPT_PACKS[Math.floor(rand() * PROMPT_PACKS.length)];
+  const everyday = PROMPT_PACKS.filter((p) => !p.seasonal);
+  const pack = (typeof pack0 === "string" ? promptPack(pack0) : pack0) ?? everyday[Math.floor(rand() * everyday.length)];
   const fresh = pack.prompts.filter((p) => !used.includes(p));
   const pool = fresh.length ? fresh : pack.prompts;
   return { pack: pack.id, prompt: pool[Math.floor(rand() * pool.length)], phase: "voting" };

@@ -12,6 +12,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Button, Modal } from "@empac/cascadeds";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AI_FEATURES, type AiAccessInfo, type AiBlock } from "@/lib/ai/features";
+import { SupportInstead } from "@/components/support/SupportMoment";
 
 function copyFor(block: AiBlock, info: AiAccessInfo): { title: string; body: string } {
   const { proPer30d, freePerDay } = info.limits;
@@ -77,6 +78,8 @@ export function AiGatePrompt({ info, block, isOpen, onClose }: {
       }
     >
       <p className="ai-gate__body">{body}</p>
+      {/* The quiet second choice on a GS Pro wall (Britton's pick, 2026-10-19). */}
+      {(block === "pro" || block === "daily" || (block === "signin" && !free)) && <SupportInstead from={`ai-${info.feature}`} />}
     </Modal>
   );
 }

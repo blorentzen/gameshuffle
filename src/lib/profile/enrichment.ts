@@ -1,10 +1,15 @@
 import "server-only";
-import { statsFrom } from "@/lib/originals/daily";
+import { dailiesView } from "@/lib/daily/dailies";
+import { DAILY_DEX_SHOWN, DUEL_SHOWN, type DailiesEntries } from "@/lib/originals/dailies";
+import { supporterInfo } from "@/lib/support/store";
 import { topTenFinishes } from "@/lib/weekly/store";
 import { brainAnswerCount } from "@/lib/chatbrain/store";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getBalance } from "@/lib/economy/tokens";
 import { MAX_SHOWCASE, type TcgCard } from "@/lib/scrydex/types";
+
+/** Tournament statuses a public surface may show: published, not cancelled (drafts and cancelled stay private). */
+const PUBLIC_TOURNAMENT_STATUSES = ["open", "in_progress", "complete"];
 
 /**
  * Read-only profile enrichment for the public /u page: token wallet, the
@@ -42,11 +47,22 @@ export interface ProfileEnrichment {
    *  in showcase order. Empty when they haven't starred any. */
   showcaseCards: TcgCard[];
   /** Daily Shuffle streak (consecutive solved days, derived from daily_results). */
-  dailyStreak: number;
+  /** Each daily's streak, best and last two weeks, and the Weekly's record (the Dailies card). */
+  dailies: DailiesEntries;
   /** Weeks finished in the Weekly Challenge top 10 (the profile badge). */
   weeklyTopTen: number;
   /** Chat Brain answers counted toward Founding Brain (account + linked chat identities). */
   brainAnswers: number;
+  /** Finished trivia nights played as themselves (crew nights show on the crew's page). */
+  triviaNights: number;
+  /** Supports GameShuffle: a one-time gift in the last year or monthly support that's on (src/lib/support/store.ts). */
+  supporter: boolean;
+  /** The first time they gave (ISO), for "Supporter since". */
+  supporterSince: string | null;
+  /** Their live monthly level (Backer and Champion get their own badge). */
+  supportLevel: "supporter" | "backer" | "champion" | null;
+  /** Their Founding supporter number (the first 100 keep it for good), or null. */
+  foundingSupporter: number | null;
 }
 
 const EMPTY: ProfileEnrichment = {
@@ -59,9 +75,14 @@ const EMPTY: ProfileEnrichment = {
   isLive: false,
   isOnline: false,
   showcaseCards: [],
-  dailyStreak: 0,
+  dailies: {},
   weeklyTopTen: 0,
   brainAnswers: 0,
+  triviaNights: 0,
+  supporter: false,
+  supporterSince: null,
+  supportLevel: null,
+  foundingSupporter: null,
 };
 
 function oneCard(value: unknown): TcgCard | null {
@@ -88,20 +109,27 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       streamerRes,
       lastSeenRes,
       showcaseRes,
-      dailyRes,
+      dailies,
       weeklyTopTen,
+      support,
     ] = await Promise.all([
       admin.from("gs_identities").select("id").eq("gs_account_id", userId),
       admin
         .from("tournaments")
         .select("id, title, game_slug, mode, status, date_time")
         .eq("organizer_id", userId)
+        // Public profile: published tournaments only (no drafts, nothing cancelled).
+        .in("status", PUBLIC_TOURNAMENT_STATUSES)
+        .is("archived_at", null)
         .order("date_time", { ascending: false })
         .limit(24),
       admin
         .from("tournament_participants")
-        .select("status, tournaments(id, title, game_slug, mode, status, date_time)")
+        .select("status, tournaments!inner(id, title, game_slug, mode, status, date_time)")
         .eq("user_id", userId)
+        .neq("status", "dropped")
+        .in("tournaments.status", PUBLIC_TOURNAMENT_STATUSES)
+        .is("tournaments.archived_at", null)
         .order("joined_at", { ascending: false })
         .limit(24),
       admin.from("saved_configs").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -116,14 +144,10 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
         .not("showcase_rank", "is", null)
         .order("showcase_rank", { ascending: true })
         .limit(MAX_SHOWCASE),
-      // Enough recent days to measure any realistic current streak.
-      admin
-        .from("daily_results")
-        .select("day, guesses, solved")
-        .eq("user_id", userId)
-        .order("day", { ascending: false })
-        .limit(400),
+      // The dailies (streak, best, the last two weeks per game) for the profile's Dailies card.
+      dailiesView({ userId }, { dex: DAILY_DEX_SHOWN, duel: DUEL_SHOWN }).catch(() => ({}) as DailiesEntries),
       topTenFinishes(userId).catch(() => 0),
+      supporterInfo(userId).catch(() => null),
     ]);
     const isStreamer = !!streamerRes.data;
     const isLive = !!(streamerRes.data as { is_live?: boolean } | null)?.is_live;
@@ -168,13 +192,26 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
     }
 
     const organized = (organizedRes.data ?? []) as TournamentLite[];
+    // One entry per tournament: one you ran and also played shows under Organized only.
+    const organizedIds = new Set(organized.map((t) => t.id));
     const joined = ((joinedRes.data ?? []) as Array<{ tournaments: unknown }>)
       .map((p) => oneTournament(p.tournaments))
-      .filter((t): t is TournamentLite => !!t);
+      .filter((t): t is TournamentLite => !!t && !organizedIds.has(t.id));
 
     const showcaseCards = ((showcaseRes.data ?? []) as Array<{ card: unknown }>)
       .map((r) => oneCard(r.card))
       .filter((c): c is TcgCard => !!c);
+
+    // Trivia nights played as themselves, counted once the night finished.
+    let triviaNights = 0;
+    try {
+      const { data: selfTeams } = await admin.from("trivia_teams").select("game_id").eq("user_id", userId).limit(500);
+      const ids = [...new Set(((selfTeams ?? []) as { game_id: string }[]).map((t) => t.game_id))];
+      if (ids.length) {
+        const { count } = await admin.from("trivia_games").select("id", { count: "exact", head: true }).in("id", ids).eq("status", "done");
+        triviaNights = count ?? 0;
+      }
+    } catch { triviaNights = 0; }
 
     return {
       tokenBalance,
@@ -188,7 +225,12 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       showcaseCards,
       weeklyTopTen,
       brainAnswers,
-      dailyStreak: statsFrom((dailyRes.data ?? []) as { day: string; guesses: number; solved: boolean }[]).streak,
+      triviaNights,
+      supporter: !!support?.supporter,
+      supporterSince: support?.supporter ? support.since : null,
+      supportLevel: support?.level ?? null,
+      foundingSupporter: support?.founding ?? null,
+      dailies,
     };
   } catch {
     return EMPTY;

@@ -133,9 +133,12 @@ function backgroundStops(skin: ProfileSkin): string[] {
  * because a card supplies its own surface.
  */
 export function skinCssVars(skin: ProfileSkin, brandPrimary?: string | null): CSSProperties {
+  // Card border and corners were dropped as choices (2026-10-10: custom CSS
+  // covers anyone who wants them), so every skin gets the standard card and
+  // saved choices are ignored.
   const vars: Record<string, string> = {
-    "--pcard-radius": RADIUS_PX[skin.card.radius],
-    "--pcard-border-width": skin.card.border === "none" ? "0px" : skin.card.border === "bold" ? "2px" : "1px",
+    "--pcard-radius": RADIUS_PX.md,
+    "--pcard-border-width": "1px",
   };
 
   const stops = backgroundStops(skin);

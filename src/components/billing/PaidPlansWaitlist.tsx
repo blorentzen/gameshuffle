@@ -12,13 +12,14 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 
-export function PaidPlansWaitlist({ product = "pro" }: { product?: "pro" | "circuit" }) {
+export function PaidPlansWaitlist({ product = "pro" }: { product?: "pro" | "circuit" | "support" | "both" }) {
   const { user } = useAuth();
   const toast = useToast();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [joined, setJoined] = useState(false);
-  const label = product === "circuit" ? "Circuit" : "GS Pro";
+  const label = product === "circuit" ? "Circuit" : product === "support" ? "Support" : product === "both" ? "GS Pro and Support" : "GS Pro";
+  const are = product === "both" ? "are" : "is";
 
   const join = async () => {
     if (!user && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error("Enter a valid email"); return; }
@@ -31,12 +32,12 @@ export function PaidPlansWaitlist({ product = "pro" }: { product?: "pro" | "circ
   };
 
   if (joined) {
-    return <Alert variant="success" title="You're on the waitlist">We&apos;ll email you when {label} opens where you are. Everything free on GameShuffle is yours in the meantime.</Alert>;
+    return <Alert variant="success" title="You're on the waitlist">We&apos;ll email you when {label} {product === "both" ? "open" : "opens"} where you are. Everything free on GameShuffle is yours in the meantime.</Alert>;
   }
   return (
     <div className="paid-waitlist">
       <p className="paid-waitlist__note">
-        {label} is available in the US for now. Join the waitlist and we&apos;ll let you know when it opens where you are.
+        {label}{" "}{are}{" "}available in the US for now. Join the waitlist and we&apos;ll let you know when it opens where you are.
         Everything free on GameShuffle works wherever you are.
       </p>
       <div className="paid-waitlist__row">

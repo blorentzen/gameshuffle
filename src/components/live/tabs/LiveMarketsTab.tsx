@@ -605,7 +605,7 @@ export function LiveMarketsTab({
 function TokensExplainerCallout() {
   return (
     <details className="live-markets__explainer">
-      <summary>New here? How GS tokens work →</summary>
+      <summary>How GS tokens work</summary>
       <div className="live-markets__explainer-body">
         <p>
           GameShuffle tokens (<TokenIcon size={14} />) are the community currency for this
@@ -625,7 +625,7 @@ function TokensExplainerCallout() {
             Winners split the losing-side pool pro-rata.
           </li>
           <li>
-            <strong>Earn from awards + bounties.</strong> The streamer
+            <strong>Earn from awards + bounties.</strong>{" "}The streamer
             can hand out tokens for great plays or post a bounty with
             a condition (&ldquo;first to finish top 3&rdquo;).
           </li>

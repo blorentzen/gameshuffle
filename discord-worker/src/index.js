@@ -7,7 +7,13 @@
  *   - Emoji REACTION roles   (MessageReactionAdd / Remove)  → discord_reaction_roles
  *   - Auto-assign on JOIN     (GuildMemberAdd)               → discord_autoroles
  *   - Server LOGGING          (message delete/edit, member join/leave, role
- *                              change) → users.discord_log_channel_id/_events
+ *                              change) → discord_guilds.log_channel_id/_events
+ *   - Server removed / re-added (GuildDelete / GuildCreate) → discord_guilds.removed_at
+ *
+ * Each server's settings live on its discord_guilds row (one account per
+ * server, up to 5 with GS Pro). Logging, the Pro role and autoroles are GS Pro
+ * tools: they run only while the server's owner has Pro (an account without
+ * Pro keeps only its main server, and that server's Pro tools pause).
  *
  * It authenticates as the same bot (DISCORD_BOT_TOKEN) and reads config from
  * Supabase with the service-role key. Config is written by the Next app.
@@ -106,9 +112,72 @@ async function toggleReactionRole(reaction, user, add) {
 client.on(Events.MessageReactionAdd, (reaction, user) => toggleReactionRole(reaction, user, true));
 client.on(Events.MessageReactionRemove, (reaction, user) => toggleReactionRole(reaction, user, false));
 
+// --- Per-server settings ---------------------------------------------------
+// One row per server in discord_guilds, cached per server (60s) so busy
+// servers don't hit the DB on every event.
+const SERVER_CACHE_MS = 60_000;
+const serverCache = new Map(); // guildId → { config, expires }
+
+/** Same rule as effectiveTier() in the app (src/lib/subscription.ts): staff,
+ *  admin and beta roles, a Pro subscription (legacy member/creator too), or an
+ *  active Circuit 256, which bundles Pro. */
+function isProRow(acct) {
+  return !!acct && (
+    ["staff", "admin", "beta"].includes(acct.role)
+    || ["pro", "member", "creator"].includes(acct.subscription_tier)
+    || (acct.circuit_tier === "circuit_256" && ["trialing", "active", "past_due"].includes(acct.circuit_status))
+  );
+}
+
+/** The server's settings, and whether its Pro tools are on (connected + the owner has Pro). */
+async function serverConfig(guildId) {
+  const cached = serverCache.get(guildId);
+  if (cached && Date.now() < cached.expires) return cached.config;
+  const { data: row } = await supabase
+    .from("discord_guilds")
+    .select("owner_user_id, removed_at, pro_role_id, log_channel_id, log_events")
+    .eq("guild_id", guildId)
+    .maybeSingle();
+  let config = null;
+  if (row && !row.removed_at) {
+    const { data: owner } = await supabase
+      .from("users")
+      .select("subscription_tier, role, circuit_tier, circuit_status")
+      .eq("id", row.owner_user_id)
+      .maybeSingle();
+    config = {
+      proTools: isProRow(owner),
+      proRoleId: row.pro_role_id ?? null,
+      log: row.log_channel_id ? { channelId: row.log_channel_id, events: row.log_events ?? {} } : null,
+    };
+  }
+  serverCache.set(guildId, { config, expires: Date.now() + SERVER_CACHE_MS });
+  return config;
+}
+
+// The bot was removed from a server (not an outage: those arrive with
+// available === false), or added back: keep discord_guilds.removed_at in step
+// so the Discord Bot tab can say so.
+client.on(Events.GuildDelete, async (guild) => {
+  if (guild.available === false) return;
+  serverCache.delete(guild.id);
+  const { error } = await supabase.from("discord_guilds").update({ removed_at: new Date().toISOString() }).eq("guild_id", guild.id).is("removed_at", null);
+  if (error) console.error("[worker] marking server removed failed:", error.message);
+  else console.log(`[worker] bot removed from server ${guild.id}`);
+});
+
+client.on(Events.GuildCreate, async (guild) => {
+  serverCache.delete(guild.id);
+  const { error } = await supabase.from("discord_guilds").update({ removed_at: null, guild_name: guild.name }).eq("guild_id", guild.id).not("removed_at", "is", null);
+  if (error) console.error("[worker] marking server back failed:", error.message);
+});
+
 client.on(Events.GuildMemberAdd, async (member) => {
   try {
     await logEvent(member.guild.id, "member_join", `👋 **Member joined** — ${member.user?.tag ?? member.id}`);
+
+    const server = await serverConfig(member.guild.id);
+    if (!server?.proTools) return; // autoroles and the Pro role are GS Pro tools
 
     const { data } = await supabase
       .from("discord_autoroles")
@@ -121,27 +190,14 @@ client.on(Events.GuildMemberAdd, async (member) => {
 
     // GS Pro role: if the streamer configured one and this member's linked GS
     // account is Pro, grant it immediately (the cron reconciles everyone else).
-    const { data: streamer } = await supabase
-      .from("users")
-      .select("discord_pro_role_id")
-      .eq("discord_guild_id", member.guild.id)
-      .maybeSingle();
-    const proRoleId = streamer?.discord_pro_role_id;
+    const proRoleId = server.proRoleId;
     if (proRoleId) {
       const { data: acct } = await supabase
         .from("users")
         .select("subscription_tier, role, circuit_tier, circuit_status")
         .eq("discord_id", member.id)
         .maybeSingle();
-      // Same rule as effectiveTier() in the app (src/lib/subscription.ts): staff,
-      // admin and beta roles, a Pro subscription (legacy member/creator too), or
-      // an active Circuit 256, which bundles Pro.
-      const isPro = !!acct && (
-        ["staff", "admin", "beta"].includes(acct.role)
-        || ["pro", "member", "creator"].includes(acct.subscription_tier)
-        || (acct.circuit_tier === "circuit_256" && ["trialing", "active", "past_due"].includes(acct.circuit_status))
-      );
-      if (isPro) {
+      if (isProRow(acct)) {
         await member.roles.add(proRoleId).catch((e) => console.error("[worker] pro-role add failed:", e?.message ?? e));
         console.log(`[worker] granted GS Pro role to ${member.id}`);
       }
@@ -152,25 +208,11 @@ client.on(Events.GuildMemberAdd, async (member) => {
 });
 
 // --- Server logging -------------------------------------------------------
-// Post message deletes/edits, joins/leaves, and role changes to the streamer's
-// chosen log channel. Config is cached per guild (60s) so busy servers don't
-// hit the DB on every message.
-const LOG_CACHE_MS = 60_000;
-const logCache = new Map(); // guildId → { config, expires }
-
+// Post message deletes/edits, joins/leaves, and role changes to the server's
+// chosen log channel (serverConfig, cached 60s).
 async function getLogConfig(guildId) {
-  const cached = logCache.get(guildId);
-  if (cached && Date.now() < cached.expires) return cached.config;
-  const { data } = await supabase
-    .from("users")
-    .select("discord_log_channel_id, discord_log_events")
-    .eq("discord_guild_id", guildId)
-    .maybeSingle();
-  const config = data?.discord_log_channel_id
-    ? { channelId: data.discord_log_channel_id, events: data.discord_log_events ?? {} }
-    : null;
-  logCache.set(guildId, { config, expires: Date.now() + LOG_CACHE_MS });
-  return config;
+  const server = await serverConfig(guildId);
+  return server?.proTools ? server.log : null;
 }
 
 const truncate = (s, n = 500) => (s && s.length > n ? `${s.slice(0, n - 1)}…` : s ?? "");
@@ -182,6 +224,8 @@ async function logEvent(guildId, eventType, content) {
   if (config.events[eventType] === false) return; // default ON unless explicitly off
   try {
     const channel = await client.channels.fetch(config.channelId);
+    // Never post one server's logs into another server's channel.
+    if (channel?.guildId !== guildId) return;
     if (channel?.isTextBased?.()) {
       await channel.send({ content: truncate(content, 1900), allowedMentions: { parse: [] } });
     }

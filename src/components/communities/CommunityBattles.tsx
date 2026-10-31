@@ -10,7 +10,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, Button, Select, Input } from "@empac/cascadeds";
+import { Card, Button, Input } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
 import type { CrewBattle } from "@/lib/communities/battles";

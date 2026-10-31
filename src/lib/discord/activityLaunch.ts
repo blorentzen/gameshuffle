@@ -16,7 +16,8 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { SITE_URL } from "@/lib/seo";
 import { ephemeralMessage } from "./respond";
 
-export type ActivityTab = "daily" | "weekly" | "brain";
+/** `dex` opens the Daily tab on the Daily Dex. */
+export type ActivityTab = "daily" | "dex" | "weekly" | "brain" | "trivia";
 
 export function activityLive(): boolean {
   return process.env.DISCORD_ACTIVITY_LIVE !== "0";

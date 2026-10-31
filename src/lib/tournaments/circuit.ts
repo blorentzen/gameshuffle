@@ -19,6 +19,8 @@
  * are passed in as a `CircuitContext`.
  */
 
+import { gsAddDays, gsDay, gsDayStart } from "@/lib/time/gsClock";
+
 /** Fallback when the platform flag can't be read. Live value comes from the
  *  `organizer_billing_enabled` flag (getPlatformFlag). */
 export const DEFAULT_ORGANIZER_BILLING_ENABLED = false;
@@ -26,8 +28,70 @@ export const DEFAULT_ORGANIZER_BILLING_ENABLED = false;
 /** The platform-flag key the admin panel toggles. */
 export const ORGANIZER_BILLING_FLAG = "organizer_billing_enabled";
 
-/** Planned launch date for paid tiers (ISO). `null` = to be announced. */
+/**
+ * Optional: a future day (ISO date, Pacific) to announce before paid Circuit
+ * plans start. `null` (the default) = nothing announced. Turning on
+ * `organizer_billing_enabled` in Platform ▸ Switches is the launch itself: the
+ * switch stamps the launch moment (`organizer_billing_enabled_at`), and from
+ * then on the Terms (§3.4), /gs-circuit, the pricing block and the create form
+ * read as live. Set this only to show "free until {day}" ahead of time.
+ */
 export const ORGANIZER_BILLING_LAUNCH: string | null = null;
+
+/**
+ * Terms §3.4 promises organizers already using Circuit an email at least 30
+ * days before any charge applies. Anyone who created a tournament before the
+ * launch keeps every Circuit feature free for this many days, counted from
+ * the later of the launch and the notice email (`organizer_circuit_notice_at`,
+ * stamped by scripts/send-circuit-launch-notice.ts).
+ */
+export const CIRCUIT_LAUNCH_GRACE_DAYS = 30;
+
+export type CircuitLaunchPhase = "preview" | "announced" | "live";
+
+const pacificLabel = (at: number) =>
+  new Date(at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
+
+/**
+ * Where the Circuit launch stands, for copy: still in preview, announced with
+ * a date, or live. Pass the launch moment (the billing switch's anchor) when
+ * the caller has it: once billing is on, that wins over the announced day.
+ */
+export function circuitLaunch(
+  launchedAt: string | null = null,
+  now = Date.now(),
+): { phase: CircuitLaunchPhase; date: string | null; dateLabel: string | null } {
+  if (launchedAt) {
+    const at = Date.parse(launchedAt);
+    if (Number.isFinite(at)) return { phase: "live", date: launchedAt, dateLabel: pacificLabel(at) };
+  }
+  if (!ORGANIZER_BILLING_LAUNCH) return { phase: "preview", date: null, dateLabel: null };
+  const at = Date.parse(`${ORGANIZER_BILLING_LAUNCH.slice(0, 10)}T12:00:00-08:00`);
+  // An announced day that has passed without the switch on reads as preview:
+  // nothing is charged until the switch flips, so the copy can't say "free until".
+  if (now >= at) return { phase: "preview", date: null, dateLabel: null };
+  return { phase: "announced", date: ORGANIZER_BILLING_LAUNCH, dateLabel: pacificLabel(at) };
+}
+
+/** What a bigger field takes, from the cap a tournament just hit. */
+export function biggerFieldLine(cap: number): string {
+  if (cap < 64) return "GameShuffle Circuit 64 lets up to 64 join, and Circuit 256 up to 256.";
+  if (cap < 256) return "GameShuffle Circuit 256 lets up to 256 join.";
+  return "For a bigger event, write to us about a Circuit Events pass.";
+}
+
+/**
+ * When an existing organizer's free Circuit ends, given the launch and notice
+ * moments: the end of the Pacific day CIRCUIT_LAUNCH_GRACE_DAYS after the
+ * later one, so "free until November 9" holds all of November 9.
+ */
+export function circuitGraceEnd(launchedAt: string | null, noticeAt: string | null = null): { at: number; label: string } | null {
+  const starts = [launchedAt, noticeAt].map((x) => (x ? Date.parse(x) : NaN)).filter(Number.isFinite);
+  if (!starts.length) return null;
+  const lastDay = gsAddDays(gsDay(Math.max(...starts)), CIRCUIT_LAUNCH_GRACE_DAYS);
+  const at = gsDayStart(gsAddDays(lastDay, 1)).getTime() - 1;
+  return { at, label: pacificLabel(at) };
+}
 
 /** Fallback lobby size for game-agnostic display (real cap comes from game config). */
 export const DEFAULT_LOBBY_SIZE = 12;
@@ -152,7 +216,7 @@ export interface CircuitResolution {
   /** Whether the four paid organizer features are unlocked. */
   paidFeatures: boolean;
   /** What granted access, for messaging/debug. */
-  source: "preview" | "override" | "subscription" | "free";
+  source: "preview" | "grandfathered" | "grace" | "override" | "subscription" | "free";
 }
 
 export function resolveCircuit(ctx: CircuitContext): CircuitResolution {

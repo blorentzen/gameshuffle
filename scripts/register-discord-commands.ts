@@ -3,6 +3,14 @@
  *
  *   npx tsx scripts/register-discord-commands.ts --dev   the dev bot (DEV_DISCORD_APPLICATION_ID + DEV_DISCORD_BOT_TOKEN)
  *   npx tsx scripts/register-discord-commands.ts         DISCORD_APPLICATION_ID + DISCORD_BOT_TOKEN
+ *   npx tsx scripts/register-discord-commands.ts --app comp --dry   prints the commands it would register, sends nothing
+ *   npx tsx scripts/register-discord-commands.ts --app comp
+ *                                                        GameShuffle Competitive (NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID +
+ *                                                        DISCORD_COMP_BOT_TOKEN): /tt, /mmr, /room, Save to GameShuffle
+ *
+ * GameShuffle Competitive (picks 2026-10-30) gets the competitive commands under short names, built from the
+ * main app's definitions below, and can be added to a person's own account as well as to servers. The main
+ * app keeps /gs-tt, /gs-mmr and /gs-room until COMP_MOVE_ENDS (src/lib/discord/appIds.ts).
  *
  * For the production bot, run without --dev with the production values set in
  * the shell (they win over .env.local), e.g.
@@ -23,11 +31,15 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 const DEV = process.argv.includes("--dev");
-const APPLICATION_ID = DEV ? process.env.DEV_DISCORD_APPLICATION_ID : process.env.DISCORD_APPLICATION_ID;
-const BOT_TOKEN = DEV ? process.env.DEV_DISCORD_BOT_TOKEN : process.env.DISCORD_BOT_TOKEN;
+const DRY = process.argv.includes("--dry");
+const appArg = process.argv.indexOf("--app");
+const COMP = appArg >= 0 && process.argv[appArg + 1] === "comp";
+const APPLICATION_ID = COMP ? process.env.NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID : DEV ? process.env.DEV_DISCORD_APPLICATION_ID : process.env.DISCORD_APPLICATION_ID;
+const BOT_TOKEN = COMP ? process.env.DISCORD_COMP_BOT_TOKEN : DEV ? process.env.DEV_DISCORD_BOT_TOKEN : process.env.DISCORD_BOT_TOKEN;
+const ID_VAR = COMP ? "NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID" : DEV ? "DEV_DISCORD_APPLICATION_ID" : "DISCORD_APPLICATION_ID";
 
-if (!APPLICATION_ID || !BOT_TOKEN) {
-  console.error(`Missing ${DEV ? "DEV_DISCORD_APPLICATION_ID or DEV_DISCORD_BOT_TOKEN" : "DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN"} in environment`);
+if (!DRY && (!APPLICATION_ID || !BOT_TOKEN)) {
+  console.error(`Missing ${COMP ? "NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID or DISCORD_COMP_BOT_TOKEN" : DEV ? "DEV_DISCORD_APPLICATION_ID or DEV_DISCORD_BOT_TOKEN" : "DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN"} in environment`);
   process.exit(1);
 }
 
@@ -39,9 +51,9 @@ function tokenOwner(token: string): string | null {
     return null;
   }
 }
-const owner = tokenOwner(BOT_TOKEN);
+const owner = BOT_TOKEN ? tokenOwner(BOT_TOKEN) : null;
 if (owner && owner !== APPLICATION_ID) {
-  console.error(`That bot token belongs to a different Discord application than ${DEV ? "DEV_DISCORD_APPLICATION_ID" : "DISCORD_APPLICATION_ID"}.`);
+  console.error(`That bot token belongs to a different Discord application than ${ID_VAR}.`);
   console.error(DEV ? "Check the DEV_ values in .env.local." : "For the dev bot, run with --dev. For production, set the production app id and token in the shell (see the top of this file).");
   process.exit(1);
 }
@@ -218,6 +230,92 @@ const commands = [
     contexts: [0, 1, 2],
   },
   {
+    name: "gs-mmr",
+    description: "A Mario Kart lounge player's MMR. Leave the name out for your own MMR card.",
+    options: [
+      { name: "name", description: "Their MKCentral lounge name (optional).", type: 3, required: false, max_length: 40 },
+      { name: "versus", description: "A second lounge name for a head-to-head (optional).", type: 3, required: false, max_length: 40 },
+      {
+        name: "game",
+        description: "Which lounge (Mario Kart World 12 players if left out).",
+        type: 3,
+        required: false,
+        choices: [
+          { name: "Mario Kart World, 12 players", value: "mkworld12p" },
+          { name: "Mario Kart World, 24 players", value: "mkworld24p" },
+          { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
+        ],
+      },
+    ],
+  },
+  {
+    name: "gs-tt",
+    description: "Mario Kart time trials: add a time, see a track's board or a player's bests.",
+    options: [
+      {
+        name: "add", description: "Add a time trial time with its result screenshot (I read the time from it).", type: 1,
+        options: [
+          { name: "track", description: "The track (start typing).", type: 3, required: true, autocomplete: true },
+          { name: "screenshot", description: "The result screen: your proof, needed for every time. I read the time from it.", type: 11, required: true },
+          { name: "time", description: "Your time, like 1:52.384. Leave out to read it from the screenshot.", type: 3, required: false, max_length: 12 },
+          { name: "class", description: "Speed class (150cc if left out).", type: 3, required: false, choices: [{ name: "150cc", value: "150" }, { name: "200cc", value: "200" }] },
+          { name: "items", description: "Mushrooms or no mushrooms (mushrooms if left out).", type: 3, required: false, choices: [{ name: "Mushrooms", value: "shrooms" }, { name: "No mushrooms", value: "none" }] },
+          { name: "vehicle", description: "Mario Kart 8 Deluxe only: for the inside drift, Mr. Scooty and Teddy Buggy boards.", type: 3, required: false, choices: [{ name: "Any vehicle", value: "any" }, { name: "Inside drift bike", value: "inside_drift" }, { name: "Mr. Scooty", value: "scooty" }, { name: "Teddy Buggy", value: "teddy" }] },
+          { name: "video", description: "A clip of the run's last 30 seconds, so a reviewer can verify it.", type: 3, required: false, max_length: 300 },
+        ],
+      },
+      {
+        name: "track", description: "A track's top ten (this server's when it has times there).", type: 1,
+        options: [
+          { name: "track", description: "The track (start typing).", type: 3, required: true, autocomplete: true },
+          { name: "class", description: "Speed class (150cc if left out).", type: 3, required: false, choices: [{ name: "150cc", value: "150" }, { name: "200cc", value: "200" }] },
+          { name: "board", description: "Whose times (this server if it has some).", type: 3, required: false, choices: [{ name: "This server", value: "server" }, { name: "Everyone", value: "everyone" }] },
+          { name: "items", description: "Mushrooms or no mushrooms (mushrooms if left out).", type: 3, required: false, choices: [{ name: "Mushrooms", value: "shrooms" }, { name: "No mushrooms", value: "none" }] },
+          { name: "vehicle", description: "Mario Kart 8 Deluxe only: a vehicle board.", type: 3, required: false, choices: [{ name: "Any vehicle", value: "any" }, { name: "Inside drift bike", value: "inside_drift" }, { name: "Mr. Scooty", value: "scooty" }, { name: "Teddy Buggy", value: "teddy" }] },
+        ],
+      },
+      {
+        name: "player", description: "A player's best times. Leave the name out for yours.", type: 1,
+        options: [
+          { name: "name", description: "Their name on GameShuffle (optional).", type: 3, required: false, max_length: 40 },
+          { name: "game", description: "Just one game (both if left out).", type: 3, required: false, choices: [{ name: "Mario Kart World", value: "mkworld" }, { name: "Mario Kart 8 Deluxe", value: "mk8dx" }] },
+        ],
+      },
+    ],
+  },
+  {
+    name: "gs-room",
+    description: "What each place pays in a lounge room, and who's favored. Paste the room's names.",
+    options: [
+      { name: "names", description: "The room's lounge names, separated by commas (teams: separated by slashes).", type: 3, required: true, max_length: 1000 },
+      { name: "me", description: "Whose read it is (a lounge name in the room).", type: 3, required: false, max_length: 40 },
+      {
+        name: "format",
+        description: "Free-for-all if left out.",
+        type: 3,
+        required: false,
+        choices: [
+          { name: "Free-for-all", value: "1" },
+          { name: "2v2", value: "2" },
+          { name: "3v3", value: "3" },
+          { name: "4v4", value: "4" },
+          { name: "6v6", value: "6" },
+        ],
+      },
+      {
+        name: "game",
+        description: "Which lounge (Mario Kart World 12 players if left out).",
+        type: 3,
+        required: false,
+        choices: [
+          { name: "Mario Kart World, 12 players", value: "mkworld12p" },
+          { name: "Mario Kart World, 24 players", value: "mkworld24p" },
+          { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
+        ],
+      },
+    ],
+  },
+  {
     name: "gs-weekly",
     description: "Play this week's Weekly Challenge. Managers post it for the whole channel.",
   },
@@ -281,6 +379,24 @@ const commands = [
     name: "gs-profile",
     description: "Share your GameShuffle profile so others can follow + connect.",
   },
+  // A message command (Apps menu on a message), for Quaxly's time trials list: reads it and saves your
+  // times (migration picks 2026-10-29). Works anywhere the person added GameShuffle to their account.
+  {
+    name: "Save to GameShuffle",
+    type: 3, // MESSAGE
+    integration_types: [0, 1],
+    contexts: [0, 1, 2],
+  },
+];
+
+/** GameShuffle Competitive's commands: the competitive ones under short names, usable in servers and, added to
+ *  a person's own account, anywhere (submitting a time still needs a server; the handler says so). */
+const COMP_FROM: Record<string, string> = { "gs-tt": "tt", "gs-mmr": "mmr", "gs-room": "room" };
+const compCommands = [
+  ...commands
+    .filter((c) => c.name in COMP_FROM)
+    .map((c) => ({ ...c, name: COMP_FROM[c.name], integration_types: [0, 1], contexts: [0, 1, 2] })),
+  ...commands.filter((c) => c.name === "Save to GameShuffle"),
 ];
 
 /** The Activity's entry point: Discord launches the Activity itself (handler 2) and posts that it started. */
@@ -315,6 +431,11 @@ async function entryPoint(url: string): Promise<object | null> {
 }
 
 async function registerCommands() {
+  if (DRY) {
+    const list = COMP ? compCommands : commands;
+    console.log(JSON.stringify(list.map((c) => ({ name: c.name, type: (c as { type?: number }).type ?? 1, integration_types: (c as { integration_types?: number[] }).integration_types, subcommands: ((c as { options?: { type: number; name: string }[] }).options ?? []).filter((o) => o.type === 1).map((o) => o.name) })), null, 1));
+    return;
+  }
   const url = `https://discord.com/api/v10/applications/${APPLICATION_ID}/commands`;
   const entry = await entryPoint(url);
 
@@ -324,7 +445,7 @@ async function registerCommands() {
       Authorization: `Bot ${BOT_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(entry ? [...commands, entry] : commands),
+    body: JSON.stringify(entry ? [...(COMP ? compCommands : commands), entry] : COMP ? compCommands : commands),
   });
 
   if (response.ok) {

@@ -10,6 +10,18 @@
  *   customer.subscription.deleted  → final cancellation; downgrade to Free
  *   invoice.paid                   → renewal; resync to pick up new period
  *   invoice.payment_failed         → status transitions to past_due
+ *   checkout.session.* / charge.refunded with metadata gs_kind "shop" → the
+ *                                    GameShuffle Shop (src/lib/store/orders.ts)
+ *   anything with metadata gs_kind "support" (the session, the monthly
+ *                                    subscription and its invoices) → Support
+ *                                    GameShuffle (src/lib/support/store.ts),
+ *                                    handled first so it never reaches the
+ *                                    GS Pro / Circuit subscription sync (a
+ *                                    Backer or Champion level gives GS Pro
+ *                                    through syncSupportPro there)
+ *   radar.early_fraud_warning.created → refund + stop any subscription + alert
+ *   charge.dispute.created / .closed   → alert with the deadline / outcome
+ *                                    (src/lib/stripe/fraud.ts)
  *
  * Signature verified against STRIPE_WEBHOOK_SECRET. Delivery is
  * at-least-once; all handlers are idempotent.
@@ -23,6 +35,10 @@ import {
   upsertSubscriptionFromStripe,
 } from "@/lib/stripe/subscriptions";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { intervalForPrice, periodEndOf, subscriptionIdOf } from "@/lib/stripe/payload";
+import { fulfilShopSession, markShopRefund, releaseShopHolds } from "@/lib/store/orders";
+import { handleDisputeClosed, handleDisputeCreated, handleEarlyFraudWarning } from "@/lib/stripe/fraud";
+import { fulfilSupportSession, isSupportSubscription, markSupportRefund, recordSupportInvoice, recordSupportSubscription } from "@/lib/support/store";
 import {
   sendTrialStartedEmail,
   sendTrialEndingEmail,
@@ -57,13 +73,6 @@ async function getContactForUser(userId: string): Promise<{ email: string; name:
   }
 }
 
-function intervalForPriceId(priceId: string | null | undefined): "monthly" | "annual" | undefined {
-  if (!priceId) return undefined;
-  if (priceId === process.env.STRIPE_PRICE_ID_MONTHLY) return "monthly";
-  if (priceId === process.env.STRIPE_PRICE_ID_ANNUAL) return "annual";
-  return undefined;
-}
-
 function formatAmount(cents: number | null | undefined): string | undefined {
   if (typeof cents !== "number" || !Number.isFinite(cents)) return undefined;
   return (cents / 100).toFixed(2);
@@ -72,7 +81,7 @@ function formatAmount(cents: number | null | undefined): string | undefined {
 async function syncFromSubscription(
   subscription: Stripe.Subscription,
   explicitUserId?: string
-): Promise<{ userId: string; priorStatus: string | null; priorCancelAtPeriodEnd: boolean | null; product: "pro" | "circuit" } | null> {
+): Promise<{ userId: string; priorStatus: string | null; priorCancelAtPeriodEnd: boolean | null; product: "pro" | "circuit" | "support" } | null> {
   const stripeCustomerId =
     typeof subscription.customer === "string"
       ? subscription.customer
@@ -148,6 +157,17 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+        // GameShuffle Shop order: handled first, and nothing below (tickets,
+        // subscriptions, the US-only backstop) ever sees it. Idempotent.
+        if (session.metadata?.gs_kind === "shop") {
+          if (!event.account) await fulfilShopSession(session.id);
+          break;
+        }
+        // Support GameShuffle: handled by its own module (levels with GS Pro included sync Pro there).
+        if (session.metadata?.gs_kind === "support") {
+          if (!event.account) await fulfilSupportSession(session.id);
+          break;
+        }
         const userId =
           (session.client_reference_id as string | null) ??
           (session.metadata?.gs_user_id as string | undefined) ??
@@ -177,6 +197,7 @@ export async function POST(request: Request) {
 
       case "customer.subscription.created": {
         const sub = event.data.object as Stripe.Subscription;
+        if (isSupportSubscription(sub)) { await recordSupportSubscription(sub); break; }
         const result = await syncFromSubscription(sub);
         // Trial-started welcome — only when this is genuinely the first
         // time we're seeing the sub (priorStatus === null) AND it begins
@@ -197,15 +218,14 @@ export async function POST(request: Request) {
 
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
+        if (isSupportSubscription(sub)) { await recordSupportSubscription(sub); break; }
         const result = await syncFromSubscription(sub);
         if (!result) break;
         // Circuit has no trial and its own lifecycle; skip the Pro-worded emails.
         const proEmails = result.product === "pro";
 
-        const periodEnd = (sub as Stripe.Subscription & { current_period_end?: number })
-          .current_period_end;
+        const periodEnd = periodEndOf(sub);
         const item = sub.items?.data?.[0];
-        const priceId = (item?.price?.id as string | null) ?? null;
         const amountCents = (item?.price?.unit_amount as number | null) ?? null;
 
         // Trial → active = trial converted into a paid subscription.
@@ -216,7 +236,7 @@ export async function POST(request: Request) {
               to: contact.email,
               name: contact.name,
               amount: formatAmount(amountCents),
-              interval: intervalForPriceId(priceId),
+              interval: intervalForPrice(item?.price),
               nextRenewalAt: periodEnd ? new Date(periodEnd * 1000) : undefined,
             }).catch((err) => console.error("[stripe-webhook] trial-converted email failed:", err));
           }
@@ -261,6 +281,7 @@ export async function POST(request: Request) {
 
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
+        if (isSupportSubscription(sub)) { await recordSupportSubscription(sub); break; }
         await syncFromSubscription(sub);
         break;
       }
@@ -270,6 +291,7 @@ export async function POST(request: Request) {
         // reminder). The day-13 (1-day-out) reminder is handled separately by
         // the daily /api/cron/trial-reminder sweep — Stripe has no 1-day event.
         const sub = event.data.object as Stripe.Subscription;
+        if (isSupportSubscription(sub)) break;
         const stripeCustomerId =
           typeof sub.customer === "string" ? sub.customer : sub.customer.id;
         const userId =
@@ -280,14 +302,13 @@ export async function POST(request: Request) {
           const contact = await getContactForUser(userId);
           if (contact) {
             const item = sub.items?.data?.[0];
-            const priceId = (item?.price?.id as string | null) ?? null;
             const amountCents = (item?.price?.unit_amount as number | null) ?? null;
             await sendTrialEndingEmail({
               to: contact.email,
               name: contact.name,
               trialEndsAt: new Date(sub.trial_end * 1000),
               amount: formatAmount(amountCents),
-              interval: intervalForPriceId(priceId),
+              interval: intervalForPrice(item?.price),
             }).catch((err) => console.error("[stripe-webhook] trial-ending email failed:", err));
           }
         }
@@ -296,15 +317,16 @@ export async function POST(request: Request) {
 
       case "invoice.paid":
       case "invoice.payment_failed": {
-        const invoice = event.data.object as Stripe.Invoice & {
-          subscription?: string | Stripe.Subscription | null;
-        };
-        if (invoice.subscription) {
-          const subscriptionId =
-            typeof invoice.subscription === "string"
-              ? invoice.subscription
-              : invoice.subscription.id;
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = subscriptionIdOf(invoice);
+        if (subscriptionId) {
           const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          // A month of monthly support: recorded for the goal bar, never synced as a plan.
+          if (isSupportSubscription(sub)) {
+            await recordSupportSubscription(sub);
+            if (event.type === "invoice.paid") await recordSupportInvoice(invoice, sub);
+            break;
+          }
           const result = await syncFromSubscription(sub);
 
           // Notify the user once per failure attempt — Stripe Smart Retries
@@ -376,13 +398,55 @@ export async function POST(request: Request) {
       }
 
       // A held seat whose Checkout expired goes back on sale.
+      // Delayed payment methods (a bank payment through Link) settle after
+      // checkout. Shop only; nothing else uses them.
+      case "checkout.session.async_payment_succeeded": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.gs_kind === "shop" && !event.account) await fulfilShopSession(session.id);
+        break;
+      }
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.gs_kind === "shop") await releaseShopHolds(session.id);
+        break;
+      }
+
       case "checkout.session.expired": {
         const session = event.data.object as Stripe.Checkout.Session;
+        if (session.metadata?.gs_kind === "shop") {
+          await releaseShopHolds(session.id);
+          break;
+        }
         const orderId = session.metadata?.gs_order_id;
         if (orderId) {
           const { createServiceClient } = await import("@/lib/supabase/admin");
           await createServiceClient().from("gs_ticket_orders").update({ status: "expired", updated_at: new Date().toISOString() }).eq("id", orderId).eq("status", "held");
         }
+        break;
+      }
+
+      // A full refund on a shop order (from the Dashboard or admin) marks it
+      // refunded. Anything that isn't a shop order is ignored.
+      case "charge.refunded": {
+        if (!event.account) {
+          await markShopRefund(event.data.object as Stripe.Charge);
+          await markSupportRefund(event.data.object as Stripe.Charge);
+        }
+        break;
+      }
+
+      // Stolen card, says the bank: refund before it becomes a dispute. Platform
+      // account only (connected accounts handle their own).
+      case "radar.early_fraud_warning.created": {
+        if (!event.account) await handleEarlyFraudWarning(event.data.object as Stripe.Radar.EarlyFraudWarning);
+        break;
+      }
+      case "charge.dispute.created": {
+        if (!event.account) await handleDisputeCreated(event.data.object as Stripe.Dispute);
+        break;
+      }
+      case "charge.dispute.closed": {
+        if (!event.account) await handleDisputeClosed(event.data.object as Stripe.Dispute);
         break;
       }
 

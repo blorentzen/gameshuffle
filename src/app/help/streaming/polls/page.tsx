@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co${HREF}` },
-  openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
 
@@ -18,7 +18,7 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>Live Polls</h1>
       <p>
-        GameShuffle polls are cross-platform: you run <strong>one</strong> poll at a time for your
+        GameShuffle polls are cross-platform: you run <strong>one</strong>{" "}poll at a time for your
         community, and every place people can vote feeds the same tally. Open it from your dashboard,
         from Twitch chat, or from Discord, and it&apos;s the same poll everywhere. Polls are a
         GameShuffle Pro feature.
@@ -54,7 +54,7 @@ export default function Page() {
 
       <h2>Run a poll from Discord</h2>
       <p>
-        Use <code>/gs-poll</code> to open or close a poll for your community, then viewers vote with
+        Use <code>/gs-poll</code>{" "}to open or close a poll for your community, then viewers vote with
         the buttons on the poll message. Requires GameShuffle Pro and the Manage Server permission.
         (If the slash command isn&apos;t showing, the bot may need a moment to register it.)
       </p>

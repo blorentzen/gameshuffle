@@ -23,7 +23,7 @@
 import "server-only";
 import { sendChatMessage } from "@/lib/twitch/client";
 import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
-import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
+import { getLiveSlugForUser, getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import {
   resolveProfileShareForUser,
   resolveProfileShareForIdentity,
@@ -386,7 +386,7 @@ registerCommand({
   name: "gs.spin",
   trigger: ["gs", "spin"],
   aliases: [["gs-spin"], ["spin"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -412,7 +412,7 @@ registerCommand({
   name: "gs.dice",
   trigger: ["gs", "dice"],
   aliases: [["gs-dice"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -432,12 +432,69 @@ registerCommand({
   },
 });
 
+// MMR card (free): the streamer's lounge MMR in one line, or any lounge player's by name.
+registerCommand({
+  name: "mmr",
+  trigger: ["mmr"],
+  aliases: [["gs-mmr"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "race",
+  family: "race",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 15,
+  help: {
+    summary: "The streamer's Mario Kart lounge MMR, or anyone's by lounge name.",
+    usage: "!mmr [lounge name]",
+    detail: "Reads the streamer's MMR card (gameshuffle.co/mmr-card): MMR, division, how far to the next one, world rank and tonight's run. Add a lounge name to look up anyone in the same game.",
+  },
+  handler: async (cmd) => {
+    // Loaded on use: the card's store is server-only, and the routing test loads this file in plain Node.
+    const { handleMmrCommand } = await import("./mmr");
+    await handleMmrCommand(asShuffleCtx(cmd), cmd.args ?? "");
+    return { ok: true };
+  },
+});
+
+// Lounge commands (free, competitive dashboard picks 2026-10-20): the streamer's card, or a lounge name after the command.
+const LOUNGE_COMMANDS: { name: "last10" | "tonight" | "compare" | "lounge" | "h2h" | "odds"; summary: string; usage: string; detail: string }[] = [
+  { name: "last10", summary: "The last ten lounge events: record, MMR, the best one, average score.", usage: "!last10 [lounge name]", detail: "The streamer's last ten events from their MMR card, or anyone's by lounge name, in the game on stream." },
+  { name: "tonight", summary: "Tonight's lounge run: events, record, MMR and any new division.", usage: "!tonight [lounge name]", detail: "Counts from when the stream went live (from midnight Pacific for a lounge name)." },
+  { name: "compare", summary: "Two lounge players side by side.", usage: "!compare <name> [name]", detail: "One name compares with the streamer; two names compare each other. MMR, division, the gap and events played." },
+  { name: "lounge", summary: "A link to a lounge player's GameShuffle stats page.", usage: "!lounge [lounge name]", detail: "The streamer's page from their MMR card, or anyone's by lounge name: season chart, nights, formats, partners and placements." },
+  { name: "h2h", summary: "Head-to-head: every event two lounge players shared this season.", usage: "!h2h <name> [name]", detail: "Who finished ahead as opponents, the record as teammates, and the last meeting. One name compares with the streamer." },
+  { name: "odds", summary: "Tonight's lounge room: seed, what 1st, the break-even place and last pay, and the favorite (GS Pro).", usage: "!odds", detail: "The room the streamer last checked at gameshuffle.co/lounge tonight. (!room stays the lobby's room code.)" },
+];
+for (const def of LOUNGE_COMMANDS) {
+  registerCommand({
+    name: def.name,
+    trigger: [def.name],
+    actor: "everyone",
+    surface: ["chat"],
+    economy: "none",
+    category: "race",
+    family: "race",
+    minAuthority: "viewer",
+    vipOnly: false,
+    cooldownSeconds: 15,
+    help: { summary: def.summary, usage: def.usage, detail: def.detail },
+    handler: async (cmd) => {
+      // Loaded on use: the card's store is server-only, and the routing test loads this file in plain Node.
+      const { handleLoungeCommand } = await import("./lounge");
+      await handleLoungeCommand(asShuffleCtx(cmd), def.name, cmd.args ?? "");
+      return { ok: true };
+    },
+  });
+}
+
 // Coin flip (Pro). Broadcaster + mods only; flips a coin on the overlay.
 registerCommand({
   name: "gs.flip",
   trigger: ["gs", "flip"],
   aliases: [["gs-flip"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -575,8 +632,8 @@ registerCommand({
 registerCommand({
   name: "gs.draw",
   trigger: ["gs", "draw"],
-  aliases: [["gs-draw"]],
-  actor: "host",
+  aliases: [["gs-draw"], ["draw"]],
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -601,7 +658,7 @@ registerCommand({
   name: "gs.timer",
   trigger: ["gs", "timer"],
   aliases: [["gs-timer"], ["timer"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -626,7 +683,7 @@ registerCommand({
   name: "gs.bingo",
   trigger: ["gs", "bingo"],
   aliases: [["gs-bingo"], ["bingo"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -653,7 +710,7 @@ registerCommand({
   name: "gs.tier",
   trigger: ["gs", "tier"],
   aliases: [["gs-tier"], ["tier"], ["tierlist"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -680,7 +737,7 @@ registerCommand({
   name: "gs.tourney",
   trigger: ["gs", "tourney"],
   aliases: [["gs-tourney"], ["tourney"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -800,7 +857,7 @@ registerCommand({
   name: "wheel.clear",
   trigger: ["wheel", "clear"],
   aliases: [["gs", "wheel", "clear"]],
-  actor: "host",
+  actor: "crew", // mods too: with "host" here the mod-level minAuthority never let them through
   surface: ["chat"],
   economy: "none",
   category: "lifecycle",
@@ -1000,6 +1057,37 @@ registerCommand({
       userId: cmd.userId,
       broadcasterTwitchId: cmd.broadcasterTwitchId,
       botTwitchId: cmd.botTwitchId,
+    });
+    return { ok: true };
+  },
+});
+
+// `!gs mod`: a Twitch mod gets their link to join the streamer's GameShuffle
+// mods (/mod/join/<slug>: sign in with Twitch, verified against the
+// channel's Twitch mod list). Mods only, so the link only reaches mods.
+registerCommand({
+  name: "gs.mod",
+  trigger: ["gs", "mod"],
+  aliases: [["gs-mod"]],
+  actor: "crew",
+  surface: ["chat"],
+  economy: "none",
+  category: "moderation",
+  family: "mod",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Get your link to help run this channel's GameShuffle tools as a mod.",
+    usage: "!gs mod",
+    detail: "Opens a page where you sign in with Twitch. If you're a mod in this channel on Twitch, you're added to the streamer's GameShuffle mods straight away.",
+  },
+  handler: async (cmd) => {
+    const slug = cmd.streamerSlug ?? (await getLiveSlugForUser(cmd.userId));
+    if (!slug) return { ok: false, reason: "no_slug" };
+    await sendChatMessage({
+      broadcasterId: cmd.broadcasterTwitchId,
+      senderId: cmd.botTwitchId,
+      message: `@${cmd.senderDisplayName} help run the stream tools as a mod: gameshuffle.co/mod/join/${encodeURIComponent(slug)} (sign in with Twitch)`,
     });
     return { ok: true };
   },
@@ -1906,6 +1994,7 @@ import "./engagementCommand";
 import "./polls";
 import "./chatbrain";
 import "./whosaid";
+import "./breakMode";
 import "./draft";
 import { tryCaptainPick } from "./draft";
 import "./party";

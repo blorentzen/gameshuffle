@@ -34,9 +34,17 @@ export interface RandomizerLanding {
   faq: AppFaq[];
 }
 
+/** The card game, for anyone who came for a Pokémon video game randomizer. */
+const POKEMON_TCG_STEP = {
+  title: "The Pokémon card game",
+  body: "Deck guides from beginner to competitive, singles, and a free companion that tracks damage and prizes at the table.",
+  ctaLabel: "Visit the Pokémon TCG hub",
+  ctaHref: "/pokemon-tcg",
+};
+
 const GAME_NIGHT_STEP = {
-  title: "Hosting a game night?",
-  body: "Set up a game night on GameShuffle to invite your crew, track who's coming, and add Mario Party with Chance cards, missions and one scoreboard across the night.",
+  title: "Plan a game night with Mario Party",
+  body: "Invite your crew, see who's coming, and play on everyone's phones.",
   ctaLabel: "Plan a game night",
   ctaHref: "/game-nights/create",
 };
@@ -50,26 +58,23 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     metaDescription:
       "Free Mario Kart 8 Deluxe randomizer. Random character, kart, wheels and glider combos for up to 12 players, plus track and item shuffles. No account needed.",
     h1: "Mario Kart 8 Deluxe Randomizer",
-    lead: "A free Mario Kart 8 Deluxe randomizer for up to 12 players. Roll a kart combo for one player or the whole lobby, then shuffle the tracks and items.",
-    ogImage: "https://cdn.empac.co/gameshuffle/images/opengraph/mk8dx-randomizer-og.jpg",
+    lead: "A free Mario Kart 8 Deluxe randomizer for up to 12 players. Roll a kart combo for one player or everyone in the lobby, then shuffle the tracks and items.",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-kart-8-deluxe-og.jpg",
     overview:
-      "This Mario Kart 8 Deluxe randomizer builds a random four-part kart combo (character, vehicle, wheels and glider) for everyone at the table, then shuffles the tracks and items for your races. Whether you call it a Mario Kart 8 randomizer or an MK8DX randomizer, it handles up to 12 players, a tour-only track filter, drift and weight filters, and race counts up to 48. Open it in any browser, hit randomize, and play.",
+      "Use the MK8DX randomizer for a couch night where nobody races their main, an online lobby where everyone gets a random build, or house rules that change every cup.",
     featuresHeading: "What the Mario Kart 8 Deluxe randomizer does",
     features: [
-      { icon: "layout-grid", title: "Full four-part kart combos", description: "A random character, vehicle, wheels, and glider for every player, up to 12 at once." },
-      { icon: "flag", title: "Track shuffler", description: "Randomize the courses for your races, with optional cup icons and a tour-only filter." },
-      { icon: "sparkles", title: "Item randomizer", description: "Shuffle item sets to spice up house rules and keep races unpredictable." },
-      { icon: "bolt", title: "Drift & weight filters", description: "Constrain combos by drift type and build rules for fairer or wackier races." },
-      { icon: "bookmark", title: "Save your setups", description: "Save kart builds, item sets, and full game-night setups to reuse later." },
-      { icon: "share", title: "Share & deep-link", description: "Share a config link, or open combos straight from the GameShuffle Discord bot." },
+      { icon: "layout-grid", title: "Full four-part kart combos", description: "A random character, vehicle, wheels and glider for every player." },
+      { icon: "flag", title: "Track shuffler", description: "Up to 48 races from all 96 courses, with cup icons and a Tour-only filter." },
+      { icon: "sparkles", title: "Item sets", description: "Pick which items are on, or roll a random set of any size." },
+      { icon: "bolt", title: "Drift & weight filters", description: "Keep combos to one drift type or weight class." },
+      { icon: "checks", title: "Only what you own", description: "Switch off Booster Course Pass waves, characters or parts you don't have, and rolls skip them." },
+      { icon: "message", title: "Roll in Discord", description: "Roll combos in your server with /gs-randomize, then open them here." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
-      { q: "Is the Mario Kart 8 Deluxe randomizer free?", a: "Yes. The randomizer is completely free and runs in your browser with no account required." },
-      { q: "How many players does it support?", a: "Up to 12 players per round, each getting their own random character, vehicle, wheels, and glider combo." },
-      { q: "Can I randomize tracks and items too?", a: "Yes. You can shuffle tracks (with a tour-only filter and optional cup icons) and randomize item sets alongside the kart combos." },
-      { q: "Can I re-roll just one player's combo?", a: "Yes. You can re-roll any individual slot without re-rolling everyone else." },
-      { q: "Does it work on mobile?", a: "Yes. The randomizer runs in any modern mobile or desktop browser." },
+      { q: "Is the Mario Kart 8 Deluxe randomizer free?", a: "Yes. It runs in any browser, phones included, with nothing to install and no account." },
+      { q: "Does it include the DLC tracks and characters?", a: "Yes. All 96 tracks are in the pool, the 48 base tracks plus all 48 from the Booster Course Pass, along with the characters added during the pass, like Birdo, Petey Piranha, Funky Kong and Pauline. Don't have the pass? Press Choose what I have at the top of the randomizer and switch off any wave, character or part you don't own. Rolls skip everything you switch off, and your choices are saved for next time." },
     ],
   },
 
@@ -77,30 +82,27 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     slug: "mario-kart-world",
     path: "/randomizers/mario-kart-world",
     game: "Mario Kart World",
-    metaTitle: "Mario Kart World Randomizer: Characters, Karts & Tracks",
+    metaTitle: "Mario Kart World Randomizer: Random Combos & Tracks",
     metaDescription:
       "Free Mario Kart World randomizer for up to 24 players. Random characters and kart combos, plus track and Knockout Tour shuffles. Save setups for game night.",
     h1: "Mario Kart World Randomizer",
     lead: "A free Mario Kart World randomizer for up to 24 players. Roll a character and kart for everyone, then shuffle the tracks, items and Knockout Tour rallies.",
-    ogImage: "https://cdn.empac.co/gameshuffle/images/opengraph/mkworld-randomizer-og.jpg",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-kart-world-og.jpg",
     overview:
-      "This Mario Kart World randomizer creates random character-and-kart pairings for up to 24 players, then shuffles tracks, items, and Knockout Tour rallies. It supports vehicle-type filters (Kart, Bike, and ATV), overworld map icons for tracks, and race counts of 4, 6, 8, 12, 16, or 32. Open it, randomize, and race.",
+      "Use it to give a 24-player room random characters and vehicles, build a Grand Prix nobody picked, or choose tonight's rallies.",
     featuresHeading: "What the Mario Kart World randomizer does",
     features: [
-      { icon: "layout-grid", title: "Character & kart combos", description: "Random character-and-vehicle pairings for up to 24 players per round." },
-      { icon: "bolt", title: "Vehicle-type filter", description: "Limit the pool to Karts, Bikes, or ATVs to match your house rules." },
+      { icon: "layout-grid", title: "Character and vehicle", description: "A random character and vehicle for every player." },
+      { icon: "bolt", title: "Vehicle-type filter", description: "Keep it to Karts, Bikes or ATVs." },
       { icon: "compass", title: "Track shuffler with overworld icons", description: "Randomize courses, shown with Mario Kart World's overworld map icons." },
-      { icon: "award", title: "Knockout Tour support", description: "Shuffle Knockout Tour rallies, not just standard races." },
-      { icon: "sparkles", title: "Item randomizer", description: "Mix up item rules to keep every race unpredictable." },
-      { icon: "bookmark", title: "Save & share", description: "Save your setups and share a config link with the lobby." },
+      { icon: "award", title: "Knockout Tour rallies", description: "Roll which rallies to play." },
+      { icon: "sparkles", title: "Item sets", description: "Pick which items are on, or roll a random set of any size." },
+      { icon: "flag", title: "Race counts", description: "4, 6, 8, 12, 16 or 32 races." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
-      { q: "Is the Mario Kart World randomizer free?", a: "Yes. It is completely free and runs in your browser with no account required." },
-      { q: "How many players does it support?", a: "Up to 24 players per round, each getting a random character and kart." },
-      { q: "Does it support Knockout Tour?", a: "Yes. The randomizer shuffles Knockout Tour rallies as well as standard races." },
-      { q: "Can I filter by vehicle type?", a: "Yes. You can limit combos to Karts, Bikes, or ATVs." },
-      { q: "What race counts are available?", a: "You can choose 4, 6, 8, 12, 16, or 32 races." },
+      { q: "Is the Mario Kart World randomizer free?", a: "Yes. It runs in any browser, phones included, with nothing to install and no account." },
+      { q: "Can it leave out characters I haven't unlocked?", a: "Yes. Press Choose what I have and switch off characters, vehicles or tracks you don't have yet. Rolls skip them, and your choices are kept for next time." },
     ],
   },
 
@@ -115,24 +117,18 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     lead: "A free Super Mario Party Jamboree randomizer for up to four players. Roll the board, rules and turns, give everyone a character, and spin a minigame or a whole set list.",
     ogImage: "https://www.gameshuffle.co/images/opengraph/mario-party-jamboree-og.jpg",
     overview:
-      "This Super Mario Party Jamboree randomizer rolls everything you need to start. It picks one of the seven boards, Party or Pro Rules, the turn count and the Bonus Star mode, gives up to four players (plus CPUs) a different character each, and spins minigames from all 112 in the base game, or 132 with the Switch 2 Edition.",
+      "Use it to pick the board and rules before a party, or to run a minigames-only night from a set list.",
     featuresHeading: "What the Jamboree randomizer does",
     features: [
-      { icon: "map", title: "Board and rules roller", description: "Board, ruleset, turns and Bonus Stars in one roll. Lock anything you want to keep." },
-      { icon: "users", title: "Characters for everyone", description: "A different character for each player, standing on their own colour, with CPUs filling empty seats." },
-      { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list for a minigame-only night, with a win tally." },
-      { icon: "device-desktop", title: "Switch or Switch 2", description: "Pick your version and only see the rules and minigames you actually have." },
-      { icon: "checks", title: "Only what you've unlocked", description: "Tell it which boards and characters you have, and rolls skip the rest. A free account remembers it everywhere." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
+      { icon: "users", title: "Characters for everyone", description: "A different character for each player, standing on their own color, with CPUs filling empty seats." },
+      { icon: "list", title: "Minigame nights", description: "Spin one minigame or draw a set list for a minigame-only night, with a win tally." },
+      { icon: "device-desktop", title: "Switch or Switch 2 Edition", description: "The Switch 2 Edition adds Tag Team and Frenzy Rules and 20 minigames. Pick your version and the rolls match it." },
     ],
     nextStep: GAME_NIGHT_STEP,
     faqHeading: "Frequently asked questions",
     faq: [
-      { q: "Is the Super Mario Party Jamboree randomizer free?", a: "Yes. It is free and runs in your browser with no account required. An account only matters if you want to save setups." },
-      { q: "How many minigames are in Super Mario Party Jamboree?", a: "112 in the base game. The Switch 2 Edition adds 20 more (mouse-control and Bowser Live minigames), for 132 in total." },
-      { q: "Does it work with the Switch 2 Edition?", a: "Yes. Choose your version at the top. The Switch 2 Edition adds Tag Team and Frenzy Rules and 20 extra minigames; on the original Switch they stay hidden." },
-      { q: "Can it skip boards I haven't unlocked?", a: "Yes. Western Land, Mario's Rainbow Castle and King Bowser's Keep are off until you tick them, and the randomizer remembers your choice." },
-      { q: "Does it pick different characters for everyone?", a: "Yes. Like the game, no two players get the same character. Pauline and Ninji only join once you mark them unlocked." },
+      { q: "Is the Super Mario Party Jamboree randomizer free?", a: "Yes. It runs in any browser, phones included, with nothing to install and no account." },
+      { q: "Can it skip boards and characters I haven't unlocked?", a: "Yes. Western Land, Mario's Rainbow Castle, King Bowser's Keep, Pauline and Ninji stay off until you tick them, and your choice is remembered." },
       { q: "Can I add missions and a live scoreboard?", a: "Yes, as part of a game night. Set up a game night on GameShuffle and add Mario Party to it: Chance cards, missions and one scoreboard across your games, played live on everyone's phone. The randomizer itself just rolls." },
     ],
   },
@@ -148,25 +144,20 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     lead: "A free Mario Party Superstars randomizer for up to four players. Roll one of the five classic boards and the turns, give everyone a character, and spin a minigame or a whole set list.",
     ogImage: "https://www.gameshuffle.co/images/opengraph/mario-party-superstars-og.jpg",
     overview:
-      "This Mario Party Superstars randomizer rolls everything you need to start. It picks one of the five Nintendo 64 boards, the turn count and the Bonus Star mode, gives up to four players (plus CPUs) a different character each, and spins from all 100 minigames (plus the five Item minigames).",
+      "Use it to settle which classic board to play tonight, or to run a minigames-only night from Mt. Minigames.",
     featuresHeading: "What the Mario Party Superstars randomizer does",
     features: [
-      { icon: "map", title: "Board and turns roller", description: "One of the five classic boards, the turn count and Bonus Stars in one roll." },
-      { icon: "users", title: "Characters for everyone", description: "A different character for each player, standing on their own colour, with CPUs filling empty seats." },
+      { icon: "users", title: "Characters for everyone", description: "A different character for each player, standing on their own color, with CPUs filling empty seats." },
       { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list from Mt. Minigames' 100 classics, with a win tally." },
       { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
-      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
+      { icon: "star", title: "Nothing to unlock", description: "All five boards and all ten characters are open from the start, so any of them can come up." },
     ],
     nextStep: GAME_NIGHT_STEP,
     faqHeading: "Frequently asked questions",
     faq: [
-      { q: "Is the Mario Party Superstars randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
-      { q: "How many players can play Mario Party Superstars?", a: "Up to four on one Switch. The board game takes one to four players, with CPUs filling any empty seats. Tag Match needs two to four, and Trio Challenge takes one to three." },
-      { q: "What can you unlock in Mario Party Superstars?", a: "No boards or characters. All five boards and all ten characters are playable from the start, so the randomizer can roll any of them straight away." },
+      { q: "Is the Mario Party Superstars randomizer free?", a: "Yes. It runs in any browser, phones included, with nothing to install and no account." },
+      { q: "How many players can play Mario Party Superstars?", a: "The board game takes one to four players. Tag Match needs two to four, and Trio Challenge one to three." },
       { q: "Does it work on Switch 2?", a: "Yes. Mario Party Superstars plays on Switch 2 through backward compatibility, and the randomizer covers everything in the game." },
-      { q: "Which boards does it pick from?", a: "All five: Yoshi's Tropical Island, Space Land, Peach's Birthday Cake, Woody Woods and Horror Land. Untick any you want to skip." },
-      { q: "Does it pick different characters for everyone?", a: "Yes. Like the game, no two players get the same character." },
       { q: "Can I add missions and a live scoreboard?", a: "Yes, as part of a game night. Set up a game night on GameShuffle and add Mario Party to it: Chance cards, missions and one scoreboard across your games, played live on everyone's phone. The randomizer itself just rolls." },
     ],
   },
@@ -182,23 +173,18 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     h1: "Mario Party Randomizer",
     lead: "A free randomizer for the original Mario Party, now on Nintendo Switch Online. Roll the board and turns, give up to four players a character, and spin a minigame or a whole set list.",
     overview:
-      "The original Mario Party is back on Nintendo Switch Online + Expansion Pack. This randomizer rolls one of its eight boards (Bowser's Magma Mountain and Eternal Star stay off until you say you've unlocked them), a Lite, Standard or Full Play turn count, a different character for each player with CPUs filling empty seats, and minigames from all 50. Skip the stick-spinning minigames if you'd rather spare your Joy-Con.",
+      "Use it to pick tonight's board and turn count (Lite, Standard or Full Play), or to run a minigames-only night.",
     featuresHeading: "What the Mario Party randomizer does",
     features: [
-      { icon: "map", title: "Board and turns roller", description: "A board, the turn count and Bonus Stars in one roll, from the boards you have." },
       { icon: "users", title: "Characters for everyone", description: "A different character for each player, with CPUs filling empty seats." },
       { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list, with a win tally." },
       { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
-      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
     ],
     nextStep: GAME_NIGHT_STEP,
     faqHeading: "Frequently asked questions",
     faq: [
-      { q: "Is the Mario Party randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Is the Mario Party randomizer free?", a: "Yes. It runs in any browser, phones included, with nothing to install and no account." },
       { q: "Can I skip the stick-spinning minigames?", a: "Yes. Turn off Stick-spinning minigames and Tug o' War, Paddle Battle and Pedal Power stay out of the draw. On Switch Online the game warns you to spin with your thumb, not your palm." },
-      { q: "Which boards need unlocking?", a: "Bowser's Magma Mountain (bought in the Mushroom Shop once every other board has been played) and Eternal Star (100 banked Stars and every board finished). Tick them in when you have them." },
-      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
     ],
   },
 
@@ -213,23 +199,18 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     h1: "Mario Party 2 Randomizer",
     lead: "A free Mario Party 2 randomizer for the N64 classic on Nintendo Switch Online. Roll the land and turns, give up to four players a character, and spin a minigame or a whole set list.",
     overview:
-      "Mario Party 2 is on Nintendo Switch Online + Expansion Pack. This randomizer rolls one of its six lands (Bowser Land stays off until you've unlocked it), a Lite, Standard or Full Play turn count and whether Bonus Stars are on, a different character for each player with CPUs filling empty seats, and minigames from all 65, including Battle, Item and Duel minigames when you want them.",
+      "Use it to pick a land and turn count, or to run a minigames-only night.",
     featuresHeading: "What the Mario Party 2 randomizer does",
     features: [
-      { icon: "map", title: "Board and turns roller", description: "A board, the turn count and Bonus Stars in one roll, from the boards you have." },
       { icon: "users", title: "Characters for everyone", description: "A different character for each player, with CPUs filling empty seats." },
       { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list, with a win tally." },
       { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
-      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
     ],
     nextStep: GAME_NIGHT_STEP,
     faqHeading: "Frequently asked questions",
     faq: [
-      { q: "Is the Mario Party 2 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
-      { q: "Which land needs unlocking?", a: "Bowser Land, after every other land has been played once. Tick it in when you have it." },
+      { q: "Is the Mario Party 2 randomizer free?", a: "Yes. It runs in any browser, phones included, with nothing to install and no account." },
       { q: "Does it include Battle, Item and Duel minigames?", a: "Yes. They're off by default because they only come up in certain situations on the board; turn their types on in the Minigame Randomizer." },
-      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
     ],
   },
 
@@ -240,27 +221,23 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Mario Party 3",
     metaTitle: "Mario Party 3 Randomizer: Boards, Characters & Minigames",
     metaDescription:
-      "Free Mario Party 3 randomizer for the N64 classic on Switch Online. Roll one of six Battle Royale boards and the turns, give everyone a character, and spin all 71 minigames.",
+      "Free Mario Party 3 randomizer: roll one of six Battle Royale boards and the turns, give everyone a character, and spin all 71 minigames.",
     h1: "Mario Party 3 Randomizer",
     lead: "A free Mario Party 3 randomizer for the N64 classic on Nintendo Switch Online. Roll a Battle Royale board and the turns, give up to four players a character, and spin a minigame or a whole set list.",
     overview:
-      "Mario Party 3 is on Nintendo Switch Online + Expansion Pack, its first re-release ever. This randomizer rolls one of the six Battle Royale boards (Waluigi's Island stays off until you've unlocked it), a turn count from 10 to 50, whether Bonus Stars are on, a different character from all eight (Daisy and Waluigi are open from the start) with CPUs filling empty seats, and minigames from all 71.",
+      "The Switch Online release is Mario Party 3's first since the N64. Use it to pick a Battle Royale board and turn count, or to run a minigames-only night.",
     featuresHeading: "What the Mario Party 3 randomizer does",
     features: [
-      { icon: "map", title: "Board and turns roller", description: "A board, the turn count and Bonus Stars in one roll, from the boards you have." },
       { icon: "users", title: "Characters for everyone", description: "A different character for each player, with CPUs filling empty seats." },
       { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list, with a win tally." },
       { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
-      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
     ],
     nextStep: GAME_NIGHT_STEP,
     faqHeading: "Frequently asked questions",
     faq: [
-      { q: "Is the Mario Party 3 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Is the Mario Party 3 randomizer free?", a: "Yes. It runs in any browser, phones included, with nothing to install and no account." },
       { q: "Are Daisy and Waluigi in?", a: "Yes. Both are playable from the start in Party Mode, so the randomizer can pick them straight away." },
-      { q: "Does it cover Duel Mode?", a: "Not yet. It rolls Battle Royale, the four-player board game. Duel boards are coming." },
-      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+      { q: "Does it cover Duel Mode?", a: "Not yet. It rolls Battle Royale, the four-player board game." },
     ],
   },
 
@@ -351,6 +328,38 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Does it pick City Trial events too?", a: "No. Events happen on their own during City Trial, so it rolls the Stadium you finish in." },
     ],
   },
+  pokemon: {
+    slug: "pokemon",
+    path: "/randomizers/pokemon",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/pokemon-og.jpg",
+    game: "Pokémon",
+    metaTitle: "Random Pokémon Generator: Roll From All 1,025 Pokémon",
+    metaDescription:
+      "Free random Pokémon generator. Roll 1, 3 or 6 from all 1,025 Pokémon, filter by generation and type, and keep a team fully evolved or free of Legendaries.",
+    h1: "Random Pokémon Generator",
+    lead: "A random Pokémon generator for all 1,025 Pokémon. Roll one, three or a team of six, narrow it to a generation or a type, and re-roll any card on its own.",
+    overview:
+      "Use it to pick a team for a Nuzlocke or a challenge run, decide what to draw or build next, or meet a Pokémon you forgot existed. Every Pokémon from Bulbasaur to Pecharunt is in the mix, from Generation 1 (Kanto) to Generation 9 (Paldea). Filter to one generation or one type, keep it to fully evolved Pokémon, leave out Legendaries and Mythicals, or make sure no two share a type. Copy the link and anyone you send it to sees the same roll.",
+    featuresHeading: "What the random Pokémon generator does",
+    features: [
+      { icon: "refresh", title: "All 1,025 Pokémon", description: "Every Pokémon from Generation 1 to 9, Bulbasaur to Pecharunt." },
+      { icon: "filter", title: "Generation and type", description: "Roll from one region, one type, or both at once." },
+      { icon: "checks", title: "Team-ready options", description: "Fully evolved only, no Legendaries or Mythicals, and no repeated types." },
+      { icon: "layout-grid", title: "Re-roll one card", description: "Keep the Pokémon you like and roll the others one at a time." },
+      { icon: "list", title: "Details on every card", description: "Category, height, weight, stage and generation for each Pokémon." },
+      { icon: "share", title: "Share the roll", description: "Copy a link that shows the same Pokémon to anyone you send it to." },
+    ],
+    nextStep: POKEMON_TCG_STEP,
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the random Pokémon generator free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "How many Pokémon are in it?", a: "All 1,025 Pokémon in the National Pokédex, through Scarlet and Violet's downloadable content (Pecharunt is number 1,025)." },
+      { q: "Can I roll a random team of 6?", a: "Yes. Pick 6, then switch on No repeated types for a team that covers more types, or Fully evolved only for a team that's ready to battle." },
+      { q: "Does it include Legendary and Mythical Pokémon?", a: "Yes, unless you switch on No Legendaries or Mythicals in the options." },
+      { q: "Does it roll forms like Alolan or Mega Pokémon?", a: "No. It rolls each species once, by its National Pokédex number." },
+      { q: "Can I use it for a Nuzlocke?", a: "Yes. For Fire Red or Leaf Green, try our run challenge too: it picks catches you can actually find before each gym." },
+    ],
+  },
   "pokemon-stadium": {
     slug: "pokemon-stadium",
     path: "/randomizers/pokemon-stadium",
@@ -358,7 +367,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Pokémon Stadium",
     metaTitle: "Pokémon Stadium Rental Randomizer: Random Rental Teams",
     metaDescription:
-      "Free Pokémon Stadium and Stadium 2 rental randomizer. A random team of 6 rental Pokémon for up to 4 players, legal for the cup you pick, with each rental's level and moves.",
+      "Free Pokémon Stadium and Stadium 2 rental randomizer: a random team of 6 rentals for up to 4 players, legal for your cup, with levels and moves.",
     h1: "Pokémon Stadium Rental Randomizer",
     lead: "Random rental teams for Pokémon Stadium and Pokémon Stadium 2. Pick a cup and everyone gets 6 different rentals, ready to battle, with the moves listed so you can find each one in the rental menu.",
     overview:
@@ -372,6 +381,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "refresh", title: "Pick my 3 too", description: "Let the randomizer choose which 3 you battle with." },
       { icon: "bookmark", title: "Save and share", description: "Save a set of teams, or copy them for your chat or Discord." },
     ],
+    nextStep: POKEMON_TCG_STEP,
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "Is the Pokémon Stadium randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
@@ -399,7 +409,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "filter", title: "New save mode", description: "Keep to the 6 maps and 8 characters open from the start." },
       { icon: "checks", title: "No Oddjob", description: "On by default: he's short enough that auto-aim shoots over his head." },
       { icon: "sparkles", title: "Chaos options", description: "Random health handicaps and a random multiplayer cheat." },
-      { icon: "share", title: "Copy the match", description: "Paste the setup into your chat or Discord." },
+      { icon: "users", title: "Name your players", description: "Type everyone's name so each card says who plays who." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -416,26 +426,24 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Mario Kart 64",
     metaTitle: "Mario Kart 64 Randomizer: Characters, Tracks & Battles",
     metaDescription:
-      "Free Mario Kart 64 randomizer for the N64 classic on Nintendo Switch Online. A different character for up to 4 players, random tracks from all 16 courses, battle courses and items.",
+      "Free Mario Kart 64 randomizer for the N64 classic on Switch Online: a different character for up to 4 players, random tracks, battle courses and items.",
     h1: "Mario Kart 64 Randomizer",
     lead: "Roll Mario Kart 64 the way the N64 plays it: a different character for up to four players, tracks from all four cups, and a battle course for Battle mode.",
     overview:
-      "Mario Kart 64 is on Nintendo Switch Online + Expansion Pack with online play. This randomizer gives each of up to 4 players a different character (the game doesn't let two players pick the same one), filters by weight class, rolls any number of the 16 tracks, picks battle courses for Battle mode, and builds a custom item set.",
+      "Use it to hand out characters nobody chose, play a Grand Prix of random tracks, or settle which battle course is next.",
     featuresHeading: "What the Mario Kart 64 randomizer does",
     features: [
-      { icon: "users", title: "Characters, no repeats", description: "Up to four players, each a different racer, just like the game." },
       { icon: "filter", title: "Weight classes", description: "Keep it to light, medium or heavy racers." },
       { icon: "map", title: "All 16 tracks", description: "Roll a race list from the Mushroom, Flower, Star and Special Cups." },
       { icon: "flag", title: "Battle courses", description: "Big Donut, Block Fort, Double Deck or Skyscraper for Battle mode." },
       { icon: "list", title: "Item sets", description: "Pick or randomize which of the 14 items your group plays with." },
-      { icon: "bookmark", title: "Save your setup", description: "Sign in to keep your players and races." },
+      { icon: "road", title: "Race counts", description: "4, 8, 12 or 16 races." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
-      { q: "Is the Mario Kart 64 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
-      { q: "Why can't two players get the same character?", a: "Mario Kart 64 doesn't allow it: once a racer is picked, nobody else can take them. The randomizer follows the same rule." },
+      { q: "Is the Mario Kart 64 randomizer free?", a: "Yes. It runs in any browser, phones included, with nothing to install and no account." },
       { q: "Is Mario Kart 64 on Nintendo Switch Online?", a: "Yes, with the Expansion Pack, since October 2021, including online play for up to four players." },
-      { q: "Can it pick battle courses?", a: "Yes. Switch to Battle, choose how many battles to play, and roll. Mario Kart 64 has four battle courses: Big Donut, Block Fort, Double Deck and Skyscraper." },
+      { q: "Can it pick battle courses?", a: "Yes. Open the Battle tab, choose how many battles to play, and roll." },
     ],
   },
   "perfect-dark": {
@@ -445,7 +453,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Perfect Dark",
     metaTitle: "Perfect Dark Randomizer: Random Combat Simulator Matches",
     metaDescription:
-      "Free Perfect Dark Combat Simulator randomizer. Roll the scenario, arena, weapon set, time limit and simulants, plus a character for each of up to 4 players, with teams and chaos options.",
+      "Free Perfect Dark Combat Simulator randomizer: roll the scenario, arena, weapons, time limit and simulants, plus a character for up to 4 players.",
     h1: "Perfect Dark Randomizer",
     lead: "Roll a whole Perfect Dark Combat Simulator match: the scenario, arena, weapon set, time limit and simulants, plus a character for everyone. Made for Nintendo Switch Online nights.",
     overview:
@@ -457,7 +465,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "layout-grid", title: "Teams", description: "King of the Hill and Capture the Case split players and simulants into two teams." },
       { icon: "filter", title: "New save mode", description: "Keep to the arenas, scenarios and simulants open from the start." },
       { icon: "sparkles", title: "Chaos options", description: "One-Hit Kills, Slow Motion, Paintball and more." },
-      { icon: "share", title: "Copy the match", description: "Paste the setup into your chat or Discord." },
+      { icon: "users", title: "Name your players", description: "Type everyone's name so each card says who plays who." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -474,7 +482,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Overwatch",
     metaTitle: "Overwatch Hero Randomizer: Random Hero Roulette",
     metaDescription:
-      "Free Overwatch hero randomizer. A random hero for up to six players, with role queue (1 Tank, 2 Damage, 2 Support), role filters, no repeats across a night, and a random map.",
+      "Free Overwatch hero randomizer: a random hero for up to six players with role queue, role filters, no repeats across a night and a random map.",
     h1: "Overwatch Hero Randomizer",
     lead: "Hero roulette for Overwatch: a random hero for you or your whole stack, with role queue, no repeats across the night, and a random map.",
     overview:
@@ -486,7 +494,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "filter", title: "Role filters", description: "Only Tanks, only Supports, or any mix." },
       { icon: "checks", title: "No repeats tonight", description: "Nobody plays the same hero twice until the pool runs out." },
       { icon: "map", title: "Random map", description: "From the Standard map pool, filtered by mode." },
-      { icon: "share", title: "Copy the lineup", description: "Paste everyone's heroes into chat or Discord." },
+      { icon: "users", title: "Name your players", description: "Type everyone's name so each card says whose hero it is." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -514,7 +522,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "filter", title: "Role filters", description: "Vanguards, Duelists, Strategists, or any mix." },
       { icon: "checks", title: "No repeats tonight", description: "Nobody plays the same hero twice until the pool runs out." },
       { icon: "map", title: "Random map", description: "From the core Convergence, Convoy and Domination maps." },
-      { icon: "share", title: "Copy the lineup", description: "Paste everyone's heroes into chat or Discord." },
+      { icon: "users", title: "Name your players", description: "Type everyone's name so each card says whose hero it is." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -531,9 +539,9 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     game: "Pokémon Fire Red and Leaf Green",
     metaTitle: "Pokémon Fire Red & Leaf Green Run Challenge: Random Runs",
     metaDescription:
-      "Free Pokémon Fire Red and Leaf Green run challenge. A random starter, Pokémon to catch before every gym, and a level cap and team size for each leader, all catchable on your version. Share the run as a link.",
+      "Free Fire Red and Leaf Green run challenge: a random starter, catches before every gym, level caps and a team size per leader. Share the run as a link.",
     h1: "Pokémon Fire Red & Leaf Green Run Challenge",
-    lead: "A new way through Kanto. You get a starter, a list of Pokémon to catch before every gym, and a level cap and team size for each leader. Every run is a link you can share.",
+    lead: "A Nuzlocke-style run through Kanto. You get a starter, a list of Pokémon to catch before every gym, and a level cap and team size for each leader. Every run is a link you can share.",
     overview:
       "Fire Red and Leaf Green are back on Nintendo Switch as standalone eShop releases. This run challenge builds a fresh playthrough from a seed: the starter you must take, one or two Pokémon to catch before each gym (always ones you can reach and catch by then on your version, at a level you can use), a level cap at the leader's strongest Pokémon, a team-size limit and an optional twist. Trade evolutions are flagged, since most people can't trade on Switch. Tick things off as you go; the checklist is saved in your browser.",
     featuresHeading: "What the run challenge does",
@@ -542,14 +550,16 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "filter", title: "Catchable by then", description: "Every target can be caught before that gym on your version, at a level under the cap." },
       { icon: "checks", title: "Gym rules", description: "A level cap at the leader's ace, a team-size limit and an optional twist for every gym." },
       { icon: "sparkles", title: "No trades needed", description: "Kadabra, Machoke, Graveler and Haunter are flagged: they stop evolving without a trade." },
-      { icon: "share", title: "Share the link", description: "Copy the run as text for chat, or as a link that opens the same run." },
+      { icon: "share", title: "Share the link", description: "A link that opens the exact same run, to race a friend or let chat follow along." },
       { icon: "users", title: "Checklist", description: "Tick off catches and badges as you go; saved in your browser per run." },
     ],
+    nextStep: POKEMON_TCG_STEP,
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "Is the run challenge free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Does it work for both versions?", a: "Yes. Pick Fire Red or Leaf Green and the catches only use Pokémon found in that version." },
       { q: "What does the level cap mean?", a: "It's the level of the leader's strongest Pokémon. Don't take anything higher into that fight." },
+      { q: "Is this a Nuzlocke?", a: "It's a Nuzlocke-style run: set catches before every gym, a level cap for each leader and a limit on your team size. You play it on your own copy of the game, and you can add your own Nuzlocke rules on top, like catching only the first Pokémon you meet in each area or releasing any Pokémon that faints." },
       { q: "Why are there no Pokémon pictures?", a: "The challenge is in beta and uses type cards: the Pokémon's number, name and type colors." },
     ],
   },
@@ -587,7 +597,7 @@ export function randomizerMetadata(slug: string): import("next").Metadata {
   return {
     title: { absolute: l.metaTitle },
     description: l.metaDescription,
-    openGraph: { title: l.metaTitle, description: l.metaDescription, url: canonical, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
+    openGraph: { siteName: "GameShuffle", type: "website", title: l.metaTitle, description: l.metaDescription, url: canonical, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
     twitter: { card: "summary_large_image", title: l.metaTitle, description: l.metaDescription, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
     alternates: { canonical },
   };

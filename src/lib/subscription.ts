@@ -283,8 +283,8 @@ export function requiredTier(capability: Capability): SubscriptionTier {
 // Spec: specs/gs-circuit-pro-addendum.md
 // ---------------------------------------------------------------------------
 
-/** The four billing sources that can grant Pro. */
-export type ProSource = "pro_subscription" | "pro_trial" | "circuit_256" | "pro_addon";
+/** The billing sources that can grant Pro. `support_level` = a Backer or Champion support level (GS Pro included, 2026-10-19). */
+export type ProSource = "pro_subscription" | "pro_trial" | "circuit_256" | "pro_addon" | "support_level";
 /** A Pro grant: a billing source, or an operational role grant. */
 export type ProGrant = ProSource | "staff" | "beta";
 
@@ -293,12 +293,13 @@ export const PRO_SOURCE_PRIORITY: readonly ProSource[] = [
   "circuit_256",
   "pro_addon",
   "pro_subscription",
+  "support_level",
   "pro_trial",
 ];
 
 /** Sources that represent a charge (trial is a source but not a charge). Used
  *  for duplicate-billing detection. */
-const PAID_PRO_SOURCES: ReadonlySet<ProSource> = new Set(["circuit_256", "pro_addon", "pro_subscription"]);
+const PAID_PRO_SOURCES: ReadonlySet<ProSource> = new Set(["circuit_256", "pro_addon", "pro_subscription", "support_level"]);
 
 /** Stripe statuses that keep a subscription entitlement live (incl. the
  *  past_due retry window and the trial). Mirrors PRO_STATUSES in the Stripe
@@ -332,6 +333,9 @@ export interface ProAccessState {
   circuitTier?: string | null;
   circuitStatus?: string | null;
   hasProAddon?: boolean;
+  /** subscription_tier 'pro' comes from a live Backer or Champion support level, not a GS Pro plan. */
+  proFromSupport?: boolean;
+  supportPeriodEnd?: string | Date | null;
   /** Period-end dates, when known, to populate `endsAt`. */
   proPeriodEnd?: string | Date | null;
   trialEnd?: string | Date | null;
@@ -361,6 +365,8 @@ function endsAtForSource(source: ProSource | null, state: ProAccessState): Date 
       return toDateOrNull(state.circuitPeriodEnd);
     case "pro_subscription":
       return toDateOrNull(state.proPeriodEnd);
+    case "support_level":
+      return toDateOrNull(state.supportPeriodEnd);
     case "pro_trial":
       return toDateOrNull(state.trialEnd) ?? toDateOrNull(state.proPeriodEnd);
     default:
@@ -380,7 +386,7 @@ export function proAccessFromState(state: ProAccessState): ProAccess {
   const subActive = isActiveBillingStatus(state.subscriptionStatus);
   const subIsPro = normalizeTier(state.subscriptionTier ?? null) === "pro";
   if (subActive && subIsPro) {
-    active.push(state.subscriptionStatus === "trialing" ? "pro_trial" : "pro_subscription");
+    active.push(state.proFromSupport ? "support_level" : state.subscriptionStatus === "trialing" ? "pro_trial" : "pro_subscription");
   }
   if (isActiveBillingStatus(state.circuitStatus)) {
     if (state.circuitTier === "circuit_256") active.push("circuit_256");
@@ -489,12 +495,15 @@ export const VOTE_SESSION_LIMITS: Record<SubscriptionTier, number> = {
   pro: Infinity,
 };
 
-/** Every account connects one server today (users.discord_guild_id). Pro goes
- *  to 5 once several servers per account are built; until then the plan
- *  pages don't compare it. */
+/** My Cards on a free account: up to this many different cards (extra copies of
+ *  a card you have don't count). GS Pro has no cap. Decided 2026-10-07. */
+export const MY_CARDS_FREE_LIMIT = 250;
+
+/** Discord servers the bot can run in (discord_guilds, src/lib/discord/guilds.ts).
+ *  Without Pro only the main server stays active; the rest pause. */
 export const DISCORD_SERVER_LIMITS: Record<SubscriptionTier, number> = {
   free: 1,
-  pro: 1,
+  pro: 5,
 };
 
 export const DISCORD_INTEGRATION_LIMITS: Record<SubscriptionTier, number> = {

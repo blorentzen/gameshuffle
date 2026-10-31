@@ -309,7 +309,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
         if (list.length === 0) return null;
         return (
           <div key={surface} style={{ marginBottom: "var(--spacing-24)" }}>
-            <h4 className="dc-cat-title">{SURFACE_LABEL[surface]}</h4>
+            <h2 className="dc-cat-title">{SURFACE_LABEL[surface]}</h2>
             <div className="chat-commands__grid">
               {list.map((row) => {
                 const current = stateOf(row);

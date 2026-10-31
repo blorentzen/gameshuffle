@@ -1,0 +1,398 @@
+/* Pokémon TCG rules pages (/pokemon-tcg/rules): reuse the deck guides'
+   .deck-detail / .deck-prose layout; these add the lede, tools, FAQ,
+   companion hand-off, related links and the rules hub list. */
+.rules-page__lede {
+  margin: var(--spacing-8) 0 0;
+  max-width: 68ch;
+  font-size: var(--font-size-18);
+  line-height: var(--line-height-relaxed, 1.6);
+  color: var(--text-secondary);
+}
+.rules-page__body h2 {
+  scroll-margin-top: calc(var(--gs-nav-offset, 64px) + var(--spacing-16));
+}
+.rules-page__companion {
+  /* The plug band (src/components/tcg/rules/PlugBand.tsx; design round 3,
+     2026-10-20): a dark navy band like the site's headers, so a plug for our
+     own tool reads as a step out of the article. The trivia articles' boxes
+     share this class and get the band without the tile. */
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: var(--spacing-40) 0 0;
+  padding: var(--spacing-24);
+  border-radius: var(--radius-16, 16px);
+  color: #fff;
+  background: radial-gradient(120% 120% at 100% 0%, #3b2fb8 0%, transparent 55%), #0d1233;
+}
+.rules-page__companion h2 {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-24);
+  line-height: 1.2;
+  color: #fff;
+  text-wrap: balance;
+}
+.rules-page__companion p {
+  margin: 0;
+  max-width: 60ch;
+  color: #dfe3ff;
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed, 1.6);
+}
+.plug-band {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--spacing-16) var(--spacing-20);
+  align-items: start;
+}
+.plug-band .plug-band__field { z-index: -1; }
+.plug-band__copy { min-width: 0; }
+.rules-page__companion .plug-band__eyebrow {
+  margin: 0 0 var(--spacing-6, 6px);
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: #a9b8ff;
+}
+/* Buttons and links on the dark band. */
+.rules-page__companion .empac-button--ghost {
+  padding-inline: var(--spacing-16);
+  color: #fff;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+.rules-page__companion .empac-button--ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.rules-page__companion .empac-button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.rules-page__companion a:not(:has(.empac-button)) { color: #fff; }
+.rules-page__companion a:not(:has(.empac-button)):focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 4px; }
+@media (max-width: 560px) {
+  .rules-page__companion { padding: var(--spacing-20); }
+  .plug-band { grid-template-columns: minmax(0, 1fr); }
+}
+.rules-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-16);
+}
+.rules-page__faq {
+  margin-top: var(--spacing-32);
+}
+.rules-page__faq dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.rules-page__qa dt {
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.rules-page__qa dd {
+  margin: var(--spacing-4) 0 0;
+  color: var(--text-secondary);
+  max-width: 68ch;
+}
+.rules-page__related {
+  margin-top: var(--spacing-40);
+}
+.rules-page__related h2 {
+  font-size: var(--font-size-20);
+  margin: 0 0 var(--spacing-12);
+}
+.rules-page__related ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  gap: var(--spacing-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* A plain link list (the trivia articles): each item a card with a visible edge. */
+.rules-page__related li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-12) var(--spacing-14, 1.4rem);
+  border-radius: var(--radius-12, 12px);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-default);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.rules-page__related li > a:not(.rule-card) {
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-ink, var(--primary-600));
+}
+.rules-page__related li > a:not(.rule-card):hover { color: var(--link-hover); text-decoration: underline; }
+/* More rules (design round 3, 2026-10-20): the whole card is the link, with a
+   tile, the summary and a "Read it" arrow that moves with the card. */
+.rules-page__related li:has(> .rule-card) { padding: 0; border: 0; background: none; }
+.rule-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+  height: 100%;
+  padding: var(--spacing-16);
+  border-radius: var(--radius-12, 12px);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-default);
+  color: var(--text-primary);
+  text-decoration: none;
+  box-shadow: 0 1px 0 rgba(20, 25, 50, 0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.rule-card:hover,
+.rule-card:focus-visible {
+  color: var(--text-primary);
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--brand-primary) 35%, var(--border-strong));
+  box-shadow: 0 12px 24px -16px rgba(30, 40, 90, 0.45);
+}
+.rule-card:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; }
+.rule-card .icon-tile { margin-bottom: var(--spacing-4); }
+.rule-card__title { font-size: var(--font-size-18); font-weight: var(--font-weight-bold); line-height: 1.3; }
+.rule-card__text { font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); }
+.rule-card__go { margin-top: auto; padding-top: var(--spacing-4); font-size: var(--font-size-14); }
+@media (prefers-reduced-motion: reduce) {
+  .rule-card { transition: box-shadow 0.18s ease, border-color 0.18s ease; }
+  .rule-card:hover, .rule-card:focus-visible { transform: none; }
+}
+.rules-hub__link {
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-ink, var(--primary-600));
+}
+.rules-page__checked {
+  margin: var(--spacing-32) 0 var(--spacing-48);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  max-width: 72ch;
+}
+.rules-page__table {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-10, 1rem);
+}
+.rules-page__table table {
+  margin: 0;
+}
+.rules-page__table:focus-visible {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 2px;
+}
+/* Condition list with the companion's icons. */
+.rules-conds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  padding: 0 !important;
+  list-style: none;
+}
+.rules-conds li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+/* The interactive tools (counter tray, damage calculator). */
+.rules-tool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-14, 1.4rem);
+  margin: var(--spacing-12) 0 var(--spacing-24);
+  padding: var(--spacing-20);
+  border-radius: var(--radius-12);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+}
+.rules-tool__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+.rules-tool__hp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.rules-tool__hp-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  font-size: var(--font-size-18);
+  color: var(--text-primary);
+}
+.rules-tool__sub {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.rules-tool__bar {
+  display: block;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--background-elevated);
+  overflow: hidden;
+}
+.rules-tool__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background-color: var(--success-500);
+  transition: width 160ms ease;
+}
+.rules-tool__bar.is-low > span { background-color: var(--warning-500); }
+.rules-tool__bar.is-danger > span { background-color: var(--error-500); }
+.rules-tool__total {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-16);
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--radius-10, 1rem);
+  background-color: var(--background-elevated);
+}
+.rules-tool__number {
+  flex: none;
+  min-width: 5.6rem;
+  font-family: var(--font-display);
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.rules-tool__stack {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+.rules-tool__steps {
+  margin: 0;
+  padding-left: var(--spacing-16);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.rules-tool__mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+  max-width: 36rem;
+  padding: var(--spacing-4);
+  border-radius: var(--radius-8);
+  background-color: var(--background-elevated);
+}
+.rules-tool__mode .empac-button {
+  width: 100%;
+  justify-content: center;
+}
+.rules-tool__tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-16);
+  align-items: flex-end;
+}
+.rules-tool__token.empac-button {
+  height: auto;
+  padding: var(--spacing-6);
+  border-radius: var(--radius-12);
+}
+.rules-tool__token .empac-button__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+.rules-tool__foot {
+  display: flex;
+  justify-content: flex-end;
+}
+.rules-tool__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: var(--spacing-12);
+}
+/* Rules hub list */
+.rules-hub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  margin: var(--spacing-24) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.rules-hub__item {
+  display: flex;
+  gap: var(--spacing-14, 1.4rem);
+  align-items: flex-start;
+  padding: var(--spacing-16);
+  border-radius: var(--radius-12);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--background-elevated);
+}
+.rules-hub__n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  background-color: var(--background-secondary);
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.rules-hub__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.rules-hub__link {
+  font-size: var(--font-size-18);
+}
+
+/* Checklists (/pokemon-tcg/checklists): tick cards off as you pull them. */
+.checklist__meta { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.checklist { display: flex; flex-direction: column; gap: var(--spacing-24); margin-top: var(--spacing-24); }
+.checklist__bar {
+  position: sticky;
+  top: calc(var(--gs-nav-offset, 64px) + var(--spacing-8));
+  transition: var(--gs-nav-slide);
+  z-index: 5;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12) var(--spacing-20);
+  padding: var(--spacing-12) var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12, 12px);
+  background: var(--background-elevated, var(--background-primary));
+}
+.checklist__progress { flex: 1 1 22rem; min-width: 0; display: grid; gap: var(--spacing-6); }
+.checklist__count { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.checklist__count b { font-size: var(--font-size-20); color: var(--text-primary); margin-right: var(--spacing-4); }
+.checklist__tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+.checklist__section { display: grid; gap: var(--spacing-8); }
+.checklist__section .tcg-h2 { margin: 0; }
+.checklist__blurb, .checklist__done { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.checklist__items { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr)); gap: var(--spacing-6) var(--spacing-16); }
+.checklist__items li {
+  display: grid; grid-template-columns: auto 4rem minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-10);
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8, 8px);
+  background: var(--background-primary);
+}
+.checklist__items li.is-got { background: var(--background-secondary); }
+.checklist__items li.is-got .checklist__name { text-decoration: line-through; text-decoration-color: var(--text-tertiary); }
+.checklist__no { font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); color: var(--text-secondary); font-size: var(--font-size-14); }
+.checklist__name { min-width: 0; font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.checklist__name small { font-weight: var(--font-weight-medium, 500); color: var(--text-secondary); font-size: var(--font-size-12); }
+.checklist__name .checklist__alt { display: block; white-space: nowrap; }
+.checklist__artist { font-size: var(--font-size-14); color: var(--text-secondary); text-align: right; overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  .checklist__items li { grid-template-columns: auto 3.6rem minmax(0, 1fr); }
+  .checklist__artist { grid-column: 3; text-align: left; font-size: var(--font-size-12); }
+}
+.checklist__shop { margin-top: var(--spacing-24); display: grid; gap: var(--spacing-6); }

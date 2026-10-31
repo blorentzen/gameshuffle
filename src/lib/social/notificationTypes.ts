@@ -31,7 +31,11 @@ export const NOTIFICATION_TYPES = {
   tournament_update: { cds: "warning", invite: false },
   // Guest entries saved under a newly verified email (spec F): offered, never auto-linked.
   tournament_claim_offer: { cds: "info", invite: false },
+  // To the organizer: people joined the waitlist because the field is full on their Circuit plan.
+  tournament_plan_waitlist: { cds: "warning", invite: false },
   championship_invite: { cds: "success", invite: false },
+  // Chat Brain co-stream: another streamer invites you (accept on the Chat Brain tab; the row links there).
+  chatbrain_costream: { cds: "info", invite: false },
   system: { cds: "system", invite: false },
   // Idea Board (spec §6.6) — all per-event, none actionable.
   idea_accepted: { cds: "success", invite: false },
@@ -55,6 +59,14 @@ export const NOTIFICATION_TYPES = {
   // Ticket payouts — a failed payout needs the organizer to fix their bank details.
   payout_paid: { cds: "success", invite: false },
   payout_failed: { cds: "warning", invite: false },
+  // A Daily leaderboard prize (src/lib/daily/boards.ts): your place and tokens when a week or month ends.
+  daily_prize: { cds: "success", invite: false },
+  // Yesterday's top 5 (src/lib/daily/winners.ts): you're in the morning winners post.
+  daily_top5: { cds: "success", invite: false },
+  // Referral links (src/lib/referrals/store.ts): tokens when someone new plays or signs up from your link.
+  referral: { cds: "success", invite: false },
+  // The Monday lounge report (src/lib/lounge/weeklyReport.ts, GS Pro): last week's MMR change, record and rivals.
+  lounge_weekly: { cds: "info", invite: false },
 } as const satisfies Record<string, NotificationTypeDef>;
 
 /** The registered GS notification types. New producers must register here. */

@@ -1,4 +1,4 @@
-import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
+import { ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 /**
  * The four pillars — the single source of truth for GameShuffle's information
  * architecture.
@@ -37,6 +37,8 @@ export interface NavDestination {
   paid?: "pro" | "circuit";
   /** Keep out of the primary nav; still reachable from the pillar page/footer. */
   secondary?: boolean;
+  /** List in the footer even when `secondary` keeps it out of the nav menus. */
+  footer?: boolean;
 }
 
 export interface NavGroup {
@@ -110,7 +112,12 @@ export const PILLARS: Pillar[] = [
           ...(PERFECT_DARK_PUBLIC ? [{ label: "Perfect Dark randomizer", href: "/randomizers/perfect-dark", blurb: "Scenario, arena, weapons and simulants for a Combat Simulator match. New.", secondary: true }] : []),
           ...(OVERWATCH_PUBLIC ? [{ label: "Overwatch hero randomizer", href: "/randomizers/overwatch", blurb: "Hero roulette with role queue, no repeats and a random map. New.", secondary: true }] : []),
           ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players. New.", secondary: true }] : []),
-          { label: "TCG Companion", href: "/pokemon-tcg", blurb: "Damage, conditions, prizes and coin flips at the table." },
+          { label: "Pokémon TCG", href: "/pokemon-tcg", blurb: "Deck guides, singles and the free companion for the card game." },
+          ...(ROAD_PUBLIC ? [{ label: "Trainer Road", href: "/pokemon-trainers", blurb: "Duel every Gym Leader, Elite Four member and Champion from the Pokémon games, any time. New." }] : []),
+          // Footer only: the nav menu already reaches the deck guides through the hub.
+          { label: "Pokémon decks", href: "/pokemon-tcg/decks", blurb: "Standard deck lists and guides, from beginner to competitive.", secondary: true, footer: true },
+          { label: "Pokémon TCG rules", href: "/pokemon-tcg/rules", blurb: "Damage counters, Special Conditions, Prize cards and a turn, in plain words.", secondary: true, footer: true },
+          { label: "TCG Companion", href: "/pokemon-tcg-companion", blurb: "Damage, conditions, prizes and coin flips at the table." },
           { label: "Open the Companion", href: "/tcg-companion", secondary: true },
           { label: "My Cards", href: "/account/stuff?tab=my-cards", blurb: "Track the cards you own.", audience: "member" },
           // One door to the tools rather than ten rows of them. Listing every
@@ -129,6 +136,10 @@ export const PILLARS: Pillar[] = [
           { label: "Dice roller", href: "/dice-roller", secondary: true },
           { label: "Coin flip", href: "/coin-flip", secondary: true },
           { label: "Name picker", href: "/name-picker", secondary: true },
+          { label: "Bracket generator", href: "/bracket-generator", secondary: true },
+          { label: "Round robin generator", href: "/round-robin-generator", secondary: true },
+          { label: "Swiss pairing generator", href: "/swiss-pairing-generator", secondary: true },
+          { label: "Name every Pokémon", href: "/name-every-pokemon", secondary: true },
           { label: "Tier list maker", href: "/tier-list-maker", secondary: true },
           { label: "Bingo generator", href: "/bingo-card-generator", secondary: true },
           { label: "Magic 8-ball", href: "/magic-8-ball", secondary: true },
@@ -146,19 +157,25 @@ export const PILLARS: Pillar[] = [
     href: "/tournament",
     groups: [
       {
-        heading: "Find a match",
+        // Competitive Mario Kart picks 2026-10-30 (8A): the hub first, then its tools.
+        heading: "Mario Kart",
         items: [
-          { label: "Browse tournaments", href: "/tournament", blurb: "Open registration, live brackets and past results." },
-          { label: "Mario Kart lounge", href: "/competitive/mario-kart-8-deluxe", blurb: "Normalised placement scoring across a session." },
+          { label: "Competitive Mario Kart", href: "/competitive-mario-kart", blurb: "Lounge stats, time trials, the MMR card and tournaments in one place.", footer: true },
+          { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart World and 8 Deluxe. Add yours from a screenshot.", footer: true },
+          { label: "Lounge stats", href: "/lounge", blurb: "Any lounge player's season, plus boards for the people you know.", footer: true },
+          { label: "MMR card", href: "/mmr-card", blurb: "Your lounge MMR on stream, live, with a moment every event. Free.", footer: true },
+          { label: "Live scoring", href: "/competitive/mario-kart-8-deluxe", blurb: "Score a set between friends as you race." },
         ],
       },
       {
-        heading: "Run one",
+        heading: "Tournaments",
         items: [
+          { label: "Browse tournaments", href: "/tournament", blurb: "Open registration, live brackets and past results." },
           { label: "Create a tournament", href: "/tournament/create", blurb: "Brackets, points or the Heat to Mains ladder.", audience: "member" },
           { label: "How hosting works", href: "/host-a-tournament", blurb: "Formats, live scoring, guests and seasons, in one place." },
           ...(GUIDES_PUBLIC ? [{ label: "Guides", href: "/guides", blurb: "Formats, seeding, group sizes and the logistics nobody writes down." }] : []),
           { label: "Try the sandbox", href: "/tournament/sandbox", blurb: "Play with every format without an account." },
+          { label: "Bracket generator", href: "/bracket-generator", blurb: "Make a bracket, round robin or Swiss rounds in a minute. No account." },
           { label: "For organizers", href: "/for-organizers", secondary: true },
         ],
       },
@@ -180,6 +197,8 @@ export const PILLARS: Pillar[] = [
         items: [
           { label: "Community hub", href: "/communities", blurb: "Every community on GameShuffle." },
           { label: "Game nights", href: "/game-nights", blurb: "Board, video and TCG nights near you or online." },
+          { label: "Trivia nights", href: "/trivia", blurb: "Host a pub-style quiz: teams on their phones, questions on the TV. New." },
+          { label: "GameShuffle for Discord", href: "/discord", blurb: "The Daily, the Weekly and Chat Brain with your server." },
         ],
       },
       {
@@ -200,8 +219,8 @@ export const PILLARS: Pillar[] = [
       {
         heading: "Your channel",
         items: [
-          { label: "Stream hub", href: "/hub", blurb: "Sessions, modules and fan-out.", audience: "streamer" },
-          { label: "Twitch integration", href: "/twitch", blurb: "Chat bot, channel points and EventSub health.", audience: "streamer" },
+          { label: "Stream hub", href: "/hub", blurb: "Plan, run and look back on your streams.", audience: "streamer" },
+          { label: "Stream settings", href: "/account/streaming", blurb: "Connections, chat bot, overlay and channel points.", audience: "streamer" },
         ],
       },
       {
@@ -210,6 +229,8 @@ export const PILLARS: Pillar[] = [
           { label: "What GS Pro does", href: "/gs-pro", blurb: "Overlay, chat commands, wheels, polls and the token economy." },
           { label: "For new streamers", href: "/for-streamers/aspiring" },
           { label: "For current streamers", href: "/for-streamers/current" },
+          { label: "Twitch chat games", href: "/twitch-chat-games", blurb: "Twelve games your chat can play, and how to start each one." },
+          { label: "Discord bot", href: "/discord", secondary: true },
           { label: "Streamer beta", href: "/beta", secondary: true },
         ],
       },
@@ -245,9 +266,12 @@ export const FOOTER_EXTRA: NavGroup[] = [
     items: [
       // One entry, not two: /features redirects here, and listing the same
       // page twice under different labels reads as two destinations.
+      { label: "New here? Start here", href: "/welcome" },
       { label: "Pricing & features", href: "/gs-pro" },
       { label: "Help", href: "/help" },
       { label: "Idea board", href: "/ideas" },
+      { label: "Support GameShuffle", href: "/support" },
+      { label: "Credits", href: "/credits" },
       { label: "Contact", href: "/contact-us" },
     ],
   },

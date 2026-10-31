@@ -1,0 +1,10 @@
+/* Tonight's room (lounge match read, GS Pro) */
+.lounge-room-piece__card { width: 380px; border-radius: 16px; padding: 14px 16px; background: rgba(10, 14, 40, .88); color: #fff; display: grid; gap: 10px; box-shadow: 0 12px 30px rgba(0, 0, 0, .35); font-family: var(--font-family-sans, system-ui, sans-serif); }
+.lounge-room-piece__top { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #a9b8ff; }
+.lounge-room-piece__seed { font-size: 22px; font-weight: 800; line-height: 1.15; }
+.lounge-room-piece__pays { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.lounge-room-piece__pays div { border-radius: 10px; padding: 8px; background: rgba(255, 255, 255, .08); display: grid; gap: 2px; text-align: center; }
+.lounge-room-piece__pays small { font-size: 13px; font-weight: 700; color: #c9d1ff; text-transform: uppercase; letter-spacing: .06em; }
+.lounge-room-piece__pays b { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.lounge-room-piece__pays .g { color: #7ff0b2; }
+.lounge-room-piece__pays .l { color: #ff9d92; }

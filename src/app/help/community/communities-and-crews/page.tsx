@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co${HREF}` },
-  openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
 
@@ -56,7 +56,7 @@ export default function Page() {
       <h2>Crews</h2>
       <p>
         A crew is your community&apos;s roster for a single game, one crew per game. Members climb a
-        ladder: <strong>prospect</strong> &rarr; <strong>representative</strong> &rarr;
+        ladder: <strong>prospect</strong> &rarr; <strong>representative</strong>{" "}&rarr;
         <strong> captain</strong>.
       </p>
 
@@ -69,7 +69,7 @@ export default function Page() {
 
       <h3>Managing a crew</h3>
       <p>
-        A community&apos;s <strong>owner and mods</strong>, plus any <strong>captain</strong> of that
+        A community&apos;s <strong>owner and mods</strong>, plus any <strong>captain</strong>{" "}of that
         game&apos;s crew, can manage the roster: promote and demote members, remove them, or
         <strong> Add as rep</strong> to recruit someone straight in as a representative. Any member
         can leave their own crew.

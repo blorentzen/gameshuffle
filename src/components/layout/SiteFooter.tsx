@@ -1,4 +1,4 @@
-import { MarketingFooter } from "@empac/cascadeds";
+import { Accordion, MarketingFooter } from "@empac/cascadeds";
 import { PILLARS, FOOTER_EXTRA } from "@/lib/nav/pillars";
 
 /**
@@ -63,8 +63,9 @@ const SECTIONS = [
     title: p.label,
     links: p.groups.flatMap((g) => g.items)
       // Signed-in-only destinations are pointless in a footer most visitors
-      // meet while logged out; secondary ones would unbalance the columns.
-      .filter((i) => !i.secondary && (!i.audience || i.audience === "everyone"))
+      // meet while logged out; secondary ones would unbalance the columns,
+      // unless an item asks for a footer spot (`footer: true`).
+      .filter((i) => (!i.secondary || i.footer) && (!i.audience || i.audience === "everyone"))
       .map((i) => ({ label: i.label, href: i.href })),
   })),
   ...FOOTER_EXTRA.filter((g) => g.heading !== "Legal").map((g) => ({
@@ -85,6 +86,32 @@ const BOTTOM_LINKS = [
   { label: "Cookie Preferences", href: "#cookie-preferences" },
   { label: "Built by Empac", href: "https://empac.co/" },
 ];
+
+/**
+ * Phones (Britton's pick, 2026-10-19): the same link lists fold into rows that
+ * open on tap, so the footer isn't a screen and a half of links. CDS's footer
+ * can't fold (raised with CascadeDS), so the folded copy rides in its only
+ * spare slot (`trustBadges`, under the brand block) and CSS shows one or the
+ * other by width (account.css), never both.
+ */
+const FOLDED_SECTIONS = (
+  <Accordion
+    className="site-footer__fold"
+    variant="flush"
+    allowMultiple
+    items={SECTIONS.map((section) => ({
+      id: `footer-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      title: section.title,
+      content: (
+        <ul className="site-footer__fold-links">
+          {section.links.map((link) => (
+            <li key={link.href}><a href={link.href} className="empac-marketing-footer__link">{link.label}</a></li>
+          ))}
+        </ul>
+      ),
+    }))}
+  />
+);
 
 export function SiteFooter() {
   const year = new Date().getFullYear();
@@ -115,6 +142,7 @@ export function SiteFooter() {
       sections={SECTIONS}
       socialLinks={SOCIAL_LINKS}
       contactInfo={{ email: "support@gameshuffle.co" }}
+      trustBadges={FOLDED_SECTIONS}
       copyright={`© ${year} GameShuffle`}
       bottomLinks={BOTTOM_LINKS}
     />

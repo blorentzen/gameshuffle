@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description:
     "A free tier list maker. Add items, drag them into S, A, B, C, and D tiers, and rank anything: games, characters, whatever. Saves in your browser. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/tier-list-maker" },
-  openGraph: { title: "Free Tier List Maker", url: "https://www.gameshuffle.co/tier-list-maker" },
+  openGraph: { siteName: "GameShuffle", title: "Free Tier List Maker", url: "https://www.gameshuffle.co/tier-list-maker" },
 };
 
 export default function TierListMakerPage() {

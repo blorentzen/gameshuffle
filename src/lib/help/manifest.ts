@@ -201,8 +201,8 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "competitive-lounge",
-    title: "Competitive Lounge Scoring",
-    description: "Run normalized live scoring for a Mario Kart 8 Deluxe lounge across FFA and team modes.",
+    title: "Live scoring",
+    description: "Score a set of Mario Kart between friends live, in FFA or team modes, with everyone logging their own finish.",
     href: "/help/apps/competitive-lounge",
     category: "apps",
     keywords: ["competitive", "lounge", "scoring", "placements", "ffa", "teams", "live scoring", "mk8dx"],
@@ -234,28 +234,36 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "daily-shuffle",
     title: "The Daily Shuffle",
-    description: "Guess today's character in six tries, rotating through Mario Kart and Mario Party: the schedule, hints, sharing and streaks.",
+    description: "Guess today's character from 130 across Nintendo: how the hints work, five guesses and a last chance, sharing, streaks and playing in Discord.",
     href: "/help/apps/daily-shuffle",
     category: "apps",
     keywords: ["daily", "daily shuffle", "puzzle", "guess", "streak", "wordle", "mario party", "mario kart world"],
   },
   {
+    id: "trivia-nights",
+    title: "Trivia Nights",
+    description: "Host a pub-style quiz: pick a template, fill it from the question pack, run it from your phone while teams play on theirs and the TV shows the rest.",
+    href: "/help/apps/trivia-nights",
+    category: "apps",
+    keywords: ["trivia", "quiz", "pub quiz", "trivia night", "host", "teams", "picture round", "confidence round", "final wager", "joker", "question pack", "answer line", "stream trivia", "chat trivia", "!a", "overlay"],
+  },
+  {
     id: "weekly-challenge",
     title: "The Weekly Challenge",
-    description: "A new challenge every Monday: rank the Tier War like the crowd, finish the game-night mission, climb the leaderboard.",
+    description: "A new challenge every Monday: answer the survey and guess the crowd (or rank the Tier War), finish the game-night mission, climb the leaderboard.",
     href: "/help/apps/weekly-challenge",
     category: "apps",
-    keywords: ["weekly", "weekly challenge", "tier war", "tier list", "leaderboard", "badge", "mission", "agenda"],
+    keywords: ["weekly", "weekly challenge", "survey", "chat brain", "guesses", "tier war", "tier list", "leaderboard", "badge", "mission", "agenda"],
   },
 
   // Tournaments
   {
     id: "creating-a-tournament",
     title: "Creating a Tournament",
-    description: "Set up a tournament from start to finish: format, tracks, rules, and sign-ups.",
+    description: "Set up a tournament from start to finish: format, tracks, rules, sign-ups, sharing, and archiving when it's over.",
     href: "/help/tournaments/creating-a-tournament",
     category: "tournaments",
-    keywords: ["tournament", "create", "bracket", "organize", "host", "sign up", "registration", "championship"],
+    keywords: ["tournament", "create", "bracket", "organize", "host", "sign up", "registration", "championship", "draft", "archive", "share"],
   },
   {
     id: "tournament-formats",
@@ -324,6 +332,30 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     keywords: ["bingo", "stream bingo", "!bingo", "number bingo", "bingo card", "patterns", "blackout", "prize", "overlay"],
   },
   {
+    id: "break-mode",
+    title: "Break mode",
+    description: "Step away and GameShuffle keeps chat playing: quick games on your overlay, points, and a break champion when you're back.",
+    href: "/help/streaming/break-mode",
+    category: "streaming",
+    keywords: ["break mode", "brb", "!gs brb", "!gs back", "be right back", "break games", "words on stream", "higher or lower", "fact or fiction", "overlay"],
+  },
+  {
+    id: "chat-brain-stream",
+    title: "Chat Brain on stream",
+    description: "Play Chat Brain boards on stream: chat as one team, a speed round, or 1v1 and teams with chat playing along. Add a prize or survey your chat.",
+    href: "/help/streaming/chat-brain",
+    category: "streaming",
+    keywords: ["chat brain", "!cb", "!a", "survey", "!cb ask", "survey your chat", "1v1", "teams", "face-off", "steal", "trust chat", "play along", "speed round", "!cb start speed", "co-stream", "costream", "shared chat", "prize", "tokens", "live page", "guess what people said", "overlay"],
+  },
+  {
+    id: "mods",
+    title: "Mods for your stream",
+    description: "Let your Twitch mods help run your stream: they join with one command, and you choose Standard or Full access for each.",
+    href: "/help/streaming/mods",
+    category: "streaming",
+    keywords: ["mods", "moderators", "mod page", "!gs mod", "full access", "standard access", "kick", "lobby", "invite a mod"],
+  },
+  {
     id: "chat-draft",
     title: "Chat Draft",
     description: "Chat drafts your Pokémon team, Mario Kart combo or track list one vote at a time, live on your overlay.",
@@ -368,17 +400,17 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "discord-bot",
     title: "The Discord Bot",
-    description: "Route posts, announcements, self-assign roles, AutoMod, QOTD, and slash commands.",
+    description: "Add the bot, play the Daily inside Discord, route posts, announcements, self-assign roles, AutoMod, QOTD, and slash commands.",
     href: "/help/community/discord-bot",
     category: "community",
-    keywords: ["discord", "bot", "qotd", "automod", "announcements", "roles", "routing", "/gs-randomize", "/gs-poll", "slash commands"],
+    keywords: ["discord", "bot", "servers", "multiple servers", "main server", "activity", "/gs-daily", "app launcher", "qotd", "automod", "announcements", "roles", "routing", "/gs-randomize", "/gs-poll", "slash commands"],
   },
 
   // Pro
   {
     id: "overview",
     title: "What is GameShuffle Pro?",
-    description: "Everything Pro unlocks, the Free vs. Pro comparison, and pricing.",
+    description: "What GS Pro adds for streamers and organizers, how it compares with a free account, and what it costs.",
     href: "/help/pro/overview",
     category: "pro",
     keywords: ["pro", "subscription", "features", "pricing", "plans"],
@@ -386,7 +418,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "free-trial",
     title: "Pro Free Trial",
-    description: "How the 14-day free trial works, reminders, and how to cancel.",
+    description: "How the 14-day GS Pro free trial works, when we remind you before it ends, and how to cancel any time.",
     href: "/help/pro/free-trial",
     category: "pro",
     keywords: ["free trial", "trial", "14 days", "payment method", "cancel before billed"],
@@ -438,7 +470,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "deleting-account",
     title: "Deleting Your Account",
-    description: "Permanently delete your account and what gets removed when you do.",
+    description: "How to delete your GameShuffle account for good, what gets removed when you do, and what happens to a subscription.",
     href: "/help/account/deleting-account",
     category: "account",
     keywords: ["delete account", "remove data", "GDPR", "CCPA", "permanent deletion"],

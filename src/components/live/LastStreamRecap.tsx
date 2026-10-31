@@ -92,7 +92,11 @@ export function LastStreamRecap({ recap }: Props) {
             value={recap.channelPointRerollCount}
           />
         )}
+        {recap.breaks.count > 0 && <RecapStat label={recap.breaks.count === 1 ? "Break" : "Breaks"} value={recap.breaks.count} />}
       </div>
+      {recap.breaks.champion && (
+        <p className="last-stream-recap__meta">Break champion: <strong>{recap.breaks.champion}</strong></p>
+      )}
 
       {recap.lastRoll && lastRollName && (
         <Card variant="outlined" padding="medium">
@@ -173,7 +177,9 @@ function RecapTrackRow({
       <span className="last-stream-recap__chip-label">{label}</span>
       <div className="last-stream-recap__chips">
         {ids.map((id, idx) => {
-          const name = getTrackById(id)?.name ?? id;
+          // Old or mismatched ids would print raw ("c0-t1"); leave them out.
+          const name = getTrackById(id)?.name;
+          if (!name) return null;
           return (
             <span
               key={id}

@@ -1,0 +1,40 @@
+/* The Twitch chat games guide (/twitch-chat-games). Token sizes: the root is 10px. */
+
+.cg-page { padding-block: var(--spacing-32) var(--spacing-64); }
+.cg { display: flex; flex-direction: column; gap: var(--spacing-32); max-width: 76rem; margin: 0 auto; }
+.cg__head { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.cg__head .marketing-eyebrow { margin: 0; }
+.cg__title { margin: 0; font-size: var(--font-size-fluid-h2, var(--font-size-36)); font-weight: var(--font-weight-bold); line-height: 1.15; text-wrap: balance; }
+.cg__lede { margin: 0; font-size: var(--font-size-18); color: var(--text-secondary); line-height: 1.6; max-width: 66ch; }
+
+.cg__toc { padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.cg__toc-title { margin: 0 0 var(--spacing-8); font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.cg__toc ol { margin: 0; padding-left: var(--spacing-20); display: grid; gap: var(--spacing-4) var(--spacing-24); grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); font-size: var(--font-size-16); }
+.cg__toc a { color: var(--brand-ink, var(--text-primary)); }
+
+.cg-game { display: flex; flex-direction: column; gap: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle, var(--border-default)); scroll-margin-top: calc(var(--gs-nav-offset, 64px) + var(--spacing-16)); }
+.cg-game__title { display: flex; align-items: center; gap: var(--spacing-12); margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-bold); }
+.cg-game__num {
+  display: inline-grid; place-items: center; flex: 0 0 auto; width: 3.6rem; height: 3.6rem; border-radius: 10px;
+  background: linear-gradient(135deg, #5a3fd6, #8b5cf6); color: #fff; font-size: var(--font-size-16); font-variant-numeric: tabular-nums;
+}
+.cg-game p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.65; max-width: 68ch; }
+.cg-game__shot { margin: 0; }
+.cg-game__shot img { display: block; width: 100%; height: auto; max-width: 100%; border-radius: var(--radius-12, 12px); border: 1px solid var(--border-subtle, var(--border-default)); background: #120f2c; }
+.cg-game__facts { margin: 0; display: grid; gap: var(--spacing-8); }
+@media (min-width: 760px) { .cg-game__facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cg-game__facts div { display: grid; gap: var(--spacing-4); min-width: 0; }
+.cg-game__facts dt { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); }
+.cg-game__facts dd { margin: 0; font-size: var(--font-size-15, 1.5rem); color: var(--text-primary); overflow-wrap: anywhere; }
+.cg-game__facts code { font-size: var(--font-size-14); padding: 2px 6px; border-radius: 6px; background: color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.cg-game__more a { font-weight: 600; color: var(--brand-ink, var(--text-primary)); }
+
+.cg-cta { display: flex; flex-direction: column; gap: var(--spacing-12); padding: var(--spacing-24); border-radius: var(--radius-16, 16px); background: color-mix(in srgb, #5a3fd6 9%, var(--surface-default, #fff)); }
+.cg-cta h2 { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-bold); }
+.cg-cta p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.6; max-width: 66ch; }
+.cg-cta__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-16); }
+.cg-cta__more { font-weight: 600; color: var(--brand-ink, var(--text-primary)); }
+
+.cg-faq { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.cg-faq h2 { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-bold); }
+.cg-game__note { color: var(--text-secondary); font-size: var(--font-size-14); }

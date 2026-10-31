@@ -12,13 +12,14 @@ export async function generateMetadata({ params }: { params: Promise<{ game: str
   const name = config?.displayName ?? "Competitive";
   const url = `https://www.gameshuffle.co/competitive/${game}`;
   return {
-    title: `${name} Competitive Hub`,
-    description: `The ${name} competitive hub: standard scoring, live lounge sets, crew battles and community resources.`,
+    title: `${name} live scoring`,
+    description: `Live scoring for ${name}: a set between friends on the standard table, everyone logging their own finish from their phone.`,
     openGraph: {
-      title: `${name} Competitive Hub | GameShuffle`,
-      description: `Standard scoring, live lounge sets and crew battles for competitive ${name}.`,
+      siteName: "GameShuffle",
+      title: `${name} live scoring | GameShuffle`,
+      description: `Live scoring for ${name}: the standard table, team modes and standings anyone can follow.`,
       url,
-      images: [{ url: "https://cdn.empac.co/gameshuffle/images/opengraph/mk-lounge-og.jpg", width: 1200, height: 630, alt: `${name} Competitive Hub` }],
+      images: [{ url: "https://cdn.empac.co/gameshuffle/images/opengraph/mk-lounge-og.jpg", width: 1200, height: 630, alt: `${name} live scoring` }],
     },
     alternates: { canonical: url },
   };

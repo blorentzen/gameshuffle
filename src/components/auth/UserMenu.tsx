@@ -9,6 +9,7 @@ import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { useDisplayIdentity } from "@/lib/capabilities/useDisplayIdentity";
 import { isStaffRole } from "@/lib/subscription";
 import { ACCOUNT_SECTIONS } from "@/lib/account/nav";
+import { IconHeart } from "@tabler/icons-react";
 
 interface ProfileSnapshot {
   avatar_source: AvatarSource | string | null;
@@ -17,6 +18,8 @@ interface ProfileSnapshot {
   discord_avatar: string | null;
   twitch_avatar: string | null;
   role: string | null;
+  display_name: string | null;
+  username: string | null;
 }
 
 /**
@@ -43,19 +46,19 @@ function buildMenuSections(args: {
   if (args.hasStreamerIntegration) {
     sections.push({
       label: "Activity",
-      items: [{ label: "Stream Hub", onClick: go("/hub") }],
+      items: [{ label: "Stream hub", onClick: go("/hub") }],
     });
   }
 
-  // My Stuff — quick access to a player's own content (each its own surface).
-  sections.push({
-    label: "My Stuff",
-    items: [
-      { label: "Setups & Games", onClick: go("/account/stuff?tab=setups") },
-      { label: "Tournaments", onClick: go("/account/stuff?tab=tournaments") },
-      { label: "My Cards", onClick: go("/account/stuff?tab=my-cards") },
-    ],
-  });
+  // My Stuff: quick access to a player's own content, straight from the nav
+  // model so the menu always matches the section's views.
+  const stuff = ACCOUNT_SECTIONS.find((s) => s.route === "/account/stuff");
+  if (stuff) {
+    sections.push({
+      label: stuff.label,
+      items: stuff.items.filter((i) => i.id).map((i) => ({ label: i.label, onClick: go(`${stuff.route}?tab=${i.id}`) })),
+    });
+  }
 
   // Settings mirror the account section pages — derived from ACCOUNT_SECTIONS
   // (the single source of truth) so new sections/renames flow through here
@@ -71,9 +74,12 @@ function buildMenuSections(args: {
     })),
   });
 
+  // Support GameShuffle (heart) and Help, apart so the two can't be mixed up (picks 2026-10-19).
   sections.push({
-    label: "Help",
-    items: [{ label: "Help & Support", onClick: go("/help") }],
+    items: [
+      { label: "Support GameShuffle", icon: <IconHeart size={16} stroke={2} aria-hidden="true" />, onClick: go("/account?tab=support") },
+      { label: "Help", onClick: go("/help") },
+    ],
   });
 
   // No section label on the sign-out group — danger styling handles
@@ -146,7 +152,7 @@ export function UserMenu() {
     const supabase = createClient();
     supabase
       .from("users")
-      .select("avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role")
+      .select("avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, display_name, username")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {

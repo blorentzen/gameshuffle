@@ -31,7 +31,7 @@ export function LiveLobbyTab() {
         <p className="live-lobby__empty-headline">No one&rsquo;s in the lobby yet.</p>
         <p className="live-lobby__empty-sub">
           Viewers join from chat with <code>!gs-join</code>; the streamer is
-          auto-seated when the session activates.
+          in automatically once the stream starts.
         </p>
       </div>
     );
@@ -51,6 +51,22 @@ export function LiveLobbyTab() {
         ))}
       </ul>
     </div>
+  );
+}
+
+/** The signed-in viewer's own seat, shown at the top of Play so they don't
+ *  have to find themselves in the lobby grid. Nothing when they aren't in. */
+export function YourRoll({ twitchUserId }: { twitchUserId: string | null }) {
+  const live = useLiveState();
+  const mine = twitchUserId
+    ? live.participants.find((p) => p.platform === "twitch" && p.platform_user_id === twitchUserId && !p.left_at)
+    : undefined;
+  if (!mine) return null;
+  return (
+    <section className="live-section live-your-roll" aria-labelledby="live-your-roll">
+      <h2 id="live-your-roll" className="live-section__title">Your roll</h2>
+      <ParticipantCard participant={mine} />
+    </section>
   );
 }
 

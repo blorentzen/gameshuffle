@@ -25,7 +25,7 @@ import { useGameCollection } from "@/hooks/useGameCollection";
 import { applyToKartData } from "@/lib/collection/core";
 import { CollectionBar } from "@/components/collection/CollectionBar";
 import type { GameConfig, GameData, KartCombo } from "@/data/types";
-import type { GameNightSetupConfig } from "@/data/config-types";
+import type { GameNightSetupConfig, ItemSetConfig } from "@/data/config-types";
 
 const CHAR_WEIGHT_OPTIONS = [
   { value: "Light", label: "Light" },
@@ -138,9 +138,21 @@ export function RandomizerClient({
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
-        if (!data || data.config_data?.type !== "game-night-setup") return;
+        if (!data) return;
         // Don't hydrate a config from a different game
         if (data.randomizer_slug && data.randomizer_slug !== gameConfig.slug) return;
+        // A saved item set opens on the Items tab with those items picked
+        // ("Open in randomizer" on My Stuff used to load nothing for these).
+        if (data.config_data?.type === "item-set") {
+          const names = ((data.config_data as ItemSetConfig).items ?? []).map((i) => i.name);
+          if (names.length === 0) return;
+          setInitialItemSet(new Set(names));
+          setActiveItems(names);
+          setRandomizerTab("items");
+          trackEvent("Config Loaded", { configId });
+          return;
+        }
+        if (data.config_data?.type !== "game-night-setup") return;
         const cfg = data.config_data as GameNightSetupConfig;
 
         setLoadedConfigId(data.id);
@@ -319,7 +331,7 @@ export function RandomizerClient({
       >
         <Container>
           <div style={{ maxWidth: "600px" }}>
-            <p className="marketing-eyebrow">Free randomizer{gameConfig.isNew ? " · New" : ""}</p>
+            <p className="marketing-eyebrow">{gameConfig.isNew ? "New randomizer" : "Free randomizer"}</p>
             <h1
               style={{
                 fontSize: "clamp(2.4rem, 4vw, 4.8rem)",
@@ -346,7 +358,7 @@ export function RandomizerClient({
                   toolRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
               >
-                Randomize now →
+                Randomize now
               </Button>
             </div>
           </div>
@@ -465,8 +477,9 @@ export function RandomizerClient({
                 <div className="kart-intro__content">
                   <h2>{charOnly ? "Randomize your characters." : "Randomize your kart combo(s)."}</h2>
                   <p>
-                    You can add as many players or combos you like up to{" "}
-                    {gameConfig.maxPlayers} total.
+                    {gameConfig.uniqueCharacters
+                      ? "Add a player for each racer, then randomize. Nobody gets the same character, as in the game."
+                      : "Add a player for each racer, then randomize. Each player's card can reroll on its own."}
                   </p>
                   <div className="kart-intro__actions">
                     <Button

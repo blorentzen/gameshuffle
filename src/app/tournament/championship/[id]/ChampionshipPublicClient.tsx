@@ -14,22 +14,37 @@ import { SeasonTable } from "@/components/tournament/HeatMainsView";
 import { GameCover } from "@/components/games/GameCover";
 import { getGameName } from "@/data/game-registry";
 
-interface EventRow {
+export interface EventRow {
   id: string; title: string; status: string; event_number: number | null;
   dateTime: string | null;
   heat_mains: HeatMains | null; participants: { id: string; user_id: string | null }[];
 }
 
-export function ChampionshipPublicClient() {
+/**
+ * The first paint, read on the server (page.tsx) so the season's standings,
+ * events and roster are in the HTML that search engines and link previews
+ * fetch. The browser re-reads after mount and keeps it live.
+ */
+export interface ChampionshipInitial {
+  champ: Championship;
+  members: ChampionshipMember[];
+  events: EventRow[];
+  owner: { username: string | null; displayName: string } | null;
+  /** The owner's timezone, for the season's date range (same on server and browser). */
+  timeZone: string;
+}
+
+export function ChampionshipPublicClient({ initial, baseUrl }: { initial: ChampionshipInitial | null; baseUrl: string }) {
   const championshipId = useParams().id as string;
   const supabase = createClient();
-  const [champ, setChamp] = useState<Championship | null>(null);
-  const [members, setMembers] = useState<ChampionshipMember[]>([]);
-  const [events, setEvents] = useState<EventRow[]>([]);
+  const [champ, setChamp] = useState<Championship | null>(initial?.champ ?? null);
+  const [members, setMembers] = useState<ChampionshipMember[]>(initial?.members ?? []);
+  const [events, setEvents] = useState<EventRow[]>(initial?.events ?? []);
   // OrganizerCard fetches follow state but not the name, so an unresolved
   // owner renders as "a GameShuffle member". Fetch it with the rest.
-  const [owner, setOwner] = useState<{ username: string | null; displayName: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [owner, setOwner] = useState<{ username: string | null; displayName: string } | null>(initial?.owner ?? null);
+  const [loading, setLoading] = useState(!initial);
+  const timeZone = initial?.timeZone ?? "America/Los_Angeles";
 
   const load = useCallback(async () => {
     const { data: c } = await supabase.from("championships").select("*").eq("id", championshipId).single();
@@ -82,12 +97,13 @@ export function ChampionshipPublicClient() {
   // A season spans many dates; the honest summary is the range it covers, not
   // any single one of them.
   const dated = events.map((e) => e.dateTime).filter((d): d is string => !!d).sort();
-  const fmt = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  // A fixed locale and the owner's zone, so the server and the browser print the same date.
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone });
   const seasonSpan = dated.length === 0
     ? null
     : dated.length === 1
       ? fmt(dated[0])
-      : `${fmt(dated[0])} \u2013 ${fmt(dated[dated.length - 1])}`;
+      : `${fmt(dated[0])} to ${fmt(dated[dated.length - 1])}`;
 
   return (
     <EventShell
@@ -105,14 +121,14 @@ export function ChampionshipPublicClient() {
       ]}
       badges={
         <>
-          <span className={`lounge-status lounge-status--${champ.status === "complete" ? "complete" : "open"}`}>
-            {champ.status === "complete" ? "Season complete" : "Season running"}
+          <span className={`lounge-status lounge-status--${champ.status === "archived" ? "complete" : "open"}`}>
+            {champ.status === "archived" ? "Season complete" : "Season running"}
           </span>
           <span className="bg-badge bg-badge--kind">Championship series</span>
           {champ.game_slug && (
             <span className="event-game-badge">
-              <span className="event-game-badge__cover"><GameCover slug={champ.game_slug} name={getGameName(champ.game_slug)} /></span>
-              {getGameName(champ.game_slug)}
+              <span className="event-game-badge__cover"><GameCover slug={champ.game_slug} name={champ.settings?.game_label || getGameName(champ.game_slug)} /></span>
+              {champ.settings?.game_label || getGameName(champ.game_slug)}
             </span>
           )}
         </>
@@ -123,7 +139,7 @@ export function ChampionshipPublicClient() {
         displayName: owner?.displayName ?? "",
       }}
       organizerRoleLabel="Run by"
-      pageUrl={typeof window !== "undefined" ? window.location.href : ""}
+      pageUrl={`${baseUrl}/tournament/championship/${championshipId}`}
       // No `when` or `where`: a season has neither a single date nor a venue,
       // and the shell now renders only the facts an event actually has.
       goodToKnow={[
@@ -171,7 +187,7 @@ export function ChampionshipPublicClient() {
                         <span style={{ flex: 1, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                           {done ? (
                             <><IconTrophy size={13} stroke={1.9} style={{ verticalAlign: "-0.15em", marginRight: "0.3em" }} aria-hidden />{nameOfUser(e.heat_mains ? heatMainsChampion(e.heat_mains) : null)}</>
-                          ) : e.heat_mains ? "In progress" : "Not started"}
+                          ) : e.status === "cancelled" ? "Cancelled" : e.heat_mains ? "In progress" : "Not started"}
                         </span>
                         <Link href={`/tournament/${e.id}`}><Button variant="ghost" size="small">View</Button></Link>
                       </div>

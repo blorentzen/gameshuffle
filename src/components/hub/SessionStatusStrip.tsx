@@ -1,45 +1,37 @@
 /**
- * Persistent status strip — sits between the session header and the tabs
- * so the streamer always sees the session's lifecycle context (status,
- * timing). The Current Category chip lives in the header alongside the
- * title and badges (no longer in the strip) — keeping IA tight: this
- * strip is purely about "what state is the session in?"
+ * The session's status in one line under its title: a badge, then what the
+ * state means right now (when it starts, how long it's been live, when it
+ * ended). Times use the streamer's profile timezone. Replaced the full-width
+ * strip that repeated what the header and "At a glance" already said
+ * (2026-10-10).
  */
 import { Badge } from "@empac/cascadeds";
 import { statusLabel, type GsSession, type SessionStatus } from "@/lib/sessions/types";
 import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
+import { formatEventShort } from "@/lib/time/format";
 import { Countdown } from "@/components/hub/Countdown";
 
-interface SessionStatusStripProps {
+export function SessionStatusLine({ session, tz, extra }: {
   session: GsSession;
-}
-
-export function SessionStatusStrip({ session }: SessionStatusStripProps) {
+  tz: string | null;
+  /** Shown after the status copy, e.g. "Playing Mario Kart World · 7 in the lobby". */
+  extra?: string | null;
+}) {
   const inGrace = !!session.grace_period_expires_at;
   return (
-    <div
-      className={`hub-detail__status-strip hub-detail__status-strip--${session.status}${
-        inGrace ? " hub-detail__status-strip--grace" : ""
-      }`}
-      role="status"
-    >
-      <Badge
-        variant={badgeVariant(session.status)}
-        size="small"
-        className="hub-detail__status-strip-badge"
-      >
-        {statusLabel(session.status)}
+    <p className={`hub-session__status hub-session__status--${session.status}${inGrace ? " is-grace" : ""}`} role="status">
+      <Badge variant={badgeVariant(session.status)} size="small">
+        {session.status === "active" ? "Live" : statusLabel(session.status)}
       </Badge>
-      <span className="hub-detail__status-strip-text">
-        <StatusCopy session={session} />
+      <span>
+        <StatusCopy session={session} tz={tz} />
+        {extra ? <> · {extra}</> : null}
       </span>
-    </div>
+    </p>
   );
 }
 
-function badgeVariant(
-  status: SessionStatus
-): "success" | "warning" | "error" | "info" | "default" {
+function badgeVariant(status: SessionStatus): "success" | "warning" | "error" | "info" | "default" {
   switch (status) {
     case "active":
       return "success";
@@ -55,111 +47,68 @@ function badgeVariant(
   }
 }
 
-function StatusCopy({ session }: { session: GsSession }) {
+const span = (from: string | null, to: string | null) => {
+  if (!from || !to) return null;
+  const ms = Date.parse(to) - Date.parse(from);
+  return Number.isFinite(ms) && ms > 0 ? Math.floor(ms / 1000) : null;
+};
+
+/** How long a live session has run; a session left open for days reads better as a date. */
+function liveFor(session: GsSession, tz: string | null): string {
+  if (!session.activated_at) return "Started just now";
+  const secs = span(session.activated_at, new Date().toISOString());
+  if (secs === null) return "Started just now";
+  if (secs > 12 * 3600) return `Live since ${formatEventShort(session.activated_at, tz).split(" · ")[0]}`;
+  return `Live for ${formatDuration(secs)}`;
+}
+
+function StatusCopy({ session, tz }: { session: GsSession; tz: string | null }) {
   switch (session.status) {
     case "draft":
-      return (
-        <>
-          Created {formatRelativeTime(session.created_at)} · activate when ready
-        </>
-      );
+      return <>Not scheduled · start it whenever you&apos;re ready</>;
     case "scheduled": {
       const windowHours = session.scheduled_eligibility_window_hours ?? 4;
       const windowOpensAt = session.scheduled_at
-        ? new Date(
-            Date.parse(session.scheduled_at) - windowHours * 3600_000
-          ).toISOString()
+        ? new Date(Date.parse(session.scheduled_at) - windowHours * 3600_000).toISOString()
         : null;
-      // Spec 02 §5 — surface the open_mode policy so the streamer
-      // knows whether the cron is going to flip the session live, just
-      // ping Discord, or simply open the eligibility window.
-      const modeCopy =
-        session.open_mode === "auto_open"
-          ? "auto-open at scheduled time"
-          : session.open_mode === "announce_only"
-            ? "announce to Discord at scheduled time"
-            : null;
+      const mode = session.open_mode === "auto_open"
+        ? "opens on its own"
+        : session.open_mode === "announce_only"
+          ? "announces on Discord"
+          : null;
       return (
         <>
-          Scheduled for{" "}
-          <strong>
-            {session.scheduled_at
-              ? new Date(session.scheduled_at).toLocaleString()
-              : "-"}
-          </strong>
-          {" · "}
-          window opens <Countdown to={windowOpensAt} />
-          {modeCopy && (
-            <>
-              {" · "}
-              {modeCopy}
-            </>
-          )}
+          {session.scheduled_at ? formatEventShort(session.scheduled_at, tz) : "Scheduled"}
+          {" · "}you can start it <Countdown to={windowOpensAt} />
+          {mode && <> · {mode}</>}
         </>
       );
     }
     case "ready": {
       const windowHours = session.scheduled_eligibility_window_hours ?? 4;
       const windowClosesAt = session.scheduled_at
-        ? new Date(
-            Date.parse(session.scheduled_at) + windowHours * 3600_000
-          ).toISOString()
+        ? new Date(Date.parse(session.scheduled_at) + windowHours * 3600_000).toISOString()
         : null;
-      return (
-        <>
-          Eligibility window open · closes <Countdown to={windowClosesAt} />
-        </>
-      );
+      return <>Ready to start · the window closes <Countdown to={windowClosesAt} /></>;
     }
     case "active": {
       if (session.grace_period_expires_at) {
-        return (
-          <>
-            Stream offline · grace ends{" "}
-            <Countdown to={session.grace_period_expires_at} />
-          </>
-        );
+        return <>Stream offline · the session ends <Countdown to={session.grace_period_expires_at} /> unless you&apos;re back</>;
       }
-      const startedRel = formatRelativeTime(session.activated_at);
-      return (
-        <>
-          Started {startedRel}
-          {session.auto_timeout_at && (
-            <>
-              {" · "}auto-end <Countdown to={session.auto_timeout_at} />
-            </>
-          )}
-        </>
-      );
+      return <>{liveFor(session, tz)}</>;
     }
     case "ending":
-      return <>Wrapping up · recap will post to chat when complete</>;
+      return <>Wrapping up · the recap posts to chat when it&apos;s done</>;
     case "ended": {
-      const durationSeconds =
-        session.activated_at && session.ended_at
-          ? Math.max(
-              0,
-              Math.floor(
-                (Date.parse(session.ended_at) -
-                  Date.parse(session.activated_at)) /
-                  1000
-              )
-            )
-          : null;
+      const secs = span(session.activated_at, session.ended_at);
       return (
         <>
-          Ended {formatRelativeTime(session.ended_at)}
-          {durationSeconds !== null && (
-            <> · lasted {formatDuration(durationSeconds)}</>
-          )}
+          Ended {session.ended_at ? formatEventShort(session.ended_at, tz).split(" · ")[0] : formatRelativeTime(session.ended_at)}
+          {secs !== null && <> · {formatDuration(secs)}</>}
         </>
       );
     }
     case "cancelled":
-      return (
-        <>
-          Cancelled {formatRelativeTime(session.ended_at ?? session.updated_at)}
-        </>
-      );
+      return <>Cancelled {formatRelativeTime(session.ended_at ?? session.updated_at)}</>;
   }
 }

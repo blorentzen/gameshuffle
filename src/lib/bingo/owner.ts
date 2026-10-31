@@ -3,18 +3,25 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { isProUser } from "@/lib/subscription-server";
+import { streamOwnerFor } from "@/lib/mods/acting";
 
-/** The signed-in streamer running Stream Bingo from the dashboard. */
+/**
+ * The streamer running a live game from the dashboard (Stream Bingo, Chat
+ * Draft, Chat Brain): the signed-in account, or the streamer a Full-access
+ * mod is acting for on their mod page (src/lib/mods/acting.ts). `userId`
+ * and Pro are the streamer's; `actorUserId` is whoever is signed in.
+ */
 export type BingoOwner =
   | { error: string; status: number }
-  | { userId: string; isPro: boolean; communityId: string | null };
+  | { userId: string; actorUserId: string; viaMod: boolean; isPro: boolean; communityId: string | null };
 
 export async function bingoOwner(): Promise<BingoOwner> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "unauthenticated", status: 401 };
-  const [isPro, communityId] = await Promise.all([isProUser(user.id), resolveCommunityIdForOwner(user.id)]);
-  return { userId: user.id, isPro, communityId };
+  const { ownerUserId, viaMod } = await streamOwnerFor(user.id);
+  const [isPro, communityId] = await Promise.all([isProUser(ownerUserId), resolveCommunityIdForOwner(ownerUserId)]);
+  return { userId: ownerUserId, actorUserId: user.id, viaMod, isPro, communityId };
 }
 
 /** Signed-in viewer (any account) with the name we'd announce them by. */

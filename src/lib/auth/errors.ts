@@ -6,7 +6,7 @@
  * password). Pure and client-safe; the callback route uses it too.
  */
 
-export type AuthProvider = "twitch" | "discord" | "email";
+export type AuthProvider = "twitch" | "discord" | "facebook" | "email";
 
 export interface AuthErrorInput {
   /** Supabase's error code (AuthError.code, or `error_code` on a redirect). */
@@ -16,6 +16,8 @@ export interface AuthErrorInput {
   /** The OAuth `error` param (access_denied, server_error…). */
   error?: string | null;
   provider?: string | null;
+  /** Why a password was turned away (AuthWeakPasswordError.reasons: "length", "characters", "pwned"). */
+  reasons?: string[] | null;
 }
 
 export interface FriendlyAuthError {
@@ -26,7 +28,7 @@ export interface FriendlyAuthError {
   report: boolean;
 }
 
-const PROVIDER_NAMES: Record<string, string> = { twitch: "Twitch", discord: "Discord", email: "email" };
+const PROVIDER_NAMES: Record<string, string> = { twitch: "Twitch", discord: "Discord", facebook: "Facebook", email: "email" };
 
 export function providerName(p: string | null | undefined): string {
   return (p && PROVIDER_NAMES[p]) || "that account";
@@ -74,7 +76,7 @@ export function describeAuthError(input: AuthErrorInput): FriendlyAuthError {
       return m(`Signing in${withWho} didn't go through on our end. Try again in a minute, or use email instead. We've been told about it.`, true);
     case "pkce_code_verifier_not_found":
     case "bad_code_verifier":
-      return m("That link has to be opened in the same browser you started in. Open it there, or sign in again here.");
+      return m("That link only works in the browser you asked for it in. Open it there, or start again here.");
     case "provider_email_missing":
     case "provider_email_needs_verification":
       return m(`${who === "that account" ? "That account" : who} didn't share a verified email with us. Verify your email with ${who}, or sign up with email instead.`);
@@ -82,7 +84,7 @@ export function describeAuthError(input: AuthErrorInput): FriendlyAuthError {
       return m(`That ${who} account is already connected to a different GameShuffle account. Sign in with that account, or disconnect it there first.`);
     case "user_already_exists":
     case "email_exists":
-      return m("An account already uses that email. Sign in with your password, then connect Twitch or Discord from your account's Connections.");
+      return m("An account already uses that email. Sign in with your password, then connect Twitch, Discord or Facebook from your account's Connections.");
     case "invalid_credentials":
       return m("That email and password don't match. Check them, or reset your password.");
     case "email_not_confirmed":
@@ -99,8 +101,18 @@ export function describeAuthError(input: AuthErrorInput): FriendlyAuthError {
       return m(`Signing in${withWho} is switched off right now. Use email for the moment.`, true);
     case "signup_disabled":
       return m("New sign-ups are paused right now. Try again soon.", true);
-    case "weak_password":
+    case "weak_password": {
+      const why = input.reasons ?? [];
+      if (why.includes("pwned")) return m("That password has shown up in a data breach, so it isn't safe to use. Choose a different one.");
+      if (why.includes("length") || why.includes("characters")) return m("Use at least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol.");
       return m("Choose a stronger password. That one is too easy to guess or has shown up in a data breach.");
+    }
+    case "insufficient_aal":
+      return m("Finish two-step verification first, then try again.");
+    case "reauthentication_needed":
+      return m("For your security, confirm it's you with the code we just emailed.");
+    case "reauthentication_not_valid":
+      return m("That code didn't match or has expired. Use the newest code we emailed.");
     case "same_password":
       return m("Your new password has to be different from your current one.");
     case "email_address_invalid":
@@ -114,4 +126,9 @@ export function describeAuthError(input: AuthErrorInput): FriendlyAuthError {
     default:
       return m(`Something went wrong signing you in${withWho}. Try again, or use a different way to sign in.`, true);
   }
+}
+
+/** describeAuthError for an error Supabase's client threw (keeps a weak password's reasons). */
+export function describeSupabaseAuthError(err: { code?: string; message?: string; reasons?: string[] }): FriendlyAuthError {
+  return describeAuthError({ code: err.code, message: err.message, reasons: err.reasons });
 }

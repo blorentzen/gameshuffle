@@ -21,12 +21,14 @@ interface Draft { format: string; formatWhy: string; description: string; rules:
 
 const TIMES = [{ value: "60", label: "About an hour" }, { value: "120", label: "About 2 hours" }, { value: "180", label: "About 3 hours" }, { value: "300", label: "Most of a day" }];
 
-export function AiTournamentHelper({ game, allowHeat, formatLabel, onUse }: {
+export function AiTournamentHelper({ game, allowHeat, formatLabel, onUse, bare = false }: {
   /** The game's name as players know it. */
   game: string;
   allowHeat: boolean;
   formatLabel: (value: string) => string;
   onUse: (part: { format?: string; description?: string; rules?: string }) => void;
+  /** Inside a window that already says "Draft it with AI": no card or heading of its own. */
+  bare?: boolean;
 }) {
   const toast = useToast();
   const { info, block, spent } = useAiAccess("tournament");
@@ -60,9 +62,9 @@ export function AiTournamentHelper({ game, allowHeat, formatLabel, onUse }: {
   const use = (part: Parameters<typeof onUse>[0], what: string) => { onUse(part); toast.success(`${what} added to the form`); };
 
   return (
-    <Card variant="outlined" padding="medium" className="ai-tourney">
+    <Card variant={bare ? "flat" : "outlined"} padding={bare ? "none" : "medium"} className={bare ? "ai-tourney ai-tourney--bare" : "ai-tourney"}>
       <div className="ai-tourney__head">
-        <h2 className="ai-tourney__title"><IconSparkles size={18} aria-hidden /> Draft it with AI</h2>
+        {!bare && <h2 className="ai-tourney__title"><IconSparkles size={18} aria-hidden /> Draft it with AI</h2>}
         <p className="ai-pack__hint">Not sure how to run it? Tell us roughly how many are coming and how long you have.</p>
       </div>
       <div className="ai-tourney__ask">

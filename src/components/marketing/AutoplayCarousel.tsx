@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Carousel } from "@empac/cascadeds";
+import { useCarouselA11y } from "@/components/ui/LabeledCarousel";
 
 /**
  * CDS `Carousel` that auto-advances on a visible timer until the first
@@ -26,15 +27,19 @@ type AutoplayCarouselProps = Omit<
 > & {
   /** Auto-advance interval in ms (default 5000). */
   interval?: number;
+  /** Accessible name for the carousel (CDS names every carousel "Carousel"). */
+  label?: string;
 };
 
 const NAV_KEYS = new Set(["ArrowLeft", "ArrowRight", "Home", "End", "Enter", " "]);
 
 export function AutoplayCarousel({
   interval = 5000,
+  label,
   children,
   ...carouselProps
 }: AutoplayCarouselProps) {
+  const ref = useCarouselA11y<HTMLDivElement>(label);
   const [interacted, setInteracted] = useState(false);
   const [slide, setSlide] = useState(0);
 
@@ -44,6 +49,7 @@ export function AutoplayCarousel({
 
   return (
     <div
+      ref={ref}
       className={`autoplay-carousel${!interacted ? " autoplay-carousel--playing" : ""}`}
       onPointerDownCapture={stop}
       onKeyDownCapture={(e) => {

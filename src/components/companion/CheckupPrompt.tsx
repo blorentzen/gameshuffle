@@ -9,6 +9,8 @@
  * dispatches START_CHECKUP — it just toggles the overlay open.
  */
 
+import { Button } from "@empac/cascadeds";
+import { IconRefresh } from "@tabler/icons-react";
 import { useMode, useSession } from "@/lib/companion/SessionContext";
 import { playerHasCheckup } from "@/lib/companion/state";
 import { useResolveOverlay } from "@/app/tcg-companion/CompanionPage";
@@ -24,19 +26,19 @@ export function CheckupPrompt({ player }: Props) {
   const { setOpen } = useResolveOverlay();
   const ready = playerHasCheckup(state, player);
 
-  if (!ready) return null;
+  // While turns are tracked, End turn runs the Checkup for both players.
+  if (!ready || state.turn) return null;
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      size="small"
+      iconBefore={IconRefresh}
       className="companion-checkup-prompt"
       onClick={() => setOpen(player)}
       title={`Resolve ${mode.displayName} conditions`}
     >
-      <span className="companion-checkup-prompt__icon" aria-hidden="true">
-        ↻
-      </span>
-      <span>Resolve</span>
-    </button>
+      Resolve
+    </Button>
   );
 }

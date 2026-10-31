@@ -13,15 +13,17 @@
  * saving puts the page back exactly as it was.
  */
 
+import { LooksPrompt, useLooks } from "@/components/billing/LooksOnly";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Drawer, Select, Input, Textarea, Switch } from "@empac/cascadeds";
+import { Button, Drawer, Input, Textarea, Switch } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { previewSkin, snapshotSkin, restoreSkin, type SkinSnapshot } from "@/lib/profile/skinPreview";
 import { resolveAccentOn } from "@/lib/profile/accents";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PROFILE_ACCENTS } from "@/lib/profile/accents";
 import { COMMUNITY_TOGGLEABLE_SECTIONS } from "@/data/community-sections";
-import { DEFAULT_PROFILE_SKIN, SKIN_GRADIENTS, type ProfileSkin, type BackgroundKind, type CardBorder, type CardRadius } from "@/lib/profile/skin";
+import { DEFAULT_PROFILE_SKIN, SKIN_GRADIENTS, type ProfileSkin, type BackgroundKind } from "@/lib/profile/skin";
 
 const ACCENT_OPTIONS = [
   { value: "", label: "Default (brand color)" },
@@ -55,7 +57,12 @@ export function CommunityCustomizeEditor({
   const snapRef = useRef<SkinSnapshot | null>(null);
   const savedRef = useRef(false);
 
+  // Backgrounds, card style and custom CSS are looks (GS Pro or Supporter looks): others don't get a live preview of them.
+  const who = useLooks();
+  const canStyle = !!who?.looks;
+
   useEffect(() => {
+    if (!canStyle) return;
     const el = document.querySelector<HTMLElement>("main.community-page");
     if (!el) return;
     if (!open) {
@@ -71,10 +78,9 @@ export function CommunityCustomizeEditor({
       accent: accent || null,
       accentOn: resolveAccentOn(accent || null),
     });
-  }, [open, skin, accent]);
+  }, [open, skin, accent, canStyle]);
 
   const setBg = (patch: Partial<ProfileSkin["bg"]>) => setSkin((s) => ({ ...s, bg: { ...s.bg, ...patch } }));
-  const setCard = (patch: Partial<ProfileSkin["card"]>) => setSkin((s) => ({ ...s, card: { ...s.card, ...patch } }));
 
   const pinOptions = [
     { value: "", label: "None" },
@@ -156,7 +162,13 @@ export function CommunityCustomizeEditor({
             </label>
           )}
 
-          {/* Appearance — background + card style (reuses the profile skin gate). */}
+          {/* Appearance: background + card style (reuses the profile skin gate). Looks. */}
+          {who && !canStyle && (
+            <LooksPrompt what="Backgrounds and custom CSS" from="community-style" compact>
+              <p>Give your community page its own background, card style and CSS. Everything else here is free.</p>
+            </LooksPrompt>
+          )}
+          {canStyle && (<>
           <div className="hub-form__field">
             <span className="account-card__label">Background</span>
             <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap", marginTop: "var(--spacing-6)" }}>
@@ -175,24 +187,6 @@ export function CommunityCustomizeEditor({
               </div>
             )}
           </div>
-          <div className="hub-form__field" style={{ display: "flex", gap: "var(--spacing-24)", flexWrap: "wrap" }}>
-            <div>
-              <span className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-6)" }}>Card border</span>
-              <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
-                {(["subtle", "bold", "none"] as CardBorder[]).map((b) => (
-                  <Button key={b} variant={skin.card.border === b ? "primary" : "secondary"} size="small" onClick={() => setCard({ border: b })}>{b[0].toUpperCase() + b.slice(1)}</Button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <span className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-6)" }}>Card corners</span>
-              <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
-                {(["sm", "md", "lg"] as CardRadius[]).map((r) => (
-                  <Button key={r} variant={skin.card.radius === r ? "primary" : "secondary"} size="small" onClick={() => setCard({ radius: r })}>{r.toUpperCase()}</Button>
-                ))}
-              </div>
-            </div>
-          </div>
           <label className="hub-form__field">
             <span className="account-card__label">Custom CSS <span style={{ fontWeight: 400, color: "var(--text-tertiary)" }}>(advanced)</span></span>
             <Textarea value={css} onChange={(e) => setCss(e.target.value)} rows={4} spellCheck={false} placeholder=".card { border-radius: 18px; }" fullWidth />
@@ -200,6 +194,7 @@ export function CommunityCustomizeEditor({
               Scoped to your community page and sanitized on save (safe properties + your own images only).
             </span>
           </label>
+          </>)}
 
           <div className="hub-form__field">
             <span className="account-card__label">Sections</span>

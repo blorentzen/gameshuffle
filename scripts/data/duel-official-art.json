@@ -1,0 +1,23 @@
+{
+ "checkedOn": "2026-10-23",
+ "note": "Official artwork for Daily Duel / Trainer Road trainers who have no Supporter card of their own (Britton, 2026-10-23: card art from Scrydex first, then official artwork from official Pokémon sources, self-hosted; never fan sites, never anime stills or video). Sources are the games' official sites: pokemon.co.jp's Japanese game sites (still online), the Pokémon Masters EX site, and the official English Black and White site through the Internet Archive. Pages with anime stills beside the game art (Viola's) were used for the game art only. `crop` is [left, top, width, height] in source pixels, to leave out text baked into the picture. Run scripts/pull-duel-official-art.ts after a change.",
+ "people": {
+  "wattson": { "url": "https://www.pokemon.co.jp/ex/oras/character/img/page10_img_01.png", "page": "https://www.pokemon.co.jp/ex/oras/character/10.html" },
+  "brendan": { "url": "https://www.pokemon.co.jp/ex/oras/character/img/page01_img_01.png", "page": "https://www.pokemon.co.jp/ex/oras/character/01.html", "crop": [110, 0, 172, 390] },
+  "viola": { "url": "https://www.pokemon.co.jp/ex/xy/character/leader/images/img_character_03_05.png", "page": "https://www.pokemon.co.jp/ex/xy/character/leader/01.html" },
+  "ramos": { "url": "https://www.pokemon.co.jp/ex/xy/character/leader/images/img_leader_05_01.png", "page": "https://www.pokemon.co.jp/ex/xy/character/leader/05.html" },
+  "valerie": { "url": "https://www.pokemon.co.jp/ex/xy/character/leader/images/img_leader_06_01.png", "page": "https://www.pokemon.co.jp/ex/xy/character/leader/06.html" },
+  "wulfric": { "url": "https://www.pokemon.co.jp/ex/xy/character/leader/images/img_leader_08_01.png", "page": "https://www.pokemon.co.jp/ex/xy/character/leader/08.html" },
+  "malva": { "url": "https://www.pokemon.co.jp/ex/xy/character/images/img_character_04_01.png", "page": "https://www.pokemon.co.jp/ex/xy/character/04.html" },
+  "wikstrom": { "url": "https://www.pokemon.co.jp/ex/xy/character/images/img_character_04_09.png", "page": "https://www.pokemon.co.jp/ex/xy/character/04.html" },
+  "maylene": { "url": "https://www.pokemon.co.jp/ex/bdsp/assets/img/character/ill_character_15.png", "page": "https://www.pokemon.co.jp/ex/bdsp/ja/character/211215_01/" },
+  "byron": { "url": "https://www.pokemon.co.jp/ex/bdsp/assets/img/character/ill_character_18.png", "page": "https://www.pokemon.co.jp/ex/bdsp/ja/character/211215_04/" },
+  "trace": { "url": "https://www.pokemon.co.jp/ex/pika_vee/character/images/thumb_02.png", "page": "https://www.pokemon.co.jp/ex/pika_vee/character/" },
+  "clair": { "url": "https://cdn.pokemonmasters-game.com/stylesheets/images/7b0993d0987a1081735821a018fa7490ac7de536c49dcf1b832dbad47e269e0e.png", "page": "https://pokemonmasters-game.com/en-US/buddies" },
+  "alder": { "url": "https://web.archive.org/web/2013id_/http://pokemonblackwhite.com/pokemon-black-and-white-1/_ui/img/characters/alder-detail.png", "page": "http://pokemonblackwhite.com/" },
+  "burgh": { "url": "https://web.archive.org/web/2013id_/http://pokemonblackwhite.com/pokemon-black-and-white-1/_ui/img/characters/burgh-detail.png", "page": "http://pokemonblackwhite.com/" },
+  "lenora": { "url": "https://web.archive.org/web/2013id_/http://pokemonblackwhite.com/pokemon-black-and-white-1/_ui/img/characters/lenora-detail.png", "page": "http://pokemonblackwhite.com/" },
+  "brycen": { "url": "https://web.archive.org/web/2013id_/http://pokemonblackwhite.com/pokemon-black-and-white-1/_ui/img/characters/brycen-detail.png", "page": "http://pokemonblackwhite.com/" },
+  "marshal": { "url": "https://web.archive.org/web/2013id_/http://pokemonblackwhite.com/pokemon-black-and-white-1/_ui/img/characters/marshal-detail.png", "page": "http://pokemonblackwhite.com/" }
+ }
+}

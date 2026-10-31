@@ -19,7 +19,7 @@ export interface Championship {
   description: string | null;
   game_slug: string;
   points_config: PointsConfig | null;
-  settings: { series?: number; heatSize?: number | "auto"; dropWorst?: number; mode?: string; items?: string; pointsPreset?: string };
+  settings: { series?: number; heatSize?: number | "auto"; dropWorst?: number; mode?: string; items?: string; pointsPreset?: string; game_label?: string };
   status: string;
   share_token: string | null;
   created_at: string;

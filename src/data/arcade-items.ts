@@ -24,7 +24,8 @@ export interface ArcadeItem {
 }
 
 export const ARCADE_ITEMS: ArcadeItem[] = [
-  { id: "badge_supporter", name: "Supporter", description: "Show some love for the platform.", price: 500, kind: "badge", emoji: "💜" },
+  // "Supporter" (500 tokens) was retired 2026-10-19: the Supporter badge now means someone who supports
+  // GameShuffle with money (supabase/support-m2.sql refunded and removed it).
   { id: "badge_regular", name: "Regular", description: "You're always around.", price: 1500, kind: "badge", emoji: "⭐" },
   { id: "badge_high_roller", name: "High Roller", description: "For the bold at the markets.", price: 5000, kind: "badge", emoji: "🎲" },
   { id: "badge_champion", name: "Champion", description: "Wear your competitive edge.", price: 8000, kind: "badge", emoji: "🏆" },

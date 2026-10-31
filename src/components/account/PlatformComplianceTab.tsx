@@ -1,36 +1,30 @@
 "use client";
 
 /**
- * PlatformComplianceTab — staff/admin-only editor for the
- * compliance-rules catalog (`gs_compliance_rules`).
+ * Platform ▸ Token economy ▸ Rules (staff/admin): the region rules catalog
+ * (`gs_compliance_rules`).
  *
- * The token-economy dispatcher checks this table before letting a
- * viewer interact with classed surfaces (prediction pools today;
- * casino-style is dormant in the schema). Each row maps a
- * (region × class × optional genre) tuple to one of three
- * behaviors: `full` (no restriction), `spectator` (no-stakes
- * participation), `unavailable` (silent reject in chat).
+ * The token-economy dispatcher checks these before letting a viewer use a
+ * classed surface (prediction pools today; casino-style is dormant in the
+ * schema). Each rule maps (region × class × optional genre) to one of three
+ * behaviors: `full` (no restriction), `spectator` (no-stakes participation),
+ * `unavailable` (silent reject in chat). A known region with no rule gets full
+ * access; a viewer whose region can't be told watches only.
  *
- * NOT LEGAL ADVICE — the seed list mirrors comparable platforms'
- * public restrictions. Final mapping is a counsel question; this
- * surface lets admins update without a deploy.
+ * NOT LEGAL ADVICE: the seed list mirrors comparable platforms' public
+ * restrictions. Final mapping is a counsel question; this surface lets admins
+ * update without a deploy.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
-  Button,
-  Input,
-  Modal,
-  Radio,
-  RadioGroup,
-  Select,
-  Textarea,
+  Alert, Badge, Button, EmptyState, Input, Modal, Radio, RadioGroup, Select, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea,
 } from "@empac/cascadeds";
+import { IconMapPin, IconPencil, IconPlus, IconWorld } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
-import { PlatformFlags } from "@/components/account/PlatformFlags";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { AdminField, AdminHeader, AdminRowMenu, AdminSection, AdminTable } from "@/components/account/admin/AdminKit";
 
 type ComplianceClass = "prediction_pool" | "casino_style";
 type Behavior = "full" | "spectator" | "unavailable";
@@ -45,236 +39,212 @@ interface RuleRow {
   created_at: string;
 }
 
+const PAGE = 25;
+
 const CLASS_LABEL: Record<ComplianceClass, string> = {
-  prediction_pool: "Prediction pool",
-  casino_style: "Casino-style",
+  prediction_pool: "Predictions",
+  casino_style: "Casino-style games",
+};
+const CLASS_HELP: Record<ComplianceClass, string> = {
+  prediction_pool: "Token predictions on stream, like betting on who wins a race.",
+  casino_style: "Nothing uses this today. It's kept in case a future game needs it.",
 };
 
 const BEHAVIOR_LABEL: Record<Behavior, string> = {
   full: "Full access",
-  spectator: "Spectator mode",
-  unavailable: "Unavailable",
+  spectator: "Watch only",
+  unavailable: "Turned off",
 };
-
 const BEHAVIOR_HELP: Record<Behavior, string> = {
-  full: "Region has no restriction. Viewers participate normally.",
-  spectator:
-    "Viewers can pick / signal but cannot escrow tokens. Excluded from parimutuel splits.",
-  unavailable: "Silent reject. Surface is hidden in chat for the region.",
+  full: "No restriction. Viewers there take part normally.",
+  spectator: "Viewers can make picks but can't put tokens in, and don't share in the winnings.",
+  unavailable: "Hidden for viewers there, and their chat commands for it are ignored without a reply.",
 };
+const BEHAVIOR_BADGE: Record<Behavior, "success" | "warning" | "error"> = { full: "success", spectator: "warning", unavailable: "error" };
 
 const CLASS_FILTERS: Array<{ value: "all" | ComplianceClass; label: string }> = [
-  { value: "all", label: "All classes" },
-  { value: "prediction_pool", label: "Prediction pool only" },
-  { value: "casino_style", label: "Casino-style only" },
+  { value: "all", label: "Every rule" },
+  { value: "prediction_pool", label: "Predictions only" },
+  { value: "casino_style", label: "Casino-style games only" },
 ];
+
+const REGION_RE = /^[A-Z]{2}(-[A-Z0-9]{2,3})?$/;
+
+let regionNames: Intl.DisplayNames | null = null;
+/** "US" → "United States", "CA-QC" → "Canada (QC)". Falls back to the code. */
+function regionName(code: string): string {
+  const [country, sub] = code.toUpperCase().split("-");
+  try {
+    regionNames ??= new Intl.DisplayNames(["en"], { type: "region" });
+    const name = regionNames.of(country);
+    if (!name || name === country) return code;
+    return sub ? `${name} (${sub})` : name;
+  } catch {
+    return code;
+  }
+}
 
 export function PlatformComplianceTab() {
   const confirm = useConfirm();
+  const toast = useToast();
   const [rules, setRules] = useState<RuleRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [classFilter, setClassFilter] = useState<"all" | ComplianceClass>(
-    "all",
-  );
+  const [classFilter, setClassFilter] = useState<"all" | ComplianceClass>("all");
   const [editing, setEditing] = useState<RuleRow | "new" | null>(null);
+  const [limit, setLimit] = useState(PAGE);
 
   const load = useCallback(async () => {
     setLoadError(null);
     try {
-      const res = await fetch("/api/admin/compliance-rules", {
-        cache: "no-store",
-      });
+      const res = await fetch("/api/admin/compliance-rules", { cache: "no-store" });
       if (res.status === 403) {
-        setLoadError(
-          "Forbidden. This surface is for GameShuffle staff only.",
-        );
+        setLoadError("This screen is for GameShuffle staff only. Sign in with a staff account.");
         setRules([]);
         return;
       }
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) {
-        setLoadError(body.error || `Load failed (${res.status}).`);
+        setLoadError("Couldn't load the region rules. Refresh the page in a moment.");
         setRules([]);
         return;
       }
       setRules(body.rules as RuleRow[]);
     } catch {
-      setLoadError("Network error while loading.");
+      setLoadError("Couldn't reach the server. Check your connection and refresh.");
       setRules([]);
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    void Promise.resolve().then(load);
   }, [load]);
 
-  const filtered =
-    rules?.filter(
-      (r) => classFilter === "all" || r.compliance_class === classFilter,
-    ) ?? [];
+  const filtered = rules?.filter((r) => classFilter === "all" || r.compliance_class === classFilter) ?? [];
+
+  const ruleName = (row: RuleRow) => `${CLASS_LABEL[row.compliance_class]} in ${regionName(row.region_code)}${row.genre ? `, ${row.genre} games` : ""}`;
 
   const handleDelete = async (row: RuleRow) => {
-    if (
-      !(await confirm({ title: `Delete the ${CLASS_LABEL[row.compliance_class]} rule for ${row.region_code}${row.genre ? ` / ${row.genre}` : ""}?`, body: "Viewers in that region go back to the platform defaults.", confirmLabel: "Delete rule" }))
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Delete the rule for ${ruleName(row)}?`,
+      body: row.region_code.includes("-")
+        ? "Viewers there go back to the country's rule, or to full access if the country has none."
+        : "Viewers there go back to full access.",
+      confirmLabel: "Delete rule",
+    });
+    if (!ok) return;
     try {
-      const res = await fetch(`/api/admin/compliance-rules/${row.id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/admin/compliance-rules/${row.id}`, { method: "DELETE" });
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setLoadError(body.error || `Delete failed (${res.status}).`);
+        toast.error("Couldn't delete the rule. Try again.");
         return;
       }
       setRules((cur) => cur?.filter((r) => r.id !== row.id) ?? null);
+      toast.success("Rule deleted");
     } catch {
-      setLoadError("Network error while deleting.");
+      toast.error("Couldn't reach the server. Check your connection and try again.");
     }
   };
 
+  const addButton = <Button variant="primary" size="small" iconBefore={IconPlus} onClick={() => setEditing("new")}>Add rule</Button>;
+
   return (
-    <>
-      <div style={{ marginBottom: "var(--spacing-24)" }}>
-        <PlatformFlags />
-      </div>
-      <div className="account-card">
-      <h2 className="account-tab__heading">Compliance rules</h2>
-      <p className="account-tab__intro">
-        Region-by-region availability for token-economy surfaces.
-        Used today by markets / prediction pools (casino-style is
-        dormant). The dispatcher consults this table BEFORE any
-        streamer module-enable toggle. Viewers can&rsquo;t opt out
-        of compliance.{" "}
-        <strong>Not legal advice</strong>. Keep counsel in the loop
-        when changing rules.
-      </p>
+    <div className="account-card admin-screen admin-money">
+      <AdminHeader
+        title="Region rules"
+        intro="Where viewers can use tokens on predictions. A rule here comes before any streamer setting, and viewers can't turn it off. Not legal advice: check with counsel before changing one."
+        actions={addButton}
+      />
 
-      {loadError && (
-        <div style={{ marginBottom: "var(--spacing-16)" }}>
-          <Alert variant="error" onClose={() => setLoadError(null)}>
-            {loadError}
-          </Alert>
-        </div>
-      )}
+      {loadError && <Alert variant="error" onClose={() => setLoadError(null)}>{loadError}</Alert>}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "var(--spacing-16)",
-          marginBottom: "var(--spacing-16)",
-          flexWrap: "wrap",
-        }}
+      <AdminSection
+        title="Rules"
+        icon={<IconWorld size={20} />}
+        intro="A country or region without a rule gets full access. Viewers whose region we can't tell can only watch."
       >
-        <div style={{ minWidth: "240px" }}>
-          <Select
-            options={CLASS_FILTERS.map((c) => ({
-              value: c.value,
-              label: c.label,
-            }))}
-            value={classFilter}
-            onChange={(v) =>
-              setClassFilter(
-                (Array.isArray(v) ? v[0] : v) as "all" | ComplianceClass,
-              )
-            }
-            size="small"
-            fullWidth
+        {rules === null ? (
+          <LoadingLines label="Loading the region rules" />
+        ) : rules.length === 0 ? (
+          <EmptyState
+            variant="bordered"
+            icon={<IconMapPin size={28} />}
+            title="No region rules yet"
+            description="Every country has full access until you add a rule. Add one to make predictions watch only or turned off somewhere."
+            action={addButton}
           />
-        </div>
-        <span
-          style={{
-            color: "var(--text-tertiary)",
-            fontSize: "var(--font-size-12)",
-            textTransform: "uppercase",
-            letterSpacing: "0.04em",
-            fontWeight: "var(--font-weight-semibold)",
-          }}
-        >
-          {filtered.length} / {rules?.length ?? 0} shown
-        </span>
-        <div style={{ marginLeft: "auto" }}>
-          <Button variant="primary" onClick={() => setEditing("new")}>
-            Add rule
-          </Button>
-        </div>
-      </div>
+        ) : (
+          <>
+            <div className="admin-money-filters">
+              <AdminField label="Show">
+                {(id) => (
+                  <Select
+                    id={id}
+                    options={CLASS_FILTERS.map((c) => ({ value: c.value, label: c.label }))}
+                    value={classFilter}
+                    onChange={(v) => { setClassFilter((Array.isArray(v) ? v[0] : v) as "all" | ComplianceClass); setLimit(PAGE); }}
+                    size="small"
+                    fullWidth
+                  />
+                )}
+              </AdminField>
+            </div>
+            <p className="admin-money-count" role="status" aria-live="polite">{filtered.length === rules.length ? `${rules.length} ${rules.length === 1 ? "rule" : "rules"}` : `${filtered.length} of ${rules.length} rules shown`}</p>
+            {filtered.length === 0 ? (
+              <EmptyState variant="bordered" icon={<IconMapPin size={28} />} title="No rules of this kind" description="Choose Every rule to see the others." />
+            ) : (
+              <>
+                <AdminTable label="Region rules">
+                  <Table variant="striped" dense>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Region</TableHead>
+                        <TableHead>Applies to</TableHead>
+                        <TableHead>Games</TableHead>
+                        <TableHead>Viewers get</TableHead>
+                        <TableHead>Note</TableHead>
+                        <TableHead align="right"><span className="sr-only">Actions</span></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.slice(0, limit).map((row) => (
+                        <TableRow key={row.id}>
+                          <TableCell><strong>{regionName(row.region_code)}</strong><span className="admin-table__sub">{row.region_code}</span></TableCell>
+                          <TableCell>{CLASS_LABEL[row.compliance_class]}</TableCell>
+                          <TableCell>{row.genre ? row.genre : "All games"}</TableCell>
+                          <TableCell><Badge variant={BEHAVIOR_BADGE[row.behavior]} size="small">{BEHAVIOR_LABEL[row.behavior]}</Badge></TableCell>
+                          <TableCell><span className="admin-money-note" title={row.note ?? undefined}>{row.note ?? "None"}</span></TableCell>
+                          <TableCell align="right">
+                            <span className="admin-row-actions">
+                              <Button variant="ghost" size="small" iconBefore={IconPencil} aria-label={`Edit the rule for ${ruleName(row)}`} onClick={() => setEditing(row)}>Edit</Button>
+                              <AdminRowMenu label={`More for the rule for ${ruleName(row)}`} items={[{ label: "Delete rule", danger: true, onClick: () => void handleDelete(row) }]} />
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </AdminTable>
+                {filtered.length > limit && (
+                  <div className="admin-money-more"><Button variant="ghost" size="small" onClick={() => setLimit((x) => x + PAGE)}>Show {Math.min(PAGE, filtered.length - limit)} more of {filtered.length}</Button></div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </AdminSection>
 
-      {rules === null ? (
-        <LoadingLines label="Loading" />
-      ) : filtered.length === 0 ? (
-        <p className="account-tab__empty">
-          {rules.length === 0
-            ? "No compliance rules yet."
-            : "No rules match the current filter."}
-        </p>
-      ) : (
-        <table className="platform-events__table">
-          <thead>
-            <tr>
-              <th>Region</th>
-              <th>Class</th>
-              <th>Genre</th>
-              <th>Behavior</th>
-              <th>Note</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((row) => (
-              <tr key={row.id}>
-                <td>
-                  <code>{row.region_code}</code>
-                </td>
-                <td>{CLASS_LABEL[row.compliance_class]}</td>
-                <td>
-                  {row.genre ? (
-                    <code>{row.genre}</code>
-                  ) : (
-                    <span
-                      style={{ color: "var(--text-tertiary)" }}
-                    >
-                      all
-                    </span>
-                  )}
-                </td>
-                <td>{BEHAVIOR_LABEL[row.behavior]}</td>
-                <td
-                  style={{
-                    color: "var(--text-secondary)",
-                    fontSize: "var(--font-size-12)",
-                    maxWidth: 220,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                  title={row.note ?? undefined}
-                >
-                  {row.note ?? "-"}
-                </td>
-                <td className="platform-events__actions">
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => setEditing(row)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="small"
-                    onClick={() => void handleDelete(row)}
-                  >
-                    Delete
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <AdminSection title="What viewers get" intro="Each rule picks one of these.">
+        <ul className="admin-money-list">
+          {(Object.keys(BEHAVIOR_LABEL) as Behavior[]).map((b) => (
+            <li key={b} className="admin-money-row admin-money-row--plain">
+              <div className="admin-money-row__text">
+                <p className="admin-money-row__name"><Badge variant={BEHAVIOR_BADGE[b]} size="small">{BEHAVIOR_LABEL[b]}</Badge></p>
+                <p className="admin-money-row__help">{BEHAVIOR_HELP[b]}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </AdminSection>
 
       {editing && (
         <RuleEditorModal
@@ -287,8 +257,7 @@ export function PlatformComplianceTab() {
           }}
         />
       )}
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -306,26 +275,22 @@ interface EditorProps {
 function RuleEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
   const isEdit = !!row;
   const [regionCode, setRegionCode] = useState(row?.region_code ?? "");
-  const [complianceClass, setComplianceClass] = useState<ComplianceClass>(
-    row?.compliance_class ?? "prediction_pool",
-  );
+  const [complianceClass, setComplianceClass] = useState<ComplianceClass>(row?.compliance_class ?? "prediction_pool");
   const [genre, setGenre] = useState(row?.genre ?? "");
-  const [behavior, setBehavior] = useState<Behavior>(
-    row?.behavior ?? "spectator",
-  );
+  const [behavior, setBehavior] = useState<Behavior>(row?.behavior ?? "spectator");
   const [note, setNote] = useState(row?.note ?? "");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [regionError, setRegionError] = useState<string | null>(null);
   const toast = useToast();
 
+  const typed = regionCode.trim().toUpperCase();
+  const preview = REGION_RE.test(typed) && regionName(typed) !== typed ? `That's ${regionName(typed)}.` : null;
+
   const save = async () => {
-    setError(null);
-    const trimmedRegion = regionCode.trim().toUpperCase();
-    if (!trimmedRegion) return setError("Region code is required.");
-    if (!/^[A-Z]{2}(-[A-Z0-9]{2,3})?$/.test(trimmedRegion)) {
-      return setError(
-        "Region code must be ISO format (e.g. US, GB, CA-QC).",
-      );
+    setRegionError(null);
+    if (!typed) return setRegionError("Add a country code, like US or GB.");
+    if (!REGION_RE.test(typed)) {
+      return setRegionError("Use a two-letter country code like US or GB, or a country and region like CA-QC.");
     }
     setSaving(true);
     try {
@@ -334,7 +299,7 @@ function RuleEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: row?.id,
-          region_code: trimmedRegion,
+          region_code: typed,
           compliance_class: complianceClass,
           genre: genre.trim() || null,
           behavior,
@@ -343,13 +308,13 @@ function RuleEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) {
-        setError(body.error || `Save failed (${res.status}).`);
+        toast.error(/duplicate|unique/i.test(String(body.error ?? "")) ? "There's already a rule for that region, game type and kind. Edit that one instead." : "Couldn't save the rule. Check the fields and try again.");
         return;
       }
       toast.success("Rule saved");
       onSaved();
     } catch {
-      setError("Network error while saving.");
+      toast.error("Couldn't reach the server. Check your connection and try again.");
     } finally {
       setSaving(false);
     }
@@ -359,148 +324,62 @@ function RuleEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
     <Modal
       isOpen={isOpen}
       onClose={saving ? () => {} : onClose}
-      title={
-        isEdit
-          ? `Edit ${row.region_code} · ${CLASS_LABEL[row.compliance_class]}`
-          : "Add compliance rule"
-      }
+      title={isEdit ? `Edit the rule for ${regionName(row.region_code)}` : "Add a region rule"}
       size="medium"
       footer={
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "var(--spacing-8)",
-            width: "100%",
-          }}
-        >
-          <Button variant="tertiary" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={save}
-            loading={saving}
-            disabled={saving}
-          >
-            Save rule
-          </Button>
+        <div className="admin-money-modal-footer">
+          <Button variant="tertiary" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button variant="primary" onClick={() => void save()} loading={saving} disabled={saving}>Save rule</Button>
         </div>
       }
     >
-      {error && (
-        <div style={{ marginBottom: "var(--spacing-12)" }}>
-          <Alert variant="error" onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        </div>
-      )}
+      <form className="admin-form" onSubmit={(e) => { e.preventDefault(); if (!saving) void save(); }}>
+        <div className="admin-form-grid">
+          <AdminField
+            label="Country or region code"
+            error={regionError}
+            helper={preview ?? "Two letters for a country (US, GB), or add a state or province (CA-QC, US-NY). Upper or lower case."}
+          >
+            {(id, describedBy) => (
+              <Input id={id} aria-describedby={describedBy} aria-invalid={regionError ? true : undefined} error={!!regionError}
+                value={regionCode} onChange={(e) => { setRegionError(null); setRegionCode(e.target.value); }} placeholder="US, GB or CA-QC" autoComplete="off" fullWidth autoFocus={!isEdit} />
+            )}
+          </AdminField>
 
-      <div className="hub-form__field-stack">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "var(--spacing-16)",
-          }}
-        >
-          <label className="hub-form__field">
-            <span className="hub-form__label">Region code</span>
-            <Input
-              value={regionCode}
-              onChange={(e) => setRegionCode(e.target.value)}
-              placeholder="US, GB, CA-QC"
-              fullWidth
-            />
-            <p className="hub-form__platform-disabled">
-              ISO 3166-1 alpha-2 (<code>US</code>, <code>GB</code>)
-              optionally with a subdivision suffix (<code>CA-QC</code>,{" "}
-              <code>US-NY</code>). Case-insensitive.
-            </p>
-          </label>
-
-          <label className="hub-form__field">
-            <span className="hub-form__label">Class</span>
-            <Select
-              value={complianceClass}
-              onChange={(v) =>
-                setComplianceClass(v as ComplianceClass)
-              }
-              options={[
-                {
-                  value: "prediction_pool",
-                  label: CLASS_LABEL.prediction_pool,
-                },
-                {
-                  value: "casino_style",
-                  label: CLASS_LABEL.casino_style,
-                },
-              ]}
-              fullWidth
-            />
-            <p className="hub-form__platform-disabled">
-              <code>prediction_pool</code> covers markets / live
-              prediction surfaces.{" "}
-              <code>casino_style</code> is dormant (no surfaces map
-              to it today) but retained for future revisits.
-            </p>
-          </label>
+          <AdminField label="Applies to" helper={CLASS_HELP[complianceClass]}>
+            {(id) => (
+              <Select
+                id={id}
+                value={complianceClass}
+                onChange={(v) => setComplianceClass((Array.isArray(v) ? v[0] : v) as ComplianceClass)}
+                options={[
+                  { value: "prediction_pool", label: CLASS_LABEL.prediction_pool },
+                  { value: "casino_style", label: CLASS_LABEL.casino_style },
+                ]}
+                fullWidth
+              />
+            )}
+          </AdminField>
         </div>
 
-        <label className="hub-form__field">
-          <span className="hub-form__label">Genre (optional)</span>
-          <Input
-            value={genre}
-            onChange={(e) => setGenre(e.target.value)}
-            placeholder="racing"
-            fullWidth
-          />
-          <p className="hub-form__platform-disabled">
-            Empty = applies to <strong>all genres</strong> for this
-            region + class. Specify when the restriction is genre-
-            specific (e.g. AU racing-game rules).
-          </p>
-        </label>
+        <AdminField label="Game type (optional)" helper="Leave it empty to cover every game. Fill it in only for a rule about one kind of game, like racing.">
+          {(id, describedBy) => (
+            <Input id={id} aria-describedby={describedBy} value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="racing" autoComplete="off" fullWidth />
+          )}
+        </AdminField>
 
-        <RadioGroup
-          name="behavior"
-          label="Behavior"
-          orientation="vertical"
-          value={behavior}
-          onChange={(v) => setBehavior(v as Behavior)}
-        >
-          <Radio
-            value="full"
-            label={BEHAVIOR_LABEL.full}
-            helperText={BEHAVIOR_HELP.full}
-          />
-          <Radio
-            value="spectator"
-            label={BEHAVIOR_LABEL.spectator}
-            helperText={BEHAVIOR_HELP.spectator}
-          />
-          <Radio
-            value="unavailable"
-            label={BEHAVIOR_LABEL.unavailable}
-            helperText={BEHAVIOR_HELP.unavailable}
-          />
+        <RadioGroup name="behavior" label="Viewers there get" orientation="vertical" value={behavior} onChange={(v) => setBehavior(v as Behavior)}>
+          <Radio value="full" label={BEHAVIOR_LABEL.full} helperText={BEHAVIOR_HELP.full} />
+          <Radio value="spectator" label={BEHAVIOR_LABEL.spectator} helperText={BEHAVIOR_HELP.spectator} />
+          <Radio value="unavailable" label={BEHAVIOR_LABEL.unavailable} helperText={BEHAVIOR_HELP.unavailable} />
         </RadioGroup>
 
-        <label className="hub-form__field">
-          <span className="hub-form__label">Note (optional)</span>
-          <Textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Mirrors Twitch's Denmark policy as of 2026-01."
-            rows={2}
-            fullWidth
-          />
-          <p className="hub-form__platform-disabled">
-            Free-text. Usually the source / date of the policy
-            you&rsquo;re mirroring. Visible to admins only.
-          </p>
-        </label>
-      </div>
+        <AdminField label="Note (optional)" helper="Where the rule comes from and when, for other staff. Only staff see it.">
+          {(id, describedBy) => (
+            <Textarea id={id} aria-describedby={describedBy} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Matches Twitch's Denmark policy, January 2026." rows={2} fullWidth />
+          )}
+        </AdminField>
+      </form>
     </Modal>
   );
 }

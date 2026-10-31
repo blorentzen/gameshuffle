@@ -1,6 +1,6 @@
 /**
  * POST /api/billing/waitlist — join the paid-plans waitlist (outside the US).
- * Body: { product?: "pro" | "circuit", email? }. Signed-in visitors use their
+ * Body: { product?: "pro" | "circuit" | "support" | "both", email? }. Signed-in visitors use their
  * account email; signed-out visitors give one.
  */
 import { NextResponse } from "next/server";
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     email,
     name: (user?.user_metadata?.display_name as string | undefined) ?? null,
     country: countryFromRequest(request),
-    product: body.product === "circuit" ? "circuit" : "pro",
+    product: body.product === "circuit" || body.product === "support" || body.product === "both" ? body.product : "pro",
     origin: user ? "account" : "public",
   });
   return ok ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "failed" }, { status: 502 });

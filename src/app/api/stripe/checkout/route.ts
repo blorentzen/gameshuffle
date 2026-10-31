@@ -1,7 +1,11 @@
 /**
  * POST /api/stripe/checkout
  *
- * Body: { interval: 'monthly' | 'annual' }
+ * Body: { interval: 'monthly' | 'annual', returnTo?: '/mmr-card' }
+ *
+ * `returnTo` (an allowlisted page) brings the buyer back there instead of Plans & billing, with
+ * ?checkout=success&plan=pro&session_id= or ?checkout=canceled&plan=pro (the MMR card studio's
+ * try-before-paying path, 2026-10-29; the page waits for the webhook to turn GS Pro on).
  *
  * Creates (or reuses) a Stripe Customer for the authenticated user and
  * a Checkout Session for the Pro subscription. New users get a 14-day
@@ -9,6 +13,11 @@
  * is redirected straight to paid. Credit card required in both cases.
  *
  * Returns { url } — the client redirects to Stripe's hosted Checkout.
+ *
+ * An account that already has GS Pro through a subscription, a trial or GS
+ * Circuit 256 gets { error: "already_pro" } (409): a second checkout would bill
+ * them twice (audit, 2026-10-19). Staff and beta keep their role grant and can
+ * still subscribe.
  *
  * US-only for now (specs/international-payments-plan.md): a visitor outside
  * the US gets { error: "us_only" } and the waitlist instead. Sales tax is
@@ -22,6 +31,8 @@ import { createClient as createAdminSupabase } from "@supabase/supabase-js";
 import { getStripe, getStripePriceId } from "@/lib/stripe/client";
 import { resolveStripePriceId } from "@/lib/pricing/catalog";
 import { paidPlanAvailability } from "@/lib/billing/availability";
+import { getProAccess } from "@/lib/subscription-server";
+import { CHECKOUT_RETURN_PATHS } from "@/lib/stripe/checkoutReturn";
 
 export const runtime = "nodejs";
 
@@ -58,11 +69,23 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const interval = body.interval as string | undefined;
+  const returnTo = typeof body.returnTo === "string" && CHECKOUT_RETURN_PATHS.includes(body.returnTo) ? body.returnTo : null;
   if (interval !== "monthly" && interval !== "annual") {
     return NextResponse.json({ error: "invalid_interval" }, { status: 400 });
   }
 
   const admin = getAdmin();
+  // Already paying for Pro somewhere: never open a second subscription.
+  const access = await getProAccess(user.id, admin);
+  if (access.sources.length > 0) {
+    const message = access.sources[0] === "circuit_256"
+      ? "Your GS Circuit 256 plan already includes GS Pro."
+      : access.sources[0] === "support_level"
+        ? "Your support level already includes GS Pro. Manage it from Account ▸ Support GameShuffle."
+        : "You already have GS Pro. Manage it from Plans & billing.";
+    return NextResponse.json({ error: "already_pro", source: access.sources[0], message }, { status: 409 });
+  }
+
   const { data: userRow } = await admin
     .from("users")
     .select("stripe_customer_id, has_used_trial, display_name")
@@ -135,8 +158,10 @@ export async function POST(request: Request) {
           "Charges appear as EMPAC* GS PRO. GameShuffle is built by Empac.",
       },
     },
-    success_url: `${baseUrl}/account?tab=plans&checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${baseUrl}/account?tab=plans&checkout=canceled`,
+    success_url: returnTo
+      ? `${baseUrl}${returnTo}?checkout=success&plan=pro&session_id={CHECKOUT_SESSION_ID}`
+      : `${baseUrl}/account?tab=plans&checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: returnTo ? `${baseUrl}${returnTo}?checkout=canceled&plan=pro` : `${baseUrl}/account?tab=plans&checkout=canceled`,
     client_reference_id: user.id,
     metadata: { gs_user_id: user.id, interval },
   });

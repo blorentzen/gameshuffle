@@ -147,7 +147,7 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
     ],
     surfaces: [
       "/live/<slug> Leaderboard tab (three sub-tabs: Combined / Player / Crowd)",
-      "/staff/economy (admin: includes Streamer Leaderboard ranked by engagement counts)",
+      "Platform admin ▸ Token economy ▸ Streamers (staff: the busiest chats, ranked by engagement counts)",
     ],
     config: [
       { name: "Default top-N", default: "10" },
@@ -161,10 +161,10 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
       { trigger: "!commands add <trigger> <response>", description: "Add a new command from chat.", actor: "host" },
       { trigger: "!commands edit <trigger> <response>", description: "Update an existing command from chat.", actor: "host" },
       { trigger: "!commands delete <trigger>", description: "Remove a custom command.", actor: "host" },
-      { trigger: "!commands list", description: "Hint where to find the full list (`/twitch/commands`).", actor: "host" },
+      { trigger: "!commands list", description: "Point to where the full list lives (Streaming ▸ Chat ▸ Commands).", actor: "host" },
     ],
     surfaces: [
-      "/twitch/commands: full editor with variable picker (recommended)",
+      "Streaming ▸ Chat ▸ Commands: the full editor with the variable picker (recommended)",
     ],
     config: [
       { name: "Editor seed defaults", default: "!socials / !discord / !youtube / !twitter / !so / !uptime / !followage / !accountage", platformOnly: true, note: "Seeded per-community on first creation; editable." },

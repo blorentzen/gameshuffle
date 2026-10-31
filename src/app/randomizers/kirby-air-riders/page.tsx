@@ -22,7 +22,7 @@ export default function KirbyRandomizerPage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["kirby-air-riders"].hero} primary={{ href: "#play", label: "Randomize now" }} />
+        <BrowseHero eyebrow="New randomizer" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["kirby-air-riders"].hero} primary={{ href: "#play", label: "Randomize now" }} />
         <div id="play">
         <Container className="tool-page">
           <NewBanner />
@@ -31,9 +31,9 @@ export default function KirbyRandomizerPage() {
           </Suspense>
         </Container>
         </div>
+        <RandomizerNudge gameName={AIR_RIDERS.label} saves="your Kirby Air Riders setups" />
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName={AIR_RIDERS.label} saves="your Kirby Air Riders setups" />
     </>
   );
 }

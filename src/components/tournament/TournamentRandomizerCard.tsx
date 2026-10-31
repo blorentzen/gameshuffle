@@ -32,6 +32,7 @@ export function TournamentRandomizerCard({
   initialRounds,
   initialLive,
   syncedLive,
+  bare = false,
 }: {
   tournamentId: string;
   gameSlug: string;
@@ -41,6 +42,8 @@ export function TournamentRandomizerCard({
   /** Authoritative live pointer from the parent's realtime tournament state,
    *  so score-triggered auto-advances (which bypass this card) still reflect. */
   syncedLive?: LivePointer | null;
+  /** Inside another card (the manage page's Races and tracks): no frame of its own, a section heading. */
+  bare?: boolean;
 }) {
   const confirm = useConfirm();
   const toast = useToast();
@@ -129,8 +132,10 @@ export function TournamentRandomizerCard({
   const revealedCount = rounds.filter((r) => r.revealed).length;
 
   return (
-    <div className="comp-card" style={{ marginBottom: "2rem" }}>
-      <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, marginBottom: "0.5rem" }}>Randomized rounds</h2>
+    <div className={bare ? "manage-sub" : "comp-card"} style={bare ? undefined : { marginBottom: "2rem" }}>
+      {bare
+        ? <h3 className="manage-sub__title">Randomized rounds</h3>
+        : <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, marginBottom: "0.5rem" }}>Randomized rounds</h2>}
       <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "1.25rem" }}>
         Randomize each round: shared tracks, a combo or items for kart games, or a random pick for every player for games with a roster. Generated from this tournament&rsquo;s
         build rules automatically. Live reveal to viewers requires GS Circuit.
@@ -267,7 +272,7 @@ export function TournamentRandomizerCard({
               {!live
                 ? <Button variant="primary" size="small" onClick={() => act("start_live")} disabled={busy}>Start live</Button>
                 : <>
-                    <Button variant="primary" size="small" onClick={() => act("advance")} disabled={busy}>Advance →</Button>
+                    <Button variant="primary" size="small" onClick={() => act("advance")} disabled={busy}>Advance</Button>
                     <Button variant="ghost" size="small" onClick={() => act("reset_live")} disabled={busy}>Reset live</Button>
                   </>}
             </div>

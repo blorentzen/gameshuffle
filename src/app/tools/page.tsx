@@ -8,12 +8,14 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 
 export const metadata: Metadata = {
-  title: "Free Tools: wheel spinner, dice, tier lists, bingo, 8-ball & more",
+  title: "Free tools: wheel spinner, dice, tier lists and more",
   description:
-    "Free GameShuffle tools you can use right in your browser, no account needed: a wheel spinner, dice roller, coin flip, name picker, stream timer, tier list maker, bingo generator, magic 8-ball, yes/no, truth or dare, and a game night kit. On GameShuffle Pro, they go live on your stream overlay.",
+    "Free browser tools, no account needed: wheel spinner, dice roller, coin flip, name picker, tier list maker, bingo cards, truth or dare and more.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Free GameShuffle stream & party tools",
     url: "https://www.gameshuffle.co/tools",
     images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gameshuffle-tools-og.jpg"],
@@ -38,14 +40,20 @@ const TOOL_TILES: { icon: IconName; label: string; desc: string; href: string; f
   { icon: "box", label: "Dice Roller", desc: "Roll one or many dice in a tap", href: "/dice-roller", family: "pick" },
   { icon: "rosette", label: "Coin Flip", desc: "Heads or tails, with a tally", href: "/coin-flip", family: "pick" },
   { icon: "user-check", label: "Name Picker", desc: "Draw random winners from a list", href: "/name-picker", family: "pick" },
+  { icon: "git-merge", label: "Bracket Generator", desc: "Single and double elimination brackets", href: "/bracket-generator", family: "board" },
+  { icon: "layout-grid", label: "Round Robin Generator", desc: "Everyone plays everyone, with standings", href: "/round-robin-generator", family: "board" },
+  { icon: "sort-descending", label: "Swiss Pairing Generator", desc: "Swiss rounds, tiebreakers and a top cut", href: "/swiss-pairing-generator", family: "board" },
   { icon: "clock", label: "Stream Timer", desc: "Starting-soon / BRB countdown", href: "/stream-timer", family: "stream" },
   { icon: "layout-list", label: "Tier List Maker", desc: "Rank anything from S to D", href: "/tier-list-maker", family: "board" },
   { icon: "border-all", label: "Bingo Card Generator", desc: "Custom 5×5 bingo cards", href: "/bingo-card-generator", family: "board" },
   { icon: "help-circle", label: "Magic 8-Ball", desc: "Ask a yes-or-no question", href: "/magic-8-ball", family: "party" },
   { icon: "checks", label: "Yes or No?", desc: "Tap for a quick decision", href: "/yes-no", family: "party" },
   { icon: "flame", label: "Truth or Dare", desc: "Endless party prompts", href: "/truth-or-dare", family: "party" },
+  { icon: "list", label: "Name Every Pokémon", desc: "How many of the 1,025 can you name?", href: "/name-every-pokemon", family: "party" },
   { icon: "calendar", label: "The Daily Shuffle", desc: "Guess today's Mario Kart or Mario Party character", href: "/daily", family: "party" },
   { icon: "award", label: "The Weekly Challenge", desc: "Rank this week's Tier War like the crowd", href: "/weekly", family: "party" },
+  { icon: "pencil", label: "Trivia Team Names", desc: "Funny, gaming and office team names", href: "/trivia/team-names", family: "party" },
+  { icon: "clipboard", label: "Trivia Answer Sheet", desc: "Printable sheets for a trivia night", href: "/trivia/answer-sheet", family: "kit" },
   { icon: "users", label: "Game Night Tools", desc: "Score sheets, timers, pickers & more", href: "/game-nights/tools", family: "kit" },
 ];
 
@@ -56,7 +64,7 @@ export default function ToolsPage() {
       <section className="marketing-hero marketing-hero--blue">
         <MarketingHeroField category="tools" />
         <Container>
-          <p className="marketing-eyebrow">Free · no account needed</p>
+          <p className="marketing-eyebrow">No account needed</p>
           <h1 className="marketing-hero__title">Free stream &amp; party tools</h1>
           <p className="marketing-hero__sub">
             Free tools you can use right in your browser: spin a wheel, roll dice, run a
@@ -93,7 +101,10 @@ export default function ToolsPage() {
             ))}
           </ul>
           <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
-            Looking for everything else? <a href="/apps" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the apps →</a>
+            Looking for everything else? <ArrowLink href="/apps">Browse the apps</ArrowLink>
+          </p>
+          <p style={{ marginTop: "var(--spacing-12)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
+            Playing the Pokémon card game? <ArrowLink href="/pokemon-tcg">Deck guides and a free companion on the Pokémon TCG hub</ArrowLink>
           </p>
         </section>
 

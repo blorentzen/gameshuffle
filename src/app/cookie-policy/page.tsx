@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@empac/cascadeds";
+import { TableScroll } from "@/components/ui/TableScroll";
 import { LegalPage, LegalSubSection, LegalContact, type LegalSection } from "@/components/legal/LegalPage";
 
 export const metadata: Metadata = {
   title: "Cookie Policy",
   description: "How GameShuffle uses cookies and similar technologies. Cookieless analytics by default, no advertising or cross-site tracking, GPC honored.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Cookie Policy | GameShuffle",
     description: "How GameShuffle uses cookies: cookieless analytics by default, no advertising or cross-site tracking.",
     url: "https://www.gameshuffle.co/cookie-policy",
@@ -62,6 +64,7 @@ const SECTIONS: LegalSection[] = [
     content: (
       <>
         <p>The table below lists the cookies and similar technologies in use on GameShuffle. The exact cookies set may vary depending on the pages you visit and features you use.</p>
+        <TableScroll label="Cookies and storage on GameShuffle">
         <Table variant="bordered" dense>
           <TableHeader>
             <TableRow>
@@ -117,6 +120,7 @@ const SECTIONS: LegalSection[] = [
             </TableRow>
           </TableBody>
         </Table>
+        </TableScroll>
 
         <LegalSubSection number="4.1" title="Cookies We Don't Use">
           <p>We want to be clear about what we don&apos;t do:</p>

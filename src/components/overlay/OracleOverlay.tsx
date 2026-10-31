@@ -1,14 +1,16 @@
 "use client";
 
 /**
- * Oracle overlay renderer (Streamer Tools Integration) — the shared answer card
- * for Magic 8-Ball, Yes/No, and Truth or Dare. Tone drives the accent color.
- * Self-contained CSS; format-agnostic (caller passes `style`).
+ * Oracle overlay renderer (Streamer Tools Integration). The Magic 8-Ball is
+ * the same ball as the free page (EightBall), answer in the window, with the
+ * streamer's own answers; Yes/No and Truth or Dare are the answer card. Tone
+ * drives the accent color. Format-agnostic (caller passes `style`).
  */
 
 import type { ComponentType } from "react";
 import type { CSSProperties } from "react";
 import { resolveOverlayAccent } from "@/lib/overlay/accent";
+import { EightBall } from "@/components/tools/eightball/EightBall";
 import { IconBallBowling, IconFlame, IconHelpCircle, IconMessageCircle } from "@tabler/icons-react";
 
 export interface OracleOverlayPayload {
@@ -36,6 +38,19 @@ export function OracleOverlay({
   style?: CSSProperties;
 }) {
   const tone = payload.tone ?? "neutral";
+  if (payload.kind === "eightball") {
+    return (
+      <div className="gs-overlay-oracle-pos" style={style}>
+        <div className="gs-overlay-eight">
+          <EightBall
+            answer={{ text: payload.answer, tone }}
+            accent={resolveOverlayAccent(payload.accentColor)}
+            caption={payload.prompt ? <p className="gs-overlay-eight__prompt">“{payload.prompt}”</p> : null}
+          />
+        </div>
+      </div>
+    );
+  }
   // The accent only skins the neutral tone (yes/no/maybe keep their semantic
   // green/red/amber). Neutral defaults to the brand theme unless overridden.
   const cardStyle =

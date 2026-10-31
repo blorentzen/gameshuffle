@@ -1,0 +1,30 @@
+/*
+ * The Daily Duel trainer's picture (src/components/originals/duel/TrainerArt.tsx): a card image
+ * cropped to its art window with container units. The image is sized so the art window covers the
+ * frame (times the zoom), then placed with the face at (--px, --py) of the frame, clamped so the
+ * frame never shows past the art window. Same sums as artCrop in src/lib/originals/duel/pictures.ts.
+ * The frame takes its size from outside (width + height, or width + aspect-ratio).
+ */
+
+.duel-art {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  container-type: size;
+  background: #12162e;
+}
+.duel-art img {
+  --iw: calc(max(100cqw / var(--aw), 100cqh * var(--ar) / var(--ah)) * var(--z, 1));
+  --ih: calc(var(--iw) / var(--ar));
+  position: absolute;
+  max-width: none;
+  width: var(--iw);
+  height: var(--ih);
+  left: clamp(calc(100cqw - (var(--ax) + var(--aw)) * var(--iw)), calc(100cqw * var(--px) - (var(--ax) + var(--fx) * var(--aw)) * var(--iw)), calc(-1 * var(--ax) * var(--iw)));
+  top: clamp(calc(100cqh - (var(--ay) + var(--ah)) * var(--ih)), calc(100cqh * var(--py) - (var(--ay) + var(--fy) * var(--ah)) * var(--ih)), calc(-1 * var(--ay) * var(--ih)));
+  user-select: none;
+}
+/* Official artwork is a figure on white (scripts/pull-duel-official-art.ts lays every one on white). */
+.duel-art--official { background: #fff; }
+.duel-art--round { border-radius: 50%; }
+.duel-art--tile { border-radius: 10px; }

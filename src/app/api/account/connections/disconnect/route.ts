@@ -1,7 +1,7 @@
 /**
  * POST /api/account/connections/disconnect
  *
- * Body: { provider: "discord" | "twitch" }
+ * Body: { provider: "discord" | "twitch" | "facebook" }
  *
  * Unified disconnect endpoint for the Profile-tab Connections card.
  * Per gs-connections-architecture.md §4.2 — replaces the older
@@ -28,6 +28,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
 import { ALL_CONNECTION_PROVIDERS, type ConnectionProvider } from "@/lib/connections";
+import { passwordFlag } from "@/lib/auth/passwordRules";
 
 export const runtime = "nodejs";
 
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
   const providers = Array.isArray(adminUser.app_metadata?.providers)
     ? (adminUser.app_metadata!.providers as string[])
     : [];
-  const hasPassword = providers.includes("email");
+  const hasPassword = passwordFlag(adminUser.app_metadata) ?? providers.includes("email");
   const otherOauthExists = identities.some(
     (i) => i.provider !== provider && i.id !== target.id
   );

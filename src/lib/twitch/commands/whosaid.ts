@@ -72,7 +72,8 @@ export async function whoSaidReveal(pollId: string, options: { id: string; label
 
 registerCommand({
   name: "whosaid",
-  trigger: ["whosaid", "whosaidit"],
+  trigger: ["whosaid"],
+  aliases: [["whosaidit"]],
   actor: "crew",
   surface: ["chat"],
   economy: "none",

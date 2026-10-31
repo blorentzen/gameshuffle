@@ -1,8 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { PASSWORD_LATER_COOKIE } from "@/lib/auth/passwordNudge";
 import { ACTIVITY_PATH, isActivityHost, isActivityPath } from "@/lib/activity/hosts";
+import { hasPasswordFrom } from "@/lib/auth/passwordRules";
 
 const PROTECTED_ROUTES = ["/account", "/twitch", "/messages", "/comms"];
+/** A protected section and everything under it, by whole path segment: "/twitch" covers
+ *  "/twitch/commands" but not the public "/twitch-chat-games" guide. */
+const underProtected = (path: string) => PROTECTED_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
 
 /** The root layout reads this to decide whether the current request is
  *  a marketing surface (force light) or an app surface (honor theme
@@ -11,10 +16,12 @@ const PROTECTED_ROUTES = ["/account", "/twitch", "/messages", "/comms"];
 const PATHNAME_HEADER = "x-pathname";
 
 /**
- * Per gs-connections-architecture.md §5 — every account MUST have a
- * password set. Routes that require a session also require a password;
- * users without one get bounced to /signup/set-password until they
- * comply.
+ * Per gs-connections-architecture.md §5, every account should have a backup
+ * password. Since 2026-10-10 it's a strong recommendation rather than a wall:
+ * a passwordless account (Twitch / Discord sign-up) is sent to
+ * /signup/set-password, which offers "Not now"; that sets the
+ * PASSWORD_LATER_COOKIE for 30 days and the redirect stops until it
+ * expires. Staff and admins can't choose "Not now".
  *
  * Allowlist: paths a signed-in-but-passwordless user is still allowed
  * to load (so they can complete the flow + sign out + read public docs
@@ -77,7 +84,7 @@ export async function middleware(request: NextRequest) {
   // behavior). For everything else, return early after the header is
   // set — no Supabase round-trip needed just to render a marketing page.
   const path = request.nextUrl.pathname;
-  const isProtectedPath = PROTECTED_ROUTES.some((r) => path.startsWith(r));
+  const isProtectedPath = underProtected(path);
   const isAuthFlow = path === "/login" || path === "/signup";
   if (!isProtectedPath && !isAuthFlow) {
     return supabaseResponse;
@@ -114,9 +121,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protect account routes
-  const isProtected = PROTECTED_ROUTES.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  const isProtected = underProtected(request.nextUrl.pathname);
 
   if (isProtected && !user) {
     const loginUrl = new URL("/login", request.url);
@@ -124,19 +129,37 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Redirect logged-in users away from login/signup
-  if (user && (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup")) {
-    return NextResponse.redirect(new URL("/account", request.url));
-  }
-
-  // Two-factor gate — a session that stopped at aal1 while the account has a
-  // factor is only half signed in. Send it back to finish the second step.
-  if (user && isProtected) {
+  // Two-factor: a session that stopped at aal1 while the account has a
+  // verified factor is only half signed in. A factor someone started setting
+  // up and never verified doesn't count (it used to lock them out of /account).
+  const onAuthPage = request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup";
+  let needsSecondStep = false;
+  if (user && (isProtected || onAuthPage)) {
     const { data: session } = await supabase.auth.getSession();
     const aal = sessionAal(session.session?.access_token);
     const enrolledAal = (user.app_metadata as { aal?: string } | undefined)?.aal;
-    const hasFactor = Array.isArray((user as { factors?: unknown[] }).factors) && ((user as { factors?: unknown[] }).factors?.length ?? 0) > 0;
-    const needsSecondStep = aal === "aal1" && (hasFactor || enrolledAal === "aal2");
+    const factors = (user as { factors?: { status?: string }[] }).factors;
+    const hasFactor = Array.isArray(factors) && factors.some((f) => f.status === "verified");
+    needsSecondStep = aal === "aal1" && (hasFactor || enrolledAal === "aal2");
+  }
+
+  // Signed-in people skip login/signup, unless they still owe the second step:
+  // /login?mfa=1 is where they finish it (sending them on to /account looped
+  // straight back here).
+  if (user && onAuthPage) {
+    if (needsSecondStep && request.nextUrl.pathname === "/login") {
+      if (request.nextUrl.searchParams.get("mfa") !== "1") {
+        const finish = new URL(request.url);
+        finish.searchParams.set("mfa", "1");
+        return NextResponse.redirect(finish);
+      }
+    } else {
+      return NextResponse.redirect(new URL("/account", request.url));
+    }
+  }
+
+  // Send a half-signed-in session back to finish the second step.
+  if (user && isProtected) {
     if (needsSecondStep && !MFA_ALLOWED_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p))) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", request.nextUrl.pathname + request.nextUrl.search);
@@ -145,19 +168,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Passwordless gate — protected routes require a password set. Read
-  // app_metadata.providers from the JWT-derived user object directly
-  // (no admin call needed in the hot middleware path). Empty/missing
-  // providers list = treat as having a password to avoid false bounces.
+  // Backup-password prompt: has_password (or, until the trigger has run, the
+  // providers list) from the user object, no admin call in the hot path.
   if (user && isProtected) {
     const path = request.nextUrl.pathname;
     const isAllowed = PASSWORDLESS_ALLOWED_PREFIXES.some((p) => path.startsWith(p));
     if (!isAllowed) {
-      const providers = Array.isArray(user.app_metadata?.providers)
-        ? (user.app_metadata.providers as string[])
-        : [];
-      const hasPassword = providers.length === 0 || providers.includes("email");
-      if (!hasPassword) {
+      const hasPassword = hasPasswordFrom(user.app_metadata);
+      const putOff = !!request.cookies.get(PASSWORD_LATER_COOKIE)?.value;
+      if (!hasPassword && !putOff) {
         const setPasswordUrl = new URL("/signup/set-password", request.url);
         setPasswordUrl.searchParams.set("return_to", path + request.nextUrl.search);
         return NextResponse.redirect(setPasswordUrl);

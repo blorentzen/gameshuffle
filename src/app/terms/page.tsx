@@ -1,10 +1,45 @@
 import type { Metadata } from "next";
 import { LegalPage, LegalSubSection, LegalContact, type LegalSection } from "@/components/legal/LegalPage";
+import { circuitLaunch } from "@/lib/tournaments/circuit";
+import { circuitLaunchState } from "@/lib/tournaments/circuit-resolve";
+import { supporterLooksOn } from "@/lib/support/looks";
+
+/** Re-render hourly (and on the billing switch, which revalidates this path) so §3.4 follows the Circuit launch. */
+export const revalidate = 3600;
+
+/** §3.4: the preview wording, an announced day, or the plans and prices once the billing switch is on. */
+async function CircuitTerms() {
+  const { launchedAt, graceEnd } = await circuitLaunchState();
+  const circuit = circuitLaunch(launchedAt);
+  return (
+            <LegalSubSection number="3.4" title="GameShuffle Circuit">
+              {circuit.phase === "preview" ? (
+                <>
+                  <p>GameShuffle Circuit is our set of organizer features for larger and recurring events, such as bigger fields, championship series, co-organizers and custom branding. Circuit is free to use during the preview.</p>
+                  <p>If we start charging for Circuit, we will publish the plans and prices in these Terms and email organizers using Circuit at least 30 days before any charge applies. Tournaments created before billing starts keep the Circuit features they were created with. Nothing is charged unless you choose a paid plan and confirm it at checkout.</p>
+                </>
+              ) : (
+                <>
+                  <p>GameShuffle Circuit is our set of organizer features for larger and recurring events, such as bigger fields, championship series, co-organizers, custom branding and custom seeding. Every tournament format stays free for one full lobby of your game.</p>
+                  <p>{circuit.phase === "announced" ? `Circuit is free to use until ${circuit.dateLabel}. From that date, the larger fields and organizer features are paid plans:` : `Since ${circuit.dateLabel}, the larger fields and organizer features are paid plans:`}</p>
+                  <ul>
+                    <li>Circuit 64: events of up to 64 players, $12 per month or $120 per year.</li>
+                    <li>Circuit 256: events of up to 256 players, with GameShuffle Pro included, $29 per month or $290 per year.</li>
+                    <li>GameShuffle Pro add-on for Circuit 64 subscribers: $5 per month or $50 per year.</li>
+                  </ul>
+                  <p>Circuit plans are for customers in the United States. Billing and renewal, payment methods and sales tax, cancellation, refunds, failed payments, price changes and availability work as described in sections 5.3 to 5.9. Passes for a single in-person or commercial event (Circuit Events) are arranged with us directly.</p>
+                  <p>Tournaments created before {circuit.dateLabel} keep the Circuit features they were created with.{circuit.phase === "live" && graceEnd ? ` Organizers who created a tournament before ${circuit.dateLabel} also keep every Circuit feature free on new tournaments until ${graceEnd.label}, at least 30 days after we emailed them about the change.` : ""} Nothing is charged unless you choose a paid plan and confirm it at checkout.</p>
+                </>
+              )}
+            </LegalSubSection>
+  );
+}
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Read the GameShuffle Terms of Service. Covers account usage, GameShuffle Pro subscriptions, user content, tournaments, intellectual property, dispute resolution, and your rights as a user.",
+  description: "The GameShuffle Terms of Service: accounts, GS Pro subscriptions, user content, tournaments, intellectual property, disputes and your rights.",
   openGraph: {
+    siteName: "GameShuffle",
     title: "Terms of Service | GameShuffle",
     description: "GameShuffle Terms of Service: accounts, subscriptions, tournaments, and your rights.",
     url: "https://www.gameshuffle.co/terms",
@@ -40,7 +75,7 @@ const SECTIONS: LegalSection[] = [
           <p>You must be at least 13 years of age to use GameShuffle. If you are under 18, you represent that you have your parent or guardian&apos;s permission to use the Service. Certain features may be restricted to users who are 18 or 21 years of age or older. The Services are not directed at children under 13.</p>
         </LegalSubSection>
         <LegalSubSection number="2.2" title="Account Registration">
-          <p>To access certain features, you must create an account. You may register using an email address and password, or by connecting a supported third-party OAuth provider (Discord or Twitch). You agree to:</p>
+          <p>To access certain features, you must create an account. You may register using an email address and password, or by connecting a supported third-party OAuth provider (Discord, Twitch or Facebook). You agree to:</p>
           <ul>
             <li>Provide accurate, current, and complete information during registration</li>
             <li>Maintain the security of your password and account credentials</li>
@@ -75,14 +110,16 @@ const SECTIONS: LegalSection[] = [
           <p>Prizes are the organizer&apos;s responsibility. GameShuffle does not award, hold or guarantee prizes, and organizers are responsible for making sure any prize they offer is allowed where their event takes place.</p>
           <p>Events on GameShuffle are free to enter for now. GameShuffle does not currently process paid entry fees.</p>
         </LegalSubSection>
-        <LegalSubSection number="3.4" title="GameShuffle Circuit">
-          <p>GameShuffle Circuit is our set of organizer features for larger and recurring events, such as bigger fields, championship series, co-organizers and custom branding. Circuit is free to use during the preview.</p>
-          <p>If we start charging for Circuit, we will publish the plans and prices in these Terms and email organizers using Circuit at least 30 days before any charge applies. Tournaments created before billing starts keep the Circuit features they were created with. Nothing is charged unless you choose a paid plan and confirm it at checkout.</p>
-        </LegalSubSection>
+        <CircuitTerms />
         <LegalSubSection number="3.5" title="Arcade Tokens">
           <p>Arcade Tokens are earned through activity on GameShuffle and in communities that use it. They have no cash value. They cannot be bought, sold, transferred for money or redeemed for money or anything of monetary value from GameShuffle. We may change how tokens are earned or used, or reset balances, at any time.</p>
+          <p>Tokens awarded for our daily games, including leaderboard prizes, are Arcade Tokens on these same terms. If you play without an account, tokens you earn are held for you for 30 days and move to your account if you sign in or create one within that time; after that, they expire. We may remove scores or withhold tokens that we reasonably believe were earned unfairly, for example through automated play or many guest names.</p>
+          <p>Accounts can share our daily games with a personal invite link. When someone new plays from your link, and again if they create an account, you may receive Arcade Tokens, and their new account may receive extra tokens to start; the amounts and daily limits are shown on your account&apos;s Invite friends page and may change. Each person counts once, for the first invite link they used, and your own accounts, browsers and network never count. We may withhold or remove tokens from invites we reasonably believe are not genuine, for example made-up players or many browsers or accounts used by one person.</p>
+          <p>On the last chance of a daily game you can spend Arcade Tokens on help, such as another letter of the answer or one more guess. Help is used up when you get it, whatever the result, and tokens spent on help are not refunded. A game solved with help counts as a save, not a win, on your stats and the leaderboards.</p>
           <p>Community owners who offer prizes for tokens, raffles or other activities in their communities are responsible for those prizes.</p>
+          <p>Tokens you earn by playing in a streamer&apos;s chat or through GameShuffle&apos;s Twitch extension are the same Arcade Tokens, on these same terms. They can never be bought with Twitch Bits or any other purchase. When you use the extension on Twitch, Twitch&apos;s own terms apply as well.</p>
         </LegalSubSection>
+        <SupportTerms />
       </>
     ),
   },
@@ -106,7 +143,7 @@ const SECTIONS: LegalSection[] = [
           <li>Use the Service to advertise or offer to sell goods and services</li>
           <li>Sell or otherwise transfer your profile or account</li>
           <li>Attempt to bypass subscription tier restrictions, circumvent payment, or access GameShuffle Pro features without an active paid subscription</li>
-          <li>Use the Service to violate the Terms of Service of any integrated third-party platform, including Twitch, Discord, or any other platform to which the Services connect</li>
+          <li>Use the Service to violate the Terms of Service of any integrated third-party platform, including Twitch, Discord, Facebook, or any other platform to which the Services connect</li>
           <li>Use the Service in a manner that violates the rights of any third party, including intellectual property rights, privacy rights, or publicity rights</li>
           <li>Reverse engineer, decompile, or attempt to derive the source code of any part of the Service</li>
         </ul>
@@ -399,12 +436,27 @@ const SECTIONS: LegalSection[] = [
   },
 ];
 
+/** §3.6: support levels, with the Supporter looks paragraph while the $3 level sells looks (the switch revalidates this path). */
+async function SupportTerms() {
+  const looks = await supporterLooksOn();
+  return (
+    <LegalSubSection number="3.6" title="Supporting GameShuffle">
+      <p>You can choose to support GameShuffle with a one-time payment, or monthly at one of the levels on our <a href="/support">support page</a>: Supporter, Backer or Champion. Support is a payment to Britton Lorentzen, doing business as Empac and GameShuffle. GameShuffle is not a charity, and support is not a charitable donation or tax-deductible.</p>
+      <p>{looks ? "One-time support does not" : "One-time support and the Supporter level do not"} purchase a subscription plan, Arcade Tokens, or access to any feature. As a thank-you, supporters may receive a Supporter badge on their profile and a small heart beside their name on our leaderboards, shown for one year after a one-time payment or while monthly support is active, a card they can choose to share, and may choose to have a name and short note shown on our public supporters wall and our credits page. The first 100 people to support GameShuffle receive a Founding supporter badge that stays on their profile after their support ends. These are thank-yous only: they never add features, items or Arcade Tokens. Names and notes must follow our content standards (section 6.3), and we may remove any of them at any time.</p>
+      {looks && <p>While it is active, the Supporter level includes Supporter looks: the choices that change how things look on GameShuffle, such as MMR card looks, profile and community skins, brand themes, custom CSS, and dice and coin looks. It does not include GameShuffle Pro&apos;s other features. Because it includes Supporter looks, the Supporter level is a purchase, and applicable sales tax is added at checkout. When the level ends, your saved looks are kept and your pages show the free versions until you have looks again.</p>}
+      <p>The Backer and Champion levels include GameShuffle Pro for as long as the level is active, with the same features as a GameShuffle Pro subscription (section 5), plus the thank-yous above; Champions are also listed first on the supporters wall and the credits page. Because they include GameShuffle Pro, Backer and Champion payments are a purchase, and applicable sales tax is added at checkout like a GameShuffle Pro subscription. They do not include a free trial. If you already pay for GameShuffle Pro another way, choose Supporter or end that subscription first; we do not charge twice for Pro. When a Backer or Champion level ends, GameShuffle Pro ends with it unless you have it another way, and the same downgrade rules apply as when a GameShuffle Pro subscription ends. Changing level starts the new level at once and ends the old one, with the unused part of the old level credited to your account in Stripe.</p>
+      <p>Support payments are processed in US dollars by Stripe and are currently available only with a billing address in the United States. If support is started with a billing address outside the United States, we will refund it and cancel any monthly support. Monthly support renews each month until you cancel it, which you can do at any time from Account ▸ Support or the Stripe Customer Portal; cancellation takes effect at the end of the current monthly period and no further payments are taken. Monthly support requires a GameShuffle account.</p>
+      <p>Because support is voluntary, payments are generally not refundable. If you made a mistake, such as choosing the wrong amount, contact us at billing@gameshuffle.co within 30 days of the payment and we will refund it. We may change or stop offering support at any time; if we stop, monthly support is cancelled and no further payments are taken.</p>
+    </LegalSubSection>
+  );
+}
+
 export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
       intro="The rules for using GameShuffle: accounts, subscriptions, tournaments, and your rights."
-      effectiveDate="September 23, 2026"
+      effectiveDate="October 29, 2026"
       sections={SECTIONS}
       current="terms"
     />

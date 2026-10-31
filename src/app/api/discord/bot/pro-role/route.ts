@@ -1,47 +1,29 @@
 /**
- * GET / PUT /api/discord/bot/pro-role
+ * GET / PUT /api/discord/bot/pro-role?guild=<id>
  *
- * The streamer's chosen "GS Pro" role — GameShuffle keeps it in sync with each
- * linked member's GS Pro tier (worker on join + reconcile cron). GS Pro only.
- * PUT { roleId: string | null } (null clears it).
+ * The "GS Pro" role in one of the streamer's servers: GameShuffle keeps it in
+ * sync with each linked member's GS Pro tier (worker on join + reconcile
+ * cron). GS Pro only. PUT { roleId: string | null } (null clears it).
  */
 
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { isProUser } from "@/lib/subscription-server";
 import { listGuildRoles } from "@/lib/adapters/discord/adapter";
+import { botServer, proRequired } from "@/lib/discord/botServer";
+import { updateGuild } from "@/lib/discord/guilds";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
-  const { data } = await createServiceClient()
-    .from("users")
-    .select("discord_pro_role_id")
-    .eq("id", user.id)
-    .maybeSingle();
-  return NextResponse.json({ ok: true, roleId: (data as { discord_pro_role_id: string | null } | null)?.discord_pro_role_id ?? null });
+export async function GET(request: Request) {
+  const ctx = await botServer(request, { allowRemoved: true });
+  if (!ctx.ok) return ctx.response.status === 404 ? NextResponse.json({ ok: true, roleId: null }) : ctx.response;
+  return NextResponse.json({ ok: true, roleId: ctx.guild.proRoleId });
 }
 
 export async function PUT(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-
-  const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("users")
-    .select("discord_guild_id, subscription_tier, role")
-    .eq("id", user.id)
-    .maybeSingle();
-  const p = profile as { discord_guild_id: string | null; subscription_tier: string | null; role: string | null } | null;
-  const isPro = await isProUser(user.id, admin);
-  if (!isPro) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
-  if (!p?.discord_guild_id) return NextResponse.json({ ok: false, error: "bot_not_installed" }, { status: 404 });
+  const ctx = await botServer(request);
+  if (!ctx.ok) return ctx.response;
+  const denied = proRequired(ctx);
+  if (denied) return denied;
 
   let body: unknown;
   try {
@@ -53,7 +35,7 @@ export async function PUT(request: Request) {
 
   let value: string | null = null;
   if (typeof roleId === "string" && roleId) {
-    const rolesRes = await listGuildRoles(p.discord_guild_id);
+    const rolesRes = await listGuildRoles(ctx.guild.guildId);
     if (!rolesRes.ok) return NextResponse.json({ ok: false, error: "guild_lookup_failed" }, { status: 502 });
     if (!rolesRes.roles.some((r) => r.id === roleId)) {
       return NextResponse.json({ ok: false, error: "invalid_role" }, { status: 400 });
@@ -61,7 +43,8 @@ export async function PUT(request: Request) {
     value = roleId;
   }
 
-  const { error } = await admin.from("users").update({ discord_pro_role_id: value }).eq("id", user.id);
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+  if (!(await updateGuild(ctx.userId, ctx.guild.guildId, { proRoleId: value }))) {
+    return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

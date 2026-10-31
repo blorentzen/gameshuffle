@@ -78,7 +78,7 @@ export const PRO_HIGHLIGHTS: HighlightGroup[] = [
   {
     group: "For your account",
     items: [
-      { label: "Discord bot", detail: "Announcements, routing, roles and AutoMod, plus slash commands in your server." },
+      { label: "Discord bot", detail: "Up to 5 servers, each with its own announcements, routing, roles and AutoMod, plus slash commands." },
       { label: "Your live page", detail: "A public /live page viewers land on: the lobby, polls, bingo, drafts and markets in one view." },
       { label: "No limits", detail: "Unlimited saved setups and active tournaments instead of the free tier's caps." },
     ],

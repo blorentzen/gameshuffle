@@ -16,7 +16,6 @@
 import { resolveLobbyCap } from "@/lib/twitch/games";
 import { getChatGame } from "@/lib/twitch/chatGames";
 import { rollText } from "@/lib/twitch/chatRoll";
-import { getBaseUrl } from "@/lib/env";
 import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import {
   countActiveTwitchParticipants,
@@ -98,7 +97,8 @@ interface ParticipantContext {
   /** True when the sender holds the broadcaster badge (or is the broadcaster). */
   isBroadcaster: boolean;
   botTwitchId: string;
-  /** Streamer's persistent overlay token (powers the /lobby/[token] URL). */
+  /** Streamer's overlay token. No longer put in chat links (the lobby link
+   *  is the live page now); kept so callers don't change. */
   overlayToken: string | null;
 }
 
@@ -299,10 +299,12 @@ export async function handleLobbyCommand(ctx: ParticipantContext): Promise<void>
   const displayedNames = all.slice(0, LOBBY_LIST_LIMIT).map((r) => r.twitch_display_name);
   const overflow = Math.max(0, count - LOBBY_LIST_LIMIT);
 
+  // The live page's Lobby tab, not the old /lobby/<overlay token> page:
+  // that put the overlay token in public chat.
   let fullListUrl: string | null = null;
-  if (overflow > 0 && ctx.overlayToken) {
-    const base = getBaseUrl();
-    fullListUrl = `${base}/lobby/${ctx.overlayToken}`;
+  if (overflow > 0) {
+    const live = await getLiveUrlForUser(ctx.userId);
+    fullListUrl = live ? `${live}?tab=room` : null;
   }
 
   await adapter.postChatMessage(

@@ -1,4 +1,7 @@
+import Link from "next/link";
 import type { Metadata } from "next";
+import { ownerHasPro } from "@/lib/profile/proLooks";
+import { ownerHasLooks } from "@/lib/support/looks";
 import { FOUNDING_BRAIN_ANSWERS } from "@/lib/chatbrain/rules";
 import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
@@ -18,7 +21,8 @@ import { getGameArtwork } from "@/lib/games/artwork";
 import { getProfileEnrichment, type TournamentLite } from "@/lib/profile/enrichment";
 import { userSeason } from "@/lib/seasons/store";
 import { rivalsFor } from "@/lib/party/rivals";
-import { seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { isSeasonKey, recentSeasonKeys, seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { SeasonPicker } from "@/components/seasons/SeasonPicker";
 import { SeasonPanel } from "@/components/seasons/SeasonPanel";
 import { effectiveTier, isStaffRole, type SubscriptionTier } from "@/lib/subscription";
 import { getFollowCounts, getFollowState } from "@/lib/social/follows";
@@ -48,6 +52,20 @@ import { getCommunityBySlug } from "@/lib/communities/membership";
 import { getUserCrews } from "@/lib/communities/crews";
 import { formatCompact } from "@/lib/format/number";
 import { resolveProfileLayout, visibleSections, type ProfileSectionKey } from "@/lib/profile/layout";
+import { DailiesCards } from "@/components/originals/DailiesCards";
+import { MmrCard } from "@/components/mmr/MmrCard";
+import { MedalCredit } from "@/components/mmr/MedalCredit";
+import { profileMmr } from "@/lib/mmr/store";
+import { playerBests } from "@/lib/timeTrials/store";
+import { formatTime as ttFormat, ordinal as ttOrdinal } from "@/lib/timeTrials/rules";
+import { trackPath as ttPath, ttTrack, TT_GAMES } from "@/lib/timeTrials/tracks";
+import "@/styles/mmr-card.css";
+import { RoadTrainerCard } from "@/components/originals/duel/road/RoadCard";
+import { roadProgressView } from "@/lib/originals/duel/roadProgress";
+import { roadShown } from "@/lib/games-visibility";
+import "@/styles/road-card.css";
+import "@/styles/time-trials.css";
+import { dailiesShown } from "@/lib/originals/dailies";
 import { resolveProfileSkin, skinBackground, skinBackgroundLayout, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
 import { resolveProfileLinks, resolveProfileSpotlight, spotlightEmbedUrl } from "@/lib/profile/links";
 import { resolveProfileStatus, resolveNowPlaying } from "@/lib/profile/status";
@@ -58,7 +76,8 @@ import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
 import { headers } from "next/headers";
 import { getInventory } from "@/lib/economy/arcade";
 import { ARCADE_ITEM_BY_ID, resolveNameColor } from "@/data/arcade-items";
-import { IconDeviceGamepad2, IconMessageCircle, IconMusic, IconPin } from "@tabler/icons-react";
+import { IconDeviceGamepad2, IconHeart, IconMessageCircle, IconMusic, IconPin } from "@tabler/icons-react";
+import { SupporterBadge } from "@/components/support/SupporterBadge";
 
 export async function generateMetadata({
   params,
@@ -95,6 +114,7 @@ export async function generateMetadata({
     robots: { index: false, follow: true },
     description: `View ${displayName}'s GameShuffle profile: tournaments, saved configurations, and competitive stats.`,
     openGraph: {
+      siteName: "GameShuffle",
       title: `${displayName} | GameShuffle`,
       description: `View ${displayName}'s GameShuffle profile.`,
       url: `https://www.gameshuffle.co/u/${username}`,
@@ -130,10 +150,13 @@ function TournamentRow({ t }: { t: TournamentLite }) {
 
 export default async function PublicProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ season?: string }>;
 }) {
   const { username } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -239,7 +262,10 @@ export default async function PublicProfilePage({
   // Profile skin (background + card styling) — guarded: column may be unapplied,
   // and the gate strips anything but allowlisted values / our own image origin.
   const { data: skinRow } = await supabase.from("users").select("profile_skin").eq("id", profile.id).maybeSingle();
-  const skin = resolveProfileSkin((skinRow as { profile_skin?: unknown } | null)?.profile_skin);
+  // Skins and custom CSS are GS Pro: shown while the owner has it (kept either way).
+  // Skins and custom CSS are looks: GS Pro, or support sold with looks (Supporter looks, 2026-10-29).
+  const ownerPro = await ownerHasLooks(profile.id);
+  const skin = resolveProfileSkin(ownerPro ? (skinRow as { profile_skin?: unknown } | null)?.profile_skin : null);
   const skinBg = skinBackground(skin);
 
   // Link buttons + spotlight (guarded). The spotlight embed is built from the
@@ -252,8 +278,11 @@ export default async function PublicProfilePage({
 
   // Status + now-playing (guarded) + the walk-up anthem title (read-only display).
   const { data: statusRow } = await supabase.from("users").select("profile_status, profile_now_playing").eq("id", profile.id).maybeSingle();
-  const profileStatus = resolveProfileStatus((statusRow as { profile_status?: unknown } | null)?.profile_status);
-  const nowPlaying = resolveNowPlaying((statusRow as { profile_now_playing?: unknown } | null)?.profile_now_playing);
+  // One status line and one game (2026-10-09): the old tagline / featured game
+  // stand in only while the new column has never been saved (NULL; "" = cleared).
+  const statusCols = (statusRow ?? {}) as { profile_status?: string | null; profile_now_playing?: string | null };
+  const profileStatus = statusCols.profile_status == null ? tagline : resolveProfileStatus(statusCols.profile_status);
+  const nowPlaying = statusCols.profile_now_playing == null ? (featuredGame ? resolveNowPlaying(featuredGame) : null) : resolveNowPlaying(statusCols.profile_now_playing);
   const nowPlayingArt = nowPlaying ? gameArt(nowPlaying) : null;
   const walkupAnthem = await getUserAnthem(profile.id as string).catch(() => null);
   const walkupTitle =
@@ -264,7 +293,7 @@ export default async function PublicProfilePage({
   // Custom CSS (Level 3) — re-sanitized on read even though only sanitized CSS
   // is ever stored (never trust the blob). Scoped to `.u-custom`.
   const { data: cssRow } = await supabase.from("users").select("profile_custom_css").eq("id", profile.id).maybeSingle();
-  const customCss = sanitizeCustomCss((cssRow as { profile_custom_css?: unknown } | null)?.profile_custom_css).css;
+  const customCss = ownerPro ? sanitizeCustomCss((cssRow as { profile_custom_css?: unknown } | null)?.profile_custom_css).css : "";
 
   // Stream schedule (guarded).
   const { data: schedRow } = await supabase.from("users").select("stream_schedule").eq("id", profile.id).maybeSingle();
@@ -294,11 +323,17 @@ export default async function PublicProfilePage({
     .limit(10);
 
   // Wallet, communities, configs count, tournaments (service-client reads).
-  const season = currentSeasonKey();
-  const [enrichment, seasonData, rivals] = await Promise.all([
+  // This month for everyone; past months (?season=) while the profile owner has GS Pro.
+  const thisSeason = currentSeasonKey();
+  const seasonHistory = await ownerHasPro(profile.id as string);
+  const season = isSeasonKey(sp.season) && seasonHistory && recentSeasonKeys().includes(sp.season) ? sp.season : thisSeason;
+  const [enrichment, seasonData, rivals, mmr, road, ttBests] = await Promise.all([
     getProfileEnrichment(profile.id as string),
     userSeason(profile.id as string, season).catch(() => null),
     rivalsFor(profile.id as string).catch(() => []),
+    profileMmr(profile.id as string).catch(() => null),
+    roadShown() ? roadProgressView(profile.id as string).catch(() => null) : Promise.resolve(null),
+    playerBests(`u:${profile.id as string}`).then((bs) => bs.filter((b) => b.items === "shrooms" && b.vehicle === "any")).catch(() => []),
   ]);
   let authorPosts = COMMUNITY_PUBLICLY_ENABLED
     ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")
@@ -338,7 +373,7 @@ export default async function PublicProfilePage({
   if (enrichment.configCount)
     stats.push({ num: formatCompact(enrichment.configCount), label: "Configs" });
   if (tournamentTotal) stats.push({ num: formatCompact(tournamentTotal), label: "Tournaments" });
-  if (enrichment.dailyStreak) stats.push({ num: formatCompact(enrichment.dailyStreak), label: "Daily streak" });
+  if (enrichment.triviaNights) stats.push({ num: formatCompact(enrichment.triviaNights), label: "Trivia nights" });
 
   // Identity badges: Staff / GS Pro + a streamer "Watch live" link.
   const role = (profile.role as string | null) ?? null;
@@ -360,6 +395,15 @@ export default async function PublicProfilePage({
       badges.push({ key: "community", label: "Community", href: `/c/${profile.username}` });
     }
   }
+
+  // Supports GameShuffle (once in the last year, or monthly). Backers and Champions show their level.
+  const levelName = enrichment.supportLevel === "champion" ? "Champion" : enrichment.supportLevel === "backer" ? "Backer" : "Supporter";
+  const supporterLabel = enrichment.supporterSince
+    ? `${levelName} since ${new Date(enrichment.supporterSince).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Los_Angeles" })}`
+    : levelName;
+  if (enrichment.supporter) badges.push({ key: "supporter", label: supporterLabel, href: "/support" });
+  // One of the first 100 supporters keeps this for good, even after their support ends.
+  if (enrichment.foundingSupporter) badges.push({ key: "founding-supporter", label: "Founding supporter", href: "/credits" });
 
   // Weekly Challenge: a top-10 week (the count shows once there's more than one).
   if (enrichment.weeklyTopTen) {
@@ -391,12 +435,12 @@ export default async function PublicProfilePage({
     </div>
   );
 
-  const featuredWidget = featuredGame && (
+  const featuredWidget = nowPlaying && (
     <div className="pcard profile-featured">
       <h3 className="pcard__title">Featured game</h3>
       <div className="profile-featured__body">
-        <GameCover name={featuredGame} className="profile-featured__art" />
-        <span className="profile-featured__name">{featuredGame}</span>
+        <GameCover name={nowPlaying} className="profile-featured__art" />
+        <span className="profile-featured__name">{nowPlaying}</span>
       </div>
     </div>
   );
@@ -424,6 +468,55 @@ export default async function PublicProfilePage({
       </ol>
     </div>
   );
+
+  // The dailies: a streak card per game they've played (Britton's pick, 2026-10-16).
+  const dl = enrichment.dailies;
+  const dailiesWidget = (dl.shuffle?.stats?.played || dl.dex?.stats?.played || dl.fire?.stats?.played || dl.weekly?.weeks?.played) ? (
+    <div className="pcard">
+      <h3 className="pcard__title">Dailies</h3>
+      <DailiesCards entries={dl} shown={dailiesShown()} heading={null} />
+    </div>
+  ) : null;
+
+  // The MMR card's sticker, in the owner's own look (picks 2026-10-20), when they've set one up and show it.
+  const mmrWidget = mmr ? (
+    <div className="pcard profile-mmr">
+      <h3 className="pcard__title">Lounge MMR</h3>
+      <div className="mmr-frame"><MmrCard view={mmr.view} look={mmr.look} /></div>
+      <MedalCredit className="profile-mmr__credit" />
+    </div>
+  ) : null;
+
+  // Time trials (picks 2026-10-29): their best places, once they've added a time.
+  const ttRecords = ttBests.filter((b) => b.place === 1).length;
+  const timeTrialsWidget = ttBests.length ? (
+    <div className="pcard profile-tt" id="time-trials">
+      <h3 className="pcard__title"><Link href="/time-trials">Time trials</Link></h3>
+      <p className="profile-tt__sum">{ttBests.length} {ttBests.length === 1 ? "track" : "tracks"}{ttRecords ? `, ${ttRecords} ${ttRecords === 1 ? "record" : "records"}` : ""}</p>
+      <ul className="profile-tt__list">
+        {ttBests.slice(0, 6).map((b) => {
+          const t = ttTrack(b.game, b.track);
+          if (!t) return null;
+          return (
+            <li key={`${b.game}-${b.track}-${b.cc}`}>
+              <Link href={ttPath(t, b.cc)}>{t.name}</Link>
+              <span className="profile-tt__meta">{TT_GAMES[b.game].short}{TT_GAMES[b.game].classes.length > 1 ? ` ${b.cc}cc` : ""}</span>
+              <b>{ttFormat(b.timeMs)}</b>
+              <span className="profile-tt__meta">{ttOrdinal(b.place)} of {b.total}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  ) : null;
+
+  // Trainer Road's trainer card (phase 2 picks, 2026-10-23), once they've earned anything on the road.
+  const roadWidget = road ? (
+    <div className="pcard profile-road">
+      <h3 className="pcard__title"><Link href="/pokemon-trainers">Trainer Road</Link></h3>
+      <RoadTrainerCard p={road} regions={false} />
+    </div>
+  ) : null;
 
   const topFriendsWidget = topFriends.length > 0 && (
     <div className="pcard">
@@ -479,6 +572,10 @@ export default async function PublicProfilePage({
     featuredCard: featuredCardWidget,
     crews: crewsWidget,
     favGames: favGamesWidget,
+    dailies: dailiesWidget,
+    mmr: mmrWidget,
+    timeTrials: timeTrialsWidget,
+    road: roadWidget,
     topFriends: topFriendsWidget,
     communities: communitiesWidget,
   };
@@ -651,8 +748,13 @@ export default async function PublicProfilePage({
   tabs.push({ id: "about", label: "About", content: aboutPanel });
   if (enrichment.showcaseCards.length > 0) tabs.push({ id: "cards", label: "Cards", content: cardsPanel });
   if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
-  if (seasonData && (seasonData.points > 0 || rivals.length > 0 || seasonData.rosters.some((r) => r.won.length))) {
-    tabs.push({ id: "season", label: "Season", content: <SeasonPanel seasonKey={season} season={seasonData} rivals={rivals} /> });
+  if (seasonData && (season !== thisSeason || seasonData.points > 0 || rivals.length > 0 || seasonData.rosters.some((r) => r.won.length))) {
+    tabs.push({ id: "season", label: "Season", content: (
+      <>
+        <SeasonPicker value={season} months={recentSeasonKeys()} allowPast={seasonHistory} ownerUpsell={viewer?.id === profile.id} extra={{ tab: "season" }} />
+        <SeasonPanel seasonKey={season} season={seasonData} rivals={rivals} />
+      </>
+    ) });
   }
 
   return (
@@ -673,7 +775,7 @@ export default async function PublicProfilePage({
           <OwnerBar
             note="Your profile"
             customize={<ProfileCustomizeEditor />}
-            manageHref="/account?tab=profile#personalize"
+            manageHref="/account?tab=profile-page"
             manageLabel="Edit details"
             className="owner-bar--overlay"
           />
@@ -686,7 +788,7 @@ export default async function PublicProfilePage({
       <Container>
         <div className={`profile-shell${customCss ? ` ${CUSTOM_CSS_SCOPE}` : ""}`}>
           <header className="profile-hero">
-            <span className="profile-hero__avatar">
+            <span className={`profile-hero__avatar${enrichment.supporter ? " profile-hero__avatar--supporter" : ""}`}>
               <UserAvatar
                 user={{
                   id: profile.id as string,
@@ -700,6 +802,7 @@ export default async function PublicProfilePage({
                 alt={displayName}
               />
               <LivePresenceDot userId={profile.id as string} fallback={enrichment.isOnline} className="profile-online-dot" />
+              {enrichment.supporter && <span className="profile-hero__heart" aria-hidden="true"><IconHeart size={14} stroke={2.5} /></span>}
             </span>
             <div className="profile-hero__meta">
               <h1 className="profile-hero__name">
@@ -715,7 +818,6 @@ export default async function PublicProfilePage({
               {(pronouns || location) && (
                 <span className="profile-hero__sub">{[pronouns, location].filter(Boolean).join(" · ")}</span>
               )}
-              {tagline && <p className="profile-hero__tagline">{tagline}</p>}
               {profileStatus && <p className="profile-hero__status"><IconMessageCircle size={15} stroke={1.9} aria-hidden /> {profileStatus}</p>}
               {(nowPlaying || walkupTitle) && (
                 <div className="profile-hero__nowline">
@@ -735,7 +837,10 @@ export default async function PublicProfilePage({
               {badges.length > 0 && (
                 <div className="profile-badges">
                   {badges.map((b) =>
-                    b.href ? (
+                    // Your own Supporter badge shares your supporter card.
+                    b.key === "supporter" && viewer?.id === profile.id ? (
+                      <SupporterBadge key={b.key} label={b.label} />
+                    ) : b.href ? (
                       <a key={b.key} href={b.href} className={`profile-badge profile-badge--${b.key}`}>{b.label}</a>
                     ) : (
                       <span key={b.key} className={`profile-badge profile-badge--${b.key}`}>{b.label}</span>

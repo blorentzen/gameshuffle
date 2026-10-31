@@ -19,7 +19,7 @@
  * session info so the client can update its cached id.
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import {
   findTwitchSessionForUser,
@@ -35,8 +35,16 @@ import { getLayoutProfiles } from "@/lib/overlay/layouts";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { getOpenPollForCommunity, tally as pollTally } from "@/lib/polls/store";
 import { getCurrentDraft, tickDraft, viewOf as draftView, type StreamDraftView } from "@/lib/drafts/store";
+import { gameView as brainGameView, getShowableGame as getBrainGame, tickGame as tickBrainGame, type StreamGameView } from "@/lib/chatbrain/streamGame";
+import { maybeAiPass as brainSurveyAi, overlaySurveyView, tickSurvey as tickBrainSurvey, type StreamSurveyView } from "@/lib/chatbrain/survey";
+import { guestGameFor as brainGuestGame } from "@/lib/chatbrain/streamCostream";
+import { overlayTrivia, type TriviaStreamView } from "@/lib/trivia/stream";
 import { getCurrentGame as getBingoGame, tickAuto as tickBingo, viewOf as bingoView, type StreamBingoView } from "@/lib/bingo/stream";
+import { breakView, getShowable as getShowableBreak, tickBreak } from "@/lib/break/store";
+import type { BreakView } from "@/lib/break/types";
 import { getViewerCountsForOwner } from "@/lib/streams/viewers";
+import { mmrTokenFor } from "@/lib/mmr/store";
+import { roomOverlayFor } from "@/lib/lounge/roomServer";
 
 export const runtime = "nodejs";
 
@@ -89,6 +97,10 @@ export async function GET(
   // All-up viewer count (Twitch today; cached ~20s so this 2s poll doesn't hit
   // Helix every tick). Null on failure — the overlay just hides the badge.
   const viewers = await getViewerCountsForOwner(ownerUserId).catch(() => null);
+  // The streamer's MMR card, for its overlay piece (it reads its own live link).
+  const mmrToken = await mmrTokenFor(ownerUserId).catch(() => null);
+  // Tonight's checked lounge room, for its overlay piece (GS Pro; cached 10s per streamer).
+  const loungeRoom = await roomOverlayFor(ownerUserId).catch(() => null);
 
   // Wheel spins are owner-keyed and session-independent — resolve the
   // latest one regardless of whether a session is active. The overlay
@@ -180,6 +192,49 @@ export async function GET(
     if (!(err instanceof Error && err.name === "DraftsNotReady")) console.error("[overlay/latest] draft fetch failed:", err);
   }
 
+  // Chat Brain: the community's game on stream (also closes a guess whose time is up).
+  // With no game, a survey round (open, or just closed); closing it when its
+  // time is up and its AI merge pass both run after this responds.
+  let brain: StreamGameView | null = null;
+  let brainSurvey: StreamSurveyView | null = null;
+  try {
+    const communityId = await resolveCommunityIdForOwner(ownerUserId);
+    // A streamer who is the guest in a co-stream shows the host's game.
+    const g = communityId ? (await getBrainGame(communityId)) ?? (await brainGuestGame(communityId)) : null;
+    // A running game wins; an open survey beats a game that just finished.
+    if (g?.status === "playing") brain = await brainGameView(await tickBrainGame(g));
+    else if (communityId) {
+      brainSurvey = await overlaySurveyView(communityId);
+      if (g && brainSurvey?.status !== "open") { brain = await brainGameView(g); brainSurvey = null; }
+      if (brainSurvey?.status === "open") {
+        after(async () => {
+          await tickBrainSurvey(communityId).catch((err) => console.error("[overlay/latest] survey close failed:", err));
+          await brainSurveyAi(communityId).catch((err) => console.error("[overlay/latest] survey AI pass failed:", err));
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[overlay/latest] chat brain fetch failed:", err);
+  }
+
+  // Trivia on stream: the night on stream (also locks a question whose time is up), or one that just ended.
+  let trivia: TriviaStreamView | null = null;
+  try {
+    trivia = await overlayTrivia(ownerUserId);
+  } catch (err) {
+    console.error("[overlay/latest] trivia fetch failed:", err);
+  }
+
+  // Break mode: the channel's break (also moves it along, like Bingo's caller).
+  let breakScreen: BreakView | null = null;
+  try {
+    const communityId = await resolveCommunityIdForOwner(ownerUserId);
+    const run = communityId ? await getShowableBreak(communityId) : null;
+    if (run) breakScreen = await breakView(run.status === "running" ? await tickBreak(run) : run);
+  } catch (err) {
+    console.error("[overlay/latest] break fetch failed:", err);
+  }
+
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
   const sessionParam = url.searchParams.get("session");
@@ -234,7 +289,13 @@ export async function GET(
       poll,
       bingo,
       draft,
+      brain,
+      brainSurvey,
+      trivia,
+      breakScreen,
       viewers,
+      mmrToken,
+      loungeRoom,
     });
   }
 
@@ -392,6 +453,12 @@ export async function GET(
     poll,
     bingo,
     draft,
+    brain,
+    brainSurvey,
+    trivia,
+    breakScreen,
     viewers,
+    mmrToken,
+    loungeRoom,
   });
 }

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: meta.title,
   description: meta.description,
   alternates: { canonical: `https://www.gameshuffle.co${HREF}` },
-  openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
+  openGraph: { siteName: "GameShuffle", title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
 
@@ -20,22 +20,52 @@ export default function Page() {
       <p>
         The GameShuffle Discord bot brings your game nights into your server: announcements, self-serve
         roles, moderation, a daily question, and randomizer slash commands. Configure it under
-        <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong> &rsaquo;
+        <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong>{" "}&rsaquo;
         <strong> Discord Bot</strong>.
       </p>
 
       <h2>Getting the bot in your server</h2>
       <ol>
         <li>
-          <a href="/help/getting-started/connecting-discord">Connect Discord</a> from
-          <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong> &rsaquo;
-          <strong> Integrations</strong> and add the bot to a server where you have Manage Server.
+          Press <strong>Add to Discord</strong> on <a href="/discord">gameshuffle.co/discord</a>, or go to
+          <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong> &rsaquo; <strong> Integrations</strong>, and add the
+          bot to a server where you have Manage Server. You&apos;ll be asked to sign in or make a free account first.
         </li>
         <li>Open the <strong>Discord Bot</strong> tab to configure it.</li>
       </ol>
+      <p>
+        A server can be connected to one GameShuffle account at a time. If someone else already connected it, they need to
+        forget it in their Discord settings on GameShuffle before you can add it.
+      </p>
+
+      <h2>More than one server</h2>
+      <p>
+        A free account runs the bot in one server; GS Pro runs it in up to five. Add another with <strong>Add another server</strong>
+        on the Discord Bot tab, then pick a server at the top of the tab: channels, roles, AutoMod, logging and the Question of the
+        Day hour are set per server. Tags, your question list and polls are shared across them.
+      </p>
+      <ul>
+        <li>Going live, recaps, Question of the Day, Chat Brain and the Weekly post in every server that has a channel set for them.</li>
+        <li>Your first server is your <strong>main server</strong> (you can change it). If GS Pro ends, the main server keeps working and the others pause: nothing posts there, their settings are kept, and they come back with GS Pro.</li>
+        <li>If the bot is removed from a server in Discord, the tab says so. Add it back to pick up where you left off, or forget the server to free the slot.</li>
+      </ul>
+
+      <h2>Play inside Discord</h2>
+      <p>
+        GameShuffle also runs inside Discord as an Activity: the <a href="/help/apps/daily-shuffle">Daily Shuffle</a>, the
+        {" "}<a href="/help/apps/weekly-challenge">Weekly Challenge</a> and Chat Brain, in one window everyone in the call or
+        channel can open. Start it from the App Launcher (the rocket in the message bar), with <code>/gs-daily</code>, or with a
+        {" "}<strong>Play</strong>{" "}button on one of the bot&apos;s posts.
+      </p>
+      <ul>
+        <li>The Daily needs no account. Players who link Discord to a GameShuffle account keep one streak across Discord and the site.</li>
+        <li>The Weekly counts on a GameShuffle account, so the Activity offers to make one (free, with Discord) the first time.</li>
+        <li>With the bot in the server, the channel gets one Daily card a day with everyone&apos;s rows and scores, and a ranking at 9am Pacific.</li>
+      </ul>
 
       <h2>Slash commands</h2>
       <ul>
+        <li><code>/gs-daily</code>: opens today&apos;s Daily Shuffle right in the channel. Works in servers, group chats and DMs. <strong>Free for everyone.</strong></li>
         <li><code>/gs-randomize</code>: rolls for any game GameShuffle has a randomizer for (start typing the game name), with user tagging and per-player re-rolls. Mario Party keeps characters different; Overwatch and Marvel Rivals take a <code>role</code>. <strong>Free for everyone.</strong></li>
         <li><code>/gs-result</code>: post a competitive lounge result. <strong>GameShuffle Pro.</strong></li>
         <li><code>/gs-brain</code>: answer a Chat Brain survey question with one tap and a one-line form. Anyone gets a question just for them; members with Manage Server post one for the whole channel. Route the <strong>Chat Brain</strong> category to get a new question every day. <strong>Free for everyone.</strong></li>
@@ -43,6 +73,16 @@ export default function Page() {
         <li><code>/gs-poll</code>: open or close a <a href="/help/streaming/polls">live poll</a> for your community, with button voting. <strong>GameShuffle Pro, Manage Server permission.</strong></li>
       </ul>
       <p>Slash commands can take a few minutes to appear after the bot joins.</p>
+      <p>
+        <strong>Trivia on stream:</strong> route the <strong>Trivia on stream</strong> category to a channel and, when you play a{" "}
+        <a href="/help/apps/trivia-nights">trivia night</a>{" "}on your stream, each question posts there as it opens, with a button per
+        choice (or an Answer button). Answers count with your chat&apos;s, stay hidden until you reveal, and the post shows the answer
+        after. Members with Twitch linked to GameShuffle are the same player as in chat. <strong>GameShuffle Pro.</strong>
+      </p>
+      <p>
+        Chat Brain and Weekly posts from the bot keep count of who has answered: as members of your server answer (from the
+        post&apos;s buttons, the Weekly form or the Activity in that server), the post updates with how many have answered there and their names.
+      </p>
 
       <h2>What the bot can do</h2>
       <p>
@@ -61,8 +101,8 @@ export default function Page() {
 
       <h2>Free vs Pro</h2>
       <p>
-        Free accounts can connect the bot and post to one default channel. Everything above, routing,
-        announcements, roles, AutoMod, logging, and QOTD, is a GameShuffle Pro feature. On a free
+        Free accounts can connect the bot in one server and post to one default channel. More servers (up to five), routing,
+        announcements, roles, AutoMod, logging and QOTD are GameShuffle Pro features. On a free
         account those cards appear locked with a GS Pro label.
       </p>
 

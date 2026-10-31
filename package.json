@@ -10,7 +10,13 @@
     "postinstall": "node scripts/strip-cds-font-imports.mjs",
     "guides:balance": "tsx scripts/check-guides-balance.ts",
     "migrations:check": "tsx scripts/check-migrations.ts",
-    "sitemap:lastmod": "tsx scripts/refresh-sitemap-lastmod.ts"
+    "sitemap:lastmod": "tsx scripts/refresh-sitemap-lastmod.ts",
+    "instant:dev": "tsx scripts/build-instant-game.ts --dev",
+    "instant:kit": "tsx scripts/build-instant-game.ts --kit",
+    "instant:upload": "tsx scripts/build-instant-game.ts --upload",
+    "instant:art": "tsx scripts/render-instant-game-art.tsx",
+    "ext:build": "tsx scripts/build-twitch-extension.ts",
+    "ext:dev": "tsx scripts/build-twitch-extension.ts --dev"
   },
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",
@@ -39,6 +45,7 @@
     "react-easy-crop": "^6.0.2",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "sharp": "^0.34.5",
     "stripe": "^22.0.2",
     "twilio": "^6.1.1",
     "zod": "^4.6.5"

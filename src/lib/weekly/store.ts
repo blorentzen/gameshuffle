@@ -25,7 +25,7 @@ import {
   type WeeklyItem,
 } from "@/lib/originals/weekly";
 import type { Ballot } from "@/lib/originals/tierWars";
-import { SURVEY_PREDICTIONS, cleanPredictions, scorePredictions } from "@/lib/originals/weekly";
+import { cleanPredictions, scorePredictions } from "@/lib/originals/weekly";
 import { upsertUserAnswer } from "@/lib/chatbrain/store";
 import type { BoardAnswer } from "@/lib/chatbrain/rules";
 import { gsDayStart } from "@/lib/time/gsClock";
@@ -156,20 +156,20 @@ export async function saveBallot(userId: string, raw: unknown): Promise<SaveBall
 
 export type SaveSurveyResult = { ok: true; answer: string; predictions: string[] } | { ok: false; error: "closed" | "not_survey" | "bad_entry" | "blocked" };
 
-/** Saves (or changes) a player's own answer and their predictions for this week's survey. */
+/** Saves (or changes) a player's own answer and their predictions for this week's survey. Guesses are optional: none, one, two or three. */
 export async function saveSurvey(userId: string, rawAnswer: unknown, rawPredictions: unknown): Promise<SaveSurveyResult> {
   const week = await ensureWeek(weekOf());
   if (week.kind !== "survey" || !week.prompt_id) return { ok: false, error: "not_survey" };
   if (week.status !== "open") return { ok: false, error: "closed" };
   const answer = typeof rawAnswer === "string" ? rawAnswer.trim().replace(/\s+/g, " ").slice(0, 40) : "";
-  const predictions = cleanPredictions(rawPredictions);
-  if (!answer || !predictions || predictions.length !== SURVEY_PREDICTIONS) return { ok: false, error: "bad_entry" };
+  const predictions = cleanPredictions(rawPredictions) ?? [];
+  if (!answer) return { ok: false, error: "bad_entry" };
   const { isBlockedText } = await import("@/lib/text/filter");
   if (predictions.some(isBlockedText)) return { ok: false, error: "blocked" };
   const a = await upsertUserAnswer({ promptId: week.prompt_id, userId, raw: answer, source: "weekly" });
   if (!a.ok) return { ok: false, error: a.error === "blocked" ? "blocked" : a.error === "closed" ? "closed" : "bad_entry" };
   const { error } = await createServiceClient().from("weekly_entries").upsert(
-    { week_start: week.week_start, user_id: userId, answer, predictions, updated_at: new Date().toISOString() },
+    { week_start: week.week_start, user_id: userId, answer, predictions: predictions.length ? predictions : null, updated_at: new Date().toISOString() },
     { onConflict: "week_start,user_id" },
   );
   if (error) throw error;

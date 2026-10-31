@@ -90,7 +90,7 @@ function UnsubscribeContent() {
               <Alert variant="error" title="Unsubscribe failed">
                 <p>{error}</p>
                 <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-                  If this keeps happening, email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a> and we&apos;ll handle it directly.
+                  If this keeps happening, email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a>{" "}and we&apos;ll handle it directly.
                 </p>
                 <div style={{ marginTop: "var(--spacing-12)" }}>
                   <Button

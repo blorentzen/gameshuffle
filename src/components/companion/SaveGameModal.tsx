@@ -22,7 +22,7 @@
  * the resume picker / account My Stuff label it from format + date.
  */
 
-import { Modal } from "@empac/cascadeds";
+import { Input, Modal, Radio, RadioGroup } from "@empac/cascadeds";
 import { useState } from "react";
 import { useSession } from "@/lib/companion/SessionContext";
 import { saveCompanionGameAction } from "@/app/tcg-companion/save/actions";
@@ -74,6 +74,7 @@ export function SaveGameModal({ isOpen, onClose, onSaved }: Props) {
         slots: state.slots,
         playerNames: state.playerNames,
         winCounters: state.winCounters,
+        turn: state.turn ?? null,
       },
     });
     setBusy(false);
@@ -135,53 +136,27 @@ export function SaveGameModal({ isOpen, onClose, onSaved }: Props) {
         </p>
 
         {linkedSaveId && (
-          <div className="companion-save-modal__mode">
-            <label className="companion-save-modal__radio">
-              <input
-                type="radio"
-                name="save-mode"
-                value="update"
-                checked={saveMode === "update"}
-                onChange={() => setSaveMode("update")}
-                disabled={busy}
-              />
-              <span>
-                <strong>Update existing</strong>
-                <span className="companion-save-modal__radio-hint">
-                  Overwrite this save with the latest state
-                </span>
-              </span>
-            </label>
-            <label className="companion-save-modal__radio">
-              <input
-                type="radio"
-                name="save-mode"
-                value="new"
-                checked={saveMode === "new"}
-                onChange={() => setSaveMode("new")}
-                disabled={busy}
-              />
-              <span>
-                <strong>Save as new</strong>
-                <span className="companion-save-modal__radio-hint">
-                  Branch off: keep the original, save a copy
-                </span>
-              </span>
-            </label>
-          </div>
+          <RadioGroup
+            name="save-mode"
+            label="How to save"
+            value={saveMode}
+            onChange={(v) => setSaveMode(v === "new" ? "new" : "update")}
+            disabled={busy}
+          >
+            <Radio value="update" label="Update existing" helperText="Overwrite this save with the latest state" />
+            <Radio value="new" label="Save as new" helperText="Keep the original and save a copy" />
+          </RadioGroup>
         )}
 
-        <label className="companion-save-modal__field">
-          <span>{isUpdate ? "Rename (optional)" : "Name (optional)"}</span>
-          <input
-            type="text"
-            value={name}
-            maxLength={80}
-            placeholder={placeholder}
-            onChange={(e) => setName(e.target.value)}
-            disabled={busy}
-          />
-        </label>
+        <Input
+          floatingLabel={isUpdate ? "Rename (optional)" : "Name (optional)"}
+          fullWidth
+          value={name}
+          maxLength={80}
+          placeholder={placeholder}
+          onChange={(e) => setName(e.target.value)}
+          disabled={busy}
+        />
         <p className="companion-save-modal__hint">
           {formatLabel} · {state.gameSettings.prizeCount}{" "}
           {state.gameSettings.prizeCount === 1 ? "prize" : "prizes"} ·{" "}

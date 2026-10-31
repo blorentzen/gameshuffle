@@ -19,6 +19,11 @@
  * resolution needed — defaults are owner-scoped directly (a
  * streamer can configure their MK templates before they've
  * connected Twitch).
+ *
+ * Dice, coin and timer are tool looks (src/lib/tools/looks.ts): saves go
+ * through `saveLook`, which keeps GS Pro choices (dice materials, the
+ * picture coin, brand colors) for GS Pro only, the same as
+ * /api/account/tool-looks.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -29,6 +34,7 @@ import {
   setStreamerModuleDefault,
 } from "@/lib/modules/streamerDefaults";
 import type { ModuleId } from "@/lib/modules/types";
+import { saveLook } from "@/lib/tools/looksServer";
 
 export const runtime = "nodejs";
 
@@ -108,6 +114,10 @@ export async function PUT(req: NextRequest) {
       { error: "missing_config" },
       { status: 400 },
     );
+  }
+  if ((body.moduleId === "dice" || body.moduleId === "coin" || body.moduleId === "timer") && body.gameSlug.trim() === "*") {
+    await saveLook(auth.userId, body.moduleId, body.config);
+    return NextResponse.json({ ok: true });
   }
   await setStreamerModuleDefault({
     ownerUserId: auth.userId,

@@ -93,7 +93,7 @@ export function LoungeStarter({
     if (error || !data) {
       // This used to fail silently: the button just stopped and the page sat there.
       console.error("[competitive] lounge create failed:", error?.message);
-      toast.error("Couldn't create that lounge. Try again in a moment.");
+      toast.error("Couldn't start that set. Try again in a moment.");
       setCreating(false);
       return;
     }
@@ -109,7 +109,7 @@ export function LoungeStarter({
           full table lives further down the page. */}
       <section className="cmp-start" id="start" aria-labelledby="cmp-start-title">
         <div className="cmp-start__head">
-          <h2 id="cmp-start-title" className="cmp-start__title">Start a lounge</h2>
+          <h2 id="cmp-start-title" className="cmp-start__title">Start live scoring</h2>
           <p className="cmp-start__lede">
             One live set, scored as you race. Share the link and everyone logs their own finish.
           </p>
@@ -158,7 +158,7 @@ export function LoungeStarter({
             <li>Standard scoring</li>
           </ul>
           <Button variant="primary" size="large" onClick={handleCreateLounge} disabled={creating}>
-            {creating ? "Creating…" : `Create ${modeInfo?.label ?? "FFA"} lounge`}
+            {creating ? "Starting…" : `Start ${modeInfo?.label ?? "FFA"} scoring`}
           </Button>
         </div>
         {!user && <p className="cmp-start__note">You will be asked to sign in first. Watching a lounge never needs an account.</p>}
@@ -167,7 +167,7 @@ export function LoungeStarter({
       {/* Your lounges — the way back into a set you already started. */}
       {user && myLounges.length > 0 && (
         <section className="cmp-section">
-          <h2 className="cmp-section__title">Your lounges</h2>
+          <h2 className="cmp-section__title">Your sets</h2>
           <div className="comp-mylounges">
             {myLounges.map((l) => {
               const done = l.status === "complete";
