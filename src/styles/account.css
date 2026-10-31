@@ -4320,3 +4320,10 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
 .discord-apps__server-row { display: grid; grid-template-columns: minmax(0, 32rem) auto; gap: var(--spacing-12); align-items: center; }
 @media (max-width: 560px) { .discord-apps__server-row { grid-template-columns: minmax(0, 1fr) auto; } }
 .discord-apps__note { font-size: var(--font-size-14); color: var(--text-warning, #b45309); }
+.discord-apps__help { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.discord-apps__panel { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-8); min-width: 0; }
+.discord-apps__panels { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-4); }
+.discord-apps__panels li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); }
+.discord-apps__panel-row { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 22rem) auto; gap: var(--spacing-12); align-items: center; justify-content: start; }
+.discord-apps__panel-row > :last-child { justify-self: start; }
+@media (max-width: 900px) { .discord-apps__panel-row { grid-template-columns: minmax(0, 1fr); } }

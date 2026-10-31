@@ -76,6 +76,14 @@ export async function updateAppGuildSettings(ownerUserId: string, app: OtherApp,
   return !error;
 }
 
+/** Merges settings into a server's row as the bot (no owner check): the time trial panel's own bookkeeping. */
+export async function patchAppGuildSettings(app: OtherApp, guildId: string, patch: (settings: Record<string, unknown>) => Record<string, unknown>): Promise<boolean> {
+  const g = await getAppGuild(app, guildId);
+  if (!g) return false;
+  const { error } = await createServiceClient().from("discord_app_guilds").update({ settings: patch(g.settings) }).eq("app", app).eq("guild_id", guildId);
+  return !error;
+}
+
 /** Forgets a server for an app (the bot stays until someone removes it in Discord). */
 export async function removeAppGuild(ownerUserId: string, app: OtherApp, guildId: string): Promise<boolean> {
   const { error, count } = await createServiceClient().from("discord_app_guilds").delete({ count: "exact" }).eq("app", app).eq("guild_id", guildId).eq("owner_user_id", ownerUserId);

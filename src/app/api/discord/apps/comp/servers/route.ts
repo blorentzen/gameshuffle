@@ -4,6 +4,8 @@
  *                               ?guild=<id> also lists that server's text channels (the competitive bot reads them)
  *   PATCH { guild, settings }   merges channel settings (comp: { channel } for its posts)
  *   DELETE ?guild=<id>          forgets the server (the bot stays until someone removes it in Discord)
+ *   POST { action: "panel", guild, channel, game }   posts (or moves) the time trial panel; game mk8dx | mkworld | both
+ *   POST { action: "panel_remove", guild, game }     takes it down
  */
 
 import { NextResponse } from "next/server";
@@ -14,6 +16,7 @@ import { withDiscordApp } from "@/lib/discord/apps";
 import { appGuildsReady, getAppGuild, listAppGuilds, removeAppGuild, updateAppGuildSettings } from "@/lib/discord/appGuilds";
 import { serverLimit } from "@/lib/discord/guilds";
 import { listTextChannels } from "@/lib/adapters/discord/adapter";
+import { isPanelGame, postPanel, removePanel } from "@/lib/discord/ttPanel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,4 +69,24 @@ export async function DELETE(request: Request) {
   if (!guild) return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
   const ok = await removeAppGuild(user.id, "comp", guild);
   return NextResponse.json({ ok }, { status: ok ? 200 : 404 });
+}
+
+export async function POST(request: Request) {
+  const user = await who();
+  if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
+  const body = (await request.json().catch(() => ({}))) as { action?: string; guild?: string; channel?: string; game?: string };
+  if (!body.guild || !isPanelGame(body.game)) return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
+  const row = await getAppGuild("comp", body.guild);
+  if (!row || row.ownerUserId !== user.id) return NextResponse.json({ ok: false, error: "not_yours" }, { status: 404 });
+  if (body.action === "panel") {
+    if (!body.channel || !/^\d{5,25}$/.test(body.channel)) return NextResponse.json({ ok: false, error: "bad_channel" }, { status: 400 });
+    const res = await postPanel(body.guild, body.channel, body.game);
+    if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: 400 });
+    return NextResponse.json({ ok: true, pinned: res.pinned, server: await getAppGuild("comp", body.guild) });
+  }
+  if (body.action === "panel_remove") {
+    const ok = await removePanel(body.guild, body.game);
+    return NextResponse.json({ ok }, { status: ok ? 200 : 404 });
+  }
+  return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
 }

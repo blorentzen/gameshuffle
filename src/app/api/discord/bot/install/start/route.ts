@@ -20,8 +20,9 @@
  * Existing installs keep their earlier (narrower) grant until re-authorized.
  *
  * `?app=comp` installs GameShuffle Competitive instead (picks 2026-10-30): its own client id, a narrower
- * grant (COMP_PERMISSIONS: post, embed, attach, reactions, threads, read history, external emojis, and
- * Manage Roles for division roles), its own server limit, and its servers kept in discord_app_guilds.
+ * grant (COMP_PERMISSIONS: post, embed, attach, reactions, threads, read history, external emojis,
+ * Manage Roles for division roles, and Pin Messages for the time trial panel), its own server limit, and its
+ * servers kept in discord_app_guilds.
  *
  * Per `specs/gs-pro-updates/gs-discord-cross-platform-spec.md`.
  */
@@ -41,7 +42,7 @@ const DISCORD_AUTHORIZE_URL = "https://discord.com/oauth2/authorize";
 const BOT_PERMISSIONS_BITFIELD = "581959747292214";
 /** GameShuffle Competitive: Add Reactions, View Channels, Send Messages, Embed Links, Attach Files, Read Message
  *  History, Use External Emojis, Manage Roles (division roles), Send Messages in Threads. */
-const COMP_PERMISSIONS = "275146722368";
+const COMP_PERMISSIONS = "2252074960407616";
 const STATE_COOKIE = "gs-discord-install-state";
 const STATE_COOKIE_MAX_AGE_SECS = 60 * 10; // 10 minutes — long enough
                                             // for the user to land on Discord,
