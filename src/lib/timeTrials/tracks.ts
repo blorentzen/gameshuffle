@@ -129,6 +129,12 @@ export function gamePath(game: TtGame, cc?: TtClass, cat?: { items?: TtItems; ve
   return `/time-trials/${TT_GAMES[game].slug}${categoryQuery({ cc, defaultCc: TT_GAMES[game].classes[0], items: cat?.items, vehicle: game === "mk8dx" ? cat?.vehicle : undefined })}`;
 }
 
+/** A Discord server's board: /time-trials/servers/<server id>?game=mario-kart-world (the time trial panel's Server board). */
+export function serverPath(guildId: string, game: TtGame, cc?: TtClass, cat?: { items?: TtItems; vehicle?: TtVehicle }): string {
+  const q = categoryQuery({ cc, defaultCc: TT_GAMES[game].classes[0], items: cat?.items, vehicle: game === "mk8dx" ? cat?.vehicle : undefined });
+  return `/time-trials/servers/${guildId}?game=${TT_GAMES[game].slug}${q ? `&${q.slice(1)}` : ""}`;
+}
+
 function slugify(s: string): string {
   return s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/['’.?]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }

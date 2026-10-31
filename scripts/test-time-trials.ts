@@ -1,4 +1,5 @@
 // Time trial rules and tracks. Run: npx tsx scripts/test-time-trials.ts
+import { trackCode, trackTitle, tracksByCode } from "../src/lib/timeTrials/codes";
 import { parseTime, formatTime, formatGap, rankRows, ordinal, videoProof, parseTtPlayer, MIN_MS, MAX_MS } from "../src/lib/timeTrials/rules";
 import { readLines, linesLookRight, bestPerTrack } from "../src/lib/timeTrials/importText";
 import { TT_GAMES, TT_GAME_ORDER, ttTracks, ttTrack, ttCups, trackKey, trackFromKey, searchTracks, matchTrack, trackPath, gameBySlug, isClassFor, trackBySegment, gamePath } from "../src/lib/timeTrials/tracks";
@@ -296,6 +297,25 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   eq(readPlayerSlug("i-22222222-2222-2222-2222-222222222222"), { kind: "key", player: "i:22222222-2222-2222-2222-222222222222" }, "Discord slug");
   eq(readPlayerSlug("bad slug!"), null, "bad slug");
   ok(isVerified("checked") && !isVerified("waiting") && !isVerified("none") && !isVerified("rejected"), "only a checked clip is Verified");
+}
+
+// Track codes (picks 2026-10-30): one per track in both games, titles, and finding a track by its code.
+{
+  for (const g of ["mk8dx", "mkworld"] as const) {
+    const missing = ttTracks(g).filter((t) => !trackCode(t));
+    eq(missing.map((t) => t.name), [], `every ${g} track has a code`);
+    const codes = ttTracks(g).map((t) => trackCode(t));
+    eq(new Set(codes).size, codes.length, `${g} codes are all different`);
+  }
+  const mks = ttTracks("mk8dx").find((t) => t.name === "Mario Kart Stadium")!;
+  eq(trackCode(mks), "MKS", "Mario Kart Stadium is MKS");
+  eq(trackTitle(mks), "Mario Kart Stadium (MKS)", "a single-track title has the code");
+  eq(trackCode(ttTracks("mkworld").find((t) => t.name === "Peach Stadium")!), "PS", "World shows the first listed code (PS, not PS1)");
+  eq(tracksByCode("rdkj").map((t) => t.name), ["3DS DK Jungle"], "rdkj finds 3DS DK Jungle, any case");
+  eq(tracksByCode("rMMM").map((t) => `${t.game}:${t.name}`), ["mk8dx:Wii Moo Moo Meadows", "mkworld:Moo Moo Meadows"], "rMMM finds both games' Moo Moo Meadows");
+  ok(tracksByCode("rD")[0]?.game === "mk8dx" && tracksByCode("rD").every((t) => trackCode(t)!.toLowerCase().startsWith("rd")), "a code prefix finds codes starting with it");
+  eq(tracksByCode("CC1").map((t) => t.name), ["Crown City"], "a World alias still finds its track");
+  eq(tracksByCode("mario kart stadium"), [], "names with spaces aren't codes");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

@@ -89,7 +89,7 @@ export default async function TrackBoardPage({ params, searchParams }: Props) {
         accent="blue"
         field="compete"
         compact
-        aside={t.image ? <Image src={t.image} alt="" width={416} height={234} className="tt-hero-pic" priority sizes="260px" /> : undefined}
+        backdrop={t.image}
         actions={<>
           <AddTimeButton game={info.id} track={t.id} cc={cc} items={items} vehicle={vehicle} signedIn={!!actor} returnTo={path} />
           {actor && <Link href="/time-trials/players/me" className="empac-button empac-button--secondary empac-button--medium tt-hero-link">Your times</Link>}

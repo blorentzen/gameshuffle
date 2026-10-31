@@ -39,7 +39,6 @@
 
 /* A track's board. */
 /* Track art is small (180 to 290px wide), so it stays near its own size; height: auto lets aspect-ratio beat the height attribute. */
-.tt-hero-pic { width: 100%; max-width: 26rem; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: var(--radius-16); display: block; }
 .tt-board { display: grid; gap: var(--spacing-16); min-width: 0; }
 .tt-board[aria-busy="true"] .tt-board__table { opacity: 0.6; }
 .tt-board__table { min-width: 52rem; }
@@ -125,7 +124,6 @@
   .tt-board__table tr:not(.tt-board__cut):not(.tt-board__you) > td:nth-child(-n+2) { background: var(--background-elevated, var(--background-primary, #fff)); }
   .tt-cup__table th:first-child, .tt-cup__table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--background-elevated, var(--background-primary, #fff)); box-shadow: 1px 0 0 var(--border-default); white-space: nowrap; }
   .tt-cup__table th:first-child { background: var(--background-secondary); }
-  .tt-hero-pic, .tt-page .browse-hero__aside:has(.tt-hero-pic) { display: none; }
   .tt-find .tt-mine { padding-bottom: 0; }
 }
 
@@ -201,6 +199,10 @@
 .tt-stats div { display: grid; gap: var(--spacing-2); }
 .tt-stats dt { font-size: var(--font-size-12); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-secondary); }
 .tt-stats dd { margin: 0; font-family: var(--font-display); font-size: var(--font-size-28, 2.8rem); font-weight: 700; font-variant-numeric: tabular-nums; }
+.tt-stats small { font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Track codes before names (MKS, rMMM): the short names comp players use. */
+.tt-code { display: inline-block; margin-right: var(--spacing-8); padding: 0 var(--spacing-6, 6px); border-radius: var(--radius-4, 4px); background: var(--background-secondary); color: var(--text-primary); font-family: var(--font-mono, ui-monospace, Menlo, monospace); font-size: var(--font-size-14); font-weight: 700; line-height: 1.6; text-decoration: none; }
+.tt-trackname { white-space: nowrap; }
 .tt-compare__row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--spacing-8); }
 .tt-ticket { display: grid; gap: var(--spacing-16); max-width: 72rem; }
 .tt-ticket__state { margin: 0; }

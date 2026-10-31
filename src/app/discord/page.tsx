@@ -13,6 +13,7 @@ import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { GAME_CATALOG, boxArt, findGame } from "@/data/game-catalog";
 import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { compAppLive } from "@/lib/discord/appIds";
 
 const SHARE_DESCRIPTION = "Play the Daily, the Weekly and Chat Brain together in your Discord server, with Wordle-style results in the channel. Free to add.";
 
@@ -296,6 +297,25 @@ export default function DiscordPage() {
             />
           </div>
         </section>
+
+        {/* The second app (picks 2026-10-30): shown once GameShuffle Competitive exists in this environment. */}
+        {compAppLive() && (
+          <section className="beta-section" aria-labelledby="dpage-comp">
+            <div className="beta-section__head">
+              <p className="marketing-eyebrow">For competitive servers</p>
+              <h2 id="dpage-comp" className="beta-section__title">GameShuffle Competitive</h2>
+              <p className="beta-section__sub">
+                A separate bot for war and lounge servers: time trials with /tt, MMR and head-to-heads with /mmr, room reads with /room,
+                lounge rank-ups and division roles. None of the daily games, so it sits next to your other bots without adding to them.
+              </p>
+            </div>
+            <div className="dpage-comp__cta">
+              <a href="/discord/add?app=comp" style={{ textDecoration: "none" }} className={tagged(EVENTS.discordAddClicked, { from: "comp" })}>
+                <Button variant="secondary" size="large">Add GameShuffle Competitive, free</Button>
+              </a>
+            </div>
+          </section>
+        )}
 
         <section className="pricing-page__faq">
           <h2 className="beta-section__title">Questions</h2>

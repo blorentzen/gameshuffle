@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MedalCredit } from "@/components/mmr/MedalCredit";
 import type { ReactNode } from "react";
 import { Accordion, Button, Container, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { IconCaretUpFilled } from "@tabler/icons-react";
@@ -348,6 +349,7 @@ export default async function LoungePage({ searchParams }: { searchParams: Promi
 
         <footer className="lounge-foot">
           <p>Numbers from MKCentral&apos;s lounge. GameShuffle checks confirmed players every 15 minutes. <Link href="/mmr-card">Put your MMR on stream with the MMR card</Link>.</p>
+          <MedalCredit />
         </footer>
       </Container>
     </main>

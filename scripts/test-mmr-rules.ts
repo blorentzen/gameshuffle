@@ -1,9 +1,10 @@
 /**
  * MMR card rules: divisions, tonight's run, streaks, squares, peaks, milestones,
  * the card's view, looks from untrusted input, and what's on the card (pieces,
- * presets, overflow, old looks, the GS Pro split, top % and win %).
+ * presets, limits, Rank only, ready-made cards, old looks, the GS Pro split, top % and win %).
  *   npx tsx scripts/test-mmr-rules.ts
  */
+import { medalSrc } from "../src/lib/mmr/medals";
 import {
   DEMO_EVENTS, FALLBACK_RANKS, demoSource, formSquares, gameForSlug, milestoneTier, placeWord, seasonNumbers, setsPeak, signed,
   splitDivision, standing, stepsFrom, tonightRun, viewOf, winStreak, withEvent, timeOrderedIds, type MmrChange,
@@ -13,9 +14,10 @@ import { flagUrl } from "../src/lib/lounge/flags";
 import { cleanDraft, draftFor, isDraftPlan } from "../src/lib/mmr/draft";
 import { COMPARE_GROUPS, cellFor } from "../src/data/plans-compare";
 import {
-  DEFAULT_INFO, FREE_PIECES, LAYOUT_SPOTS, PIECE_IDS, PRESETS, applyPreset, bigIsWorld, cleanInfo, countryShort, detailsFor, fitSlots,
-  pieceOrder, pieceText, presetOf, topPercent, topText, underPieces, winPercent, type MmrInfo, type Shown,
+  DEFAULT_INFO, FREE_PIECES, LAYOUT_SPOTS, PIECE_IDS, PRESETS, applyPreset, bigIsWorld, bigOf, cleanInfo, countryShort, detailSwitches, detailsFor, fitDetails,
+  isDetail, nextText, pieceOrder, pieceText, presetOf, roomLeft, topPercent, topText, trimToRoom, underPieces, winPercent, type MmrInfo, type Shown,
 } from "../src/lib/mmr/pieces";
+import { STARTS, applyStart, startOf } from "../src/lib/mmr/starts";
 import {
   DEFAULT_ROLLING, ROLL_PIECES, cleanRolling, freeRolling, jumpTarget, nextSlide, proRollingUsed, resumeAfter, rollRound, rollSlides, slideSecs, slideText,
   type MmrRolling,
@@ -127,7 +129,15 @@ eq(proUsed(fl), [], "nothing GS Pro left after freeLook");
 eq(proUsed(DEFAULT_LOOK), [], "the default look is free");
 const vars = lookVars(cleanLook({ fill: "picture", picture: "https://gs-ugc.empac.co/mmr/x.gif" }), divisionLook("Gold"));
 ok(vars["--mmr-picture"]?.includes("gs-ugc.empac.co"), "picture background var");
-ok(lookVars(DEFAULT_LOOK, divisionLook("Gold"))["--mmr-dc"] === "#ffd25a", "division color var");
+ok(lookVars(DEFAULT_LOOK, divisionLook("Gold"))["--mmr-dc"] === "#fcc46b", "division color var (the gold medal's light tone)");
+// Medals (2026-10-30): the old tile, crest and coin frames all read as the medal.
+eq(cleanLook({ emblem: "crest" }).emblem, "tile", "a crest card reads as the medal");
+eq(cleanLook({ emblem: "coin" }).emblem, "tile", "a coin card reads as the medal");
+eq(cleanLook({ emblem: "name" }).emblem, "name", "name only stays");
+eq(medalSrc("Grandmaster"), "/images/comp-mario-kart/levels/grandmaster.png", "Grandmaster has its own crown (crimson)");
+eq(medalSrc("Master"), "/images/comp-mario-kart/levels/master.png", "Master's crown (ice)");
+eq(medalSrc("Silver"), "/images/comp-mario-kart/levels/silver.png", "the silver medal");
+eq(medalSrc("Placement"), null, "Placement has no medal");
 
 
 // ── What's on the card ────────────────────────────────────────────────────
@@ -167,13 +177,11 @@ ok(ci.line.length <= 40 && !/[<>\n]/.test(ci.line) && ci.line.startsWith("Road t
 eq(cleanInfo({ order: PIECE_IDS }, null, "deck").order, null, "an order that matches the list is no order");
 eq(cleanInfo({ recent: 4, big: "rank" }, null, "deck").recent, 3, "recent is 3 or 5");
 
-// Overflow: extras take turns in the last slot, in list order
-eq(fitSlots(["a", "b"], 3), { shown: ["a", "b"], turns: [] }, "fits: nothing takes turns");
-eq(fitSlots(["a", "b", "c"], 3), { shown: ["a", "b", "c"], turns: [] }, "exactly full");
-eq(fitSlots(["a", "b", "c", "d", "e"], 3), { shown: ["a", "b"], turns: ["c", "d", "e"] }, "five in three: the last slot takes turns");
-eq(fitSlots(["a", "b", "c"], 1), { shown: [], turns: ["a", "b", "c"] }, "one slot: everything takes turns");
-eq(fitSlots(["a", "b", "c", "d", "e", "f", "g", "h"], 6), { shown: ["a", "b", "c", "d", "e"], turns: ["f", "g", "h"] }, "the panel's six tiles");
-eq([LAYOUT_SPOTS.deck.slots, LAYOUT_SPOTS.panel.slots, LAYOUT_SPOTS.strip.slots, LAYOUT_SPOTS.sticker.slots], [3, 6, 1, 1], "room per layout");
+// Limits (studio round 2): the first details that fit show; nothing takes turns
+eq(fitDetails(["a", "b"], 3), ["a", "b"], "fits");
+eq(fitDetails(["a", "b", "c", "d", "e"], 3), ["a", "b", "c"], "five on a card of three: the first three");
+eq(fitDetails(["a", "b"], 0), [], "no room");
+eq([LAYOUT_SPOTS.deck.slots, LAYOUT_SPOTS.panel.slots, LAYOUT_SPOTS.strip.slots, LAYOUT_SPOTS.sticker.slots], [3, 4, 1, 1], "room per layout: deck 3, panel 4, strip 1, sticker 1");
 
 let night = demoSource();
 const n0 = viewOf(night);
@@ -184,15 +192,15 @@ eq(detailsFor("deck", DEFAULT_INFO, hasIn(n0, DEFAULT_INFO)), ["peak", "tonight"
 eq(detailsFor("deck", DEFAULT_INFO, hasIn(n5, DEFAULT_INFO)), ["peak", "tonight", "streak"], "Standard deck after three wins: the streak joins, still three");
 const every = applyPreset(DEFAULT_INFO, "everything");
 eq(detailsFor("deck", every, hasIn(n5, every)), ["country", "top", "peak", "tonight", "streak", "events", "avg"], "Everything on the deck, in list order");
-eq(fitSlots(detailsFor("deck", every, hasIn(n5, every)), 3).turns, ["peak", "tonight", "streak", "events", "avg"], "the deck's third chip takes turns from Season peak on");
+eq(fitDetails(detailsFor("deck", every, hasIn(n5, every)), 3), ["country", "top", "peak"], "a deck saved with everything on shows its first three");
 eq(detailsFor("panel", every, hasIn(n5, every)), ["country", "top", "peak", "progress", "tonight", "last10", "events", "avg"], "Everything on the panel: tiles");
 eq(detailsFor("strip", every, hasIn(n5, every)), ["game", "world", "country", "top", "peak", "tonight", "streak", "recent", "events", "avg"], "Everything on the strip: one slot");
 const own: MmrInfo = { ...every, order: pieceOrder({ order: ["avg", "events"] }) };
 eq(detailsFor("deck", own, hasIn(n5, own)).slice(0, 3), ["avg", "events", "country"], "GS Pro's own order fills the slots first");
 const worldBig: MmrInfo = { ...DEFAULT_INFO, big: "world", on: { ...DEFAULT_INFO.on, world: false } };
 ok(bigIsWorld(worldBig, n0) && !bigIsWorld(worldBig, { worldRank: null }), "world rank is the big number only while there is one");
-eq(detailsFor("sticker", worldBig, hasIn(n0, worldBig), true), ["game", "mmr", "peak", "progress", "tonight", "last10"], "world rank big on the sticker: MMR takes world rank's place in the details");
-eq(detailsFor("deck", worldBig, hasIn(n0, worldBig), true), ["peak", "tonight"], "world rank big on the deck: MMR goes to world rank's own spot, not the chips");
+eq(detailsFor("sticker", worldBig, hasIn(n0, worldBig), "world"), ["game", "mmr", "peak", "progress", "tonight", "last10"], "world rank big on the sticker: MMR takes world rank's place in the details");
+eq(detailsFor("deck", worldBig, hasIn(n0, worldBig), "world"), ["peak", "tonight"], "world rank big on the deck: MMR goes to world rank's own spot, not the chips");
 eq(pieceText("mmr", n0, worldBig)?.chip, "7,912 MMR", "MMR as a detail");
 
 // Each piece as a short value
@@ -247,7 +255,7 @@ eq(pieceText("game", n0, DEFAULT_INFO)?.short, "MKW 12P", "the game at its short
 eq(pieceText("recent", n5, { ...DEFAULT_INFO, recent: 5 })?.short, "3rd · 1st · 2nd", "recent at its shortest: three places");
 eq(pieceText("country", longView, DEFAULT_INFO)?.short, "#1,234 in NL", "a long country name uses its code when short");
 eq(pieceText("events", n0, DEFAULT_INFO)?.short, "34 · 59% won", "events at its shortest");
-eq(detailsFor("strip", every, hasIn(n5, every), false, ["progress"]).includes("progress"), true, "the strip's progress joins the details when it doesn't fit");
+eq(detailsFor("strip", every, hasIn(n5, every), "mmr", ["progress"]).includes("progress"), true, "the strip's progress joins the details when it doesn't fit");
 eq(detailsFor("strip", every, hasIn(n5, every)).includes("progress"), false, "and keeps its own spot when it does");
 
 // ── Rolling ──────────────────────────────────────────────────────────────
@@ -299,8 +307,8 @@ eq(slideText("tonight", n5, DEFAULT_INFO, null)?.sub, "4 wins, 1 loss", "tonight
   const v = viewOf(night);
   const has = (p: Shown) => pieceText(p, v, DEFAULT_INFO, null) != null;
   const worldNoMmr: MmrInfo = { ...DEFAULT_INFO, big: "world", on: { ...DEFAULT_INFO.on, mmr: false } };
-  ok(!detailsFor("strip", worldNoMmr, has, true).includes("mmr"), "world rank big with MMR off: no MMR detail");
-  ok(detailsFor("strip", { ...worldNoMmr, on: { ...worldNoMmr.on, mmr: true } }, has, true).includes("mmr"), "world rank big with MMR on: MMR is a detail");
+  ok(!detailsFor("strip", worldNoMmr, has, "world").includes("mmr"), "world rank big with MMR off: no MMR detail");
+  ok(detailsFor("strip", { ...worldNoMmr, on: { ...worldNoMmr.on, mmr: true } }, has, "world").includes("mmr"), "world rank big with MMR on: MMR is a detail");
   const both: MmrInfo = { ...DEFAULT_INFO, under: "both", on: { ...DEFAULT_INFO.on, tonight: true, last10: true } };
   eq(underPieces(both, "strip"), ["tonight", "last10"], "both under the number on the strip");
   eq(underPieces(both, "deck"), [], "the deck has no line under the number");
@@ -332,6 +340,61 @@ eq(slideText("tonight", n5, DEFAULT_INFO, null)?.sub, "4 wins, 1 loss", "tonight
   eq([cellFor(skins, "supporter", false), cellFor(skins, "supporter", true), cellFor(skins, "pro", false)], [false, true, true], "the Supporter column follows the switch");
   ok(rows.every((r) => cellFor(r, "supporter", false) !== undefined && cellFor(r, "backer", true) !== undefined), "every row has a cell for every plan");
   ok(rows.filter((r) => r.label.includes("Twitch")).every((r) => cellFor(r, "supporter", true) === false), "Supporter never includes the Twitch tools");
+}
+
+// Studio round 2: limits, Rank only (the division as the big number, MMR kept off), ready-made cards
+{
+  const v = viewOf(night);
+  // Limits by switch, whatever the numbers are right now.
+  eq(detailSwitches("deck", DEFAULT_INFO), ["peak", "tonight", "streak"], "Standard on the deck: three detail switches (goal has its own spot there now)");
+  eq(roomLeft("deck", DEFAULT_INFO), 0, "and the deck is full");
+  eq(roomLeft("rolling", DEFAULT_INFO), Infinity, "Rolling has no limit");
+  ok(isDetail("deck", DEFAULT_INFO, "country") && !isDetail("deck", DEFAULT_INFO, "world") && !isDetail("deck", DEFAULT_INFO, "goal"), "country counts on the deck; world rank and the goal have spots of their own");
+  ok(isDetail("sticker", DEFAULT_INFO, "goal"), "the goal is a detail on the sticker");
+  eq(detailSwitches("panel", DEFAULT_INFO), ["peak", "progress", "tonight", "last10"], "Standard on the panel: four tiles, exactly full");
+  const big = trimToRoom(applyPreset(DEFAULT_INFO, "everything"), "panel");
+  eq([detailSwitches("panel", big.info), big.off], [["country", "top", "peak", "progress"], ["tonight", "last10", "events", "avg"]], "Everything trimmed for the panel: the first four stay, the rest switch off");
+  eq(trimToRoom(DEFAULT_INFO, "rolling").off, [], "nothing is trimmed for Rolling");
+  const toSticker = trimToRoom(DEFAULT_INFO, "sticker");
+  eq([detailSwitches("sticker", toSticker.info), toSticker.off], [["game"], ["world", "peak", "progress", "tonight", "streak", "goal", "last10"]], "Standard to the sticker: the first detail stays");
+  ok(toSticker.info.on.name && toSticker.info.on.mmr && toSticker.info.on.division, "pieces with a spot of their own stay on");
+  // The big number.
+  const div: MmrInfo = { ...DEFAULT_INFO, big: "division" };
+  eq([bigOf(div, v), bigOf({ ...DEFAULT_INFO, big: "world" }, { worldRank: null }), bigOf({ ...DEFAULT_INFO, big: "world", hideMmr: true }, { worldRank: null }), bigOf({ ...DEFAULT_INFO, hideMmr: true }, v)],
+    ["division", "mmr", "division", "division"], "the big number: division; world rank falls back to MMR, or to the division with MMR kept off; MMR kept off can't be the number");
+  ok(detailsFor("sticker", { ...div, on: { ...div.on, game: false } }, hasIn(v, div), "division").includes("mmr"), "division as the number: MMR becomes a detail");
+  ok(!detailsFor("deck", div, hasIn(v, div), "division").includes("world"), "and world rank keeps its own spot on the deck");
+  eq(cleanInfo({ big: "division", hideMmr: true }, null, "deck").big, "division", "a division big number is kept");
+  eq([cleanInfo({ hideMmr: true }, null, "deck").hideMmr, cleanInfo({ hideMmr: "yes" }, null, "deck").hideMmr], [true, false], "hideMmr is true or false");
+  // MMR kept off the card.
+  const off: MmrInfo = { ...div, hideMmr: true };
+  eq([pieceText("mmr", v, off), pieceText("peak", v, off), pieceText("goal", v, off, { goal: 9000, toGo: 100, pct: 0.5, reached: false } as never)], [null, null, null], "no MMR, peak or goal");
+  eq(pieceText("delta", v, off)?.chip, placeWord(v.last!.place!), "the change is the place only");
+  eq(pieceText("tonight", v, off)?.chip, `Tonight ${v.tonight.w}-${v.tonight.l}`, "tonight is the record");
+  eq(pieceText("progress", n0, off)?.chip, "Next: Platinum", "progress names the next division");
+  eq(nextText(n0, off), "Next: Platinum", "and so does the bar");
+  ok(!(pieceText("recent", v, off)?.chip ?? "").match(/[+−-]\d/), "recent events without changes");
+  ok(!detailsFor("sticker", off, hasIn(v, off), "division").includes("mmr"), "no MMR detail with MMR kept off");
+  ok(!detailSwitches("deck", { ...off, on: { ...off.on, peak: true } }).includes("peak"), "season peak doesn't count toward the limit while it's kept off");
+  eq(slideText("mmr", v, off, null), null, "no MMR slide on Rolling");
+  ok(!rollSlides(off, DEFAULT_ROLLING, (p) => slideText(p, v, off, null) != null).includes("mmr"), "Rolling leaves the MMR slide out");
+  eq(rollSlides({ ...off, on: Object.fromEntries(PIECE_IDS.map((p) => [p, false])) as MmrInfo["on"] }, DEFAULT_ROLLING, () => false), ["id"], "an empty Rolling card with MMR kept off shows the name");
+  eq(slideText("tonight", v, off, null)?.value, `${v.tonight.w}-${v.tonight.l}`, "tonight's slide is the record");
+  // Ready-made cards.
+  eq(STARTS.map((s) => s.layout), ["deck", "sticker", "sticker", "panel", "strip", "rolling"], "six ready-made cards");
+  for (const s of STARTS) {
+    const l = applyStart(DEFAULT_LOOK, s.id);
+    eq(startOf(l), s.id, `${s.label} is selected after picking it`);
+    ok(detailSwitches(l.layout, l.info).length <= (l.layout === "rolling" ? 99 : LAYOUT_SPOTS[l.layout].slots), `${s.label} fits its layout`);
+    eq([l.colors, l.font, l.emblem], [DEFAULT_LOOK.colors, DEFAULT_LOOK.font, DEFAULT_LOOK.emblem], `${s.label} keeps colors, font and emblem`);
+  }
+  eq(startOf(DEFAULT_LOOK), "usual", "a new look is The usual");
+  const rank = applyStart(DEFAULT_LOOK, "rank");
+  eq([rank.layout, rank.info.big, rank.info.hideMmr], ["sticker", "division", true], "Rank only: the sticker, the division as the number, MMR kept off");
+  eq(applyStart(DEFAULT_LOOK, "rolling").rolling.shape, "bar", "Everything, in turn is the rolling bar");
+  eq(startOf({ ...DEFAULT_LOOK, info: { ...DEFAULT_LOOK.info, on: { ...DEFAULT_LOOK.info.on, peak: false } } }), null, "a switch changed after picking is your own mix");
+  const withLine = applyStart({ ...DEFAULT_LOOK, info: { ...DEFAULT_LOOK.info, line: "Road to Master", on: { ...DEFAULT_LOOK.info.on, line: true } } }, "number");
+  ok(withLine.info.on.line && detailSwitches("sticker", withLine.info).length === 1, "your own line stays on and the sticker still fits");
 }
 
 // Ids in time order (2026-10-30: a strike numbered apart from tables made a live card replay its last five events)

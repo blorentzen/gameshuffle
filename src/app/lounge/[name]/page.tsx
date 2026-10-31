@@ -43,6 +43,7 @@ import { formatTime as ttFormat, ordinal as ttOrdinal } from "@/lib/timeTrials/r
 import { trackPath as ttPath, ttTrack, TT_GAMES, type TtGame } from "@/lib/timeTrials/tracks";
 import "@/styles/lounge.css";
 import "@/styles/time-trials.css";
+import { MedalCredit } from "@/components/mmr/MedalCredit";
 
 /**
  * /lounge/<name>: one Mario Kart lounge player (competitive dashboard picks, 2026-10-20; laid out
@@ -562,6 +563,7 @@ export default async function LoungePlayerPage({ params, searchParams }: Params)
         <footer className="lounge-foot">
           <p>Numbers from MKCentral&apos;s lounge{cur.registryLink ? <>, where <a href={cur.registryLink} target="_blank" rel="noopener noreferrer">{cur.name}&apos;s registry profile</a> lives</> : ""}. The season chart starts at the placement number; the tables count verified events.{cur.nameHistory.length ? ` Earlier names: ${cur.nameHistory.slice(0, 4).join(", ")}.` : ""}{game !== "mk8dx" && season === 1 ? " Season 1 of Mario Kart World was one lounge for 12 and 24 players." : ""}</p>
           <p><Link href="/mmr-card">Put this MMR on stream with the MMR card</Link> · <Link href="/lounge">Search the lounge</Link></p>
+          <MedalCredit />
         </footer>
       </Container>
     </main>

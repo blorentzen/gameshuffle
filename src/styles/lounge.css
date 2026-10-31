@@ -103,19 +103,21 @@
 .lounge-hero .browse-hero__veil { background: linear-gradient(100deg, rgba(8, 10, 18, 0.55) 0%, rgba(8, 10, 18, 0.32) 34%, transparent 62%); }
 .lounge-hero .marketing-eyebrow { color: rgba(255, 255, 255, 0.86); }
 .lounge-hero__wrap { position: relative; }
-.lounge-hero__inner { max-width: none; padding-right: 26rem; }
+.lounge-hero__inner { max-width: none; padding-right: 20rem; }
 .lounge-hero__division { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lh-label); }
 .lounge-hero .browse-hero__title { margin-top: var(--spacing-4); }
 .lounge-hero__line { margin-bottom: 0; }
-/* The emblem as the header's art, the way box art sits on event pages: large, tilted, at the edge. */
+/* The division's medal as the header's art, tilted at the edge. 14rem: the medals are 128px files and
+   go soft any larger (swap to bigger files when MKCentral's larger ones come, then grow this). */
 .lounge-hero__emblem {
   position: absolute;
   z-index: 1;
-  right: -2.6rem;
+  right: 2.4rem;
   top: calc(50% + 3.2rem);
-  width: 23rem;
+  width: 14rem;
   transform: translateY(-50%) rotate(-8deg);
-  filter: drop-shadow(0 2.4rem 3.2rem rgba(0, 0, 0, 0.45));
+  /* A glow in the division's light tone first: Platinum's medal is as dark as its band. */
+  filter: drop-shadow(0 0 1.8rem var(--lh-glow)) drop-shadow(0 2.4rem 3.2rem rgba(0, 0, 0, 0.45));
   pointer-events: none;
 }
 .lounge-hero__emblem svg { width: 100%; height: auto; display: block; }

@@ -8,8 +8,9 @@
  *   Squares strip: a slim bar with the last ten events as the dailies' squares.
  *   Sticker: a square badge for a corner of the stream, and the profile badge.
  * What's on it (picks 2026-10-21) comes from the look's pieces (src/lib/mmr/pieces.ts): each
- * layout gives some pieces a spot of their own and has room for a few details; extras take
- * turns in the last slot every 8 seconds, with small dots.
+ * layout gives some pieces a spot of their own and has room for a few details (studio round 2,
+ * 2026-10-30: the first ones that fit show; nothing takes turns). The big number is MMR, world
+ * rank or the division, and a look can keep MMR off the card (the change shows only the place).
  * Moments (`play`), each with its own switch: a win or loss pops the change while the card
  * steps back, a new division adds its banner, sparks and the layout's own move, a world-rank
  * milestone gets a laurel banner, tonight's goal a gold one. The number rolls like the
@@ -20,12 +21,12 @@
  * gets shorter when its foot is empty; the panel's tiles share their row; Line up left or center.
  */
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { IconChartLine, IconChevronsUp, IconClock, IconFlag, IconLaurelWreathFilled, IconStar, IconStarFilled } from "@tabler/icons-react";
 import { divisionLook, type MmrLook } from "@/lib/mmr/look";
 import { MMR_GAMES, fmtMmr, milestoneTier, placeWord, signed, type MmrView } from "@/lib/mmr/rules";
 import {
-  LAYOUT_SPOTS, TURN_MS, bigIsWorld, detailsFor, fitSlots, pieceText, recentWhen, toNextText, underPieces, type MmrInfo, type MmrPiece, type Shown,
+  LAYOUT_SPOTS, bigOf, detailSwitches, detailsFor, fitDetails, nextText, pieceText, recentWhen, underPieces, type MmrInfo, type MmrPiece, type Shown,
 } from "@/lib/mmr/pieces";
 import type { NightRecap } from "@/lib/lounge/recap";
 import type { MmrPending } from "@/lib/lounge/pending";
@@ -33,23 +34,23 @@ import { goalProgress, type GoalProgress } from "@/lib/mmr/goal";
 import { MmrEmblem } from "./MmrEmblem";
 import { PIECE_ICONS } from "./pieceIcons";
 import {
-  Brand, BrandTab, CountryTag, Delta, Dots, FontLink, FxLayers, GoalChip, MmrNumber, Squares, StreakChip, UnderLine, World, cardClass, cardSummary, cardVars, playMoment,
-  type MmrPlay, type MomentFx,
+  Brand, BrandTab, CountryTag, Delta, DivisionBig, FontLink, FxLayers, GoalChip, MmrNumber, Squares, StreakChip, UnderLine, World, cardClass, cardSummary, cardVars,
+  momentsFor, playMoment, type MmrPlay, type MomentFx,
 } from "./cardParts";
 import { MmrRolling } from "./MmrRolling";
 
 export type { MmrPlay } from "./cardParts";
 
-function Recent({ view, n }: { view: MmrView; n: number }) {
+function Recent({ view, n, noMmr }: { view: MmrView; n: number; /** MMR kept off the card: places only. */ noMmr: boolean }) {
   const list = view.recent.slice(0, n);
   if (!list.length) return null;
   return (
-    <span className="mmr-recent">
+    <span className={`mmr-recent${noMmr ? " mmr-recent--places" : ""}`}>
       {list.map((e) => (
         <span key={e.id} className="mmr-recent__row">
           <span className="mmr-recent__when">{recentWhen(e)}</span>
           <span className="mmr-recent__place">{e.place ? placeWord(e.place) : ""}</span>
-          <span className={`mmr-recent__d ${e.delta > 0 ? "up" : "down"}`}>{signed(e.delta)}</span>
+          {!noMmr && <span className={`mmr-recent__d ${e.delta > 0 ? "up" : "down"}`}>{signed(e.delta)}</span>}
         </span>
       ))}
     </span>
@@ -72,7 +73,7 @@ function PieceChip({ p, c, short = false }: { p: Shown; c: PieceCtx; /** The str
     return (
       <span className="mmr-chip">
         <Icon aria-hidden />
-        {view.recent.slice(0, short ? Math.min(3, info.recent) : info.recent).map((e, i) => (
+        {view.recent.slice(0, short ? Math.min(3, info.recent) : info.recent).filter((e) => e.place || !info.hideMmr).map((e, i) => (
           <span key={e.id} className="mmr-chip__places">{i > 0 && <span className="mmr-chip__sep" aria-hidden="true">·</span>}<b className={e.delta > 0 ? "up" : "down"}>{e.place ? placeWord(e.place) : signed(e.delta)}</b></span>
         ))}
       </span>
@@ -82,7 +83,7 @@ function PieceChip({ p, c, short = false }: { p: Shown; c: PieceCtx; /** The str
 }
 
 /** A detail as a tile (the overlay panel). */
-function PieceTile({ p, c, dots }: { p: Shown; c: PieceCtx; dots?: ReactNode }) {
+function PieceTile({ p, c }: { p: Shown; c: PieceCtx }) {
   const t = pieceText(p, c.view, c.info, c.goal);
   if (!t) return null;
   const Icon = PIECE_ICONS[p];
@@ -93,20 +94,8 @@ function PieceTile({ p, c, dots }: { p: Shown; c: PieceCtx; dots?: ReactNode }) 
         {t.label && <small>{t.label}</small>}
         {p === "last10" ? <Squares marks={c.view.squares} /> : <b>{t.value}</b>}
       </span>
-      {dots}
     </div>
   );
-}
-
-/** Steps through `count` items every 8 seconds (0 when nothing takes turns). */
-function useTurn(count: number): number {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (count < 2) return;
-    const id = window.setInterval(() => setTick((t) => t + 1), TURN_MS);
-    return () => clearInterval(id);
-  }, [count]);
-  return count > 1 ? tick % count : 0;
 }
 
 // ── The card ──────────────────────────────────────────────────────────────
@@ -160,7 +149,9 @@ function useStripRoom(active: boolean, deps: unknown[]) {
 function FixedCard({ view, look, play, className, fit = "frame", recap, pending, goal, chat = false }: MmrCardProps) {
   const div = divisionLook(view.division);
   const info = look.info;
-  const m = info.moments;
+  // MMR kept off the card: the change doesn't pop or roll, and no goal or new-peak moments.
+  const noMmr = info.hideMmr;
+  const m = momentsFor(info);
   const momentRef = useRef<HTMLDivElement>(null);
   const [fx, setFx] = useState<MomentFx>({ burst: "", banner: "", up: true, glyphs: div });
 
@@ -172,21 +163,23 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [play?.id]);
 
-  const g = goal != null && info.on.goal ? goalProgress(goal, view.mmr, view.mmr != null ? view.mmr - view.tonight.delta : null) : null;
-  const worldBig = bigIsWorld(info, view);
+  const g = !noMmr && goal != null && info.on.goal ? goalProgress(goal, view.mmr, view.mmr != null ? view.mmr - view.tonight.delta : null) : null;
+  const bigKind = bigOf(info, view);
+  const worldBig = bigKind === "world";
+  const divBig = bigKind === "division";
   const has = (p: Shown) => pieceText(p, view, info, g) != null;
   const on = (p: MmrPiece) => info.on[p] && has(p);
   const layout = recap ? null : look.layout;
   const strip = useStripRoom(layout === "strip" && info.on.progress, [view.division, view.toNext, info.on.division, look.font]);
-  const details = layout ? detailsFor(layout, info, has, worldBig, layout === "strip" && !strip.fits ? ["progress"] : []) : [];
+  // A card saved with more details on than its layout has room for shows the first ones.
+  const details = layout ? fitDetails(detailsFor(layout, info, has, bigKind, layout === "strip" && !strip.fits ? ["progress"] : []), LAYOUT_SPOTS[layout].slots) : [];
   // Tonight's run and last 10 under the number (Strip, Sticker), when picked there.
   const under = layout ? underPieces(info, layout).filter((p) => has(p)) : [];
-  const slots = layout ? fitSlots(details, LAYOUT_SPOTS[layout].slots) : { shown: [], turns: [] };
-  const at = useTurn(slots.turns.length);
-  const turn = slots.turns.length ? slots.turns[at] : null;
+  // The sticker keeps its detail's row while a detail is switched on, so it doesn't change height on stream.
+  const keepSlot = layout === "sticker" && detailSwitches("sticker", info).length > 0;
   const ctx: PieceCtx = { view, info, goal: g, flame: m.streak && view.streak >= 3 };
 
-  const vars = cardVars(look, div, fx.glyphs, view.pct);
+  const vars = cardVars(look, div, fx.glyphs, view.pct, view.name);
   const cls = cardClass(look, fit, className);
   const game = MMR_GAMES[view.game];
   const summary = cardSummary(view, info, g, [...details, ...under, ...(["last10", "recent", "streak", "delta"] as MmrPiece[]).filter((p) => on(p) && !details.includes(p) && !under.includes(p))]);
@@ -196,20 +189,16 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
   const flag = info.on.cc && view.country ? <CountryTag code={view.country} mode={look.country} /> : null;
   // The chat line only when the bot would answer and the look keeps it.
   const chatLine = chat && info.chat;
-  const big = <MmrNumber value={worldBig ? view.worldRank : view.mmr} prefix={worldBig ? "#" : ""} mode={m.roll ? look.number : "still"} />;
+  const big = divBig ? <DivisionBig name={view.division} /> : <MmrNumber value={worldBig ? view.worldRank : view.mmr} prefix={worldBig ? "#" : ""} mode={m.roll ? look.number : "still"} />;
+  // The division's name elsewhere on the card, unless it's the big number.
+  const divOn = info.on.division && !divBig;
   // World rank's own spot (deck and panel): MMR goes there when world rank is the big number.
-  const worldSpot = worldBig ? (info.on.mmr && view.mmr != null ? <span className="mmr-world">{fmtMmr(view.mmr)} MMR</span> : null) : info.on.world ? <World rank={view.worldRank} /> : null;
-  const pendingChip = pending ? <span className="mmr-chip mmr-chip--pending"><IconClock aria-hidden />{placeWord(pending.place)}: about {signed(pending.delta)}, waiting to verify</span> : null;
+  const worldSpot = worldBig ? (info.on.mmr && has("mmr") ? <span className="mmr-world">{fmtMmr(view.mmr!)} MMR</span> : null) : info.on.world ? <World rank={view.worldRank} /> : null;
+  const pendingChip = pending ? <span className="mmr-chip mmr-chip--pending"><IconClock aria-hidden />{noMmr ? `${placeWord(pending.place)}, waiting to verify` : <>{placeWord(pending.place)}: about {signed(pending.delta)}, waiting to verify</>}</span> : null;
   const newPeak = m.peak && view.last?.peak ? <span key={`peak-${view.peak}`} className="mmr-chip mmr-chip--peak mmr-chip--pop"><IconStarFilled aria-hidden />New peak</span> : null;
   // The flame on its own, when the streak isn't a piece on this card.
   const flameAlone = (shownStreak: boolean) => (!shownStreak && ctx.flame ? <StreakChip n={view.streak} flame /> : null);
-  /** The slots' chips: the ones that stay, then the slot that takes turns. */
-  const chipSlots = (
-    <>
-      {slots.shown.map((p) => <PieceChip key={p} p={p} c={ctx} />)}
-      {turn && <span className="mmr-turn" key={`turn-${turn}`}><PieceChip p={turn} c={ctx} /><Dots n={slots.turns.length} at={at} /></span>}
-    </>
-  );
+  const chipSlots = details.map((p) => <PieceChip key={p} p={p} c={ctx} />);
   const recentOn = on("recent");
   const recentRows = recentOn ? Math.min(info.recent, view.recent.length) : 0;
 
@@ -248,17 +237,16 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
             {emblem}
             <div className="mmr-panel__who">
               {(info.on.name || flag) && <span className="mmr-panel__name">{info.on.name && <span>{view.name}</span>}{flag}</span>}
-              {info.on.division && <span className="mmr-panel__div">{view.division}</span>}
+              {divOn && <span className="mmr-panel__div">{view.division}</span>}
             </div>
-            <div className="mmr-panel__num">{big}{info.on.delta && <Delta last={view.last} place />}</div>
+            <div className="mmr-panel__num">{big}{info.on.delta && <Delta last={view.last} place noMmr={noMmr} />}</div>
           </div>
           {details.length > 0 && (
-            <div className={`mmr-panel__cells mmr-cells-${Math.min(6, slots.shown.length + (turn ? 1 : 0))}`}>
-              {slots.shown.map((p) => <PieceTile key={p} p={p} c={ctx} />)}
-              {turn && <div className="mmr-turn mmr-turn--tile" key={`turn-${turn}`}><PieceTile p={turn} c={ctx} dots={<Dots n={slots.turns.length} at={at} />} /></div>}
+            <div className={`mmr-panel__cells mmr-cells-${details.length}`}>
+              {details.map((p) => <PieceTile key={p} p={p} c={ctx} />)}
             </div>
           )}
-          {recentOn && <Recent view={view} n={info.recent} />}
+          {recentOn && <Recent view={view} n={info.recent} noMmr={noMmr} />}
           <div className="mmr-panel__foot">
             {chatLine && <span>Type !mmr in chat</span>}
             <span className="mmr-chips">
@@ -273,7 +261,7 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
       </div>
     );
   } else if (look.layout === "strip") {
-    const slot = slots.shown.length ? <PieceChip p={slots.shown[0]} c={ctx} short /> : turn ? <span className="mmr-turn" key={`turn-${turn}`}><PieceChip p={turn} c={ctx} short /><Dots n={slots.turns.length} at={at} /></span> : null;
+    const slot = details.length ? <PieceChip p={details[0]} c={ctx} short /> : null;
     // A long line of your own can wrap to two lines: the slot keeps room for both so taking turns doesn't jump.
     const twoLines = details.includes("line") && info.line.length > 18;
     body = (
@@ -283,39 +271,39 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
           {emblem}
           <div className="mmr-strip__who">
             {(info.on.name || flag) && <span className="mmr-strip__name">{info.on.name && <span>{view.name}</span>}{flag}</span>}
-            {(info.on.division || info.on.progress) && <span className="mmr-strip__div" ref={strip.lineRef}>{info.on.division && <b>{view.division}</b>}{info.on.progress && <span ref={strip.progRef} className={strip.fits ? undefined : "mmr-strip__off"}>{toNextText(view)}</span>}</span>}
+            {(divOn || info.on.progress) && <span className="mmr-strip__div" ref={strip.lineRef}>{divOn && <b>{view.division}</b>}{info.on.progress && <span ref={strip.progRef} className={strip.fits ? undefined : "mmr-strip__off"}>{nextText(view, info)}</span>}</span>}
             {slot && <span className={`mmr-strip__slot${twoLines ? " mmr-strip__slot--two" : ""}`}>{slot}</span>}
           </div>
           {on("last10") && !under.includes("last10") && <div className="mmr-strip__sq"><small>Last 10</small><Squares marks={view.squares} five /></div>}
-          <div className="mmr-strip__num">{big}{info.on.delta && <Delta last={view.last} place={false} />}<UnderLine pieces={under} view={view} /></div>
+          <div className="mmr-strip__num">{big}{info.on.delta && <Delta last={view.last} place={false} noMmr={noMmr} />}<UnderLine pieces={under} view={view} noMmr={noMmr} /></div>
           <Brand brand={look.brand} />
         </div>
       </div>
     );
   } else if (look.layout === "sticker") {
-    const slot = slots.shown.length ? <PieceChip p={slots.shown[0]} c={ctx} /> : turn ? <span className="mmr-turn" key={`turn-${turn}`}><PieceChip p={turn} c={ctx} /><Dots n={slots.turns.length} at={at} /></span> : null;
+    const slot = details.length ? <PieceChip p={details[0]} c={ctx} /> : null;
     body = (
       <div className="mmr-sticker mmr-skin">
         {fxLayers}
         <div className="mmr-c">
           {emblem}
           {big}
-          <UnderLine pieces={under} view={view} />
-          {(info.on.name || flag || info.on.division) && (
-            <span className="mmr-sticker__name">{info.on.name && view.name}{flag}{(info.on.name || flag) && info.on.division ? " · " : ""}{info.on.division && <b>{view.division}</b>}</span>
+          <UnderLine pieces={under} view={view} noMmr={noMmr} />
+          {(info.on.name || flag || divOn) && (
+            <span className="mmr-sticker__name">{info.on.name && view.name}{flag}{(info.on.name || flag) && divOn ? " · " : ""}{divOn && <b>{view.division}</b>}</span>
           )}
-          {slot}
+          {keepSlot ? <span className="mmr-sticker__slot">{slot}</span> : slot}
         </div>
-        {info.on.delta && <Delta last={view.last} place={false} />}
+        {info.on.delta && <Delta last={view.last} place={false} noMmr={noMmr} />}
         <Brand brand={look.brand} />
       </div>
     );
   } else {
     const progress = info.on.progress;
     const streakShown = details.includes("streak");
-    // Nothing set for the foot (no details, progress or world rank): the card fits what's on it, keeping one row for
+    // Nothing set for the foot (no details, progress, world rank or goal): the card fits what's on it, keeping one row for
     // the chips that come and go (a pending table, the flame, a new peak) so its height never changes on stream.
-    const short = !progress && !worldSpot && details.length === 0;
+    const short = !progress && !worldSpot && details.length === 0 && !on("goal");
     body = (
       <div className={`mmr-deck${short ? " mmr-deck--short" : ""}`} style={recentRows && !short ? { aspectRatio: `640 / ${392 + recentRows * 34}` } : undefined}>
         <span className="mmr-deck__ghost mmr-deck__ghost--1" aria-hidden="true" />
@@ -326,10 +314,10 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
             <div className="mmr-deck__head">
               {emblem}
               <div className="mmr-deck__who">
-                {(info.on.game || info.on.division) && (
+                {(info.on.game || divOn) && (
                   <span className="mmr-deck__labels">
                     {info.on.game && <span className="mmr-eyebrow">{game.short}</span>}
-                    {info.on.division && <span className="mmr-eyebrow mmr-deck__div">{view.division}</span>}
+                    {divOn && <span className="mmr-eyebrow mmr-deck__div">{view.division}</span>}
                   </span>
                 )}
                 {(info.on.name || flag) && <span className="mmr-deck__name">{info.on.name && <span>{view.name}</span>}{flag}</span>}
@@ -337,19 +325,20 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
               <Brand brand={look.brand} />
             </div>
             <div className="mmr-deck__mid">
-              <div className="mmr-deck__num">{big}{info.on.delta && <Delta last={view.last} place />}</div>
+              <div className="mmr-deck__num">{big}{info.on.delta && <Delta last={view.last} place noMmr={noMmr} />}</div>
               {on("last10") && <div className="mmr-deck__l10"><span className="mmr-eyebrow">Last 10</span><Squares marks={view.squares} /></div>}
             </div>
-            {recentOn && <Recent view={view} n={info.recent} />}
+            {recentOn && <Recent view={view} n={info.recent} noMmr={noMmr} />}
             <div className="mmr-deck__foot">
               <span className="mmr-chips">
                 {pendingChip}
+                {on("goal") && <GoalChip g={g} />}
                 {chipSlots}
                 {flameAlone(streakShown)}
                 {newPeak}
               </span>
               {progress && <div className="mmr-bar"><i /></div>}
-              {(progress || worldSpot) && <div className="mmr-bar-txt">{progress && <span>{toNextText(view)}</span>}{worldSpot && <span className="mmr-bar-txt__end">{worldSpot}</span>}</div>}
+              {(progress || worldSpot) && <div className="mmr-bar-txt">{progress && <span>{nextText(view, info)}</span>}{worldSpot && <span className="mmr-bar-txt__end">{worldSpot}</span>}</div>}
             </div>
           </div>
         </div>
@@ -358,7 +347,9 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
   }
 
   return (
-    <div className={cls} data-layout={recap ? "panel" : look.layout} style={vars}>
+    // translate="no": the card is a stream overlay and keeps its own words; a browser translating the page
+    // swaps text nodes React still updates every few seconds, which broke the studio (Sentry GAMESHUFFLE-6M).
+    <div className={cls} data-layout={recap ? "panel" : look.layout} style={vars} translate="no">
       <FontLink look={look} />
       <span className="mmr-sr">{recap ? `${view.name} tonight: ${recap.events} events, ${recap.wins}-${recap.losses}, ${signed(recap.net)}. Now ${recap.mmr != null ? fmtMmr(recap.mmr) : "no MMR"}, ${recap.division}.` : summary}</span>
       <div className="mmr-moment" ref={momentRef} aria-hidden="true">

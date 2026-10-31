@@ -84,3 +84,5 @@
   .cmk-you__cell + .cmk-you__cell { border-left: 0; border-top: 1px solid var(--border-default); }
   .cmk-tool { padding: var(--spacing-16); }
 }
+/* MKCentral's credit for the division medals. */
+.cmk-credit { margin: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); font-size: var(--font-size-14); color: var(--text-secondary); }

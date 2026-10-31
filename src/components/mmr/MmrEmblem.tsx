@@ -1,15 +1,15 @@
 /**
- * A division's emblem in one of the card's frames (our own art, picks 2026-10-20):
- * tile (the site's icon tile, the default), crest, coin, name only, or the player's
- * own picture (GS Pro). Every frame carries the same mark, so a division reads the
- * same whichever frame a player picks: chevrons for Iron to Silver, a star for Gold,
- * gems that build up from Platinum to Diamond, a crown for Master, a crown in a laurel
- * for Grandmaster, and a question mark while a player is still in placement.
- * MK8DX's numbered divisions add a small I or II.
+ * A division's emblem (picks 2026-10-20, medals 2026-10-30): MKCentral's division medal
+ * (`medalSrc`), as the card's Medal choice (also what older cards saved as tile, crest or
+ * coin show), name only, off, or the player's own picture with the medal at its corner
+ * (GS Pro). MK8DX's numbered divisions add a small 1 or 2. Placement has no medal: it keeps
+ * our drawn tile with a question mark, and so would any division MKCentral adds before we
+ * have its medal (the drawn marks: chevrons, a star, gems, a crown).
  */
 
 import { useId } from "react";
 import { shade, type DivisionLook, type MmrFrame } from "@/lib/mmr/look";
+import { medalSrc } from "@/lib/mmr/medals";
 import { GLYPHS } from "./glyphs";
 
 
@@ -72,7 +72,7 @@ function Level({ level }: { level: number | null }) {
   return (
     <g>
       <circle cx="80" cy="80" r="15" fill="#11162e" stroke="#fff" strokeWidth={3} />
-      <text x="80" y="86" textAnchor="middle" fontFamily="Gabarito, Outfit, sans-serif" fontWeight={800} fontSize="17" fill="#fff">{level === 1 ? "I" : level === 2 ? "II" : String(level)}</text>
+      <text x="80" y="86.5" textAnchor="middle" fontFamily="Gabarito, Outfit, sans-serif" fontWeight={800} fontSize="19" fill="#fff">{String(level)}</text>
     </g>
   );
 }
@@ -84,6 +84,7 @@ export function MmrEmblem({ d, frame, avatar }: { d: DivisionLook; frame: MmrFra
   if (frame === "name") {
     return <span className="mmr-divchip" style={{ "--mmr-dc": d.c, "--mmr-dc2": d.c2 } as React.CSSProperties}>{d.level ? `${d.base} ${d.level}` : d.base}</span>;
   }
+  const medal = medalSrc(d.base);
   const grad = (
     <>
       <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
@@ -92,6 +93,15 @@ export function MmrEmblem({ d, frame, avatar }: { d: DivisionLook; frame: MmrFra
       <linearGradient id={`${id}s`} x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stopColor="#fff" stopOpacity={0.5} /><stop offset="1" stopColor="#fff" stopOpacity={0} />
       </linearGradient>
+    </>
+  );
+  // Our drawn tile: Placement, or a division without a medal yet.
+  const tile = (
+    <>
+      <rect x="3" y="3" width="94" height="94" rx="24" fill={`url(#${id})`} />
+      <rect x="3" y="3" width="94" height="50" rx="24" fill={`url(#${id}s)`} opacity={0.55} />
+      <rect x="4.5" y="4.5" width="91" height="91" rx="22.5" fill="none" stroke="#fff" strokeOpacity={0.4} strokeWidth={3} />
+      <MarkPair d={d} />
     </>
   );
   if (frame === "picture") {
@@ -107,48 +117,21 @@ export function MmrEmblem({ d, frame, avatar }: { d: DivisionLook; frame: MmrFra
           ? <image href={avatar} x="6" y="6" width="80" height="80" clipPath={`url(#${id}c)`} preserveAspectRatio="xMidYMid slice" />
           : <g fill="#fff" opacity={0.9}><circle cx="46" cy="38" r="13" /><path d="M22 72 a24 20 0 0 1 48 0" /></g>}
         <circle cx="46" cy="46" r="41.5" fill="none" stroke={d.c} strokeWidth={5} />
-        <g transform="translate(66 66) scale(.32)">
-          <rect x="3" y="3" width="94" height="94" rx="26" fill={`url(#${id})`} stroke="#fff" strokeWidth={8} />
-          <MarkPair d={d} k={0.8} />
-        </g>
+        {medal
+          ? <image href={medal} x="62" y="62" width="36" height="36" />
+          : (
+            <g transform="translate(66 66) scale(.32)">
+              <rect x="3" y="3" width="94" height="94" rx="26" fill={`url(#${id})`} stroke="#fff" strokeWidth={8} />
+              <MarkPair d={d} k={0.8} />
+            </g>
+          )}
       </svg>
     );
   }
-  if (frame === "coin") {
-    return (
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs>{grad}</defs>
-        <circle cx="50" cy="50" r="47" fill={`url(#${id})`} />
-        <ellipse cx="50" cy="30" rx="34" ry="20" fill={`url(#${id}s)`} opacity={0.5} />
-        <circle cx="50" cy="50" r="39" fill="none" stroke="#fff" strokeOpacity={0.45} strokeWidth={2.6} />
-        <circle cx="50" cy="50" r="46.5" fill="none" stroke={shade(d.c2, -0.35)} strokeWidth={1.6} />
-        <MarkPair d={d} k={0.74} />
-        <Level level={d.level} />
-      </svg>
-    );
-  }
-  if (frame === "crest") {
-    return (
-      <svg viewBox="0 0 100 100" aria-hidden="true">
-        <defs>
-          {grad}
-          <linearGradient id={`${id}b`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={d.c2} /><stop offset="1" stopColor="#0b0f2b" /></linearGradient>
-        </defs>
-        <path d="M50 4 L90 27 L90 73 L50 96 L10 73 L10 27 Z" fill={`url(#${id})`} />
-        <path d="M50 14 L81 32 L81 68 L50 86 L19 68 L19 32 Z" fill={`url(#${id}b)`} stroke={d.c} strokeWidth={1.5} />
-        <path d="M19 32 L50 14 L81 32 L81 40 L50 22 L19 40 Z" fill="#fff" opacity={0.18} />
-        <g transform="translate(50 50) scale(.92) translate(-50 -50)"><Mark d={d} col="#fff" /></g>
-        <Level level={d.level} />
-      </svg>
-    );
-  }
+  // The Medal choice (saved as "tile"; older "crest" and "coin" cards are read as it too).
   return (
     <svg viewBox="0 0 100 100" aria-hidden="true">
-      <defs>{grad}</defs>
-      <rect x="3" y="3" width="94" height="94" rx="24" fill={`url(#${id})`} />
-      <rect x="3" y="3" width="94" height="50" rx="24" fill={`url(#${id}s)`} opacity={0.55} />
-      <rect x="4.5" y="4.5" width="91" height="91" rx="22.5" fill="none" stroke="#fff" strokeOpacity={0.4} strokeWidth={3} />
-      <MarkPair d={d} />
+      {medal ? <image href={medal} x="0" y="0" width="100" height="100" /> : <><defs>{grad}</defs>{tile}</>}
       <Level level={d.level} />
     </svg>
   );

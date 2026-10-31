@@ -537,6 +537,29 @@
   object-position: center 38%;
 }
 .browse-hero__field { z-index: 0; }
+/* A track's art behind the band (track header picks, 2026-10-30). The pictures are about 160px wide, so
+   anything under a 20px blur shows their pixel grid; the mask lets the art fade in from the navy behind
+   the title, so the text never sits on it. */
+.browse-hero__backdrop {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 68%;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.55) 28%, #000 62%);
+  mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.55) 28%, #000 62%);
+}
+.browse-hero__backdrop img {
+  object-fit: cover;
+  object-position: center 35%;
+  filter: blur(20px) saturate(1.25);
+  opacity: 0.85;
+  transform: scale(1.12);
+}
+.browse-hero.browse-hero--backdrop .marketing-eyebrow { color: rgba(255, 255, 255, 0.82); }
 .browse-hero__veil {
   position: absolute;
   inset: 0;

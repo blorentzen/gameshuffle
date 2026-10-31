@@ -11,6 +11,7 @@ import { MMR_GAMES, MMR_GAME_IDS, isMmrGame, placeWord, standing, type MmrGame }
 import { headToHead } from "@/lib/lounge/h2h";
 import { loungePagePath } from "@/lib/lounge/lines";
 import "@/styles/lounge.css";
+import { MedalCredit } from "@/components/mmr/MedalCredit";
 
 /**
  * /lounge/compare/<a>/<b>: head-to-head between two lounge players (dashboard additions picks,
@@ -113,6 +114,7 @@ export default async function ComparePage({ params, searchParams }: Params) {
         <footer className="lounge-foot">
           <p>Numbers from MKCentral&apos;s lounge: every verified event both played this season. In a team event, a place is the team&apos;s.</p>
           <p><Link href={loungePagePath(a.name, game)}>{a.name}&apos;s season</Link> · <Link href={loungePagePath(b.name, game)}>{b.name}&apos;s season</Link> · <Link href="/lounge">Search the lounge</Link></p>
+          <MedalCredit />
         </footer>
       </Container>
     </main>

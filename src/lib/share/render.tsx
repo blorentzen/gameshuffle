@@ -18,6 +18,7 @@ import { GLYPHS, type GlyphName } from "@/lib/og/glyphs";
 import { facePng } from "@/lib/discord/faces";
 import { divisionLook } from "@/lib/mmr/look";
 import { emblemSvg } from "@/lib/mmr/emblemSvg";
+import { medalData } from "@/lib/mmr/medalsServer";
 import { fmtMmr, signed } from "@/lib/mmr/rules";
 import { duelHeadline } from "@/lib/originals/duel/rules";
 import { artCrop, pictureByName } from "@/lib/originals/duel/pictures";
@@ -562,7 +563,9 @@ export async function renderShareCard(data: ShareData, size: "wide" | "tall"): P
     icon("stopwatch", "#ffffff", ip), icon("flame", "#ffd2a6", ip), icon("trophy", "#ffe08a", ip), icon("bolt", "#ffd2a6", ip), icon("calendar-week", "#ffffff", ip), icon("heart", ROSE, ip), icon("star", "#ffffff", ip),
   ];
   const lp = data.parts[0]?.kind === "lounge" ? data.parts[0] : null;
-  const emblem = lp ? svgUri(emblemSvg(divisionLook(lp.division), tall ? 280 : 210)) : null;
+  // MKCentral's medal for the division; our drawn tile for Placement.
+  const lookD = lp ? divisionLook(lp.division) : null;
+  const emblem = lookD ? (await medalData(lookD.base)) ?? svgUri(emblemSvg(lookD, tall ? 280 : 210)) : null;
   // On the day card, the Duel row starts with the trainer's round portrait (their face, as on the page).
   const dayDuel = data.kind === "day" ? data.parts.find((x): x is DuelPart => x.kind === "duel") : undefined;
   const dayPic = dayDuel ? dayDuel.picture ?? pictureByName(dayDuel.trainer) : null;

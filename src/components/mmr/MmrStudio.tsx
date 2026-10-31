@@ -17,24 +17,32 @@
  * and anyone without looks who uses a paid look gets "Keep these looks" (KeepLooksPanel) under the preview.
  * Free accounts' paid choices wait in the browser too, since the server saves only their free versions; once
  * looks are on (back from checkout, `checkout`), the studio applies them, saves and uploads the waiting picture.
+ * Studio rounds 1 and 2 (2026-10-30, picks https://claude.ai/artifact/LhQzo8t9w4LNPRkbHodt1s, all as recommended):
+ * ready-made cards above the studio (MmrStarts), the Look tab as chips for Layout and Surface, dropdowns for
+ * Colors, Background, Emblem and Font (paid ones grouped under the name that unlocks them) and More folded; the
+ * OBS size under the preview; tonight's goal inside What's on the card; Add it to OBS beside After the stream.
+ * A smaller layout keeps the first details that fit and says which it switched off (with Undo), and a look saved
+ * with more on than fits is tidied once when the studio opens.
  */
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Chip, ColorPicker, Input, Select, Switch, Tabs } from "@empac/cascadeds";
+import { Accordion, Button, Chip, ColorPicker, Input, Select as CdsSelect, Switch, Tabs } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { LookColorPicker } from "@/components/tools/looks/LookColorPicker";
 import { ArrowLink } from "@/components/ui/ArrowLink";
 import { IconCopy, IconPlayerPlay, IconPlus, IconRefresh, IconSearch, IconTargetArrow, IconTrash } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useAutosave } from "@/lib/hooks/useAutosave";
-import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
 import { LooksPrompt, looksName, useLooks } from "@/components/billing/LooksOnly";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { PROFILE_ACCENTS } from "@/lib/profile/accents";
 import {
-  DEFAULT_LOOK, LOOK_CHOICES, MAX_LOOKS, cleanFontName, proUsed, type MmrEdge, type MmrLook,
+  DEFAULT_LOOK, LOOK_CHOICES, MAX_LOOKS, cleanFontName, proUsed, type MmrEdge, type MmrLayout, type MmrLook,
 } from "@/lib/mmr/look";
+import { LAYOUT_SPOTS, pieceDef, trimToRoom, type MmrPiece } from "@/lib/mmr/pieces";
+import { applyStart, type MmrStartId } from "@/lib/mmr/starts";
 import { MMR_GAMES, MMR_GAME_IDS, demoSource, fmtMmr, viewOf, type MmrGame, type MmrSource } from "@/lib/mmr/rules";
 import { cleanGoal, goalProgress, goalText, GOAL_MAX } from "@/lib/mmr/goal";
 import { nightFor } from "@/lib/lounge/night";
@@ -44,6 +52,7 @@ import { LoungeShareNight } from "./LoungeShareNight";
 import { useMmrPreview, type PreviewMoment } from "./MmrLive";
 import { MmrMoments, MmrRollingControls, MmrWhatsOn } from "./MmrInfoControls";
 import { KeepLooksPanel } from "./KeepLooksPanel";
+import { MmrStarts } from "./MmrStarts";
 import { clearDraft, clearPicture, draftFor, getPicture, putPicture, readDraft, writeDraft, type DraftPlan } from "@/lib/mmr/draft";
 
 const noop = () => () => {};
@@ -70,6 +79,12 @@ type Lookup = "idle" | "looking" | "not_found" | "unavailable" | "found";
 
 /** A lounge player this account has confirmed by Discord (lounge_links). */
 export interface StudioLink { game: MmrGame; playerId: number; name: string }
+
+/** "Top % and Win streak": piece names for a sentence. */
+const pieceNames = (ps: MmrPiece[]) => {
+  const n = ps.map((p) => pieceDef(p).label);
+  return n.length < 2 ? n.join("") : `${n.slice(0, -1).join(", ")} and ${n[n.length - 1]}`;
+};
 
 const EDGES: { v: MmrEdge; label: string }[] = [{ v: "accent", label: "Accent" }, { v: "white", label: "White" }, { v: "division", label: "Division color" }, { v: "custom", label: "Your color" }];
 const ACCENT_PRESETS = PROFILE_ACCENTS.map((a) => ({ value: a.color, label: a.label }));
@@ -374,7 +389,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
     ? `${goalNow ? `Your card shows "${goalText(goalNow)}" tonight.` : `Your goal tonight is ${fmtMmr(activeGoal)}.`} It clears itself tomorrow unless you keep it.`
     : goal && goal.game === look.game
       ? `Your last goal, ${fmtMmr(goal.mmr)}, has cleared. Set one for tonight.`
-      : `Pick a number for the night, like your next division at ${fmtMmr(goalSuggest)}. Your card and OBS link show how far there is to go, with a moment when you get there.`;
+      : `Pick a number for tonight in ${MMR_GAMES[look.game].short}, like your next division at ${fmtMmr(goalSuggest)}. Your card and OBS link show how far there is to go.`;
 
   // Share the night: only for a lounge player this account confirmed in this game.
   const link = links.find((l) => l.game === look.game) ?? null;
@@ -415,6 +430,34 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
     if (activeId === id) setActiveId(rest[0].id);
   };
 
+  /** A new layout: the first details that fit stay on, the rest switch off (with Undo). */
+  const pickLayout = (layout: MmrLayout) => {
+    if (layout === look.layout) return;
+    const before = { layout: look.layout, info: look.info };
+    const { info, off } = trimToRoom(look.info, layout);
+    setLook({ layout, info });
+    if (off.length) toast.info(`Switched off ${pieceNames(off)} to fit ${LAYOUT_SPOTS[layout].name.toLowerCase()}.`, { action: { label: "Undo", onClick: () => setLook(before) } });
+  };
+  const pickStart = (id: MmrStartId) => {
+    const before = { layout: look.layout, info: look.info, rolling: look.rolling };
+    const next = applyStart(look, id);
+    setLook({ layout: next.layout, info: next.info, rolling: next.rolling });
+    toast.info("Card changed. Your colors, background, emblem and font stayed.", { action: { label: "Undo", onClick: () => setLook(before) } });
+  };
+
+  // Once, after the looks have loaded: a look saved with more details on than its layout holds keeps the first ones.
+  const tidied = useRef(false);
+  useEffect(() => {
+    if (!draftLoaded || tidied.current) return;
+    tidied.current = true;
+    const off: MmrPiece[] = [];
+    const next = looks.map((l) => { const t = trimToRoom(l.info, l.layout); off.push(...t.off); return t.off.length ? { ...l, info: t.info } : l; });
+    if (!off.length) return;
+    setLooks(next);
+    toast.info(`Cards now show a set number of details instead of taking turns, so ${pieceNames([...new Set(off)])} ${off.length === 1 ? "is" : "are"} off. Pick Rolling to show everything.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftLoaded]);
+
   const lookupLine = {
     idle: "Type your name exactly as it shows on MKCentral's lounge.",
     looking: "Looking you up…",
@@ -423,80 +466,139 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
     found: found ? `Found ${found.source.name}: ${found.source.mmr != null ? `${fmtMmr(found.source.mmr)} MMR` : "no MMR yet"}${found.source.division ? `, ${found.source.division}` : ""}, ${found.events} events this season.` : "",
   }[lookup];
 
+  /** A choice as a dropdown: the free options, then the paid ones under the name that unlocks them. */
+  const choiceSelect = (id: keyof MmrLook, label: string, searchable = false) => {
+    const c = LOOK_CHOICES.find((x) => x.id === id)!;
+    const opt = (o: { v: string | boolean; label: string }) => ({ value: String(o.v), label: o.label });
+    const free = c.opts.filter((o) => !o.pro);
+    const paid = c.opts.filter((o) => o.pro);
+    return (
+      <Select id={`mmr-look-${String(id)}`} floatingLabel={label} fullWidth searchable={searchable}
+        value={String(look[id])}
+        onChange={(v) => { const o = c.opts.find((x) => String(x.v) === v); if (o) pickValue(id, o.v); }}
+        groups={[{ label: "Free", options: free.map(opt) }, ...(paid.length ? [{ label: unlockName, options: paid.map(opt) }] : [])]} />
+    );
+  };
+  const chipChoice = (id: "layout" | "surface", pick: (v: string) => void) => {
+    const c = LOOK_CHOICES.find((x) => x.id === id)!;
+    return (
+      <div className="mmr-studio__chips">
+        {c.opts.map((o) => <Chip key={String(o.v)} label={o.label} clickable selected={look[id] === o.v} onClick={() => pick(String(o.v))} />)}
+      </div>
+    );
+  };
+
   const lookChoices = (
     <>
-      {LOOK_CHOICES.map((c) => {
-        const free = c.opts.filter((o) => !o.pro);
-        const paid = c.opts.filter((o) => o.pro);
-        return (
-          <fieldset key={c.id} className="mmr-studio__set">
-            <legend>{c.label}</legend>
+      <fieldset className="mmr-studio__set">
+        <legend>Layout</legend>
+        {chipChoice("layout", (v) => pickLayout(v as MmrLayout))}
+        {look.layout === "rolling" && <MmrRollingControls look={look} onRolling={(rolling) => setLook({ rolling })} />}
+        {(look.layout === "deck" || look.layout === "panel") && (
+          <div className="mmr-studio__inline" role="group" aria-labelledby="mmr-align-label">
+            <span id="mmr-align-label" className="mmr-studio__inline-label">Line up</span>
             <div className="mmr-studio__chips">
-              {free.map((o) => <Chip key={String(o.v)} label={o.label} clickable selected={look[c.id] === o.v} onClick={() => pickValue(c.id, o.v)} />)}
+              <Chip label="Left" clickable selected={look.align === "left"} onClick={() => setLook({ align: "left" })} />
+              <Chip label="Center" clickable selected={look.align === "center"} onClick={() => setLook({ align: "center" })} />
             </div>
-            {paid.length > 0 && (
-              <div className="mmr-studio__chips mmr-studio__chips--pro">
-                <span className="mmr-studio__pro">{unlockName}</span>
-                {paid.map((o) => <Chip key={String(o.v)} label={o.label} clickable selected={look[c.id] === o.v} onClick={() => pickValue(c.id, o.v)} />)}
+            <span className="mmr-studio__note">{look.layout === "deck" ? "Where the number sits on the card." : "Where a tile sits when it's the only one."}</span>
+          </div>
+        )}
+      </fieldset>
+
+      <fieldset className="mmr-studio__set">
+        <legend>Surface</legend>
+        {chipChoice("surface", (v) => setLook({ surface: v as MmrLook["surface"] }))}
+      </fieldset>
+
+      <fieldset className="mmr-studio__set">
+        <legend>Style</legend>
+        <div className="mmr-studio__two">
+          {choiceSelect("colors", "Colors")}
+          {choiceSelect("fill", "Background")}
+          {choiceSelect("emblem", "Emblem")}
+          {choiceSelect("font", "Font", true)}
+        </div>
+        {look.colors === "accent" && (
+          <LookColorPicker label="Your color" presets={ACCENT_PRESETS}
+            value={HEX.test(look.accent) ? look.accent : PROFILE_ACCENTS.find((a) => a.key === look.accent)?.color ?? "#5b6cff"}
+            onChange={(hex) => { const a = PROFILE_ACCENTS.find((x) => x.color.toLowerCase() === hex.toLowerCase()); setLook({ accent: a ? a.key : hex }); }} />
+        )}
+        {look.colors === "custom" && (
+          <div className="mmr-studio__pair">
+            <span className="mmr-studio__swatch"><span>Glow</span><ColorPicker aria-label="Glow color" value={look.custom[0]} allowCustom variant="popover" size="small" onChange={(hex) => setLook({ custom: [hex, look.custom[1]] })} /></span>
+            <span className="mmr-studio__swatch"><span>Highlight</span><ColorPicker aria-label="Highlight color" value={look.custom[1]} allowCustom variant="popover" size="small" onChange={(hex) => setLook({ custom: [look.custom[0], hex] })} /></span>
+          </div>
+        )}
+        {look.fill === "picture" && (
+          <div className="mmr-studio__upload">
+            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (looksOk) void upload(f); else tryPicture(f); } e.target.value = ""; }} />
+            <Button size="small" variant="secondary" loading={uploading} onClick={() => fileRef.current?.click()}>
+              {looksOk ? (look.picture ? "Change picture" : "Upload a picture or GIF") : tryPic ? "Try another picture" : "Try a picture or GIF"}
+            </Button>
+            <span>{looksOk ? "PNG, JPG, WebP or GIF, up to 4 MB. It sits under a dark layer so the numbers stay readable." : `See it on your card here. It stays on this device: nothing uploads until you have ${unlockName}.`}</span>
+          </div>
+        )}
+        {look.font === "google" && (
+          <div className="mmr-studio__fontpick">
+            <form className="mmr-studio__fontform" onSubmit={(e) => { e.preventDefault(); void checkFont(); }}>
+              <div className="mmr-studio__field">
+                <Input id="mmr-font-name" floatingLabel="Font name" value={fontInput || look.fontName} onChange={(e) => setFontInput(e.target.value)} autoComplete="off" maxLength={40} fullWidth />
               </div>
-            )}
-            {c.id === "colors" && look.colors === "accent" && (
-              <LookColorPicker label="Your color" presets={ACCENT_PRESETS}
-                value={HEX.test(look.accent) ? look.accent : PROFILE_ACCENTS.find((a) => a.key === look.accent)?.color ?? "#5b6cff"}
-                onChange={(hex) => { const a = PROFILE_ACCENTS.find((x) => x.color.toLowerCase() === hex.toLowerCase()); setLook({ accent: a ? a.key : hex }); }} />
-            )}
-            {c.id === "colors" && look.colors === "custom" && (
-              <div className="mmr-studio__pair">
-                <span className="mmr-studio__swatch"><span>Glow</span><ColorPicker aria-label="Glow color" value={look.custom[0]} allowCustom variant="popover" size="small" onChange={(hex) => setLook({ custom: [hex, look.custom[1]] })} /></span>
-                <span className="mmr-studio__swatch"><span>Highlight</span><ColorPicker aria-label="Highlight color" value={look.custom[1]} allowCustom variant="popover" size="small" onChange={(hex) => setLook({ custom: [look.custom[0], hex] })} /></span>
+              <Button type="submit" variant="secondary" loading={fontBusy}>Use this font</Button>
+            </form>
+            <p className="mmr-studio__note" role="status">{fontMsg ?? (look.fontName ? `Using ${look.fontName}.` : "Any family on Google Fonts, spelled the way it's spelled there, like Orbitron.")}{" "}<ArrowLink href="https://fonts.google.com" external>Browse Google Fonts</ArrowLink></p>
+          </div>
+        )}
+      </fieldset>
+
+      <Accordion
+        variant="flush"
+        className="mmr-fold"
+        items={[{
+          id: "more",
+          title: <span className="mmr-fold__title">More<span className="mmr-fold__count">Border, finish, GameShuffle branding</span></span>,
+          content: (
+            <div className="mmr-studio__more">
+              <div className="mmr-studio__two">
+                {choiceSelect("border", "Border")}
+                {choiceSelect("foil", "Finish")}
+                {choiceSelect("brand", "GameShuffle branding")}
               </div>
-            )}
-            {c.id === "layout" && look.layout === "rolling" && <MmrRollingControls look={look} onRolling={(rolling) => setLook({ rolling })} />}
-            {c.id === "layout" && (look.layout === "deck" || look.layout === "panel") && (
-              <div className="mmr-studio__inline" role="group" aria-labelledby="mmr-align-label">
-                <span id="mmr-align-label" className="mmr-studio__inline-label">Line up</span>
-                <div className="mmr-studio__chips">
-                  <Chip label="Left" clickable selected={look.align === "left"} onClick={() => setLook({ align: "left" })} />
-                  <Chip label="Center" clickable selected={look.align === "center"} onClick={() => setLook({ align: "center" })} />
-                </div>
-                <span className="mmr-studio__note">{look.layout === "deck" ? "Where the number sits on the card." : "Where a tile sits when it's the only one."}</span>
-              </div>
-            )}
-            {c.id === "font" && look.font === "google" && (
-              <div className="mmr-studio__fontpick">
-                <form className="mmr-studio__fontform" onSubmit={(e) => { e.preventDefault(); void checkFont(); }}>
-                  <div className="mmr-studio__field">
-                    <label htmlFor="mmr-font-name">Google Font name</label>
-                    <Input id="mmr-font-name" value={fontInput || look.fontName} onChange={(e) => setFontInput(e.target.value)} placeholder="Orbitron" autoComplete="off" maxLength={40} fullWidth />
+              {look.border === "one" && (
+                <div className="mmr-studio__inline" role="group" aria-labelledby="mmr-edge-label">
+                  <span id="mmr-edge-label" className="mmr-studio__inline-label">Border color</span>
+                  <div className="mmr-studio__chips">
+                    {EDGES.map((e) => <Chip key={e.v} label={e.label} clickable selected={look.edge === e.v} onClick={() => setLook({ edge: e.v })} />)}
                   </div>
-                  <Button type="submit" variant="secondary" loading={fontBusy}>Use this font</Button>
-                </form>
-                <p className="mmr-studio__note" role="status">{fontMsg ?? (look.fontName ? `Using ${look.fontName}.` : "Any family on Google Fonts, spelled the way it's spelled there.")}{" "}<ArrowLink href="https://fonts.google.com" external>Browse Google Fonts</ArrowLink></p>
-              </div>
-            )}
-            {c.id === "border" && look.border === "one" && (
-              <div className="mmr-studio__inline" role="group" aria-labelledby="mmr-edge-label">
-                <span id="mmr-edge-label" className="mmr-studio__inline-label">Border color</span>
-                <div className="mmr-studio__chips">
-                  {EDGES.map((e) => <Chip key={e.v} label={e.label} clickable selected={look.edge === e.v} onClick={() => setLook({ edge: e.v })} />)}
+                  {look.edge === "custom" && <LookColorPicker label="Border color" presets={[{ value: "#ffd25a", label: "Gold" }, ...ACCENT_PRESETS]} value={look.edgeColor} onChange={(hex) => setLook({ edgeColor: hex })} />}
                 </div>
-                {look.edge === "custom" && <LookColorPicker label="Border color" presets={[{ value: "#ffd25a", label: "Gold" }, ...ACCENT_PRESETS]} value={look.edgeColor} onChange={(hex) => setLook({ edgeColor: hex })} />}
-              </div>
-            )}
-            {c.id === "fill" && look.fill === "picture" && (
-              <div className="mmr-studio__upload">
-                <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (looksOk) void upload(f); else tryPicture(f); } e.target.value = ""; }} />
-                <Button size="small" variant="secondary" loading={uploading} onClick={() => fileRef.current?.click()}>
-                  {looksOk ? (look.picture ? "Change picture" : "Upload a picture or GIF") : tryPic ? "Try another picture" : "Try a picture or GIF"}
-                </Button>
-                <span>{looksOk ? "PNG, JPG, WebP or GIF, up to 4 MB. It sits under a dark layer so the numbers stay readable." : `See it on your card here. It stays on this device: nothing uploads until you have ${unlockName}.`}</span>
-              </div>
-            )}
-          </fieldset>
-        );
-      })}
+              )}
+            </div>
+          ),
+        }]}
+      />
     </>
   );
+
+  // Tonight's goal, under its switch on What's on the card (GS Pro); a line about GS Pro for free accounts.
+  const goalSlot = guest ? null : pro ? (
+    <div className="mmr-studio__goal">
+      <form className="mmr-studio__goalform" onSubmit={(e) => { e.preventDefault(); void setGoalNow(); }}>
+        <div className="mmr-studio__field">
+          <Input id="mmr-goal-input" floatingLabel="Goal MMR" inputMode="numeric" value={goalInput} onChange={(e) => setGoalInput(e.target.value)} autoComplete="off" maxLength={7} fullWidth />
+        </div>
+        <Button type="submit" variant="secondary" iconBefore={IconTargetArrow} loading={savingGoal}>{activeGoal != null ? "Change goal" : "Set goal"}</Button>
+        {activeGoal != null && <Button type="button" variant="ghost" onClick={() => void clearGoal()}>Clear goal</Button>}
+      </form>
+      <p className="mmr-studio__note" role="status">{goalLine}</p>
+      <Switch label="Keep my goal after tonight" checked={!!goal?.keep} disabled={!goal} onChange={(e) => { const keep = e.target.checked; void saveNight({ goalKeep: keep }).then((ok) => { if (ok) toast.success(keep ? "Your goal stays until you clear it." : "Your goal clears itself tomorrow."); }); }} />
+    </div>
+  ) : (
+    <p className="mmr-studio__note">Your card counts down to a number you set for the night, with a moment when you get there. <ArrowLink href="/gs-pro?from=mmr-goal">See GS Pro</ArrowLink></p>
+  );
+
+  const layoutName = look.layout === "rolling" ? `rolling ${look.rolling.shape}` : LOOK_CHOICES[0].opts.find((o) => o.v === look.layout)?.label.toLowerCase();
 
   return (
     <div className="mmr-studio">
@@ -505,49 +607,17 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
         <h2 id="mmr-who">Your lounge name</h2>
         <form className="mmr-studio__find" onSubmit={(e) => { e.preventDefault(); void findMe(); }}>
           <div className="mmr-studio__field">
-            <label htmlFor="mmr-name">MKCentral lounge name</label>
-            <Input id="mmr-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your lounge name" autoComplete="off" maxLength={40} fullWidth />
+            <Input id="mmr-name" floatingLabel="Lounge name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" maxLength={40} fullWidth />
           </div>
           <div className="mmr-studio__field">
-            <Select id="mmr-game" floatingLabel="Game" fullWidth value={look.game} onChange={(v) => setLook({ game: v as MmrGame })} options={MMR_GAME_IDS.map((g) => ({ value: g, label: MMR_GAMES[g].label }))} />
+            <CdsSelect id="mmr-game" floatingLabel="Game" fullWidth value={look.game} onChange={(v) => setLook({ game: v as MmrGame })} options={MMR_GAME_IDS.map((g) => ({ value: g, label: MMR_GAMES[g].label }))} />
           </div>
           <Button type="submit" variant="primary" iconBefore={IconSearch} loading={lookup === "looking"}>Find me</Button>
         </form>
         <p className={`mmr-studio__note${lookup === "not_found" || lookup === "unavailable" ? " mmr-studio__note--warn" : ""}`} role="status">{lookupLine}</p>
       </section>
 
-      {!guest && <section className="mmr-studio__goal" aria-labelledby="mmr-goal">
-        <h2 id="mmr-goal">Tonight&apos;s goal</h2>
-        {pro ? (
-          <>
-            <form className="mmr-studio__goalform" onSubmit={(e) => { e.preventDefault(); void setGoalNow(); }}>
-              <div className="mmr-studio__field">
-                <label htmlFor="mmr-goal-input">Goal MMR in {MMR_GAMES[look.game].short}</label>
-                <Input id="mmr-goal-input" inputMode="numeric" value={goalInput} onChange={(e) => setGoalInput(e.target.value)} placeholder={`For example ${fmtMmr(goalSuggest)}`} autoComplete="off" maxLength={7} fullWidth />
-              </div>
-              <Button type="submit" variant="primary" iconBefore={IconTargetArrow} loading={savingGoal}>{activeGoal != null ? "Change goal" : "Set goal"}</Button>
-              {activeGoal != null && <Button type="button" variant="ghost" onClick={() => void clearGoal()}>Clear goal</Button>}
-            </form>
-            <p className="mmr-studio__note" role="status">{goalLine}</p>
-            <div className="mmr-studio__switches">
-              <Switch label="Keep my goal after tonight" checked={!!goal?.keep} disabled={!goal} onChange={(e) => { const keep = e.target.checked; void saveNight({ goalKeep: keep }).then((ok) => { if (ok) toast.success(keep ? "Your goal stays until you clear it." : "Your goal clears itself tomorrow."); }); }} />
-            </div>
-            <h3 className="mmr-studio__sub">Weekly report</h3>
-            <div className="mmr-studio__switches">
-              <Switch label="Send me a lounge report every Monday" checked={weekly} onChange={(e) => { const on = e.target.checked; setWeekly(on); void saveNight({ weeklyReport: on }).then((ok) => { if (!ok) setWeekly(!on); else { toast.success(on ? "Weekly report on." : "Weekly report off."); track(EVENTS.loungeWeeklySwitched, { on }); } }); }} />
-            </div>
-            <p className="mmr-studio__note">
-              {links.length
-                ? "By email and as a notification: last week's MMR change, record, best night, division changes and the rivals you met most."
-                : <>It needs your lounge name confirmed by Discord. <Link href="/lounge">Confirm it on the lounge page</Link>.</>}
-            </p>
-          </>
-        ) : (
-          <ProTrialPrompt compact from="mmr-goal" title="Tonight's goal and the weekly report are part of GS Pro">
-            <p>Set a number for the night and your card and OBS link track it (&ldquo;184 to 15,500&rdquo;), with a moment when you reach it. Every Monday, a report of your lounge week by email.</p>
-          </ProTrialPrompt>
-        )}
-      </section>}
+      <MmrStarts look={look} onPick={pickStart} />
 
       <div className="mmr-studio__grid">
         <div className="mmr-studio__view">
@@ -566,6 +636,10 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
             )}
             <Button size="small" variant="ghost" iconBefore={IconRefresh} onClick={preview.reset}>Reset</Button>
           </div>
+          <div className="mmr-studio__obsline">
+            <span>In OBS: <b>{obsSize(look, ratio)}</b></span>
+            {obsUrl && <Button size="small" variant="secondary" iconBefore={IconCopy} onClick={copyLink}>Copy OBS link</Button>}
+          </div>
           {!found && <p className="mmr-studio__note">The preview plays a made-up night until your lounge name is found.</p>}
           {!looksOk && (usedPro.length > 0 || then === "pro" || then === "supporter" || then === "backer") && (
             <KeepLooksPanel used={usedPro} guest={guest} autoPlan={guest ? null : then} beforeLeave={keepDraft} />
@@ -580,7 +654,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
             onChange={setTab}
             tabs={[
               { id: "look", label: "Look", content: <div className="mmr-studio__pane">{lookChoices}</div> },
-              { id: "info", label: "What's on the card", content: <div className="mmr-studio__pane"><MmrWhatsOn look={look} pro={looksOk} chat={chat} lineWarn={lineWarn} onInfo={(info) => setLook({ info })} onLook={setLook} /></div> },
+              { id: "info", label: "What's on the card", content: <div className="mmr-studio__pane"><MmrWhatsOn look={look} pro={pro} chat={chat} lineWarn={lineWarn} goalSlot={goalSlot} onInfo={(info) => setLook({ info })} onLook={setLook} /></div> },
               { id: "moments", label: "Moments", content: <div className="mmr-studio__pane"><MmrMoments look={look} pro={pro} onLook={setLook} /></div> },
             ]}
           />
@@ -594,50 +668,70 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
           <div><Button variant="primary" onClick={() => { keepDraft(); window.location.assign(`/signup?redirect=${encodeURIComponent("/mmr-card?then=free")}`); }}>Make a free account</Button></div>
         </section>
       ) : (
-      <section className="mmr-studio__obs" aria-labelledby="mmr-obs">
-        <h2 id="mmr-obs">Add it to OBS</h2>
-        {obsUrl ? (
-          <>
-            <div className="mmr-studio__link">
-              <Input value={obsUrl} readOnly aria-label="Your OBS link" fullWidth onFocus={(e) => e.currentTarget.select()} />
-              <Button variant="primary" iconBefore={IconCopy} onClick={copyLink}>Copy link</Button>
-            </div>
-            <ol className="mmr-studio__steps">
-              <li>In OBS or Streamlabs, add a Browser source and paste the link.</li>
-              <li>Set its size to {obsSize(look, ratio)} for the {look.layout === "rolling" ? `rolling ${look.rolling.shape}` : LOOK_CHOICES[0].opts.find((o) => o.v === look.layout)?.label.toLowerCase()} as it is now. The page behind the card is see-through.</li>
-              <li>The card checks the lounge every 30 seconds and plays a moment when a new event is verified, usually a minute or two after the last race.</li>
-            </ol>
-            <p className="mmr-studio__note">Keep the link private: anyone with it can show your card. <Button variant="ghost" size="small" iconBefore={IconRefresh} onClick={newLink}>Make a new link</Button></p>
-            <h3 className="mmr-studio__sub">Night recap</h3>
-            {pro ? (
+        <div className="mmr-studio__use">
+          <section className="mmr-studio__obs" aria-labelledby="mmr-obs">
+            <h2 id="mmr-obs">Add it to OBS</h2>
+            {obsUrl ? (
               <>
-                <p className="mmr-studio__note">For your ending scene: tonight&apos;s MMR change, record, best event, any new division and tonight&apos;s squares, in this card&apos;s look. Size it {obsSize({ layout: "panel", rolling: look.rolling }, null)}.</p>
                 <div className="mmr-studio__link">
-                  <Input value={`${obsUrl}?view=recap`} readOnly aria-label="Your night recap link" fullWidth onFocus={(e) => e.currentTarget.select()} />
-                  <Button variant="secondary" iconBefore={IconCopy} onClick={copyRecap}>Copy link</Button>
+                  <Input value={obsUrl} readOnly aria-label="Your OBS link" fullWidth onFocus={(e) => e.currentTarget.select()} />
+                  <Button variant="primary" iconBefore={IconCopy} onClick={copyLink}>Copy link</Button>
                 </div>
+                <ol className="mmr-studio__steps">
+                  <li>In OBS or Streamlabs, add a Browser source and paste the link.</li>
+                  <li>Set it to {obsSize(look, ratio)} for the {layoutName} as it is now. The size changes as you change the card here, and the page behind it is see-through.</li>
+                  <li>The card checks the lounge every 30 seconds and plays a moment when a new event is verified, usually a minute or two after the last race.</li>
+                </ol>
+                <p className="mmr-studio__note">Keep the link private: anyone with it can show your card. <Button variant="ghost" size="small" iconBefore={IconRefresh} onClick={newLink}>Make a new link</Button></p>
               </>
             ) : (
-              <p className="mmr-studio__note">A card of tonight&apos;s run for your ending scene is part of GS Pro. <Link href="/gs-pro?from=mmr-recap">See GS Pro</Link></p>
+              <p className="mmr-studio__note">Your link appears here once your card is saved: find your lounge name or change anything above.</p>
             )}
-          </>
-        ) : (
-          <p className="mmr-studio__note">Your link appears here once your card is saved: find your lounge name or change anything above.</p>
-        )}
-        {link && (
-          <>
-            <h3 className="mmr-studio__sub">Share the night</h3>
-            <div className="mmr-studio__share">
-              <LoungeShareNight game={look.game} name={link.name} recap={shareRecap} />
-              <p className="mmr-studio__note">A picture of your latest lounge night in {MMR_GAMES[look.game].short}: the change, your record and any new division, with a link to your lounge page.</p>
+          </section>
+
+          <section className="mmr-studio__after" aria-labelledby="mmr-after">
+            <h2 id="mmr-after">After the stream</h2>
+            <div className="mmr-studio__item">
+              <h3 className="mmr-studio__sub">Night recap</h3>
+              {pro && obsUrl ? (
+                <>
+                  <p className="mmr-studio__note">For your ending scene: tonight&apos;s change, record, best event, any new division and tonight&apos;s squares, in this card&apos;s look. Size it {obsSize({ layout: "panel", rolling: look.rolling }, null)}.</p>
+                  <div className="mmr-studio__link">
+                    <Input value={`${obsUrl}?view=recap`} readOnly aria-label="Your night recap link" fullWidth onFocus={(e) => e.currentTarget.select()} />
+                    <Button variant="secondary" iconBefore={IconCopy} onClick={copyRecap}>Copy link</Button>
+                  </div>
+                </>
+              ) : pro ? (
+                <p className="mmr-studio__note">Your recap link appears once your card is saved.</p>
+              ) : (
+                <p className="mmr-studio__note">A card of tonight&apos;s run for your ending scene, and a lounge report every Monday, come with GS Pro. <ArrowLink href="/gs-pro?from=mmr-recap">See GS Pro</ArrowLink></p>
+              )}
             </div>
-          </>
-        )}
-        <div className="mmr-studio__switches">
-          <Switch label="Show my card on my GameShuffle profile" checked={showOnProfile} onChange={(e) => setShowOnProfile(e.target.checked)} />
-          {status === "error" && <span className="mmr-studio__note mmr-studio__note--warn">Couldn&rsquo;t save the last change. It tries again on your next one.</span>}
+            {pro && (
+              <div className="mmr-studio__item">
+                <Switch label="Send me a lounge report every Monday" checked={weekly} onChange={(e) => { const on = e.target.checked; setWeekly(on); void saveNight({ weeklyReport: on }).then((ok) => { if (!ok) setWeekly(!on); else { toast.success(on ? "Weekly report on." : "Weekly report off."); track(EVENTS.loungeWeeklySwitched, { on }); } }); }} />
+                <p className="mmr-studio__note">
+                  {links.length
+                    ? "By email and as a notification: last week's change, record, best night, division changes and the rivals you met most."
+                    : <>It needs your lounge name confirmed by Discord. <Link href="/lounge">Confirm it on the lounge page</Link>.</>}
+                </p>
+              </div>
+            )}
+            {link && (
+              <div className="mmr-studio__item">
+                <h3 className="mmr-studio__sub">Share the night</h3>
+                <div className="mmr-studio__share">
+                  <LoungeShareNight game={look.game} name={link.name} recap={shareRecap} />
+                  <p className="mmr-studio__note">A picture of your latest lounge night in {MMR_GAMES[look.game].short}: the change, your record and any new division, with a link to your lounge page.</p>
+                </div>
+              </div>
+            )}
+            <div className="mmr-studio__item">
+              <Switch label="Show my card on my GameShuffle profile" checked={showOnProfile} onChange={(e) => setShowOnProfile(e.target.checked)} />
+              {status === "error" && <span className="mmr-studio__note mmr-studio__note--warn">Couldn&rsquo;t save the last change. It tries again on your next one.</span>}
+            </div>
+          </section>
         </div>
-      </section>
       )}
 
       {!guest && <section className="mmr-studio__looks" aria-labelledby="mmr-looks">
@@ -646,8 +740,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
           {looks.map((l) => (
             <li key={l.id} className={l.id === look.id ? "is-active" : undefined}>
               <div className="mmr-studio__look-name">
-                <label htmlFor={`mmr-look-${l.id}`} className="mmr-sr-label">Look name</label>
-                <Input id={`mmr-look-${l.id}`} value={l.name} maxLength={40} onChange={(e) => setLooks((ls) => ls.map((x) => (x.id === l.id ? { ...x, name: e.target.value } : x)))} />
+                <Input id={`mmr-look-${l.id}`} floatingLabel="Look name" value={l.name} maxLength={40} onChange={(e) => setLooks((ls) => ls.map((x) => (x.id === l.id ? { ...x, name: e.target.value } : x)))} />
               </div>
               <span className="mmr-studio__look-game">{MMR_GAMES[l.game].short}</span>
               {l.id === look.id

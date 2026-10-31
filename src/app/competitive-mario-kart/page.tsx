@@ -9,6 +9,7 @@ import { BrowseHero } from "@/components/events/BrowseHero";
 import { IconTile } from "@/components/ui/IconTile";
 import { ArrowLink } from "@/components/ui/ArrowLink";
 import { FaqList } from "@/components/marketing/FaqList";
+import { MedalCredit } from "@/components/mmr/MedalCredit";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { AddTimeButton } from "@/components/timeTrials/AddTimeButton";
 import { TtConnectDiscord } from "@/components/timeTrials/TtConnectDiscord";
@@ -329,6 +330,7 @@ export default async function CompetitiveMarioKartPage() {
           <h2 id="cmk-faq">Questions</h2>
           <FaqList items={FAQ} />
         </section>
+        <MedalCredit className="cmk-credit" />
       </Container>
     </main>
   );

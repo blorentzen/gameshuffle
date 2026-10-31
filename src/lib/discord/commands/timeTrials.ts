@@ -15,12 +15,23 @@ import { canManageGuild } from "../guildOwner";
 import { SITE_URL } from "@/lib/seo";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { discordActor, type TtActor } from "@/lib/timeTrials/players";
-import { addTime, boardFor, findPlayers, noteGuildPlayer, playerBests, removeOwnTime, setVideo, timeById, ttReady, verifyTime, type AddTimeResult } from "@/lib/timeTrials/store";
+import { addTime, boardFor, findPlayers, noteGuildPlayer, playerBests, removeOwnTime, setVideo, timeById, ttReady, verifyTime, type AddTimeResult, type TtBest } from "@/lib/timeTrials/store";
 import { readScreenshot, storeScreenshot, MAX_SCREENSHOT_BYTES } from "@/lib/timeTrials/read";
 import { reportFromDiscord } from "@/lib/timeTrials/review";
 import { categoryText, isVehicle, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 import { formatGap, formatTime, ordinal, parseTime, videoProof, type ProofKind } from "@/lib/timeTrials/rules";
-import { isClassFor, searchTracks, trackFromKey, trackKey, trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
+import { isClassFor, searchTracks, trackFromKey, trackKey, trackPath, ttTrack, ttTracks, TT_GAMES, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
+import { trackCode, trackTitle, tracksByCode } from "@/lib/timeTrials/codes";
+import { playerPagePath } from "@/lib/timeTrials/playerPath";
+import { botTokenFor } from "../apps";
+import { appOfApplicationId, commandName } from "../appIds";
+import { describePlayers } from "@/lib/daily/boards";
+import { serverRecord } from "@/lib/timeTrials/server";
+import { COMP_COLOR, panelFor, postToPanelChannel, refreshPanels } from "../ttPanel";
+import { handleTtPanelCommand } from "./ttPanelActions";
+
+/** The time trial command as typed in the app this interaction came from: /gs-tt in GameShuffle, /tt in GameShuffle Competitive. */
+const ttCmd = (appId: string) => `/${commandName(appOfApplicationId(appId), "tt")}`;
 
 export const TT_OK_PREFIX = "ttok:";
 export const TT_NO_PREFIX = "ttno:";
@@ -40,7 +51,7 @@ const FOOTER = { text: "Time trials · gameshuffle.co/time-trials" };
 const UNDO_MINUTES = 15;
 
 type Opt = { name: string; value?: string | number | boolean; focused?: boolean; options?: Opt[] };
-type Attachment = { url: string; content_type?: string; size: number; filename?: string };
+export type Attachment = { url: string; content_type?: string; size: number; filename?: string };
 
 const link = (label: string, url: string) => ({ type: 2, style: 5, label, url });
 const btn = (label: string, customId: string, style: 1 | 2 | 3 | 4 = 2) => ({ type: 2, style, label, custom_id: customId });
@@ -49,7 +60,7 @@ const reply = (data: Record<string, unknown>, ephemeral: boolean) =>
   Response.json({ type: 4, data: { ...data, allowed_mentions: { parse: [] }, ...(ephemeral ? { flags: EPHEMERAL } : {}) } });
 const deferred = (ephemeral: boolean) => Response.json({ type: 5, data: ephemeral ? { flags: EPHEMERAL } : {} });
 
-async function editOriginal(appId: string, token: string, data: Record<string, unknown>): Promise<void> {
+export async function editOriginal(appId: string, token: string, data: Record<string, unknown>): Promise<void> {
   const res = await fetch(`https://discord.com/api/v10/webhooks/${appId}/${token}/messages/@original`, {
     method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowed_mentions: { parse: [] }, ...data }),
   }).catch(() => null);
@@ -64,9 +75,9 @@ async function postFollowUp(appId: string, token: string, data: Record<string, u
 
 const guildNames = new Map<string, string | null>();
 /** The server's name (for "Verified in …" and server boards), when the bot can see it. */
-async function guildName(guildId: string): Promise<string | null> {
+export async function guildName(guildId: string): Promise<string | null> {
   if (guildNames.has(guildId)) return guildNames.get(guildId) ?? null;
-  const token = process.env.DISCORD_BOT_TOKEN;
+  const token = botTokenFor();
   let name: string | null = null;
   if (token) {
     const res = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, { headers: { Authorization: `Bot ${token}` } }).catch(() => null);
@@ -86,27 +97,36 @@ function subOf(interaction: Record<string, unknown>): { name: string; opts: Opt[
 }
 const optValue = (opts: Opt[], name: string) => opts.find((o) => o.name === name)?.value;
 
+/** A picker choice: code, name, game ("rMMM · Wii Moo Moo Meadows · MK8DX"; picks 2026-10-30). */
 function trackLabel(t: TtTrack): string {
-  return `${TT_GAMES[t.game].short} · ${t.name}`;
+  const c = trackCode(t);
+  return `${c ? `${c} · ` : ""}${t.name} · ${TT_GAMES[t.game].short}`;
 }
-function boardUrl(t: TtTrack, cc: TtClass, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): string {
+export function boardUrl(t: TtTrack, cc: TtClass, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): string {
   return `${SITE_URL}${trackPath(t, cc, { items, vehicle })}`;
 }
 function classText(t: TtTrack, cc: TtClass): string {
   return TT_GAMES[t.game].classes.length > 1 ? ` (${cc}cc)` : "";
 }
 
-/** Autocomplete for `track`: both games, the game's short name first so the two lists read apart. */
+/** Autocomplete for `track`: both games; a typed code ("rdkj", "MKS") finds its track first, then names. */
 export function ttAutocomplete(interaction: Record<string, unknown>): Response {
   const { opts } = subOf(interaction);
   const focused = opts.find((o) => o.focused);
   const q = String(focused?.value ?? "");
-  const choices = searchTracks(q, undefined, 25).map((t) => ({ name: trackLabel(t).slice(0, 100), value: trackKey(t) }));
+  const seen = new Set<string>();
+  const found = [...tracksByCode(q), ...searchTracks(q, undefined, 25)].filter((t) => {
+    const k = trackKey(t);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).slice(0, 25);
+  const choices = found.map((t) => ({ name: trackLabel(t).slice(0, 100), value: trackKey(t) }));
   return Response.json({ type: 8, data: { choices } });
 }
 
 function resultLines(t: TtTrack, cc: TtClass, timeMs: number, res: Extract<AddTimeResult, { ok: true }>, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): string[] {
-  const lines = [`**${formatTime(timeMs)}** on ${t.name} (${categoryText(t.game, cc, items, vehicle, TT_GAMES[t.game].classes.length > 1)}).`];
+  const lines = [`**${formatTime(timeMs)}** on ${trackTitle(t)}, ${categoryText(t.game, cc, items, vehicle, TT_GAMES[t.game].classes.length > 1)}.`];
   if (res.best && res.previousMs != null) lines.push(`New best, ${formatGap(res.previousMs - timeMs)} faster than before.`);
   else if (res.best) lines.push("Your first time on this track.");
   else if (res.previousMs != null) lines.push(`Your best is still ${formatTime(res.previousMs)}.`);
@@ -119,15 +139,20 @@ function resultLines(t: TtTrack, cc: TtClass, timeMs: number, res: Extract<AddTi
 async function saveAndAnswer(args: {
   appId: string; token: string; actor: TtActor; guildId: string | null; track: TtTrack; cc: TtClass; timeMs: number;
   proof: ProofKind; proofUrl: string | null; readByAi: boolean; items: TtItems; vehicle: TtVehicle; clip: string | null;
+  /** Added from the time trial panel: only a fallen server record is posted for everyone (pick 3A). */
+  panel?: boolean;
 }): Promise<void> {
   const { appId, token, actor, guildId, track, cc, timeMs } = args;
+  // With a time trial panel in this server, a time that beats the server's record is posted in its channel.
+  const panelRef = guildId ? await panelFor(guildId, track.game) : null;
+  const prior = panelRef && guildId ? await serverRecord(guildId, track.game, track.id, cc, args.items) : null;
   const res = await addTime({
     player: actor.player, userId: actor.userId, identityId: actor.identityId, game: track.game, track: track.id, cc, items: args.items, vehicle: args.vehicle, timeMs,
     proof: args.proof, proofUrl: args.proofUrl, readByAi: args.readByAi, source: "discord", guildId,
   });
   if (!res.ok) {
     const why = res.error === "not_ready" ? "Time trials aren't open yet. Try again soon."
-      : res.error === "faster_than_record" ? `That's faster than the world record on ${track.name}. Check the time.`
+      : res.error === "faster_than_record" ? `That's faster than the world record on ${trackTitle(track)}. Check the time.`
       : "That time couldn't be saved. Try again in a moment.";
     await editOriginal(appId, token, { content: why, components: [] });
     return;
@@ -148,7 +173,27 @@ async function saveAndAnswer(args: {
       ...(unlinked ? [link("Link to GameShuffle", LINK_URL)] : []),
     )],
   });
-  if (res.best && !res.again && guildId) {
+  let recordPosted = false;
+  if (guildId && prior && timeMs < prior.timeMs && !res.again) {
+    const was = prior.player === actor.player
+      ? `Beat their own ${formatTime(prior.timeMs)}`
+      : `Was ${formatTime(prior.timeMs)} by ${(await describePlayers([prior.player])).get(prior.player)?.name ?? "a player"}`;
+    recordPosted = await postToPanelChannel(guildId, track.game, {
+      embeds: [{
+        title: `New server record on ${trackTitle(track)}`,
+        description: [
+          `**${actor.name}** · ${formatTime(timeMs)} · ${categoryText(track.game, cc, args.items, args.vehicle, TT_GAMES[track.game].classes.length > 1)}`,
+          `${was}${args.vehicle === "any" ? ` · ${ordinal(res.place)} on GameShuffle` : ""}`,
+        ].join("\n"),
+        color: COMP_COLOR,
+        ...(track.image ? { thumbnail: { url: track.image } } : {}),
+        footer: FOOTER,
+      }],
+      components: [row(btn("Verify", `${TT_VERIFY_PREFIX}${res.timeId}`, 3), btn("Report", `${TT_REPORT_PREFIX}${res.timeId}`, 2), link("Full board", boardUrl(track, cc, args.items, "any")))],
+    });
+  }
+  if (guildId) await refreshPanels(guildId, track.game).catch((err) => console.error("[tt panel] refresh failed:", err));
+  if (res.best && !res.again && guildId && !args.panel && !recordPosted) {
     const fields = [
       ...(res.server ? [{ name: "This server", value: `${ordinal(res.server.place)} of ${res.server.total}`, inline: true }] : []),
       { name: "GameShuffle", value: `${ordinal(res.place)} of ${res.total}`, inline: true },
@@ -156,7 +201,7 @@ async function saveAndAnswer(args: {
     ];
     await postFollowUp(appId, token, {
       embeds: [{
-        title: `New best on ${track.name} (${categoryText(track.game, cc, args.items, args.vehicle, TT_GAMES[track.game].classes.length > 1)})`,
+        title: `New best on ${trackTitle(track)} · ${categoryText(track.game, cc, args.items, args.vehicle, TT_GAMES[track.game].classes.length > 1)}`,
         description: `${actor.name} · **${formatTime(timeMs)}**${res.previousMs != null ? `, ${formatGap(res.previousMs - timeMs)} faster than before` : ""}`,
         color: COLOR,
         fields,
@@ -169,7 +214,7 @@ async function saveAndAnswer(args: {
   }
 }
 
-async function fetchAttachment(a: Attachment): Promise<Uint8Array | null> {
+export async function fetchAttachment(a: Attachment): Promise<Uint8Array | null> {
   let host = "";
   try { host = new URL(a.url).hostname; } catch { return null; }
   if (host !== "cdn.discordapp.com" && host !== "media.discordapp.net") return null;
@@ -187,6 +232,8 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
   const appId = String(interaction.application_id ?? "");
   const token = String(interaction.token ?? "");
   const guildId = (interaction.guild_id as string | undefined) ?? null;
+
+  if (sub === "panel") return handleTtPanelCommand(interaction, String(optValue(opts, "game") ?? ""));
 
   if (sub === "add") {
     const track = trackFromKey(String(optValue(opts, "track") ?? "")) ?? searchTracks(String(optValue(opts, "track") ?? ""), undefined, 1)[0] ?? null;
@@ -224,11 +271,11 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
           if (!timeMs) {
             const read = await readScreenshot({ jpeg: shot.jpeg, game: track.game, userId: actor.userId, capKey: `d:${user.id}` });
             if (!read.ok) {
-              await editOriginal(appId, token, { content: read.error === "cap" ? "That's all the screenshots I can read for you today. Add the time yourself: /gs-tt add with time:" : "I couldn't read that screenshot. Add the time yourself: /gs-tt add with time:" });
+              await editOriginal(appId, token, { content: read.error === "cap" ? `That's all the screenshots I can read for you today. Add the time yourself: ${ttCmd(appId)} add with time:` : `I couldn't read that screenshot. Add the time yourself: ${ttCmd(appId)} add with time:` });
               return;
             }
             if (read.read.notResult || !read.read.timeMs) {
-              await editOriginal(appId, token, { content: read.read.notResult ? "That doesn't look like a time trial result. Add the time yourself: /gs-tt add with time:" : "I couldn't read every digit of the time. Add it yourself: /gs-tt add with time:" });
+              await editOriginal(appId, token, { content: read.read.notResult ? `That doesn't look like a time trial result. Add the time yourself: ${ttCmd(appId)} add with time:` : `I couldn't read every digit of the time. Add it yourself: ${ttCmd(appId)} add with time:` });
               return;
             }
             readMs = read.read.timeMs;
@@ -242,8 +289,8 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
             const otherTrack = read.read.trackId && read.read.trackId !== track.id ? ttTrack(read.read.game ?? track.game, read.read.trackId) : null;
             await editOriginal(appId, token, {
               content: [
-                `From your screenshot: **${formatTime(readMs)}** on ${track.name}${classText(track, readCc)}. Is that right?`,
-                ...(otherTrack ? [`(The screenshot looks like ${otherTrack.name}. If so, run /gs-tt add again with that track.)`] : []),
+                `From your screenshot: **${formatTime(readMs)}** on ${trackTitle(track)}${classText(track, readCc)}. Is that right?`,
+                ...(otherTrack ? [`(The screenshot looks like ${trackTitle(otherTrack)}. If so, run ${ttCmd(appId)} add again with that track.)`] : []),
               ].join("\n"),
               components: [row(btn("Add it", `${TT_OK_PREFIX}${draftId}`, 3), btn("Cancel", `${TT_NO_PREFIX}${draftId}`, 2))],
             });
@@ -282,8 +329,8 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
         if (board.mine) lines.push(`…\n${board.mine.rank}. ${board.mine.name} · **${formatTime(board.mine.timeMs)}**`);
         await editOriginal(appId, token, {
           embeds: [{
-            title: `${track.name} (${categoryText(track.game, cc, items, vehicle, TT_GAMES[track.game].classes.length > 1)})`,
-            description: lines.length ? lines.join("\n") : "No times yet. Be the first: /gs-tt add",
+            title: `${trackTitle(track)} · ${categoryText(track.game, cc, items, vehicle, TT_GAMES[track.game].classes.length > 1)}`,
+            description: lines.length ? lines.join("\n") : `No times yet. Be the first: ${ttCmd(appId)} add`,
             color: COLOR,
             ...(track.image ? { thumbnail: { url: track.image } } : {}),
             footer: { text: `${scope === "server" ? "This server" : "Everyone on GameShuffle"} · ${board.total} ${board.total === 1 ? "player" : "players"} · gameshuffle.co/time-trials` },
@@ -315,26 +362,10 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
           const actor = await discordActor(user);
           player = actor.player; who = actor.name;
         }
-        const bests = (await playerBests(player as TtActor["player"])).filter((b) => (!game || b.game === game) && b.items === "shrooms" && b.vehicle === "any");
-        if (!bests.length) { await editOriginal(appId, token, { content: name ? `${who} has no times${game ? ` in ${TT_GAMES[game].label}` : ""} yet.` : "You have no times yet. Add one: /gs-tt add" }); return; }
-        const top = bests.slice(0, 10).map((b) => {
-          const t = ttTrack(b.game, b.track)!;
-          return `${trackLabel(t)}${classText(t, b.cc)} · **${formatTime(b.timeMs)}** · ${ordinal(b.place)} of ${b.total}`;
-        });
-        const firsts = bests.filter((b) => b.place === 1).length;
-        await editOriginal(appId, token, {
-          embeds: [{
-            title: `${who}'s time trials`,
-            description: top.join("\n"),
-            color: COLOR,
-            fields: [
-              { name: "Tracks", value: String(bests.length), inline: true },
-              { name: "Records", value: String(firsts), inline: true },
-            ],
-            footer: FOOTER,
-          }],
-          components: profile ? [row(link("Profile", `${SITE_URL}${profile}`))] : [],
-        });
+        const all = (await playerBests(player as TtActor["player"])).filter((b) => b.items === "shrooms" && b.vehicle === "any");
+        const msg = playerReply(who, all, game, player, profile);
+        if (!msg) { await editOriginal(appId, token, { content: name ? `${who} has no times${game ? ` in ${TT_GAMES[game].label}` : ""} yet.` : `You have no times yet. Add one: ${ttCmd(appId)} add` }); return; }
+        await editOriginal(appId, token, msg);
       } catch (err) {
         console.error("[tt] player failed:", err);
         await editOriginal(appId, token, { content: "That lookup couldn't load. Try again in a moment." });
@@ -343,7 +374,47 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
     return deferred(false);
   }
 
-  return reply({ content: "Use /gs-tt add, /gs-tt track or /gs-tt player." }, true);
+  return reply({ content: `Use ${ttCmd(appId)} add, ${ttCmd(appId)} track or ${ttCmd(appId)} player.` }, true);
+}
+
+/**
+ * The /gs-tt player reply (picks 2026-10-30): one game (the game option, else the one with the most
+ * times), grouped by speed, a code per line, best places first; counts are tracks per speed out of the
+ * game's own list. Null when there's nothing to show.
+ */
+export function playerReply(who: string, all: TtBest[], game: TtGame | null, player: string, profile: string | null): Record<string, unknown> | null {
+  const counts = new Map<TtGame, number>();
+  for (const b of all) counts.set(b.game, (counts.get(b.game) ?? 0) + 1);
+  const g: TtGame | null = game ?? ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null);
+  const bests = g ? all.filter((b) => b.game === g) : [];
+  if (!g || !bests.length) return null;
+  const classes = TT_GAMES[g].classes;
+  const per = classes.length > 1 ? 8 : 12;
+  const total = ttTracks(g).length;
+  const sections: string[] = [];
+  const fields: { name: string; value: string; inline: boolean }[] = [];
+  for (const cc of classes) {
+    const rows = bests.filter((b) => b.cc === cc).sort((a, b) => a.place - b.place || a.timeMs - b.timeMs);
+    if (!rows.length) continue;
+    const lines = rows.slice(0, per).map((b) => {
+      const t = ttTrack(b.game, b.track)!;
+      return `\`${trackCode(t) ?? t.name}\` **${formatTime(b.timeMs)}** · ${ordinal(b.place)} of ${b.total}`;
+    });
+    if (rows.length > per) lines.push(`*and ${rows.length - per} more*`);
+    sections.push(`${classes.length > 1 ? `**${cc}cc**\n` : ""}${lines.join("\n")}`);
+    fields.push({ name: classes.length > 1 ? `${cc}cc` : "Tracks", value: `${new Set(rows.map((r) => r.track)).size} of ${total}`, inline: true });
+  }
+  fields.push({ name: "Records", value: String(bests.filter((b) => b.place === 1).length), inline: true });
+  return {
+    embeds: [{
+      title: `${who}'s time trials · ${TT_GAMES[g].short}`,
+      description: sections.join("\n\n"),
+      color: COLOR,
+      fields,
+      footer: { text: "Mushrooms · gameshuffle.co/time-trials" },
+    }],
+    components: [row(link("All times", `${SITE_URL}${playerPagePath(player, profile)}?game=${g}`))],
+  };
 }
 
 /** The "Add your clip" form: the link goes to the review queue (round 2). */
@@ -373,19 +444,23 @@ export async function handleTtButton(interaction: Record<string, unknown>, custo
     const ok = customId.startsWith(TT_OK_PREFIX);
     const draftId = customId.slice(ok ? TT_OK_PREFIX.length : TT_NO_PREFIX.length);
     const { data } = await db.from("tt_drafts").select("player, discord_id, guild_id, payload, expires_at").eq("id", draftId).maybeSingle();
-    const draft = data as { player: string; discord_id: string; guild_id: string | null; payload: { game: TtGame; track: string; cc: TtClass; timeMs: number; proofUrl: string | null; name: string; items?: TtItems; vehicle?: TtVehicle; clip?: string | null }; expires_at: string } | null;
+    const draft = data as { player: string; discord_id: string; guild_id: string | null; payload: { game: TtGame; track: string | null; cc: TtClass; timeMs: number | null; proofUrl: string | null; name: string; items?: TtItems; vehicle?: TtVehicle; clip?: string | null; via?: "panel"; read?: boolean }; expires_at: string } | null;
     if (!draft || draft.discord_id !== user.id) return reply({ content: "That isn't yours to confirm." }, true);
+    const fromPanel = draft.payload.via === "panel";
+    if (ok && (!draft.payload.track || !draft.payload.timeMs)) return reply({ content: "Pick the track and add the time first." }, true);
     await db.from("tt_drafts").delete().eq("id", draftId);
     if (!ok) return Response.json({ type: 7, data: { content: "Cancelled. Nothing was saved.", components: [] } });
-    if (new Date(draft.expires_at).getTime() < Date.now()) return Response.json({ type: 7, data: { content: "That waited too long. Run /gs-tt add again.", components: [] } });
-    const track = ttTrack(draft.payload.game, draft.payload.track);
+    if (new Date(draft.expires_at).getTime() < Date.now()) return Response.json({ type: 7, data: { content: fromPanel ? "That waited too long. Press Add a time on the panel again." : `That waited too long. Run ${ttCmd(appId)} add again.`, components: [] } });
+    const track = ttTrack(draft.payload.game, draft.payload.track!);
     if (!track) return Response.json({ type: 7, data: { content: "That track isn't on our list any more.", components: [] } });
+    const timeMs = draft.payload.timeMs!;
     after(async () => {
       const actor = await discordActor(user);
       await saveAndAnswer({
-        appId, token, actor, guildId: draft.guild_id, track, cc: draft.payload.cc, timeMs: draft.payload.timeMs,
-        proof: draft.payload.proofUrl ? "screenshot" : "none", proofUrl: draft.payload.proofUrl, readByAi: true,
+        appId, token, actor, guildId: draft.guild_id, track, cc: draft.payload.cc, timeMs,
+        proof: draft.payload.proofUrl ? "screenshot" : "none", proofUrl: draft.payload.proofUrl, readByAi: fromPanel ? draft.payload.read === true : true,
         items: draft.payload.items ?? "shrooms", vehicle: draft.payload.vehicle ?? "any", clip: draft.payload.clip ?? null,
+        panel: fromPanel,
       });
     });
     return Response.json({ type: 6 });

@@ -37,6 +37,12 @@ export interface BrowseHeroProps {
   photo?: LifestyleSlot;
   /** A specific photo (a game's key art from the CDN) instead of a library slot. */
   image?: { src: string; alt: string; width: number; height: number; focus?: string };
+  /**
+   * A small picture (a time trial track's art) blurred across the right of the band, fading into the
+   * navy behind the title (track header picks, 2026-10-30). Too small to show sharp at this size, so
+   * it's colour and a hint of shape, never a photo; the glyph field steps aside for it.
+   */
+  backdrop?: string | null;
   primary?: { href: string; label: string } | null;
   secondary?: { href: string; label: string } | null;
   /** A second column beside the copy (the homepage's showcase). Stacks under it on narrow screens. */
@@ -54,7 +60,7 @@ export interface BrowseHeroProps {
   note?: ReactNode;
 }
 
-export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary, aside, actions, compact, subShort, note }: BrowseHeroProps) {
+export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, backdrop, primary, secondary, aside, actions, compact, subShort, note }: BrowseHeroProps) {
   const shot = image ?? (photo ? lifestyle(photo) : null);
   const copy = (
     <div className="browse-hero__inner">
@@ -82,7 +88,7 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, p
     </div>
   );
   return (
-    <header className={`browse-hero browse-hero--${accent}${aside ? " browse-hero--split" : ""}${compact ? " browse-hero--compact" : ""}`}>
+    <header className={`browse-hero browse-hero--${accent}${aside ? " browse-hero--split" : ""}${compact ? " browse-hero--compact" : ""}${backdrop ? " browse-hero--backdrop" : ""}`}>
       {shot && (
         /* Under the aurora and the glyph field, not over them: the photo is
            ground for the brand layers, so the band stays recognisably ours
@@ -102,7 +108,12 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, p
       {/* The glyph field is what a band wears when it has no photograph. With
           one, it is a screen door over someone's face: two competing textures
           fighting for the same surface, and the photo loses. */}
-      {!shot && (
+      {backdrop && !shot && (
+        <span className="browse-hero__backdrop" aria-hidden>
+          <Image src={backdrop} alt="" fill sizes="320px" />
+        </span>
+      )}
+      {!shot && !backdrop && (
         <IconField category={field} seed={`hero-${field}`} opacity={0.085} className="browse-hero__field" />
       )}
       {/* Veils the field under the copy column only. The pattern is welcome on
