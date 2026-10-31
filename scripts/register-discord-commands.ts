@@ -3,6 +3,14 @@
  *
  *   npx tsx scripts/register-discord-commands.ts --dev   the dev bot (DEV_DISCORD_APPLICATION_ID + DEV_DISCORD_BOT_TOKEN)
  *   npx tsx scripts/register-discord-commands.ts         DISCORD_APPLICATION_ID + DISCORD_BOT_TOKEN
+ *   npx tsx scripts/register-discord-commands.ts --app comp --dry   prints the commands it would register, sends nothing
+ *   npx tsx scripts/register-discord-commands.ts --app comp
+ *                                                        GameShuffle Competitive (NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID +
+ *                                                        DISCORD_COMP_BOT_TOKEN): /tt, /mmr, /room, Save to GameShuffle
+ *
+ * GameShuffle Competitive (picks 2026-10-30) gets the competitive commands under short names, built from the
+ * main app's definitions below, and can be added to a person's own account as well as to servers. The main
+ * app keeps /gs-tt, /gs-mmr and /gs-room until COMP_MOVE_ENDS (src/lib/discord/appIds.ts).
  *
  * For the production bot, run without --dev with the production values set in
  * the shell (they win over .env.local), e.g.
@@ -23,11 +31,15 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 const DEV = process.argv.includes("--dev");
-const APPLICATION_ID = DEV ? process.env.DEV_DISCORD_APPLICATION_ID : process.env.DISCORD_APPLICATION_ID;
-const BOT_TOKEN = DEV ? process.env.DEV_DISCORD_BOT_TOKEN : process.env.DISCORD_BOT_TOKEN;
+const DRY = process.argv.includes("--dry");
+const appArg = process.argv.indexOf("--app");
+const COMP = appArg >= 0 && process.argv[appArg + 1] === "comp";
+const APPLICATION_ID = COMP ? process.env.NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID : DEV ? process.env.DEV_DISCORD_APPLICATION_ID : process.env.DISCORD_APPLICATION_ID;
+const BOT_TOKEN = COMP ? process.env.DISCORD_COMP_BOT_TOKEN : DEV ? process.env.DEV_DISCORD_BOT_TOKEN : process.env.DISCORD_BOT_TOKEN;
+const ID_VAR = COMP ? "NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID" : DEV ? "DEV_DISCORD_APPLICATION_ID" : "DISCORD_APPLICATION_ID";
 
-if (!APPLICATION_ID || !BOT_TOKEN) {
-  console.error(`Missing ${DEV ? "DEV_DISCORD_APPLICATION_ID or DEV_DISCORD_BOT_TOKEN" : "DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN"} in environment`);
+if (!DRY && (!APPLICATION_ID || !BOT_TOKEN)) {
+  console.error(`Missing ${COMP ? "NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID or DISCORD_COMP_BOT_TOKEN" : DEV ? "DEV_DISCORD_APPLICATION_ID or DEV_DISCORD_BOT_TOKEN" : "DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN"} in environment`);
   process.exit(1);
 }
 
@@ -39,9 +51,9 @@ function tokenOwner(token: string): string | null {
     return null;
   }
 }
-const owner = tokenOwner(BOT_TOKEN);
+const owner = BOT_TOKEN ? tokenOwner(BOT_TOKEN) : null;
 if (owner && owner !== APPLICATION_ID) {
-  console.error(`That bot token belongs to a different Discord application than ${DEV ? "DEV_DISCORD_APPLICATION_ID" : "DISCORD_APPLICATION_ID"}.`);
+  console.error(`That bot token belongs to a different Discord application than ${ID_VAR}.`);
   console.error(DEV ? "Check the DEV_ values in .env.local." : "For the dev bot, run with --dev. For production, set the production app id and token in the shell (see the top of this file).");
   process.exit(1);
 }
@@ -377,6 +389,16 @@ const commands = [
   },
 ];
 
+/** GameShuffle Competitive's commands: the competitive ones under short names, usable in servers and, added to
+ *  a person's own account, anywhere (submitting a time still needs a server; the handler says so). */
+const COMP_FROM: Record<string, string> = { "gs-tt": "tt", "gs-mmr": "mmr", "gs-room": "room" };
+const compCommands = [
+  ...commands
+    .filter((c) => c.name in COMP_FROM)
+    .map((c) => ({ ...c, name: COMP_FROM[c.name], integration_types: [0, 1], contexts: [0, 1, 2] })),
+  ...commands.filter((c) => c.name === "Save to GameShuffle"),
+];
+
 /** The Activity's entry point: Discord launches the Activity itself (handler 2) and posts that it started. */
 const ACTIVITY_ENTRY_POINT = {
   name: "launch",
@@ -409,6 +431,11 @@ async function entryPoint(url: string): Promise<object | null> {
 }
 
 async function registerCommands() {
+  if (DRY) {
+    const list = COMP ? compCommands : commands;
+    console.log(JSON.stringify(list.map((c) => ({ name: c.name, type: (c as { type?: number }).type ?? 1, integration_types: (c as { integration_types?: number[] }).integration_types, subcommands: ((c as { options?: { type: number; name: string }[] }).options ?? []).filter((o) => o.type === 1).map((o) => o.name) })), null, 1));
+    return;
+  }
   const url = `https://discord.com/api/v10/applications/${APPLICATION_ID}/commands`;
   const entry = await entryPoint(url);
 
@@ -418,7 +445,7 @@ async function registerCommands() {
       Authorization: `Bot ${BOT_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(entry ? [...commands, entry] : commands),
+    body: JSON.stringify(entry ? [...(COMP ? compCommands : commands), entry] : COMP ? compCommands : commands),
   });
 
   if (response.ok) {

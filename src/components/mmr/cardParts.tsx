@@ -2,9 +2,9 @@
 
 /**
  * Parts every MMR card layout shares (MmrCard.tsx's four fixed layouts and MmrRolling.tsx):
- * the glyph fields, the big number's roll or count, squares, the change chip, the GameShuffle
- * line, tonight's goal and streak chips, the dots for things that take turns, the moment
- * layers and how a moment plays, and the card's theme variables and screen-reader summary.
+ * the glyph fields, the big number's roll or count (or the division's name, Rank only), squares, the
+ * change chip, the GameShuffle line, tonight's goal and streak chips, the moment layers and how a
+ * moment plays, the card's theme variables (with the name's fit) and screen-reader summary.
  */
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
@@ -143,16 +143,34 @@ export function Squares({ marks, five }: { marks: Square[]; five?: boolean }) {
   );
 }
 
-export function Delta({ last, place }: { last: MmrView["last"]; place: boolean }) {
-  if (!last) return null;
+/** The last change: "+46 · 4th" (or "+46" where room is short); with MMR kept off the card, only the place. */
+export function Delta({ last, place, noMmr = false }: { last: MmrView["last"]; place: boolean; noMmr?: boolean }) {
+  if (!last || (noMmr && !last.place)) return null;
   const up = last.delta > 0;
   return (
     <span className={`mmr-delta ${up ? "up" : "down"}`}>
       {up ? <IconTrendingUp aria-hidden /> : <IconTrendingDown aria-hidden />}
-      <span>{signed(last.delta)}{place && last.place ? ` · ${placeWord(last.place)}` : ""}</span>
+      <span>{noMmr ? placeWord(last.place!) : `${signed(last.delta)}${place && last.place ? ` · ${placeWord(last.place)}` : ""}`}</span>
     </span>
   );
 }
+
+/** The division's name as the big number (Rank only). */
+export function DivisionBig({ name }: { name: string }) {
+  return <span className={`mmr-big mmr-big--div${name.length > 10 ? " mmr-big--divlong" : ""}`}>{name}</span>;
+}
+
+/** The look's moment switches, with MMR kept off the card: no pop, roll, goal or new peak (they'd show MMR). */
+export function momentsFor(info: MmrInfo): MmrInfo["moments"] {
+  return info.hideMmr ? { ...info.moments, pop: false, roll: false, goal: false, peak: false } : info.moments;
+}
+
+/** How much a name's type shrinks to fit (1 up to 8 characters, down to 0.6 for 14 or more); `tight` is the strip's,
+ *  which has the least room (1 up to 5 characters, down to 0.55). */
+export const nameFit = (name: string, tight = false) => {
+  const from = tight ? 5 : 8;
+  return Math.max(tight ? 0.55 : 0.6, Math.min(1, from / Math.max(from, name.length)));
+};
 
 export function Brand({ brand }: { brand: MmrLook["brand"] }) {
   if (brand === "off" || brand === "tab") return null;
@@ -167,7 +185,9 @@ export function Brand({ brand }: { brand: MmrLook["brand"] }) {
 export function World({ rank }: { rank: number | null }) {
   if (!rank) return null;
   const laurel = milestoneTier(rank) != null;
-  return <span className="mmr-world">{laurel && <IconLaurelWreathFilled aria-hidden />}#{rank.toLocaleString("en-US")} world</span>;
+  // The text has its own span: the laurel comes and goes, and React can't insert it in front of a bare
+  // text node once a browser's translator has swapped that node out (Sentry GAMESHUFFLE-6M).
+  return <span className="mmr-world">{laurel && <IconLaurelWreathFilled aria-hidden />}<span>#{rank.toLocaleString("en-US")} world</span></span>;
 }
 
 /** Tonight's goal as a chip that fills from tonight's starting number to the goal (GS Pro). */
@@ -187,10 +207,6 @@ export function StreakChip({ n, flame }: { n: number; flame: boolean }) {
   return <span className="mmr-chip"><Icon aria-hidden />{n} wins in a row</span>;
 }
 
-/** Small dots under the slot whose details take turns (decoration: the card is an OBS source). */
-export function Dots({ n, at }: { n: number; at: number }) {
-  return <span className="mmr-dots" aria-hidden="true">{Array.from({ length: n }, (_, i) => <i key={i} className={i === at ? "on" : undefined} />)}</span>;
-}
 
 /** The newest events: "Tue · Tier C · Free-for-all", the place and the change. */
 
@@ -250,7 +266,7 @@ export function playMoment(el: HTMLElement, play: MmrPlay, m: MmrInfo["moments"]
 }
 
 /** The card's theme variables (colors, font, glyph fields, the progress bar's fill). */
-export function cardVars(look: MmrLook, div: DivisionLook, glyphs: DivisionLook, pct: number): CSSProperties {
+export function cardVars(look: MmrLook, div: DivisionLook, glyphs: DivisionLook, pct: number, name = ""): CSSProperties {
   const light = look.surface === "light" && look.fill !== "picture";
   const ink = light ? "#1b2a6b" : "#ffffff";
   const op = light ? 0.08 : 0.12;
@@ -259,6 +275,9 @@ export function cardVars(look: MmrLook, div: DivisionLook, glyphs: DivisionLook,
     "--mmr-field": field(RACING, ink, op),
     "--mmr-field2": field(divisionGlyphs(glyphs), ink, op + 0.08),
     "--mmr-p": `${Math.round(pct * 100)}%`,
+    // Long lounge names get smaller type instead of being cut (names are up to 20 or so characters).
+    "--mmr-nfit": String(Math.round(nameFit(name) * 100) / 100),
+    "--mmr-nfit-tight": String(Math.round(nameFit(name, true) * 100) / 100),
   } as CSSProperties;
 }
 
@@ -282,13 +301,13 @@ export function CountryTag({ code, mode }: { code: string; mode: MmrLook["countr
 }
 
 /** Tonight's run and/or last 10 under the number (Strip, Sticker, Rolling's MMR slide). */
-export function UnderLine({ pieces, view }: { pieces: Shown[]; view: MmrView }) {
+export function UnderLine({ pieces, view, noMmr = false }: { pieces: Shown[]; view: MmrView; noMmr?: boolean }) {
   if (!pieces.length) return null;
   const t = view.tonight;
   return (
     <span className="mmr-under">
       {pieces.includes("tonight") && (
-        <span className="mmr-under__item"><small>Tonight</small><b className={t.delta > 0 ? "up" : t.delta < 0 ? "down" : undefined}>{signed(t.delta)} · {t.w}-{t.l}</b></span>
+        <span className="mmr-under__item"><small>Tonight</small><b className={t.delta > 0 ? "up" : t.delta < 0 ? "down" : undefined}>{noMmr ? `${t.w}-${t.l}` : `${signed(t.delta)} · ${t.w}-${t.l}`}</b></span>
       )}
       {pieces.includes("last10") && view.squares.length > 0 && (
         <span className="mmr-under__item"><small>Last 10</small><Squares marks={view.squares} /></span>
@@ -300,7 +319,10 @@ export function UnderLine({ pieces, view }: { pieces: Shown[]; view: MmrView }) 
 /** For screen readers, everything the card shows at once (nothing takes turns here). `extra`: the other pieces shown. */
 export function cardSummary(view: MmrView, info: MmrInfo, g: GoalProgress | null, extra: Shown[]): string {
   const more = extra.filter((p) => !["world", "progress", "goal", "mmr", "name", "division", "game", "cc"].includes(p)).map((p) => pieceText(p, view, info, g)?.chip).filter(Boolean);
-  return `${view.name}: ${view.mmr == null ? "no MMR yet" : `${fmtMmr(view.mmr)} MMR`}, ${view.division}${view.next && view.toNext != null ? `, ${fmtMmr(view.toNext)} to ${view.next.name}` : ""}${view.worldRank ? `, #${view.worldRank.toLocaleString("en-US")} in the world` : ""}.${g ? ` Tonight's goal: ${goalText(g)}.` : ""}${more.length ? ` ${more.join(". ")}.` : ""} ${MMR_GAMES[view.game].short}.`;
+  const world = view.worldRank ? `, #${view.worldRank.toLocaleString("en-US")} in the world` : "";
+  // MMR kept off the card stays off for screen readers too.
+  if (info.hideMmr) return `${view.name}: ${view.division}${view.next ? `, next ${view.next.name}` : ""}${world}.${more.length ? ` ${more.join(". ")}.` : ""} ${MMR_GAMES[view.game].short}.`;
+  return `${view.name}: ${view.mmr == null ? "no MMR yet" : `${fmtMmr(view.mmr)} MMR`}, ${view.division}${view.next && view.toNext != null ? `, ${fmtMmr(view.toNext)} to ${view.next.name}` : ""}${world}.${g ? ` Tonight's goal: ${goalText(g)}.` : ""}${more.length ? ` ${more.join(". ")}.` : ""} ${MMR_GAMES[view.game].short}.`;
 }
 
 /** The "Built by GameShuffle" tab under the card, when the look puts it there. */

@@ -240,6 +240,26 @@ export function seasonNumbers(changes: MmrChange[]): MmrView["season"] {
 }
 
 /** The card as it stood after the change `uptoId` (the latest when left out). */
+/**
+ * The changes (newest first) with ids that rise with time. MKCentral numbers strikes and penalties apart from
+ * tables (a strike can be id 126817 after table 1153259), and a table's TableDelete row shares the table's id,
+ * so on their own the ids don't say which change is newer. A row whose id isn't above every earlier one takes
+ * the highest id so far plus a hundredth (two in a row: two hundredths), keeping its place in time.
+ * (2026-10-30: a strike sorted first with its low id made a live card replay the last five events every poll.)
+ */
+export function timeOrderedIds(changes: MmrChange[]): MmrChange[] {
+  let max = -Infinity;
+  let bump = 0;
+  const out: MmrChange[] = [];
+  for (let i = changes.length - 1; i >= 0; i--) {
+    const c = changes[i];
+    if (c.id > max) { max = c.id; bump = 0; out.push(c); continue; }
+    bump += 1;
+    out.push({ ...c, id: Math.round((max + bump / 100) * 100) / 100 });
+  }
+  return out.reverse();
+}
+
 export function viewOf(src: MmrSource, uptoId?: number): MmrView {
   const idx = uptoId == null ? 0 : Math.max(0, src.changes.findIndex((c) => c.id === uptoId));
   const changes = src.changes.slice(idx);

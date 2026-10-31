@@ -30,7 +30,7 @@
 .mmr-studio { display: grid; gap: var(--spacing-32); }
 .mmr-studio h2 { margin: 0; font-size: var(--font-size-20); }
 .mmr-studio > section { display: grid; gap: var(--spacing-12); }
-.mmr-studio > section + section, .mmr-studio__grid + section { padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.mmr-studio > section + section, .mmr-studio > * + .mmr-studio__grid, .mmr-studio__grid + section, .mmr-studio__grid + .mmr-studio__use, .mmr-studio__use + section { padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
 .mmr-studio__find { display: grid; gap: var(--spacing-12); grid-template-columns: minmax(0, 1fr); align-items: end; }
 @media (min-width: 760px) { .mmr-studio__find { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; } }
 .mmr-studio__field { display: grid; gap: var(--spacing-4); min-width: 0; }
@@ -38,7 +38,7 @@
 .mmr-studio__note { margin: 0; font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); }
 .mmr-studio__note--warn { color: var(--text-warning, #b45309); }
 .mmr-studio__grid { display: grid; gap: var(--spacing-24); grid-template-columns: minmax(0, 1fr); align-items: start; }
-@media (min-width: 1100px) { .mmr-studio__grid { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); } .mmr-studio__view { position: sticky; top: calc(var(--gs-nav-offset, 64px) + 16px); transition: var(--gs-nav-slide, none); } }
+@media (min-width: 1100px) { .mmr-studio__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 42rem); } .mmr-studio__view { position: sticky; top: calc(var(--gs-nav-offset, 64px) + 16px); transition: var(--gs-nav-slide, none); } }
 .mmr-studio__view { display: grid; gap: var(--spacing-12); min-width: 0; }
 .mmr-studio__stage { border-radius: var(--radius-16, 16px); padding: var(--spacing-20) var(--spacing-12); background: radial-gradient(60% 80% at 80% 20%, rgba(255, 200, 80, .2), transparent 60%), radial-gradient(70% 90% at 10% 90%, rgba(60, 180, 255, .26), transparent 60%), linear-gradient(135deg, #3a2a7a, #1d2f5c 45%, #0f3b39); min-width: 0; }
 .mmr-studio__stage .mmr-frame { display: grid; justify-items: center; }
@@ -78,10 +78,6 @@
 .mmr-studio__pane { display: grid; gap: var(--spacing-16); min-width: 0; }
 .mmr-info .empac-switch-helper { font-size: var(--font-size-14); line-height: 1.4; }
 .mmr-info { display: grid; gap: var(--spacing-16); min-width: 0; }
-.mmr-presets { display: grid; gap: var(--spacing-8); grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.mmr-preset.empac-card { display: grid; gap: var(--spacing-4); align-content: start; text-align: start; min-width: 0; min-height: 4.4rem; }
-.mmr-preset__name { font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
-.mmr-preset__note { font-size: var(--font-size-14); line-height: 1.4; color: var(--text-secondary); }
 .mmr-info__list { display: grid; gap: var(--spacing-12); }
 .mmr-info__piece { display: grid; gap: var(--spacing-8); min-width: 0; }
 .mmr-info__label { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
@@ -130,3 +126,64 @@
 .keep-looks__free { margin: 0; padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); font-size: var(--font-size-14); color: var(--text-secondary); }
 .keep-looks__outside { display: grid; gap: var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
 .keep-looks .empac-button { white-space: normal; height: auto; min-height: 4rem; text-align: center; }
+/* MKCentral's credit for the division medals, under the line above it. */
+.mmr-page__credit { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* ── Studio rounds 1 and 2 (2026-10-30, picks https://claude.ai/artifact/LhQzo8t9w4LNPRkbHodt1s): one rhythm.
+   Section headings 20px, 24px and a thin line between sections, 16px between groups, fields 48px, chips 32px,
+   notes 14px under what they explain. ── */
+
+/* Start from a ready-made card: six CDS cards, three across on tablets, a sideways row on phones. */
+.mmr-starts { display: grid; gap: var(--spacing-12); min-width: 0; }
+.mmr-starts__row { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (min-width: 1000px) { .mmr-starts__row { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (max-width: 639px) {
+  .mmr-starts__row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: var(--spacing-8); }
+  .mmr-starts__row > .mmr-start { flex: 0 0 min(46%, 18rem); scroll-snap-align: start; }
+}
+.mmr-start.empac-card { display: grid; gap: var(--spacing-4); align-content: start; text-align: start; min-width: 0; }
+/* The pictures are 4:3 with the backdrop drawn in, so they set the box's height themselves. Never `aspect-ratio`
+   here: inside the CDS card's button it made Chrome spend over a minute on one layout when the studio changed. */
+.mmr-start__pic { display: block; margin-bottom: var(--spacing-4); border-radius: var(--radius-8, 8px); overflow: hidden; background: #1d2f5c; }
+.mmr-start__pic img { display: block; width: 100%; height: auto; }
+.mmr-start__name { font-size: var(--font-size-16); font-weight: 700; line-height: 1.25; color: var(--text-primary); }
+.mmr-start__note { font-size: var(--font-size-14); line-height: 1.35; color: var(--text-secondary); }
+
+/* Under the preview: the card's size in OBS, beside the link. */
+.mmr-studio__obsline { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--spacing-8) var(--spacing-12); padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); font-size: var(--font-size-14); color: var(--text-secondary); }
+.mmr-studio__obsline b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* Style and More: dropdowns two across, on one edge. */
+.mmr-studio__two { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 420px) { .mmr-studio__two { grid-template-columns: minmax(0, 1fr); } }
+.mmr-studio__more { display: grid; gap: var(--spacing-16); padding: var(--spacing-8) 0 var(--spacing-16); }
+
+/* Folded groups: the title on the left, how many are on beside the arrow. */
+.mmr-fold { border-bottom: 1px solid var(--border-default); }
+.mmr-fold .empac-accordion__trigger { padding: var(--spacing-12) 0; min-height: 4.8rem; }
+.mmr-fold .empac-accordion__content-inner { padding: 0 0 var(--spacing-16); }
+.mmr-fold__title { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-12); width: 100%; font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
+.mmr-fold__count { margin-left: auto; padding-right: var(--spacing-12); font-size: var(--font-size-14); font-weight: 400; color: var(--text-secondary); white-space: nowrap; }
+
+/* How many details are on, against the layout's room. */
+.mmr-meter-wrap { display: grid; gap: var(--spacing-8); }
+.mmr-meter { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); border-radius: var(--radius-8, 8px); background: var(--bg-secondary, #eef1f8); font-size: var(--font-size-14); color: var(--text-secondary); }
+.mmr-meter b { font-size: var(--font-size-16); color: var(--text-primary); }
+.mmr-meter__marks { display: inline-flex; gap: var(--spacing-4); }
+.mmr-meter__marks i { width: 2.2rem; height: .6rem; border-radius: 99rem; background: var(--border-default); }
+.mmr-meter__marks i.on { background: var(--bg-primary, #2f5bea); }
+
+/* Tonight's goal, under its switch. */
+.mmr-studio__goal { display: grid; gap: var(--spacing-8); }
+.mmr-studio__goal .mmr-studio__goalform { max-width: none; }
+
+/* Below the studio: Add it to OBS beside After the stream. */
+.mmr-studio__use { display: grid; gap: var(--spacing-24); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 900px) { .mmr-studio__use { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+/* Lined up with the preview and the controls above. */
+@media (min-width: 1100px) { .mmr-studio__use { grid-template-columns: minmax(0, 1fr) minmax(0, 42rem); } }
+.mmr-studio__use > section, .mmr-studio__after { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; }
+.mmr-studio__item { display: grid; gap: var(--spacing-8); min-width: 0; }
+.mmr-studio__item + .mmr-studio__item { padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); }
+.mmr-studio__after .mmr-studio__sub { margin: 0; }
+@media (max-width: 899px) { .mmr-studio__after { padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); } }

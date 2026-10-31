@@ -11,8 +11,14 @@
  * live beside the card, keyed by the same ids (src/components/mmr/pieceIcons.ts).
  *
  * Each layout gives some pieces a spot of their own (the name, the big number, the bar) and
- * has room for a fixed number of details. When more details are on than it fits, the extras
- * take turns in the last slot, changing every 8 seconds, in list order (`fitSlots`).
+ * has room for a fixed number of details (studio round 2, 2026-10-30, picks
+ * https://claude.ai/artifact/LhQzo8t9w4LNPRkbHodt1s, all as recommended): Deck card 3, Overlay panel 4,
+ * Squares strip 1, Sticker 1, Rolling as many as are on. Nothing takes turns in a slot any more: the
+ * studio stops at the limit (`roomLeft`), a smaller layout keeps the first ones in order (`trimToRoom`),
+ * and a card drawn with more on than fits shows the first ones (`fitDetails`).
+ * Rank only (same round, from player feedback): the big number can be MMR, world rank or the division,
+ * and `hideMmr` keeps MMR off the card: the change shows only the place, season peak and tonight's goal
+ * leave, tonight's run is a record, progress names the next division (`pieceText`).
  */
 
 import type { MmrLayout } from "./look";
@@ -94,10 +100,15 @@ export const MOMENT_IDS = MOMENTS.map((m) => m.id);
 
 // ── A look's pieces ───────────────────────────────────────────────────────
 
+export type MmrBig = "mmr" | "world" | "division";
+
 export interface MmrInfo {
   on: Record<MmrPiece, boolean>;
-  /** The big number: MMR (world rank in the details), or world rank (MMR in the details). */
-  big: "mmr" | "world";
+  /** The big number: MMR (world rank in the details), world rank (MMR in the details), or the division
+   *  (its name as the headline; MMR becomes a detail). */
+  big: MmrBig;
+  /** Keep MMR off the card: no MMR, season peak or goal, and the change as a place (with world rank or the division as the big number). */
+  hideMmr: boolean;
   /** How many recent events the list shows. */
   recent: 3 | 5;
   /** GS Pro: your own order of the pieces (null = list order). */
@@ -146,6 +157,7 @@ export const PRESETS: { id: MmrPresetId; label: string; note: string; on: MmrPie
 export const DEFAULT_INFO: MmrInfo = {
   on: onFor([...PRESETS[2].on, "goal"]),
   big: "mmr",
+  hideMmr: false,
   recent: 3,
   order: null,
   line: "",
@@ -210,7 +222,8 @@ export function cleanInfo(raw: unknown, legacyShow: unknown, layout: MmrLayout):
   if (order && order.join() === PIECE_IDS.join()) order = null;
   const line = typeof r.line === "string" ? r.line.replace(/[\u0000-\u001f\u007f<>]/g, "").replace(/\s+/g, " ").trim().slice(0, LINE_MAX) : "";
   const under: MmrUnder = r.under === "tonight" || r.under === "last10" || r.under === "both" ? r.under : "none";
-  return { on, big: r.big === "world" ? "world" : "mmr", recent: r.recent === 5 ? 5 : 3, order, line, moments, under, chat: r.chat !== false };
+  const big: MmrBig = r.big === "world" || r.big === "division" ? r.big : "mmr";
+  return { on, big, hideMmr: r.hideMmr === true, recent: r.recent === 5 ? 5 : 3, order, line, moments, under, chat: r.chat !== false };
 }
 
 /** The GS Pro choices in these pieces, by label (tonight's goal is GS Pro through the goal itself). */
@@ -233,34 +246,53 @@ export type Shown = MmrPiece | "mmr";
 
 export const LAYOUT_SPOTS: Record<MmrLayout, { fixed: MmrPiece[]; slots: number; name: string }> = {
   // The deck card: name, flag and game up top, the number with its change and the last ten, a bar
-  // with the next division and world rank. Details are chips over the bar.
-  deck: { fixed: ["name", "cc", "game", "division", "mmr", "world", "progress", "delta", "last10", "recent"], slots: 3, name: "The deck card" },
-  // The overlay panel: world rank top right, the streak and goal as chips in its foot. Details are tiles.
-  panel: { fixed: ["name", "cc", "game", "division", "mmr", "world", "delta", "streak", "goal", "recent"], slots: 6, name: "The overlay panel" },
+  // with the next division and world rank, tonight's goal among the foot's chips. Details are chips over the bar.
+  deck: { fixed: ["name", "cc", "game", "division", "mmr", "world", "progress", "delta", "goal", "last10", "recent"], slots: 3, name: "The deck card" },
+  // The overlay panel: world rank top right, the streak and goal as chips in its foot. Details are tiles,
+  // two rows of two (six made the panel about 570px tall on stream).
+  panel: { fixed: ["name", "cc", "game", "division", "mmr", "world", "delta", "streak", "goal", "recent"], slots: 4, name: "The overlay panel" },
   // The strip: name, division and progress, the squares and the number. One detail under the name
   // (progress joins the details when it doesn't fit beside the division; MmrCard measures that).
   strip: { fixed: ["name", "cc", "division", "mmr", "progress", "delta", "last10"], slots: 1, name: "The squares strip" },
   // The sticker: the number, name (with the flag) and division, the change in a corner. One detail under them.
   sticker: { fixed: ["name", "cc", "division", "mmr", "delta"], slots: 1, name: "The sticker" },
-  // Rolling: every piece is a slide (rolling.ts), so nothing here takes turns in a slot.
+  // Rolling: every piece is a slide (rolling.ts), so it has no limit.
   rolling: { fixed: PIECE_IDS, slots: 0, name: "Rolling" },
 };
 
+/** The pieces that are MMR: kept off the card with `hideMmr`. */
+export const MMR_PIECES: MmrPiece[] = ["mmr", "peak", "goal"];
+
+/** The big number the look asks for: MMR kept off the card can't be it, so the division stands in. */
+export const bigWanted = (info: Pick<MmrInfo, "big" | "hideMmr">): MmrBig => (info.big === "mmr" && info.hideMmr ? "division" : info.big);
+
+/** The big number on the card: world rank only while the player has one (else MMR, or the division when MMR is kept off). */
+export function bigOf(info: Pick<MmrInfo, "big" | "hideMmr">, v: Pick<MmrView, "worldRank">): MmrBig {
+  const want = bigWanted(info);
+  if (want === "world" && v.worldRank == null) return info.hideMmr ? "division" : "mmr";
+  return want;
+}
+
 /** World rank is the big number (only while the player has one). */
-export const bigIsWorld = (info: MmrInfo, v: Pick<MmrView, "worldRank">) => info.big === "world" && v.worldRank != null;
+export const bigIsWorld = (info: Pick<MmrInfo, "big" | "hideMmr">, v: Pick<MmrView, "worldRank">) => bigOf(info, v) === "world";
 
 /** The details a layout shows, in order, leaving out pieces with nothing to show (`has`).
- *  When world rank is the big number, MMR takes world rank's place in the order while its switch is on. */
-export function detailsFor(layout: MmrLayout, info: MmrInfo, has: (p: Shown) => boolean, worldBig = false, loose: MmrPiece[] = []): Shown[] {
+ *  World rank as the big number: MMR takes world rank's place (its own spot on the deck and panel, a detail elsewhere).
+ *  The division as the big number: MMR is a detail in its own place. Either way while its switch is on. */
+export function detailsFor(layout: MmrLayout, info: MmrInfo, has: (p: Shown) => boolean, big: MmrBig = "mmr", loose: MmrPiece[] = []): Shown[] {
   // `loose`: pieces that lost their own spot this time (the strip's progress when it doesn't fit) and join the details.
   const fixed = LAYOUT_SPOTS[layout].fixed.filter((p) => !loose.includes(p));
   // Pieces under the number have that spot instead.
   const under = underPieces(info, layout);
   const out: Shown[] = [];
   for (const id of pieceOrder(info)) {
-    if (id === "world" && worldBig) {
+    if (id === "world" && big === "world") {
       // Deck and panel give world rank a spot of their own, where MMR goes instead (its switch can leave it off).
       if (!fixed.includes("world") && info.on.mmr && has("mmr")) out.push("mmr");
+      continue;
+    }
+    if (id === "mmr" && big === "division") {
+      if (layout !== "rolling" && info.on.mmr && has("mmr")) out.push("mmr");
       continue;
     }
     if (fixed.includes(id) || under.includes(id) || !info.on[id] || !has(id)) continue;
@@ -269,15 +301,36 @@ export function detailsFor(layout: MmrLayout, info: MmrInfo, has: (p: Shown) => 
   return out;
 }
 
-/** Fits details into a layout's slots: the first ones stay, and the rest take turns in the last slot. */
-export function fitSlots<T>(details: T[], slots: number): { shown: T[]; turns: T[] } {
-  if (slots < 1) return { shown: [], turns: [] };
-  if (details.length <= slots) return { shown: details.slice(), turns: [] };
-  return { shown: details.slice(0, slots - 1), turns: details.slice(slots - 1) };
+/** The first details that fit a layout (a card saved with more on than fits shows these). */
+export const fitDetails = <T>(details: T[], slots: number): T[] => (slots < 1 ? [] : details.slice(0, slots));
+
+/** The details switched on for a layout, whatever the player's numbers are right now (what the limit counts). */
+export function detailSwitches(layout: MmrLayout, info: MmrInfo): Shown[] {
+  if (layout === "rolling") return [];
+  return detailsFor(layout, info, (p) => !(info.hideMmr && MMR_PIECES.includes(p as MmrPiece)), bigWanted(info));
 }
 
-/** How often the extras take turns. */
-export const TURN_MS = 8000;
+/** How many more details a layout has room for (Infinity on Rolling). */
+export function roomLeft(layout: MmrLayout, info: MmrInfo): number {
+  if (layout === "rolling") return Infinity;
+  return Math.max(0, LAYOUT_SPOTS[layout].slots - detailSwitches(layout, info).length);
+}
+
+/** Whether a switch is a detail on this layout (it counts toward the limit) rather than a piece with a spot of its own. */
+export function isDetail(layout: MmrLayout, info: MmrInfo, p: MmrPiece): boolean {
+  if (layout === "rolling") return false;
+  return detailSwitches(layout, { ...info, on: { ...info.on, [p]: true } }).includes(p);
+}
+
+/** Keeps the first details that fit a layout and switches the rest off; `off` names them (empty when it all fits). */
+export function trimToRoom(info: MmrInfo, layout: MmrLayout): { info: MmrInfo; off: MmrPiece[] } {
+  if (layout === "rolling") return { info, off: [] };
+  const over = detailSwitches(layout, info).slice(LAYOUT_SPOTS[layout].slots) as MmrPiece[];
+  if (!over.length) return { info, off: [] };
+  const on = { ...info.on };
+  for (const p of over) on[p] = false;
+  return { info: { ...info, on }, off: over };
+}
 
 // ── Each piece as a short value ───────────────────────────────────────────
 
@@ -331,9 +384,24 @@ export function recentWhen(e: MmrView["recent"][number]): string {
 export const toNextText = (v: Pick<MmrView, "next" | "toNext" | "division">) =>
   v.next && v.toNext != null ? `${fmtMmr(v.toNext)} to ${v.next.name}` : v.division === "Placement" ? "In placement" : "Top division";
 
+/** Progress in words: "286 to Platinum 2", or "Next: Platinum 2" with MMR kept off the card. */
+export const nextText = (v: Pick<MmrView, "next" | "toNext" | "division">, info: Pick<MmrInfo, "hideMmr">) =>
+  info.hideMmr ? (v.next ? `Next: ${v.next.name}` : v.division === "Placement" ? "In placement" : "Top division") : toNextText(v);
+
 /** A piece as a short value, or null when there's nothing to show (no country rank yet, a streak under two). */
 export function pieceText(p: Shown, v: MmrView, info: MmrInfo, goal?: GoalProgress | null): PieceText | null {
   const one = (label: string, value: string, chip: string, short = chip): PieceText => ({ label, value, chip, short });
+  // MMR kept off the card: no MMR, peak or goal, and the rest without their MMR amounts.
+  if (info.hideMmr) {
+    if (MMR_PIECES.includes(p as MmrPiece)) return null;
+    if (p === "delta") return v.last?.place ? one("Last event", placeWord(v.last.place), placeWord(v.last.place)) : null;
+    if (p === "tonight") { const t = v.tonight; return one("Tonight", `${t.w}-${t.l}`, `Tonight ${t.w}-${t.l}`); }
+    if (p === "progress") return v.next ? one("Next division", v.next.name, `Next: ${v.next.name}`) : one("Division", v.division === "Placement" ? "In placement" : "Top division", nextText(v, info));
+    if (p === "recent") {
+      const places = v.recent.slice(0, info.recent).filter((e) => e.place).map((e) => placeWord(e.place!));
+      return places.length ? one(`Last ${places.length}`, places.join(", "), places.join(" · "), places.slice(0, 3).join(" · ")) : null;
+    }
+  }
   switch (p) {
     case "name": return one("", v.name, v.name);
     case "cc": return v.country ? one("Country", v.country, v.country) : null;

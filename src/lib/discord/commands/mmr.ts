@@ -21,11 +21,18 @@ import { loungePagePath } from "@/lib/lounge/lines";
 
 type Opt = { name: string; value?: string };
 
-function embedFor(src: MmrSource, tonight: boolean) {
+/** `noMmr`: the account's own card keeps MMR off (Rank only), so its embed does too. */
+function embedFor(src: MmrSource, tonight: boolean, noMmr = false) {
   const v = viewOf(src);
   const color = parseInt(divisionLook(v.division).c2.slice(1), 16);
   const squares = v.squares.map((s) => (s === "p" ? "🟨" : s === "w" ? "🟩" : "🟥")).join("");
-  const fields = [
+  const fields = noMmr ? [
+    { name: "Division", value: v.division, inline: true },
+    { name: "Next division", value: v.next ? v.next.name : "Top division", inline: true },
+    ...(v.worldRank ? [{ name: "World rank", value: `#${v.worldRank.toLocaleString("en-US")}`, inline: true }] : []),
+    ...(tonight && v.tonight.events ? [{ name: "Tonight", value: `${v.tonight.w}-${v.tonight.l}`, inline: true }] : []),
+    ...(squares ? [{ name: "Last 10", value: squares, inline: false }] : []),
+  ] : [
     { name: "MMR", value: v.mmr == null ? "None yet" : fmtMmr(v.mmr), inline: true },
     { name: "Division", value: v.division, inline: true },
     { name: v.next ? `To ${v.next.name}` : "Next division", value: v.next && v.toNext != null ? fmtMmr(v.toNext) : "Top division", inline: true },
@@ -83,7 +90,7 @@ export async function handleGsMmr(interaction: Record<string, unknown>): Promise
     }
     after(async () => {
       const live = await liveFor(card);
-      if (live.ok) await followUp(appId, token, { embeds: [embedFor(live.source, true)], components: [make] });
+      if (live.ok) await followUp(appId, token, { embeds: [embedFor(live.source, true, live.look.info.hideMmr)], components: [make] });
       else await followUp(appId, token, { content: live.reason === "unavailable" ? "The lounge isn't answering right now. Try again in a minute." : "Your card's lounge name wasn't found. Fix it at gameshuffle.co/mmr-card." });
     });
     return deferredResponse();

@@ -1,7 +1,8 @@
 /**
  * A division's emblem in the tile frame as a standalone SVG string (pure): the share card
  * (src/lib/share/render.tsx) draws it with next/og, where React SVG with ids and CSS can't
- * go. Same art as MmrEmblem's tile: chevrons for Iron to Silver, a star for Gold, gems from
+ * go. Since the medals (2026-10-30) the card shows MKCentral's medal and this draws only
+ * what has none: Placement, or a division added before we have its medal. Same art as MmrEmblem's tile: chevrons for Iron to Silver, a star for Gold, gems from
  * Platinum to Diamond, a crown for Master, a crown in a laurel for Grandmaster, a question
  * mark in placement, and bars for MK8DX's numbered levels. No text (the renderer has no
  * fonts for SVG text), so the question mark and the levels are drawn as shapes.

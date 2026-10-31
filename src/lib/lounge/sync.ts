@@ -17,6 +17,7 @@ import { gsDay, gsWeekStart, gsWeekday } from "@/lib/time/gsClock";
 import { addGuildMemberRole, createGuildRole, listGuildMembers, postComponentsMessage, removeGuildMemberRole } from "@/lib/adapters/discord/adapter";
 import { LoungeUnavailable, divisionSteps, loungePlayer, type LoungePlayer } from "@/lib/mmr/mkcentral";
 import { divisionLook } from "@/lib/mmr/look";
+import { medalUrl } from "@/lib/mmr/medals";
 import { MMR_GAMES, fmtMmr, isMmrGame, placeWord, signed, splitDivision, standing, winStreak, type DivisionStep, type MmrGame } from "@/lib/mmr/rules";
 import { linkUpdate, postedKey } from "./store";
 import { loungePagePath } from "./lines";
@@ -102,11 +103,14 @@ function rankUpMessage(r: RankUp) {
     ...(p.worldRank ? [{ name: "World", value: `#${p.worldRank.toLocaleString("en-US")}`, inline: true }] : []),
     ...(st.next ? [{ name: "Next", value: `${st.next.name} in ${fmtMmr(st.toNext ?? 0)}`, inline: true }] : []),
   ];
+  const medal = medalUrl(divisionLook(st.division).base);
   return {
     embeds: [{
       title: `${p.name} reached ${st.division}`,
       description: `${fmtMmr(p.mmr ?? 0)}${how}.${streak >= 3 ? ` ${streak} wins in a row.` : ""}`,
-      color: colorInt(divisionLook(st.division).c2),
+      // The light tone: the deep one is near black for Master and Grandmaster, lost on Discord's dark theme.
+      color: colorInt(divisionLook(st.division).c),
+      ...(medal ? { thumbnail: { url: medal } } : {}),
       fields,
       footer: { text: `${MMR_GAMES[r.game].short} lounge · GameShuffle` },
     }],

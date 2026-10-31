@@ -7,8 +7,9 @@
  * accent, a faint field of Tabler glyphs, the white wordmark, a kicker, the
  * title in Gabarito, the date in the organizer's timezone, up to three fact
  * chips, and the art on the right: the game's box art as a tilted card, the
- * organizer's banner fading in behind the text, or three glyph tiles when
- * there's neither. Cancelled events get a stamp.
+ * organizer's banner fading in behind the text, a time trial track's art blurred
+ * behind the right side, or three glyph tiles when there's none. Cancelled
+ * events get a stamp.
  *
  * The renderer can't draw webp (all our box art is webp, and banners may be),
  * so every picture goes through sharp to a PNG first.
@@ -26,8 +27,10 @@ export const OG_CONTENT_TYPE = "image/png";
 export type CardArt =
   | { kind: "cover"; src: string }
   | { kind: "banner"; src: string }
-  /** A small 16:9 picture (track art), framed and tilted at the right: too small to fill a banner. */
-  | { kind: "picture"; src: string }
+  /** A small picture blurred across the right, fading into the navy behind the title (track pages, 2026-10-30). */
+  | { kind: "backdrop"; src: string }
+  /** A round medal (a lounge player's division, MKCentral's art), tilted at the right. */
+  | { kind: "medal"; src: string }
   | { kind: "glyphs"; glyphs: [GlyphName, GlyphName, GlyphName] };
 
 export interface EventCardInput {
@@ -43,6 +46,11 @@ export interface EventCardInput {
   glyphs: [GlyphName, GlyphName, GlyphName];
   accent: string;
   stamp?: string | null;
+  /**
+   * The page header's own band, for previews that should look like their page (a lounge player's
+   * division colours, from heroColors): replaces the navy ground, the accent glow and the kicker colour.
+   */
+  band?: { deep: string; mid: string; edge: string; label: string; glow: string } | null;
 }
 
 // ---------------------------------------------------------------- assets
@@ -109,8 +117,14 @@ export async function bannerArt(src: string | null | undefined): Promise<CardArt
   }
 }
 
-/** A 16:9 picture from our own storage (track art on cdn.empac.co), for the framed "picture" art. */
-export async function pictureArt(src: string | null | undefined, opts: { trimBottom?: number } = {}): Promise<CardArt | null> {
+const BACKDROP_W = 780;
+
+/**
+ * Track art as the card's backdrop, like the track page's header: blurred hard (the pictures are about
+ * 160px wide), a little more saturated, and faded in from the left with a mask, all done here because
+ * the renderer draws neither blur nor masks.
+ */
+export async function backdropArt(src: string | null | undefined, opts: { trimBottom?: number } = {}): Promise<CardArt | null> {
   if (!src) return null;
   let url: URL;
   try { url = new URL(src); } catch { return null; }
@@ -120,13 +134,28 @@ export async function pictureArt(src: string | null | undefined, opts: { trimBot
     if (!res.ok) return null;
     const buf = Buffer.from(await res.arrayBuffer());
     if (buf.length > 8 * 1024 * 1024) return null;
-    // Track art carries its name in a strip along the bottom; the card's title already says it.
     let input: Buffer = buf;
     if (opts.trimBottom) {
       const m = await sharp(buf).metadata();
       if (m.width && m.height) input = await sharp(buf).extract({ left: 0, top: 0, width: m.width, height: Math.round(m.height * (1 - opts.trimBottom)) }).toBuffer();
     }
-    return { kind: "picture", src: await pngData(input, 800, 450) };
+    const { height: H } = OG_SIZE;
+    // Same stops as the header's mask: transparent, 55% at 28%, solid from 62%.
+    const mask = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${BACKDROP_W}" height="${H}"><defs><linearGradient id="f" x1="0" x2="1" y1="0" y2="0">` +
+      `<stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="0.28" stop-color="#fff" stop-opacity="0.55"/><stop offset="0.62" stop-color="#fff" stop-opacity="1"/>` +
+      `</linearGradient></defs><rect width="100%" height="100%" fill="url(#f)"/></svg>`,
+    );
+    // Blurred at a quarter of the size and then scaled up: the art is enlarged about seven times here, and
+    // a blur at full size still showed its compression blocks.
+    const small = await sharp(input)
+      .resize(Math.round(BACKDROP_W / 4), Math.round(H / 4), { fit: "cover", position: "centre" })
+      .blur(6)
+      .modulate({ saturation: 1.25 })
+      .toBuffer();
+    const blurred = await sharp(small).resize(BACKDROP_W, H, { kernel: "cubic" }).ensureAlpha().toBuffer();
+    const png = await sharp(blurred).composite([{ input: mask, blend: "dest-in" }]).png().toBuffer();
+    return { kind: "backdrop", src: `data:image/png;base64,${png.toString("base64")}` };
   } catch {
     return null;
   }
@@ -170,6 +199,7 @@ export async function renderEventCard(card: EventCardInput, init?: { headers?: R
   const title = clip(card.title.trim() || "GameShuffle", 84);
   const meta = (card.meta ?? []).filter((m) => m.text.trim()).slice(0, 3);
   const art = card.art ?? { kind: "glyphs" as const, glyphs: card.glyphs };
+  const band = card.band ?? null;
   const dim = !!card.stamp;
   const tileColors = [card.accent, "#2766ec", "#1f8a4c"];
   const tilePos = [
@@ -180,11 +210,30 @@ export async function renderEventCard(card: EventCardInput, init?: { headers?: R
 
   return new ImageResponse(
     (
-      <div style={{ width: W, height: H, display: "flex", position: "relative", color: "#ffffff", fontFamily: "Outfit", background: "linear-gradient(135deg, #10123a 0%, #0b0d1c 60%, #0b0d14 100%)" }}>
-        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex", background: `radial-gradient(circle at 86% 18%, ${card.accent}66 0%, rgba(11,13,28,0) 52%)` }} />
-        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex", background: "radial-gradient(circle at 8% 112%, rgba(39,102,236,0.28) 0%, rgba(11,13,28,0) 45%)" }} />
-        {/* eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse, not a browser */}
-        <img src={svgUri(fieldSvg(card.glyphs, W, H))} width={W} height={H} style={{ position: "absolute", top: 0, left: 0 }} alt="" />
+      <div style={{ width: W, height: H, display: "flex", position: "relative", color: "#ffffff", fontFamily: "Outfit", background: band ? `linear-gradient(115deg, ${band.deep} 0%, ${band.mid} 58%, ${band.edge} 100%)` : "linear-gradient(135deg, #10123a 0%, #0b0d1c 60%, #0b0d14 100%)" }}>
+        {band ? (
+          <>
+            {/* The header's glow at the top right and its veil behind the words (lounge.css .lounge-hero). */}
+            <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex", background: `radial-gradient(circle at 100% 0%, ${band.glow} 0%, rgba(0,0,0,0) 58%)` }} />
+            <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex", background: "linear-gradient(100deg, rgba(8,10,18,0.55) 0%, rgba(8,10,18,0.32) 34%, rgba(8,10,18,0) 62%)" }} />
+          </>
+        ) : (
+          <>
+            <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex", background: `radial-gradient(circle at 86% 18%, ${card.accent}66 0%, rgba(11,13,28,0) 52%)` }} />
+            <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex", background: "radial-gradient(circle at 8% 112%, rgba(39,102,236,0.28) 0%, rgba(11,13,28,0) 45%)" }} />
+          </>
+        )}
+        {/* The glyph field steps aside for a backdrop, as on the page's header. */}
+        {art.kind !== "backdrop" && (
+          // eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse, not a browser
+          <img src={svgUri(fieldSvg(card.glyphs, W, H))} width={W} height={H} style={{ position: "absolute", top: 0, left: 0 }} alt="" />
+        )}
+        {art.kind === "backdrop" && (
+          <div style={{ position: "absolute", top: 0, right: 0, width: BACKDROP_W, height: H, display: "flex", opacity: dim ? 0.45 : 0.85 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse */}
+            <img src={art.src} width={BACKDROP_W} height={H} alt="" />
+          </div>
+        )}
 
         {art.kind === "banner" && (
           <div style={{ position: "absolute", top: 0, right: 0, width: 700, height: H, display: "flex", opacity: dim ? 0.45 : 1 }}>
@@ -203,10 +252,14 @@ export async function renderEventCard(card: EventCardInput, init?: { headers?: R
             <img src={art.src} width={330} height={440} alt="" />
           </div>
         )}
-        {art.kind === "picture" && (
-          <div style={{ position: "absolute", right: 64, top: 200, width: 400, height: 225, display: "flex", borderRadius: 20, overflow: "hidden", border: "3px solid rgba(255,255,255,0.22)", boxShadow: "0 30px 80px rgba(0,0,0,0.55)", transform: "rotate(3deg)", opacity: dim ? 0.45 : 1 }}>
+        {art.kind === "medal" && band && (
+          // The header's glow behind the medal, in the division's light tone.
+          <div style={{ position: "absolute", right: 30, top: 70, width: 490, height: 490, display: "flex", background: `radial-gradient(circle, ${band.glow} 0%, rgba(0,0,0,0) 62%)` }} />
+        )}
+        {art.kind === "medal" && (
+          <div style={{ position: "absolute", right: 110, top: 150, width: 330, height: 330, display: "flex", transform: "rotate(-8deg)", opacity: dim ? 0.45 : 1 }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse */}
-            <img src={art.src} width={400} height={225} alt="" />
+            <img src={art.src} width={330} height={330} alt="" />
           </div>
         )}
         {art.kind === "glyphs" && (
@@ -229,7 +282,7 @@ export async function renderEventCard(card: EventCardInput, init?: { headers?: R
         <div style={{ position: "absolute", left: 72, top: 64, bottom: 64, width: 650, display: "flex", flexDirection: "column" }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- drawn by ImageResponse */}
           <img src={logoSrc} width={190} height={26} alt="" />
-          <div style={{ display: "flex", marginTop: 40, fontSize: 24, fontWeight: 600, letterSpacing: 2.9, color: "#a9b8ff" }}>{clip(card.kicker, 46).toUpperCase()}</div>
+          <div style={{ display: "flex", marginTop: 40, fontSize: 24, fontWeight: band ? 800 : 600, letterSpacing: 2.9, color: band ? band.label : "#a9b8ff" }}>{clip(card.kicker, 46).toUpperCase()}</div>
           <div style={{ display: "flex", marginTop: 14, fontFamily: "Gabarito", fontSize: titleSize(title.length), lineHeight: 1.04, letterSpacing: -0.5 }}>{title}</div>
           {card.when && <div style={{ display: "flex", marginTop: 22, fontSize: 32, fontWeight: 600 }}>{clip(card.when, 40)}</div>}
           {meta.length > 0 && (

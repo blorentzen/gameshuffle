@@ -19,13 +19,18 @@ import { MmrCard, type MmrPlay } from "./MmrCard";
 
 const STEP_MS = 3600;
 const POLL_MS = 30_000;
+/** More new events than this in one poll means the card fell behind (or the data shifted): it catches up quietly. */
+const MAX_CATCHUP = 3;
 
 const divIndex = (src: MmrSource, name: string) => src.steps.findIndex((s) => s.name === name);
 
 /** The moments between `fromId` (exclusive) and the newest change, oldest first. `goal`: tonight's goal, so the event that reaches it plays its moment. */
 function momentsSince(src: MmrSource, fromId: number | null, goal: number | null = null): { before: MmrView; after: MmrView; play: Omit<MmrPlay, "id"> }[] {
   if (fromId == null) return [];
-  const newer = src.changes.filter((c) => c.id > fromId).reverse();
+  // New = everything above the change seen last (the list is newest first). Position decides, not the id: a strike
+  // or penalty can carry a lower id than older tables. If the seen change is gone, fall back to the ids.
+  const at = src.changes.findIndex((c) => c.id === fromId);
+  const newer = (at >= 0 ? src.changes.slice(0, at) : src.changes.filter((c) => c.id > fromId)).reverse();
   return newer.map((c) => {
     const i = src.changes.findIndex((x) => x.id === c.id);
     const prev = src.changes[i + 1];
@@ -73,7 +78,7 @@ export function MmrLive({ token, initial, fit = "obs", look: lookOverride, lookI
         const steps = momentsSince(next.source, seen.current, next.goal ?? null);
         seen.current = next.source.changes[0]?.id ?? seen.current ?? 0;
         let wait = 0;
-        if (steps.length) wait = run(steps.slice(-5), setView, setPlay);
+        if (steps.length && steps.length <= MAX_CATCHUP) wait = run(steps, setView, setPlay);
         else setView(viewOf(next.source));
         const m = next.milestone;
         if (m && !m.initial && Date.parse(m.at) > mounted.current && playedMilestone.current !== m.at && milestoneTier(next.source.worldRank) === m.tier) {

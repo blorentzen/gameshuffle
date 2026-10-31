@@ -11,7 +11,8 @@
  *   Progress: dots, a thin line filling over the slide's time, or none.
  * When the number changes the card jumps to the MMR slide, plays the change, holds it, then carries
  * on from the slide it left (`resumeAfter`). If the MMR slide is off, the change plays on a
- * temporary one.
+ * temporary one. With MMR kept off the card (`hideMmr`) there's no MMR slide: a change stays on the
+ * slide that's up, and only a new division or a milestone plays.
  */
 
 import { MMR_GAMES, fmtMmr, signed, type MmrView } from "./rules";
@@ -97,7 +98,11 @@ export function rollSlides(info: MmrInfo, rolling: Pick<MmrRolling, "pin">, has:
   // Tonight's run and last 10 can sit under the MMR instead of on slides of their own.
   const under = underPieces(info, "rolling");
   for (const p of pieceOrder(info)) if (ROLL_PIECES.includes(p) && info.on[p] && !under.includes(p) && has(p)) out.push(p);
-  return out.length ? out : ["mmr"];
+  if (out.length) return out;
+  // Nothing on: the MMR slide stands in, or with MMR kept off the world rank or next division (the name when it isn't pinned).
+  if (!info.hideMmr) return ["mmr"];
+  const stand = (["world", "progress"] as const).find((p) => has(p));
+  return stand ? [stand] : ["id"];
 }
 
 /** How long a slide stays up, in seconds (GS Pro's time for that slide, else the usual). */
@@ -130,7 +135,7 @@ export function slideText(s: RollSlide, v: MmrView, info: MmrInfo, goal: GoalPro
   const game = info.on.game ? MMR_GAMES[v.game].short : null;
   switch (s) {
     case "id": return { label: "", value: v.name, sub: v.division };
-    case "mmr": return { label: "MMR", value: v.mmr != null ? fmtMmr(v.mmr) : "?", sub: game };
+    case "mmr": return info.hideMmr ? null : { label: "MMR", value: v.mmr != null ? fmtMmr(v.mmr) : "?", sub: game };
     case "world": {
       if (!t) return null;
       const top = !info.on.top ? topText(v.worldRank, v.totalPlayers) : null;
@@ -143,10 +148,12 @@ export function slideText(s: RollSlide, v: MmrView, info: MmrInfo, goal: GoalPro
     case "tonight": {
       const n = v.tonight;
       const sub = n.events ? `${n.w} ${n.w === 1 ? "win" : "wins"}, ${n.l} ${n.l === 1 ? "loss" : "losses"}` : "No events yet";
+      // With MMR kept off the card the record is the value.
+      if (info.hideMmr) return { label: "Tonight", value: `${n.w}-${n.l}`, sub: n.events ? `${n.events} ${n.events === 1 ? "event" : "events"}` : "No events yet" };
       return { label: "Tonight", value: signed(n.delta), sub };
     }
     case "streak": return t ? { label: "Win streak", value: `${v.streak} in a row`, sub: null } : null;
-    case "goal": return goal ? { label: "Tonight's goal", value: fmtMmr(goal.goal), sub: goal.reached ? "Reached" : `${fmtMmr(goal.toGo)} to go` } : null;
+    case "goal": return goal && !info.hideMmr ? { label: "Tonight's goal", value: fmtMmr(goal.goal), sub: goal.reached ? "Reached" : `${fmtMmr(goal.toGo)} to go` } : null;
     case "last10": {
       if (!t) return null;
       const w = v.squares.filter((q) => q !== "l").length;

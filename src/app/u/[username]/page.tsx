@@ -54,6 +54,7 @@ import { formatCompact } from "@/lib/format/number";
 import { resolveProfileLayout, visibleSections, type ProfileSectionKey } from "@/lib/profile/layout";
 import { DailiesCards } from "@/components/originals/DailiesCards";
 import { MmrCard } from "@/components/mmr/MmrCard";
+import { MedalCredit } from "@/components/mmr/MedalCredit";
 import { profileMmr } from "@/lib/mmr/store";
 import { playerBests } from "@/lib/timeTrials/store";
 import { formatTime as ttFormat, ordinal as ttOrdinal } from "@/lib/timeTrials/rules";
@@ -482,6 +483,7 @@ export default async function PublicProfilePage({
     <div className="pcard profile-mmr">
       <h3 className="pcard__title">Lounge MMR</h3>
       <div className="mmr-frame"><MmrCard view={mmr.view} look={mmr.look} /></div>
+      <MedalCredit className="profile-mmr__credit" />
     </div>
   ) : null;
 

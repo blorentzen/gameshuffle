@@ -2673,3 +2673,5 @@ html.dark .home-section__eyebrow--orange { --home-eyebrow: #f0a070; }
 .lounge-art__team > span { font-size: var(--font-size-14); color: var(--text-secondary); }
 .lounge-art__score { font-size: var(--font-size-20); font-variant-numeric: tabular-nums; }
 .lounge-art__note { font-size: var(--font-size-14); color: var(--text-secondary); }
+/* /discord: GameShuffle Competitive's button (shown once that app exists). */
+.dpage-comp__cta { display: flex; justify-content: center; }

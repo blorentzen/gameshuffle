@@ -6,7 +6,9 @@ import "server-only";
  * Both fall back to a plain card when the data can't be read in time.
  */
 
-import { pictureArt, type EventCardInput } from "./eventCard";
+import { backdropArt, type EventCardInput } from "./eventCard";
+import { medalData } from "@/lib/mmr/medalsServer";
+import { heroColors } from "@/lib/lounge/season";
 import { describePlayers } from "@/lib/daily/boards";
 import { trackSummary } from "@/lib/timeTrials/store";
 import { formatTime } from "@/lib/timeTrials/rules";
@@ -33,7 +35,7 @@ export async function trackCard(gameSlug: string, segment: string): Promise<Even
   const cc = info.classes[0];
   const [summary, art] = await Promise.all([
     trackSummary(info.id, "shrooms", "any").catch(() => []),
-    pictureArt(track.image, { trimBottom: 0.16 }),
+    backdropArt(track.image, { trimBottom: 0.16 }),
   ]);
   const s = summary.find((x) => x.track === track.id && x.cc === cc);
   const holder = s ? (await describePlayers([s.recordPlayer])).get(s.recordPlayer)?.name ?? "A player" : null;
@@ -67,13 +69,16 @@ export async function loungeCard(rawName: string): Promise<EventCardInput> {
   const meta: EventCardInput["meta"] = [];
   if (p.rank) meta.push({ icon: "world", text: `#${fmtNum(p.rank)} in ${MMR_GAMES[p.game].short}` });
   if (p.events) meta.push({ icon: "flag", text: plural(p.events, "event") });
+  // Like the player page's header: the division in its label colour over the band of the medal's colours.
+  const division = s.played ? p.division ?? "Placement" : "Placement";
   return {
-    kicker: `Mario Kart lounge · ${MMR_GAMES[p.game].short}`,
+    kicker: division,
     title: s.name,
-    when: s.played ? [p.division, p.mmr != null ? `${fmtNum(p.mmr)} MMR` : null].filter(Boolean).join(" · ") : "No events this season",
+    when: s.played ? [p.mmr != null ? `${fmtNum(p.mmr)} MMR` : null, MMR_GAMES[p.game].short].filter(Boolean).join(" · ") : `No events this season · ${MMR_GAMES[p.game].short}`,
     meta,
-    art: null,
+    art: await medalData(d.base).then((m) => (m ? { kind: "medal" as const, src: m } : null)),
     glyphs: LOUNGE_GLYPHS,
-    accent: d.c2,
+    accent: d.c,
+    band: heroColors(d.c, d.c2),
   };
 }

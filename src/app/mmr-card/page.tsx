@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { FaqList } from "@/components/marketing/FaqList";
+import { MedalCredit } from "@/components/mmr/MedalCredit";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { MmrShowcase } from "@/components/mmr/MmrShowcase";
 import { MmrStudio } from "@/components/mmr/MmrStudio";
@@ -82,6 +83,7 @@ export default async function MmrCardPage({ searchParams }: { searchParams: Prom
           <MmrStudio initial={card ? cardView(card) : null} pro={pro} looksOk={looksOk} chat={chat} avatar={avatar} links={links.map((l) => ({ game: l.game, playerId: l.playerId, name: l.name }))}
             userId={user.id} then={then} checkout={checkout} />
           <p className="mmr-page__also">Your card also answers <b>!mmr</b> in your Twitch chat (with the GameShuffle bot) and <b>/gs-mmr</b> in Discord, and shows as a sticker on your profile.</p>
+          <MedalCredit className="mmr-page__credit" />
         </div>
       </main>
     );
@@ -150,6 +152,7 @@ export default async function MmrCardPage({ searchParams }: { searchParams: Prom
           <h2 id="mmr-faq">Questions</h2>
           <FaqList items={FAQ} />
         </section>
+        <MedalCredit className="mmr-page__also" />
       </div>
     </main>
   );

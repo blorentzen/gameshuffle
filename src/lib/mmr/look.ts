@@ -24,7 +24,8 @@ import { DEFAULT_ROLLING, cleanRolling, freeRolling, proRollingUsed, type MmrRol
 export type MmrLayout = "deck" | "panel" | "strip" | "sticker" | "rolling";
 export type MmrSurface = "dark" | "light" | "glass";
 export type MmrFill = "solid" | "gradient" | "glyphs" | "stripes" | "dots" | "picture";
-export type MmrFrame = "tile" | "crest" | "coin" | "name" | "off" | "picture";
+/** "tile" is the Medal choice (MKCentral's division medal; the name stayed so saved cards keep it). */
+export type MmrFrame = "tile" | "name" | "off" | "picture";
 export type MmrFont =
   | "rubik" | "gabarito"
   | "kanit" | "exo" | "titan" | "mplus" | "russo" | "lilita" | "bungee" | "bebas" | "chakra" | "fredoka" | "grotesk"
@@ -123,7 +124,7 @@ export const LOOK_CHOICES: { id: keyof MmrLook; label: string; opts: { v: string
     { v: "stripes", label: "Stripes", pro: true }, { v: "dots", label: "Dots", pro: true }, { v: "picture", label: "Your picture or GIF", pro: true },
   ] },
   { id: "emblem", label: "Emblem", opts: [
-    { v: "tile", label: "Tile" }, { v: "crest", label: "Crest" }, { v: "coin", label: "Coin" }, { v: "name", label: "Name only" }, { v: "off", label: "Off" },
+    { v: "tile", label: "Medal" }, { v: "name", label: "Name only" }, { v: "off", label: "Off" },
     { v: "picture", label: "Your picture", pro: true },
   ] },
   { id: "font", label: "Font", opts: [
@@ -199,7 +200,8 @@ export function cleanLook(raw: unknown, fallbackId = "main"): MmrLook {
     custom,
     fill: pick(r.fill, ["solid", "gradient", "glyphs", "stripes", "dots", "picture"] as const, d.fill),
     picture,
-    emblem: pick(r.emblem, ["tile", "crest", "coin", "name", "off", "picture"] as const, d.emblem),
+    // The tile, crest and coin frames became the medal (2026-10-30).
+    emblem: r.emblem === "crest" || r.emblem === "coin" ? "tile" : pick(r.emblem, ["tile", "name", "off", "picture"] as const, d.emblem),
     // "gs" was the default until 2026-10-29 (GameShuffle's font): those looks moved to the new default.
     font: r.font === "gs" ? "rubik" : pick(r.font, FONT_IDS, d.font),
     fontName: cleanFontName(r.fontName),
@@ -233,17 +235,20 @@ export interface DivisionLook {
   laurel?: boolean;
 }
 
+// The medals' colours (2026-10-30): c is the light tone (text and glows on dark), c2 the deep one
+// (the band, chart lines, text on light surfaces). Sampled from MKCentral's medals: Master's crown
+// is black and ice blue, Grandmaster's black and crimson.
 const DIVISION_LOOKS: Record<string, Omit<DivisionLook, "base" | "level">> = {
-  Iron: { c: "#a3a9b4", c2: "#4b505b", kind: "metal", mark: 1 },
-  Bronze: { c: "#e09a5c", c2: "#7a4420", kind: "metal", mark: 2 },
-  Silver: { c: "#d7dde6", c2: "#6f7886", kind: "metal", mark: 3 },
-  Gold: { c: "#ffd25a", c2: "#a87310", kind: "metal", mark: 4 },
-  Platinum: { c: "#8fe6f0", c2: "#23798c", kind: "gem", mark: 1 },
-  Sapphire: { c: "#6f9bff", c2: "#1f3fb5", kind: "gem", mark: 2 },
-  Ruby: { c: "#ff6680", c2: "#a3122e", kind: "gem", mark: 3 },
-  Diamond: { c: "#d6f6ff", c2: "#4b93b3", kind: "gem", mark: 4 },
-  Master: { c: "#c39bff", c2: "#5a24b0", kind: "crown", mark: 1 },
-  Grandmaster: { c: "#ffcf4a", c2: "#c2254f", kind: "crown", mark: 2, laurel: true },
+  Iron: { c: "#b3a9a6", c2: "#4c4746", kind: "metal", mark: 1 },
+  Bronze: { c: "#f07a45", c2: "#8a3200", kind: "metal", mark: 2 },
+  Silver: { c: "#d3d7df", c2: "#5f6c86", kind: "metal", mark: 3 },
+  Gold: { c: "#fcc46b", c2: "#a87108", kind: "metal", mark: 4 },
+  Platinum: { c: "#4fbfd2", c2: "#00485a", kind: "gem", mark: 1 },
+  Sapphire: { c: "#6a9df0", c2: "#1d4a92", kind: "gem", mark: 2 },
+  Ruby: { c: "#f25a90", c2: "#8f1d42", kind: "gem", mark: 3 },
+  Diamond: { c: "#3ccbe8", c2: "#006b88", kind: "gem", mark: 4 },
+  Master: { c: "#cfe2ee", c2: "#16181c", kind: "crown", mark: 1 },
+  Grandmaster: { c: "#ff5a64", c2: "#6e0119", kind: "crown", mark: 2, laurel: true },
 };
 const PLACEMENT: Omit<DivisionLook, "base" | "level"> = { c: "#b6bccb", c2: "#4a5063", kind: "placement", mark: 0 };
 

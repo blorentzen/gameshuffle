@@ -14,7 +14,7 @@ import { describePlayers } from "@/lib/daily/boards";
 import { siteActor } from "@/lib/timeTrials/players";
 import { playerBests, trackSummary } from "@/lib/timeTrials/store";
 import { formatTime, ordinal } from "@/lib/timeTrials/rules";
-import { gamePath, trackPath, ttCups, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { gamePath, trackPath, ttCups, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 
 /**
  * The time trials page, for /time-trials (both games, Mario Kart World first) and each game's own
@@ -42,9 +42,9 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
   const byTrack = new Map(summary.filter((s) => s.cc === cc).map((s) => [s.track, s]));
   const mineByTrack = new Map(mine.filter((b) => b.game === game && b.cc === cc && b.items === items && b.vehicle === vehicle).map((b) => [b.track, b]));
   const holders = await describePlayers([...new Set([...byTrack.values()].map((s) => s.recordPlayer))]);
-  const open = mine.filter((b) => b.vehicle === "any");
-  const myTracks = new Set(open.map((b) => `${b.game}|${b.track}`)).size;
-  const myRecords = open.filter((b) => b.place === 1).length;
+  // Your times on the board being viewed (this game, speed and items), out of the game's own list.
+  const myTracks = mineByTrack.size;
+  const myRecords = [...mineByTrack.values()].filter((b) => b.place === 1).length;
   const here = gamePage ? gamePath(game, cc, { items, vehicle }) : "/time-trials";
 
   return (
@@ -67,7 +67,7 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
           <TtPlayerSearch />
           {actor && (
             <p className="tt-mine">
-              {myTracks ? <>Times on {myTracks} {myTracks === 1 ? "track" : "tracks"}{myRecords ? `, ${myRecords} ${myRecords === 1 ? "record" : "records"}` : ""}</> : "You haven't added a time yet"}
+              {myTracks ? <>Times on {myTracks} of {ttTracks(game).length} tracks{myRecords ? `, ${myRecords} ${myRecords === 1 ? "record" : "records"}` : ""}</> : "You haven't added a time yet"}
               {myTracks > 0 && <ArrowLink href="/time-trials/players/me">Your times</ArrowLink>}
               <ArrowLink href="/time-trials/import">Import from Quaxly or a list</ArrowLink>
             </p>

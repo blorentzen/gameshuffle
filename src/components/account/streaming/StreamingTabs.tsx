@@ -33,6 +33,7 @@ import { IntegrationCard } from "@/components/account/IntegrationCard";
 import { StreamScheduleEditor } from "@/components/account/StreamScheduleEditor";
 import { ModsTab } from "@/components/account/ModsTab";
 import { DiscordBotTab } from "@/components/account/DiscordBotTab";
+import { DiscordAppSwitch } from "@/components/account/discord/DiscordAppSwitch";
 import { OverlayLayoutTab } from "@/components/account/OverlayLayoutTab";
 import { StreamToolsTab } from "@/components/account/StreamToolsTab";
 import { WheelsTab } from "@/components/account/WheelsTab";
@@ -74,7 +75,7 @@ const DISCORD_INTRO = {
 function proScreens(profileTimezone: string | null): ScreenMap {
   return {
     integrations: () => <Wrap title="Twitch" intro="Your channel's connection, the bot in your chat, and channel points."><TwitchHubTab /></Wrap>,
-    discord: () => <Wrap title="Discord" intro="Add the GameShuffle bot to your server and pick where its posts go."><DiscordBotRoutingCard /></Wrap>,
+    discord: () => <Wrap title="Discord" intro="Add the GameShuffle bot to your server and pick where its posts go."><DiscordAppSwitch><DiscordBotRoutingCard /></DiscordAppSwitch></Wrap>,
     youtube: () => <YouTubeKickScreen />,
     schedule: () => (
       <AdminScreen title="Schedule" intro="Your regular stream times. They show as a countdown and a weekly grid on your profile, community page and live page.">
@@ -82,7 +83,7 @@ function proScreens(profileTimezone: string | null): ScreenMap {
       </AdminScreen>
     ),
     mods: () => <Wrap title="Mods"><ModsTab bare /></Wrap>,
-    "discord-bot": () => <Wrap title="Channels & posts" intro={DISCORD_INTRO.posts}><DiscordBotTab part="posts" /></Wrap>,
+    "discord-bot": () => <Wrap title="Channels & posts" intro={DISCORD_INTRO.posts}><DiscordAppSwitch><DiscordBotTab part="posts" /></DiscordAppSwitch></Wrap>,
     "discord-roles": () => <Wrap title="Roles" intro={DISCORD_INTRO.roles}><DiscordBotTab part="roles" /></Wrap>,
     "discord-automod": () => <Wrap title="AutoMod & logs" intro={DISCORD_INTRO.moderation}><DiscordBotTab part="moderation" /></Wrap>,
     "discord-qotd": () => <Wrap title="Question of the Day" intro={DISCORD_INTRO.qotd}><DiscordBotTab part="qotd" /></Wrap>,
@@ -179,7 +180,7 @@ function GetStartedScreen() {
 
 const FREE_SCREENS: ScreenMap = {
   "get-started": () => <GetStartedScreen />,
-  "discord-bot": () => <Wrap title="Discord bot" intro="The GameShuffle bot posts to one channel in one server on a free account."><DiscordBotTab part="posts" /></Wrap>,
+  "discord-bot": () => <Wrap title="Discord bot" intro="The GameShuffle bot posts to one channel in one server on a free account."><DiscordAppSwitch><DiscordBotTab part="posts" /></DiscordAppSwitch></Wrap>,
 };
 
 export function StreamingTabs({ isPro, profileTimezone }: { isPro: boolean; profileTimezone: string | null }) {

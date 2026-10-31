@@ -26,7 +26,7 @@ import {
 import { goalProgress, type GoalProgress } from "@/lib/mmr/goal";
 import { MmrEmblem } from "./MmrEmblem";
 import { PIECE_ICONS } from "./pieceIcons";
-import { Brand, BrandTab, CountryTag, Delta, FontLink, FxLayers, MmrNumber, Squares, UnderLine, cardClass, cardSummary, cardVars, momentOf, playMoment, type MomentFx } from "./cardParts";
+import { Brand, BrandTab, CountryTag, Delta, FontLink, FxLayers, MmrNumber, Squares, UnderLine, cardClass, cardSummary, cardVars, momentOf, momentsFor, playMoment, type MomentFx } from "./cardParts";
 import type { MmrCardProps } from "./MmrCard";
 import type { MmrPending } from "@/lib/lounge/pending";
 
@@ -49,7 +49,9 @@ interface RollState { pos: number; temp: boolean; out: RollSlide | null; n: numb
 export function MmrRolling({ view, look, play, className, fit = "frame", pending, goal }: MmrCardProps) {
   const info = look.info;
   const r = look.rolling;
-  const m = info.moments;
+  // MMR kept off the card: no MMR slide to jump to, and no pop, roll, goal or new peak.
+  const noMmr = info.hideMmr;
+  const m = momentsFor(info);
   const reduce = useReducedMotion();
   const hidden = useHidden();
 
@@ -65,7 +67,7 @@ export function MmrRolling({ view, look, play, className, fit = "frame", pending
   }, [view]);
 
   const div = divisionLook(v.division);
-  const g = goal != null && info.on.goal ? goalProgress(goal, v.mmr, v.mmr != null ? v.mmr - v.tonight.delta : null) : null;
+  const g = !noMmr && goal != null && info.on.goal ? goalProgress(goal, v.mmr, v.mmr != null ? v.mmr - v.tonight.delta : null) : null;
   const idShown = look.emblem !== "off" || info.on.name || info.on.division;
   const ticker = r.motion === "ticker" && !reduce;
   // Tonight's run and last 10 under the MMR (they leave their own slides). The ticker shows every piece in its line instead.
@@ -127,7 +129,9 @@ export function MmrRolling({ view, look, play, className, fit = "frame", pending
     const mi = jumpTarget(sl);
     if (!inMomentRef.current) leftRef.current = s.pos;
     let jump = 0;
-    if (tickerRef.current) {
+    if (noMmr) {
+      // Nothing to jump to: the moment plays over the slide that's up.
+    } else if (tickerRef.current) {
       if (!s.temp) { setSt((x) => ({ ...x, temp: true, out: null, n: x.n + 1 })); jump = 400; }
     } else if (!(s.temp || (mi >= 0 && sl[s.pos] === "mmr"))) {
       jump = ROLL_MOVE_MS;
@@ -140,14 +144,15 @@ export function MmrRolling({ view, look, play, className, fit = "frame", pending
     const end = window.setTimeout(() => {
       inMomentRef.current = false;
       setInMoment(false);
-      if (tickerRef.current) setSt((x) => ({ ...x, temp: false, out: null, n: x.n + 1 }));
+      if (noMmr) setSt((x) => ({ ...x, n: x.n + 1 }));
+      else if (tickerRef.current) setSt((x) => ({ ...x, temp: false, out: null, n: x.n + 1 }));
       else show(resumeAfter(slidesRef.current, leftRef.current));
     }, jump + ROLL_HOLD_MS);
     return () => { clearTimeout(end); stop(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [play?.id]);
 
-  const vars = { ...cardVars(look, div, fx.glyphs, v.pct), "--mmr-rmove": `${ROLL_MOVE_MS}ms` } as CSSProperties;
+  const vars = { ...cardVars(look, div, fx.glyphs, v.pct, v.name), "--mmr-rmove": `${ROLL_MOVE_MS}ms` } as CSSProperties;
   const cls = cardClass(look, fit, className);
   const summary = cardSummary(v, info, g, [...slides.filter((s): s is Exclude<RollSlide, "id"> => s !== "id"), ...under, ...(info.on.delta ? (["delta"] as const) : [])]);
 
@@ -180,7 +185,8 @@ export function MmrRolling({ view, look, play, className, fit = "frame", pending
   const brand = <Brand brand={look.brand} />;
 
   return (
-    <div className={cls} data-layout="rolling" data-shape={r.shape} style={vars}>
+    // translate="no": see MmrCard (Sentry GAMESHUFFLE-6M).
+    <div className={cls} data-layout="rolling" data-shape={r.shape} style={vars} translate="no">
       <FontLink look={look} />
       <span className="mmr-sr">{summary}</span>
       <div className="mmr-moment" ref={momentRef} aria-hidden="true">
@@ -262,14 +268,14 @@ function Slide({ s, c }: { s: RollSlide; c: SlideCtx }) {
         <>
           {label}
           {shape === "bar" ? (
-            <span className="mmr-rinline">{list.map((e) => <span key={e.id} className={e.delta > 0 ? "up" : "down"}>{e.place ? placeWord(e.place) : ""} {signed(e.delta)}</span>)}</span>
+            <span className="mmr-rinline">{list.map((e) => <span key={e.id} className={e.delta > 0 ? "up" : "down"}>{e.place ? placeWord(e.place) : ""}{info.hideMmr ? "" : ` ${signed(e.delta)}`}</span>)}</span>
           ) : (
             <span className="mmr-rrows">
               {list.map((e) => (
                 <span key={e.id} className="mmr-rrow">
                   <span>{shape === "tall" ? recentWhen(e).split(" · ").slice(0, 2).join(" · ") : recentWhen(e)}</span>
                   <b>{e.place ? placeWord(e.place) : ""}</b>
-                  <span className={e.delta > 0 ? "up" : "down"}>{signed(e.delta)}</span>
+                  {info.hideMmr ? <span /> : <span className={e.delta > 0 ? "up" : "down"}>{signed(e.delta)}</span>}
                 </span>
               ))}
             </span>
@@ -325,7 +331,7 @@ function tickerItem(s: RollSlide, c: SlideCtx): ReactNode {
   const label = t.label ? <span className="mmr-rlab"><Icon aria-hidden />{t.label}</span> : null;
   if (s === "last10") return <>{label}<Squares marks={v.squares} /></>;
   if (s === "line") return <b className="mmr-rt__line"><IconQuote aria-hidden />{t.value}</b>;
-  if (s === "recent") return <>{label}<b>{v.recent.slice(0, 3).map((e) => <span key={e.id} className={e.delta > 0 ? "up" : "down"}>{e.place ? placeWord(e.place) : ""} {signed(e.delta)}</span>)}</b></>;
+  if (s === "recent") return <>{label}<b>{v.recent.slice(0, 3).map((e) => <span key={e.id} className={e.delta > 0 ? "up" : "down"}>{e.place ? placeWord(e.place) : ""}{info.hideMmr ? "" : ` ${signed(e.delta)}`}</span>)}</b></>;
   if (s === "streak") return <>{label}<b>{c.flame && <IconFlameFilled className="mmr-rflame" aria-hidden />}{t.value}</b></>;
   return <>{label}<b>{t.value}</b></>;
 }

@@ -13,6 +13,7 @@
  */
 
 import "server-only";
+import { botTokenFor } from "@/lib/discord/apps";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
@@ -39,8 +40,9 @@ export type DiscordAdapterResult =
   | { ok: true; messageId: string }
   | { ok: false; error: string; retryable: boolean };
 
+/** The bot token of the app this request or job is for (apps.ts: the main app unless inside withDiscordApp). */
 function botToken(): string | null {
-  return process.env.DISCORD_BOT_TOKEN ?? null;
+  return botTokenFor();
 }
 
 async function request<T>(

@@ -13,7 +13,8 @@ import { describePlayers } from "@/lib/daily/boards";
 import { siteActor } from "@/lib/timeTrials/players";
 import { playerBests, type TtBest } from "@/lib/timeTrials/store";
 import { formatGap, formatTime, ordinal, type TtPlayer } from "@/lib/timeTrials/rules";
-import { categoryQuery, readCategory, TOP_TEN, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import { categoryQuery, categoryText, readCategory, TOP_TEN, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import { trackCode } from "@/lib/timeTrials/codes";
 import { playerPagePath, readPlayerSlug } from "@/lib/timeTrials/playerPath";
 import { isClassFor, trackPath, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 import "@/styles/time-trials.css";
@@ -84,11 +85,13 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
   const other = vs && vs !== "signin" && vs.player !== who.player ? vs : null;
   const theirs = other ? sliceBests(await playerBests(other.player as TtPlayer), game, cc, items, vehicle) : null;
 
-  const open = bests.filter((b) => b.vehicle === "any");
-  const tracks = new Set(open.map((b) => `${b.game}|${b.track}`)).size;
-  const records = open.filter((b) => b.place === 1).length;
-  const topTens = open.filter((b) => b.place <= TOP_TEN).length;
-  const verified = open.filter((b) => b.video === "checked").length;
+  // The totals follow the board picked in the filter row, like the table (picks 2026-10-30): tracks in
+  // this game, speed and items, out of the game's own list (96 for MK8DX), never rows across speeds.
+  const board = [...mine.values()];
+  const tracks = board.length;
+  const records = board.filter((b) => b.place === 1).length;
+  const topTens = board.filter((b) => b.place <= TOP_TEN).length;
+  const verified = board.filter((b) => b.video === "checked").length;
   const base = playerPagePath(who.player, who.profile);
   const href = (g: TtGame, c: { cc?: TtClass; items?: TtItems; vehicle?: TtVehicle }) => {
     const q = categoryQuery({ cc: c.cc, defaultCc: TT_GAMES[g].classes[0], items: c.items, vehicle: g === "mk8dx" ? c.vehicle : undefined });
@@ -120,7 +123,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
       <Container className="tt-body">
         <section className="tt-sec tt-sec--flat" aria-label="Totals">
           <dl className="tt-stats">
-            <div><dt>Tracks</dt><dd>{tracks}</dd></div>
+            <div><dt>Tracks</dt><dd>{tracks} of {ttTracks(game).length}</dd><small>{categoryText(game, cc, items, vehicle, info.classes.length > 1)}</small></div>
             <div><dt>Records</dt><dd>{records}</dd></div>
             <div><dt>Top tens</dt><dd>{topTens}</dd></div>
             <div><dt>Verified</dt><dd>{verified}</dd></div>
@@ -158,7 +161,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
                       const o = theirs?.get(t.id);
                       return (
                         <TableRow key={t.id}>
-                          <TableCell><Link href={trackPath(t, cc, { items, vehicle })}>{t.name}</Link></TableCell>
+                          <TableCell><Link href={trackPath(t, cc, { items, vehicle })} className="tt-trackname">{trackCode(t) && <code className="tt-code">{trackCode(t)}</code>}{t.name}</Link></TableCell>
                           <TableCell>{b ? <span className="tt-board__timecell"><span className="tt-board__time">{formatTime(b.timeMs)}</span>{b.place <= TOP_TEN && <VideoChip row={{ video: b.video, videoUrl: b.video === "waiting" ? "waiting" : null, you: false }} />}</span> : <span className="tt-muted">None</span>}</TableCell>
                           <TableCell>{b ? `${ordinal(b.place)} of ${b.total}` : ""}</TableCell>
                           {other && <TableCell className="tt-board__time">{o ? formatTime(o.timeMs) : <span className="tt-muted">None</span>}</TableCell>}
