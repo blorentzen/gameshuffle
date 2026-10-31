@@ -916,6 +916,10 @@ ul {
   /* Expanded menu — frosted dark dropdown matching the nav overlays, with
      light links. */
   .gs-nav-shell .empac-navbar__mobile-menu {
+    /* CDS hides its menu above 768px, but our hamburger runs to 1024px: without
+       this the button opened nothing between 769 and 1024 (half-width windows,
+       OBS docks). */
+    display: flex;
     /* Pin below the bar and cap to the viewport so the MENU scrolls, not the
        page. Absolute (not fixed) so the nav's open-state backdrop-filter can't
        trap it; body scroll is locked below while it's open. */

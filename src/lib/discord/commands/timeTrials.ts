@@ -25,6 +25,10 @@ import { trackCode, trackTitle, tracksByCode } from "@/lib/timeTrials/codes";
 import { playerPagePath } from "@/lib/timeTrials/playerPath";
 import { botTokenFor } from "../apps";
 import { appOfApplicationId, commandName } from "../appIds";
+import { describePlayers } from "@/lib/daily/boards";
+import { serverRecord } from "@/lib/timeTrials/server";
+import { COMP_COLOR, panelFor, postToPanelChannel, refreshPanels } from "../ttPanel";
+import { handleTtPanelCommand } from "./ttPanelActions";
 
 /** The time trial command as typed in the app this interaction came from: /gs-tt in GameShuffle, /tt in GameShuffle Competitive. */
 const ttCmd = (appId: string) => `/${commandName(appOfApplicationId(appId), "tt")}`;
@@ -47,7 +51,7 @@ const FOOTER = { text: "Time trials · gameshuffle.co/time-trials" };
 const UNDO_MINUTES = 15;
 
 type Opt = { name: string; value?: string | number | boolean; focused?: boolean; options?: Opt[] };
-type Attachment = { url: string; content_type?: string; size: number; filename?: string };
+export type Attachment = { url: string; content_type?: string; size: number; filename?: string };
 
 const link = (label: string, url: string) => ({ type: 2, style: 5, label, url });
 const btn = (label: string, customId: string, style: 1 | 2 | 3 | 4 = 2) => ({ type: 2, style, label, custom_id: customId });
@@ -56,7 +60,7 @@ const reply = (data: Record<string, unknown>, ephemeral: boolean) =>
   Response.json({ type: 4, data: { ...data, allowed_mentions: { parse: [] }, ...(ephemeral ? { flags: EPHEMERAL } : {}) } });
 const deferred = (ephemeral: boolean) => Response.json({ type: 5, data: ephemeral ? { flags: EPHEMERAL } : {} });
 
-async function editOriginal(appId: string, token: string, data: Record<string, unknown>): Promise<void> {
+export async function editOriginal(appId: string, token: string, data: Record<string, unknown>): Promise<void> {
   const res = await fetch(`https://discord.com/api/v10/webhooks/${appId}/${token}/messages/@original`, {
     method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowed_mentions: { parse: [] }, ...data }),
   }).catch(() => null);
@@ -71,7 +75,7 @@ async function postFollowUp(appId: string, token: string, data: Record<string, u
 
 const guildNames = new Map<string, string | null>();
 /** The server's name (for "Verified in …" and server boards), when the bot can see it. */
-async function guildName(guildId: string): Promise<string | null> {
+export async function guildName(guildId: string): Promise<string | null> {
   if (guildNames.has(guildId)) return guildNames.get(guildId) ?? null;
   const token = botTokenFor();
   let name: string | null = null;
@@ -98,7 +102,7 @@ function trackLabel(t: TtTrack): string {
   const c = trackCode(t);
   return `${c ? `${c} · ` : ""}${t.name} · ${TT_GAMES[t.game].short}`;
 }
-function boardUrl(t: TtTrack, cc: TtClass, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): string {
+export function boardUrl(t: TtTrack, cc: TtClass, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): string {
   return `${SITE_URL}${trackPath(t, cc, { items, vehicle })}`;
 }
 function classText(t: TtTrack, cc: TtClass): string {
@@ -135,8 +139,13 @@ function resultLines(t: TtTrack, cc: TtClass, timeMs: number, res: Extract<AddTi
 async function saveAndAnswer(args: {
   appId: string; token: string; actor: TtActor; guildId: string | null; track: TtTrack; cc: TtClass; timeMs: number;
   proof: ProofKind; proofUrl: string | null; readByAi: boolean; items: TtItems; vehicle: TtVehicle; clip: string | null;
+  /** Added from the time trial panel: only a fallen server record is posted for everyone (pick 3A). */
+  panel?: boolean;
 }): Promise<void> {
   const { appId, token, actor, guildId, track, cc, timeMs } = args;
+  // With a time trial panel in this server, a time that beats the server's record is posted in its channel.
+  const panelRef = guildId ? await panelFor(guildId, track.game) : null;
+  const prior = panelRef && guildId ? await serverRecord(guildId, track.game, track.id, cc, args.items) : null;
   const res = await addTime({
     player: actor.player, userId: actor.userId, identityId: actor.identityId, game: track.game, track: track.id, cc, items: args.items, vehicle: args.vehicle, timeMs,
     proof: args.proof, proofUrl: args.proofUrl, readByAi: args.readByAi, source: "discord", guildId,
@@ -164,7 +173,27 @@ async function saveAndAnswer(args: {
       ...(unlinked ? [link("Link to GameShuffle", LINK_URL)] : []),
     )],
   });
-  if (res.best && !res.again && guildId) {
+  let recordPosted = false;
+  if (guildId && prior && timeMs < prior.timeMs && !res.again) {
+    const was = prior.player === actor.player
+      ? `Beat their own ${formatTime(prior.timeMs)}`
+      : `Was ${formatTime(prior.timeMs)} by ${(await describePlayers([prior.player])).get(prior.player)?.name ?? "a player"}`;
+    recordPosted = await postToPanelChannel(guildId, track.game, {
+      embeds: [{
+        title: `New server record on ${trackTitle(track)}`,
+        description: [
+          `**${actor.name}** · ${formatTime(timeMs)} · ${categoryText(track.game, cc, args.items, args.vehicle, TT_GAMES[track.game].classes.length > 1)}`,
+          `${was}${args.vehicle === "any" ? ` · ${ordinal(res.place)} on GameShuffle` : ""}`,
+        ].join("\n"),
+        color: COMP_COLOR,
+        ...(track.image ? { thumbnail: { url: track.image } } : {}),
+        footer: FOOTER,
+      }],
+      components: [row(btn("Verify", `${TT_VERIFY_PREFIX}${res.timeId}`, 3), btn("Report", `${TT_REPORT_PREFIX}${res.timeId}`, 2), link("Full board", boardUrl(track, cc, args.items, "any")))],
+    });
+  }
+  if (guildId) await refreshPanels(guildId, track.game).catch((err) => console.error("[tt panel] refresh failed:", err));
+  if (res.best && !res.again && guildId && !args.panel && !recordPosted) {
     const fields = [
       ...(res.server ? [{ name: "This server", value: `${ordinal(res.server.place)} of ${res.server.total}`, inline: true }] : []),
       { name: "GameShuffle", value: `${ordinal(res.place)} of ${res.total}`, inline: true },
@@ -185,7 +214,7 @@ async function saveAndAnswer(args: {
   }
 }
 
-async function fetchAttachment(a: Attachment): Promise<Uint8Array | null> {
+export async function fetchAttachment(a: Attachment): Promise<Uint8Array | null> {
   let host = "";
   try { host = new URL(a.url).hostname; } catch { return null; }
   if (host !== "cdn.discordapp.com" && host !== "media.discordapp.net") return null;
@@ -203,6 +232,8 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
   const appId = String(interaction.application_id ?? "");
   const token = String(interaction.token ?? "");
   const guildId = (interaction.guild_id as string | undefined) ?? null;
+
+  if (sub === "panel") return handleTtPanelCommand(interaction, String(optValue(opts, "game") ?? ""));
 
   if (sub === "add") {
     const track = trackFromKey(String(optValue(opts, "track") ?? "")) ?? searchTracks(String(optValue(opts, "track") ?? ""), undefined, 1)[0] ?? null;
@@ -413,19 +444,23 @@ export async function handleTtButton(interaction: Record<string, unknown>, custo
     const ok = customId.startsWith(TT_OK_PREFIX);
     const draftId = customId.slice(ok ? TT_OK_PREFIX.length : TT_NO_PREFIX.length);
     const { data } = await db.from("tt_drafts").select("player, discord_id, guild_id, payload, expires_at").eq("id", draftId).maybeSingle();
-    const draft = data as { player: string; discord_id: string; guild_id: string | null; payload: { game: TtGame; track: string; cc: TtClass; timeMs: number; proofUrl: string | null; name: string; items?: TtItems; vehicle?: TtVehicle; clip?: string | null }; expires_at: string } | null;
+    const draft = data as { player: string; discord_id: string; guild_id: string | null; payload: { game: TtGame; track: string | null; cc: TtClass; timeMs: number | null; proofUrl: string | null; name: string; items?: TtItems; vehicle?: TtVehicle; clip?: string | null; via?: "panel"; read?: boolean }; expires_at: string } | null;
     if (!draft || draft.discord_id !== user.id) return reply({ content: "That isn't yours to confirm." }, true);
+    const fromPanel = draft.payload.via === "panel";
+    if (ok && (!draft.payload.track || !draft.payload.timeMs)) return reply({ content: "Pick the track and add the time first." }, true);
     await db.from("tt_drafts").delete().eq("id", draftId);
     if (!ok) return Response.json({ type: 7, data: { content: "Cancelled. Nothing was saved.", components: [] } });
-    if (new Date(draft.expires_at).getTime() < Date.now()) return Response.json({ type: 7, data: { content: `That waited too long. Run ${ttCmd(appId)} add again.`, components: [] } });
-    const track = ttTrack(draft.payload.game, draft.payload.track);
+    if (new Date(draft.expires_at).getTime() < Date.now()) return Response.json({ type: 7, data: { content: fromPanel ? "That waited too long. Press Add a time on the panel again." : `That waited too long. Run ${ttCmd(appId)} add again.`, components: [] } });
+    const track = ttTrack(draft.payload.game, draft.payload.track!);
     if (!track) return Response.json({ type: 7, data: { content: "That track isn't on our list any more.", components: [] } });
+    const timeMs = draft.payload.timeMs!;
     after(async () => {
       const actor = await discordActor(user);
       await saveAndAnswer({
-        appId, token, actor, guildId: draft.guild_id, track, cc: draft.payload.cc, timeMs: draft.payload.timeMs,
-        proof: draft.payload.proofUrl ? "screenshot" : "none", proofUrl: draft.payload.proofUrl, readByAi: true,
+        appId, token, actor, guildId: draft.guild_id, track, cc: draft.payload.cc, timeMs,
+        proof: draft.payload.proofUrl ? "screenshot" : "none", proofUrl: draft.payload.proofUrl, readByAi: fromPanel ? draft.payload.read === true : true,
         items: draft.payload.items ?? "shrooms", vehicle: draft.payload.vehicle ?? "any", clip: draft.payload.clip ?? null,
+        panel: fromPanel,
       });
     });
     return Response.json({ type: 6 });

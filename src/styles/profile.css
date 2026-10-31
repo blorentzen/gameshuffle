@@ -1620,7 +1620,7 @@ html.dark .profile-badge--brain { background: rgba(39, 102, 236, 0.18); color: #
   gap: var(--spacing-12);
 }
 
-.player-card {
+.players-dir .player-card {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-8);
@@ -1629,22 +1629,22 @@ html.dark .profile-badge--brain { background: rgba(39, 102, 236, 0.18); color: #
   border-radius: var(--radius-12);
   background: var(--background-elevated);
 }
-.player-card__id {
+.players-dir .player-card__id {
   display: flex;
   align-items: center;
   gap: var(--spacing-12);
   min-width: 0;
 }
-.player-card__avatar {
+.players-dir .player-card__avatar {
   flex-shrink: 0;
 }
-.player-card__namecol {
+.players-dir .player-card__namecol {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-.player-card__name {
+.players-dir .player-card__name {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-6);
@@ -1653,12 +1653,12 @@ html.dark .profile-badge--brain { background: rgba(39, 102, 236, 0.18); color: #
   line-height: 1.25;
   min-width: 0;
 }
-.player-card__name > :first-child {
+.players-dir .player-card__name > :first-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.player-card__handle {
+.players-dir .player-card__handle {
   font-size: var(--font-size-12);
   line-height: 1.2;
   color: var(--text-secondary);
@@ -1666,35 +1666,35 @@ html.dark .profile-badge--brain { background: rgba(39, 102, 236, 0.18); color: #
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.player-card__online {
+.players-dir .player-card__online {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #3fa14a;
   flex-shrink: 0;
 }
-.player-card__badges:empty {
+.players-dir .player-card__badges:empty {
   display: none;
 }
-.player-card__games {
+.players-dir .player-card__games {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-4);
 }
-.player-card__region {
+.players-dir .player-card__region {
   font-size: var(--font-size-12);
   line-height: 1.2;
   color: var(--text-tertiary);
   margin-top: 2px;
 }
 /* Relevance rationale — why this player surfaced (mutuals / shared taste). */
-.player-card__why {
+.players-dir .player-card__why {
   margin: 0;
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-medium);
   color: var(--primary-ink-600);
 }
-.player-card__badges {
+.players-dir .player-card__badges {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-6);

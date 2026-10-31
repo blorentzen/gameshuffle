@@ -392,10 +392,20 @@ const commands = [
 /** GameShuffle Competitive's commands: the competitive ones under short names, usable in servers and, added to
  *  a person's own account, anywhere (submitting a time still needs a server; the handler says so). */
 const COMP_FROM: Record<string, string> = { "gs-tt": "tt", "gs-mmr": "mmr", "gs-room": "room" };
+/** /tt panel: the time trial panel, competitive app only (picks 2026-10-30, Nn8Qv4EVRDL6zojwHVCcdN). */
+const TT_PANEL_SUB = {
+  name: "panel", description: "Post the time trial panel in this channel (people who can manage the server).", type: 1,
+  options: [{ name: "game", description: "Which game the panel is for.", type: 3, required: true, choices: [
+    { name: "Mario Kart 8 Deluxe", value: "mk8dx" }, { name: "Mario Kart World", value: "mkworld" }, { name: "Both games", value: "both" },
+  ] }],
+};
 const compCommands = [
   ...commands
     .filter((c) => c.name in COMP_FROM)
-    .map((c) => ({ ...c, name: COMP_FROM[c.name], integration_types: [0, 1], contexts: [0, 1, 2] })),
+    .map((c) => ({
+      ...c, name: COMP_FROM[c.name], integration_types: [0, 1], contexts: [0, 1, 2],
+      ...(c.name === "gs-tt" ? { options: [...((c as { options?: unknown[] }).options ?? []), TT_PANEL_SUB] } : {}),
+    })),
   ...commands.filter((c) => c.name === "Save to GameShuffle"),
 ];
 

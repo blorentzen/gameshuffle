@@ -10,6 +10,7 @@ import { handleGsRemind } from "./commands/remind";
 import { handleGsProfile } from "./commands/profile";
 import { handleGsMmr, handleGsRoom } from "./commands/mmr";
 import { handleGsTt, handleTtButton, handleTtClipModal, ttAutocomplete, TT_CLIP_MODAL_PREFIX, TT_CLIP_PREFIX, TT_NO_PREFIX, TT_OK_PREFIX, TT_REPORT_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX } from "./commands/timeTrials";
+import { handleTtPanelComponent, handleTtPanelModal, TT_PANEL_COMPONENTS, TT_PANEL_MODALS } from "./commands/ttPanelActions";
 import { handleTtSaveButton, handleTtSaveCommand, TT_IMPORT_PREFIX, TT_SAVE_COMMAND } from "./commands/ttImport";
 import {
   BRAIN_ANSWER_PREFIX,
@@ -132,6 +133,9 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
       return handleTtButton(interaction, customId);
     }
 
+    // Time trials: the panel's buttons and menus (GameShuffle Competitive).
+    if (TT_PANEL_COMPONENTS.some((p) => customId.startsWith(p))) return handleTtPanelComponent(interaction, customId);
+
     // Trivia on stream: a choice, or the Answer button that opens a form.
     if (customId.startsWith(TRIVIA_PICK_PREFIX)) return handleTriviaPick(interaction);
     if (customId.startsWith(TRIVIA_ANSWER_PREFIX)) return handleTriviaAnswerButton(interaction);
@@ -184,6 +188,7 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
   if (type === INTERACTION_TYPE.MODAL_SUBMIT) {
     const customId = (interaction.data as { custom_id: string }).custom_id;
     if (customId.startsWith(TT_CLIP_MODAL_PREFIX)) return handleTtClipModal(interaction, customId);
+    if (TT_PANEL_MODALS.some((p) => customId.startsWith(p))) return handleTtPanelModal(interaction, customId);
     if (customId.startsWith(BRAIN_MODAL_PREFIX)) {
       return handleBrainModalSubmit(interaction);
     }

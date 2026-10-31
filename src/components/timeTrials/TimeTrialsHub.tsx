@@ -13,14 +13,17 @@ import type { TtItems, TtVehicle } from "@/lib/timeTrials/categories";
 import { describePlayers } from "@/lib/daily/boards";
 import { siteActor } from "@/lib/timeTrials/players";
 import { playerBests, trackSummary } from "@/lib/timeTrials/store";
+import { serverSummary } from "@/lib/timeTrials/server";
 import { formatTime, ordinal } from "@/lib/timeTrials/rules";
-import { gamePath, trackPath, ttCups, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { gamePath, serverPath, trackPath, ttCups, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 
 /**
  * The time trials page, for /time-trials (both games, Mario Kart World first) and each game's own
  * page, /time-trials/<game> (picks 2026-10-29, 7A): every track with its record and your own best,
  * by cup; find a player; add a time or bring a list. Round 2 tightening (5A): the search and your
  * links share a row, the filters share one bar, and each cup is a card (three across on desktop).
+ * With `server`, it's one Discord server's board (/time-trials/servers/<id>, the time trial panel's Server
+ * board): the records among that server's players, and no search or questions.
  */
 
 export const TT_FAQ = [
@@ -35,35 +38,41 @@ export const TT_FAQ = [
   { q: "What if a time looks fake?", a: "A time faster than the track's world record can't be saved. For anything else, report it from the board: it opens a ticket, the time's owner can answer with proof, and a reviewer keeps or removes it with a reason everyone in the ticket sees." },
 ];
 
-export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "any", gamePage }: { game: TtGame; cc: TtClass; items?: TtItems; vehicle?: TtVehicle; gamePage: boolean }) {
+export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "any", gamePage, server }: { game: TtGame; cc: TtClass; items?: TtItems; vehicle?: TtVehicle; gamePage: boolean; server?: { guildId: string; name: string } }) {
   const info = TT_GAMES[game];
   const actor = await siteActor();
-  const [summary, mine] = await Promise.all([trackSummary(game, items, vehicle), actor ? playerBests(actor.player) : Promise.resolve([])]);
+  const [summary, mine] = await Promise.all([
+    server ? serverSummary(server.guildId, game, items, vehicle) : trackSummary(game, items, vehicle),
+    actor ? playerBests(actor.player) : Promise.resolve([]),
+  ]);
   const byTrack = new Map(summary.filter((s) => s.cc === cc).map((s) => [s.track, s]));
   const mineByTrack = new Map(mine.filter((b) => b.game === game && b.cc === cc && b.items === items && b.vehicle === vehicle).map((b) => [b.track, b]));
   const holders = await describePlayers([...new Set([...byTrack.values()].map((s) => s.recordPlayer))]);
   // Your times on the board being viewed (this game, speed and items), out of the game's own list.
   const myTracks = mineByTrack.size;
   const myRecords = [...mineByTrack.values()].filter((b) => b.place === 1).length;
-  const here = gamePage ? gamePath(game, cc, { items, vehicle }) : "/time-trials";
+  const pathFor = (g: TtGame, c?: TtClass, cat?: { items?: TtItems; vehicle?: TtVehicle }) => (server ? serverPath(server.guildId, g, c, cat) : gamePath(g, c, cat));
+  const here = server || gamePage ? pathFor(game, cc, { items, vehicle }) : "/time-trials";
 
   return (
     <main className="tt-page">
       <TtMovedToast />
       <BrowseHero
-        eyebrow="Mario Kart"
-        title={gamePage ? `${info.label} time trials` : "Time trials"}
-        sub={gamePage
-          ? `The best times on every ${info.label} track, from players on GameShuffle and in Discord.`
-          : "The best times on every Mario Kart World and Mario Kart 8 Deluxe track, from players on GameShuffle and in Discord."}
-        subShort="Every track's best times, on GameShuffle and in Discord."
+        eyebrow={server ? "Discord server" : "Mario Kart"}
+        title={server ? `${server.name} time trials` : gamePage ? `${info.label} time trials` : "Time trials"}
+        sub={server
+          ? `The best ${info.label} times on every track from players in this Discord server.`
+          : gamePage
+            ? `The best times on every ${info.label} track, from players on GameShuffle and in Discord.`
+            : "The best times on every Mario Kart World and Mario Kart 8 Deluxe track, from players on GameShuffle and in Discord."}
+        subShort={server ? "This server's best time on every track." : "Every track's best times, on GameShuffle and in Discord."}
         accent="blue"
         field="compete"
         compact
         actions={<AddTimeButton game={game} items={items} vehicle={vehicle} signedIn={!!actor} returnTo={here} />}
       />
       <Container className="tt-body">
-        <section className="tt-find" aria-label="Find a player">
+        {!server && <section className="tt-find" aria-label="Find a player">
           <TtPlayerSearch />
           {actor && (
             <p className="tt-mine">
@@ -72,14 +81,14 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
               <ArrowLink href="/time-trials/import">Import from Quaxly or a list</ArrowLink>
             </p>
           )}
-        </section>
+        </section>}
         {actor && !actor.discordLinked && <TtConnectDiscord returnTo={here} />}
 
         <section className="tt-sec" aria-labelledby="tt-tracks">
           <h2 id="tt-tracks" className="sr-only">{info.label} tracks</h2>
           <TtCategoryNav
-            game={game} cc={cc} items={items} vehicle={vehicle} href={(c) => gamePath(game, c.cc, c)}
-            games={TT_GAME_ORDER.map((g) => ({ label: TT_GAMES[g].label, href: gamePath(g, undefined, { items }), active: g === game }))}
+            game={game} cc={cc} items={items} vehicle={vehicle} href={(c) => pathFor(game, c.cc, c)}
+            games={TT_GAME_ORDER.map((g) => ({ label: TT_GAMES[g].label, href: pathFor(g, undefined, { items }), active: g === game }))}
           />
           <div className="tt-cups">
             {ttCups(game).map((cup) => (
@@ -102,7 +111,7 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
                               <b>{formatTime(s.recordMs)}</b>
                               <span>{holders.get(s.recordPlayer)?.name ?? "A player"}{s.recordChecked ? "" : " · Unverified"}</span>
                             </span>
-                          ) : <span className="tt-trow__none">No times yet</span>}
+                          ) : <span className="tt-trow__none">{server ? "No times here yet" : "No times yet"}</span>}
                         </Link>
                       </li>
                     );
@@ -113,19 +122,19 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
           </div>
         </section>
 
-        <section className="tt-sec" aria-labelledby="tt-discord">
+        {!server && <section className="tt-sec" aria-labelledby="tt-discord">
           <h2 id="tt-discord">In Discord</h2>
           <p className="tt-note">With GameShuffle&apos;s bot in your server, <code>/gs-tt add</code> saves a time from the result screenshot, <code>/gs-tt track</code> shows a track&apos;s top ten for the server, and <code>/gs-tt player</code> shows someone&apos;s bests. Coming from Quaxly? Press and hold its reply to <code>/dx display_time</code>, tap Apps, then Save to GameShuffle.</p>
           <div className="tt-links">
             <ArrowLink href="/time-trials/import">Bring your times from Quaxly</ArrowLink>
             <ArrowLink href="/discord">Add GameShuffle to Discord</ArrowLink>
           </div>
-        </section>
+        </section>}
 
-        <section className="tt-sec" aria-labelledby="tt-faq">
+        {!server && <section className="tt-sec" aria-labelledby="tt-faq">
           <h2 id="tt-faq">Questions</h2>
           <FaqList items={TT_FAQ} />
-        </section>
+        </section>}
       </Container>
     </main>
   );
