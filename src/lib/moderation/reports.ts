@@ -23,8 +23,8 @@ async function resolveTargetOwner(
     return (data as { author_id?: string } | null)?.author_id ?? null;
   }
   if (targetType === "chat_message") {
-    const { data } = await admin.from("messages").select("sender_id").eq("id", targetId).maybeSingle();
-    return (data as { sender_id?: string } | null)?.sender_id ?? null;
+    const { data } = await admin.from("messages").select("sender_user_id").eq("id", targetId).maybeSingle();
+    return (data as { sender_user_id?: string } | null)?.sender_user_id ?? null;
   }
   if (targetType === "post") {
     const { data } = await admin.from("gs_posts").select("author_id").eq("id", targetId).maybeSingle();
@@ -33,6 +33,10 @@ async function resolveTargetOwner(
   if (targetType === "comment") {
     const { data } = await admin.from("gs_post_comments").select("author_id").eq("id", targetId).maybeSingle();
     return (data as { author_id?: string } | null)?.author_id ?? null;
+  }
+  if (targetType === "gif") {
+    const { data } = await admin.from("gifs").select("owner_user_id").eq("id", targetId).maybeSingle();
+    return (data as { owner_user_id?: string } | null)?.owner_user_id ?? null;
   }
   return null;
 }

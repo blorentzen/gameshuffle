@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
   const b = body as { targetType?: unknown; targetId?: unknown; reason?: unknown; details?: unknown };
-  const targetType = b.targetType === "post" || b.targetType === "comment" ? b.targetType : null;
+  const targetType = b.targetType === "post" || b.targetType === "comment" || b.targetType === "gif" ? b.targetType : null;
   const targetId = typeof b.targetId === "string" ? b.targetId : "";
   const reason = typeof b.reason === "string" && reportReasonIds.includes(b.reason) ? b.reason : "";
   const details = typeof b.details === "string" ? b.details.trim().slice(0, 1000) || null : null;

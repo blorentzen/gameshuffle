@@ -29,6 +29,7 @@ import "../styles/tools.css";
 import "../styles/game-nights.css";
 import "../styles/events.css";
 import "../styles/activity.css";
+import "../styles/gifs.css";
 import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { isProduction } from "@/lib/env";
 import { AuthProvider } from "@/components/auth/AuthProvider";

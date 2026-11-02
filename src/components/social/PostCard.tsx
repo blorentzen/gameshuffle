@@ -19,6 +19,8 @@ import { useToast } from "@/components/toast/ToastProvider";
 import type { FeedPost, FeedComment, RsvpStatus } from "@/lib/social/feed";
 import { IconTrophy, IconDeviceGamepad2, IconCalendarEvent, IconClock } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { GifButton } from "@/components/gifs/GifButton";
+import type { Attachment } from "@/lib/gifs/rules";
 
 function formatWhen(startAt: string | null | undefined): string {
   if (!startAt) return "Open · hosting now";
@@ -214,14 +216,15 @@ export function PostCard({
     void fetch(`/api/social/posts/${post.id}/react?emoji=${encodeURIComponent(emoji)}`, { method: "DELETE" });
   }
 
-  async function addComment(content: string, parentId?: string) {
+  async function addComment(content: string, parentId?: string, attachment?: Attachment) {
     const res = await fetch(`/api/social/posts/${post.id}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: content, parentId: parentId ?? null }),
+      body: JSON.stringify({ body: content, parentId: parentId ?? null, attachment: attachment ?? null }),
     });
     if (res.ok) await loadComments();
     else if (res.status === 429) toast.error("You're commenting too fast. Give it a sec.");
+    else if (attachment) toast.error("Couldn't post that GIF. Try another.");
   }
 
   async function toggleLike(commentId: string) {
@@ -459,17 +462,19 @@ export function PostCard({
                 onLike={(id) => void toggleLike(id)}
                 onReply={(id, content) => void addComment(content, id)}
                 onDelete={(id) => void removeComment(id)}
+                onReplyAttach={(id, attachment) => void addComment("", id, attachment)}
               />
             </div>
           )}
           {currentUserId && (
-            <div className="post-card__comment-box">
+            <div className="post-card__comment-box ct__compose">
               <CommentInput
                 currentUser={{ id: currentUserId, name: "You" }}
                 placeholder="Write a comment…"
                 autoFocus
                 onSubmit={(content) => void addComment(content)}
               />
+              <GifButton onPick={(p) => void addComment("", undefined, p.attachment)} />
             </div>
           )}
         </div>

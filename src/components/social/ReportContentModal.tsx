@@ -1,6 +1,6 @@
 "use client";
 
-/** Minimal report dialog for a feed post/comment — files into the T&S queue. */
+/** Minimal report dialog for a feed post, comment or GIF — files into the T&S queue. */
 
 import { useState } from "react";
 import { Modal, Select, Textarea, Button } from "@empac/cascadeds";
@@ -15,7 +15,7 @@ export function ReportContentModal({
   open,
   onClose,
 }: {
-  targetType: "post" | "comment";
+  targetType: "post" | "comment" | "gif";
   targetId: string;
   open: boolean;
   onClose: () => void;
@@ -47,7 +47,7 @@ export function ReportContentModal({
   }
 
   return (
-    <Modal isOpen={open} onClose={onClose} title={`Report ${targetType}`} size="small">
+    <Modal isOpen={open} onClose={onClose} title={targetType === "gif" ? "Report GIF" : `Report ${targetType}`} size="small">
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)" }}>
         <Select
           floatingLabel="Reason"

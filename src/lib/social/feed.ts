@@ -2,6 +2,8 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/social/notifications";
 import { resolveNameColor } from "@/data/arcade-items";
+import { attachmentViews, gifsReady } from "@/lib/gifs/store";
+import type { Attachment, AttachmentView } from "@/lib/gifs/rules";
 
 /**
  * Social feed (community platform v1) — posts, emoji reactions, threaded
@@ -98,6 +100,8 @@ export interface FeedComment {
   likes: number;
   likedByMe: boolean;
   isEdited?: boolean;
+  /** A GIF or sticker posted as the comment (GIF comments carry no text). */
+  attachment?: AttachmentView | null;
   replies?: FeedComment[];
 }
 
@@ -751,16 +755,20 @@ export async function clearRsvp(postId: string, userId: string): Promise<void> {
 
 export async function listComments(postId: string): Promise<FeedComment[]> {
   const admin = createServiceClient();
+  // The attachment column arrives with the GIF tables (gifs-m1.sql); until then comments are words only.
+  const withGifs = await gifsReady();
   const { data: rows } = await admin
     .from("gs_post_comments")
-    .select("id, author_id, parent_comment_id, body, created_at, edited_at")
+    .select(withGifs ? "id, author_id, parent_comment_id, body, created_at, edited_at, attachment" : "id, author_id, parent_comment_id, body, created_at, edited_at")
     .eq("post_id", postId)
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
-  const comments = (rows ?? []) as Array<{
-    id: string; author_id: string; parent_comment_id: string | null; body: string; created_at: string; edited_at: string | null;
+  const comments = (rows ?? []) as unknown as Array<{
+    id: string; author_id: string; parent_comment_id: string | null; body: string; created_at: string; edited_at: string | null; attachment?: unknown;
   }>;
   if (!comments.length) return [];
+  const views = withGifs ? await attachmentViews(comments.map((c) => c.attachment ?? null)).catch(() => []) : [];
+  const attached = new Map(comments.map((c, i) => [c.id, views[i] ?? null]));
 
   const authorIds = [...new Set(comments.map((c) => c.author_id))];
   const commentIds = comments.map((c) => c.id);
@@ -788,6 +796,7 @@ export async function listComments(postId: string): Promise<FeedComment[]> {
       likes: likeCounts.get(c.id) ?? 0,
       likedByMe: false, // filled per-viewer below
       isEdited: !!c.edited_at,
+      attachment: attached.get(c.id) ?? null,
       replies: [],
     });
   }
@@ -826,9 +835,12 @@ export async function addComment(args: {
   authorId: string;
   parentId?: string | null;
   body: string;
+  /** Checked by attachmentFor (a sticker, or a GIF that passed the check and is the author's or shared). */
+  attachment?: Attachment | null;
 }): Promise<{ ok: true; id: string } | { ok: false; reason: "empty" | "rate_limited" | "not_found" }> {
-  const body = args.body.trim().slice(0, COMMENT_MAX);
-  if (!body) return { ok: false, reason: "empty" };
+  // A GIF or sticker is the whole comment: any text typed alongside is dropped.
+  const body = args.attachment ? "" : args.body.trim().slice(0, COMMENT_MAX);
+  if (!body && !args.attachment) return { ok: false, reason: "empty" };
   if ((await recentCount("gs_post_comments", args.authorId)) >= COMMENTS_PER_MIN) {
     return { ok: false, reason: "rate_limited" };
   }
@@ -838,7 +850,7 @@ export async function addComment(args: {
 
   const { data, error } = await admin
     .from("gs_post_comments")
-    .insert({ post_id: args.postId, author_id: args.authorId, parent_comment_id: args.parentId ?? null, body })
+    .insert({ post_id: args.postId, author_id: args.authorId, parent_comment_id: args.parentId ?? null, body, ...(args.attachment ? { attachment: args.attachment } : {}) })
     .select("id")
     .single();
   if (error || !data) throw error ?? new Error("comment insert failed");

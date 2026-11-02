@@ -2,7 +2,7 @@
 
 /**
  * The My Stuff section: Events (Tournaments · Game nights) · Purchases
- * (Tickets · Shop orders · Payouts) · Saved configs · Decks · My Collection (Cards ·
+ * (Tickets · Shop orders · Payouts) · Saved configs · Decks · GIFs · My Collection (Cards ·
  * Deck lists). Views and
  * tabs live in src/lib/account/nav.ts; My Games and Board Games moved to
  * Account ▸ Profile ▸ Games (their old links forward there). The page
@@ -21,6 +21,7 @@ import { TicketsTab } from "@/components/account/TicketsTab";
 import { PayoutsTab } from "@/components/account/PayoutsTab";
 import { ShopOrdersTab } from "@/components/account/ShopOrdersTab";
 import { DecksTab } from "@/components/account/stuff/DecksTab";
+import { GifsTab } from "@/components/account/stuff/GifsTab";
 import { TcgDecksTab } from "@/components/tcg/decks/TcgDecksTab";
 import { AdminScreen } from "@/components/account/admin/AdminKit";
 import { MAX_SHOWCASE } from "@/lib/scrydex/types";
@@ -35,6 +36,7 @@ export function StuffTabs({ isPro, unlimitedCards = false, showPayouts = false, 
     ...(showPayouts ? { payouts: () => <PayoutsTab /> } : {}),
     setups: () => <SetupsTab />,
     decks: () => <DecksTab isPro={unlimitedCards} />,
+    gifs: () => <GifsTab />,
     "my-cards": () => (
       <AdminScreen title="My Collection" intro={`The Pokémon cards you own. Star your favorites: the top ${MAX_SHOWCASE} show on your public profile.`}>
         <CollectionManager isPro={isPro} unlimited={unlimitedCards} />
