@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState, type CSSProperties } from "react";
+import { IconTicket } from "@tabler/icons-react";
 
 export interface NamePickerOverlayPayload {
   winners: string[];
@@ -23,14 +24,13 @@ export function NamePickerOverlay({
   payload: NamePickerOverlayPayload;
   style?: CSSProperties;
 }) {
-  const [phase, setPhase] = useState<"spinning" | "reveal">("spinning");
+  const [spun, setPhase] = useState<"spinning" | "reveal">("spinning");
+  // With nobody to spin through, it goes straight to the result.
+  const phase = payload.sample.length ? spun : "reveal";
   const [current, setCurrent] = useState(payload.sample[0] ?? "…");
 
   useEffect(() => {
-    if (!payload.sample.length) {
-      setPhase("reveal");
-      return;
-    }
+    if (!payload.sample.length) return;
     let i = 0;
     const spin = window.setInterval(() => {
       i = (i + 1) % payload.sample.length;
@@ -50,14 +50,15 @@ export function NamePickerOverlay({
     <div className="gs-overlay-namepick-pos" style={style}>
       <div className="gs-overlay-namepick">
         <div className="gs-overlay-namepick__title">
-          🎟️ Raffle{payload.entries ? ` · ${payload.entries} entered` : ""}
+          <IconTicket size={18} stroke={2} aria-hidden />
+          <span>Raffle{payload.entries ? ` · ${payload.entries} entered` : ""}</span>
         </div>
         {phase === "spinning" ? (
           <div className="gs-overlay-namepick__spinning">{current}</div>
         ) : (
           <div className="gs-overlay-namepick__reveal">
             <div className="gs-overlay-namepick__label">
-              {payload.winners.length > 1 ? "Winners" : "Winner"} 🎉
+              {payload.winners.length > 1 ? "Winners" : "Winner"}
             </div>
             {payload.winners.length ? (
               payload.winners.map((w, i) => (

@@ -5,6 +5,7 @@ import { Button } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconTrophy } from "@tabler/icons-react";
 
 /**
  * Euchre scoreboard — two teams race to 10. Quick buttons cover the usual scores:
@@ -42,7 +43,7 @@ export function Euchre() {
           <Button variant="ghost" size="small" onClick={reset}>Reset</Button>
         </div>
       </div>
-      {hasWinner && <p className="bgn-crib__win">🏆 {teams[winnerIdx].name} win, first to {TARGET}!</p>}
+      {hasWinner && <p className="bgn-crib__win"><IconTrophy size={18} stroke={2} aria-hidden /><span>{teams[winnerIdx].name} win, first to {TARGET}!</span></p>}
 
       <div className="bgn-crib__players">
         {teams.map((t, i) => {

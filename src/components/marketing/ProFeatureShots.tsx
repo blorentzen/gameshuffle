@@ -6,6 +6,8 @@
  * Coin/token surfaces use the reserved gold ramp (the one place gold belongs).
  */
 
+import { IconDice5 } from "@tabler/icons-react";
+
 /* ── One session, every platform ───────────────────────────────────── */
 type Platform = {
   name: string;
@@ -80,7 +82,7 @@ export function OverlayShot() {
           <div className="ov-cycle" style={{ animationDelay: "0s" }}>
             <div className="ov-combo">
               <div className="ov-combo__header">
-                <span className="ov-combo__dice">🎲</span>
+                <IconDice5 size={16} stroke={1.9} className="ov-combo__dice" aria-hidden />
                 <span className="ov-combo__name">GameShuffle</span>
                 <span className="ov-combo__verb">drew</span>
               </div>

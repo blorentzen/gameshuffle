@@ -301,7 +301,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
       "Play out the hand; whoever takes tricks containing hearts or the Queen of Spades collects those points.",
       "The twist: 'shoot the moon' by taking all 26 points yourself, which instead gives every other player 26.",
       "Add up over many hands; the game ends when someone reaches 100, and the lowest score wins.",
-      "In the tool, enter each player's points for the hand (they should total 26); the 🌙 control applies shoot-the-moon for the player you pick.",
+      "In the tool, enter each player's points for the hand (they should total 26); the moon column applies shoot-the-moon for the player you pick.",
     ],
   },
   {

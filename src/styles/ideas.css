@@ -218,6 +218,9 @@
   border-top: 1px solid var(--border-subtle);
 }
 .idea-report-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
   appearance: none;
   background: transparent;
   border: 0;

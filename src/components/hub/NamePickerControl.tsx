@@ -77,7 +77,7 @@ export function NamePickerControl({ slug }: { slug: string }) {
     startTransition(async () => {
       const res = await drawRaffleAction(slug, count, remove);
       if (res.ok) {
-        setResult(res.winners && res.winners.length ? `🎉 ${res.winners.join(", ")}` : "No entries yet");
+        setResult(res.winners && res.winners.length ? `Drawn: ${res.winners.join(", ")}` : "No entries yet");
         if (manage) void loadEntries();
         else setEntries((e) => (res.entries != null ? Math.max(0, res.entries - (remove ? (res.winners?.length ?? 0) : 0)) : e));
         window.setTimeout(() => setResult(null), 8000);

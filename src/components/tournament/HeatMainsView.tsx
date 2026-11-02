@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import { Button } from "@empac/cascadeds";
+import { IconTrophy } from "@tabler/icons-react";
 import { heatMainsStage, nextMainTier, type HeatMains, type HRace } from "@/lib/tournaments/heatMains";
 import type { DriverPoints, SeasonRow } from "@/lib/tournaments/championship";
 import { SortableList, moveWithin } from "@/components/ui/SortableList";
@@ -68,7 +69,7 @@ function HeatRace({ race, isUp, transferTo, champ, editable, editingId, setEditi
           return (
             <div key={id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", padding: "var(--spacing-6) var(--spacing-10)", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
               <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? (isDq ? "-" : i + 1) : "·"}</span>
-              <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{isChamp ? "🏆 " : ""}{nameOf(id)}{isDq ? " · DQ" : ""}</span>
+              <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{isChamp ? <><IconTrophy size={14} stroke={2} aria-hidden style={{ verticalAlign: "-0.15em", marginRight: 4 }} /><span className="sr-only">Champion: </span></> : null}{nameOf(id)}{isDq ? " · DQ" : ""}</span>
               {movesUp && heatChip(`→ ${transferTo}`)}
               {race.kind === "heat" && run && !isDq && i === 0 && heatChip("heat win")}
             </div>

@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useRef } from "react";
+import { IconMusic } from "@tabler/icons-react";
 
 export interface AnthemEventPayload {
   audioUrl: string;
@@ -54,10 +55,10 @@ export function AnthemPlayer({ payload }: { payload: AnthemEventPayload }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img className="gs-anthem__art" src={payload.artworkUrl} alt="" />
       ) : (
-        <div className="gs-anthem__art gs-anthem__art--note" aria-hidden>♪</div>
+        <div className="gs-anthem__art gs-anthem__art--note" aria-hidden><IconMusic size={24} stroke={1.9} /></div>
       )}
       <div className="gs-anthem__text">
-        <div className="gs-anthem__viewer">🎵 {payload.viewerName} is here</div>
+        <div className="gs-anthem__viewer">{payload.viewerName} is here</div>
         <div className="gs-anthem__title">
           {payload.title}
           {payload.artist ? ` · ${payload.artist}` : ""}

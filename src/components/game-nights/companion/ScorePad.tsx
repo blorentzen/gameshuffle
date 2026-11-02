@@ -8,7 +8,7 @@ import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { IconAction } from "@/components/actions/IconAction";
-import { IconX } from "@tabler/icons-react";
+import { IconCrown, IconX } from "@tabler/icons-react";
 
 interface ScorePadState {
   rounds: Record<string, number>[]; // rounds[r][playerId]
@@ -123,7 +123,7 @@ export function ScorePad() {
               <td className="bgn-sheet__rowlabel">Total</td>
               {totals.map((t, p) => (
                 <td key={players[p].id} className={`bgn-sheet__total${hasScores && t === best ? " bgn-sheet__total--best" : ""}`}>
-                  {t}{hasScores && t === best && <span className="bgn-sheet__crown"> 👑</span>}
+                  {t}{hasScores && t === best && <span className="bgn-sheet__crown"><IconCrown size={14} stroke={2} className="place-medal--gold" aria-hidden /><span className="sr-only"> (leading)</span></span>}
                 </td>
               ))}
             </tr>

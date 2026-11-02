@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { IconUsersGroup } from "@tabler/icons-react";
+import { IconBeer, IconUsersGroup } from "@tabler/icons-react";
 import { FreeToolShell } from "@/components/tools/FreeToolShell";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { TeamNameGenerator } from "@/components/trivia/seo/TeamNameGenerator";
@@ -45,13 +45,13 @@ export default function TeamNamesPage() {
 
         <section className="trivia-tool-copy">
           <h2>Every name on the list</h2>
-          <p>Our own handwritten names, by theme. The ones marked 🍺 joke about drinking.</p>
+          <p>Our own handwritten names, by theme. The ones marked <IconBeer size={16} stroke={1.9} className="trivia-name-lists__beer" aria-hidden /><span className="sr-only">with a beer glass</span> joke about drinking.</p>
           <div className="trivia-name-lists">
             {TEAM_NAME_THEMES.map((t) => (
               <div key={t.id}>
                 <h3>{t.id === "kids" ? "Trivia team names for kids" : `${t.label} trivia team names`}</h3>
                 <ul>
-                  {TEAM_NAMES[t.id].map((n) => <li key={n.name}>{n.name}{n.adult ? <span className="trivia-name-lists__adult" title="Drinking joke" aria-label="(drinking joke)"> 🍺</span> : null}</li>)}
+                  {TEAM_NAMES[t.id].map((n) => <li key={n.name}>{n.name}{n.adult ? <>{" "}<IconBeer size={16} stroke={1.9} className="trivia-name-lists__beer" aria-hidden /><span className="sr-only"> (drinking joke)</span></> : null}</li>)}
                 </ul>
               </div>
             ))}

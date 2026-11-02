@@ -483,6 +483,10 @@ html.gs-overlay-route body {
   animation: gs-oracle-pop 0.42s cubic-bezier(0.2, 0.8, 0.25, 1);
 }
 .gs-overlay-namepick__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-size: var(--font-size-14, 14px);
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -1356,8 +1360,8 @@ html.gs-overlay-route body {
 .gs-break__chips li { padding: 4px 10px; border-radius: 99px; background: rgba(255, 255, 255, 0.12); font-size: 14px; font-weight: 600; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 .gs-break__missed { margin: 0; font-size: 14px; color: #c4c9ff; }
 .gs-break__out { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.gs-break__out li { font-size: 15px; color: #ffd8d8; }
-.gs-break__out li::before { content: "💥 "; }
+.gs-break__out li { display: flex; align-items: center; gap: 6px; font-size: 15px; color: #ffd8d8; }
+.gs-break__out li > svg { flex: none; color: #ff9b9b; }
 .gs-break__joined { margin: 0; display: flex; align-items: baseline; gap: 10px; font-size: 18px; color: #c4c9ff; }
 .gs-break__c4wrap { display: grid; gap: 6px; justify-content: start; }
 .gs-break__c4 { display: grid; grid-template-columns: repeat(7, 28px); gap: 5px; padding: 8px; border-radius: 12px; background: #2a3fb8; }

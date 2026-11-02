@@ -5,20 +5,23 @@
  * status — never redeemable for real value, keeping the loop closed.
  *
  * Hardcoded (like the other catalogs) — no DB table + admin needed for v1.
- * v1 items are profile badges (an emoji + label shown on /u). Prices are token
+ * v1 items are profile badges (a Tabler icon + label shown on /u). Prices are token
  * amounts; tune alongside mint velocity on the economy snapshot dashboard.
  */
+
+/** The icons a badge can wear, drawn by ArcadeBadgeIcon. */
+export type ArcadeBadgeIconName = "star" | "dice" | "trophy" | "flame" | "crown";
 
 export interface ArcadeItem {
   id: string;
   name: string;
   description: string;
   price: number;
-  /** Rendered form: 'badge' (emoji on the profile) or 'name_color' (colored,
+  /** Rendered form: 'badge' (an icon on the profile) or 'name_color' (colored,
    *  equippable display name across the social layer). */
   kind: "badge" | "name_color";
-  /** For 'badge'. */
-  emoji?: string;
+  /** For 'badge': the Tabler icon it shows (src/components/arcade/ArcadeBadgeIcon.tsx). */
+  icon?: ArcadeBadgeIconName;
   /** For 'name_color' — a CSS color applied to the display name. */
   color?: string;
 }
@@ -26,11 +29,11 @@ export interface ArcadeItem {
 export const ARCADE_ITEMS: ArcadeItem[] = [
   // "Supporter" (500 tokens) was retired 2026-10-19: the Supporter badge now means someone who supports
   // GameShuffle with money (supabase/support-m2.sql refunded and removed it).
-  { id: "badge_regular", name: "Regular", description: "You're always around.", price: 1500, kind: "badge", emoji: "⭐" },
-  { id: "badge_high_roller", name: "High Roller", description: "For the bold at the markets.", price: 5000, kind: "badge", emoji: "🎲" },
-  { id: "badge_champion", name: "Champion", description: "Wear your competitive edge.", price: 8000, kind: "badge", emoji: "🏆" },
-  { id: "badge_streamer_fan", name: "Superfan", description: "A community's biggest fan.", price: 3000, kind: "badge", emoji: "🔥" },
-  { id: "badge_legend", name: "Legend", description: "The rarest flex on GameShuffle.", price: 25000, kind: "badge", emoji: "👑" },
+  { id: "badge_regular", name: "Regular", description: "You're always around.", price: 1500, kind: "badge", icon: "star" },
+  { id: "badge_high_roller", name: "High Roller", description: "For the bold at the markets.", price: 5000, kind: "badge", icon: "dice" },
+  { id: "badge_champion", name: "Champion", description: "Wear your competitive edge.", price: 8000, kind: "badge", icon: "trophy" },
+  { id: "badge_streamer_fan", name: "Superfan", description: "A community's biggest fan.", price: 3000, kind: "badge", icon: "flame" },
+  { id: "badge_legend", name: "Legend", description: "The rarest flex on GameShuffle.", price: 25000, kind: "badge", icon: "crown" },
 
   // Name colors — equip one to color your display name everywhere.
   { id: "name_indigo", name: "Indigo name", description: "A cool indigo display name.", price: 2000, kind: "name_color", color: "#5c8cf5" },

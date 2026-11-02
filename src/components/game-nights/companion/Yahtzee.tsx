@@ -7,6 +7,7 @@ import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconCrown } from "@tabler/icons-react";
 
 type Cat = { id: string; label: string; hint?: string; fixed?: number };
 
@@ -176,7 +177,7 @@ export function Yahtzee() {
               <td className="bgn-sheet__rowlabel">Total</td>
               {grands.map((g, p) => (
                 <td key={players[p].id} className={`bgn-sheet__total${anyScore && g === best ? " bgn-sheet__total--best" : ""}`}>
-                  {g}{anyScore && g === best && <span className="bgn-sheet__crown"> 👑</span>}
+                  {g}{anyScore && g === best && <span className="bgn-sheet__crown"><IconCrown size={14} stroke={2} className="place-medal--gold" aria-hidden /><span className="sr-only"> (leading)</span></span>}
                 </td>
               ))}
             </tr>

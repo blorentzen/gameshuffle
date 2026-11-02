@@ -16,7 +16,7 @@ import { SeasonTable } from "@/components/tournament/HeatMainsView";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
 import { IconAction } from "@/components/actions/IconAction";
-import { IconUserMinus } from "@tabler/icons-react";
+import { IconTrophy, IconUserMinus } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface EventRow {
@@ -43,7 +43,6 @@ export default function ChampionshipManagePage() {
   const [members, setMembers] = useState<ChampionshipMember[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notOwner, setNotOwner] = useState(false);
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{ id: string; username: string | null; display_name: string }[]>([]);
@@ -87,8 +86,11 @@ export default function ChampionshipManagePage() {
     setLoading(false);
   }, [championshipId, supabase]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the first load of server data, set when the fetch answers
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { if (champ && user && champ.owner_id !== user.id) setNotOwner(true); }, [champ, user]);
+  const notOwner = !!(champ && user && champ.owner_id !== user.id);
+  // Search answers only show while the box holds two letters or more.
+  const shownResults = query.trim().length >= 2 ? results : [];
 
   // Realtime — reload when an event's results change, or the roster shifts, so
   // the season table + event list stay live while an event is being run.
@@ -113,7 +115,7 @@ export default function ChampionshipManagePage() {
   // Debounced platform-player search.
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (query.trim().length < 2) { setResults([]); return; }
+    if (query.trim().length < 2) return;
     searchTimer.current = setTimeout(async () => {
       const res = await fetch(`/api/championship/${championshipId}/search?q=${encodeURIComponent(query.trim())}`);
       const j = await res.json();
@@ -169,7 +171,7 @@ export default function ChampionshipManagePage() {
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
       <Container>
         <div style={{ maxWidth: 820, margin: "0 auto" }}>
-          <span className="marketing-eyebrow">🏆 Championship series</span>
+          <span className="marketing-eyebrow">Championship series</span>
           <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, margin: "0.35rem 0 0.5rem" }}>{champ.name}</h1>
           {champ.description && <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>{champ.description}</p>}
 
@@ -184,9 +186,9 @@ export default function ChampionshipManagePage() {
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Invite a GameShuffle player</label>
                 <Input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search @handle or name…" />
-                {results.length > 0 && (
+                {shownResults.length > 0 && (
                   <div style={{ marginTop: "0.5rem", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" }}>
-                    {results.map((u) => (
+                    {shownResults.map((u) => (
                       <button key={u.id} type="button" onClick={() => invitePlayer(u)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", textAlign: "left", cursor: "pointer", padding: "0.45rem 0.6rem", border: "none", background: "transparent", color: "var(--text-primary)" }}>
                         <span style={{ flex: 1 }}><strong style={{ fontSize: "var(--font-size-14)" }}>{u.display_name}</strong> {u.username && <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>@{u.username}</span>}</span>
                         <span style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Add</span>
@@ -249,7 +251,7 @@ export default function ChampionshipManagePage() {
                     <div key={e.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.55rem 0.75rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)" }}>
                       <span style={{ fontWeight: 700, fontSize: "var(--font-size-14)", minWidth: 68 }}>Event {e.event_number}</span>
                       <span style={{ flex: 1, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-                        {done ? <>🏆 {nameOfUser(champId)}</> : e.heat_mains ? "In progress" : "Not started"}
+                        {done ? <><IconTrophy size={14} stroke={1.9} aria-hidden style={{ verticalAlign: "-0.15em", marginRight: 4 }} /><span className="sr-only">Won by </span>{nameOfUser(champId)}</> : e.heat_mains ? "In progress" : "Not started"}
                         {e.date_time && <> · {formatEventTime(e.date_time, viewerTz)}</>}
                       </span>
                       <Link href={`/tournament/${e.id}/manage`}><Button variant="secondary" size="small">Run</Button></Link>
@@ -263,7 +265,7 @@ export default function ChampionshipManagePage() {
 
           {/* Season standings */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.5rem" }}>🏆 Season standings</h2>
+            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.5rem" }}>Season standings</h2>
 
             {/* Points curve — curated presets (keeps the format opinionated). */}
             <div style={{ marginBottom: "0.85rem" }}>

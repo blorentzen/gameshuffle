@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { IconDice5 } from "@tabler/icons-react";
 import { getImagePath } from "@/lib/images";
 
 export interface ComboOverlaySlot {
@@ -33,9 +34,7 @@ export function ComboOverlay({
   return (
     <div className="gs-overlay__card gs-overlay__card--static" style={style}>
       <div className="gs-overlay__header">
-        <span className="gs-overlay__dice" aria-hidden>
-          🎲
-        </span>
+        <IconDice5 size={18} stroke={1.9} className="gs-overlay__dice" aria-hidden />
         <span className="gs-overlay__name">{payload.displayName}</span>
         <span className="gs-overlay__verb">drew</span>
       </div>

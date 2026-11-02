@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useState } from "react";
+import { IconPin } from "@tabler/icons-react";
 import { PostCard } from "@/components/social/PostCard";
 import { PostComposer } from "@/components/social/PostComposer";
 import type { FeedPost } from "@/lib/social/feed";
@@ -63,8 +64,9 @@ export function CommunityFeed({
           ).map((p) => (
             <div key={p.id}>
               {p.id === pinnedPostId && (
-                <span style={{ display: "inline-block", fontSize: "var(--font-size-12)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--bg-primary, var(--primary-600))", marginBottom: "var(--spacing-4)" }}>
-                  📌 Pinned
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-4)", fontSize: "var(--font-size-12)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--bg-primary, var(--primary-600))", marginBottom: "var(--spacing-4)" }}>
+                  <IconPin size={14} stroke={2} aria-hidden />
+                  Pinned
                 </span>
               )}
               <PostCard post={p} currentUserId={currentUserId ?? ""} onDeleted={onDeleted} />

@@ -7,6 +7,7 @@ import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconTrophy } from "@tabler/icons-react";
 
 /**
  * Cribbage scoreboard — a digital peg board. Race to 121; the skunk line sits at
@@ -62,7 +63,7 @@ export function Cribbage() {
         </div>
       </div>
       {winner && (
-        <p className="bgn-crib__win">🏆 {winner.name} pegs out at {TARGET}!</p>
+        <p className="bgn-crib__win"><IconTrophy size={18} stroke={2} aria-hidden /><span>{winner.name} pegs out at {TARGET}!</span></p>
       )}
 
       <div className="bgn-crib__players">

@@ -7,6 +7,7 @@
  */
 
 import { useState } from "react";
+import { IconBan } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
@@ -43,7 +44,8 @@ export function BlockProfileButton({ targetUserId }: { targetUserId: string }) {
       disabled={busy}
       onClick={() => void block()}
     >
-      🚫 Block
+      <IconBan size={16} stroke={2} aria-hidden />
+      Block
     </button>
   );
 }

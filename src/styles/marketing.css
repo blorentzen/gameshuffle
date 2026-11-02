@@ -584,7 +584,8 @@
   margin-bottom: 0.9rem;
 }
 .ov-combo__dice {
-  font-size: var(--font-size-14);
+  flex: none;
+  align-self: center;
 }
 .ov-combo__name {
   font-weight: var(--font-weight-bold);

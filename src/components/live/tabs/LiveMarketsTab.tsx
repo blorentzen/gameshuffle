@@ -214,7 +214,7 @@ export function LiveMarketsTab({
       } else {
         setActionStatus({
           kind: "ok",
-          message: `Bet ${amount}🪙 on ${outcome.label}. Balance: ${body.balance ?? "-"}🪙.`,
+          message: `Bet ${amount} tokens on ${outcome.label}. Balance: ${body.balance ?? "-"} tokens.`,
         });
       }
       setExpandedOutcome(null);

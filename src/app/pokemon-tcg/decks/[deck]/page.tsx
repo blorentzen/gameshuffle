@@ -231,7 +231,7 @@ export default async function Page({
         {battleBox && partner ? (
           <aside className="deck-battlebox-note">
             <p className="deck-battlebox-note__lead">
-              🥊 Part of the{" "}
+              Part of the{" "}
               <strong>{battleBox.frontmatter.name}</strong>
               , a matched pair built to learn the game together.
             </p>

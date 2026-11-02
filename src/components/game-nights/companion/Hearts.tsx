@@ -8,11 +8,11 @@ import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { IconAction } from "@/components/actions/IconAction";
-import { IconX } from "@tabler/icons-react";
+import { IconCrown, IconMoon, IconX } from "@tabler/icons-react";
 
 /**
  * Hearts scorecard — round scoring, lowest total wins, game ends when someone
- * hits 100. Each hand distributes 26 points; the "🌙" per-round control does
+ * hits 100. Each hand distributes 26 points; the moon column's per-round control does
  * shoot-the-moon for you (26 to everyone else, 0 to the shooter). Players come
  * from the shared roster; scores are keyed by player id and saved on the device.
  */
@@ -75,7 +75,7 @@ export function Hearts() {
               {players.map((pl) => (
                 <th key={pl.id}>{pl.name}</th>
               ))}
-              <th className="bgn-sheet__rowlabel">🌙</th>
+              <th className="bgn-sheet__rowlabel" title="Shoot the moon"><IconMoon size={16} stroke={2} aria-hidden style={{ verticalAlign: "-0.2em" }} /><span className="sr-only">Shoot the moon</span></th>
             </tr>
           </thead>
           <tbody>
@@ -118,7 +118,7 @@ export function Hearts() {
               <td className="bgn-sheet__rowlabel">Total</td>
               {totals.map((t, p) => (
                 <td key={players[p].id} className={`bgn-sheet__total${played && t === low ? " bgn-sheet__total--best" : ""}`}>
-                  {t}{played && t === low && <span className="bgn-sheet__crown"> 👑</span>}
+                  {t}{played && t === low && <span className="bgn-sheet__crown"><IconCrown size={14} stroke={2} className="place-medal--gold" aria-hidden /><span className="sr-only"> (leading)</span></span>}
                 </td>
               ))}
               <td />

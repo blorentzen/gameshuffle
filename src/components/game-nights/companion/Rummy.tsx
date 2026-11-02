@@ -8,7 +8,7 @@ import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { IconAction } from "@/components/actions/IconAction";
-import { IconX } from "@tabler/icons-react";
+import { IconCrown, IconX } from "@tabler/icons-react";
 
 /**
  * Rummy scorecard — round scoring, first to the target (default 500) wins. Add a
@@ -96,7 +96,7 @@ export function Rummy() {
               <td className="bgn-sheet__rowlabel">Total</td>
               {totals.map((t, p) => (
                 <td key={players[p].id} className={`bgn-sheet__total${played && t === high ? " bgn-sheet__total--best" : ""}`}>
-                  {t}{played && t === high && <span className="bgn-sheet__crown"> 👑</span>}
+                  {t}{played && t === high && <span className="bgn-sheet__crown"><IconCrown size={14} stroke={2} className="place-medal--gold" aria-hidden /><span className="sr-only"> (leading)</span></span>}
                 </td>
               ))}
             </tr>

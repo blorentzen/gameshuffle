@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, Container, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@empac/cascadeds";
-import { IconSparkles } from "@tabler/icons-react";
+import { IconCheck, IconSparkles } from "@tabler/icons-react";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
@@ -109,7 +109,7 @@ const COMPARE: { label: string; free: string | boolean; c64: string | boolean; c
 ];
 
 function Cell({ v }: { v: string | boolean }) {
-  if (v === true) return <span style={{ color: "#16a34a", fontWeight: 800 }}>✓</span>;
+  if (v === true) return <><IconCheck size={20} stroke={2.4} color="#16a34a" aria-hidden style={{ verticalAlign: "-0.25em" }} /><span className="sr-only">Included</span></>;
   if (v === false) return <span style={{ color: "var(--text-tertiary)" }}>No</span>;
   return <span style={{ fontWeight: 700 }}>{v}</span>;
 }

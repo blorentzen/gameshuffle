@@ -4,6 +4,8 @@
  * light page. Representations of the tournament features, not live demos.
  */
 
+import { IconCheck, IconMedal } from "@tabler/icons-react";
+
 const panelText = { color: "#f3f4f6" } as const;
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#aeb4c7", marginBottom: 12 };
 
@@ -26,7 +28,7 @@ export function BracketShot() {
               const won = i === l.winner;
               return (
                 <div key={p} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: won ? "rgba(99,102,241,0.18)" : "transparent" }}>
-                  <span style={{ width: 18, height: 18, borderRadius: "50%", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", background: won ? "#6366f1" : "rgba(255,255,255,0.08)", color: won ? "#fff" : "#aeb4c7" }}>{won ? "✓" : ""}</span>
+                  <span style={{ width: 18, height: 18, borderRadius: "50%", fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", background: won ? "#6366f1" : "rgba(255,255,255,0.08)", color: won ? "#fff" : "#aeb4c7" }}>{won ? <IconCheck size={12} stroke={3} aria-hidden /> : null}</span>
                   <span style={{ ...panelText, flex: 1, fontSize: 14, fontWeight: won ? 700 : 500 }}>{p}</span>
                   <span style={{ fontSize: 11, fontWeight: 600, color: won ? "#a5b4fc" : "#8a90a3", opacity: won ? 1 : 0.6 }}>{won ? "moves on" : "out"}</span>
                 </div>
@@ -40,13 +42,16 @@ export function BracketShot() {
 }
 
 /* ── Live scoring: standings with tie-aware medals ───────────────────── */
-const STANDINGS: { place: string; name: string; pts: number; medal?: string }[] = [
-  { place: "1", name: "Nova", pts: 128, medal: "🥇" },
-  { place: "2", name: "Maya", pts: 121, medal: "🥈" },
-  { place: "2", name: "Kai", pts: 121, medal: "🥈" },
+const STANDINGS: { place: string; name: string; pts: number; medal?: "gold" | "silver" }[] = [
+  { place: "1", name: "Nova", pts: 128, medal: "gold" },
+  { place: "2", name: "Maya", pts: 121, medal: "silver" },
+  { place: "2", name: "Kai", pts: 121, medal: "silver" },
   { place: "4", name: "Juno", pts: 116 },
   { place: "5", name: "Rex", pts: 109 },
 ];
+
+/** The medal colors the standings use on dark ground (competitive.css .place-medal--*). */
+const MEDAL = { gold: "#e3b341", silver: "#b6bec9" } as const;
 
 export function StandingsShot() {
   return (
@@ -55,7 +60,7 @@ export function StandingsShot() {
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {STANDINGS.map((s, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px", borderRadius: 10, background: i < 3 ? "rgba(255,255,255,0.05)" : "transparent" }}>
-            <span style={{ width: 24, textAlign: "center", fontWeight: 800, fontSize: s.medal ? 16 : 14, color: "#f3f4f6" }}>{s.medal ?? s.place}</span>
+            <span style={{ width: 24, display: "flex", justifyContent: "center", fontWeight: 800, fontSize: 14, color: "#f3f4f6" }}>{s.medal ? <IconMedal size={20} stroke={1.9} color={MEDAL[s.medal]} aria-hidden /> : s.place}</span>
             <span style={{ ...panelText, flex: 1, fontSize: 14, fontWeight: 600 }}>{s.name}</span>
             <span style={{ fontSize: 14, fontWeight: 800, color: "#a5b4fc" }}>{s.pts} pts</span>
           </div>

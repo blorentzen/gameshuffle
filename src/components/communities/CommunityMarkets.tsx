@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Button, Input } from "@empac/cascadeds";
 import { IconArrowRight } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
+import { TokenIcon } from "@/components/TokenIcon";
 
 interface Outcome { outcomeId: string; optionKey: string; label: string; pickerCount: number }
 interface Market { id: string; question: string; outcomes: Outcome[] }
@@ -68,7 +69,7 @@ export function CommunityMarkets({
     <>
       {isMember ? (
         <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
-          Your balance: <strong style={{ color: "var(--text-secondary)" }}>{balance.toLocaleString()} 🪙</strong> · leave the stake empty to just predict.
+          Your balance: <strong style={{ color: "var(--text-secondary)" }}>{balance.toLocaleString()} <TokenIcon size={14} /><span className="sr-only"> tokens</span></strong> · leave the stake empty to just predict.
         </p>
       ) : (
         <p style={{ margin: "0 0 var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>Join the community to predict and bet.</p>
