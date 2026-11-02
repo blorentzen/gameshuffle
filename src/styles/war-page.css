@@ -1,0 +1,63 @@
+/* A war's page (/wars/<slug>): the score in the header, then the totals, the lead chart, the races and the table. */
+
+.wp-body { display: grid; gap: var(--spacing-24); padding-block: var(--spacing-24) var(--spacing-48); }
+.wp-sec { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.wp-sec--flat { padding-top: 0; border-top: 0; }
+.wp-sec h2 { margin: 0; font-size: var(--font-size-20); }
+.wp-note { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); max-width: 72ch; }
+.wp-muted { color: var(--text-secondary); }
+.wp-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* The score in the header: each team's logo, tag and total, the gap between them. */
+.wp-score { display: flex; align-items: center; justify-content: center; gap: var(--spacing-16); padding: var(--spacing-20) var(--spacing-24); border-radius: 1.6rem; background: rgb(4 8 14 / .55); border: 1px solid rgb(140 200 240 / .18); color: #eef4f8; }
+.wp-score__team { display: grid; justify-items: center; gap: var(--spacing-8); min-width: 0; }
+.wp-score__tag { font-size: var(--font-size-14); font-weight: 700; letter-spacing: .04em; color: #a3b6c6; max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wp-score__total { font-family: var(--font-display); font-size: var(--font-size-40, 4rem); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.wp-score__gap { padding: var(--spacing-4) var(--spacing-12); border-radius: 99rem; background: rgb(140 200 240 / .16); color: #8cc8f0; font-weight: 700; font-size: var(--font-size-16); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Totals */
+.wp-stats { display: flex; flex-wrap: wrap; gap: var(--spacing-16) 4rem; margin: 0; }
+.wp-stats div { display: grid; gap: var(--spacing-2, 2px); }
+.wp-stats dt { font-size: var(--font-size-12); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-secondary); }
+.wp-stats dd { margin: 0; font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 700; font-variant-numeric: tabular-nums; }
+.wp-stats small { display: block; font-family: var(--font-body, inherit); font-size: var(--font-size-14); font-weight: 400; color: var(--text-secondary); }
+
+/* The lead chart: never narrower than its 720 units (labels stay 12px), scrolls sideways on phones. */
+.wp-chart { margin: 0; overflow-x: auto; border-radius: 4px; }
+.wp-chart:focus-visible { outline: 2px solid var(--primary-500, #3b5bdb); outline-offset: 4px; }
+.wp-chart__plot { position: relative; min-width: 720px; max-width: 96rem; }
+.wp-chart svg { width: 100%; height: auto; display: block; touch-action: pan-x pan-y; }
+.wp-chart text { font-size: 12px; font-weight: 600; fill: var(--text-secondary); paint-order: stroke; stroke: var(--background-primary, #fff); stroke-width: 4px; stroke-linejoin: round; }
+.wp-chart__grid { stroke: var(--border-default); stroke-width: 1; }
+.wp-chart__zero { stroke: var(--text-secondary); stroke-width: 1.5; }
+.wp-chart__cross { stroke: var(--text-secondary); stroke-width: 1; stroke-dasharray: 3 3; }
+.wp-chart__area { fill: var(--primary-500, #3b5bdb); opacity: .1; }
+.wp-chart__line { fill: none; stroke: var(--primary-600, #2b52d6); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.wp-chart__dot { fill: var(--primary-600, #2b52d6); stroke: var(--background-primary, #fff); stroke-width: 2; }
+.wp-chart__gold { fill: #f2c14e; stroke: var(--background-primary, #fff); stroke-width: 2; }
+.wp-chart text.wp-chart__gold-label { fill: var(--text-primary); }
+.wp-chart__tip { position: absolute; transform: translate(-50%, calc(-100% - 14px)); display: grid; gap: 2px; padding: var(--spacing-8) var(--spacing-12); border-radius: .8rem; background: var(--background-primary, #fff); border: 1px solid var(--border-default); box-shadow: 0 6px 18px rgb(0 0 0 / .12); font-size: var(--font-size-14); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+.wp-chart__tip--left { transform: translate(calc(-100% + 12px), calc(-100% - 14px)); }
+.wp-chart__tip--right { transform: translate(-12px, calc(-100% - 14px)); }
+.wp-chart__tip b { font-size: var(--font-size-14); }
+.wp-chart__tip span { color: var(--text-secondary); }
+
+/* Races */
+.wp-track { display: inline-flex; align-items: baseline; white-space: nowrap; }
+.wp-code { display: inline-block; margin-right: var(--spacing-8); padding: 0 6px; border-radius: 4px; background: var(--background-secondary); color: var(--text-primary); font-family: var(--font-mono, ui-monospace, Menlo, monospace); font-size: var(--font-size-14); font-weight: 700; line-height: 1.6; }
+
+/* The posted table: one block per team, side by side when there's room. */
+.wp-teams { display: grid; gap: var(--spacing-24); grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); }
+.wp-team { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; }
+.wp-team__head { display: flex; align-items: center; gap: var(--spacing-12); margin: 0; font-size: var(--font-size-18); }
+.wp-team__name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.wp-team__total { font-family: var(--font-display); font-size: var(--font-size-24); font-variant-numeric: tabular-nums; }
+.wp-player { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+.wp-flag-img { width: 2.4rem; height: 1.8rem; object-fit: contain; border-radius: 2px; }
+.wp-flag { padding: 0 6px; border-radius: 4px; background: var(--background-secondary); font-size: var(--font-size-12); font-weight: 700; letter-spacing: .04em; color: var(--text-secondary); }
+
+@media (max-width: 40em) {
+  .wp-score { gap: var(--spacing-12); padding: var(--spacing-16); }
+  .wp-score .wp-mark--lg { width: 5.2rem; height: 5.2rem; }
+  .wp-score__total { font-size: var(--font-size-32, 3.2rem); }
+}

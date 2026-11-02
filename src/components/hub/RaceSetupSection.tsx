@@ -85,6 +85,7 @@ import {
 } from "@/lib/picks-bans/modePresentation";
 import { useSessionSave } from "./SessionSaveProvider";
 import { useToast } from "@/components/toast/ToastProvider";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 interface Props {
   /** Active session id (or null when there's no live session — manual
@@ -323,10 +324,10 @@ export function RaceSetupSection({
       setBallots((rows ?? []) as PicksBansBallot[]);
     };
     void refresh();
-    const handle = window.setInterval(refresh, POLL_INTERVAL_MS);
+    const stop = everyVisible(refresh, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
-      window.clearInterval(handle);
+      stop();
     };
   }, [sessionId, gameSlug, isLiveSurface]);
 

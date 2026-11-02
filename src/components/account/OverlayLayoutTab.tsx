@@ -14,6 +14,8 @@
 
 import { MmrOverlay } from "@/components/mmr/MmrOverlay";
 import { LoungeRoomOverlay } from "@/components/lounge/LoungeRoomOverlay";
+import { WarPiece } from "@/components/wars/WarOverlay";
+import { WarPieceNote, type StreamWarView } from "@/components/wars/WarPieceNote";
 import type { ComponentType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
@@ -29,6 +31,7 @@ import {
   resolvedAnchor,
   offsetForAnchorAt,
   isPlacementEnabled,
+  resolvePlacement,
   type Anchor,
   type ElementPlacement,
   type LayoutProfile,
@@ -59,7 +62,7 @@ import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
-import { IconChartLine, IconBallBowling, IconBrain, IconBulb, IconCar, IconCards, IconChartBar, IconChecklist, IconCoffee, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconUsersGroup, IconWorld } from "@tabler/icons-react";
+import { IconChartLine, IconBallBowling, IconBrain, IconBulb, IconCar, IconCards, IconChartBar, IconChecklist, IconCoffee, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconSwords, IconTicket, IconTrophy, IconUsersGroup, IconWorld } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type OverlayElement = {
@@ -100,6 +103,7 @@ const APPS: OverlayElement[] = [
   { id: "viewers", label: "Viewer Count", icon: IconEye },
   { id: "mmr", label: "MMR card", icon: IconChartLine },
   { id: "lounge_room", label: "Tonight's room", icon: IconUsersGroup },
+  { id: "war", label: "War score", icon: IconSwords },
 ];
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
@@ -142,6 +146,8 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
   const [saving, setSaving] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [overlayToken, setOverlayToken] = useState<string | null>(null);
+  // The war channel on this overlay (added from a war channel's overlay page); undefined while it loads.
+  const [streamWar, setStreamWar] = useState<{ war: StreamWarView | null; pro: boolean } | undefined>(undefined);
   const toast = useToast();
   // The streamer's saved brand theme, applied to the preview frame so the stage
   // renders with their ACTUAL colors (WYSIWYG with the live overlay).
@@ -201,6 +207,15 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
     return () => {
       alive = false;
     };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    void fetch("/api/war/stream", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b: { war: StreamWarView | null; pro: boolean } | null) => { if (alive) setStreamWar(b ? { war: b.war, pro: b.pro } : { war: null, pro: false }); })
+      .catch(() => { if (alive) setStreamWar({ war: null, pro: false }); });
+    return () => { alive = false; };
   }, []);
 
   // Sample payloads for the real overlay components. Stable refs so entrance
@@ -489,7 +504,8 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
   const stageH = fmt.refH * scale;
   const safe = profile.safeArea ?? DEFAULT_SAFE_AREA[format];
   const selectedEl = selected ? profile.elements[selected] : undefined;
-  const selectedScale = selectedEl?.scale ?? 1;
+  // The size it draws at now: its saved size, else its default for this shape (0.9 for 9:16 pieces, not 1).
+  const selectedScale = selected ? resolvePlacement(format, selected, profiles[format]).scale : 1;
   const selectedEnabled = selected ? isPlacementEnabled(format, selected, profiles[format]) : true;
 
   // The whole overlay always renders (so you see the finished picture). Every
@@ -547,6 +563,10 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
         return <MmrOverlay sample style={style} />;
       case "lounge_room":
         return <LoungeRoomOverlay sample style={style} />;
+      case "war":
+        return streamWar?.war
+          ? <WarPiece token={streamWar.war.token} lookId={streamWar.war.lookId} demoWhenIdle style={style} />
+          : <WarPiece sample style={style} />;
       case "viewers":
         return <ViewerCountOverlay sample style={style} />;
       default:
@@ -845,6 +865,9 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
                 >
                   Reset to default
                 </Button>
+                {selected === "war" && streamWar && (
+                  <WarPieceNote war={streamWar.war} pro={streamWar.pro} onRemoved={() => setStreamWar((w) => ({ war: null, pro: w?.pro ?? false }))} />
+                )}
               </>
             ) : (
               <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>

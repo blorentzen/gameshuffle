@@ -125,6 +125,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "discord-roles", label: "Roles" },
         { id: "discord-automod", label: "AutoMod & logs" },
         { id: "discord-qotd", label: "Question of the Day" },
+        { id: "discord-tags", label: "Server replies" },
       ] },
       { id: "overlay-layout", label: "Overlay", iconName: "layout-dashboard", proOnly: true, tabs: [
         { id: "overlay-layout", label: "Layout" },
@@ -194,6 +195,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "platform-tournaments", label: "Tournaments" },
         { id: "platform-ticketing", label: "Ticket sales" },
       ] },
+      { id: "platform-ladders", label: "GS Ranked", iconName: "award", group: "Community" },
       { id: "platform-moderation", label: "People", iconName: "users", group: "Community", tabs: [
         { id: "platform-moderation", label: "Moderation" },
         { id: "platform-time-trials", label: "Time trials" },

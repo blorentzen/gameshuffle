@@ -15,7 +15,6 @@ export const metadata: Metadata = {
     description:
       "Spin a random picker wheel for free. Add options, spin, pick a winner. No account needed.",
     url: "https://www.gameshuffle.co/wheel-spinner",
-    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/wheel-spin-og.jpg"],
   },
   alternates: { canonical: "https://www.gameshuffle.co/wheel-spinner" },
 };

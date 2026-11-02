@@ -18,7 +18,6 @@ export const metadata: Metadata = {
     siteName: "GameShuffle",
     title: "Free GameShuffle stream & party tools",
     url: "https://www.gameshuffle.co/tools",
-    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gameshuffle-tools-og.jpg"],
   },
   alternates: { canonical: "https://www.gameshuffle.co/tools" },
 };

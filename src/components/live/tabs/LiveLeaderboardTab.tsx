@@ -8,11 +8,8 @@
  *   • Player   — gameplay-track winners (meta.source = 'in-game')
  *   • Crowd    — market-track winners (meta.source = 'market')
  *
- * Real-time via Supabase Realtime — subscribes to `token_events`
- * INSERTs filtered by `community_id`. Debounced (300ms) so a burst
- * of events triggers a single refresh. A slow safety-net poll
- * (90s) covers the case where the Realtime channel drops; the
- * visibility-restore handler also fires a fresh refresh.
+ * Refreshed every 30s while the tab is visible, and straight away when
+ * it comes back (the API's answer is shared at the CDN for 15s).
  *
  * Per Spec 01 §5. The split is server-side via meta tags written at
  * earn/payout time — see `getLeaderboard` in `src/lib/economy/leaderboards.ts`.
@@ -23,7 +20,7 @@ import { Tabs } from "@empac/cascadeds";
 import { TokenIcon } from "@/components/TokenIcon";
 import { formatCompact } from "@/lib/format/number";
 import type { LeaderboardRow } from "@/lib/economy/leaderboards";
-import { createClient } from "@/lib/supabase/client";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 type LeaderboardKind = "combined" | "player" | "crowd";
 
@@ -35,15 +32,12 @@ interface LeaderboardSnapshot {
 
 interface Props {
   streamerSlug: string;
-  /** SSR-seeded snapshot + community id for the Realtime subscription
-   *  filter. `communityId` is null for streamers whose community
-   *  hasn't been created yet (no economy interaction) — those tabs
-   *  fall back to poll-only since there's nothing to subscribe to. */
+  /** SSR-seeded snapshot. `communityId` is null for streamers whose
+   *  community hasn't been created yet (no economy interaction). */
   initial: LeaderboardSnapshot & { communityId: string | null };
 }
 
-const SAFETY_POLL_MS = 90_000;
-const REALTIME_DEBOUNCE_MS = 300;
+const REFRESH_MS = 30_000;
 
 export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
   const [activeKind, setActiveKind] = useState<LeaderboardKind>("combined");
@@ -54,7 +48,6 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
   });
   const [error, setError] = useState<string | null>(null);
   const inflightRef = useRef<AbortController | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refresh = useCallback(
     async (kind: LeaderboardKind) => {
@@ -64,7 +57,7 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
       try {
         const res = await fetch(
           `/api/live/${encodeURIComponent(streamerSlug)}/leaderboard?kind=${kind}`,
-          { signal: ac.signal, cache: "no-store" },
+          { signal: ac.signal },
         );
         if (!res.ok) {
           setError(`Couldn't refresh (${res.status}).`);
@@ -84,67 +77,10 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
     [streamerSlug],
   );
 
-  // Realtime subscription on token_events filtered by community_id.
-  // INSERT events trigger a debounced refresh — a burst of events
-  // (e.g. resolving a market with N payouts) collapses to one
-  // request. Visibility-pause handling stops the channel while
-  // hidden and rejoins on return.
-  useEffect(() => {
-    const communityId = initial.communityId;
-    if (!communityId) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`leaderboard-${communityId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "token_events",
-          filter: `community_id=eq.${communityId}`,
-        },
-        () => {
-          if (debounceRef.current) clearTimeout(debounceRef.current);
-          debounceRef.current = setTimeout(() => {
-            void refresh(activeKind);
-          }, REALTIME_DEBOUNCE_MS);
-        },
-      )
-      .subscribe();
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      void supabase.removeChannel(channel);
-    };
-  }, [initial.communityId, activeKind, refresh]);
-
-  // Safety-net poll. 90s slow enough to be cheap; just covers
-  // Realtime dropouts. Pauses on visibility-hidden + does an
-  // immediate refresh on visibility-restore.
-  useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | null = null;
-    const start = () => {
-      if (timer) return;
-      timer = setInterval(() => void refresh(activeKind), SAFETY_POLL_MS);
-    };
-    const stop = () => {
-      if (timer) clearInterval(timer);
-      timer = null;
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        void refresh(activeKind);
-        start();
-      } else {
-        stop();
-      }
-    };
-    if (document.visibilityState === "visible") start();
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      stop();
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [activeKind, refresh]);
+  // A light refresh while the tab is visible (and straight away on coming back). This used to be a
+  // realtime subscription on token_events, but its row security only lets a viewer see their own
+  // events, so it only ever fired for the viewer's own tokens and never for signed-out visitors.
+  useEffect(() => everyVisible(() => void refresh(activeKind), REFRESH_MS), [activeKind, refresh]);
 
   const switchKind = (kind: LeaderboardKind) => {
     setActiveKind(kind);

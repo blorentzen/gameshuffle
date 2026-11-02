@@ -1,6 +1,6 @@
 /**
  * Time trials on the site.
- *   GET  ?game=&track=&cc=&items=&vehicle=&scope=everyone|friends|crew|server&guild=&proof=1&verified=1 → a track's board
+ *   GET  ?game=&track=&cc=&items=&vehicle=&scope=everyone|friends|crew|server&guild=&proof=1&verified=1&country= → a track's board
  *   GET  ?game=&summary=1&items=&vehicle=                       → records per track (the hub)
  *   GET  ?me=1                                                  → the signed-in player's bests
  *   GET  ?q=                                                    → players by name (two letters or more)
@@ -12,9 +12,11 @@ import { rateLimit } from "@/lib/ratelimit";
 import { keyFromPublicUrl } from "@/lib/storage/r2";
 import { siteActor } from "@/lib/timeTrials/players";
 import { addTime, boardFor, findPlayers, playerBests, serversFor, setVideo, trackSummary, ttReady, type TtScope } from "@/lib/timeTrials/store";
-import { parseTime, videoProof } from "@/lib/timeTrials/rules";
+import { cleanLaps, parseTime, videoProof } from "@/lib/timeTrials/rules";
+import { readFrom } from "@/lib/timeTrials/proof";
 import { isClassFor, isTtGame, ttTrack, TT_GAMES, type TtClass } from "@/lib/timeTrials/tracks";
 import { isItems, isVehicle, readCategory } from "@/lib/timeTrials/categories";
+import { isCountryCode } from "@/lib/timeTrials/countries";
 
 export const runtime = "nodejs";
 const NO_STORE = { "Cache-Control": "private, no-store" };
@@ -47,7 +49,8 @@ export async function GET(req: Request) {
   // A Discord server's board: only for players that server has seen.
   const guild = u.searchParams.get("guild");
   if (scope === "server" && !(actor && guild && (await serversFor(actor.player)).some((g) => g.guildId === guild))) scope = "everyone";
-  const board = await boardFor({ game, track, cc, items: cat.items, vehicle: cat.vehicle, scope, viewer: actor?.player ?? null, guildId: scope === "server" ? guild : null, proofOnly: u.searchParams.get("proof") === "1", verifiedOnly: u.searchParams.get("verified") === "1" });
+  const country = u.searchParams.get("country");
+  const board = await boardFor({ game, track, cc, items: cat.items, vehicle: cat.vehicle, scope, viewer: actor?.player ?? null, guildId: scope === "server" ? guild : null, proofOnly: u.searchParams.get("proof") === "1", verifiedOnly: u.searchParams.get("verified") === "1", country: isCountryCode(country) ? country : null });
   return NextResponse.json({ ok: true, board }, { headers: NO_STORE });
 }
 
@@ -55,7 +58,7 @@ export async function POST(req: Request) {
   const actor = await siteActor();
   if (!actor) return NextResponse.json({ ok: false, error: "signin" }, { status: 401 });
   if (!(await rateLimit(`tt-add:${actor.player}`, { max: 30, windowMs: 10 * 60_000 })).ok) return NextResponse.json({ ok: false, error: "slow_down" }, { status: 429 });
-  const body = (await req.json().catch(() => ({}))) as { game?: unknown; track?: unknown; cc?: unknown; items?: unknown; vehicle?: unknown; time?: unknown; proofUrl?: unknown; video?: unknown; read?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { game?: unknown; track?: unknown; cc?: unknown; items?: unknown; vehicle?: unknown; time?: unknown; proofUrl?: unknown; video?: unknown; read?: unknown; readToken?: unknown; laps?: unknown };
   if (!isTtGame(body.game)) return NextResponse.json({ ok: false, error: "bad_game" }, { status: 400 });
   const game = body.game;
   const track = typeof body.track === "string" ? body.track : "";
@@ -80,9 +83,14 @@ export async function POST(req: Request) {
     if (!video) return NextResponse.json({ ok: false, error: "bad_video" }, { status: 400 });
   }
 
+  // What the screenshot read as (signed by the read route, so it can't be made up here), and the laps as saved.
+  const read = readFrom(body.readToken, body.proofUrl);
+  const laps = body.laps == null ? read?.laps ?? null : cleanLaps(body.laps);
   const res = await addTime({
     player: actor.player, userId: actor.userId, identityId: null,
-    game, track, cc: cc as TtClass, items: cat.items, vehicle: cat.vehicle, timeMs, proof: "screenshot", proofUrl: body.proofUrl, readByAi: body.read === true, source: "site",
+    game, track, cc: cc as TtClass, items: cat.items, vehicle: cat.vehicle, timeMs, proof: "screenshot", proofUrl: body.proofUrl,
+    readByAi: !!read?.timeMs && read.timeMs === timeMs, source: "site",
+    laps, readMs: read?.timeMs ?? null, readLaps: read?.laps ?? null,
   });
   if (!res.ok) return NextResponse.json(res, { status: res.error === "not_ready" ? 503 : 400 });
   if (video) await setVideo(actor.player, res.timeId, video);

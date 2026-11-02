@@ -84,9 +84,10 @@ export function FeaturedShopCards({
                     </div>
                     <div className="tcg-card__meta">
                       <span className="tcg-card__name">{name}</span>
-                      {row.card?.rarity ? (
-                        <span className="tcg-card__set">{row.card.rarity}</span>
-                      ) : null}
+                      {/* English or Japanese (the only languages we post), then any variant and the rarity. */}
+                      <span className="tcg-card__set">
+                        {[row.language === "ja" ? "Japanese" : "English", row.variant_name, row.card?.rarity].filter(Boolean).join(" · ")}
+                      </span>
                     </div>
                   </a>
                 </CarouselItem>

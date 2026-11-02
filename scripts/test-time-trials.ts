@@ -5,7 +5,8 @@ import { readLines, linesLookRight, bestPerTrack } from "../src/lib/timeTrials/i
 import { TT_GAMES, TT_GAME_ORDER, ttTracks, ttTrack, ttCups, trackKey, trackFromKey, searchTracks, matchTrack, trackPath, gameBySlug, isClassFor, trackBySegment, gamePath } from "../src/lib/timeTrials/tracks";
 import { abbreviationTable, readQuaxly, embedText, yourRows, newBests, readTitle, nameKey } from "../src/lib/timeTrials/quaxly";
 import { toCheckRows, checkSummary } from "../src/lib/timeTrials/importRows";
-import { readCategory, categoryQuery, categoryText, vehiclesFor, isItems, isVehicle } from "../src/lib/timeTrials/categories";
+import { readCategory, categoryQuery, categoryText, vehiclesFor, isItems, isVehicle, onBoard, boardsFor, vehicleFor } from "../src/lib/timeTrials/categories";
+import { parseLap, formatLap, lapsAddUp, cleanLaps, LAP_SLACK_MS } from "../src/lib/timeTrials/rules";
 import { playerPagePath, readPlayerSlug } from "../src/lib/timeTrials/playerPath";
 import { isVerified } from "../src/lib/timeTrials/rules";
 import { fasterThanRecord, recordFor } from "../src/lib/timeTrials/records";
@@ -277,8 +278,8 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   eq(readCategory("mk8dx", { items: "none", vehicle: "scooty" }), { items: "none", vehicle: "scooty" }, "no mushrooms, Mr. Scooty");
   eq(readCategory("mkworld", { items: "none", vehicle: "teddy" }), { items: "none", vehicle: "any" }, "no vehicle boards in World");
   eq(readCategory("mk8dx", { items: "mushrooms", vehicle: "kart" }), { items: "shrooms", vehicle: "any" }, "unknown values fall back");
-  eq(vehiclesFor("mk8dx"), ["any", "inside_drift", "scooty", "teddy"], "MK8DX vehicle boards");
-  eq(vehiclesFor("mkworld"), ["any"], "World: the open board only");
+  eq(vehiclesFor("mk8dx"), ["any", "inside_drift", "yoshi_bike", "teddy", "biddybuggy", "scooty"], "MK8DX vehicle boards");
+  eq(vehiclesFor("mkworld"), ["any", "rob_hog"], "World: the open board and R.O.B.-HOG");
   ok(isItems("none") && !isItems("nita"), "items values");
   ok(isVehicle("inside_drift") && !isVehicle("bike"), "vehicle values");
   eq(categoryQuery({ cc: 150, defaultCc: 150, items: "shrooms", vehicle: "any" }), "", "defaults leave no query");
@@ -316,6 +317,38 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   ok(tracksByCode("rD")[0]?.game === "mk8dx" && tracksByCode("rD").every((t) => trackCode(t)!.toLowerCase().startsWith("rd")), "a code prefix finds codes starting with it");
   eq(tracksByCode("CC1").map((t) => t.name), ["Crown City"], "a World alias still finds its track");
   eq(tracksByCode("mario kart stadium"), [], "names with spaces aren't codes");
+}
+
+// ── round 3: vehicles, laps ─────────────────────────────────────
+{
+  eq(onBoard("inside_drift", "yoshi_bike"), true, "Yoshi Bike counts on Inside drift");
+  eq(onBoard("yoshi_bike", "inside_drift"), false, "an inside drift time isn't a Yoshi Bike time");
+  eq(onBoard("any", "teddy"), true, "every time counts on the open board");
+  eq(onBoard("teddy", "scooty"), false, "other vehicle boards keep to their vehicle");
+  eq(boardsFor("mk8dx", "yoshi_bike"), ["any", "yoshi_bike", "inside_drift"], "a Yoshi Bike time's boards");
+  eq(boardsFor("mkworld", "rob_hog"), ["any", "rob_hog"], "World R.O.B.-HOG boards");
+  eq(boardsFor("mkworld", "teddy"), ["any"], "an MK8DX vehicle on World is the open board");
+  eq(vehicleFor("mk8dx", "rob_hog"), "any", "R.O.B.-HOG isn't an MK8DX board");
+  eq(vehicleFor("mkworld", "rob_hog"), "rob_hog", "R.O.B.-HOG on World");
+  eq(isVehicle("biddybuggy"), true, "Biddybuggy is a vehicle");
+  eq(readCategory("mkworld", { vehicle: "rob_hog" }).vehicle, "rob_hog", "World reads R.O.B.-HOG from the address");
+  eq(categoryText("mkworld", 150, "shrooms", "rob_hog", false), "mushrooms, R.O.B.-HOG", "World category text names the vehicle");
+  eq(parseLap("34.112"), 34112, "lap seconds");
+  eq(parseLap("0:34.112"), 34112, "lap with minutes");
+  eq(parseLap("1:02.034"), 62034, "lap over a minute");
+  eq(parseLap("34.1"), 34100, "short decimals");
+  eq(parseLap("3.000"), null, "too short for a lap");
+  eq(parseLap("abc"), null, "not a lap");
+  eq(formatLap(34112), "34.112", "lap format");
+  eq(formatLap(62034), "1:02.034", "long lap format");
+  eq(lapsAddUp([34112, 31423, 31455], 96990), true, "laps add up exactly");
+  eq(lapsAddUp([34112, 31423, 31457], 96990), true, `laps within ${LAP_SLACK_MS}ms`);
+  eq(lapsAddUp([34112, 31423, 31475], 96990), false, "laps 20ms over");
+  eq(lapsAddUp(null, 96990), true, "no laps is fine");
+  eq(cleanLaps([34112, 31423, 31455]), [34112, 31423, 31455], "clean laps");
+  eq(cleanLaps([34112, "x"]), null, "bad lap refused");
+  eq(cleanLaps([1, 2, 3]), null, "laps under 5 seconds refused");
+  eq(cleanLaps(new Array(8).fill(30000)), null, "too many laps refused");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

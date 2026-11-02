@@ -8,6 +8,7 @@ import { medalSrc } from "../src/lib/mmr/medals";
 import {
   DEMO_EVENTS, FALLBACK_RANKS, demoSource, formSquares, gameForSlug, milestoneTier, placeWord, seasonNumbers, setsPeak, signed,
   splitDivision, standing, stepsFrom, tonightRun, viewOf, winStreak, withEvent, timeOrderedIds, type MmrChange,
+  cutAtWord, isLadderKey, ladderLoungeGame, rankText, sourceKey, sourceLabel, type MmrLadderTag, type MmrSource,
 } from "../src/lib/mmr/rules";
 import { DEFAULT_LOOK, cleanFontName, cleanLook, divisionLook, fontOf, fontStylesheet, freeLook, lookVars, proUsed } from "../src/lib/mmr/look";
 import { flagUrl } from "../src/lib/lounge/flags";
@@ -15,7 +16,7 @@ import { cleanDraft, draftFor, isDraftPlan } from "../src/lib/mmr/draft";
 import { COMPARE_GROUPS, cellFor } from "../src/data/plans-compare";
 import {
   DEFAULT_INFO, FREE_PIECES, LAYOUT_SPOTS, PIECE_IDS, PRESETS, applyPreset, bigIsWorld, bigOf, cleanInfo, countryShort, detailSwitches, detailsFor, fitDetails,
-  isDetail, nextText, pieceOrder, pieceText, presetOf, roomLeft, topPercent, topText, trimToRoom, underPieces, winPercent, type MmrInfo, type Shown,
+  isDetail, nextText, pieceOrder, pieceText, presetOf, recentWhen, roomLeft, topPercent, topText, trimToRoom, underPieces, winPercent, type MmrInfo, type Shown,
 } from "../src/lib/mmr/pieces";
 import { STARTS, applyStart, startOf } from "../src/lib/mmr/starts";
 import {
@@ -407,6 +408,50 @@ eq(slideText("tonight", n5, DEFAULT_INFO, null)?.sub, "4 wins, 1 loss", "tonight
   eq(raw[0].id, 126817, "the list given isn't changed");
   eq(timeOrderedIds([row(1153250, "TableDelete", 6616, "2026-10-30T23:30:00Z"), row(126817, "Strike", 6589, "2026-10-30T23:18:00Z"), ...raw.slice(1)]).map((c) => c.id), [1153259.02, 1153259.01, 1153259, 1153250, 0], "two in a row: two hundredths");
   eq(timeOrderedIds(raw.slice(1)).map((c) => c.id), [1153259, 1153250, 0], "ids already in order stay as they are");
+}
+
+// GameShuffle ladders (MMR card on ladders picks, 2026-11-01)
+{
+  eq(ladderLoungeGame("mk8dx", "race"), "mk8dx", "an MK8DX ladder plays like the lounge's MK8DX");
+  eq(ladderLoungeGame("mkworld", "race"), "mkworld12p", "an MK World race ladder plays like 12 players");
+  eq(ladderLoungeGame("mkworld", "knockout"), "mkworld24p", "a Knockout Tour ladder plays like 24 players");
+  const id = "0b7d4c1e-2f3a-4b5c-8d9e-0f1a2b3c4d5e";
+  eq(sourceKey({ game: "mk8dx", ladder: null }), "mk8dx", "a lounge look's key is its game");
+  eq(sourceKey({ game: "mk8dx", ladder: id }), `ladder:${id}`, "a ladder look's key names the ladder");
+  ok(isLadderKey(`ladder:${id}`) && !isLadderKey("mk8dx") && !isLadderKey("ladder:nope"), "ladder keys are told apart");
+  eq(cutAtWord("200cc Lounge", 12), "200cc Lounge", "a name that fits stays whole");
+  eq(cutAtWord("Knockout Tour Lounge", 14), "Knockout Tour", "a long name is cut at a word");
+  eq(cutAtWord("Supercalifragilistic", 8), "Supercal", "one long word is cut where it must be");
+  const tag: MmrLadderTag = { id, slug: "test-200cc", name: "200cc Lounge", total: 64, placementOf: 5, placement: null };
+  eq(rankText(12, tag), "#12 of 64", "a ladder rank counts its players");
+  eq(rankText(1240), "#1,240 world", "a lounge rank is the world's");
+  eq(sourceLabel({ game: "mk8dx", ladder: tag }), "200cc Lounge", "a ladder card names the ladder");
+  eq(sourceLabel({ game: "mk8dx" }), "MK8DX", "a lounge card names the game");
+  eq(milestoneTier(1, true), 1, "#1 on a ladder is a milestone");
+  eq(milestoneTier(7, true), 10, "a ladder's top 10");
+  eq(milestoneTier(11, true), null, "11th on a ladder isn't a milestone");
+  eq(milestoneTier(11), 100, "the lounge's tiers are unchanged");
+  ok(cleanLook({ ...DEFAULT_LOOK, ladder: id }).ladder === id && cleanLook({ ...DEFAULT_LOOK, ladder: "x" }).ladder === null && cleanLook({}).ladder === null, "a look keeps only a real ladder id");
+
+  // A ladder player three tables into a five-table placement, then placed after the fifth.
+  const steps = [{ name: "Iron", at: 0 }, { name: "Bronze", at: 2000 }, { name: "Silver", at: 4000 }];
+  const t = (n: number, mmr: number, delta: number, place: number): MmrChange => ({ id: n, mmr, delta, at: `2026-11-01T0${n}:00:00Z`, reason: "Table", place, score: null, tier: null, teams: 24, players: 24, label: "Knockout Tour" });
+  const start: MmrChange = { id: 0, mmr: 2000, delta: 0, at: "2026-11-01T00:00:00Z", reason: "Placement", place: null, score: null, tier: null };
+  const src = (changes: MmrChange[]): MmrSource => ({ name: "Sam", country: "US", game: "mkworld24p", mmr: changes[0].mmr, maxMmr: Math.max(...changes.map((c) => c.mmr)), division: null, worldRank: 3, steps, changes, since: null, avatar: null, totalPlayers: 41, ladder: { ...tag, total: 41 } });
+  const three = [t(3, 2600, 180, 2), t(2, 2420, 240, 1), t(1, 2180, 180, 3), start];
+  const v3 = viewOf(src(three));
+  eq(v3.division, "Placement", "in placement until the fifth table");
+  eq(v3.ladder?.placement, { done: 3, of: 5 }, "three of five placement tables");
+  eq([v3.next, v3.toNext, v3.pct], [null, null, 0.6], "the bar fills with placement tables, no next division yet");
+  eq(nextText(v3, DEFAULT_INFO), "Placement 3 of 5", "the progress line says how far along");
+  eq(pieceText("world", v3, DEFAULT_INFO)?.chip, "#3 of 41", "the rank chip counts the ladder's players");
+  eq(pieceText("game", v3, DEFAULT_INFO)?.chip, "200cc Lounge", "the game piece is the ladder's name");
+  eq(recentWhen(v3.recent[0]).endsWith("Knockout Tour"), true, "a knockout room is named as one");
+  const five = [t(5, 4100, 900, 1), t(4, 3200, 600, 1), ...three];
+  const v5 = viewOf(src(five));
+  eq([v5.division, v5.ladder?.placement], ["Silver", null], "placed after the fifth table");
+  eq(viewOf(src(five), 4).division, "Placement", "the view before the fifth table was still placing");
+  eq(viewOf({ ...src(five), ladder: null, division: null }).division, "Silver", "a lounge card has no ladder placement");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

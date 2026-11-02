@@ -40,6 +40,7 @@ import {
   type RaceGame,
 } from "@/lib/randomizers/race";
 import { PicksBansPicker } from "@/components/picks-bans/PicksBansPicker";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 interface Props {
   sessionId: string;
@@ -137,10 +138,10 @@ export function PicksBansRoundPanel({
     };
 
     void refresh();
-    const handle = window.setInterval(refresh, POLL_INTERVAL_MS);
+    const stop = everyVisible(refresh, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
-      window.clearInterval(handle);
+      stop();
     };
   }, [sessionId, gameSlug]);
 

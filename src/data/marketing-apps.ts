@@ -58,6 +58,8 @@ export interface AppMarketingContent {
   faq: AppFaq[];
   /** Name used in SoftwareApplication JSON-LD. */
   schemaName: string;
+  /** The hero button is a plain link (an address Next shouldn't prefetch, like /discord/add). */
+  toolPlain?: boolean;
 }
 
 export const MARKETING_APPS: Record<string, AppMarketingContent> = {
@@ -218,6 +220,51 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     schemaName: "Host a Tournament",
   },
 
+  // GameShuffle Competitive's page (picks 2026-10-31, 5A): shown once the app exists in this environment.
+  "mario-kart-discord-bot": {
+    path: "/mario-kart-discord-bot",
+    metaTitle: "Mario Kart Discord Bot: Time Trials, MMR and Room Reads",
+    metaDescription:
+      "GameShuffle Competitive is a free Discord bot for Mario Kart servers: a time trial panel with server records, lounge MMR with /mmr and room payouts with /room.",
+    breadcrumbLabel: "Mario Kart Discord bot",
+    eyebrow: "Discord bot",
+    status: "new",
+    h1: "The Mario Kart Discord bot for competitive servers",
+    heroSubhead:
+      "Time trials with server records, anyone's lounge MMR and what each place pays in a room, for Mario Kart World and Mario Kart 8 Deluxe. Free.",
+    heroImage: "/images/discord/comp-hero.webp",
+    heroImageAlt: "A checkered band in black and ice",
+    toolHref: "/discord/add?app=comp",
+    toolCtaLabel: "Add it to Discord, free",
+    toolPlain: true,
+    overview:
+      "GameShuffle Competitive is a Discord bot for Mario Kart war and lounge servers, from GameShuffle. A server posts a time trial panel with /tt panel, and members add times from their result screenshot: the bot reads the track and the time, and the member checks them before anything saves. A time that beats the server's record is posted in the panel's channel with Verify and Report. /mmr shows any lounge player's MMR, division and last ten events from MKCentral's lounge, and /room shows a room's average, your seed and what each place pays. Times count on GameShuffle's time trial boards, and a linked GameShuffle account keeps them on your profile. It covers Mario Kart World and Mario Kart 8 Deluxe and leaves the daily games to the main GameShuffle bot.",
+    featuresHeading: "What it does",
+    features: [
+      { icon: "layout-grid", title: "A time trial panel", description: "One pinned message with this month's numbers, the newest server records and buttons to add a time, see a top ten or your own times." },
+      { icon: "photo", title: "Times from a screenshot", description: "Add a time with your result screen. The bot reads the track and time; you check them before it saves." },
+      { icon: "flag", title: "Server records", description: "Beat the server's best on a track and the record goes up in the panel's channel, with Verify and Report." },
+      { icon: "chart-bar", title: "Lounge MMR with /mmr", description: "Any player's MMR, division, distance to the next one, world rank and last ten. Add a second name for a head-to-head." },
+      { icon: "users", title: "Room reads with /room", description: "Paste a room's names: the average, your seed, what each place pays and who's favored." },
+      { icon: "share", title: "Bring your times", description: "Press Save to GameShuffle on Quaxly's time list and check each row before it saves." },
+    ],
+    howItWorksHeading: "How it works",
+    howItWorks: [
+      { title: "Add the bot", description: "Add GameShuffle Competitive to your server, or to your own account to use /mmr and /room anywhere." },
+      { title: "Post the panel", description: "Someone who manages the server types /tt panel in the channel for times, for one game or both." },
+      { title: "Race and add times", description: "Members press Add a time with their screenshot; new server records post themselves." },
+    ],
+    aboutHeading: "About the bot",
+    faqHeading: "Questions",
+    faq: [
+      { q: "Is the bot free?", a: "Yes. Every command and the time trial panel are free. A free GameShuffle account runs the bot in one server; GS Pro runs it in up to five." },
+      { q: "How does it read my screenshot?", a: "It reads the track and the time from the result screen, then shows you what it read. You can change the track or type the time before it saves, and a typed time always wins." },
+      { q: "Where does the MMR come from?", a: "From MKCentral's lounge, the same numbers its site shows. The bot looks players up when you ask and doesn't post anything on its own." },
+      { q: "Do I need a GameShuffle account?", a: "No. You can add times and use /mmr and /room with only Discord. Link a GameShuffle account to keep your times on your profile and manage the bot's servers on the website." },
+      { q: "How is it different from the main GameShuffle bot?", a: "The main bot has the daily games, polls and streamer posts. This one only has the competitive tools, so it sits next to your other bots in a war or lounge server without adding to them." },
+    ],
+    schemaName: "GameShuffle Competitive",
+  },
   "pokemon-tcg-companion": {
     path: "/pokemon-tcg-companion",
     metaTitle: "Pokémon TCG Companion and Damage Counter",

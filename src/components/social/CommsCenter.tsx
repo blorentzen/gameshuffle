@@ -10,11 +10,12 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { NotificationList, Chat, Tabs, Button, EmptyState } from "@empac/cascadeds";
 import { IconPencilPlus, IconMessageCircle } from "@tabler/icons-react";
+import { CommsReminders } from "./CommsReminders";
 import { useNotifications } from "@/lib/social/useNotifications";
 import { useMessaging } from "@/lib/social/useMessaging";
 import { NewConversationModal } from "./NewConversationModal";
 
-type Tab = "alerts" | "messages";
+type Tab = "alerts" | "messages" | "reminders";
 
 export function CommsCenter() {
   const router = useRouter();
@@ -23,7 +24,8 @@ export function CommsCenter() {
   // URL is the source of truth, so the navbar bell/messages icons (which just
   // change ?tab=) switch tabs even when we're already on /comms — a useState
   // initializer would only read the param once, on mount.
-  const tab: Tab = searchParams.get("tab") === "messages" ? "messages" : "alerts";
+  const asked = searchParams.get("tab");
+  const tab: Tab = asked === "messages" ? "messages" : asked === "reminders" ? "reminders" : "alerts";
   const conversationParam = searchParams.get("c");
 
   const notifs = useNotifications();
@@ -125,6 +127,7 @@ export function CommsCenter() {
         </div>
       ),
     },
+    { id: "reminders", label: "Reminders", content: <CommsReminders /> },
   ];
 
   return (

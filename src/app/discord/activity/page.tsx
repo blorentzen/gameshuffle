@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ActivityApp } from "@/components/activity/ActivityApp";
+import { ActivityGate } from "@/components/activity/ActivityGate";
 import { activityApp } from "@/lib/activity/discord";
 
 /**
@@ -16,5 +16,6 @@ export const metadata: Metadata = {
 };
 
 export default function DiscordActivityPage() {
-  return <ActivityApp clientId={activityApp()?.clientId ?? null} />;
+  // The same page serves GameShuffle Competitive's Activity, the War room (ActivityGate picks it by the frame's address).
+  return <ActivityGate clientId={activityApp()?.clientId ?? null} compClientId={activityApp("comp")?.clientId ?? null} />;
 }

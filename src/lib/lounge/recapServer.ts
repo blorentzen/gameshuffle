@@ -12,7 +12,7 @@ import { nightRecap } from "./recap";
 
 export async function loungeRecapField(ownerUserId: string, sinceIso: string): Promise<{ name: string; value: string; inline: boolean } | null> {
   const card = await cardFor(ownerUserId);
-  if (!card || (!card.loungeName && !card.loungePlayerId)) return null;
+  if (!card || (!card.loungeName && !card.loungePlayerId && !card.looks.some((l) => l.ladder))) return null;
   if (!(await isProUser(ownerUserId))) return null;
   const live = await liveFor(card, { since: sinceIso });
   if (!live.ok) return null;
@@ -23,5 +23,7 @@ export async function loungeRecapField(ownerUserId: string, sinceIso: string): P
     `now ${r.mmr != null ? fmtMmr(r.mmr) : "?"} ${r.division}`,
     r.newDivisions.length ? `into ${r.newDivisions[r.newDivisions.length - 1]}` : null,
   ].filter(Boolean);
-  return { name: `Lounge tonight · ${MMR_GAMES[live.source.game].short}`, value: parts.join(" · "), inline: false };
+  // A card reading a GameShuffle ladder names the ladder.
+  const name = live.source.ladder ? `${live.source.ladder.name} tonight` : `Lounge tonight · ${MMR_GAMES[live.source.game].short}`;
+  return { name, value: parts.join(" · "), inline: false };
 }

@@ -29,10 +29,17 @@
 
 import { config } from "dotenv";
 config({ path: ".env.local" });
+import { COMP_MOVE_ENDS } from "../src/lib/discord/appIds";
+import { gsDayStart } from "../src/lib/time/gsClock";
 
 const DEV = process.argv.includes("--dev");
 const DRY = process.argv.includes("--dry");
 const appArg = process.argv.indexOf("--app");
+/** /tt's vehicle choices: every vehicle board (each time keeps the vehicle only when its game has that board). */
+const TT_VEHICLE_CHOICES = [
+  { name: "Any vehicle", value: "any" }, { name: "Inside drift bike", value: "inside_drift" }, { name: "Yoshi Bike", value: "yoshi_bike" },
+  { name: "Teddy Buggy", value: "teddy" }, { name: "Biddybuggy", value: "biddybuggy" }, { name: "Mr. Scooty", value: "scooty" }, { name: "R.O.B.-HOG (World)", value: "rob_hog" },
+];
 const COMP = appArg >= 0 && process.argv[appArg + 1] === "comp";
 const APPLICATION_ID = COMP ? process.env.NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID : DEV ? process.env.DEV_DISCORD_APPLICATION_ID : process.env.DISCORD_APPLICATION_ID;
 const BOT_TOKEN = COMP ? process.env.DISCORD_COMP_BOT_TOKEN : DEV ? process.env.DEV_DISCORD_BOT_TOKEN : process.env.DISCORD_BOT_TOKEN;
@@ -260,7 +267,7 @@ const commands = [
           { name: "time", description: "Your time, like 1:52.384. Leave out to read it from the screenshot.", type: 3, required: false, max_length: 12 },
           { name: "class", description: "Speed class (150cc if left out).", type: 3, required: false, choices: [{ name: "150cc", value: "150" }, { name: "200cc", value: "200" }] },
           { name: "items", description: "Mushrooms or no mushrooms (mushrooms if left out).", type: 3, required: false, choices: [{ name: "Mushrooms", value: "shrooms" }, { name: "No mushrooms", value: "none" }] },
-          { name: "vehicle", description: "Mario Kart 8 Deluxe only: for the inside drift, Mr. Scooty and Teddy Buggy boards.", type: 3, required: false, choices: [{ name: "Any vehicle", value: "any" }, { name: "Inside drift bike", value: "inside_drift" }, { name: "Mr. Scooty", value: "scooty" }, { name: "Teddy Buggy", value: "teddy" }] },
+          { name: "vehicle", description: "For a vehicle board (Mario Kart World: R.O.B.-HOG; Mario Kart 8 Deluxe: the rest).", type: 3, required: false, choices: TT_VEHICLE_CHOICES },
           { name: "video", description: "A clip of the run's last 30 seconds, so a reviewer can verify it.", type: 3, required: false, max_length: 300 },
         ],
       },
@@ -271,7 +278,7 @@ const commands = [
           { name: "class", description: "Speed class (150cc if left out).", type: 3, required: false, choices: [{ name: "150cc", value: "150" }, { name: "200cc", value: "200" }] },
           { name: "board", description: "Whose times (this server if it has some).", type: 3, required: false, choices: [{ name: "This server", value: "server" }, { name: "Everyone", value: "everyone" }] },
           { name: "items", description: "Mushrooms or no mushrooms (mushrooms if left out).", type: 3, required: false, choices: [{ name: "Mushrooms", value: "shrooms" }, { name: "No mushrooms", value: "none" }] },
-          { name: "vehicle", description: "Mario Kart 8 Deluxe only: a vehicle board.", type: 3, required: false, choices: [{ name: "Any vehicle", value: "any" }, { name: "Inside drift bike", value: "inside_drift" }, { name: "Mr. Scooty", value: "scooty" }, { name: "Teddy Buggy", value: "teddy" }] },
+          { name: "vehicle", description: "A vehicle board (Mario Kart World: R.O.B.-HOG; Mario Kart 8 Deluxe: the rest).", type: 3, required: false, choices: TT_VEHICLE_CHOICES },
         ],
       },
       {
@@ -399,6 +406,118 @@ const TT_PANEL_SUB = {
     { name: "Mario Kart 8 Deluxe", value: "mk8dx" }, { name: "Mario Kart World", value: "mkworld" }, { name: "Both games", value: "both" },
   ] }],
 };
+/** /war (GameShuffle Competitive only, war tools picks 2026-10-31): a war in this channel, scored race by race on its card. */
+const WAR_COMMAND = {
+  name: "war",
+  description: "Start a war in this channel and score it race by race",
+  integration_types: [0],
+  contexts: [0],
+  options: [
+    { name: "vs", description: "The other team's tag", type: 3, required: true, autocomplete: true, max_length: 12 },
+    { name: "us", description: "Your team's tag (the channel remembers it after the first war)", type: 3, required: false, autocomplete: true, max_length: 12 },
+    { name: "game", description: "Which game (the channel remembers it)", type: 3, required: false, choices: [
+      { name: "Mario Kart World", value: "mkworld" }, { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
+    ] },
+    { name: "entry", description: "How races go in (the channel remembers it)", type: 3, required: false, choices: [
+      { name: "One person adds each race", value: "scorer" }, { name: "Everyone taps the place they finished", value: "taps" },
+    ] },
+  ],
+};
+/** /logo and /table (GameShuffle Competitive only, war tools step 2). */
+const LOGO_COMMAND = {
+  name: "logo",
+  description: "This server's team logos for war cards, tables and the overlay",
+  integration_types: [0],
+  contexts: [0],
+  options: [
+    { name: "add", description: "Add or replace a team's logo", type: 1, options: [
+      { name: "tag", description: "The team's tag, like KC", type: 3, required: true, max_length: 12 },
+      { name: "image", description: "The logo (PNG, JPEG or WebP)", type: 11, required: true },
+      { name: "name", description: "The team's name", type: 3, required: false, max_length: 60 },
+    ] },
+    { name: "get", description: "Show a team's logo", type: 1, options: [{ name: "tag", description: "The team's tag", type: 3, required: true, autocomplete: true, max_length: 12 }] },
+    { name: "list", description: "Every logo in this server", type: 1 },
+    { name: "remove", description: "Take a team's logo down", type: 1, options: [{ name: "tag", description: "The team's tag", type: 3, required: true, autocomplete: true, max_length: 12 }] },
+  ],
+};
+const FLAG_COMMAND = {
+  name: "flag",
+  description: "This server's own flags for war tables (country codes like [us] have theirs already)",
+  integration_types: [0],
+  contexts: [0],
+  options: [
+    { name: "add", description: "Add or replace a flag", type: 1, options: [
+      { name: "code", description: "The code players type in brackets, like kc or eu", type: 3, required: true, max_length: 14 },
+      { name: "image", description: "The flag (PNG, JPEG or WebP)", type: 11, required: true },
+      { name: "name", description: "What it stands for", type: 3, required: false, max_length: 60 },
+    ] },
+    { name: "get", description: "Show a flag", type: 1, options: [{ name: "code", description: "The flag's code", type: 3, required: true, autocomplete: true, max_length: 14 }] },
+    { name: "list", description: "Every flag in this server", type: 1 },
+    { name: "remove", description: "Take a flag down", type: 1, options: [{ name: "code", description: "The flag's code", type: 3, required: true, autocomplete: true, max_length: 14 }] },
+  ],
+};
+const TABLE_COMMAND = {
+  name: "table",
+  description: "Make a war table: this channel's last war, a results screenshot, or pasted text",
+  integration_types: [0],
+  contexts: [0],
+};
+/** /ranked, GS Ranked (GameShuffle Competitive only, lounge plan step 1; was /ladder): a lounge's ranked board, results first. */
+const LADDER_OPT = { name: "lounge", description: "Which lounge (only when the server runs more than one)", type: 3, required: false, autocomplete: true, max_length: 60 };
+const LADDER_COMMAND = {
+  name: "ranked",
+  description: "GS Ranked: submit this lounge's tables, check MMR",
+  integration_types: [0],
+  contexts: [0],
+  options: [
+    { name: "submit", description: "Submit a room's table for the updaters to verify", type: 1, options: [LADDER_OPT] },
+    { name: "mmr", description: "A player's MMR, division and rank (yours when no name is given)", type: 1, options: [
+      { name: "name", description: "The player's name on the lounge", type: 3, required: false, autocomplete: true, max_length: 32 }, LADDER_OPT,
+    ] },
+    { name: "join", description: "Tie your Discord account to your name on the lounge", type: 1, options: [
+      { name: "name", description: "The name you play under", type: 3, required: true, autocomplete: true, max_length: 32 }, LADDER_OPT,
+    ] },
+    { name: "penalty", description: "Give a player a penalty (updaters)", type: 1, options: [
+      { name: "name", description: "The player's name on the lounge", type: 3, required: true, autocomplete: true, max_length: 32 },
+      { name: "for", description: "What it's for (sets the lounge's usual MMR and strikes)", type: 3, required: true, choices: [
+        { name: "Late", value: "late" }, { name: "Dropped before race 1", value: "drop_before" }, { name: "Dropped during the room", value: "drop_during" },
+        { name: "Wrong tag", value: "tag" }, { name: "Something else", value: "other" },
+      ] },
+      { name: "mmr", description: "MMR to take off (else the lounge's usual amount)", type: 4, required: false, min_value: 0, max_value: 5000 },
+      { name: "strikes", description: "Strikes to give (else the lounge's usual number)", type: 4, required: false, min_value: 0, max_value: 5 },
+      { name: "reason", description: "Shows on their page", type: 3, required: false, max_length: 300 },
+      LADDER_OPT,
+    ] },
+    { name: "name", description: "Ask for a new name on the lounge", type: 1, options: [
+      { name: "new_name", description: "The name you play under now", type: 3, required: true, max_length: 32 }, LADDER_OPT,
+    ] },
+    { name: "staff", description: "A link to the lounge's staff page (updaters)", type: 1, options: [LADDER_OPT] },
+    { name: "queue", description: "Post a queue in this channel (updaters)", type: 1, options: [
+      { name: "name", description: "What the queue is called, like Tier A", type: 3, required: true, max_length: 40 },
+      { name: "mode", description: "How rooms are made", type: 3, required: true, choices: [{ name: "Always open: a room the moment it's full", value: "open" }, { name: "Rush hour: sorted by MMR at set times", value: "rush" }] },
+      { name: "min", description: "Lowest MMR that can join", type: 4, required: false, min_value: 0, max_value: 30000 },
+      { name: "max", description: "Highest MMR that can join", type: 4, required: false, min_value: 0, max_value: 30000 },
+      { name: "formats", description: "Formats to vote on, like 1,2,3,4,6 (FFA is 1)", type: 3, required: false, max_length: 20 },
+      { name: "times", description: "Rush hour times, Pacific, like 20:00, 22:00", type: 3, required: false, max_length: 80 },
+      { name: "lowest", description: "Players still placing join here", type: 5, required: false },
+      LADDER_OPT,
+    ] },
+    { name: "setup", description: "Put this server's lounge on GS Ranked (people who can manage the server)", type: 1, options: [
+      { name: "name", description: "The lounge's name, like 200cc Lounge", type: 3, required: true, max_length: 60 },
+      { name: "address", description: "Its page address: gameshuffle.co/ranked/<address>", type: 3, required: true, max_length: 32 },
+      { name: "mode", description: "Sets the game, rooms, divisions and MMR rules (staff can change them after)", type: 3, required: true, choices: [
+        { name: "Mario Kart 8 Deluxe 150cc (MKCentral's divisions and model)", value: "mk8dx150" },
+        { name: "Mario Kart 8 Deluxe 200cc (200 Lounge rules)", value: "mk8dx200" },
+        { name: "Mario Kart World, 12 players", value: "mkw12" },
+        { name: "Mario Kart World, 24 players", value: "mkw24" },
+        { name: "Knockout Tour (24 places by elimination order)", value: "knockout" },
+      ] },
+      { name: "updaters", description: "The role that verifies tables", type: 8, required: true },
+      { name: "reporters", description: "The role that submits tables (leave it out to let anyone)", type: 8, required: false },
+      { name: "results", description: "Where tables go for verifying (else where they're submitted)", type: 7, required: false, channel_types: [0, 5] },
+    ] },
+  ],
+};
 const compCommands = [
   ...commands
     .filter((c) => c.name in COMP_FROM)
@@ -407,7 +526,16 @@ const compCommands = [
       ...(c.name === "gs-tt" ? { options: [...((c as { options?: unknown[] }).options ?? []), TT_PANEL_SUB] } : {}),
     })),
   ...commands.filter((c) => c.name === "Save to GameShuffle"),
+  WAR_COMMAND,
+  LOGO_COMMAND,
+  FLAG_COMMAND,
+  TABLE_COMMAND,
+  LADDER_COMMAND,
 ];
+
+/** From COMP_MOVE_ENDS (midnight Pacific) the main app drops /gs-tt, /gs-mmr and /gs-room: they live on GameShuffle Competitive. */
+const MOVED = !!COMP_MOVE_ENDS && Date.now() >= gsDayStart(COMP_MOVE_ENDS).getTime();
+const mainCommands = MOVED ? commands.filter((c) => !(c.name in COMP_FROM)) : commands;
 
 /** The Activity's entry point: Discord launches the Activity itself (handler 2) and posts that it started. */
 const ACTIVITY_ENTRY_POINT = {
@@ -442,7 +570,7 @@ async function entryPoint(url: string): Promise<object | null> {
 
 async function registerCommands() {
   if (DRY) {
-    const list = COMP ? compCommands : commands;
+    const list = COMP ? compCommands : mainCommands;
     console.log(JSON.stringify(list.map((c) => ({ name: c.name, type: (c as { type?: number }).type ?? 1, integration_types: (c as { integration_types?: number[] }).integration_types, subcommands: ((c as { options?: { type: number; name: string }[] }).options ?? []).filter((o) => o.type === 1).map((o) => o.name) })), null, 1));
     return;
   }
@@ -455,7 +583,7 @@ async function registerCommands() {
       Authorization: `Bot ${BOT_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(entry ? [...(COMP ? compCommands : commands), entry] : COMP ? compCommands : commands),
+    body: JSON.stringify(entry ? [...(COMP ? compCommands : mainCommands), entry] : COMP ? compCommands : mainCommands),
   });
 
   if (response.ok) {

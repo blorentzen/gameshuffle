@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { Avatar } from "@empac/cascadeds";
 import { useOriginalsHost } from "@/components/originals/OriginalsHost";
 import type { CallDailyPlayer } from "@/lib/activity/callDaily";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 const POLL_MS = 15_000;
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
@@ -35,8 +36,8 @@ export function DailyCallStrip({ active, game = "shuffle" }: { active: boolean; 
       if (live && j?.ok && j.players) setPlayers(j.players);
     };
     void read();
-    const iv = window.setInterval(() => void read(), POLL_MS);
-    return () => { live = false; window.clearInterval(iv); };
+    const stop = everyVisible(read, POLL_MS);
+    return () => { live = false; stop(); };
   }, [active, api, game]);
 
   if (players.length < 2) return null;

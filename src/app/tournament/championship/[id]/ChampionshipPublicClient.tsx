@@ -72,15 +72,17 @@ export function ChampionshipPublicClient({ initial, baseUrl }: { initial: Champi
 
   useEffect(() => { void load(); }, [load]);
 
-  // Live season — reload when any event in this championship changes.
+  // Live season — reload when any event in this championship changes (not once the season is complete).
+  const watching = !!champ && champ.status !== "archived";
   useEffect(() => {
+    if (!watching) return;
     const channel = supabase
       .channel(`championship-public-${championshipId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tournaments", filter: `championship_id=eq.${championshipId}` }, () => void load())
       .on("postgres_changes", { event: "*", schema: "public", table: "championship_members", filter: `championship_id=eq.${championshipId}` }, () => void load())
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
-  }, [championshipId, supabase, load]);
+  }, [championshipId, supabase, load, watching]);
 
   if (loading) {
     return <main className="event-shell"><div className="comp-card" style={{ margin: "3rem auto", maxWidth: 820 }}><p>Loading\u2026</p></div></main>;

@@ -9,8 +9,9 @@
  * this module before anything else, so a monthly supporter is never read as
  * a GS Pro subscription. Monthly support needs an account (so it can be
  * managed in Plans & billing through the Customer Portal); one-time support
- * doesn't. US only for now, like GS Pro: the checkout refuses other countries
- * by IP and a non-US billing address is refunded (unwindNonUsSupport).
+ * doesn't. Open in every country while the support_international switch is on
+ * (the default); off, the checkout refuses other countries by IP and a non-US
+ * billing address is refunded (unwindNonUsSupport).
  *
  * Monthly support comes in three levels (2026-10-19, rules.ts SUPPORT_LEVELS).
  * Backer and Champion include GS Pro: they're sold under their own products
@@ -25,10 +26,11 @@ import "server-only";
 import { createHash } from "node:crypto";
 import type Stripe from "stripe";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { getStripe } from "@/lib/stripe/client";
 import { isBlockedText } from "@/lib/text/filter";
 import { isReservedName } from "@/lib/reservedName";
-import { isPaidPlanCountry } from "@/lib/billing/availability";
+import { isSupportCountry } from "@/lib/billing/availability";
 import { subscriptionIdOf, periodEndOf } from "@/lib/stripe/payload";
 import { gsMonthStart, gsDayStart } from "@/lib/time/gsClock";
 import { sendSupportThanksEmail } from "@/lib/email/support";
@@ -258,10 +260,10 @@ async function invoicePaymentIntent(invoiceId: string): Promise<string | null> {
   return typeof pi === "string" ? pi : pi?.id ?? null;
 }
 
-/** Refunds a support payment whose billing address is outside the US (support is US only for now). */
+/** Refunds a support payment whose billing address is outside the US, while support is US-only (the support_international switch off). */
 async function unwindNonUsSupport(session: Stripe.Checkout.Session): Promise<boolean> {
   const country = session.customer_details?.address?.country ?? null;
-  if (isPaidPlanCountry(country)) return false;
+  if (await isSupportCountry(country)) return false;
   const stripe = getStripe();
   try {
     if (session.subscription) {
@@ -496,14 +498,23 @@ export async function saveSupportSettings(next: SupportSettings, by: string): Pr
   return !error;
 }
 
-/** This Pacific month's support: total paid and how many people gave. */
+/**
+ * This Pacific month's support: total paid and how many people gave. Read page by page (one read
+ * stopped at 1,000 gifts, so the goal bar would have undercounted) and kept on this server for 30
+ * seconds, since the support moment on the dailies' end screens asks for it on every finish.
+ */
+let progressCache: { month: string; at: number; value: { raisedCents: number; supporters: number } } | null = null;
+
 export async function monthProgress(now = Date.now()): Promise<{ raisedCents: number; supporters: number } | null> {
   const from = gsDayStart(gsMonthStart(now)).toISOString();
-  const { data, error } = await createServiceClient().from("support_gifts").select("amount_cents, user_id, stripe_customer_id, checkout_session_id").eq("status", "paid").gte("paid_at", from).limit(10_000);
+  if (progressCache && progressCache.month === from && Date.now() - progressCache.at < 30_000) return progressCache.value;
+  type GiftRow = { id: string; amount_cents: number; user_id: string | null; stripe_customer_id: string | null; checkout_session_id: string | null };
+  const { data: rows, error } = await readAllPages<GiftRow>((a, b) => createServiceClient().from("support_gifts").select("id, amount_cents, user_id, stripe_customer_id, checkout_session_id").eq("status", "paid").gte("paid_at", from).order("id").range(a, b));
   if (error) return supportMissing(error) ? null : { raisedCents: 0, supporters: 0 };
-  const rows = (data ?? []) as { amount_cents: number; user_id: string | null; stripe_customer_id: string | null; checkout_session_id: string | null }[];
   const people = new Set(rows.map((r) => r.user_id ?? r.stripe_customer_id ?? r.checkout_session_id));
-  return { raisedCents: rows.reduce((s, r) => s + r.amount_cents, 0), supporters: people.size };
+  const value = { raisedCents: rows.reduce((s, r) => s + r.amount_cents, 0), supporters: people.size };
+  progressCache = { month: from, at: Date.now(), value };
+  return value;
 }
 
 export interface WallEntry { name: string; note: string | null; monthly: boolean; level: SupportLevel | null }

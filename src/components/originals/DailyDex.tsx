@@ -390,7 +390,7 @@ export function DailyDex() {
       )}
 
       {!preview && (
-        <DailyBoard game="dex" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews}
+        <DailyBoard game="dex" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews} needWeek
           join={over && account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0
             ? <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />
             : null} />

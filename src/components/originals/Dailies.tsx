@@ -282,18 +282,21 @@ export function DailiesShare({ current, shareOne, oneText, one }: { current: Dai
   // From a friend's shared result today: "Send yours to Nova".
   const challengeLabel = useChallengeShareLabel(current);
   const [choosing, setChoosing] = useState(false);
+  // With two or more dailies played, both cards are made when the picker opens (its row is the
+  // tap that opens the share sheet), not as the end screen shows: most players never share.
+  const [warm, setWarm] = useState(false);
   const ids = sharedToday(entries, shown);
   const combined = ids.length >= 2 && ids.includes(current);
   const site = !activity && !!one;
   const day = currentDay("shuffle");
-  const dayRequest: ShareRequest | null = site && combined ? {
+  const dayRequest: ShareRequest | null = site && combined && warm ? {
     kind: "day",
     shuffle: current === "shuffle" ? one!.request.shuffle : localGuesses("gs-daily-shuffle", day),
     dex: current === "dex" ? one!.request.dex : localGuesses("gs-daily-dex", day),
   } : null;
   const allText = withReferral(combinedShareText(entries, shown), referral?.code);
   const dailyLink = withReferral("https://www.gameshuffle.co/daily", referral?.code);
-  const oneShare = useShare({ request: site ? one!.request : null, text: one?.text ?? (() => ""), game: current, fallbackUrl: one?.fallbackUrl ?? dailyLink });
+  const oneShare = useShare({ request: site && (!combined || warm) ? one!.request : null, text: one?.text ?? (() => ""), game: current, fallbackUrl: one?.fallbackUrl ?? dailyLink });
   const allShare = useShare({ request: dayRequest, text: (url) => withLink(combinedShareText(entries, shown), url), game: "day", fallbackUrl: dailyLink, title: "My GameShuffle dailies" });
 
   // Inside the Discord Activity: Discord's own share, else a copy.
@@ -311,7 +314,7 @@ export function DailiesShare({ current, shareOne, oneText, one }: { current: Dai
   const pickAll = () => { setChoosing(false); if (site) allShare.share(); else void shareAll(); };
 
   const label = site ? (challengeLabel ?? "Share") : oneText;
-  const onPress = combined ? () => setChoosing(true) : site ? oneShare.share : shareOne;
+  const onPress = combined ? () => { setWarm(true); setChoosing(true); } : site ? oneShare.share : shareOne;
   const preview = site ? previewOf(one!.text("")) : "";
   return (
     <span className="party-row">

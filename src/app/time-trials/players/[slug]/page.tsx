@@ -15,6 +15,10 @@ import { playerBests, type TtBest } from "@/lib/timeTrials/store";
 import { formatGap, formatTime, ordinal, type TtPlayer } from "@/lib/timeTrials/rules";
 import { categoryQuery, categoryText, readCategory, TOP_TEN, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 import { trackCode } from "@/lib/timeTrials/codes";
+import { countryOf, fillFromLounge } from "@/lib/timeTrials/countries";
+import { countryCodes, flagUrl } from "@/lib/lounge/flags";
+import { countryName } from "@/lib/lounge/countries";
+import { TtCountryPicker } from "@/components/timeTrials/TtCountryPicker";
 import { playerPagePath, readPlayerSlug } from "@/lib/timeTrials/playerPath";
 import { isClassFor, trackPath, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 import "@/styles/time-trials.css";
@@ -71,7 +75,13 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
   const who = await resolvePlayer(slug);
   if (who === "signin") redirect(`/login?redirect=${encodeURIComponent("/time-trials/players/me")}`);
   if (!who) notFound();
-  const bests = await playerBests(who.player as TtPlayer);
+  const actor = await siteActor();
+  const own = !!actor && actor.player === who.player;
+  // Their country (round 3 pick 6A): filled in from a confirmed lounge name the first time they look, else picked here.
+  const [bests, country] = await Promise.all([
+    playerBests(who.player as TtPlayer),
+    own ? fillFromLounge(who.player).then((c) => c ?? null) : countryOf(who.player).then((c) => c?.country ?? null),
+  ]);
   const games = TT_GAME_ORDER.filter((g) => bests.some((b) => b.game === g));
   const game: TtGame = TT_GAME_ORDER.includes(sp.game as TtGame) ? (sp.game as TtGame) : games[0] ?? "mk8dx";
   const info = TT_GAMES[game];
@@ -94,7 +104,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
   const verified = board.filter((b) => b.video === "checked").length;
   const base = playerPagePath(who.player, who.profile);
   const href = (g: TtGame, c: { cc?: TtClass; items?: TtItems; vehicle?: TtVehicle }) => {
-    const q = categoryQuery({ cc: c.cc, defaultCc: TT_GAMES[g].classes[0], items: c.items, vehicle: g === "mk8dx" ? c.vehicle : undefined });
+    const q = categoryQuery({ cc: c.cc, defaultCc: TT_GAMES[g].classes[0], items: c.items, vehicle: c.vehicle });
     const extra = new URLSearchParams(q.slice(1));
     if (g !== games[0]) extra.set("game", g);
     if (other) extra.set("vs", sp.vs!);
@@ -113,7 +123,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
       <BrowseHero
         eyebrow="Time trials"
         title={who.name}
-        sub={who.discord ? "Plays from Discord. Best times on every board, with their place." : "Best times on every board, with their place."}
+        sub={`${country ? `${countryName(country)}. ` : ""}${who.discord ? "Plays from Discord. Best times on every board, with their place." : "Best times on every board, with their place."}`}
         accent="blue"
         field="compete"
         compact
@@ -121,6 +131,13 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
         actions={bests.length > 0 ? <TtCompareButton base={base} query={keep.toString()} current={other ? sp.vs : undefined} /> : undefined}
       />
       <Container className="tt-body">
+        {own && (
+          <section className="tt-sec tt-sec--flat tt-country" aria-label="Your country">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a small flag from public/ */}
+            {country && flagUrl(country) && <img src={flagUrl(country)!} alt="" className="tt-flag tt-country__flag" />}
+            <TtCountryPicker initial={country} codes={countryCodes()} />
+          </section>
+        )}
         <section className="tt-sec tt-sec--flat" aria-label="Totals">
           <dl className="tt-stats">
             <div><dt>Tracks</dt><dd>{tracks} of {ttTracks(game).length}</dd><small>{categoryText(game, cc, items, vehicle, info.classes.length > 1)}</small></div>

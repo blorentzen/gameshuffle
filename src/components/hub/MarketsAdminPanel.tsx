@@ -15,6 +15,7 @@ import { Button, Input, Select } from "@empac/cascadeds";
 import { MarketTimer } from "@/components/markets/MarketTimer";
 import { TokenIcon } from "@/components/TokenIcon";
 import { useToast } from "@/components/toast/ToastProvider";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 interface MarketState {
   id: string;
@@ -105,16 +106,12 @@ export function MarketsAdminPanel({ streamerSlug, bare = false, markets = true }
   }, [streamerSlug]);
 
   useEffect(() => {
-    let t: ReturnType<typeof setInterval> | null = null;
     const tick = () => {
       void refreshMarket();
       void refreshBounties();
     };
     tick();
-    t = setInterval(tick, POLL_MS);
-    return () => {
-      if (t) clearInterval(t);
-    };
+    return everyVisible(tick, POLL_MS);
   }, [refreshMarket, refreshBounties]);
 
   const callMarket = async (

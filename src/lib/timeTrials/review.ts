@@ -6,7 +6,9 @@ import "server-only";
  * Every time shows as Unverified until a reviewer checks a clip of the run's last 30 seconds and flips it
  * to Verified. Reports are tickets: the reporter, the time's owner and reviewers see one thread, the
  * owner can answer with proof, and a reviewer keeps or removes the time with a reason everyone sees.
- * Reviewers are staff and admins plus anyone in tt_reviewers (the "Time trial reviewer" role).
+ * Reviewers are staff and admins plus anyone in tt_reviewers (the "Time trial reviewer" role). Round 3: updaters
+ * (tt_updaters) review one game and items only (`reviewScope`), the queue puts vouched-for clips first, and the
+ * site's own proof flags (tt_reports kind 'flag') show as tickets without a reporter.
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -16,6 +18,8 @@ import { formatTime } from "./rules";
 import { ttTrack, TT_GAMES } from "./tracks";
 import { categoryText } from "./categories";
 import { nudgeMovedUp, timeById, toTimeRow, TIME_COLS, topTensAround, ttReady, type TtTimeRow } from "./store";
+import { inScope, reviewScope, type Mode } from "./updaters";
+import { vouchCounts } from "./status";
 
 export type TicketState = "open" | "waiting_owner" | "waiting_review" | "kept" | "removed";
 export type TicketRole = "reporter" | "owner" | "reviewer";
@@ -84,13 +88,13 @@ export async function ticketView(id: string, viewer: { player: string | null; us
   if (!r) return null;
   const t = await timeById(r.time_id);
   if (!t) return null;
-  const reviewer = await isReviewer(viewer.userId);
+  const reviewer = inScope(await reviewScope(viewer.userId), t);
   const role: TicketRole | null = reviewer ? "reviewer" : viewer.player && viewer.player === t.player ? "owner" : viewer.player && viewer.player === r.reporter ? "reporter" : null;
   if (!role) return null;
   const { data: msgs } = await db.from("tt_report_messages").select("id, author, role, body, link, created_at").eq("report_id", id).order("created_at").limit(200);
   const list = (msgs ?? []) as { id: string; author: string; role: TicketRole; body: string; link: string | null; created_at: string }[];
-  const names = await describePlayers([...new Set([t.player, r.reporter, ...list.map((m) => m.author)].filter((k) => !k.startsWith("d:") && !k.startsWith("staff")))]);
-  const nameOf = (k: string, mrole: TicketRole) => (mrole === "reviewer" ? "Reviewer" : k.startsWith("d:") ? "A Discord player" : names.get(k)?.name ?? "A player");
+  const names = await describePlayers([...new Set([t.player, r.reporter, ...list.map((m) => m.author)].filter((k) => !k.startsWith("d:") && !k.startsWith("staff") && !k.startsWith("flag:")))]);
+  const nameOf = (k: string, mrole: TicketRole) => (mrole === "reviewer" ? "Reviewer" : k.startsWith("flag:") ? "Proof check" : k.startsWith("d:") ? "A Discord player" : names.get(k)?.name ?? "A player");
   return {
     id: r.id, state: r.state, reason: r.reason, evidenceUrl: r.evidence_url, decisionNote: r.decision_note, at: r.created_at,
     time: t, label: timeLabel(t), ownerName: names.get(t.player)?.name ?? "A player", reporterName: nameOf(r.reporter, "reporter"),
@@ -116,13 +120,15 @@ export async function replyTicket(id: string, viewer: { player: string | null; u
 
 /** A reviewer's decision closes every open ticket on that time; Remove takes the time off every board. */
 export async function decideTicket(id: string, reviewerUserId: string, outcome: "kept" | "removed", note: string): Promise<{ ok: boolean; error?: string }> {
-  if (!(await isReviewer(reviewerUserId))) return { ok: false, error: "not_reviewer" };
+  const scope = await reviewScope(reviewerUserId);
+  if (!scope) return { ok: false, error: "not_reviewer" };
   const db = createServiceClient();
   const { data } = await db.from("tt_reports").select(REPORT_COLS).eq("id", id).maybeSingle();
   const r = data as ReportRaw | null;
   if (!r) return { ok: false, error: "gone" };
   const t = await timeById(r.time_id);
   if (!t) return { ok: false, error: "gone" };
+  if (!inScope(scope, t)) return { ok: false, error: "not_reviewer" };
   const why = note.trim().slice(0, 500) || (outcome === "kept" ? "The time checks out." : "The time doesn't check out.");
   const now = new Date().toISOString();
   if (outcome === "removed") {
@@ -142,36 +148,43 @@ export async function decideTicket(id: string, reviewerUserId: string, outcome: 
   return { ok: true };
 }
 
-export interface QueueVideo { time: TtTimeRow; label: string; name: string }
-export interface QueueTicket { id: string; state: TicketState; reason: string | null; at: string; label: string; ownerName: string; reporterName: string }
+export interface QueueVideo { time: TtTimeRow; label: string; name: string; vouches: number }
+export interface QueueTicket { id: string; state: TicketState; reason: string | null; at: string; label: string; ownerName: string; reporterName: string; flag: boolean }
 
-/** The reviewers' queue: clips to check, oldest first, and open tickets. */
-export async function reviewQueue(): Promise<{ videos: QueueVideo[]; tickets: QueueTicket[] }> {
+/** The review queue for a scope: clips to check (most vouched-for first, then oldest) and open tickets. */
+export async function reviewQueue(scope: "all" | Mode[] = "all"): Promise<{ videos: QueueVideo[]; tickets: QueueTicket[] }> {
   if (!(await ttReady())) return { videos: [], tickets: [] };
   const db = createServiceClient();
   const [{ data: vids }, { data: reps }] = await Promise.all([
-    db.from("tt_times").select(TIME_COLS).eq("status", "ok").eq("video_status", "waiting").not("video_url", "is", null).order("created_at").limit(100),
-    db.from("tt_reports").select(REPORT_COLS).in("state", OPEN).order("created_at").limit(100),
+    db.from("tt_times").select(TIME_COLS).eq("status", "ok").eq("video_status", "waiting").not("video_url", "is", null).order("created_at").limit(300),
+    db.from("tt_reports").select(REPORT_COLS).in("state", OPEN).order("created_at").limit(300),
   ]);
-  const times = ((vids ?? []) as Parameters<typeof toTimeRow>[0][]).map(toTimeRow);
-  const reports = (reps ?? []) as ReportRaw[];
-  const reportTimes = await Promise.all(reports.map((r) => timeById(r.time_id)));
-  const names = await describePlayers([...new Set([...times.map((t) => t.player), ...reportTimes.filter(Boolean).map((t) => t!.player), ...reports.map((r) => r.reporter).filter((k) => !k.startsWith("d:"))])]);
+  const times = ((vids ?? []) as Parameters<typeof toTimeRow>[0][]).map(toTimeRow).filter((t) => inScope(scope, t));
+  const reportsAll = (reps ?? []) as ReportRaw[];
+  const reportTimesAll = await Promise.all(reportsAll.map((r) => timeById(r.time_id)));
+  const keep = reportsAll.map((r, i) => ({ r, t: reportTimesAll[i] })).filter((x) => x.t && inScope(scope, x.t));
+  const vouches = await vouchCounts(times.map((t) => t.id));
+  const names = await describePlayers([...new Set([...times.map((t) => t.player), ...keep.map((x) => x.t!.player), ...keep.map((x) => x.r.reporter).filter((k) => !k.startsWith("d:") && !k.startsWith("flag:"))])]);
+  const videos = times.map((t) => ({ time: t, label: timeLabel(t), name: names.get(t.player)?.name ?? "A player", vouches: vouches.get(t.id) ?? 0 }))
+    .sort((a, b) => b.vouches - a.vouches || a.time.createdAt.localeCompare(b.time.createdAt))
+    .slice(0, 100);
   return {
-    videos: times.map((t) => ({ time: t, label: timeLabel(t), name: names.get(t.player)?.name ?? "A player" })),
-    tickets: reports.flatMap((r, i) => {
-      const t = reportTimes[i];
-      if (!t) return [];
-      return [{ id: r.id, state: r.state, reason: r.reason, at: r.created_at, label: timeLabel(t), ownerName: names.get(t.player)?.name ?? "A player", reporterName: r.reporter.startsWith("d:") ? "A Discord player" : names.get(r.reporter)?.name ?? "A player" }];
-    }),
+    videos,
+    tickets: keep.slice(0, 100).map(({ r, t }) => ({
+      id: r.id, state: r.state, reason: r.reason, at: r.created_at, label: timeLabel(t!), ownerName: names.get(t!.player)?.name ?? "A player",
+      reporterName: r.reporter.startsWith("flag:") ? "Proof check" : r.reporter.startsWith("d:") ? "A Discord player" : names.get(r.reporter)?.name ?? "A player",
+      flag: r.reporter.startsWith("flag:"),
+    })),
   };
 }
 
 /** A reviewer flips a time to Verified, or says the clip doesn't match (with a reason the player sees). */
 export async function decideVideo(timeId: string, reviewerUserId: string, ok: boolean, note: string): Promise<{ ok: boolean; error?: string }> {
-  if (!(await isReviewer(reviewerUserId))) return { ok: false, error: "not_reviewer" };
+  const scope = await reviewScope(reviewerUserId);
+  if (!scope) return { ok: false, error: "not_reviewer" };
   const t = await timeById(timeId);
   if (!t || t.status !== "ok") return { ok: false, error: "gone" };
+  if (!inScope(scope, t)) return { ok: false, error: "not_reviewer" };
   const why = note.trim().slice(0, 300) || null;
   if (!ok && !why) return { ok: false, error: "reason_needed" };
   await createServiceClient().from("tt_times").update({ video_status: ok ? "checked" : "rejected", video_checked_by: reviewerUserId, video_checked_at: new Date().toISOString(), video_note: why }).eq("id", timeId);

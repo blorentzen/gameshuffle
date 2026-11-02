@@ -34,23 +34,25 @@ async function takeIntent(discordId: string): Promise<string | null> {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => null)) as { code?: unknown; instanceId?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { code?: unknown; instanceId?: unknown; app?: unknown } | null;
   const code = typeof body?.code === "string" ? body.code : "";
   if (!code || code.length > 200) return NextResponse.json({ ok: false, error: "bad_code" }, { status: 400 });
+  // The War room signs in through GameShuffle Competitive's own Discord app.
+  const app = body?.app === "comp" ? "comp" : "main";
 
-  const x = await exchangeCode(code);
+  const x = await exchangeCode(code, app);
   if (!x.ok) return NextResponse.json({ ok: false, error: x.error }, { status: x.error === "bad_code" ? 400 : 503 });
 
   const name = x.me.global_name || x.me.username;
   const [{ identityId }, userId, startTab, where] = await Promise.all([
     resolveIdentity({ platform: "discord", platformId: x.me.id, displayName: name }),
     accountForDiscord(x.me.id).catch(() => null),
-    takeIntent(x.me.id).catch(() => null),
-    typeof body?.instanceId === "string" ? verifiedInstance(body.instanceId, x.me.id).catch(() => null) : Promise.resolve(null),
+    app === "main" ? takeIntent(x.me.id).catch(() => null) : Promise.resolve(null),
+    typeof body?.instanceId === "string" ? verifiedInstance(body.instanceId, x.me.id, app).catch(() => null) : Promise.resolve(null),
   ]);
   // For the drawn results card in the channel. Best effort, after the reply.
   after(() => rememberAvatar(identityId, discordAvatarUrl(x.me.id, x.me.avatar)));
-  const session = signSession({ did: x.me.id, iid: identityId, uid: userId, name, avatar: x.me.avatar, cid: where?.channelId ?? null, gid: where?.guildId ?? null, ins: where?.instanceId ?? null });
+  const session = signSession({ did: x.me.id, iid: identityId, uid: userId, name, avatar: x.me.avatar, cid: where?.channelId ?? null, gid: where?.guildId ?? null, ins: where?.instanceId ?? null, ...(app === "comp" ? { app } : {}) });
   return NextResponse.json({
     ok: true,
     accessToken: x.accessToken,

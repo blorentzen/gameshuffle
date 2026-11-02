@@ -8,11 +8,12 @@
  * `/api/account/sign-in/unlink` shape with a provider-keyed call that
  * also tears down the streamer-scope integration when disconnecting Twitch.
  *
- * Order of operations matters: Twitch streamer teardown FIRST (needs the
- * encrypted access token to revoke + delete EventSub subs + remove the
- * channel point reward), THEN identity removal. If the auth identity
- * went first, the user could end up with orphaned Twitch infrastructure
- * we can't clean up because the user-facing OAuth path is gone.
+ * Order of operations: the identity goes FIRST (unlinkIdentity.ts), and only
+ * once it's gone does the Twitch streamer teardown run (revoke the tokens,
+ * delete EventSub subs, remove the channel point reward) and the avatar
+ * reset. The streamer tokens live in twitch_connections, not in the auth
+ * identity, so the teardown still works afterwards; the other order tore
+ * down a streamer's setup and then failed to disconnect (2026-11-01).
  *
  * Returns:
  *   200 { ok: true }
@@ -20,7 +21,7 @@
  *   401 { error: 'unauthenticated' }
  *   404 { error: 'identity_not_found' }
  *   422 { error: 'last_sign_in_method', message: string }
- *   500 { error: 'disconnect_failed' }
+ *   500 { error: 'disconnect_failed' | 'not_ready' }
  */
 
 import { NextResponse } from "next/server";
@@ -29,6 +30,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
 import { ALL_CONNECTION_PROVIDERS, type ConnectionProvider } from "@/lib/connections";
 import { passwordFlag } from "@/lib/auth/passwordRules";
+import { unlinkIdentity } from "@/lib/auth/unlinkIdentity";
 
 export const runtime = "nodejs";
 
@@ -77,7 +79,16 @@ export async function POST(request: Request) {
     );
   }
 
-  // Streamer-scope teardown FIRST (only Twitch has one today).
+  const removed = await unlinkIdentity(supabase, user.id, target);
+  if (removed !== "ok") {
+    const name = `${provider.charAt(0).toUpperCase()}${provider.slice(1)}`;
+    return NextResponse.json({
+      error: removed === "not_ready" ? "not_ready" : "disconnect_failed",
+      message: removed === "not_ready" ? `Disconnecting ${name} isn't working right now. We've been told and are fixing it.` : `Couldn't disconnect ${name}. Try again in a moment.`,
+    }, { status: 500 });
+  }
+
+  // Streamer-scope teardown, now the identity is gone (only Twitch has one today).
   if (provider === "twitch") {
     try {
       await disconnectTwitchIntegration(user.id);
@@ -118,17 +129,6 @@ export async function POST(request: Request) {
     }
   } catch (err) {
     console.warn("[connections/disconnect] avatar cleanup failed (non-fatal):", err);
-  }
-
-  // Direct delete on auth.identities — bypasses GoTrue's strict rule.
-  const { error: deleteErr } = await admin
-    .schema("auth")
-    .from("identities")
-    .delete()
-    .eq("id", target.id);
-  if (deleteErr) {
-    console.error("[connections/disconnect] identity delete failed:", deleteErr);
-    return NextResponse.json({ error: "disconnect_failed" }, { status: 500 });
   }
 
   // Sync app_metadata.providers so subsequent reads reflect the new state.

@@ -210,8 +210,15 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
     setLoading(false);
   }, [tournamentId]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the first load of server data, set when the fetch answers
+  useEffect(() => { void loadData(); }, [loadData]);
+
+  // Live updates only while the event can still change: a finished, cancelled or archived tournament
+  // keeps no connection open (each one counts toward the realtime limit, and most visits to old
+  // results are from search).
+  const watching = !!tournament && !tournament.archived_at && ["draft", "open", "in_progress"].includes(tournament.status);
   useEffect(() => {
-    loadData();
+    if (!watching) return;
     const channel = supabase
       .channel(`tournament-${tournamentId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tournaments", filter: `id=eq.${tournamentId}` },
@@ -222,7 +229,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
         () => { supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number").then(({ data }) => { if (data) setRaces(data as TournamentRace[]); }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [tournamentId, loadData]);
+  }, [tournamentId, watching]);
 
   // Old claim links (emailed before /claim existed) land here as ?claim=<token>.
   // Forward them to the dedicated claim page straight away, so the credential

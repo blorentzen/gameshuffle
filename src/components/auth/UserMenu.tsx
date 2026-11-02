@@ -34,6 +34,8 @@ function buildMenuSections(args: {
   setOpen: (open: boolean) => void;
   hasStreamerIntegration: boolean;
   isStaff: boolean;
+  /** GS Ranked lounges the account plays in (asked when the menu opens). */
+  hasLounges: boolean;
 }): MenuSectionProps[] {
   const go = (path: string) => () => {
     args.setOpen(false);
@@ -43,12 +45,11 @@ function buildMenuSections(args: {
 
   // Comms Center is reached via the navbar bell + messages icons, so it's not
   // duplicated here. Activity = Stream Hub (streamers only).
-  if (args.hasStreamerIntegration) {
-    sections.push({
-      label: "Activity",
-      items: [{ label: "Stream hub", onClick: go("/hub") }],
-    });
-  }
+  const activity = [
+    ...(args.hasStreamerIntegration ? [{ label: "Stream hub", onClick: go("/hub") }] : []),
+    ...(args.hasLounges ? [{ label: "Your lounges", onClick: go("/ranked") }] : []),
+  ];
+  if (activity.length) sections.push({ label: "Activity", items: activity });
 
   // My Stuff: quick access to a player's own content, straight from the nav
   // model so the menu always matches the section's views.
@@ -106,6 +107,7 @@ export function UserMenu() {
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileSnapshot | null>(null);
   const [hasStreamerIntegration, setHasStreamerIntegration] = useState(false);
+  const [lounges, setLounges] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -174,6 +176,14 @@ export function UserMenu() {
       });
   };
 
+  // GS Ranked lounges: asked the first time the menu opens, so no page load pays for it.
+  useEffect(() => {
+    if (!open || lounges !== null || !user) return;
+    let alive = true;
+    fetch("/api/ranked/mine").then((r) => r.json()).then((j: { lounges?: unknown[] }) => { if (alive) setLounges(j.lounges?.length ?? 0); }).catch(() => { if (alive) setLounges(0); });
+    return () => { alive = false; };
+  }, [open, lounges, user]);
+
   useEffect(() => {
     // loadProfile is async (setState only after the fetch resolves).
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -234,6 +244,7 @@ export function UserMenu() {
               setOpen,
               hasStreamerIntegration,
               isStaff: isStaffRole(profile?.role ?? null),
+              hasLounges: !!lounges,
             })}
           />
         </div>

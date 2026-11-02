@@ -305,8 +305,8 @@ export default function DiscordPage() {
               <p className="marketing-eyebrow">For competitive servers</p>
               <h2 id="dpage-comp" className="beta-section__title">GameShuffle Competitive</h2>
               <p className="beta-section__sub">
-                A separate bot for war and lounge servers: time trials with /tt, MMR and head-to-heads with /mmr, room reads with /room,
-                lounge rank-ups and division roles. None of the daily games, so it sits next to your other bots without adding to them.
+                A separate bot for war and lounge servers: a time trial panel and /tt, MMR and head-to-heads with /mmr, and room reads
+                with /room. None of the daily games, so it sits next to your other bots without adding to them.
               </p>
             </div>
             <div className="dpage-comp__cta">

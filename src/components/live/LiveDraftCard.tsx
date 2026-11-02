@@ -17,6 +17,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import { useAnonViewerId } from "./useAnonViewerId";
 import { useLiveHost } from "./LiveHost";
 import type { StreamDraftView } from "@/lib/drafts/store";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 export function LiveDraftCard({ communityId }: { communityId: string | null }) {
   const anonId = useAnonViewerId();
@@ -35,8 +36,8 @@ export function LiveDraftCard({ communityId }: { communityId: string | null }) {
       if (active && d?.ok) { setDraft(d.draft ?? null); setYou(d.you ?? null); }
     };
     void load();
-    const iv = window.setInterval(() => { void load(); setNow(Date.now()); }, 3000);
-    return () => { active = false; window.clearInterval(iv); };
+    const stop = everyVisible(() => { void load(); setNow(Date.now()); }, 3000);
+    return () => { active = false; stop(); };
   }, [communityId, host]);
 
   if (!draft) return null;

@@ -6,7 +6,8 @@
  * finished tournament, and a free tool once it's been used (`ready`: FreeToolShell flips it on the
  * first button pressed inside the tool). For everyone in the US, GS Pro
  * members included, at most once a week per browser; a supporter gets a thank-you line instead.
- * Never inside the Discord Activity, and nothing outside the US (support is US only for now).
+ * Never inside the Discord Activity, and nothing where support isn't open (outside the US while the
+ * support_international switch is off).
  * Sits flat under a thin line (containers rule): a prompt, not a card.
  */
 
@@ -92,8 +93,8 @@ export function SupportMoment({ from, title = "Enjoying GameShuffle?", ready = t
 /**
  * The quiet second choice under a GS Pro wall's buttons: backing GameShuffle from $3 a month, the
  * lowest way in (Britton, 2026-10-29; it led with the $9 Backer level from 2026-10-19). It lands on the
- * Supporter level; the form shows Backer, with GS Pro, beside it. In the US only, and not for someone
- * who already supports us.
+ * Supporter level; the form shows Backer, with GS Pro, beside it. Only where support is open, and not for
+ * someone who already supports us.
  */
 export function SupportInstead({ from }: { from: string }) {
   const status = useSupportStatus();

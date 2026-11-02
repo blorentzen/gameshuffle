@@ -3,7 +3,8 @@
 /**
  * Add a time trial time (picks 2026-10-29; round 2). The result screenshot comes first and is required:
  * we read the track and time from it, the player checks, nothing saves until they press Add. Then the
- * fields in pairs (track and time, items and speed) and the vehicle (Mario Kart 8 Deluxe). Only a time
+ * fields in pairs (track and time, items and speed), the laps (read from the screen with the time, changeable,
+ * checked against the total; round 3 pick 2A) and the vehicle when the game has vehicle boards. Only a time
  * that lands in its board's top ten is asked for a clip of the run's last 30 seconds, after saving (round
  * 2 tightening, 6A): it shows as Unverified until a reviewer checks one. Used in the Add a time window.
  */
@@ -14,13 +15,14 @@ import { IconCamera, IconCheck, IconLink, IconVideo } from "@tabler/icons-react"
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/toast/ToastProvider";
 import { track as trackEvent, EVENTS } from "@/lib/analytics/events";
-import { formatGap, formatTime, ordinal, parseTime } from "@/lib/timeTrials/rules";
+import { formatGap, formatLap, formatTime, LAP_SLACK_MS, ordinal, parseLap, parseTime } from "@/lib/timeTrials/rules";
 import { TT_GAMES, TT_GAME_ORDER, ttCups, ttTrack, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
-import { categoryText, ITEMS, VEHICLES, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import { categoryText, ITEMS, vehicleFor, vehicleOptions, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 
-export interface AddedTime { timeId: string; best: boolean; previousMs: number | null; place: number; total: number; needsVideo?: boolean; videoAdded?: boolean }
+export interface AddedTime { timeId: string; best: boolean; previousMs: number | null; place: number; total: number; needsVideo?: boolean; videoAdded?: boolean; trusted?: boolean }
 
-type Read = { game: TtGame | null; trackId: string | null; cc: TtClass | null; timeMs: number | null; notResult: boolean };
+type Read = { game: TtGame | null; trackId: string | null; cc: TtClass | null; timeMs: number | null; laps?: number[] | null; notResult: boolean };
+const BLANK_LAPS = ["", "", ""];
 
 const READ_ERRORS: Record<string, string> = {
   cap: "That's all the screenshots we can read for you today. Type the time and the screenshot still counts as proof.",
@@ -54,12 +56,14 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
   const [trackId, setTrackId] = useState<string>(startTrack && ttTrack(startGame, startTrack) ? startTrack : "");
   const [cc, setCc] = useState<TtClass>(startCc && (TT_GAMES[startGame].classes as number[]).includes(startCc) ? startCc : TT_GAMES[startGame].classes[0]);
   const [items, setItems] = useState<TtItems>(startItems);
-  const [vehicle, setVehicle] = useState<TtVehicle>(startGame === "mk8dx" ? startVehicle : "any");
+  const [vehicle, setVehicle] = useState<TtVehicle>(vehicleFor(startGame, startVehicle));
   const [time, setTime] = useState("");
   const [clip, setClip] = useState("");
   const [clipNote, setClipNote] = useState<string | null>(null);
   const [proofUrl, setProofUrl] = useState<string | null>(null);
   const [read, setRead] = useState<Read | null>(null);
+  const [readToken, setReadToken] = useState<string | null>(null);
+  const [laps, setLaps] = useState<string[]>(BLANK_LAPS);
   const [readNote, setReadNote] = useState<string | null>(null);
   const [busy, setBusy] = useState<"read" | "save" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,24 +72,29 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
   const classes = TT_GAMES[game].classes;
   const groups = useMemo(() => ttCups(game).map((c) => ({ label: `${c.cup}${/Cup$|Mario Kart$/.test(c.cup) ? "" : " Cup"}`, options: c.tracks.map((t) => ({ value: t.id, label: t.name })) })), [game]);
   const timeMs = parseTime(time);
+  const lapMs = laps.map((l) => (l.trim() ? parseLap(l) : null));
+  const lapsTyped = laps.some((l) => l.trim());
+  const lapsOk = lapsTyped && lapMs.every((l) => l != null);
+  const lapSum = lapsOk ? (lapMs as number[]).reduce((a, b) => a + b, 0) : null;
+  const vehicles = vehicleOptions(game);
 
   function pickGame(g: TtGame) {
     if (g === game) return;
     setGame(g);
     setTrackId("");
     setCc(TT_GAMES[g].classes[0]);
-    if (g !== "mk8dx") setVehicle("any");
+    setVehicle("any");
     setRead(null);
   }
 
   async function upload(file: File) {
-    setBusy("read"); setError(null); setReadNote(null); setRead(null);
+    setBusy("read"); setError(null); setReadNote(null); setRead(null); setReadToken(null);
     const form = new FormData();
     form.set("file", file);
     form.set("game", game);
     try {
       const res = await fetch("/api/time-trials/read", { method: "POST", body: form });
-      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; proofUrl?: string; read?: Read | null; error?: string };
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; proofUrl?: string; read?: Read | null; readToken?: string; error?: string };
       if (!res.ok || !j.ok) { setError(READ_ERRORS[j.error ?? ""] ?? "That picture didn't upload. Try again."); return; }
       setProofUrl(j.proofUrl ?? null);
       if (!j.read) {
@@ -100,7 +109,9 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       if (r.trackId) setTrackId(r.trackId);
       if (r.cc) setCc(r.cc);
       if (r.timeMs) setTime(formatTime(r.timeMs));
+      setLaps(r.laps?.length ? r.laps.map(formatLap) : BLANK_LAPS);
       setRead(r);
+      setReadToken(j.readToken ?? null);
       if (!r.timeMs) setReadNote("We couldn't read every digit of the time. Type it yourself.");
       else if (!r.trackId) setReadNote("The screenshot doesn't say which track. Pick it below.");
     } finally {
@@ -113,12 +124,13 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
     if (!proofUrl) { setError(SAVE_ERRORS.screenshot_required); return; }
     if (!trackId) { setError(SAVE_ERRORS.bad_track); return; }
     if (!timeMs) { setError(SAVE_ERRORS.bad_time); return; }
+    if (lapsTyped && !lapsOk) { setError("Type each lap like 34.112, or leave the laps empty."); return; }
     setBusy("save");
     try {
       const res = await fetch("/api/time-trials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game, track: trackId, cc, items, vehicle, time: timeMs, proofUrl, read: !!read?.timeMs && read.timeMs === timeMs }),
+        body: JSON.stringify({ game, track: trackId, cc, items, vehicle, time: timeMs, proofUrl, readToken, laps: lapsOk ? lapMs : [] }),
       });
       const j = (await res.json().catch(() => ({}))) as AddedTime & { ok?: boolean; error?: string };
       if (!res.ok || !j.ok) { setError(SAVE_ERRORS[j.error ?? ""] ?? "That time couldn't be saved. Try again."); return; }
@@ -167,9 +179,10 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
           </div>
         )}
         {done.r.videoAdded && <p className="tt-note">Your clip is in the review queue. The time shows as Verified once it&apos;s checked.</p>}
+        {done.r.trusted && <p className="tt-note">You&apos;re Trusted, so this top-ten time doesn&apos;t need a clip.</p>}
         <div className="tt-add__actions">
           {askClip && <Button variant="primary" iconBefore={IconVideo} loading={busy === "save"} disabled={!clip.trim()} onClick={() => void addClip()}>Add clip</Button>}
-          <Button variant="secondary" onClick={() => { setDone(null); setTime(""); setClip(""); setProofUrl(null); setRead(null); setReadNote(null); }}>{askClip ? "Later" : "Add another time"}</Button>
+          <Button variant="secondary" onClick={() => { setDone(null); setTime(""); setClip(""); setProofUrl(null); setRead(null); setReadToken(null); setLaps(BLANK_LAPS); setReadNote(null); }}>{askClip ? "Later" : "Add another time"}</Button>
         </div>
       </div>
     );
@@ -226,9 +239,25 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
         )}
       </div>
 
-      {game === "mk8dx" && (
-        <FormField label="Vehicle" htmlFor={`${id}-vehicle`} helperText="Pick one for the inside drift, Mr. Scooty and Teddy Buggy boards. Every time also counts on the open board.">
-          <Select id={`${id}-vehicle`} value={vehicle} onChange={(v) => setVehicle(String(v) as TtVehicle)} options={VEHICLES.map((v) => ({ value: v.id, label: v.long }))} fullWidth />
+      <fieldset className="tt-add__laps">
+        <legend className="tt-add__label">Laps <span className="tt-add__opt">(optional)</span></legend>
+        <div className="tt-add__lap-row">
+          {laps.map((l, i) => (
+            <FormField key={i} label={`Lap ${i + 1}`} htmlFor={`${id}-lap-${i}`} errorText={l.trim() && lapMs[i] == null ? "Like 34.112" : undefined}>
+              <Input id={`${id}-lap-${i}`} value={l} onChange={(e) => setLaps(laps.map((x, j) => (j === i ? e.target.value : x)))} inputMode="decimal" autoComplete="off" placeholder="34.112" fullWidth />
+            </FormField>
+          ))}
+        </div>
+        {lapSum != null && timeMs != null && (
+          Math.abs(lapSum - timeMs) <= LAP_SLACK_MS
+            ? <p className="tt-add__hint tt-add__hint--ok"><IconCheck size={16} aria-hidden="true" /> The laps add up to the time.</p>
+            : <Alert variant="warning">The laps add up to {formatTime(lapSum)}, not {formatTime(timeMs)}. Check them; laps that don&apos;t add up go to an updater to look at.</Alert>
+        )}
+      </fieldset>
+
+      {vehicles.length > 1 && (
+        <FormField label="Vehicle" htmlFor={`${id}-vehicle`} helperText={game === "mk8dx" ? "For a vehicle board. Every time also counts on the open board, and Yoshi Bike times count on Inside drift too." : "For the R.O.B.-HOG board. Every time also counts on the open board."}>
+          <Select id={`${id}-vehicle`} value={vehicle} onChange={(v) => setVehicle(String(v) as TtVehicle)} options={vehicles.map((v) => ({ value: v.id, label: v.long }))} fullWidth />
         </FormField>
       )}
 

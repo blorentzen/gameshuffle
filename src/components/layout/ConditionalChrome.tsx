@@ -30,6 +30,7 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/trivia\/tv\/[^/]+/,
   /^\/social(\/|$)/, // hidden 9:16 stages filmed for social videos
   /^\/mmr\/[^/]+/, // the MMR card's OBS link
+  /^\/war\/[^/]+/, // a channel's war overlay (GameShuffle Competitive)
 ];
 
 export function ConditionalChrome({ children, shop = false }: { children: React.ReactNode; shop?: boolean }) {

@@ -8,7 +8,8 @@
  * note for the supporters wall, then Stripe Checkout (/api/support/checkout).
  * Monthly needs an account. An account that already has GS Pro from a plan,
  * a trial or Circuit is pointed to Supporter, so Pro is never charged twice.
- * Outside the US the form becomes the waitlist (US only for now). A Turnstile
+ * Where support isn't open (outside the US while the support_international switch is off) the form becomes the
+ * waitlist. A Turnstile
  * check comes before checkout, so bots can't use the page to test cards.
  */
 

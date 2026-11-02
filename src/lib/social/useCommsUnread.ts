@@ -2,8 +2,8 @@
 
 /**
  * Per-type unread (notifications + messages, plus their total) for the navbar
- * bell + messages badges. Refetches on realtime inserts (RLS scopes message
- * events to the user's own conversations). Returns zeros for signed-out users.
+ * bell + messages badges. Refetches on realtime inserts: the user's notifications,
+ * and new messages in their own conversations. Returns zeros for signed-out users.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -41,28 +41,46 @@ export function useCommsUnread(): CommsUnread {
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
+    let alive = true;
+    let messages: ReturnType<typeof supabase.channel> | null = null;
+    let watching = "";
+    // New messages only in this person's own conversations (up to 100, Realtime's limit for an
+    // `in` filter). Listening to every message on the site made Realtime check each one against
+    // every signed-in tab. A new conversation arrives with a notification, which re-reads the list.
+    const watchConversations = async () => {
+      const { data } = await supabase.from("conversation_members").select("conversation_id").eq("user_id", user.id).limit(100);
+      if (!alive) return;
+      const ids = ((data ?? []) as { conversation_id: string }[]).map((r) => r.conversation_id).sort();
+      const next = ids.join(",");
+      if (next === watching) return;
+      watching = next;
+      if (messages) void supabase.removeChannel(messages);
+      messages = ids.length
+        ? supabase
+            .channel(`comms-unread-messages:${user.id}`)
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=in.(${next})` }, () => void load())
+            .subscribe()
+        : null;
+    };
     const channel = supabase
       .channel(`comms-unread:${user.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => void load(),
-      )
-      .on(
-        // RLS (messages_select_member) scopes delivery to the user's conversations.
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        () => void load(),
+        () => { void load(); void watchConversations(); },
       )
       .subscribe();
+    void watchConversations();
     // Reading a conversation marks it read without a realtime event, so the
     // messenger dispatches this to force a recount (clears the badge).
-    const onRefresh = () => void load();
+    const onRefresh = () => { void load(); void watchConversations(); };
     window.addEventListener("gs-comms-refresh", onRefresh);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     return () => {
+      alive = false;
       void supabase.removeChannel(channel);
+      if (messages) void supabase.removeChannel(messages);
       window.removeEventListener("gs-comms-refresh", onRefresh);
     };
   }, [user, load]);

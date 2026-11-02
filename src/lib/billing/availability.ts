@@ -52,6 +52,31 @@ export function isPaidPlanCountry(country: string | null | undefined): boolean {
   return !country || PAID_PLAN_COUNTRIES.has(country.toUpperCase());
 }
 
+/**
+ * Support (Britton, 2026-11-01: lots of interest outside the US in the looks Supporter sells, "open up the dono
+ * line to international") is open everywhere Stripe takes cards while the `support_international` switch is on
+ * (the default); off, it follows the paid-plan rule above. GS Pro's own plan checkout stays US-only either way.
+ */
+export function supportInternational(): Promise<boolean> {
+  return getPlatformFlag("support_international", true);
+}
+
+/** Can this visitor give support right now? */
+export async function supportAvailability(request: Request): Promise<PaidPlanAvailability> {
+  const where = paidPlanAvailability(request);
+  return where.available || !(await supportInternational()) ? where : { available: true, country: where.country };
+}
+
+/** For a server page: can this visitor give support? */
+export async function supportHere(): Promise<boolean> {
+  return (await supportInternational()) || paidPlansHere();
+}
+
+/** Is a billing country one support is open to? (Every country while support is international.) */
+export async function isSupportCountry(country: string | null | undefined): Promise<boolean> {
+  return isPaidPlanCountry(country) || supportInternational();
+}
+
 /** Paid event entry (ticket tiers above $0, Connect payouts). Off until switched on in Platform Admin. */
 export function paidTicketsEnabled(): Promise<boolean> {
   return getPlatformFlag("paid_tickets_enabled", false);

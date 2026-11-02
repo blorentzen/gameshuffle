@@ -11,7 +11,7 @@ import { readAllPages } from "@/lib/supabase/pages";
 import { gsDayStart, gsMonthStart } from "@/lib/time/gsClock";
 import { guildPlayers, ttReady, type TtTrackSummary } from "./store";
 import { ttTrack, type TtClass, type TtGame } from "./tracks";
-import type { TtItems, TtVehicle } from "./categories";
+import { onBoard, vehicleFor, type TtItems, type TtVehicle } from "./categories";
 import type { VideoState } from "./rules";
 
 export interface ServerTime {
@@ -63,7 +63,7 @@ const faster = (a: ServerTime, b: ServerTime) => a.timeMs - b.timeMs || a.at.loc
 function bestPerBoard(rows: ServerTime[], vehicle: TtVehicle = "any"): Map<string, { best: ServerTime; players: number }> {
   const groups = new Map<string, ServerTime[]>();
   for (const r of rows) {
-    if (vehicle !== "any" && r.vehicle !== vehicle) continue;
+    if (!onBoard(vehicle, r.vehicle)) continue;
     const k = `${r.track}|${r.cc}|${r.items}`;
     const list = groups.get(k);
     if (list) list.push(r); else groups.set(k, [r]);
@@ -75,7 +75,7 @@ function bestPerBoard(rows: ServerTime[], vehicle: TtVehicle = "any"): Map<strin
 
 /** The server board page's rows: per track and class, the server's record and how many of its players have a time. */
 export async function serverSummary(guildId: string, game: TtGame, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): Promise<TtTrackSummary[]> {
-  const v = game === "mk8dx" ? vehicle : "any";
+  const v = vehicleFor(game, vehicle);
   const rows = (await serverTimes(guildId, game)).filter((r) => r.items === items);
   return [...bestPerBoard(rows, v).values()].map(({ best, players }) => ({
     track: best.track, cc: best.cc, recordMs: best.timeMs, recordPlayer: best.player, players, recordChecked: best.video === "checked",

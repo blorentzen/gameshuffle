@@ -13,6 +13,10 @@ import { TtMovedToast } from "@/components/timeTrials/TtMovedToast";
 import { TtDiscordLine } from "@/components/timeTrials/TtDiscordLine";
 import { siteActor } from "@/lib/timeTrials/players";
 import { boardFor, serversFor } from "@/lib/timeTrials/store";
+import { countriesInUse, isCountryCode } from "@/lib/timeTrials/countries";
+import { nationalRecords } from "@/lib/timeTrials/detail";
+import { flagUrl } from "@/lib/lounge/flags";
+import { countryName } from "@/lib/lounge/countries";
 import { formatTime } from "@/lib/timeTrials/rules";
 import { gameBySlug, gamePath, isClassFor, trackBySegment, trackPath, ttCups, type TtClass } from "@/lib/timeTrials/tracks";
 import { categoryText, readCategory, vehicleLabel } from "@/lib/timeTrials/categories";
@@ -26,7 +30,7 @@ import "@/styles/time-trials.css";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ game: string; track: string }>; searchParams: Promise<{ cc?: string; items?: string; vehicle?: string }> };
+type Props = { params: Promise<{ game: string; track: string }>; searchParams: Promise<{ cc?: string; items?: string; vehicle?: string; country?: string }> };
 
 const MIN_INDEXED = 3;
 
@@ -69,9 +73,12 @@ export default async function TrackBoardPage({ params, searchParams }: Props) {
   if (!r.canonical) permanentRedirect(trackPath(r.track, r.cc, r));
   const { info, track: t, cc, items, vehicle } = r;
   const actor = await siteActor();
-  const [board, servers] = await Promise.all([
-    boardFor({ game: info.id, track: t.id, cc, items, vehicle, scope: "everyone", viewer: actor?.player ?? null }),
+  const country = isCountryCode(sp.country) ? sp.country : null;
+  const [board, servers, countries, records] = await Promise.all([
+    boardFor({ game: info.id, track: t.id, cc, items, vehicle, scope: "everyone", viewer: actor?.player ?? null, country }),
     actor ? serversFor(actor.player) : Promise.resolve([]),
+    countriesInUse(),
+    nationalRecords(info.id, t.id, cc, items, vehicle),
   ]);
   const cup = ttCups(info.id).find((c) => c.tracks.some((x) => x.id === t.id));
   const path = trackPath(t, cc, { items, vehicle });
@@ -99,10 +106,29 @@ export default async function TrackBoardPage({ params, searchParams }: Props) {
         <section className="tt-sec tt-sec--flat" aria-label="Times">
           <TimeTrialBoard
             key={`${t.id}-${cc}-${items}-${vehicle}`}
-            initial={board} game={info.id} track={t.id} cc={cc} items={items} vehicle={vehicle} signedIn={!!actor} servers={servers}
+            initial={board} game={info.id} track={t.id} cc={cc} items={items} vehicle={vehicle} signedIn={!!actor} servers={servers} countries={countries}
             filters={<TtCategoryNav bare game={info.id} cc={cc} items={items} vehicle={vehicle} href={(c) => trackPath(t, c.cc, c)} />}
           />
         </section>
+        {records.length > 0 && (
+          <section className="tt-sec" aria-labelledby="tt-nr">
+            <h2 id="tt-nr">National records</h2>
+            <ul className="tt-nr">
+              {records.slice(0, 12).map((n) => (
+                <li key={n.country}>
+                  <span className="tt-nr__country">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- a small flag from public/ */}
+                    {flagUrl(n.country) && <img src={flagUrl(n.country)!} alt="" className="tt-flag" />}
+                    {countryName(n.country)}
+                  </span>
+                  <span className="tt-nr__time">{formatTime(n.timeMs)}</span>
+                  <Link href={n.page}>{n.name}</Link>
+                </li>
+              ))}
+            </ul>
+            <p className="tt-note">Each country&apos;s best on this board. Players set their country on their times page.</p>
+          </section>
+        )}
         <TtDiscordLine returnTo={path} needsLink={!!actor && !actor.discordLinked} />
         {cup && cup.tracks.length > 1 && (
           <section className="tt-sec" aria-labelledby="tt-cup">

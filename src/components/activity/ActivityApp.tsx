@@ -46,6 +46,8 @@ import type { RoomPeek } from "@/lib/activity/roomRules";
 import { OriginalsHostProvider, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { IconField } from "@/components/events/EventHeaderArt";
 import { SITE_URL } from "@/lib/seo";
+import { activityFrameApp } from "@/lib/activity/frame";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 type TabId = "daily" | "weekly" | "brain" | "trivia" | "room";
 const TAB_IDS: TabId[] = ["daily", "weekly", "brain", "trivia", "room"];
@@ -154,6 +156,8 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
   const [signupSince, setSignupSince] = useState<number | null>(null);
 
   const run = useCallback(() => {
+    // GameShuffle Competitive's frame runs the War room instead (ActivityGate); never sign in as the other app.
+    if (activityFrameApp() === "comp") return;
     const preview = previewMode();
     if (preview) {
       void startPreview(preview).then((p) => {
@@ -223,11 +227,12 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
     if (!session || tab === "room") return;
     let stopped = false;
     let lastGame: string | null | undefined;
+    let stop = () => {};
     const check = async () => {
       const r = await fetch("/api/activity/room?peek=1", { headers: { Authorization: `Bearer ${session}` }, cache: "no-store" }).catch(() => null);
       const j = (await r?.json().catch(() => null)) as { ok?: boolean; ready?: boolean; inCall?: boolean; peek?: RoomPeek | null } | null;
       if (stopped) return;
-      if (!j?.ok || j.ready === false || j.inCall === false) { stopped = true; clearInterval(timer); return; }
+      if (!j?.ok || j.ready === false || j.inCall === false) { stopped = true; stop(); return; }
       const p = j.peek ?? null;
       setPeek(p);
       if (lastGame !== undefined && p?.game && p.game !== lastGame) {
@@ -235,9 +240,9 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
       }
       lastGame = p?.game ?? null;
     };
-    const timer = setInterval(() => void check(), PEEK_MS);
+    stop = everyVisible(check, PEEK_MS);
     void check();
-    return () => { stopped = true; clearInterval(timer); };
+    return () => { stopped = true; stop(); };
   }, [session, tab, toast]);
 
   const host = useMemo<OriginalsHost | null>(() => {

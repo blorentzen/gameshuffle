@@ -26,6 +26,50 @@ export function gameForSlug(slug: string | null | undefined, prefer: MmrGame = "
   return null;
 }
 
+// ── GameShuffle ladders ───────────────────────────────────────────────────
+// A card can read a GameShuffle ladder instead of MKCentral (MMR card on ladders picks, 2026-11-01,
+// https://claude.ai/artifact/RbabuWVPdKumCHoMc4Eixr, all as recommended): the ladder's own name where the
+// game goes, its rank as "#12 of 64", milestones at its top 10 and #1, placement as "Placement 3 of 5".
+
+/** The ladder a card reads, as the card shows it. */
+export interface MmrLadderTag {
+  id: string;
+  slug: string;
+  name: string;
+  /** Players with a table this season, for "#12 of 64" and Top %. */
+  total: number;
+  /** How many tables placement takes on this ladder (0: none). */
+  placementOf: number;
+  /** Placement tables played and how many there are, while the player is still placing (viewOf works it out). */
+  placement: { done: number; of: number } | null;
+}
+
+/** The lounge game a ladder plays like: its family (for the Twitch game) and its division set. */
+export function ladderLoungeGame(game: "mk8dx" | "mkworld", kind: "race" | "knockout"): MmrGame {
+  return game === "mk8dx" ? "mk8dx" : kind === "knockout" ? "mkworld24p" : "mkworld12p";
+}
+
+/** What a saved goal or milestone belongs to: a lounge game, or "ladder:<id>". */
+export const sourceKey = (look: { game: MmrGame; ladder?: string | null }) => (look.ladder ? `ladder:${look.ladder}` : look.game);
+export const isLadderKey = (v: unknown): v is `ladder:${string}` => typeof v === "string" && /^ladder:[0-9a-f-]{36}$/.test(v);
+
+/** The card's name for where the number comes from: "MK8DX", or the ladder's name. */
+export const sourceLabel = (v: { game: MmrGame; ladder?: MmrLadderTag | null }) => v.ladder?.name ?? MMR_GAMES[v.game].short;
+
+/** Cut a name at a word to fit `max` characters ("Knockout Tour Lounge" at 14 → "Knockout Tour"). */
+export function cutAtWord(name: string, max: number): string {
+  const t = name.trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max + 1);
+  const at = cut.lastIndexOf(" ");
+  return (at >= Math.floor(max / 2) ? cut.slice(0, at) : t.slice(0, max)).trim();
+}
+
+/** The rank as a chip says it: "#460 world", or "#12 of 64" on a ladder. */
+export function rankText(rank: number, ladder?: MmrLadderTag | null): string {
+  return ladder ? `#${rank.toLocaleString("en-US")} of ${ladder.total.toLocaleString("en-US")}` : `#${rank.toLocaleString("en-US")} world`;
+}
+
 // ── Divisions ─────────────────────────────────────────────────────────────
 
 export interface DivisionStep { name: string; at: number }
@@ -94,6 +138,8 @@ export interface MmrChange {
   /** Teammates on a team event, by MKCentral id, with their scores. */
   partners?: number[];
   partnerScores?: number[];
+  /** The event's own name where the format can't say it ("Knockout Tour" on a ladder). */
+  label?: string;
 }
 
 export const isEvent = (c: MmrChange) => c.reason === "Table";
@@ -149,11 +195,13 @@ export function setsPeak(changes: MmrChange[], id: number): boolean {
   return false;
 }
 
-/** World rank milestones, best first: a laurel the first time a player gets inside one. */
+/** World rank milestones, best first: a laurel the first time a player gets inside one. A ladder has dozens of
+ *  players, not thousands: its milestones are the top 10 and #1. */
 export const MILESTONES = [10, 100, 250, 1000] as const;
-export function milestoneTier(rank: number | null | undefined): number | null {
+export const LADDER_MILESTONES = [1, 10] as const;
+export function milestoneTier(rank: number | null | undefined, ladder = false): number | null {
   if (!rank || rank < 1) return null;
-  return MILESTONES.find((m) => rank <= m) ?? null;
+  return (ladder ? LADDER_MILESTONES : MILESTONES).find((m) => rank <= m) ?? null;
 }
 
 export function placeWord(n: number): string {
@@ -187,6 +235,8 @@ export interface MmrSource {
   countryRank?: number | null;
   /** Players with an event this season, for "Top 9%". */
   totalPlayers?: number | null;
+  /** Set when the card reads a GameShuffle ladder. */
+  ladder?: MmrLadderTag | null;
 }
 
 /** One of the newest events, for the card's recent events. */
@@ -198,6 +248,7 @@ export interface MmrRecent {
   players: number | null;
   place: number | null;
   delta: number;
+  label?: string | null;
 }
 
 export interface MmrView {
@@ -225,6 +276,8 @@ export interface MmrView {
   recent: MmrRecent[];
   /** When the season peak was first reached (null when it's older than the changes on hand). */
   peakAt: string | null;
+  /** The GameShuffle ladder the card reads (null on the lounge). */
+  ladder: MmrLadderTag | null;
 }
 
 /** This season's events, wins and average score from the changes (newest first). */
@@ -266,7 +319,10 @@ export function viewOf(src: MmrSource, uptoId?: number): MmrView {
   const top = changes[0] ?? null;
   const mmr = uptoId == null ? src.mmr ?? top?.mmr ?? null : top?.mmr ?? src.mmr;
   const latest = idx === 0;
-  const st = standing(mmr, src.steps, latest ? src.division : null);
+  // A ladder player is in placement until their placement tables are done, at every point in the season.
+  const tables = src.ladder ? changes.filter(isEvent).length : 0;
+  const placing = !!src.ladder && tables < src.ladder.placementOf;
+  const st = standing(mmr, src.steps, placing ? "Placement" : latest ? src.division : null);
   const peakSoFar = changes.reduce((p, c) => Math.max(p, c.mmr), -Infinity);
   const peak = latest && src.maxMmr != null ? Math.max(src.maxMmr, peakSoFar) : Number.isFinite(peakSoFar) ? peakSoFar : src.maxMmr;
   const lastEvent = changes.find(isEvent) ?? null;
@@ -276,9 +332,10 @@ export function viewOf(src: MmrSource, uptoId?: number): MmrView {
     game: src.game,
     mmr,
     division: st.division,
-    next: st.next,
-    toNext: st.toNext,
-    pct: st.pct,
+    // In placement the bar fills with placement tables and there's no next division yet.
+    next: placing ? null : st.next,
+    toNext: placing ? null : st.toNext,
+    pct: placing ? tables / src.ladder!.placementOf : st.pct,
     worldRank: src.worldRank,
     peak: peak ?? null,
     tonight: tonightRun(changes, src.since),
@@ -289,9 +346,10 @@ export function viewOf(src: MmrSource, uptoId?: number): MmrView {
     countryRank: src.countryRank ?? null,
     totalPlayers: src.totalPlayers ?? null,
     season: seasonNumbers(changes),
-    recent: changes.filter(isEvent).slice(0, 5).map((c) => ({ id: c.id, at: c.at, tier: c.tier, teams: c.teams ?? null, players: c.players ?? null, place: c.place, delta: c.delta })),
+    recent: changes.filter(isEvent).slice(0, 5).map((c) => ({ id: c.id, at: c.at, tier: c.tier, teams: c.teams ?? null, players: c.players ?? null, place: c.place, delta: c.delta, label: c.label ?? null })),
     // Changes are newest first, so the last one at the peak is the first time it was reached.
     peakAt: peak != null ? ([...changes].reverse().find((c) => c.mmr >= peak)?.at ?? null) : null,
+    ladder: src.ladder ? { ...src.ladder, placement: placing ? { done: tables, of: src.ladder.placementOf } : null } : null,
   };
 }
 

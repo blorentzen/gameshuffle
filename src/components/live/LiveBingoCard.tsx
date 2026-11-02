@@ -17,6 +17,7 @@ import { BingoShape } from "@/components/overlay/NumberBingoOverlay";
 import type { StreamBingoView } from "@/lib/bingo/stream";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useLiveHost } from "./LiveHost";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 const CLAIM_ERRORS: Record<string, string> = {
   not_yet: "Not a bingo yet: the pattern isn't complete with the numbers called so far.",
@@ -61,8 +62,8 @@ export function LiveBingoCard({ communityId }: { communityId: string | null; str
       setSignedIn(!!d.signedIn);
     };
     void load();
-    const iv = window.setInterval(load, 3000);
-    return () => { active = false; window.clearInterval(iv); };
+    const stop = everyVisible(load, 3000);
+    return () => { active = false; stop(); };
   }, [communityId, host]);
 
   if (!game) return null;

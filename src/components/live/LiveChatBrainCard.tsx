@@ -16,6 +16,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import { useLiveHost } from "./LiveHost";
 import type { StreamGameView } from "@/lib/chatbrain/streamGame";
 import type { StreamSurveyView } from "@/lib/chatbrain/survey";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 interface LiveData {
   game: StreamGameView | null;
@@ -44,8 +45,8 @@ export function LiveChatBrainCard({ communityId }: { communityId: string | null;
       if (active && d?.ok) setData(d as LiveData);
     };
     void load();
-    const iv = window.setInterval(load, 2000);
-    return () => { active = false; window.clearInterval(iv); };
+    const stop = everyVisible(load, 2000);
+    return () => { active = false; stop(); };
   }, [communityId, host]);
 
   const live = !!data?.open;

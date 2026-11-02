@@ -18,8 +18,8 @@ import { discordActor, type TtActor } from "@/lib/timeTrials/players";
 import { addTime, boardFor, findPlayers, noteGuildPlayer, playerBests, removeOwnTime, setVideo, timeById, ttReady, verifyTime, type AddTimeResult, type TtBest } from "@/lib/timeTrials/store";
 import { readScreenshot, storeScreenshot, MAX_SCREENSHOT_BYTES } from "@/lib/timeTrials/read";
 import { reportFromDiscord } from "@/lib/timeTrials/review";
-import { categoryText, isVehicle, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
-import { formatGap, formatTime, ordinal, parseTime, videoProof, type ProofKind } from "@/lib/timeTrials/rules";
+import { categoryText, vehicleFor, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import { formatGap, formatLap, formatTime, ordinal, parseTime, videoProof, type ProofKind } from "@/lib/timeTrials/rules";
 import { isClassFor, searchTracks, trackFromKey, trackKey, trackPath, ttTrack, ttTracks, TT_GAMES, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
 import { trackCode, trackTitle, tracksByCode } from "@/lib/timeTrials/codes";
 import { playerPagePath } from "@/lib/timeTrials/playerPath";
@@ -141,6 +141,8 @@ async function saveAndAnswer(args: {
   proof: ProofKind; proofUrl: string | null; readByAi: boolean; items: TtItems; vehicle: TtVehicle; clip: string | null;
   /** Added from the time trial panel: only a fallen server record is posted for everyone (pick 3A). */
   panel?: boolean;
+  /** Round 3: laps and what the screen showed (for the proof checks). */
+  laps?: number[] | null; readMs?: number | null;
 }): Promise<void> {
   const { appId, token, actor, guildId, track, cc, timeMs } = args;
   // With a time trial panel in this server, a time that beats the server's record is posted in its channel.
@@ -149,6 +151,7 @@ async function saveAndAnswer(args: {
   const res = await addTime({
     player: actor.player, userId: actor.userId, identityId: actor.identityId, game: track.game, track: track.id, cc, items: args.items, vehicle: args.vehicle, timeMs,
     proof: args.proof, proofUrl: args.proofUrl, readByAi: args.readByAi, source: "discord", guildId,
+    laps: args.laps ?? null, readMs: args.readMs ?? null, readLaps: args.laps ?? null,
   });
   if (!res.ok) {
     const why = res.error === "not_ready" ? "Time trials aren't open yet. Try again soon."
@@ -253,7 +256,7 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
     if (!attachment) return reply({ content: "Attach a screenshot of the result: it's your proof for every time. Add the time too, or leave it out and I'll read it." }, true);
     const items: TtItems = optValue(opts, "items") === "none" ? "none" : "shrooms";
     const vehicleOpt = String(optValue(opts, "vehicle") ?? "any");
-    const vehicle: TtVehicle = track.game === "mk8dx" && isVehicle(vehicleOpt) ? vehicleOpt : "any";
+    const vehicle: TtVehicle = vehicleFor(track.game, vehicleOpt);
 
     after(async () => {
       try {
@@ -282,7 +285,7 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
             const readCc = read.read.cc ?? cc;
             const { data: draft } = await createServiceClient().from("tt_drafts").insert({
               player: actor.player, discord_id: user.id, guild_id: guildId,
-              payload: { game: track.game, track: track.id, cc: readCc, timeMs: readMs, proofUrl, name: actor.name, items, vehicle, clip: video },
+              payload: { game: track.game, track: track.id, cc: readCc, timeMs: readMs, proofUrl, name: actor.name, items, vehicle, clip: video, readMs, laps: read.read.laps },
             }).select("id").single();
             const draftId = (draft as { id: string } | null)?.id;
             if (!draftId) { await editOriginal(appId, token, { content: "Something went wrong saving that. Try again." }); return; }
@@ -290,6 +293,7 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
             await editOriginal(appId, token, {
               content: [
                 `From your screenshot: **${formatTime(readMs)}** on ${trackTitle(track)}${classText(track, readCc)}. Is that right?`,
+                ...(read.read.laps?.length ? [`Laps: ${read.read.laps.map(formatLap).join(" · ")}`] : []),
                 ...(otherTrack ? [`(The screenshot looks like ${trackTitle(otherTrack)}. If so, run ${ttCmd(appId)} add again with that track.)`] : []),
               ].join("\n"),
               components: [row(btn("Add it", `${TT_OK_PREFIX}${draftId}`, 3), btn("Cancel", `${TT_NO_PREFIX}${draftId}`, 2))],
@@ -314,7 +318,7 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
     const want = String(optValue(opts, "board") ?? "");
     const items: TtItems = optValue(opts, "items") === "none" ? "none" : "shrooms";
     const vOpt = String(optValue(opts, "vehicle") ?? "any");
-    const vehicle: TtVehicle = track.game === "mk8dx" && isVehicle(vOpt) ? vOpt : "any";
+    const vehicle: TtVehicle = vehicleFor(track.game, vOpt);
     after(async () => {
       try {
         const actor = await discordActor(user);
@@ -444,7 +448,7 @@ export async function handleTtButton(interaction: Record<string, unknown>, custo
     const ok = customId.startsWith(TT_OK_PREFIX);
     const draftId = customId.slice(ok ? TT_OK_PREFIX.length : TT_NO_PREFIX.length);
     const { data } = await db.from("tt_drafts").select("player, discord_id, guild_id, payload, expires_at").eq("id", draftId).maybeSingle();
-    const draft = data as { player: string; discord_id: string; guild_id: string | null; payload: { game: TtGame; track: string | null; cc: TtClass; timeMs: number | null; proofUrl: string | null; name: string; items?: TtItems; vehicle?: TtVehicle; clip?: string | null; via?: "panel"; read?: boolean }; expires_at: string } | null;
+    const draft = data as { player: string; discord_id: string; guild_id: string | null; payload: { game: TtGame; track: string | null; cc: TtClass; timeMs: number | null; proofUrl: string | null; name: string; items?: TtItems; vehicle?: TtVehicle; clip?: string | null; via?: "panel"; read?: boolean; readMs?: number | null; laps?: number[] | null }; expires_at: string } | null;
     if (!draft || draft.discord_id !== user.id) return reply({ content: "That isn't yours to confirm." }, true);
     const fromPanel = draft.payload.via === "panel";
     if (ok && (!draft.payload.track || !draft.payload.timeMs)) return reply({ content: "Pick the track and add the time first." }, true);
@@ -460,7 +464,7 @@ export async function handleTtButton(interaction: Record<string, unknown>, custo
         appId, token, actor, guildId: draft.guild_id, track, cc: draft.payload.cc, timeMs,
         proof: draft.payload.proofUrl ? "screenshot" : "none", proofUrl: draft.payload.proofUrl, readByAi: fromPanel ? draft.payload.read === true : true,
         items: draft.payload.items ?? "shrooms", vehicle: draft.payload.vehicle ?? "any", clip: draft.payload.clip ?? null,
-        panel: fromPanel,
+        panel: fromPanel, laps: draft.payload.laps ?? null, readMs: draft.payload.readMs ?? null,
       });
     });
     return Response.json({ type: 6 });

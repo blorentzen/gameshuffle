@@ -31,6 +31,8 @@ export async function GET(req: Request) {
   // ?shared=<code>: on a shared result page, mark the sharer's row.
   const code = url.searchParams.get("shared");
   const shared = code ? await sharePlayer(code) : null;
-  const view = await boardView({ game, period, day, me, shared });
+  // ?fresh=1 (a player who just finished): skip the few seconds the board's top rows are shared.
+  const fresh = !!me && url.searchParams.get("fresh") === "1";
+  const view = await boardView({ game, period, day, me, shared, fresh });
   return NextResponse.json(view, { headers: { "Cache-Control": "private, no-store" } });
 }

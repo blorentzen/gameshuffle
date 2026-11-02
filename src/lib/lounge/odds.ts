@@ -27,9 +27,10 @@ const payFor = (teamSize: number) => PAY[Math.max(1, Math.round(teamSize))] ?? {
 /** K for a format (players per team). */
 export const kFor = (teamSize: number) => payFor(teamSize).k;
 
-/** The change for a team (or a player in free-for-all) given every team's rating and finishing rank (1 = first; ties share a rank). */
-export function eventDeltas(teams: { rating: number; rank: number }[], teamSize = 1): number[] {
-  const { k, scale } = payFor(teamSize);
+/** The change for a team (or a player in free-for-all) given every team's rating and finishing rank (1 = first; ties share a rank).
+ *  `pay` overrides the format's K and scale (a lounge ladder's own, src/lib/ladders/rules.ts). */
+export function eventDeltas(teams: { rating: number; rank: number }[], teamSize = 1, pay?: { k: number; scale: number } | null): number[] {
+  const { k, scale } = pay ?? payFor(teamSize);
   return teams.map((t, i) => {
     let sum = 0;
     teams.forEach((o, j) => {

@@ -24,6 +24,7 @@ import { EMPTY_SIDES, VersusConsole, VersusSidesFields, sidesPayload, sidesReady
 import { ChatBrainSurveyCard } from "./ChatBrainSurvey";
 import { CostreamConsole, CostreamGuestPicker, CostreamInvites, CostreamLobbyCard, respondError, type CostreamAction, type CostreamState, type StreamerHit } from "./ChatBrainCostream";
 import type { SurveyHostView } from "@/lib/chatbrain/survey";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 interface TabData {
   isPro: boolean;
@@ -122,8 +123,8 @@ export function ChatBrainStreamTab() {
     let active = true;
     const run = () => { if (active) void load(); };
     run();
-    const iv = window.setInterval(run, live ? 2000 : 8000);
-    return () => { active = false; window.clearInterval(iv); };
+    const stop = everyVisible(run, live ? 2000 : 8000);
+    return () => { active = false; stop(); };
   }, [load, live]);
   // The countdown between polls.
   useEffect(() => {

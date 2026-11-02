@@ -32,12 +32,11 @@ import { supportLevel } from "@/lib/support/rules";
 import type { DraftPlan } from "@/lib/mmr/draft";
 
 type SupportPlan = "supporter" | "backer";
-const RETURN_TO = "/mmr-card";
 
 /** "your picture and Chakra Petch", "A, B and C". */
 const listWords = (items: string[]) => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`);
 
-export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
+export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave, returnTo = "/mmr-card", from = "mmr-keep-looks", noun = "card" }: {
   /** The paid choices the card uses, by label (proUsed). */
   used: string[];
   /** A visitor without an account. */
@@ -46,7 +45,14 @@ export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
   autoPlan?: DraftPlan | null;
   /** Keeps the card in this browser before leaving the page. */
   beforeLeave: () => void;
+  /** The page checkout and sign-up come back to (an allowlisted one, checkoutReturn.ts). */
+  returnTo?: string;
+  /** Where the buttons were pressed, for analytics. */
+  from?: string;
+  /** What's being kept: "card" (the MMR card) or "overlay". */
+  noun?: string;
 }) {
+  const RETURN_TO = returnTo;
   const access = useLooks();
   const trial = useTrialEligibility();
   const paid = usePaidAvailability();
@@ -67,9 +73,9 @@ export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
   const fromPrice = usd((supportLevel("supporter")?.cents ?? 300) / 100);
   // The support levels, from $3 (while Supporter looks aren't on sale); the card waits in this browser.
   const backLevels = () => {
-    track(EVENTS.supportClicked, { from: guest ? "mmr-keep-looks-guest" : "mmr-keep-looks" });
+    track(EVENTS.supportClicked, { from: guest ? `${from}-guest` : from });
     beforeLeave();
-    router.push(`/support?level=supporter&from=${encodeURIComponent("mmr-keep-looks")}#give`);
+    router.push(`/support?level=supporter&from=${encodeURIComponent(from)}#give`);
   };
 
   const startPro = async () => {
@@ -79,7 +85,7 @@ export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
       const res = await fetch("/api/stripe/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ interval: "monthly", returnTo: RETURN_TO }) });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string; message?: string };
       if (data.url) {
-        track(EVENTS.checkoutStarted, { product: "pro", from: "mmr-keep-looks" });
+        track(EVENTS.checkoutStarted, { product: "pro", from });
         window.location.assign(data.url);
         return;
       }
@@ -97,7 +103,7 @@ export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
       const res = await fetch("/api/support/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "monthly", level: plan, turnstileToken: token, returnTo: RETURN_TO }) });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string; message?: string };
       if (data.url) {
-        track(EVENTS.checkoutStarted, { product: "support", from: "mmr-keep-looks" });
+        track(EVENTS.checkoutStarted, { product: "support", from });
         window.location.assign(data.url);
         return;
       }
@@ -110,7 +116,7 @@ export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
   };
 
   const choose = (plan: DraftPlan) => {
-    track(plan === "pro" ? EVENTS.upgradeClicked : EVENTS.supportClicked, { from: guest ? "mmr-keep-looks-guest" : "mmr-keep-looks" });
+    track(plan === "pro" ? EVENTS.upgradeClicked : EVENTS.supportClicked, { from: guest ? `${from}-guest` : from });
     if (guest) {
       beforeLeave();
       router.push(`/signup?redirect=${encodeURIComponent(`${RETURN_TO}?then=${plan}`)}`);
@@ -129,7 +135,9 @@ export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
   }, [autoPlan, guest, paid?.paidPlans.available]);
 
   if (access?.looks) return null;
-  const outside = paid != null && !paid.paidPlans.available;
+  // GS Pro's plan is US-only; support is open everywhere while the support_international switch is on.
+  const proClosed = paid != null && !paid.paidPlans.available;
+  const outside = proClosed && !paid.support.available;
 
   return (
     <Card variant="outlined" padding="medium" className="keep-looks">
@@ -137,7 +145,7 @@ export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
         <IconTile icon={IconPalette} tone="magenta" />
         <div>
           <h3 className="keep-looks__title">Keep these looks</h3>
-          {used.length > 0 && <p className="keep-looks__used">Your card uses {listWords(used.map((u) => (u === "Your picture or GIF" ? "your picture" : u)))}.</p>}
+          {used.length > 0 && <p className="keep-looks__used">Your {noun} uses {listWords(used.map((u) => (u === "Your picture or GIF" ? "your picture" : u)))}.</p>}
         </div>
       </div>
 
@@ -148,12 +156,14 @@ export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
         </div>
       ) : (
         <div className="keep-looks__choices">
-          <div className="keep-looks__grid">
+          <div className={proClosed ? "keep-looks__grid keep-looks__grid--one" : "keep-looks__grid"}>
+            {!proClosed && (
             <div className="keep-looks__choice">
               <p className="keep-looks__name">GS Pro <span className="keep-looks__price">{trialLeft ? `14 days free, then ${proPrice} a month` : `${proPrice} a month`}</span></p>
               <p className="keep-looks__line">Every look, plus streamer tools and AI.</p>
               <Button variant="primary" fullWidth loading={busy === "pro"} onClick={() => choose("pro")}>{trialLeft ? "Start GS Pro free" : "Get GS Pro"}</Button>
             </div>
+            )}
             {support === "supporter" ? (
             <div className="keep-looks__choice">
               <p className="keep-looks__name">{supportDef?.name} <span className="keep-looks__price">{supportPrice} a month</span></p>
@@ -184,11 +194,11 @@ export function KeepLooksPanel({ used, guest, autoPlan = null, beforeLeave }: {
 
       {guest ? (
         <p className="keep-looks__free">
-          You&apos;ll make a free account first, and your card comes with you.{" "}
+          You&apos;ll make a free account first, and your {noun} comes with you.{" "}
           <ArrowLink href={`/signup?redirect=${encodeURIComponent(`${RETURN_TO}?then=free`)}`}>Or save the free version</ArrowLink>
         </p>
       ) : (
-        <p className="keep-looks__free">Until then, your card saves with free looks. <ArrowLink href="/gs-pro#included">See what&apos;s included</ArrowLink></p>
+        <p className="keep-looks__free">Until then, your {noun} saves with free looks. <ArrowLink href="/gs-pro#included">See what&apos;s included</ArrowLink></p>
       )}
     </Card>
   );

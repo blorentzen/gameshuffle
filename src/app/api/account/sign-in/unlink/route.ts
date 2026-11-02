@@ -15,9 +15,9 @@
  *   3. Refuse if removing this identity would leave the user with no
  *      way to sign in at all — i.e. no password AND no other OAuth
  *      identity.
- *   4. Otherwise, delete the identity directly from `auth.identities`
- *      via a signed SQL call and refresh `app_metadata.providers` to
- *      keep it in sync.
+ *   4. Otherwise, remove it (unlinkIdentity.ts: Supabase's own unlink,
+ *      else the gs_unlink_identity function) and refresh
+ *      `app_metadata.providers` to keep it in sync.
  *
  * Returns:
  *   200 { ok: true }                      — identity removed
@@ -32,6 +32,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminSupabase } from "@supabase/supabase-js";
 import { passwordFlag } from "@/lib/auth/passwordRules";
+import { unlinkIdentity } from "@/lib/auth/unlinkIdentity";
 
 export const runtime = "nodejs";
 
@@ -95,18 +96,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // Direct delete via PostgREST on the auth schema (service-role only).
-  // GoTrue's own endpoint enforces `identities > 1`; bypass by touching
-  // the table directly now that we've verified a safe fallback exists.
-  const adminAuth = admin.schema("auth");
-  const { error: deleteErr } = await adminAuth
-    .from("identities")
-    .delete()
-    .eq("id", target.id);
-  if (deleteErr) {
-    console.error("[sign-in-unlink] identity delete failed:", deleteErr);
-    return NextResponse.json({ error: "unlink_failed" }, { status: 500 });
-  }
+  // GoTrue's own endpoint enforces `identities > 1`; unlinkIdentity falls back to a database function for the rest
+  // now that we've verified a safe way back in exists.
+  const removed = await unlinkIdentity(supabase, user.id, target);
+  if (removed !== "ok") return NextResponse.json({ error: removed === "not_ready" ? "not_ready" : "unlink_failed" }, { status: 500 });
 
   // Sync app_metadata.providers so the in-memory user object reflects
   // reality. Non-fatal if this fails — the next session refresh will

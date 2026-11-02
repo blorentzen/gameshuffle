@@ -4,7 +4,7 @@
  * row. Add a switch here when code starts reading a new flag. Client-safe.
  */
 
-export type SwitchGroup = "Shop" | "Events" | "Circuit" | "Sign-in" | "Support";
+export type SwitchGroup = "Shop" | "Events" | "Circuit" | "Sign-in" | "Support" | "Discord";
 
 export interface SwitchDef {
   key: string;
@@ -67,6 +67,24 @@ export const SWITCHES: SwitchDef[] = [
     description: "On (the default): the $3 Supporter level also unlocks every look (MMR card looks, profile and community skins, brand themes, custom CSS, dice and coin looks), checkout collects sales tax and the Terms like Backer, and looks walls offer Supporter first. Off: new Supporter subscriptions are a thank-you only (a gift, no tax). Needs support-m4.sql.",
     turnOn: "New Supporter subscriptions are sold with looks and taxed. Looks walls offer Supporter at $3 first. People who already give $3 a month as a thank-you keep that until they choose Supporter again.",
     turnOff: "New Supporter subscriptions go back to a thank-you with no looks, and looks walls offer GS Pro only. Anyone who bought Supporter with looks keeps them.",
+  },
+  {
+    key: "support_international", group: "Support", name: "Support outside the US", defaultOn: true,
+    description: "On (the default): anyone, anywhere Stripe takes cards, can give support, once or monthly at every level (Supporter looks, Backer and Champion with GS Pro). Checkout adds any sales tax, VAT or GST Stripe Tax collects for GameShuffle's registrations. Off: support goes back to US billing addresses only; checkout refuses other countries and a non-US billing address is refunded. GS Pro's own plan checkout stays US-only either way.",
+    turnOn: "Support opens to every country Stripe takes cards from. The support asks and the Supporter looks walls show their buttons outside the US instead of the waitlist.",
+    turnOff: "Support is US-only again: other countries see the waitlist, and new support with a non-US billing address is refunded. Support already given stays.",
+  },
+  {
+    key: "comp_war_room", group: "Discord", name: "War room button on war cards",
+    description: "Shows War room on GameShuffle Competitive's war cards, which opens its Activity in that channel. Turn on only after Activities are switched on for GameShuffle Competitive in the Discord Developer Portal (URL mapping / to activity.gameshuffle.co); before that the button fails when pressed. The App Launcher works either way once Activities are on.",
+    turnOn: "War cards get a War room button from their next change. Make sure Activities are on for GameShuffle Competitive first.",
+    turnOff: "War cards lose the War room button from their next change. The App Launcher still opens the War room.",
+  },
+  {
+    key: "comp_ladders", group: "Discord", name: "GS Ranked",
+    description: "Opens /ranked on GameShuffle Competitive and the lounge pages at /ranked/<address>: a lounge's ranked board, where reporters submit tables, updaters verify and MMR moves. Turn on once the lounge you're starting with is ready (needs ladders-m1.sql and ladders-m2.sql).",
+    turnOn: "/ranked works in every server with GameShuffle Competitive, and the lounge pages open.",
+    turnOff: "/ranked says GS Ranked isn't open yet, and the lounge pages show page not found. Nothing is deleted.",
   },
 ];
 

@@ -34,6 +34,7 @@ import { StreamScheduleEditor } from "@/components/account/StreamScheduleEditor"
 import { ModsTab } from "@/components/account/ModsTab";
 import { DiscordBotTab } from "@/components/account/DiscordBotTab";
 import { DiscordAppSwitch } from "@/components/account/discord/DiscordAppSwitch";
+import { DiscordTags } from "@/components/account/discord/DiscordTags";
 import { OverlayLayoutTab } from "@/components/account/OverlayLayoutTab";
 import { StreamToolsTab } from "@/components/account/StreamToolsTab";
 import { WheelsTab } from "@/components/account/WheelsTab";
@@ -70,6 +71,7 @@ const DISCORD_INTRO = {
   roles: "Roles members pick for themselves, roles new members get, and a role for your GS Pro members.",
   moderation: "Block words with Discord's own AutoMod, and log edits, deletes, joins and role changes to a channel.",
   qotd: "A daily question for your server, posted at the hour you pick.",
+  tags: "Short replies members post with /gs-tag: rules, links, how to join. Every server you run the bot in shares them.",
 };
 
 function proScreens(profileTimezone: string | null): ScreenMap {
@@ -87,6 +89,7 @@ function proScreens(profileTimezone: string | null): ScreenMap {
     "discord-roles": () => <Wrap title="Roles" intro={DISCORD_INTRO.roles}><DiscordBotTab part="roles" /></Wrap>,
     "discord-automod": () => <Wrap title="AutoMod & logs" intro={DISCORD_INTRO.moderation}><DiscordBotTab part="moderation" /></Wrap>,
     "discord-qotd": () => <Wrap title="Question of the Day" intro={DISCORD_INTRO.qotd}><DiscordBotTab part="qotd" /></Wrap>,
+    "discord-tags": () => <Wrap title="Server replies" intro={DISCORD_INTRO.tags}><DiscordTags /></Wrap>,
     "overlay-layout": () => (
       <Wrap title="Layout" intro="Drag each piece where you want it on your OBS overlay, shown at real size with sample data. Each shape (16:9, 9:16) saves on its own; press Save when it looks right.">
         <OverlayLayoutTab bare />

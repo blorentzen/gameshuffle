@@ -907,9 +907,25 @@ const RATE_SLACK = 0.15;
 /** Rules 5: plans a day needs (Britton's picks 2026-10-22: at least two ways to win). */
 export const MIN_PLANS = 2;
 
+/** Why packsFor's packs were thrown out, for the log when no duel is found. */
+export interface PackStats { easy: number; hard: number; obviousWins: number; noPack: number; closest: number; lastResortTried: number }
+
 /** packsFor's last resort: how many thrown-out packs get a par search, and the extra time it may take. */
 const LAST_RESORT_TRIES = 3;
 const LAST_RESORT_MS = 20_000;
+/** Then packs from the pool's strongest cards: how many get a par search. */
+const STRONG_TRIES = 4;
+
+/** The pool's 30 strongest cards against this team: best move (doubled when it hits a team card's Weakness) plus HP. */
+function strongCandidates(pool: readonly string[], cards: Readonly<Record<string, DuelCard>>, exclude: ReadonlySet<string>, team: readonly DuelCard[]): string[] {
+  const weakTo = new Set(team.map((c) => c.weak).filter(Boolean));
+  const score = (c: DuelCard) => topDamage(c) * (weakTo.has(c.t) ? 2 : 1) + c.hp;
+  return candidates(pool, cards, exclude)
+    .map((id) => ({ id, s: score(cards[id]) }))
+    .sort((a, b) => b.s - a.s || (a.id < b.id ? -1 : 1))
+    .slice(0, MIN_CANDIDATES)
+    .map((x) => x.id);
+}
 
 /**
  * Packs for one trainer: drawn under a strength cap that tightens while the obvious play keeps
@@ -924,8 +940,9 @@ const LAST_RESORT_MS = 20_000;
 export function packsFor(
   day: string, trainer: DuelTrainer, tier: DuelTier, pool: readonly string[], cards: Readonly<Record<string, DuelCard>>,
   seed: string, attempts: number, deadline: number, width: number | undefined, count: { n: number }, needFair = 0, rules: DuelRules = 1,
-  opts: { lastResort?: boolean } = {},
+  opts: { lastResort?: boolean; stats?: PackStats } = {},
 ): { found: Found; inBand: boolean } | null {
+  const stats = opts.stats ?? { easy: 0, hard: 0, obviousWins: 0, noPack: 0, closest: 0, lastResortTried: 0 };
   const [lo, hi] = PAR_BAND[tier];
   const team = trainer.team.map((id) => cards[id]).filter(Boolean);
   const exclude = new Set(trainer.team);
@@ -950,7 +967,7 @@ export function packsFor(
     }
     const rand = duelRand(`duel:${day}:${seed}:${trainer.id}:${attempt}`);
     const pack = drawPack(ids, cards, rand, MAX_EX[tier], rules >= 3);
-    if (!pack) break;
+    if (!pack) { stats.noPack++; break; }
     const row = energyRow(pack.map((id) => cards[id]), rand);
     const events = eventPlan(rand);
     const setup = makeSetup(cards, trainer, pack, row, events, { rules, seed: day });
@@ -959,9 +976,10 @@ export function packsFor(
     if (rules >= 5) {
       const seen = { rate: -1 };
       const got = judge5(setup, obvious, tier, `${day}:${seed}:${trainer.id}:${attempt}`, width, deadline, seen);
-      if (got === "easy") { tooEasy++; continue; }
+      if (got === "easy") { tooEasy++; stats.easy++; if (obvious.won) stats.obviousWins++; continue; }
       if (got === "hard") {
         tooHard++;
+        stats.hard++;
         if (opts.lastResort && !obvious.won) {
           thrown.push({ setup, pack, row, events, rate: seen.rate, slack, obviousTurns: obvious.turns });
           thrown.sort((a, b) => b.rate - a.rate);
@@ -973,6 +991,7 @@ export function packsFor(
       if (got.miss === 0) return { found, inBand: true };
       if (got.lean === "easy") tooEasy++;
       else tooHard++;
+      stats.closest++;
       if (!fallback || got.miss < fallback.miss) fallback = { found, miss: got.miss, setup };
       continue;
     }
@@ -990,14 +1009,16 @@ export function packsFor(
     const miss = sol.par < lo ? lo - sol.par : sol.par - hi;
     if (!fallback || miss < fallback.miss) fallback = { found, miss };
   }
-  if (!fallback && thrown.length) {
+  if (!fallback && opts.lastResort) {
     // The loop may have used the whole budget: the last resort gets a little more (the callers leave room under maxDuration).
     const until = Math.max(deadline, Date.now() + LAST_RESORT_MS);
+    // Par usually assumes none of your conditions land; when no such line wins, a line with the
+    // duel's real luck still wins the same way for everyone (every roll is seeded by the day and the move).
+    const winLine = (setup: DuelSetup) => solve(solverSetup(setup), { width, deadline: until }) ?? solve(setup, { width, deadline: until });
     for (const p of thrown) {
       if (Date.now() >= until) break;
-      // Par usually assumes none of your conditions land; when no such line wins, a line with the
-      // duel's real luck still wins the same way for everyone (every roll is seeded by the day and the move).
-      const sol = solve(solverSetup(p.setup), { width, deadline: until }) ?? solve(p.setup, { width, deadline: until });
+      stats.lastResortTried++;
+      const sol = winLine(p.setup);
       if (!sol) continue;
       fallback = {
         found: { day, number: duelNumber(day), tier, trainerId: trainer.id, pack: p.pack, row: p.row, events: p.events, par: sol.par, line: sol.line, slack: p.slack, obviousTurns: p.obviousTurns, fair: 0, rules, winRate: p.rate, plans: [] },
@@ -1005,6 +1026,27 @@ export function packsFor(
         setup: p.setup,
       };
       break;
+    }
+    // Still nothing (Red's Gold team, four ex cards, beat every pack in October 2026 once Normal's
+    // comeback went to 1): packs from the strongest cards in the pool, leaning to the ones that hit
+    // the trainer's team for Weakness, under the usual pack rules (2 ex at most).
+    for (let i = 0; !fallback && i < STRONG_TRIES && Date.now() < until; i++) {
+      stats.lastResortTried++;
+      const rand = duelRand(`duel:${day}:${seed}:${trainer.id}:strong:${i}`);
+      const pack = drawPack(strongCandidates(pool, cards, exclude, team), cards, rand, MAX_EX[tier], rules >= 3);
+      if (!pack) break;
+      const row = energyRow(pack.map((id) => cards[id]), rand);
+      const events = eventPlan(rand);
+      const setup = makeSetup(cards, trainer, pack, row, events, { rules, seed: day });
+      if (!setup) continue;
+      const obvious = obviousPlay(setup);
+      const sol = winLine(setup);
+      if (!sol) continue;
+      fallback = {
+        found: { day, number: duelNumber(day), tier, trainerId: trainer.id, pack, row, events, par: sol.par, line: sol.line, slack, obviousTurns: obvious.turns, fair: 0, rules, plans: [] },
+        miss: Number.POSITIVE_INFINITY,
+        setup,
+      };
     }
   }
   if (!fallback) return null;

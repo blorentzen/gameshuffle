@@ -43,10 +43,10 @@ import {
 } from "@/lib/mmr/look";
 import { LAYOUT_SPOTS, pieceDef, trimToRoom, type MmrPiece } from "@/lib/mmr/pieces";
 import { applyStart, type MmrStartId } from "@/lib/mmr/starts";
-import { MMR_GAMES, MMR_GAME_IDS, demoSource, fmtMmr, viewOf, type MmrGame, type MmrSource } from "@/lib/mmr/rules";
+import { MMR_GAMES, MMR_GAME_IDS, demoSource, fmtMmr, sourceKey, viewOf, type MmrGame, type MmrSource } from "@/lib/mmr/rules";
 import { cleanGoal, goalProgress, goalText, GOAL_MAX } from "@/lib/mmr/goal";
 import { nightFor } from "@/lib/lounge/night";
-import type { MmrCardView } from "@/lib/mmr/types";
+import type { MmrCardView, StudioLadder } from "@/lib/mmr/types";
 import { MmrCard } from "./MmrCard";
 import { LoungeShareNight } from "./LoungeShareNight";
 import { useMmrPreview, type PreviewMoment } from "./MmrLive";
@@ -74,8 +74,9 @@ const obsSize = (look: Pick<MmrLook, "layout" | "rolling">, ratio: number | null
   return `${w} wide, ${tall} tall`;
 };
 
-type Found = { source: MmrSource; playerId: number; events: number } | null;
-type Lookup = "idle" | "looking" | "not_found" | "unavailable" | "found";
+/** The real card behind the preview: a lounge player (with their MKCentral id) or the account on a ladder. */
+type Found = { source: MmrSource; playerId: number | null; events: number } | null;
+type Lookup = "idle" | "looking" | "not_found" | "unavailable" | "not_on_ladder" | "found";
 
 /** A lounge player this account has confirmed by Discord (lounge_links). */
 export interface StudioLink { game: MmrGame; playerId: number; name: string }
@@ -102,9 +103,12 @@ export interface StudioCheckout { result: "success" | "canceled"; plan: string }
 
 /** `pro` = GS Pro (goal, recap, following Twitch); `looksOk` = GS Pro or Supporter looks (every look choice, more saved looks);
  *  `chat` = GameShuffle's bot answers !mmr in this streamer's chat (the panel's chat line); `guest` = a visitor without
- *  an account; `then` = back from making an account with one of the panel's buttons; `checkout` = back from checkout. */
-export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = false, avatar, links = [], guest = false, userId = null, then = null, checkout = null }: {
+ *  an account; `then` = back from making an account with one of the panel's buttons; `checkout` = back from checkout.
+ *  `ladders` = the GameShuffle ladders this account plays on (through Discord); `laddersOn` = ladders are open, so the
+ *  studio can say how to join one; `discord` = the account has Discord connected. */
+export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = false, avatar, links = [], ladders = [], laddersOn = false, discord = false, guest = false, userId = null, then = null, checkout = null }: {
   initial: MmrCardView | null; pro: boolean; looksOk?: boolean; chat?: boolean; avatar: string | null; links?: StudioLink[];
+  ladders?: StudioLadder[]; laddersOn?: boolean; discord?: boolean;
   guest?: boolean; userId?: string | null; then?: DraftPlan | null; checkout?: StudioCheckout | null;
 }) {
   const toast = useToast();
@@ -145,6 +149,9 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
   const [ratio, setRatio] = useState<number | null>(null);
 
   const look = looks.find((l) => l.id === activeId) ?? looks[0];
+  // The ladder the look reads (null on the lounge), and where its number comes from in words.
+  const ladderPick = look.ladder ? ladders.find((l) => l.id === look.ladder) ?? null : null;
+  const fromLabel = look.ladder ? ladderPick?.name ?? "your ladder" : MMR_GAMES[look.game].short;
   // What unlocks the paid looks, by name: Supporter looks while that level sells them, else GS Pro.
   const unlockName = looksName(useLooks());
   const setLook = (patch: Partial<MmrLook>) => setLooks((ls) => ls.map((l) => (l.id === look.id ? { ...l, ...patch } : l)));
@@ -190,17 +197,48 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
     }
   };
 
-  // Look the saved name up again when the look's game changes (and on first load).
-  const gameRef = useRef<MmrGame | null>(null);
-  useEffect(() => {
-    if (gameRef.current === look.game) return;
-    gameRef.current = look.game;
-    if ((card?.loungeName ?? name).trim()) void findMe(look.game, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [look.game]);
+  // The account on a ladder: found through its Discord account, nothing to type.
+  const findLadder = async (id: string) => {
+    setLookup("looking");
+    try {
+      const res = await fetch(`/api/mmr/ladder?ladder=${encodeURIComponent(id)}`);
+      const data = await res.json();
+      if (!data.ok) { setLookup(data.reason === "not_on_ladder" ? "not_on_ladder" : "unavailable"); setFound(null); return; }
+      setFound({ source: { ...data.source, avatar }, playerId: null, events: data.events });
+      setLookup("found");
+    } catch {
+      setLookup("unavailable");
+    }
+  };
 
-  const demo = useMemo(() => ({ ...demoSource(look.game, name.trim() || "Sam"), avatar }), [look.game, name, avatar]);
-  const activeGoal = pro && goal?.active && goal.game === look.game ? goal.mmr : null;
+  // Find the player again when the look's game or ladder changes (and on first load).
+  const sourceRef = useRef<string | null>(null);
+  useEffect(() => {
+    const key = sourceKey(look);
+    if (sourceRef.current === key) return;
+    sourceRef.current = key;
+    if (look.ladder) void findLadder(look.ladder);
+    else if ((card?.loungeName ?? name).trim()) void findMe(look.game, true);
+    else { setFound(null); setLookup("idle"); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [look.game, look.ladder]);
+
+  // A new source from the Rating from menu: a lounge game, or "ladder:<id>" (the look takes the game it plays like).
+  const pickSource = (value: string | string[]) => {
+    const v = String(value);
+    if (v.startsWith("ladder:")) {
+      const l = ladders.find((x) => x.id === v.slice(7));
+      if (l) setLook({ ladder: l.id, game: l.game });
+    } else setLook({ ladder: null, game: v as MmrGame });
+  };
+
+  const demo = useMemo(() => ({
+    ...demoSource(look.game, (ladderPick?.player ?? name.trim()) || "Sam"),
+    avatar,
+    // A ladder look's made-up night wears the ladder's name.
+    ...(ladderPick ? { ladder: { id: ladderPick.id, slug: ladderPick.slug, name: ladderPick.name, total: 64, placementOf: 0, placement: null } } : {}),
+  }), [look.game, name, avatar, ladderPick]);
+  const activeGoal = pro && goal?.active && goal.game === sourceKey(look) ? goal.mmr : null;
   const preview = useMmrPreview(found?.source ?? demo, activeGoal);
   const usedPro = proUsed(look);
   // The preview shows a tried picture; the saved look never carries it.
@@ -284,9 +322,10 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
       setLooks(d.looks);
       setActiveId(d.activeLook);
       if (d.loungeName) setName(d.loungeName);
-      const game = (d.looks.find((l) => l.id === d.activeLook) ?? d.looks[0]).game;
-      gameRef.current = game;
-      if (d.loungeName) void findMe(game, true, d.loungeName);
+      const drafted = d.looks.find((l) => l.id === d.activeLook) ?? d.looks[0];
+      sourceRef.current = sourceKey(drafted);
+      if (drafted.ladder) void findLadder(drafted.ladder);
+      else if (d.loungeName) void findMe(drafted.game, true, d.loungeName);
       if (d.picture) void getPicture().then((b) => { if (b) { setHasPic(true); setTryPic(URL.createObjectURL(b)); } });
     }
     setDraftLoaded(true);
@@ -373,7 +412,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
     const mmr = cleanGoal(goalInput);
     if (mmr == null) { toast.error(`Type a number from 1 to ${fmtMmr(GOAL_MAX)}.`); return; }
     setSavingGoal(true);
-    const ok = await saveNight({ goal: { mmr, game: look.game } });
+    const ok = await saveNight({ goal: { mmr, game: sourceKey(look) } });
     setSavingGoal(false);
     if (ok) { toast.success(`Goal set: ${fmtMmr(mmr)} tonight.`); track(EVENTS.mmrGoalSet, { game: look.game }); }
   };
@@ -387,12 +426,12 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
   const goalNow = activeGoal != null && realView ? goalProgress(activeGoal, realView.mmr, realView.mmr != null ? realView.mmr - realView.tonight.delta : null) : null;
   const goalLine = activeGoal != null
     ? `${goalNow ? `Your card shows "${goalText(goalNow)}" tonight.` : `Your goal tonight is ${fmtMmr(activeGoal)}.`} It clears itself tomorrow unless you keep it.`
-    : goal && goal.game === look.game
+    : goal && goal.game === sourceKey(look)
       ? `Your last goal, ${fmtMmr(goal.mmr)}, has cleared. Set one for tonight.`
-      : `Pick a number for tonight in ${MMR_GAMES[look.game].short}, like your next division at ${fmtMmr(goalSuggest)}. Your card and OBS link show how far there is to go.`;
+      : `Pick a number for tonight in ${fromLabel}, like your next division at ${fmtMmr(goalSuggest)}. Your card and OBS link show how far there is to go.`;
 
-  // Share the night: only for a lounge player this account confirmed in this game.
-  const link = links.find((l) => l.game === look.game) ?? null;
+  // Share the night: only for a lounge player this account confirmed in this game (not a ladder look).
+  const link = look.ladder ? null : links.find((l) => l.game === look.game) ?? null;
   const shareRecap = useMemo(() => (link && found && found.playerId === link.playerId ? nightFor(found.source)?.recap ?? null : null), [link, found]);
 
   const obsUrl = card ? `${origin}/mmr/${card.token}` : null;
@@ -462,8 +501,11 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
     idle: "Type your name exactly as it shows on MKCentral's lounge.",
     looking: "Looking you up…",
     not_found: `No lounge player by that name in ${MMR_GAMES[look.game].short}. Check the spelling, or pick the game you play.`,
-    unavailable: "The lounge isn't answering right now. Try again in a minute.",
-    found: found ? `Found ${found.source.name}: ${found.source.mmr != null ? `${fmtMmr(found.source.mmr)} MMR` : "no MMR yet"}${found.source.division ? `, ${found.source.division}` : ""}, ${found.events} events this season.` : "",
+    unavailable: look.ladder ? "Couldn't read the lounge just now. Try again in a minute." : "The lounge isn't answering right now. Try again in a minute.",
+    not_on_ladder: "You're not on this lounge. Join it with /ranked join in its Discord server, or pick another.",
+    found: !found ? ""
+      : look.ladder ? `Found you through your Discord account: ${found.source.name} on ${fromLabel}, ${found.source.mmr != null ? `${fmtMmr(found.source.mmr)} MMR` : "no tables yet"}${found.source.division ? `, ${found.source.division}` : ""}, ${found.events} ${found.events === 1 ? "table" : "tables"} this season.`
+        : `Found ${found.source.name}: ${found.source.mmr != null ? `${fmtMmr(found.source.mmr)} MMR` : "no MMR yet"}${found.source.division ? `, ${found.source.division}` : ""}, ${found.events} events this season.`,
   }[lookup];
 
   /** A choice as a dropdown: the free options, then the paid ones under the name that unlocks them. */
@@ -529,6 +571,9 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
             <span className="mmr-studio__swatch"><span>Glow</span><ColorPicker aria-label="Glow color" value={look.custom[0]} allowCustom variant="popover" size="small" onChange={(hex) => setLook({ custom: [hex, look.custom[1]] })} /></span>
             <span className="mmr-studio__swatch"><span>Highlight</span><ColorPicker aria-label="Highlight color" value={look.custom[1]} allowCustom variant="popover" size="small" onChange={(hex) => setLook({ custom: [look.custom[0], hex] })} /></span>
           </div>
+        )}
+        {look.fill !== "picture" && (
+          <p className="mmr-studio__note">Use your own picture or GIF: pick &ldquo;Your picture or GIF&rdquo; under Background. It comes with {unlockName}, and you can try one here first.</p>
         )}
         {look.fill === "picture" && (
           <div className="mmr-studio__upload">
@@ -604,17 +649,34 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
     <div className="mmr-studio">
 
       <section className="mmr-studio__who" aria-labelledby="mmr-who">
-        <h2 id="mmr-who">Your lounge name</h2>
-        <form className="mmr-studio__find" onSubmit={(e) => { e.preventDefault(); void findMe(); }}>
+        <h2 id="mmr-who">{ladders.length ? "Your rating" : "Your lounge name"}</h2>
+        <form className="mmr-studio__find" onSubmit={(e) => { e.preventDefault(); if (!look.ladder) void findMe(); }}>
+          {!look.ladder && (
+            <div className="mmr-studio__field">
+              <Input id="mmr-name" floatingLabel="Lounge name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" maxLength={40} fullWidth />
+            </div>
+          )}
           <div className="mmr-studio__field">
-            <Input id="mmr-name" floatingLabel="Lounge name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" maxLength={40} fullWidth />
+            {ladders.length ? (
+              <CdsSelect id="mmr-game" floatingLabel="Rating from" fullWidth value={look.ladder ? `ladder:${look.ladder}` : look.game} onChange={pickSource}
+                groups={[
+                  { label: "MKCentral lounge", options: MMR_GAME_IDS.map((g) => ({ value: g, label: MMR_GAMES[g].label })) },
+                  { label: "Your GS Ranked lounges", options: ladders.map((l) => ({ value: `ladder:${l.id}`, label: `${l.name} · ${l.gameLabel}` })) },
+                ]} />
+            ) : (
+              <CdsSelect id="mmr-game" floatingLabel="Game" fullWidth value={look.game} onChange={pickSource} options={MMR_GAME_IDS.map((g) => ({ value: g, label: MMR_GAMES[g].label }))} />
+            )}
           </div>
-          <div className="mmr-studio__field">
-            <CdsSelect id="mmr-game" floatingLabel="Game" fullWidth value={look.game} onChange={(v) => setLook({ game: v as MmrGame })} options={MMR_GAME_IDS.map((g) => ({ value: g, label: MMR_GAMES[g].label }))} />
-          </div>
-          <Button type="submit" variant="primary" iconBefore={IconSearch} loading={lookup === "looking"}>Find me</Button>
+          {!look.ladder && <Button type="submit" variant="primary" iconBefore={IconSearch} loading={lookup === "looking"}>Find me</Button>}
         </form>
-        <p className={`mmr-studio__note${lookup === "not_found" || lookup === "unavailable" ? " mmr-studio__note--warn" : ""}`} role="status">{lookupLine}</p>
+        <p className={`mmr-studio__note${lookup === "not_found" || lookup === "unavailable" || lookup === "not_on_ladder" ? " mmr-studio__note--warn" : ""}`} role="status">{lookupLine}</p>
+        {!guest && laddersOn && !ladders.length && (
+          <p className="mmr-studio__note">
+            {discord
+              ? <>In a lounge on GS Ranked? In its Discord server, type <b>/ranked join</b> with the name you race under, then come back here.</>
+              : <>On a GameShuffle ladder? <Link href="/account?tab=security">Connect Discord</Link>, then type <b>/ladder join</b> in its Discord server.</>}
+          </p>
+        )}
       </section>
 
       <MmrStarts look={look} onPick={pickStart} />
@@ -640,7 +702,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
             <span>In OBS: <b>{obsSize(look, ratio)}</b></span>
             {obsUrl && <Button size="small" variant="secondary" iconBefore={IconCopy} onClick={copyLink}>Copy OBS link</Button>}
           </div>
-          {!found && <p className="mmr-studio__note">The preview plays a made-up night until your lounge name is found.</p>}
+          {!found && <p className="mmr-studio__note">{look.ladder ? "The preview plays a made-up night until your ladder answers." : "The preview plays a made-up night until your lounge name is found."}</p>}
           {!looksOk && (usedPro.length > 0 || then === "pro" || then === "supporter" || then === "backer") && (
             <KeepLooksPanel used={usedPro} guest={guest} autoPlan={guest ? null : then} beforeLeave={keepDraft} />
           )}
@@ -742,7 +804,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
               <div className="mmr-studio__look-name">
                 <Input id={`mmr-look-${l.id}`} floatingLabel="Look name" value={l.name} maxLength={40} onChange={(e) => setLooks((ls) => ls.map((x) => (x.id === l.id ? { ...x, name: e.target.value } : x)))} />
               </div>
-              <span className="mmr-studio__look-game">{MMR_GAMES[l.game].short}</span>
+              <span className="mmr-studio__look-game">{l.ladder ? ladders.find((x) => x.id === l.ladder)?.name ?? "A ladder" : MMR_GAMES[l.game].short}</span>
               {l.id === look.id
                 ? <span className="mmr-studio__look-on">Editing · in use</span>
                 : <Button size="small" variant="secondary" onClick={() => setActiveId(l.id)}>Use this look</Button>}
@@ -753,7 +815,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
         {looksOk ? (
           <div className="mmr-studio__switches">
             <Button variant="secondary" iconBefore={IconPlus} onClick={addLook} disabled={looks.length >= MAX_LOOKS.pro}>Add a look</Button>
-            {pro && <Switch label="Switch looks with my Twitch game (a look per game or mode)" checked={followTwitch} onChange={(e) => setFollowTwitch(e.target.checked)} />}
+            {pro && <Switch label={ladders.length ? "Switch looks with my Twitch game (a look per game, mode or lounge)" : "Switch looks with my Twitch game (a look per game or mode)"} checked={followTwitch} onChange={(e) => setFollowTwitch(e.target.checked)} />}
           </div>
         ) : (
           <LooksPrompt compact from="mmr-card-looks" what="More saved looks">

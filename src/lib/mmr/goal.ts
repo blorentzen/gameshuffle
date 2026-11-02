@@ -9,11 +9,12 @@
  */
 
 import { nightOf } from "@/lib/lounge/season";
-import { fmtMmr, type MmrGame } from "./rules";
+import { fmtMmr } from "./rules";
 
 export interface MmrGoal {
   mmr: number;
-  game: MmrGame;
+  /** What it's for: a lounge game, or "ladder:<id>" (sourceKey). */
+  game: string;
   setAt: string;
   keep: boolean;
 }

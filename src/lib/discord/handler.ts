@@ -43,6 +43,13 @@ import { ACTIVITY_PLAY_PREFIX } from "@/lib/activity/channelCard";
 import { handleGsDaily, launchActivity, type ActivityTab } from "./activityLaunch";
 import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 import type { DiscordAppId } from "./appIds";
+import { withMoveNote } from "./compMove";
+import { handleWarCommand, handleWarComponent, handleWarModal, warAutocomplete, WAR_MODAL_PREFIX, WAR_PREFIX } from "./commands/war";
+import { handleLogoCommand, handleLogoComponent, logoAutocomplete, LOGO_PREFIX } from "./commands/warLogos";
+import { handleFlagCommand, handleFlagComponent, flagAutocomplete, FLAG_PREFIX } from "./commands/warFlags";
+import { handleTableCommand, handleTableComponent, handleTableModal, TABLE_MODAL_PREFIX, TABLE_PREFIX } from "./commands/warTables";
+import { handleLadderCommand, handleLadderComponent, handleLadderModal, ladderAutocomplete, LADDER_MODAL_PREFIX, LADDER_PREFIX } from "./commands/ladder";
+import { handleQueueComponent, handleRoomModal, QUEUE_PREFIX, ROOM_MODAL_PREFIX, ROOM_PREFIX } from "./commands/rankedQueue";
 
 // Discord Interaction Types
 const INTERACTION_TYPE = {
@@ -59,6 +66,12 @@ function handleCompCommand(interaction: Record<string, unknown>, name: string): 
     case "tt": return handleGsTt(interaction);
     case "mmr": return handleGsMmr(interaction);
     case "room": return handleGsRoom(interaction);
+    case "war": return handleWarCommand(interaction);
+    case "logo": return handleLogoCommand(interaction);
+    case "flag": return handleFlagCommand(interaction);
+    case "table": return handleTableCommand(interaction);
+    case "ranked":
+    case "ladder": return handleLadderCommand(interaction);
     default: return ephemeralMessage(`Unknown command: \`${name}\``);
   }
 }
@@ -93,12 +106,13 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
         return handleGsRemind(interaction);
       case "gs-profile":
         return handleGsProfile(interaction);
+      // Moving to GameShuffle Competitive: a private pointer for 30 days, then only the pointer (compMove.ts).
       case "gs-mmr":
-        return handleGsMmr(interaction);
+        return withMoveNote(interaction, "mmr", () => handleGsMmr(interaction));
       case "gs-room":
-        return handleGsRoom(interaction);
+        return withMoveNote(interaction, "room", () => handleGsRoom(interaction));
       case "gs-tt":
-        return handleGsTt(interaction);
+        return withMoveNote(interaction, "tt", () => handleGsTt(interaction));
       case "gs-brain":
         return handleGsBrain(interaction);
       case "gs-weekly":
@@ -132,6 +146,14 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
     if ([TT_OK_PREFIX, TT_NO_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_REPORT_PREFIX, TT_CLIP_PREFIX].some((p) => customId.startsWith(p))) {
       return handleTtButton(interaction, customId);
     }
+
+    // Wars: the war card's buttons and menus (GameShuffle Competitive).
+    if (customId.startsWith(WAR_PREFIX)) return handleWarComponent(interaction, customId);
+    if (customId.startsWith(LOGO_PREFIX)) return handleLogoComponent(interaction, customId);
+    if (customId.startsWith(FLAG_PREFIX)) return handleFlagComponent(interaction, customId);
+    if (customId.startsWith(TABLE_PREFIX)) return handleTableComponent(interaction, customId);
+    if (customId.startsWith(LADDER_PREFIX)) return handleLadderComponent(interaction, customId);
+    if (customId.startsWith(QUEUE_PREFIX) || customId.startsWith(ROOM_PREFIX)) return handleQueueComponent(interaction, customId);
 
     // Time trials: the panel's buttons and menus (GameShuffle Competitive).
     if (TT_PANEL_COMPONENTS.some((p) => customId.startsWith(p))) return handleTtPanelComponent(interaction, customId);
@@ -188,6 +210,10 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
   if (type === INTERACTION_TYPE.MODAL_SUBMIT) {
     const customId = (interaction.data as { custom_id: string }).custom_id;
     if (customId.startsWith(TT_CLIP_MODAL_PREFIX)) return handleTtClipModal(interaction, customId);
+    if (customId.startsWith(WAR_MODAL_PREFIX)) return handleWarModal(interaction, customId);
+    if (customId.startsWith(TABLE_MODAL_PREFIX)) return handleTableModal(interaction, customId);
+    if (customId.startsWith(LADDER_MODAL_PREFIX)) return handleLadderModal(interaction, customId);
+    if (customId.startsWith(ROOM_MODAL_PREFIX)) return handleRoomModal(interaction, customId);
     if (TT_PANEL_MODALS.some((p) => customId.startsWith(p))) return handleTtPanelModal(interaction, customId);
     if (customId.startsWith(BRAIN_MODAL_PREFIX)) {
       return handleBrainModalSubmit(interaction);
@@ -206,6 +232,10 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
   if (type === INTERACTION_TYPE.AUTOCOMPLETE) {
     const acName = (interaction.data as { name?: string }).name;
     if (acName === "gs-tt" || acName === "tt") return ttAutocomplete(interaction);
+    if (acName === "war") return warAutocomplete(interaction);
+    if (acName === "logo") return logoAutocomplete(interaction);
+    if (acName === "flag") return flagAutocomplete(interaction);
+    if (acName === "ranked" || acName === "ladder") return ladderAutocomplete(interaction);
     const focused = ((interaction.data as { options?: { name: string; value: string; focused?: boolean }[] }).options ?? [])
       .find((o) => o.focused)?.value?.toString().trim().toLowerCase() ?? "";
     const choices = Object.values(CHAT_GAMES)

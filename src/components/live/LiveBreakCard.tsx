@@ -12,6 +12,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useLiveHost } from "./LiveHost";
 import type { BreakView } from "@/lib/break/types";
 import { BreakRoundPlay } from "@/components/break/BreakRoundPlay";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 const secsUntil = (iso: string | null, now: number) => (iso ? Math.max(0, Math.ceil((Date.parse(iso) - now) / 1000)) : 0);
 
@@ -34,8 +35,8 @@ export function LiveBreakCard({ communityId }: { communityId: string | null; str
       setSignedIn(!!d.signedIn);
     };
     void load();
-    const iv = window.setInterval(load, 2000);
-    return () => { active = false; window.clearInterval(iv); };
+    const stop = everyVisible(load, 2000);
+    return () => { active = false; stop(); };
   }, [communityId, host]);
 
   const open = view?.phase === "open" && view.status === "running";

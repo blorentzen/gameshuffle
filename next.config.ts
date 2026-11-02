@@ -293,6 +293,8 @@ const nextConfig: NextConfig = {
       },
       // Pricing folded into the GS Pro page — the only paid product is Pro.
       // The pricing table + checkout funnel now lives on /gs-pro.
+      // GS Ranked (2026-11-01): the lounge pages moved from /ladders.
+      { source: "/ladders/:path*", destination: "/ranked/:path*", permanent: true },
       {
         source: "/pricing",
         destination: "/gs-pro",

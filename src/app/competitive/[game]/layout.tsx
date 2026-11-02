@@ -19,7 +19,6 @@ export async function generateMetadata({ params }: { params: Promise<{ game: str
       title: `${name} live scoring | GameShuffle`,
       description: `Live scoring for ${name}: the standard table, team modes and standings anyone can follow.`,
       url,
-      images: [{ url: "https://cdn.empac.co/gameshuffle/images/opengraph/mk-lounge-og.jpg", width: 1200, height: 630, alt: `${name} live scoring` }],
     },
     alternates: { canonical: url },
   };

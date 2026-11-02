@@ -11,8 +11,7 @@
  */
 
 import type { ReactNode } from "react";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
+import { realStaffRole } from "@/lib/capabilities/realStaffRole";
 import { getStaffImpersonationState } from "@/lib/capabilities/staff-impersonation";
 import type { ImpersonationViewState } from "@/lib/capabilities/impersonation-fixtures";
 import { ImpersonationProvider } from "./ImpersonationContext";
@@ -27,20 +26,8 @@ export async function ImpersonationProviderMount({
 }
 
 async function resolveServerState(): Promise<ImpersonationViewState> {
-  const supabase = await createClient();
-  const {
-    data: { user: rawUser },
-  } = await supabase.auth.getUser();
-  if (!rawUser) return { kind: "default" };
-
-  const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("users")
-    .select("role")
-    .eq("id", rawUser.id)
-    .maybeSingle();
-  const role = (profile?.role as string | null) ?? null;
-  if (role !== "staff" && role !== "admin") return { kind: "default" };
+  const role = await realStaffRole();
+  if (!role) return { kind: "default" };
 
   const cookieState = await getStaffImpersonationState();
   if (cookieState.viewingAsUnauth) return { kind: "unauth" };

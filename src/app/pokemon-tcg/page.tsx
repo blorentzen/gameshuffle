@@ -318,7 +318,7 @@ export default async function Page() {
                         <span className="tcg-card__name">{name}</span>
                         {/* No dates (Britton, 2026-10-13: too many cards moving to keep sale dates current).
                             The sale date only orders the carousel, newest first. */}
-                        <span className="tcg-card__set">Recently sold</span>
+                        <span className="tcg-card__set">{[row.language === "ja" ? "Japanese" : "English", row.variant_name, "Recently sold"].filter(Boolean).join(" · ")}</span>
                       </div>
                     </a>
                   </CarouselItem>

@@ -2,7 +2,8 @@
  * GET /api/cron/polls-sweep
  *
  * Closes any open poll whose `closes_at` has passed (the streamer's optional
- * auto-close timer), plus the other every-minute sweeps (Chat Brain windows, breaks, Fire Round, time trial panels). (The Daily Duel's days moved to
+ * auto-close timer), plus the other every-minute sweeps (Chat Brain windows, breaks, Fire Round, time trial panels,
+ * GS Ranked tables that verify on their own and queue rooms). (The Daily Duel's days moved to
  * /api/cron/duel-days.)
  * Runs every minute. Auth: Vercel Cron Bearer CRON_SECRET.
  */
@@ -13,6 +14,9 @@ import { sweepStreamWindows } from "@/lib/chatbrain/stream";
 import { sweepBreaks } from "@/lib/break/store";
 import { sweepFireRuns } from "@/lib/fireRound/store";
 import { sweepTtPanels } from "@/lib/discord/ttPanel";
+import { sweepAutoVerify } from "@/lib/ladders/staffStore";
+import { sweepQueues } from "@/lib/ladders/queueStore";
+import { showSweep } from "@/lib/discord/commands/rankedQueue";
 
 export const runtime = "nodejs";
 
@@ -48,5 +52,15 @@ export async function GET(request: Request) {
     console.error("[cron/polls-sweep] time trial panel sweep failed:", err);
     return 0;
   });
-  return NextResponse.json({ ok: true, closed, brainWindows, breaks, fireRuns, ttPanels });
+  // GS Ranked: clean tables whose hold is over verify on their own (lounges with the switch on).
+  const rankedAuto = await sweepAutoVerify().catch((err) => {
+    console.error("[cron/polls-sweep] ranked auto-verify failed:", err);
+    return 0;
+  });
+  // GS Ranked queues: votes whose time is up, sub asks past two minutes, rush hours due.
+  const rankedQueue = await sweepQueues().then(async (changes) => { await showSweep(changes); return changes.length; }).catch((err) => {
+    console.error("[cron/polls-sweep] ranked queue sweep failed:", err);
+    return 0;
+  });
+  return NextResponse.json({ ok: true, closed, brainWindows, breaks, fireRuns, ttPanels, rankedAuto, rankedQueue });
 }

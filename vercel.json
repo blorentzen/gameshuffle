@@ -1,5 +1,12 @@
 {
   "installCommand": "bash scripts/vercel-install.sh",
+  "git": {
+    "deploymentEnabled": {
+      "**": false,
+      "main": true,
+      "dev": true
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/trial-reminder",
@@ -120,6 +127,14 @@
     {
       "path": "/api/cron/lounge-weekly",
       "schedule": "0 16,17 * * 1"
+    },
+    {
+      "path": "/api/cron/tt-updaters",
+      "schedule": "0 16 * * 1"
+    },
+    {
+      "path": "/api/cron/tt-updaters",
+      "schedule": "0 17 * * 1"
     }
   ]
 }

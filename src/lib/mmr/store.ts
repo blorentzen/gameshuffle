@@ -22,7 +22,8 @@ import { isBlockedText } from "@/lib/text/filter";
 import { accountAvatar, type AccountRow } from "@/lib/discord/faces";
 import { LoungeUnavailable, countryCountAbove, loungePlayer, loungeStats, unverifiedTables } from "./mkcentral";
 import { pendingFor } from "@/lib/lounge/pending";
-import { gameForSlug, isMmrGame, milestoneTier, timeOrderedIds, viewOf, type MmrGame, type MmrView } from "./rules";
+import { MMR_GAMES, gameForSlug, isLadderKey, isMmrGame, milestoneTier, sourceKey, timeOrderedIds, viewOf, type MmrView } from "./rules";
+import { ladderLastPlayed, readLadder } from "./ladderSource";
 import { cleanGoal, goalActive, type MmrGoal } from "./goal";
 import type { MmrCardView, MmrLiveResult, MmrMilestone } from "./types";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
@@ -68,7 +69,7 @@ async function selectCard(filter: { col: "user_id" | "token"; value: string }): 
 }
 
 function goalFrom(r: Row): MmrGoal | null {
-  if (r.goal_mmr == null || !isMmrGame(r.goal_game) || !r.goal_set_at) return null;
+  if (r.goal_mmr == null || !(isMmrGame(r.goal_game) || isLadderKey(r.goal_game)) || !r.goal_set_at) return null;
   return { mmr: r.goal_mmr, game: r.goal_game, setAt: r.goal_set_at, keep: !!r.goal_keep };
 }
 
@@ -191,7 +192,7 @@ export async function saveCard(userId: string, input: SaveInput): Promise<SaveRe
       if (!pro) return { ok: false, error: "pro_required" };
       const active = current?.looks.find((l) => l.id === current.activeLook) ?? current?.looks[0] ?? DEFAULT_LOOK;
       patch.goal_mmr = mmr;
-      patch.goal_game = isMmrGame(input.goal.game) ? input.goal.game : active.game;
+      patch.goal_game = isMmrGame(input.goal.game) || isLadderKey(input.goal.game) ? input.goal.game : sourceKey(active);
       patch.goal_set_at = new Date().toISOString();
     }
   }
@@ -208,13 +209,18 @@ export async function saveCard(userId: string, input: SaveInput): Promise<SaveRe
   const q = current
     ? admin.from("mmr_cards").update(patch).eq("user_id", userId).select(cols).single()
     : admin.from("mmr_cards").insert({ user_id: userId, token: newToken(), looks: [DEFAULT_LOOK], ...patch }).select(cols).single();
-  const { data, error } = await q;
+  let { data, error } = await q;
+  // Two first saves at once (the studio autosaves): the other one made the row, so this one updates it.
+  if (!current && error?.code === "23505") ({ data, error } = await admin.from("mmr_cards").update(patch).eq("user_id", userId).select(cols).single());
+  // A ladder look's goal needs supabase/mmr-ladders-m1.sql (the goal column's check allows only lounge games before it).
+  if (error?.code === "23514" && isLadderKey(patch.goal_game)) return { ok: false, error: "not_ready" };
   if (error || !data) { console.error("[mmr] saveCard:", error?.message); return { ok: false, error: "save_failed" }; }
   return { ok: true, card: fromRow(data as unknown as Row), freeSaved: [...freeSaved], lineRefused };
 }
 
 /** A new OBS link; the old one stops working. */
 export async function resetToken(userId: string): Promise<MmrCard | null> {
+  tokenCopies.delete(userId);
   const { data, error } = await createServiceClient().from("mmr_cards").update({ token: newToken(), updated_at: new Date().toISOString() }).eq("user_id", userId).select(nightReady === false ? BASE_COLS : COLS).single();
   if (error || !data) return null;
   return fromRow(data as unknown as Row);
@@ -229,6 +235,52 @@ export function pickLook(card: MmrCard, gameSlug: string | null): MmrLook {
   return card.looks.find((l) => l.game === game) ?? card.looks.find((l) => gameForSlug(gameSlug, l.game) === l.game) ?? active;
 }
 
+/** When a look's player last played since `since` (ms; 0: not since): a lounge event or table waiting to be verified, or a ladder table. */
+async function lastPlayed(card: MmrCard, look: MmrLook, since: string): Promise<number> {
+  if (look.ladder) return ladderLastPlayed(card.userId, look.ladder, since);
+  if (!card.loungeName && !card.loungePlayerId) return 0;
+  try {
+    const player = await loungePlayer({ id: card.loungePlayerId, name: card.loungeName }, look.game);
+    if (!player) return 0;
+    const t0 = Date.parse(since);
+    const event = player.changes.find((c) => Date.parse(c.at) >= t0);
+    const waiting = (await unverifiedTables(look.game).catch(() => [])).find((t) => t.teams.some((tm) => tm.scores.some((s) => s.playerId === player.playerId)));
+    return Math.max(event ? Date.parse(event.at) : 0, waiting?.createdOn ? Date.parse(waiting.createdOn) : 0);
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * GS Pro's "follow my Twitch game", knowing ladders: the lounge's MK8DX and a 200cc ladder share Twitch's Mario Kart 8
+ * Deluxe category, so when several looks fit the game on stream, the one whose player has the newest table tonight wins
+ * (a table waiting to be verified counts), and it switches when the streamer does. With nothing tonight, the first look.
+ */
+async function pickLookLive(card: MmrCard, gameSlug: string | null, since: string): Promise<MmrLook> {
+  const first = pickLook(card, gameSlug);
+  const game = gameSlug ? gameForSlug(gameSlug, first.game) : null;
+  if (!game) return first;
+  const fits = card.looks.filter((l) => MMR_GAMES[l.game].family === MMR_GAMES[game].family);
+  // Looks reading the same thing (two looks for the lounge's MK8DX) count once.
+  const sources = [...new Map(fits.map((l) => [sourceKey(l), l])).values()];
+  if (sources.length < 2) return first;
+  const times = await Promise.all(sources.map((l) => lastPlayed(card, l, since)));
+  const best = Math.max(...times);
+  if (best <= 0) return first;
+  const key = sourceKey(sources[times.indexOf(best)]);
+  return sourceKey(first) === key ? first : fits.find((l) => sourceKey(l) === key) ?? first;
+}
+
+/** The look a card shows right now (a chosen one, or the active one, or GS Pro's Twitch game), and the stream. */
+export async function lookInUse(card: MmrCard, opts: { look?: string | null; pro?: boolean } = {}) {
+  const [pro, stream] = await Promise.all([opts.pro ?? isProUser(card.userId), streamFor(card.userId)]);
+  // Tonight counts from going live, else from midnight Pacific.
+  const since = stream.live && stream.since ? stream.since : gsDayStart(gsDay()).toISOString();
+  const chosen = opts.look ? card.looks.find((l) => l.id === opts.look) : null;
+  const look = chosen ?? (card.followTwitch && pro ? await pickLookLive(card, stream.gameSlug, since) : pickLook(card, null));
+  return { look, pro, stream, since };
+}
+
 /** Live on Twitch right now (with when it started) and the game on stream. */
 async function streamFor(userId: string): Promise<{ live: boolean; since: string | null; gameSlug: string | null }> {
   const admin = createServiceClient();
@@ -241,11 +293,12 @@ async function streamFor(userId: string): Promise<{ live: boolean; since: string
   return { live: !!c?.is_live, since: c?.live_started_at ?? null, gameSlug: s?.randomizer_slug ?? null };
 }
 
-/** Records a world-rank milestone the first time the player gets inside it this season. */
-async function noteMilestone(card: MmrCard, game: MmrGame, season: number | null, rank: number | null): Promise<MmrMilestone | null> {
-  const key = `${game}:${season ?? 0}`;
+/** Records a rank milestone the first time the player gets inside it this season. `source`: a lounge game, or a
+ *  ladder's "ladder:<id>" (whose milestones are its top 10 and #1). */
+async function noteMilestone(card: MmrCard, source: string, season: number | null, rank: number | null): Promise<MmrMilestone | null> {
+  const key = `${source}:${season ?? 0}`;
   const had = card.milestones[key] ?? null;
-  const tier = milestoneTier(rank);
+  const tier = milestoneTier(rank, isLadderKey(source));
   if (!tier || rank == null) return had;
   if (had && had.tier <= tier) return had;
   const next: MmrMilestone = { tier, rank, at: new Date().toISOString(), initial: !had };
@@ -289,14 +342,31 @@ export async function accountPicture(userId: string): Promise<string | null> {
 
 /** Everything a card shows right now. */
 export async function liveFor(card: MmrCard, opts: { look?: string | null; since?: string | null; /** false: skip the country rank (a caller that never shows it). */ country?: boolean } = {}): Promise<MmrLiveResult> {
-  const [pro, looksOk, stream] = await Promise.all([isProUser(card.userId), hasLooks(card.userId), streamFor(card.userId)]);
+  const [{ look: raw, pro, stream, since: tonight }, looksOk] = await Promise.all([lookInUse(card, { look: opts.look }), hasLooks(card.userId)]);
   // The panel's chat line and the recap's (cached, never throws).
   const chatOn = chatAnswersMmr(card.userId, pro);
-  const chosen = opts.look ? card.looks.find((l) => l.id === opts.look) : null;
-  const raw = chosen ?? pickLook(card, card.followTwitch && pro ? stream.gameSlug : null);
   const look = looksOk ? raw : freeLook(raw);
   // Only the picture emblem (GS Pro or Supporter looks) draws it.
   const avatar = look.emblem === "picture" ? await accountPicture(card.userId) : null;
+  // Tonight counts from going live; a caller can pass the start (the Discord recap, after the stream ended).
+  const since = opts.since ?? tonight;
+  // Tonight's goal (GS Pro): only for its own lounge game or ladder, and only while it still counts.
+  const g = card.goalSaved;
+  const goalFor = (key: string) => (pro && g && g.game === key && goalActive(g, Date.now(), stream) ? g.mmr : null);
+
+  // A GameShuffle ladder: our own database, so the live card checks every 10 seconds.
+  if (look.ladder) {
+    const r = await readLadder(card.userId, look.ladder, { since, country: opts.country !== false && look.info.on.country });
+    if (!r.ok) return { ok: false, reason: r.reason, look, pro };
+    const key = sourceKey(look);
+    return {
+      ok: true, look, pro, season: r.season,
+      milestone: await noteMilestone(card, key, r.season, r.source.worldRank),
+      pending: r.pending, goal: goalFor(key), chat: await chatOn, poll: 10, fetchedAt: new Date().toISOString(),
+      source: { ...r.source, avatar },
+    };
+  }
+
   if (!card.loungeName && !card.loungePlayerId) return { ok: false, reason: "no_name", look, pro };
 
   let player;
@@ -324,11 +394,6 @@ export async function liveFor(card: MmrCard, opts: { look?: string | null; since
   const known = new Set(player.changes.map((c) => c.id));
   const table = waiting.filter((t) => !known.has(t.id)).find((t) => t.teams.some((tm) => tm.scores.some((s) => s.playerId === player.playerId)));
   const pending = table ? pendingFor(table, player.playerId) : null;
-  // Tonight counts from going live; a caller can pass the start (the Discord recap, after the stream ended).
-  const since = opts.since ?? (stream.live && stream.since ? stream.since : gsDayStart(gsDay()).toISOString());
-  // Tonight's goal (GS Pro): only for its own game, and only while it still counts.
-  const g = card.goalSaved;
-  const goal = pro && g && g.game === look.game && goalActive(g, Date.now(), stream) ? g.mmr : null;
   return {
     ok: true,
     look,
@@ -336,7 +401,7 @@ export async function liveFor(card: MmrCard, opts: { look?: string | null; since
     season: player.season,
     milestone,
     pending,
-    goal,
+    goal: goalFor(look.game),
     chat: await chatOn,
     fetchedAt: new Date().toISOString(),
     source: {
@@ -374,7 +439,15 @@ export async function profileMmr(userId: string): Promise<{ view: MmrView; look:
 }
 
 /** The card's link token for the overlay piece, or null when there's no card. */
+/** The overlay asks every 2 seconds, so a found token is kept a minute per server instance (a new link clears it here). */
+const tokenCopies = new Map<string, { at: number; token: string }>();
 export async function mmrTokenFor(userId: string): Promise<string | null> {
+  const hit = tokenCopies.get(userId);
+  if (hit && Date.now() - hit.at < 60_000) return hit.token;
   const { data } = await createServiceClient().from("mmr_cards").select("token").eq("user_id", userId).maybeSingle();
-  return (data as { token?: string } | null)?.token ?? null;
+  const token = (data as { token?: string } | null)?.token ?? null;
+  if (token) tokenCopies.set(userId, { at: Date.now(), token });
+  else tokenCopies.delete(userId);
+  if (tokenCopies.size > 5_000) for (const [k, v] of tokenCopies) if (Date.now() - v.at >= 60_000) tokenCopies.delete(k);
+  return token;
 }

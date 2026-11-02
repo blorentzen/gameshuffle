@@ -33,11 +33,16 @@ export async function handleLoungeCommand(ctx: ShuffleContext, kind: Kind, args:
   const noCard = "🏁 No MMR card here yet, so add a lounge name after the command. Streamers: gameshuffle.co/mmr-card";
 
   try {
-    // The streamer, from their card (tonight's run counts from going live).
+    // The streamer, from their card (tonight's run counts from going live). These are lounge commands: a card
+    // showing a GameShuffle ladder right now answers from its first lounge look instead.
     const streamer = async () => {
       if (!hasCard) return null;
       const live = await liveFor(card!);
-      return live.ok ? live.source : null;
+      if (live.ok && !live.source.ladder) return live.source;
+      const lounge = card!.looks.find((l) => !l.ladder);
+      if (!lounge) return null;
+      const again = await liveFor(card!, { look: lounge.id });
+      return again.ok ? again.source : null;
     };
     const byName = async (name: string) => loungePlayer({ name }, game);
 

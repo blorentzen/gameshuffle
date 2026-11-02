@@ -1,0 +1,6 @@
+/* A war team's logo, or its tag on a colored tile (WarTeamMark: the war page and the Logos page). */
+.wp-mark { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 3.2rem; height: 3.2rem; border-radius: 50%; object-fit: contain; }
+.wp-mark--lg { width: 6.4rem; height: 6.4rem; }
+.wp-mark--text { color: #fff; font-family: var(--font-display); font-weight: 700; font-size: var(--font-size-12); box-shadow: inset 0 0 0 2px rgb(255 255 255 / .85); }
+.wp-mark--lg.wp-mark--text { font-size: var(--font-size-18); box-shadow: inset 0 0 0 3px rgb(255 255 255 / .85); }
+

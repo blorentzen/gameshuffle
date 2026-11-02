@@ -9,10 +9,10 @@
  * wording here in step when the posts change.
  */
 
-function BotHead({ time }: { time: string }) {
+function BotHead({ time, name = "GameShuffle" }: { time: string; name?: string }) {
   return (
     <div className="dmock__meta">
-      <b>GameShuffle</b>
+      <b>{name}</b>
       <span className="dmock__app">APP</span>
       <span className="dmock__time">{time}</span>
     </div>
@@ -27,7 +27,17 @@ const PLAYERS = [
   { name: "Alex", said: "ran out of guesses" },
 ];
 
-export type DiscordMockVariant = "card" | "summary" | "poll" | "golive" | "roles";
+export type DiscordMockVariant = "card" | "summary" | "poll" | "golive" | "roles" | "ttpanel" | "mmr";
+
+/** GameShuffle Competitive (the /mario-kart-discord-bot page). Its panel and replies mirror
+ *  src/lib/discord/ttPanel.ts, commands/timeTrials.ts and commands/mmr.ts: keep the wording in step. */
+const COMP = "GameShuffle Competitive";
+const COMP_ICON = "/images/discord/comp-icon.png";
+const RECORDS = [
+  { code: "RR", time: "2:24.418", who: "Riley", cat: "150cc, mushrooms" },
+  { code: "TH", time: "2:05.291", who: "Quinn", cat: "150cc, no mushrooms" },
+  { code: "MKS", time: "1:36.673", who: "Quinn", cat: "150cc, mushrooms" },
+];
 
 const LABELS: Record<DiscordMockVariant, string> = {
   card: `Example Discord channel: Riley used /gs-daily, then the GameShuffle bot posted today's results card, a picture with each player's profile picture and squares. ${PLAYERS.map((p) => `${p.name} ${p.said}`).join(", ")}. Squares only, no answer.`,
@@ -35,9 +45,11 @@ const LABELS: Record<DiscordMockVariant, string> = {
   poll: "Example Discord message: a live poll, Which cup next?, with a vote button per cup and 214 votes counted from Discord, Twitch chat and the live page.",
   golive: "Example Discord message: the GameShuffle bot announces that a streamer is live on Twitch playing Mario Kart World, with the game's cover art and a link to their live page.",
   roles: "Example Discord message: a role menu where members tap buttons to pick their games and game night pings. A reply only the member sees confirms the role was added.",
+  ttpanel: `Example Discord channel: GameShuffle Competitive's pinned time trial panel for Kart Club, Mario Kart 8 Deluxe, 17 times from 5 players this month, with the newest server records (${RECORDS.map((r) => `${r.code} ${r.time} by ${r.who}`).join(", ")}) and buttons to add a time, see a top ten, see your times or open the server board. Below it, a post: new server record on Rainbow Road, Riley 2:24.418, was 2:25.905 by Quinn, with Verify and Report.`,
+  mmr: "Example Discord message: Riley used /mmr, and GameShuffle Competitive replied with Sam's Mario Kart World lounge numbers: MMR 7,912, Gold, 88 to Platinum, world rank 1,240, season peak 8,040 and the last ten events, with the Gold medal.",
 };
 
-const CHANNEL: Record<DiscordMockVariant, string> = { card: "game-night", summary: "game-night", poll: "stream-chat", golive: "going-live", roles: "pick-your-roles" };
+const CHANNEL: Record<DiscordMockVariant, string> = { card: "game-night", summary: "game-night", poll: "stream-chat", golive: "going-live", roles: "pick-your-roles", ttpanel: "time-trials", mmr: "lounge" };
 
 const POLL = [
   { name: "Mushroom Cup", pct: 18 },
@@ -126,6 +138,83 @@ export function DiscordMock({ variant }: { variant: DiscordMockVariant }) {
                 </div>
                 <p className="dmock__foot">GameShuffle · Today at 7:00 PM</p>
               </div>
+            </div>
+          </div>
+        ) : variant === "ttpanel" ? (
+          <>
+            <div className="dmock__msg">
+              {/* eslint-disable-next-line @next/next/no-img-element -- decorative avatar in an illustration */}
+              <img className="dmock__av dmock__av--comp" src={COMP_ICON} alt="" width={40} height={40} />
+              <div className="dmock__content">
+                <BotHead name={COMP} time="Pinned" />
+                <div className="dmock__container dmock__container--comp">
+                  <p className="dmock__title dmock__title--big">Time trials in Kart Club</p>
+                  <p className="dmock__text">Mario Kart 8 Deluxe · 17 times from 5 players this month</p>
+                  <hr className="dmock__rule" />
+                  <div className="dmock__lines">
+                    <b>Newest server records</b>
+                    {RECORDS.map((r) => <span key={r.code}><code>{r.code}</code> <b>{r.time}</b> · {r.who} · {r.cat}</span>)}
+                  </div>
+                  <hr className="dmock__rule" />
+                  <span className="dmock__btns">
+                    <span className="dmock__btn dmock__btn--go">Add a time</span>
+                    <span className="dmock__btn">Top ten</span>
+                    <span className="dmock__btn">My times</span>
+                    <span className="dmock__btn">Server board</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="dmock__msg">
+              {/* eslint-disable-next-line @next/next/no-img-element -- decorative avatar in an illustration */}
+              <img className="dmock__av dmock__av--comp" src={COMP_ICON} alt="" width={40} height={40} />
+              <div className="dmock__content">
+                <BotHead name={COMP} time="Today at 8:41 PM" />
+                <div className="dmock__embed dmock__embed--comp">
+                  <div className="dmock__live">
+                    <div className="dmock__live-copy">
+                      <p className="dmock__title">New server record on Rainbow Road (RR)</p>
+                      <p className="dmock__desc"><b>Riley</b> · 2:24.418 · 150cc, mushrooms<br />Was 2:25.905 by Quinn · 212th on GameShuffle</p>
+                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- course art in an illustration */}
+                    <img className="dmock__thumb dmock__thumb--wide" src="https://cdn.empac.co/gameshuffle/images/mk8dx/courses/special/rainbow-road.webp" alt="" width={160} height={90} loading="lazy" />
+                  </div>
+                  <p className="dmock__foot">Time trials · gameshuffle.co/time-trials</p>
+                </div>
+                <span className="dmock__btns">
+                  <span className="dmock__btn dmock__btn--go">Verify</span>
+                  <span className="dmock__btn">Report</span>
+                  <span className="dmock__btn">Full board</span>
+                </span>
+              </div>
+            </div>
+          </>
+        ) : variant === "mmr" ? (
+          <div className="dmock__msg">
+            {/* eslint-disable-next-line @next/next/no-img-element -- decorative avatar in an illustration */}
+            <img className="dmock__av dmock__av--comp" src={COMP_ICON} alt="" width={40} height={40} />
+            <div className="dmock__content">
+              <p className="dmock__used"><b>Riley</b> used <span className="dmock__cmd">/mmr</span></p>
+              <BotHead name={COMP} time="Today at 8:44 PM" />
+              <div className="dmock__embed dmock__embed--gold">
+                <div className="dmock__live">
+                  <div className="dmock__live-copy">
+                    <p className="dmock__title">Sam · MK World 12P</p>
+                    <div className="dmock__pairs dmock__pairs--3">
+                      <span><b>MMR</b>7,912</span>
+                      <span><b>Division</b>Gold</span>
+                      <span><b>To Platinum</b>88</span>
+                      <span><b>World rank</b>#1,240</span>
+                      <span><b>Season peak</b>8,040</span>
+                    </div>
+                    <p className="dmock__squares"><b>Last 10</b><span>🟥🟨🟥🟨🟨🟨🟥🟥🟥🟩</span></p>
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- MKCentral's Gold medal (credited on the page) */}
+                  <img className="dmock__medal" src="/images/comp-mario-kart/levels/gold.png" alt="" width={64} height={64} loading="lazy" />
+                </div>
+                <p className="dmock__foot">MMR card · gameshuffle.co/mmr-card</p>
+              </div>
+              <span className="dmock__btns"><span className="dmock__btn">Make your MMR card</span></span>
             </div>
           </div>
         ) : variant === "roles" ? (

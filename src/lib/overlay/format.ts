@@ -82,6 +82,8 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     // Off until the streamer turns it on: most use the MMR card's own OBS link.
     mmr: { anchor: "bottom-right", scale: 0.8, enabled: false },
     lounge_room: { anchor: "top-right", scale: 0.9, enabled: false },
+    // On once the streamer adds a war channel from its overlay page (src/lib/wars/streamPiece.ts).
+    war: { anchor: "bottom-center", scale: 0.9, enabled: false },
   },
   portrait: {
     dice: { anchor: "center", scale: 0.9 },
@@ -105,6 +107,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     viewers: { anchor: "top-right", scale: 0.9 },
     mmr: { anchor: "bottom-center", scale: 0.7, enabled: false },
     lounge_room: { anchor: "top-center", scale: 0.8, enabled: false },
+    war: { anchor: "top-center", scale: 0.9, enabled: false },
   },
   square: {},
 };

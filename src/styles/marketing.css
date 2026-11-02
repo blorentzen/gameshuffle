@@ -2443,6 +2443,22 @@
 .dmock__btn--blurple { background: #5865f2; padding-inline: 1.4rem; }
 .dmock__btn--on { background: #5865f2; }
 .dmock__activity .dmock__btn { margin-top: 0; }
+.dmock-stack { display: grid; gap: var(--spacing-24); justify-items: center; }
+/* GameShuffle Competitive: the Master division's ice for its posts, gold for a Gold player's /mmr reply. */
+.dmock__av--comp { background: #16181c; }
+.dmock__container--comp, .dmock__embed--comp { border-left-color: #cfe2ee; }
+.dmock__embed--gold { border-left-color: #a87108; }
+.dmock__title--big { font-size: var(--font-size-18); }
+.dmock__rule { border: 0; border-top: 1px solid #3f4147; margin: 0; width: 100%; }
+.dmock__lines { display: grid; gap: 0.2rem; }
+.dmock__lines b { color: #f2f3f5; }
+.dmock code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; background: #1e1f22; border-radius: 4px; padding: 0.1rem 0.4rem; }
+.dmock__pairs--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dmock__pairs--3 span, .dmock__squares { font-size: var(--font-size-14); }
+.dmock__squares { margin: var(--spacing-8) 0 0; display: grid; font-size: var(--font-size-12); }
+.dmock__squares b { color: #f2f3f5; }
+.dmock__medal { width: 6.4rem; height: 6.4rem; object-fit: contain; }
+.dmock__thumb--wide { aspect-ratio: 16 / 9; }
 .dmock__ephemeral { margin: 0 0 0 5.2rem; color: #949ba4; font-size: var(--font-size-12); }
 .dmock__ephemeral b { color: #dbdee1; }
 @media (max-width: 480px) {

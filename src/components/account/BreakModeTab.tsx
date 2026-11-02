@@ -20,6 +20,7 @@ import { AdminPanel, AdminSection, SaveStatus } from "@/components/account/admin
 import { useAutosave } from "@/lib/hooks/useAutosave";
 import { KnowTheChannelPanel } from "@/components/account/KnowTheChannelPanel";
 import { BREAK_GAMES, BREAK_GAME_IDS, DEFAULT_LINEUP, type BreakGameId, type BreakView } from "@/lib/break/types";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 interface Settings { lineup: BreakGameId[]; show: "panel" | "full"; championTokens: number; bountyTokens?: number; bountyReady?: boolean }
 interface Loaded { ready: boolean; pro: boolean; settings: Settings | null; view: BreakView | null }
@@ -91,8 +92,7 @@ export function BreakModeTab() {
   const running = data?.view?.status === "running";
   useEffect(() => {
     if (!running) return;
-    const iv = window.setInterval(() => void load(), 3000);
-    return () => window.clearInterval(iv);
+    return everyVisible(() => void load(), 3000);
   }, [running, load]);
 
   const { status } = useAutosave(settings, async (s) => {

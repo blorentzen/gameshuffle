@@ -2,7 +2,7 @@
  * GameShuffle's Discord apps (picks 2026-10-30, https://claude.ai/artifact/HahsGm6TargWVxfTPeLMPo, all as
  * recommended). Client-safe: names, command names, and whether the competitive app exists here.
  *   main  GameShuffle: the dailies, Chat Brain, the Weekly, trivia, polls, community tools, streamer posts.
- *   comp  GameShuffle Competitive: wars, time trials, MMR, room reads, lounge rank-ups.
+ *   comp  GameShuffle Competitive: time trials, MMR, room reads (wars and lounge rank-ups later).
  * Each is its own Discord app (own bot, commands, Activity, verification); both run on this code. The
  * competitive app exists in an environment once NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID is set there
  * (the id is public: it's in every install link). Server keys live in apps.ts.

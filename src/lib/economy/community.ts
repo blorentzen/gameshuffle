@@ -130,8 +130,9 @@ export async function ensureCommunity(args: {
         .maybeSingle();
       const ownerUserId = (idRow as { gs_account_id: string | null } | null)?.gs_account_id ?? null;
       if (ownerUserId) {
-        const { ensureOwnerMembership } = await import("@/lib/economy/communityResolver");
+        const { ensureOwnerMembership, forgetCommunityForOwner } = await import("@/lib/economy/communityResolver");
         await ensureOwnerMembership(community.id, ownerUserId);
+        forgetCommunityForOwner(ownerUserId);
       }
     } catch { /* best-effort */ }
     return community;

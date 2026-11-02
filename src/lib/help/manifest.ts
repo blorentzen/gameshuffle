@@ -6,6 +6,8 @@
  * append an entry here.
  */
 
+import { RANKED_CATEGORY, RANKED_HELP, RANKED_HELP_JA, RANKED_HELP_PUBLIC } from "./ranked";
+
 export type HelpCategoryId =
   | "getting-started"
   | "apps"
@@ -14,7 +16,8 @@ export type HelpCategoryId =
   | "community"
   | "pro"
   | "troubleshooting"
-  | "account";
+  | "account"
+  | "ranked";
 
 export interface HelpArticleMeta {
   id: string;
@@ -477,14 +480,21 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
 ];
 
+// GS Ranked's section joins the index, search and sitemap once it's announced (src/lib/help/ranked.ts).
+if (RANKED_HELP_PUBLIC) {
+  HELP_CATEGORIES.push(RANKED_CATEGORY);
+  HELP_ARTICLES.push(...RANKED_HELP);
+}
+
 export function articlesInCategory(categoryId: HelpCategoryId): HelpArticleMeta[] {
   return HELP_ARTICLES.filter((a) => a.category === categoryId);
 }
 
+/** Any article, the GS Ranked pages included while they're unlisted. */
 export function findArticle(href: string): HelpArticleMeta | undefined {
-  return HELP_ARTICLES.find((a) => a.href === href);
+  return HELP_ARTICLES.find((a) => a.href === href) ?? RANKED_HELP.find((a) => a.href === href) ?? RANKED_HELP_JA.find((a) => a.href === href);
 }
 
 export function findCategory(categoryId: HelpCategoryId): HelpCategory | undefined {
-  return HELP_CATEGORIES.find((c) => c.id === categoryId);
+  return HELP_CATEGORIES.find((c) => c.id === categoryId) ?? (categoryId === "ranked" ? RANKED_CATEGORY : undefined);
 }

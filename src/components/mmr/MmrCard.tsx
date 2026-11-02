@@ -24,7 +24,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { IconChartLine, IconChevronsUp, IconClock, IconFlag, IconLaurelWreathFilled, IconStar, IconStarFilled } from "@tabler/icons-react";
 import { divisionLook, type MmrLook } from "@/lib/mmr/look";
-import { MMR_GAMES, fmtMmr, milestoneTier, placeWord, signed, type MmrView } from "@/lib/mmr/rules";
+import { fmtMmr, milestoneTier, placeWord, signed, sourceLabel, type MmrView } from "@/lib/mmr/rules";
 import {
   LAYOUT_SPOTS, bigOf, detailSwitches, detailsFor, fitDetails, nextText, pieceText, recentWhen, underPieces, type MmrInfo, type MmrPiece, type Shown,
 } from "@/lib/mmr/pieces";
@@ -67,7 +67,7 @@ function PieceChip({ p, c, short = false }: { p: Shown; c: PieceCtx; /** The str
   const t = pieceText(p, view, info, c.goal);
   if (!t) return null;
   const Icon = PIECE_ICONS[p];
-  if (p === "world") return <span className="mmr-chip">{milestoneTier(view.worldRank) != null ? <IconLaurelWreathFilled className="mmr-laurel" aria-hidden /> : <Icon aria-hidden />}<span className="mmr-chip__t">{short ? t.short : t.chip}</span></span>;
+  if (p === "world") return <span className="mmr-chip">{milestoneTier(view.worldRank, !!view.ladder) != null ? <IconLaurelWreathFilled className="mmr-laurel" aria-hidden /> : <Icon aria-hidden />}<span className="mmr-chip__t">{short ? t.short : t.chip}</span></span>;
   if (p === "last10") return <span className="mmr-chip mmr-chip--sq"><Icon aria-hidden />Last 10<Squares marks={view.squares} /></span>;
   if (p === "recent") {
     return (
@@ -181,7 +181,8 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
 
   const vars = cardVars(look, div, fx.glyphs, view.pct, view.name);
   const cls = cardClass(look, fit, className);
-  const game = MMR_GAMES[view.game];
+  // Where the number comes from: "MK8DX", or a GameShuffle ladder's name.
+  const from = sourceLabel(view);
   const summary = cardSummary(view, info, g, [...details, ...under, ...(["last10", "recent", "streak", "delta"] as MmrPiece[]).filter((p) => on(p) && !details.includes(p) && !under.includes(p))]);
 
   const fxLayers = <FxLayers fx={fx} />;
@@ -193,8 +194,9 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
   // The division's name elsewhere on the card, unless it's the big number.
   const divOn = info.on.division && !divBig;
   // World rank's own spot (deck and panel): MMR goes there when world rank is the big number.
-  const worldSpot = worldBig ? (info.on.mmr && has("mmr") ? <span className="mmr-world">{fmtMmr(view.mmr!)} MMR</span> : null) : info.on.world ? <World rank={view.worldRank} /> : null;
-  const pendingChip = pending ? <span className="mmr-chip mmr-chip--pending"><IconClock aria-hidden />{noMmr ? `${placeWord(pending.place)}, waiting to verify` : <>{placeWord(pending.place)}: about {signed(pending.delta)}, waiting to verify</>}</span> : null;
+  const worldSpot = worldBig ? (info.on.mmr && has("mmr") ? <span className="mmr-world">{fmtMmr(view.mmr!)} MMR</span> : null) : info.on.world ? <World rank={view.worldRank} ladder={view.ladder} /> : null;
+  // A table in but not verified yet (lounge or ladder); short words so it stays on one line on the deck card.
+  const pendingChip = pending ? <span className="mmr-chip mmr-chip--pending"><IconClock aria-hidden />{noMmr ? `Waiting: ${placeWord(pending.place)}` : `Waiting: ${placeWord(pending.place)}, about ${signed(pending.delta)}`}</span> : null;
   const newPeak = m.peak && view.last?.peak ? <span key={`peak-${view.peak}`} className="mmr-chip mmr-chip--peak mmr-chip--pop"><IconStarFilled aria-hidden />New peak</span> : null;
   // The flame on its own, when the streak isn't a piece on this card.
   const flameAlone = (shownStreak: boolean) => (!shownStreak && ctx.flame ? <StreakChip n={view.streak} flame /> : null);
@@ -209,7 +211,7 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
       <div className="mmr-panel mmr-skin mmr-recap">
         {fxLayers}
         <div className="mmr-c">
-          <div className="mmr-panel__top"><span className="mmr-eyebrow">Tonight in {game.short}</span><span className="mmr-eyebrow">{view.name}</span></div>
+          <div className="mmr-panel__top"><span className="mmr-eyebrow">Tonight in {from}</span><span className="mmr-eyebrow">{view.name}</span></div>
           <div className="mmr-panel__main">
             {emblem}
             <div className="mmr-recap__big"><b>{recap.events ? signed(recap.net) : "0"}</b><span>{recap.events ? `${recap.wins} ${recap.wins === 1 ? "win" : "wins"}, ${recap.losses} ${recap.losses === 1 ? "loss" : "losses"}` : "No events yet tonight"}</span></div>
@@ -231,7 +233,7 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
         {fxLayers}
         <div className="mmr-c">
           {(info.on.game || worldSpot) && (
-            <div className="mmr-panel__top"><span className="mmr-eyebrow">{info.on.game ? game.short : ""}</span><span className="mmr-eyebrow">{worldSpot}</span></div>
+            <div className="mmr-panel__top"><span className="mmr-eyebrow">{info.on.game ? from : ""}</span><span className="mmr-eyebrow">{worldSpot}</span></div>
           )}
           <div className="mmr-panel__main">
             {emblem}
@@ -316,7 +318,7 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
               <div className="mmr-deck__who">
                 {(info.on.game || divOn) && (
                   <span className="mmr-deck__labels">
-                    {info.on.game && <span className="mmr-eyebrow">{game.short}</span>}
+                    {info.on.game && <span className="mmr-eyebrow">{from}</span>}
                     {divOn && <span className="mmr-eyebrow mmr-deck__div">{view.division}</span>}
                   </span>
                 )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge, Button, Checkbox, Drawer, EmptyState, IconButton, Input } from "@empac/cascadeds";
+import { Badge, Button, Checkbox, Drawer, EmptyState, IconButton, Input, Radio, RadioGroup } from "@empac/cascadeds";
 import { IconArrowDown, IconArrowUp, IconCards, IconPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
@@ -9,7 +9,7 @@ import { SortableList, moveWithin } from "@/components/ui/SortableList";
 import { AdminHeader, AdminRowMenu, AdminSection } from "@/components/account/admin/AdminKit";
 import { CardImage } from "@/components/tcg/CardImage";
 import { CardGridSkeleton } from "@/components/tcg/CardGridSkeleton";
-import type { FeaturedShopCard } from "@/lib/shop/featuredCards";
+import type { CardLanguage, FeaturedShopCard } from "@/lib/shop/featuredCards";
 import type { TcgCard } from "@/lib/scrydex/types";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { gsDay, gsDayStart } from "@/lib/time/gsClock";
@@ -95,6 +95,7 @@ export function PlatformShopTab() {
   const [productUrl, setProductUrl] = useState("");
   const [label, setLabel] = useState("");
   const [variantName, setVariantName] = useState("");
+  const [language, setLanguage] = useState<CardLanguage>("en");
   const [addAsSold, setAddAsSold] = useState(false);
   const [addSoldDate, setAddSoldDate] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -163,6 +164,7 @@ export function PlatformShopTab() {
     setProductUrl("");
     setLabel("");
     setVariantName("");
+    setLanguage("en");
     setAddAsSold(false);
     setAddSoldDate("");
   };
@@ -178,6 +180,7 @@ export function PlatformShopTab() {
         productUrl: productUrl.trim(),
         label: label.trim() || null,
         variantName: variantName.trim() || null,
+        language,
         isSold: addAsSold,
         soldAt:
           addAsSold && addSoldDate
@@ -214,6 +217,12 @@ export function PlatformShopTab() {
       return true;
     }
     return false;
+  };
+
+  const switchLanguage = async (row: FeaturedShopCard) => {
+    const next: CardLanguage = row.language === "ja" ? "en" : "ja";
+    if (await patch(row.id, { language: next })) toast.success(`${rowName(row)} is ${next === "ja" ? "Japanese" : "English"}`);
+    else toast.error("Couldn't update that card.");
   };
 
   const remove = async (id: string, name: string) => {
@@ -331,8 +340,10 @@ export function PlatformShopTab() {
                 <div className="platform-shop__row-info">
                   <div className="platform-shop__row-title">
                     <strong>{rowName(row)}</strong>
+                    <Badge variant={row.language === "ja" ? "warning" : "outline"} size="small">{row.language === "ja" ? "Japanese" : "English"}</Badge>
                     {row.is_featured && <Badge variant="info" size="small">Shows first</Badge>}
                   </div>
+                  {row.variant_name && <span className="platform-shop__muted">{row.variant_name}</span>}
                   {rowLink(row)}
                 </div>
                 <div className="platform-shop__row-actions">
@@ -343,6 +354,7 @@ export function PlatformShopTab() {
                     label={`More for ${rowName(row)}`}
                     items={[
                       { label: row.is_featured ? "Stop showing first" : "Show first in the carousel", onClick: () => void toggleFeatured(row) },
+                      { label: row.language === "ja" ? "Change to English" : "Change to Japanese", onClick: () => void switchLanguage(row) },
                       { type: "divider" },
                       { label: "Remove from the page", danger: true, onClick: () => void remove(row.id, rowName(row)) },
                     ]}
@@ -365,8 +377,10 @@ export function PlatformShopTab() {
                 <div className="platform-shop__row-info">
                   <div className="platform-shop__row-title">
                     <strong>{rowName(row)}</strong>
+                    <Badge variant={row.language === "ja" ? "warning" : "outline"} size="small">{row.language === "ja" ? "Japanese" : "English"}</Badge>
                     {row.is_featured && <Badge variant="info" size="small">Shows first</Badge>}
                   </div>
+                  {row.variant_name && <span className="platform-shop__muted">{row.variant_name}</span>}
                   {rowLink(row)}
                 </div>
                 <div className="platform-shop__row-actions">
@@ -385,6 +399,7 @@ export function PlatformShopTab() {
                     label={`More for ${rowName(row)}`}
                     items={[
                       { label: row.is_featured ? "Stop showing first" : "Show first in Recently sold", onClick: () => void toggleFeatured(row) },
+                      { label: row.language === "ja" ? "Change to English" : "Change to Japanese", onClick: () => void switchLanguage(row) },
                       { type: "divider" },
                       { label: "Remove from the page", danger: true, onClick: () => void remove(row.id, rowName(row)) },
                     ]}
@@ -421,7 +436,11 @@ export function PlatformShopTab() {
               </div>
               <Input fullWidth required type="url" floatingLabel="TCGplayer product link" value={productUrl} onChange={(e) => setProductUrl(e.target.value)} />
               <Input fullWidth floatingLabel="Name on the page (optional)" placeholder="Umbreon, Master Ball Pattern" value={label} onChange={(e) => setLabel(e.target.value)} />
-              <Input fullWidth floatingLabel="Variant (optional)" value={variantName} onChange={(e) => setVariantName(e.target.value)} />
+              <RadioGroup name="shop-card-language" label="Language" orientation="horizontal" value={language} onChange={(v) => setLanguage(v === "ja" ? "ja" : "en")}>
+                <Radio value="en" label="English" />
+                <Radio value="ja" label="Japanese" />
+              </RadioGroup>
+              <Input fullWidth floatingLabel="Variant (optional)" placeholder="Reverse holo, 1st edition" value={variantName} onChange={(e) => setVariantName(e.target.value)} />
               <Checkbox label="Already sold (adding a past sale)" checked={addAsSold} onChange={(e) => setAddAsSold(e.target.checked)} />
               {addAsSold && <Input type="date" floatingLabel="Sold on" value={addSoldDate} onChange={(e) => setAddSoldDate(e.target.value)} />}
               <Button type="submit" variant="primary" disabled={!productUrl.trim()}>{addAsSold ? "Add to Recently sold" : "Add to the page"}</Button>

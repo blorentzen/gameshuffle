@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 interface Counts {
   total: number;
@@ -26,10 +27,10 @@ export function LiveViewerCount({ slug }: { slug: string }) {
         })
         .catch(() => {});
     poll();
-    const id = window.setInterval(poll, 30_000);
+    const stop = everyVisible(poll, 30_000);
     return () => {
       cancelled = true;
-      window.clearInterval(id);
+      stop();
     };
   }, [slug]);
 

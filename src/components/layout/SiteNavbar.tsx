@@ -39,6 +39,7 @@ const HERO_ROUTES = new Set([
   "/",
   "/welcome",
   "/mmr-card",
+  "/ranked",
   "/lounge",
   "/time-trials",
   "/time-trials/import",
@@ -112,6 +113,8 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   { prefix: "/r/", notIds: new Set() },
   // A lounge player's season (/lounge/<name>); /lounge/find only redirects. Head-to-head pages are below.
   { prefix: "/lounge/", notIds: new Set(["find", "compare"]) },
+  // A war's page (/wars/<slug>).
+  { prefix: "/wars/", notIds: new Set() },
 ];
 
 function isHeroPath(pathname: string): boolean {
@@ -122,6 +125,8 @@ function isHeroPath(pathname: string): boolean {
   if (/^\/time-trials(\/[^/]+){1,2}$/.test(pathname)) return true;
   // Lounge head-to-head (/lounge/compare/<a>/<b>) opens on the same band.
   if (/^\/lounge\/compare\/[^/]+\/[^/]+$/.test(pathname)) return true;
+  // A lounge: its standings, a player's season, a table and the staff page.
+  if (/^\/ranked\/[^/]+(\/staff|\/(players|tables)\/[^/]+)?$/.test(pathname)) return true;
   for (const { prefix, notIds } of HERO_DETAIL) {
     if (!pathname.startsWith(prefix)) continue;
     const rest = pathname.slice(prefix.length);

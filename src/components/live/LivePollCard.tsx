@@ -12,6 +12,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import { useAnonViewerId } from "./useAnonViewerId";
 import { useLiveHost } from "./LiveHost";
 import type { Poll, PollTally } from "@/lib/polls/types";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 export function LivePollCard({ communityId }: { communityId: string | null }) {
   const anonId = useAnonViewerId();
@@ -33,10 +34,10 @@ export function LivePollCard({ communityId }: { communityId: string | null }) {
       if (d.poll && typeof d.myVote === "string") setVoted((v) => (v[d.poll.id] ? v : { ...v, [d.poll.id]: d.myVote }));
     };
     void fetchPoll();
-    const iv = window.setInterval(fetchPoll, 3500);
+    const stop = everyVisible(fetchPoll, 3500);
     return () => {
       active = false;
-      window.clearInterval(iv);
+      stop();
     };
   }, [communityId, host]);
 

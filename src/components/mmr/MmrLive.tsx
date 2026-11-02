@@ -3,7 +3,7 @@
 /**
  * The MMR card with its moments played in order.
  *   MmrLive: the OBS link and the overlay piece. Polls /api/mmr/live/<token> every
- *     30 seconds while visible; each new verified event since the last look plays as a
+ *     30 seconds while visible (10 on a GameShuffle ladder); each new verified event since the last look plays as a
  *     moment (the change pops, then the number rolls), one after another.
  *   MmrDemo: the made-up night on a loop, for previews.
  *   MmrPreview: a real player's card with "Play a win / loss / new division" for the studio.
@@ -36,7 +36,9 @@ function momentsSince(src: MmrSource, fromId: number | null, goal: number | null
     const prev = src.changes[i + 1];
     const before = prev ? viewOf(src, prev.id) : viewOf(src, c.id);
     const after = i === 0 ? viewOf(src) : viewOf(src, c.id);
-    const rankup = divIndex(src, after.division) > divIndex(src, before.division) && before.division !== "Placement" ? after.division : null;
+    // A ladder's last placement table plays its new division; the lounge's placement number never does.
+    const placed = !!after.ladder && before.division === "Placement" && after.division !== "Placement";
+    const rankup = placed || (divIndex(src, after.division) > divIndex(src, before.division) && before.division !== "Placement") ? after.division : null;
     return { before, after, play: { delta: isEvent(c) ? c.delta : 0, rankup, goal: crossesGoal(before.mmr, after.mmr, goal) ? goal : null } };
   });
 }
@@ -81,7 +83,7 @@ export function MmrLive({ token, initial, fit = "obs", look: lookOverride, lookI
         if (steps.length && steps.length <= MAX_CATCHUP) wait = run(steps, setView, setPlay);
         else setView(viewOf(next.source));
         const m = next.milestone;
-        if (m && !m.initial && Date.parse(m.at) > mounted.current && playedMilestone.current !== m.at && milestoneTier(next.source.worldRank) === m.tier) {
+        if (m && !m.initial && Date.parse(m.at) > mounted.current && playedMilestone.current !== m.at && milestoneTier(next.source.worldRank, !!next.source.ladder) === m.tier) {
           playedMilestone.current = m.at;
           window.setTimeout(() => setPlay({ id: Date.now(), delta: 0, rankup: null, milestone: m.tier }), wait);
         }
@@ -89,7 +91,8 @@ export function MmrLive({ token, initial, fit = "obs", look: lookOverride, lookI
     };
     if (!mounted.current) mounted.current = Date.now();
     if (!initial.ok) void tick();
-    const id = window.setInterval(tick, POLL_MS);
+    // A ladder card reads our own database, so it checks every 10 seconds; the lounge's every 30.
+    const id = window.setInterval(tick, initial.ok && initial.poll ? initial.poll * 1000 : POLL_MS);
     const onVis = () => { if (document.visibilityState === "visible") void tick(); };
     document.addEventListener("visibilitychange", onVis);
     return () => { stop = true; clearInterval(id); document.removeEventListener("visibilitychange", onVis); };

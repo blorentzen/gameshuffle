@@ -18,6 +18,7 @@ import {
   listRaffleEntriesAction,
   removeRaffleEntryAction,
 } from "@/app/hub/sessions/[slug]/actions";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 const COUNTS = [1, 2, 3, 5, 10];
 
@@ -54,10 +55,10 @@ export function NamePickerControl({ slug }: { slug: string }) {
       else if (res.error === "pro_required") setHidden(true);
     };
     void load();
-    const id = window.setInterval(load, 8000);
+    const stop = everyVisible(load, 8000);
     return () => {
       alive = false;
-      window.clearInterval(id);
+      stop();
     };
   }, [slug, hidden]);
 
@@ -66,8 +67,7 @@ export function NamePickerControl({ slug }: { slug: string }) {
     if (!manage) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loadEntries sets state after its server action resolves
     void loadEntries();
-    const id = window.setInterval(() => void loadEntries(), 8000);
-    return () => window.clearInterval(id);
+    return everyVisible(() => void loadEntries(), 8000);
   }, [manage, loadEntries]);
 
   if (hidden) return null;

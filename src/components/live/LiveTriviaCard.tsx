@@ -13,6 +13,7 @@ import { Button, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useLiveHost } from "./LiveHost";
 import type { TriviaStreamView } from "@/lib/trivia/stream";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 const LETTERS = ["A", "B", "C", "D", "E", "F"];
 const secsUntil = (iso: string | null, now: number) => (iso ? Math.max(0, Math.ceil((Date.parse(iso) - now) / 1000)) : 0);
@@ -36,8 +37,8 @@ export function LiveTriviaCard({ communityId }: { communityId: string | null; st
       setSignedIn(!!d.signedIn);
     };
     void load();
-    const iv = window.setInterval(load, 2000);
-    return () => { active = false; window.clearInterval(iv); };
+    const stop = everyVisible(load, 2000);
+    return () => { active = false; stop(); };
   }, [communityId, host]);
 
   const open = view?.phase === "question";

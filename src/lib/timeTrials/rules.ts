@@ -101,3 +101,41 @@ export type VideoState = "none" | "waiting" | "checked" | "rejected";
 export function isVerified(v: VideoState): boolean {
   return v === "checked";
 }
+
+// ── Laps (round 3 pick 2A) ──────────────────────────────────────────────────────────────────────
+
+/** A lap time in ms ("34.112", "0:34.112", "1:02.034"), or null outside 5 seconds to 5 minutes. */
+export function parseLap(raw: string): number | null {
+  const s = raw.trim().replace(/[″”"]/g, '"').replace(/[′’']/g, "'").replace(/\s+/g, "");
+  if (!s) return null;
+  let m: RegExpMatchArray | null;
+  let ms: number;
+  if ((m = s.match(/^(\d{1,2})[:'.](\d{2})[."':,](\d{1,3})$/))) ms = +m[1] * 60_000 + +m[2] * 1000 + +m[3].padEnd(3, "0");
+  else if ((m = s.match(/^(\d{1,3})[.,"](\d{1,3})$/))) ms = +m[1] * 1000 + +m[2].padEnd(3, "0");
+  else return null;
+  return ms >= 5000 && ms <= 300_000 ? ms : null;
+}
+
+/** 34112 → "34.112", 62034 → "1:02.034". */
+export function formatLap(ms: number): string {
+  return ms >= 60_000 ? formatTime(ms) : `${Math.floor(ms / 1000)}.${String(ms % 1000).padStart(3, "0")}`;
+}
+
+/** The game shows each lap rounded, so laps can miss the total by a few ms and still be right. */
+export const LAP_SLACK_MS = 3;
+
+/** Laps that are all there (3, or a track's own count up to 7) and add up to the time. */
+export function lapsAddUp(laps: number[] | null | undefined, timeMs: number): boolean {
+  if (!laps?.length) return true;
+  return Math.abs(laps.reduce((a, b) => a + b, 0) - timeMs) <= LAP_SLACK_MS;
+}
+
+/** Cleans laps from a client: whole ms, 1 to 7 of them, each inside the lap range; else null. */
+export function cleanLaps(v: unknown): number[] | null {
+  if (!Array.isArray(v) || !v.length || v.length > 7) return null;
+  const out = v.map((x) => Math.round(Number(x)));
+  return out.every((x) => Number.isFinite(x) && x >= 5000 && x <= 300_000) ? out : null;
+}
+
+/** After this many checked clips with none turned down, a player's new top-ten times show as Trusted without a clip (pick 7A). */
+export const TRUSTED_AFTER = 10;
