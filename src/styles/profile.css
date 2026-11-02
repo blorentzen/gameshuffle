@@ -2025,6 +2025,9 @@ a.ct__name:hover { text-decoration: underline; }
 .share-card__register-label {
   font-size: var(--font-size-14);
   color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
 }
 
 /* Game Night block inside a post */

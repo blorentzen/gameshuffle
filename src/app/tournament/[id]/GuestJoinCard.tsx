@@ -57,7 +57,7 @@ export function GuestJoinCard({ tournamentId, acceptanceMode, full = false }: { 
     return (
       <div className="comp-card" style={{ textAlign: "center" }}>
         <p style={{ fontWeight: 700, fontSize: "var(--font-size-16)", marginBottom: "0.35rem" }}>
-          {waitlisted ? "You're on the waitlist" : <>🏁 You&apos;re in{acceptanceMode === "auto" ? "!" : ". Pending organizer approval."}</>}
+          {waitlisted ? "You're on the waitlist" : <>You&apos;re in{acceptanceMode === "auto" ? "!" : ". Pending organizer approval."}</>}
         </p>
         {waitlisted && (
           <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>

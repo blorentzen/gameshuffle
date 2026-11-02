@@ -36,6 +36,9 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--brand-ink, var(--primary-600));
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
 }
 .live-tournament-race__name {
   font-size: var(--font-size-18);
@@ -1557,6 +1560,9 @@
   color: var(--warning-ink);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-8);
 }
 
 /* Spec 02 §5 — "lobby's open" banner for a scheduled session whose
@@ -1568,6 +1574,14 @@
   color: var(--success-ink);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+}
+.live-page__ending-banner > svg,
+.live-page__prelive-banner > svg {
+  flex-shrink: 0;
+  margin-top: 1px;
 }
 .live-page__prelive-banner code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

@@ -103,14 +103,14 @@ export function LastStreamRecap({ recap }: Props) {
           <h3 className="last-stream-recap__card-title">Final roll</h3>
           <p className="last-stream-recap__final-roll">
             <span className="last-stream-recap__final-roll-kind">
-              {recap.lastRoll.kind === "rally" ? "🏁 Rally" : "🏁 Track"}
+              {recap.lastRoll.kind === "rally" ? "Rally" : "Track"}
             </span>{" "}
             <strong>{lastRollName}</strong>
             {lastModeName && (
               <>
                 {" · "}
                 <span className="last-stream-recap__final-roll-mode">
-                  🎁 {lastModeName}
+                  {lastModeName}
                 </span>
               </>
             )}

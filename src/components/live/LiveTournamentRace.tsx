@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { IconFlag } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 import { listRaces, raceIndex, type RaceSource } from "@/lib/tournaments/races";
 import { everyVisible } from "@/lib/hooks/everyVisible";
@@ -73,7 +74,7 @@ export function LiveTournamentRace({ ownerUserId }: { ownerUserId: string }) {
         <img src={race.img} alt="" className="live-tournament-race__img" />
       ) : null}
       <div className="live-tournament-race__body">
-        <span className="live-tournament-race__eyebrow">🏁 Now racing · {idx + 1} / {races.length}</span>
+        <span className="live-tournament-race__eyebrow"><IconFlag size={14} aria-hidden />Now racing · {idx + 1} / {races.length}</span>
         <span className="live-tournament-race__name">{race.sublabel || race.label}</span>
         <span className="live-tournament-race__title">{t.title}</span>
       </div>

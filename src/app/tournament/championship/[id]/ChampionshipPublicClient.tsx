@@ -70,6 +70,7 @@ export function ChampionshipPublicClient({ initial, baseUrl }: { initial: Champi
     setLoading(false);
   }, [championshipId, supabase]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the first load of server data, set when the fetch answers
   useEffect(() => { void load(); }, [load]);
 
   // Live season — reload when any event in this championship changes (not once the season is complete).

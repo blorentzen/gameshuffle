@@ -1210,6 +1210,9 @@ html.dark .verified-badge { background: var(--surface-success); color: var(--suc
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--primary-ink-600, var(--primary-500));
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
 }
 .tournament-nowracing__name {
   font-size: var(--font-size-12);
