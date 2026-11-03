@@ -16,6 +16,7 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import type { HostView } from "@/lib/trivia/store";
 import type { ConsoleLeague } from "@/lib/trivia/leagues";
 import { STYLE_LABEL } from "@/lib/trivia/rules";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 const POLL_MS = 2000;
 const secsUntil = (iso: string | null, now: number) => (iso ? Math.max(0, Math.ceil((Date.parse(iso) - now) / 1000)) : 0);
@@ -36,9 +37,9 @@ export function TriviaConsole({ gameId }: { gameId: string }) {
   }, [gameId]);
   useEffect(() => {
     void Promise.resolve().then(load);
-    const iv = window.setInterval(() => void load(), POLL_MS);
+    const stop = everyVisible(load, POLL_MS);
     const clock = window.setInterval(() => setNow(Date.now()), 500);
-    return () => { window.clearInterval(iv); window.clearInterval(clock); };
+    return () => { stop(); window.clearInterval(clock); };
   }, [load]);
 
   const act = async (action: string, extra: Record<string, unknown> = {}) => {

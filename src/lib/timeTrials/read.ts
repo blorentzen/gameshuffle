@@ -15,7 +15,7 @@ import { aiUsedToday, recordAiUse } from "@/lib/ai/usage";
 import { lever } from "@/lib/pricing/catalog";
 import { rateLimit } from "@/lib/ratelimit";
 import { isR2Configured, uploadToR2 } from "@/lib/storage/r2";
-import { parseTime } from "./rules";
+import { parseLap, parseTime } from "./rules";
 import { matchTrack, TT_GAMES, TT_GAME_ORDER, ttTracks, type TtClass, type TtGame } from "./tracks";
 
 export const MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024;
@@ -44,6 +44,8 @@ export interface ScreenshotRead {
   trackName: string | null;
   cc: TtClass | null;
   timeMs: number | null;
+  /** Each lap as the screen shows it (round 3 pick 2A), or null when they aren't all readable. */
+  laps: number[] | null;
   /** When the picture isn't a time trial result. */
   notResult: boolean;
 }
@@ -63,6 +65,7 @@ const SCHEMA = z.object({
   track: z.string().nullable(),
   speed: z.enum(["150cc", "200cc", "unknown"]),
   time: z.string().nullable(),
+  laps: z.array(z.string()).describe("Each lap time in order, exactly as shown (for example 34.112 or 0:34.112); empty if the laps aren't shown or any digit can't be read"),
 });
 
 function prompt(game: TtGame | null): string {
@@ -76,8 +79,16 @@ Return:
 - track: the course, copied exactly from the list below, or null if the screenshot doesn't show which course it is. Don't guess from scenery unless the course is clear.
 - speed: 150cc or 200cc if shown, else "unknown".
 - time: the total time for the 3 laps exactly as shown, as m:ss.mmm (for example 1:52.384), or null if you can't read every digit. Not a lap time.
+- laps: each lap's time in order, exactly as shown next to the total (most courses have 3 laps; a few show more sections). An empty list if the laps aren't on the screen or you can't read every digit of every lap.
 
 ${lists}`;
+}
+
+/** Laps read off the screen: all of them readable, 1 to 7, or none. */
+function lapsOf(raw: string[] | undefined): number[] | null {
+  if (!raw?.length || raw.length > 7) return null;
+  const laps = raw.map(parseLap);
+  return laps.every((l): l is number => l != null) ? laps : null;
 }
 
 /** Asks Claude to read a screenshot (already stored as proof). Counts toward the player's daily reads. */
@@ -114,6 +125,7 @@ export async function readScreenshot(args: { jpeg: Buffer; game: TtGame | null; 
       trackName: track?.name ?? null,
       cc: cc && finalGame && (TT_GAMES[finalGame].classes as number[]).includes(cc) ? (cc as TtClass) : null,
       timeMs: d.time ? parseTime(d.time) : null,
+      laps: lapsOf(d.laps),
       notResult: !d.isTimeTrialResult,
     },
   };

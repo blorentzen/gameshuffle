@@ -1,0 +1,125 @@
+/* Lounge ladder pages (/ladders/<address>, players, tables). Board rows and notes reuse lounge.css. */
+
+.ladder-muted { color: var(--text-secondary); }
+.ladder-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ladder-note { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); max-width: 72ch; }
+.ladder-status { margin: 0; padding: var(--spacing-12) var(--spacing-16); border-left: 3px solid var(--warning-500, #f2c14e); background: var(--background-secondary); font-size: var(--font-size-16); max-width: 72ch; }
+
+/* The last 10: one square per table, oldest on the left. */
+.ladder-sq { display: inline-flex; gap: 3px; vertical-align: middle; }
+.ladder-sq i { width: 1rem; height: 1rem; border-radius: 2px; background: var(--border-default); }
+.ladder-sq i.is-up { background: var(--success-600, #1f9d55); }
+.ladder-sq i.is-down { background: var(--error-600, #d64545); }
+
+/* The numbers under a player's header. */
+.ladder-stats { display: flex; flex-wrap: wrap; gap: var(--spacing-16) 4rem; margin: 0; }
+.ladder-stats div { display: grid; gap: 2px; }
+.ladder-stats dt { font-size: var(--font-size-12); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-secondary); }
+.ladder-stats dd { margin: 0; font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 700; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: var(--spacing-8); }
+.ladder-stats dd svg { width: 3.2rem; height: auto; }
+
+/* A season's line. */
+.ladder-chart { margin: 0; overflow-x: auto; border-radius: 4px; }
+.ladder-chart:focus-visible { outline: 2px solid var(--primary-500, #3b5bdb); outline-offset: 4px; }
+.ladder-chart svg { min-width: 640px; max-width: 96rem; width: 100%; height: auto; display: block; }
+.ladder-chart text { font-size: 12px; font-weight: 600; fill: var(--text-secondary); }
+.ladder-chart__grid { stroke: var(--border-default); stroke-width: 1; }
+.ladder-chart__area { fill: var(--primary-500, #3b5bdb); opacity: .1; }
+.ladder-chart__line { fill: none; stroke: var(--primary-600, #2b52d6); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ladder-chart__dot { fill: var(--primary-600, #2b52d6); stroke: var(--background-primary, #fff); stroke-width: 2; }
+
+/* A table: one block per team, side by side when there's room. */
+.ladder-teams { display: grid; gap: var(--spacing-24); grid-template-columns: repeat(auto-fit, minmax(min(100%, 36rem), 1fr)); }
+.ladder-team { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; }
+.ladder-team__head { display: flex; align-items: baseline; gap: var(--spacing-12); margin: 0; font-size: var(--font-size-18); }
+.ladder-team__name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.ladder-team__total { font-family: var(--font-display); font-size: var(--font-size-24); font-variant-numeric: tabular-nums; }
+
+.ladder-tables { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--border-default); }
+.ladder-tables li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--spacing-4) var(--spacing-16); padding: var(--spacing-12) 0; border-bottom: 1px solid var(--border-default); font-size: var(--font-size-16); }
+.ladder-tables small { color: var(--text-secondary); font-size: var(--font-size-14); }
+.ladder-pager { display: flex; flex-wrap: wrap; gap: var(--spacing-12); align-items: center; }
+
+/* The Season menu and a past season's note (history import, pick 8A). */
+.ladder-seasonbar { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-20); align-items: end; margin-bottom: var(--spacing-16); }
+.ladder-season { width: 26rem; max-width: 100%; }
+.ladder-seasonbar .ladder-note { margin: 0 0 var(--spacing-8); }
+.ladder-penalty { font-weight: 600; }
+
+/* ── GS Ranked staff page (/ranked/<slug>/staff) ───────────────────────────────────────────── */
+.ranked-staff { display: grid; gap: var(--spacing-16); min-width: 0; }
+/* CDS scrolls the tab row sideways, but only once nothing around it can stretch (as on the lounge player page). */
+.ranked-staff .empac-tabs, .ranked-staff .empac-tabs__content, .ranked-staff .empac-tabs__panel { min-width: 0; }
+.ranked-staff__panel { display: grid; gap: var(--spacing-20); padding-top: var(--spacing-20); min-width: 0; }
+.ranked-staff__sec { display: grid; gap: var(--spacing-12); min-width: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.ranked-staff__panel > .ranked-staff__sec:first-child, .ranked-staff__bar + .ranked-staff__sec { border-top: 0; padding-top: 0; }
+.ranked-staff__sec h2 { margin: 0; font-size: var(--font-size-20); }
+.ranked-staff__bar { display: flex; flex-wrap: wrap; gap: var(--spacing-12); }
+.ranked-staff__search { max-width: 40rem; }
+.ranked-staff__list { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--border-default); }
+.ranked-staff__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12) var(--spacing-20); padding: var(--spacing-16) 0; border-bottom: 1px solid var(--border-default); }
+.ranked-staff__row-main { display: grid; gap: var(--spacing-4); min-width: 0; flex: 1 1 32rem; font-size: var(--font-size-16); }
+.ranked-staff__row-main .ladder-muted { font-size: var(--font-size-14); }
+.ranked-staff__row-title { font-weight: 600; overflow-wrap: anywhere; }
+.ranked-staff__row-why { color: var(--warning-ink); overflow-wrap: anywhere; }
+.ranked-staff__row-auto { color: var(--success-ink); }
+.ranked-staff__row-acts { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+
+.ranked-review { display: grid; gap: var(--spacing-16); min-width: 0; }
+/* CDS Modal is a flex item with min-width: auto, so a wide table stretched it past a phone's edge. */
+.empac-modal:has(.ranked-review), .empac-modal:has(.ranked-form) { min-width: 0; }
+.ranked-review__auto { margin: 0; color: var(--success-ink); font-size: var(--font-size-16); }
+.ranked-review__two { display: grid; gap: var(--spacing-20); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .ranked-review__two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+.ranked-review__shot { margin: 0; display: grid; gap: var(--spacing-8); }
+.ranked-review__shot img { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--border-default); }
+.ranked-review__noshot { display: grid; place-items: center; min-height: 16rem; border: 1px dashed var(--border-default); border-radius: 6px; color: var(--text-secondary); font-size: var(--font-size-16); }
+.ranked-review__table { display: grid; gap: var(--spacing-12); min-width: 0; }
+.ranked-review__diff { background: var(--warning-50, #fff4dd); font-weight: 700; }
+html.dark .ranked-review__diff { background: rgba(242, 196, 107, .18); }
+.ranked-review__spelled { color: var(--warning-ink); font-size: var(--font-size-14); }
+.ranked-review__why { margin: 0; font-size: var(--font-size-16); }
+.ranked-review__reasons { margin: 0; padding-left: var(--spacing-20); display: grid; gap: var(--spacing-4); font-size: var(--font-size-16); }
+.ranked-review__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-12); justify-content: flex-end; }
+
+.ranked-form { display: grid; gap: var(--spacing-16); min-width: 0; max-width: 64rem; }
+.ranked-form__pair { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ranked-form__three { display: grid; gap: var(--spacing-20) var(--spacing-12); margin-top: var(--spacing-8); grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); max-width: 64rem; }
+.ranked-picks { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.ranked-pens { display: grid; gap: var(--spacing-20); max-width: 64rem; }
+.ranked-pens__row { margin: 0; padding: 0; border: 0; display: grid; gap: var(--spacing-12); grid-template-columns: minmax(0, 1fr) minmax(0, 12rem) minmax(0, 12rem); align-items: center; }
+.ranked-pens__row legend { float: left; padding: 0; font-weight: 600; font-size: var(--font-size-16); }
+@media (max-width: 640px) { .ranked-pens__row { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ranked-pens__row legend { grid-column: 1 / -1; } }
+
+.ranked-gate { display: grid; gap: var(--spacing-12); }
+.ranked-gate__links { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-24); }
+.ranked-staff__sec > .ranked-staff__list:last-child > .ranked-staff__row:last-child { border-bottom: 0; }
+
+/* "You" on a lounge's page */
+.ranked-you { display: grid; gap: var(--spacing-12); }
+.ranked-you h2 { margin: 0; }
+.ranked-you__line { margin: 0; font-size: var(--font-size-18); }
+.ranked-you__acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-20); }
+.ranked-you__claim { display: grid; gap: var(--spacing-8); max-width: 64rem; }
+.ranked-you__claim-row { display: flex; flex-wrap: wrap; gap: var(--spacing-12); align-items: center; }
+.ranked-you__claim-row > :first-child { flex: 1 1 24rem; }
+.ranked-you__pens { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-16); }
+.ranked-you__pens h3 { margin: 0; font-size: var(--font-size-18); }
+.ranked-you__file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); }
+
+/* The queue on a lounge's page */
+.ranked-queue { display: grid; gap: var(--spacing-16); }
+.ranked-queue h2 { margin: 0; }
+.ranked-queue__room { display: grid; gap: var(--spacing-12); min-width: 0; }
+.ranked-queue__room h3, .ranked-queue__rooms h3 { margin: 0; font-size: var(--font-size-20); }
+.ranked-queue__room--mine { padding: var(--spacing-20); border: 1px solid var(--border-default); border-radius: 12px; background: var(--background-secondary); }
+.ranked-queue__room p { margin: 0; }
+.ranked-queue__line { font-size: var(--font-size-16); }
+.ranked-queue__teams { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-4); font-size: var(--font-size-16); }
+.ranked-queue__host { display: grid; gap: var(--spacing-12); max-width: 64rem; }
+.ranked-queue__ask { display: grid; gap: var(--spacing-8); }
+.ranked-queue__rooms { display: grid; gap: var(--spacing-8); }
+.ranked-formats { margin: 0; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-20); }
+.ranked-formats legend { width: 100%; margin-bottom: var(--spacing-8); font-weight: 600; font-size: var(--font-size-16); }
+.ranked-steps { margin: 0 0 var(--spacing-12); padding-left: var(--spacing-24); display: grid; gap: var(--spacing-8); font-size: var(--font-size-16); max-width: 72ch; }
+.ranked-staff__help { margin-top: var(--spacing-32); padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }

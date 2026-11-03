@@ -40,7 +40,6 @@ export const metadata: Metadata = {
     description:
       "Brackets and seasons where nobody knows what they are racing until the round opens. MK8DX and Mario Kart World, free to start.",
     url: "https://www.gameshuffle.co/mario-kart-tournaments",
-    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/mk-tournaments-og.jpg"],
   },
   alternates: { canonical: "https://www.gameshuffle.co/mario-kart-tournaments" },
 };

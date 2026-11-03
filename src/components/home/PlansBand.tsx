@@ -19,13 +19,15 @@ import { circuitLaunchState } from "@/lib/tournaments/circuit-resolve";
 import { getPublicPricing } from "@/lib/pricing/public";
 import { usd } from "@/lib/pricing/publicTypes";
 
-export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere }: {
+export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere, supportHere }: {
   pro: boolean;
   circuit: boolean;
   trialUsed: boolean;
   supporter: boolean;
-  /** GS Pro and Support can be bought or given from here (US only for now). */
+  /** GS Pro can be bought from here (US only for now). */
   paidHere: boolean;
+  /** Support can be given from here (everywhere while the support_international switch is on). */
+  supportHere: boolean;
 }) {
   const [{ launchedAt }, pricing] = await Promise.all([
     circuitLaunchState().catch(() => ({ launchedAt: null })),
@@ -34,7 +36,7 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere }
   const launch = circuitLaunch(launchedAt);
   const circuitPrice = launch.phase === "preview" ? "Free while in preview" : launch.phase === "announced" ? `Free until ${launch.dateLabel}` : "From $12 a month";
   const monthly = pricing?.plans.pro?.monthly ?? 9;
-  const proPrice = pro ? "You have GS Pro" : !paidHere ? "In the US for now" : trialUsed ? `${usd(monthly)} a month` : `${usd(monthly)} a month · 14 days free`;
+  const proPrice = pro ? "You have GS Pro" : !paidHere ? (supportHere ? "Included with Backer support, $9 a month" : "In the US for now") : trialUsed ? `${usd(monthly)} a month` : `${usd(monthly)} a month · 14 days free`;
   return (
     <DarkBand premium curved className="home-plans">
       <h2 className="home-plans__title">Go further</h2>
@@ -43,7 +45,7 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere }
         <div className="home-plan home-plan--support">
           <IconTile icon={IconHeart} className="home-plan__icon--support" />
           <h3 className="home-plan__name">Support GameShuffle <span>for everyone</span></h3>
-          <p className="home-plan__price">{supporter ? "Thank you for supporting us" : !paidHere ? "In the US for now" : "From $3 · GS Pro included from $9"}</p>
+          <p className="home-plan__price">{supporter ? "Thank you for supporting us" : !supportHere ? "In the US for now" : "From $3 · GS Pro included from $9"}</p>
           <p className="home-plan__text">No ads, built independently. Support keeps the free games free and new ones coming. You get the Supporter badge, and GS Pro when you back at $9 a month.</p>
           <Link href="/support" className={tagged(EVENTS.supportClicked, { from: "home" })}>
             <Button variant="primary">{supporter ? "Give again" : "Support GameShuffle"}</Button>

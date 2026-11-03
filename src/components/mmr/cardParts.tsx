@@ -14,7 +14,7 @@ import {
 import { divisionLook, fontStylesheet, lookVars, type DivisionLook, type MmrLook } from "@/lib/mmr/look";
 import { flagUrl } from "@/lib/lounge/flags";
 import { mmrRubik } from "./mmrFonts";
-import { MMR_GAMES, fmtMmr, milestoneTier, placeWord, signed, type MmrView, type Square } from "@/lib/mmr/rules";
+import { fmtMmr, milestoneTier, placeWord, rankText, signed, sourceLabel, type MmrLadderTag, type MmrView, type Square } from "@/lib/mmr/rules";
 import { pieceText, type MmrInfo, type Shown } from "@/lib/mmr/pieces";
 import { goalText, type GoalProgress } from "@/lib/mmr/goal";
 import { GLYPHS } from "./glyphs";
@@ -182,12 +182,13 @@ export function Brand({ brand }: { brand: MmrLook["brand"] }) {
   );
 }
 
-export function World({ rank }: { rank: number | null }) {
+/** "#460 world", or "#12 of 64" on a GameShuffle ladder, with a laurel inside a milestone. */
+export function World({ rank, ladder = null }: { rank: number | null; ladder?: MmrLadderTag | null }) {
   if (!rank) return null;
-  const laurel = milestoneTier(rank) != null;
+  const laurel = milestoneTier(rank, !!ladder) != null;
   // The text has its own span: the laurel comes and goes, and React can't insert it in front of a bare
   // text node once a browser's translator has swapped that node out (Sentry GAMESHUFFLE-6M).
-  return <span className="mmr-world">{laurel && <IconLaurelWreathFilled aria-hidden />}<span>#{rank.toLocaleString("en-US")} world</span></span>;
+  return <span className="mmr-world">{laurel && <IconLaurelWreathFilled aria-hidden />}<span>{rankText(rank, ladder)}</span></span>;
 }
 
 /** Tonight's goal as a chip that fills from tonight's starting number to the goal (GS Pro). */
@@ -251,7 +252,7 @@ export function playMoment(el: HTMLElement, play: MmrPlay, m: MmrInfo["moments"]
   if (!mo || (!mo.pop && !mo.rankup && !mo.goal && !mo.milestone)) return () => timers.forEach(clearTimeout);
   timers.push(window.setTimeout(() => {
     const rankDiv = mo.rankup ? divisionLook(mo.rankup) : null;
-    const banner = mo.rankup ?? (mo.goal ? "Goal reached" : mo.milestone ? `Top ${mo.milestone.toLocaleString("en-US")}` : "");
+    const banner = mo.rankup ?? (mo.goal ? "Goal reached" : mo.milestone === 1 ? "Number 1" : mo.milestone ? `Top ${mo.milestone.toLocaleString("en-US")}` : "");
     setFx({ burst: mo.pop ? signed(play.delta) : "", banner, up: play.delta >= 0, glyphs: rankDiv ?? div });
     clear();
     void el.offsetWidth;
@@ -319,10 +320,12 @@ export function UnderLine({ pieces, view, noMmr = false }: { pieces: Shown[]; vi
 /** For screen readers, everything the card shows at once (nothing takes turns here). `extra`: the other pieces shown. */
 export function cardSummary(view: MmrView, info: MmrInfo, g: GoalProgress | null, extra: Shown[]): string {
   const more = extra.filter((p) => !["world", "progress", "goal", "mmr", "name", "division", "game", "cc"].includes(p)).map((p) => pieceText(p, view, info, g)?.chip).filter(Boolean);
-  const world = view.worldRank ? `, #${view.worldRank.toLocaleString("en-US")} in the world` : "";
+  const world = !view.worldRank ? "" : view.ladder ? `, ${rankText(view.worldRank, view.ladder)}` : `, #${view.worldRank.toLocaleString("en-US")} in the world`;
+  const place = view.ladder?.placement ? ` (placement ${view.ladder.placement.done} of ${view.ladder.placement.of})` : "";
+  const from = sourceLabel(view);
   // MMR kept off the card stays off for screen readers too.
-  if (info.hideMmr) return `${view.name}: ${view.division}${view.next ? `, next ${view.next.name}` : ""}${world}.${more.length ? ` ${more.join(". ")}.` : ""} ${MMR_GAMES[view.game].short}.`;
-  return `${view.name}: ${view.mmr == null ? "no MMR yet" : `${fmtMmr(view.mmr)} MMR`}, ${view.division}${view.next && view.toNext != null ? `, ${fmtMmr(view.toNext)} to ${view.next.name}` : ""}${world}.${g ? ` Tonight's goal: ${goalText(g)}.` : ""}${more.length ? ` ${more.join(". ")}.` : ""} ${MMR_GAMES[view.game].short}.`;
+  if (info.hideMmr) return `${view.name}: ${view.division}${place}${view.next ? `, next ${view.next.name}` : ""}${world}.${more.length ? ` ${more.join(". ")}.` : ""} ${from}.`;
+  return `${view.name}: ${view.mmr == null ? "no MMR yet" : `${fmtMmr(view.mmr)} MMR`}, ${view.division}${place}${view.next && view.toNext != null ? `, ${fmtMmr(view.toNext)} to ${view.next.name}` : ""}${world}.${g ? ` Tonight's goal: ${goalText(g)}.` : ""}${more.length ? ` ${more.join(". ")}.` : ""} ${from}.`;
 }
 
 /** The "Built by GameShuffle" tab under the card, when the look puts it there. */

@@ -1,7 +1,7 @@
 /** What the MMR card's live link returns (client-safe types). */
 
 import type { MmrLook } from "./look";
-import type { MmrSource } from "./rules";
+import type { MmrGame, MmrSource } from "./rules";
 import type { MmrPending } from "@/lib/lounge/pending";
 import type { MmrGoal } from "./goal";
 
@@ -27,12 +27,15 @@ export interface MmrLiveData {
   goal?: number | null;
   /** GameShuffle's bot answers !mmr in this streamer's Twitch chat (the panel's chat line shows only then). */
   chat?: boolean;
+  /** Seconds between checks for the live card (a ladder look: 10; else the card's own 30). */
+  poll?: number;
   fetchedAt: string;
 }
 
 export type MmrLiveFailure = {
   ok: false;
-  reason: "no_card" | "no_name" | "not_found" | "unavailable";
+  /** not_on_ladder: the look reads a GameShuffle ladder this account isn't on (or has no Discord connected). */
+  reason: "no_card" | "no_name" | "not_found" | "unavailable" | "not_on_ladder";
   look?: MmrLook;
   pro?: boolean;
 };
@@ -55,4 +58,16 @@ export interface MmrCardView {
   weeklyReport: boolean;
   /** False until supabase/lounge-night-m1.sql has run: the goal and report switch can't save yet. */
   nightReady: boolean;
+}
+
+/** A GameShuffle ladder this account plays on (through its Discord account), for the studio's Rating from menu. */
+export interface StudioLadder {
+  id: string;
+  slug: string;
+  name: string;
+  /** The lounge game it plays like (the look's game: its family and divisions). */
+  game: MmrGame;
+  gameLabel: string;
+  /** The account's name on the ladder. */
+  player: string;
 }

@@ -38,12 +38,13 @@ import { getCurrentDraft, tickDraft, viewOf as draftView, type StreamDraftView }
 import { gameView as brainGameView, getShowableGame as getBrainGame, tickGame as tickBrainGame, type StreamGameView } from "@/lib/chatbrain/streamGame";
 import { maybeAiPass as brainSurveyAi, overlaySurveyView, tickSurvey as tickBrainSurvey, type StreamSurveyView } from "@/lib/chatbrain/survey";
 import { guestGameFor as brainGuestGame } from "@/lib/chatbrain/streamCostream";
-import { overlayTrivia, type TriviaStreamView } from "@/lib/trivia/stream";
+import { overlayTrivia } from "@/lib/trivia/stream";
 import { getCurrentGame as getBingoGame, tickAuto as tickBingo, viewOf as bingoView, type StreamBingoView } from "@/lib/bingo/stream";
 import { breakView, getShowable as getShowableBreak, tickBreak } from "@/lib/break/store";
 import type { BreakView } from "@/lib/break/types";
 import { getViewerCountsForOwner } from "@/lib/streams/viewers";
 import { mmrTokenFor } from "@/lib/mmr/store";
+import { warPieceFor } from "@/lib/wars/streamPiece";
 import { roomOverlayFor } from "@/lib/lounge/roomServer";
 
 export const runtime = "nodejs";
@@ -94,188 +95,55 @@ export async function GET(
     broadcasterName = ytConn.youtube_channel_title;
   }
 
-  // All-up viewer count (Twitch today; cached ~20s so this 2s poll doesn't hit
-  // Helix every tick). Null on failure — the overlay just hides the badge.
-  const viewers = await getViewerCountsForOwner(ownerUserId).catch(() => null);
-  // The streamer's MMR card, for its overlay piece (it reads its own live link).
-  const mmrToken = await mmrTokenFor(ownerUserId).catch(() => null);
-  // Tonight's checked lounge room, for its overlay piece (GS Pro; cached 10s per streamer).
-  const loungeRoom = await roomOverlayFor(ownerUserId).catch(() => null);
-
-  // Wheel spins are owner-keyed and session-independent — resolve the
-  // latest one regardless of whether a session is active. The overlay
-  // client dedups by `createdAt`, so we always return the most recent.
-  const latestSpin = await getLatestSpin(ownerUserId);
-  const wheelSpin = latestSpin
-    ? {
-        id: latestSpin.id,
-        segments: latestSpin.segments,
-        winningIndex: latestSpin.winningIndex,
-        winningLabel: latestSpin.winningLabel,
-        triggeredBy: latestSpin.triggeredBy,
-        createdAt: latestSpin.createdAt,
-        themeId: latestSpin.themeId,
-        fillStyle: latestSpin.fillStyle,
-        // A spin stores only the theme ID, and "user" is not a preset — it is
-        // derived from whatever brand the owner has set today. Resolving it
-        // here keeps the overlay honest without adding a colour snapshot to
-        // every spin row: the overlay would otherwise call getTheme("user"),
-        // miss, and silently fall back to the default on stream.
-        theme:
-          latestSpin.themeId === USER_THEME_ID
-            ? await (async () => {
-                const brand = await getBrandThemeForOwner(ownerUserId);
-                return themeFromBrand(brand.primary, brand.accent, brand.name);
-              })()
-            : null,
-      }
-    : null;
-
-  // Generic streamer-tool overlay events (dice, coin, oracle, …). Owner-keyed
-  // and session-independent, like wheel spins; the client dedups by id.
-  const overlayEvents = (await getLatestOverlayEvents(ownerUserId)).map((e) => ({
-    id: e.id,
-    type: e.type,
-    payload: e.payload,
-    ttlMs: e.ttlMs,
-    createdAt: e.createdAt,
-  }));
-
-  // Per-format layout overrides (streamer-positioned tool elements). Owner-
-  // keyed; the client applies the profile matching its detected format. Absent
-  // formats fall back to DEFAULT_LAYOUTS.
-  const layouts = await getLayoutProfiles(ownerUserId);
-
-  // Open poll for the streamer's community — owner-keyed + session-independent,
-  // like wheel spins. Null when nothing is open (the overlay then hides it).
-  let poll: {
-    id: string;
-    question: string;
-    options: { id: string; label: string }[];
-    tally: { total: number; byOption: Record<string, number> };
-  } | null = null;
-  try {
-    const communityId = await resolveCommunityIdForOwner(ownerUserId);
-    if (communityId) {
-      const open = await getOpenPollForCommunity(communityId);
-      if (open) {
-        poll = {
-          id: open.id,
-          question: open.question,
-          options: open.options,
-          tally: await pollTally(open.id),
-        };
-      }
-    }
-  } catch (err) {
-    console.error("[overlay/latest] poll fetch failed:", err);
-  }
-
-  // Stream Bingo: the community's current game (also makes the timer's call
-  // when due, since this overlay polls every couple of seconds while live).
-  let bingo: StreamBingoView | null = null;
-  try {
-    const communityId = await resolveCommunityIdForOwner(ownerUserId);
-    const game = communityId ? await getBingoGame(communityId) : null;
-    if (game) bingo = await bingoView(await tickBingo(game));
-  } catch (err) {
-    console.error("[overlay/latest] bingo fetch failed:", err);
-  }
-
-  // Chat draft: the community's current draft (also resolves a pick whose timer is up).
-  let draft: StreamDraftView | null = null;
-  try {
-    const communityId = await resolveCommunityIdForOwner(ownerUserId);
-    const d = communityId ? await getCurrentDraft(communityId) : null;
-    if (d) draft = await draftView(await tickDraft(d));
-  } catch (err) {
-    if (!(err instanceof Error && err.name === "DraftsNotReady")) console.error("[overlay/latest] draft fetch failed:", err);
-  }
-
-  // Chat Brain: the community's game on stream (also closes a guess whose time is up).
-  // With no game, a survey round (open, or just closed); closing it when its
-  // time is up and its AI merge pass both run after this responds.
-  let brain: StreamGameView | null = null;
-  let brainSurvey: StreamSurveyView | null = null;
-  try {
-    const communityId = await resolveCommunityIdForOwner(ownerUserId);
-    // A streamer who is the guest in a co-stream shows the host's game.
-    const g = communityId ? (await getBrainGame(communityId)) ?? (await brainGuestGame(communityId)) : null;
-    // A running game wins; an open survey beats a game that just finished.
-    if (g?.status === "playing") brain = await brainGameView(await tickBrainGame(g));
-    else if (communityId) {
-      brainSurvey = await overlaySurveyView(communityId);
-      if (g && brainSurvey?.status !== "open") { brain = await brainGameView(g); brainSurvey = null; }
-      if (brainSurvey?.status === "open") {
-        after(async () => {
-          await tickBrainSurvey(communityId).catch((err) => console.error("[overlay/latest] survey close failed:", err));
-          await brainSurveyAi(communityId).catch((err) => console.error("[overlay/latest] survey AI pass failed:", err));
-        });
-      }
-    }
-  } catch (err) {
-    console.error("[overlay/latest] chat brain fetch failed:", err);
-  }
-
-  // Trivia on stream: the night on stream (also locks a question whose time is up), or one that just ended.
-  let trivia: TriviaStreamView | null = null;
-  try {
-    trivia = await overlayTrivia(ownerUserId);
-  } catch (err) {
-    console.error("[overlay/latest] trivia fetch failed:", err);
-  }
-
-  // Break mode: the channel's break (also moves it along, like Bingo's caller).
-  let breakScreen: BreakView | null = null;
-  try {
-    const communityId = await resolveCommunityIdForOwner(ownerUserId);
-    const run = communityId ? await getShowableBreak(communityId) : null;
-    if (run) breakScreen = await breakView(run.status === "running" ? await tickBreak(run) : run);
-  } catch (err) {
-    console.error("[overlay/latest] break fetch failed:", err);
-  }
-
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
   const sessionParam = url.searchParams.get("session");
 
-  // Hot path: client provided a session id. Validate ownership against
-  // this token's connection. The cheapest possible query — single row
-  // by primary key + owner check.
-  let resolved: ResolvedSession | null = null;
-  if (sessionParam && UUID_REGEX.test(sessionParam)) {
-    const { data: ownedSession } = await admin
-      .from("gs_sessions")
-      .select("id, config")
-      .eq("id", sessionParam)
-      .eq("owner_user_id", ownerUserId)
-      .in("status", ["active", "ending"])
-      .maybeSingle();
-    if (ownedSession) {
-      const config = (ownedSession as { config?: { game?: string | null } | null })
-        .config;
-      resolved = {
-        id: (ownedSession as { id: string }).id,
-        randomizerSlug: config?.game ?? null,
-      };
-    }
-  }
+  // This answers every 2 seconds per open overlay, and the reads below don't depend on each other,
+  // so they run side by side (one after another they were about 20 round trips). The community is
+  // resolved once for every piece that needs it (cached per server instance in the resolver).
+  const communityP = resolveCommunityIdForOwner(ownerUserId).catch((err) => {
+    console.error("[overlay/latest] community lookup failed:", err);
+    return null;
+  });
 
-  // Fall through to the full lookup if no session id was passed, or it
-  // failed ownership/status validation. Treats any stale-id case as a
-  // "tell me what the current session is" prompt.
-  if (!resolved) {
-    const session: TwitchSessionRow | null = await findTwitchSessionForUser(
-      ownerUserId,
-      ["active", "test"]
-    );
-    if (session) {
-      resolved = {
-        id: session.id,
-        randomizerSlug: session.randomizer_slug,
-      };
-    }
-  }
+  const [viewers, mmrToken, loungeRoom, warPiece, wheelSpin, overlayEvents, layouts, poll, bingo, draft, brainParts, trivia, breakScreen, resolved] = await Promise.all([
+    // All-up viewer count (Twitch today; cached ~20s so this 2s poll doesn't hit
+    // Helix every tick). Null on failure — the overlay just hides the badge.
+    getViewerCountsForOwner(ownerUserId).catch(() => null),
+    // The streamer's MMR card, for its overlay piece (it reads its own live link).
+    mmrTokenFor(ownerUserId).catch(() => null),
+    // Tonight's checked lounge room, for its overlay piece (GS Pro; cached 10s per streamer).
+    roomOverlayFor(ownerUserId).catch(() => null),
+    // The war channel the streamer added to this overlay (GS Pro; the piece reads its own war link; cached 10s).
+    warPieceFor(ownerUserId).catch(() => null),
+    readWheelSpin(ownerUserId),
+    // Generic streamer-tool overlay events (dice, coin, oracle, …). Owner-keyed
+    // and session-independent, like wheel spins; the client dedups by id.
+    getLatestOverlayEvents(ownerUserId).then((list) => list.map((e) => ({
+      id: e.id,
+      type: e.type,
+      payload: e.payload,
+      ttlMs: e.ttlMs,
+      createdAt: e.createdAt,
+    }))),
+    // Per-format layout overrides (streamer-positioned tool elements). Owner-
+    // keyed; the client applies the profile matching its detected format. Absent
+    // formats fall back to DEFAULT_LAYOUTS.
+    getLayoutProfiles(ownerUserId),
+    communityP.then(readPoll),
+    communityP.then(readBingo),
+    communityP.then(readDraft),
+    communityP.then(readBrain),
+    // Trivia on stream: the night on stream (also locks a question whose time is up), or one that just ended.
+    overlayTrivia(ownerUserId).catch((err) => {
+      console.error("[overlay/latest] trivia fetch failed:", err);
+      return null;
+    }),
+    communityP.then(readBreak),
+    resolveSession(admin, ownerUserId, sessionParam),
+  ]);
+  const { brain, brainSurvey } = brainParts;
 
   if (!resolved) {
     return NextResponse.json({
@@ -296,32 +164,210 @@ export async function GET(
       viewers,
       mmrToken,
       loungeRoom,
+      warPiece,
     });
   }
 
-  const shuffle = await getLatestTwitchShuffleEvent(resolved.id, {
-    broadcasterOnly: true,
-    since,
+  // The session's own pieces, side by side like the rest.
+  const [shuffle, picksBans, events] = await Promise.all([
+    getLatestTwitchShuffleEvent(resolved.id, { broadcasterOnly: true, since }),
+    readPicksBans(admin, resolved.id, ownerUserId),
+    readLiveEvents(resolved.id),
+  ]);
+
+  return NextResponse.json({
+    ok: true,
+    broadcaster: broadcasterName,
+    session: {
+      id: resolved.id,
+      randomizerSlug: resolved.randomizerSlug,
+    },
+    events,
+    shuffle: shuffle
+      ? {
+          id: shuffle.id,
+          displayName: shuffle.twitch_display_name,
+          combo: shuffle.combo,
+          createdAt: shuffle.created_at,
+        }
+      : null,
+    picksBans,
+    wheelSpin,
+    overlayEvents,
+    layouts,
+    poll,
+    bingo,
+    draft,
+    brain,
+    brainSurvey,
+    trivia,
+    breakScreen,
+    viewers,
+    mmrToken,
+    loungeRoom,
+    warPiece,
   });
+}
 
-  // Multi-game spec PR B — the overlay surfaces an open picks/bans
-  // round so viewers watching the stream can see the live counts +
-  // the shareable URL. Returns null when no round is open.
-  let picksBans: {
-    roundId: string;
-    gameSlug: string;
-    streamerSlug: string;
-    locked: number;
-    inProgress: number;
-    topPicks: Array<{ id: string; count: number; pool: "tracks" | "itemModes" | "itemLiteral" }>;
-    topBans: Array<{ id: string; count: number; pool: "tracks" | "itemModes" | "itemLiteral" }>;
-  } | null = null;
+type OverlayAdmin = ReturnType<typeof createTwitchAdminClient>;
 
+/** The owner's latest wheel spin. Owner-keyed and session-independent; the client dedups by `createdAt`. */
+async function readWheelSpin(ownerUserId: string) {
+  const latestSpin = await getLatestSpin(ownerUserId);
+  if (!latestSpin) return null;
+  return {
+    id: latestSpin.id,
+    segments: latestSpin.segments,
+    winningIndex: latestSpin.winningIndex,
+    winningLabel: latestSpin.winningLabel,
+    triggeredBy: latestSpin.triggeredBy,
+    createdAt: latestSpin.createdAt,
+    themeId: latestSpin.themeId,
+    fillStyle: latestSpin.fillStyle,
+    // A spin stores only the theme ID, and "user" is not a preset — it is
+    // derived from whatever brand the owner has set today. Resolving it
+    // here keeps the overlay honest without adding a colour snapshot to
+    // every spin row: the overlay would otherwise call getTheme("user"),
+    // miss, and silently fall back to the default on stream.
+    theme:
+      latestSpin.themeId === USER_THEME_ID
+        ? await (async () => {
+            const brand = await getBrandThemeForOwner(ownerUserId);
+            return themeFromBrand(brand.primary, brand.accent, brand.name);
+          })()
+        : null,
+  };
+}
+
+/** Open poll for the streamer's community. Null when nothing is open (the overlay then hides it). */
+async function readPoll(communityId: string | null): Promise<{
+  id: string;
+  question: string;
+  options: { id: string; label: string }[];
+  tally: { total: number; byOption: Record<string, number> };
+} | null> {
+  if (!communityId) return null;
+  try {
+    const open = await getOpenPollForCommunity(communityId);
+    if (!open) return null;
+    return { id: open.id, question: open.question, options: open.options, tally: await pollTally(open.id) };
+  } catch (err) {
+    console.error("[overlay/latest] poll fetch failed:", err);
+    return null;
+  }
+}
+
+/** Stream Bingo: the community's current game (also makes the timer's call when due, since this overlay polls every couple of seconds while live). */
+async function readBingo(communityId: string | null): Promise<StreamBingoView | null> {
+  if (!communityId) return null;
+  try {
+    const game = await getBingoGame(communityId);
+    return game ? await bingoView(await tickBingo(game)) : null;
+  } catch (err) {
+    console.error("[overlay/latest] bingo fetch failed:", err);
+    return null;
+  }
+}
+
+/** Chat draft: the community's current draft (also resolves a pick whose timer is up). */
+async function readDraft(communityId: string | null): Promise<StreamDraftView | null> {
+  if (!communityId) return null;
+  try {
+    const d = await getCurrentDraft(communityId);
+    return d ? await draftView(await tickDraft(d)) : null;
+  } catch (err) {
+    if (!(err instanceof Error && err.name === "DraftsNotReady")) console.error("[overlay/latest] draft fetch failed:", err);
+    return null;
+  }
+}
+
+/**
+ * Chat Brain: the community's game on stream (also closes a guess whose time is up). With no game, a
+ * survey round (open, or just closed); closing it when its time is up and its AI merge pass both run
+ * after this responds.
+ */
+async function readBrain(communityId: string | null): Promise<{ brain: StreamGameView | null; brainSurvey: StreamSurveyView | null }> {
+  let brain: StreamGameView | null = null;
+  let brainSurvey: StreamSurveyView | null = null;
+  if (!communityId) return { brain, brainSurvey };
+  try {
+    // A streamer who is the guest in a co-stream shows the host's game.
+    const g = (await getBrainGame(communityId)) ?? (await brainGuestGame(communityId));
+    // A running game wins; an open survey beats a game that just finished.
+    if (g?.status === "playing") brain = await brainGameView(await tickBrainGame(g));
+    else {
+      brainSurvey = await overlaySurveyView(communityId);
+      if (g && brainSurvey?.status !== "open") { brain = await brainGameView(g); brainSurvey = null; }
+      if (brainSurvey?.status === "open") {
+        after(async () => {
+          await tickBrainSurvey(communityId).catch((err) => console.error("[overlay/latest] survey close failed:", err));
+          await brainSurveyAi(communityId).catch((err) => console.error("[overlay/latest] survey AI pass failed:", err));
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[overlay/latest] chat brain fetch failed:", err);
+  }
+  return { brain, brainSurvey };
+}
+
+/** Break mode: the channel's break (also moves it along, like Bingo's caller). */
+async function readBreak(communityId: string | null): Promise<BreakView | null> {
+  if (!communityId) return null;
+  try {
+    const run = await getShowableBreak(communityId);
+    return run ? await breakView(run.status === "running" ? await tickBreak(run) : run) : null;
+  } catch (err) {
+    console.error("[overlay/latest] break fetch failed:", err);
+    return null;
+  }
+}
+
+/**
+ * The streamer's current session. Hot path: the client passes the session id it has, checked against
+ * this token's owner (one row by primary key). With none, or a stale one, the full lookup runs and
+ * the response tells the client the current session.
+ */
+async function resolveSession(admin: OverlayAdmin, ownerUserId: string, sessionParam: string | null): Promise<ResolvedSession | null> {
+  if (sessionParam && UUID_REGEX.test(sessionParam)) {
+    const { data: ownedSession } = await admin
+      .from("gs_sessions")
+      .select("id, config")
+      .eq("id", sessionParam)
+      .eq("owner_user_id", ownerUserId)
+      .in("status", ["active", "ending"])
+      .maybeSingle();
+    if (ownedSession) {
+      const config = (ownedSession as { config?: { game?: string | null } | null }).config;
+      return { id: (ownedSession as { id: string }).id, randomizerSlug: config?.game ?? null };
+    }
+  }
+  const session: TwitchSessionRow | null = await findTwitchSessionForUser(ownerUserId, ["active", "test"]);
+  return session ? { id: session.id, randomizerSlug: session.randomizer_slug } : null;
+}
+
+/**
+ * Multi-game spec PR B — the overlay surfaces an open picks/bans
+ * round so viewers watching the stream can see the live counts +
+ * the shareable URL. Returns null when no round is open.
+ */
+type PicksPool = "tracks" | "itemModes" | "itemLiteral";
+interface PicksBansOverlay {
+  roundId: string;
+  gameSlug: string;
+  streamerSlug: string;
+  locked: number;
+  inProgress: number;
+  topPicks: Array<{ id: string; count: number; pool: PicksPool }>;
+  topBans: Array<{ id: string; count: number; pool: PicksPool }>;
+}
+
+async function readPicksBans(admin: OverlayAdmin, sessionId: string, ownerUserId: string): Promise<PicksBansOverlay | null> {
   try {
     const { data: openRows } = await admin
       .from("session_picks_bans_rounds")
       .select("id, game_slug")
-      .eq("session_id", resolved.id)
+      .eq("session_id", sessionId)
       .eq("status", "open")
       .order("opened_at", { ascending: false })
       .limit(1);
@@ -403,7 +449,7 @@ export async function GET(
           (profile?.twitch_username as string | null)) ??
         "";
 
-      picksBans = {
+      return {
         roundId: open.id,
         gameSlug: open.game_slug,
         streamerSlug,
@@ -417,48 +463,21 @@ export async function GET(
     console.error("[overlay/latest] picks-bans fetch failed:", err);
     // Don't fail the whole response — overlay still gets shuffle data.
   }
+  return null;
+}
 
-  // Live event state — active modifiers + open public challenges. Capped for
-  // the small overlay real estate. Guarded so it never fails the response.
-  let events: LiveEvents | null = null;
+/**
+ * Live event state — active modifiers + open public challenges, capped for the small overlay real
+ * estate. Guarded so it never fails the response.
+ */
+async function readLiveEvents(sessionId: string): Promise<LiveEvents | null> {
   try {
-    const e = await listLiveSessionEvents(resolved.id);
+    const e = await listLiveSessionEvents(sessionId);
     if (e.modifiers.length > 0 || e.challenges.length > 0) {
-      events = { modifiers: e.modifiers.slice(0, 4), challenges: e.challenges.slice(0, 4) };
+      return { modifiers: e.modifiers.slice(0, 4), challenges: e.challenges.slice(0, 4) };
     }
   } catch (err) {
     console.error("[overlay/latest] events fetch failed:", err);
   }
-
-  return NextResponse.json({
-    ok: true,
-    broadcaster: broadcasterName,
-    session: {
-      id: resolved.id,
-      randomizerSlug: resolved.randomizerSlug,
-    },
-    events,
-    shuffle: shuffle
-      ? {
-          id: shuffle.id,
-          displayName: shuffle.twitch_display_name,
-          combo: shuffle.combo,
-          createdAt: shuffle.created_at,
-        }
-      : null,
-    picksBans,
-    wheelSpin,
-    overlayEvents,
-    layouts,
-    poll,
-    bingo,
-    draft,
-    brain,
-    brainSurvey,
-    trivia,
-    breakScreen,
-    viewers,
-    mmrToken,
-    loungeRoom,
-  });
+  return null;
 }

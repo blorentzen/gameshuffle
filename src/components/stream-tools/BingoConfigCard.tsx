@@ -15,7 +15,7 @@ import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl, uploadToolImage } from "./fields";
 import { BINGO_PROMPT_MAX } from "@/lib/modules/types";
 import { AiPackModal } from "@/components/ai/AiPackModal";
-import { IconSparkles } from "@tabler/icons-react";
+import { IconPhoto, IconSparkles } from "@tabler/icons-react";
 
 interface BingoCfg {
   prompts: string[];
@@ -81,7 +81,7 @@ export function BingoConfigCard({ onSaved, live, bare = false }: { onSaved?: () 
 
   return (
     <section className={bare ? "stream-tools__bare" : "stream-tools__section"} style={vars}>
-      {!bare && <h3 className="stream-tools__heading">🅱️ Community Bingo</h3>}
+      {!bare && <h3 className="stream-tools__heading">Community Bingo</h3>}
       <div className="stream-tools__row">
         <AccentField label="Accent" value={cfg.accentColor} onChange={(v) => setCfg({ ...cfg, accentColor: v })} />
         <Select
@@ -108,8 +108,9 @@ export function BingoConfigCard({ onSaved, live, bare = false }: { onSaved?: () 
             loading={uploading}
             onClick={() => fileRef.current?.click()}
             disabled={cfg.prompts.length >= BINGO_MAX_PROMPTS}
+            iconBefore={IconPhoto}
           >
-            📷 Upload image
+            Upload image
           </Button>
           <Button variant="secondary" size="small" iconBefore={IconSparkles} onClick={() => setAiOpen(true)} disabled={cfg.prompts.length >= BINGO_MAX_PROMPTS}>
             Make prompts with AI

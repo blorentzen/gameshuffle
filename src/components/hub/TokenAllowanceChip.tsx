@@ -46,7 +46,7 @@ export function TokenAllowanceChip({
             ? `Monthly allowance: ${formatTokens(consumed)} of ${formatTokens(
                 ceiling,
               )} used`
-            : `Default monthly allowance: ${formatTokens(ceiling)}🪙. No awards yet this month.`
+            : `Default monthly allowance: ${formatTokens(ceiling)} tokens. No awards yet this month.`
         }
         aria-label="View token allowance details"
       >

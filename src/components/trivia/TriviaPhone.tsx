@@ -18,6 +18,7 @@ import { TriviaJoinChoices, type JoinedTeam } from "./TriviaJoinChoices";
 import type { TeamView } from "@/lib/trivia/store";
 import "@/styles/trivia.css";
 import { SupportMoment } from "@/components/support/SupportMoment";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 const POLL_MS = 2500;
 const storeKey = (code: string) => `gs-trivia-team:${code}`;
@@ -100,9 +101,10 @@ export function TriviaPhone({ code }: { code: string }) {
   useEffect(() => {
     if (!checked) return;
     void Promise.resolve().then(load);
-    const iv = window.setInterval(() => void load(), POLL_MS);
+    // Hidden phones (another app, the screen off) stop asking; coming back asks at once.
+    const stop = everyVisible(load, POLL_MS);
     const clock = window.setInterval(() => setNow(Date.now()), 500);
-    return () => { window.clearInterval(iv); window.clearInterval(clock); };
+    return () => { stop(); window.clearInterval(clock); };
   }, [checked, load]);
 
   // A new question clears the answer box.

@@ -5,7 +5,9 @@
  * GS Pro side by side, the same size and weight, on /gs-pro and /support; Support leads (support
  * first plan, same day), and its $9 Backer level includes GS Pro. GS Pro members see their
  * plan in the first card and can still support; a supporter sees since when and can give again.
- * Outside the US both are one waitlist (US only for now).
+ * Outside the US: support is open while the support_international switch is on (the default), and the GS Pro card
+ * points to Backer support, which includes GS Pro there; GS Pro's own plan stays US-only. With that switch off, both
+ * are one waitlist.
  */
 
 import Link from "next/link";
@@ -37,7 +39,9 @@ export function BackingPair({ from, proHref = "/gs-pro", supportHref = "/support
   const pricing = usePublicPricing();
   const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
 
-  if (availability && !availability.paidPlans.available) {
+  const supportOpen = !availability || availability.support.available;
+  const proOpen = !availability || availability.paidPlans.available;
+  if (!supportOpen && !proOpen) {
     return (
       <Card variant="outlined" padding="large" className="backing-card backing-card--wait">
         <div className="backing-card__tiles" aria-hidden="true">
@@ -81,13 +85,18 @@ export function BackingPair({ from, proHref = "/gs-pro", supportHref = "/support
         <span className="backing-tile" aria-hidden="true"><IconSparkles size={22} stroke={2} /></span>
         <h3 className="backing-card__name">GS Pro</h3>
         <p className="backing-card__price">
-          {isPro ? "You have GS Pro" : trialLeft ? `${usd(pro.monthly)} a month · 14 days free` : `${usd(pro.monthly)} a month or ${usd(pro.annual)} a year`}
+          {isPro ? "You have GS Pro" : !proOpen ? "Included with Backer support, $9 a month" : trialLeft ? `${usd(pro.monthly)} a month · 14 days free` : `${usd(pro.monthly)} a month or ${usd(pro.annual)} a year`}
         </p>
-        <p className="backing-card__text">Tools for streamers and hosts: the overlay, chat games, the Discord bot and your own themes.</p>
+        <p className="backing-card__text">
+          Tools for streamers and hosts: the overlay, chat games, the Discord bot and your own themes.
+          {!isPro && !proOpen ? " The plan itself is US-only for now; Backer support includes it wherever you are." : ""}
+        </p>
         <div className="backing-card__cta">
           {isPro
             ? <Link href="/account?tab=plans"><Button variant="secondary">Manage your plan</Button></Link>
-            : <Link href={proHref} onClick={() => track(EVENTS.upgradeClicked, { from: `${from}-pair` })}><Button variant="primary">{trialLeft ? "Start 14 days free" : "Get GS Pro"}</Button></Link>}
+            : !proOpen
+              ? <Link href="/support?level=backer" onClick={() => track(EVENTS.supportClicked, { from: `${from}-pair-backer` })}><Button variant="primary">Back GameShuffle at $9</Button></Link>
+              : <Link href={proHref} onClick={() => track(EVENTS.upgradeClicked, { from: `${from}-pair` })}><Button variant="primary">{trialLeft ? "Start 14 days free" : "Get GS Pro"}</Button></Link>}
         </div>
       </Card>
     </div>

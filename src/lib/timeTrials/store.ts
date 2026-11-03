@@ -10,7 +10,10 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { describePlayers } from "@/lib/daily/boards";
 import { formatTime, rankRows, type ProofKind, type TtPlayer, type VideoState } from "./rules";
-import { categoryText, TOP_TEN, type TtItems, type TtVehicle } from "./categories";
+import { boardsFor, categoryText, TOP_TEN, vehicleFor, type TtItems, type TtVehicle } from "./categories";
+import { countriesFor, round3Ready, trustedPlayers, underReview, vouchCounts } from "./status";
+import { countryPlayers } from "./countries";
+import { checkProof, hashOfProof } from "./proof";
 import { playerPagePath } from "./playerPath";
 import { isClassFor, trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
 import { createNotification } from "@/lib/social/notifications";
@@ -42,6 +45,14 @@ export interface TtBoardRow {
   page: string;
   /** In the top ten of this board for everyone (whatever the scope shown): only these need a clip. */
   top: boolean;
+  /** A report is open on it (round 3 pick 3A). */
+  review: boolean;
+  /** The player has earned Trusted: a top-ten time without a checked clip says so (pick 7A). */
+  trusted: boolean;
+  /** Players with a checked time who vouched for it (pick 9A). */
+  vouches: number;
+  /** The player's country, when known (pick 6A). */
+  country: string | null;
 }
 
 export interface TtBoard {
@@ -54,6 +65,8 @@ export interface TtBoard {
   proofOnly: boolean;
   /** Only verified times (a reviewer checked the clip). */
   verifiedOnly: boolean;
+  /** Only players from this country (pick 6A). */
+  country: string | null;
   rows: TtBoardRow[];
   /** The viewer's own row when it isn't in the rows shown. */
   mine: TtBoardRow | null;
@@ -75,12 +88,19 @@ export interface AddTimeInput {
   readByAi: boolean;
   source: "site" | "discord" | "import";
   guildId?: string | null;
+  /** Round 3: laps (from the screenshot, possibly changed by the player), what the screen read, the screenshot's fingerprint. */
+  laps?: number[] | null;
+  readMs?: number | null;
+  readLaps?: number[] | null;
+  shotHash?: string | null;
 }
 
 export type AddTimeResult =
   | { ok: true; timeId: string; best: boolean; previousMs: number | null; place: number; total: number; server: { place: number; total: number } | null; again: boolean; items: TtItems; vehicle: TtVehicle;
       /** The time is in its board's top ten: it shows as Unverified until a reviewer checks its clip (4A). */
-      needsVideo: boolean }
+      needsVideo: boolean;
+      /** A top-ten time from a Trusted player: no clip needed (round 3 pick 7A). */
+      trusted: boolean }
   | { ok: false; error: "not_ready" | "bad_track" | "bad_class" | "faster_than_record" | "failed" };
 
 let ready: boolean | null = null;
@@ -115,8 +135,8 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
   if (!isClassFor(input.game, input.cc)) return { ok: false, error: "bad_class" };
   if (fasterThanRecord(input.game, input.track, input.cc, input.timeMs)) return { ok: false, error: "faster_than_record" };
   const items: TtItems = input.items ?? "shrooms";
-  // Vehicle boards are Mario Kart 8 Deluxe only.
-  const vehicle: TtVehicle = input.game === "mk8dx" ? input.vehicle ?? "any" : "any";
+  // A vehicle only counts where its game has that board.
+  const vehicle: TtVehicle = vehicleFor(input.game, input.vehicle ?? "any");
   const db = createServiceClient();
   const since = new Date(Date.now() - 10 * 60_000).toISOString();
   const { data: dupe } = await db.from("tt_times").select("id").eq("player", input.player).eq("game", input.game)
@@ -124,8 +144,12 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
   const previousMs = await previousBest(input.player, input.game, input.track, input.cc, items, vehicle);
   let timeId = (dupe as { id: string } | null)?.id ?? null;
   const again = !!timeId;
+  const m4 = await round3Ready();
+  const shot = m4 ? input.shotHash ?? (input.proof === "screenshot" ? await hashOfProof(input.proofUrl) : null) : null;
   if (!timeId) {
+    const extra = m4 ? { laps: input.laps ?? null, read_ms: input.readMs ?? null, read_laps: input.readLaps ?? null, shot_hash: shot } : {};
     const { data, error } = await db.from("tt_times").insert({
+      ...extra,
       player: input.player,
       user_id: input.userId,
       identity_id: input.identityId,
@@ -143,6 +167,8 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
     }).select("id").single();
     if (error || !data) { console.error("[tt] add failed:", error?.message); return { ok: false, error: "failed" }; }
     timeId = (data as { id: string }).id;
+    // Proof checks open tickets for the mode's updaters; they never take the time down.
+    if (m4) await checkProof({ id: timeId, player: input.player, timeMs: input.timeMs, shotHash: shot, readMs: input.readMs ?? null, laps: input.laps ?? null }).catch((e) => console.error("[tt] proof check failed:", e));
   }
   const best = previousMs == null || input.timeMs < previousMs || (again && previousMs === input.timeMs);
   const bestMs = previousMs == null ? input.timeMs : Math.min(previousMs, input.timeMs);
@@ -152,8 +178,9 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
     vehicle === "any" ? Promise.resolve(null) : placeOf(input.game, input.track, input.cc, input.timeMs, input.player, null, items, "any"),
     input.guildId ? guildPlayers(input.guildId).then((ps) => placeOf(input.game, input.track, input.cc, bestMs, input.player, ps, items, vehicle)) : Promise.resolve(null),
   ]);
-  const needsVideo = best && (place.place <= TOP_TEN || (open?.place ?? Infinity) <= TOP_TEN);
-  return { ok: true, timeId, best, previousMs: again ? null : previousMs, place: place.place, total: place.total, server, again, items, vehicle, needsVideo };
+  const top = best && (place.place <= TOP_TEN || (open?.place ?? Infinity) <= TOP_TEN);
+  const trusted = top && (await trustedPlayers([input.player])).has(input.player);
+  return { ok: true, timeId, best, previousMs: again ? null : previousMs, place: place.place, total: place.total, server, again, items, vehicle, needsVideo: top && !trusted, trusted };
 }
 
 /** The players a Discord server has seen use /gs-tt. */
@@ -212,12 +239,17 @@ async function verificationsFor(timeIds: string[]): Promise<Map<string, string[]
  * A track's board in a scope, for one items setting and vehicle board: every time in its place, each
  * marked Verified or Unverified (`video`), and `mine` the viewer's row when it's further down than `limit`.
  */
-export async function boardFor(args: { game: TtGame; track: string; cc: TtClass; items?: TtItems; vehicle?: TtVehicle; scope: TtScope; viewer: TtPlayer | null; guildId?: string | null; proofOnly?: boolean; verifiedOnly?: boolean; limit?: number }): Promise<TtBoard> {
+export async function boardFor(args: { game: TtGame; track: string; cc: TtClass; items?: TtItems; vehicle?: TtVehicle; scope: TtScope; viewer: TtPlayer | null; guildId?: string | null; proofOnly?: boolean; verifiedOnly?: boolean; country?: string | null; limit?: number }): Promise<TtBoard> {
   const items: TtItems = args.items ?? "shrooms";
-  const vehicle: TtVehicle = args.game === "mk8dx" ? args.vehicle ?? "any" : "any";
-  const empty: TtBoard = { game: args.game, track: args.track, cc: args.cc, items, vehicle, scope: args.scope, proofOnly: !!args.proofOnly, verifiedOnly: !!args.verifiedOnly, rows: [], mine: null, total: 0 };
+  const vehicle: TtVehicle = vehicleFor(args.game, args.vehicle ?? "any");
+  const country = args.country ?? null;
+  const empty: TtBoard = { game: args.game, track: args.track, cc: args.cc, items, vehicle, scope: args.scope, proofOnly: !!args.proofOnly, verifiedOnly: !!args.verifiedOnly, country, rows: [], mine: null, total: 0 };
   if (!(await ttReady())) return empty;
-  const players = await scopePlayers(args.scope, args.viewer, args.guildId ?? null);
+  let players = await scopePlayers(args.scope, args.viewer, args.guildId ?? null);
+  if (country) {
+    const from = await countryPlayers(country);
+    players = players ? players.filter((p) => from.includes(p)) : from;
+  }
   if (players && !players.length) return empty;
   const { data, error } = await createServiceClient().rpc("tt_board2", {
     p_game: args.game, p_track: args.track, p_cc: args.cc, p_items: items, p_vehicle: vehicle, p_players: players, p_proof: !!args.proofOnly, p_limit: 500,
@@ -227,16 +259,21 @@ export async function boardFor(args: { game: TtGame; track: string; cc: TtClass;
     .filter((r) => !args.verifiedOnly || r.video === "checked");
   const placed = rankRows(raw);
   // Only the top ten for everyone need a clip, so a friends or server view still asks the whole board.
-  const top = args.scope === "everyone" && !args.verifiedOnly
+  const top = args.scope === "everyone" && !args.verifiedOnly && !country
     ? new Set(placed.filter((r) => r.rank <= TOP_TEN).map((r) => r.row.time_id))
     : await topTenIds(args.game, args.track, args.cc, items, vehicle);
   const limit = args.limit ?? 100;
   const shown = placed.slice(0, limit);
   const mineRaw = args.viewer ? placed.find((r) => r.row.player === args.viewer) ?? null : null;
   const need = [...shown.map((r) => r.row), ...(mineRaw && !shown.includes(mineRaw) ? [mineRaw.row] : [])];
-  const [names, verified] = await Promise.all([
+  const ids = need.map((r) => r.time_id);
+  const [names, verified, review, trusted, vouches, countries] = await Promise.all([
     describePlayers(need.map((r) => r.player)),
-    verificationsFor(need.map((r) => r.time_id)),
+    verificationsFor(ids),
+    underReview(ids),
+    trustedPlayers(need.map((r) => r.player)),
+    vouchCounts(ids),
+    countriesFor(need.map((r) => r.player)),
   ]);
   const toRow = (rank: number, r: (typeof raw)[number]): TtBoardRow => {
     const who = names.get(r.player);
@@ -260,6 +297,10 @@ export async function boardFor(args: { game: TtGame; track: string; cc: TtClass;
       imported: r.source === "import",
       page: playerPagePath(r.player, who?.profile ?? null),
       top: top.has(r.time_id),
+      review: review.has(r.time_id),
+      trusted: trusted.has(r.player),
+      vouches: vouches.get(r.time_id) ?? 0,
+      country: countries.get(r.player) ?? null,
     };
   };
   return {
@@ -273,17 +314,15 @@ export async function boardFor(args: { game: TtGame; track: string; cc: TtClass;
 /** The time ids in a board's top ten for everyone (ties at tenth all count). */
 export async function topTenIds(game: TtGame, track: string, cc: TtClass, items: TtItems, vehicle: TtVehicle): Promise<Set<string>> {
   const { data, error } = await createServiceClient().rpc("tt_board2", {
-    p_game: game, p_track: track, p_cc: cc, p_items: items, p_vehicle: game === "mk8dx" ? vehicle : "any", p_players: null, p_proof: false, p_limit: 40,
+    p_game: game, p_track: track, p_cc: cc, p_items: items, p_vehicle: vehicleFor(game, vehicle), p_players: null, p_proof: false, p_limit: 40,
   });
   if (error) return new Set();
   const raw = ((data ?? []) as BoardRaw[]).map((r) => ({ ...r, timeMs: r.time_ms }));
   return new Set(rankRows(raw).filter((r) => r.rank <= TOP_TEN).map((r) => r.row.time_id));
 }
 
-/** The boards a time sits on: the open board, and its vehicle board when it has one. */
-function boardsOf(t: { game: TtGame; vehicle: TtVehicle }): TtVehicle[] {
-  return t.game === "mk8dx" && t.vehicle !== "any" ? ["any", t.vehicle] : ["any"];
-}
+/** The boards a time sits on: the open board, its vehicle board, and Inside drift for a Yoshi Bike. */
+const boardsOf = (t: { game: TtGame; vehicle: TtVehicle }): TtVehicle[] => boardsFor(t.game, t.vehicle);
 
 /** Each of a time's boards' top tens, taken before the time comes off so `nudgeMovedUp` can tell who moved in. */
 export async function topTensAround(t: { game: TtGame; track: string; cc: TtClass; items: TtItems; vehicle: TtVehicle }): Promise<Map<TtVehicle, Set<string>>> {
@@ -355,9 +394,9 @@ export interface TtTrackSummary { track: string; cc: TtClass; recordMs: number; 
 export async function trackSummary(game: TtGame, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): Promise<TtTrackSummary[]> {
   if (!(await ttReady())) return [];
   const db = createServiceClient();
-  const v = game === "mk8dx" ? vehicle : "any";
+  const v = vehicleFor(game, vehicle);
   let checkedQ = db.from("tt_times").select("track, cc, player, time_ms").eq("game", game).eq("items", items).eq("status", "ok").eq("video_status", "checked");
-  if (v !== "any") checkedQ = checkedQ.eq("vehicle", v);
+  if (v !== "any") checkedQ = checkedQ.in("vehicle", v === "inside_drift" ? ["inside_drift", "yoshi_bike"] : [v]);
   const [{ data, error }, { data: checked }] = await Promise.all([
     db.rpc("tt_track_summary2", { p_game: game, p_items: items, p_vehicle: v }),
     checkedQ.limit(5000),
@@ -424,6 +463,20 @@ export async function claimDiscordTimes(userId: string, discordId: string | null
   if (!identityId) return 0;
   const { data: moved, error } = await db.rpc("tt_claim_identity", { p_user: userId, p_identity: identityId });
   if (error) { console.error("[tt] claim failed:", error.message); return 0; }
+  // Round 3's country and vouches move too (the m4 function does this; here as well, for databases where it hasn't run).
+  if (await round3Ready()) {
+    const from = `i:${identityId}`, to = `u:${userId}`;
+    const { data: c } = await db.from("tt_player_country").select("country, source").eq("player", from).maybeSingle();
+    if (c) {
+      await db.from("tt_player_country").upsert({ player: to, ...(c as { country: string; source: string }) }, { onConflict: "player", ignoreDuplicates: true });
+      await db.from("tt_player_country").delete().eq("player", from);
+    }
+    const { data: vs } = await db.from("tt_vouches").select("time_id").eq("voter", from);
+    for (const v of (vs ?? []) as { time_id: string }[]) {
+      await db.from("tt_vouches").upsert({ time_id: v.time_id, voter: to }, { onConflict: "time_id,voter", ignoreDuplicates: true });
+    }
+    if (vs?.length) await db.from("tt_vouches").delete().eq("voter", from);
+  }
   return Number(moved ?? 0);
 }
 

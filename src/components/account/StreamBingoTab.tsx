@@ -22,6 +22,7 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminScreen, AdminSection, AdminPanel } from "@/components/account/admin/AdminKit";
 import { IconAction } from "@/components/actions/IconAction";
 import { BingoShape } from "@/components/overlay/NumberBingoOverlay";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 const ERRORS: Record<string, string> = {
   already_open: "A game is already running. End it first.",
@@ -97,8 +98,8 @@ export function StreamBingoTab() {
     };
     void load();
     // Refresh so the doors, timer calls, new players and a winner show up while you watch.
-    const iv = window.setInterval(load, 4000);
-    return () => { active = false; window.clearInterval(iv); };
+    const stop = everyVisible(load, 4000);
+    return () => { active = false; stop(); };
   }, []);
 
   const closesAt = game?.doorsCloseAt ? Date.parse(game.doorsCloseAt) : 0;

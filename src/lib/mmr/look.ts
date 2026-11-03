@@ -23,7 +23,9 @@ import { DEFAULT_ROLLING, cleanRolling, freeRolling, proRollingUsed, type MmrRol
 
 export type MmrLayout = "deck" | "panel" | "strip" | "sticker" | "rolling";
 export type MmrSurface = "dark" | "light" | "glass";
-export type MmrFill = "solid" | "gradient" | "glyphs" | "stripes" | "dots" | "picture";
+/** Backgrounds. Checkered, speed lines, stage lights and night drive are free ready-made ones (time trials round 3,
+ *  pick 12A: your own picture stays a paid look). */
+export type MmrFill = "solid" | "gradient" | "glyphs" | "checker" | "speed" | "lights" | "night" | "stripes" | "dots" | "picture";
 /** "tile" is the Medal choice (MKCentral's division medal; the name stayed so saved cards keep it). */
 export type MmrFrame = "tile" | "name" | "off" | "picture";
 export type MmrFont =
@@ -45,7 +47,10 @@ export type MmrBrand = "inside" | "tab" | "mark" | "off";
 export interface MmrLook {
   id: string;
   name: string;
+  /** The lounge game, or for a ladder look the game it plays like (its family and divisions). */
   game: MmrGame;
+  /** A GameShuffle ladder's id: the card reads that ladder instead of MKCentral. */
+  ladder: string | null;
   layout: MmrLayout;
   surface: MmrSurface;
   /** "division", "gs", "accent", a brand theme id, or "custom". */
@@ -83,6 +88,7 @@ export const DEFAULT_LOOK: MmrLook = {
   id: "main",
   name: "My card",
   game: "mkworld12p",
+  ladder: null,
   layout: "deck",
   surface: "dark",
   colors: "gs",
@@ -121,6 +127,7 @@ export const LOOK_CHOICES: { id: keyof MmrLook; label: string; opts: { v: string
   ] },
   { id: "fill", label: "Background", opts: [
     { v: "solid", label: "Solid" }, { v: "gradient", label: "Glow" }, { v: "glyphs", label: "Glyphs" },
+    { v: "checker", label: "Checkered" }, { v: "speed", label: "Speed lines" }, { v: "lights", label: "Stage lights" }, { v: "night", label: "Night drive" },
     { v: "stripes", label: "Stripes", pro: true }, { v: "dots", label: "Dots", pro: true }, { v: "picture", label: "Your picture or GIF", pro: true },
   ] },
   { id: "emblem", label: "Emblem", opts: [
@@ -193,12 +200,13 @@ export function cleanLook(raw: unknown, fallbackId = "main"): MmrLook {
     id: typeof r.id === "string" && /^[a-z0-9-]{1,24}$/.test(r.id) ? r.id : fallbackId,
     name: typeof r.name === "string" && r.name.trim() ? r.name.trim().slice(0, 40) : d.name,
     game: isMmrGame(r.game) ? r.game : d.game,
+    ladder: typeof r.ladder === "string" && /^[0-9a-f-]{36}$/.test(r.ladder) ? r.ladder : null,
     layout,
     surface: pick(r.surface, ["dark", "light", "glass"] as const, d.surface),
     colors: colorIds.includes(String(r.colors)) ? String(r.colors) : d.colors,
     accent: PROFILE_ACCENTS.some((a) => a.key === r.accent) || (typeof r.accent === "string" && HEX.test(r.accent)) ? String(r.accent).toLowerCase() : d.accent,
     custom,
-    fill: pick(r.fill, ["solid", "gradient", "glyphs", "stripes", "dots", "picture"] as const, d.fill),
+    fill: pick(r.fill, ["solid", "gradient", "glyphs", "checker", "speed", "lights", "night", "stripes", "dots", "picture"] as const, d.fill),
     picture,
     // The tile, crest and coin frames became the medal (2026-10-30).
     emblem: r.emblem === "crest" || r.emblem === "coin" ? "tile" : pick(r.emblem, ["tile", "name", "off", "picture"] as const, d.emblem),

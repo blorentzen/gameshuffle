@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { IconFlag } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { Button, Modal, Select, Textarea } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -50,7 +51,8 @@ export function IdeaReportButton({ ideaId }: { ideaId: string }) {
   return (
     <>
       <button type="button" className="idea-report-trigger" onClick={trigger}>
-        ⚐ Report
+        <IconFlag size={14} stroke={2} aria-hidden />
+        Report
       </button>
       {open && (
         <Modal

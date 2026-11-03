@@ -14,7 +14,7 @@ import { heatMainsChampion, currentHeatMainsRace, heatMainsStandings, type HeatM
 import { groupChampion, computeGroupPlacements, type GroupBracket } from "@/lib/tournaments/groups";
 import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
 import { PlaceMedal } from "./PlaceMedal";
-import { IconFlagCheck, IconUserCheck } from "@tabler/icons-react";
+import { IconFlagCheck, IconHourglass, IconTrophy, IconUserCheck } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { GameCover } from "@/components/games/GameCover";
 import { SwissBoard } from "@/components/tournament/swiss/SwissBoard";
@@ -223,19 +223,19 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
         {/* Bracket / Heats → Mains / Groups — the generated structure. */}
         {tournament.bracket && (
           <section className="tourney-display__panel">
-            <h2 className="tourney-display__h2">Bracket{bracketChampion(tournament.bracket) ? <span className="tourney-display__checkin-count">🏆 {nameOf(bracketChampion(tournament.bracket))}</span> : null}</h2>
+            <h2 className="tourney-display__h2">Bracket{bracketChampion(tournament.bracket) ? <span className="tourney-display__checkin-count"><IconTrophy size="1em" stroke={1.9} aria-hidden style={{ verticalAlign: "-0.12em", marginRight: "0.3em" }} /><span className="sr-only">Won by </span>{nameOf(bracketChampion(tournament.bracket))}</span> : null}</h2>
             <div className="tourney-display__structure"><BracketView bracket={tournament.bracket} nameOf={nameOf} /></div>
           </section>
         )}
         {tournament.heat_mains && (
           <section className="tourney-display__panel">
-            <h2 className="tourney-display__h2">Heats → Mains{heatMainsChampion(tournament.heat_mains) ? <span className="tourney-display__checkin-count">🏆 {nameOf(heatMainsChampion(tournament.heat_mains))}</span> : null}</h2>
+            <h2 className="tourney-display__h2">Heats → Mains{heatMainsChampion(tournament.heat_mains) ? <span className="tourney-display__checkin-count"><IconTrophy size="1em" stroke={1.9} aria-hidden style={{ verticalAlign: "-0.12em", marginRight: "0.3em" }} /><span className="sr-only">Won by </span>{nameOf(heatMainsChampion(tournament.heat_mains))}</span> : null}</h2>
             <div className="tourney-display__structure"><HeatMainsView hm={tournament.heat_mains} nameOf={nameOf} /></div>
           </section>
         )}
         {tournament.group_bracket && (
           <section className="tourney-display__panel">
-            <h2 className="tourney-display__h2">Groups{groupChampion(tournament.group_bracket) ? <span className="tourney-display__checkin-count">🏆 {nameOf(groupChampion(tournament.group_bracket))}</span> : null}</h2>
+            <h2 className="tourney-display__h2">Groups{groupChampion(tournament.group_bracket) ? <span className="tourney-display__checkin-count"><IconTrophy size="1em" stroke={1.9} aria-hidden style={{ verticalAlign: "-0.12em", marginRight: "0.3em" }} /><span className="sr-only">Won by </span>{nameOf(groupChampion(tournament.group_bracket))}</span> : null}</h2>
             <div className="tourney-display__structure"><GroupBracketView gb={tournament.group_bracket} nameOf={nameOf} /></div>
           </section>
         )}
@@ -273,7 +273,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
                 </ul>
               </div>
               <div className="tourney-display__flight">
-                <h3 className="tourney-display__flight-name">⏳ Not checked in <span className="tourney-display__flight-count">{waiting.length}</span></h3>
+                <h3 className="tourney-display__flight-name"><IconHourglass size="1em" stroke={1.9} aria-hidden /> Not checked in <span className="tourney-display__flight-count">{waiting.length}</span></h3>
                 <ul className="tourney-display__entries">
                   {waiting.length === 0
                     ? <li className="tourney-display__entry tourney-display__entry--muted">Everyone&rsquo;s here</li>

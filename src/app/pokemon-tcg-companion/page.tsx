@@ -15,7 +15,6 @@ export const metadata: Metadata = {
     title: content.metaTitle,
     description: content.metaDescription,
     url: `https://www.gameshuffle.co${content.path}`,
-    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/tcg-companion-og.jpg"],
   },
   alternates: { canonical: `https://www.gameshuffle.co${content.path}` },
 };

@@ -16,6 +16,7 @@
  */
 
 import { MmrOverlay } from "@/components/mmr/MmrOverlay";
+import { WarPiece } from "@/components/wars/WarOverlay";
 import { LoungeRoomOverlay } from "@/components/lounge/LoungeRoomOverlay";
 import type { RoomOverlayData } from "@/lib/lounge/roomServer";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
@@ -128,6 +129,7 @@ interface ApiResponse {
   viewers?: ViewerCountView | null;
   mmrToken?: string | null;
   loungeRoom?: RoomOverlayData | null;
+  warPiece?: { token: string; lookId: string | null } | null;
 }
 
 /** Render a generic tool overlay event by type. Add a case per tool. */
@@ -267,6 +269,7 @@ export function OverlayClient({
   const [viewers, setViewers] = useState<ViewerCountView | null>(null);
   const [mmrToken, setMmrToken] = useState<string | null>(null);
   const [loungeRoom, setLoungeRoom] = useState<RoomOverlayData | null>(null);
+  const [warPiece, setWarPiece] = useState<{ token: string; lookId: string | null } | null>(null);
   const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
   const [format, setFormat] = useState<OverlayFormat>("landscape");
   const [layouts, setLayouts] = useState<Partial<Record<OverlayFormat, LayoutProfile>>>({});
@@ -435,6 +438,7 @@ export function OverlayClient({
         setViewers(data.viewers ?? null);
         setMmrToken(data.mmrToken ?? null);
         setLoungeRoom(data.loungeRoom ?? null);
+        setWarPiece(data.warPiece ?? null);
         if (data.layouts) setLayouts(data.layouts);
         if (processToolEvents(data.overlayEvents, false) > 0) activity = true;
         if (activity) lastActivityRef.current = Date.now();
@@ -484,6 +488,7 @@ export function OverlayClient({
       setViewers(data.viewers ?? null);
       setMmrToken(data.mmrToken ?? null);
         setLoungeRoom(data.loungeRoom ?? null);
+        setWarPiece(data.warPiece ?? null);
       if (data.layouts) setLayouts(data.layouts);
       processToolEvents(data.overlayEvents, true);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
@@ -576,6 +581,9 @@ export function OverlayClient({
       )}
       {loungeRoom && isPlacementEnabled(format, "lounge_room", layouts[format]) && (
         <LoungeRoomOverlay room={loungeRoom} style={placementStyle(format, "lounge_room", layouts[format])} />
+      )}
+      {warPiece && isPlacementEnabled(format, "war", layouts[format]) && (
+        <WarPiece token={warPiece.token} lookId={warPiece.lookId} style={placementStyle(format, "war", layouts[format])} />
       )}
       {viewers?.live && isPlacementEnabled(format, "viewers", layouts[format]) && (
         <ViewerCountOverlay viewers={viewers} style={placementStyle(format, "viewers", layouts[format])} />

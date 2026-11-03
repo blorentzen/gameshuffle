@@ -9,14 +9,23 @@
  *
  * Which Discord app: production by default. Set DISCORD_ACTIVITY_APP=dev
  * locally to use the dev app (DEV_DISCORD_*), so the Activity can be tested
- * through a tunnel without touching the production app's settings.
+ * through a tunnel without touching the production app's settings. The War
+ * room runs in GameShuffle Competitive's own Activity (`app = "comp"`, its
+ * DISCORD_COMP_* keys).
  */
 
 import "server-only";
+import { appKeys } from "@/lib/discord/apps";
+
+export type ActivityAppId = "main" | "comp";
 
 const API = "https://discord.com/api/v10";
 
-export function activityApp(): { clientId: string; clientSecret: string; botToken: string | null } | null {
+export function activityApp(which: ActivityAppId = "main"): { clientId: string; clientSecret: string; botToken: string | null } | null {
+  if (which === "comp") {
+    const k = appKeys("comp");
+    return k?.clientSecret ? { clientId: k.applicationId, clientSecret: k.clientSecret, botToken: k.botToken } : null;
+  }
   const dev = process.env.DISCORD_ACTIVITY_APP === "dev";
   const clientId = dev ? process.env.DEV_DISCORD_APPLICATION_ID : process.env.DISCORD_APPLICATION_ID;
   const clientSecret = dev ? process.env.DEV_DISCORD_CLIENT_SECRET : process.env.DISCORD_CLIENT_SECRET;
@@ -31,8 +40,8 @@ export function activityApp(): { clientId: string; clientSecret: string; botToke
  * playing together (any call, DMs included); the channel only counts when it's
  * a server channel, so the results card can't be pointed at another server.
  */
-export async function verifiedInstance(instanceId: string, userId: string): Promise<{ instanceId: string; channelId: string | null; guildId: string | null } | null> {
-  const app = activityApp();
+export async function verifiedInstance(instanceId: string, userId: string, which: ActivityAppId = "main"): Promise<{ instanceId: string; channelId: string | null; guildId: string | null } | null> {
+  const app = activityApp(which);
   if (!app?.botToken || !/^[\w-]{1,100}$/.test(instanceId)) return null;
   const res = await fetch(`${API}/applications/${app.clientId}/activity-instances/${encodeURIComponent(instanceId)}`, {
     headers: { Authorization: `Bot ${app.botToken}` },
@@ -55,8 +64,8 @@ export interface DiscordMe { id: string; username: string; global_name: string |
 
 export type ExchangeResult = { ok: true; accessToken: string; me: DiscordMe } | { ok: false; error: "not_configured" | "bad_code" | "discord_unavailable" };
 
-export async function exchangeCode(code: string): Promise<ExchangeResult> {
-  const app = activityApp();
+export async function exchangeCode(code: string, which: ActivityAppId = "main"): Promise<ExchangeResult> {
+  const app = activityApp(which);
   if (!app) return { ok: false, error: "not_configured" };
   const tokenRes = await fetch(`${API}/oauth2/token`, {
     method: "POST",

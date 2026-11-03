@@ -40,6 +40,8 @@ export const APP_ROUTE_PATTERNS: readonly RegExp[] = [
   /^\/trivia\/host(\/|$)/,
   /^\/trivia\/leagues\/new(\/|$)/,
   /^\/trivia\/leagues\/[^/]+\/manage(\/|$)/,
+  // GS Ranked: a lounge's standings are public; its staff page is auth.
+  /^\/ranked\/[^/]+\/staff(\/|$)/,
 ];
 
 /** Public landings inside an app namespace: signed-out visitors land

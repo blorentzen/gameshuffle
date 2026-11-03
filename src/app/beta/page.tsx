@@ -24,7 +24,6 @@ export const metadata: Metadata = {
     siteName: "GameShuffle",
     title: "GameShuffle Streamer Beta",
     url: "https://www.gameshuffle.co/beta",
-    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gameshuffle-beta-program-og.jpg"],
   },
   alternates: {
     canonical: "https://www.gameshuffle.co/beta",

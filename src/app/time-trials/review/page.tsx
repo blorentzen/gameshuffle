@@ -4,10 +4,10 @@ import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { TtReviewQueue } from "@/components/timeTrials/TtReviewQueue";
 import { siteActor } from "@/lib/timeTrials/players";
-import { isReviewer } from "@/lib/timeTrials/review";
+import { reviewScope } from "@/lib/timeTrials/updaters";
 import "@/styles/time-trials.css";
 
-/** The reviewers' queue for time trial reviewers who aren't staff (round 2, 6A). */
+/** The review queue for time trial reviewers and updaters who aren't staff (round 2, 6A; round 3, 8A). */
 
 export const metadata: Metadata = { title: "Time trial reviews", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function TtReviewPage() {
   const actor = await siteActor();
   if (!actor) redirect(`/login?redirect=${encodeURIComponent("/time-trials/review")}`);
-  if (!(await isReviewer(actor.userId))) notFound();
+  if (!(await reviewScope(actor.userId))) notFound();
   return (
     <main className="tt-page">
       <BrowseHero eyebrow="Time trials" title="Reviews" sub="Check clips so times show as Verified, and decide reported times." accent="blue" field="compete" compact />

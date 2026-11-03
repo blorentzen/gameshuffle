@@ -67,9 +67,15 @@ export function AppMarketingPage({ content, look, plans, afterPlans }: {
             <p className="marketing-eyebrow">{c.eyebrow}</p>
             <h1 className="app-hero__title">{c.h1}</h1>
             <p className="app-hero__sub">{c.heroSubhead}</p>
-            <Link href={c.toolHref} style={{ textDecoration: "none" }}>
-              <Button variant="primary" size="large">{c.toolCtaLabel}</Button>
-            </Link>
+            {c.toolPlain ? (
+              <a href={c.toolHref} style={{ textDecoration: "none" }}>
+                <Button variant="primary" size="large">{c.toolCtaLabel}</Button>
+              </a>
+            ) : (
+              <Link href={c.toolHref} style={{ textDecoration: "none" }}>
+                <Button variant="primary" size="large">{c.toolCtaLabel}</Button>
+              </Link>
+            )}
           </div>
         </Container>
         <MarketingHeroCurve color="var(--surface-default)" />

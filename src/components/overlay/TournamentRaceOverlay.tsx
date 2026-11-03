@@ -8,6 +8,7 @@
  */
 
 import type { CSSProperties } from "react";
+import { IconFlag } from "@tabler/icons-react";
 
 export interface TournamentRaceOverlayPayload {
   tournamentTitle?: string | null;
@@ -51,8 +52,9 @@ export function TournamentRaceOverlay({
           <img src={payload.img} alt="" style={{ width: 60, height: 44, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
         ) : null}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.7 }}>
-            🏁 {total ? `Race ${idx} / ${total}` : "Now racing"}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.7 }}>
+            <IconFlag size={12} stroke={2.2} aria-hidden />
+            {total ? `Race ${idx} / ${total}` : "Now racing"}
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {payload.name || payload.label || "-"}

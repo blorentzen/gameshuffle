@@ -7,7 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { paidPlanAvailability } from "@/lib/billing/availability";
+import { supportAvailability } from "@/lib/billing/availability";
 import { claimSupportGifts, saveMyWall, supporterInfo } from "@/lib/support/store";
 
 export const runtime = "nodejs";
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
   if (user.email_confirmed_at) await claimSupportGifts(user.id, user.email).catch(() => 0);
   const info = await supporterInfo(user.id).catch(() => null);
-  return NextResponse.json({ available: paidPlanAvailability(req).available, ready: !!info, info }, { headers: NO_STORE });
+  return NextResponse.json({ available: (await supportAvailability(req)).available, ready: !!info, info }, { headers: NO_STORE });
 }
 
 export async function PATCH(req: Request) {

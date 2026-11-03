@@ -30,7 +30,7 @@ export function JoinClient({ token, championshipId, name }: { token: string; cha
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
       <Container>
         <div className="comp-card" style={{ maxWidth: 480, margin: "0 auto", textAlign: "center", padding: "2.5rem 1.5rem" }}>
-          <span className="marketing-eyebrow">🏆 Championship invite</span>
+          <span className="marketing-eyebrow">Championship invite</span>
           <h1 style={{ fontSize: "var(--font-size-18)", fontWeight: 700, margin: "0.35rem 0 0.5rem" }}>Join {name}</h1>
           <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
             You&apos;ve been invited to the <strong>{name}</strong> championship series on GameShuffle. Points carry across every event into a season table.

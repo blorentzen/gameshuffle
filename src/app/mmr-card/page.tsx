@@ -12,6 +12,8 @@ import { isProUser } from "@/lib/subscription-server";
 import { hasLooks } from "@/lib/support/looks";
 import { accountPicture, cardFor, cardView, chatAnswersMmr } from "@/lib/mmr/store";
 import { linksFor } from "@/lib/lounge/store";
+import { hasDiscord, laddersForUser } from "@/lib/mmr/ladderSource";
+import { laddersOpen } from "@/lib/ladders/store";
 import { fulfilSupportSession } from "@/lib/support/store";
 import { isDraftPlan } from "@/lib/mmr/draft";
 import "@/styles/mmr-card.css";
@@ -61,13 +63,16 @@ export default async function MmrCardPage({ searchParams }: { searchParams: Prom
     }
     const admin = createServiceClient();
     const proP = isProUser(user.id, admin);
-    const [card, pro, looksOk, avatar, links, chat] = await Promise.all([
+    const [card, pro, looksOk, avatar, links, chat, ladders, discord, laddersOn] = await Promise.all([
       cardFor(user.id),
       proP,
       hasLooks(user.id),
       accountPicture(user.id),
       linksFor(user.id),
       proP.then((p) => chatAnswersMmr(user.id, p)),
+      laddersForUser(user.id),
+      hasDiscord(user.id),
+      laddersOpen(),
     ]);
     return (
       <main className="mmr-page">
@@ -81,7 +86,7 @@ export default async function MmrCardPage({ searchParams }: { searchParams: Prom
         />
         <div className="mmr-page__body">
           <MmrStudio initial={card ? cardView(card) : null} pro={pro} looksOk={looksOk} chat={chat} avatar={avatar} links={links.map((l) => ({ game: l.game, playerId: l.playerId, name: l.name }))}
-            userId={user.id} then={then} checkout={checkout} />
+            ladders={ladders} laddersOn={laddersOn} discord={discord} userId={user.id} then={then} checkout={checkout} />
           <p className="mmr-page__also">Your card also answers <b>!mmr</b> in your Twitch chat (with the GameShuffle bot) and <b>/gs-mmr</b> in Discord, and shows as a sticker on your profile.</p>
           <MedalCredit className="mmr-page__credit" />
         </div>
@@ -120,6 +125,7 @@ export default async function MmrCardPage({ searchParams }: { searchParams: Prom
             <li><b>Your last ten events</b> as squares, gold where an event set a new season peak.</li>
             <li><b>Moments</b>: the change pops and the number rolls, a flame after three wins in a row, a gold tag for a new peak, a banner for a new division, and a laurel the first time you reach the world top 1,000, 250, 100 or 10. Each one has its own switch.</li>
             <li><b>Your pick of what&rsquo;s on it</b>: country rank, top %, your win streak, recent events, events and win %, average score and more, each with a switch, or start from a preset like Just the number. When more are on than a layout fits, the extras take turns.</li>
+            <li><b>GS Ranked lounges too</b>: if your 200cc or Knockout Tour lounge is ranked on GameShuffle, your card can show that rating instead, with your place on it, like &ldquo;#12 of 64&rdquo;.</li>
             <li><b>Rolling</b>: one piece at a time as a lower-third bar, a box or a tall card for vertical streams, sliding, flipping, fading, dealt like cards or as a ticker. A change jumps straight to your MMR.</li>
           </ul>
         </section>

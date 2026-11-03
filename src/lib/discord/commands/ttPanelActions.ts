@@ -21,15 +21,15 @@ import { getDiscordUser } from "../user";
 import { canManageGuild } from "../guildOwner";
 import { appOfApplicationId } from "../appIds";
 import { addAppGuild, getAppGuild } from "../appGuilds";
-import { isPanelGame, panelGameLabel, postPanel, TT_PANEL_PREFIX, type PanelGame } from "../ttPanel";
+import { COMP_COLOR, isPanelGame, panelGameLabel, postPanel, TT_PANEL_PREFIX, type PanelGame } from "../ttPanel";
 import { SITE_URL } from "@/lib/seo";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { accountForDiscord } from "@/lib/daily/results";
 import { discordActor } from "@/lib/timeTrials/players";
 import { boardFor, noteGuildPlayer, playerBests, ttReady } from "@/lib/timeTrials/store";
 import { readScreenshot, storeScreenshot } from "@/lib/timeTrials/read";
-import { categoryText, isItems, isVehicle, VEHICLES, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
-import { formatTime, parseTime } from "@/lib/timeTrials/rules";
+import { categoryText, isItems, vehicleFor, vehicleOptions, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import { formatLap, formatTime, lapsAddUp, parseTime } from "@/lib/timeTrials/rules";
 import { isClassFor, ttCups, ttTrack, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 import { trackCode, trackTitle } from "@/lib/timeTrials/codes";
 import { boardUrl, editOriginal, fetchAttachment, guildName, playerReply, LINK_URL, TT_NO_PREFIX, TT_OK_PREFIX, type Attachment } from "./timeTrials";
@@ -49,7 +49,7 @@ export const TT_PANEL_COMPONENTS = [TT_PANEL_PREFIX, TT_CUP_PREFIX, TT_TRACK_PRE
 export const TT_PANEL_MODALS = [TT_PANEL_MODAL, TT_FIXTIME_MODAL];
 
 const EPHEMERAL = 64;
-const COLOR = 0xf0b232;
+const COLOR = COMP_COLOR;
 
 const btn = (label: string, customId: string, style: 1 | 2 | 3 | 4 = 2, disabled = false) => ({ type: 2, style, label, custom_id: customId, ...(disabled ? { disabled: true } : {}) });
 const link = (label: string, url: string) => ({ type: 2, style: 5, label, url });
@@ -62,7 +62,9 @@ const answer = (interaction: Record<string, unknown>, data: Record<string, unkno
   ((((interaction.message as { flags?: number } | undefined)?.flags ?? 0) & EPHEMERAL) !== 0 ? update(data) : say(data));
 
 /** `read`: the time came from the screenshot (not typed), so it saves as read by AI. */
-type DraftPayload = { game: TtGame; track: string | null; cc: TtClass; timeMs: number | null; read?: boolean; proofUrl: string | null; name: string; items: TtItems; vehicle: TtVehicle; via: "panel" };
+type DraftPayload = { game: TtGame; track: string | null; cc: TtClass; timeMs: number | null; read?: boolean; proofUrl: string | null; name: string; items: TtItems; vehicle: TtVehicle; via: "panel";
+  /** Round 3: what the screen showed (the proof checks compare it with what saves) and its laps. */
+  readMs?: number | null; laps?: number[] | null };
 type Draft = { player: string; discord_id: string; guild_id: string | null; payload: DraftPayload; expires_at: string };
 
 async function loadDraft(id: string, discordId: string): Promise<Draft | null> {
@@ -119,10 +121,11 @@ function addForm(game: TtGame): Record<string, unknown> {
     { type: 18, label: "Result screenshot", description: "The screen with your time; it's your proof", component: { type: 19, custom_id: "shot", min_values: 1, max_values: 1, required: true, file_types: ["image"] } },
     { type: 18, label: "Category", component: { type: 21, custom_id: "cat", required: true, options: cats } },
   ];
-  if (game === "mk8dx") {
+  const vehicles = vehicleOptions(game);
+  if (vehicles.length > 1) {
     components.push({ type: 18, label: "Vehicle", description: "For the vehicle boards", component: {
       type: 21, custom_id: "veh", required: false,
-      options: VEHICLES.map((v) => ({ value: v.id, label: v.id === "any" ? "Something else" : v.long, ...(v.id === "any" ? { default: true } : {}) })),
+      options: vehicles.map((v) => ({ value: v.id, label: v.id === "any" ? "Something else" : v.long, ...(v.id === "any" ? { default: true } : {}) })),
     } });
   }
   components.push({ type: 18, label: "Time", description: "Leave it empty and it's read from the screenshot", component: { type: 4, custom_id: "time", style: 1, required: false, max_length: 12, placeholder: "1:24.903" } });
@@ -141,6 +144,7 @@ function checkMessage(draftId: string, p: DraftPayload, note: string | null = nu
   }
   const cat = categoryText(p.game, p.cc, p.items, p.vehicle, TT_GAMES[p.game].classes.length > 1);
   const lines = [...lead, p.read ? "From your screenshot:" : "Check it before it saves:", `**${trackTitle(track)} · ${p.timeMs ? formatTime(p.timeMs) : "time not read"}**`, cat.replace(/^./, (c) => c.toUpperCase())];
+  if (p.laps?.length) lines.push(`Laps: ${p.laps.map(formatLap).join(" · ")}${p.timeMs && !lapsAddUp(p.laps, p.timeMs) ? " (they don't add up to the time; an updater will look)" : ""}`);
   if (!p.timeMs) lines.push("I couldn't read every digit of the time. Press Type the time.");
   return {
     content: lines.join("\n"),
@@ -180,7 +184,7 @@ async function submitAddForm(interaction: Record<string, unknown>, game: TtGame)
   const cc = Number(ccRaw);
   if (!isClassFor(game, cc) || !isItems(itemsRaw)) return say({ content: "Pick a category." });
   const vehRaw = String(parts.get("veh")?.value ?? "any");
-  const vehicle: TtVehicle = game === "mk8dx" && isVehicle(vehRaw) ? vehRaw : "any";
+  const vehicle: TtVehicle = vehicleFor(game, vehRaw);
   const timeText = String(parts.get("time")?.value ?? "").trim();
   const typedMs = timeText ? parseTime(timeText) : null;
   if (timeText && !typedMs) return say({ content: `Couldn't read "${timeText.slice(0, 20)}" as a time. Type it like 1:24.903.` });
@@ -200,17 +204,19 @@ async function submitAddForm(interaction: Record<string, unknown>, game: TtGame)
       let note: string | null = null;
       let trackId: string | null = null;
       let readMs: number | null = null;
+      let laps: number[] | null = null;
       if (read.ok) {
         if (read.read.notResult) { await editOriginal(appId, token, { content: "That doesn't look like a time trial result screen. Press Add a time again with the screen that shows your time." }); return; }
         if (read.read.game && read.read.game !== game) note = `That looks like ${TT_GAMES[read.read.game].label}. This panel is for ${TT_GAMES[game].label}.`;
         else {
           trackId = read.read.trackId && ttTrack(game, read.read.trackId) ? read.read.trackId : null;
           readMs = read.read.timeMs;
+          laps = read.read.laps;
         }
       } else if (read.error === "cap") note = typedMs ? "That's all the screenshots I can read for you today, so pick the track." : "That's all the screenshots I can read for you today, so pick the track and type the time.";
       // A typed time wins (as with /tt add), but a screenshot that reads differently is said out loud.
       if (!note && typedMs && readMs && typedMs !== readMs) note = `You typed ${formatTime(typedMs)}. The screenshot reads ${formatTime(readMs)}.`;
-      const payload: DraftPayload = { game, track: trackId, cc: cc as TtClass, items: itemsRaw, vehicle, timeMs: typedMs ?? readMs, read: !typedMs && !!readMs, proofUrl: shot.url, name: actor.name, via: "panel" };
+      const payload: DraftPayload = { game, track: trackId, cc: cc as TtClass, items: itemsRaw, vehicle, timeMs: typedMs ?? readMs, read: !typedMs && !!readMs, proofUrl: shot.url, name: actor.name, via: "panel", readMs, laps };
       const { data } = await createServiceClient().from("tt_drafts").insert({ player: actor.player, discord_id: user.id, guild_id: guildId, payload }).select("id").single();
       const draftId = (data as { id: string } | null)?.id;
       if (!draftId) { await editOriginal(appId, token, { content: "Something went wrong saving that. Try again." }); return; }

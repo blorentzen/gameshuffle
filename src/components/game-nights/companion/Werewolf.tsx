@@ -5,6 +5,7 @@ import { Button, Checkbox, Select } from "@empac/cascadeds";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { IconMoon, IconSun } from "@tabler/icons-react";
 
 /**
  * Werewolf / Mafia moderator — deal secret roles by passing the phone, then run
@@ -143,7 +144,7 @@ export function Werewolf() {
   return (
     <div className="account-card">
       <div className="bgn-wolf__phasebar">
-        <span className={`bgn-wolf__phase bgn-wolf__phase--${dayNight}`}>{dayNight === "night" ? "🌙 Night" : "☀️ Day"} · Round {round}</span>
+        <span className={`bgn-wolf__phase bgn-wolf__phase--${dayNight}`}>{dayNight === "night" ? <IconMoon size={20} stroke={2} aria-hidden /> : <IconSun size={20} stroke={2} aria-hidden />}{dayNight === "night" ? "Night" : "Day"} · Round {round}</span>
         <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
           <Button variant="primary" size="small" onClick={advancePhase}>{dayNight === "night" ? "Go to day" : "Next night"}</Button>
           <Button variant="ghost" size="small" onClick={() => setPhase("setup")}>New game</Button>

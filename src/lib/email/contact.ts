@@ -22,7 +22,16 @@ export const CONTACT_TOPIC_LABELS: Record<string, string> = {
   account: "Account help",
   billing: "Billing or subscription",
   partnership: "Partnership or press",
+  lounge: "Lounge help",
   other: "Other",
+};
+
+/** The lounge topic (GS Ranked support, name/web pick 10A): which lounge and how urgent; urgent ones are marked for support. */
+export const LOUNGE_TOPIC = "lounge";
+export const LOUNGE_URGENCY: Record<string, string> = {
+  later: "It can wait a day or two",
+  today: "Today, please",
+  now: "It's stopping our lounge right now",
 };
 
 function readableTopic(topic: string): string {
@@ -36,6 +45,7 @@ export async function sendContactTeamNotification({
   message,
   submittedAt,
   authenticatedUserId,
+  lounge,
 }: {
   name: string | null;
   email: string;
@@ -43,12 +53,15 @@ export async function sendContactTeamNotification({
   message: string;
   submittedAt: Date;
   authenticatedUserId?: string | null;
+  lounge?: { name: string; urgency: string } | null;
 }) {
+  const urgent = lounge?.urgency === "now" || lounge?.urgency === "today";
   const text = [
     "A new contact form submission has been received.",
     "",
     `From: ${name?.trim() || "(not provided)"} <${email}>`,
     `Topic: ${readableTopic(topic)}`,
+    ...(lounge ? [`Lounge: ${lounge.name}`, `How urgent: ${LOUNGE_URGENCY[lounge.urgency] ?? lounge.urgency}`] : []),
     `Submitted: ${submittedAt.toISOString()}`,
     `Authenticated user: ${authenticatedUserId ?? "(anonymous)"}`,
     "",
@@ -62,7 +75,7 @@ export async function sendContactTeamNotification({
 
   return sendTransactionalEmail({
     to: SUPPORT_INBOX,
-    subject: `[Contact] ${readableTopic(topic)} from ${name?.trim() || email}`,
+    subject: `[Contact${urgent ? `, ${lounge!.urgency === "now" ? "urgent" : "today"}` : ""}] ${readableTopic(topic)}${lounge ? ` (${lounge.name})` : ""} from ${name?.trim() || email}`,
     text,
     fromName: FROM_NAME,
     replyTo: email,

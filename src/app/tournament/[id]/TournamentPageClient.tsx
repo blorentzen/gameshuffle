@@ -83,7 +83,7 @@ export interface Tournament {
   friend_codes: { name: string; code: string }[];
   archived_at?: string | null;
   rules: string | null;
-  settings: Record<string, any>;
+  settings: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any -- free-form jsonb that differs by game and format
   scoring_table?: number[] | null;
   format?: string | null;
   bracket?: Bracket | null;
@@ -210,8 +210,15 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
     setLoading(false);
   }, [tournamentId]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the first load of server data, set when the fetch answers
+  useEffect(() => { void loadData(); }, [loadData]);
+
+  // Live updates only while the event can still change: a finished, cancelled or archived tournament
+  // keeps no connection open (each one counts toward the realtime limit, and most visits to old
+  // results are from search).
+  const watching = !!tournament && !tournament.archived_at && ["draft", "open", "in_progress"].includes(tournament.status);
   useEffect(() => {
-    loadData();
+    if (!watching) return;
     const channel = supabase
       .channel(`tournament-${tournamentId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tournaments", filter: `id=eq.${tournamentId}` },
@@ -222,7 +229,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
         () => { supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number").then(({ data }) => { if (data) setRaces(data as TournamentRace[]); }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [tournamentId, loadData]);
+  }, [tournamentId, watching]);
 
   // Old claim links (emailed before /claim existed) land here as ?claim=<token>.
   // Forward them to the dedicated claim page straight away, so the credential
@@ -363,7 +370,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
     if (j.deckError) toast.toast({ variant: "warning", title: "You're in, but your list didn't send", message: "Send it from Your deck list on this page." });
     toast.toast({
       variant: "success",
-      title: tournament.acceptance_mode === "auto" ? "You're in!" : "Request sent 🏁",
+      title: tournament.acceptance_mode === "auto" ? "You're in!" : "Request sent",
       message: tournament.acceptance_mode === "auto"
         ? "You're signed up for this tournament."
         : "Your request to join was sent. You'll get lobby details once the organizer accepts you.",
@@ -1157,7 +1164,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.85rem" }}>Active Items</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
                     {tournament.settings.customItems.map((name: string) => {
-                      const item = gd?.items.find((i: any) => i.name === name);
+                      const item = gd?.items.find((i) => i.name === name);
                       return (
                         <div key={name} className="setup-expand__item" title={name}>
                           {item?.img ? <img src={getImagePath(item.img)} alt={name} className="setup-expand__item-img" /> : <span style={{ fontSize: "var(--font-size-10)" }}>{name}</span>}
@@ -1173,7 +1180,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
                 <div style={{ marginBottom: "1.75rem" }}>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.85rem" }}>Track List</span>
                   <div className="tournament-schedule">
-                    {tournament.settings.tracks.map((t: any, i: number) => {
+                    {tournament.settings.tracks.map((t: { name: string; img: string }, i: number) => {
                       const isCurrent = tournament.status === "in_progress" && String(i) === (tournament.settings?.currentRaceKey ?? null);
                       return (
                         <div key={i} className={`tournament-schedule__item${isCurrent ? " tournament-schedule__item--current" : ""}`}>

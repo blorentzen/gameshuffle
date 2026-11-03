@@ -5,7 +5,7 @@ import type { SupportLevel } from "@/lib/support/rules";
 
 /** /api/support/status: who's looking, for every Support ask and thank-you. */
 export interface SupportStatus {
-  /** Support can be given from here (US only for now). */
+  /** Support can be given from here (everywhere while the support_international switch is on, else the US). */
   available: boolean;
   signedIn: boolean;
   /** Gave in the last year, or gives monthly. */

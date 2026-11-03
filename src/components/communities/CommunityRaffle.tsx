@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { IconTrophy } from "@tabler/icons-react";
 import { Card, Button, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -139,7 +140,7 @@ export function CommunityRaffle({
   return (
     <Card padding="large">
       <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", justifyContent: "space-between", marginBottom: "var(--spacing-12)", flexWrap: "wrap" }}>
-        <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: 0 }}>🎟️ Raffle{live && raffle?.status === "open" && <span className="bgn-live-dot"> ● Live</span>}</h2>
+        <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: 0 }}>Raffle{live && raffle?.status === "open" && <span className="bgn-live-dot"> ● Live</span>}</h2>
         {raffle && raffle.status === "open" && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{raffle.entryCost.toLocaleString()} tokens / entry</span>}
       </div>
 
@@ -149,7 +150,7 @@ export function CommunityRaffle({
           <p style={{ color: "var(--text-secondary)", margin: "0 0 var(--spacing-12)" }}>Prize: {raffle.prize}</p>
 
           {raffle.status === "drawn" ? (
-            <p style={{ fontWeight: 700, color: "var(--bg-primary, var(--primary-600))" }}>🏆 Winner: {raffle.winnerName ?? "drawn"}</p>
+            <p style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", fontWeight: 700, color: "var(--bg-primary, var(--primary-600))" }}><IconTrophy size={18} stroke={2} aria-hidden /><span>Winner: {raffle.winnerName ?? "drawn"}</span></p>
           ) : (
             <>
               <div style={{ display: "flex", gap: "var(--spacing-16)", flexWrap: "wrap", fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "var(--spacing-12)" }}>
@@ -201,7 +202,7 @@ export function CommunityRaffle({
           <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
             {history.map((h) => (
               <li key={h.id} style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-12)", fontSize: "var(--font-size-14)" }}>
-                <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🏆 {h.winnerName ?? "Winner"}</span>
+                <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.winnerName ?? "Winner"}</span>
                 <span style={{ color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.prize}</span>
               </li>
             ))}

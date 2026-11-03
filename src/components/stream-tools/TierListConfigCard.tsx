@@ -14,6 +14,7 @@ import { useAutosave } from "@/lib/hooks/useAutosave";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl, uploadToolImage } from "./fields";
 import { TIER_ITEM_MAX } from "@/lib/modules/types";
+import { IconPhoto } from "@tabler/icons-react";
 
 interface TierCfg {
   items: string[];
@@ -85,7 +86,7 @@ export function TierListConfigCard({ onSaved, live, bare = false }: { onSaved?: 
 
   return (
     <section className={bare ? "stream-tools__bare" : "stream-tools__section"} style={vars}>
-      {!bare && <h3 className="stream-tools__heading">📊 Tier List</h3>}
+      {!bare && <h3 className="stream-tools__heading">Tier List</h3>}
       <div className="stream-tools__row">
         <AccentField label="Accent" value={cfg.accentColor} onChange={(v) => setCfg({ ...cfg, accentColor: v })} />
         <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
@@ -129,8 +130,9 @@ export function TierListConfigCard({ onSaved, live, bare = false }: { onSaved?: 
             loading={uploading}
             onClick={() => fileRef.current?.click()}
             disabled={cfg.items.length >= TIER_MAX_ITEMS}
+            iconBefore={IconPhoto}
           >
-            📷 Upload
+            Upload
           </Button>
           <input
             ref={fileRef}

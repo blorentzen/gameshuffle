@@ -15,3 +15,10 @@ export function flagUrl(code: string | null | undefined): string | null {
   const cc = ALIAS[c] ?? c;
   return CODES.has(cc) ? `/images/flags/${cc}.svg` : null;
 }
+
+/** Codes with a flag that aren't countries (the EU, the UN, flag-icons' placeholders and sub-region codes). */
+const NOT_COUNTRIES = new Set(["eu", "un", "xx", "pc", "cp", "dg", "ic", "ea", "ta", "ac", "bv", "hm", "um", "sj", "aq", "gs", "tf", "io"]);
+/** Every country we have a flag for (a country picker's choices). */
+export function countryCodes(): string[] {
+  return [...CODES].filter((c) => !NOT_COUNTRIES.has(c));
+}

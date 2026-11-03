@@ -7,6 +7,7 @@
  */
 
 import { useState } from "react";
+import { IconFlag } from "@tabler/icons-react";
 import { Alert, Button, FormField, Modal, Select, Textarea } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
@@ -64,7 +65,8 @@ export function ReportProfileButton({ targetUserId }: { targetUserId: string }) 
         className="report-profile-trigger"
         onClick={() => setOpen(true)}
       >
-        ⚐ Report this profile
+        <IconFlag size={16} stroke={2} aria-hidden />
+        Report this profile
       </button>
 
       {open && (

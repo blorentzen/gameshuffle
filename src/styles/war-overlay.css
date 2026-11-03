@@ -1,0 +1,124 @@
+/* The war overlay (GameShuffle Competitive; overlay looks picks 2026-10-31). An OBS browser source, transparent around
+   the panel. Each layout is drawn in its own design pixels (--u = 1/--wo-w of the frame's width: bug 1000, strip 1920,
+   corner 520, list 440), so the source scales cleanly when it's resized in OBS or Streamlabs. */
+html.war-obs-route, html.war-obs-route body { background: transparent !important; margin: 0; padding: 0; overflow: hidden; }
+.war-obs { min-height: 100vh; margin: 0; font-family: "Outfit", system-ui, sans-serif; }
+.war-obs__frame { container-type: inline-size; width: 100%; min-height: 100vh; display: flex; flex-direction: column; }
+.war-obs__frame--bug { justify-content: flex-end; }
+.war-obs__idle { margin: 24px auto; max-width: 40ch; text-align: center; color: #a3b6c6; font: 500 16px/1.5 system-ui, sans-serif; background: rgb(5 7 11 / .9); border-radius: 12px; padding: 14px 18px; }
+.war-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.wo {
+  --u: calc(100cqw / var(--wo-w, 1000));
+  --wo-bg: rgb(5 7 11 / .94); --wo-ink: #ffffff; --wo-soft: #a3b6c6; --wo-mute: #c9d6e1; --wo-track: rgb(255 255 255 / .12);
+  --wo-up: #5fe0a3; --wo-up-bg: rgb(47 163 107 / .2); --wo-down: #ff9a9a; --wo-down-bg: rgb(208 73 76 / .22);
+  --wo-win: #2fa36b; --wo-loss: #d0494c; --wo-gold: #f2c14e;
+  width: 100%; color: var(--wo-ink); font-family: "Outfit", system-ui, sans-serif;
+}
+.wo--light { --wo-bg: rgb(246 248 251 / .97); --wo-ink: #0b0e13; --wo-soft: #4a5a6a; --wo-mute: #334250; --wo-track: #d7dee6; --wo-up: #11764a; --wo-up-bg: #d8f5e6; --wo-down: #b3261e; --wo-down-bg: #fde2e0; --wo-gold: #8a5a00; }
+.wo--glass { --wo-bg: transparent; --wo-mute: #ffffff; --wo-soft: #ffffff; --wo-track: rgb(255 255 255 / .55); }
+.wo--glass .wo__panel { box-shadow: none !important; text-shadow: 0 calc(var(--u) * 2) calc(var(--u) * 8) rgb(0 0 0 / .85), 0 0 calc(var(--u) * 2) rgb(0 0 0 / .9); }
+.wo--glass .wo__pip, .wo--glass .wo__places i { box-shadow: 0 0 0 calc(var(--u) * 2) rgb(0 0 0 / .45); }
+.wo--glass .wo__gap { background: rgb(5 7 11 / .7) !important; }
+
+.wo__panel { position: relative; background: var(--wo-bg); box-sizing: border-box; display: grid; box-shadow: 0 calc(var(--u) * 12) calc(var(--u) * 34) rgb(0 0 0 / .4); }
+.wo--teams:not(.wo--glass) .wo__panel { background: radial-gradient(55% 150% at 0% 50%, color-mix(in srgb, var(--wo-l) 55%, transparent), transparent 72%), radial-gradient(55% 150% at 100% 50%, color-mix(in srgb, var(--wo-r) 55%, transparent), transparent 72%), var(--wo-bg); }
+.wo--light.wo--teams .wo__panel { background: radial-gradient(55% 150% at 0% 50%, color-mix(in srgb, var(--wo-l) 22%, transparent), transparent 72%), radial-gradient(55% 150% at 100% 50%, color-mix(in srgb, var(--wo-r) 22%, transparent), transparent 72%), var(--wo-bg); }
+.wo--brand:not(.wo--glass) .wo__panel { background: radial-gradient(70% 160% at 0% 0%, color-mix(in srgb, var(--wo-a) 38%, transparent), transparent 70%), radial-gradient(70% 160% at 100% 100%, color-mix(in srgb, var(--wo-b) 30%, transparent), transparent 70%), var(--wo-bg); }
+.wo.is-final .wo__panel { box-shadow: 0 0 0 calc(var(--u) * 4) var(--wo-gold), 0 calc(var(--u) * 12) calc(var(--u) * 34) rgb(0 0 0 / .4); }
+
+.wo__logo { width: calc(var(--u) * 64); height: calc(var(--u) * 64); border-radius: 50%; object-fit: cover; flex: none; }
+.wo__logo--text { display: grid; place-items: center; color: #fff; font: 800 calc(var(--u) * 19)/1 "Gabarito", sans-serif; }
+.wo__tag { font: 700 calc(var(--u) * 24)/1 "Gabarito", sans-serif; color: var(--wo-soft); letter-spacing: .04em; }
+.wo__total { font-family: var(--wo-font); font-weight: var(--wo-fw); font-style: var(--wo-fs); font-size: calc(var(--u) * 64); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.wo__gapwrap { position: relative; display: inline-flex; justify-content: center; }
+.wo__gap { font-family: var(--wo-font); font-weight: var(--wo-fw); font-style: var(--wo-fs); font-size: calc(var(--u) * 32); line-height: 1; padding: calc(var(--u) * 8) calc(var(--u) * 20); border-radius: 999px; background: rgb(140 200 240 / .14); color: #8cc8f0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wo.is-up .wo__gap { background: var(--wo-up-bg); color: var(--wo-up); }
+.wo.is-down .wo__gap { background: var(--wo-down-bg); color: var(--wo-down); }
+.wo--brand .wo__gap { background: var(--wo-a) !important; color: var(--wo-a-ink) !important; }
+.wo__gap.is-pop { animation: wo-pop .6s cubic-bezier(.3, 1.6, .5, 1); }
+.wo__pop { position: absolute; left: 50%; bottom: calc(100% + var(--u) * 10); transform: translateX(-50%); font-family: var(--wo-font); font-weight: var(--wo-fw); font-style: var(--wo-fs); font-size: calc(var(--u) * 30); line-height: 1; padding: calc(var(--u) * 6) calc(var(--u) * 16); border-radius: 999px; background: var(--wo-win); color: #fff; box-shadow: 0 calc(var(--u) * 6) calc(var(--u) * 16) rgb(0 0 0 / .35); white-space: nowrap; animation: wo-rise 2.2s ease-out both; pointer-events: none; }
+.wo.is-down .wo__pop { background: var(--wo-loss); }
+.wo--bug.has-tab .wo__pop { bottom: auto; top: calc(100% + var(--u) * 6); z-index: 1; animation-name: wo-drop; }
+.wo__pips { display: grid; gap: calc(var(--u) * 7); }
+.wo__pip { height: calc(var(--u) * 12); border-radius: 999px; background: var(--wo-track); }
+.wo__pip.is-win { background: var(--wo-win); } .wo__pip.is-loss { background: var(--wo-loss); } .wo__pip.is-tie { background: #6c7a8a; }
+.wo__pip.is-new { animation: wo-flash 1.2s ease-out; }
+.wo__places { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: calc(var(--u) * 5); }
+.wo__places i { font: 700 calc(var(--u) * 19)/1 "Gabarito", sans-serif; font-style: normal; text-align: center; padding: calc(var(--u) * 6) 0; border-radius: calc(var(--u) * 6); background: var(--wo-track); color: var(--wo-soft); }
+.wo__places i.is-lit { background: var(--wo-a); color: var(--wo-a-ink); }
+.wo__race, .wo__line { font: 600 calc(var(--u) * 26)/1.25 "Outfit", sans-serif; color: var(--wo-mute); }
+.is-gold { color: var(--wo-gold) !important; }
+.wo__headline { font-family: var(--wo-font); font-weight: var(--wo-fw); font-style: var(--wo-fs); font-size: calc(var(--u) * 42); line-height: 1.05; text-align: center; color: var(--wo-ink); }
+.wo__tab { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); background: var(--wo-gold); color: #1b1405; font: 800 calc(var(--u) * 24)/1 "Gabarito", sans-serif; padding: calc(var(--u) * 11) calc(var(--u) * 24) calc(var(--u) * 9); border-radius: calc(var(--u) * 14) calc(var(--u) * 14) 0 0; white-space: nowrap; animation: wo-tab .5s ease-out both; }
+.wo--light .wo__tab { background: #f2c14e; }
+.wo__by { display: flex; align-items: center; justify-content: flex-end; gap: calc(var(--u) * 6); font: 500 calc(var(--u) * 22)/1 "Outfit", sans-serif; color: var(--wo-mute); }
+.wo__wordmark { display: inline-block; width: calc(var(--u) * 126); height: calc(var(--u) * 22); background: currentColor; -webkit-mask: url("/images/fg/logos/gameshuffle-wht.svg") center / contain no-repeat; mask: url("/images/fg/logos/gameshuffle-wht.svg") center / contain no-repeat; }
+.wo__mark { justify-self: end; display: block; width: calc(var(--u) * 34); height: calc(var(--u) * 19); background: var(--wo-soft); opacity: .8; -webkit-mask: url("/images/fg/logos/gs-mark.svg") center / contain no-repeat; mask: url("/images/fg/logos/gs-mark.svg") center / contain no-repeat; }
+
+/* Scorebug (1000 wide): the panel sits at the bottom of the source, leaving room above for the pop and the tab. */
+.wo--bug { padding: 0 calc(var(--u) * 20) calc(var(--u) * 12); box-sizing: border-box; }
+.wo--bug .wo__panel { border-radius: calc(var(--u) * 26); padding: calc(var(--u) * 20) calc(var(--u) * 30) calc(var(--u) * 14); gap: calc(var(--u) * 13); }
+.wo--bug .wo__score { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: calc(var(--u) * 18); }
+.wo--bug .wo__team { display: flex; align-items: center; gap: calc(var(--u) * 14); min-width: 0; }
+.wo--bug .wo__team--r { flex-direction: row-reverse; }
+.wo--bug .wo__foot { display: flex; justify-content: space-between; gap: calc(var(--u) * 16); }
+.wo--bug .wo__foot .wo__line { text-align: right; }
+
+/* Top strip (1920 wide) */
+.wo--strip .wo__panel { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: calc(var(--u) * 30); padding: calc(var(--u) * 10) calc(var(--u) * 40); min-height: calc(var(--u) * 104); border-bottom: calc(var(--u) * 3) solid color-mix(in srgb, var(--wo-a) 45%, transparent); }
+.wo--strip .wo__side { display: flex; align-items: center; gap: calc(var(--u) * 16); min-width: 0; }
+.wo--strip .wo__side--r { justify-content: flex-end; text-align: right; }
+.wo--strip .wo__logo { width: calc(var(--u) * 60); height: calc(var(--u) * 60); }
+.wo--strip .wo__logo--text { font-size: calc(var(--u) * 22); }
+.wo--strip .wo__names { display: grid; gap: calc(var(--u) * 4); min-width: 0; }
+.wo--strip .wo__names b { font: 700 calc(var(--u) * 30)/1.05 "Gabarito", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wo--strip .wo__names span { font: 600 calc(var(--u) * 24)/1 "Outfit", sans-serif; color: var(--wo-soft); }
+.wo--strip .wo__mid { display: grid; gap: calc(var(--u) * 7); justify-items: center; }
+.wo--strip .wo__score { display: flex; align-items: center; gap: calc(var(--u) * 22); }
+.wo--strip .wo__total { font-size: calc(var(--u) * 56); }
+.wo--strip .wo__gap { font-size: calc(var(--u) * 28); padding: calc(var(--u) * 6) calc(var(--u) * 16); }
+.wo--strip .wo__pop { bottom: auto; top: calc(100% + var(--u) * 4); font-size: calc(var(--u) * 22); animation-name: wo-drop; }
+.wo--strip .wo__pips { width: calc(var(--u) * 420); gap: calc(var(--u) * 6); }
+.wo--strip .wo__pip { height: calc(var(--u) * 9); }
+.wo--strip .wo__meta { font: 600 calc(var(--u) * 24)/1.2 "Outfit", sans-serif; color: var(--wo-mute); }
+.wo--strip .wo__meta .wo__race, .wo--strip .wo__meta .wo__line { font-size: inherit; }
+.wo--strip.is-final .wo__panel { box-shadow: inset 0 calc(var(--u) * -4) 0 var(--wo-gold); border-bottom-color: transparent; }
+
+/* Corner card (520) and race list (440) */
+.wo--corner, .wo--list { padding: calc(var(--u) * 10); box-sizing: border-box; }
+.wo--corner .wo__panel, .wo--list .wo__panel { border-radius: calc(var(--u) * 22); padding: calc(var(--u) * 18) calc(var(--u) * 22); gap: calc(var(--u) * 12); }
+.wo__head { display: flex; justify-content: space-between; align-items: center; gap: calc(var(--u) * 12); }
+.wo__head .wo__race { font-size: calc(var(--u) * 22); }
+.wo__head .wo__gap { font-size: calc(var(--u) * 28); padding: calc(var(--u) * 5) calc(var(--u) * 16); }
+.wo__head .wo__pop { bottom: auto; top: calc(100% + var(--u) * 6); font-size: calc(var(--u) * 22); animation-name: wo-drop; z-index: 1; }
+.wo__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: calc(var(--u) * 14); }
+.wo--corner .wo__logo { width: calc(var(--u) * 52); height: calc(var(--u) * 52); }
+.wo__name { font: 700 calc(var(--u) * 28)/1.05 "Gabarito", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wo--corner .wo__total { font-size: calc(var(--u) * 54); }
+.wo--corner .wo__pip { height: calc(var(--u) * 10); }
+.wo--corner .wo__line, .wo--list .wo__line { font-size: calc(var(--u) * 22); }
+.wo--corner .wo__headline, .wo--list .wo__headline { font-size: calc(var(--u) * 34); }
+.wo--list .wo__logo { width: calc(var(--u) * 46); height: calc(var(--u) * 46); }
+.wo--list .wo__name { font-size: calc(var(--u) * 26); }
+.wo--list .wo__total { font-size: calc(var(--u) * 48); }
+.wo--list .wo__pips { display: none; }
+.wo__list { display: grid; border-top: 1px solid var(--wo-track); }
+.wo__lr { display: grid; grid-template-columns: calc(var(--u) * 50) minmax(0, 1fr) minmax(0, 1fr); gap: calc(var(--u) * 10); align-items: center; padding: calc(var(--u) * 7) calc(var(--u) * 6); border-bottom: 1px solid color-mix(in srgb, var(--wo-track) 60%, transparent); font: 600 calc(var(--u) * 22)/1 "Outfit", sans-serif; font-variant-numeric: tabular-nums; }
+.wo__lr span:nth-child(2), .wo__lr span:nth-child(3) { text-align: right; }
+.wo__lr.is-up span:nth-child(2) { color: var(--wo-up); } .wo__lr.is-down span:nth-child(2) { color: var(--wo-down); }
+.wo__lr.is-now { background: color-mix(in srgb, var(--wo-gold) 16%, transparent); border-radius: calc(var(--u) * 8); }
+.wo__lr.is-next { color: var(--wo-soft); opacity: .6; }
+
+@keyframes wo-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes wo-rise { 0% { opacity: 0; transform: translate(-50%, 40%); } 15% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -30%); } }
+@keyframes wo-drop { 0% { opacity: 0; transform: translate(-50%, -40%); } 15% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes wo-flash { 0% { filter: brightness(2.4); transform: scaleY(1.8); } 100% { filter: none; transform: none; } }
+@keyframes wo-tab { from { opacity: 0; transform: translate(-50%, 30%); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .wo__gap.is-pop, .wo__pip.is-new, .wo__pop, .wo__tab { animation: none; } }
+
+/* The war as a piece on a GameShuffle overlay (WarPiece): a box at the layout's design width, so the same --u sums
+   apply; the Scorebug keeps room above its panel for the pop and the gold tab. */
+
+.war-piece__frame { container-type: inline-size; box-sizing: border-box; }
+.war-piece__frame--bug { padding-top: 64px; }

@@ -10,9 +10,12 @@
 
 import { usePathname } from "next/navigation";
 import { HELP_CATEGORIES, articlesInCategory } from "@/lib/help/manifest";
+import { RANKED_CATEGORY, RANKED_HELP, RANKED_HELP_JA, RANKED_HELP_PUBLIC } from "@/lib/help/ranked";
 
 export function HelpSidebar() {
   const pathname = usePathname();
+  // GS Ranked's section is unlisted until it's announced; its own pages still show it, for finding the next page.
+  const categories = !RANKED_HELP_PUBLIC && pathname.startsWith("/help/ranked") ? [RANKED_CATEGORY, ...HELP_CATEGORIES] : HELP_CATEGORIES;
 
   const list = (
     <nav aria-label="Help center navigation" style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
@@ -29,8 +32,8 @@ export function HelpSidebar() {
       >
         Help Center Home
       </a>
-      {HELP_CATEGORIES.map((cat) => {
-        const articles = articlesInCategory(cat.id);
+      {categories.map((cat) => {
+        const articles = cat.id === "ranked" ? (pathname.startsWith("/help/ranked/ja") ? RANKED_HELP_JA : RANKED_HELP) : articlesInCategory(cat.id);
         return (
           <div key={cat.id}>
             <p

@@ -116,6 +116,7 @@
 .keep-looks__choice + .keep-looks__choice { padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
 @container (min-width: 460px) {
   .keep-looks__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--spacing-20); }
+  .keep-looks__grid--one { grid-template-columns: minmax(0, 1fr); max-width: 32rem; }
   .keep-looks__choice + .keep-looks__choice { padding-top: 0; border-top: 0; }
 }
 .keep-looks__choice { display: grid; grid-template-rows: auto 1fr auto; gap: var(--spacing-8); min-width: 0; }

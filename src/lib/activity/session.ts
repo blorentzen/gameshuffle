@@ -33,6 +33,8 @@ export interface ActivitySession {
   gid?: string | null;
   /** The Activity instance (everyone in the same call shares it), as Discord confirmed it: the play-together room. */
   ins?: string | null;
+  /** Which Discord app the Activity runs in: GameShuffle (absent) or GameShuffle Competitive (the War room). */
+  app?: "comp";
   /** Expiry, seconds since epoch. */
   exp: number;
 }

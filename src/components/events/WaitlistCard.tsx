@@ -19,6 +19,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { timeLeft } from "@/lib/events/waitlistRules";
 import type { EventType } from "@/lib/events/calendar";
 import type { MyWaitlist } from "@/lib/events/waitlist";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 export function WaitlistCard({ type, eventId, signedIn, onChanged, className = "comp-card", token, onPay }: {
   type: EventType;
@@ -44,8 +45,7 @@ export function WaitlistCard({ type, eventId, signedIn, onChanged, className = "
 
   useEffect(() => {
     void load();
-    const iv = window.setInterval(() => { setNow(Date.now()); void load(); }, 30_000);
-    return () => window.clearInterval(iv);
+    return everyVisible(() => { setNow(Date.now()); void load(); }, 30_000);
   }, [load]);
 
   const act = async (action: "join" | "claim" | "pass" | "leave") => {

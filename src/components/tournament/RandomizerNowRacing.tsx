@@ -1,4 +1,5 @@
 import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
+import { IconFlag } from "@tabler/icons-react";
 import { getImagePath } from "@/lib/images";
 
 /**
@@ -28,7 +29,7 @@ export function RandomizerNowRacing({ rounds, live }: { rounds: GeneratedRound[]
         <img src={getImagePath(track.course.img)} alt="" className="tournament-nowracing__img" />
       ) : null}
       <div className="tournament-nowracing__body" style={{ flex: "1 1 12rem" }}>
-        <span className="tournament-nowracing__eyebrow">🏁 Now racing · Round {round.n}{total > 1 ? ` · Race ${i + 1} of ${total}` : ""}</span>
+        <span className="tournament-nowracing__eyebrow"><IconFlag size={14} aria-hidden />Now racing · Round {round.n}{total > 1 ? ` · Race ${i + 1} of ${total}` : ""}</span>
         <span className="tournament-nowracing__name">{track ? track.course.name : `Round ${round.n}`}</span>
         {parts.length > 0 && (
           <div className="tr-round__combo" style={{ marginTop: "0.5rem" }}>

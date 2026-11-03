@@ -4,7 +4,7 @@
  * The server enforces this in aiAccess; the client only uses it to explain.
  */
 
-export type AiFeature = "pack" | "recap" | "setup" | "plan" | "tournament" | "trivia" | "deck" | "channel" | "tt_read" | "tt_import";
+export type AiFeature = "pack" | "recap" | "setup" | "plan" | "tournament" | "trivia" | "deck" | "channel" | "tt_read" | "tt_import" | "image_check" | "war_read" | "ladder_read";
 
 export const AI_FEATURES: Record<AiFeature, { free: boolean; label: string }> = {
   pack: { free: false, label: "Making lists with AI" },
@@ -17,13 +17,16 @@ export const AI_FEATURES: Record<AiFeature, { free: boolean; label: string }> = 
   channel: { free: false, label: "Know the Channel questions drafted with AI" },
   tt_read: { free: true, label: "Time trial screenshots read with AI" },
   tt_import: { free: true, label: "Time trial lists read with AI" },
+  image_check: { free: true, label: "Upload checks" },
+  war_read: { free: true, label: "War results screenshots read with AI" },
+  ladder_read: { free: true, label: "Lounge table screenshots read with AI" },
 };
 
 /**
  * Features with their own daily cap (time trials), counted apart from the shared
  * allowance so reading a screenshot never uses up someone's AI tries.
  */
-export const OWN_CAP_FEATURES: AiFeature[] = ["tt_read", "tt_import"];
+export const OWN_CAP_FEATURES: AiFeature[] = ["tt_read", "tt_import", "image_check", "war_read", "ladder_read"];
 
 export function isAiFeature(x: unknown): x is AiFeature {
   return typeof x === "string" && x in AI_FEATURES;

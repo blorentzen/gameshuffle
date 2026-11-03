@@ -129,7 +129,7 @@ function RoundCard({ round }: { round: RoundEntry }) {
           </span>
           <span className="live-items__round-source">{subline}</span>
         </div>
-        <h3 className="live-items__round-mode">🎯 {round.presetName}</h3>
+        <h3 className="live-items__round-mode">{round.presetName}</h3>
       </header>
       {round.items.length > 0 ? (
         <ul className="live-items__round-items">

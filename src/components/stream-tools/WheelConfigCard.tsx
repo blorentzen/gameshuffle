@@ -115,7 +115,7 @@ export function WheelConfigCard({ live }: { live?: ReactNode }) {
 
   return (
     <section className="stream-tools__section">
-      <h3 className="stream-tools__heading">🎡 Wheel</h3>
+      <h3 className="stream-tools__heading">Wheel</h3>
 
       <div className="stream-tools__row">
         {/* CDS Select treats "" as no choice, so "new" stands in for a new wheel. */}

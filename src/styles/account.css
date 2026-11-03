@@ -3842,6 +3842,10 @@ html.dark .gs-platform-icon {
 .overlay-obs { margin-bottom: var(--spacing-20); }
 .overlay-obs .empac-accordion__content > div:first-child { margin-bottom: var(--spacing-12); }
 .overlay-anchor__label { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+/* The War score piece's line: which war channel it follows, set up from that channel's overlay page. */
+.overlay-piece-note { flex-basis: 100%; display: grid; gap: var(--spacing-8); margin: 0; padding-top: var(--spacing-12); border-top: 1px solid var(--border-default); font-size: var(--font-size-14); color: var(--text-secondary); }
+.overlay-piece-note p { margin: 0; }
+.overlay-piece-note__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
 /* Account ▸ Profile ▸ Games ▸ My gaming collection */
 .gcol { display: flex; flex-direction: column; gap: var(--spacing-16); min-width: 0; }
 .gcol__add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); }
@@ -4327,3 +4331,44 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
 .discord-apps__panel-row { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 22rem) auto; gap: var(--spacing-12); align-items: center; justify-content: start; }
 .discord-apps__panel-row > :last-child { justify-self: start; }
 @media (max-width: 900px) { .discord-apps__panel-row { grid-template-columns: minmax(0, 1fr); } }
+
+/* Platform ▸ Ladders: bringing in a lounge's history (PlatformLaddersTab). */
+.ladder-import { display: grid; gap: var(--spacing-16); min-width: 0; }
+.ladder-import__pick { display: flex; flex-wrap: wrap; gap: var(--spacing-12); align-items: end; }
+.ladder-import__pick > :first-child { width: 28rem; max-width: 100%; }
+.ladder-import__files { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
+.ladder-import__files li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); padding: var(--spacing-8) 0; border-bottom: 1px solid var(--border-default); }
+.ladder-import__season { width: 9rem; }
+.ladder-import__file { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.ladder-import__file small { font-weight: 400; color: var(--text-secondary); margin-left: var(--spacing-4); }
+.ladder-import__help { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.ladder-import__check { display: grid; gap: var(--spacing-20); min-width: 0; }
+.ladder-import__checks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
+.ladder-import__checks li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: var(--spacing-8); align-items: start; font-size: var(--font-size-16); }
+.ladder-import__checks li svg { margin-top: 2px; }
+.ladder-import__checks li.is-ok svg { color: var(--success-700, #1d7a45); }
+.ladder-import__checks li.is-warn svg { color: var(--warning-700, #8a5a00); }
+.ladder-import__checks li.is-out { color: var(--text-secondary); }
+.ladder-import__acts { display: flex; flex-wrap: wrap; gap: var(--spacing-12); }
+
+/* GS Ranked help: a wide table scrolls inside its own box; the glossary reads term, then meaning. */
+.help-table-wrap { max-width: 100%; overflow-x: auto; margin: 0 0 var(--spacing-16); }
+.help-table-wrap table { min-width: 56rem; margin: 0; }
+.help-table-wrap:focus-visible { outline: 2px solid var(--primary-500, #3b5bdb); outline-offset: 2px; }
+.help-glossary { margin: 0; display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: var(--spacing-12) var(--spacing-20); font-size: var(--font-size-16); }
+.help-glossary dt { font-weight: var(--font-weight-semibold); }
+.help-glossary dd { margin: 0; color: var(--text-primary); line-height: var(--line-height-relaxed); }
+@media (max-width: 640px) { .help-glossary { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-4); } .help-glossary dd { margin-bottom: var(--spacing-12); } }
+
+/* Streaming ▸ Discord bot ▸ Server replies, and Comms ▸ Reminders: rows with thin lines, no boxes in boxes. */
+.discord-tags { display: grid; gap: var(--spacing-16); }
+.discord-tags__list, .comms-reminders { list-style: none; margin: 0; padding: 0; display: grid; border-top: 1px solid var(--border-default); }
+.discord-tags__row, .comms-reminders__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12) var(--spacing-20); padding: var(--spacing-16) 0; border-bottom: 1px solid var(--border-default); }
+.discord-tags__main, .comms-reminders__main { display: grid; gap: var(--spacing-4); min-width: 0; flex: 1 1 32rem; font-size: var(--font-size-16); }
+.discord-tags__text { color: var(--text-secondary); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.discord-tags__acts { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.discord-tags__form { display: grid; gap: var(--spacing-16); }
+.discord-tags__hint { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.comms-reminders__text { overflow-wrap: anywhere; }
+.comms-reminders__meta { font-size: var(--font-size-14); color: var(--text-secondary); }
+.comms-reminders__note { margin: var(--spacing-16) 0; font-size: var(--font-size-16); color: var(--text-secondary); }

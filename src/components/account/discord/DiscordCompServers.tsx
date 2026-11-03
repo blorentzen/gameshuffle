@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@empac/cascadeds";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { Select } from "@/components/ui/Select";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { AdminSection } from "@/components/account/admin/AdminKit";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
@@ -122,6 +123,13 @@ function ServerRow({ s, onChanged }: { s: Server; onChanged: () => void }) {
           <p className="discord-apps__help">Or type /tt panel in the channel. Posting again moves it.</p>
         </div>
       )}
+      {!s.removedAt && (
+        <div className="discord-apps__panel">
+          <strong>Team logos</strong>
+          <p className="discord-apps__help">For war cards, tables and the overlay. Add many at once here, or one at a time with /logo add.</p>
+          <div><ArrowLink href={`/account/streaming/logos/${s.guildId}`}>Manage team logos</ArrowLink></div>
+        </div>
+      )}
     </li>
   );
 }
@@ -148,7 +156,7 @@ export function DiscordCompServers() {
   const active = data.servers.filter((s) => !s.removedAt);
   return (
     <AdminSection title="GameShuffle Competitive">
-      <p className="discord-apps__help">Wars, time trials, MMR and lounge rank-ups, with short commands: /tt, /mmr, /room. Its servers count apart from GameShuffle&apos;s: {data.limit === 1 ? "1 server" : `up to ${data.limit} servers`} on your plan.</p>
+      <p className="discord-apps__help">Time trials, wars, MMR and room reads, with short commands: /tt, /war, /mmr, /room. Its servers count apart from GameShuffle&apos;s: {data.limit === 1 ? "1 server" : `up to ${data.limit} servers`} on your plan.</p>
       {data.servers.length ? (
         <ul className="discord-apps__servers">
           {data.servers.map((s) => <ServerRow key={s.guildId} s={s} onChanged={() => void load()} />)}

@@ -49,6 +49,11 @@ function TabIcon({ name }: { name: string }) {
   return <Icon name={name} size="20" />;
 }
 
+/** Pages below a section's route that belong to one of its tabs (lit in the sidebar while you're on them). */
+const NESTED_TABS: { prefix: string; tab: string }[] = [
+  { prefix: "/account/streaming/logos/", tab: "discord-bot" },
+];
+
 export function AccountSidebar({ role, isPro = false }: { role: string | null; isPro?: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -63,9 +68,13 @@ export function AccountSidebar({ role, isPro = false }: { role: string | null; i
     s.items.some((i) => itemTabIds(i).includes(s.defaultTab)) ? s.defaultTab : (s.items[0]?.id ?? s.defaultTab);
 
   // Which section are we on (by route), and which tab is active within it.
+  // A page under a section's route (a server's team logos) belongs to that section, longest route first.
   const current =
-    sections.find((s) => s.route === pathname) ?? sections[0];
-  const rawTab = searchParams.get("tab") ?? current.defaultTab;
+    sections.find((s) => s.route === pathname)
+    ?? [...sections].sort((a, b) => b.route.length - a.route.length).find((s) => pathname.startsWith(`${s.route}/`))
+    ?? sections[0];
+  const nested = NESTED_TABS.find((n) => pathname.startsWith(n.prefix));
+  const rawTab = searchParams.get("tab") ?? nested?.tab ?? current.defaultTab;
   const activeTab = ACCOUNT_TAB_ALIAS[rawTab] ?? rawTab;
 
   // A view (Platform Admin) is active for any of its tabs.

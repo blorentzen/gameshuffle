@@ -22,7 +22,7 @@
  */
 
 import type { MmrLayout } from "./look";
-import { MMR_GAMES, fmtMmr, placeWord, signed, type MmrView } from "./rules";
+import { cutAtWord, fmtMmr, placeWord, rankText, signed, sourceLabel, type MmrView } from "./rules";
 import { goalText, type GoalProgress } from "./goal";
 import { formatOf, topShare } from "@/lib/lounge/season";
 import { countryName } from "@/lib/lounge/countries";
@@ -93,7 +93,7 @@ export const MOMENTS: { id: MmrMoment; label: string; note: string; pro?: boolea
   { id: "streak", label: "Three wins in a row", note: "A flame tag while the streak lasts." },
   { id: "peak", label: "A new season peak", note: "A gold New peak tag until your next event." },
   { id: "division", label: "A new division", note: "A banner, sparks and the layout's own move." },
-  { id: "milestone", label: "A world milestone", note: "A laurel banner the first time you reach the world top 1,000, 250, 100 or 10." },
+  { id: "milestone", label: "A rank milestone", note: "A laurel banner the first time you reach the world top 1,000, 250, 100 or 10, or a GS Ranked lounge's top 10 and #1." },
   { id: "goal", label: "Reaching tonight's goal", note: "A gold Goal reached banner.", pro: true },
 ];
 export const MOMENT_IDS = MOMENTS.map((m) => m.id);
@@ -378,15 +378,19 @@ const dayWord = (iso: string) => new Date(iso).toLocaleDateString("en-US", { wee
 /** One recent event as "Tue · Tier C · Free-for-all" (its place and change are drawn beside it). */
 export function recentWhen(e: MmrView["recent"][number]): string {
   const f = formatOf(e);
-  return [dayWord(e.at), tierWord(e.tier), f === "FFA" ? "Free-for-all" : f].filter(Boolean).join(" · ");
+  return [dayWord(e.at), tierWord(e.tier), e.label ?? (f === "FFA" ? "Free-for-all" : f)].filter(Boolean).join(" · ");
 }
 
-export const toNextText = (v: Pick<MmrView, "next" | "toNext" | "division">) =>
-  v.next && v.toNext != null ? `${fmtMmr(v.toNext)} to ${v.next.name}` : v.division === "Placement" ? "In placement" : "Top division";
+type ProgressView = Pick<MmrView, "next" | "toNext" | "division"> & { ladder?: MmrView["ladder"] };
+/** "Placement 3 of 5" on a ladder, "In placement" on the lounge. */
+const placementText = (v: ProgressView) => (v.ladder?.placement ? `Placement ${v.ladder.placement.done} of ${v.ladder.placement.of}` : "In placement");
+
+export const toNextText = (v: ProgressView) =>
+  v.next && v.toNext != null ? `${fmtMmr(v.toNext)} to ${v.next.name}` : v.division === "Placement" ? placementText(v) : "Top division";
 
 /** Progress in words: "286 to Platinum 2", or "Next: Platinum 2" with MMR kept off the card. */
-export const nextText = (v: Pick<MmrView, "next" | "toNext" | "division">, info: Pick<MmrInfo, "hideMmr">) =>
-  info.hideMmr ? (v.next ? `Next: ${v.next.name}` : v.division === "Placement" ? "In placement" : "Top division") : toNextText(v);
+export const nextText = (v: ProgressView, info: Pick<MmrInfo, "hideMmr">) =>
+  info.hideMmr ? (v.next ? `Next: ${v.next.name}` : v.division === "Placement" ? placementText(v) : "Top division") : toNextText(v);
 
 /** A piece as a short value, or null when there's nothing to show (no country rank yet, a streak under two). */
 export function pieceText(p: Shown, v: MmrView, info: MmrInfo, goal?: GoalProgress | null): PieceText | null {
@@ -396,7 +400,7 @@ export function pieceText(p: Shown, v: MmrView, info: MmrInfo, goal?: GoalProgre
     if (MMR_PIECES.includes(p as MmrPiece)) return null;
     if (p === "delta") return v.last?.place ? one("Last event", placeWord(v.last.place), placeWord(v.last.place)) : null;
     if (p === "tonight") { const t = v.tonight; return one("Tonight", `${t.w}-${t.l}`, `Tonight ${t.w}-${t.l}`); }
-    if (p === "progress") return v.next ? one("Next division", v.next.name, `Next: ${v.next.name}`) : one("Division", v.division === "Placement" ? "In placement" : "Top division", nextText(v, info));
+    if (p === "progress") return v.next ? one("Next division", v.next.name, `Next: ${v.next.name}`) : one("Division", v.division === "Placement" ? placementText(v) : "Top division", nextText(v, info));
     if (p === "recent") {
       const places = v.recent.slice(0, info.recent).filter((e) => e.place).map((e) => placeWord(e.place!));
       return places.length ? one(`Last ${places.length}`, places.join(", "), places.join(" · "), places.slice(0, 3).join(" · ")) : null;
@@ -405,11 +409,11 @@ export function pieceText(p: Shown, v: MmrView, info: MmrInfo, goal?: GoalProgre
   switch (p) {
     case "name": return one("", v.name, v.name);
     case "cc": return v.country ? one("Country", v.country, v.country) : null;
-    case "game": return one("Game", MMR_GAMES[v.game].short, MMR_GAMES[v.game].short, GAME_TINY[v.game]);
+    case "game": return one(v.ladder ? "Ladder" : "Game", sourceLabel(v), sourceLabel(v), v.ladder ? cutAtWord(v.ladder.name, 12) : GAME_TINY[v.game]);
     case "division": return one("Division", v.division, v.division);
     case "line": return info.line.trim() ? one("", info.line.trim(), info.line.trim()) : null;
     case "mmr": return v.mmr != null ? one("MMR", fmtMmr(v.mmr), `${fmtMmr(v.mmr)} MMR`) : null;
-    case "world": return v.worldRank ? one("World", `#${fmtMmr(v.worldRank)}`, `#${fmtMmr(v.worldRank)} world`) : null;
+    case "world": return v.worldRank ? one(v.ladder ? "Ladder rank" : "World", `#${fmtMmr(v.worldRank)}`, rankText(v.worldRank, v.ladder)) : null;
     case "country": {
       if (!v.countryRank || !v.country) return null;
       const where = countryShort(v.country);
@@ -419,7 +423,7 @@ export function pieceText(p: Shown, v: MmrView, info: MmrInfo, goal?: GoalProgre
     case "peak": return v.peak != null ? one("Season peak", fmtMmr(v.peak), `Peak ${fmtMmr(v.peak)}`) : null;
     case "progress": {
       // With no next division, say where the player is rather than repeat the number.
-      if (!v.next || v.toNext == null) return one("Division", v.division === "Placement" ? "In placement" : "Top division", toNextText(v));
+      if (!v.next || v.toNext == null) return one("Division", v.division === "Placement" ? placementText(v) : "Top division", toNextText(v));
       return one(`To ${v.next.name}`, fmtMmr(v.toNext), toNextText(v));
     }
     case "delta": return v.last ? one("Last change", signed(v.last.delta), `${signed(v.last.delta)}${v.last.place ? ` · ${placeWord(v.last.place)}` : ""}`) : null;

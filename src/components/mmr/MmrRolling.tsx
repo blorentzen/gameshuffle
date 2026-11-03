@@ -252,7 +252,7 @@ function Slide({ s, c }: { s: RollSlide; c: SlideCtx }) {
         <>
           {label}
           <span className="mmr-rval"><MmrNumber value={v.mmr} mode={c.roll} />{c.deltaOn && v.last && <span key={`d-${c.playN}`} className="mmr-rdelta"><Delta last={v.last} place /></span>}</span>
-          {tags.length ? <span className="mmr-rtags">{tags}</span> : c.pending ? <span className="mmr-rsub">{placeWord(c.pending.place)}: about {signed(c.pending.delta)}, waiting to verify</span> : c.under.length ? <UnderLine pieces={c.under} view={v} /> : sub}
+          {tags.length ? <span className="mmr-rtags">{tags}</span> : c.pending ? <span className="mmr-rsub">Waiting: {placeWord(c.pending.place)}, about {signed(c.pending.delta)}</span> : c.under.length ? <UnderLine pieces={c.under} view={v} /> : sub}
         </>
       );
     }

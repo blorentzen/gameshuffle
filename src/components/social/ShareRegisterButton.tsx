@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@empac/cascadeds";
+import { IconCheck } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 
 interface State {
@@ -49,7 +50,7 @@ export function ShareRegisterButton({ tournamentId, readOnly = false }: { tourna
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
         setS((p) => ({ ...p, registered: true, registeredStatus: d.status ?? "registered" }));
-        toast.success(d.already ? "You're already signed up." : d.status === "confirmed" ? "You're in! 🏁" : "Request sent 🏁");
+        toast.success(d.already ? "You're already signed up." : d.status === "confirmed" ? "You're in!" : "Request sent");
       } else {
         toast.error(
           d.error === "full" ? "This tournament is full."
@@ -94,7 +95,7 @@ export function ShareRegisterButton({ tournamentId, readOnly = false }: { tourna
 
   return (
     <div className="share-card__register">
-      <span className="share-card__register-label">{s.registered ? `✓ ${label}` : label}</span>
+      <span className="share-card__register-label">{s.registered && <IconCheck size={16} aria-hidden />}{label}</span>
       {action}
     </div>
   );

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button, Card } from "@empac/cascadeds";
 import { HelpSearch } from "@/components/help/HelpSearch";
 import { HELP_CATEGORIES, articlesInCategory, type HelpCategoryId } from "@/lib/help/manifest";
-import { IconBroadcast, IconDice5, IconLifebuoy, IconRocket, IconSparkles, IconTrophy, IconUserCircle, IconUsersGroup, type Icon } from "@tabler/icons-react";
+import { IconBroadcast, IconChartLine, IconDice5, IconLifebuoy, IconRocket, IconSparkles, IconTrophy, IconUserCircle, IconUsersGroup, type Icon } from "@tabler/icons-react";
 import { IconTile, type TileTone } from "@/components/ui/IconTile";
 
 /** Each category card's tile (the shared IconTile, above the title). */
@@ -16,6 +16,7 @@ const CATEGORY_TILES: Record<HelpCategoryId, { icon: Icon; tone: TileTone }> = {
   pro: { icon: IconSparkles, tone: "magenta" },
   troubleshooting: { icon: IconLifebuoy, tone: "red" },
   account: { icon: IconUserCircle, tone: "blue" },
+  ranked: { icon: IconChartLine, tone: "violet" },
 };
 
 export const metadata: Metadata = {

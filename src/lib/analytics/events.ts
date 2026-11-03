@@ -180,6 +180,11 @@ export const EVENTS = {
   bracketRunLive: "Bracket Run Live",
   /** The MMR card's lounge name was found and saved (props: { game }). */
   mmrCardSaved: "MMR Card Saved",
+  /** The war overlay setup page (GameShuffle Competitive): a look saved to the account, an OBS link copied. */
+  warLookSaved: "War Look Saved",
+  warOverlayCopied: "War Overlay Link Copied",
+  warPieceAdded: "War Added To GS Overlay",
+  warPageCopied: "War Page Link Copied",
   /** The MMR card's OBS link was copied (props: { layout }). */
   mmrCardLinkCopied: "MMR Card Link Copied",
   /** Tonight's goal set on the MMR card, GS Pro (props: { game }). */

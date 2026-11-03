@@ -235,7 +235,7 @@ export async function shipIdea(
     .eq("id", ideaId);
 
   await awardIdea({ authorId: idea.author_id, ideaId, kind: "shipped" });
-  await notifyAuthor(idea.author_id, actorId, "idea_shipped", `Your idea "${idea.title}" shipped 🎉`, ideaId);
+  await notifyAuthor(idea.author_id, actorId, "idea_shipped", `Your idea "${idea.title}" shipped`, ideaId);
   await logAction(actorId, ideaId, "ship", shippedRef ?? null);
   return { ok: true };
 }

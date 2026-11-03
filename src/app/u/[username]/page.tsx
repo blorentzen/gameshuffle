@@ -76,6 +76,7 @@ import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
 import { headers } from "next/headers";
 import { getInventory } from "@/lib/economy/arcade";
 import { ARCADE_ITEM_BY_ID, resolveNameColor } from "@/data/arcade-items";
+import { ArcadeBadgeIcon } from "@/components/arcade/ArcadeBadgeIcon";
 import { IconDeviceGamepad2, IconHeart, IconMessageCircle, IconMusic, IconPin } from "@tabler/icons-react";
 import { SupporterBadge } from "@/components/support/SupporterBadge";
 
@@ -811,7 +812,7 @@ export default async function PublicProfilePage({
                 </span>
                 {profile.email_verified && <VerifiedBadge />}
                 {cosmeticBadges.map((b) => (
-                  <span key={b.id} title={b.name} style={{ marginLeft: "0.25rem" }}>{b.emoji}</span>
+                  <span key={b.id} title={b.name} role="img" aria-label={b.name} className="profile-hero__cosmetic">{b.icon ? <ArcadeBadgeIcon name={b.icon} size={20} /> : null}</span>
                 ))}
               </h1>
               <span className="profile-hero__handle">@{profile.username}</span>

@@ -6,12 +6,14 @@
  * Verified once a reviewer checks it, Clip in review, or Unverified; below tenth there's no label, and
  * a dashed line marks the cut. Names open the players page. Your own top-ten row can take a clip or be
  * removed; anyone signed in can report someone else's time, which opens a ticket. `filters` is the
- * page's filter row, so the board's own controls (whose times, the count) sit on the same line. On a
+ * page's filter row, so the board's own controls (whose times, country, the count) sit on the same line. Round 3:
+ * a time opens its window (`?time=<id>` too), rows say Under review and Trusted, a flag shows the player's
+ * country, and a country filter narrows the board. On a
  * phone the table scrolls sideways with place and player pinned, and names never wrap (Britton,
  * 2026-10-30: scrolling tables are fine, long lounge names mustn't break the rows).
  */
 
-import { Fragment, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Avatar, Button, FormField, Input, Modal, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from "@empac/cascadeds";
 import { IconBrandDiscord, IconCamera, IconCircleCheck, IconClock, IconFlag, IconTrash, IconVideo } from "@tabler/icons-react";
@@ -21,6 +23,10 @@ import { TableScroll } from "@/components/ui/TableScroll";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { formatTime } from "@/lib/timeTrials/rules";
+import { flagUrl } from "@/lib/lounge/flags";
+import { countryName } from "@/lib/lounge/countries";
+import { StatusChip, TtTimeWindow } from "./TtTimeWindow";
+import type { TimeStatus } from "@/lib/timeTrials/detail";
 import { vehicleLabel, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 import type { TtBoard, TtBoardRow } from "@/lib/timeTrials/store";
 import type { TtClass, TtGame } from "@/lib/timeTrials/tracks";
@@ -53,17 +59,33 @@ export function VideoChip({ row }: { row: Pick<TtBoardRow, "video" | "videoUrl" 
   return <span className="tt-chip">Unverified</span>;
 }
 
-/** Your own top-ten time still needs a clip (none yet, or one that didn't match). */
-const wantsClip = (r: TtBoardRow) => r.you && r.top && r.video !== "checked" && !(r.video === "waiting" && r.videoUrl);
+/** A row's label (round 3): Under review first, then the clip's state, Trusted for a top-ten time without a checked clip. */
+function rowStatus(r: TtBoardRow): TimeStatus {
+  if (r.review) return "review";
+  if (!r.top) return "none";
+  if (r.video === "checked") return "verified";
+  if (r.video === "waiting" && r.videoUrl) return "waiting";
+  if (r.trusted) return "trusted";
+  if (r.video === "rejected" && r.you) return "rejected";
+  return "unverified";
+}
 
-export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signedIn, servers, filters }: {
+/** Your own top-ten time still needs a clip (none yet, or one that didn't match), unless you're Trusted. */
+const wantsClip = (r: TtBoardRow) => r.you && r.top && !r.trusted && r.video !== "checked" && !(r.video === "waiting" && r.videoUrl);
+type Reporting = { timeId: string; name: string; timeMs: number };
+
+export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signedIn, servers, countries = [], filters }: {
   initial: TtBoard; game: TtGame; track: string; cc: TtClass; items: TtItems; vehicle: TtVehicle; signedIn: boolean; servers: { guildId: string; name: string }[];
+  /** Countries with players (the country filter's choices). */
+  countries?: { country: string; players: number }[];
   filters?: ReactNode;
 }) {
   const [board, setBoard] = useState(initial);
   const [scopeId, setScopeId] = useState("everyone");
+  const [country, setCountry] = useState(initial.country ?? "");
   const [loading, setLoading] = useState(false);
-  const [reporting, setReporting] = useState<TtBoardRow | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [reporting, setReporting] = useState<Reporting | null>(null);
   const [reason, setReason] = useState("");
   const [link, setLink] = useState("");
   const [videoFor, setVideoFor] = useState<TtBoardRow | null>(null);
@@ -79,12 +101,27 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
     ...servers.map((s) => ({ id: `server:${s.guildId}`, label: s.name, scope: "server" as const, guild: s.guildId })),
   ];
 
-  async function load(nextScope: string) {
+  // A shared link opens its time's window (read after hydration, so the server and browser agree).
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("time");
+    if (!id || !/^[0-9a-f-]{36}$/.test(id)) return;
+    const t = setTimeout(() => setOpenId(id), 0);
+    return () => clearTimeout(t);
+  }, []);
+  function openTime(id: string | null) {
+    setOpenId(id);
+    const u = new URL(window.location.href);
+    if (id) u.searchParams.set("time", id); else u.searchParams.delete("time");
+    window.history.replaceState(window.history.state, "", u.toString());
+  }
+
+  async function load(nextScope: string, nextCountry = country) {
     const s = scopes.find((x) => x.id === nextScope) ?? scopes[0];
     setLoading(true);
     try {
       const qs = new URLSearchParams({ game, track, cc: String(cc), items, vehicle, scope: s.scope });
       if (s.guild) qs.set("guild", s.guild);
+      if (nextCountry) qs.set("country", nextCountry);
       const res = await fetch(`/api/time-trials?${qs}`);
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; board?: TtBoard };
       if (j.ok && j.board) setBoard(j.board);
@@ -130,7 +167,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
   }
 
   const rows = board.mine ? [...board.rows, board.mine] : board.rows;
-  const openReport = (r: TtBoardRow) => { setError(null); setReporting(r); };
+  const openReport = (r: Reporting) => { setError(null); setReporting(r); };
   const openClip = (r: TtBoardRow) => { setError(null); setVideoFor(r); };
   const count = `${board.total} ${board.total === 1 ? "player" : "players"}`;
   return (
@@ -139,6 +176,18 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
         {filters}
         <div className="tt-filters__end">
           <span className="tt-board__count">{count}</span>
+          {countries.length > 0 && (
+            <div className="tt-filter-select tt-filters__country">
+              <label htmlFor="tt-country" className="sr-only">Country</label>
+              <Select
+                id="tt-country"
+                value={country}
+                options={[{ value: "", label: "Every country" }, ...countries.map((c) => ({ value: c.country, label: countryName(c.country) }))]}
+                onChange={(v) => { const c = String(v); setCountry(c); void load(scopeId, c); }}
+                fullWidth
+              />
+            </div>
+          )}
           {scopes.length > 1 && (
             <div className="tt-filter-select tt-filters__scope">
               <label htmlFor="tt-scope" className="sr-only">Whose times</label>
@@ -155,7 +204,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
       </div>
 
       {rows.length === 0 ? (
-        <p className="tt-board__empty">{scopeId === "everyone" ? "No times on this board yet. Add the first one." : "No times from these players yet."}</p>
+        <p className="tt-board__empty">{country ? `No times from ${countryName(country)} on this board yet.` : scopeId === "everyone" ? "No times on this board yet. Add the first one." : "No times from these players yet."}</p>
       ) : (
         <TableScroll label="Times on this board">
           <Table className="tt-board__table">
@@ -175,6 +224,8 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
                 const cut = !mineRow && i > 0 && rows[i - 1].top && !r.top;
                 const proofHref = r.proofUrl && r.proof !== "none" ? r.proofUrl : null;
                 const clipHref = r.videoUrl && r.video === "checked" ? r.videoUrl : null;
+                const status = rowStatus(r);
+                const flag = r.country ? flagUrl(r.country) : null;
                 return (
                   <Fragment key={r.player}>
                     {cut && (
@@ -189,19 +240,22 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
                           <Avatar size="small" src={r.avatar ?? undefined} initials={r.name.slice(0, 1).toUpperCase()} alt="" />
                           <span className="tt-board__name">
                             <span className="tt-board__line">
+                              {/* eslint-disable-next-line @next/next/no-img-element -- a small flag from public/ */}
+                              {flag && <img src={flag} alt={countryName(r.country!)} title={countryName(r.country!)} className="tt-flag" />}
                               <Link href={r.page} title={r.name} className="tt-board__player">{r.name}</Link>
                               {r.discord && <IconBrandDiscord size={16} className="tt-board__discord" aria-label="(played in Discord)" />}
                               {r.you && <span className="tt-board__tag">You</span>}
                             </span>
                             {vehicle === "any" && r.vehicle !== "any" && <span className="tt-board__sub">{vehicleLabel(r.vehicle)}</span>}
                             {r.verifiedIn.length > 0 && <span className="tt-board__sub tt-board__verified"><IconCircleCheck size={14} aria-hidden="true" /> Vouched for in {r.verifiedIn.join(", ")}</span>}
+                            {r.vouches > 0 && <span className="tt-board__sub">{r.vouches} {r.vouches === 1 ? "vouch" : "vouches"}</span>}
                           </span>
                         </span>
                       </TableCell>
                       <TableCell>
                         <span className="tt-board__timecell">
-                          <span className="tt-board__time">{formatTime(r.timeMs)}</span>
-                          {r.top && <VideoChip row={r} />}
+                          <button type="button" className="tt-board__time tt-board__timebtn" onClick={() => openTime(r.timeId)} aria-label={`${formatTime(r.timeMs)} by ${r.name}: open its details`}>{formatTime(r.timeMs)}</button>
+                          <StatusChip status={status} />
                         </span>
                       </TableCell>
                       <TableCell>
@@ -217,7 +271,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
                         <span className="tt-board__acts">
                           {wantsClip(r) && <Button variant="secondary" size="small" iconBefore={IconVideo} onClick={() => openClip(r)}>Add clip</Button>}
                           {r.you ? <IconAction label="Remove your time" icon={IconTrash} variant="danger" onClick={() => void remove(r)} />
-                            : signedIn ? <IconAction label={`Report ${r.name}'s time`} icon={IconFlag} onClick={() => openReport(r)} /> : null}
+                            : signedIn ? <IconAction label={`Report ${r.name}'s time`} icon={IconFlag} onClick={() => openReport({ timeId: r.timeId, name: r.name, timeMs: r.timeMs })} /> : null}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -228,7 +282,9 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
           </Table>
         </TableScroll>
       )}
-      {rows.length > 0 && <p className="tt-board__note">Top-ten times show Verified once a reviewer checks a clip of the run&apos;s last 30 seconds.</p>}
+      {rows.length > 0 && <p className="tt-board__note">Top-ten times show Verified once an updater checks a clip of the run&apos;s last 30 seconds. Players with ten checked clips are Trusted. Press a time for its details.</p>}
+
+      <TtTimeWindow timeId={openId} signedIn={signedIn} onClose={() => openTime(null)} onReport={(t) => { openTime(null); openReport(t); }} />
 
       <Modal isOpen={!!reporting} onClose={() => setReporting(null)} title="Report this time" size="small">
         {reporting && (

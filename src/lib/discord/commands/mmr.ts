@@ -13,7 +13,8 @@ import { SITE_URL } from "@/lib/seo";
 import { cardFor, liveFor } from "@/lib/mmr/store";
 import { LoungeUnavailable, divisionSteps, loungePlayer } from "@/lib/mmr/mkcentral";
 import { divisionLook } from "@/lib/mmr/look";
-import { MMR_GAMES, fmtMmr, isMmrGame, placeWord, signed, viewOf, type MmrGame, type MmrSource } from "@/lib/mmr/rules";
+import { medalUrl } from "@/lib/mmr/medals";
+import { MMR_GAMES, fmtMmr, isMmrGame, placeWord, signed, sourceLabel, viewOf, type MmrGame, type MmrSource } from "@/lib/mmr/rules";
 import { headToHead } from "@/lib/lounge/h2h";
 import { parseRoom } from "@/lib/lounge/room";
 import { lookUpRoom } from "@/lib/lounge/roomServer";
@@ -26,22 +27,27 @@ function embedFor(src: MmrSource, tonight: boolean, noMmr = false) {
   const v = viewOf(src);
   const color = parseInt(divisionLook(v.division).c2.slice(1), 16);
   const squares = v.squares.map((s) => (s === "p" ? "🟨" : s === "w" ? "🟩" : "🟥")).join("");
+  // On a GameShuffle ladder: its rank out of its players, and placement until it's done.
+  const division = v.ladder?.placement ? `Placement ${v.ladder.placement.done} of ${v.ladder.placement.of}` : v.division;
+  const rank = v.worldRank ? [{ name: v.ladder ? "Rank" : "World rank", value: `#${v.worldRank.toLocaleString("en-US")}${v.ladder ? ` of ${v.ladder.total.toLocaleString("en-US")}` : ""}`, inline: true }] : [];
   const fields = noMmr ? [
-    { name: "Division", value: v.division, inline: true },
-    { name: "Next division", value: v.next ? v.next.name : "Top division", inline: true },
-    ...(v.worldRank ? [{ name: "World rank", value: `#${v.worldRank.toLocaleString("en-US")}`, inline: true }] : []),
+    { name: "Division", value: division, inline: true },
+    { name: "Next division", value: v.next ? v.next.name : v.ladder?.placement ? "After placement" : "Top division", inline: true },
+    ...rank,
     ...(tonight && v.tonight.events ? [{ name: "Tonight", value: `${v.tonight.w}-${v.tonight.l}`, inline: true }] : []),
     ...(squares ? [{ name: "Last 10", value: squares, inline: false }] : []),
   ] : [
     { name: "MMR", value: v.mmr == null ? "None yet" : fmtMmr(v.mmr), inline: true },
-    { name: "Division", value: v.division, inline: true },
-    { name: v.next ? `To ${v.next.name}` : "Next division", value: v.next && v.toNext != null ? fmtMmr(v.toNext) : "Top division", inline: true },
-    ...(v.worldRank ? [{ name: "World rank", value: `#${v.worldRank.toLocaleString("en-US")}`, inline: true }] : []),
+    { name: "Division", value: division, inline: true },
+    { name: v.next ? `To ${v.next.name}` : "Next division", value: v.next && v.toNext != null ? fmtMmr(v.toNext) : v.ladder?.placement ? "After placement" : "Top division", inline: true },
+    ...rank,
     ...(v.peak != null ? [{ name: "Season peak", value: fmtMmr(v.peak), inline: true }] : []),
     ...(tonight && v.tonight.events ? [{ name: "Tonight", value: `${signed(v.tonight.delta)} (${v.tonight.w}-${v.tonight.l})`, inline: true }] : []),
     ...(squares ? [{ name: "Last 10", value: squares, inline: false }] : []),
   ];
-  return { title: `${v.name} · ${MMR_GAMES[v.game].short}`, color, fields, footer: { text: "MMR card · gameshuffle.co/mmr-card" } };
+  // The division's medal (MKCentral's; the site's pages carry the credit, Discord posts don't: picks 2026-10-31, 4A).
+  const medal = medalUrl(divisionLook(v.division).base);
+  return { title: `${v.name} · ${sourceLabel(v)}`, color, fields, ...(medal ? { thumbnail: { url: medal } } : {}), footer: { text: "MMR card · gameshuffle.co/mmr-card" } };
 }
 
 export async function handleGsMmr(interaction: Record<string, unknown>): Promise<Response> {
@@ -85,13 +91,18 @@ export async function handleGsMmr(interaction: Record<string, unknown>): Promise
       return ephemeralMessage(`Add a lounge name to look someone up, or set up your own MMR card at ${SITE_URL}/mmr-card (sign in with Discord).`, [make]);
     }
     const card = await cardFor(resolved.gsUserId);
-    if (!card || (!card.loungeName && !card.loungePlayerId)) {
+    if (!card || (!card.loungeName && !card.loungePlayerId && !card.looks.some((l) => l.ladder))) {
       return ephemeralMessage(`You haven't set up an MMR card yet. It takes a minute at ${SITE_URL}/mmr-card.`, [make]);
     }
     after(async () => {
       const live = await liveFor(card);
       if (live.ok) await followUp(appId, token, { embeds: [embedFor(live.source, true, live.look.info.hideMmr)], components: [make] });
-      else await followUp(appId, token, { content: live.reason === "unavailable" ? "The lounge isn't answering right now. Try again in a minute." : "Your card's lounge name wasn't found. Fix it at gameshuffle.co/mmr-card." });
+      else await followUp(appId, token, {
+        content: live.reason === "unavailable" ? "The lounge isn't answering right now. Try again in a minute."
+          : live.reason === "not_on_ladder" ? "Your card is set to a GS Ranked lounge you're not on. Join it with /ranked join, or pick another at gameshuffle.co/mmr-card."
+            : live.reason === "no_name" ? `You haven't set up an MMR card yet. It takes a minute at ${SITE_URL}/mmr-card.`
+              : "Your card's lounge name wasn't found. Fix it at gameshuffle.co/mmr-card.",
+      });
     });
     return deferredResponse();
   }

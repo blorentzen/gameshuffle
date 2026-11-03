@@ -9,6 +9,8 @@ import { useState } from "react";
 import { Card, Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { ArcadeItem } from "@/data/arcade-items";
+import { ArcadeBadgeIcon } from "@/components/arcade/ArcadeBadgeIcon";
+import { TokenIcon } from "@/components/TokenIcon";
 
 export function ArcadeShop({
   items,
@@ -83,7 +85,7 @@ export function ArcadeShop({
     <>
       {signedIn && (
         <p style={{ margin: "0 0 var(--spacing-20)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
-          Your balance: <strong>{balance.toLocaleString()} 🪙</strong>
+          Your balance: <strong>{balance.toLocaleString()} <TokenIcon /></strong>
         </p>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "var(--spacing-16)" }}>
@@ -98,11 +100,11 @@ export function ArcadeShop({
                 {isNameColor ? (
                   <span style={{ width: 32, height: 32, borderRadius: "8px", background: item.color, flex: "0 0 auto", border: "1px solid var(--border-default)" }} />
                 ) : (
-                  <span style={{ fontSize: "var(--font-size-20)", lineHeight: 1 }}>{item.emoji}</span>
+                  <span className="icon-tile icon-tile--orange">{item.icon ? <ArcadeBadgeIcon name={item.icon} size={18} /> : null}</span>
                 )}
                 <div>
                   <p style={{ margin: 0, fontWeight: 700, color: isNameColor ? item.color : undefined }}>{item.name}</p>
-                  <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>{item.price.toLocaleString()} 🪙</p>
+                  <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>{item.price.toLocaleString()} <TokenIcon size={14} /><span className="sr-only"> tokens</span></p>
                 </div>
               </div>
               <p style={{ margin: "0 0 var(--spacing-16)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>{item.description}</p>
@@ -128,7 +130,7 @@ export function ArcadeShop({
                   loading={busy === item.id}
                   onClick={() => buy(item)}
                 >
-                  {!signedIn ? "Sign in to buy" : canAfford ? "Buy" : "Not enough 🪙"}
+                  {!signedIn ? "Sign in to buy" : canAfford ? "Buy" : "Not enough tokens"}
                 </Button>
               )}
             </Card>

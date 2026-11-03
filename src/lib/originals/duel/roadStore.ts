@@ -19,9 +19,10 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import { gsAddDays, gsDay } from "@/lib/time/gsClock";
+import { kvGet, kvSet } from "@/lib/kv";
 import { describePlayers } from "@/lib/daily/boards";
 import { applyStep, cardsLeft, startState, viewOf, type DuelSetup, type DuelState } from "./engine";
-import { adviceFor, hardParFor, levelSetup, makeSetup, packsFor, type DuelPlan } from "./solver";
+import { adviceFor, hardParFor, levelSetup, makeSetup, packsFor, type DuelPlan, type PackStats } from "./solver";
 import { duelScore, type DuelScoreParts } from "./rules";
 import { DUEL_RULES, easyReady, rulesOf, trainerView, type DuelPlayer } from "./store";
 import { ROAD_REGIONS, ROAD_SECTIONS, regionOf, roadMonth, roadStars, sectionOf, teamLabel, teamRole } from "./road";
@@ -90,6 +91,14 @@ async function readDuel(trainerId: string, month: string): Promise<RoadDuel | nu
 }
 
 /**
+ * A team whose duel couldn't be built waits before the next try (1, 3, 6, then every 12 hours), so
+ * the cron doesn't spend most of every run on it: Red's Gold team failed 894 times in October 2026,
+ * every 10 minutes, about 70 seconds each.
+ */
+interface RoadMiss { tries: number; next: number }
+const MISS_BACKOFF_H = [1, 3, 6, 12];
+
+/**
  * Builds a team's duel for a month and stores it (the first build stands). Same targets as the Daily
  * Duel's days for the team's own tier (par band, the slipping player's share of wins, two plans), and
  * Hard's par on the finished duel.
@@ -100,12 +109,24 @@ async function readDuel(trainerId: string, month: string): Promise<RoadDuel | nu
 export async function buildRoadDuel(t: DuelTrainer, month: string, opts: { budgetMs?: number; data?: DuelData; upgrade?: boolean } = {}): Promise<RoadDuel | null> {
   const data = opts.data ?? (await loadData());
   if (!data) return null;
+  const missKey = `road-miss:${month}:${t.id}`;
+  const miss = await kvGet<RoadMiss>(missKey);
+  if (miss && miss.next > Date.now()) return null;
   const t0 = Date.now();
   const deadline = t0 + (opts.budgetMs ?? 60_000);
   const rules = DUEL_RULES;
-  // Every team needs a duel (no stand-ins here), so packsFor's last resort is on.
-  const got = packsFor(month, t, t.tier, data.pool, data.cards, `road:${t.id}`, 120, deadline, undefined, { n: 0 }, 1, rules, { lastResort: true });
-  if (!got) { console.error(`[road] ${month} ${t.id}: no duel found in ${Date.now() - t0}ms`); return null; }
+  const stats: PackStats = { easy: 0, hard: 0, obviousWins: 0, noPack: 0, closest: 0, lastResortTried: 0 };
+  // Every team needs a duel (no stand-ins here), so packsFor's last resort is on. Packs are seeded,
+  // so a try after a miss draws different ones (`:r<n>`), or it would draw the same packs again.
+  const seed = miss ? `road:${t.id}:r${miss.tries}` : `road:${t.id}`;
+  const got = packsFor(month, t, t.tier, data.pool, data.cards, seed, 120, deadline, undefined, { n: 0 }, 1, rules, { lastResort: true, stats });
+  if (!got) {
+    const tries = (miss?.tries ?? 0) + 1;
+    const waitH = MISS_BACKOFF_H[Math.min(tries, MISS_BACKOFF_H.length) - 1];
+    await kvSet(missKey, { tries, next: Date.now() + waitH * 3_600_000 } satisfies RoadMiss, 40 * 86_400);
+    console.error(`[road] ${month} ${t.id}: no duel found in ${Date.now() - t0}ms (try ${tries}; ${stats.hard} packs too hard, ${stats.easy} too easy, last resort tried ${stats.lastResortTried}); next try in ${waitH}h`);
+    return null;
+  }
   const f = got.found;
   const cards: Record<string, DuelCard> = {};
   for (const id of [...f.pack, ...t.team]) if (data.cards[id]) cards[id] = data.cards[id];

@@ -22,7 +22,6 @@ export const metadata: Metadata = {
     siteName: "GameShuffle",
     title: "GameShuffle Apps",
     url: "https://www.gameshuffle.co/apps",
-    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gameshuffle-apps-og.jpg"],
   },
   alternates: {
     canonical: "https://www.gameshuffle.co/apps",

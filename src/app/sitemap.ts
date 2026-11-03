@@ -2,6 +2,7 @@ import { trackSummary } from "@/lib/timeTrials/store";
 import { trackPath, ttTrack, TT_GAME_ORDER } from "@/lib/timeTrials/tracks";
 import { CHECKLISTS, CHECKLISTS_PATH, checklistUrl } from "@/data/tcg-checklists";
 import type { MetadataRoute } from "next";
+import { compAppLive } from "@/lib/discord/appIds";
 import { publishedGuidesAsync } from "@/lib/guides/store";
 import { DUEL_PUBLIC, ROAD_PUBLIC, FIRE_ROUND_PUBLIC, GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 import { createPublicClient } from "@/lib/supabase/public";
@@ -220,6 +221,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    ...(compAppLive() ? [{
+      url: `${baseUrl}/mario-kart-discord-bot`,
+      lastModified: lm("/mario-kart-discord-bot"),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }] : []),
     {
       url: `${baseUrl}/lounge`,
       lastModified: lm("/lounge"),

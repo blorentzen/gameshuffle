@@ -261,17 +261,45 @@ async function duelToolPlayers(day: string, players: string[]): Promise<Set<stri
   return new Set(((data ?? []) as { player: string }[]).map((r) => r.player));
 }
 
-/** A board: today, this week or this month for a game, with the viewer's own row. */
-export async function boardView(args: { game: BoardGame; period: BoardPeriod; day?: string; me?: string | null; limit?: number; shared?: string | null }): Promise<BoardView> {
+/**
+ * The shared part of a board (its top rows, no viewer) kept on this server for a few seconds:
+ * every player used to make the database add up the whole period three times on load and again
+ * at the end, so the leaderboards were the first thing to slow in a spike. A viewer's own row is
+ * worked out only when they have a score in the period and aren't already in the top rows.
+ */
+const sharedTops = new Map<string, { at: number; raw: RawRow[] }>();
+const SHARED_MS: Record<BoardPeriod, number> = { day: 15_000, week: 60_000, month: 60_000 };
+
+async function boardRows(game: BoardGame, period: BoardPeriod, from: string, to: string, limit: number, me: string | null, fresh: boolean): Promise<RawRow[] | { error: { code?: string; message?: string } }> {
+  const key = `${game}:${from}:${to}:${limit}`;
+  const hit = sharedTops.get(key);
+  const live = (p: string | null) => createServiceClient().rpc("gs_daily_board", { p_game: game, p_from: from, p_to: to, p_limit: limit, p_player: p });
+  let top = !fresh && hit && Date.now() - hit.at < SHARED_MS[period] ? hit.raw : null;
+  if (top && me && !top.some((r) => r.player === me)) {
+    // Not in the top rows: their own row only if they've played in this period.
+    const { data: played } = await createServiceClient().from("daily_scores").select("player").eq("game", game).eq("player", me).gte("day", from).lte("day", to).limit(1);
+    if (played?.length) top = null;
+  }
+  if (top) return top;
+  const { data, error } = await live(me);
+  if (error) return { error };
+  const raw = (data ?? []) as RawRow[];
+  if (sharedTops.size > 200) sharedTops.clear();
+  sharedTops.set(key, { at: Date.now(), raw: raw.slice(0, limit) });
+  return raw;
+}
+
+/** A board: today, this week or this month for a game, with the viewer's own row. `fresh` skips the few seconds of sharing (a player who just finished). */
+export async function boardView(args: { game: BoardGame; period: BoardPeriod; day?: string; me?: string | null; limit?: number; shared?: string | null; fresh?: boolean }): Promise<BoardView> {
   const day = args.day ?? gsDay();
   const { from, to } = periodRange(args.period, day);
   const empty: BoardView = { ready: false, game: args.game, period: args.period, from, to, rows: [], you: null, total: 0, settles: args.period === "day" ? null : settlesOn(args.period, from) };
-  const { data, error } = await createServiceClient().rpc("gs_daily_board", { p_game: args.game, p_from: from, p_to: to, p_limit: args.limit ?? 25, p_player: args.me ?? null });
-  if (error) {
-    if (!boardsMissing(error)) console.error("[boards] board failed:", error);
+  const got = await boardRows(args.game, args.period, from, to, args.limit ?? 25, args.me ?? null, !!args.fresh);
+  if (!Array.isArray(got)) {
+    if (!boardsMissing(got.error)) console.error("[boards] board failed:", got.error);
     return empty;
   }
-  const raw = (data ?? []) as RawRow[];
+  const raw = got;
   const duelDay = args.game === "duel" && args.period === "day";
   const [names, supporters, levelPlayers, toolPlayers] = await Promise.all([
     describe(raw),

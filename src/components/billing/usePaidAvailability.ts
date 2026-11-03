@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 export interface PaidAvailability {
   /** Can this visitor start a paid-plan checkout (US-only for now)? */
   paidPlans: { available: boolean; country: string | null };
+  /** Can this visitor give support (everywhere while the support_international switch is on)? */
+  support: { available: boolean; country: string | null };
   /** Is paid event entry switched on? */
   paidEntry: boolean;
 }
 
 // Unknown counts as available, as on the server: checkout itself refuses outside the US.
-const UNKNOWN: PaidAvailability = { paidPlans: { available: true, country: null }, paidEntry: false };
+const UNKNOWN: PaidAvailability = { paidPlans: { available: true, country: null }, support: { available: true, country: null }, paidEntry: false };
 
 // One lookup per page load, shared by every offer on the page (a wall's terms line and its buttons both ask).
 let lookup: Promise<PaidAvailability> | null = null;

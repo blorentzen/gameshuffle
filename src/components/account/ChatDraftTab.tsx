@@ -17,6 +17,7 @@ import type { DraftPoolInfo } from "@/lib/drafts/catalog";
 import type { StreamDraftView } from "@/lib/drafts/store";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { everyVisible } from "@/lib/hooks/everyVisible";
 
 const ERRORS: Record<string, string> = {
   already_open: "A draft is already running. End it first.",
@@ -46,8 +47,8 @@ export function ChatDraftTab() {
       setLoading(false);
     };
     void load();
-    const iv = window.setInterval(load, 4000);
-    return () => { active = false; window.clearInterval(iv); };
+    const stop = everyVisible(load, 4000);
+    return () => { active = false; stop(); };
   }, []);
 
   const pool = useMemo(() => data?.pools.find((p) => p.id === poolId) ?? null, [data, poolId]);

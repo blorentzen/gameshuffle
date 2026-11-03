@@ -1,0 +1,37 @@
+/* A server's team logos (/account/streaming/logos/<guild>): the drop area, the list to add, the grid of logos. */
+
+.wl-crumbs { margin-bottom: var(--spacing-12); }
+
+/* A file drop area (no CascadeDS counterpart; same shape as the post composer's). */
+.wl-drop {
+  position: relative; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--spacing-8); width: 100%; padding: var(--spacing-32, 3.2rem) var(--spacing-16); cursor: pointer; text-align: center;
+  border: 2px dashed var(--border-default); border-radius: 1.2rem; background: var(--background-secondary);
+  color: var(--text-secondary); transition: border-color .12s ease, background .12s ease;
+}
+.wl-drop:hover { border-color: var(--primary-400, var(--border-strong)); }
+.wl-drop:focus-within { outline: 2px solid var(--primary-500, #3b5bdb); outline-offset: 2px; }
+.wl-drop--active { border-color: var(--primary-500); background: color-mix(in srgb, var(--primary-500) 8%, transparent); }
+.wl-drop__input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.wl-drop__icon { color: var(--primary-600, #2b52d6); }
+.wl-drop__title { font-size: var(--font-size-16); font-weight: 600; color: var(--text-primary); }
+.wl-drop__hint { font-size: var(--font-size-14); }
+
+.wl-thumb { display: block; width: 4.8rem; height: 4.8rem; object-fit: contain; border-radius: .6rem; background: repeating-conic-gradient(var(--background-secondary) 0% 25%, transparent 0% 50%) 0 0 / 1.2rem 1.2rem; }
+.wl-state { font-size: var(--font-size-14); }
+/* Account pages follow the viewer's theme, so the problem and done colors have a dark-mode shade each. */
+.wl-state--problem, .wl-state--failed { color: #b42318; font-weight: 600; }
+.wl-state--saved { color: #1f7a48; font-weight: 600; }
+html.dark .wl-state--problem, html.dark .wl-state--failed { color: #ff9e94; }
+html.dark .wl-state--saved { color: #74dba3; }
+.wl-state--held { color: var(--text-secondary); }
+.wl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); }
+.wl-note { font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* The logos: picture, tag, one line, and Remove. */
+.wl-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-20) var(--spacing-12); grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
+.wl-tile { position: relative; display: grid; justify-items: center; gap: var(--spacing-4); padding-top: var(--spacing-8); text-align: center; min-width: 0; }
+.wl-tile .wp-mark { margin-bottom: var(--spacing-4); }
+.wl-tile__tag { font-weight: 700; font-size: var(--font-size-16); max-width: 100%; overflow-wrap: anywhere; }
+.wl-tile__line { font-size: var(--font-size-14); color: var(--text-secondary); max-width: 100%; overflow-wrap: anywhere; }
+.wl-tile__act { position: absolute; top: 0; right: 0; }

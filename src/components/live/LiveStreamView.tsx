@@ -14,6 +14,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import Link from "next/link";
 import { ArrowLink } from "@/components/ui/ArrowLink";
 import { Accordion, Container, Tabs } from "@empac/cascadeds";
+import { IconDeviceGamepad2, IconFlag } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
@@ -452,7 +453,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
         });
         return;
       }
-      setActionStatus({ kind: "ok", message: `${label} ✓` });
+      setActionStatus({ kind: "ok", message: label });
       // Refresh module state so the picker UI flips immediately even
       // before the realtime subscription pushes the change.
       void live.refresh();
@@ -671,13 +672,17 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
         <LiveTournamentRace ownerUserId={streamer.userId} />
         {liveStatus === "scheduled" && (
           <div className="live-page__prelive-banner" role="status">
-            🎮 The lobby&rsquo;s open. Type <code>!gs-join</code> in chat to
-            grab a seat. Waiting for the stream to go live.
+            <IconDeviceGamepad2 size={18} aria-hidden />
+            <span>
+              The lobby&rsquo;s open. Type <code>!gs-join</code> in chat to
+              grab a seat. Waiting for the stream to go live.
+            </span>
           </div>
         )}
         {liveStatus === "ending" && (
           <div className="live-page__ending-banner" role="status">
-            🏁 Wrap-up in progress. The streamer is ending this session.
+            <IconFlag size={18} aria-hidden />
+            <span>Wrap-up in progress. The streamer is ending this session.</span>
           </div>
         )}
         <div className="live-page__hero">

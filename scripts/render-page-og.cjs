@@ -28,6 +28,8 @@ const APP = path.resolve(__dirname, "..");
 const PUB = `file://${APP}/public`;
 const ICONS = path.join(APP, "node_modules/@tabler/icons/icons/outline");
 const LOGO = `${PUB}/images/fg/logos/gameshuffle-wht.svg`;
+// Quoted and encoded where it's used: the project path has a space ("Web Projects"), which broke the unquoted url()
+// and left every image in the browser's fallback sans until 2026-11-01.
 const FONT = `file://${APP}/src/app/fonts/gabarito.woff2`;
 const DEV = process.env.OG_BASE || "http://localhost:3000";
 const MKW = `${PUB}/images/bg/mkw-main-image.jpg`, MK8 = `${PUB}/images/bg/MK8DX_Background_Music.jpg`;
@@ -113,6 +115,20 @@ function specsFor(titles) {
   add("/mmr-card", "MMR Card", "Your lounge rank on stream", G("device-tv", "broadcast", "trophy", "crown", "chart-line"));
   add("/randomizers", "Randomizers", "Rolls for every game night", A(MK8));
   add("/pokemon-tcg/checklists", "Card Checklists", "Tick off the ones you have", A(CARDS));
+  // The last pages on the old 2025 images (a different typeface, on cdn.empac.co): Britton, 2026-11-01, "we should be
+  // using our primary/display font for the opengraph cards". Same look as the rest, in Gabarito.
+  add("/gs-pro", "GS Pro", "Tools for streamers and hosts", G("sparkles", "broadcast", "palette", "brand-discord", "crown"));
+  add("/apps", "Apps", "Every tool in one place", G("apps", "dice-5", "trophy", "calendar", "pokeball", "brain"));
+  add("/tools", "Free Tools", "Dice, wheels, brackets and more", G("dice-5", "chart-pie", "tournament", "clock", "coin"));
+  add("/beta", "Streamer Beta", "Try new tools first", G("broadcast", "flask", "sparkles", "message-circle", "rocket"));
+  add("/contact-us", "Contact Us", "We read every message", G("mail", "message-circle", "lifebuoy", "send", "heart-handshake"));
+  add("/wheel-spinner", "Wheel Spinner", "Spin for anything", A(GN));
+  add("/host-a-tournament", "Host a Tournament", "Brackets, Swiss and seasons", A(TOUR));
+  add("/mario-kart-tournaments", "Mario Kart Tournaments", "Brackets, series and seasons", A(MK8));
+  add("/tournament", "Tournaments", "Find one to join", A(TOUR));
+  add("/tournament/sandbox", "Tournament Sandbox", "Try every format", A(TOUR));
+  add("/pokemon-tcg-companion", "TCG Companion", "Pokémon game-night kit", A(CARDS));
+  add("/competitive/[game]", "Lounge Scoring", "Every race counted live", A(MK8), "public/images/opengraph/pages/competitive.jpg");
   // Dynamic routes can't hold a static image file (the production build fails): their
   // opengraph-image.tsx / twitter-image.tsx read these from public instead.
   add("/ideas/[id]", "Idea Board", "Vote on what we build next", G("bulb", "thumb-up", "sparkles", "message-circle", "rocket"), "public/images/opengraph/pages/ideas.jpg");
@@ -193,7 +209,7 @@ function cardHtml(s) {
     ? `.og{background:url("${s.bg.art}") center/cover} .og::before{background:linear-gradient(135deg,rgba(47,102,236,.86),rgba(75,92,245,.80))} .glyph{display:none}`
     : `.og{background:linear-gradient(135deg,#2f66ec,#4b5cf5)} .og::before{background:radial-gradient(90% 90% at 50% 45%,rgba(47,102,236,0),rgba(24,40,140,.35))} .glyph{position:absolute;inset:0;background-image:${pattern(s.bg.glyphs, s.id)};background-size:240px 240px;opacity:.16}`;
   return `<!doctype html><meta charset="utf-8"><style>
-@font-face{font-family:G;src:url(${FONT}) format("woff2");font-weight:400 900}
+@font-face{font-family:G;src:url("${encodeURI(FONT)}") format("woff2");font-weight:400 900}
 html,body{margin:0;width:1200px;height:630px;overflow:hidden}
 .og{position:relative;width:1200px;height:630px;font-family:G,sans-serif;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 70px;box-sizing:border-box}
 .og::before{content:"";position:absolute;inset:0}

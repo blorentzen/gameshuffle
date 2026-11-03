@@ -13,7 +13,6 @@ export const metadata: Metadata = {
     siteName: "GameShuffle",
     title: "GameShuffle Pro",
     url: "https://www.gameshuffle.co/gs-pro",
-    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gs-pro-og.jpg"],
   },
   alternates: {
     canonical: "https://www.gameshuffle.co/gs-pro",

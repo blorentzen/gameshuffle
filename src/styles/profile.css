@@ -431,6 +431,9 @@
   border-radius: var(--radius-8, 0.5rem);
 }
 .report-profile-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
   background: none;
   border: none;
   cursor: pointer;
@@ -569,6 +572,8 @@
   display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; margin: 0;
   font-size: var(--font-size-28); font-weight: var(--font-weight-bold); line-height: 1.15;
 }
+/* An Arcade badge the person owns, beside their name. */
+.profile-hero__cosmetic { display: inline-flex; color: var(--warning-ink); }
 .profile-hero__handle { color: var(--text-secondary); font-size: var(--font-size-14); }
 .profile-hero__sub { color: var(--text-tertiary); font-size: var(--font-size-14); }
 .profile-hero__bio { margin: var(--spacing-8) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.5; max-width: 54ch; }
@@ -2025,6 +2030,9 @@ a.ct__name:hover { text-decoration: underline; }
 .share-card__register-label {
   font-size: var(--font-size-14);
   color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
 }
 
 /* Game Night block inside a post */

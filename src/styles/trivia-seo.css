@@ -637,3 +637,6 @@
   .league-poster, .league-poster * { visibility: visible; }
   .league-poster { position: absolute; left: 0; top: 0; max-width: none; border-radius: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Marks a team name that jokes about drinking (the list and the line above it). */
+.trivia-name-lists__beer { vertical-align: -0.2em; color: var(--text-tertiary); }

@@ -12,7 +12,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { verifyTurnstileToken } from "@/lib/turnstile";
-import { sendContactTeamNotification, sendContactConfirmation, CONTACT_TOPIC_LABELS } from "@/lib/email/contact";
+import { sendContactTeamNotification, sendContactConfirmation, CONTACT_TOPIC_LABELS, LOUNGE_TOPIC, LOUNGE_URGENCY } from "@/lib/email/contact";
 
 export const runtime = "nodejs";
 
@@ -42,6 +42,13 @@ export async function POST(request: Request) {
   }
   if (!VALID_TOPICS.has(topic)) {
     return NextResponse.json({ error: "Please select a topic." }, { status: 400 });
+  }
+  const loungeRaw = (body.lounge && typeof body.lounge === "object" ? body.lounge : {}) as { name?: unknown; urgency?: unknown };
+  const lounge = topic === LOUNGE_TOPIC
+    ? { name: typeof loungeRaw.name === "string" ? loungeRaw.name.trim().slice(0, 80) : "", urgency: typeof loungeRaw.urgency === "string" && loungeRaw.urgency in LOUNGE_URGENCY ? loungeRaw.urgency : "later" }
+    : null;
+  if (lounge && !lounge.name) {
+    return NextResponse.json({ error: "Which lounge is it about?" }, { status: 400 });
   }
   if (!message || message.length < 10) {
     return NextResponse.json({ error: "Please include a short message (at least 10 characters)." }, { status: 400 });
@@ -76,6 +83,7 @@ export async function POST(request: Request) {
     message,
     submittedAt,
     authenticatedUserId,
+    lounge,
   });
   if (!teamResult.ok) {
     console.error("[contact/submit] team notification failed:", teamResult.error);

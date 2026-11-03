@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { NotificationData } from "@empac/cascadeds";
+import { IconCheck, IconX } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { cdsNotificationType, isInviteNotification } from "@/lib/social/notificationTypes";
@@ -24,8 +25,8 @@ interface ApiNotif {
   data: Record<string, unknown> | null;
 }
 
-const CheckIcon = () => <span aria-hidden>✓</span>;
-const XIcon = () => <span aria-hidden>✕</span>;
+const CheckIcon = () => <IconCheck size={16} stroke={2} aria-hidden />;
+const XIcon = () => <IconX size={16} stroke={2} aria-hidden />;
 
 type RespondFn = (notifId: string, invitationId: string, action: "accept" | "decline") => void;
 

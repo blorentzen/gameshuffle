@@ -288,13 +288,17 @@ export async function sweepDuePolls(now: number = Date.now()): Promise<number> {
   return closed.length;
 }
 
+/**
+ * Votes per option, counted in the database (2 to 8 options, one count each). Reading the vote
+ * rows stopped at PostgREST's 1,000-row limit, so a poll's numbers froze past 1,000 votes.
+ */
 export async function tally(pollId: string): Promise<PollTally> {
-  const { data } = await createServiceClient()
-    .from("gs_poll_votes")
-    .select("option_id")
-    .eq("poll_id", pollId);
-  const rows = (data as { option_id: string }[] | null) ?? [];
+  const admin = createServiceClient();
+  const { data: poll } = await admin.from("gs_polls").select("options").eq("id", pollId).maybeSingle();
+  const ids = (((poll as { options: { id: string }[] } | null)?.options) ?? []).map((o) => o.id);
+  const counts = await Promise.all(ids.map((id) => admin.from("gs_poll_votes").select("option_id", { count: "exact", head: true }).eq("poll_id", pollId).eq("option_id", id)));
   const byOption: Record<string, number> = {};
-  for (const r of rows) byOption[r.option_id] = (byOption[r.option_id] ?? 0) + 1;
-  return { total: rows.length, byOption };
+  let total = 0;
+  ids.forEach((id, i) => { const n = counts[i].count ?? 0; if (n) byOption[id] = n; total += n; });
+  return { total, byOption };
 }

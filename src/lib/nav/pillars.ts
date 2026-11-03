@@ -1,3 +1,4 @@
+import { compAppLive } from "@/lib/discord/appIds";
 import { ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 /**
  * The four pillars — the single source of truth for GameShuffle's information
@@ -164,6 +165,8 @@ export const PILLARS: Pillar[] = [
           { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart World and 8 Deluxe. Add yours from a screenshot.", footer: true },
           { label: "Lounge stats", href: "/lounge", blurb: "Any lounge player's season, plus boards for the people you know.", footer: true },
           { label: "MMR card", href: "/mmr-card", blurb: "Your lounge MMR on stream, live, with a moment every event. Free.", footer: true },
+          // GameShuffle Competitive's page, once the app exists here (picks 2026-10-31, 5A).
+          ...(compAppLive() ? [{ label: "Discord bot", href: "/mario-kart-discord-bot", blurb: "Time trials, MMR and room reads in your server. Free.", footer: true }] : []),
           { label: "Live scoring", href: "/competitive/mario-kart-8-deluxe", blurb: "Score a set between friends as you race." },
         ],
       },

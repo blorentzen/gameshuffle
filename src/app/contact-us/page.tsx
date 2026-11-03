@@ -14,17 +14,18 @@ import {
   Textarea,
 } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { CONTACT_TOPIC_LABELS } from "@/lib/email/contact";
+import { CONTACT_TOPIC_LABELS, LOUNGE_TOPIC, LOUNGE_URGENCY } from "@/lib/email/contact";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { readReport, REPORT_TOPIC } from "@/lib/contact/report";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
-const TOPIC_OPTIONS = Object.entries(CONTACT_TOPIC_LABELS).map(([value, label]) => ({
-  value,
-  label,
-}));
+// The lounge topic shows when the form is opened on it (from the GS Ranked pages); GS Ranked isn't announced yet.
+const topicOptions = (current: string) => Object.entries(CONTACT_TOPIC_LABELS)
+  .filter(([value]) => value !== LOUNGE_TOPIC || current === LOUNGE_TOPIC)
+  .map(([value, label]) => ({ value, label }));
+const URGENCY_OPTIONS = Object.entries(LOUNGE_URGENCY).map(([value, label]) => ({ value, label }));
 
 interface TurnstileAPI {
   render: (el: HTMLElement, opts: Record<string, unknown>) => string;
@@ -54,6 +55,8 @@ export default function ContactPage() {
   const [picked, setTopic] = useState<string | null>(null);
   const topic = picked ?? (report.topic && report.topic in CONTACT_TOPIC_LABELS ? report.topic : "general");
   const [message, setMessage] = useState("");
+  const [loungeName, setLoungeName] = useState(report.about ?? "");
+  const [urgency, setUrgency] = useState("later");
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [turnstileReady, setTurnstileReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -106,6 +109,10 @@ export default function ContactPage() {
       setError("Please select a topic.");
       return;
     }
+    if (topic === LOUNGE_TOPIC && !loungeName.trim()) {
+      setError("Which lounge is it about?");
+      return;
+    }
     if (message.trim().length < 10) {
       setError("Please include a short message (at least 10 characters).");
       return;
@@ -128,6 +135,7 @@ export default function ContactPage() {
             ? `About: ${report.about}${report.page ? ` (${window.location.origin}${report.page})` : ""}\n\n${message.trim()}`
             : message.trim(),
           turnstileToken: captchaToken,
+          ...(topic === LOUNGE_TOPIC ? { lounge: { name: loungeName.trim(), urgency } } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -216,7 +224,7 @@ export default function ContactPage() {
 
                       <FormField label="Topic" required>
                         <Select
-                          options={TOPIC_OPTIONS}
+                          options={topicOptions(topic)}
                           value={topic}
                           onChange={(v) => setTopic(typeof v === "string" ? v : v[0] ?? "")}
                           placeholder="Select a topic…"
@@ -224,7 +232,18 @@ export default function ContactPage() {
                         />
                       </FormField>
 
-                      {report.about && (
+                      {topic === LOUNGE_TOPIC && (
+                        <>
+                          <FormField label="Which lounge" required>
+                            <Input value={loungeName} onChange={(e) => setLoungeName(e.target.value.slice(0, 80))} placeholder="Like 200cc Lounge" />
+                          </FormField>
+                          <FormField label="How urgent">
+                            <Select options={URGENCY_OPTIONS} value={urgency} onChange={(v) => setUrgency(typeof v === "string" ? v : v[0] ?? "later")} fullWidth />
+                          </FormField>
+                        </>
+                      )}
+
+                      {report.about && topic !== LOUNGE_TOPIC && (
                         <p className="contact-page__about">
                           About:{" "}
                           {report.page ? <a href={report.page}>{report.about}</a> : report.about}

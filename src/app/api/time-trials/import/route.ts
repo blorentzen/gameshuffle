@@ -22,6 +22,7 @@ import { linesLookRight, readLines } from "@/lib/timeTrials/importText";
 import { readQuaxly, readTitle, yourRows, type Learned, type QuaxlyList, type QuaxlyRow } from "@/lib/timeTrials/quaxly";
 import { learnedFor, rememberAliases } from "@/lib/timeTrials/aliases";
 import { mkcentralTimes } from "@/lib/timeTrials/mkcentralImport";
+import { noteCountry } from "@/lib/timeTrials/countries";
 import type { ImportRow } from "@/lib/timeTrials/importText";
 import { isItems, type TtItems } from "@/lib/timeTrials/categories";
 import { readShots, MAX_SHOTS, MAX_SHOT_BYTES } from "@/lib/timeTrials/importShots";
@@ -124,6 +125,8 @@ export async function POST(req: Request) {
     if (!discordId) return NextResponse.json({ ok: false, error: "no_discord" });
     const res = await mkcentralTimes(discordId);
     if (!res.ok) return NextResponse.json({ ok: false, error: res.error });
+    // Their MKCentral country, for the country boards (kept only when they haven't picked one).
+    await noteCountry(actor.player, res.country, "mkcentral").catch(() => undefined);
     const bests = await bestsMap(actor.player, "mkworld", "shrooms");
     return NextResponse.json({ ok: true, game: "mkworld", rows: toCheckRows(res.rows, "mkworld", 150, null, bests), title: res.name ? `${res.name} on MKCentral` : "Your MKCentral times", holders: false, ai: false, items: "shrooms" });
   }

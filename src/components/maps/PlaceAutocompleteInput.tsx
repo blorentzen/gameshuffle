@@ -18,6 +18,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@empac/cascadeds";
+import { IconMapPin } from "@tabler/icons-react";
 import { isGoogleMapsEnabled, loadGooglePlaces, type GooglePlacesApi, type GAutocompleteSuggestion } from "@/lib/maps/google";
 
 export interface PlacePick { address: string; lat: number | null; lng: number | null }
@@ -149,7 +150,7 @@ export function PlaceAutocompleteInput({
           {rows.map((r) => (
             <li key={r.id}>
               <button type="button" className="place-ac__opt" onMouseDown={(e) => { e.preventDefault(); void pick(r); }}>
-                <span aria-hidden className="place-ac__pin">📍</span>
+                <IconMapPin size={16} stroke={1.9} aria-hidden className="place-ac__pin" />
                 <span className="place-ac__label">{r.label}</span>
               </button>
             </li>

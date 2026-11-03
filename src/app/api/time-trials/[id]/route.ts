@@ -1,5 +1,7 @@
 /**
  * One time.
+ *   GET                                         → everything for its window on the board (round 3 pick 1A)
+ *   POST { action: "vouch" | "unvouch" }        → vouch for it (players with a checked time; pick 9A)
  *   DELETE                                      → removes your own time
  *   POST { action: "report", reason, link? }    → opens a ticket on someone's time (signed in)
  *   POST { action: "video", url }               → your clip of the run's last 30 seconds, for a reviewer to check
@@ -9,9 +11,18 @@ import { rateLimit } from "@/lib/ratelimit";
 import { siteActor } from "@/lib/timeTrials/players";
 import { nudgeMovedUp, removeOwnTime, setVideo, timeById, topTensAround } from "@/lib/timeTrials/store";
 import { openTicket } from "@/lib/timeTrials/review";
+import { setVouch, timeDetail } from "@/lib/timeTrials/detail";
 import { videoProof } from "@/lib/timeTrials/rules";
 
 export const runtime = "nodejs";
+
+export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+  const actor = await siteActor();
+  const detail = await timeDetail(id, actor?.player ?? null);
+  if (!detail) return NextResponse.json({ ok: false, error: "gone" }, { status: 404 });
+  return NextResponse.json({ ok: true, time: detail }, { headers: { "Cache-Control": "private, no-store" } });
+}
 
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
@@ -35,6 +46,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     if (!url) return NextResponse.json({ ok: false, error: "bad_video" }, { status: 400 });
     const ok = await setVideo(actor.player, id, url);
     return NextResponse.json({ ok }, { status: ok ? 200 : 404 });
+  }
+  if (body.action === "vouch" || body.action === "unvouch") {
+    if (!(await rateLimit(`tt-vouch:${actor.player}`, { max: 60, windowMs: 60 * 60_000 })).ok) return NextResponse.json({ ok: false, error: "slow_down" }, { status: 429 });
+    const res = await setVouch(id, actor.player, body.action === "vouch");
+    return NextResponse.json({ ok: res === "ok", error: res === "ok" ? undefined : res }, { status: res === "ok" ? 200 : res === "gone" ? 404 : 400 });
   }
   if (body.action !== "report") return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
   if (!(await rateLimit(`tt-report:${actor.player}`, { max: 20, windowMs: 60 * 60_000 })).ok) return NextResponse.json({ ok: false, error: "slow_down" }, { status: 429 });

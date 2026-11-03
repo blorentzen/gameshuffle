@@ -5,14 +5,15 @@
  *   $3 Supporter level sells looks right now (on unless the support_supporter_looks switch is off).
  * proElsewhere = GS Pro from a plan, trial or Circuit (a level with GS Pro would charge twice).
  * Support is for everyone, GS Pro members included (Britton's picks, 2026-10-19); a supporter
- * gets a thank-you instead of the ask, and outside the US the asks wait (US only for now).
+ * gets a thank-you instead of the ask. Outside the US the asks show while the support_international switch is on
+ * (the default), else they wait.
  * A signed-in visitor's gifts made while signed out are claimed here first, by confirmed email.
  */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { paidPlanAvailability } from "@/lib/billing/availability";
+import { supportAvailability } from "@/lib/billing/availability";
 import { claimSupportGifts, monthProgress, supporterInfo, supportSettings } from "@/lib/support/store";
 import { getProAccess } from "@/lib/subscription-server";
 import { hasLooks, supporterLooksOn } from "@/lib/support/looks";
@@ -24,7 +25,7 @@ const NO_STORE = { "Cache-Control": "private, no-store" };
 export async function GET(req: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const available = paidPlanAvailability(req).available;
+  const available = (await supportAvailability(req)).available;
   // This month's goal and how many people gave (public numbers).
   const [settings, month, supporterLooks] = await Promise.all([supportSettings().catch(() => null), monthProgress().catch(() => null), supporterLooksOn()]);
   const progress = settings && settings.goalCents > 0 ? { goalCents: settings.goalCents, raisedCents: month?.raisedCents ?? 0 } : null;

@@ -1,9 +1,10 @@
 /**
  * GET /api/live/[streamer-slug]/leaderboard?kind=combined|player|crowd&limit=10
  *
- * Public read for the /live page leaderboard tab. Polled every 15s
- * by the client; cheap because `gs_leaderboard_*` RPCs run on derived
- * indices over `token_events`.
+ * Public read for the /live page leaderboard tab. Polled every 30s
+ * while the tab is visible; the same for every viewer, so the CDN keeps
+ * each answer 15 seconds (`gs_leaderboard_*` RPCs run on derived indices
+ * over `token_events`).
  *
  * Public surface — no auth required. The leaderboard is the same
  * data the chat `!leaderboard` returns; surfacing it here is just a
@@ -25,6 +26,8 @@ import {
 export const runtime = "nodejs";
 
 const VALID_KINDS = new Set<LeaderboardKind>(["combined", "player", "crowd"]);
+/** Every viewer gets the same board, so the CDN answers repeats. */
+const SHARED = { "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30" };
 
 export async function GET(
   request: Request,
@@ -83,7 +86,7 @@ export async function GET(
   if (!communityId) {
     // No community row yet — treat as empty board, NOT 404. Streamers
     // who haven't had any chat interaction still get a clean rendering.
-    return NextResponse.json({ kind: kindParam, rows: [] });
+    return NextResponse.json({ kind: kindParam, rows: [] }, { headers: SHARED });
   }
 
   const rows = await getLeaderboard({
@@ -91,5 +94,5 @@ export async function GET(
     communityId,
     limit,
   });
-  return NextResponse.json({ kind: kindParam, rows });
+  return NextResponse.json({ kind: kindParam, rows }, { headers: SHARED });
 }

@@ -13,7 +13,7 @@
  * no guest step. Nothing shows until supabase/daily-boards-m1.sql has run.
  */
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Avatar, Button, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs } from "@empac/cascadeds";
 import { IconBackpack, IconBrandDiscordFilled, IconHeartFilled } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -282,12 +282,14 @@ const settleText = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateStr
 
 /** The leaderboards for one game: Today, This week, This month. */
 /** `join`: the guest's "Put me on the board" form, shown above the board it joins. */
-export function DailyBoard({ game, main, guestId, refresh, onViews, join, scored = false }: {
+export function DailyBoard({ game, main, guestId, refresh, onViews, needWeek = false, join, scored = false }: {
   game: BoardGame;
   main: number;
   guestId: string | null;
   refresh: number;
   onViews?: (day: BoardView | null, week: BoardView | null) => void;
+  /** Load this week's board with the page (the Shuffle and Dex show your week place on the end screen). */
+  needWeek?: boolean;
   join?: ReactNode;
   /** The Daily Duel on a scored day (rules 6): today's board shows the score out of 1,000. */
   scored?: boolean;
@@ -298,21 +300,39 @@ export function DailyBoard({ game, main, guestId, refresh, onViews, join, scored
   const [period, setPeriod] = useState<BoardPeriod>("day");
   const [views, setViews] = useState<Partial<Record<BoardPeriod, BoardView>>>({});
 
+  // Today's board loads with the page (and this week's when the page shows your week place,
+  // `needWeek`); the others when their tab opens. After a finish (`refresh`), boards skip the
+  // few seconds the server shares their top rows, so your new result shows straight away.
+  const opened = useRef<Set<BoardPeriod>>(new Set());
+  const load = useCallback((p: BoardPeriod) => api(`/api/daily/board?game=${game}&period=${p}${sharedCode ? `&shared=${sharedCode}` : ""}${refresh > 0 ? "&fresh=1" : ""}`, { headers: guestId ? { "x-daily-guest": guestId } : {} })
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<BoardView | null>, [api, game, guestId, refresh, sharedCode]);
+
   useEffect(() => {
     let alive = true;
-    const load = (p: BoardPeriod) => api(`/api/daily/board?game=${game}&period=${p}${sharedCode ? `&shared=${sharedCode}` : ""}`, { headers: guestId ? { "x-daily-guest": guestId } : {} })
-      .then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<BoardView | null>;
-    void Promise.all([load("day"), load("week"), load("month")]).then(([d, w, m]) => {
+    const periods: BoardPeriod[] = (["day", "week", "month"] as BoardPeriod[]).filter((p) => p === "day" || (p === "week" && needWeek) || opened.current.has(p));
+    void Promise.all(periods.map(load)).then((got) => {
       if (!alive) return;
-      setViews({ ...(d ? { day: d } : {}), ...(w ? { week: w } : {}), ...(m ? { month: m } : {}) });
-      onViews?.(d, w);
+      const byPeriod = Object.fromEntries(periods.map((p, i) => [p, got[i]])) as Partial<Record<BoardPeriod, BoardView | null>>;
+      setViews((v) => {
+        const next = { ...v };
+        for (const p of periods) { const view = byPeriod[p]; if (view) next[p] = view; }
+        return next;
+      });
+      onViews?.(byPeriod.day ?? null, byPeriod.week ?? null);
       // A link straight to the board (the homepage's "Leaderboards") lands before it has loaded.
-      if (d?.ready && typeof window !== "undefined" && window.location.hash === `#daily-board-${game}`) {
+      if (byPeriod.day?.ready && typeof window !== "undefined" && window.location.hash === `#daily-board-${game}`) {
         requestAnimationFrame(() => document.getElementById(`daily-board-${game}`)?.scrollIntoView({ block: "start" }));
       }
     });
     return () => { alive = false; };
-  }, [api, game, guestId, refresh, onViews, sharedCode]);
+  }, [load, game, onViews, needWeek]);
+
+  const openTab = (p: BoardPeriod) => {
+    setPeriod(p);
+    if (opened.current.has(p) || views[p]) return;
+    opened.current.add(p);
+    void load(p).then((view) => { if (view) setViews((v) => ({ ...v, [p]: view })); });
+  };
 
   const current = views[period];
   if (!views.day?.ready) return null;
@@ -324,11 +344,11 @@ export function DailyBoard({ game, main, guestId, refresh, onViews, join, scored
         variant="underline"
         size="small"
         activeTab={period}
-        onChange={(id) => setPeriod(id as BoardPeriod)}
+        onChange={(id) => openTab(id as BoardPeriod)}
         tabs={(["day", "week", "month"] as BoardPeriod[]).map((p) => ({ id: p, label: PERIOD_LABEL[p], content: null }))}
         className="daily-board__tabs"
       />
-      {current && <BoardTable view={current} main={main} pictures={!activity} scored={scored} />}
+      {current ? <BoardTable view={current} main={main} pictures={!activity} scored={scored} /> : <p className="daily-board__foot">{`Loading ${PERIOD_LABEL[period].toLowerCase()}'s board…`}</p>}
       {current && (
         <p className="daily-board__foot">
           {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · {game === "fire"

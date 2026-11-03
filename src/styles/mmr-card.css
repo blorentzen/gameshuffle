@@ -27,6 +27,27 @@
 .mmr-fill-stripes .mmr-skin { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--mmr-hl) 11%, var(--mmr-bg)) 0 2.4cqw, var(--mmr-bg) 2.4cqw 4.8cqw); }
 .mmr-sf-light.mmr-fill-stripes .mmr-skin { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--mmr-hl) 9%, #fff) 0 2.4cqw, #fff 2.4cqw 4.8cqw); }
 .mmr-fill-dots .mmr-skin { background: radial-gradient(color-mix(in srgb, var(--mmr-hl) 26%, transparent) 22%, transparent 25%) 0 0 / 3.4cqw 3.4cqw, var(--mmr-bg); }
+/* Free ready-made backgrounds (time trials round 3, pick 12A), drawn in the look's own colors so they follow the surface. */
+/* Checkered: one even board under a fade toward the opposite corner (never placed blocks). */
+.mmr-fill-checker .mmr-skin { background: linear-gradient(105deg, var(--mmr-bg) 30%, color-mix(in srgb, var(--mmr-bg) 55%, transparent) 70%, transparent), repeating-conic-gradient(color-mix(in srgb, var(--mmr-hl) 22%, var(--mmr-bg)) 0 25%, var(--mmr-bg) 0 50%) 0 0 / 4cqw 4cqw, var(--mmr-bg); }
+/* Speed lines: thin streaks of different lengths racing right, with a glow where they start. */
+.mmr-fill-speed .mmr-skin { background:
+  radial-gradient(70% 90% at 0% 50%, color-mix(in srgb, var(--mmr-g2) 28%, transparent), transparent 70%),
+  repeating-linear-gradient(176deg, transparent 0 1.3cqw, color-mix(in srgb, var(--mmr-hl) 26%, transparent) 1.3cqw 1.5cqw, transparent 1.5cqw 2.9cqw, color-mix(in srgb, var(--mmr-hl2) 18%, transparent) 2.9cqw 3.05cqw),
+  linear-gradient(90deg, transparent 35%, var(--mmr-bg) 92%),
+  var(--mmr-bg); }
+/* Stage lights: two beams from above and a soft floor glow. */
+.mmr-fill-lights .mmr-skin { background:
+  conic-gradient(from 160deg at 22% -12%, transparent 0deg, color-mix(in srgb, var(--mmr-hl) 22%, transparent) 14deg, transparent 32deg),
+  conic-gradient(from 168deg at 78% -12%, transparent 0deg, color-mix(in srgb, var(--mmr-hl2) 20%, transparent) 14deg, transparent 30deg),
+  radial-gradient(80% 50% at 50% 110%, color-mix(in srgb, var(--mmr-g2) 30%, transparent), transparent 70%),
+  var(--mmr-bg); }
+/* Night drive: a deep sky over a horizon glow, with the road's lines fading into it. */
+.mmr-fill-night .mmr-skin { background:
+  radial-gradient(120% 60% at 50% 100%, color-mix(in srgb, var(--mmr-hl2) 30%, transparent), transparent 65%),
+  repeating-linear-gradient(90deg, transparent 0 9cqw, color-mix(in srgb, var(--mmr-hl) 18%, transparent) 9cqw 9.35cqw) bottom / 100% 34% no-repeat,
+  linear-gradient(180deg, color-mix(in srgb, #0a1240 60%, var(--mmr-bg)), var(--mmr-bg) 70%); }
+.mmr-sf-light.mmr-fill-night .mmr-skin { background: radial-gradient(120% 60% at 50% 100%, color-mix(in srgb, var(--mmr-hl) 18%, transparent), transparent 65%), linear-gradient(180deg, #e9eefc, #fff 70%); }
 .mmr-fill-picture .mmr-skin { background: linear-gradient(180deg, rgba(8,10,28,.3), rgba(8,10,28,.72)), var(--mmr-picture, linear-gradient(160deg, #ff8a5c, #c2457e 45%, #3b2b8f)) center / cover no-repeat, #11162e; }
 
 /* Borders */

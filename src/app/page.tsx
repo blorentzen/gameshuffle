@@ -16,7 +16,7 @@ import { DiscordPlug } from "@/components/discord/DiscordPlug";
 import { HomeToday } from "@/components/home/HomeToday";
 import { HomeHost } from "@/components/home/HomeHost";
 import { PlansBand } from "@/components/home/PlansBand";
-import { paidPlansHere } from "@/lib/billing/availability";
+import { paidPlansHere, supportHere } from "@/lib/billing/availability";
 import { homeViewer } from "@/lib/home/viewer";
 import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC } from "@/lib/games-visibility";
 import { DUEL_SHOWN } from "@/lib/originals/dailies";
@@ -144,8 +144,8 @@ export default async function HomePage() {
   // Featured shop cards for the Pokémon section (read-only, 0 Scrydex credits;
   // FPO fallback inside the component if none configured).
   // The Daily Duel's challenger ("Larry challenged you to a duel"): today's trainer, from a built day (never builds one).
-  const [shopCards, shopVisible, viewer, paidHere, duelToday] = await Promise.all([
-    getPublicFeaturedShopCards(), shopVisibleToVisitors(), homeViewer().catch(() => null), paidPlansHere().catch(() => true),
+  const [shopCards, shopVisible, viewer, paidHere, supportOpen, duelToday] = await Promise.all([
+    getPublicFeaturedShopCards(), shopVisibleToVisitors(), homeViewer().catch(() => null), paidPlansHere().catch(() => true), supportHere().catch(() => true),
     DUEL_SHOWN ? duelChallenger(gsDay()).catch(() => null) : Promise.resolve(null),
   ]);
   return (
@@ -215,7 +215,7 @@ export default async function HomePage() {
           <HomeHost next={viewer?.next ?? null} />
         </Container>
 
-        <PlansBand pro={!!viewer?.pro} circuit={!!viewer?.circuit} trialUsed={!!viewer?.trialUsed} supporter={!!viewer?.supporter} paidHere={paidHere} />
+        <PlansBand pro={!!viewer?.pro} circuit={!!viewer?.circuit} trialUsed={!!viewer?.trialUsed} supporter={!!viewer?.supporter} paidHere={paidHere} supportHere={supportOpen} />
 
         <Container>
           <section className="home-section" aria-labelledby="home-tools-title">

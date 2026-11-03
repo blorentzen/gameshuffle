@@ -22,6 +22,7 @@ import { formatTime } from "@/lib/timeTrials/rules";
 import { serverPath, ttTrack, TT_GAMES, TT_GAME_ORDER, type TtGame } from "@/lib/timeTrials/tracks";
 import { trackCode } from "@/lib/timeTrials/codes";
 import { botTokenFor } from "./apps";
+import { compRest } from "./compRest";
 import { getAppGuild, patchAppGuildSettings } from "./appGuilds";
 
 export type PanelGame = TtGame | "both";
@@ -34,28 +35,15 @@ type Panels = Partial<Record<PanelGame, PanelRef>>;
 
 /** Buttons on the panel: ttp:add:<game>, ttp:top:<game>, ttp:me:<game>. */
 export const TT_PANEL_PREFIX = "ttp:";
-/** The competitive app's gold. */
-export const COMP_COLOR = 0xf0b232;
+/** The competitive app's accent: the Master division's ice (its icon and banner are black and ice, 2026-10-31). */
+export const COMP_COLOR = 0xcfe2ee;
 const COMPONENTS_V2 = 1 << 15;
 const REFRESH_MS = 60_000;
 /** The sweep also refreshes a panel this old, for times added on the site by the server's players. */
 const STALE_MS = 15 * 60_000;
 const SWEEP_MAX = 25;
 
-type RestResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string };
-
-async function rest<T = unknown>(method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE", path: string, body?: unknown): Promise<RestResult<T>> {
-  const token = botTokenFor("comp");
-  if (!token) return { ok: false, status: 0, error: "no_token" };
-  const res = await fetch(`https://discord.com/api/v10${path}`, {
-    method,
-    headers: { Authorization: `Bot ${token}`, "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  }).catch(() => null);
-  if (!res) return { ok: false, status: 0, error: "network" };
-  if (!res.ok) return { ok: false, status: res.status, error: (await res.text().catch(() => "")).slice(0, 200) };
-  return { ok: true, data: (res.status === 204 ? {} : await res.json().catch(() => ({}))) as T };
-}
+const rest = compRest;
 
 const panelsOf = (settings: Record<string, unknown>): Panels => ((settings.ttPanels ?? {}) as Panels);
 const withPanels = (settings: Record<string, unknown>, panels: Panels) => ({ ...settings, ttPanels: panels });

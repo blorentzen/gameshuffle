@@ -129,7 +129,7 @@ export function OracleConfigCard({ onSaved, live, bare = false }: { onSaved?: ()
 
   return (
     <section className={bare ? "stream-tools__bare" : "stream-tools__section"} style={vars}>
-      {!bare && <h3 className="stream-tools__heading">🎱 Oracle (8-Ball / Yes-No / Truth or Dare)</h3>}
+      {!bare && <h3 className="stream-tools__heading">Oracle (8-Ball / Yes-No / Truth or Dare)</h3>}
 
       <div className="stream-tools__row">
         <AccentField label="Card accent" value={oracle.accentColor} onChange={(v) => setOracle({ ...oracle, accentColor: v })} />

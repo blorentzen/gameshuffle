@@ -344,7 +344,7 @@ export function BreakScreenOverlay({ view, style, full = false }: { view: BreakV
           <div className="gs-break__royale">
             {rv?.out && rv.out.length > 0 && (
               <ul className="gs-break__out">
-                {rv.out.slice(0, 6).map((o, i) => <li key={i}>{o.line}</li>)}
+                {rv.out.slice(0, 6).map((o, i) => <li key={i}><IconBomb size={16} stroke={2} aria-hidden /><span>{o.line}</span></li>)}
                 {(rv.out.length > 6 || (rv.outMore ?? 0) > 0) && <li>…and {rv.out.length - 6 + (rv.outMore ?? 0)} more</li>}
               </ul>
             )}

@@ -15,27 +15,14 @@
  */
 
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
+import { realStaffRole } from "@/lib/capabilities/realStaffRole";
 import { shouldRenderImpersonationBanner } from "@/lib/capabilities/staff-impersonation";
 import { ImpersonationExitButton } from "./ImpersonationExitButton";
 
 export async function ImpersonationBanner() {
   // Resolve the real user — we need their role, not their impersonated tier.
-  const supabase = await createClient();
-  const {
-    data: { user: rawUser },
-  } = await supabase.auth.getUser();
-  if (!rawUser) return null;
-
-  const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("users")
-    .select("role")
-    .eq("id", rawUser.id)
-    .maybeSingle();
-  const role = (profile?.role as string | null) ?? null;
-  if (role !== "staff" && role !== "admin") return null;
+  const role = await realStaffRole();
+  if (!role) return null;
 
   const banner = await shouldRenderImpersonationBanner({ role });
   if (!banner.show) return null;

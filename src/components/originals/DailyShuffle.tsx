@@ -400,7 +400,7 @@ export function DailyShuffle() {
       )}
 
       {!preview && (
-        <DailyBoard game="shuffle" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews}
+        <DailyBoard game="shuffle" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews} needWeek
           join={over && account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0
             ? <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />
             : null} />

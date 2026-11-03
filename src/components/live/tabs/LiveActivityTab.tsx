@@ -67,8 +67,8 @@ function eventToActivityItem(event: SessionEventRow): ActivityItemData | null {
     const trackName = (p.track_name as string | null) ?? null;
     const presetName = (p.preset_name as string | null) ?? null;
     const parts: string[] = [];
-    if (trackName) parts.push(`🏁 ${trackName}`);
-    if (presetName) parts.push(`🎯 ${presetName}`);
+    if (trackName) parts.push(trackName);
+    if (presetName) parts.push(presetName);
     const action =
       seriesIdx && seriesTotal && seriesTotal > 1
         ? `rolled race ${seriesIdx}/${seriesTotal}`
@@ -89,7 +89,7 @@ function eventToActivityItem(event: SessionEventRow): ActivityItemData | null {
       id: event.id,
       user: SYSTEM_ACTOR,
       action: "rolled a track",
-      target: `🏁 ${trackName}`,
+      target: trackName,
       timestamp: ts,
       type: "create",
     };
@@ -101,7 +101,7 @@ function eventToActivityItem(event: SessionEventRow): ActivityItemData | null {
       id: event.id,
       user: SYSTEM_ACTOR,
       action: "rolled item rules",
-      target: `🎯 ${presetName}`,
+      target: presetName,
       timestamp: ts,
       type: "create",
     };

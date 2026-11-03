@@ -10,6 +10,7 @@
  * with a name is its own Discord identity, so several names are several players.
  * `&room=` puts the session in a play-together room (`dev-<room>`), so a few
  * browser windows with different names can test a room without Discord.
+ * `&app=comp&guild=&channel=` is a War room session in that server channel (the war seeds' fake ids work).
  */
 
 import { NextResponse } from "next/server";
@@ -36,9 +37,11 @@ export async function GET(req: Request) {
   if (!linked && nameOverride) did = `activity-preview-${nameOverride.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 24)}`;
   const room = params.get("room")?.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24) || null;
   const { identityId } = await resolveIdentity({ platform: "discord", platformId: did, displayName: name });
+  const comp = params.get("app") === "comp";
+  const snowflake = (k: string) => (/^\d{5,25}$/.test(params.get(k) ?? "") ? params.get(k) : null);
   return NextResponse.json({
     ok: true,
-    session: signSession({ did, iid: identityId, uid, name, avatar: null, ins: room ? `dev-${room}` : null }),
+    session: signSession({ did, iid: identityId, uid, name, avatar: null, ins: room ? `dev-${room}` : null, ...(comp ? { app: "comp" as const, gid: snowflake("guild"), cid: snowflake("channel") } : {}) }),
     user: { id: did, name, avatar: null, linked: !!uid },
   });
 }

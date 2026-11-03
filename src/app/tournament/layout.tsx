@@ -11,14 +11,6 @@ export const metadata: Metadata = {
     title: "Tournaments",
     description: "Browse open tournaments for Mario Kart and any other game. Find competitions, view live brackets, and register.",
     url: "https://www.gameshuffle.co/tournament",
-    images: [
-      {
-        url: "https://cdn.empac.co/gameshuffle/images/opengraph/mk-tournaments-og.jpg",
-        width: 1200,
-        height: 630,
-        alt: "GameShuffle Tournaments",
-      },
-    ],
   },
   alternates: {
     canonical: "https://www.gameshuffle.co/tournament",

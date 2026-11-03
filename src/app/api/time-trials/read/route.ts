@@ -8,6 +8,7 @@ import { rateLimit } from "@/lib/ratelimit";
 import { siteActor } from "@/lib/timeTrials/players";
 import { MAX_SCREENSHOT_BYTES, readScreenshot, readsLeft, storeScreenshot } from "@/lib/timeTrials/read";
 import { isTtGame } from "@/lib/timeTrials/tracks";
+import { signRead } from "@/lib/timeTrials/proof";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -36,5 +37,7 @@ export async function POST(req: Request) {
   const res = await readScreenshot({ jpeg: shot.jpeg, game, userId: actor.userId, capKey: actor.player });
   // The screenshot still counts as proof when it can't be read (or the day's reads are used up).
   if (!res.ok) return NextResponse.json({ ok: true, proofUrl: shot.url, read: null, error: res.error, left: res.error === "cap" ? 0 : undefined });
-  return NextResponse.json({ ok: true, proofUrl: shot.url, read: res.read, left: res.left }, { headers: { "Cache-Control": "private, no-store" } });
+  // What the screen showed, signed: the add route keeps it (proof checks compare it with the saved time and laps).
+  const token = signRead({ url: shot.url, timeMs: res.read.timeMs, laps: res.read.laps });
+  return NextResponse.json({ ok: true, proofUrl: shot.url, read: res.read, readToken: token, left: res.left }, { headers: { "Cache-Control": "private, no-store" } });
 }

@@ -38,7 +38,7 @@ export function WelcomeToast() {
         if (body.welcome) {
           toast.success(
             "You're all set. Set up your profile and start your first game night whenever you're ready.",
-            { title: "Welcome to GameShuffle! 🎉" },
+            { title: "Welcome to GameShuffle!" },
           );
         }
       } catch {

@@ -7,6 +7,7 @@ import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconDice5 } from "@tabler/icons-react";
 
 /**
  * Farkle scoreboard — bank each turn's points and race to the target (10,000 by
@@ -60,7 +61,7 @@ export function Farkle() {
         </div>
       </div>
       {finalRound && (
-        <p className="bgn-crib__win">🎲 {target.toLocaleString()} reached: final round! Everyone gets one more turn; highest score wins.</p>
+        <p className="bgn-crib__win"><IconDice5 size={18} stroke={2} aria-hidden /><span>{target.toLocaleString()} reached: final round! Everyone gets one more turn; highest score wins.</span></p>
       )}
 
       <div className="bgn-counters">

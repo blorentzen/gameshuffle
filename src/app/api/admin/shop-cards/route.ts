@@ -1,6 +1,6 @@
 /**
  * GET  /api/admin/shop-cards   → list featured shop cards (staff/admin).
- * POST /api/admin/shop-cards   → add one { cardId, variantName?, label?, productUrl }.
+ * POST /api/admin/shop-cards   → add one { cardId, variantName?, language?: "en" | "ja" (English by default), label?, productUrl }.
  *
  * Platform-global shop promo cards. Staff/admin only. Adding resolves the
  * card's Scrydex catalog row (demand-driven).
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
   const result = await addFeaturedShopCard({
     cardId,
     variantName: typeof body?.variantName === "string" ? body.variantName : null,
+    language: body?.language === "ja" ? "ja" : "en",
     label: typeof body?.label === "string" ? body.label : null,
     productUrl,
     isSold: body?.isSold === true,

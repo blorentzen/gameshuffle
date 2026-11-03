@@ -9,6 +9,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { isBlockedText } from "@/lib/text/filter";
 import { FOUNDING_CUTOFF, LAUNCH_BOARDS, MAX_ANSWER_LENGTH, normalize } from "./rules";
 import { EMPTY_AUDIENCE, cleanAudience, type Audience } from "./audience";
@@ -49,15 +50,33 @@ const PROMPT_COLS = "id, text, category, family_safe, status, min_answers, origi
 
 type PromptRef = { id: string; edition: number };
 
-/** Answer counts per prompt, for each prompt's current edition. Fine at launch volumes; becomes a view or RPC once answers grow. */
+/**
+ * Answer counts per prompt, for each prompt's current edition: one grouped count in the database
+ * (supabase/chat-brain-counts-m1.sql), kept on this server for a minute because the Chat Brain card
+ * on the dailies' end screens asks for them on every finish. Before the migration: the answer rows
+ * read page by page (one read used to stop at 1,000 rows and undercount).
+ */
+const countCache = new Map<string, { at: number; counts: Map<string, number> }>();
+const COUNT_MS = 60_000;
+
 async function answerCounts(prompts: PromptRef[]): Promise<Map<string, number>> {
-  const out = new Map<string, number>();
-  if (!prompts.length) return out;
+  if (!prompts.length) return new Map();
   const edition = new Map(prompts.map((p) => [p.id, p.edition ?? 1]));
-  const { data } = await createServiceClient().from("brain_answers").select("prompt_id, edition").in("prompt_id", [...edition.keys()]).eq("hidden", false).limit(50_000);
-  for (const r of (data ?? []) as { prompt_id: string; edition: number }[]) {
-    if (r.edition === edition.get(r.prompt_id)) out.set(r.prompt_id, (out.get(r.prompt_id) ?? 0) + 1);
+  const key = [...edition].map(([id, ed]) => `${id}:${ed}`).sort().join(",");
+  const hit = countCache.get(key);
+  if (hit && Date.now() - hit.at < COUNT_MS) return hit.counts;
+  const svc = createServiceClient();
+  const out = new Map<string, number>();
+  const { data, error } = await svc.rpc("gs_brain_answer_counts", { p_prompts: [...edition.keys()], p_editions: [...edition.values()] });
+  if (!error) {
+    for (const r of (data ?? []) as { prompt_id: string; answers: number }[]) out.set(r.prompt_id, Number(r.answers));
+  } else {
+    if (!["42883", "PGRST202"].includes(error.code ?? "")) console.error("[chatbrain] counts failed:", error);
+    const { data: rows } = await readAllPages<{ id: string; prompt_id: string; edition: number }>((from, to) => svc.from("brain_answers").select("id, prompt_id, edition").in("prompt_id", [...edition.keys()]).eq("hidden", false).order("id").range(from, to));
+    for (const r of rows) if (r.edition === edition.get(r.prompt_id)) out.set(r.prompt_id, (out.get(r.prompt_id) ?? 0) + 1);
   }
+  if (countCache.size > 100) countCache.clear();
+  countCache.set(key, { at: Date.now(), counts: out });
   return out;
 }
 
