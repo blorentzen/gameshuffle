@@ -540,7 +540,7 @@ const mainCommands = MOVED ? commands.filter((c) => !(c.name in COMP_FROM)) : co
 /** The Activity's entry point: Discord launches the Activity itself (handler 2) and posts that it started. */
 const ACTIVITY_ENTRY_POINT = {
   name: "launch",
-  description: "Play the Daily, the Weekly and Chat Brain",
+  description: COMP ? "Open the War room: score this channel's war together" : "Play the Daily, the Weekly and Chat Brain",
   type: 4, // PRIMARY_ENTRY_POINT
   handler: 2, // DISCORD_LAUNCH_ACTIVITY
   integration_types: [0, 1],

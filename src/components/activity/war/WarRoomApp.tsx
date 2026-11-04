@@ -7,18 +7,20 @@
  * moves down as it does for the card's own buttons (the same store, src/lib/wars/room.ts).
  *
  * Signs in like GameShuffle's Activity (one SDK handshake per frame, authorize then our session), but as GameShuffle
- * Competitive (`app: "comp"`). Polls /api/activity/war every 1.5 seconds while it's on screen.
+ * Competitive (`app: "comp"`). Polls /api/activity/war every 1.5 seconds while it's on screen. A second tab, Time
+ * trials (TtScreen), shows the server's records with your gaps and takes a time from a screenshot.
  * Development only: /discord/activity?app=comp&preview=guest&name=Sam&guild=<id>&channel=<id> signs in without Discord.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
-import { Button, Card, Input } from "@empac/cascadeds";
+import { Button, Card, Input, Tabs } from "@empac/cascadeds";
 import { IconSearch, IconSwords } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { SITE_URL } from "@/lib/seo";
 import type { RoomStart, RoomState, RoomWarChoice } from "@/lib/wars/room";
 import { WarScreen } from "./WarScreen";
+import { TtScreen } from "./TtScreen";
 import { TeamMark } from "./bits";
 import { warSdk } from "./sdk";
 import "@/styles/war-room.css";
@@ -93,8 +95,7 @@ export function WarRoomApp({ clientId }: { clientId: string | null }) {
     <main className="wr-app">
       <header className="wr-top">
         <span className="wr-top__mark" aria-hidden="true"><IconSwords size={18} stroke={2} /></span>
-        <span className="wr-top__name">War room</span>
-        <span className="wr-top__by">GameShuffle Competitive</span>
+        <span className="wr-top__name">GameShuffle Competitive</span>
       </header>
       {phase.kind === "starting" && <p className="wr-note" role="status">Signing you in…</p>}
       {phase.kind === "outside" && (
@@ -110,8 +111,27 @@ export function WarRoomApp({ clientId }: { clientId: string | null }) {
           <Button variant="secondary" onClick={() => { setPhase({ kind: "starting" }); run(); }}>Try again</Button>
         </Card>
       )}
-      {phase.kind === "ready" && <Room session={phase.session} />}
+      {phase.kind === "ready" && <Screens session={phase.session} />}
     </main>
+  );
+}
+
+/** The app's two screens. */
+function Screens({ session }: { session: string }) {
+  const [tab, setTab] = useState("war");
+  const auth = useCallback((init: RequestInit = {}) => ({ ...init, headers: { ...(init.headers ?? {}), Authorization: `Bearer ${session}`, "Content-Type": "application/json" } }), [session]);
+  return (
+    <Tabs
+      variant="underline"
+      size="small"
+      className="wr-apptabs"
+      activeTab={tab}
+      onChange={setTab}
+      tabs={[
+        { id: "war", label: "War room", content: <Room session={session} /> },
+        { id: "tt", label: "Time trials", content: <TtScreen auth={auth} /> },
+      ]}
+    />
   );
 }
 

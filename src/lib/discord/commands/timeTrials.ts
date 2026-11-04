@@ -26,7 +26,7 @@ import { playerPagePath } from "@/lib/timeTrials/playerPath";
 import { botTokenFor } from "../apps";
 import { appOfApplicationId, commandName } from "../appIds";
 import { describePlayers } from "@/lib/daily/boards";
-import { serverRecord } from "@/lib/timeTrials/server";
+import { serverRecord, type ServerTime } from "@/lib/timeTrials/server";
 import { COMP_COLOR, panelFor, postToPanelChannel, refreshPanels } from "../ttPanel";
 import { handleTtPanelCommand } from "./ttPanelActions";
 
@@ -136,6 +136,34 @@ function resultLines(t: TtTrack, cc: TtClass, timeMs: number, res: Extract<AddTi
   return lines;
 }
 
+/**
+ * "New server record on …" in the server's time trial panel channel, when a new time beats the record that stood before
+ * it (pick 3A: only a fallen record is posted for everyone). Shared by /tt and the War room's Time trials tab.
+ */
+export async function postServerRecord(a: {
+  guildId: string; actor: TtActor; track: TtTrack; cc: TtClass; items: TtItems; vehicle: TtVehicle; timeMs: number;
+  prior: ServerTime; res: Extract<AddTimeResult, { ok: true }>;
+}): Promise<boolean> {
+  const { guildId, actor, track, cc, timeMs, prior, res } = a;
+  if (timeMs >= prior.timeMs || res.again) return false;
+  const was = prior.player === actor.player
+    ? `Beat their own ${formatTime(prior.timeMs)}`
+    : `Was ${formatTime(prior.timeMs)} by ${(await describePlayers([prior.player])).get(prior.player)?.name ?? "a player"}`;
+  return postToPanelChannel(guildId, track.game, {
+    embeds: [{
+      title: `New server record on ${trackTitle(track)}`,
+      description: [
+        `**${actor.name}** · ${formatTime(timeMs)} · ${categoryText(track.game, cc, a.items, a.vehicle, TT_GAMES[track.game].classes.length > 1)}`,
+        `${was}${a.vehicle === "any" ? ` · ${ordinal(res.place)} on GameShuffle` : ""}`,
+      ].join("\n"),
+      color: COMP_COLOR,
+      ...(track.image ? { thumbnail: { url: track.image } } : {}),
+      footer: FOOTER,
+    }],
+    components: [row(btn("Verify", `${TT_VERIFY_PREFIX}${res.timeId}`, 3), btn("Report", `${TT_REPORT_PREFIX}${res.timeId}`, 2), link("Full board", boardUrl(track, cc, a.items, "any")))],
+  });
+}
+
 async function saveAndAnswer(args: {
   appId: string; token: string; actor: TtActor; guildId: string | null; track: TtTrack; cc: TtClass; timeMs: number;
   proof: ProofKind; proofUrl: string | null; readByAi: boolean; items: TtItems; vehicle: TtVehicle; clip: string | null;
@@ -176,25 +204,7 @@ async function saveAndAnswer(args: {
       ...(unlinked ? [link("Link to GameShuffle", LINK_URL)] : []),
     )],
   });
-  let recordPosted = false;
-  if (guildId && prior && timeMs < prior.timeMs && !res.again) {
-    const was = prior.player === actor.player
-      ? `Beat their own ${formatTime(prior.timeMs)}`
-      : `Was ${formatTime(prior.timeMs)} by ${(await describePlayers([prior.player])).get(prior.player)?.name ?? "a player"}`;
-    recordPosted = await postToPanelChannel(guildId, track.game, {
-      embeds: [{
-        title: `New server record on ${trackTitle(track)}`,
-        description: [
-          `**${actor.name}** · ${formatTime(timeMs)} · ${categoryText(track.game, cc, args.items, args.vehicle, TT_GAMES[track.game].classes.length > 1)}`,
-          `${was}${args.vehicle === "any" ? ` · ${ordinal(res.place)} on GameShuffle` : ""}`,
-        ].join("\n"),
-        color: COMP_COLOR,
-        ...(track.image ? { thumbnail: { url: track.image } } : {}),
-        footer: FOOTER,
-      }],
-      components: [row(btn("Verify", `${TT_VERIFY_PREFIX}${res.timeId}`, 3), btn("Report", `${TT_REPORT_PREFIX}${res.timeId}`, 2), link("Full board", boardUrl(track, cc, args.items, "any")))],
-    });
-  }
+  const recordPosted = guildId && prior ? await postServerRecord({ guildId, actor, track, cc, items: args.items, vehicle: args.vehicle, timeMs, prior, res }) : false;
   if (guildId) await refreshPanels(guildId, track.game).catch((err) => console.error("[tt panel] refresh failed:", err));
   if (res.best && !res.again && guildId && !args.panel && !recordPosted) {
     const fields = [
