@@ -35,7 +35,8 @@ export function handleResult(interaction: Record<string, unknown>): Response {
     return ephemeralMessage("Could not identify your Discord account.");
   }
 
-  const applicationId = process.env.DISCORD_APPLICATION_ID!;
+  // The app this came from (GameShuffle Competitive's /result or the main app's old /gs-result): its follow-up goes to that app.
+  const applicationId = String(interaction.application_id ?? process.env.DISCORD_APPLICATION_ID ?? "");
   const token = (interaction as { token: string }).token;
 
   after(async () => {

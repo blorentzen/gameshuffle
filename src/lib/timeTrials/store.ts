@@ -156,12 +156,9 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
   const shot = m4 ? input.shotHash ?? (input.proof === "screenshot" ? await hashOfProof(input.proofUrl) : null) : null;
   if (!timeId) {
     const m5 = await round4Ready();
-    const extra = {
-      ...(m4 ? { laps: input.laps ?? null, read_ms: input.readMs ?? null, read_laps: input.readLaps ?? null, shot_hash: shot } : {}),
-      ...(m5 && input.parts ? { body: input.parts.body, wheels: input.parts.wheels, glider: input.parts.glider } : {}),
-    };
-    const { data, error } = await db.from("tt_times").insert({
-      ...extra,
+    const extra = m4 ? { laps: input.laps ?? null, read_ms: input.readMs ?? null, read_laps: input.readLaps ?? null, shot_hash: shot } : {};
+    const parts = m5 && input.parts ? { body: input.parts.body, wheels: input.parts.wheels, glider: input.parts.glider } : null;
+    const row = {
       player: input.player,
       user_id: input.userId,
       identity_id: input.identityId,
@@ -176,7 +173,14 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
       read_by_ai: input.readByAi,
       source: input.source,
       guild_id: input.guildId ?? null,
-    }).select("id").single();
+    };
+    let { data, error } = await db.from("tt_times").insert({ ...extra, ...parts, ...row }).select("id").single();
+    // A database without the combo columns (they came late to time-trials-m5.sql; production lacked them on 2026-11-04)
+    // still saves the time, without its combo.
+    if (error && parts && /\b(body|wheels|glider)\b/.test(error.message ?? "")) {
+      console.warn("[tt] combo columns missing, saved without the combo:", error.message);
+      ({ data, error } = await db.from("tt_times").insert({ ...extra, ...row }).select("id").single());
+    }
     if (error || !data) { console.error("[tt] add failed:", error?.message); return { ok: false, error: "failed" }; }
     timeId = (data as { id: string }).id;
     // Proof checks open tickets for the mode's updaters; they never take the time down.

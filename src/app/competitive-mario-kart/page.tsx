@@ -277,7 +277,7 @@ export default async function CompetitiveMarioKartPage() {
           </div>
           <ol className="cmk-steps">
             <li><span className="cmk-steps__n">1</span><span><b>Show your times in Discord</b>Run <code>/dx display time</code> in any server with Quaxly.</span></li>
-            <li><span className="cmk-steps__n">2</span><span><b>Copy the reply, or press Save to GameShuffle</b>The button is on Quaxly&apos;s reply once GameShuffle&apos;s bot is in the server.</span></li>
+            <li><span className="cmk-steps__n">2</span><span><b>Copy the reply, or press Save to GameShuffle</b>The button is on Quaxly&apos;s reply once GameShuffle Competitive is in the server or on your account.</span></li>
             <li><span className="cmk-steps__n">3</span><span><b>Check and save</b>We match every track and show what&apos;s new before anything saves.</span></li>
           </ol>
         </section>
@@ -290,12 +290,12 @@ export default async function CompetitiveMarioKartPage() {
               <h3>In your Discord server</h3>
               <p>Times, MMR and room checks without leaving the chat.</p>
               <ul className="cmk-cmds">
-                <li><code>/gs-tt add</code> a time from a screenshot</li>
-                <li><code>/gs-tt track</code> your server&apos;s board</li>
-                <li><code>/gs-mmr</code> anyone&apos;s lounge MMR</li>
-                <li><code>/gs-room</code> the odds for a room</li>
+                <li><code>/tt add</code> a time from a screenshot</li>
+                <li><code>/tt track</code> your server&apos;s board</li>
+                <li><code>/mmr</code> anyone&apos;s lounge MMR</li>
+                <li><code>/room</code> the odds for a room</li>
               </ul>
-              <ArrowLink href="/discord" className={link("discord")}>Add GameShuffle to Discord</ArrowLink>
+              <ArrowLink href="/discord/add?app=comp" plain className={link("discord")}>Add GameShuffle Competitive</ArrowLink>
             </div>
             <div>
               <IconTile icon={IconBrandTwitch} tone="blue" />

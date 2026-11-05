@@ -139,8 +139,9 @@ export async function timeDetail(id: string, viewer: string | null): Promise<TtT
     { at: t.createdAt, text: t.source === "sheet" ? "Brought over as a legacy time" : t.source === "import" ? "Added from an import" : t.proof === "screenshot" ? (t.source === "discord" ? "Added in Discord with a screenshot" : "Added with a screenshot") : "Added" },
   ];
   if (t.videoUrl && t.video === "checked") history.push({ at: extra.video_checked_at, text: "Clip checked by an updater" });
+  else if (t.video === "checked") history.push({ at: extra.video_checked_at, text: t.source === "sheet" ? "Proof checked by an updater" : "Checked by an updater" });
   else if (t.videoUrl && t.video === "waiting") history.push({ at: null, text: "Clip added, waiting for an updater" });
-  else if (t.video === "rejected" && you) history.push({ at: extra.video_checked_at, text: "Clip turned down" });
+  else if (t.video === "rejected" && you) history.push({ at: extra.video_checked_at, text: t.source === "sheet" && !t.videoUrl ? "Proof link turned down" : "Clip turned down" });
   const firstReport = ((openReports.data ?? []) as { created_at: string }[])[0];
   if (firstReport && review.has(t.id)) history.push({ at: firstReport.created_at, text: "Under review" });
   if (n) history.push({ at: null, text: `Vouched for by ${n} ${n === 1 ? "player" : "players"}${n >= COMMUNITY_VOUCHES ? ": Community verified" : ""}` });

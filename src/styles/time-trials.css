@@ -309,6 +309,10 @@
 .tt-win__line { display: inline-flex; align-items: center; gap: var(--spacing-4); font-size: var(--font-size-14); color: var(--text-secondary); }
 .tt-win__history { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); font-size: var(--font-size-16); }
 .tt-win__history span { display: inline-block; min-width: 6rem; color: var(--text-secondary); }
+/* A reviewer verifying the time from its window (picks 2026-11-04): flat under a line, the field and its button together. */
+.tt-win__check { padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
+.tt-win__verify { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--spacing-8); }
+.tt-win__verify > :first-child { flex: 1 1 24rem; min-width: 0; }
 .tt-win__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
 .tt-win__actions a { display: inline-flex; align-items: center; gap: var(--spacing-4); text-decoration: none; }
 

@@ -186,7 +186,7 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
         {installUrl && (
           <div className="tt-import__install">
             <Button variant="primary" iconBefore={IconBrandDiscord} onClick={() => { trackEvent(EVENTS.discordAddClicked, { from: "time-trials-import" }); window.open(installUrl, "_blank", "noopener"); }}>Add to my apps</Button>
-            <span className="tt-note">Adds GameShuffle to your Discord account, so Save to GameShuffle works in any server.</span>
+            <span className="tt-note">Adds GameShuffle Competitive to your Discord account, so Save to GameShuffle works in any server.</span>
           </div>
         )}
       </section>

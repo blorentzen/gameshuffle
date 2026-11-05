@@ -7,28 +7,33 @@
  * see only their game and items, and staff name updaters per mode on the Updaters tab.
  * Staff also manage the time trial reviewers here, and the short names players taught the import reader
  * (three players picking the same track for a name makes it read for everyone; staff can block one).
+ * Legacy proof (picks 2026-11-04): legacy times whose record carried a clip or a post, records first, verified in one
+ * tap or turned down with a reason (they stay Legacy times).
  * Used on /time-trials/review and Platform ▸ Time trials.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, EmptyState, FormField, Input, Tabs } from "@empac/cascadeds";
-import { IconCamera, IconCircleCheck, IconExternalLink, IconThumbUp, IconVideo } from "@tabler/icons-react";
+import { IconCamera, IconCircleCheck, IconExternalLink, IconThumbUp, IconTrophy, IconVideo } from "@tabler/icons-react";
 import { Select } from "@/components/ui/Select";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
-import type { QueueTicket, QueueVideo, Reviewer } from "@/lib/timeTrials/review";
+import type { QueueLegacy, QueueTicket, QueueVideo, Reviewer } from "@/lib/timeTrials/review";
 import type { CommunityAlias } from "@/lib/timeTrials/aliases";
 import type { QueueClaim } from "@/lib/timeTrials/claims";
 import type { SheetStatus } from "@/lib/timeTrials/sheetSync";
 import type { Mode, Updater } from "@/lib/timeTrials/updaters";
 import { TT_GAMES, TT_GAME_ORDER } from "@/lib/timeTrials/tracks";
 import { ITEMS, itemsLabel, type TtItems } from "@/lib/timeTrials/categories";
+import { ordinal } from "@/lib/timeTrials/rules";
 import type { TtGame } from "@/lib/timeTrials/tracks";
 
 type Queue = { videos: QueueVideo[]; tickets: QueueTicket[]; reviewers: Reviewer[] | null; updaters: Updater[] | null; aliases: CommunityAlias[] | null; staff: boolean; modes: Mode[] | null;
   /** Top 10 sheet claims (round 4), for staff, reviewers and the MK8DX mushrooms updaters; when each sheet was read (staff). */
-  claims: { pending: QueueClaim[]; approved: QueueClaim[] } | null; sheets: SheetStatus[] | null };
+  claims: { pending: QueueClaim[]; approved: QueueClaim[] } | null; sheets: SheetStatus[] | null;
+  /** Legacy times with a clip or post to check (picks 2026-11-04), for whoever checks Mario Kart 8 Deluxe mushrooms. */
+  legacy: { items: QueueLegacy[]; total: number } | null };
 const SHEET_LABEL: Record<string, string> = { base: "Base Game", bcp: "Booster Course Pass", inward: "Inward" };
 const modeText = (m: Mode) => `${TT_GAMES[m.game].short} · ${itemsLabel(m.items)}`;
 
@@ -62,7 +67,7 @@ export function TtReviewQueue() {
 
   async function post(body: Record<string, unknown>, done: string): Promise<boolean> {
     const j = (await fetch("/api/time-trials/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()).catch(() => ({}))) as { ok?: boolean; error?: string };
-    if (!j.ok) { toast.error(j.error === "no_user" ? "No account with that username." : j.error === "reason_needed" ? (body.action === "claim" ? "Say why it isn't approved." : "Say why the clip doesn't match.") : j.error === "taken" ? "That name is already matched to an account." : "That didn't save. Try again."); return false; }
+    if (!j.ok) { toast.error(j.error === "no_user" ? "No account with that username." : j.error === "reason_needed" ? (body.action === "claim" ? "Say why it isn't approved." : body.action === "legacy_reject" ? "Say why the proof doesn't show it." : "Say why the clip doesn't match.") : j.error === "taken" ? "That name is already matched to an account." : "That didn't save. Try again."); return false; }
     toast.success(done);
     reload();
     return true;
@@ -173,6 +178,44 @@ export function TtReviewQueue() {
     </div>
   ) : null;
 
+  const legacy = q.legacy ? (
+    <div className="tt-reviewers">
+      <p className="tt-note">Legacy times whose record carried a clip or a post, each board&apos;s record first. Open the proof and check it shows this run: verifying makes it show as Verified. Turning one down takes it off this list; it stays a Legacy time.</p>
+      {q.legacy.items.length === 0 ? <EmptyState title="Nothing to check" description="Legacy times that came with a clip or a post show up here until someone checks them." /> : (
+        <>
+          {q.legacy.total > q.legacy.items.length && <p className="tt-muted">Showing the first {q.legacy.items.length} of {q.legacy.total}.</p>}
+          <ul className="tt-queue">
+            {q.legacy.items.map((l) => (
+              <li key={l.id} className="tt-queue__item">
+                <p className="tt-queue__head">{l.place === 1 ? <span className="tt-chip tt-chip--ok"><IconTrophy size={14} aria-hidden="true" /> Record</span> : <span className="tt-chip">{ordinal(l.place)}</span>} <b>{l.name}</b> · {l.label}</p>
+                <p className="tt-queue__links">
+                  <a href={l.link} target="_blank" rel="noopener noreferrer nofollow"><IconExternalLink size={16} aria-hidden="true" /> Open the proof</a>
+                  <Link href={l.board}>On the board</Link>
+                </p>
+                {rejecting === l.id ? (
+                  <form className="tt-queue__reject" onSubmit={(e) => { e.preventDefault(); setBusy(l.id); void post({ action: "legacy_reject", timeId: l.id, note: reason }, "Taken off the list").then((ok) => { setBusy(null); if (ok) { setRejecting(null); setReason(""); } }); }}>
+                    <FormField label="Why doesn't it show this run? (the player sees this once they've claimed the name)" htmlFor={`tt-leg-rej-${l.id}`}>
+                      <Input id={`tt-leg-rej-${l.id}`} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} fullWidth />
+                    </FormField>
+                    <div className="tt-add__actions">
+                      <Button type="submit" variant="danger" loading={busy === l.id} disabled={!reason.trim()}>Turn down</Button>
+                      <Button type="button" variant="ghost" onClick={() => { setRejecting(null); setReason(""); }}>Cancel</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="tt-add__actions">
+                    <Button variant="primary" iconBefore={IconCircleCheck} loading={busy === l.id} onClick={() => { setBusy(l.id); void post({ action: "verify", timeId: l.id }, "Verified").then(() => setBusy(null)); }}>It shows this run</Button>
+                    <Button variant="secondary" onClick={() => { setRejecting(l.id); setReason(""); }}>It doesn&apos;t</Button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  ) : null;
+
   const reviewers = q.reviewers ? (
     <div className="tt-reviewers">
       <form className="tt-compare__row" onSubmit={(e) => { e.preventDefault(); setBusy("add"); void post({ action: "reviewer_add", username }, "Reviewer added").then((ok) => { setBusy(null); if (ok) setUsername(""); }); }}>
@@ -245,6 +288,7 @@ export function TtReviewQueue() {
         { id: "clips", label: "Clips to check", badge: q.videos.length || undefined, content: clips },
         { id: "reports", label: "Reports", badge: q.tickets.length || undefined, content: reports },
         ...(claims ? [{ id: "claims", label: "Legacy claims", badge: q.claims!.pending.length || undefined, content: claims }] : []),
+        ...(legacy ? [{ id: "legacy", label: "Legacy proof", badge: q.legacy!.total || undefined, content: legacy }] : []),
         ...(reviewers ? [{ id: "reviewers", label: "Reviewers", content: reviewers }] : []),
         ...(updaters ? [{ id: "updaters", label: "Updaters", content: updaters }] : []),
         ...(shortNames ? [{ id: "short-names", label: "Short names", content: shortNames }] : []),

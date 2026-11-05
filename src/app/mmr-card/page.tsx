@@ -88,7 +88,7 @@ export default async function MmrCardPage({ searchParams }: { searchParams: Prom
         <div className="mmr-page__body">
           <MmrStudio initial={card ? cardView(card) : null} pro={pro} looksOk={looksOk} chat={chat} avatar={avatar} links={links.map((l) => ({ game: l.game, playerId: l.playerId, name: l.name }))}
             ladders={ladders} laddersOn={laddersOn} discord={discord} userId={user.id} then={then} checkout={checkout} />
-          <p className="mmr-page__also">Your card also answers <b>!mmr</b> in your Twitch chat (with the GameShuffle bot) and <b>/gs-mmr</b> in Discord, and shows as a sticker on your profile.</p>
+          <p className="mmr-page__also">Your card also answers <b>!mmr</b> in your Twitch chat (with the GameShuffle bot) and <b>/mmr</b> in Discord (with GameShuffle Competitive), and shows as a sticker on your profile.</p>
           <MedalCredit className="mmr-page__credit" />
         </div>
       </main>

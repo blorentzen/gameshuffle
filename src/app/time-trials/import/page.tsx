@@ -6,6 +6,7 @@ import { TimeTrialImport } from "@/components/timeTrials/TimeTrialImport";
 import { TtConnectDiscord } from "@/components/timeTrials/TtConnectDiscord";
 import { TtMovedToast } from "@/components/timeTrials/TtMovedToast";
 import { siteActor } from "@/lib/timeTrials/players";
+import { COMP_APP_ID } from "@/lib/discord/appIds";
 import "@/styles/time-trials.css";
 
 /**
@@ -36,7 +37,7 @@ export default async function TimeTrialImportPage({ searchParams }: { searchPara
       />
       <Container className="tt-body">
         {!actor.discordLinked && <TtConnectDiscord returnTo={here} />}
-        <TimeTrialImport discordAppId={process.env.DISCORD_APPLICATION_ID ?? null} draftId={d ?? null} />
+        <TimeTrialImport discordAppId={COMP_APP_ID ?? process.env.DISCORD_APPLICATION_ID ?? null} draftId={d ?? null} />
       </Container>
     </main>
   );

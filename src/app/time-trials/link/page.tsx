@@ -10,7 +10,7 @@ import "@/styles/time-trials.css";
 /**
  * Where "Link to GameShuffle" in Discord lands (picks 2026-10-29, 3A): signed out, sign in with
  * Discord (a new account if needed); signed in without Discord, connect it; already connected,
- * straight to time trials. Either way the times added with /gs-tt move to the account.
+ * straight to time trials. Either way the times added with /tt (or the old /gs-tt) move to the account.
  */
 
 export const metadata: Metadata = { title: "Link your Discord times", robots: { index: false, follow: false } };
@@ -24,7 +24,7 @@ export default async function TtLinkPage() {
       <BrowseHero
         eyebrow="Time trials"
         title="Link your Discord times"
-        sub="Times you add with /gs-tt land on your GameShuffle account, with your name and picture on every board."
+        sub="Times you add with /tt land on your GameShuffle account, with your name and picture on every board."
         accent="blue"
         field="compete"
         compact
