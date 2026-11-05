@@ -45,7 +45,9 @@ export async function POST(request: Request) {
     switch (body?.action) {
       case "sync": {
         if (!printfulConfigured()) return json({ ok: false, error: "not_configured" }, 400);
-        const summary = await syncFromPrintful({ full: !!body.full });
+        // Shipping quotes and size guides stop at 3.5 minutes (the next sync fills the rest), so the writes fit in
+        // the five minutes Vercel allows.
+        const summary = await syncFromPrintful({ full: !!body.full, deadline: Date.now() + 210_000 });
         return json({ ok: true, summary, ...(await listAdminListings()) });
       }
       case "update":

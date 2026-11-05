@@ -69,12 +69,20 @@ export function PlatformShopMerchTab() {
 
   const sync = async (full = false) => {
     setSyncing(true);
-    const d = await post({ action: "sync", full });
+    // A sync reads every Printful product at Printful's pace (2 to 4 minutes); a reply that isn't ours (a timeout page)
+    // still leaves what was written, and the next sync carries on.
+    const res = await fetch("/api/admin/shop/merch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sync", full }) }).catch(() => null);
+    const d = res ? await res.json().catch(() => null) : null;
     setSyncing(false);
-    if (d?.summary) {
-      setSummary(d.summary);
-      toast.success(`Synced ${d.summary.printfulProducts} Printful products${d.summary.listingsCreated.length ? `, ${d.summary.listingsCreated.length} new` : ""}.`);
+    if (!d?.ok) {
+      toast.error(d?.error ? errorText(d.error, d.message) : "The sync didn't finish. Wait a minute, then press Sync from Printful again: it carries on from what's saved.");
+      void load();
+      return;
     }
+    if (d.listings) apply(d);
+    setSummary(d.summary);
+    const left = d.summary.unfinished ? ` Shipping and size guides for ${d.summary.unfinished} still to come: press Sync again.` : "";
+    toast.success(`Synced ${d.summary.printfulProducts} Printful products${d.summary.listingsCreated.length ? `, ${d.summary.listingsCreated.length} new` : ""}.${left}`);
   };
   const checkHooks = async () => {
     const d = await post({ action: "webhooks" });
@@ -117,6 +125,7 @@ export function PlatformShopMerchTab() {
         {data.lastSync ? `Last synced ${new Date(data.lastSync).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} Pacific.` : "Not synced yet."}{" "}
         <Button variant="ghost" size="small" onClick={() => void sync(true)} disabled={syncing}>Full sync (shipping and size guides too)</Button>
       </p>
+      {syncing && <p className="merch-admin__sync" role="status">Syncing at Printful&apos;s pace: this takes 2 to 4 minutes. Keep this page open and press it once.</p>}
 
       {summary && summary.listingsCreated.length > 0 && (
         <Alert variant="info" title="New products">{summary.listingsCreated.join(", ")}. They start hidden: check each one, then turn on Live.</Alert>
