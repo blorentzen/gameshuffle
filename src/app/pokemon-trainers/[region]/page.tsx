@@ -86,7 +86,7 @@ export default async function RegionPage({ params }: { params: Promise<{ region:
             <h2 id="road-gymlist-title" className="road-section__title">{v.region.name} Gym Leaders in badge order</h2>
             <ol className="road-gymlist__list">
               {gyms.map((g) => (
-                <li key={g.href}><Link href={g.href}>{g.name}</Link> <span>{g.type} type · {g.badge}</span></li>
+                <li key={g.href}><Link href={g.href}>{g.name}</Link><span> · {g.type} type · {g.badge}</span></li>
               ))}
             </ol>
           </section>
