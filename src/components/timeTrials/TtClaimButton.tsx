@@ -57,7 +57,7 @@ export function TtClaimButton({ player, name, signedIn, state, returnTo }: {
       <Button variant="secondary" iconBefore={IconUserCheck} onClick={() => setOpen(true)}>This is me</Button>
       <Modal isOpen={open} onClose={() => setOpen(false)} title={`Is ${name} you?`} size="small">
         <form className="tt-form" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-          <p className="tt-note">An updater checks that the name on the Top 10 sheets is yours, then these times move to your account, and new ones on the sheets come straight to you.</p>
+          <p className="tt-note">An updater checks that this name is yours, then these legacy times move to your account, and any more that come in go straight to you.</p>
           <FormField label="A link that shows it's you" htmlFor="tt-claim-link" required helperText="Your MKCentral page, a channel or post under that name, or a clip of one of these runs.">
             <Input id="tt-claim-link" value={link} onChange={(e) => setLink(e.target.value)} inputMode="url" autoComplete="off" placeholder="https://" fullWidth />
           </FormField>

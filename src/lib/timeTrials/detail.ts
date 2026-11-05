@@ -12,8 +12,8 @@ import { describePlayers } from "@/lib/daily/boards";
 import { boardFor, playerBests, timeById, topTenIds, ttReady, type TtTimeRow } from "./store";
 import { categoryText, vehicleFor, type TtItems, type TtVehicle } from "./categories";
 import { countriesFor, round3Ready, round4Ready, trustedPlayers, underReview, vouchCounts } from "./status";
-import { sheetById, sheetPage } from "./sheets";
 import type { TtParts } from "./parts";
+import { isProofLink } from "./sheets";
 import { COMMUNITY_VOUCHES, lapsAddUp, timeStatus, type ProofKind, type TimeStatus } from "./rules";
 import { playerPagePath } from "./playerPath";
 import { trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
@@ -49,8 +49,10 @@ export interface TtTimeDetail {
   /** The viewer may vouch: signed in and not their own time (anyone signed in, picks 2026-11-04). */
   canVouch: boolean;
   boardPath: string;
-  /** From a Top 10 sheet (round 4): which one, its page, and the proof link it gives for this time. */
-  sheet: { label: string; page: string; link: string | null } | null;
+  /** A legacy time (round 4: brought over from the community's records), shown as "Legacy". */
+  sheet: boolean;
+  /** Its proof when the record carried a clip or a post; never a spreadsheet. */
+  legacyProof: string | null;
   /** The vehicle parts the screenshot named (picks 2026-11-04). */
   parts: TtParts | null;
   /** Lap splits against the record on this board, or the fastest time there with laps (round 4, pick 7A). */
@@ -132,10 +134,9 @@ export async function timeDetail(id: string, viewer: string | null): Promise<TtT
   const isTrusted = trusted.has(t.player);
   const you = !!viewer && viewer === t.player;
   const n = vouches.get(t.id) ?? 0;
-  const sheet = t.source === "sheet" ? sheetById(extra.sheet ?? "") : null;
   const status: TimeStatus = timeStatus({ review: review.has(t.id), video: t.video, videoUrl: t.videoUrl, top: isTop, trusted: isTrusted, you, vouches: n, sheet: t.source === "sheet" });
   const history: { at: string | null; text: string }[] = [
-    { at: t.createdAt, text: t.source === "sheet" ? `Read from the ${sheet?.label ?? "Top 10"} sheet` : t.source === "import" ? "Added from an import" : t.proof === "screenshot" ? (t.source === "discord" ? "Added in Discord with a screenshot" : "Added with a screenshot") : "Added" },
+    { at: t.createdAt, text: t.source === "sheet" ? "Brought over as a legacy time" : t.source === "import" ? "Added from an import" : t.proof === "screenshot" ? (t.source === "discord" ? "Added in Discord with a screenshot" : "Added with a screenshot") : "Added" },
   ];
   if (t.videoUrl && t.video === "checked") history.push({ at: extra.video_checked_at, text: "Clip checked by an updater" });
   else if (t.videoUrl && t.video === "waiting") history.push({ at: null, text: "Clip added, waiting for an updater" });
@@ -157,7 +158,8 @@ export async function timeDetail(id: string, viewer: string | null): Promise<TtT
     history: history.map((h) => ({ at: day(h.at), text: h.text })),
     you, youVouched, canVouch: !!viewer && !you && !youVouched && (await round3Ready()),
     boardPath: `${path}${path.includes("?") ? "&" : "?"}time=${t.id}`,
-    sheet: t.source === "sheet" ? { label: sheet?.label ?? "Top 10", page: sheet ? sheetPage(sheet) : "", link: extra.sheet_link } : null,
+    sheet: t.source === "sheet",
+    legacyProof: t.source === "sheet" && extra.sheet_link && isProofLink(extra.sheet_link) ? extra.sheet_link : null,
     parts: extra.body ? { body: extra.body, wheels: extra.wheels, glider: extra.glider } : null,
     splits: await splitsFor(t, board, extra.laps),
   };

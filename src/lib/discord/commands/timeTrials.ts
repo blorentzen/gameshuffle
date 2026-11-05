@@ -423,7 +423,7 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
           scope = "everyone";
           board = await boardFor({ game: track.game, track: track.id, cc, items, vehicle, scope, viewer: actor.player, limit: 10 });
         }
-        const lines = board.rows.map((r) => `${r.rank}. ${flagged(r.country)}${r.name} · **${formatTime(r.timeMs)}**${r.video === "checked" ? " · ✓ Verified" : r.sheet ? " · Top 10 sheet" : r.vouches >= COMMUNITY_VOUCHES ? " · Community verified" : ""}${r.verifiedIn.length ? " · vouched for here" : ""}`);
+        const lines = board.rows.map((r) => `${r.rank}. ${flagged(r.country)}${r.name} · **${formatTime(r.timeMs)}**${r.video === "checked" ? " · ✓ Verified" : r.sheet ? " · Legacy" : r.vouches >= COMMUNITY_VOUCHES ? " · Community verified" : ""}${r.verifiedIn.length ? " · vouched for here" : ""}`);
         if (board.mine) lines.push(`…\n${board.mine.rank}. ${flagged(board.mine.country)}${board.mine.name} · **${formatTime(board.mine.timeMs)}**`);
         await editOriginal(appId, token, {
           embeds: [{

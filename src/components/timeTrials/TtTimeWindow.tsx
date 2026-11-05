@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Avatar, Button, Modal } from "@empac/cascadeds";
-import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconLink, IconShieldCheck, IconTable, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
+import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconHistory, IconLink, IconShieldCheck, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
@@ -20,7 +20,7 @@ import { TtAddShot } from "./TtAddShot";
 export function StatusChip({ status }: { status: TimeStatus }) {
   switch (status) {
     case "verified": return <span className="tt-chip tt-chip--ok"><IconCircleCheck size={14} aria-hidden="true" /> Verified</span>;
-    case "sheet": return <span className="tt-chip tt-chip--sheet"><IconTable size={14} aria-hidden="true" /> Top 10 sheet</span>;
+    case "sheet": return <span className="tt-chip tt-chip--sheet"><IconHistory size={14} aria-hidden="true" /> Legacy</span>;
     case "community": return <span className="tt-chip tt-chip--community"><IconUsersGroup size={14} aria-hidden="true" /> Community verified</span>;
     case "trusted": return <span className="tt-chip tt-chip--trust"><IconShieldCheck size={14} aria-hidden="true" /> Trusted</span>;
     case "review": return <span className="tt-chip tt-chip--review">Under review</span>;
@@ -98,10 +98,9 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
                 <div className="tt-win__btns">
                   {time.proofUrl ? <a className="empac-button empac-button--secondary empac-button--small" href={time.proofUrl} target="_blank" rel="noopener noreferrer"><IconCamera size={16} aria-hidden="true" /> Open the picture</a>
                     : time.sheet ? (
-                      <>
-                        {time.sheet.link && <a className="empac-button empac-button--secondary empac-button--small" href={time.sheet.link} target="_blank" rel="noopener noreferrer nofollow"><IconExternalLink size={16} aria-hidden="true" /> The sheet&apos;s proof</a>}
-                        {time.sheet.page && <a className="empac-button empac-button--secondary empac-button--small" href={time.sheet.page} target="_blank" rel="noopener noreferrer"><IconTable size={16} aria-hidden="true" /> {time.sheet.label} sheet</a>}
-                      </>
+                      time.legacyProof
+                        ? <a className="empac-button empac-button--secondary empac-button--small" href={time.legacyProof} target="_blank" rel="noopener noreferrer nofollow"><IconExternalLink size={16} aria-hidden="true" /> Open the proof</a>
+                        : <span className="tt-muted">A legacy time, recorded before it came to GameShuffle</span>
                     )
                     : time.you ? <TtAddShot timeId={time.id} game={time.game} timeMs={time.timeMs} onDone={() => setTick((t) => t + 1)} />
                     : <span className="tt-muted">No screenshot (imported)</span>}

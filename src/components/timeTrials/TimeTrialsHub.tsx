@@ -15,7 +15,6 @@ import { countriesFor } from "@/lib/timeTrials/status";
 import { countriesInUse, countryPlayers, shouldAskCountry } from "@/lib/timeTrials/countries";
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
-import { sheetPage, TT_SHEETS } from "@/lib/timeTrials/sheets";
 import type { TtItems, TtVehicle } from "@/lib/timeTrials/categories";
 import { describePlayers } from "@/lib/daily/boards";
 import { headers } from "next/headers";
@@ -44,7 +43,7 @@ export const TT_FAQ = [
   { q: "What does Community verified mean?", a: "Ten players vouched for the time. Anyone signed in can vouch from a time's window on the board, or with Vouch on the bot's record posts in Discord, but never for their own time. A time in a board's top ten still needs a checked clip to show as Verified." },
   { q: "What does vouched for in a server mean?", a: "Someone who manages a Discord server checked the time and pressed Verify on the bot's post. The board says which server." },
   { q: "Which tracks and speed classes are there?", a: "All 96 Mario Kart 8 Deluxe tracks at 150cc and 200cc, and Mario Kart World's 40 Time Trials courses (including the ten Super Mario Kart courses from version 1.8.0) at 150cc." },
-  { q: "Where do the Top 10 sheet times come from?", a: "The Mario Kart 8 Deluxe community keeps Top 10 sheets for the base game, the Booster Course Pass and Inward, by country too. With their keepers' blessing we read them every day, so those times show on our boards marked Top 10 sheet. If one of the names is you, open it and press This is me: an updater checks it and the times move to your account." },
+  { q: "What are Legacy times?", a: "Times players set before they came to GameShuffle, brought over from the community's existing records, so the boards start complete. They show as Legacy. If one of the names is you, open it and press This is me: an updater checks it and the times move to your account." },
   { q: "What if a time looks fake?", a: "A time faster than the track's world record can't be saved. For anything else, report it from the board: it opens a ticket, the time's owner can answer with proof, and a reviewer keeps or removes it with a reason everyone in the ticket sees." },
 ];
 
@@ -154,7 +153,7 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
                                 {/* eslint-disable-next-line @next/next/no-img-element -- a small flag from public/ */}
                                 {hc && flagUrl(hc) && <img src={flagUrl(hc)!} alt={countryName(hc)} title={countryName(hc)} className="tt-flag tt-trow__flag" />}
                                 <span className="tt-trow__who" title={holders.get(s.recordPlayer)?.name ?? undefined}>{holders.get(s.recordPlayer)?.name ?? "A player"}</span>
-                                {!s.recordChecked && <span className="tt-trow__status">{s.recordSheet ? "Top 10 sheet" : "Unverified"}</span>}
+                                {!s.recordChecked && <span className="tt-trow__status">{s.recordSheet ? "Legacy" : "Unverified"}</span>}
                               </span>
                             </span>
                           ) : <span className="tt-trow__none">{server ? "No times here yet" : country ? "No times from there yet" : "No times yet"}</span>}
@@ -175,7 +174,6 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
             <ArrowLink href="/time-trials/import">Bring your times from Quaxly</ArrowLink>
             <ArrowLink href="/discord">Add GameShuffle to Discord</ArrowLink>
           </div>
-          <p className="tt-note">Mario Kart 8 Deluxe times marked Top 10 sheet come from the community&apos;s {TT_SHEETS.map((sh, i) => <span key={sh.id}>{i > 0 && (i === TT_SHEETS.length - 1 ? " and " : ", ")}<a href={sheetPage(sh)} target="_blank" rel="noopener noreferrer">{sh.label}</a></span>)} sheets, read every day with their keepers&apos; blessing.</p>
         </section>}
 
         {!server && <section className="tt-sec" aria-labelledby="tt-faq">

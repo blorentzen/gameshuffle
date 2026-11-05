@@ -14,6 +14,7 @@ import { boardsFor, categoryText, TOP_TEN, vehicleFor, type TtItems, type TtVehi
 import { countriesFor, round3Ready, round4Ready, trustedPlayers, underReview, vouchCounts } from "./status";
 import { countryPlayers } from "./countries";
 import type { TtParts } from "./parts";
+import { isProofLink } from "./sheets";
 import { checkProof, flagUnread, hashOfProof } from "./proof";
 import { playerPagePath } from "./playerPath";
 import { isClassFor, trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
@@ -54,8 +55,9 @@ export interface TtBoardRow {
   vouches: number;
   /** The player's country, when known (pick 6A). */
   country: string | null;
-  /** From the community's Top 10 sheets (round 4), with the proof link the sheet gives, if any. */
+  /** A legacy time (round 4, brought over from the community's records): shown as "Legacy". */
   sheet: boolean;
+  /** Its proof, when the record carried a clip or a post (never a spreadsheet). */
   sheetLink: string | null;
 }
 
@@ -318,7 +320,7 @@ export async function boardFor(args: { game: TtGame; track: string; cc: TtClass;
     trustedPlayers(need.map((r) => r.player)),
     vouchCounts(ids),
     countriesFor(need.map((r) => r.player)),
-    sheetLinksFor(sheetIds),
+    legacyProofFor(sheetIds),
   ]);
   const toRow = (rank: number, r: (typeof raw)[number]): TtBoardRow => {
     const who = names.get(r.player);
@@ -551,12 +553,12 @@ export async function sheetTimeIds(timeIds: string[]): Promise<Set<string>> {
   return new Set(((data ?? []) as { id: string }[]).map((r) => r.id));
 }
 
-/** The proof links the Top 10 sheets give for these times (most give none). */
-async function sheetLinksFor(timeIds: string[]): Promise<Map<string, string>> {
+/** The proof links legacy times carried (a clip or a post; most have none). */
+export async function legacyProofFor(timeIds: string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>();
   if (!timeIds.length || !(await round4Ready())) return out;
-  const { data } = await createServiceClient().from("tt_times").select("id, sheet_link").in("id", timeIds).not("sheet_link", "is", null);
-  for (const r of (data ?? []) as { id: string; sheet_link: string }[]) out.set(r.id, r.sheet_link);
+  const { data } = await createServiceClient().from("tt_times").select("id, sheet_link").in("id", timeIds.slice(0, 500)).not("sheet_link", "is", null);
+  for (const r of (data ?? []) as { id: string; sheet_link: string }[]) if (isProofLink(r.sheet_link)) out.set(r.id, r.sheet_link);
   return out;
 }
 
