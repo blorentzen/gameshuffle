@@ -131,7 +131,7 @@ export function MerchProducts({ listings, post, onEdit, onReordered }: {
             <span className="merch-products__name">
               <strong>{l.name}</strong>
               <span>
-                {l.itemType}{l.series ? ` · ${l.series}` : ""} · {l.optionLabel === "Phone" ? `${l.sizes.length} phones` : l.colors.length ? `${l.colors.filter((c) => !c.hidden).length} of ${l.colors.length} colors` : l.sizes.length > 1 ? `${l.sizes.length} sizes` : "One version"}
+                {l.itemType}{l.series ? ` · ${l.series}` : ""} · {l.optionLabel === "Phone" ? `${l.sizes.length} phones` : l.colors.length === 1 ? "1 color" : l.colors.length ? `${l.colors.filter((c) => !c.hidden).length} of ${l.colors.length} colors` : l.sizes.length > 1 ? `${l.sizes.length} sizes` : "One version"}
                 {l.warnings.length > 0 && <> <Badge variant="warning" size="small">{l.warnings.length} to check</Badge></>}
               </span>
             </span>
