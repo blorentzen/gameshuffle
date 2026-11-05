@@ -38,6 +38,7 @@ import { PlatformChatBrainTab } from "@/components/account/PlatformChatBrainTab"
 import { PlatformTriviaTab } from "@/components/account/PlatformTriviaTab";
 import { PlatformBreakTab } from "@/components/account/PlatformBreakTab";
 import { PlatformShopOrdersTab, PlatformShopProductsTab, PlatformShopStatesTab } from "@/components/account/PlatformShopOrdersTab";
+import { PlatformShopMerchTab } from "@/components/account/PlatformShopMerchTab";
 import { PlatformSwitchesTab } from "@/components/account/PlatformSwitchesTab";
 import { TokenActivityPanel, TokenStreamersPanel } from "@/components/account/TokenEconomyPanels";
 import { PlatformOriginalsTab } from "@/components/account/PlatformOriginalsTab";
@@ -55,6 +56,7 @@ const SCREENS: ScreenMap = {
   "platform-ai": () => <PlatformAiTab />,
   "platform-switches": () => <PlatformSwitchesTab />,
   "platform-shop-orders": () => <PlatformShopOrdersTab />,
+  "platform-shop-merch": () => <PlatformShopMerchTab />,
   "platform-shop-products": () => <PlatformShopProductsTab />,
   "platform-shop-states": () => <PlatformShopStatesTab />,
   "platform-shop": () => <PlatformShopTab />,

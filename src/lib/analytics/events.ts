@@ -55,6 +55,8 @@ export const EVENTS = {
   tcgStoreClicked: "TCG Store Clicked",
   /** A shop order was paid (server event; props: { placement, source }). Revenue rides along. */
   shopOrderPlaced: "Shop Order Placed",
+  /** Merch: Add to cart on a product page {item: Tees | Hoodies | …}. */
+  merchAddedToCart: "Merch Added To Cart",
 
   // Discord
   /** "Add to Discord" on /discord. {from: hero|steps|band} */

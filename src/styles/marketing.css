@@ -2545,6 +2545,19 @@
   color: var(--brand-ink, var(--primary-ink-600));
 }
 
+/* The homepage's merch row (pick 13): four products and a link to /shop. */
+.merch-row { margin: var(--spacing-40) 0 var(--spacing-24); display: flex; flex-direction: column; gap: var(--spacing-16); }
+.merch-row__head { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.merch-row__title { margin: 0; font-size: var(--font-size-fluid-h3); line-height: var(--line-height-tight); text-wrap: balance; }
+.merch-row__line { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.merch-row__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-16); grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 760px) { .merch-row__list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-12); } }
+.merch-row__link { display: flex; flex-direction: column; gap: var(--spacing-4); color: var(--text-primary); text-decoration: none; }
+.merch-row__link img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-12, 12px); border: 1px solid var(--border-subtle); background: var(--surface-default); margin-bottom: var(--spacing-4); }
+.merch-row__link:hover .merch-row__name, .merch-row__link:focus-visible .merch-row__name { text-decoration: underline; }
+.merch-row__name { font-size: var(--font-size-16); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
+.merch-row__price { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
 /* The GS Pro page's line pointing to /support (Support GameShuffle). */
 .pricing-page__backing { display: grid; gap: var(--spacing-12, 12px); margin: var(--spacing-48, 48px) auto 0; max-width: 96rem; }
 .pricing-page__backing .pricing-page__section-title { margin-bottom: 0; }

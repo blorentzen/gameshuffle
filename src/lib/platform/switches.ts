@@ -39,6 +39,12 @@ export const SWITCHES: SwitchDef[] = [
     turnOff: "Product edits are refused while the site runs on live Stripe keys.",
   },
   {
+    key: "printful_auto_confirm", group: "Shop", name: "Send merch orders to Printful automatically",
+    description: "Off: each paid merch order waits in Printful as a draft until someone presses Send to Printful on the order. On: paid orders go straight to Printful, which charges for them when it does.",
+    turnOn: "New paid merch orders go straight to Printful for printing.",
+    turnOff: "New paid merch orders wait as drafts until someone presses Send to Printful.",
+  },
+  {
     key: "paid_tickets_enabled", group: "Events", name: "Paid event tickets",
     description: "Paid ticket tiers, ticket checkout and organizer payouts for tournaments and game nights. Waiting on the tax and organizer-agreement answers.",
     turnOn: "Organizers can sell paid tickets and connect payout accounts.",

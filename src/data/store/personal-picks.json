@@ -1,0 +1,1800 @@
+{
+ "products": {
+  "489406560": {
+   "kind": "player",
+   "ink": "navy",
+   "position": {
+    "area_width": 1800,
+    "area_height": 2400,
+    "width": 1800,
+    "height": 2400,
+    "top": 0,
+    "left": 0
+   }
+  },
+  "489406625": {
+   "kind": "cap",
+   "ink": "navy",
+   "position": {
+    "area_width": 1200,
+    "area_height": 525,
+    "width": 1200,
+    "height": 525,
+    "top": 0,
+    "left": 0
+   }
+  },
+  "489406657": {
+   "kind": "player",
+   "ink": "white",
+   "position": {
+    "area_width": 1800,
+    "area_height": 2400,
+    "width": 1800,
+    "height": 2400,
+    "top": 0,
+    "left": 0
+   }
+  },
+  "489406668": {
+   "kind": "player",
+   "ink": "navy",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489406698": {
+   "kind": "player",
+   "ink": "white",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489406717": {
+   "kind": "player",
+   "ink": "navy",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1500,
+    "width": 1125,
+    "height": 1500,
+    "top": 0,
+    "left": 188
+   }
+  },
+  "489406737": {
+   "kind": "player",
+   "ink": "white",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1500,
+    "width": 1125,
+    "height": 1500,
+    "top": 0,
+    "left": 188
+   }
+  },
+  "489406739": {
+   "kind": "player",
+   "ink": "navy",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489406747": {
+   "kind": "player",
+   "ink": "white",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489406774": {
+   "kind": "player",
+   "ink": "navy",
+   "position": {
+    "area_width": 1650,
+    "area_height": 1650,
+    "width": 1238,
+    "height": 1650,
+    "top": 0,
+    "left": 206
+   }
+  },
+  "489406779": {
+   "kind": "player",
+   "ink": "white",
+   "position": {
+    "area_width": 1650,
+    "area_height": 1650,
+    "width": 1238,
+    "height": 1650,
+    "top": 0,
+    "left": 206
+   }
+  },
+  "489406783": {
+   "kind": "joined",
+   "ink": "navy",
+   "position": {
+    "area_width": 1050,
+    "area_height": 1200,
+    "width": 900,
+    "height": 1200,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489406790": {
+   "kind": "joined",
+   "ink": "white",
+   "position": {
+    "area_width": 1050,
+    "area_height": 1200,
+    "width": 900,
+    "height": 1200,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489406794": {
+   "kind": "cap",
+   "ink": "white",
+   "position": {
+    "area_width": 1200,
+    "area_height": 525,
+    "width": 1200,
+    "height": 525,
+    "top": 0,
+    "left": 0
+   }
+  },
+  "489406798": {
+   "kind": "member",
+   "ink": "navy",
+   "position": {
+    "area_width": 1800,
+    "area_height": 2400,
+    "width": 1800,
+    "height": 2400,
+    "top": 0,
+    "left": 0
+   }
+  },
+  "489406804": {
+   "kind": "member",
+   "ink": "white",
+   "position": {
+    "area_width": 1800,
+    "area_height": 2400,
+    "width": 1800,
+    "height": 2400,
+    "top": 0,
+    "left": 0
+   }
+  },
+  "489407059": {
+   "kind": "member",
+   "ink": "cream",
+   "position": {
+    "area_width": 1800,
+    "area_height": 2400,
+    "width": 1800,
+    "height": 2400,
+    "top": 0,
+    "left": 0
+   }
+  },
+  "489407095": {
+   "kind": "kidmember",
+   "ink": "navy",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489407100": {
+   "kind": "kidmember",
+   "ink": "white",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489407118": {
+   "kind": "level",
+   "ink": "navy",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489407121": {
+   "kind": "level",
+   "ink": "white",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489407135": {
+   "kind": "patch",
+   "ink": "navy",
+   "position": {
+    "area_width": 1050,
+    "area_height": 1200,
+    "width": 900,
+    "height": 1200,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489407138": {
+   "kind": "patch",
+   "ink": "white",
+   "position": {
+    "area_width": 1050,
+    "area_height": 1200,
+    "width": 900,
+    "height": 1200,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489407143": {
+   "kind": "seat",
+   "ink": "navy",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  },
+  "489407149": {
+   "kind": "seat",
+   "ink": "white",
+   "position": {
+    "area_width": 1500,
+    "area_height": 1800,
+    "width": 1350,
+    "height": 1800,
+    "top": 0,
+    "left": 75
+   }
+  }
+ },
+ "files": {
+  "cap-navy-p1-h0": {
+   "id": 1103121391,
+   "threads": [
+    "#333366"
+   ]
+  },
+  "cap-navy-p1-h1": {
+   "id": 1103121399,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p1-h2": {
+   "id": 1103121401,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p1-h3": {
+   "id": 1103121407,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p1-h4": {
+   "id": 1103121418,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p1-h5": {
+   "id": 1103121422,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p2-h0": {
+   "id": 1103121426,
+   "threads": [
+    "#333366"
+   ]
+  },
+  "cap-navy-p2-h1": {
+   "id": 1103121429,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p2-h2": {
+   "id": 1103121433,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p2-h3": {
+   "id": 1103121453,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p2-h4": {
+   "id": 1103121457,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p2-h5": {
+   "id": 1103121460,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p3-h0": {
+   "id": 1103121464,
+   "threads": [
+    "#333366"
+   ]
+  },
+  "cap-navy-p3-h1": {
+   "id": 1103121478,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p3-h2": {
+   "id": 1103121492,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p3-h3": {
+   "id": 1103121500,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p3-h4": {
+   "id": 1103121506,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p3-h5": {
+   "id": 1103121520,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p4-h0": {
+   "id": 1103121532,
+   "threads": [
+    "#333366"
+   ]
+  },
+  "cap-navy-p4-h1": {
+   "id": 1103121533,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p4-h2": {
+   "id": 1103121535,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p4-h3": {
+   "id": 1103121537,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p4-h4": {
+   "id": 1103121539,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p4-h5": {
+   "id": 1103121542,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p5-h0": {
+   "id": 1103121545,
+   "threads": [
+    "#333366"
+   ]
+  },
+  "cap-navy-p5-h1": {
+   "id": 1103121552,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p5-h2": {
+   "id": 1103121558,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p5-h3": {
+   "id": 1103121563,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p5-h4": {
+   "id": 1103121570,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p5-h5": {
+   "id": 1103121576,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p6-h0": {
+   "id": 1103121581,
+   "threads": [
+    "#333366"
+   ]
+  },
+  "cap-navy-p6-h1": {
+   "id": 1103121584,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p6-h2": {
+   "id": 1103121586,
+   "threads": [
+    "#333366",
+    "#CC3333"
+   ]
+  },
+  "cap-navy-p6-h3": {
+   "id": 1103121589,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p6-h4": {
+   "id": 1103121604,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-navy-p6-h5": {
+   "id": 1103121618,
+   "threads": [
+    "#CC3333",
+    "#333366"
+   ]
+  },
+  "cap-white-p1-h0": {
+   "id": 1103121628,
+   "threads": [
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p1-h1": {
+   "id": 1103121641,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p1-h2": {
+   "id": 1103121653,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p1-h3": {
+   "id": 1103121659,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p1-h4": {
+   "id": 1103121666,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p1-h5": {
+   "id": 1103121670,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p2-h0": {
+   "id": 1103121679,
+   "threads": [
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p2-h1": {
+   "id": 1103121685,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p2-h2": {
+   "id": 1103121688,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p2-h3": {
+   "id": 1103121696,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p2-h4": {
+   "id": 1103121710,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p2-h5": {
+   "id": 1103121730,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p3-h0": {
+   "id": 1103121740,
+   "threads": [
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p3-h1": {
+   "id": 1103121751,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p3-h2": {
+   "id": 1103121765,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p3-h3": {
+   "id": 1103121777,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p3-h4": {
+   "id": 1103121788,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p3-h5": {
+   "id": 1103121796,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p4-h0": {
+   "id": 1103121808,
+   "threads": [
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p4-h1": {
+   "id": 1103121822,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p4-h2": {
+   "id": 1103121835,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p4-h3": {
+   "id": 1103121842,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p4-h4": {
+   "id": 1103121850,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p4-h5": {
+   "id": 1103121867,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p5-h0": {
+   "id": 1103121875,
+   "threads": [
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p5-h1": {
+   "id": 1103121889,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p5-h2": {
+   "id": 1103121894,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p5-h3": {
+   "id": 1103121901,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p5-h4": {
+   "id": 1103121907,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p5-h5": {
+   "id": 1103121914,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p6-h0": {
+   "id": 1103121920,
+   "threads": [
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p6-h1": {
+   "id": 1103121925,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p6-h2": {
+   "id": 1103121929,
+   "threads": [
+    "#FFFFFF",
+    "#CC3333"
+   ]
+  },
+  "cap-white-p6-h3": {
+   "id": 1103121934,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p6-h4": {
+   "id": 1103121938,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "cap-white-p6-h5": {
+   "id": 1103121965,
+   "threads": [
+    "#CC3333",
+    "#FFFFFF"
+   ]
+  },
+  "player-navy-p1-h0": {
+   "id": 1103120757
+  },
+  "player-navy-p1-h1": {
+   "id": 1103120764
+  },
+  "player-navy-p1-h2": {
+   "id": 1103120768
+  },
+  "player-navy-p1-h3": {
+   "id": 1103120778
+  },
+  "player-navy-p1-h4": {
+   "id": 1103120783
+  },
+  "player-navy-p1-h5": {
+   "id": 1103120788
+  },
+  "player-navy-p2-h0": {
+   "id": 1103120791
+  },
+  "player-navy-p2-h1": {
+   "id": 1103120802
+  },
+  "player-navy-p2-h2": {
+   "id": 1103120807
+  },
+  "player-navy-p2-h3": {
+   "id": 1103120817
+  },
+  "player-navy-p2-h4": {
+   "id": 1103120824
+  },
+  "player-navy-p2-h5": {
+   "id": 1103120832
+  },
+  "player-navy-p3-h0": {
+   "id": 1103120840
+  },
+  "player-navy-p3-h1": {
+   "id": 1103120852
+  },
+  "player-navy-p3-h2": {
+   "id": 1103120862
+  },
+  "player-navy-p3-h3": {
+   "id": 1103120872
+  },
+  "player-navy-p3-h4": {
+   "id": 1103120882
+  },
+  "player-navy-p3-h5": {
+   "id": 1103120896
+  },
+  "player-navy-p4-h0": {
+   "id": 1103120914
+  },
+  "player-navy-p4-h1": {
+   "id": 1103120935
+  },
+  "player-navy-p4-h2": {
+   "id": 1103120945
+  },
+  "player-navy-p4-h3": {
+   "id": 1103120961
+  },
+  "player-navy-p4-h4": {
+   "id": 1103120965
+  },
+  "player-navy-p4-h5": {
+   "id": 1103120975
+  },
+  "player-navy-p5-h0": {
+   "id": 1103120987
+  },
+  "player-navy-p5-h1": {
+   "id": 1103120995
+  },
+  "player-navy-p5-h2": {
+   "id": 1103120997
+  },
+  "player-navy-p5-h3": {
+   "id": 1103121001
+  },
+  "player-navy-p5-h4": {
+   "id": 1103121013
+  },
+  "player-navy-p5-h5": {
+   "id": 1103121015
+  },
+  "player-navy-p6-h0": {
+   "id": 1103121017
+  },
+  "player-navy-p6-h1": {
+   "id": 1103121020
+  },
+  "player-navy-p6-h2": {
+   "id": 1103121034
+  },
+  "player-navy-p6-h3": {
+   "id": 1103121040
+  },
+  "player-navy-p6-h4": {
+   "id": 1103121043
+  },
+  "player-navy-p6-h5": {
+   "id": 1103121046
+  },
+  "player-white-p1-h0": {
+   "id": 1103121051
+  },
+  "player-white-p1-h1": {
+   "id": 1103121060
+  },
+  "player-white-p1-h2": {
+   "id": 1103121067
+  },
+  "player-white-p1-h3": {
+   "id": 1103121071
+  },
+  "player-white-p1-h4": {
+   "id": 1103121075
+  },
+  "player-white-p1-h5": {
+   "id": 1103121082
+  },
+  "player-white-p2-h0": {
+   "id": 1103121090
+  },
+  "player-white-p2-h1": {
+   "id": 1103121099
+  },
+  "player-white-p2-h2": {
+   "id": 1103121112
+  },
+  "player-white-p2-h3": {
+   "id": 1103121127
+  },
+  "player-white-p2-h4": {
+   "id": 1103121139
+  },
+  "player-white-p2-h5": {
+   "id": 1103121147
+  },
+  "player-white-p3-h0": {
+   "id": 1103121155
+  },
+  "player-white-p3-h1": {
+   "id": 1103121175
+  },
+  "player-white-p3-h2": {
+   "id": 1103121200
+  },
+  "player-white-p3-h3": {
+   "id": 1103121204
+  },
+  "player-white-p3-h4": {
+   "id": 1103121211
+  },
+  "player-white-p3-h5": {
+   "id": 1103121216
+  },
+  "player-white-p4-h0": {
+   "id": 1103121225
+  },
+  "player-white-p4-h1": {
+   "id": 1103121237
+  },
+  "player-white-p4-h2": {
+   "id": 1103121248
+  },
+  "player-white-p4-h3": {
+   "id": 1103121252
+  },
+  "player-white-p4-h4": {
+   "id": 1103121273
+  },
+  "player-white-p4-h5": {
+   "id": 1103121285
+  },
+  "player-white-p5-h0": {
+   "id": 1103121308
+  },
+  "player-white-p5-h1": {
+   "id": 1103121320
+  },
+  "player-white-p5-h2": {
+   "id": 1103121343
+  },
+  "player-white-p5-h3": {
+   "id": 1103121349
+  },
+  "player-white-p5-h4": {
+   "id": 1103121356
+  },
+  "player-white-p5-h5": {
+   "id": 1103121362
+  },
+  "player-white-p6-h0": {
+   "id": 1103121366
+  },
+  "player-white-p6-h1": {
+   "id": 1103121368
+  },
+  "player-white-p6-h2": {
+   "id": 1103121375
+  },
+  "player-white-p6-h3": {
+   "id": 1103121378
+  },
+  "player-white-p6-h4": {
+   "id": 1103121385
+  },
+  "player-white-p6-h5": {
+   "id": 1103121389
+  },
+  "joined-navy-p1": {
+   "id": 1103121973
+  },
+  "joined-navy-p2": {
+   "id": 1103121976
+  },
+  "joined-navy-p3": {
+   "id": 1103121984
+  },
+  "joined-navy-p4": {
+   "id": 1103121990
+  },
+  "joined-navy-p5": {
+   "id": 1103121997
+  },
+  "joined-navy-p6": {
+   "id": 1103122004
+  },
+  "joined-white-p1": {
+   "id": 1103122020
+  },
+  "joined-white-p2": {
+   "id": 1103122031
+  },
+  "joined-white-p3": {
+   "id": 1103122038
+  },
+  "joined-white-p4": {
+   "id": 1103122048
+  },
+  "joined-white-p5": {
+   "id": 1103122060
+  },
+  "joined-white-p6": {
+   "id": 1103122075
+  },
+  "member-navy-none": {
+   "id": 1103122098
+  },
+  "member-navy-founding": {
+   "id": 1103122101
+  },
+  "member-navy-lifetime": {
+   "id": 1103122121
+  },
+  "member-navy-honorary": {
+   "id": 1103122132
+  },
+  "member-navy-good-standing": {
+   "id": 1103122150
+  },
+  "member-navy-since-1980": {
+   "id": 1103122166
+  },
+  "member-navy-since-1981": {
+   "id": 1103122174
+  },
+  "member-navy-since-1982": {
+   "id": 1103122190
+  },
+  "member-navy-since-1983": {
+   "id": 1103122196
+  },
+  "member-navy-since-1984": {
+   "id": 1103122202
+  },
+  "member-navy-since-1985": {
+   "id": 1103122204
+  },
+  "member-navy-since-1986": {
+   "id": 1103122210
+  },
+  "member-navy-since-1987": {
+   "id": 1103122212
+  },
+  "member-navy-since-1988": {
+   "id": 1103122217
+  },
+  "member-navy-since-1989": {
+   "id": 1103122224
+  },
+  "member-navy-since-1990": {
+   "id": 1103122248
+  },
+  "member-navy-since-1991": {
+   "id": 1103122260
+  },
+  "member-navy-since-1992": {
+   "id": 1103122266
+  },
+  "member-navy-since-1993": {
+   "id": 1103122281
+  },
+  "member-navy-since-1994": {
+   "id": 1103122285
+  },
+  "member-navy-since-1995": {
+   "id": 1103122295
+  },
+  "member-navy-since-1996": {
+   "id": 1103122301
+  },
+  "member-navy-since-1997": {
+   "id": 1103122304
+  },
+  "member-navy-since-1998": {
+   "id": 1103122307
+  },
+  "member-navy-since-1999": {
+   "id": 1103122312
+  },
+  "member-navy-since-2000": {
+   "id": 1103122315
+  },
+  "member-navy-since-2001": {
+   "id": 1103122318
+  },
+  "member-navy-since-2002": {
+   "id": 1103122319
+  },
+  "member-navy-since-2003": {
+   "id": 1103122327
+  },
+  "member-navy-since-2004": {
+   "id": 1103122330
+  },
+  "member-navy-since-2005": {
+   "id": 1103122332
+  },
+  "member-navy-since-2006": {
+   "id": 1103122336
+  },
+  "member-navy-since-2007": {
+   "id": 1103122345
+  },
+  "member-navy-since-2008": {
+   "id": 1103122355
+  },
+  "member-navy-since-2009": {
+   "id": 1103122368
+  },
+  "member-navy-since-2010": {
+   "id": 1103122374
+  },
+  "member-navy-since-2011": {
+   "id": 1103122386
+  },
+  "member-navy-since-2012": {
+   "id": 1103122392
+  },
+  "member-navy-since-2013": {
+   "id": 1103122397
+  },
+  "member-navy-since-2014": {
+   "id": 1103122399
+  },
+  "member-navy-since-2015": {
+   "id": 1103122400
+  },
+  "member-navy-since-2016": {
+   "id": 1103122402
+  },
+  "member-navy-since-2017": {
+   "id": 1103122407
+  },
+  "member-navy-since-2018": {
+   "id": 1103122409
+  },
+  "member-navy-since-2019": {
+   "id": 1103122412
+  },
+  "member-navy-since-2020": {
+   "id": 1103122413
+  },
+  "member-navy-since-2021": {
+   "id": 1103122420
+  },
+  "member-navy-since-2022": {
+   "id": 1103122422
+  },
+  "member-navy-since-2023": {
+   "id": 1103122426
+  },
+  "member-navy-since-2024": {
+   "id": 1103122434
+  },
+  "member-navy-since-2025": {
+   "id": 1103122441
+  },
+  "member-navy-since-2026": {
+   "id": 1103122449
+  },
+  "member-white-none": {
+   "id": 1103122453
+  },
+  "member-white-founding": {
+   "id": 1103122463
+  },
+  "member-white-lifetime": {
+   "id": 1103122469
+  },
+  "member-white-honorary": {
+   "id": 1103122481
+  },
+  "member-white-good-standing": {
+   "id": 1103122486
+  },
+  "member-white-since-1980": {
+   "id": 1103122497
+  },
+  "member-white-since-1981": {
+   "id": 1103122506
+  },
+  "member-white-since-1982": {
+   "id": 1103122515
+  },
+  "member-white-since-1983": {
+   "id": 1103122521
+  },
+  "member-white-since-1984": {
+   "id": 1103122524
+  },
+  "member-white-since-1985": {
+   "id": 1103122526
+  },
+  "member-white-since-1986": {
+   "id": 1103122531
+  },
+  "member-white-since-1987": {
+   "id": 1103122538
+  },
+  "member-white-since-1988": {
+   "id": 1103122550
+  },
+  "member-white-since-1989": {
+   "id": 1103122558
+  },
+  "member-white-since-1990": {
+   "id": 1103122568
+  },
+  "member-white-since-1991": {
+   "id": 1103122578
+  },
+  "member-white-since-1992": {
+   "id": 1103122582
+  },
+  "member-white-since-1993": {
+   "id": 1103122586
+  },
+  "member-white-since-1994": {
+   "id": 1103122587
+  },
+  "member-white-since-1995": {
+   "id": 1103122600
+  },
+  "member-white-since-1996": {
+   "id": 1103122604
+  },
+  "member-white-since-1997": {
+   "id": 1103122608
+  },
+  "member-white-since-1998": {
+   "id": 1103122613
+  },
+  "member-white-since-1999": {
+   "id": 1103122620
+  },
+  "member-white-since-2000": {
+   "id": 1103122624
+  },
+  "member-white-since-2001": {
+   "id": 1103122625
+  },
+  "member-white-since-2002": {
+   "id": 1103122633
+  },
+  "member-white-since-2003": {
+   "id": 1103122645
+  },
+  "member-white-since-2004": {
+   "id": 1103122656
+  },
+  "member-white-since-2005": {
+   "id": 1103122661
+  },
+  "member-white-since-2006": {
+   "id": 1103122664
+  },
+  "member-white-since-2007": {
+   "id": 1103122674
+  },
+  "member-white-since-2008": {
+   "id": 1103122681
+  },
+  "member-white-since-2009": {
+   "id": 1103122696
+  },
+  "member-white-since-2010": {
+   "id": 1103122705
+  },
+  "member-white-since-2011": {
+   "id": 1103122717
+  },
+  "member-white-since-2012": {
+   "id": 1103122729
+  },
+  "member-white-since-2013": {
+   "id": 1103122732
+  },
+  "member-white-since-2014": {
+   "id": 1103122739
+  },
+  "member-white-since-2015": {
+   "id": 1103122748
+  },
+  "member-white-since-2016": {
+   "id": 1103122756
+  },
+  "member-white-since-2017": {
+   "id": 1103122766
+  },
+  "member-white-since-2018": {
+   "id": 1103122773
+  },
+  "member-white-since-2019": {
+   "id": 1103122776
+  },
+  "member-white-since-2020": {
+   "id": 1103122785
+  },
+  "member-white-since-2021": {
+   "id": 1103122799
+  },
+  "member-white-since-2022": {
+   "id": 1103122804
+  },
+  "member-white-since-2023": {
+   "id": 1103122815
+  },
+  "member-white-since-2024": {
+   "id": 1103122826
+  },
+  "member-white-since-2025": {
+   "id": 1103122841
+  },
+  "member-white-since-2026": {
+   "id": 1103122848
+  },
+  "member-cream-none": {
+   "id": 1103122856
+  },
+  "member-cream-founding": {
+   "id": 1103122873
+  },
+  "member-cream-lifetime": {
+   "id": 1103122879
+  },
+  "member-cream-honorary": {
+   "id": 1103122885
+  },
+  "member-cream-good-standing": {
+   "id": 1103122891
+  },
+  "member-cream-since-1980": {
+   "id": 1103122899
+  },
+  "member-cream-since-1981": {
+   "id": 1103122906
+  },
+  "member-cream-since-1982": {
+   "id": 1103122917
+  },
+  "member-cream-since-1983": {
+   "id": 1103122928
+  },
+  "member-cream-since-1984": {
+   "id": 1103122936
+  },
+  "member-cream-since-1985": {
+   "id": 1103122944
+  },
+  "member-cream-since-1986": {
+   "id": 1103122948
+  },
+  "member-cream-since-1987": {
+   "id": 1103122952
+  },
+  "member-cream-since-1988": {
+   "id": 1103122956
+  },
+  "member-cream-since-1989": {
+   "id": 1103122965
+  },
+  "member-cream-since-1990": {
+   "id": 1103122975
+  },
+  "member-cream-since-1991": {
+   "id": 1103122982
+  },
+  "member-cream-since-1992": {
+   "id": 1103122998
+  },
+  "member-cream-since-1993": {
+   "id": 1103123013
+  },
+  "member-cream-since-1994": {
+   "id": 1103123027
+  },
+  "member-cream-since-1995": {
+   "id": 1103123032
+  },
+  "member-cream-since-1996": {
+   "id": 1103123038
+  },
+  "member-cream-since-1997": {
+   "id": 1103123045
+  },
+  "member-cream-since-1998": {
+   "id": 1103123050
+  },
+  "member-cream-since-1999": {
+   "id": 1103123053
+  },
+  "member-cream-since-2000": {
+   "id": 1103123069
+  },
+  "member-cream-since-2001": {
+   "id": 1103123074
+  },
+  "member-cream-since-2002": {
+   "id": 1103123080
+  },
+  "member-cream-since-2003": {
+   "id": 1103123089
+  },
+  "member-cream-since-2004": {
+   "id": 1103123096
+  },
+  "member-cream-since-2005": {
+   "id": 1103123101
+  },
+  "member-cream-since-2006": {
+   "id": 1103123107
+  },
+  "member-cream-since-2007": {
+   "id": 1103123111
+  },
+  "member-cream-since-2008": {
+   "id": 1103123115
+  },
+  "member-cream-since-2009": {
+   "id": 1103123122
+  },
+  "member-cream-since-2010": {
+   "id": 1103123125
+  },
+  "member-cream-since-2011": {
+   "id": 1103123129
+  },
+  "member-cream-since-2012": {
+   "id": 1103123135
+  },
+  "member-cream-since-2013": {
+   "id": 1103123146
+  },
+  "member-cream-since-2014": {
+   "id": 1103123159
+  },
+  "member-cream-since-2015": {
+   "id": 1103123176
+  },
+  "member-cream-since-2016": {
+   "id": 1103123184
+  },
+  "member-cream-since-2017": {
+   "id": 1103123196
+  },
+  "member-cream-since-2018": {
+   "id": 1103123210
+  },
+  "member-cream-since-2019": {
+   "id": 1103123222
+  },
+  "member-cream-since-2020": {
+   "id": 1103123229
+  },
+  "member-cream-since-2021": {
+   "id": 1103123238
+  },
+  "member-cream-since-2022": {
+   "id": 1103123249
+  },
+  "member-cream-since-2023": {
+   "id": 1103123257
+  },
+  "member-cream-since-2024": {
+   "id": 1103123265
+  },
+  "member-cream-since-2025": {
+   "id": 1103123275
+  },
+  "member-cream-since-2026": {
+   "id": 1103123283
+  },
+  "kidmember-navy-none": {
+   "id": 1103123288
+  },
+  "kidmember-navy-junior": {
+   "id": 1103123293
+  },
+  "kidmember-navy-training": {
+   "id": 1103123300
+  },
+  "kidmember-navy-since-2010": {
+   "id": 1103123305
+  },
+  "kidmember-navy-since-2011": {
+   "id": 1103123313
+  },
+  "kidmember-navy-since-2012": {
+   "id": 1103123321
+  },
+  "kidmember-navy-since-2013": {
+   "id": 1103123328
+  },
+  "kidmember-navy-since-2014": {
+   "id": 1103123343
+  },
+  "kidmember-navy-since-2015": {
+   "id": 1103123354
+  },
+  "kidmember-navy-since-2016": {
+   "id": 1103123365
+  },
+  "kidmember-navy-since-2017": {
+   "id": 1103123374
+  },
+  "kidmember-navy-since-2018": {
+   "id": 1103123378
+  },
+  "kidmember-navy-since-2019": {
+   "id": 1103123385
+  },
+  "kidmember-navy-since-2020": {
+   "id": 1103123392
+  },
+  "kidmember-navy-since-2021": {
+   "id": 1103123397
+  },
+  "kidmember-navy-since-2022": {
+   "id": 1103123402
+  },
+  "kidmember-navy-since-2023": {
+   "id": 1103123406
+  },
+  "kidmember-navy-since-2024": {
+   "id": 1103123412
+  },
+  "kidmember-navy-since-2025": {
+   "id": 1103123421
+  },
+  "kidmember-navy-since-2026": {
+   "id": 1103123425
+  },
+  "kidmember-white-none": {
+   "id": 1103123433
+  },
+  "kidmember-white-junior": {
+   "id": 1103123438
+  },
+  "kidmember-white-training": {
+   "id": 1103123445
+  },
+  "kidmember-white-since-2010": {
+   "id": 1103123449
+  },
+  "kidmember-white-since-2011": {
+   "id": 1103123457
+  },
+  "kidmember-white-since-2012": {
+   "id": 1103123459
+  },
+  "kidmember-white-since-2013": {
+   "id": 1103123463
+  },
+  "kidmember-white-since-2014": {
+   "id": 1103123473
+  },
+  "kidmember-white-since-2015": {
+   "id": 1103123482
+  },
+  "kidmember-white-since-2016": {
+   "id": 1103123489
+  },
+  "kidmember-white-since-2017": {
+   "id": 1103123492
+  },
+  "kidmember-white-since-2018": {
+   "id": 1103123497
+  },
+  "kidmember-white-since-2019": {
+   "id": 1103123511
+  },
+  "kidmember-white-since-2020": {
+   "id": 1103123526
+  },
+  "kidmember-white-since-2021": {
+   "id": 1103123531
+  },
+  "kidmember-white-since-2022": {
+   "id": 1103123540
+  },
+  "kidmember-white-since-2023": {
+   "id": 1103123546
+  },
+  "kidmember-white-since-2024": {
+   "id": 1103123551
+  },
+  "kidmember-white-since-2025": {
+   "id": 1103123553
+  },
+  "kidmember-white-since-2026": {
+   "id": 1103123556
+  },
+  "level-navy-1": {
+   "id": 1103123563
+  },
+  "level-navy-2": {
+   "id": 1103123569
+  },
+  "level-navy-3": {
+   "id": 1103123574
+  },
+  "level-navy-4": {
+   "id": 1103123583
+  },
+  "level-navy-5": {
+   "id": 1103123594
+  },
+  "level-navy-6": {
+   "id": 1103123599
+  },
+  "level-navy-7": {
+   "id": 1103123604
+  },
+  "level-navy-8": {
+   "id": 1103123611
+  },
+  "level-navy-9": {
+   "id": 1103123615
+  },
+  "level-navy-10": {
+   "id": 1103123621
+  },
+  "level-navy-11": {
+   "id": 1103123625
+  },
+  "level-navy-12": {
+   "id": 1103123631
+  },
+  "level-navy-13": {
+   "id": 1103123636
+  },
+  "level-navy-14": {
+   "id": 1103123640
+  },
+  "level-navy-15": {
+   "id": 1103123643
+  },
+  "level-navy-16": {
+   "id": 1103123647
+  },
+  "level-white-1": {
+   "id": 1103123652
+  },
+  "level-white-2": {
+   "id": 1103123656
+  },
+  "level-white-3": {
+   "id": 1103123666
+  },
+  "level-white-4": {
+   "id": 1103123676
+  },
+  "level-white-5": {
+   "id": 1103123687
+  },
+  "level-white-6": {
+   "id": 1103123697
+  },
+  "level-white-7": {
+   "id": 1103123703
+  },
+  "level-white-8": {
+   "id": 1103123709
+  },
+  "level-white-9": {
+   "id": 1103123714
+  },
+  "level-white-10": {
+   "id": 1103123723
+  },
+  "level-white-11": {
+   "id": 1103123740
+  },
+  "level-white-12": {
+   "id": 1103123749
+  },
+  "level-white-13": {
+   "id": 1103123761
+  },
+  "level-white-14": {
+   "id": 1103123767
+  },
+  "level-white-15": {
+   "id": 1103123771
+  },
+  "level-white-16": {
+   "id": 1103123774
+  },
+  "patch-navy-v1": {
+   "id": 1103123783
+  },
+  "patch-navy-v2": {
+   "id": 1103123799
+  },
+  "patch-navy-v3": {
+   "id": 1103123807
+  },
+  "patch-navy-v4": {
+   "id": 1103123821
+  },
+  "patch-navy-v5": {
+   "id": 1103123831
+  },
+  "patch-white-v1": {
+   "id": 1103123835
+  },
+  "patch-white-v2": {
+   "id": 1103123848
+  },
+  "patch-white-v3": {
+   "id": 1103123863
+  },
+  "patch-white-v4": {
+   "id": 1103123864
+  },
+  "patch-white-v5": {
+   "id": 1103123869
+  },
+  "seat-navy-p1": {
+   "id": 1103123871
+  },
+  "seat-navy-p2": {
+   "id": 1103123873
+  },
+  "seat-navy-p3": {
+   "id": 1103123893
+  },
+  "seat-navy-p4": {
+   "id": 1103123896
+  },
+  "seat-navy-p5": {
+   "id": 1103123901
+  },
+  "seat-navy-p6": {
+   "id": 1103123909
+  },
+  "seat-white-p1": {
+   "id": 1103123916
+  },
+  "seat-white-p2": {
+   "id": 1103123924
+  },
+  "seat-white-p3": {
+   "id": 1103123928
+  },
+  "seat-white-p4": {
+   "id": 1103123937
+  },
+  "seat-white-p5": {
+   "id": 1103123948
+  },
+  "seat-white-p6": {
+   "id": 1103123962
+  }
+ }
+}

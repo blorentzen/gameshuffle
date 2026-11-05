@@ -1,0 +1,1156 @@
+[
+ {
+  "name": "GS Colored Monogram - Embroidered Beanie",
+  "catalogType": "EMBROIDERY",
+  "catalogId": 81,
+  "variants": [
+   {
+    "color": "White",
+    "size": "One size",
+    "retail": "19.99",
+    "preview": "knit-beanie-white-front-6aea51350b90b.jpg"
+   }
+  ]
+ },
+ {
+  "name": "GS White Monogram - Embroidered Beanie",
+  "catalogType": "EMBROIDERY",
+  "catalogId": 81,
+  "variants": [
+   {
+    "color": "Black",
+    "size": "One size",
+    "retail": "19.99",
+    "preview": "knit-beanie-black-front-6aea50935c69e.jpg"
+   },
+   {
+    "color": "Navy",
+    "size": "One size",
+    "retail": "19.99",
+    "preview": "knit-beanie-navy-front-6aea50935d0b4.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "One size",
+    "retail": "19.99",
+    "preview": "knit-beanie-red-front-6aea50935d0d6.jpg"
+   },
+   {
+    "color": "Dark green",
+    "size": "One size",
+    "retail": "19.99",
+    "preview": "knit-beanie-dark-green-front-6aea50935d074.jpg"
+   }
+  ]
+ },
+ {
+  "name": "GS Icon Shuffle - Tough case for Samsung\u00ae",
+  "catalogType": "PHONE-CASE",
+  "catalogId": 686,
+  "variants": [
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S20",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s20-front-6aea4e8e943bc.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S20 FE",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s20-fe-front-6aea4e8e94e5f.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S20 Plus",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s20-plus-front-6aea4e8e95130.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S20 Ultra",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s20-ultra-front-6aea4e8e953d9.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S21",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s21-front-6aea4e8e96035.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S21 Plus",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s21-plus-front-6aea4e8e95a47.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S21 Ultra",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s21-ultra-front-6aea4e8e95d21.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S21 FE",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s21-fe-front-6aea4e8e956cf.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S22",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s22-front-6aea4e8e96a56.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S22 Plus",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s22-plus-front-6aea4e8e963f9.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S22 Ultra",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s22-ultra-front-6aea4e8e9672d.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S23",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s23-front-6aea4e8e9760d.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S23 Plus",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s23-plus-front-6aea4e8e96ea4.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S23 Ultra",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s23-ultra-front-6aea4e8e97232.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S24",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s24-front-6aea4e8e9790b.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S24 Plus",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s24-plus-front-6aea4e8e97baa.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S24 Ultra",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s24-ultra-front-6aea4e8e97e74.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S25",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s25-front-6aea4e8e9811d.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S25 Plus",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s25-plus-front-6aea4e8e98530.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S25 Ultra",
+    "retail": "24.99",
+    "preview": "tough-case-for-samsung-matte-samsung-galaxy-s25-ultra-front-6aea4e8e9885f.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S26",
+    "retail": "24.99",
+    "preview": null
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S26 Plus",
+    "retail": "24.99",
+    "preview": null
+   },
+   {
+    "color": "Matte",
+    "size": "Samsung Galaxy S26 Ultra",
+    "retail": "24.99",
+    "preview": null
+   }
+  ]
+ },
+ {
+  "name": "GS Icon Shuffle - MagSafe\u00ae tough case for iPhone\u00ae",
+  "catalogType": "PHONE-CASE",
+  "catalogId": 798,
+  "variants": [
+   {
+    "color": "Matte",
+    "size": "iPhone 14",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-14-front-6aea4e0691450.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 14 Plus",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-14-plus-front-6aea4e0691869.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 14 Pro",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-14-pro-front-6aea4e0691ac8.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 14 Pro Max",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-14-pro-max-front-6aea4e0691dbb.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 15",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-15-front-6aea4e068e81d.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 15 Plus",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-15-plus-front-6aea4e068f858.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 15 Pro",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-15-pro-front-6aea4e068fd4f.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 15 Pro Max",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-15-pro-max-front-6aea4e0690236.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 16",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-16-front-6aea4e0690590.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 16 Plus",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-16-plus-front-6aea4e06910ff.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 16 Pro",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-16-pro-front-6aea4e06909ab.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 16 Pro Max",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-16-pro-max-front-6aea4e0690e35.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 17",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-17-front-6aea4e0692049.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 17 Air",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-17-air-front-6aea4e0692402.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 17 Pro",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-17-pro-front-6aea4e06927de.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 17 Pro Max",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-17-pro-max-front-6aea4e0692bdd.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 18 Pro",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-18-pro-front-6aea4e0693159.jpg"
+   },
+   {
+    "color": "Matte",
+    "size": "iPhone 18 Pro Max",
+    "retail": "24.99",
+    "preview": "magsafe-tough-case-for-iphone-matte-iphone-18-pro-max-front-6aea4e0693647.jpg"
+   }
+  ]
+ },
+ {
+  "name": "GS Black Monogram - Unisex Full Zip Hoodie",
+  "catalogType": "DTFILM",
+  "catalogId": 1629,
+  "variants": [
+   {
+    "color": "Dust",
+    "size": "XS",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-dust-front-6aea48097e733.jpg"
+   },
+   {
+    "color": "Dust",
+    "size": "S",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-dust-front-6aea48097e733.jpg"
+   },
+   {
+    "color": "Dust",
+    "size": "M",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-dust-front-6aea48097e733.jpg"
+   },
+   {
+    "color": "Dust",
+    "size": "L",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-dust-front-6aea48097e733.jpg"
+   },
+   {
+    "color": "Dust",
+    "size": "XL",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-dust-front-6aea48097e733.jpg"
+   },
+   {
+    "color": "Dust",
+    "size": "2XL",
+    "retail": "60.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-dust-front-6aea48097e733.jpg"
+   },
+   {
+    "color": "Dust",
+    "size": "3XL",
+    "retail": "61.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-dust-front-6aea48097e733.jpg"
+   },
+   {
+    "color": "Vintage Heather Grey",
+    "size": "XS",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-vintage-heather-grey-front-6aea48097f3c5.jpg"
+   },
+   {
+    "color": "Vintage Heather Grey",
+    "size": "S",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-vintage-heather-grey-front-6aea48097f3c5.jpg"
+   },
+   {
+    "color": "Vintage Heather Grey",
+    "size": "M",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-vintage-heather-grey-front-6aea48097f3c5.jpg"
+   },
+   {
+    "color": "Vintage Heather Grey",
+    "size": "L",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-vintage-heather-grey-front-6aea48097f3c5.jpg"
+   },
+   {
+    "color": "Vintage Heather Grey",
+    "size": "XL",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-vintage-heather-grey-front-6aea48097f3c5.jpg"
+   },
+   {
+    "color": "Vintage Heather Grey",
+    "size": "2XL",
+    "retail": "60.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-vintage-heather-grey-front-6aea48097f3c5.jpg"
+   },
+   {
+    "color": "Vintage Heather Grey",
+    "size": "3XL",
+    "retail": "61.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-vintage-heather-grey-front-6aea48097f3c5.jpg"
+   }
+  ]
+ },
+ {
+  "name": "GS White Monogram - Unisex Full Zip Hoodie",
+  "catalogType": "DTFILM",
+  "catalogId": 1629,
+  "variants": [
+   {
+    "color": "Black",
+    "size": "XS",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-black-front-6aea4786f3135.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "S",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-black-front-6aea4786f3135.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "M",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-black-front-6aea4786f3135.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "L",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-black-front-6aea4786f3135.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "XL",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-black-front-6aea4786f3135.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "2XL",
+    "retail": "60.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-black-front-6aea4786f3135.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "3XL",
+    "retail": "61.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-black-front-6aea4786f3135.jpg"
+   },
+   {
+    "color": "Navy",
+    "size": "XS",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-navy-front-6aea4786f31a1.jpg"
+   },
+   {
+    "color": "Navy",
+    "size": "S",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-navy-front-6aea4786f31a1.jpg"
+   },
+   {
+    "color": "Navy",
+    "size": "M",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-navy-front-6aea4786f31a1.jpg"
+   },
+   {
+    "color": "Navy",
+    "size": "L",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-navy-front-6aea4786f31a1.jpg"
+   },
+   {
+    "color": "Navy",
+    "size": "XL",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-navy-front-6aea4786f31a1.jpg"
+   },
+   {
+    "color": "Navy",
+    "size": "2XL",
+    "retail": "60.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-navy-front-6aea4786f31a1.jpg"
+   },
+   {
+    "color": "Navy",
+    "size": "3XL",
+    "retail": "61.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-navy-front-6aea4786f31a1.jpg"
+   },
+   {
+    "color": "Asphalt",
+    "size": "XS",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-asphalt-front-6aea4786f248a.jpg"
+   },
+   {
+    "color": "Asphalt",
+    "size": "S",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-asphalt-front-6aea4786f248a.jpg"
+   },
+   {
+    "color": "Asphalt",
+    "size": "M",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-asphalt-front-6aea4786f248a.jpg"
+   },
+   {
+    "color": "Asphalt",
+    "size": "L",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-asphalt-front-6aea4786f248a.jpg"
+   },
+   {
+    "color": "Asphalt",
+    "size": "XL",
+    "retail": "59.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-asphalt-front-6aea4786f248a.jpg"
+   },
+   {
+    "color": "Asphalt",
+    "size": "2XL",
+    "retail": "60.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-asphalt-front-6aea4786f248a.jpg"
+   },
+   {
+    "color": "Asphalt",
+    "size": "3XL",
+    "retail": "61.99",
+    "preview": "unisex-heavyweight-full-zip-hoodie-asphalt-front-6aea4786f248a.jpg"
+   }
+  ]
+ },
+ {
+  "name": "GS White Monogram - Unisex Tee",
+  "catalogType": "T-SHIRT",
+  "catalogId": 71,
+  "variants": [
+   {
+    "color": "Black Heather",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-heather-front-6aea4657366ee.jpg"
+   },
+   {
+    "color": "Black Heather",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-heather-front-6aea4657366ee.jpg"
+   },
+   {
+    "color": "Black Heather",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-heather-front-6aea4657366ee.jpg"
+   },
+   {
+    "color": "Black Heather",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-heather-front-6aea4657366ee.jpg"
+   },
+   {
+    "color": "Black Heather",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-heather-front-6aea4657366ee.jpg"
+   },
+   {
+    "color": "Black Heather",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-black-heather-front-6aea4657366ee.jpg"
+   },
+   {
+    "color": "Black Heather",
+    "size": "3XL",
+    "retail": "22.99",
+    "preview": "unisex-staple-t-shirt-black-heather-front-6aea4657366ee.jpg"
+   },
+   {
+    "color": "Black Heather",
+    "size": "4XL",
+    "retail": "24.99",
+    "preview": "unisex-staple-t-shirt-black-heather-front-6aea4657366ee.jpg"
+   },
+   {
+    "color": "Black Heather",
+    "size": "5XL",
+    "retail": "26.99",
+    "preview": "unisex-staple-t-shirt-black-heather-front-6aea4657366ee.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-front-6aea465735c01.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-front-6aea465735c01.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-front-6aea465735c01.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-front-6aea465735c01.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-black-front-6aea465735c01.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-black-front-6aea465735c01.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "3XL",
+    "retail": "22.99",
+    "preview": "unisex-staple-t-shirt-black-front-6aea465735c01.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "4XL",
+    "retail": "24.99",
+    "preview": "unisex-staple-t-shirt-black-front-6aea465735c01.jpg"
+   },
+   {
+    "color": "Black",
+    "size": "5XL",
+    "retail": "26.99",
+    "preview": "unisex-staple-t-shirt-black-front-6aea465735c01.jpg"
+   },
+   {
+    "color": "Vintage Black",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-vintage-black-front-6aea46573995a.jpg"
+   },
+   {
+    "color": "Vintage Black",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-vintage-black-front-6aea46573995a.jpg"
+   },
+   {
+    "color": "Vintage Black",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-vintage-black-front-6aea46573995a.jpg"
+   },
+   {
+    "color": "Vintage Black",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-vintage-black-front-6aea46573995a.jpg"
+   },
+   {
+    "color": "Vintage Black",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-vintage-black-front-6aea46573995a.jpg"
+   },
+   {
+    "color": "Vintage Black",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-vintage-black-front-6aea46573995a.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-red-front-6aea4657385cb.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-red-front-6aea4657385cb.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-red-front-6aea4657385cb.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-red-front-6aea4657385cb.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-red-front-6aea4657385cb.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-red-front-6aea4657385cb.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "3XL",
+    "retail": "22.99",
+    "preview": "unisex-staple-t-shirt-red-front-6aea4657385cb.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "4XL",
+    "retail": "24.99",
+    "preview": "unisex-staple-t-shirt-red-front-6aea4657385cb.jpg"
+   },
+   {
+    "color": "Red",
+    "size": "5XL",
+    "retail": "26.99",
+    "preview": "unisex-staple-t-shirt-red-front-6aea4657385cb.jpg"
+   },
+   {
+    "color": "True Royal",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-true-royal-front-6aea465738fe1.jpg"
+   },
+   {
+    "color": "True Royal",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-true-royal-front-6aea465738fe1.jpg"
+   },
+   {
+    "color": "True Royal",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-true-royal-front-6aea465738fe1.jpg"
+   },
+   {
+    "color": "True Royal",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-true-royal-front-6aea465738fe1.jpg"
+   },
+   {
+    "color": "True Royal",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-true-royal-front-6aea465738fe1.jpg"
+   },
+   {
+    "color": "True Royal",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-true-royal-front-6aea465738fe1.jpg"
+   },
+   {
+    "color": "True Royal",
+    "size": "3XL",
+    "retail": "22.99",
+    "preview": "unisex-staple-t-shirt-true-royal-front-6aea465738fe1.jpg"
+   },
+   {
+    "color": "True Royal",
+    "size": "4XL",
+    "retail": "24.99",
+    "preview": "unisex-staple-t-shirt-true-royal-front-6aea465738fe1.jpg"
+   },
+   {
+    "color": "True Royal",
+    "size": "5XL",
+    "retail": "26.99",
+    "preview": "unisex-staple-t-shirt-true-royal-front-6aea465738fe1.jpg"
+   },
+   {
+    "color": "Aqua",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-aqua-front-6aea465734605.jpg"
+   },
+   {
+    "color": "Aqua",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-aqua-front-6aea465734605.jpg"
+   },
+   {
+    "color": "Aqua",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-aqua-front-6aea465734605.jpg"
+   },
+   {
+    "color": "Aqua",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-aqua-front-6aea465734605.jpg"
+   },
+   {
+    "color": "Aqua",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-aqua-front-6aea465734605.jpg"
+   },
+   {
+    "color": "Aqua",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-aqua-front-6aea465734605.jpg"
+   },
+   {
+    "color": "Aqua",
+    "size": "3XL",
+    "retail": "22.99",
+    "preview": "unisex-staple-t-shirt-aqua-front-6aea465734605.jpg"
+   },
+   {
+    "color": "Aqua",
+    "size": "4XL",
+    "retail": "24.99",
+    "preview": "unisex-staple-t-shirt-aqua-front-6aea465734605.jpg"
+   },
+   {
+    "color": "Kelly",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-kelly-front-6aea465737b04.jpg"
+   },
+   {
+    "color": "Kelly",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-kelly-front-6aea465737b04.jpg"
+   },
+   {
+    "color": "Kelly",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-kelly-front-6aea465737b04.jpg"
+   },
+   {
+    "color": "Kelly",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-kelly-front-6aea465737b04.jpg"
+   },
+   {
+    "color": "Kelly",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-kelly-front-6aea465737b04.jpg"
+   },
+   {
+    "color": "Kelly",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-kelly-front-6aea465737b04.jpg"
+   },
+   {
+    "color": "Kelly",
+    "size": "3XL",
+    "retail": "22.99",
+    "preview": "unisex-staple-t-shirt-kelly-front-6aea465737b04.jpg"
+   },
+   {
+    "color": "Kelly",
+    "size": "4XL",
+    "retail": "24.99",
+    "preview": "unisex-staple-t-shirt-kelly-front-6aea465737b04.jpg"
+   },
+   {
+    "color": "Heather Kelly",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-kelly-front-6aea465737171.jpg"
+   },
+   {
+    "color": "Heather Kelly",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-kelly-front-6aea465737171.jpg"
+   },
+   {
+    "color": "Heather Kelly",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-kelly-front-6aea465737171.jpg"
+   },
+   {
+    "color": "Heather Kelly",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-kelly-front-6aea465737171.jpg"
+   },
+   {
+    "color": "Heather Kelly",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-kelly-front-6aea465737171.jpg"
+   },
+   {
+    "color": "Heather Kelly",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-heather-kelly-front-6aea465737171.jpg"
+   },
+   {
+    "color": "Heather Kelly",
+    "size": "3XL",
+    "retail": "22.99",
+    "preview": "unisex-staple-t-shirt-heather-kelly-front-6aea465737171.jpg"
+   },
+   {
+    "color": "Heather Kelly",
+    "size": "4XL",
+    "retail": "24.99",
+    "preview": "unisex-staple-t-shirt-heather-kelly-front-6aea465737171.jpg"
+   },
+   {
+    "color": "Heather Aqua",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-aqua-front-6aea46573acec.jpg"
+   },
+   {
+    "color": "Heather Aqua",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-aqua-front-6aea46573acec.jpg"
+   },
+   {
+    "color": "Heather Aqua",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-aqua-front-6aea46573acec.jpg"
+   },
+   {
+    "color": "Heather Aqua",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-aqua-front-6aea46573acec.jpg"
+   },
+   {
+    "color": "Heather Aqua",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-aqua-front-6aea46573acec.jpg"
+   },
+   {
+    "color": "Heather Aqua",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-heather-aqua-front-6aea46573acec.jpg"
+   },
+   {
+    "color": "Turquoise",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-turquoise-front-6aea46573a417.jpg"
+   },
+   {
+    "color": "Turquoise",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-turquoise-front-6aea46573a417.jpg"
+   },
+   {
+    "color": "Turquoise",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-turquoise-front-6aea46573a417.jpg"
+   },
+   {
+    "color": "Turquoise",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-turquoise-front-6aea46573a417.jpg"
+   },
+   {
+    "color": "Turquoise",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-turquoise-front-6aea46573a417.jpg"
+   },
+   {
+    "color": "Turquoise",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-turquoise-front-6aea46573a417.jpg"
+   }
+  ]
+ },
+ {
+  "name": " GS Colored Monogram - Unisex Tee",
+  "catalogType": "T-SHIRT",
+  "catalogId": 71,
+  "variants": [
+   {
+    "color": "Heather Ice Blue",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-ice-blue-front-6aea40f675f51.jpg"
+   },
+   {
+    "color": "Heather Ice Blue",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-ice-blue-front-6aea40f675f51.jpg"
+   },
+   {
+    "color": "Heather Ice Blue",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-ice-blue-front-6aea40f675f51.jpg"
+   },
+   {
+    "color": "Heather Ice Blue",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-ice-blue-front-6aea40f675f51.jpg"
+   },
+   {
+    "color": "Heather Ice Blue",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-heather-ice-blue-front-6aea40f675f51.jpg"
+   },
+   {
+    "color": "Heather Ice Blue",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-heather-ice-blue-front-6aea40f675f51.jpg"
+   },
+   {
+    "color": "Heather Ice Blue",
+    "size": "3XL",
+    "retail": "21.99",
+    "preview": "unisex-staple-t-shirt-heather-ice-blue-front-6aea40f675f51.jpg"
+   },
+   {
+    "color": "Heather Ice Blue",
+    "size": "4XL",
+    "retail": "23.99",
+    "preview": "unisex-staple-t-shirt-heather-ice-blue-front-6aea40f675f51.jpg"
+   },
+   {
+    "color": "Solid White Blend",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-solid-white-blend-back-6aea40f678471.jpg"
+   },
+   {
+    "color": "Solid White Blend",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-solid-white-blend-back-6aea40f678471.jpg"
+   },
+   {
+    "color": "Solid White Blend",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-solid-white-blend-back-6aea40f678471.jpg"
+   },
+   {
+    "color": "Solid White Blend",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-solid-white-blend-back-6aea40f678471.jpg"
+   },
+   {
+    "color": "Solid White Blend",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-solid-white-blend-back-6aea40f678471.jpg"
+   },
+   {
+    "color": "Solid White Blend",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-solid-white-blend-back-6aea40f678471.jpg"
+   },
+   {
+    "color": "Solid White Blend",
+    "size": "3XL",
+    "retail": "21.99",
+    "preview": "unisex-staple-t-shirt-solid-white-blend-back-6aea40f678471.jpg"
+   },
+   {
+    "color": "White",
+    "size": "XS",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-white-front-6aea40f67480e.jpg"
+   },
+   {
+    "color": "White",
+    "size": "S",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-white-front-6aea40f67480e.jpg"
+   },
+   {
+    "color": "White",
+    "size": "M",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-white-front-6aea40f67480e.jpg"
+   },
+   {
+    "color": "White",
+    "size": "L",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-white-front-6aea40f67480e.jpg"
+   },
+   {
+    "color": "White",
+    "size": "XL",
+    "retail": "19.99",
+    "preview": "unisex-staple-t-shirt-white-front-6aea40f67480e.jpg"
+   },
+   {
+    "color": "White",
+    "size": "2XL",
+    "retail": "20.99",
+    "preview": "unisex-staple-t-shirt-white-front-6aea40f67480e.jpg"
+   },
+   {
+    "color": "White",
+    "size": "3XL",
+    "retail": "21.99",
+    "preview": "unisex-staple-t-shirt-white-front-6aea40f67480e.jpg"
+   },
+   {
+    "color": "White",
+    "size": "4XL",
+    "retail": "23.99",
+    "preview": "unisex-staple-t-shirt-white-front-6aea40f67480e.jpg"
+   },
+   {
+    "color": "White",
+    "size": "5XL",
+    "retail": "25.99",
+    "preview": "unisex-staple-t-shirt-white-front-6aea40f67480e.jpg"
+   }
+  ]
+ }
+]

@@ -171,7 +171,8 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-switches", label: "Switches", iconName: "settings", group: "Run the site" },
       { id: "platform-shop-orders", label: "Shop", iconName: "shopping-cart", group: "Shop", tabs: [
         { id: "platform-shop-orders", label: "Orders" },
-        { id: "platform-shop-products", label: "Products" },
+        { id: "platform-shop-merch", label: "Merch" },
+        { id: "platform-shop-products", label: "Card packs" },
         { id: "platform-shop-states", label: "States" },
         { id: "platform-shop", label: "Featured cards" },
       ] },

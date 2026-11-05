@@ -58,14 +58,15 @@ const SOCIAL_LINKS = [
  * the dumping problem the pillars exist to fix. The long tail lives on the
  * pillar landing pages (/tools, /apps), which "All free tools" points at.
  */
-const SECTIONS = [
+const sectionsFor = (shop: boolean) => [
   ...PILLARS.map((p) => ({
     title: p.label,
     links: p.groups.flatMap((g) => g.items)
       // Signed-in-only destinations are pointless in a footer most visitors
       // meet while logged out; secondary ones would unbalance the columns,
-      // unless an item asks for a footer spot (`footer: true`).
-      .filter((i) => (!i.secondary || i.footer) && (!i.audience || i.audience === "everyone"))
+      // unless an item asks for a footer spot (`footer: true`). Merch shows
+      // once visitors can see the shop.
+      .filter((i) => (!i.secondary || i.footer) && (!i.audience || i.audience === "everyone" || (i.audience === "shop" && shop)))
       .map((i) => ({ label: i.label, href: i.href })),
   })),
   ...FOOTER_EXTRA.filter((g) => g.heading !== "Legal").map((g) => ({
@@ -94,12 +95,15 @@ const BOTTOM_LINKS = [
  * spare slot (`trustBadges`, under the brand block) and CSS shows one or the
  * other by width (account.css), never both.
  */
-const FOLDED_SECTIONS = (
+const SECTIONS = sectionsFor(false);
+const SECTIONS_WITH_SHOP = sectionsFor(true);
+
+const folded = (sections: typeof SECTIONS) => (
   <Accordion
     className="site-footer__fold"
     variant="flush"
     allowMultiple
-    items={SECTIONS.map((section) => ({
+    items={sections.map((section) => ({
       id: `footer-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
       title: section.title,
       content: (
@@ -113,7 +117,11 @@ const FOLDED_SECTIONS = (
   />
 );
 
-export function SiteFooter() {
+const FOLDED_SECTIONS = folded(SECTIONS);
+const FOLDED_SECTIONS_WITH_SHOP = folded(SECTIONS_WITH_SHOP);
+
+/** `shop`: visitors can see the shop, so Merch joins the Community column. */
+export function SiteFooter({ shop = false }: { shop?: boolean }) {
   const year = new Date().getFullYear();
 
   return (
@@ -139,10 +147,10 @@ export function SiteFooter() {
         </span>
       }
       description="Game-night companion tools for Mario Kart and beyond: randomizers, competitive scoring, tournaments, and a token-powered platform layer for streamers."
-      sections={SECTIONS}
+      sections={shop ? SECTIONS_WITH_SHOP : SECTIONS}
       socialLinks={SOCIAL_LINKS}
       contactInfo={{ email: "support@gameshuffle.co" }}
-      trustBadges={FOLDED_SECTIONS}
+      trustBadges={shop ? FOLDED_SECTIONS_WITH_SHOP : FOLDED_SECTIONS}
       copyright={`© ${year} GameShuffle`}
       bottomLinks={BOTTOM_LINKS}
     />

@@ -39,6 +39,8 @@ export type ArtCategory =
   | "fire"
   /* The Daily Duel: crossed swords, cards, a lightning bolt (Energy), a crown and a Poké Ball. */
   | "duel"
+  /* The merch shop: a tee, a hanger, a bag, a phone. */
+  | "merch"
   /* Halloween week: ghosts, pumpkins, bats, candy (the glyph fields swap to it, see IconField). */
   | "spooky";
 

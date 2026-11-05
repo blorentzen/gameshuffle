@@ -14,8 +14,10 @@ import { IconMinus, IconPlus, IconShoppingCart } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { formatPrice, shopCopy } from "@/lib/store/copy";
 import { shippingCents, toFreeShippingCents } from "@/lib/store/rules";
-import { isFinalSale } from "@/lib/store/config";
+import { PACKS_ON_HOLD, isFinalSale } from "@/lib/store/config";
+import { MERCH_CATEGORY } from "@/lib/store/merch";
 import type { ShopProduct } from "@/lib/store/products";
+import { lineKey, pickLabel } from "@/lib/store/personal";
 
 const STORAGE_KEY = "gs-shop-cart";
 const UTM_KEY = "gs-shop-utm";
@@ -34,15 +36,19 @@ function storedUtm(): Record<string, string> | undefined {
   try { const raw = window.sessionStorage.getItem(UTM_KEY); return raw ? JSON.parse(raw) : undefined; } catch { return undefined; }
 }
 
-export interface CartLine { sku: string; quantity: number }
+/** A cart line: a product, how many, and for made-when-ordered merch the buyer's pick (one line per pick). */
+export interface CartLine { sku: string; quantity: number; pick?: string }
 
 interface CartApi {
   lines: CartLine[];
   product: (sku: string) => ShopProduct | undefined;
   limit: (sku: string) => number;
-  add: (sku: string, quantity?: number) => void;
-  setQuantity: (sku: string, quantity: number) => void;
-  remove: (sku: string) => void;
+  add: (sku: string, quantity?: number, pick?: string) => void;
+  /** By line key (lineKey: the sku, plus "|pick" for a picked line). */
+  setQuantity: (key: string, quantity: number) => void;
+  remove: (key: string) => void;
+  /** Every line of a product, whatever its pick (a product that sold out). */
+  removeSku: (sku: string) => void;
   count: number;
   subtotalCents: number;
   products: ShopProduct[];
@@ -66,7 +72,9 @@ function readStored(): CartLine[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? parsed.filter((l): l is CartLine => !!l && typeof l.sku === "string" && Number.isInteger(l.quantity)) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((l): l is CartLine => !!l && typeof l.sku === "string" && Number.isInteger(l.quantity) && (l.pick === undefined || (typeof l.pick === "string" && /^[a-z0-9-]{1,24}$/.test(l.pick))))
+      : [];
   } catch {
     return [];
   }
@@ -79,7 +87,7 @@ export function ShopCartProvider({ products, children }: { products: ShopProduct
   const [isOpen, setOpen] = useState(false);
 
   const clamp = useCallback((list: CartLine[]) => list
-    .map((l) => ({ sku: l.sku, quantity: Math.min(l.quantity, lineLimit(bySku.get(l.sku))) }))
+    .map((l) => ({ ...l, quantity: Math.min(l.quantity, lineLimit(bySku.get(l.sku))) }))
     .filter((l) => l.quantity > 0), [bySku]);
 
   // Load after mount so the server render and the first browser render match.
@@ -94,25 +102,29 @@ export function ShopCartProvider({ products, children }: { products: ShopProduct
 
   const api = useMemo<CartApi>(() => {
     const limit = (sku: string) => lineLimit(bySku.get(sku));
-    const setQuantity = (sku: string, quantity: number) => setLines((cur) => {
+    const keyOf = (l: CartLine) => lineKey(l.sku, l.pick);
+    const put = (sku: string, pick: string | undefined, quantity: number) => setLines((cur) => {
+      const key = lineKey(sku, pick);
       const q = Math.max(0, Math.min(Math.floor(quantity), limit(sku)));
-      const rest = cur.filter((l) => l.sku !== sku);
+      const rest = cur.filter((l) => keyOf(l) !== key);
       if (q === 0) return rest;
-      const at = cur.findIndex((l) => l.sku === sku);
+      const at = cur.findIndex((l) => keyOf(l) === key);
       const next = [...rest];
-      next.splice(at < 0 ? next.length : at, 0, { sku, quantity: q });
+      next.splice(at < 0 ? next.length : at, 0, { sku, quantity: q, ...(pick ? { pick } : {}) });
       return next;
     });
+    const fromKey = (key: string): [string, string | undefined] => { const i = key.indexOf("|"); return i < 0 ? [key, undefined] : [key.slice(0, i), key.slice(i + 1)]; };
     return {
       lines,
       product: (sku) => bySku.get(sku),
       limit,
-      add: (sku, quantity = 1) => {
-        const have = lines.find((l) => l.sku === sku)?.quantity ?? 0;
-        setQuantity(sku, have + quantity);
+      add: (sku, quantity = 1, pick) => {
+        const have = lines.find((l) => keyOf(l) === lineKey(sku, pick))?.quantity ?? 0;
+        put(sku, pick, have + quantity);
       },
-      setQuantity,
-      remove: (sku) => setLines((cur) => cur.filter((l) => l.sku !== sku)),
+      setQuantity: (key, quantity) => { const [sku, pick] = fromKey(key); put(sku, pick, quantity); },
+      remove: (key) => setLines((cur) => cur.filter((l) => keyOf(l) !== key)),
+      removeSku: (sku) => setLines((cur) => cur.filter((l) => l.sku !== sku)),
       count: lines.reduce((n, l) => n + l.quantity, 0),
       subtotalCents: lines.reduce((n, l) => n + (bySku.get(l.sku)?.priceCents ?? 0) * l.quantity, 0),
       products,
@@ -177,10 +189,11 @@ function CartDrawer() {
       if (d?.ok && typeof d.url === "string") { window.location.assign(d.url); return; }
       // Stock moved since the page loaded: fix that line so the next try works.
       if ((d?.error === "sold_out" || d?.error === "unavailable") && typeof d.sku === "string") {
-        cart.remove(d.sku);
+        cart.removeSku(d.sku);
         toast.error(copy.errors.soldOut);
       } else if (d?.error === "not_enough" && typeof d.sku === "string" && typeof d.available === "number") {
-        cart.setQuantity(d.sku, d.available);
+        const first = cart.lines.find((l) => l.sku === d.sku);
+        cart.setQuantity(lineKey(d.sku, first?.pick), d.available);
         toast.error(copy.errors.notEnough(d.available));
       } else toast.error(copy.errors.checkoutFailed);
     } catch {
@@ -203,15 +216,21 @@ function CartDrawer() {
               const p = cart.product(l.sku);
               if (!p) return null;
               const max = cart.limit(l.sku);
+              const key = lineKey(l.sku, l.pick);
+              const picked = l.pick && p.personal ? pickLabel(p.personal.kind, l.pick) : null;
               return (
-                <li key={l.sku} className="shop-cart__line">
+                <li key={key} className={`shop-cart__line${p.category === MERCH_CATEGORY && p.imageUrl ? " shop-cart__line--pic" : ""}`}>
+                  {p.category === MERCH_CATEGORY && p.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- Printful's mockup for this color
+                    <img className="shop-cart__pic" src={p.imageUrl} alt="" width={56} height={56} />
+                  )}
                   <div className="shop-cart__line-head">
-                    <strong>{p.name}</strong>
+                    <strong>{p.name}{picked && <span className="shop-cart__pick">{picked}</span>}</strong>
                     <span className="shop-cart__line-price">{formatPrice(p.priceCents * l.quantity)}</span>
                   </div>
                   <div className="shop-cart__line-controls">
-                    <QuantityStepper name={p.name} value={l.quantity} max={max} onChange={(n) => cart.setQuantity(l.sku, n)} />
-                    <Button variant="ghost" size="small" onClick={() => cart.remove(l.sku)}>{copy.cart.remove}</Button>
+                    <QuantityStepper name={picked ? `${p.name}, ${picked}` : p.name} value={l.quantity} max={max} onChange={(n) => cart.setQuantity(key, n)} />
+                    <Button variant="ghost" size="small" onClick={() => cart.remove(key)}>{copy.cart.remove}</Button>
                   </div>
                   {l.quantity >= max && <p className="shop-cart__note">{max < p.maxPerOrder ? copy.cart.leftOnly(max) : copy.cart.maxed(max)}</p>}
                 </li>
@@ -238,8 +257,9 @@ function FreeShippingNudge() {
   const copy = shopCopy();
   const short = toFreeShippingCents(cart.subtotalCents);
   if (short === 0) return <p className="shop-cart__free is-reached">{copy.cart.freeReached}</p>;
-  const ideas = cart.products
-    .filter((p) => p.kind === "single" && lineLimit(p) > (cart.lines.find((l) => l.sku === p.sku)?.quantity ?? 0))
+  // Single packs only, and not while packs are on hold.
+  const ideas = PACKS_ON_HOLD ? [] : cart.products
+    .filter((p) => p.kind === "single" && p.category !== MERCH_CATEGORY && lineLimit(p) > (cart.lines.find((l) => l.sku === p.sku)?.quantity ?? 0))
     .slice(0, 2);
   return (
     <div className="shop-cart__free">

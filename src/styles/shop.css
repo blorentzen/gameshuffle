@@ -54,6 +54,8 @@
 .shop-cart__lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .shop-cart__line { display: flex; flex-direction: column; gap: var(--spacing-8); padding-block: var(--spacing-12); border-bottom: 1px solid var(--border-default); }
 .shop-cart__line-head { display: flex; justify-content: space-between; gap: var(--spacing-12); font-size: var(--font-size-16); }
+/* A made-when-ordered line says what was picked under the name ("Player 2 · 4 hearts"). */
+.shop-cart__pick { display: block; font-weight: 400; font-size: var(--font-size-14); color: var(--text-secondary); margin-top: 2px; }
 .shop-cart__line-price { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .shop-cart__line-controls { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); }
 .shop-cart__totals { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-6, 6px); font-size: var(--font-size-16); }
@@ -146,3 +148,94 @@ html.dark .shop-lookup__error { color: var(--error-400); }
   .shop-order { position: absolute; top: 0; left: 0; width: 100%; box-shadow: none; border: 0; color: #000; background: #fff; }
   .shop-order button, .shop-order .empac-button, .shop-order__print { display: none !important; }
 }
+
+/* ── Merch (2026-11-03): /shop's shelf and /shop/[slug] ──────────────────── */
+
+.merch-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.merch-collection__head { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.merch-collection__head .shop-section__line { margin: 0; }
+.merch-related { margin-top: var(--spacing-48); padding-top: var(--spacing-32); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.merch-grid {
+  display: grid;
+  gap: var(--spacing-24) var(--spacing-16);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+}
+@media (max-width: 560px) {
+  .merch-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-20) var(--spacing-12); }
+}
+
+.merch-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.merch-card__media {
+  display: block; aspect-ratio: 1; border-radius: var(--radius-lg, 12px); overflow: hidden;
+  background: var(--surface-default); border: 1px solid var(--border-default);
+}
+.merch-card__media img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.25s ease; }
+.merch-card__media:hover img { transform: scale(1.03); }
+@media (prefers-reduced-motion: reduce) { .merch-card__media img { transition: none; } .merch-card__media:hover img { transform: none; } }
+.merch-card__dots { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-4); min-height: 2.8rem; }
+.merch-card__more { font-size: var(--font-size-12); color: var(--text-secondary); padding-left: var(--spacing-4); }
+.merch-card__name { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
+.merch-card__name a { color: var(--text-primary); text-decoration: none; }
+.merch-card__name a:hover, .merch-card__name a:focus-visible { text-decoration: underline; }
+.merch-card__price { margin: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-4) var(--spacing-8); align-items: baseline; font-size: var(--font-size-16); font-variant-numeric: tabular-nums; }
+.merch-card__sub { color: var(--text-secondary); font-size: var(--font-size-14); }
+.merch-card .empac-badge { align-self: flex-start; }
+
+/* Color dots: CDS Chips with only a dot (the TCG Companion's theme picker does the same). */
+.merch-swatch.empac-chip { padding: 0; width: 2.8rem; height: 2.8rem; min-width: 2.4rem; justify-content: center; border-radius: 999px; gap: 0; }
+.merch-swatch .empac-chip__label:empty { display: none; }
+.merch-swatch .empac-chip__icon { margin: 0; }
+.merch-swatch--lg.empac-chip { width: 4rem; height: 4rem; }
+.merch-dot { display: block; width: 1.6rem; height: 1.6rem; border-radius: 999px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.2); }
+.merch-swatch--lg .merch-dot { width: 2.6rem; height: 2.6rem; }
+.merch-swatch.empac-chip--selected { box-shadow: 0 0 0 2px var(--primary-600, #3d35b8); background: var(--surface-default); }
+
+/* Product page */
+.merch-page__head { display: flex; flex-direction: column; gap: var(--spacing-8); padding-block: var(--spacing-24) var(--spacing-16); }
+.merch-page__eyebrow { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); font-weight: var(--font-weight-bold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand-ink, var(--text-link)); }
+.merch-page__title { margin: 0; font-size: var(--font-size-fluid-h2, var(--font-size-32)); line-height: var(--line-height-tight); text-wrap: balance; }
+.merch-page .shop-toolbar { margin-bottom: var(--spacing-16); }
+.merch-product {
+  display: grid; gap: var(--spacing-32); align-items: start;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  padding-bottom: var(--spacing-64);
+}
+@media (max-width: 860px) { .merch-product { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-24); } }
+.merch-product__gallery { display: flex; flex-direction: column; gap: var(--spacing-12); min-width: 0; }
+.merch-product__main { aspect-ratio: 1; border-radius: var(--radius-lg, 12px); overflow: hidden; background: var(--surface-default); border: 1px solid var(--border-default); }
+.merch-product__main img { width: 100%; height: 100%; object-fit: cover; }
+.merch-product__thumbs { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.merch-product__thumb { all: unset; cursor: pointer; width: 7.2rem; height: 7.2rem; border-radius: var(--radius-md, 8px); overflow: hidden; background: var(--surface-default); border: 2px solid var(--border-default); }
+.merch-product__thumb.is-on { border-color: var(--primary-600, #3d35b8); }
+.merch-product__thumb:focus-visible { outline: 3px solid var(--focus-ring, #8f96ff); outline-offset: 2px; }
+.merch-product__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.merch-product__info { display: flex; flex-direction: column; gap: var(--spacing-20); min-width: 0; }
+.merch-product__price { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+.merch-product__soon { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-semibold, 600); }
+.merch-field { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.merch-field__label { margin: 0; font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); }
+.merch-field__label span { font-weight: var(--font-weight-normal, 400); color: var(--text-secondary); margin-left: var(--spacing-8); }
+.merch-field__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+/* Made when ordered: the buyer's pick, then the flat print it makes on the chosen color. */
+.merch-pick { display: flex; flex-direction: column; gap: var(--spacing-20); }
+.merch-pick__print { margin: 0; display: grid; gap: var(--spacing-8); justify-items: start; }
+.merch-pick__swatch { width: min(100%, 24rem); border-radius: var(--radius-12); border: 1px solid var(--border-default); background: var(--background-secondary); display: grid; place-items: center; padding: var(--spacing-12); }
+.merch-pick__swatch img { width: 100%; height: auto; display: block; }
+.merch-pick__print figcaption { font-size: var(--font-size-14); color: var(--text-secondary); }
+.merch-field__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.merch-product__buy .empac-button { min-width: 20rem; }
+@media (max-width: 560px) { .merch-product__buy .empac-button { width: 100%; } }
+.merch-product__about {
+  display: flex; flex-direction: column; gap: var(--spacing-12);
+  padding-top: var(--spacing-20); border-top: 1px solid var(--border-default);
+  font-size: var(--font-size-16); color: var(--text-secondary); line-height: var(--line-height-relaxed);
+}
+.merch-product__about p { margin: 0; }
+.merch-product__facts { margin: 0; padding-left: var(--spacing-20); display: flex; flex-direction: column; gap: var(--spacing-4); color: var(--text-primary); list-style: disc; }
+.merch-product__facts li { display: list-item; }
+.merch-guide__note { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* Cart line with the color's picture */
+.shop-cart__line--pic { display: grid; grid-template-columns: 5.6rem minmax(0, 1fr); column-gap: var(--spacing-12); row-gap: var(--spacing-8); }
+.shop-cart__line--pic > :not(.shop-cart__pic) { grid-column: 2; }
+.shop-cart__pic { grid-row: 1 / span 3; width: 5.6rem; height: 5.6rem; border-radius: var(--radius-md, 8px); object-fit: cover; background: var(--surface-default); border: 1px solid var(--border-default); }

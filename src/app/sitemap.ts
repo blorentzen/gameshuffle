@@ -18,6 +18,8 @@ import { RULES_PATH, RULE_PAGES } from "@/data/tcg-rules";
 import { OCCASIONS, TRIVIA_PATH, occasionUrl, topicUrl } from "@/data/trivia-seo";
 import { liveTopics } from "@/lib/trivia/topics";
 import { listPublicLeagues } from "@/lib/trivia/leagues";
+import { listMerchListings } from "@/lib/store/merchCatalog";
+import { getPlatformFlag } from "@/lib/platform/flags";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { loungePagePath } from "@/lib/lounge/lines";
 import { seriesPath } from "@/lib/series/view";
@@ -711,6 +713,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ttRoutes = [];
   }
 
+  // Merch: /shop and each live product, only once the shop is open (it's noindex before).
+  const shopRoutes: MetadataRoute.Sitemap = [];
+  if (await getPlatformFlag("shop_open", false).catch(() => false)) {
+    const listings = await listMerchListings().catch(() => []);
+    shopRoutes.push({ url: `${baseUrl}/shop`, changeFrequency: "weekly", priority: 0.6 });
+    shopRoutes.push(...listings.map((l) => ({ url: `${baseUrl}/shop/${l.slug}`, changeFrequency: "weekly" as const, priority: 0.5 })));
+  }
+
   // One entry per URL. The blocks above overlap (the pillar map also lists
   // /pokemon-tcg, which the deck block adds too), so keep the first position
   // and the higher priority whenever a URL turns up twice.
@@ -723,6 +733,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...triviaRoutes,
     ...loungeRoutes,
     ...seriesRoutes,
+    ...shopRoutes,
   ]);
 }
 

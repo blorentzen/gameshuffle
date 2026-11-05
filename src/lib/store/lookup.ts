@@ -17,6 +17,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { nameWithPicks, picksFor } from "./orderPicks";
 import { isProduction } from "@/lib/env";
 import { getTwilio, toE164, verifyConfigured, SMS_ENV } from "@/lib/sms/client";
 import { sendShopLookupCode, uspsTrackingUrl } from "@/lib/email/shop";
@@ -150,7 +151,8 @@ export async function customerOrderView(orderId: string): Promise<CustomerOrderV
     svc.from("shop_order_events").select("kind, detail, created_at, visible").eq("order_id", order.id).eq("visible", true).order("created_at").abortSignal(fresh()),
   ]);
   const { data: products } = await svc.from("shop_products").select("sku, name, category").in("sku", (items ?? []).map((i) => i.sku)).abortSignal(fresh());
-  const names = new Map((products ?? []).map((p) => [p.sku as string, p.name as string]));
+  const picks = await picksFor(order.id);
+  const names = new Map((products ?? []).map((p) => [p.sku as string, nameWithPicks(p.name as string, p.sku as string, picks)]));
   const categories = new Map((products ?? []).map((p) => [p.sku as string, p.category as string]));
   const LABEL: Record<string, string> = { placed: "Order placed", shipped: "Shipped", refunded: "Refunded", canceled: "Canceled", reshipped: "Sent again" };
   const timeline = ((events ?? []) as { kind: string; detail: Record<string, unknown>; created_at: string }[]).map((e) => ({
