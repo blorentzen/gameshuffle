@@ -4,8 +4,8 @@
  * The reviewers' queue (round 2, 5A/6A): clips to check, oldest first, and open report tickets. A clip
  * that checks out flips the time to Verified; one that doesn't asks for a reason the player sees.
  * Round 3: clips players vouched for come first (with the count), the site's proof checks show as tickets, updaters
- * see only their game and items, and staff name updaters per mode on the Updaters tab.
- * Staff also manage the time trial reviewers here, and the short names players taught the import reader
+ * see only their game and items. The Team tab (picks 2026-11-05, TtTeamTab) gives reviewer and updater access; staff
+ * and admins give anything, reviewers make updaters. Staff also manage the short names players taught the import reader
  * (three players picking the same track for a name makes it read for everyone; staff can block one).
  * Legacy proof (picks 2026-11-04): legacy times whose record carried a clip or a post, records first, verified in one
  * tap or turned down with a reason (they stay Legacy times).
@@ -16,20 +16,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, EmptyState, FormField, Input, Tabs } from "@empac/cascadeds";
 import { IconCamera, IconCircleCheck, IconExternalLink, IconThumbUp, IconTrophy, IconVideo } from "@tabler/icons-react";
-import { Select } from "@/components/ui/Select";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
-import type { QueueLegacy, QueueTicket, QueueVideo, Reviewer } from "@/lib/timeTrials/review";
+import type { QueueLegacy, QueueTicket, QueueVideo } from "@/lib/timeTrials/review";
 import type { CommunityAlias } from "@/lib/timeTrials/aliases";
 import type { QueueClaim } from "@/lib/timeTrials/claims";
 import type { SheetStatus } from "@/lib/timeTrials/sheetSync";
-import type { Mode, Updater } from "@/lib/timeTrials/updaters";
-import { TT_GAMES, TT_GAME_ORDER } from "@/lib/timeTrials/tracks";
-import { ITEMS, itemsLabel, type TtItems } from "@/lib/timeTrials/categories";
+import type { Mode } from "@/lib/timeTrials/updaters";
+import { TT_GAMES } from "@/lib/timeTrials/tracks";
+import { itemsLabel } from "@/lib/timeTrials/categories";
 import { ordinal } from "@/lib/timeTrials/rules";
-import type { TtGame } from "@/lib/timeTrials/tracks";
+import { TtTeamTab, type TeamData } from "./TtTeamTab";
 
-type Queue = { videos: QueueVideo[]; tickets: QueueTicket[]; reviewers: Reviewer[] | null; updaters: Updater[] | null; aliases: CommunityAlias[] | null; staff: boolean; modes: Mode[] | null;
+type Queue = { videos: QueueVideo[]; tickets: QueueTicket[]; team: TeamData | null; aliases: CommunityAlias[] | null; staff: boolean; modes: Mode[] | null;
   /** Top 10 sheet claims (round 4), for staff, reviewers and the MK8DX mushrooms updaters; when each sheet was read (staff). */
   claims: { pending: QueueClaim[]; approved: QueueClaim[] } | null; sheets: SheetStatus[] | null;
   /** Legacy times with a clip or post to check (picks 2026-11-04), for whoever checks Mario Kart 8 Deluxe mushrooms. */
@@ -45,10 +44,6 @@ export function TtReviewQueue() {
   const [failed, setFailed] = useState(false);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [reason, setReason] = useState("");
-  const [username, setUsername] = useState("");
-  const [updName, setUpdName] = useState("");
-  const [updGame, setUpdGame] = useState<TtGame>("mk8dx");
-  const [updItems, setUpdItems] = useState<TtItems>("shrooms");
   const [busy, setBusy] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const toast = useToast();
@@ -74,7 +69,7 @@ export function TtReviewQueue() {
 
   async function post(body: Record<string, unknown>, done: string): Promise<boolean> {
     const j = (await fetch("/api/time-trials/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()).catch(() => ({}))) as { ok?: boolean; error?: string };
-    if (!j.ok) { toast.error(j.error === "no_user" ? "No account with that username." : j.error === "reason_needed" ? (body.action === "claim" ? "Say why it isn't approved." : body.action === "legacy_reject" ? "Say why the proof doesn't show it." : "Say why the clip doesn't match.") : j.error === "taken" ? "That name is already matched to an account." : "That didn't save. Try again."); return false; }
+    if (!j.ok) { toast.error(j.error === "reason_needed" ? (body.action === "claim" ? "Say why it isn't approved." : body.action === "legacy_reject" ? "Say why the proof doesn't show it." : "Say why the clip doesn't match.") : j.error === "taken" ? "That name is already matched to an account." : "That didn't save. Try again."); return false; }
     toast.success(done);
     reload();
     return true;
@@ -223,54 +218,7 @@ export function TtReviewQueue() {
     </div>
   ) : null;
 
-  const reviewers = q.reviewers ? (
-    <div className="tt-reviewers">
-      <form className="tt-compare__row" onSubmit={(e) => { e.preventDefault(); setBusy("add"); void post({ action: "reviewer_add", username }, "Reviewer added").then((ok) => { setBusy(null); if (ok) setUsername(""); }); }}>
-        <FormField label="Add a reviewer by username" htmlFor="tt-rev-add">
-          <Input id="tt-rev-add" value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="off" />
-        </FormField>
-        <Button type="submit" variant="secondary" loading={busy === "add"} disabled={!username.trim()}>Add</Button>
-      </form>
-      {q.reviewers.length === 0 ? <p className="tt-note">No reviewers besides staff yet. Reviewers see only this queue.</p> : (
-        <ul className="tt-queue">
-          {q.reviewers.map((r) => (
-            <li key={r.userId} className="tt-queue__item tt-queue__item--row">
-              <span><b>{r.name}</b>{r.username ? <span className="tt-muted"> @{r.username}</span> : null}</span>
-              <Button variant="ghost" size="small" onClick={() => { void confirm({ title: `Remove ${r.name} as a reviewer?`, confirmLabel: "Remove reviewer" }).then((ok) => { if (ok) void post({ action: "reviewer_remove", userId: r.userId }, "Reviewer removed"); }); }}>Remove</Button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  ) : null;
-
-  const updaters = q.updaters ? (
-    <div className="tt-reviewers">
-      <p className="tt-note">Updaters check clips and settle reports for one game and items, from this screen, and get that week&apos;s list every Monday. Reviewers and staff keep seeing everything.</p>
-      <form className="tt-updater-form" onSubmit={(e) => { e.preventDefault(); setBusy("upd"); void post({ action: "updater_add", username: updName, game: updGame, items: updItems }, "Updater added").then((ok) => { setBusy(null); if (ok) setUpdName(""); }); }}>
-        <FormField label="Username" htmlFor="tt-upd-name">
-          <Input id="tt-upd-name" value={updName} onChange={(e) => setUpdName(e.target.value)} autoComplete="off" fullWidth />
-        </FormField>
-        <FormField label="Game" htmlFor="tt-upd-game">
-          <Select id="tt-upd-game" value={updGame} onChange={(v) => setUpdGame(String(v) as TtGame)} options={TT_GAME_ORDER.map((g) => ({ value: g, label: TT_GAMES[g].label }))} fullWidth />
-        </FormField>
-        <FormField label="Items" htmlFor="tt-upd-items">
-          <Select id="tt-upd-items" value={updItems} onChange={(v) => setUpdItems(String(v) as TtItems)} options={ITEMS.map((i) => ({ value: i.id, label: i.label }))} fullWidth />
-        </FormField>
-        <Button type="submit" variant="secondary" loading={busy === "upd"} disabled={!updName.trim()}>Add updater</Button>
-      </form>
-      {q.updaters.length === 0 ? <p className="tt-note">No updaters yet.</p> : (
-        <ul className="tt-queue">
-          {q.updaters.map((u) => (
-            <li key={`${u.userId}|${u.game}|${u.items}`} className="tt-queue__item tt-queue__item--row">
-              <span><b>{u.name}</b>{u.username ? <span className="tt-muted"> @{u.username}</span> : null}<span className="tt-muted"> · {modeText(u)}</span></span>
-              <Button variant="ghost" size="small" onClick={() => { void confirm({ title: `Remove ${u.name} as the ${modeText(u)} updater?`, confirmLabel: "Remove updater" }).then((ok) => { if (ok) void post({ action: "updater_remove", userId: u.userId, game: u.game, items: u.items }, "Updater removed"); }); }}>Remove</Button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  ) : null;
+  const team = q.team ? <TtTeamTab team={q.team} onChanged={reload} /> : null;
 
   const shortNames = q.aliases ? (q.aliases.length === 0 ? <EmptyState title="No short names learned yet" description="When three players pick the same track for a name the import reader didn't know, it reads for everyone and shows up here." /> : (
     <div className="tt-reviewers">
@@ -303,8 +251,7 @@ export function TtReviewQueue() {
         { id: "reports", label: "Reports", badge: q.tickets.length || undefined, content: reports },
         ...(claims ? [{ id: "claims", label: "Legacy claims", badge: q.claims!.pending.length || undefined, content: claims }] : []),
         ...(legacy ? [{ id: "legacy", label: "Legacy proof", badge: q.legacy!.total || undefined, content: legacy }] : []),
-        ...(reviewers ? [{ id: "reviewers", label: "Reviewers", content: reviewers }] : []),
-        ...(updaters ? [{ id: "updaters", label: "Updaters", content: updaters }] : []),
+        ...(team ? [{ id: "team", label: "Team", content: team }] : []),
         ...(shortNames ? [{ id: "short-names", label: "Short names", content: shortNames }] : []),
       ]}
     />

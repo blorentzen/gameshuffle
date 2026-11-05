@@ -37,35 +37,6 @@ export async function reviewScope(userId: string | null): Promise<"all" | Mode[]
 
 export const inScope = (scope: "all" | Mode[] | null, t: Mode) => scope === "all" || (!!scope && scope.some((m) => m.game === t.game && m.items === t.items));
 
-export interface Updater { userId: string; name: string; username: string | null; game: TtGame; items: TtItems }
-
-export async function listUpdaters(): Promise<Updater[]> {
-  if (!(await round3Ready())) return [];
-  const db = createServiceClient();
-  const { data } = await db.from("tt_updaters").select("user_id, game, items").order("created_at");
-  const rows = (data ?? []) as { user_id: string; game: TtGame; items: TtItems }[];
-  if (!rows.length) return [];
-  const { data: users } = await db.from("users").select("id, display_name, username").in("id", [...new Set(rows.map((r) => r.user_id))]);
-  const byId = new Map(((users ?? []) as { id: string; display_name: string | null; username: string | null }[]).map((u) => [u.id, u]));
-  return rows.map((r) => ({ userId: r.user_id, name: byId.get(r.user_id)?.display_name || byId.get(r.user_id)?.username || "A player", username: byId.get(r.user_id)?.username ?? null, game: r.game, items: r.items }));
-}
-
-export async function addUpdater(username: string, mode: Mode, by: string): Promise<{ ok: boolean; error?: string }> {
-  if (!(await round3Ready())) return { ok: false, error: "not_ready" };
-  const db = createServiceClient();
-  const { data } = await db.from("users").select("id").eq("username", username.trim().toLowerCase().replace(/^@/, "")).maybeSingle();
-  const id = (data as { id: string } | null)?.id;
-  if (!id) return { ok: false, error: "no_user" };
-  await db.from("tt_updaters").upsert({ user_id: id, game: mode.game, items: mode.items, added_by: by }, { onConflict: "user_id,game,items", ignoreDuplicates: true });
-  await createNotification({ userId: id, type: "system", title: "You're a time trial updater", message: `You check clips and reports for ${modeLabel(mode)}. Every Monday you'll get that week's list.`, link: "/time-trials/review" }).catch(() => undefined);
-  return { ok: true };
-}
-
-export async function removeUpdater(userId: string, mode: Mode): Promise<void> {
-  if (!(await round3Ready())) return;
-  await createServiceClient().from("tt_updaters").delete().eq("user_id", userId).eq("game", mode.game).eq("items", mode.items);
-}
-
 /** What waits in one mode: clips to check and open tickets (reports and flags). */
 export async function modeCounts(mode: Mode): Promise<{ clips: number; tickets: number }> {
   const db = createServiceClient();

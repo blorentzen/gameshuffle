@@ -20,6 +20,8 @@ import { countryCodes, flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
 import { TtCountryPicker } from "@/components/timeTrials/TtCountryPicker";
 import { TtClaimButton } from "@/components/timeTrials/TtClaimButton";
+import { TtAccessButton } from "@/components/timeTrials/TtAccessButton";
+import { granterOf } from "@/lib/timeTrials/team";
 import { StatusChip } from "@/components/timeTrials/TtTimeWindow";
 import { claimView, listedPlayer } from "@/lib/timeTrials/claims";
 import { sheetTimeIds } from "@/lib/timeTrials/store";
@@ -82,10 +84,12 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
   const actor = await siteActor();
   const own = !!actor && actor.player === who.player;
   // Their country (round 3 pick 6A): filled in from a confirmed lounge name the first time they look, else picked here.
-  const [bests, country, listed] = await Promise.all([
+  const [bests, country, listed, granter] = await Promise.all([
     playerBests(who.player as TtPlayer),
     own ? fillFromLounge(who.player).then((c) => c ?? null) : countryOf(who.player).then((c) => c?.country ?? null),
     listedPlayer(who.player),
+    // Review access (picks 2026-11-05, 1A): staff and reviewers, on someone else's account page.
+    !own && who.player.startsWith("u:") ? granterOf(actor?.userId ?? null) : Promise.resolve(null),
   ]);
   // A legacy player (round 4, from the Top 10 sheets): "This is me", and Legacy instead of Unverified.
   const claim = listed ? await claimView(listed.identityId, actor?.userId ?? null) : null;
@@ -136,7 +140,10 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
         field="compete"
         compact
         lead={<Avatar size="xlarge" src={who.avatar ?? undefined} initials={who.name.slice(0, 1).toUpperCase()} alt="" />}
-        actions={bests.length > 0 ? <TtCompareButton base={base} query={keep.toString()} current={other ? sp.vs : undefined} /> : undefined}
+        actions={bests.length > 0 || granter ? <>
+          {bests.length > 0 && <TtCompareButton base={base} query={keep.toString()} current={other ? sp.vs : undefined} />}
+          {granter && <TtAccessButton userId={who.player.slice(2)} name={who.name} />}
+        </> : undefined}
       />
       <Container className="tt-body">
         {own && (

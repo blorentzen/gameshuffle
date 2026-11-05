@@ -329,7 +329,25 @@
 .tt-country { display: flex; align-items: flex-end; gap: var(--spacing-12); max-width: 44rem; }
 .tt-country__flag { width: 3.2rem; height: 2.4rem; margin-bottom: 3.2rem; }
 .tt-country > :last-child { flex: 1 1 auto; min-width: 0; }
-.tt-updater-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--spacing-12); align-items: end; }
+/* The review team (picks 2026-11-05): a row per person (who, their access, Change), the search above. */
+.tt-team__search { display: grid; gap: var(--spacing-12); }
+.tt-team__find { max-width: 40rem; }
+.tt-team__row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "who act" "tags tags"; align-items: center; }
+.tt-team__who { grid-area: who; display: flex; align-items: center; gap: var(--spacing-12); min-width: 0; }
+.tt-team__name { display: grid; min-width: 0; }
+.tt-team__name b { overflow-wrap: anywhere; }
+.tt-team__tags { grid-area: tags; display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.tt-team__tags:empty { display: none; }
+.tt-team__act { grid-area: act; }
+@media (min-width: 760px) {
+  .tt-team__row { grid-template-columns: minmax(14rem, 1fr) minmax(0, 1.4fr) auto; grid-template-areas: "who tags act"; }
+}
+.tt-team__log { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); font-size: var(--font-size-14); }
+.tt-access__body { display: grid; gap: var(--spacing-16); }
+.tt-access__modes { border: 0; margin: 0; padding: 0 0 0 var(--spacing-32); display: grid; gap: var(--spacing-12); }
+.tt-access__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-12); }
+/* CDS sets helper lines at 12px; these are sentences, so they keep the 14px reading floor. */
+.tt-access .empac-checkbox-helper, .tt-team__find .empac-form-field__helper { font-size: var(--font-size-14); }
 /* Add screenshots to imported times (players' feedback, picks 2026-11-04, 21A). */
 .tt-import__shotlist { display: grid; gap: var(--spacing-12); }
 .tt-import__shotlist ul { list-style: none; margin: 0; padding: 0; display: grid; }
