@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
+import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
 
 const HREF = "/help/apps/mario-party-randomizers";
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>The Mario Party randomizers</h1>
+      <h1>How to use the Mario Party randomizers</h1>
+      <HelpToolLinks links={[{ href: "/randomizers/super-mario-party-jamboree", label: "Super Mario Party Jamboree randomizer" }, { href: "/randomizers/mario-party-superstars", label: "Mario Party Superstars randomizer" }, { href: "/randomizers/mario-party", label: "Mario Party randomizer" }, { href: "/randomizers/mario-party-2", label: "Mario Party 2 randomizer" }, { href: "/randomizers/mario-party-3", label: "Mario Party 3 randomizer" }]} />
       <p>
         Roll the board, the rules, the characters and the minigames for a Mario Party night. There&apos;s one for each game:
       </p>

@@ -7,6 +7,8 @@ import { DailyDuelModule } from "@/components/originals/duel/DuelChallenger";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { TrainerArt } from "@/components/originals/duel/TrainerArt";
 import { RoadDuel } from "@/components/originals/duel/road/RoadDuel";
+import { RoadTeamTables } from "@/components/originals/duel/road/RoadTeamTables";
+import { speciesName } from "@/lib/originals/duel/speciesTypes";
 import { roadPath } from "@/lib/originals/duel/road";
 import { allRoadPeople, personView } from "@/lib/originals/duel/roadPages";
 import "@/styles/daily-duel.css";
@@ -30,11 +32,15 @@ export async function generateMetadata({ params }: { params: Promise<{ region: s
   const v = personView(region, trainer);
   if (!v) return {};
   const many = v.teams.length > 1;
-  const games = [...new Set(v.teams.map((t) => t.gameLabel))];
   // The eyebrow names the region ("Johto Gym Leader"), so two regions' Team Rocket pages don't share a title.
   const title = `${v.person.name}'s Pokémon team${many ? "s" : ""}: ${v.eyebrow}`;
-  // Search shows about 160 characters: the teams and the duel first, the bio after.
-  const description = previewText(`${v.person.name}'s team${many ? "s" : ""} in ${games.join(", ")}, in battle order, and a Pokémon card duel against them.${v.bio ? ` ${v.bio}` : ""}`, 160);
+  // SEO pass 2026-11-05: people search "<name> pokemon team", so the first team's Pokémon lead, in battle order, then
+  // the duel, inside the 160 characters search shows.
+  const first = v.teams[0];
+  const game = first.gameLabel.replace(/^Pokémon /, "");
+  const lead = `${v.person.name}'s team in ${game}: ${first.species.map(speciesName).join(", ")}.`;
+  const rest = many ? " Every game, in battle order. Duel them with Pokémon cards." : " In battle order. Duel them with Pokémon cards.";
+  const description = lead.length + rest.length <= 160 ? lead + rest : previewText(`${lead}${many ? " Every game, in battle order." : ""}`, 160);
   return { title, description, ...shareMeta({ title, description, path: roadPath(region, trainer) }) };
 }
 
@@ -69,6 +75,7 @@ export default async function TrainerPage({ params }: { params: Promise<{ region
         <nav className="road-crumbs road-quiet" aria-label="Breadcrumb">
           <Link href="/pokemon-trainers">Trainer Road</Link> <span aria-hidden="true">/</span> <Link href={roadPath(region)}>{v.region.name}</Link> <span aria-hidden="true">/</span> <span aria-current="page">{v.person.name}</span>
         </nav>
+        <RoadTeamTables name={v.person.name} teams={v.teams} />
         <RoadDuel region={region} person={{ name: v.person.name, slug: trainer }} teams={v.teams} next={v.next} />
         <DailyDuelModule from="trainer-road-trainer" className="road-quiet" />
         <div className="road-credits road-quiet">

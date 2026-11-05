@@ -9,7 +9,8 @@ import { RoadSection } from "@/components/originals/duel/road/RoadTiles";
 import { RoadStarsProvider } from "@/components/originals/duel/road/RoadTileStars";
 import { RoadPathBox } from "@/components/originals/duel/road/RoadPath";
 import { ROAD_REGIONS, roadPath } from "@/lib/originals/duel/road";
-import { regionHeading, regionView } from "@/lib/originals/duel/roadPages";
+import Link from "next/link";
+import { regionGyms, regionHeading, regionView } from "@/lib/originals/duel/roadPages";
 import { roadShown } from "@/lib/games-visibility";
 import { ReportProblem } from "@/components/ui/ReportProblem";
 import { shareMeta } from "@/lib/og/meta";
@@ -47,6 +48,16 @@ export default async function RegionPage({ params }: { params: Promise<{ region:
   const v = regionView(region);
   if (!v) notFound();
   const heading = regionHeading(v.region, v.sections);
+  const gyms = regionGyms(region);
+  // SEO pass 2026-11-05: "kanto gym leaders" wants the leaders in order, so they're a plain list and an ItemList.
+  const gymList = gyms.length ? {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `${v.region.name} Gym Leaders in badge order`,
+    itemListOrder: "https://schema.org/ItemListOrderAscending",
+    numberOfItems: gyms.length,
+    itemListElement: gyms.map((g, i) => ({ "@type": "ListItem", position: i + 1, name: `${g.name}, ${g.type} type, ${g.badge}`, url: `https://www.gameshuffle.co${g.href}` })),
+  } : null;
   const crumbs = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -59,6 +70,7 @@ export default async function RegionPage({ params }: { params: Promise<{ region:
   return (
     <main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs) }} />
+      {gymList && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(gymList) }} />}
       <BrowseHero
         eyebrow="Trainer Road"
         title={heading}
@@ -69,6 +81,16 @@ export default async function RegionPage({ params }: { params: Promise<{ region:
       />
       <Container className="road-region-page">
         <LabeledSubNav label="Regions" variant="pills" className="road-regionnav" items={ROAD_REGIONS.map((r) => ({ label: r.name, href: roadPath(r.slug), active: r.slug === region }))} />
+        {gyms.length > 0 && (
+          <section className="road-gymlist" aria-labelledby="road-gymlist-title">
+            <h2 id="road-gymlist-title" className="road-section__title">{v.region.name} Gym Leaders in badge order</h2>
+            <ol className="road-gymlist__list">
+              {gyms.map((g) => (
+                <li key={g.href}><Link href={g.href}>{g.name}</Link><span> · {g.type} type · {g.badge}</span></li>
+              ))}
+            </ol>
+          </section>
+        )}
         <RoadPathBox region={region} signUpHref={`/signup?redirect=${encodeURIComponent(roadPath(region))}`} />
         <RoadStarsProvider>
           {v.sections.map((s) => <RoadSection key={s.tier} section={s} />)}

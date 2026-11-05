@@ -18,6 +18,7 @@ import "server-only";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import {
   CURATED_FACTS, DEFAULT_HIDDEN_COLORS, MERCH_CATEGORY, MERCH_MAX_PER_ORDER, MERCH_STOCK,
   collectionFor, deliveryDays, factsFromDescription, groupKeyFor, itemFor, itemRank, listingNameFor, merchSku, seriesCollection, seriesOf,
@@ -58,6 +59,8 @@ export interface SyncSummary {
   variants: number;
   retired: number;
   warnings: string[];
+  /** Listings still without Printful shipping or a size guide because the sync ran out of time; the next sync fills them. */
+  unfinished?: number;
 }
 
 const cents = (s: string | number | null | undefined) => Math.round(Number(s ?? 0) * 100);
@@ -125,7 +128,7 @@ export interface SyncPlan {
  * Read Printful and work out every listing and row, without writing.
  * `dryRun` also works before merch-m1.sql (as if nothing had been synced yet).
  */
-export async function planSync(opts: { full?: boolean; dryRun?: boolean } = {}): Promise<SyncPlan> {
+export async function planSync(opts: { full?: boolean; dryRun?: boolean; deadline?: number } = {}): Promise<SyncPlan> {
   const svc = createServiceClient();
   const warnings: string[] = [];
   const products = (await listSyncProducts()).filter((p) => !p.is_ignored);
@@ -236,25 +239,60 @@ export async function planSync(opts: { full?: boolean; dryRun?: boolean } = {}):
     .sort((a, b) => itemRank(a.item_type) - itemRank(b.item_type) || firstUpload(a) - firstUpload(b))
     .forEach((d, i) => { d.sort_order = firstSort + i * 10; });
 
-  // Shipping, delivery and the size guide: for new listings, ones missing them, or a full sync.
+  // Shipping, delivery and the size guide: for new listings, ones missing them, or a full sync. One quote and one size
+  // guide per blank (many designs share a blank), and none once `deadline` passes: those listings keep what they had
+  // and the next sync fills them (the first production sync, 2026-11-05, ran past Vercel's five minutes doing them all).
+  // Look them up first, four at a time (each Printful answer takes about a second; one at a time ran past five minutes).
+  const ownOf = (d: Draft) => rows.filter((r) => r.listing_key === d.group_key);
+  const needShip = (d: Draft) => opts.full || d.ship_cost_cents == null || d.delivery_max == null;
+  const needGuide = (d: Draft) => d.option_label === "Size" && !!catalogOf.get(d.group_key) && (opts.full || !d.size_guide);
+  // The quote for a blank comes from an in-stock medium (a size Printful can't make here quotes a far-away facility:
+  // 19 to 28 days instead of 5 to 7).
+  const quoteRank = (r: { printful_available: boolean; option_value: string | null }) =>
+    (r.printful_available ? 0 : 2) + (/^(M|L)$/i.test(r.option_value ?? "") ? 0 : 1);
+  const shipWant = new Map<number, { variant: number; rank: number }>();
+  const guideWant = new Set<number>();
+  for (const d of drafts.values()) {
+    const catalogId = catalogOf.get(d.group_key) ?? 0;
+    if (needShip(d)) for (const r of ownOf(d)) {
+      const rank = quoteRank(r);
+      if (!shipWant.has(catalogId) || rank < shipWant.get(catalogId)!.rank) shipWant.set(catalogId, { variant: r.printful_variant_id, rank });
+    }
+    if (needGuide(d)) guideWant.add(catalogOf.get(d.group_key)!);
+  }
+  const late = () => !!opts.deadline && Date.now() > opts.deadline;
+  const shipFor = new Map<number, { cents: number; name: string } | null>();
+  const guideFor = new Map<number, ReturnType<typeof guideFrom>>();
+  await inBatches([...shipWant], 4, async ([catalogId, { variant }]) => {
+    if (!late()) shipFor.set(catalogId, await standardShipping(variant).catch(() => null));
+  });
+  await inBatches([...guideWant], 4, async (catalogId) => {
+    if (!late()) guideFor.set(catalogId, guideFrom(await getSizeTables(catalogId).catch(() => [])));
+  });
+
+  let unfinished = 0;
   for (const draft of drafts.values()) {
-    const own = rows.filter((r) => r.listing_key === draft.group_key);
+    const own = ownOf(draft);
     if (!draft.id && draft.item_type === "Tees") {
       const colors = new Set(own.map((r) => r.color ?? ""));
       draft.hidden_colors = DEFAULT_HIDDEN_COLORS.filter((c) => colors.has(c));
     }
-    if (opts.full || draft.ship_cost_cents == null || draft.delivery_max == null) {
-      const ship = await standardShipping(own[0].printful_variant_id).catch(() => null);
+    const catalogId = catalogOf.get(draft.group_key) ?? 0;
+    let skipped = false;
+    if (needShip(draft)) {
+      if (!shipFor.has(catalogId)) skipped = true;
+      const ship = shipFor.get(catalogId);
       if (ship) {
         draft.ship_cost_cents = ship.cents;
         const days = deliveryDays(ship.name, new Date());
         if (days) { draft.delivery_min = days.min; draft.delivery_max = days.max; }
       }
     }
-    if (draft.option_label === "Size" && (opts.full || !draft.size_guide)) {
-      const catalogId = catalogOf.get(draft.group_key);
-      if (catalogId) draft.size_guide = guideFrom(await getSizeTables(catalogId).catch(() => []));
+    if (needGuide(draft)) {
+      if (guideFor.has(catalogId)) draft.size_guide = guideFor.get(catalogId)!;
+      else skipped = true;
     }
+    if (skipped) unfinished++;
     // Pick 8: flag sizes priced differently across colors (the shop charges the highest).
     const byOption = new Map<string, Set<number>>();
     for (const r of own) byOption.set(r.option_value ?? "", new Set([...(byOption.get(r.option_value ?? "") ?? []), r.printful_price_cents]));
@@ -275,6 +313,7 @@ export async function planSync(opts: { full?: boolean; dryRun?: boolean } = {}):
       variants: settled.length,
       retired: 0,
       warnings: uniqueWarnings,
+      unfinished,
     },
     listings: [...drafts.values()],
     rows: settled,
@@ -282,7 +321,7 @@ export async function planSync(opts: { full?: boolean; dryRun?: boolean } = {}):
 }
 
 /** Write the plan: listings, the Printful product map, every row, and retire what Printful no longer has. */
-export async function syncFromPrintful(opts: { full?: boolean } = {}): Promise<SyncSummary> {
+export async function syncFromPrintful(opts: { full?: boolean; deadline?: number } = {}): Promise<SyncSummary> {
   const plan = await planSync(opts);
   const svc = createServiceClient();
   const now = new Date().toISOString();
@@ -324,7 +363,7 @@ export async function syncFromPrintful(opts: { full?: boolean } = {}): Promise<S
     if (error) throw new Error(`merch rows: ${error.message}`);
   }
   const keep = new Set(rows.map((r) => r.sku));
-  const { data: old } = await svc.from("shop_products").select("sku").eq("category", MERCH_CATEGORY).eq("printful_available", true);
+  const { data: old } = await readAllPages<{ sku: string }>((from, to) => svc.from("shop_products").select("sku").eq("category", MERCH_CATEGORY).eq("printful_available", true).order("sku").range(from, to));
   const retire = (old ?? []).map((o) => o.sku as string).filter((s) => !keep.has(s));
   for (let i = 0; i < retire.length; i += 200) {
     await svc.from("shop_products").update({ active: false, printful_available: false, updated_at: now }).in("sku", retire.slice(i, i + 200));

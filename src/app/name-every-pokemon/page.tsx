@@ -31,7 +31,8 @@ const STEPS = [
 ];
 
 const FAQ = [
-  { q: "How many Pokémon are there?", a: "1,025, from Bulbasaur (#0001) to Pecharunt (#1025), across nine generations. Gen 1 has 151, and Gen 9 (Scarlet and Violet, with its DLC) brought the total to 1,025." },
+  // SEO pass 2026-11-05: each generation's count, from the quiz's own sets.
+  { q: "How many Pokémon are there?", a: `1,025, from Bulbasaur (#0001) to Pecharunt (#1025). By generation: ${QUIZ_SETS.filter((g) => g !== "all").map((g) => `Gen ${g} (${GEN_REGIONS[Number(g)]}) ${setPool(g).length}`).join(", ")}.` },
   { q: "Do I have to spell them right?", a: "A name counts the moment it's spelled right, ignoring capitals, accents and punctuation (mr mime, farfetchd and flabebe all work). If you're close, press Enter: a small typo counts when it can only mean one Pokémon." },
   { q: "How do I type Nidoran, Mr. Mime or Type: Null?", a: "Just the letters: nidoran (type it twice for both), mr mime, mime jr, type null, ho oh, porygon z, jangmo o. Nidoran f and nidoran m work too." },
   { q: "Why didn't Mew count straight away?", a: "Mew is the start of Mewtwo, so the game waits a moment in case you're still typing. The same goes for Porygon and Klink. Press Enter to count it right away." },

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
+import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
 
 const HREF = "/help/apps/smash-ultimate-randomizer";
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>The Smash Ultimate randomizer</h1>
+      <h1>How to use the Smash Ultimate randomizer</h1>
+      <HelpToolLinks links={[{ href: "/randomizers/super-smash-bros-ultimate", label: "Super Smash Bros. Ultimate randomizer" }]} />
       <p>
         The <Link href="/randomizers/super-smash-bros-ultimate">Super Smash Bros. Ultimate randomizer</Link>{" "}sets up a Smash
         night for two to eight players: a fighter and costume for everyone, a stage and rules, Custom Smash settings and Squad

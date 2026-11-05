@@ -1,6 +1,7 @@
 /**
  * The reviewers' queue (staff, admins and time trial reviewers; round 2).
  *   GET                                                → clips to check and open tickets (+ reviewers for staff)
+ *   GET ?counts=1                                      → what's waiting for the signed-in reviewer (null for anyone else)
  *   POST { action: "video", timeId, ok, note? }        → Verified, or "doesn't match" with a reason
  *   POST { action: "decide", ticketId, outcome, note } → keep or remove a reported time
  *   POST { action: "reviewer_add", username }          → staff and admins only
@@ -19,7 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { blockAlias, communityAliasList } from "@/lib/timeTrials/aliases";
 import { isTtGame } from "@/lib/timeTrials/tracks";
-import { addReviewer, decideTicket, decideVideo, legacyProofQueue, listReviewers, rejectLegacyProof, removeReviewer, reviewQueue, verifyByReviewer } from "@/lib/timeTrials/review";
+import { addReviewer, decideTicket, decideVideo, legacyProofQueue, listReviewers, rejectLegacyProof, removeReviewer, reviewCounts, reviewQueue, verifyByReviewer } from "@/lib/timeTrials/review";
 import { addUpdater, listUpdaters, removeUpdater, reviewScope, type Mode } from "@/lib/timeTrials/updaters";
 import { isItems } from "@/lib/timeTrials/categories";
 import { canSettleClaims, claimQueue, decideClaim, undoClaim } from "@/lib/timeTrials/claims";
@@ -38,7 +39,12 @@ async function who(): Promise<{ userId: string; reviewer: boolean; staff: boolea
   return { userId: user.id, staff, reviewer: !!scope, scope };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  // ?counts=1: what's waiting, for the account menu and the time trials page (null for anyone who doesn't review).
+  if (new URL(req.url).searchParams.get("counts")) {
+    const { data: { user } } = await (await createClient()).auth.getUser();
+    return NextResponse.json({ ok: true, counts: await reviewCounts(user?.id ?? null) }, { headers: NO_STORE });
+  }
   const me = await who();
   if (!me?.reviewer) return NextResponse.json({ ok: false, error: "not_reviewer" }, { status: 403 });
   const settle = await canSettleClaims(me.userId);

@@ -14,7 +14,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert, Badge, Button, Checkbox, EmptyState, Input, Modal, Select, StatCard, Switch, Textarea,
+  Alert, Badge, Button, Checkbox, EmptyState, Input, Modal, Select, StatCard, Switch, Tabs, Textarea,
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@empac/cascadeds";
 import { IconPlugConnected, IconRefresh, IconShirt, IconUpload } from "@tabler/icons-react";
@@ -22,8 +22,8 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminField, AdminHeader, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
-import { SortableList } from "@/components/ui/SortableList";
-import { COLLECTIONS, ITEM_TYPES, collectionOf } from "@/lib/store/merch";
+import { MerchProducts } from "@/components/account/merch/MerchProducts";
+import { COLLECTIONS, ITEM_TYPES } from "@/lib/store/merch";
 import { formatPrice } from "@/lib/store/copy";
 import type { AdminListing, ListingPatch } from "@/lib/store/merchCatalog";
 import type { SyncSummary } from "@/lib/store/merchSync";
@@ -38,7 +38,6 @@ const ERRORS: Record<string, string> = {
   no_storage: "Photo uploads aren't set up on this server.", too_big: "Photo is too big (8 MB at most).", bad_type_file: "Use a JPG, PNG or WebP photo.",
 };
 const errorText = (code?: string, message?: string) => (code === "printful" && message ? `Printful: ${message}` : ERRORS[code ?? ""] ?? "That didn't work.");
-const range = (a: number, b: number) => (a === b ? formatPrice(a) : `${formatPrice(a)} to ${formatPrice(b)}`);
 
 interface Data { listings: AdminListing[]; unassigned: { id: number; name: string }[]; lastSync: string | null; configured: boolean }
 
@@ -58,6 +57,15 @@ export function PlatformShopMerchTab() {
     else setError(d?.error ?? "failed");
   }, []);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
+  // A collection's new order on screen before the save answers (its other products keep their places).
+  const reorderLocal = (ids: string[]) => setData((d) => {
+    if (!d) return d;
+    const moved = ids.map((id) => d.listings.find((l) => l.id === id)!).filter(Boolean);
+    const slots = d.listings.map((l, i) => (ids.includes(l.id) ? i : -1)).filter((i) => i >= 0);
+    const next = [...d.listings];
+    slots.forEach((slot, k) => { next[slot] = moved[k]; });
+    return { ...d, listings: next };
+  });
 
   const post = async (body: Record<string, unknown>) => {
     const res = await fetch("/api/admin/shop/merch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -69,12 +77,20 @@ export function PlatformShopMerchTab() {
 
   const sync = async (full = false) => {
     setSyncing(true);
-    const d = await post({ action: "sync", full });
+    // A sync reads every Printful product at Printful's pace (2 to 4 minutes); a reply that isn't ours (a timeout page)
+    // still leaves what was written, and the next sync carries on.
+    const res = await fetch("/api/admin/shop/merch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sync", full }) }).catch(() => null);
+    const d = res ? await res.json().catch(() => null) : null;
     setSyncing(false);
-    if (d?.summary) {
-      setSummary(d.summary);
-      toast.success(`Synced ${d.summary.printfulProducts} Printful products${d.summary.listingsCreated.length ? `, ${d.summary.listingsCreated.length} new` : ""}.`);
+    if (!d?.ok) {
+      toast.error(d?.error ? errorText(d.error, d.message) : "The sync didn't finish. Wait a minute, then press Sync from Printful again: it carries on from what's saved.");
+      void load();
+      return;
     }
+    if (d.listings) apply(d);
+    setSummary(d.summary);
+    const left = d.summary.unfinished ? ` Shipping and size guides for ${d.summary.unfinished} still to come: press Sync again.` : "";
+    toast.success(`Synced ${d.summary.printfulProducts} Printful products${d.summary.listingsCreated.length ? `, ${d.summary.listingsCreated.length} new` : ""}.${left}`);
   };
   const checkHooks = async () => {
     const d = await post({ action: "webhooks" });
@@ -104,76 +120,65 @@ export function PlatformShopMerchTab() {
       <AdminHeader
         title="Merch"
         intro="Make products in Printful, then arrange them here: names, collections, which colors show, the order on the shelf and what's live. Prices come from Printful."
-        actions={<Button variant="primary" size="small" iconBefore={IconRefresh} loading={syncing} disabled={syncing || !data.configured} onClick={() => void sync()}>Sync from Printful</Button>}
       />
-      {!data.configured && <Alert variant="warning" title="Printful isn't connected">PRINTFUL_API_TOKEN isn&apos;t set on this server.</Alert>}
-
       <AdminStats columns={3} label="Merch at a glance">
         <StatCard label="Live on /shop" value={`${live.length} of ${active.length}`} />
         <StatCard label="Printful products" value={String(active.reduce((n, l) => n + l.printful.filter((p) => !p.removed).length, 0))} />
         <StatCard label="Sizes and colors selling" value={String(active.reduce((n, l) => n + l.selling, 0))} />
       </AdminStats>
-      <p className="merch-admin__sync">
-        {data.lastSync ? `Last synced ${new Date(data.lastSync).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} Pacific.` : "Not synced yet."}{" "}
-        <Button variant="ghost" size="small" onClick={() => void sync(true)} disabled={syncing}>Full sync (shipping and size guides too)</Button>
-      </p>
 
-      {summary && summary.listingsCreated.length > 0 && (
-        <Alert variant="info" title="New products">{summary.listingsCreated.join(", ")}. They start hidden: check each one, then turn on Live.</Alert>
-      )}
+      {/* Admin picks 2026-11-05 (1A): products first, the sync, Printful updates and every warning on Setup. */}
+      <Tabs
+        variant="underline"
+        className="merch-admin__tabs"
+        tabs={[
+          {
+            id: "products", label: "Products", badge: active.length || undefined,
+            content: active.length === 0
+              ? <EmptyState icon={<IconShirt size={32} />} title="No products yet" description="Open Setup and press Sync from Printful to bring in what you've made there." />
+              : <MerchProducts listings={active} post={post} onEdit={setEditing} onReordered={reorderLocal} />,
+          },
+          {
+            id: "setup", label: "Setup", badge: warnings.length ? `${warnings.length} to check` : undefined,
+            content: (
+              <div className="merch-admin__setup">
+                <AdminSection title="Sync from Printful" intro="Brings in what you've made in Printful. New products start hidden.">
+                  <p className="merch-admin__sync">
+                    {data.lastSync ? `Last synced ${new Date(data.lastSync).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} Pacific.` : "Not synced yet."}
+                  </p>
+                  <div className="merch-admin__hooks">
+                    <Button variant="primary" size="small" iconBefore={IconRefresh} loading={syncing} disabled={syncing || !data.configured} onClick={() => void sync()}>Sync from Printful</Button>
+                    <Button variant="ghost" size="small" onClick={() => void sync(true)} disabled={syncing}>Full sync (shipping and size guides too)</Button>
+                  </div>
+                  {syncing && <p className="merch-admin__sync" role="status">Syncing at Printful&apos;s pace: this takes 2 to 4 minutes. Keep this page open and press it once.</p>}
+                  {summary && summary.listingsCreated.length > 0 && (
+                    <Alert variant="info" title="New products">{summary.listingsCreated.length} new: {summary.listingsCreated.join(", ")}. They start hidden: check each one in Products, then turn on Live.</Alert>
+                  )}
+                </AdminSection>
 
-      {warnings.length > 0 && (
-        <AdminSection title="Worth a look">
-          <ul className="merch-admin__warnings">
-            {warnings.map((w, i) => (
-              <li key={i}><strong>{w.name}</strong>: {w.text} <Button variant="ghost" size="small" onClick={() => setEditing(w.id)}>Open</Button></li>
-            ))}
-          </ul>
-        </AdminSection>
-      )}
+                <AdminSection title="Worth a look" intro={warnings.length ? "Prices that differ by color, back-view pictures and thin margins." : undefined}>
+                  {warnings.length === 0 ? <p className="merch-admin__note">Nothing to check.</p> : (
+                    <ul className="merch-admin__warnings">
+                      {warnings.map((w, i) => (
+                        <li key={i}><strong>{w.name}</strong>: {w.text} <Button variant="ghost" size="small" onClick={() => setEditing(w.id)}>Open</Button></li>
+                      ))}
+                    </ul>
+                  )}
+                </AdminSection>
 
-      <AdminSection title="Products" intro="Drag to set the order within each collection on /shop.">
-        {active.length === 0 ? (
-          <EmptyState icon={<IconShirt size={32} />} title="No products yet" description="Press Sync from Printful to bring in what you've made there." />
-        ) : (
-          <SortableList
-            items={active}
-            getId={(l) => l.id}
-            handleLabel={(l) => `Reorder ${l.name}`}
-            onReorder={(next) => { setData({ ...data, listings: [...next, ...data.listings.filter((l) => l.archived)] }); void post({ action: "reorder", ids: next.map((l) => l.id) }); }}
-            className="merch-admin__list"
-          >
-            {(l, handle) => (
-              <div className="merch-admin__row">
-                {handle}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="merch-admin__pic" src={l.colors.find((c) => !c.hidden)?.image ?? l.colors[0]?.image ?? ""} alt="" width={56} height={56} />
-                <div className="merch-admin__name">
-                  <strong>{l.name}</strong>
-                  <span>{collectionOf(l.collection).name}{l.series ? ` · ${l.series}` : ""} · {l.itemType} · from {l.printful.length} Printful product{l.printful.length === 1 ? "" : "s"}</span>
-                </div>
-                <div className="merch-admin__facts">
-                  <span>{l.optionLabel === "Phone" ? `${l.sizes.length} phones` : `${l.colors.filter((c) => !c.hidden).length} of ${l.colors.length} colors`}</span>
-                  {l.sizes.length > 0 && <span>{range(Math.min(...l.sizes.map((s) => s.priceCents)), Math.max(...l.sizes.map((s) => s.priceCents)))}</span>}
-                  {l.warnings.length > 0 && <Badge variant="warning" size="small">{l.warnings.length} to check</Badge>}
-                </div>
-                <Switch label="Live" checked={l.live} onChange={(e) => void post({ action: "update", id: l.id, patch: { live: e.target.checked } })} />
-                <Button variant="secondary" size="small" onClick={() => setEditing(l.id)}>Edit</Button>
+                <AdminSection title="Printful updates" intro="Printful tells the shop when an order ships or runs into trouble, and when you change a product.">
+                  <div className="merch-admin__hooks">
+                    {hooks ? (hooks.connected ? <Badge variant="success">Connected</Badge> : <Badge variant="warning">Not connected</Badge>) : null}
+                    <Button variant="secondary" size="small" onClick={() => void checkHooks()}>Check</Button>
+                    <Button variant="secondary" size="small" iconBefore={IconPlugConnected} onClick={() => void connectHooks()}>Connect Printful updates</Button>
+                  </div>
+                  <p className="merch-admin__note">Connect from the live site (admins). Printful sends to one address per store, so this replaces any other.</p>
+                </AdminSection>
               </div>
-            )}
-          </SortableList>
-        )}
-      </AdminSection>
-
-      <AdminSection title="Printful updates" intro="Printful tells the shop when an order ships or runs into trouble, and when you change a product.">
-        <div className="merch-admin__hooks">
-          {hooks ? (hooks.connected ? <Badge variant="success">Connected</Badge> : <Badge variant="warning">Not connected</Badge>) : null}
-          <Button variant="secondary" size="small" onClick={() => void checkHooks()}>Check</Button>
-          <Button variant="secondary" size="small" iconBefore={IconPlugConnected} onClick={() => void connectHooks()}>Connect Printful updates</Button>
-        </div>
-        <p className="merch-admin__note">Connect from the live site (admins). Printful sends to one address per store, so this replaces any other.</p>
-      </AdminSection>
-
+            ),
+          },
+        ]}
+      />
       {editing && (() => {
         const l = data.listings.find((x) => x.id === editing);
         return l ? <ListingEditor key={l.id} listing={l} all={data.listings} onClose={() => setEditing(null)} post={post} /> : null;

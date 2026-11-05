@@ -18,7 +18,7 @@ import { nationalRecords } from "@/lib/timeTrials/detail";
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
 import { formatTime } from "@/lib/timeTrials/rules";
-import { gameBySlug, gamePath, isClassFor, trackBySegment, trackPath, ttCups, type TtClass } from "@/lib/timeTrials/tracks";
+import { gameBySlug, gamePath, gameTitleName, isClassFor, trackBySegment, trackPath, ttCups, type TtClass } from "@/lib/timeTrials/tracks";
 import { categoryText, readCategory, vehicleLabel } from "@/lib/timeTrials/categories";
 import "@/styles/time-trials.css";
 
@@ -51,7 +51,10 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   if (!r) return { title: "Track not found", robots: { index: false } };
   const board = await boardFor({ game: r.info.id, track: r.track.id, cc: r.cc, items: r.items, vehicle: r.vehicle, scope: "everyone", viewer: null, limit: 1 });
   const cls = `${r.info.classes.length > 1 ? ` ${r.cc}cc` : ""}${r.items === "none" ? " no mushrooms" : ""}${r.vehicle !== "any" ? ` ${vehicleLabel(r.vehicle)}` : ""}`;
-  const title = `${r.track.name}${cls} time trial leaderboard (${r.info.short})`;
+  // SEO pass 2026-11-05: the game spelled out (plus MK8DX), and the speed class always: "Toad Harbor 150cc Time Trial
+  // Leaderboard: Mario Kart World".
+  const titleCls = ` ${r.cc}cc${r.items === "none" ? " No Mushrooms" : ""}${r.vehicle !== "any" ? ` ${vehicleLabel(r.vehicle)}` : ""}`;
+  const title = `${r.track.name}${titleCls} Time Trial Leaderboard: ${gameTitleName(r.info.id)}`;
   const top = board.rows[0];
   const description = top
     ? `The fastest ${r.track.name}${cls} times in ${r.info.label}: ${board.total} ${board.total === 1 ? "player" : "players"}, record ${formatTime(top.timeMs)} by ${top.name}. Add your time from a screenshot.`

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
+import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
 
 const HREF = "/help/apps/perfect-dark-randomizer";
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>The Perfect Dark randomizer</h1>
+      <h1>How to use the Perfect Dark randomizer</h1>
+      <HelpToolLinks links={[{ href: "/randomizers/perfect-dark", label: "Perfect Dark randomizer" }]} />
       <p>
         The <Link href="/randomizers/perfect-dark">Perfect Dark randomizer</Link>{" "}sets up a Combat Simulator match for one to
         four players: the scenario, the arena, a weapon set, a time limit and simulants, plus a different character for

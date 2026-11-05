@@ -239,8 +239,18 @@ export default async function LoungePage({ searchParams }: { searchParams: Promi
   const total = summary?.players ?? null;
   const divisions = divisionTable(steps, counts, total);
 
+  const crumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://www.gameshuffle.co/" },
+      { "@type": "ListItem", position: 2, name: "Lounge stats", item: "https://www.gameshuffle.co/lounge" },
+    ],
+  };
+
   return (
     <main className="lounge-page">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs) }} />
       <BrowseHero
         eyebrow="Mario Kart lounge"
         title="Lounge stats"

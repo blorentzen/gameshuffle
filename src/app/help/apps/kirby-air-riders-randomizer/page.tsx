@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
+import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
 
 const HREF = "/help/apps/kirby-air-riders-randomizer";
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>The Kirby Air Riders randomizer</h1>
+      <h1>How to use the Kirby Air Riders randomizer</h1>
+      <HelpToolLinks links={[{ href: "/randomizers/kirby-air-riders", label: "Kirby Air Riders randomizer" }]} />
       <p>
         The <Link href="/randomizers/kirby-air-riders">Kirby Air Riders randomizer</Link>{" "}puts up to eight players on a random
         rider and machine, rolls an Air Ride or Top Ride course and picks the City Trial Stadium. It&apos;s new, so some parts

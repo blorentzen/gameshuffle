@@ -21,6 +21,8 @@ import { headers } from "next/headers";
 import { siteActor } from "@/lib/timeTrials/players";
 import { playerBests, trackSummary } from "@/lib/timeTrials/store";
 import { serverSummary } from "@/lib/timeTrials/server";
+import { reviewCounts } from "@/lib/timeTrials/review";
+import { IconClipboardCheck } from "@tabler/icons-react";
 import { formatTime, ordinal } from "@/lib/timeTrials/rules";
 import { gamePath, serverPath, trackPath, ttCups, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 
@@ -52,10 +54,12 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
   country?: string | null }) {
   const info = TT_GAMES[game];
   const actor = await siteActor();
-  const [summary, mine, countries] = await Promise.all([
+  const [summary, mine, countries, reviews] = await Promise.all([
     server ? serverSummary(server.guildId, game, items, vehicle) : country ? countryPlayers(country).then((ps) => trackSummary(game, items, vehicle, ps)) : trackSummary(game, items, vehicle),
     actor ? playerBests(actor.player) : Promise.resolve([]),
     server ? Promise.resolve([]) : countriesInUse(),
+    // Reviewers and updaters get a way into their queue from here (Britton, 2026-11-05).
+    actor?.userId && !server ? reviewCounts(actor.userId) : Promise.resolve(null),
   ]);
   // Asked once (round 4 pick 1A): someone with times and no country.
   const ask = !server && actor && mine.length > 0 && (await shouldAskCountry(actor.player, "site"));
@@ -98,7 +102,14 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
         accent="blue"
         field="compete"
         compact
-        actions={<AddTimeButton game={game} items={items} vehicle={vehicle} signedIn={!!actor} returnTo={here} />}
+        actions={<>
+          <AddTimeButton game={game} items={items} vehicle={vehicle} signedIn={!!actor} returnTo={here} />
+          {reviews && (
+            <Link href="/time-trials/review" className="empac-button empac-button--secondary empac-button--medium tt-review-link">
+              <IconClipboardCheck size={18} aria-hidden="true" /> Reviews{reviews.total ? <span className="tt-review-link__n">{reviews.total} waiting</span> : null}
+            </Link>
+          )}
+        </>}
       />
       <Container className="tt-body">
         {!server && <section className="tt-find" aria-label="Find a player">
@@ -147,13 +158,16 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
                           </span>
                           {s ? (
                             <span className="tt-trow__rec">
-                              <b>{formatTime(s.recordMs)}</b>
-                              {/* Long names shorten with "…" (full name on hover) and the label never splits, so no card can widen or squeeze its track names. */}
+                              {/* Each piece on its own line (Britton, 2026-11-05): the time with its label, then the driver, so
+                                  nothing shares a line and wraps into it. */}
+                              <span className="tt-trow__time">
+                                <b>{formatTime(s.recordMs)}</b>
+                                {!s.recordChecked && <span className="tt-trow__status">{s.recordSheet ? "Legacy" : "Unverified"}</span>}
+                              </span>
                               <span className="tt-trow__by">
                                 {/* eslint-disable-next-line @next/next/no-img-element -- a small flag from public/ */}
                                 {hc && flagUrl(hc) && <img src={flagUrl(hc)!} alt={countryName(hc)} title={countryName(hc)} className="tt-flag tt-trow__flag" />}
-                                <span className="tt-trow__who" title={holders.get(s.recordPlayer)?.name ?? undefined}>{holders.get(s.recordPlayer)?.name ?? "A player"}</span>
-                                {!s.recordChecked && <span className="tt-trow__status">{s.recordSheet ? "Legacy" : "Unverified"}</span>}
+                                <span className="tt-trow__who">{holders.get(s.recordPlayer)?.name ?? "A player"}</span>
                               </span>
                             </span>
                           ) : <span className="tt-trow__none">{server ? "No times here yet" : country ? "No times from there yet" : "No times yet"}</span>}

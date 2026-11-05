@@ -22,12 +22,23 @@ export class PrintfulError extends Error {
 export const printfulConfigured = () => !!process.env.PRINTFUL_API_TOKEN;
 
 /**
- * Printful allows about 120 requests a minute. A read that's told to slow down waits the seconds Printful names
- * (a minute at most) and tries again, up to 3 times; writes never retry, so an order can't be sent twice.
+ * Printful allows about 120 requests a minute. Requests from one server are paced just under that (`GAP_MS`), so a
+ * long run (the merch sync) never stops to wait out a 429; a read that's told to slow down anyway waits the seconds
+ * Printful names (a minute at most) and tries again, up to 3 times; writes never retry, so an order can't be sent twice.
  */
+const GAP_MS = 520;
+let nextSlot = 0;
+async function paced(): Promise<void> {
+  const now = Date.now();
+  const at = Math.max(now, nextSlot);
+  nextSlot = at + GAP_MS;
+  if (at > now) await new Promise((r) => setTimeout(r, at - now));
+}
+
 async function call<T>(path: string, init: RequestInit = {}, attempt = 0): Promise<T> {
   const token = process.env.PRINTFUL_API_TOKEN;
   if (!token) throw new PrintfulError(0, "PRINTFUL_API_TOKEN is not set", "not_configured");
+  await paced();
   const res = await fetch(BASE + path, {
     ...init,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers ?? {}) },

@@ -202,7 +202,8 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
           <Table className="tt-board__table">
             <TableHeader>
               <TableRow>
-                <TableHead>Place</TableHead>
+                {/* Only ever a number: the column sizes to it (Britton, 2026-11-05). */}
+                <TableHead className="tt-board__placehead"><span aria-hidden="true">#</span><span className="sr-only">Place</span></TableHead>
                 <TableHead>Player</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead>Proof</TableHead>
@@ -256,7 +257,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
                             <IconLinkAction label={`${r.name}'s ${r.proof === "video" ? "video" : "screenshot"}`} icon={r.proof === "video" ? IconVideo : IconCamera} href={proofHref} />
                           ) : r.sheetLink ? (
                             <IconLinkAction label={`${r.name}'s proof`} icon={videoProof(r.sheetLink) ? IconVideo : IconExternalLink} href={r.sheetLink} />
-                          ) : <span className="tt-board__none">{r.sheet ? "Legacy" : r.imported ? "Imported" : "None"}</span>}
+                          ) : <span className="tt-board__none">{r.sheet && status !== "sheet" ? "Legacy" : r.imported ? "Imported" : "None"}</span>}
                           {clipHref && <IconLinkAction label={`${r.name}'s clip`} icon={IconVideo} href={clipHref} />}
                         </span>
                       </TableCell>

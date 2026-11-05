@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
+import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
 
 const HREF = "/help/apps/splatoon-randomizer";
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>The Splatoon 3 randomizer</h1>
+      <h1>How to use the Splatoon 3 randomizer</h1>
+      <HelpToolLinks links={[{ href: "/randomizers/splatoon-3", label: "Splatoon 3 randomizer" }]} />
       <p>
         The <Link href="/randomizers/splatoon-3">Splatoon 3 randomizer</Link>{" "}sets up a Private Battle night for up to eight
         players: a weapon kit for everyone, the mode and stage, a Salmon Run stage and Alpha and Bravo teams. It&apos;s new, so

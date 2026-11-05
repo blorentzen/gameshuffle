@@ -11,6 +11,7 @@ import "server-only";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { COLLECTIONS, ITEM_TYPES, MERCH_CATEGORY, keepCents, orderColors, slugify, type OptionLabel } from "./merch";
 import { MerchNotReady, merchNotReady, resettleListing, type ListingRow, type SizeGuide } from "./merchSync";
 import { PERSONAL, type PersonalProduct } from "./personal";
@@ -74,7 +75,8 @@ async function read(filter: { slug?: string; preview: boolean }): Promise<MerchL
   if (error) throw new Error(`merch listings: ${error.message}`);
   const ids = (listings ?? []).map((l) => l.id as string);
   if (!ids.length) return [];
-  const { data: rows, error: rowErr } = await svc.from("shop_products").select(VARIANT_COLS).in("listing_id", ids).eq("category", MERCH_CATEGORY);
+  // A size and color each: thousands of rows, past the 1,000 a request returns.
+  const { data: rows, error: rowErr } = await readAllPages<VariantRow>((from, to) => svc.from("shop_products").select(VARIANT_COLS).in("listing_id", ids).eq("category", MERCH_CATEGORY).order("sku").range(from, to));
   if (rowErr) throw new Error(`merch rows: ${rowErr.message}`);
   const byListing = new Map<string, VariantRow[]>();
   for (const r of (rows ?? []) as VariantRow[]) byListing.set(r.listing_id, [...(byListing.get(r.listing_id) ?? []), r]);
@@ -110,7 +112,7 @@ export async function listAdminListings(): Promise<{ listings: AdminListing[]; u
   const svc = createServiceClient();
   const [{ data: listings, error }, { data: rows }, { data: products }] = await Promise.all([
     svc.from("shop_listings").select("*").order("sort_order"),
-    svc.from("shop_products").select(VARIANT_COLS).eq("category", MERCH_CATEGORY),
+    readAllPages<VariantRow>((from, to) => svc.from("shop_products").select(VARIANT_COLS).eq("category", MERCH_CATEGORY).order("sku").range(from, to)),
     svc.from("shop_printful_products").select("sync_product_id, listing_id, name, variants, synced_at, removed_at"),
   ]);
   if (merchNotReady(error)) throw new MerchNotReady();

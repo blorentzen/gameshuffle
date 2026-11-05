@@ -124,7 +124,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "mario-party-randomizers",
-    title: "The Mario Party randomizers",
+    title: "How to use the Mario Party randomizers",
     description: "Roll the board, rules, turns, Bonus Stars, characters and minigames for Jamboree, Superstars and Mario Party 1 to 3.",
     href: "/help/apps/mario-party-randomizers",
     category: "apps",
@@ -132,7 +132,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "pokemon-randomizers",
-    title: "The Pokémon randomizers",
+    title: "How to use the Pokémon randomizers",
     description: "Pokémon Stadium rental teams for every cup, and the Fire Red & Leaf Green run challenge: catches, level caps, twists and shareable runs.",
     href: "/help/apps/pokemon-randomizers",
     category: "apps",
@@ -140,7 +140,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "goldeneye-randomizer",
-    title: "The GoldenEye 007 randomizer",
+    title: "How to use the GoldenEye 007 randomizer",
     description: "Roll a GoldenEye multiplayer match: scenario, map, weapons and length, plus a character for everyone.",
     href: "/help/apps/goldeneye-randomizer",
     category: "apps",
@@ -148,7 +148,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "mario-kart-64-randomizer",
-    title: "The Mario Kart 64 randomizer",
+    title: "How to use the Mario Kart 64 randomizer",
     description: "Roll a different character for up to four players, races from all 16 tracks, battle courses and an item set for Mario Kart 64.",
     href: "/help/apps/mario-kart-64-randomizer",
     category: "apps",
@@ -156,7 +156,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "smash-ultimate-randomizer",
-    title: "The Smash Ultimate randomizer",
+    title: "How to use the Smash Ultimate randomizer",
     description: "Fighters and costumes for up to eight players, stages and rules, Custom Smash, Squad Strike squads, and only the DLC you own.",
     href: "/help/apps/smash-ultimate-randomizer",
     category: "apps",
@@ -164,7 +164,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "hero-shooter-randomizers",
-    title: "The Overwatch and Marvel Rivals randomizers",
+    title: "How to use the hero shooter randomizers",
     description: "Random heroes for up to six players, with role queue, Team-Up teams, no repeats across a night and a random map.",
     href: "/help/apps/hero-shooter-randomizers",
     category: "apps",
@@ -172,7 +172,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "perfect-dark-randomizer",
-    title: "The Perfect Dark randomizer",
+    title: "How to use the Perfect Dark randomizer",
     description: "Roll a Perfect Dark Combat Simulator match: scenario, arena, weapons, time limit and simulants, plus a character for everyone.",
     href: "/help/apps/perfect-dark-randomizer",
     category: "apps",
@@ -180,7 +180,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "splatoon-randomizer",
-    title: "The Splatoon 3 randomizer",
+    title: "How to use the Splatoon 3 randomizer",
     description: "Hand out Splatoon 3 weapon kits for up to eight players, roll modes and stages or a Salmon Run stage, and split Alpha and Bravo teams.",
     href: "/help/apps/splatoon-randomizer",
     category: "apps",
@@ -188,7 +188,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   },
   {
     id: "kirby-air-riders-randomizer",
-    title: "The Kirby Air Riders randomizer",
+    title: "How to use the Kirby Air Riders randomizer",
     description: "Put up to eight players on a random rider and machine, roll an Air Ride or Top Ride course and pick the City Trial Stadium.",
     href: "/help/apps/kirby-air-riders-randomizer",
     category: "apps",
