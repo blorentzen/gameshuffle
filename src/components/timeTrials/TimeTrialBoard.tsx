@@ -202,7 +202,8 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
           <Table className="tt-board__table">
             <TableHeader>
               <TableRow>
-                <TableHead>Place</TableHead>
+                {/* Only ever a number: the column sizes to it (Britton, 2026-11-05). */}
+                <TableHead className="tt-board__placehead"><span aria-hidden="true">#</span><span className="sr-only">Place</span></TableHead>
                 <TableHead>Player</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead>Proof</TableHead>

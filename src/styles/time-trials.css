@@ -58,7 +58,9 @@
 .tt-board__table th:nth-child(2) { width: 34%; }
 .tt-board__table th:last-child { width: 1%; }
 .tt-board__player { min-width: 0; overflow-wrap: anywhere; }
-.tt-board__place { font-weight: 700; font-variant-numeric: tabular-nums; width: 6rem; }
+.tt-board__place { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tt-board__placehead { width: 1%; white-space: nowrap; }
+.tt-board__table th.tt-board__placehead, .tt-board__table td.tt-board__place { padding-right: var(--spacing-8); }
 .tt-board__who { display: inline-flex; align-items: center; gap: var(--spacing-8); }
 .tt-board__name { display: grid; gap: 2px; min-width: 0; }
 .tt-board__line { display: inline-flex; align-items: center; gap: var(--spacing-8); }
@@ -138,7 +140,6 @@
   /* Place, player and time fit the first screen; proof, set and the actions scroll in from the right. */
   .tt-board__table { min-width: 60rem; }
   .tt-board__table th:nth-child(2) { width: 15rem; min-width: 15rem; }
-  .tt-board__place { width: 5.2rem; }
   /* The initial-letter picture gives the name its room on a phone; the flag stays beside the name. */
   .tt-board__who > .empac-avatar { display: none; }
   .tt-cup__table td:first-child { white-space: nowrap; }
