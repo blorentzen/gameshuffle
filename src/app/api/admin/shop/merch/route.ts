@@ -3,7 +3,8 @@
  * GET  → every listing with its colors, prices, margins, Printful products and warnings
  * POST { action: "sync", full? }                     pull from Printful now
  *      { action: "update", id, patch }               name, link, collection, item, description, details, hidden colors, photos, live, archived
- *      { action: "reorder", ids }                    shelf order
+ *      { action: "reorder", ids }                    shelf order (the ids of one collection, or all)
+ *      { action: "bulk", ids, patch }                live or collection for many at once (admin picks 2026-11-05, 4A)
  *      { action: "move", productId, listingId }      a Printful product into another listing
  *      { action: "webhooks" }                        what Printful sends us, and where
  *      { action: "connect" }                         point Printful's webhooks here (admins)
@@ -54,6 +55,18 @@ export async function POST(request: Request) {
         if (!body.id || !body.patch) return json({ ok: false, error: "bad_request" }, 400);
         await updateListing(body.id, body.patch);
         break;
+      case "bulk": {
+        const ids = Array.isArray(body.ids) ? body.ids.filter((x): x is string => typeof x === "string").slice(0, 300) : [];
+        const p = body.patch ?? {};
+        const patch: ListingPatch = {
+          ...(typeof p.live === "boolean" ? { live: p.live } : {}),
+          ...(typeof p.collection === "string" ? { collection: p.collection } : {}),
+        };
+        if (!ids.length || !Object.keys(patch).length) return json({ ok: false, error: "bad_request" }, 400);
+        // Four at a time: each one rewrites its sizes' selling state.
+        for (let i = 0; i < ids.length; i += 4) await Promise.all(ids.slice(i, i + 4).map((id) => updateListing(id, patch)));
+        break;
+      }
       case "reorder":
         if (!Array.isArray(body.ids)) return json({ ok: false, error: "bad_request" }, 400);
         await reorderListings(body.ids.filter((x): x is string => typeof x === "string").slice(0, 300));
