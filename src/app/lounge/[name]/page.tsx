@@ -534,8 +534,29 @@ export default async function LoungePlayerPage({ params, searchParams }: Params)
     ...(times ? [{ id: "times", label: "Time trials", content: times }] : []),
   ];
 
+  // SEO pass 2026-11-05: confirmed players (the only ones indexed) get a ProfilePage about them and a breadcrumb.
+  const pageUrl = `https://www.gameshuffle.co${pathFor(cur.name, game)}`;
+  const ld = profile.confirmed && profile.isCurrent ? [
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      url: pageUrl,
+      mainEntity: { "@type": "Person", name: p.name, url: pageUrl, ...(country ? { nationality: { "@type": "Country", name: country } } : {}) },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://www.gameshuffle.co/" },
+        { "@type": "ListItem", position: 2, name: "Lounge stats", item: "https://www.gameshuffle.co/lounge" },
+        { "@type": "ListItem", position: 3, name: p.name, item: pageUrl },
+      ],
+    },
+  ] : null;
+
   return (
     <main className="lounge-page">
+      {ld && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />}
       <LoungeHero
         eyebrow={profile.isCurrent ? null : season ? `Season ${season}` : "Lounge"}
         division={played || profile.isCurrent ? profile.division : null}

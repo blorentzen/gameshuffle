@@ -195,3 +195,17 @@
   .road-mart__opens { max-width: none; text-align: start; }
 }
 .road-gains__tools { margin: 0; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: var(--font-size-16); font-weight: 600; color: #ffe08a; }
+
+/* A trainer's teams as plain tables above the duel (SEO pass 2026-11-05): two or three across on wide screens. */
+.road-teamtables { display: grid; gap: var(--spacing-16); min-width: 0; }
+.road-teamtables__grid { display: grid; gap: var(--spacing-20) var(--spacing-24); grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr)); align-items: start; }
+.road-teamtables__team { display: grid; gap: var(--spacing-4); min-width: 0; }
+.road-teamtables__game { margin: 0; font-size: var(--font-size-16); font-weight: 700; }
+.road-teamtables__title { margin: 0 0 var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
+.road-teamtables__n { width: 1%; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+
+/* A region's Gym Leaders in badge order (SEO pass 2026-11-05): a flat numbered list, two or four across when there's room. */
+.road-gymlist { display: grid; gap: var(--spacing-12); min-width: 0; }
+.road-gymlist__list { margin: 0; padding-left: var(--spacing-24); display: grid; gap: var(--spacing-8) var(--spacing-24); grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr)); font-size: var(--font-size-16); }
+.road-gymlist__list a { font-weight: 600; color: var(--duel-ink, #8a5d00); }
+.road-gymlist__list span { color: var(--text-secondary); }

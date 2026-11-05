@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
+import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
 
 const HREF = "/help/apps/mario-kart-64-randomizer";
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>The Mario Kart 64 randomizer</h1>
+      <h1>How to use the Mario Kart 64 randomizer</h1>
+      <HelpToolLinks links={[{ href: "/randomizers/mario-kart-64", label: "Mario Kart 64 randomizer" }]} />
       <p>
         The <Link href="/randomizers/mario-kart-64">Mario Kart 64 randomizer</Link>{" "}picks a character for up to four players,
         a race list from all 16 tracks, battle courses for Battle mode and an item set. It follows the N64 game: there are no

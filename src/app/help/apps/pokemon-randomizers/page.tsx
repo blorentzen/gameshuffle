@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
+import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
 
 const HREF = "/help/apps/pokemon-randomizers";
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>The Pokémon randomizers</h1>
+      <h1>How to use the Pokémon randomizers</h1>
+      <HelpToolLinks links={[{ href: "/randomizers/pokemon-stadium", label: "Pokémon Stadium randomizer" }, { href: "/randomizers/pokemon-firered-leafgreen", label: "Fire Red and Leaf Green run challenge" }]} />
       <p>
         Two ways to play: rental teams for <Link href="/randomizers/pokemon-stadium">Pokémon Stadium</Link>, and a
         <Link href="/randomizers/pokemon-firered-leafgreen"> Fire Red &amp; Leaf Green run challenge</Link> that tells you

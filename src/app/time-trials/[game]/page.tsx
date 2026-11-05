@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { TimeTrialsHub } from "@/components/timeTrials/TimeTrialsHub";
-import { gameBySlug, gamePath, isClassFor, TT_GAMES, type TtClass } from "@/lib/timeTrials/tracks";
+import { gameBySlug, gamePath, gameTitleName, isClassFor, TT_GAMES, type TtClass } from "@/lib/timeTrials/tracks";
 import { readCategory } from "@/lib/timeTrials/categories";
 import { isCountryCode } from "@/lib/timeTrials/countries";
 import "@/styles/time-trials.css";
@@ -16,7 +16,7 @@ type Props = { params: Promise<{ game: string }>; searchParams: Promise<{ cc?: s
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const info = gameBySlug((await params).game);
   if (!info || info.slug !== (await params).game) return { title: "Not found", robots: { index: false } };
-  const title = `${info.label} time trial leaderboards`;
+  const title = `${gameTitleName(info.id)} Time Trial Leaderboards`;
   const description = `The fastest ${info.label} time trial times on every track${info.classes.length > 1 ? ", at 150cc and 200cc" : ""}. Add yours from a screenshot or bring them from Quaxly.`;
   const url = `https://www.gameshuffle.co${gamePath(info.id)}`;
   return { title, description, alternates: { canonical: url }, openGraph: { title, description, url, siteName: "GameShuffle", type: "website" } };

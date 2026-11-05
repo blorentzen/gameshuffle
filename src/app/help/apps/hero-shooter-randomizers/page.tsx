@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
+import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
 
 const HREF = "/help/apps/hero-shooter-randomizers";
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>The Overwatch and Marvel Rivals randomizers</h1>
+      <h1>How to use the hero shooter randomizers</h1>
+      <HelpToolLinks links={[{ href: "/randomizers/overwatch", label: "Overwatch randomizer" }, { href: "/randomizers/marvel-rivals", label: "Marvel Rivals randomizer" }]} />
       <p>
         Hero roulette for the <Link href="/randomizers/overwatch">Overwatch randomizer</Link> and the{" "}
         <Link href="/randomizers/marvel-rivals">Marvel Rivals randomizer</Link>. Both work the same way: a hero for each player

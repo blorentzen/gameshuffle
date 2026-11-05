@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
+import { HelpToolLinks } from "@/components/help/HelpToolLinks";
 import { findArticle } from "@/lib/help/manifest";
 
 const HREF = "/help/apps/goldeneye-randomizer";
@@ -17,7 +18,8 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <HelpArticle href={HREF}>
-      <h1>The GoldenEye 007 randomizer</h1>
+      <h1>How to use the GoldenEye 007 randomizer</h1>
+      <HelpToolLinks links={[{ href: "/randomizers/goldeneye-007", label: "GoldenEye 007 randomizer" }]} />
       <p>
         The <Link href="/randomizers/goldeneye-007">GoldenEye 007 randomizer</Link>{" "}sets up a multiplayer match for two to four
         players: the scenario, the map, the weapons and how long it lasts, plus a different character for everyone. It&apos;s

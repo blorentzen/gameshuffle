@@ -23,11 +23,12 @@ import "@/styles/road-card.css";
  * every region with its Gym Leaders' pictures, how the road works, and the questions people ask.
  */
 
+// SEO pass 2026-11-05: "pokemon gym leaders" (9,900 a month) leads the title and the H1; Trainer Road stays the eyebrow.
 export const metadata: Metadata = {
-  title: "Trainer Road: duel every Pokémon Gym Leader and Champion",
+  title: "Pokémon Gym Leaders and Champions: every team, every region",
   description: "Every Pokémon Gym Leader, Elite Four member, Champion, rival and villain from Kanto to Paldea, with their teams from the games. Duel any of them.",
   ...shareMeta({
-    title: "Trainer Road: duel every Pokémon Gym Leader and Champion",
+    title: "Pokémon Gym Leaders and Champions: every team, every region",
     description: "Every Pokémon Gym Leader, Elite Four member, Champion, rival, villain boss and villain team grunt from Kanto to Paldea, with the teams they use in the games.",
     path: "/pokemon-trainers",
   }),
@@ -56,7 +57,7 @@ export default function TrainerRoadPage() {
       <MarketingJsonLd appName="Trainer Road" appDescription="Duel every Pokémon Gym Leader, Elite Four member and Champion from the games with Pokémon cards." appUrl="/pokemon-trainers" breadcrumb={{ label: "Trainer Road", path: "/pokemon-trainers" }} faq={FAQ} />
       <BrowseHero
         eyebrow="Trainer Road"
-        title="Duel every Pokémon trainer"
+        title="Pokémon Gym Leaders and Champions: every team, every region"
         sub="Every Gym Leader, Elite Four member, Champion, rival and villain from the games, with their teams. Pick one and battle them with the Daily Duel's cards."
         accent="duel"
         field="duel"

@@ -7,6 +7,8 @@ import "server-only";
 
 import { DUEL_DATA } from "./data";
 import { bioFor } from "@/data/originals/duel/bios";
+import { GYM_BADGES } from "@/data/originals/duel/gym-badges";
+import { regionPath } from "./roadPath";
 import { trainerPicture } from "./pictures";
 import { ROAD_REGIONS, holdsRole, regionSections, roadPath, roadPeople, roadRegion, sectionLabel, sectionOf, teamLabel, teamRole, type RoadPerson, type RoadRegion } from "./road";
 import type { DuelTier, DuelTrainer } from "./types";
@@ -59,6 +61,18 @@ export function regionHeading(region: RoadRegion, sections: RoadSectionView[]): 
   const parts = sections.filter((s) => s.real && (s.tier === "gym" || s.tier === "elite" || s.tier === "champion")).map((s) => s.label);
   const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0] ?? "Trainers";
   return region.slug === "alola" ? `Alola's ${list.charAt(0).toLowerCase()}${list.slice(1)}` : `${region.name} ${list}`;
+}
+
+/** A region's Gym Leaders in badge order with their type and badge (SEO pass 2026-11-05); empty for Alola. */
+export function regionGyms(slug: string): { name: string; href: string; type: string; badge: string }[] {
+  const path = regionPath(slug);
+  const people = roadMap().get(slug) ?? [];
+  if (!path) return [];
+  return path.gyms.flatMap((id) => {
+    const g = GYM_BADGES[id];
+    const person = people.find((p) => p.teams.some((t) => t.id === id));
+    return g && person ? [{ name: person.name, href: roadPath(slug, person.slug), type: g.type, badge: g.badge }] : [];
+  });
 }
 
 /** The people in a region in road order (each once, in the order their first section lists them). */
