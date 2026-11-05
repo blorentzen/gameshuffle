@@ -31,24 +31,20 @@
 .tt-trow__name { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .tt-trow__track { font-weight: 600; font-size: var(--font-size-16); overflow-wrap: anywhere; }
 .tt-trow__me { font-size: var(--font-size-14); font-weight: 600; color: var(--brand-ink, var(--primary-700)); font-variant-numeric: tabular-nums; }
-.tt-trow__rec { flex: 0 1 auto; min-width: 0; max-width: 55%; display: grid; gap: 2px; text-align: right; }
+.tt-trow__rec { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--spacing-8); row-gap: 2px; }
 .tt-trow__rec b { font-variant-numeric: tabular-nums; font-size: var(--font-size-16); }
 .tt-trow__rec span { font-size: var(--font-size-14); color: var(--text-secondary); }
-.tt-trow__none { flex: none; font-size: var(--font-size-14); color: var(--text-secondary); }
-/* Who holds the record: flag, name (one line, "…" when long) and its label, which never splits. */
-.tt-trow__by { display: flex; align-items: center; justify-content: flex-end; gap: var(--spacing-4); min-width: 0; }
-.tt-trow__who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tt-trow__none { font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Who holds the record: flag, the whole name (it wraps, never "…"; Britton 2026-11-05) and its label, which never splits. */
+.tt-trow__by { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--spacing-4); min-width: 0; }
+.tt-trow__who { min-width: 0; overflow-wrap: anywhere; }
 .tt-trow__status { flex: none; white-space: nowrap; }
 .tt-trow__status::before { content: "· "; }
-/* A narrow card (four across on wide screens, phones) has no room for the record beside the name: it goes under the
-   name, next to the picture, so track names never break letter by letter. Text keeps its size. */
-.tt-cupcard { container-type: inline-size; }
-@container (max-width: 480px) {
-  .tt-trow { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--spacing-12); row-gap: 2px; }
-  .tt-trow > .tt-track__pic { grid-row: 1 / span 2; }
-  .tt-trow__rec, .tt-trow__none { grid-column: 2; text-align: left; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--spacing-8); max-width: none; }
-  .tt-trow__by { flex: 1 1 12rem; justify-content: flex-start; }
-}
+/* The record sits under the track name, beside the picture, at every width, so the track, the time and the holder's
+   whole name each get the card's full width (Britton 2026-11-05: room to breathe, no "…"). Text keeps its size. */
+.tt-trow { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--spacing-12); row-gap: 2px; align-items: start; padding-block: var(--spacing-12); }
+.tt-trow > .tt-track__pic { grid-row: 1 / span 2; align-self: center; }
+.tt-trow__rec, .tt-trow__none { grid-column: 2; }
 .tt-cup__table { min-width: 32rem; }
 .tt-track__pic { width: 6.4rem; height: 3.6rem; border-radius: var(--radius-6); object-fit: cover; flex: none; background: var(--background-secondary); }
 .tt-track__pic--blank { display: inline-grid; place-items: center; font-weight: 700; font-size: var(--font-size-16); color: var(--text-secondary); }
@@ -57,11 +53,16 @@
 /* Track art is small (180 to 290px wide), so it stays near its own size; height: auto lets aspect-ratio beat the height attribute. */
 .tt-board { display: grid; gap: var(--spacing-16); min-width: 0; }
 .tt-board[aria-busy="true"] .tt-board__table { opacity: 0.6; }
-.tt-board__table { min-width: 52rem; }
+.tt-board__table { min-width: 64rem; }
+/* Desktop: the player column takes a third, so the time sits near the name; the actions column only fits its buttons. */
+.tt-board__table th:nth-child(2) { width: 34%; }
+.tt-board__table th:last-child { width: 1%; }
+.tt-board__player { min-width: 0; overflow-wrap: anywhere; }
 .tt-board__place { font-weight: 700; font-variant-numeric: tabular-nums; width: 6rem; }
 .tt-board__who { display: inline-flex; align-items: center; gap: var(--spacing-8); }
 .tt-board__name { display: grid; gap: 2px; min-width: 0; }
-.tt-board__line { display: inline-flex; align-items: center; gap: var(--spacing-8); white-space: nowrap; }
+.tt-board__line { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+.tt-board__line > :not(.tt-board__player) { flex: none; }
 .tt-board__line a { font-weight: 600; }
 .tt-board__sub { font-size: var(--font-size-12); color: var(--text-secondary); white-space: nowrap; }
 .tt-board__discord { color: #5865f2; flex: none; }
@@ -130,22 +131,17 @@
 
 @media (max-width: 40rem) {
   .tt-track__pic { width: 4.8rem; height: 2.7rem; }
-  /* Phones: the board scrolls sideways (legibility over fit) with place and player pinned, so a long
-     name stays on one line and the time is still on the first screen; the status sits under the time. */
+  /* Phones (Britton 2026-11-05): nothing pinned and no "…". The board keeps its desktop columns and scrolls sideways;
+     a long name wraps inside a player column wide enough to read; the status sits under the time. */
   .tt-board__timecell { flex-direction: column; align-items: flex-start; }
-  .tt-board__table th, .tt-board__table td { padding-inline: var(--spacing-8); }
-  .tt-board__table th:nth-child(1), .tt-board__table tr:not(.tt-board__cut) > td:nth-child(1) { position: sticky; left: 0; z-index: 1; width: 6rem; min-width: 6rem; max-width: 6rem; }
-  /* The pinned player column stops at about half the screen; a longer name ends in "…" on one line (the link's title has it whole). */
-  .tt-board__table th:nth-child(2), .tt-board__table tr:not(.tt-board__cut) > td:nth-child(2) { position: sticky; left: 6rem; z-index: 1; max-width: 45vw; box-shadow: 1px 0 0 var(--border-default); }
-  .tt-board__who, .tt-board__name, .tt-board__line { min-width: 0; max-width: 100%; }
-  .tt-board__line { display: flex; }
-  .tt-board__player { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-  .tt-board__line > :not(.tt-board__player), .tt-board__who > .empac-avatar { flex: none; }
-  .tt-board__sub { overflow: hidden; text-overflow: ellipsis; }
-  .tt-board__table th:nth-child(-n+2) { background: var(--background-secondary); }
-  .tt-board__table tr:not(.tt-board__cut):not(.tt-board__you) > td:nth-child(-n+2) { background: var(--background-elevated, var(--background-primary, #fff)); }
-  .tt-cup__table th:first-child, .tt-cup__table td:first-child { position: sticky; left: 0; z-index: 1; background: var(--background-elevated, var(--background-primary, #fff)); box-shadow: 1px 0 0 var(--border-default); white-space: nowrap; }
-  .tt-cup__table th:first-child { background: var(--background-secondary); }
+  .tt-board__table th, .tt-board__table td { padding-inline: var(--spacing-12); }
+  /* Place, player and time fit the first screen; proof, set and the actions scroll in from the right. */
+  .tt-board__table { min-width: 60rem; }
+  .tt-board__table th:nth-child(2) { width: 15rem; min-width: 15rem; }
+  .tt-board__place { width: 5.2rem; }
+  /* The initial-letter picture gives the name its room on a phone; the flag stays beside the name. */
+  .tt-board__who > .empac-avatar { display: none; }
+  .tt-cup__table td:first-child { white-space: nowrap; }
   .tt-find .tt-mine { padding-bottom: 0; }
 }
 
@@ -204,8 +200,10 @@
   .tt-filters__pair { flex-basis: 100%; }
   /* The vehicle dropdown shares the speed row, and drops under it when the row is too narrow to show "Any vehicle". */
   .tt-filters__pair .tt-filter-select { flex: 1 1 15rem; width: auto; min-width: 0; }
-  .tt-filters__end { flex-basis: 100%; margin-left: 0; justify-content: space-between; }
-  .tt-filters__end .tt-filter-select { flex: 0 1 20rem; min-width: 0; width: auto; }
+  .tt-filters__end { flex-basis: 100%; margin-left: 0; flex-wrap: wrap; }
+  .tt-filters__end .tt-board__count { flex-basis: 100%; }
+  /* Each picker gets room for its whole label ("Every country") rather than sharing a line and ending in "…". */
+  .tt-filters__end .tt-filter-select { flex: 1 1 16rem; min-width: 0; width: auto; }
 }
 .tt-chip { display: inline-flex; align-items: center; gap: var(--spacing-4); font-size: var(--font-size-12); font-weight: 600; line-height: 1.4; border-radius: 999px; padding: 1px var(--spacing-8); white-space: nowrap; background: var(--background-primary, #fff); color: var(--text-secondary); border: 1px solid var(--border-default); }
 .tt-chip--ok, .tt-chip--wait, .tt-chip--bad { border-color: transparent; }
@@ -323,8 +321,8 @@
 .tt-nr li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) 0; border-bottom: 1px solid var(--border-default); font-size: var(--font-size-16); }
 .tt-nr__country { display: inline-flex; align-items: center; gap: var(--spacing-8); min-width: 16rem; }
 .tt-nr__time { font-weight: 700; font-variant-numeric: tabular-nums; }
-.tt-nr__who, .tt-colname { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tt-colname { display: inline-block; max-width: 14rem; vertical-align: bottom; }
+.tt-nr__who, .tt-colname { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.tt-colname { display: inline-block; max-width: 20rem; vertical-align: bottom; }
 .tt-country { display: flex; align-items: flex-end; gap: var(--spacing-12); max-width: 44rem; }
 .tt-country__flag { width: 3.2rem; height: 2.4rem; margin-bottom: 3.2rem; }
 .tt-country > :last-child { flex: 1 1 auto; min-width: 0; }

@@ -256,7 +256,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
                             <IconLinkAction label={`${r.name}'s ${r.proof === "video" ? "video" : "screenshot"}`} icon={r.proof === "video" ? IconVideo : IconCamera} href={proofHref} />
                           ) : r.sheetLink ? (
                             <IconLinkAction label={`${r.name}'s proof`} icon={videoProof(r.sheetLink) ? IconVideo : IconExternalLink} href={r.sheetLink} />
-                          ) : <span className="tt-board__none">{r.sheet ? "Legacy" : r.imported ? "Imported" : "None"}</span>}
+                          ) : <span className="tt-board__none">{r.sheet && status !== "sheet" ? "Legacy" : r.imported ? "Imported" : "None"}</span>}
                           {clipHref && <IconLinkAction label={`${r.name}'s clip`} icon={IconVideo} href={clipHref} />}
                         </span>
                       </TableCell>
