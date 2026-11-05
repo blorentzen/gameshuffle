@@ -67,11 +67,11 @@ export default function Page() {
       <ul>
         <li><code>/gs-daily</code>: opens today&apos;s Daily Shuffle right in the channel. Works in servers, group chats and DMs. <strong>Free for everyone.</strong></li>
         <li><code>/gs-randomize</code>: rolls for any game GameShuffle has a randomizer for (start typing the game name), with user tagging and per-player re-rolls. Mario Party keeps characters different; Overwatch and Marvel Rivals take a <code>role</code>. <strong>Free for everyone.</strong></li>
-        <li><code>/gs-result</code>: post a competitive lounge result. <strong>GameShuffle Pro.</strong></li>
         <li><code>/gs-brain</code>: answer a Chat Brain survey question with one tap and a one-line form. Anyone gets a question just for them; members with Manage Server post one for the whole channel. Route the <strong>Chat Brain</strong> category to get a new question every day. <strong>Free for everyone.</strong></li>
         <li><code>/gs-weekly</code>: play the <a href="/help/apps/weekly-challenge">Weekly Challenge</a> without leaving Discord. Plays count on the GameShuffle account you sign in to with Discord. Members with Manage Server post the card for the whole channel. <strong>Free for everyone.</strong></li>
         <li><code>/gs-poll</code>: open or close a <a href="/help/streaming/polls">live poll</a> for your community, with button voting. <strong>GameShuffle Pro, Manage Server permission.</strong></li>
       </ul>
+      <p>Time trials, lounge MMR, room reads and lounge results (<code>/tt</code>, <code>/mmr</code>, <code>/room</code>, <code>/result</code>) are on our second bot, <a href="/discord#dpage-comp">GameShuffle Competitive</a>.</p>
       <p>Slash commands can take a few minutes to appear after the bot joins.</p>
       <p>
         <strong>Trivia on stream:</strong> route the <strong>Trivia on stream</strong> category to a channel and, when you play a{" "}

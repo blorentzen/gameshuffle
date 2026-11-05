@@ -1,6 +1,7 @@
 /**
  * One time.
- *   GET                                         → everything for its window on the board (round 3 pick 1A)
+ *   GET                                         → everything for its window on the board (round 3 pick 1A); for a reviewer of its
+ *                                                 game and items, `reviewer` = whether it can be verified and the clip waiting
  *   POST { action: "proof", proofUrl, readToken? }   → a screenshot for your own time that has none (picks 2026-11-04, 21A)
  *   POST { action: "vouch" | "unvouch" }        → vouch for it (anyone signed in, never their own time; picks 2026-11-04)
  *   DELETE                                      → removes your own time
@@ -16,6 +17,7 @@ import { keyFromPublicUrl } from "@/lib/storage/r2";
 import { openTicket } from "@/lib/timeTrials/review";
 import { setVouch, timeDetail } from "@/lib/timeTrials/detail";
 import { videoProof } from "@/lib/timeTrials/rules";
+import { inScope, reviewScope } from "@/lib/timeTrials/updaters";
 
 export const runtime = "nodejs";
 
@@ -24,7 +26,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   const actor = await siteActor();
   const detail = await timeDetail(id, actor?.player ?? null);
   if (!detail) return NextResponse.json({ ok: false, error: "gone" }, { status: 404 });
-  return NextResponse.json({ ok: true, time: detail }, { headers: { "Cache-Control": "private, no-store" } });
+  // Reviewers and the updater for its game and items can verify it from the window (picks 2026-11-04).
+  const scope = actor?.userId ? await reviewScope(actor.userId) : null;
+  let reviewer: { canVerify: boolean; clip: string | null } | null = null;
+  if (scope && inScope(scope, detail)) {
+    const t = await timeById(id);
+    reviewer = t ? { canVerify: t.video !== "checked", clip: t.video === "waiting" ? t.videoUrl : null } : null;
+  }
+  return NextResponse.json({ ok: true, time: detail, reviewer }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {

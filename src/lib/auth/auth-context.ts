@@ -315,7 +315,7 @@ const BY_PATTERN: { test: RegExp; intent: Intent }[] = [
       action: "save your MMR card",
       lede: "Your card waits in this browser. Make your free account to save it and get your OBS link.",
       loginLede: "Your card waits in this browser. Sign in to save it and get your OBS link.",
-      points: ["Your card saved to your account", "A private OBS link that follows your lounge MMR live", "Anyone's MMR with /gs-mmr in Discord"],
+      points: ["Your card saved to your account", "A private OBS link that follows your lounge MMR live", "Anyone's MMR with /mmr in Discord"],
     },
   },
   {
@@ -324,7 +324,7 @@ const BY_PATTERN: { test: RegExp; intent: Intent }[] = [
       action: "make your MMR card",
       lede: "Free. Your lounge MMR on stream, live, from a private OBS link.",
       loginLede: "Sign in to open your MMR card.",
-      points: ["Your card saved to your account", "A private OBS link that follows your lounge MMR live", "Anyone's MMR with /gs-mmr in Discord"],
+      points: ["Your card saved to your account", "A private OBS link that follows your lounge MMR live", "Anyone's MMR with /mmr in Discord"],
     },
   },
   {

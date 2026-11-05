@@ -43,9 +43,9 @@ export default function Page() {
       <p>Once added to your server, the bot supports:</p>
       <ul>
         <li><code>/gs-randomize</code>: a quick roll for any game GameShuffle has a randomizer for (Mario Kart, Mario Party, Smash, Overwatch, Splatoon and more), free for everyone</li>
-        <li><code>/gs-result</code>: post a competitive lounge result (GameShuffle Pro)</li>
         <li><code>/gs-poll</code>: open or close a live poll for your community (GameShuffle Pro, Manage Server permission)</li>
       </ul>
+      <p>Time trials, lounge MMR, room reads and lounge results are on our second bot, <a href="/discord#dpage-comp">GameShuffle Competitive</a>: <code>/tt</code>, <code>/mmr</code>, <code>/room</code> and <code>/result</code>.</p>
 
       <h2>Disconnecting Discord</h2>
       <ol>

@@ -34,11 +34,11 @@ import { gamePath, serverPath, trackPath, ttCups, ttTracks, TT_GAMES, TT_GAME_OR
  */
 
 export const TT_FAQ = [
-  { q: "How do I add a time?", a: "Press Add a time and pick the track, or attach a screenshot of the result and we read the track and time for you to check. In Discord, use /gs-tt add with GameShuffle's bot in the server." },
+  { q: "How do I add a time?", a: "Press Add a time and pick the track, or attach a screenshot of the result and we read the track and time for you to check. In Discord, use /tt add with GameShuffle Competitive in the server." },
   { q: "Can I bring my times from Quaxly or a spreadsheet?", a: "Yes. In Quaxly, run /dx display_time (or /display_time for Mario Kart World) with yourself as the player, then press and hold the reply, tap Apps and pick Save to GameShuffle. Or add screenshots of it, or paste it, on the import page. Shrooms lists go on the mushroom boards and No-items lists on the no-mushroom boards. You check every row before it saves." },
   { q: "Which boards are there?", a: "Every track has boards with mushrooms and with no mushrooms, at each speed class. Mario Kart 8 Deluxe also has Inside drift, Teddy Buggy, Biddybuggy and Mr. Scooty boards, and Mario Kart World a Swoop, R.O.B.-HOG board. They show only times set with that vehicle; those times count on the open board too." },
   { q: "Which times need a clip?", a: "Only times in a board's top ten. Add a clip of the run's last 30 seconds (YouTube, Twitch, Streamable or Medal); until a reviewer checks it the time shows as Unverified, then as Verified. If your time moves up into the top ten later, we let you know. Times below tenth don't need one." },
-  { q: "Do I need to connect Discord?", a: "Only if you also add times in Discord. Connecting puts the times you add with /gs-tt on your account with the rest, and puts you on your servers' boards." },
+  { q: "Do I need to connect Discord?", a: "Only if you also add times in Discord. Connecting puts the times you add with /tt on your account with the rest, and puts you on your servers' boards." },
   { q: "Do I need proof?", a: "Yes: a screenshot of the result for every new time, on the site and in Discord. We read the track and time from it for you. Times brought over from Quaxly are marked Imported." },
   { q: "What does Community verified mean?", a: "Ten players vouched for the time. Anyone signed in can vouch from a time's window on the board, or with Vouch on the bot's record posts in Discord, but never for their own time. A time in a board's top ten still needs a checked clip to show as Verified." },
   { q: "What does vouched for in a server mean?", a: "Someone who manages a Discord server checked the time and pressed Verify on the bot's post. The board says which server." },
@@ -169,10 +169,10 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
 
         {!server && <section className="tt-sec" aria-labelledby="tt-discord">
           <h2 id="tt-discord">In Discord</h2>
-          <p className="tt-note">With GameShuffle&apos;s bot in your server, <code>/gs-tt add</code> saves a time from the result screenshot, <code>/gs-tt track</code> shows a track&apos;s top ten for the server, and <code>/gs-tt player</code> shows someone&apos;s bests. Coming from Quaxly? Press and hold its reply to <code>/dx display_time</code>, tap Apps, then Save to GameShuffle.</p>
+          <p className="tt-note">With GameShuffle Competitive in your server, <code>/tt add</code> saves a time from the result screenshot, <code>/tt track</code> shows a track&apos;s top ten for the server, and <code>/tt player</code> shows someone&apos;s bests. Coming from Quaxly? Press and hold its reply to <code>/dx display_time</code>, tap Apps, then Save to GameShuffle.</p>
           <div className="tt-links">
             <ArrowLink href="/time-trials/import">Bring your times from Quaxly</ArrowLink>
-            <ArrowLink href="/discord">Add GameShuffle to Discord</ArrowLink>
+            <ArrowLink href="/discord/add?app=comp" plain>Add GameShuffle Competitive</ArrowLink>
           </div>
         </section>}
 

@@ -14,12 +14,14 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { describePlayers } from "@/lib/daily/boards";
 import { createNotification } from "@/lib/social/notifications";
-import { formatTime } from "./rules";
-import { ttTrack, TT_GAMES } from "./tracks";
-import { categoryText } from "./categories";
-import { nudgeMovedUp, timeById, toTimeRow, TIME_COLS, topTensAround, ttReady, type TtTimeRow } from "./store";
+import { readAllPages } from "@/lib/supabase/pages";
+import { formatTime, videoProof } from "./rules";
+import { trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
+import { categoryText, type TtItems, type TtVehicle } from "./categories";
+import { legacyProofFor, nudgeMovedUp, timeById, toTimeRow, TIME_COLS, topTensAround, ttReady, type TtTimeRow } from "./store";
 import { inScope, reviewScope, type Mode } from "./updaters";
-import { vouchCounts } from "./status";
+import { round4Ready, vouchCounts } from "./status";
+import { isProofLink } from "./sheets";
 
 export type TicketState = "open" | "waiting_owner" | "waiting_review" | "kept" | "removed";
 export type TicketRole = "reporter" | "owner" | "reviewer";
@@ -191,6 +193,106 @@ export async function decideVideo(timeId: string, reviewerUserId: string, ok: bo
   const track = ttTrack(t.game, t.track);
   await tell(t.userId, ok ? "Your time is verified" : "Your clip didn't match your time", ok ? `${timeLabel(t)} is now Verified.` : `${timeLabel(t)}: ${why}. You can add another clip.`, track ? `/time-trials/players/me` : "/time-trials");
   return { ok: true };
+}
+
+// ── Verifying a time yourself (picks 2026-11-04: people started claiming legacy places) ─────────────────────
+
+export type VerifyError = "not_reviewer" | "gone" | "bad_video" | "no_proof";
+
+/**
+ * A reviewer (or the updater for its game and items) marks a time Verified from its proof: a clip they paste, the
+ * player's clip waiting in the queue, or the clip or post a legacy time came with. A pasted clip is kept with the
+ * time, so "Watch the clip" shows it. A time with no proof anywhere can't be verified: paste the clip that shows it.
+ */
+export async function verifyByReviewer(timeId: string, reviewerUserId: string, pasted: string | null): Promise<{ ok: true } | { ok: false; error: VerifyError }> {
+  const scope = await reviewScope(reviewerUserId);
+  if (!scope) return { ok: false, error: "not_reviewer" };
+  const t = await timeById(timeId);
+  if (!t || t.status !== "ok") return { ok: false, error: "gone" };
+  if (!inScope(scope, t)) return { ok: false, error: "not_reviewer" };
+  if (t.video === "checked") return { ok: true };
+  let clip: string | null = null;
+  if (pasted && pasted.trim()) {
+    clip = videoProof(pasted);
+    if (!clip) return { ok: false, error: "bad_video" };
+  }
+  const legacy = t.source === "sheet" ? (await legacyProofFor([t.id])).get(t.id) ?? null : null;
+  if (!clip && !t.videoUrl && !legacy) return { ok: false, error: "no_proof" };
+  const { data } = await createServiceClient().from("tt_times")
+    .update({ video_status: "checked", video_checked_by: reviewerUserId, video_checked_at: new Date().toISOString(), video_note: null, ...(clip ? { video_url: clip } : {}) })
+    .eq("id", timeId).eq("status", "ok").select("id");
+  if (!data?.length) return { ok: false, error: "gone" };
+  await tell(t.userId, "Your time is verified", `${timeLabel(t)} is now Verified.`, "/time-trials/players/me");
+  return { ok: true };
+}
+
+/** A legacy time's clip or post doesn't show the run: it leaves the legacy list and stays a Legacy time (its owner, once
+ *  someone has claimed it, hears why and can add a clip). */
+export async function rejectLegacyProof(timeId: string, reviewerUserId: string, note: string): Promise<{ ok: boolean; error?: string }> {
+  const scope = await reviewScope(reviewerUserId);
+  if (!scope) return { ok: false, error: "not_reviewer" };
+  const t = await timeById(timeId);
+  if (!t || t.status !== "ok" || t.source !== "sheet") return { ok: false, error: "gone" };
+  if (!inScope(scope, t)) return { ok: false, error: "not_reviewer" };
+  const why = note.trim().slice(0, 300);
+  if (!why) return { ok: false, error: "reason_needed" };
+  await createServiceClient().from("tt_times").update({ video_status: "rejected", video_checked_by: reviewerUserId, video_checked_at: new Date().toISOString(), video_note: why })
+    .eq("id", timeId).eq("video_status", "none");
+  await tell(t.userId, "Your legacy time's proof didn't show the run", `${timeLabel(t)}: ${why}. It stays a Legacy time; add a clip of the run to have it verified.`, "/time-trials/players/me");
+  return { ok: true };
+}
+
+export interface QueueLegacy {
+  id: string;
+  label: string;
+  name: string;
+  /** The clip or post the legacy record carried. */
+  link: string;
+  /** Its place on its legacy board (1 = that board's record). */
+  place: number;
+  /** The board with this time's window open. */
+  board: string;
+}
+
+type LegacyRaw = { id: string; player: string; game: TtGame; track: string; cc: number; items: TtItems; vehicle: TtVehicle; time_ms: number; sheet: string | null; sheet_link: string | null; video_status: string | null };
+
+/** Legacy times whose record carried a clip or a post and that nobody has checked yet, fastest first: every board's
+ *  record, then every second place, and so on. null when the viewer doesn't check Mario Kart 8 Deluxe mushrooms. */
+export async function legacyProofQueue(scope: "all" | Mode[]): Promise<{ items: QueueLegacy[]; total: number } | null> {
+  if (!inScope(scope, { game: "mk8dx", items: "shrooms" }) || !(await round4Ready())) return null;
+  const db = createServiceClient();
+  const { data } = await readAllPages<LegacyRaw>((from, to) => db.from("tt_times")
+    .select("id, player, game, track, cc, items, vehicle, time_ms, sheet, sheet_link, video_status")
+    .eq("source", "sheet").eq("status", "ok").order("id").range(from, to));
+  // Place on its legacy board: among every legacy time from the same sheet, speed and track (ties share a place).
+  const boards = new Map<string, LegacyRaw[]>();
+  for (const r of data) {
+    const k = `${r.sheet}|${r.cc}|${r.track}|${r.items}`;
+    const list = boards.get(k) ?? [];
+    list.push(r);
+    boards.set(k, list);
+  }
+  const placed: { r: LegacyRaw; place: number }[] = [];
+  for (const list of boards.values()) {
+    list.sort((a, b) => a.time_ms - b.time_ms);
+    list.forEach((r, i) => {
+      const place = i > 0 && list[i - 1].time_ms === r.time_ms ? placed[placed.length - 1].place : i + 1;
+      placed.push({ r, place });
+    });
+  }
+  const open = placed.filter(({ r }) => (r.video_status ?? "none") === "none" && !!r.sheet_link && isProofLink(r.sheet_link) && inScope(scope, r))
+    .sort((a, b) => a.place - b.place || a.r.track.localeCompare(b.r.track) || a.r.cc - b.r.cc);
+  const shown = open.slice(0, 100);
+  const names = await describePlayers([...new Set(shown.map(({ r }) => r.player))]);
+  return {
+    total: open.length,
+    items: shown.map(({ r, place }) => {
+      const t = { game: r.game, track: r.track, cc: Number(r.cc) as TtClass, items: r.items, vehicle: r.vehicle ?? "any", timeMs: r.time_ms };
+      const track = ttTrack(t.game, t.track);
+      const path = track ? trackPath(track, t.cc, { items: t.items, vehicle: t.vehicle }) : "/time-trials";
+      return { id: r.id, label: timeLabel(t), name: names.get(r.player)?.name ?? "A player", link: r.sheet_link!, place, board: `${path}${path.includes("?") ? "&" : "?"}time=${r.id}` };
+    }),
+  };
 }
 
 export interface Reviewer { userId: string; name: string; username: string | null; at: string }

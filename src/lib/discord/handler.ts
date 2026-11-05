@@ -67,6 +67,7 @@ function handleCompCommand(interaction: Record<string, unknown>, name: string): 
     case "tt": return handleGsTt(interaction);
     case "mmr": return handleGsMmr(interaction);
     case "room": return handleGsRoom(interaction);
+    case "result": return handleResult(interaction);
     case "war": return handleWarCommand(interaction);
     case "cans": return handleCansCommand(interaction);
     case "logo": return handleLogoCommand(interaction);
@@ -87,13 +88,13 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
   if (type === INTERACTION_TYPE.APPLICATION_COMMAND) {
     const data = interaction.data as { name: string; type?: number };
     // Message commands (Apps menu on a message): "Save to GameShuffle" on Quaxly's time trials list.
-    if (data.type === 3 && data.name === TT_SAVE_COMMAND) return handleTtSaveCommand(interaction);
+    if (data.type === 3 && data.name === TT_SAVE_COMMAND) return app === "main" ? withMoveNote(interaction, "save", () => handleTtSaveCommand(interaction)) : handleTtSaveCommand(interaction);
     if (app === "comp") return handleCompCommand(interaction, data.name);
     switch (data.name) {
       case "gs-randomize":
         return handleRandomize(interaction);
       case "gs-result":
-        return handleResult(interaction);
+        return withMoveNote(interaction, "result", () => handleResult(interaction));
       case "gs-flip":
         return handleCoinflip(interaction);
       case "gs-roll":

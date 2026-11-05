@@ -6,11 +6,11 @@
  *   npx tsx scripts/register-discord-commands.ts --app comp --dry   prints the commands it would register, sends nothing
  *   npx tsx scripts/register-discord-commands.ts --app comp
  *                                                        GameShuffle Competitive (NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID +
- *                                                        DISCORD_COMP_BOT_TOKEN): /tt, /mmr, /room, Save to GameShuffle
+ *                                                        DISCORD_COMP_BOT_TOKEN): /tt, /mmr, /room, /result, /war, /cans, Save to GameShuffle…
  *
  * GameShuffle Competitive (picks 2026-10-30) gets the competitive commands under short names, built from the
  * main app's definitions below, and can be added to a person's own account as well as to servers. The main
- * app keeps /gs-tt, /gs-mmr and /gs-room until COMP_MOVE_ENDS (src/lib/discord/appIds.ts).
+ * app kept /gs-tt, /gs-mmr, /gs-room, /gs-result and Save to GameShuffle until COMP_MOVE_ENDS (src/lib/discord/appIds.ts).
  *
  * For the production bot, run without --dev with the production values set in
  * the shell (they win over .env.local), e.g.
@@ -414,7 +414,7 @@ const commands = [
 
 /** GameShuffle Competitive's commands: the competitive ones under short names, usable in servers and, added to
  *  a person's own account, anywhere (submitting a time still needs a server; the handler says so). */
-const COMP_FROM: Record<string, string> = { "gs-tt": "tt", "gs-mmr": "mmr", "gs-room": "room" };
+const COMP_FROM: Record<string, string> = { "gs-tt": "tt", "gs-mmr": "mmr", "gs-room": "room", "gs-result": "result" };
 /** /tt panel: the time trial panel, competitive app only (picks 2026-10-30, Nn8Qv4EVRDL6zojwHVCcdN). */
 const TT_PANEL_SUB = {
   name: "panel", description: "Post the time trial panel in this channel (people who can manage the server).", type: 1,
@@ -579,9 +579,10 @@ const compCommands = [
   LADDER_COMMAND,
 ];
 
-/** From COMP_MOVE_ENDS (midnight Pacific) the main app drops /gs-tt, /gs-mmr and /gs-room: they live on GameShuffle Competitive. */
+/** From COMP_MOVE_ENDS (midnight Pacific) the main app drops /gs-tt, /gs-mmr, /gs-room, /gs-result and Save to GameShuffle:
+ *  they live on GameShuffle Competitive (cutover 2026-11-04). */
 const MOVED = !!COMP_MOVE_ENDS && Date.now() >= gsDayStart(COMP_MOVE_ENDS).getTime();
-const mainCommands = MOVED ? commands.filter((c) => !(c.name in COMP_FROM)) : commands;
+const mainCommands = MOVED ? commands.filter((c) => !(c.name in COMP_FROM) && c.name !== "Save to GameShuffle") : commands;
 
 /** The Activity's entry point: Discord launches the Activity itself (handler 2) and posts that it started. */
 const ACTIVITY_ENTRY_POINT = {

@@ -13,7 +13,7 @@ import { IconBrandDiscord } from "@tabler/icons-react";
 import { IconTile } from "@/components/ui/IconTile";
 import { startOAuth } from "@/lib/auth/oauth";
 
-export const CONNECT_DISCORD_LINE = "Connect Discord so the times you add with /gs-tt land on this account, and you show up on your servers' boards.";
+export const CONNECT_DISCORD_LINE = "Connect Discord so the times you add with /tt land on this account, and you show up on your servers' boards.";
 
 export function TtConnectDiscord({ returnTo, compact = false, text = CONNECT_DISCORD_LINE }: { returnTo: string; compact?: boolean; text?: ReactNode }) {
   const [busy, setBusy] = useState(false);

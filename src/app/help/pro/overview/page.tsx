@@ -54,7 +54,7 @@ export default function Page() {
       <p><strong>Picks, bans, and modules.</strong> Participant-driven drafts and engagement modules your viewers vote and play through in real time.</p>
       <p><strong>AI tools.</strong> Make wheels, bingo prompts, tier lists and party game packs from a theme, and write up recaps of your nights and streams, with 60 AI drafts every 30 days. See <a href="/help/apps/ai-tools">AI tools</a>.</p>
       <p><strong>Brand theming.</strong> A brand theme that reskins your overlay, <code>/live</code> page, and public profile in your colors.</p>
-      <p><strong>The essentials too.</strong> The &ldquo;Reroll the Streamer&rsquo;s Combo&rdquo; channel-point reward, the public lobby viewer, and Discord lounge results with <code>/gs-result</code>.</p>
+      <p><strong>The essentials too.</strong> The &ldquo;Reroll the Streamer&rsquo;s Combo&rdquo; channel-point reward, the public lobby viewer, and Discord lounge results with <code>/result</code> on GameShuffle Competitive.</p>
 
       <h2>Free vs Pro</h2>
       <table>
@@ -78,7 +78,7 @@ export default function Page() {
           <tr><td>Picks, bans &amp; modules</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>AI content packs &amp; recaps (60 every 30 days)</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>Brand theming (overlay, /live, profile)</td><td><No /></td><td><Yes /></td></tr>
-          <tr><td>Discord <code>/gs-result</code></td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Discord <code>/result</code> (GameShuffle Competitive)</td><td><No /></td><td><Yes /></td></tr>
         </tbody>
       </table>
       <p>The free tier is great for solo, family, and in-person play. Pro is for streamers running a game night their chat plays along with.</p>

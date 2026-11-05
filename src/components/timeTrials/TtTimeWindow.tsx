@@ -3,12 +3,13 @@
 /**
  * A time's window over the board (round 3 pick 1A): the proof, the laps, the player, where it stands, its history and
  * what you can do with it. The board stays underneath; `?time=<id>` in the address opens it, so the window has its
- * own link to share.
+ * own link to share. Reviewers, and the updater for its game and items, can verify it here from its proof (picks
+ * 2026-11-04): the player's clip, a legacy time's clip or post, or a clip they paste.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Avatar, Button, Modal } from "@empac/cascadeds";
+import { Avatar, Button, FormField, Input, Modal } from "@empac/cascadeds";
 import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconHistory, IconLink, IconShieldCheck, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { flagUrl } from "@/lib/lounge/flags";
@@ -37,12 +38,22 @@ const VOUCH_ERRORS: Record<string, string> = {
   slow_down: "That's a lot of vouches. Try again later.",
 };
 
+const VERIFY_ERRORS: Record<string, string> = {
+  bad_video: "Paste a clip link from YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram.",
+  no_proof: "Paste the clip that shows this run first.",
+  not_reviewer: "You don't check this game and items.",
+  gone: "That time isn't on the board any more.",
+};
+
 export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
   timeId: string | null; signedIn: boolean; onClose: () => void;
   /** Opens the board's report form for this time. */
   onReport: (t: { timeId: string; name: string; timeMs: number }) => void;
 }) {
   const [time, setTime] = useState<TtTimeDetail | null>(null);
+  const [reviewer, setReviewer] = useState<{ canVerify: boolean; clip: string | null } | null>(null);
+  const [clipLink, setClipLink] = useState("");
+  const [verifying, setVerifying] = useState(false);
   const [missing, setMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -53,10 +64,10 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
   useEffect(() => {
     if (!timeId) return;
     let live = true;
-    setTime(null); setMissing(false); setCopied(false);
-    fetch(`/api/time-trials/${timeId}`).then((r) => r.json()).then((j: { ok?: boolean; time?: TtTimeDetail }) => {
+    setTime(null); setMissing(false); setCopied(false); setReviewer(null); setClipLink("");
+    fetch(`/api/time-trials/${timeId}`).then((r) => r.json()).then((j: { ok?: boolean; time?: TtTimeDetail; reviewer?: { canVerify: boolean; clip: string | null } | null }) => {
       if (!live) return;
-      if (j.ok && j.time) setTime(j.time); else setMissing(true);
+      if (j.ok && j.time) { setTime(j.time); setReviewer(j.reviewer ?? null); } else setMissing(true);
     }).catch(() => { if (live) setMissing(true); });
     return () => { live = false; };
   }, [timeId, tick]);
@@ -72,6 +83,20 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
       toast.success(on ? "Vouched. Updaters see it when they check this time." : "Vouch taken back.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function verify() {
+    if (!time) return;
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/time-trials/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "verify", timeId: time.id, link: clipLink.trim() || null }) });
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!j.ok) { toast.error(VERIFY_ERRORS[j.error ?? ""] ?? "That didn't save. Try again."); return; }
+      toast.success("Verified");
+      setTick((t) => t + 1);
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -168,6 +193,22 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
               </section>
             </div>
           </div>
+          {reviewer?.canVerify && (
+            <section className="tt-win__sec tt-win__check" aria-labelledby="tt-win-check">
+              <h3 id="tt-win-check">Verify this time</h3>
+              <p className="tt-note">
+                {reviewer.clip ? <>Check <a href={reviewer.clip} target="_blank" rel="noopener noreferrer nofollow">their clip</a> shows this run, or paste another.</>
+                  : time.legacyProof ? "Check the legacy proof above shows this run, or paste a clip that does."
+                  : "Paste a clip that shows this run (YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram)."}
+              </p>
+              <form className="tt-win__verify" onSubmit={(e) => { e.preventDefault(); void verify(); }}>
+                <FormField label={reviewer.clip || time.legacyProof ? "Another clip (optional)" : "Clip link"} htmlFor="tt-win-clip">
+                  <Input id="tt-win-clip" type="url" inputMode="url" value={clipLink} onChange={(e) => setClipLink(e.target.value)} placeholder="https://" autoComplete="off" fullWidth />
+                </FormField>
+                <Button type="submit" variant="primary" size="small" iconBefore={IconCircleCheck} loading={verifying} disabled={!reviewer.clip && !time.legacyProof && !clipLink.trim()}>Verify</Button>
+              </form>
+            </section>
+          )}
           <div className="tt-win__actions">
             <Link href={time.player.page} className="empac-button empac-button--secondary empac-button--small">{time.you ? "Your times" : `${time.player.name}'s times`}</Link>
             {signedIn && !time.you && vsSlug && <Link href={`/time-trials/players/me?vs=${encodeURIComponent(vsSlug)}`} className="empac-button empac-button--secondary empac-button--small"><IconArrowsLeftRight size={16} aria-hidden="true" /> Compare with mine</Link>}
