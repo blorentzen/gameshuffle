@@ -45,7 +45,7 @@ export function ConditionalChrome({ children, shop = false }: { children: React.
         <PolicyUpdateBanner />
         <SiteNavbar shop={shop} />
         {children}
-        <SiteFooter />
+        <SiteFooter shop={shop} />
         <CookieConsent />
         {/* Bottom-right Messenger — inside the chrome branch so it's absent on
             OBS/overlay routes (excluded at the layout level, per Spec 2 §2.3). */}

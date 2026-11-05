@@ -9,11 +9,9 @@ import { CommsIcons } from "@/components/social/CommsIcons";
 import { NavSupport } from "@/components/layout/NavSupport";
 import { NavMenu, type NavItem, type NavSection } from "@/components/layout/NavMenu";
 import { PILLARS, primaryItems, type Pillar } from "@/lib/nav/pillars";
-import { shopHref } from "@/lib/store/links";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import { EVENTS, tagged } from "@/lib/analytics/events";
 
 /**
  * Top-level site nav. This is the CDS `Navbar` (it still renders the logo,
@@ -231,7 +229,7 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
   // sitemap cannot drift apart. The pillar was renamed Organize -> Compete:
   // far more people want to ENTER a tournament than run one, so it is named
   // for the majority intent and organising is an action inside it.
-  const navCtx = { signedIn: !!user, isStreamer, isStaff: false };
+  const navCtx = { signedIn: !!user, isStreamer, isStaff: false, shop };
   const pillarSections = (p: Pillar): NavSection[] => {
     const groups = primaryItems(p, navCtx);
     const sections: NavSection[] = groups.map((g) => ({
@@ -281,7 +279,6 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
       hdr(p.label),
       ...primaryItems(p, navCtx).flatMap((g) => g.items.map((i) => ({ label: i.label, href: i.href }))),
     ]),
-    ...(shop ? [hdr("Shop"), { label: "GameShuffle shop", href: shopHref("nav") }] : []),
     // Support first, then GS Pro (support first plan, 2026-10-19; the bar's heart hides on phones).
     hdr("Support and GS Pro"),
     { label: "Support GameShuffle", href: "/support" },
@@ -319,11 +316,6 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
                 {PILLARS.map((p) => (
                   <NavMenu key={p.id} label={p.label} sections={pillarSections(p)} pathname={pathname} />
                 ))}
-                {shop && (
-                  <Link href={shopHref("nav")} className={`${pathname.startsWith("/shop") ? "is-active " : ""}${tagged(EVENTS.shopLinkClicked, { from: "nav" })}`}>
-                    Shop
-                  </Link>
-                )}
               </span>
             </span>
           }

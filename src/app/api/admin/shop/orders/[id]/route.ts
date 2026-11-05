@@ -5,11 +5,15 @@
  *      | { action: "refund", all: true, restock?, reason? }
  *      | { action: "refund", items?: [{ sku, quantity }], shipping?, amountCents?, reason, note?, restock? }
  *      | { action: "restock" } | { action: "note", text } | { action: "resend" }
+ *      | { action: "printful_send" }   confirm the Printful draft (Printful charges for it)
+ *      | { action: "printful_draft" }  make the Printful draft again after a failure
+ * A full refund of a merch order also deletes or cancels its Printful order while Printful allows it.
  * Staff only.
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/shop/adminGuard";
+import { cancelAtPrintful, createPrintfulDraft, sendToPrintful } from "@/lib/store/printfulOrders";
 import { ManageError, addNote, markShipped, orderDetail, refundOrder, refundOrderPart, refundQuote, resendConfirmation, restockOrder, updateTracking, type RefundReason } from "@/lib/store/manage";
 
 export const runtime = "nodejs";
@@ -50,9 +54,25 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       case "restock": await restockOrder(id, gate.userId); break;
       case "note": await addNote(id, body.text ?? "", gate.userId); break;
       case "resend": await resendConfirmation(id, gate.userId); break;
+      case "printful_send": {
+        const r = await sendToPrintful(id, gate.userId);
+        if (!r.ok) return NextResponse.json({ ok: false, error: r.error.startsWith("test_order") || r.error === "not_paid" ? r.error : "printful", message: r.error }, { status: 400 });
+        break;
+      }
+      case "printful_draft": {
+        const r = await createPrintfulDraft(id);
+        if (!r.ok) return NextResponse.json({ ok: false, error: "printful", message: r.error }, { status: 400 });
+        break;
+      }
       default: return NextResponse.json({ ok: false, error: "bad_action" }, { status: 400 });
     }
-    return NextResponse.json({ ok: true, order: await orderDetail(id) });
+    const order = await orderDetail(id);
+    // A merch order refunded in full: take it back out of Printful while Printful still allows it.
+    if (body.action === "refund" && order?.status === "refunded" && order.printful.orderId && !["canceled", "fulfilled", "partial"].includes(order.printful.status ?? "")) {
+      const c = await cancelAtPrintful(id, gate.userId);
+      return NextResponse.json({ ok: true, order: await orderDetail(id), printfulCanceled: c.canceled, printfulReason: c.canceled ? null : c.reason ?? null });
+    }
+    return NextResponse.json({ ok: true, order });
   } catch (err) {
     if (err instanceof ManageError) return NextResponse.json({ ok: false, error: err.code }, { status: 400 });
     console.error("[admin/shop/orders]", err);

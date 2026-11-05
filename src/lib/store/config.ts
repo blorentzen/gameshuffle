@@ -84,6 +84,9 @@ export const stripeProductId = (sku: string) => `gs_shop_${sku}`;
 export const stripeLookupKey = (sku: string) => `shop_${sku}`;
 /** Every shop Stripe object carries this, so other code (Pricing sync, the webhook) can tell it apart. */
 export const SHOP_METADATA_KIND = "shop";
+/** Card packs are on hold (Britton, 2026-11-03): the shop sells merch, so pack lines and pack suggestions stay off. */
+export const PACKS_ON_HOLD = true;
+
 /** Stripe Tax code for sealed packs and accessories: general tangible goods. */
 export const SHOP_TAX_CODE = "txcd_99999999";
 

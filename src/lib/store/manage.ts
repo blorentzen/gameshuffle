@@ -16,6 +16,7 @@ import "server-only";
 
 import { getStripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { nameWithPicks, picksFor } from "./orderPicks";
 import { getBaseUrl } from "@/lib/env";
 import { sendShopOrderReceived, sendShopShipped, uspsTrackingUrl } from "@/lib/email/shop";
 import { orderLinkToken } from "./access";
@@ -106,6 +107,9 @@ export interface AdminOrderDetail extends AdminOrderRow {
   amountSubtotal: number; amountShipping: number; amountTax: number; shipWeightOz: number; shipByLabel: string;
   trackingUrl: string | null; paymentIntentId: string | null; livemode: boolean; utm: Record<string, string | null>;
   stockShortfall: { sku: string; missing: number }[] | null;
+  /** Merch: the order has made-to-order items, and where it stands with Printful. */
+  merch: boolean; carrier: string | null;
+  printful: { orderId: number | null; status: string | null; error: string | null; sentAt: string | null };
   timeline: { kind: string; visible: boolean; detail: Record<string, unknown>; at: string; actor: string | null }[];
 }
 
@@ -123,7 +127,8 @@ export async function orderDetail(id: string): Promise<AdminOrderDetail | null> 
     svc.from("shop_products").select("sku, name").in("sku", skus.length ? skus : ["-"]),
     svc.from("users").select("id, display_name, username").in("id", actors.length ? actors : ["00000000-0000-0000-0000-000000000000"]),
   ]);
-  const names = new Map((products ?? []).map((p) => [p.sku as string, p.name as string]));
+  const picks = await picksFor(id);
+  const names = new Map((products ?? []).map((p) => [p.sku as string, nameWithPicks(p.name as string, p.sku as string, picks)]));
   const who = new Map((people ?? []).map((p) => [p.id as string, (p.display_name as string) || (p.username as string) || "Staff"]));
   const shipBy = shipByDay(new Date(o.created_at as string));
   return {
@@ -137,7 +142,9 @@ export async function orderDetail(id: string): Promise<AdminOrderDetail | null> 
     })),
     amountSubtotal: o.amount_subtotal, amountTax: o.amount_tax, amountShipping: Math.max(0, o.amount_total - o.amount_subtotal - o.amount_tax),
     shipWeightOz: Number(o.ship_weight_oz), shipByLabel: shopDate(`${shipBy}T12:00:00-08:00`, { weekday: true }),
-    trackingUrl: o.tracking_number ? uspsTrackingUrl(o.tracking_number) : null, paymentIntentId: o.payment_intent_id, livemode: !!o.livemode,
+    trackingUrl: o.tracking_url ?? (o.tracking_number ? uspsTrackingUrl(o.tracking_number) : null), paymentIntentId: o.payment_intent_id, livemode: !!o.livemode,
+    merch: (items ?? []).some((i) => /^m-\d+$/.test(i.sku as string)), carrier: o.carrier ?? null,
+    printful: { orderId: o.printful_order_id ?? null, status: o.printful_status ?? null, error: o.printful_error ?? null, sentAt: o.printful_sent_at ?? null },
     utm: { source: o.utm_source, medium: o.utm_medium, campaign: o.utm_campaign, content: o.utm_content, page: o.source_page },
     stockShortfall: o.stock_shortfall ?? null,
     timeline: ((events ?? []) as { kind: string; visible: boolean; detail: Record<string, unknown>; created_at: string; actor_user_id: string | null }[])

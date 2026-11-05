@@ -94,7 +94,8 @@ export interface AdminProduct {
 export async function listAdminProducts(): Promise<AdminProduct[]> {
   const svc = createServiceClient();
   const [{ data: rows, error }, { data: avail }, { data: sold }] = await Promise.all([
-    svc.from("shop_products").select("*").order("sort_order"),
+    // Card packs only: merch rows come from Printful and live on Shop ▸ Merch.
+    svc.from("shop_products").select("*").neq("category", "merch").order("sort_order"),
     svc.rpc("shop_availability"),
     svc.from("shop_order_items").select("sku, quantity, shop_orders!inner(status)").in("shop_orders.status", ["paid", "shipped"]),
   ]);

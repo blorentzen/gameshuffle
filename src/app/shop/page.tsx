@@ -1,14 +1,15 @@
 /**
- * /shop: the GameShuffle Shop, curated packs and themes (singles stay on
- * TCGplayer, linked at the bottom). Marketing page, always light. Stock is
- * read live on every request. Copy: src/lib/store/copy.ts.
+ * /shop: GameShuffle merch (since 2026-11-03; the card packs are on hold), made
+ * in Printful and arranged in Platform ▸ Shop ▸ Merch. Collections as
+ * sections with item chips on top (MerchShelf), each product on its own page
+ * (/shop/[slug]). Marketing page, always light. Copy: src/lib/store/copy.ts.
  *
  * While the shop is hidden (`shop_open` and `shop_coming_soon` both off),
  * visitors get page not found. With `shop_coming_soon` on they get the Coming soon
- * version (Britton, 2026-10-09): the products with their placeholder pictures
- * and details, no prices, stock, cart or shipping, and an email signup for
- * launch. Staff get the full shop to test, and `?view=soon` shows them the
- * Coming soon version. Not indexed until it opens.
+ * version: the live products without prices or a cart, and an email signup
+ * for launch. Staff get the full shop to test, including products that aren't
+ * live yet, and `?view=soon` shows them the Coming soon version. Not indexed
+ * until it opens.
  */
 
 import type { Metadata } from "next";
@@ -16,14 +17,15 @@ import Link from "next/link";
 import { Alert, Container } from "@empac/cascadeds";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
-import { ShopShelf } from "@/components/store/ShopShelf";
+import { MerchShelf } from "@/components/store/MerchShelf";
 import { ShopUpdates } from "@/components/store/ShopUpdates";
 import { shopUpdatesConfigured } from "@/lib/store/updates";
 import { createClient } from "@/lib/supabase/server";
 import { listShopProducts, ShopNotReady, type ShopProduct } from "@/lib/store/products";
+import { devPreviewFromPrintful, listMerchListings, type MerchListing } from "@/lib/store/merchCatalog";
+import { MerchNotReady } from "@/lib/store/merchSync";
 import { shopCopy } from "@/lib/store/copy";
 import { holidayState } from "@/lib/store/rules";
-import { SHOP, isOnSale } from "@/lib/store/config";
 import { getPlatformFlag } from "@/lib/platform/flags";
 import { isStaffRequest } from "@/lib/auth/raw";
 import { notFound } from "next/navigation";
@@ -37,19 +39,11 @@ const copy = shopCopy();
 export async function generateMetadata(): Promise<Metadata> {
   const open = await getPlatformFlag("shop_open", false);
   return {
-    title: "Shop",
+    title: "GameShuffle merch",
     description: open ? copy.hero.lead : copy.soon.lead,
     alternates: { canonical: "https://www.gameshuffle.co/shop" },
     ...(open ? {} : { robots: { index: false, follow: true } }),
   };
-}
-
-function previewFromSeed(): ShopProduct[] {
-  return SHOP.products.filter((p) => isOnSale(p)).sort((a, b) => a.sort_order - b.sort_order).map((p) => ({
-    sku: p.sku, kind: p.kind, category: p.category, name: p.name, blurb: p.blurb, description: p.stripe_description, contents: p.contents, priceCents: p.price_cents,
-    stripePriceId: null, onSale: true, stock: 10, held: 0, available: 10, maxPerOrder: p.max_per_order, shipWeightOz: p.ship_weight_oz,
-    imageUrl: p.image_url, sortOrder: p.sort_order,
-  }));
 }
 
 const PAGE_BG = "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))";
@@ -61,17 +55,22 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   if (!open && !comingSoon && !staff) notFound();
   const soon = !open && (!staff || view === "soon");
 
+  // Every product on sale, so cart lines from other product pages still resolve here.
   let products: ShopProduct[] = [];
+  let listings: MerchListing[] = [];
   let notReady = false;
   try {
-    products = await listShopProducts({ onlyOnSale: true });
+    [products, listings] = await Promise.all([listShopProducts({ onlyOnSale: true }), listMerchListings({ preview: staff && !soon })]);
   } catch (err) {
-    if (err instanceof ShopNotReady) notReady = true;
+    if (err instanceof ShopNotReady || err instanceof MerchNotReady) notReady = true;
     else throw err;
   }
-  // Before the tables exist, staff and the Coming soon page use the seed file (10 in stock each, never shown before launch).
-  // Coming soon also uses it while the table is still empty (prod before the catalog is seeded).
-  if ((notReady && staff) || (soon && (notReady || products.length === 0))) products = previewFromSeed();
+  // Dev server before merch-m1.sql: the shelf straight from Printful, to check the pages.
+  let devPreview = false;
+  if (notReady && staff) {
+    const dev = await devPreviewFromPrintful().catch(() => null);
+    if (dev) { listings = dev.listings; products = dev.products; devPreview = true; }
+  }
   const holiday = soon ? "none" : holidayState();
   let signedIn = false;
   if (soon) {
@@ -83,7 +82,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   return (
     <main className="shop-page" style={{ background: PAGE_BG }}>
       <section className="marketing-hero">
-        <MarketingHeroField category="tcg" />
+        <MarketingHeroField category="merch" />
         <Container>
           <p className="marketing-eyebrow">{soon ? copy.soon.eyebrow : copy.hero.eyebrow}</p>
           <h1 className="marketing-hero__title">{copy.hero.title}</h1>
@@ -104,7 +103,8 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               This is the Coming soon page visitors get until the shop opens. <Link href="/shop">Back to the full shop</Link>
             </Alert>
           )}
-          {staff && notReady && <Alert variant="warning" title="Not set up yet">Showing the seed file with sample stock. Run supabase/shop-m1.sql, then scripts/seed-shop.ts.</Alert>}
+          {staff && notReady && <Alert variant="warning" title="Not set up yet">Run supabase/merch-m1.sql, then press Sync from Printful in Platform ▸ Shop ▸ Merch.{devPreview ? " Dev server: showing every Printful product straight from Printful." : ""}</Alert>}
+          {staff && !notReady && listings.length === 0 && <Alert variant="info" title="No products yet">Press Sync from Printful in <Link href="/account/platform?tab=platform-shop-merch">Platform ▸ Shop ▸ Merch</Link>, then put products live.</Alert>}
           {checkout === "canceled" && !soon && <Alert variant="info">{copy.errors.canceled}</Alert>}
           {soon && <ShopUpdates signedIn={signedIn} ready={notify} />}
           {holiday !== "none" && (
@@ -113,13 +113,13 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             </Alert>
           )}
 
-          {products.length === 0 ? (soon ? null : (
+          {listings.length === 0 ? (soon || staff ? null : (
             <section className="shop-section shop-closed">
               <h2 className="shop-h2">{copy.closed.title}</h2>
               <p>{copy.closed.body}</p>
             </section>
           )) : (
-            <ShopShelf products={products} soon={soon} notify={notify} />
+            <MerchShelf listings={listings} products={products} soon={soon} preview={staff && !soon} />
           )}
 
           {!soon && <section className="shop-section shop-shipping" aria-labelledby="shop-shipping">
@@ -135,12 +135,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             {copy.singlesPath.line}{" "}
             <a href={TCG_SHOP_URL} target="_blank" rel="noopener noreferrer">{copy.singlesPath.link}</a>
           </p>
-          <p className="shop-singles-path">
-            {copy.hubPath.line}{" "}
-            <Link href="/pokemon-tcg">{copy.hubPath.link}</Link>
-          </p>
 
-          <p className="shop-disclaimer">{copy.disclaimer}</p>
         </div>
       </Container>
     </main>
