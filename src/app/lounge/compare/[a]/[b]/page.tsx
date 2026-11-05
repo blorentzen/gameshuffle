@@ -7,7 +7,7 @@ import { LabeledSubNav } from "@/components/ui/LabeledSubNav";
 import { TableScroll } from "@/components/ui/TableScroll";
 import { LoungeUnavailable, divisionSteps, loungePlayer, type LoungePlayer } from "@/lib/mmr/mkcentral";
 import { divisionLook } from "@/lib/mmr/look";
-import { MMR_GAMES, MMR_GAME_IDS, isMmrGame, placeWord, standing, type MmrGame } from "@/lib/mmr/rules";
+import { MMR_GAMES, MMR_GAME_IDS, isMmrGame, placeWord, standing, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { headToHead } from "@/lib/lounge/h2h";
 import { loungePagePath } from "@/lib/lounge/lines";
 import "@/styles/lounge.css";
@@ -24,13 +24,13 @@ export const metadata: Metadata = { title: "Head-to-head: lounge stats", robots:
 type Params = { params: Promise<{ a: string; b: string }>; searchParams: Promise<{ game?: string }> };
 const fmt = (n: number | null | undefined) => (n == null ? "?" : Math.round(n).toLocaleString("en-US"));
 const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : n < 0 ? `−${fmt(Math.abs(n))}` : "0");
-const comparePath = (a: string, b: string, game: MmrGame) => `/lounge/compare/${encodeURIComponent(a)}/${encodeURIComponent(b)}${game === "mkworld12p" ? "" : `?game=${game}`}`;
+const comparePath = (a: string, b: string, game: MmrGame) => `/lounge/compare/${encodeURIComponent(a)}/${encodeURIComponent(b)}${game === DEFAULT_MMR_GAME ? "" : `?game=${game}`}`;
 
 export default async function ComparePage({ params, searchParams }: Params) {
   const p = await params;
   const aName = decodeURIComponent(p.a), bName = decodeURIComponent(p.b);
   const g = (await searchParams).game;
-  const game: MmrGame = isMmrGame(g) ? g : "mkworld12p";
+  const game: MmrGame = isMmrGame(g) ? g : DEFAULT_MMR_GAME;
   let a: LoungePlayer | null = null, b: LoungePlayer | null = null, down = false;
   let steps: Awaited<ReturnType<typeof divisionSteps>> = [];
   try { [a, b, steps] = await Promise.all([loungePlayer({ name: aName }, game), loungePlayer({ name: bName }, game), divisionSteps(game)]); }

@@ -7,6 +7,8 @@
  * The cropped image is what renders; the optional source is the original
  * upload, kept so "Reposition" can re-crop from it. Replacing/removing
  * best-effort deletes the prior objects so we don't accrue orphans.
+ * A picture banner replaces an animated one (a profile has one banner, either
+ * kind: src/lib/profile/banner.ts), and every picture gets the image check.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -18,6 +20,9 @@ import {
   deleteFromR2,
   keyFromPublicUrl,
 } from "@/lib/storage/r2";
+import { checkImage } from "@/lib/moderation/imageCheck";
+import { clearBannerGif } from "@/lib/gifs/banner";
+import { clearPictureBanner, pictureBanner } from "@/lib/profile/banner";
 
 export const runtime = "nodejs";
 
@@ -36,27 +41,7 @@ async function authUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
-async function currentBanner(
-  userId: string,
-): Promise<{ url: string | null; sourceUrl: string | null }> {
-  const admin = createServiceClient();
-  // Degrade to url-only if the m4 source column isn't applied yet.
-  let res = await admin
-    .from("users")
-    .select("profile_banner_url, profile_banner_source_url")
-    .eq("id", userId)
-    .maybeSingle();
-  if (res.error) {
-    res = await admin.from("users").select("profile_banner_url").eq("id", userId).maybeSingle();
-  }
-  const data = res.data as
-    | { profile_banner_url?: string | null; profile_banner_source_url?: string | null }
-    | null;
-  return {
-    url: data?.profile_banner_url ?? null,
-    sourceUrl: data?.profile_banner_source_url ?? null,
-  };
-}
+const currentBanner = pictureBanner;
 
 export async function GET() {
   const userId = await authUserId();
@@ -81,6 +66,11 @@ export async function POST(req: NextRequest) {
   if (!ext) return NextResponse.json({ error: "unsupported_type" }, { status: 415 });
   if (file.size > MAX_BYTES) return NextResponse.json({ error: "too_large" }, { status: 413 });
 
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const check = await checkImage(bytes, { use: "profile banner", userId, capKey: `u:${userId}` });
+  if (!check.ran) return NextResponse.json({ error: "check_unavailable" }, { status: 503 });
+  if (check.verdict !== "ok") return NextResponse.json({ error: "refused", reason: check.reason }, { status: 422 });
+
   const stamp = Date.now();
   const previous = await currentBanner(userId);
 
@@ -88,7 +78,7 @@ export async function POST(req: NextRequest) {
   try {
     url = await uploadToR2(
       `banners/${userId}/${stamp}.${ext}`,
-      new Uint8Array(await file.arrayBuffer()),
+      new Uint8Array(bytes),
       file.type,
     );
   } catch {
@@ -131,6 +121,8 @@ export async function POST(req: NextRequest) {
     const k = keyFromPublicUrl(previous.url);
     if (k) await deleteFromR2(k);
   }
+  // One banner: a picture replaces an animated one.
+  await clearBannerGif(userId);
 
   return NextResponse.json({ ok: true, url, sourceUrl });
 }
@@ -138,22 +130,6 @@ export async function POST(req: NextRequest) {
 export async function DELETE() {
   const userId = await authUserId();
   if (!userId) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
-
-  const previous = await currentBanner(userId);
-  const admin = createServiceClient();
-  await admin
-    .from("users")
-    .update({ profile_banner_url: null, profile_banner_source_url: null })
-    .eq("id", userId);
-
-  if (isR2Configured()) {
-    for (const u of [previous.url, previous.sourceUrl]) {
-      if (u) {
-        const k = keyFromPublicUrl(u);
-        if (k) await deleteFromR2(k);
-      }
-    }
-  }
-
+  await clearPictureBanner(userId);
   return NextResponse.json({ ok: true });
 }

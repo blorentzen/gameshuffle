@@ -1,0 +1,35 @@
+/* Reactions on posts and comments (src/components/social/ReactionRow.tsx): CascadeDS reaction pills plus our sticker
+   tiles, one React button, a picker that opens on the stickers. */
+.rx-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.rx-pill { gap: 6px; padding-left: 3px; }
+.rx-pill:has(.empac-reaction-pill__emoji) { padding-left: 8px; }
+.rx-pill__tile.gs-sticker { --st-size: 22px; --st-glyph: 14px; --st-radius: 6px; --st-pad: 1px; }
+.rx-row--comment .rx-pill__tile.gs-sticker { --st-size: 20px; --st-glyph: 13px; }
+.rx-pill__word { font-size: var(--font-size-12); font-weight: 700; letter-spacing: .03em; }
+.rx-more { padding-inline: 10px; font-weight: 600; font-size: var(--font-size-12); }
+.rx-add { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 999px; border: 1px dashed var(--border-strong, #b8bdd0); background: transparent; color: var(--text-secondary); cursor: pointer; }
+.rx-add--sm { width: 28px; height: 28px; }
+.rx-add:hover:not(:disabled), .rx-add[aria-expanded="true"] { border-style: solid; color: var(--text-primary); background: var(--background-secondary, rgb(0 0 0 / 4%)); }
+.rx-add:disabled { opacity: .5; cursor: not-allowed; }
+.rx-row--all { padding-block: 4px; gap: 8px; }
+
+/* The picker */
+.rx-pop { padding: 0 !important; }
+.rx-picker { display: grid; gap: 10px; width: min(296px, calc(100vw - 48px)); padding: 14px; }
+.rx-picker__h { margin: 0; font-weight: 600; font-size: var(--font-size-14); color: var(--text-primary); }
+.rx-picker__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; justify-items: center; }
+.rx-picker__sticker { border: 0; background: none; padding: 3px; border-radius: 20px; cursor: pointer; }
+.rx-picker__sticker .gs-sticker { --st-size: 76px; --st-glyph: 28px; --st-word: 12px; --st-radius: 20px; }
+.rx-picker__sticker[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--primary-500, #4f46e5); }
+.rx-picker__sticker:focus-visible { outline: 3px solid var(--primary-500, #4f46e5); outline-offset: 2px; }
+.rx-picker__all { display: grid; gap: 10px; max-height: min(340px, 50vh); overflow-y: auto; padding-right: 4px; }
+.rx-picker__group { margin: 0 0 6px; font-size: var(--font-size-12); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); }
+.rx-picker__emoji { display: grid; grid-template-columns: repeat(6, 1fr); justify-items: center; gap: 4px; padding-top: 10px; border-top: 1px solid var(--border-default, #dfe2ec); }
+.rx-picker__e { font-size: 22px; line-height: 1; border: 0; background: none; padding: 6px; border-radius: 10px; cursor: pointer; min-width: 36px; min-height: 36px; }
+.rx-picker__e[aria-pressed="true"] { background: var(--background-secondary, rgb(0 0 0 / 6%)); box-shadow: 0 0 0 2px var(--primary-500, #4f46e5); }
+@media (prefers-reduced-motion: reduce) { .rx-pill .gs-sticker__glyph { animation: none !important; } }
+
+/* Under a comment, and its React word in the actions line */
+.ct__reactions { padding-left: var(--spacing-12); margin-top: 4px; }
+.rx-row--word { display: inline-flex; }
+.rx-row .empac-reaction-pill { min-height: 26px; }

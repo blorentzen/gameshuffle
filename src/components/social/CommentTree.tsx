@@ -16,6 +16,7 @@ import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { GifAttachment } from "@/components/gifs/GifAttachment";
 import { GifButton } from "@/components/gifs/GifButton";
 import { ReportContentModal } from "@/components/social/ReportContentModal";
+import { ReactionRow } from "@/components/social/ReactionRow";
 import type { Attachment } from "@/lib/gifs/rules";
 import type { FeedComment } from "@/lib/social/feed";
 
@@ -70,6 +71,9 @@ interface Handlers {
   onDelete: (id: string) => void;
   /** Post a GIF or sticker as a reply. Without it, no GIF button. */
   onReplyAttach?: (id: string, attachment: Attachment) => void;
+  /** Add or take back a reaction (an emoji or "s:<sticker id>"). Without them, no reactions under comments. */
+  onReact?: (id: string, key: string) => void;
+  onUnreact?: (id: string, key: string) => void;
 }
 
 function CommentNode({ c, depth, h }: { c: FeedComment; depth: number; h: Handlers }) {
@@ -114,7 +118,19 @@ function CommentNode({ c, depth, h }: { c: FeedComment; depth: number; h: Handle
           {!isOwn && h.currentUserId && (
             <button type="button" className="ct__act" onClick={() => setReporting(true)}>Report</button>
           )}
+          {h.onReact && h.onUnreact && !c.reactions?.length && (
+            <ReactionRow size="comment" reactions={[]} addText="React" addClassName="ct__act" onReact={(key) => h.onReact!(c.id, key)} onRemove={(key) => h.onUnreact!(c.id, key)} />
+          )}
         </div>
+        {h.onReact && h.onUnreact && !!c.reactions?.length && (
+          <ReactionRow
+            size="comment"
+            className="ct__reactions"
+            reactions={c.reactions ?? []}
+            onReact={(key) => h.onReact!(c.id, key)}
+            onRemove={(key) => h.onUnreact!(c.id, key)}
+          />
+        )}
         {reporting && (
           <ReportContentModal
             targetType={c.attachment?.kind === "gif" ? "gif" : "comment"}
@@ -151,6 +167,8 @@ export function CommentTree({
   onReply,
   onDelete,
   onReplyAttach,
+  onReact,
+  onUnreact,
 }: {
   comments: FeedComment[];
   currentUserId: string;
@@ -158,8 +176,10 @@ export function CommentTree({
   onReply: (id: string, content: string) => void;
   onDelete: (id: string) => void;
   onReplyAttach?: (id: string, attachment: Attachment) => void;
+  onReact?: (id: string, key: string) => void;
+  onUnreact?: (id: string, key: string) => void;
 }) {
-  const h: Handlers = { currentUserId, onLike, onReply, onDelete, onReplyAttach };
+  const h: Handlers = { currentUserId, onLike, onReply, onDelete, onReplyAttach, onReact, onUnreact };
   return (
     <div className="ct">
       {comments.map((c) => <CommentNode key={c.id} c={c} depth={0} h={h} />)}

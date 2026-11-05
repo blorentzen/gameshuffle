@@ -613,6 +613,9 @@
   letter-spacing: -0.01em;
   margin: var(--spacing-12) 0 var(--spacing-16);
   text-wrap: balance;
+  /* A long one-word title (a player's name) breaks rather than running off a phone. */
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 .browse-hero__sub {
   font-size: var(--font-size-18);

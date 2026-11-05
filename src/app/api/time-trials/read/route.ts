@@ -38,6 +38,6 @@ export async function POST(req: Request) {
   // The screenshot still counts as proof when it can't be read (or the day's reads are used up).
   if (!res.ok) return NextResponse.json({ ok: true, proofUrl: shot.url, read: null, error: res.error, left: res.error === "cap" ? 0 : undefined });
   // What the screen showed, signed: the add route keeps it (proof checks compare it with the saved time and laps).
-  const token = signRead({ url: shot.url, timeMs: res.read.timeMs, laps: res.read.laps });
+  const token = signRead({ url: shot.url, timeMs: res.read.timeMs, laps: res.read.laps, parts: res.read.parts });
   return NextResponse.json({ ok: true, proofUrl: shot.url, read: res.read, readToken: token, left: res.left }, { headers: { "Cache-Control": "private, no-store" } });
 }

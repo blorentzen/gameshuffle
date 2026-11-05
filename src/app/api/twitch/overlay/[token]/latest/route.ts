@@ -45,6 +45,7 @@ import type { BreakView } from "@/lib/break/types";
 import { getViewerCountsForOwner } from "@/lib/streams/viewers";
 import { mmrTokenFor } from "@/lib/mmr/store";
 import { warPieceFor } from "@/lib/wars/streamPiece";
+import { seriesPieceFor } from "@/lib/series/store";
 import { roomOverlayFor } from "@/lib/lounge/roomServer";
 
 export const runtime = "nodejs";
@@ -107,7 +108,7 @@ export async function GET(
     return null;
   });
 
-  const [viewers, mmrToken, loungeRoom, warPiece, wheelSpin, overlayEvents, layouts, poll, bingo, draft, brainParts, trivia, breakScreen, resolved] = await Promise.all([
+  const [viewers, mmrToken, loungeRoom, warPiece, seriesPiece, wheelSpin, overlayEvents, layouts, poll, bingo, draft, brainParts, trivia, breakScreen, resolved] = await Promise.all([
     // All-up viewer count (Twitch today; cached ~20s so this 2s poll doesn't hit
     // Helix every tick). Null on failure — the overlay just hides the badge.
     getViewerCountsForOwner(ownerUserId).catch(() => null),
@@ -117,6 +118,8 @@ export async function GET(
     roomOverlayFor(ownerUserId).catch(() => null),
     // The war channel the streamer added to this overlay (GS Pro; the piece reads its own war link; cached 10s).
     warPieceFor(ownerUserId).catch(() => null),
+    // The live team series this streamer plays in, and their team (the piece reads the series' own feed; cached 30s).
+    seriesPieceFor(ownerUserId).catch(() => null),
     readWheelSpin(ownerUserId),
     // Generic streamer-tool overlay events (dice, coin, oracle, …). Owner-keyed
     // and session-independent, like wheel spins; the client dedups by id.
@@ -165,6 +168,7 @@ export async function GET(
       mmrToken,
       loungeRoom,
       warPiece,
+      seriesPiece,
     });
   }
 
@@ -206,6 +210,7 @@ export async function GET(
     mmrToken,
     loungeRoom,
     warPiece,
+    seriesPiece,
   });
 }
 

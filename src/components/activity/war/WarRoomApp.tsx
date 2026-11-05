@@ -7,18 +7,21 @@
  * moves down as it does for the card's own buttons (the same store, src/lib/wars/room.ts).
  *
  * Signs in like GameShuffle's Activity (one SDK handshake per frame, authorize then our session), but as GameShuffle
- * Competitive (`app: "comp"`). Polls /api/activity/war every 1.5 seconds while it's on screen.
+ * Competitive (`app: "comp"`). Polls /api/activity/war every 1.5 seconds while it's on screen. A second tab, Time
+ * trials (TtScreen), shows the server's records with your gaps and takes a time from a screenshot.
  * Development only: /discord/activity?app=comp&preview=guest&name=Sam&guild=<id>&channel=<id> signs in without Discord.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
-import { Button, Card, Input } from "@empac/cascadeds";
+import { Button, Card, Input, Tabs } from "@empac/cascadeds";
 import { IconSearch, IconSwords } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { SITE_URL } from "@/lib/seo";
 import type { RoomStart, RoomState, RoomWarChoice } from "@/lib/wars/room";
 import { WarScreen } from "./WarScreen";
+import { TtScreen } from "./TtScreen";
+import { CansScreen } from "./CansScreen";
 import { TeamMark } from "./bits";
 import { warSdk } from "./sdk";
 import "@/styles/war-room.css";
@@ -93,8 +96,7 @@ export function WarRoomApp({ clientId }: { clientId: string | null }) {
     <main className="wr-app">
       <header className="wr-top">
         <span className="wr-top__mark" aria-hidden="true"><IconSwords size={18} stroke={2} /></span>
-        <span className="wr-top__name">War room</span>
-        <span className="wr-top__by">GameShuffle Competitive</span>
+        <span className="wr-top__name">GameShuffle Competitive</span>
       </header>
       {phase.kind === "starting" && <p className="wr-note" role="status">Signing you in…</p>}
       {phase.kind === "outside" && (
@@ -110,8 +112,28 @@ export function WarRoomApp({ clientId }: { clientId: string | null }) {
           <Button variant="secondary" onClick={() => { setPhase({ kind: "starting" }); run(); }}>Try again</Button>
         </Card>
       )}
-      {phase.kind === "ready" && <Room session={phase.session} />}
+      {phase.kind === "ready" && <Screens session={phase.session} />}
     </main>
+  );
+}
+
+/** The app's two screens. */
+function Screens({ session }: { session: string }) {
+  const [tab, setTab] = useState("war");
+  const auth = useCallback((init: RequestInit = {}) => ({ ...init, headers: { ...(init.headers ?? {}), Authorization: `Bearer ${session}`, "Content-Type": "application/json" } }), [session]);
+  return (
+    <Tabs
+      variant="underline"
+      size="small"
+      className="wr-apptabs"
+      activeTab={tab}
+      onChange={setTab}
+      tabs={[
+        { id: "war", label: "War room", content: <Room session={session} /> },
+        { id: "tt", label: "Time trials", content: <TtScreen auth={auth} /> },
+        { id: "cans", label: "Cans", content: <CansScreen auth={auth} /> },
+      ]}
+    />
   );
 }
 
@@ -187,10 +209,11 @@ function PickWar({ wars, onPick, onStart }: { wars: RoomWarChoice[]; onPick: (id
 type Team = { tag: string; name: string | null; logo: string | null; from?: string };
 
 function StartWar({ start, auth, act, onBack }: { start: RoomStart; auth: (init?: RequestInit) => RequestInit; act: (b: Record<string, unknown>) => Promise<boolean>; onBack?: () => void }) {
-  const [q, setQ] = useState("");
+  // A lineup locked with /cans for about now fills in the other team and ours.
+  const [q, setQ] = useState(start.lineup?.vs ?? "");
   const [teams, setTeams] = useState<Team[]>([]);
-  const [vs, setVs] = useState<Team | null>(null);
-  const [us, setUs] = useState(start.us?.tag ?? "");
+  const [vs, setVs] = useState<Team | null>(start.lineup?.vs ? { tag: start.lineup.vs, name: null, logo: null } : null);
+  const [us, setUs] = useState(start.us?.tag ?? start.lineup?.tag ?? "");
   const [game, setGame] = useState(start.game);
   const [busy, setBusy] = useState(false);
 
@@ -215,6 +238,12 @@ function StartWar({ start, auth, act, onBack }: { start: RoomStart; auth: (init?
   return (
     <section className="wr-panel" aria-labelledby="wr-start">
       <h1 id="wr-start" className="wr-h">Start a war</h1>
+      {start.lineup && (
+        <div className="wr-lineup">
+          <span className="wr-label">Lineup locked for {new Date(start.lineup.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}{start.lineup.vs ? ` vs ${start.lineup.vs}` : ""}</span>
+          <p className="wr-note">{start.lineup.players.join(", ")}{start.lineup.subs.length ? ` · sub ${start.lineup.subs.join(", ")}` : ""}</p>
+        </div>
+      )}
       <div className="wr-field">
         <label htmlFor="wr-vs">Who you&apos;re playing</label>
         <Input id="wr-vs" iconBefore={IconSearch} value={q} onChange={(e) => { setQ(e.target.value); setVs(null); }} placeholder="Search teams or type a tag" fullWidth autoComplete="off" />
@@ -239,8 +268,8 @@ function StartWar({ start, auth, act, onBack }: { start: RoomStart; auth: (init?
       <div className="wr-field" role="group" aria-labelledby="wr-game-l">
         <span id="wr-game-l" className="wr-label">Game</span>
         <div className="wr-row">
-          <Button variant={game === "mkworld" ? "primary" : "secondary"} aria-pressed={game === "mkworld"} onClick={() => setGame("mkworld")}>Mario Kart World</Button>
           <Button variant={game === "mk8dx" ? "primary" : "secondary"} aria-pressed={game === "mk8dx"} onClick={() => setGame("mk8dx")}>Mario Kart 8 Deluxe</Button>
+          <Button variant={game === "mkworld" ? "primary" : "secondary"} aria-pressed={game === "mkworld"} onClick={() => setGame("mkworld")}>Mario Kart World</Button>
         </div>
       </div>
       <p className="wr-help">The card goes in {start.channel ? `#${start.channel}` : "this channel"}, so everyone outside the call sees the score too.</p>

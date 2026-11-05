@@ -229,7 +229,7 @@ export default function AppsPage() {
             />
             <AppCard
               title="Competitive Mario Kart"
-              description="Lounge stats for any player, time trial boards for every track, your lounge MMR on stream, tournaments and live scoring, for Mario Kart World and 8 Deluxe."
+              description="Lounge stats for any player, time trial boards for every track, your lounge MMR on stream, tournaments and live scoring, for Mario Kart 8 Deluxe and World."
               imageSrc="/images/bg/MK8DX_Background_Music.jpg"
               imageAlt="Mario Kart 8 Deluxe competitive"
               href="/competitive-mario-kart"

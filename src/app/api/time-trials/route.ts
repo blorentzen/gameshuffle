@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     player: actor.player, userId: actor.userId, identityId: null,
     game, track, cc: cc as TtClass, items: cat.items, vehicle: cat.vehicle, timeMs, proof: "screenshot", proofUrl: body.proofUrl,
     readByAi: !!read?.timeMs && read.timeMs === timeMs, source: "site",
-    laps, readMs: read?.timeMs ?? null, readLaps: read?.laps ?? null,
+    laps, readMs: read?.timeMs ?? null, readLaps: read?.laps ?? null, parts: read?.parts ?? null,
   });
   if (!res.ok) return NextResponse.json(res, { status: res.error === "not_ready" ? 503 : 400 });
   if (video) await setVideo(actor.player, res.timeId, video);

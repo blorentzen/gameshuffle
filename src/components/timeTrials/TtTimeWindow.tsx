@@ -9,16 +9,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Avatar, Button, Modal } from "@empac/cascadeds";
-import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconFlag, IconLink, IconShieldCheck, IconThumbUp, IconTrophy, IconVideo } from "@tabler/icons-react";
+import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconLink, IconShieldCheck, IconTable, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
-import { formatLap, formatTime, ordinal } from "@/lib/timeTrials/rules";
+import { COMMUNITY_VOUCHES, formatGap, formatLap, formatTime, ordinal } from "@/lib/timeTrials/rules";
 import type { TimeStatus, TtTimeDetail } from "@/lib/timeTrials/detail";
+import { TtAddShot } from "./TtAddShot";
 
 export function StatusChip({ status }: { status: TimeStatus }) {
   switch (status) {
     case "verified": return <span className="tt-chip tt-chip--ok"><IconCircleCheck size={14} aria-hidden="true" /> Verified</span>;
+    case "sheet": return <span className="tt-chip tt-chip--sheet"><IconTable size={14} aria-hidden="true" /> Top 10 sheet</span>;
+    case "community": return <span className="tt-chip tt-chip--community"><IconUsersGroup size={14} aria-hidden="true" /> Community verified</span>;
     case "trusted": return <span className="tt-chip tt-chip--trust"><IconShieldCheck size={14} aria-hidden="true" /> Trusted</span>;
     case "review": return <span className="tt-chip tt-chip--review">Under review</span>;
     case "waiting": return <span className="tt-chip tt-chip--wait"><IconClock size={14} aria-hidden="true" /> Clip in review</span>;
@@ -29,7 +32,6 @@ export function StatusChip({ status }: { status: TimeStatus }) {
 }
 
 const VOUCH_ERRORS: Record<string, string> = {
-  not_eligible: "Only players with a checked time can vouch.",
   own: "That's your own time.",
   gone: "That time isn't on the board any more.",
   slow_down: "That's a lot of vouches. Try again later.",
@@ -44,6 +46,8 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
   const [missing, setMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Bumped after a screenshot is added, to read the time again.
+  const [tick, setTick] = useState(0);
   const toast = useToast();
 
   useEffect(() => {
@@ -55,7 +59,7 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
       if (j.ok && j.time) setTime(j.time); else setMissing(true);
     }).catch(() => { if (live) setMissing(true); });
     return () => { live = false; };
-  }, [timeId]);
+  }, [timeId, tick]);
 
   async function vouch(on: boolean) {
     if (!time) return;
@@ -92,7 +96,15 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
               <section className="tt-win__sec" aria-labelledby="tt-win-proof">
                 <h3 id="tt-win-proof">Proof</h3>
                 <div className="tt-win__btns">
-                  {time.proofUrl ? <a className="empac-button empac-button--secondary empac-button--small" href={time.proofUrl} target="_blank" rel="noopener noreferrer"><IconCamera size={16} aria-hidden="true" /> Open the picture</a> : <span className="tt-muted">No screenshot (imported)</span>}
+                  {time.proofUrl ? <a className="empac-button empac-button--secondary empac-button--small" href={time.proofUrl} target="_blank" rel="noopener noreferrer"><IconCamera size={16} aria-hidden="true" /> Open the picture</a>
+                    : time.sheet ? (
+                      <>
+                        {time.sheet.link && <a className="empac-button empac-button--secondary empac-button--small" href={time.sheet.link} target="_blank" rel="noopener noreferrer nofollow"><IconExternalLink size={16} aria-hidden="true" /> The sheet&apos;s proof</a>}
+                        {time.sheet.page && <a className="empac-button empac-button--secondary empac-button--small" href={time.sheet.page} target="_blank" rel="noopener noreferrer"><IconTable size={16} aria-hidden="true" /> {time.sheet.label} sheet</a>}
+                      </>
+                    )
+                    : time.you ? <TtAddShot timeId={time.id} game={time.game} timeMs={time.timeMs} onDone={() => setTick((t) => t + 1)} />
+                    : <span className="tt-muted">No screenshot (imported)</span>}
                   {time.videoUrl && <a className="empac-button empac-button--secondary empac-button--small" href={time.videoUrl} target="_blank" rel="noopener noreferrer"><IconVideo size={16} aria-hidden="true" /> Watch the clip</a>}
                 </div>
               </section>
@@ -100,15 +112,34 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
                 <h3 id="tt-win-laps">Laps</h3>
                 {time.laps?.length ? (
                   <>
+                    {time.splits && (
+                      <p className="tt-win__splits">
+                        Beside <Link href={time.splits.page}>{time.splits.name}</Link>&apos;s {formatTime(time.splits.timeMs)}{time.splits.record ? ", the record" : ", the fastest time here with laps"}
+                      </p>
+                    )}
                     <ol className="tt-win__laps">
-                      {time.laps.map((l, i) => (
-                        <li key={i}><span>Lap {i + 1}</span><b>{formatLap(l)}</b>{time.bestLap === i && <span className="tt-chip tt-chip--ok"><IconTrophy size={12} aria-hidden="true" /> Best lap</span>}</li>
-                      ))}
+                      {time.laps.map((l, i) => {
+                        const other = time.splits?.laps[i];
+                        const gap = other == null ? null : l - other;
+                        return (
+                          <li key={i}>
+                            <span>Lap {i + 1}</span><b>{formatLap(l)}</b>
+                            {gap != null && <span className={`tt-win__gap${gap < 0 ? " tt-win__gap--ahead" : gap > 0 ? " tt-win__gap--behind" : ""}`}>{gap === 0 ? "Even" : `${gap < 0 ? "−" : "+"}${formatGap(Math.abs(gap))}`}<span className="sr-only">{gap < 0 ? " faster" : gap > 0 ? " slower" : ""} than {time.splits!.name}&apos;s lap {i + 1}, {formatLap(other!)}</span></span>}
+                            {time.bestLap === i && <span className="tt-chip tt-chip--ok"><IconTrophy size={12} aria-hidden="true" /> Best lap</span>}
+                          </li>
+                        );
+                      })}
                     </ol>
                     {!time.lapsAddUp && <p className="tt-note">These laps don&apos;t add up to the time; an updater is looking.</p>}
                   </>
                 ) : <p className="tt-muted">Not recorded for this time.</p>}
               </section>
+              {time.parts && (
+                <section className="tt-win__sec" aria-labelledby="tt-win-combo">
+                  <h3 id="tt-win-combo">Combo</h3>
+                  <p className="tt-win__combo">{[time.parts.body, time.parts.wheels, time.parts.glider].filter(Boolean).join(" · ")}</p>
+                </section>
+              )}
             </div>
             <div className="tt-win__col">
               <section className="tt-win__sec" aria-labelledby="tt-win-player">
@@ -127,7 +158,7 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
                 <div className="tt-win__status">
                   <StatusChip status={time.status} />
                   {time.verifiedIn.length > 0 && <span className="tt-win__line"><IconCircleCheck size={14} aria-hidden="true" /> Vouched for in {time.verifiedIn.join(", ")}</span>}
-                  {time.vouches > 0 && <span className="tt-win__line"><IconThumbUp size={14} aria-hidden="true" /> {time.vouches} {time.vouches === 1 ? "vouch" : "vouches"} from players with checked times</span>}
+                  {time.vouches > 0 && <span className="tt-win__line"><IconThumbUp size={14} aria-hidden="true" /> {time.vouches} {time.vouches === 1 ? "vouch" : "vouches"}{time.vouches < COMMUNITY_VOUCHES ? ` (${COMMUNITY_VOUCHES} make it Community verified)` : ""}</span>}
                 </div>
               </section>
               <section className="tt-win__sec" aria-labelledby="tt-win-history">

@@ -14,6 +14,7 @@
 
 import { MmrOverlay } from "@/components/mmr/MmrOverlay";
 import { LoungeRoomOverlay } from "@/components/lounge/LoungeRoomOverlay";
+import { SeriesOverlay } from "@/components/series/SeriesOverlay";
 import { WarPiece } from "@/components/wars/WarOverlay";
 import { WarPieceNote, type StreamWarView } from "@/components/wars/WarPieceNote";
 import type { ComponentType } from "react";
@@ -104,6 +105,7 @@ const APPS: OverlayElement[] = [
   { id: "mmr", label: "MMR card", icon: IconChartLine },
   { id: "lounge_room", label: "Tonight's room", icon: IconUsersGroup },
   { id: "war", label: "War score", icon: IconSwords },
+  { id: "series", label: "Team series", icon: IconTrophy },
 ];
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
@@ -567,6 +569,8 @@ export function OverlayLayoutTab({ bare = false }: { bare?: boolean } = {}) {
         return streamWar?.war
           ? <WarPiece token={streamWar.war.token} lookId={streamWar.war.lookId} demoWhenIdle style={style} />
           : <WarPiece sample style={style} />;
+      case "series":
+        return <SeriesOverlay sample style={style} />;
       case "viewers":
         return <ViewerCountOverlay sample style={style} />;
       default:

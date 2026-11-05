@@ -99,6 +99,7 @@ export const COMMAND_GUIDE: Record<string, CommandGuide> = {
   "gs.pull": { group: "admin" },
   "mmr": { group: "race", needs: ["mario-kart"], example: ["!mmr", "🏁 Sam: 7,912 MMR · Gold · 88 to Platinum · #2,562 world · tonight +158 (4-1) · MK World 12P"] },
   "last10": { group: "race", needs: ["mario-kart"], example: ["!last10", "🏁 Sam's last 10: 7-3, +214. Best: 1st, +58. Average score 96."] },
+  "avg": { group: "race", needs: ["mario-kart"], example: ["!avg", "🏁 Sam: average score 82.4, partners 76.1 this season (142 events)."] },
   "tonight": { group: "race", needs: ["mario-kart"], example: ["!tonight", "🏁 Sam tonight: 5 events, 4-1, +158. Into Platinum on event 4."] },
   "compare": { group: "race", needs: ["mario-kart"], example: ["!compare Riley", "🏁 Sam 8,070 (Platinum) vs Riley 8,412 (Platinum). Riley +342, played 31 more events."] },
   "lounge": { group: "race", needs: ["mario-kart"], example: ["!lounge", "🏁 Sam's lounge page: gameshuffle.co/lounge/Sam"] },

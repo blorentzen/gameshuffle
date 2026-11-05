@@ -29,6 +29,18 @@ export type MkcResult =
 type Proof = { type?: string | null; url?: string | null };
 type Rec = { track?: string; time_ms?: number; validation_status?: string; proofs?: Proof[] | null };
 
+/** The country MKCentral's registry has for a Discord account (lower case), or null (none, or MKCentral didn't answer). */
+export async function mkcentralCountry(discordId: string): Promise<string | null> {
+  if (!/^\d{5,25}$/.test(discordId)) return null;
+  try {
+    const found = (await getJson(`/registry/players?discord_id=${discordId}`)) as { player_list?: { country_code?: string | null }[] };
+    const c = found.player_list?.[0]?.country_code;
+    return c ? c.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
 /** A player's MKCentral time trial times for Mario Kart World, as import rows. */
 export async function mkcentralTimes(discordId: string): Promise<MkcResult> {
   if (!/^\d{5,25}$/.test(discordId)) return { ok: false, error: "mkc_none" };

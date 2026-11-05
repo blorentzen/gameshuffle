@@ -16,7 +16,7 @@ import { NameEveryPokemon } from "@/components/pokemon/NameEveryPokemon";
 import { ShareChallengeProvider } from "@/components/share/ShareChallenge";
 import { ShareFriendCard } from "@/components/share/ShareFriendCard";
 import { loadShare } from "@/lib/share/store";
-import { GAME_NAME, challengeSub, challengeTitle, loungeHeadline, loungeSub, shareAlt, shareLines, shareTitle, type LoungePart, type ShareData } from "@/lib/share/types";
+import { GAME_NAME, challengeSub, challengeTitle, loungeHeadline, loungeSub, mmrLine, shareAlt, shareLines, shareTitle, type LoungePart, type MmrPart, type ShareData } from "@/lib/share/types";
 import { nightOf } from "@/lib/lounge/season";
 import { previewText, shareMeta } from "@/lib/og/meta";
 import { dayKey } from "@/lib/originals/daily";
@@ -46,6 +46,7 @@ const ACCENT: Record<ShareData["kind"], { accent: "daily" | "dex" | "fire" | "we
   names: { accent: "dex", field: "dex" },
   lounge: { accent: "blue", field: "compete" },
   duel: { accent: "duel", field: "duel" },
+  mmr: { accent: "blue", field: "compete" },
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
@@ -53,7 +54,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   const share = await loadShare(code);
   if (!share) return { title: "Result not found", robots: { index: false, follow: false } };
   const title = shareTitle(share.data);
-  if (share.data.kind === "lounge") {
+  if (share.data.kind === "lounge" || share.data.kind === "mmr") {
     return {
       title,
       description: previewText(shareAlt(share.data)),
@@ -78,7 +79,7 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
 /** The game the link opens: the card's game, or the Daily Shuffle for a day card. */
 function gameFor(d: ShareData): "shuffle" | "dex" | "fire" | "weekly" | "names" | "duel" {
   const k = d.parts[0]?.kind;
-  if (d.kind === "day" || !k || k === "supporter" || k === "lounge") return "shuffle";
+  if (d.kind === "day" || !k || k === "supporter" || k === "lounge" || k === "mmr") return "shuffle";
   return k;
 }
 
@@ -89,6 +90,7 @@ export default async function SharedResultPage({ params }: { params: Promise<{ c
   const d = share.data;
   if (d.kind === "supporter") return <SupporterResult code={code} d={d} version={Date.parse(share.updatedAt)} />;
   if (d.kind === "lounge" && d.parts[0]?.kind === "lounge") return <LoungeResult code={code} d={d} p={d.parts[0]} version={Date.parse(share.updatedAt)} />;
+  if (d.parts[0]?.kind === "mmr") return <MmrResult code={code} d={d} p={d.parts[0]} />;
   const today = dayKey();
   const game = gameFor(d);
   const { accent, field } = ACCENT[d.kind];
@@ -177,6 +179,34 @@ function LoungeResult({ code, d, p, version }: { code: string; d: ShareData; p: 
       <Container className="tool-page share-result">
         {/* eslint-disable-next-line @next/next/no-img-element -- our own drawn card, sized by CSS */}
         <img className="share-result__card" src={`/r/${code}/card?size=wide&v=${version}`} alt={shareAlt(d)} width={1200} height={630} />
+        {d.player?.profile && <p className="share-result__who">More from <Link href={d.player.profile}>{d.player.name}</Link> on GameShuffle.</p>}
+      </Container>
+    </main>
+  );
+}
+
+/**
+ * A shared MMR card (picks 2026-11-04, 6A): the card as it is now, the player's lounge page and Make your own
+ * MMR card. The picture is drawn live (at most 10 minutes old), so the address carries no version.
+ */
+function MmrResult({ code, d, p }: { code: string; d: ShareData; p: MmrPart }) {
+  const page = `${p.page}${p.page.includes("?") ? "&" : "?"}src=share-mmr`;
+  return (
+    <main>
+      <BrowseHero
+        eyebrow="MMR card"
+        title={`${p.name}'s MMR card`}
+        sub={mmrLine(p)}
+        subShort={mmrLine(p)}
+        accent="blue"
+        field="compete"
+        primary={{ href: page, label: `See ${p.name}'s lounge page` }}
+        secondary={{ href: "/mmr-card?src=share-mmr", label: "Make your own MMR card" }}
+        compact
+      />
+      <Container className="tool-page share-result">
+        {/* eslint-disable-next-line @next/next/no-img-element -- our own drawn card, sized by CSS */}
+        <img className="share-result__card" src={`/r/${code}/card?size=wide`} alt={shareAlt(d)} width={1200} height={630} />
         {d.player?.profile && <p className="share-result__who">More from <Link href={d.player.profile}>{d.player.name}</Link> on GameShuffle.</p>}
       </Container>
     </main>

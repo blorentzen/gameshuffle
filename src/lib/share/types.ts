@@ -13,7 +13,7 @@ import { fmtMmr, placeWord, signed } from "@/lib/mmr/rules";
 import { duelHeadline } from "@/lib/originals/duel/rules";
 import type { DuelPicture } from "@/lib/originals/duel/view";
 
-export type ShareKind = "shuffle" | "dex" | "fire" | "weekly" | "day" | "supporter" | "names" | "lounge" | "duel";
+export type ShareKind = "shuffle" | "dex" | "fire" | "weekly" | "day" | "supporter" | "names" | "lounge" | "duel" | "mmr";
 export type ShareCell = "match" | "close" | "miss";
 
 /** Who's on the card: an account with a public profile, or a guest's leaderboard name. Null = the guest card with no name. */
@@ -119,6 +119,29 @@ export interface LoungePart {
 }
 
 /**
+ * An MMR card as a picture (picks 2026-11-04, 4A to 8A). The words here are the card when it was shared (the
+ * page's title and alt text); the picture itself is drawn from the card as it is now, at most 10 minutes old.
+ * One link per look, for good (MMR_SHARE_DAY), so a link in a bio keeps working.
+ */
+export interface MmrPart {
+  kind: "mmr";
+  game: "mkworld12p" | "mkworld24p" | "mk8dx";
+  /** "MK World 12P". */
+  gameLabel: string;
+  name: string;
+  division: string;
+  mmr: number | null;
+  worldRank: number | null;
+  /** The look shared: the picture shows it as it is now. */
+  look: string;
+  /** "/lounge/Kevo" (with ?game= past the default game). */
+  page: string;
+}
+
+/** Every MMR card link sits on this one day: the share table keys links by day, and a card's link never changes. */
+export const MMR_SHARE_DAY = "2026-11-01";
+
+/**
  * The Daily Duel (picks 2026-10-21): the server's own record of a finished duel of this player's.
  * The trainer, won or lost, turns against par, the time, and a square per card of your six. Never
  * a card's name.
@@ -146,7 +169,7 @@ export interface DuelPart {
   picture?: DuelPicture | null;
 }
 
-export type SharePart = PuzzlePart | FirePart | WeeklyPart | SupporterPart | NamesPart | LoungePart | DuelPart;
+export type SharePart = PuzzlePart | FirePart | WeeklyPart | SupporterPart | NamesPart | LoungePart | DuelPart | MmrPart;
 
 export interface ShareData {
   v: 1;
@@ -173,6 +196,8 @@ export interface ShareRequest {
   lounge?: { game: string; night?: string | null };
   /** The Daily Duel: one of this player's finished duels (today's official one when left out). */
   duelRun?: string;
+  /** The signed-in player's MMR card, in one of its looks (the look in use when left out). */
+  mmr?: { look?: string | null };
 }
 
 /** POST /api/share's answer. */
@@ -268,10 +293,16 @@ export function loungeBest(p: LoungePart): string | null {
   return `Best event: ${place}${p.best.format && p.best.format !== "FFA" ? ` (${p.best.format})` : ""}, ${signed(p.best.delta)}`;
 }
 
+/** "Grandmaster · 15,618 MMR · #3 in the world". */
+export function mmrLine(p: Pick<MmrPart, "division" | "mmr" | "worldRank">): string {
+  return [p.division, p.mmr != null ? `${fmtMmr(p.mmr)} MMR` : null, p.worldRank ? `#${p.worldRank.toLocaleString("en-US")} in the world` : null].filter(Boolean).join(" · ");
+}
+
 /** The card's game line: "The Daily Shuffle #22", "Fire Round #1", "Fire Round · Geography, 3 minutes". */
 export function partTitle(p: SharePart): string {
   if (p.kind === "duel") return `The Daily Duel${p.number >= 1 ? ` #${p.number}` : " warm-up"}${p.practice ? " · practice" : ""}`;
   if (p.kind === "lounge") return `${p.gameLabel} lounge`;
+  if (p.kind === "mmr") return `${p.gameLabel} MMR card`;
   if (p.kind === "supporter") return "Supporter";
   if (p.kind === "names") return p.set === "all" ? "Name every Pokémon" : `Name every Pokémon · ${p.setLabel}`;
   if (p.kind === "fire") return p.daily ? `Fire Round${p.number >= 1 ? ` #${p.number}` : ""}` : `Fire Round · ${p.categoryLabel}, ${p.lengthLabel.toLowerCase()}`;
@@ -283,6 +314,7 @@ export function partTitle(p: SharePart): string {
 export function partLine(p: SharePart): string {
   if (p.kind === "duel") return p.won ? `won in ${p.turns}${p.par ? ` (par ${p.par})` : ""}${p.seconds != null ? ` · ${shareTime(p.seconds)}` : ""}` : `lost · ${p.knocked} of ${p.team} out`;
   if (p.kind === "lounge") return `${signed(p.net)} · ${p.wins}-${p.losses}`;
+  if (p.kind === "mmr") return mmrLine(p);
   if (p.kind === "supporter") return supporterSince(p);
   if (p.kind === "names") return `${p.count.toLocaleString("en-US")} of ${p.of.toLocaleString("en-US")}`;
   if (p.kind === "fire") return `${p.score.toLocaleString("en-US")} · ${p.right} right`;
@@ -297,6 +329,7 @@ export function shareTitle(d: ShareData): string {
   const p = d.parts[0];
   if (p?.kind === "supporter") return `${d.player?.name ?? "A supporter"} keeps game night free`;
   if (p?.kind === "lounge") return `${p.name}'s lounge night: ${signed(p.net)}, ${p.wins}-${p.losses}`;
+  if (p?.kind === "mmr") return `${p.name}'s MMR card`;
   if (!d.player) return inviteTitle(d);
   const who = d.player.name;
   if (p?.kind === "names") return `${who} named ${p.count.toLocaleString("en-US")} of ${p.of.toLocaleString("en-US")} Pokémon`;
@@ -322,6 +355,7 @@ export function inviteTitle(d: ShareData): string {
   if (p.kind === "duel") return p.won ? `${p.trainer} beaten in ${p.turns} turns in ${partTitle(p)}. Can you do it faster?` : `${p.trainer} won ${partTitle(p)}. Can you beat them?`;
   if (p.kind === "weekly") return "This week's Weekly Challenge is open. What's your answer?";
   if (p.kind === "supporter" || p.kind === "lounge") return `${partTitle(p)} on GameShuffle`;
+  if (p.kind === "mmr") return `${p.name}'s MMR card`;
   const t = partTitle(p);
   if (!p.solved) return `${t} got away. Can you crack today's?`;
   return p.saved ? `${t}, saved on the last chance. Can you do better?` : `${t} in ${p.guesses} ${p.guesses === 1 ? "guess" : "guesses"}. Can you beat it?`;
@@ -330,7 +364,7 @@ export function inviteTitle(d: ShareData): string {
 /** The card's lines as text (the description's body), without who played. */
 export function shareLines(d: ShareData): string {
   return d.parts.map((p) => {
-    if (p.kind === "lounge") return `${partTitle(p)}: ${partLine(p)}.`;
+    if (p.kind === "lounge" || p.kind === "mmr") return `${partTitle(p)}: ${partLine(p)}.`;
     if (p.kind === "supporter") return supporterSince(p);
     if (p.kind === "names") return `${partTitle(p)}: ${partLine(p)} named in ${shareTime(p.seconds)} (${p.clockLabel.toLowerCase()}).`;
     if (p.kind === "fire") return `${partTitle(p)}: ${p.score.toLocaleString("en-US")} points, ${p.right} right, best streak ${p.bestStreak}${p.place ? `, ${ordinalPlace(p.place)} today` : ""}.`;
@@ -347,6 +381,7 @@ export function shareAlt(d: ShareData): string {
     const best = loungeBest(lp);
     return `${lp.name}'s Mario Kart lounge night in ${lp.gameLabel}: ${signed(lp.net)} MMR, ${loungeRecord(lp)} in ${lp.events} ${lp.events === 1 ? "event" : "events"}.${lp.newDivision ? ` Into ${lp.newDivision}.` : ""}${lp.mmr != null ? ` Now ${fmtMmr(lp.mmr)}, ${lp.division}.` : ""}${best ? ` ${best}.` : ""}`;
   }
+  if (lp?.kind === "mmr") return `${lp.name}'s Mario Kart MMR card in ${lp.gameLabel}: ${mmrLine(lp)}.`;
   if (d.parts[0]?.kind === "supporter") return `${d.player ? `${d.player.name} supports GameShuffle` : "Someone supports GameShuffle"}: keeping game night free. ${supporterSince(d.parts[0])}.`;
   const pic = d.kind !== "day" && d.parts[0]?.kind === "duel" ? d.parts[0].picture : null;
   return `${d.player ? `${d.player.name} on GameShuffle. ` : "A result shared from GameShuffle. "}${shareLines(d)}${pic ? ` With the picture of ${pic.alt}.` : ""}`;
@@ -391,6 +426,7 @@ function inviteHeader(d: ShareData, today: string): string {
   if (p.kind === "supporter") return shareTitle(d);
   // A lounge card always names its own lounge player, whoever's account made it.
   if (p.kind === "lounge") return `${loungeHeadline(p, today)}.`;
+  if (p.kind === "mmr") return `${p.name}'s MMR card`;
   if (p.kind === "duel") {
     if (now) return p.won ? `${p.trainer} beaten in ${p.turns} turns. Your turn.` : `${p.trainer} won today's duel. Your turn.`;
     return p.won ? `${cap(possessive(when))} duel, won in ${p.turns} turns.` : `${cap(possessive(when))} duel got away.`;
@@ -417,6 +453,7 @@ export function challengeTitle(d: ShareData, today: string): string {
   if (p.kind === "weekly") return `${who} answered the Weekly Challenge. Your turn.`;
   if (p.kind === "supporter") return shareTitle(d);
   if (p.kind === "lounge") return `${loungeHeadline(p, today)}.`;
+  if (p.kind === "mmr") return `${p.name}'s MMR card`;
   if (p.kind === "duel") {
     if (now) return p.won ? `${who} beat ${p.trainer} in ${p.turns} turns. Your turn.` : `${who} lost to ${p.trainer}. Your turn.`;
     const on = when === "yesterday" ? "yesterday" : `on ${when}`;
@@ -431,6 +468,7 @@ export function challengeSub(d: ShareData, today: string): string {
   const p = d.parts[0];
   const now = d.day === today;
   if (p?.kind === "lounge") return loungeSub(p);
+  if (p?.kind === "mmr") return mmrLine(p);
   if (p?.kind === "names") return "Type as many Pokémon as you can before the clock runs out.";
   if (d.kind === "day") return now ? "Start with the Daily Shuffle. The same puzzles for everyone today." : "Today's puzzles are new, and the same for everyone. Start with the Daily Shuffle.";
   if (p?.kind === "fire") return p.daily && !now ? "Today's round is new: 60 seconds, the same questions for everyone. Your turn." : "Today's round: 60 seconds of trivia, the same questions for everyone.";

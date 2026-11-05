@@ -5,10 +5,10 @@ import { readLines, linesLookRight, bestPerTrack } from "../src/lib/timeTrials/i
 import { TT_GAMES, TT_GAME_ORDER, ttTracks, ttTrack, ttCups, trackKey, trackFromKey, searchTracks, matchTrack, trackPath, gameBySlug, isClassFor, trackBySegment, gamePath } from "../src/lib/timeTrials/tracks";
 import { abbreviationTable, readQuaxly, embedText, yourRows, newBests, readTitle, nameKey } from "../src/lib/timeTrials/quaxly";
 import { toCheckRows, checkSummary } from "../src/lib/timeTrials/importRows";
-import { readCategory, categoryQuery, categoryText, vehiclesFor, isItems, isVehicle, onBoard, boardsFor, vehicleFor } from "../src/lib/timeTrials/categories";
+import { readCategory, categoryQuery, categoryText, vehiclesFor, isItems, isVehicle, onBoard, boardsFor, vehicleFor, vehicleLabel } from "../src/lib/timeTrials/categories";
 import { parseLap, formatLap, lapsAddUp, cleanLaps, LAP_SLACK_MS } from "../src/lib/timeTrials/rules";
 import { playerPagePath, readPlayerSlug } from "../src/lib/timeTrials/playerPath";
-import { isVerified } from "../src/lib/timeTrials/rules";
+import { isVerified, timeStatus, COMMUNITY_VOUCHES } from "../src/lib/timeTrials/rules";
 import { fasterThanRecord, recordFor } from "../src/lib/timeTrials/records";
 
 let pass = 0, fail = 0;
@@ -278,7 +278,7 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   eq(readCategory("mk8dx", { items: "none", vehicle: "scooty" }), { items: "none", vehicle: "scooty" }, "no mushrooms, Mr. Scooty");
   eq(readCategory("mkworld", { items: "none", vehicle: "teddy" }), { items: "none", vehicle: "any" }, "no vehicle boards in World");
   eq(readCategory("mk8dx", { items: "mushrooms", vehicle: "kart" }), { items: "shrooms", vehicle: "any" }, "unknown values fall back");
-  eq(vehiclesFor("mk8dx"), ["any", "inside_drift", "yoshi_bike", "teddy", "biddybuggy", "scooty"], "MK8DX vehicle boards");
+  eq(vehiclesFor("mk8dx"), ["any", "inside_drift", "teddy", "biddybuggy", "scooty"], "MK8DX vehicle boards");
   eq(vehiclesFor("mkworld"), ["any", "rob_hog"], "World: the open board and R.O.B.-HOG");
   ok(isItems("none") && !isItems("nita"), "items values");
   ok(isVehicle("inside_drift") && !isVehicle("bike"), "vehicle values");
@@ -325,14 +325,16 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   eq(onBoard("yoshi_bike", "inside_drift"), false, "an inside drift time isn't a Yoshi Bike time");
   eq(onBoard("any", "teddy"), true, "every time counts on the open board");
   eq(onBoard("teddy", "scooty"), false, "other vehicle boards keep to their vehicle");
-  eq(boardsFor("mk8dx", "yoshi_bike"), ["any", "yoshi_bike", "inside_drift"], "a Yoshi Bike time's boards");
+  eq(boardsFor("mk8dx", "yoshi_bike"), ["any", "inside_drift"], "a Yoshi Bike time's boards (the Yoshi Bike board folded into Inside drift)");
+  eq(vehicleFor("mk8dx", "yoshi_bike"), "inside_drift", "a Yoshi Bike link opens Inside drift");
+  eq(vehicleLabel("rob_hog"), "Swoop, R.O.B.-HOG", "the World kart board is named for both karts");
   eq(boardsFor("mkworld", "rob_hog"), ["any", "rob_hog"], "World R.O.B.-HOG boards");
   eq(boardsFor("mkworld", "teddy"), ["any"], "an MK8DX vehicle on World is the open board");
   eq(vehicleFor("mk8dx", "rob_hog"), "any", "R.O.B.-HOG isn't an MK8DX board");
   eq(vehicleFor("mkworld", "rob_hog"), "rob_hog", "R.O.B.-HOG on World");
   eq(isVehicle("biddybuggy"), true, "Biddybuggy is a vehicle");
   eq(readCategory("mkworld", { vehicle: "rob_hog" }).vehicle, "rob_hog", "World reads R.O.B.-HOG from the address");
-  eq(categoryText("mkworld", 150, "shrooms", "rob_hog", false), "mushrooms, R.O.B.-HOG", "World category text names the vehicle");
+  eq(categoryText("mkworld", 150, "shrooms", "rob_hog", false), "mushrooms, Swoop, R.O.B.-HOG", "World category text names the vehicle");
   eq(parseLap("34.112"), 34112, "lap seconds");
   eq(parseLap("0:34.112"), 34112, "lap with minutes");
   eq(parseLap("1:02.034"), 62034, "lap over a minute");
@@ -349,6 +351,23 @@ eq(gamePath("mk8dx", 200), "/time-trials/mario-kart-8-deluxe?cc=200", "game page
   eq(cleanLaps([34112, "x"]), null, "bad lap refused");
   eq(cleanLaps([1, 2, 3]), null, "laps under 5 seconds refused");
   eq(cleanLaps(new Array(8).fill(30000)), null, "too many laps refused");
+}
+
+// Community verified (players' feedback, picks 2026-11-04): ten vouches, below a checked clip and a review.
+{
+  const base = { review: false, video: "none" as const, videoUrl: null, top: false, trusted: false, you: false, vouches: 0 };
+  eq(COMMUNITY_VOUCHES, 10, "ten vouches");
+  eq(timeStatus(base), "none", "a time outside the top ten with no vouches carries no label");
+  eq(timeStatus({ ...base, vouches: 9 }), "none", "nine vouches isn't enough");
+  eq(timeStatus({ ...base, vouches: 10 }), "community", "ten vouches: Community verified, top ten or not");
+  eq(timeStatus({ ...base, top: true, vouches: 10 }), "community", "a top-ten time with ten vouches");
+  eq(timeStatus({ ...base, top: true, vouches: 10, video: "checked" as const }), "verified", "a checked clip still wins");
+  eq(timeStatus({ ...base, top: true, vouches: 10, review: true }), "review", "an open report pauses the mark");
+  eq(timeStatus({ ...base, top: true }), "unverified", "a top-ten time with nothing is Unverified");
+  eq(timeStatus({ ...base, top: true, trusted: true }), "trusted", "Trusted for a top-ten time");
+  eq(timeStatus({ ...base, top: true, video: "waiting" as const, videoUrl: "https://youtu.be/x" }), "waiting", "a clip in review");
+  eq(timeStatus({ ...base, top: true, video: "rejected" as const, you: true }), "rejected", "your own rejected clip");
+  eq(timeStatus({ ...base, top: true, video: "rejected" as const }), "unverified", "someone else's rejected clip reads as Unverified");
 }
 
 console.log(`${pass} passed, ${fail} failed`);

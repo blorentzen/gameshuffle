@@ -11,10 +11,10 @@ import { useId, useState, type ReactNode } from "react";
 import { Button, FormField, Input, Modal } from "@empac/cascadeds";
 import { IconArrowsLeftRight } from "@tabler/icons-react";
 import { Select } from "@/components/ui/Select";
-import { MMR_GAMES, MMR_GAME_IDS, type MmrGame } from "@/lib/mmr/rules";
+import { MMR_GAMES, MMR_GAME_IDS, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { EVENTS, track } from "@/lib/analytics/events";
 
-export function LoungeCompare({ first = "", game: startGame = "mkworld12p", from, trigger }: {
+export function LoungeCompare({ first = "", game: startGame = DEFAULT_MMR_GAME, from, trigger }: {
   /** The first player, filled in (a player's own page). */
   first?: string;
   game?: MmrGame;

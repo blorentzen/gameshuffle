@@ -30,7 +30,7 @@ import { LoungeShareNight } from "@/components/mmr/LoungeShareNight";
 import { nightFor } from "@/lib/lounge/night";
 import { TableScroll } from "@/components/ui/TableScroll";
 import { LoungeUnavailable, loungeGames } from "@/lib/mmr/mkcentral";
-import { MMR_GAMES, MMR_GAME_IDS, formSquares, isEvent, isMmrGame, placeWord, type MmrChange, type MmrGame } from "@/lib/mmr/rules";
+import { MMR_GAMES, MMR_GAME_IDS, formSquares, isEvent, isMmrGame, placeWord, type MmrChange, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import {
   byFormat, byTier, bestEvent, formatOf, lastEvents, lateInNight, nights, paceTo, placements, seasonSeries, topShare, worstEvent,
 } from "@/lib/lounge/season";
@@ -68,7 +68,7 @@ const fmt = (n: number | null | undefined) => (n == null ? "?" : Math.round(n).t
 const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : n < 0 ? `−${fmt(Math.abs(n))}` : "0");
 const pathFor = (name: string, game: MmrGame, season?: number | null) => {
   const q = new URLSearchParams();
-  if (game !== "mkworld12p") q.set("game", game);
+  if (game !== DEFAULT_MMR_GAME) q.set("game", game);
   if (season) q.set("season", String(season));
   const s = q.toString();
   return `/lounge/${encodeURIComponent(name)}${s ? `?${s}` : ""}`;
@@ -83,10 +83,19 @@ const tierWord = (t: string | null) => (t === "SQ" ? "Squad queue" : t ? `Tier $
 const formatWord = (c: MmrChange) => { const f = formatOf(c); return f === "FFA" ? "Free-for-all" : f; };
 const Delta = ({ n }: { n: number }) => <span className={n >= 0 ? "lounge-up" : "lounge-down"}>{signed(n)}</span>;
 
+/** No game in the address: Mario Kart 8 Deluxe, unless the player only plays other lounges (then their first one).
+ *  Keeps older links (from when MK World was the default) landing on the player's own lounge. */
+const gameFor = cache(async (name: string, asked: unknown): Promise<{ game: MmrGame; registered: MmrGame[] | null; looked: boolean }> => {
+  if (isMmrGame(asked)) return { game: asked, registered: null, looked: false };
+  const registered = await loungeGames(name).catch(() => null);
+  const game = !registered?.length || registered.includes(DEFAULT_MMR_GAME) ? DEFAULT_MMR_GAME : MMR_GAME_IDS.find((g) => registered.includes(g)) ?? DEFAULT_MMR_GAME;
+  return { game, registered, looked: true };
+});
+
 export async function generateMetadata({ params, searchParams }: Params): Promise<Metadata> {
   const name = decodeURIComponent((await params).name);
   const sp = await searchParams;
-  const game: MmrGame = isMmrGame(sp.game) ? sp.game : "mkworld12p";
+  const { game } = await gameFor(name, sp.game);
   const { profile } = await read(name, game, seasonParam(sp.season));
   if (!profile) return { title: `${name}: lounge stats`, robots: { index: false, follow: true } };
   const p = profile.player;
@@ -108,8 +117,9 @@ export async function generateMetadata({ params, searchParams }: Params): Promis
 export default async function LoungePlayerPage({ params, searchParams }: Params) {
   const name = decodeURIComponent((await params).name);
   const sp = await searchParams;
-  const game: MmrGame = isMmrGame(sp.game) ? sp.game : "mkworld12p";
-  const [{ profile, down }, registered] = await Promise.all([read(name, game, seasonParam(sp.season)), loungeGames(name).catch(() => null)]);
+  const picked = await gameFor(name, sp.game);
+  const game = picked.game;
+  const [{ profile, down }, registered] = await Promise.all([read(name, game, seasonParam(sp.season)), picked.looked ? Promise.resolve(picked.registered) : loungeGames(name).catch(() => null)]);
   // Only the games the player is registered in (MKCentral lists them); every game when it doesn't say.
   const gameIds = MMR_GAME_IDS.filter((id) => !registered?.length || registered.includes(id) || id === game);
   const games = gameIds.length > 1 ? (
@@ -240,7 +250,7 @@ export default async function LoungePlayerPage({ params, searchParams }: Params)
       ) : (
         <p className="lounge-next__line">{profile.division === "Placement" ? "Still in placement." : `${profile.division} is the top division.`}</p>
       )}
-      <p className="lounge-next__more"><ArrowLink href={`/lounge${game === "mkworld12p" ? "" : `?game=${game}`}#divisions`}>What the divisions mean</ArrowLink></p>
+      <p className="lounge-next__more"><ArrowLink href={`/lounge${game === DEFAULT_MMR_GAME ? "" : `?game=${game}`}#divisions`}>What the divisions mean</ArrowLink></p>
     </section>
   );
 
@@ -444,7 +454,7 @@ export default async function LoungePlayerPage({ params, searchParams }: Params)
                     <TableBody>
                       {rivals.map((r) => (
                         <TableRow key={r.playerId}>
-                          <TableCell><Link href={`/lounge/compare/${encodeURIComponent(cur.name)}/${encodeURIComponent(r.name)}${game === "mkworld12p" ? "" : `?game=${game}`}`}>{r.name}</Link></TableCell>
+                          <TableCell><Link href={`/lounge/compare/${encodeURIComponent(cur.name)}/${encodeURIComponent(r.name)}${game === DEFAULT_MMR_GAME ? "" : `?game=${game}`}`}>{r.name}</Link></TableCell>
                           <TableCell align="right">{r.events}</TableCell>
                           <TableCell align="right">{r.ahead}-{r.behind}</TableCell>
                         </TableRow>

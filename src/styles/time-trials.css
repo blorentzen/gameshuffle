@@ -29,10 +29,24 @@
 .tt-trow__name { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .tt-trow__track { font-weight: 600; font-size: var(--font-size-16); overflow-wrap: anywhere; }
 .tt-trow__me { font-size: var(--font-size-14); font-weight: 600; color: var(--brand-ink, var(--primary-700)); font-variant-numeric: tabular-nums; }
-.tt-trow__rec { flex: none; display: grid; gap: 2px; text-align: right; }
+.tt-trow__rec { flex: 0 1 auto; min-width: 0; max-width: 55%; display: grid; gap: 2px; text-align: right; }
 .tt-trow__rec b { font-variant-numeric: tabular-nums; font-size: var(--font-size-16); }
 .tt-trow__rec span { font-size: var(--font-size-14); color: var(--text-secondary); }
 .tt-trow__none { flex: none; font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Who holds the record: flag, name (one line, "…" when long) and its label, which never splits. */
+.tt-trow__by { display: flex; align-items: center; justify-content: flex-end; gap: var(--spacing-4); min-width: 0; }
+.tt-trow__who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tt-trow__status { flex: none; white-space: nowrap; }
+.tt-trow__status::before { content: "· "; }
+/* A narrow card (four across on wide screens, phones) has no room for the record beside the name: it goes under the
+   name, next to the picture, so track names never break letter by letter. Text keeps its size. */
+.tt-cupcard { container-type: inline-size; }
+@container (max-width: 480px) {
+  .tt-trow { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--spacing-12); row-gap: 2px; }
+  .tt-trow > .tt-track__pic { grid-row: 1 / span 2; }
+  .tt-trow__rec, .tt-trow__none { grid-column: 2; text-align: left; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--spacing-8); max-width: none; }
+  .tt-trow__by { flex: 1 1 12rem; justify-content: flex-start; }
+}
 .tt-cup__table { min-width: 32rem; }
 .tt-track__pic { width: 6.4rem; height: 3.6rem; border-radius: var(--radius-6); object-fit: cover; flex: none; background: var(--background-secondary); }
 .tt-track__pic--blank { display: inline-grid; place-items: center; font-weight: 700; font-size: var(--font-size-16); color: var(--text-secondary); }
@@ -205,7 +219,7 @@
 .tt-stats div { display: grid; gap: var(--spacing-2); }
 .tt-stats dt { font-size: var(--font-size-12); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-secondary); }
 .tt-stats dd { margin: 0; font-family: var(--font-display); font-size: var(--font-size-28, 2.8rem); font-weight: 700; font-variant-numeric: tabular-nums; }
-.tt-stats small { font-size: var(--font-size-14); color: var(--text-secondary); }
+.tt-stats small, .tt-stats dd.tt-stats__sub { font-family: inherit; font-size: var(--font-size-14); font-weight: 400; color: var(--text-secondary); }
 /* Track codes before names (MKS, rMMM): the short names comp players use. */
 .tt-code { display: inline-block; margin-right: var(--spacing-8); padding: 0 var(--spacing-6, 6px); border-radius: var(--radius-4, 4px); background: var(--background-secondary); color: var(--text-primary); font-family: var(--font-mono, ui-monospace, Menlo, monospace); font-size: var(--font-size-14); font-weight: 700; line-height: 1.6; text-decoration: none; }
 .tt-trackname { white-space: nowrap; }
@@ -262,6 +276,7 @@
 
 /* Round 3: Trusted and Under review labels, flags, a time that opens its window, and the window itself. */
 .tt-chip--trust { background: #e5efff; color: #1d4a92; border-color: transparent; }
+.tt-chip--community { background: #dff3f4; color: #0e5c63; border-color: transparent; }
 .tt-chip--review { background: #f3e8ff; color: #5b2a86; border-color: transparent; }
 .tt-flag { width: 2rem; height: 1.5rem; object-fit: contain; border-radius: 2px; flex: none; vertical-align: middle; }
 .tt-board__timebtn { display: inline-flex; align-items: center; min-height: 2.4rem; background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline; text-decoration-color: var(--border-default); text-underline-offset: 3px; }
@@ -281,6 +296,12 @@
 .tt-win__laps li { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-bottom: 1px solid var(--border-default); font-size: var(--font-size-16); }
 .tt-win__laps li span:first-child { color: var(--text-secondary); min-width: 5rem; }
 .tt-win__laps b { font-variant-numeric: tabular-nums; }
+/* Round 4: lap splits against the record, and times from the Top 10 sheets. */
+.tt-win__splits { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.tt-win__gap { font-variant-numeric: tabular-nums; font-size: var(--font-size-14); color: var(--text-secondary); min-width: 6rem; }
+.tt-win__gap--ahead { color: var(--success-700, #1d7a45); }
+.tt-win__gap--behind { color: var(--error-700, #b3261e); }
+.tt-chip--sheet { background: #fdf0dc; color: #6b3d00; border-color: transparent; }
 .tt-win__who { display: flex; align-items: center; gap: var(--spacing-12); }
 .tt-win__name { font-weight: 600; font-size: var(--font-size-18); }
 .tt-win__meta { margin: 2px 0 0; display: flex; align-items: center; gap: var(--spacing-8); color: var(--text-secondary); font-size: var(--font-size-14); }
@@ -296,7 +317,25 @@
 .tt-nr li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) 0; border-bottom: 1px solid var(--border-default); font-size: var(--font-size-16); }
 .tt-nr__country { display: inline-flex; align-items: center; gap: var(--spacing-8); min-width: 16rem; }
 .tt-nr__time { font-weight: 700; font-variant-numeric: tabular-nums; }
+.tt-nr__who, .tt-colname { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tt-colname { display: inline-block; max-width: 14rem; vertical-align: bottom; }
 .tt-country { display: flex; align-items: flex-end; gap: var(--spacing-12); max-width: 44rem; }
 .tt-country__flag { width: 3.2rem; height: 2.4rem; margin-bottom: 3.2rem; }
 .tt-country > :last-child { flex: 1 1 auto; min-width: 0; }
 .tt-updater-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--spacing-12); align-items: end; }
+/* Add screenshots to imported times (players' feedback, picks 2026-11-04, 21A). */
+.tt-import__shotlist { display: grid; gap: var(--spacing-12); }
+.tt-import__shotlist ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.tt-import__shotlist li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-8) var(--spacing-12); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-default); }
+
+/* Round 4: national records on the home, the one-time country ask, "This is me" on a Top 10 sheet listing. */
+.tt-national { display: flex; align-items: center; gap: var(--spacing-8); margin: 0; }
+.tt-trow__flag { width: 1.8rem; height: 1.35rem; margin-right: var(--spacing-4); }
+.tt-country-ask { margin-block: var(--spacing-16); }
+.tt-country-ask p { margin: 0 0 var(--spacing-12); }
+.tt-country-ask__row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--spacing-12); }
+.tt-country-ask__row .empac-form-field { flex: 1 1 22rem; min-width: 0; margin: 0; }
+.tt-claim { display: grid; gap: var(--spacing-8); justify-items: start; }
+.tt-queue__sub { margin: var(--spacing-24) 0 var(--spacing-8); font-size: var(--font-size-16); font-weight: 600; }
+.tt-add__parts { margin: var(--spacing-4) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.tt-win__combo { margin: 0; font-size: var(--font-size-16); }

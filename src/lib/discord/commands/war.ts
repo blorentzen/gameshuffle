@@ -97,7 +97,7 @@ export async function handleWarCommand(interaction: Record<string, unknown>): Pr
   const usTag = cleanTag(get("us")) || channel?.team?.tag || "";
   if (!usTag) return say("This channel doesn't know your team yet. Run /war again with us: and your tag. It remembers it after that.");
   if (usTag.toLowerCase() === them.toLowerCase()) return say("Your team and theirs have the same tag. Check vs: and us:.");
-  const game: WarGame = isGame(get("game")) ? (get("game") as WarGame) : channel?.game ?? "mkworld";
+  const game: WarGame = isGame(get("game")) ? (get("game") as WarGame) : channel?.game ?? "mk8dx";
   const entry: WarEntry = isEntry(get("entry")) ? (get("entry") as WarEntry) : channel?.entry ?? "scorer";
 
   const appId = String(interaction.application_id ?? "");
@@ -135,7 +135,7 @@ export async function warAutocomplete(interaction: Record<string, unknown>): Pro
   const { guildId, channelId } = where(interaction);
   const channel = guildId && channelId && (await warsReady()) ? await warChannel(guildId, channelId).catch(() => null) : null;
   const gameRaw = opts.find((o) => o.name === "game")?.value;
-  const game: WarGame = isGame(gameRaw) ? gameRaw : channel?.game ?? "mkworld";
+  const game: WarGame = isGame(gameRaw) ? gameRaw : channel?.game ?? "mk8dx";
   const played = guildId && (await warsReady()) ? await playedTeams(guildId).catch(() => []) : [];
   const lower = q.toLowerCase();
   const fromPlayed = played

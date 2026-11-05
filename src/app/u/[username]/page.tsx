@@ -79,6 +79,8 @@ import { ARCADE_ITEM_BY_ID, resolveNameColor } from "@/data/arcade-items";
 import { ArcadeBadgeIcon } from "@/components/arcade/ArcadeBadgeIcon";
 import { IconDeviceGamepad2, IconHeart, IconMessageCircle, IconMusic, IconPin } from "@tabler/icons-react";
 import { SupporterBadge } from "@/components/support/SupporterBadge";
+import { getBannerGif } from "@/lib/gifs/banner";
+import { ProfileGifBanner } from "@/components/profile/ProfileGifBanner";
 
 export async function generateMetadata({
   params,
@@ -265,7 +267,7 @@ export default async function PublicProfilePage({
   const { data: skinRow } = await supabase.from("users").select("profile_skin").eq("id", profile.id).maybeSingle();
   // Skins and custom CSS are GS Pro: shown while the owner has it (kept either way).
   // Skins and custom CSS are looks: GS Pro, or support sold with looks (Supporter looks, 2026-10-29).
-  const ownerPro = await ownerHasLooks(profile.id);
+  const [ownerPro, bannerGif] = await Promise.all([ownerHasLooks(profile.id), getBannerGif(profile.id)]);
   const skin = resolveProfileSkin(ownerPro ? (skinRow as { profile_skin?: unknown } | null)?.profile_skin : null);
   const skinBg = skinBackground(skin);
 
@@ -405,6 +407,11 @@ export default async function PublicProfilePage({
   if (enrichment.supporter) badges.push({ key: "supporter", label: supporterLabel, href: "/support" });
   // One of the first 100 supporters keeps this for good, even after their support ends.
   if (enrichment.foundingSupporter) badges.push({ key: "founding-supporter", label: "Founding supporter", href: "/credits" });
+
+  // GameShuffle team series (the GS Summer Series): champions, and everyone who played.
+  for (const h of enrichment.seriesHonors ?? []) {
+    badges.push({ key: `series-${h.path}`, label: h.champion ? `${h.title} champion` : h.title, href: h.path });
+  }
 
   // Weekly Challenge: a top-10 week (the count shows once there's more than one).
   if (enrichment.weeklyTopTen) {
@@ -767,11 +774,15 @@ export default async function PublicProfilePage({
           artwork it edits. The banner is aria-hidden, so the bar is a sibling
           inside the band rather than a child of it. */}
       <div className="profile-banner-band">
-        <div
-          className="profile-banner"
-          aria-hidden="true"
-          style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
-        />
+        {bannerGif ? (
+          <ProfileGifBanner url={bannerGif.url} still={bannerGif.still} x={bannerGif.x} y={bannerGif.y} animate={ownerPro} />
+        ) : (
+          <div
+            className="profile-banner"
+            aria-hidden="true"
+            style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
+          />
+        )}
         {viewer && viewer.id === profile.id && (
           <OwnerBar
             note="Your profile"

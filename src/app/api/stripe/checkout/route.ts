@@ -82,7 +82,9 @@ export async function POST(request: Request) {
       ? "Your GS Circuit 256 plan already includes GS Pro."
       : access.sources[0] === "support_level"
         ? "Your support level already includes GS Pro. Manage it from Account ▸ Support GameShuffle."
-        : "You already have GS Pro. Manage it from Plans & billing.";
+        : access.sources[0] === "gift"
+          ? "GameShuffle gave you GS Pro for now. You can start a plan once that ends."
+          : "You already have GS Pro. Manage it from Plans & billing.";
     return NextResponse.json({ error: "already_pro", source: access.sources[0], message }, { status: 409 });
   }
 

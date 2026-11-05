@@ -122,11 +122,11 @@ export default async function TrackBoardPage({ params, searchParams }: Props) {
                     {countryName(n.country)}
                   </span>
                   <span className="tt-nr__time">{formatTime(n.timeMs)}</span>
-                  <Link href={n.page}>{n.name}</Link>
+                  <Link href={n.page} className="tt-nr__who" title={n.name}>{n.name}</Link>
                 </li>
               ))}
             </ul>
-            <p className="tt-note">Each country&apos;s best on this board. Players set their country on their times page.</p>
+            <p className="tt-note">Each country&apos;s best on this board, from the country on each player&apos;s account.</p>
           </section>
         )}
         <TtDiscordLine returnTo={path} needsLink={!!actor && !actor.discordLinked} />

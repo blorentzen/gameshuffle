@@ -1,0 +1,26 @@
+/* The team series piece on the GameShuffle overlay (SeriesOverlay). Sized in rem like the other pieces; the
+   overlay's placement scales it. Always dark: it sits on top of the game. */
+
+.sso { z-index: 40; pointer-events: none; }
+.sso__card { width: 34rem; display: grid; gap: 1rem; padding: 1.4rem 1.6rem; border-radius: 1.6rem; background: rgba(12, 16, 40, 0.92); border: 1px solid rgba(255, 255, 255, 0.14); color: #fff; box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.35); font-family: var(--font-body, system-ui), sans-serif; }
+.sso__top { display: grid; gap: 0.2rem; }
+.sso__top span { font-size: 1.2rem; letter-spacing: 0.08em; text-transform: uppercase; color: #c9cdff; font-weight: 600; }
+.sso__top b { font-family: var(--font-display, inherit); font-size: 1.9rem; font-weight: 700; line-height: 1.2; }
+.sso__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.sso__row { display: grid; grid-template-columns: 4.4rem minmax(0, 1fr) 4.2rem 4.2rem; align-items: center; gap: 1rem; padding: 0.4rem 0.6rem; border-radius: 0.8rem; font-size: 1.6rem; }
+.sso__row.is-me { background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
+.sso__tag { display: grid; place-items: center; height: 2.6rem; border-radius: 0.6rem; font-family: var(--font-display, inherit); font-size: 1.3rem; font-weight: 800; letter-spacing: 0.04em; }
+.sso__bar { height: 0.9rem; border-radius: 1rem; background: rgba(255, 255, 255, 0.14); overflow: hidden; }
+.sso__bar i { display: block; height: 100%; background: var(--tc); transition: width 0.6s ease; }
+.sso__pts { text-align: right; font-variant-numeric: tabular-nums; font-size: 1.7rem; }
+.sso__gain { justify-self: end; font-size: 1.4rem; font-weight: 700; color: #7ee2a0; font-variant-numeric: tabular-nums; animation: sso-pop 0.8s ease-out; }
+@keyframes sso-pop { 0% { transform: scale(1.6); opacity: 0; } 60% { transform: scale(1); opacity: 1; } }
+.sso__draft { display: grid; gap: 0.8rem; }
+.sso__clock { display: grid; grid-template-columns: 4.4rem minmax(0, 1fr) auto; align-items: center; gap: 1rem; }
+.sso__who { display: grid; min-width: 0; }
+.sso__who b { font-size: 1.7rem; }
+.sso__who small { font-size: 1.3rem; color: #c9cdff; }
+.sso__secs { font-size: 2.4rem; font-variant-numeric: tabular-nums; }
+.sso__line { margin: 0; font-size: 1.4rem; color: #dfe2ff; line-height: 1.35; }
+.sso__foot { font-size: 1.3rem; color: #b8bde0; }
+@media (prefers-reduced-motion: reduce) { .sso__gain { animation: none; } .sso__bar i { transition: none; } }

@@ -191,6 +191,10 @@ export async function upsertSubscriptionFromStripe(args: {
       tier = "pro";
       status = grant.status;
       await markSupportGrant(grant.id).catch(() => null);
+    } else {
+      // Nor from an account GameShuffle gave GS Pro to until a date (pro_gifts).
+      const { liveGift } = await import("@/lib/billing/proGifts");
+      if (await liveGift(userId).catch(() => null)) { tier = "pro"; status = "active"; }
     }
   }
   const hasTrialedPatch =

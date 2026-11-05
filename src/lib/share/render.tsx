@@ -23,7 +23,7 @@ import { fmtMmr, signed } from "@/lib/mmr/rules";
 import { duelHeadline } from "@/lib/originals/duel/rules";
 import { artCrop, pictureByName } from "@/lib/originals/duel/pictures";
 import type { DuelPicture } from "@/lib/originals/duel/view";
-import { loungeBest, loungeRecord, ordinalPlace, partLine, partTitle, puzzleHeadline, puzzleVibe, shareTime, supporterSince, type DuelPart, type LoungePart, type NamesPart, type FirePart, type PuzzlePart, type ShareCell, type ShareData, type SharePart, type SupporterPart, type WeeklyPart } from "./types";
+import { loungeBest, loungeRecord, ordinalPlace, partLine, partTitle, puzzleHeadline, puzzleVibe, shareTime, supporterSince, type DuelPart, type LoungePart, type MmrPart, type NamesPart, type FirePart, type PuzzlePart, type ShareCell, type ShareData, type SharePart, type SupporterPart, type WeeklyPart } from "./types";
 
 type Look = "shuffle" | "dex" | "fire" | "weekly" | "day" | "supporter" | "names" | "lounge" | "duel";
 const LOOK: Record<Look, { base: string; glow: string; field: GlyphName[]; kicker: string; link: string; cta: string }> = {
@@ -38,7 +38,7 @@ const LOOK: Record<Look, { base: string; glow: string; field: GlyphName[]; kicke
   // The Daily Duel: gold on navy (apart from the other dailies' violet, orange, red and teal); the gold dark enough for white text (4.8:1).
   duel: { base: "#0b1433", glow: "radial-gradient(circle at 0% 0%, #a87a17 0%, #5a4210 30%, #16224f 68%, #0b1433 100%)", field: ["cards", "crown", "bolt", "trophy", "pokeball"], kicker: "#ffe08a", link: "gameshuffle.co/daily-duel", cta: "Can you beat today's trainer? Play free." },
 };
-const PART_GLOW: Record<SharePart["kind"], string> = { shuffle: LOOK.shuffle.glow, dex: LOOK.dex.glow, fire: LOOK.fire.glow, weekly: LOOK.weekly.glow, supporter: LOOK.supporter.glow, names: LOOK.names.glow, lounge: LOOK.lounge.glow, duel: LOOK.duel.glow };
+const PART_GLOW: Record<SharePart["kind"], string> = { mmr: LOOK.lounge.glow, shuffle: LOOK.shuffle.glow, dex: LOOK.dex.glow, fire: LOOK.fire.glow, weekly: LOOK.weekly.glow, supporter: LOOK.supporter.glow, names: LOOK.names.glow, lounge: LOOK.lounge.glow, duel: LOOK.duel.glow };
 
 /** A lounge night's ground: the GameShuffle navy lit from the corner in the division's own color. */
 function loungeGlow(p: LoungePart): string {
@@ -362,10 +362,14 @@ function PlayerLine({ data, a, size, look }: { data: ShareData; a: Assets; size:
   );
 }
 
+/** The parts this file draws: an MMR card is its own picture (src/lib/mmr/picture.tsx), drawn by the card route. */
+type Drawn = Exclude<SharePart, MmrPart>;
+const drawn = (p: SharePart): Drawn => p as Drawn;
+
 function Wide({ data, a, look }: { data: ShareData; a: Assets; look: Look }) {
   const W = 1200, H = 630;
   const t = LOOK[look];
-  const part = data.parts[0];
+  const part = drawn(data.parts[0]);
   const day = data.kind === "day";
   return (
     <div style={{ width: W, height: H, display: "flex", position: "relative", fontFamily: "Outfit", color: "#fff" }}>
@@ -462,7 +466,7 @@ function WeeklyBlock({ p, a, big }: { p: WeeklyPart; a: Assets; big: boolean }) 
 function Tall({ data, a, look }: { data: ShareData; a: Assets; look: Look }) {
   const W = 1080, H = 1920;
   const t = LOOK[look];
-  const part = data.parts[0];
+  const part = drawn(data.parts[0]);
   const day = data.kind === "day";
   return (
     <div style={{ width: W, height: H, display: "flex", position: "relative", fontFamily: "Outfit", color: "#fff" }}>
@@ -546,7 +550,7 @@ function Tall({ data, a, look }: { data: ShareData; a: Assets; look: Look }) {
 export async function renderShareCard(data: ShareData, size: "wide" | "tall"): Promise<Buffer> {
   const tall = size === "tall";
   const [W, H] = tall ? [1080, 1920] : [1200, 630];
-  const look: Look = data.kind === "day" ? "day" : data.parts[0]?.kind ?? "shuffle";
+  const look: Look = data.kind === "day" ? "day" : data.parts[0] ? drawn(data.parts[0]).kind : "shuffle";
   // The duel trainer's picture: the card's own, else (a card made before pictures) their own card by name.
   const dp = data.kind !== "day" && data.parts[0]?.kind === "duel" ? data.parts[0] : null;
   const pic = dp ? dp.picture ?? pictureByName(dp.trainer) : null;

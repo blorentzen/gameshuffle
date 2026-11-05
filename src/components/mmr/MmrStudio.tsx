@@ -53,6 +53,9 @@ import { useMmrPreview, type PreviewMoment } from "./MmrLive";
 import { MmrMoments, MmrRollingControls, MmrWhatsOn } from "./MmrInfoControls";
 import { KeepLooksPanel } from "./KeepLooksPanel";
 import { MmrStarts } from "./MmrStarts";
+import { MmrMakePick, MmrPictureMaker, useMakeMode } from "./MmrMakePicture";
+import type { PictureSize } from "@/lib/mmr/picture";
+import { GifPicker } from "@/components/gifs/GifPicker";
 import { clearDraft, clearPicture, draftFor, getPicture, putPicture, readDraft, writeDraft, type DraftPlan } from "@/lib/mmr/draft";
 
 const noop = () => () => {};
@@ -90,7 +93,9 @@ const pieceNames = (ps: MmrPiece[]) => {
 const EDGES: { v: MmrEdge; label: string }[] = [{ v: "accent", label: "Accent" }, { v: "white", label: "White" }, { v: "division", label: "Division color" }, { v: "custom", label: "Your color" }];
 const ACCENT_PRESETS = PROFILE_ACCENTS.map((a) => ({ value: a.color, label: a.label }));
 const HEX = /^#[0-9a-f]{6}$/i;
-const PIC_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+/** A background picture is a still PNG, JPG or WebP; a moving one is one of your GIFs (never a GIF as a picture). */
+const PIC_TYPES = ["image/png", "image/jpeg", "image/webp"];
+const isGifAddress = (url: string | null) => !!url && /\/gifs\//.test(url);
 
 /** The thank-you once looks are on after a checkout from here. */
 const thanksFor = (plan: string) =>
@@ -129,6 +134,9 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
   const [found, setFound] = useState<Found>(null);
   const [lookup, setLookup] = useState<Lookup>("idle");
   const [uploading, setUploading] = useState(false);
+  const [gifOpen, setGifOpen] = useState(false);
+  /** Picture or GIF, as picked here; until then, whichever the background is. */
+  const [picMode, setPicMode] = useState<"picture" | "gif" | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   // A picture tried before looks are unlocked: an object URL on this device, never uploaded or saved.
   const [tryPic, setTryPic] = useState<string | null>(null);
@@ -143,6 +151,10 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
   const [weekly, setWeekly] = useState(initial?.weeklyReport ?? true);
   const [savingGoal, setSavingGoal] = useState(false);
   const [tab, setTab] = useState("look");
+  // Live card or picture (picks 2026-11-04, 4A): the same look and pieces either way.
+  const [mode, setMode] = useMakeMode();
+  const [picSize, setPicSize] = useState<PictureSize>("square");
+  const picture = mode === "picture";
   const [lineWarn, setLineWarn] = useState(false);
   // The preview's shape, for the OBS size (pieces and recent events change a card's height).
   const previewRef = useRef<HTMLDivElement>(null);
@@ -255,7 +267,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
   }, [look.layout, look.rolling.shape]);
 
   const tryPicture = (file: File) => {
-    if (!PIC_TYPES.includes(file.type)) { toast.error("Use a PNG, JPG, WebP or GIF."); return; }
+    if (!PIC_TYPES.includes(file.type)) { toast.error("Use a still PNG, JPG or WebP. A moving background is one of your GIFs."); return; }
     if (file.size > 4 * 1024 * 1024) { toast.error("That picture is over 4 MB."); return; }
     setTryPic(URL.createObjectURL(file));
     // Kept on this device so it can be uploaded once looks are on (never before).
@@ -290,7 +302,15 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
     const res = await fetch("/api/mmr/picture", { method: "POST", body });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.error === "too_big" ? "That picture is over 4 MB." : data.error === "bad_type" ? "Use a PNG, JPG, WebP or GIF." : data.error === "pro_required" ? `Your own picture is part of ${unlockName}.` : "Couldn't upload that picture. Try again?");
+      toast.error(
+        data.error === "too_big" ? "That picture is over 4 MB."
+        : data.error === "bad_type" ? "Use a still PNG, JPG or WebP."
+        : data.error === "animated" ? "That picture moves. Add it to your GIFs, then pick it under GIF."
+        : data.error === "refused" ? `That picture can't go on the card${data.reason ? `: ${data.reason}` : "."}`
+        : data.error === "check_unavailable" ? "We couldn't check that picture just now. Try again in a minute."
+        : data.error === "pro_required" ? `Your own picture is part of ${unlockName}.`
+        : "Couldn't upload that picture. Try again?",
+      );
       return null;
     }
     return typeof data.url === "string" ? data.url : null;
@@ -533,10 +553,16 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
   const lookChoices = (
     <>
       <fieldset className="mmr-studio__set">
-        <legend>Layout</legend>
-        {chipChoice("layout", (v) => pickLayout(v as MmrLayout))}
-        {look.layout === "rolling" && <MmrRollingControls look={look} onRolling={(rolling) => setLook({ rolling })} />}
-        {(look.layout === "deck" || look.layout === "panel") && (
+        {/* The picture has its own layout per size: only the line up applies to it. */}
+        <legend>{picture ? "Line up" : "Layout"}</legend>
+        {!picture && chipChoice("layout", (v) => pickLayout(v as MmrLayout))}
+        {!picture && look.layout === "rolling" && <MmrRollingControls look={look} onRolling={(rolling) => setLook({ rolling })} />}
+        {picture ? (
+          <div className="mmr-studio__chips" role="group" aria-label="Line up">
+            <Chip label="Left" clickable selected={look.align === "left"} onClick={() => setLook({ align: "left" })} />
+            <Chip label="Center" clickable selected={look.align === "center"} onClick={() => setLook({ align: "center" })} />
+          </div>
+        ) : (look.layout === "deck" || look.layout === "panel") && (
           <div className="mmr-studio__inline" role="group" aria-labelledby="mmr-align-label">
             <span id="mmr-align-label" className="mmr-studio__inline-label">Line up</span>
             <div className="mmr-studio__chips">
@@ -575,15 +601,45 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
         {look.fill !== "picture" && (
           <p className="mmr-studio__note">Use your own picture or GIF: pick &ldquo;Your picture or GIF&rdquo; under Background. It comes with {unlockName}, and you can try one here first.</p>
         )}
-        {look.fill === "picture" && (
-          <div className="mmr-studio__upload">
-            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (looksOk) void upload(f); else tryPicture(f); } e.target.value = ""; }} />
-            <Button size="small" variant="secondary" loading={uploading} onClick={() => fileRef.current?.click()}>
-              {looksOk ? (look.picture ? "Change picture" : "Upload a picture or GIF") : tryPic ? "Try another picture" : "Try a picture or GIF"}
-            </Button>
-            <span>{looksOk ? "PNG, JPG, WebP or GIF, up to 4 MB. It sits under a dark layer so the numbers stay readable." : `See it on your card here. It stays on this device: nothing uploads until you have ${unlockName}.`}</span>
-          </div>
-        )}
+        {look.fill === "picture" && (() => {
+          const mode = picMode ?? (isGifAddress(look.picture) ? "gif" : "picture");
+          const isGif = isGifAddress(look.picture);
+          return (
+            <div className="mmr-studio__upload">
+              <div className="mmr-studio__kind" role="group" aria-label="Background type">
+                <Button size="small" variant={mode === "picture" ? "primary" : "secondary"} aria-pressed={mode === "picture"} onClick={() => setPicMode("picture")}>Picture</Button>
+                <Button size="small" variant={mode === "gif" ? "primary" : "secondary"} aria-pressed={mode === "gif"} onClick={() => setPicMode("gif")}>GIF</Button>
+              </div>
+              {mode === "picture" ? (
+                <>
+                  <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (looksOk) void upload(f); else tryPicture(f); } e.target.value = ""; }} />
+                  <Button size="small" variant="secondary" loading={uploading} onClick={() => fileRef.current?.click()}>
+                    {looksOk ? (look.picture && !isGif ? "Change picture" : "Upload a picture") : tryPic ? "Try another picture" : "Try a picture"}
+                  </Button>
+                  <span>{looksOk
+                    ? isGif ? "Your background is a GIF now. Uploading a picture replaces it." : "A still PNG, JPG or WebP, up to 4 MB. It sits under a dark layer so the numbers stay readable."
+                    : `See it on your card here. It stays on this device: nothing uploads until you have ${unlockName}.`}</span>
+                </>
+              ) : looksOk && !guest ? (
+                <>
+                  <Button size="small" variant="secondary" onClick={() => setGifOpen(true)}>{isGif ? "Change GIF" : "Pick one of your GIFs"}</Button>
+                  <span>{look.picture && !isGif ? "Your background is a picture now. Picking a GIF replaces it." : "One of your GIFs. It keeps playing on stream, under a dark layer so the numbers stay readable."}</span>
+                </>
+              ) : (
+                <span>A GIF background is one of your GIFs, and it comes with {unlockName}.</span>
+              )}
+              <GifPicker
+                open={gifOpen}
+                onClose={() => setGifOpen(false)}
+                start="mine"
+                tabs={["mine", "upload"]}
+                title="A GIF for your card"
+                useLabel="Use as the background"
+                onPick={(p) => { if (p.view.kind === "gif") setLook({ fill: "picture", picture: p.view.gif.url }); }}
+              />
+            </div>
+          );
+        })()}
         {look.font === "google" && (
           <div className="mmr-studio__fontpick">
             <form className="mmr-studio__fontform" onSubmit={(e) => { e.preventDefault(); void checkFont(); }}>
@@ -648,6 +704,8 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
   return (
     <div className="mmr-studio">
 
+      <MmrMakePick mode={mode} onMode={setMode} />
+
       <section className="mmr-studio__who" aria-labelledby="mmr-who">
         <h2 id="mmr-who">{ladders.length ? "Your rating" : "Your lounge name"}</h2>
         <form className="mmr-studio__find" onSubmit={(e) => { e.preventDefault(); if (!look.ladder) void findMe(); }}>
@@ -679,10 +737,23 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
         )}
       </section>
 
-      <MmrStarts look={look} onPick={pickStart} />
+      {!picture && <MmrStarts look={look} onPick={pickStart} />}
 
       <div className="mmr-studio__grid">
         <div className="mmr-studio__view">
+          {picture ? (
+            guest ? (
+              <div className="mmr-studio__pic-wait">
+                <div className="mmr-frame" tabIndex={0} role="region" aria-label="Preview of your MMR card"><MmrCard view={preview.view} look={previewLook} goal={activeGoal} chat={chat} /></div>
+                <p className="mmr-studio__note">Pictures come with a free account: make one and your card comes with you.</p>
+                <div><Button variant="primary" onClick={() => { keepDraft(); window.location.assign(`/signup?redirect=${encodeURIComponent("/mmr-card?then=free&make=picture")}`); }}>Make a free account</Button></div>
+              </div>
+            ) : !found ? (
+              <p className="mmr-studio__note">{look.ladder ? "Your picture shows here once your ladder answers." : "Find your lounge name above and your picture shows here."}</p>
+            ) : (
+              <MmrPictureMaker lookId={look.id} version={card?.updatedAt ?? null} name={found.source.name} size={picSize} onSize={setPicSize} />
+            )
+          ) : (<>
           <div className="mmr-studio__stage">
             <div className="mmr-frame" tabIndex={0} role="region" aria-label="Preview of your MMR card" ref={previewRef}>
               <MmrCard view={preview.view} look={previewLook} play={preview.play} goal={activeGoal} chat={chat} />
@@ -703,6 +774,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
             {obsUrl && <Button size="small" variant="secondary" iconBefore={IconCopy} onClick={copyLink}>Copy OBS link</Button>}
           </div>
           {!found && <p className="mmr-studio__note">{look.ladder ? "The preview plays a made-up night until your ladder answers." : "The preview plays a made-up night until your lounge name is found."}</p>}
+          </>)}
           {!looksOk && (usedPro.length > 0 || then === "pro" || then === "supporter" || then === "backer") && (
             <KeepLooksPanel used={usedPro} guest={guest} autoPlan={guest ? null : then} beforeLeave={keepDraft} />
           )}
@@ -712,26 +784,26 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
           <Tabs
             variant="underline"
             className="mmr-studio__tabs"
-            activeTab={tab}
+            activeTab={picture && tab === "moments" ? "look" : tab}
             onChange={setTab}
             tabs={[
               { id: "look", label: "Look", content: <div className="mmr-studio__pane">{lookChoices}</div> },
               { id: "info", label: "What's on the card", content: <div className="mmr-studio__pane"><MmrWhatsOn look={look} pro={pro} chat={chat} lineWarn={lineWarn} goalSlot={goalSlot} onInfo={(info) => setLook({ info })} onLook={setLook} /></div> },
-              { id: "moments", label: "Moments", content: <div className="mmr-studio__pane"><MmrMoments look={look} pro={pro} onLook={setLook} /></div> },
+              ...(picture ? [] : [{ id: "moments", label: "Moments", content: <div className="mmr-studio__pane"><MmrMoments look={look} pro={pro} onLook={setLook} /></div> }]),
             ]}
           />
         </div>
       </div>
 
-      {guest ? (
+      {guest ? (picture ? null : (
         <section className="mmr-studio__obs" aria-labelledby="mmr-obs">
           <h2 id="mmr-obs">Add it to OBS</h2>
           <p className="mmr-studio__note">Make a free account to get your OBS link. Your card comes with you: it&apos;s kept in this browser until then.</p>
           <div><Button variant="primary" onClick={() => { keepDraft(); window.location.assign(`/signup?redirect=${encodeURIComponent("/mmr-card?then=free")}`); }}>Make a free account</Button></div>
         </section>
-      ) : (
+      )) : (
         <div className="mmr-studio__use">
-          <section className="mmr-studio__obs" aria-labelledby="mmr-obs">
+          {!picture && <section className="mmr-studio__obs" aria-labelledby="mmr-obs">
             <h2 id="mmr-obs">Add it to OBS</h2>
             {obsUrl ? (
               <>
@@ -749,7 +821,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
             ) : (
               <p className="mmr-studio__note">Your link appears here once your card is saved: find your lounge name or change anything above.</p>
             )}
-          </section>
+          </section>}
 
           <section className="mmr-studio__after" aria-labelledby="mmr-after">
             <h2 id="mmr-after">After the stream</h2>

@@ -10,11 +10,14 @@
 
 export type MmrGame = "mkworld12p" | "mkworld24p" | "mk8dx";
 
+/** In the order they're shown: Mario Kart 8 Deluxe leads (Britton, 2026-11-04). */
 export const MMR_GAMES: Record<MmrGame, { label: string; short: string; family: "mario-kart-world" | "mario-kart-8-deluxe" }> = {
+  mk8dx: { label: "Mario Kart 8 Deluxe", short: "MK8DX", family: "mario-kart-8-deluxe" },
   mkworld12p: { label: "Mario Kart World, 12 players", short: "MK World 12P", family: "mario-kart-world" },
   mkworld24p: { label: "Mario Kart World, 24 players", short: "MK World 24P", family: "mario-kart-world" },
-  mk8dx: { label: "Mario Kart 8 Deluxe", short: "MK8DX", family: "mario-kart-8-deluxe" },
 };
+/** The lounge game a page or command opens on when none is given (pages leave it out of their addresses). */
+export const DEFAULT_MMR_GAME: MmrGame = "mk8dx";
 export const MMR_GAME_IDS = Object.keys(MMR_GAMES) as MmrGame[];
 export const isMmrGame = (v: unknown): v is MmrGame => typeof v === "string" && v in MMR_GAMES;
 
@@ -271,7 +274,7 @@ export interface MmrView {
   countryRank: number | null;
   totalPlayers: number | null;
   /** This season so far, worked out from the changes (it matches MKCentral's own numbers, and a moment counts its event). */
-  season: { events: number; wins: number; avgScore: number | null };
+  season: { events: number; wins: number; avgScore: number | null; partnerAvg: number | null };
   /** The newest events, newest first (up to five). */
   recent: MmrRecent[];
   /** When the season peak was first reached (null when it's older than the changes on hand). */
@@ -280,16 +283,19 @@ export interface MmrView {
   ladder: MmrLadderTag | null;
 }
 
-/** This season's events, wins and average score from the changes (newest first). */
+/** This season's events, wins, average score and partner average from the changes (newest first). Partner average
+ *  is every teammate score from team events averaged together, which is how MKCentral works out its own (checked
+ *  against its partnerAverage on real players, 2026-11-04). */
 export function seasonNumbers(changes: MmrChange[]): MmrView["season"] {
-  let events = 0, wins = 0, scored = 0, total = 0;
+  let events = 0, wins = 0, scored = 0, total = 0, partnerCount = 0, partnerTotal = 0;
   for (const c of changes) {
     if (!isEvent(c)) continue;
     events++;
     if (c.delta > 0) wins++;
     if (c.score != null) { scored++; total += c.score; }
+    for (const s of c.partnerScores ?? []) { partnerCount++; partnerTotal += s; }
   }
-  return { events, wins, avgScore: scored ? total / scored : null };
+  return { events, wins, avgScore: scored ? total / scored : null, partnerAvg: partnerCount ? partnerTotal / partnerCount : null };
 }
 
 /** The card as it stood after the change `uptoId` (the latest when left out). */

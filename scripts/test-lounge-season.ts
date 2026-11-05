@@ -113,8 +113,8 @@ eq(tonightLine("Sam", season, new Date(t0 + 60 * 24 * 60_000 - 1).toISOString(),
 eq(tonightLine("Sam", season, new Date(t0 + 999 * 86_400_000).toISOString(), steps), "🏁 Sam hasn't played an event tonight yet.", "tonight before any event");
 eq(compareLine({ name: "Sam", mmr: 8070, division: "Platinum", eventsPlayed: 93 }, { name: "Riley", mmr: 8412, division: "Platinum", eventsPlayed: 124 }), "🏁 Sam 8,070 (Platinum) vs Riley 8,412 (Platinum). Riley +342, played 31 more events.", "compare line");
 eq(compareLine({ name: "A", mmr: 5000, division: "Silver", eventsPlayed: 10 }, { name: "B", mmr: 5000, division: "Silver", eventsPlayed: 12 }), "🏁 A 5,000 (Silver) vs B 5,000 (Silver). Level.", "compare level");
-eq(loungePagePath("Hayai Kuruma", "mkworld12p"), "/lounge/Hayai%20Kuruma", "page path, default game");
-eq(loungePagePath("Kevo", "mk8dx"), "/lounge/Kevo?game=mk8dx", "page path, other game");
+eq(loungePagePath("Kevo", "mk8dx"), "/lounge/Kevo", "page path, default game (Mario Kart 8 Deluxe)");
+eq(loungePagePath("Hayai Kuruma", "mkworld12p"), "/lounge/Hayai%20Kuruma?game=mkworld12p", "page path, other game");
 
 // The night's recap (second night: 7610 → 7700 Platinum → 7740 → 7780, a new peak each time)
 const recap = nightRecap({ changes: season, since: new Date(t0 + 60 * 24 * 60_000 - 1).toISOString(), steps, mmr: 7780, division: null });

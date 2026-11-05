@@ -18,7 +18,7 @@ import type { TtPlayer } from "@/lib/timeTrials/rules";
 import { weekClimbers } from "@/lib/lounge/lookupServer";
 import { linksFor } from "@/lib/lounge/store";
 import { cardFor } from "@/lib/mmr/store";
-import { MMR_GAME_IDS, MMR_GAMES, type MmrGame } from "@/lib/mmr/rules";
+import { MMR_GAME_IDS, MMR_GAMES, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 
 const MK_SLUGS = ["mario-kart-8-deluxe", "mario-kart-world"];
 const WEEK_MS = 7 * 86_400_000;
@@ -92,7 +92,7 @@ export async function climbersThisWeek(limit = 3): Promise<HubClimber[] | null> 
     .filter((r) => r.weekChange != null && r.weekChange < 0);
   return rows.sort((a, b) => (a.weekChange ?? 0) - (b.weekChange ?? 0)).slice(0, limit).map((r) => ({
     name: r.name, game: r.game, mmr: r.mmr, division: r.division, climbed: -(r.weekChange ?? 0),
-    href: `/lounge/${encodeURIComponent(r.name)}${r.game === "mkworld12p" ? "" : `?game=${r.game}`}`,
+    href: `/lounge/${encodeURIComponent(r.name)}${r.game === DEFAULT_MMR_GAME ? "" : `?game=${r.game}`}`,
   }));
 }
 
@@ -155,7 +155,7 @@ export async function hubYou(userId: string, player: TtPlayer): Promise<HubYou> 
     lounge: best ? {
       name: best.name, game: best.game, gameShort: MMR_GAMES[best.game].short, mmr: best.mmr, division: best.division, worldRank: best.worldRank,
       week: best.mmr != null && best.weekMmr != null ? best.mmr - best.weekMmr : null,
-      href: `/lounge/${encodeURIComponent(best.name)}${best.game === "mkworld12p" ? "" : `?game=${best.game}`}`,
+      href: `/lounge/${encodeURIComponent(best.name)}${best.game === DEFAULT_MMR_GAME ? "" : `?game=${best.game}`}`,
     } : null,
     times: {
       tracks: new Set(open.map((b) => `${b.game}|${b.track}`)).size,

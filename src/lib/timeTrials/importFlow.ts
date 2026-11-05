@@ -20,12 +20,16 @@ export async function bestsMap(player: TtActor["player"], game: TtGame, items: T
   return new Map(bests.filter((b) => b.game === game && b.items === items && b.vehicle === "any").map((b) => [`${b.track}|${b.cc}`, b.timeMs]));
 }
 
-export interface SaveTally { saved: number; already: number; refused: number; skipped: number }
+export interface SaveTally {
+  saved: number; already: number; refused: number; skipped: number;
+  /** The times just saved (no proof yet): the import's results offer Add a screenshot on each (picks 2026-11-04, 21A). */
+  times: { id: string; track: string; cc: number; timeMs: number }[];
+}
 
 /** Saves rows that beat the saved best (source "import", no proof); the record floor is checked in addTime. */
 export async function saveImported(actor: TtActor, game: TtGame, rows: { track: string; cc: number; time: number; video?: string | null }[], guildId: string | null = null, items: TtItems = "shrooms"): Promise<SaveTally> {
   const bests = await bestsMap(actor.player, game, items);
-  const tally: SaveTally = { saved: 0, already: 0, refused: 0, skipped: 0 };
+  const tally: SaveTally = { saved: 0, already: 0, refused: 0, skipped: 0, times: [] };
   const seen = new Set<string>();
   for (const r of rows.slice(0, 300)) {
     const k = `${r.track}|${r.cc}`;
@@ -36,6 +40,7 @@ export async function saveImported(actor: TtActor, game: TtGame, rows: { track: 
     const res = await addTime({ player: actor.player, userId: actor.userId, identityId: actor.identityId, game, track: r.track, cc: r.cc as TtClass, items, vehicle: "any", timeMs: r.time, proof: "none", proofUrl: null, readByAi: false, source: "import", guildId });
     if (res.ok) {
       tally.saved++;
+      if (!res.again) tally.times.push({ id: res.timeId, track: r.track, cc: r.cc, timeMs: r.time });
       // A video that came with the time (MKCentral's proof) goes to the reviewers as its clip.
       const v = r.video ? videoProof(r.video) : null;
       if (v) await setVideo(actor.player, res.timeId, v);

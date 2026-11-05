@@ -161,3 +161,71 @@ html.dark body:has(.wr-app) { background: #05070b; }
   .wr-score__pts { font-size: var(--font-size-28); }
   .wr-mini { display: block; grid-column: 1 / -1; margin: 0; text-align: center; color: var(--wr-soft); font-size: var(--font-size-14); }
 }
+
+/* The app's two screens (War room, Time trials) */
+.wr-apptabs .empac-tabs__header { margin-bottom: 1.6rem; }
+.wr-apptabs > .empac-tabs__content, .wr-apptabs > .empac-tabs__content > .empac-tabs__panel { padding-top: 0; }
+.wr-apptabs .empac-tabs__tab { color: var(--wr-soft); }
+.wr-apptabs .empac-tabs__tab--active { color: var(--wr-ice); }
+
+/* Time trials */
+.wr-tt { display: grid; gap: 1.2rem; }
+.wr-tt__controls { display: grid; gap: .8rem; }
+.wr-tt__sum { display: flex; flex-wrap: wrap; gap: .8rem 1.2rem; align-items: center; justify-content: space-between; }
+.wr-tt__list { list-style: none; margin: 0; padding: 0; display: grid; border: 1px solid var(--wr-line); border-radius: 1.2rem; overflow: hidden; background: var(--wr-panel); }
+.wr-tt__row { display: grid; grid-template-columns: 5.6rem minmax(0, 1.2fr) minmax(0, 1fr) auto; gap: 1.2rem; align-items: center; padding: .8rem 1.2rem; }
+.wr-tt__row + .wr-tt__row { border-top: 1px solid var(--wr-line); }
+.wr-tt__art { width: 5.6rem; height: 3.2rem; border-radius: .6rem; object-fit: cover; background: var(--wr-tile); }
+.wr-tt__art--blank { display: grid; place-items: center; color: var(--wr-muted); font: 700 var(--font-size-12)/1 "Gabarito", sans-serif; text-transform: uppercase; }
+.wr-tt__track { display: flex; align-items: baseline; gap: .8rem; min-width: 0; }
+.wr-tt__rec { display: grid; gap: .2rem; min-width: 0; }
+.wr-tt__track b { font: 700 var(--font-size-16)/1.2 "Gabarito", sans-serif; }
+.wr-tt__track span, .wr-tt__rec span { color: var(--wr-muted); font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wr-tt__rec b { font-variant-numeric: tabular-nums; font-size: var(--font-size-16); }
+.wr-tt__gap { display: grid; justify-items: end; gap: .2rem; font-variant-numeric: tabular-nums; text-align: right; }
+.wr-tt__gap b { font-size: var(--font-size-14); }
+.wr-tt__gap.is-rec b { color: var(--wr-gold); }
+.wr-tt__gap.is-gap b { color: var(--wr-ice); }
+.wr-tt__gap.is-none b { color: var(--wr-muted); font-weight: 500; }
+.wr-tt__you { color: var(--wr-muted); font-size: var(--font-size-12); }
+@media (max-width: 34em) {
+  .wr-tt__row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "track gap" "rec gap"; gap: .2rem 1rem; }
+  .wr-tt__art { display: none; }
+  .wr-tt__track { grid-area: track; } .wr-tt__rec { grid-area: rec; } .wr-tt__gap { grid-area: gap; }
+  .wr-tt__rec { grid-template-columns: auto minmax(0, 1fr); gap: .8rem; align-items: baseline; }
+}
+
+/* Add a time */
+.wr-add { display: grid; gap: 1.2rem; }
+.wr-drop { display: grid; justify-items: center; gap: .6rem; padding: 2.4rem 1.6rem; border: 2px dashed var(--border-strong, #5d6b7c); border-radius: 1.2rem; text-align: center; cursor: pointer; }
+.wr-drop:focus-within { outline: 3px solid var(--primary-500, #4f46e5); outline-offset: 2px; }
+.wr-drop.is-busy { opacity: .7; cursor: progress; }
+.wr-add__shot { width: 100%; max-height: 24rem; object-fit: contain; border-radius: 1rem; background: #000; }
+.wr-add__err { margin: 0; color: var(--text-error, #d14343); font-size: var(--font-size-14); }
+.wr-add__done { display: grid; gap: .8rem; }
+.wr-add__done p { margin: 0; }
+@media (max-height: 300px) {
+  .wr-apptabs .empac-tabs__header { display: none; }
+}
+.wr-tt__vehicle { max-width: 32rem; }
+
+/* Cans tab (cans picks 2026-11-04): the team's week as a heat grid, your own hours as a tap grid. */
+.wr-cans__bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1.2rem; }
+.wr-cans__modes { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; }
+.wr-cans__scroll { overflow-x: auto; border: 1px solid var(--wr-line); border-radius: 1.2rem; background: var(--wr-panel); }
+.wr-cans__scroll:focus-visible { outline: 2px solid var(--wr-ice); outline-offset: 2px; }
+.wr-cans__grid { border-collapse: separate; border-spacing: .4rem; font-size: var(--font-size-12); color: var(--wr-muted); }
+.wr-cans__grid th { font-weight: 600; text-align: center; padding: 0 .2rem; white-space: nowrap; }
+.wr-cans__grid tbody th { text-align: left; color: var(--wr-soft); font-size: var(--font-size-14); padding-right: .6rem; position: sticky; left: 0; background: var(--wr-panel); }
+.wr-cans__grid td { padding: 0; }
+.wr-cans__cell { width: 3.6rem; height: 3.2rem; border-radius: .6rem; display: grid; place-items: center; font: 700 var(--font-size-14)/1 "Outfit", sans-serif; font-variant-numeric: tabular-nums; color: #fff;
+  background: color-mix(in srgb, #7f9bff calc(var(--n, 0) * 80%), var(--wr-tile)); }
+.wr-cans__cell--zero { background: var(--wr-tile); }
+.wr-cans__cell.is-best { box-shadow: inset 0 0 0 2px var(--wr-gold); }
+.wr-cans__cell--pick { border: 1px solid var(--wr-line); background: var(--wr-tile); cursor: pointer; padding: 0; }
+.wr-cans__cell--pick.is-on { background: #3f5cff; border-color: #7f9bff; }
+.wr-cans__cell--pick:focus-visible { outline: 2px solid var(--wr-ice); outline-offset: 1px; }
+.wr-cans__best { display: grid; gap: 1.2rem; }
+.wr-cans__post { display: flex; flex-wrap: wrap; align-items: end; gap: 1.2rem; }
+.wr-cans__post .wr-field { min-width: 16rem; }
+.wr-lineup { display: grid; gap: .4rem; padding: 1.2rem 1.4rem; border-radius: 1.2rem; background: var(--wr-panel); border: 1px solid var(--wr-us-line); }

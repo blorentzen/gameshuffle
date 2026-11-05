@@ -19,6 +19,7 @@ import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab"
 import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
 import { PlatformComplianceTab } from "@/components/account/PlatformComplianceTab";
 import { PlatformTournamentsTab } from "@/components/account/PlatformTournamentsTab";
+import { PlatformSeriesTab } from "@/components/account/PlatformSeriesTab";
 import { PlatformEngagementTab } from "@/components/account/PlatformEngagementTab";
 import { PlatformTicketingTab } from "@/components/account/PlatformTicketingTab";
 import { PlatformEconomyTab } from "@/components/account/PlatformEconomyTab";
@@ -71,6 +72,7 @@ const SCREENS: ScreenMap = {
   "platform-engagement": () => <PlatformEngagementTab />,
   "platform-tournaments": () => <PlatformTournamentsTab />,
   "platform-ticketing": () => <PlatformTicketingTab />,
+  "platform-series": () => <PlatformSeriesTab />,
   "platform-moderation": () => <PlatformModerationTab />,
   "platform-gifs": () => <PlatformGifsTab />,
   "platform-time-trials": () => <PlatformTimeTrialsTab />,

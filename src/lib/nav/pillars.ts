@@ -162,7 +162,7 @@ export const PILLARS: Pillar[] = [
         heading: "Mario Kart",
         items: [
           { label: "Competitive Mario Kart", href: "/competitive-mario-kart", blurb: "Lounge stats, time trials, the MMR card and tournaments in one place.", footer: true },
-          { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart World and 8 Deluxe. Add yours from a screenshot.", footer: true },
+          { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart 8 Deluxe and World. Add yours from a screenshot.", footer: true },
           { label: "Lounge stats", href: "/lounge", blurb: "Any lounge player's season, plus boards for the people you know.", footer: true },
           { label: "MMR card", href: "/mmr-card", blurb: "Your lounge MMR on stream, live, with a moment every event. Free.", footer: true },
           // GameShuffle Competitive's page, once the app exists here (picks 2026-10-31, 5A).

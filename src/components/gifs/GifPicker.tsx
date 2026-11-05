@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Chip, EmptyState, Input, Modal, Tabs } from "@empac/cascadeds";
-import { IconPhotoOff, IconSearch } from "@tabler/icons-react";
+import { IconPhotoOff, IconPlayerPause, IconPlayerPlay, IconSearch } from "@tabler/icons-react";
 import { STICKERS, STICKER_GROUPS, stickerText } from "@/data/stickers";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import type { Attachment, AttachmentView, CommunityGif, GifView, MyGif } from "@/lib/gifs/rules";
@@ -70,7 +70,7 @@ function GifCell({ gif, label, held, onPick }: { gif: GifView; label?: string; h
   );
 }
 
-function MineTab({ onPick, onUpload }: { onPick: (p: Picked) => void; onUpload: () => void }) {
+function MineTab({ onPick, onUpload }: { onPick: (p: Picked, label?: string) => void; onUpload: () => void }) {
   const [data, setData] = useState<{ gifs: MyGif[]; used: number; limit: number } | null | "error">(null);
   useEffect(() => {
     let alive = true;
@@ -105,7 +105,7 @@ function MineTab({ onPick, onUpload }: { onPick: (p: Picked) => void; onUpload: 
   );
 }
 
-function CommunityTab({ onPick }: { onPick: (p: Picked) => void }) {
+function CommunityTab({ onPick }: { onPick: (p: Picked, label?: string) => void }) {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"popular" | "new">("popular");
   const [tags, setTags] = useState<string[]>([]);
@@ -156,7 +156,7 @@ function CommunityTab({ onPick }: { onPick: (p: Picked) => void }) {
       {gifs && gifs.length ? (
         <div className="gif-grid">
           {gifs.map((g) => (
-            <GifCell key={g.id} gif={g} label={`by ${g.by}`} onPick={() => onPick({ attachment: { kind: "gif", id: g.id }, view: { kind: "gif", gif: g } })} />
+            <GifCell key={g.id} gif={g} label={`by ${g.by}`} onPick={() => onPick({ attachment: { kind: "gif", id: g.id }, view: { kind: "gif", gif: g } }, `by ${g.by}`)} />
           ))}
         </div>
       ) : null}
@@ -165,31 +165,65 @@ function CommunityTab({ onPick }: { onPick: (p: Picked) => void }) {
   );
 }
 
-export function GifPicker({ open, onClose, onPick, start = "reactions" }: {
+/**
+ * A GIF picked from Your GIFs or Community plays here on a loop before it's used (Britton: an easy way to watch it
+ * again and again before choosing), with Pause for anyone who wants it still; reduced motion starts paused.
+ */
+function GifPreview({ picked, label, useLabel, onUse, onBack }: { picked: Picked; label?: string; useLabel: string; onUse: () => void; onBack: () => void }) {
+  const gif = picked.view.kind === "gif" ? picked.view.gif : null;
+  const [playing, setPlaying] = useState(() => typeof window === "undefined" || !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (!gif) return null;
+  return (
+    <div className="gif-preview">
+      <div className="gif-preview__stage">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={playing ? gif.url : gif.still} alt={gif.alt || "The GIF you picked"} />
+      </div>
+      <div className="gif-preview__meta">
+        {gif.alt ? <p className="gif-preview__alt">{gif.alt}</p> : null}
+        {label ? <p className="gif-picker__note">{label}</p> : null}
+      </div>
+      <div className="gif-preview__actions">
+        <Button variant="primary" onClick={onUse}>{useLabel}</Button>
+        <Button variant="secondary" iconBefore={playing ? IconPlayerPause : IconPlayerPlay} onClick={() => setPlaying((p) => !p)}>{playing ? "Pause" : "Play"}</Button>
+        <Button variant="ghost" onClick={onBack}>Back</Button>
+      </div>
+    </div>
+  );
+}
+
+export function GifPicker({ open, onClose, onPick, start = "reactions", useLabel = "Use this GIF", title = "Add a GIF", tabs: only }: {
   open: boolean;
   onClose: () => void;
   onPick: (p: Picked) => void;
   start?: PickerTab;
+  /** The preview's main button ("Use this GIF", "Use as the background"). */
+  useLabel?: string;
+  title?: string;
+  /** Only these tabs (the MMR card's background takes your own GIFs only). */
+  tabs?: PickerTab[];
 }) {
   const [tab, setTab] = useState<PickerTab>(start);
-  const pick = (p: Picked) => { onPick(p); onClose(); };
+  const [preview, setPreview] = useState<{ picked: Picked; label?: string } | null>(null);
+  const pick = (p: Picked) => { onPick(p); setPreview(null); onClose(); };
+  const show = (p: Picked, label?: string) => setPreview({ picked: p, label });
   if (!open) return null;
+  const all = [
+    { id: "reactions", label: "Reactions", content: tab === "reactions" ? <StickerTab onPick={pick} /> : null },
+    { id: "mine", label: "Your GIFs", content: tab === "mine" ? <MineTab onPick={show} onUpload={() => setTab("upload")} /> : null },
+    { id: "community", label: "Community", content: tab === "community" ? <CommunityTab onPick={show} /> : null },
+    {
+      id: "upload", label: "Upload",
+      content: tab === "upload" ? <GifUpload onUse={(g) => show({ attachment: { kind: "gif", id: g.id }, view: { kind: "gif", gif: g } })} /> : null,
+    },
+  ].filter((t) => !only || only.includes(t.id as PickerTab));
   return (
-    <Modal isOpen={open} onClose={onClose} title="Add a GIF" size="large" className="gif-picker-modal">
-      <Tabs
-        activeTab={tab}
-        onChange={(t) => setTab(t as PickerTab)}
-        variant="underline"
-        tabs={[
-          { id: "reactions", label: "Reactions", content: tab === "reactions" ? <StickerTab onPick={pick} /> : null },
-          { id: "mine", label: "Your GIFs", content: tab === "mine" ? <MineTab onPick={pick} onUpload={() => setTab("upload")} /> : null },
-          { id: "community", label: "Community", content: tab === "community" ? <CommunityTab onPick={pick} /> : null },
-          {
-            id: "upload", label: "Upload",
-            content: tab === "upload" ? <GifUpload onUse={(g) => pick({ attachment: { kind: "gif", id: g.id }, view: { kind: "gif", gif: g } })} /> : null,
-          },
-        ]}
-      />
+    <Modal isOpen={open} onClose={() => { setPreview(null); onClose(); }} title={title} size="large" className="gif-picker-modal">
+      {preview ? (
+        <GifPreview picked={preview.picked} label={preview.label} useLabel={useLabel} onUse={() => pick(preview.picked)} onBack={() => setPreview(null)} />
+      ) : (
+        <Tabs activeTab={tab} onChange={(t) => setTab(t as PickerTab)} variant="underline" tabs={all} />
+      )}
     </Modal>
   );
 }

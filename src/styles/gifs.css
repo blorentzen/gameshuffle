@@ -274,3 +274,11 @@
   .gif-grid--stickers { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-8); }
   .gif-grid--stickers .gs-sticker { --st-size: 96px; --st-glyph: 40px; --st-word: 14px; --st-radius: 24px; }
 }
+
+/* The picked GIF, looping before it's used (GifPreview) */
+.gif-preview { display: grid; gap: 14px; justify-items: center; }
+.gif-preview__stage { width: 100%; display: grid; place-items: center; background: var(--background-secondary, #f2f3f7); border-radius: 14px; padding: 12px; min-height: 200px; }
+.gif-preview__stage img { max-width: 100%; max-height: min(52vh, 420px); border-radius: 10px; object-fit: contain; }
+.gif-preview__meta { display: grid; gap: 4px; text-align: center; }
+.gif-preview__alt { margin: 0; font-size: var(--font-size-16); color: var(--text-primary); }
+.gif-preview__actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }

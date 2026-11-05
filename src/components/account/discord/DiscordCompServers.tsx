@@ -1,14 +1,16 @@
 "use client";
 
 /**
- * GameShuffle Competitive's servers (picks 2026-10-30): each with the channel its posts go to (lounge rank-ups,
- * and the war and time trial posts as they move over), its time trial panels (post, move or take down; picks
- * Nn8Qv4EVRDL6zojwHVCcdN), Remove, and Add it to a server. Free accounts: 1 server, GS Pro: 5, counted apart
- * from GameShuffle's own.
+ * GameShuffle Competitive's servers (picks 2026-10-30): each with the channel its posts go to, its Mario Kart lounge
+ * posts (rank-ups free; division roles and the Monday board GS Pro; moved here from GameShuffle, whose settings for
+ * the server come along), its time trial panels (post, move or take down; picks Nn8Qv4EVRDL6zojwHVCcdN), Remove,
+ * and Add it to a server. Free accounts: 1 server, GS Pro: 5, counted apart from GameShuffle's own.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@empac/cascadeds";
+import { Button, Switch } from "@empac/cascadeds";
+import Link from "next/link";
+import { MMR_GAMES, MMR_GAME_IDS } from "@/lib/mmr/rules";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
 import { Select } from "@/components/ui/Select";
 import { ArrowLink } from "@/components/ui/ArrowLink";
@@ -17,8 +19,41 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 type PanelGame = "mk8dx" | "mkworld" | "both";
-interface Server { guildId: string; name: string | null; removedAt: string | null; settings: { channel?: string | null; ttPanels?: Partial<Record<PanelGame, { channel: string; message: string }>> } }
-interface Data { live: boolean; ready: boolean; limit: number; servers: Server[] }
+interface Lounge { rankUps: boolean; rolesGame: string | null; boardGame: string | null; carried: boolean }
+interface Server { guildId: string; name: string | null; removedAt: string | null; settings: { channel?: string | null; ttPanels?: Partial<Record<PanelGame, { channel: string; message: string }>> }; lounge?: Lounge }
+interface Data { live: boolean; ready: boolean; limit: number; pro?: boolean; servers: Server[] }
+
+const LOUNGE_GAMES = [{ value: "", label: "Off" }, ...MMR_GAME_IDS.map((g) => ({ value: g, label: MMR_GAMES[g].short }))];
+
+/** The server's Mario Kart lounge posts: rank-ups (free), division roles and the Monday board (GS Pro). Saves on change. */
+function LoungePanel({ guildId, start, pro, hasChannel }: { guildId: string; start: Lounge; pro: boolean; hasChannel: boolean }) {
+  const toast = useToast();
+  const [lounge, setLounge] = useState(start);
+  const save = async (patch: Partial<Pick<Lounge, "rankUps" | "rolesGame" | "boardGame">>) => {
+    const before = lounge;
+    setLounge({ ...lounge, ...patch, carried: false });
+    const res = await fetch("/api/discord/apps/comp/servers", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ guild: guildId, lounge: patch }) }).catch(() => null);
+    if (res?.ok) toast.success("Saved");
+    else { setLounge(before); toast.error(res?.status === 403 ? "Division roles and the Monday board come with GS Pro." : "Couldn't save that. Try again in a moment."); }
+  };
+  return (
+    <div className="discord-apps__panel">
+      <strong>Mario Kart lounge</strong>
+      <p className="discord-apps__help">For members who confirmed their lounge name on <Link href="/lounge">GameShuffle</Link>.{lounge.carried ? " These came over from GameShuffle in this server." : ""}</p>
+      <Switch label="Post rank-ups" checked={lounge.rankUps} onChange={(e) => void save({ rankUps: e.target.checked })} />
+      <p className="discord-apps__help">{hasChannel ? "When a member reaches a new division, once per season." : "Rank-ups need a channel: pick where posts go above."}</p>
+      <div className="discord-apps__panel-row">
+        <Select id={`comp-roles-${guildId}`} floatingLabel="Division roles follow" fullWidth value={lounge.rolesGame ?? ""} disabled={!pro} onChange={(v) => void save({ rolesGame: String(v) || null })} options={LOUNGE_GAMES} />
+        <Select id={`comp-board-${guildId}`} floatingLabel="Monday board covers" fullWidth value={lounge.boardGame ?? ""} disabled={!pro} onChange={(v) => void save({ boardGame: String(v) || null })} options={LOUNGE_GAMES} />
+      </div>
+      <p className="discord-apps__help">
+        {pro
+          ? "Division roles: the bot makes Iron to Grandmaster the first time, so it needs Manage Roles with its own role above them. Rank-ups and the board go to the channel above."
+          : <>Division roles and the Monday board come with <Link href="/gs-pro?from=comp-lounge">GS Pro</Link>. Rank-ups are free.</>}
+      </p>
+    </div>
+  );
+}
 
 const INSTALL = "/api/discord/bot/install/start?app=comp";
 const ERRORS: Record<string, string> = {
@@ -38,7 +73,7 @@ const PANEL_ERRORS: Record<string, string> = {
   failed: "The panel couldn't be posted. Try again?",
 };
 
-function ServerRow({ s, onChanged }: { s: Server; onChanged: () => void }) {
+function ServerRow({ s, pro, onChanged }: { s: Server; pro: boolean; onChanged: () => void }) {
   const toast = useToast();
   const confirm = useConfirm();
   const [channels, setChannels] = useState<{ id: string; name: string }[] | null>(null);
@@ -123,6 +158,7 @@ function ServerRow({ s, onChanged }: { s: Server; onChanged: () => void }) {
           <p className="discord-apps__help">Or type /tt panel in the channel. Posting again moves it.</p>
         </div>
       )}
+      {!s.removedAt && s.lounge && <LoungePanel guildId={s.guildId} start={s.lounge} pro={pro} hasChannel={!!channel} />}
       {!s.removedAt && (
         <div className="discord-apps__panel">
           <strong>Team logos</strong>
@@ -156,10 +192,10 @@ export function DiscordCompServers() {
   const active = data.servers.filter((s) => !s.removedAt);
   return (
     <AdminSection title="GameShuffle Competitive">
-      <p className="discord-apps__help">Time trials, wars, MMR and room reads, with short commands: /tt, /war, /mmr, /room. Its servers count apart from GameShuffle&apos;s: {data.limit === 1 ? "1 server" : `up to ${data.limit} servers`} on your plan.</p>
+      <p className="discord-apps__help">Time trials, wars, MMR and room reads, with short commands: /tt, /war, /mmr, /room, plus Mario Kart lounge rank-ups, division roles and the Monday board. Its servers count apart from GameShuffle&apos;s: {data.limit === 1 ? "1 server" : `up to ${data.limit} servers`} on your plan.</p>
       {data.servers.length ? (
         <ul className="discord-apps__servers">
-          {data.servers.map((s) => <ServerRow key={s.guildId} s={s} onChanged={() => void load()} />)}
+          {data.servers.map((s) => <ServerRow key={s.guildId} s={s} pro={!!data.pro} onChanged={() => void load()} />)}
         </ul>
       ) : <p className="discord-apps__help">It isn&apos;t in any of your servers yet.</p>}
       <div>

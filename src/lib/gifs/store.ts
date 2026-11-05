@@ -50,7 +50,7 @@ export async function gifAllowance(userId: string): Promise<{ used: number; limi
   return { used: count ?? 0, limit: gifLimit(pro) };
 }
 
-export type UploadError = "storage_off" | "bad_file" | "too_many_frames" | "full" | "blocked" | "refused";
+export type UploadError = "storage_off" | "bad_file" | "too_many_frames" | "not_animated" | "full" | "blocked" | "refused";
 
 /** Shrinks, checks and keeps one upload. A refusal is never stored. The same file twice returns the first. */
 export async function createGif(userId: string, file: Buffer): Promise<{ ok: true; gif: MyGif; again: boolean } | { ok: false; error: UploadError; reason?: string }> {
@@ -273,4 +273,14 @@ export async function staffRemove(staffId: string, id: string, reason: string): 
   await closeReports(id, staffId, "actioned", "gif_removed");
   await writeModerationAudit({ actorUserId: staffId, targetUserId: r.owner_user_id, action: "gif_removed", detail: `${id}: ${reason}`.slice(0, 300) });
   return true;
+}
+
+/**
+ * Whether a stored GIF address is one of this account's own GIFs that passed the check (the MMR card's background on a
+ * stream takes nothing else: never a held, removed or someone else's GIF).
+ */
+export async function ownOkGifUrl(userId: string, url: string): Promise<boolean> {
+  if (!(await gifsReady())) return false;
+  const { data } = await createServiceClient().from("gifs").select("id").eq("owner_user_id", userId).eq("url", url).eq("status", "ok").limit(1).maybeSingle();
+  return !!data;
 }

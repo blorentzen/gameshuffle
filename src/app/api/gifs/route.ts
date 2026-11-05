@@ -3,7 +3,7 @@
  *   GET  ?tab=mine                         → { gifs: MyGif[], used, limit }
  *   GET  ?tab=community&q=&sort=&offset=   → { gifs: CommunityGif[], tags }
  *   POST multipart file (GIF or animated WebP, up to 8 MB) → { gif, again } after the automatic check;
- *        errors: storage_off 503, not_ready 503, bad_type / too_big / bad_file / too_many_frames 400,
+ *        errors: storage_off 503, not_ready 503, bad_type / too_big / bad_file / too_many_frames / not_animated 400,
  *        full 403 (with limit), blocked 403, refused 422 (with reason), slow_down 429.
  */
 

@@ -196,6 +196,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-tournaments", label: "Events", iconName: "award", group: "Community", tabs: [
         { id: "platform-tournaments", label: "Tournaments" },
         { id: "platform-ticketing", label: "Ticket sales" },
+        { id: "platform-series", label: "Series" },
       ] },
       { id: "platform-ladders", label: "GS Ranked", iconName: "award", group: "Community" },
       { id: "platform-moderation", label: "People", iconName: "users", group: "Community", tabs: [

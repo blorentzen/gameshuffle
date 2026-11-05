@@ -8,11 +8,13 @@
  *   ttpk:<draft>      Change track → the cup and track menus
  *   ttpx:<draft>      Change time → a one-line form, ttpxm:<draft>
  *   ttp:top:<game>    Top ten → the cup and track menus, then the board
- *   ttpc:<mode>:<ref> the cup menu, ttpt:<mode>:<ref> the track menu (mode top: ref = game; fix: ref = draft id)
+ *   ttpc:<mode>:<ref> the cup menu, ttpt:<mode>:<ref>[:<n>] a track menu (mode top: ref = game; fix: ref = draft id)
+ *   ttpv:<by>:<mode>:<ref> switches the picker between By track (every track A to Z) and By cup
  *   ttpb:<state>      the board's switches (this server / everyone, mushrooms, speed); ttpp:<state> posts it
  *   ttp:me:<game>     My times; ttpme:<game> posts it
  *
- * Discord menus hold 25 choices, so a track is two: its cup (24 in Mario Kart 8 Deluxe), then the cup's tracks.
+ * Discord menus hold 25 choices. By track (the default) spreads a game's tracks A to Z over as many menus as it
+ * takes (four for Mario Kart 8 Deluxe's 96, two for World's 40); By cup is a cup menu, then that cup's tracks.
  * A form can't open from a form, so the check message carries the buttons that open the next one.
  */
 
@@ -29,14 +31,15 @@ import { discordActor } from "@/lib/timeTrials/players";
 import { boardFor, noteGuildPlayer, playerBests, ttReady } from "@/lib/timeTrials/store";
 import { readScreenshot, storeScreenshot } from "@/lib/timeTrials/read";
 import { categoryText, isItems, vehicleFor, vehicleOptions, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
-import { formatLap, formatTime, lapsAddUp, parseTime } from "@/lib/timeTrials/rules";
-import { isClassFor, ttCups, ttTrack, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { COMMUNITY_VOUCHES, formatLap, formatTime, lapsAddUp, parseTime } from "@/lib/timeTrials/rules";
+import { isClassFor, ttCups, ttTrack, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
 import { trackCode, trackTitle } from "@/lib/timeTrials/codes";
 import { boardUrl, editOriginal, fetchAttachment, guildName, playerReply, LINK_URL, TT_NO_PREFIX, TT_OK_PREFIX, type Attachment } from "./timeTrials";
 
 export const TT_PANEL_MODAL = "ttpm:";
 export const TT_CUP_PREFIX = "ttpc:";
 export const TT_TRACK_PREFIX = "ttpt:";
+export const TT_VIEW_PREFIX = "ttpv:";
 export const TT_BOARD_PREFIX = "ttpb:";
 export const TT_POST_PREFIX = "ttpp:";
 export const TT_MINE_POST = "ttpme:";
@@ -45,7 +48,7 @@ export const TT_FIXTIME_PREFIX = "ttpx:";
 export const TT_FIXTIME_MODAL = "ttpxm:";
 
 /** Every button and menu prefix this file answers (the handler routes them here). */
-export const TT_PANEL_COMPONENTS = [TT_PANEL_PREFIX, TT_CUP_PREFIX, TT_TRACK_PREFIX, TT_BOARD_PREFIX, TT_POST_PREFIX, TT_MINE_POST, TT_FIXTRACK_PREFIX, TT_FIXTIME_PREFIX];
+export const TT_PANEL_COMPONENTS = [TT_PANEL_PREFIX, TT_CUP_PREFIX, TT_TRACK_PREFIX, TT_VIEW_PREFIX, TT_BOARD_PREFIX, TT_POST_PREFIX, TT_MINE_POST, TT_FIXTRACK_PREFIX, TT_FIXTIME_PREFIX];
 export const TT_PANEL_MODALS = [TT_PANEL_MODAL, TT_FIXTIME_MODAL];
 
 const EPHEMERAL = 64;
@@ -84,8 +87,34 @@ function cupLabel(cup: string): string {
   return /Mario Kart$/.test(cup) ? `${cup} courses` : `${cup} Cup`;
 }
 
+type PickBy = "track" | "cup";
+
+/** Console prefixes in Mario Kart 8 Deluxe's names, so "N64 Rainbow Road" sorts under R as "Rainbow Road (N64)". */
+const CONSOLE = /^(Wii|GBA|DS|N64|GCN|SNES|3DS|Tour) (.+)$/;
+function alphaName(t: TtTrack): { key: string; label: string } {
+  const m = CONSOLE.exec(t.name);
+  return m ? { key: `${m[2]} ${m[1]}`.toLowerCase(), label: `${m[2]} (${m[1]})` } : { key: t.name.toLowerCase(), label: t.name };
+}
+const letter = (key: string) => key.replace(/^[^a-z0-9]+/, "").charAt(0).toUpperCase();
+
+/** Every track A to Z, in as few menus as Discord's 25-choice limit allows, split evenly. */
+function alphaMenus(mode: "top" | "fix", ref: string, game: TtGame): unknown[] {
+  const all = ttTracks(game).map((t) => ({ t, ...alphaName(t) })).sort((a, b) => a.key.localeCompare(b.key));
+  const count = Math.ceil(all.length / 25), size = Math.ceil(all.length / count);
+  const menus: unknown[] = [];
+  for (let i = 0; i < count; i++) {
+    const part = all.slice(i * size, (i + 1) * size);
+    const from = letter(part[0].key), to = letter(part[part.length - 1].key);
+    menus.push(row({
+      type: 3, custom_id: `${TT_TRACK_PREFIX}${mode}:${ref}:${i}`, placeholder: count === 1 ? "Pick a track" : from === to ? `Tracks: ${from}` : `Tracks: ${from} to ${to}`,
+      options: part.map(({ t, label }) => ({ label: label.slice(0, 100), value: t.id, ...(trackCode(t) ? { description: trackCode(t)! } : {}) })),
+    }));
+  }
+  return menus;
+}
+
 /** The cup menu, and once a cup is picked the menu of its tracks. */
-function trackMenus(mode: "top" | "fix", ref: string, game: TtGame, cupIndex: number | null): unknown[] {
+function cupMenus(mode: "top" | "fix", ref: string, game: TtGame, cupIndex: number | null): unknown[] {
   const cups = ttCups(game);
   const menus: unknown[] = [row({
     type: 3, custom_id: `${TT_CUP_PREFIX}${mode}:${ref}`, placeholder: "Pick a cup",
@@ -98,6 +127,15 @@ function trackMenus(mode: "top" | "fix", ref: string, game: TtGame, cupIndex: nu
     }));
   }
   return menus;
+}
+
+/** The track picker: its menus, then By track / By cup (and Cancel while fixing a time). At most 5 rows. */
+function trackPicker(mode: "top" | "fix", ref: string, game: TtGame, by: PickBy, cupIndex: number | null = null): unknown[] {
+  const view = (b: PickBy, label: string) => btn(label, `${TT_VIEW_PREFIX}${b}:${mode}:${ref}`, by === b ? 1 : 2, by === b);
+  return [
+    ...(by === "track" ? alphaMenus(mode, ref, game) : cupMenus(mode, ref, game, cupIndex)),
+    row(view("track", "By track"), view("cup", "By cup"), ...(mode === "fix" ? [btn("Cancel", `${TT_NO_PREFIX}${ref}`)] : [])),
+  ];
 }
 
 function gameButtons(kind: "add" | "top"): Record<string, unknown> {
@@ -139,7 +177,7 @@ function checkMessage(draftId: string, p: DraftPayload, note: string | null = nu
   if (!track) {
     return {
       content: [...lead, "Which track was it?"].join("\n"),
-      components: [...trackMenus("fix", draftId, p.game, null), row(btn("Cancel", `${TT_NO_PREFIX}${draftId}`))],
+      components: trackPicker("fix", draftId, p.game, "track"),
     };
   }
   const cat = categoryText(p.game, p.cc, p.items, p.vehicle, TT_GAMES[p.game].classes.length > 1);
@@ -246,7 +284,7 @@ async function boardMessage(s: BoardState, viewer: string, guildId: string | nul
   const track = ttTrack(s.game, s.track)!;
   const scope = guildId ? s.scope : "everyone";
   const board = await boardFor({ game: s.game, track: s.track, cc: s.cc, items: s.items, vehicle: "any", scope, viewer: viewer as never, guildId, limit: 10 });
-  const lines = board.rows.map((r) => `${r.rank}. ${r.name} · **${formatTime(r.timeMs)}**${r.top ? (r.video === "checked" ? " · Verified" : " · Unverified") : ""}`);
+  const lines = board.rows.map((r) => `${r.rank}. ${r.name} · **${formatTime(r.timeMs)}**${r.video === "checked" ? " · Verified" : r.vouches >= COMMUNITY_VOUCHES ? " · Community verified" : r.top ? " · Unverified" : ""}`);
   if (board.mine && !shared) lines.push(`…\n${board.mine.rank}. You · **${formatTime(board.mine.timeMs)}**`);
   const embed = {
     title: `${trackTitle(track)} · ${categoryText(s.game, s.cc, s.items, "any", TT_GAMES[s.game].classes.length > 1)}`,
@@ -337,7 +375,7 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
     }
     if (kind === "top") {
       if (gameRaw === "both") return answer(interaction, gameButtons("top"));
-      return answer(interaction, { content: "Which track?", embeds: [], components: trackMenus("top", gameRaw, gameRaw, null) });
+      return answer(interaction, { content: "Which track?", embeds: [], components: trackPicker("top", gameRaw, gameRaw, "track") });
     }
     if (kind === "me") {
       const game = gameRaw === "both" ? null : gameRaw;
@@ -374,6 +412,19 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
     return Response.json({ type: 5 });
   }
 
+  if (customId.startsWith(TT_VIEW_PREFIX)) {
+    const [by, mode, ref] = customId.slice(TT_VIEW_PREFIX.length).split(":");
+    if ((by !== "track" && by !== "cup") || (mode !== "top" && mode !== "fix")) return say({ content: "That menu is out of date." });
+    let game: TtGame | null = null;
+    if (mode === "fix") {
+      const draft = await loadDraft(ref, user.id);
+      if (!draft) return update(GONE);
+      game = draft.payload.game;
+    } else if (ref === "mk8dx" || ref === "mkworld") game = ref;
+    if (!game) return say({ content: "That menu is out of date." });
+    return update({ content: mode === "fix" ? "Which track was it?" : "Which track?", embeds: [], components: trackPicker(mode, ref, game, by) });
+  }
+
   if (customId.startsWith(TT_CUP_PREFIX) || customId.startsWith(TT_TRACK_PREFIX)) {
     const isCup = customId.startsWith(TT_CUP_PREFIX);
     const [mode, ref] = customId.slice(isCup ? TT_CUP_PREFIX.length : TT_TRACK_PREFIX.length).split(":");
@@ -387,7 +438,7 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
     if (!game || (mode !== "top" && mode !== "fix")) return say({ content: "That menu is out of date." });
     if (isCup) {
       const idx = Number(values[0]);
-      return update({ content: "Which track?", embeds: [], components: [...trackMenus(mode, ref, game, Number.isInteger(idx) ? idx : null), ...(mode === "fix" ? [row(btn("Cancel", `${TT_NO_PREFIX}${ref}`))] : [])] });
+      return update({ content: mode === "fix" ? "Which track was it?" : "Which track?", embeds: [], components: trackPicker(mode, ref, game, "cup", Number.isInteger(idx) ? idx : null) });
     }
     const track = ttTrack(game, values[0] ?? "");
     if (!track) return say({ content: "Pick a track from the list." });
@@ -430,7 +481,7 @@ export async function handleTtPanelComponent(interaction: Record<string, unknown
     const id = customId.slice(TT_FIXTRACK_PREFIX.length);
     const draft = await loadDraft(id, user.id);
     if (!draft) return update(GONE);
-    return update({ content: "Which track was it?", components: [...trackMenus("fix", id, draft.payload.game, null), row(btn("Cancel", `${TT_NO_PREFIX}${id}`))] });
+    return update({ content: "Which track was it?", components: trackPicker("fix", id, draft.payload.game, "track") });
   }
 
   if (customId.startsWith(TT_FIXTIME_PREFIX)) {

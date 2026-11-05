@@ -130,6 +130,13 @@ export function DiscordBotRoutingCard() {
     [guildId],
   );
   const [routing, setRouting] = useState<RoutingState | null>(null);
+  /** Lounge rank-ups are moving to GameShuffle Competitive: a line under that row when they're done there now. */
+  const [loungeMove, setLoungeMove] = useState<{ state: string; lastDay: string; compHere: boolean } | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetch(withGuild("/api/discord/bot/lounge")).then((r) => r.json()).then((j) => { if (live && j?.move) setLoungeMove(j.move); }).catch(() => {});
+    return () => { live = false; };
+  }, [withGuild]);
   const [channels, setChannels] = useState<ChannelOption[] | null>(null);
   const [roles, setRoles] = useState<RoleOption[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -649,6 +656,15 @@ export function DiscordBotRoutingCard() {
                       >
                         {hint}
                       </div>
+                      {key === "lounge" && loungeMove && (loungeMove.compHere || loungeMove.state !== "none") && (
+                        <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", marginTop: "var(--spacing-4)" }}>
+                          {loungeMove.compHere
+                            ? "GameShuffle Competitive posts these in this server now (set them there)."
+                            : loungeMove.state === "moved"
+                              ? "Moved to GameShuffle Competitive: add it to this server to keep them."
+                              : `Moving to GameShuffle Competitive: GameShuffle posts them here until ${loungeMove.lastDay}.`}
+                        </div>
+                      )}
                     </div>
                     <div
                       style={{

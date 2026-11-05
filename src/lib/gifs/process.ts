@@ -22,7 +22,8 @@ export interface ProcessedGif {
   dhash: string;
 }
 
-export type ProcessError = "bad_file" | "too_many_frames";
+/** not_animated: a single frame is a picture, not a GIF (a GIF here always moves). */
+export type ProcessError = "bad_file" | "too_many_frames" | "not_animated";
 
 const fit = { width: GIF_MAX_SIDE, height: GIF_MAX_SIDE, fit: "inside" as const, withoutEnlargement: true };
 
@@ -38,11 +39,23 @@ async function dhashOf(input: Buffer): Promise<string> {
   return hex;
 }
 
+/** Up to four frames of an animated picture (first, a third in, two thirds, last) in a 2x2 grid, for the check. */
+export async function frameSheet(input: Buffer, frames: number): Promise<Buffer> {
+  const picks = [...new Set([0, Math.floor(frames / 3), Math.floor((frames * 2) / 3), frames - 1])];
+  const tiles = await Promise.all(picks.map((page) =>
+    sharp(input, { page, pages: 1 }).resize(256, 256, { fit: "contain", background: "#808080" }).flatten({ background: "#808080" }).png().toBuffer()));
+  return sharp({ create: { width: 512, height: 512, channels: 3, background: "#808080" } })
+    .composite(tiles.map((t, i) => ({ input: t, left: (i % 2) * 256, top: Math.floor(i / 2) * 256 })))
+    .jpeg({ quality: 80 })
+    .toBuffer();
+}
+
 export async function processGif(input: Buffer): Promise<ProcessedGif | { error: ProcessError }> {
   try {
     const meta = await sharp(input, { animated: true }).metadata();
     const frames = meta.pages ?? 1;
     if (!meta.width || !meta.height) return { error: "bad_file" };
+    if (frames < 2) return { error: "not_animated" };
     if (frames > GIF_MAX_FRAMES) return { error: "too_many_frames" };
 
     const anim = await sharp(input, { animated: true }).resize(fit).webp({ quality: 72, effort: 4, loop: 0 }).toBuffer();
@@ -51,13 +64,7 @@ export async function processGif(input: Buffer): Promise<ProcessedGif | { error:
     const height = out.pageHeight ?? out.height ?? GIF_MAX_SIDE;
     const still = await sharp(input, { pages: 1 }).resize(fit).webp({ quality: 80 }).toBuffer();
 
-    const picks = [...new Set([0, Math.floor(frames / 3), Math.floor((frames * 2) / 3), frames - 1])];
-    const tiles = await Promise.all(picks.map((page) =>
-      sharp(input, { page, pages: 1 }).resize(256, 256, { fit: "contain", background: "#808080" }).flatten({ background: "#808080" }).png().toBuffer()));
-    const sheet = await sharp({ create: { width: 512, height: 512, channels: 3, background: "#808080" } })
-      .composite(tiles.map((t, i) => ({ input: t, left: (i % 2) * 256, top: Math.floor(i / 2) * 256 })))
-      .jpeg({ quality: 80 })
-      .toBuffer();
+    const sheet = await frameSheet(input, frames);
 
     return {
       anim, still, sheet, width, height, frames,

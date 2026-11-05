@@ -88,7 +88,7 @@ eq(viewOf(demo, demo.changes[1].id).division, "Platinum", "8,026 crossed into Pl
 
 // Looks
 const bad = cleanLook({ layout: "banner", colors: "rainbow", font: "comic", custom: ["red", "#00ff00"], picture: "javascript:alert(1)", show: { world: false }, game: "mk64", id: "BAD ID" });
-eq([bad.layout, bad.colors, bad.font, bad.custom, bad.picture, bad.info.on.world, bad.info.on.peak, bad.game, bad.id], ["deck", "gs", "rubik", DEFAULT_LOOK.custom, null, false, true, "mkworld12p", "main"], "junk input falls back");
+eq([bad.layout, bad.colors, bad.font, bad.custom, bad.picture, bad.info.on.world, bad.info.on.peak, bad.game, bad.id], ["deck", "gs", "rubik", DEFAULT_LOOK.custom, null, false, true, "mk8dx", "main"], "junk input falls back (Mario Kart 8 Deluxe leads)");
 const pro = cleanLook({ colors: "neon", fill: "dots", emblem: "picture", font: "bebas", border: "two", foil: true, brand: "off" });
 eq(proUsed(pro).length, 7, "seven GS Pro choices counted");
 const fl = freeLook(pro);
@@ -226,7 +226,10 @@ eq([topText(null, 6000), topText(10, null), topText(7000, 6000), topText(0, 6000
 ok(Math.abs((topPercent(538, 6000) ?? 0) - 8.9667) < 0.001, "top percent as a number");
 eq([winPercent(198, 147), winPercent(54, 27), winPercent(3, 2), winPercent(0, 0)], [74, 50, 67, null], "win % rounds to a whole percent");
 const sn = seasonNumbers([ch(3, 10, 5, "2026-10-20T03:00:00Z"), ch(2, 5, -5, "2026-10-20T02:00:00Z"), ch(1, 10, 0, "2026-10-20T01:00:00Z", "Placement")].map((c, i) => ({ ...c, score: [90, 70, null][i] })));
-eq(sn, { events: 2, wins: 1, avgScore: 80 }, "season numbers count events only");
+eq(sn, { events: 2, wins: 1, avgScore: 80, partnerAvg: null }, "season numbers count events only");
+const snp = seasonNumbers([ch(3, 10, 5, "2026-10-20T03:00:00Z"), ch(2, 5, -5, "2026-10-20T02:00:00Z"), ch(1, 5, 5, "2026-10-20T01:00:00Z")].map((c, i) => ({ ...c, score: 80, partnerScores: [[70, 90, 110], [], [60]][i] })));
+eq(snp.partnerAvg, 82.5, "partner average: every teammate score averaged together (as MKCentral works it out)");
+eq(pieceText("partnerAvg", { ...n5, season: { ...n5.season, partnerAvg: 76.06 } }, DEFAULT_INFO)?.value, "76.1", "partner average piece, one decimal");
 eq([countryShort("US"), countryShort("FR"), countryShort("gb"), countryShort("BA")], ["the US", "France", "the UK", "BA"], "country short names (a long name falls back to the code)");
 
 // The GS Pro split: your own order and a line of your own
@@ -245,7 +248,7 @@ eq(pieceText("progress", topView, DEFAULT_INFO), { label: "Division", value: "To
 eq(pieceText("progress", { ...topView, division: "Placement" }, DEFAULT_INFO)?.value, "In placement", "placement: says so");
 eq(pieceText("progress", n0, DEFAULT_INFO)?.value, "88", "with a next division the tile still shows how far");
 // Every piece's short value (the strip's narrow slot) stays short enough to show whole.
-const longView = { ...n5, mmr: 15672, worldRank: 12345, countryRank: 1234, country: "NL", season: { events: 1234, wins: 999, avgScore: 111.36 }, streak: 12, tonight: { delta: -1240, w: 12, l: 13, events: 25 }, peak: 15792, next: { name: "Grandmaster", at: 16000 }, toNext: 999, division: "Master" };
+const longView = { ...n5, mmr: 15672, worldRank: 12345, countryRank: 1234, country: "NL", season: { events: 1234, wins: 999, avgScore: 111.36, partnerAvg: 104.27 }, streak: 12, tonight: { delta: -1240, w: 12, l: 13, events: 25 }, peak: 15792, next: { name: "Grandmaster", at: 16000 }, toNext: 999, division: "Master" };
 const worst: MmrInfo = { ...applyPreset(DEFAULT_INFO, "everything"), recent: 5 };
 for (const p of PIECE_IDS) {
   if (p === "line") continue;
@@ -354,7 +357,7 @@ eq(slideText("tonight", n5, DEFAULT_INFO, null)?.sub, "4 wins, 1 loss", "tonight
   ok(isDetail("sticker", DEFAULT_INFO, "goal"), "the goal is a detail on the sticker");
   eq(detailSwitches("panel", DEFAULT_INFO), ["peak", "progress", "tonight", "last10"], "Standard on the panel: four tiles, exactly full");
   const big = trimToRoom(applyPreset(DEFAULT_INFO, "everything"), "panel");
-  eq([detailSwitches("panel", big.info), big.off], [["country", "top", "peak", "progress"], ["tonight", "last10", "events", "avg"]], "Everything trimmed for the panel: the first four stay, the rest switch off");
+  eq([detailSwitches("panel", big.info), big.off], [["country", "top", "peak", "progress"], ["tonight", "last10", "events", "avg", "partnerAvg"]], "Everything trimmed for the panel: the first four stay, the rest switch off");
   eq(trimToRoom(DEFAULT_INFO, "rolling").off, [], "nothing is trimmed for Rolling");
   const toSticker = trimToRoom(DEFAULT_INFO, "sticker");
   eq([detailSwitches("sticker", toSticker.info), toSticker.off], [["game"], ["world", "peak", "progress", "tonight", "streak", "goal", "last10"]], "Standard to the sticker: the first detail stays");

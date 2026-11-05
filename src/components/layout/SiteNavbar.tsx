@@ -121,6 +121,8 @@ function isHeroPath(pathname: string): boolean {
   if (HERO_ROUTES.has(pathname)) return true;
   // Trainer Road: the front page, each region and each trainer open on the band.
   if (/^\/pokemon-trainers(\/[^/]+){0,2}$/.test(pathname)) return true;
+  // Team series (the GS Summer Series): its page.
+  if (pathname === "/summer-series" || /^\/series\/[^/]+$/.test(pathname)) return true;
   // Time trials: each game's page and each track's board.
   if (/^\/time-trials(\/[^/]+){1,2}$/.test(pathname)) return true;
   // Lounge head-to-head (/lounge/compare/<a>/<b>) opens on the same band.

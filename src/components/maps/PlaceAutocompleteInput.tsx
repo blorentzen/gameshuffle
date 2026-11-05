@@ -21,7 +21,9 @@ import { Input } from "@empac/cascadeds";
 import { IconMapPin } from "@tabler/icons-react";
 import { isGoogleMapsEnabled, loadGooglePlaces, type GooglePlacesApi, type GAutocompleteSuggestion } from "@/lib/maps/google";
 
-export interface PlacePick { address: string; lat: number | null; lng: number | null }
+export interface PlacePick { address: string; lat: number | null; lng: number | null;
+  /** The place's country as a lower-case two-letter code, when Google gives one. */
+  country?: string | null }
 
 interface Row { id: string; label: string; suggestion: GAutocompleteSuggestion }
 
@@ -30,6 +32,8 @@ export function PlaceAutocompleteInput({
   onChange,
   onPick,
   placeholder,
+  id,
+  regions = false,
 }: {
   value: string;
   onChange: (text: string) => void;
@@ -37,6 +41,10 @@ export function PlaceAutocompleteInput({
    *  store a pin can skip a server geocode). */
   onPick: (pick: PlacePick) => void;
   placeholder?: string;
+  /** For a label's htmlFor. */
+  id?: string;
+  /** Cities, regions and countries only, never a street address (the profile's location). */
+  regions?: boolean;
 }) {
   const enabled = isGoogleMapsEnabled();
   const [rows, setRows] = useState<Row[]>([]);
@@ -84,6 +92,7 @@ export function PlaceAutocompleteInput({
         const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input: q,
           sessionToken: sessionRef.current,
+          ...(regions ? { includedPrimaryTypes: ["(regions)"] } : {}),
         });
         const next: Row[] = suggestions
           .filter((s) => s.placePrediction)
@@ -116,11 +125,12 @@ export function PlaceAutocompleteInput({
     if (!prediction) { onChange(row.label); return; }
     try {
       const place = prediction.toPlace();
-      await place.fetchFields({ fields: ["formattedAddress", "displayName", "location"] });
+      await place.fetchFields({ fields: ["formattedAddress", "displayName", "location", "addressComponents"] });
       const address = place.formattedAddress || place.displayName || row.label;
       const loc = place.location;
+      const country = place.addressComponents?.find((c) => c.types?.includes("country"))?.shortText?.toLowerCase() ?? null;
       onChange(address);
-      onPick({ address, lat: loc ? loc.lat() : null, lng: loc ? loc.lng() : null });
+      onPick({ address, lat: loc ? loc.lat() : null, lng: loc ? loc.lng() : null, country });
     } catch {
       onChange(row.label);
       onPick({ address: row.label, lat: null, lng: null });
@@ -132,13 +142,15 @@ export function PlaceAutocompleteInput({
 
   // Keyless: the CDS Input, unchanged behavior.
   if (!enabled) {
-    return <Input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />;
+    return <Input id={id} type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} fullWidth={regions || undefined} />;
   }
 
   return (
     <div className="place-ac">
       <Input
+        id={id}
         type="text"
+        fullWidth={regions || undefined}
         value={value}
         onChange={(e) => handleChange(e.target.value)}
         onFocus={() => { if (rows.length) setOpen(true); }}

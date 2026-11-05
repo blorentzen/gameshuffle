@@ -27,24 +27,30 @@ const coarse = () => typeof window !== "undefined" && window.matchMedia("(pointe
 
 interface Card { made: ShareMade; file: File | null }
 
+/** A picture size: tall on phones and wide elsewhere unless the caller picks one (the MMR card's square). */
+export type ShareSize = "wide" | "tall" | "square";
+const sizeFor = (size: ShareSize | undefined): ShareSize => size ?? (coarse() ? "tall" : "wide");
+const PREVIEW: Record<ShareSize, [number, number]> = { wide: [1200, 630], tall: [1080, 1920], square: [1080, 1080] };
+
 /** Makes the card ahead of the tap. Null request = nothing to share yet. */
-function useShareCard(request: ShareRequest | null): Card | null {
-  const key = request ? JSON.stringify(request) : "";
+function useShareCard(request: ShareRequest | null, picked?: ShareSize): Card | null {
+  const body = request ? JSON.stringify(request) : "";
+  const key = body ? `${body}|${picked ?? ""}` : "";
   const [card, setCard] = useState<{ key: string; card: Card } | null>(null);
   useEffect(() => {
     if (!key) return;
     let alive = true;
     void (async () => {
-      const res = await fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json", "x-daily-guest": guestRequestId() }, body: key }).catch(() => null);
+      const res = await fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json", "x-daily-guest": guestRequestId() }, body }).catch(() => null);
       if (!res?.ok) return;
       const made = (await res.json()) as ShareMade;
-      const size = coarse() ? "tall" : "wide";
+      const size = sizeFor(picked);
       const blob = await fetch(`/r/${made.code}/card?size=${size}&v=${made.version}`).then((r) => (r.ok ? r.blob() : null)).catch(() => null);
-      const file = blob ? new File([blob], `gameshuffle-${size === "tall" ? "story" : "card"}.png`, { type: "image/png" }) : null;
+      const file = blob ? new File([blob], `gameshuffle-${size === "tall" ? "story" : size === "square" ? "square" : "card"}.png`, { type: "image/png" }) : null;
       if (alive) setCard({ key, card: { made, file } });
     })();
     return () => { alive = false; };
-  }, [key]);
+  }, [key, body, picked]);
   return card?.key === key ? card.card : null;
 }
 
@@ -58,6 +64,10 @@ export interface ShareOptions {
   /** Where the link points when the card couldn't be made (the game's page). */
   fallbackUrl: string;
   title?: string;
+  /** The picture's size (the MMR card's choice); else tall on phones and wide elsewhere. */
+  size?: ShareSize;
+  /** The share window's heading. */
+  heading?: string;
 }
 
 /**
@@ -65,9 +75,9 @@ export interface ShareOptions {
  * share window. Render `window` once. Used by ShareButton and by the dailies' Share window, which
  * readies both cards (just this game, all of today's) before either is picked.
  */
-export function useShare({ request, text, game, fallbackUrl, title = "My GameShuffle result" }: ShareOptions): { share: () => void; window: ReactNode } {
+export function useShare({ request, text, game, fallbackUrl, title = "My GameShuffle result", size, heading = "Share your result" }: ShareOptions): { share: () => void; window: ReactNode; link: string | null } {
   const toast = useToast();
-  const card = useShareCard(request);
+  const card = useShareCard(request, size);
   const [open, setOpen] = useState(false);
   const url = card?.made.url ?? fallbackUrl;
   const fullText = useMemo(() => text(url), [text, url]);
@@ -96,8 +106,10 @@ export function useShare({ request, text, game, fallbackUrl, title = "My GameShu
   }, [card, fullText, game, title]);
 
   return {
+    /** The card's own link once it's made (null until then). */
+    link: card?.made.url ?? null,
     share: () => void share(),
-    window: <ShareWindow open={open} onClose={() => setOpen(false)} card={card} url={url} text={fullText} title={title} game={game} onCopied={(m) => toast.success(m)} onFailed={(m) => toast.error(m)} />,
+    window: <ShareWindow open={open} onClose={() => setOpen(false)} card={card} url={url} text={fullText} title={title} game={game} size={size} heading={heading} onCopied={(m) => toast.success(m)} onFailed={(m) => toast.error(m)} />,
   };
 }
 
@@ -119,8 +131,8 @@ export function ShareButton({ label = "Share", variant = "primary", trigger, ...
 const enc = encodeURIComponent;
 
 /** Where there's no share sheet: the card, a button per place, Copy text and Save picture. */
-function ShareWindow({ open, onClose, card, url, text, title, game, onCopied, onFailed }: {
-  open: boolean; onClose: () => void; card: Card | null; url: string; text: string; title: string; game: string;
+function ShareWindow({ open, onClose, card, url, text, title, game, size, heading, onCopied, onFailed }: {
+  open: boolean; onClose: () => void; card: Card | null; url: string; text: string; title: string; game: string; size?: ShareSize; heading: string;
   onCopied: (msg: string) => void; onFailed: (msg: string) => void;
 }) {
   // The CDS Modal portals to the body: only after hydration.
@@ -138,7 +150,7 @@ function ShareWindow({ open, onClose, card, url, text, title, game, onCopied, on
     if (!card) return;
     track(EVENTS.shareSent, { game, place: "save" });
     const a = document.createElement("a");
-    a.href = `/r/${card.made.code}/card?size=${coarse() ? "tall" : "wide"}&v=${card.made.version}&download=1`;
+    a.href = `/r/${card.made.code}/card?size=${sizeFor(size)}&v=${card.made.version}&download=1`;
     a.download = "";
     document.body.append(a);
     a.click();
@@ -155,11 +167,11 @@ function ShareWindow({ open, onClose, card, url, text, title, game, onCopied, on
     { label: "Copy text", icon: IconCopy, on: () => void copy("copy", "Copied") },
   ];
   return (
-    <Modal isOpen={open} onClose={onClose} title="Share your result" size="medium">
+    <Modal isOpen={open} onClose={onClose} title={heading} size="medium">
       <div className="share-window">
         {card
           // eslint-disable-next-line @next/next/no-img-element -- our own drawn card
-          ? <img className="share-window__card" src={`/r/${card.made.code}/card?size=wide&v=${card.made.version}`} alt={card.made.alt} width={1200} height={630} />
+          ? <img className={`share-window__card${size === "square" ? " share-window__card--square" : ""}`} src={`/r/${card.made.code}/card?size=${size === "square" ? "square" : "wide"}&v=${card.made.version}`} alt={card.made.alt} width={PREVIEW[size === "square" ? "square" : "wide"][0]} height={PREVIEW[size === "square" ? "square" : "wide"][1]} />
           : <p className="share-window__note">Your picture isn&apos;t ready, so this shares your squares and the link.</p>}
         <div className="share-window__places" role="group" aria-label="Share to">
           {places.map((p) => <Button key={p.label} variant="secondary" iconBefore={p.icon} onClick={p.on}>{p.label}</Button>)}

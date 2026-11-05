@@ -227,7 +227,7 @@ async function describe(rows: RawRow[]): Promise<Map<string, Pick<BoardRow, "nam
   const guests = [...new Set(rows.map((r) => r.guest_key).filter((x): x is string => !!x))];
   const [u, i, g] = await Promise.all([
     users.length ? admin.from("users").select("id, display_name, username, is_public, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar").in("id", users) : Promise.resolve({ data: [] }),
-    idents.length ? admin.from("gs_identities").select("id, display_name, avatar_url").in("id", idents) : Promise.resolve({ data: [] }),
+    idents.length ? admin.from("gs_identities").select("id, platform, display_name, avatar_url").in("id", idents) : Promise.resolve({ data: [] }),
     guests.length ? admin.from("daily_guests").select("guest_key, name").in("guest_key", guests) : Promise.resolve({ data: [] }),
   ]);
   const out = new Map<string, Pick<BoardRow, "name" | "tag" | "avatar" | "profile">>();
@@ -236,8 +236,10 @@ async function describe(rows: RawRow[]): Promise<Map<string, Pick<BoardRow, "nam
       ? { name: "A player", tag: null, avatar: null, profile: null }
       : { name: r.display_name || r.username || "A player", tag: null, avatar: accountAvatar(r), profile: r.username ? `/u/${r.username}` : null });
   }
-  for (const r of (i.data ?? []) as { id: string; display_name: string | null; avatar_url: string | null }[]) {
-    out.set(`i:${r.id}`, { name: r.display_name || "A Discord player", tag: "discord", avatar: r.avatar_url ?? null, profile: null });
+  // Chat identities are Discord players; a time trials Top 10 sheet listing (platform 'sheet') is just a name.
+  for (const r of (i.data ?? []) as { id: string; platform: string | null; display_name: string | null; avatar_url: string | null }[]) {
+    const discord = r.platform !== "sheet";
+    out.set(`i:${r.id}`, { name: r.display_name || (discord ? "A Discord player" : "A player"), tag: discord ? "discord" : null, avatar: r.avatar_url ?? null, profile: null });
   }
   for (const r of (g.data ?? []) as { guest_key: string; name: string }[]) {
     out.set(`g:${r.guest_key}`, { name: r.name, tag: "guest", avatar: null, profile: null });

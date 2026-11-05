@@ -9,7 +9,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { rateLimit } from "@/lib/ratelimit";
 import { LoungeUnavailable, loungePlayer } from "@/lib/mmr/mkcentral";
-import { isMmrGame } from "@/lib/mmr/rules";
+import { isMmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { loungeCareer } from "@/lib/lounge/store";
 
 export const runtime = "nodejs";
@@ -19,7 +19,7 @@ const HEADERS = { "X-Robots-Tag": "noindex", "Cache-Control": "private, max-age=
 export async function GET(req: NextRequest, { params }: { params: Promise<{ name: string }> }) {
   const name = decodeURIComponent((await params).name).trim().slice(0, 40);
   const g = req.nextUrl.searchParams.get("game");
-  const game = isMmrGame(g) ? g : "mkworld12p";
+  const game = isMmrGame(g) ? g : DEFAULT_MMR_GAME;
   if (!name) return NextResponse.json({ ok: false, reason: "not_found" }, { status: 404, headers: HEADERS });
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
   if (!(await rateLimit(`lounge-career:${ip}`, { max: 20, windowMs: 60_000 })).ok) {

@@ -22,6 +22,7 @@ const PRO_SOURCE_LABEL: Record<ProSource, string> = {
   pro_subscription: "GameShuffle Pro",
   pro_trial: "GameShuffle Pro (trial)",
   support_level: "Included with your support",
+  gift: "Given by GameShuffle",
 };
 
 export interface AccountBilling {

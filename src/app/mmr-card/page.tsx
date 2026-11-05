@@ -44,6 +44,7 @@ const FAQ = [
   { q: "How quickly does it update?", a: "It checks every 30 seconds. MMR only moves when an event's table is verified, usually a minute or two after the last race, and that's when the moment plays." },
   { q: "Which games does it cover?", a: "Mario Kart World (12 and 24 players) and Mario Kart 8 Deluxe. Pick the game per look; MK8DX's numbered divisions show as Platinum 1, Platinum 2 and so on." },
   { q: "Do I need Twitch or GS Pro?", a: "No. The card is a browser source, so it works in OBS, Streamlabs or anything that takes a web page, and it's free with an account. GS Pro adds looks: brand themes, two colors of your own, your picture, more fonts, foil and more saved looks, plus !mmr in your Twitch chat." },
+  { q: "Can I post my card without streaming?", a: "Yes. Pick Picture at the top of the studio for a still card in your look: square, wide or story size, to share, save or link. A shared link always shows your latest numbers. It comes with a free account." },
   { q: "What counts as tonight's run?", a: "Everything since you went live on Twitch when it's connected, or since midnight Pacific when it isn't." },
 ];
 

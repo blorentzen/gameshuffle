@@ -9,7 +9,7 @@
  * 2 tightening, 6A): it shows as Unverified until a reviewer checks one. Used in the Add a time window.
  */
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Alert, Button, Chip, FormField, Input } from "@empac/cascadeds";
 import { IconCamera, IconCheck, IconLink, IconVideo } from "@tabler/icons-react";
 import { Select } from "@/components/ui/Select";
@@ -18,10 +18,14 @@ import { track as trackEvent, EVENTS } from "@/lib/analytics/events";
 import { formatGap, formatLap, formatTime, LAP_SLACK_MS, ordinal, parseLap, parseTime } from "@/lib/timeTrials/rules";
 import { TT_GAMES, TT_GAME_ORDER, ttCups, ttTrack, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 import { categoryText, ITEMS, vehicleFor, vehicleOptions, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
+import { countryCodes } from "@/lib/lounge/flags";
+import { countryName } from "@/lib/lounge/countries";
 
 export interface AddedTime { timeId: string; best: boolean; previousMs: number | null; place: number; total: number; needsVideo?: boolean; videoAdded?: boolean; trusted?: boolean }
 
-type Read = { game: TtGame | null; trackId: string | null; cc: TtClass | null; timeMs: number | null; laps?: number[] | null; notResult: boolean };
+type Read = { game: TtGame | null; trackId: string | null; cc: TtClass | null; timeMs: number | null; laps?: number[] | null; notResult: boolean;
+  /** The parts the screen names (the ghost data screen) and the vehicle board the body belongs to; the flag's country. */
+  parts?: { body: string; wheels: string | null; glider: string | null } | null; board?: TtVehicle | null; flag?: string | null };
 const BLANK_LAPS = ["", "", ""];
 
 const READ_ERRORS: Record<string, string> = {
@@ -68,6 +72,21 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
   const [busy, setBusy] = useState<"read" | "save" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ r: AddedTime; timeMs: number } | null>(null);
+  // Round 4 (pick 1A): a player without a country picks one here, starting on the country they're connecting from.
+  const [needsCountry, setNeedsCountry] = useState(false);
+  const [country, setCountry] = useState("");
+  // Set once the player picks a country themselves, so a screenshot's flag doesn't change it after.
+  const countryPicked = useRef(false);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/time-trials/country").then((r) => r.json()).then((j: { ok?: boolean; country?: string | null; suggest?: string | null }) => {
+      if (!live || !j.ok || j.country) return;
+      setNeedsCountry(true);
+      if (j.suggest) setCountry(j.suggest);
+    }).catch(() => undefined);
+    return () => { live = false; };
+  }, []);
+  const countryOptions = useMemo(() => [{ value: "", label: "Not now" }, ...countryCodes().filter((c) => /^[a-z]{2}$/.test(c)).map((c) => ({ value: c, label: countryName(c) })).sort((a, b) => a.label.localeCompare(b.label))], []);
 
   const classes = TT_GAMES[game].classes;
   const groups = useMemo(() => ttCups(game).map((c) => ({ label: `${c.cup}${/Cup$|Mario Kart$/.test(c.cup) ? "" : " Cup"}`, options: c.tracks.map((t) => ({ value: t.id, label: t.name })) })), [game]);
@@ -110,6 +129,11 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       if (r.cc) setCc(r.cc);
       if (r.timeMs) setTime(formatTime(r.timeMs));
       setLaps(r.laps?.length ? r.laps.map(formatLap) : BLANK_LAPS);
+      // The vehicle the screen names starts the Vehicle field on its board (picks 2026-11-04); the player can change it.
+      const g = r.game ?? game;
+      if (r.board && vehicleOptions(g).some((v) => v.id === r.board)) setVehicle(r.board);
+      // A player without a country starts on the screenshot's flag.
+      if (r.flag && needsCountry && !countryPicked.current) setCountry(r.flag);
       setRead(r);
       setReadToken(j.readToken ?? null);
       if (!r.timeMs) setReadNote("We couldn't read every digit of the time. Type it yourself.");
@@ -136,6 +160,9 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       if (!res.ok || !j.ok) { setError(SAVE_ERRORS[j.error ?? ""] ?? "That time couldn't be saved. Try again."); return; }
       trackEvent(EVENTS.ttAdded, { game, items, vehicle, top: j.needsVideo ? "yes" : "no", read: read?.timeMs === timeMs ? "yes" : "no" });
       setDone({ r: j, timeMs });
+      if (needsCountry && country) {
+        void fetch("/api/time-trials/country", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ country }) }).then((r) => { if (r.ok) setNeedsCountry(false); });
+      }
       toast.success(j.best ? "New best saved" : "Time saved");
       onAdded?.(j, { game, track: trackId, cc, timeMs });
     } finally {
@@ -209,7 +236,7 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
         {proofUrl && (
           <p className="tt-add__proof"><IconCheck size={18} aria-hidden="true" /> Screenshot added as proof</p>
         )}
-        {read?.timeMs && !readNote && <Alert variant="success">From your screenshot: check the track and time below, then add it.</Alert>}
+        {read?.timeMs && !readNote && <Alert variant="success">From your screenshot: check the track{read.parts ? ", time and vehicle" : " and time"} below, then add it.</Alert>}
         {readNote && <Alert variant="info">{readNote}</Alert>}
       </div>
 
@@ -256,8 +283,15 @@ export function TimeTrialAdd({ game: startGame, track: startTrack, cc: startCc, 
       </fieldset>
 
       {vehicles.length > 1 && (
-        <FormField label="Vehicle" htmlFor={`${id}-vehicle`} helperText={game === "mk8dx" ? "For a vehicle board. Every time also counts on the open board, and Yoshi Bike times count on Inside drift too." : "For the R.O.B.-HOG board. Every time also counts on the open board."}>
+        <FormField label="Vehicle" htmlFor={`${id}-vehicle`} helperText={game === "mk8dx" ? "For a vehicle board. Every time also counts on the open board." : "For the Swoop, R.O.B.-HOG board. Every time also counts on the open board."}>
           <Select id={`${id}-vehicle`} value={vehicle} onChange={(v) => setVehicle(String(v) as TtVehicle)} options={vehicles.map((v) => ({ value: v.id, label: v.long }))} fullWidth />
+          {read?.parts && <p className="tt-add__parts">Your screenshot shows the {read.parts.body}{read.board && read.board !== "any" ? `, so it starts on the ${vehicles.find((v) => v.id === read.board)?.label ?? "its"} board` : ""}.</p>}
+        </FormField>
+      )}
+
+      {needsCountry && (
+        <FormField label="Your country" htmlFor={`${id}-country`} helperText="Shows as a flag by your name and puts your times on your country's records. We only ask once.">
+          <Select id={`${id}-country`} value={country} onChange={(v) => { countryPicked.current = true; setCountry(String(v)); }} options={countryOptions} searchable fullWidth />
         </FormField>
       )}
 

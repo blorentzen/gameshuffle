@@ -18,6 +18,7 @@ const ERRORS: Record<string, string> = {
   too_big: "That file is over 8 MB. Choose a smaller GIF.",
   bad_file: "That file couldn't be opened as a GIF.",
   too_many_frames: "That GIF is too long. Keep it under 600 frames.",
+  not_animated: "That picture doesn't move. GIFs here are animated; use a still picture as a picture instead.",
   blocked: "That GIF was taken down before, so it can't be uploaded.",
   storage_off: "Uploads are switched off right now. Try again later.",
   not_ready: "GIFs are coming soon.",

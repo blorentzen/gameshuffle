@@ -89,7 +89,7 @@ export async function updateTable(id: string, patch: Partial<{ body: string; sta
 
 /** Each team's logo for a table: this server's, else MKCentral's, else the war's own. */
 async function logosFor(model: TableModel, guildId: string, war: War | null): Promise<Record<string, string | null>> {
-  const game: WarGame = war?.game ?? "mkworld";
+  const game: WarGame = war?.game ?? "mk8dx";
   const entries = await Promise.all(model.teams.map(async (t) => {
     const k = t.tag.toLowerCase();
     const own = await serverLogo(guildId, t.tag);

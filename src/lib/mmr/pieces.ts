@@ -31,7 +31,7 @@ export type MmrPiece =
   | "name" | "cc" | "game" | "division" | "line"
   | "mmr" | "world" | "country" | "top" | "peak" | "progress"
   | "delta" | "tonight" | "streak" | "goal"
-  | "last10" | "recent" | "events" | "avg";
+  | "last10" | "recent" | "events" | "avg" | "partnerAvg";
 
 export type MmrPieceGroup = "who" | "numbers" | "tonight" | "season";
 
@@ -69,6 +69,7 @@ export const PIECES: PieceDef[] = [
   { id: "recent", group: "season", label: "Recent events", note: "Place, tier and change for your latest events.", isNew: true },
   { id: "events", group: "season", label: "Events and win %", note: "Like 142 events, 61% won.", isNew: true },
   { id: "avg", group: "season", label: "Average score", isNew: true },
+  { id: "partnerAvg", group: "season", label: "Partner average", note: "Your teammates' average score in team events.", isNew: true },
 ];
 
 export const PIECE_IDS = PIECES.map((p) => p.id);
@@ -452,5 +453,6 @@ export function pieceText(p: Shown, v: MmrView, info: MmrInfo, goal?: GoalProgre
       return one("Events", `${fmtMmr(v.season.events)} · ${pct}% won`, `${count} · ${pct}% won`, `${fmtMmr(v.season.events)} · ${pct}% won`);
     }
     case "avg": return v.season.avgScore != null ? one("Average score", v.season.avgScore.toFixed(1), `Avg score ${v.season.avgScore.toFixed(1)}`, `Avg ${v.season.avgScore.toFixed(1)}`) : null;
+    case "partnerAvg": return v.season.partnerAvg != null ? one("Partner average", v.season.partnerAvg.toFixed(1), `Partner avg ${v.season.partnerAvg.toFixed(1)}`, `Partners ${v.season.partnerAvg.toFixed(1)}`) : null;
   }
 }

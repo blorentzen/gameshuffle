@@ -1,10 +1,11 @@
 "use client";
 
 /**
- * Profile banner uploader (account → Profile). Pick an image → crop/position
- * it → upload the cropped result (plus the original, kept for Reposition) to
- * R2 via /api/account/banner. Reposition re-crops the stored original;
- * Replace picks a new image; Remove clears it.
+ * Profile banner (account → Profile). A profile has one banner, and it's one of two kinds, picked here:
+ *   Picture: a still JPG, PNG or WebP → crop/position → the cropped result (plus the original, kept for Reposition)
+ *            goes to R2 via /api/account/banner. Reposition re-crops the stored original; Replace picks a new image.
+ *   Animated GIF: one of your GIFs, framed by where it sits (BannerGifControls; GS Pro or Supporter looks).
+ * Saving one kind replaces the other (src/lib/profile/banner.ts).
  *
  * The crop editor is lazy-loaded (next/dynamic) so the heavy cropper +
  * react-easy-crop never block this control from rendering.
@@ -14,6 +15,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import dynamic from "next/dynamic";
 import { Alert, Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { BannerGifControls, type BannerGifState } from "@/components/account/BannerGifEditor";
 
 const BannerEditModal = dynamic(
   () => import("@/components/account/BannerEditModal").then((m) => m.BannerEditModal),
@@ -32,6 +34,8 @@ export function BannerUploader() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [edit, setEdit] = useState<EditState>(null);
+  const [gif, setGif] = useState<BannerGifState | null>(null);
+  const [kind, setKind] = useState<"picture" | "gif">("picture");
   const inputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
@@ -44,6 +48,14 @@ export function BannerUploader() {
           setSourceUrl(b.sourceUrl ?? null);
           setConfigured(b.configured !== false);
         }
+      })
+      .catch(() => {});
+    fetch("/api/account/banner/gif", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((g: BannerGifState | null) => {
+        if (!g?.ready) return;
+        setGif(g);
+        if (g.banner) setKind("gif");
       })
       .catch(() => {});
   }, []);
@@ -79,15 +91,22 @@ export function BannerUploader() {
         error?: string;
       };
       if (!res.ok) {
+        const reason = (b as { reason?: string }).reason;
         setError(
           b.error === "storage_unconfigured"
             ? "Image uploads aren't available yet."
-            : "Upload failed. Please try again.",
+            : b.error === "refused"
+              ? `That picture can't be a banner${reason ? `: ${reason}` : "."}`
+              : b.error === "check_unavailable"
+                ? "We couldn't check that picture just now. Try again in a minute."
+                : "Upload failed. Please try again.",
         );
         return;
       }
       setUrl(b.url ?? null);
       setSourceUrl(b.sourceUrl ?? null);
+      // A picture replaces an animated banner.
+      setGif((g) => (g ? { ...g, banner: null } : g));
       setEdit(null);
       toast.success("Banner updated");
     } finally {
@@ -111,16 +130,24 @@ export function BannerUploader() {
 
   return (
     <div>
-      <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>
+      <p className="account-card__label" style={{ marginBottom: "var(--spacing-8)" }}>
         Profile banner
-      </label>
+      </p>
+      {gif ? (
+        <div className="banner-kind" role="group" aria-label="Banner type">
+          <Button size="small" variant={kind === "picture" ? "primary" : "secondary"} aria-pressed={kind === "picture"} onClick={() => setKind("picture")}>Picture</Button>
+          <Button size="small" variant={kind === "gif" ? "primary" : "secondary"} aria-pressed={kind === "gif"} onClick={() => setKind("gif")}>Animated GIF</Button>
+        </div>
+      ) : null}
 
       <div
         className="banner-preview"
         style={
-          url
-            ? { backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center" }
-            : undefined
+          gif?.banner
+            ? { backgroundImage: `url(${gif.banner.url})`, backgroundSize: "cover", backgroundPosition: `${gif.banner.x}% ${gif.banner.y}%` }
+            : url
+              ? { backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center" }
+              : undefined
         }
         aria-hidden="true"
       >
@@ -131,7 +158,19 @@ export function BannerUploader() {
         ) : null}
       </div>
 
-      {!configured ? (
+      {kind === "gif" && gif ? (
+        <div style={{ marginTop: "var(--spacing-12)", display: "grid", gap: "var(--spacing-8)" }}>
+          <BannerGifControls
+            state={gif}
+            replacesPicture={!!url && !gif.banner}
+            onChange={(banner) => {
+              setGif({ ...gif, banner });
+              // A GIF replaces the picture banner.
+              if (banner) { setUrl(null); setSourceUrl(null); }
+            }}
+          />
+        </div>
+      ) : !configured ? (
         <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
           Image uploads aren&rsquo;t available yet.
         </p>
@@ -164,8 +203,10 @@ export function BannerUploader() {
               </Button>
             ) : null}
           </div>
-          <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-            JPG, PNG or WebP. You can position and zoom it before saving. It runs across the top of your profile: phones show all of it, wide screens trim a little off the top and bottom.
+          <p className="banner-gif__note" style={{ marginTop: "var(--spacing-8)" }}>
+            {gif?.banner
+              ? "Your banner is an animated GIF now. Uploading a picture replaces it."
+              : "A still picture: JPG, PNG or WebP. You can position and zoom it before saving. It runs across the top of your profile: phones show all of it, wide screens trim a little off the top and bottom."}
           </p>
         </>
       )}

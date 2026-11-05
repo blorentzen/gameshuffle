@@ -3,6 +3,8 @@
  *   GET                         { live, ready, limit, servers: [{ guildId, name, removedAt, settings, channels? }] }
  *                               ?guild=<id> also lists that server's text channels (the competitive bot reads them)
  *   PATCH { guild, settings }   merges channel settings (comp: { channel } for its posts)
+ *   PATCH { guild, lounge }     lounge posts in this server: { rankUps?, rolesGame?, boardGame? } (roles and the board
+ *                               are GS Pro). GameShuffle's lounge settings for the server come along the first time.
  *   DELETE ?guild=<id>          forgets the server (the bot stays until someone removes it in Discord)
  *   POST { action: "panel", guild, channel, game }   posts (or moves) the time trial panel; game mk8dx | mkworld | both
  *   POST { action: "panel_remove", guild, game }     takes it down
@@ -16,6 +18,9 @@ import { withDiscordApp } from "@/lib/discord/apps";
 import { appGuildsReady, getAppGuild, listAppGuilds, removeAppGuild, updateAppGuildSettings } from "@/lib/discord/appGuilds";
 import { serverLimit } from "@/lib/discord/guilds";
 import { listTextChannels } from "@/lib/adapters/discord/adapter";
+import { createServiceClient } from "@/lib/supabase/admin";
+import { isMmrGame } from "@/lib/mmr/rules";
+import { EMPTY_COMP_LOUNGE, readCompLounge, type CompLounge } from "@/lib/lounge/compLounge";
 import { isPanelGame, postPanel, removePanel } from "@/lib/discord/ttPanel";
 
 export const runtime = "nodejs";
@@ -25,6 +30,24 @@ async function who() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   return user;
+}
+
+/** A server's lounge settings: its own, else GameShuffle's for the same server (carried over), else off. */
+async function effectiveLounge(guildId: string, settings: Record<string, unknown>): Promise<{ lounge: CompLounge; carried: boolean }> {
+  const own = readCompLounge(settings);
+  if (own) return { lounge: own, carried: false };
+  const { data } = await createServiceClient().from("discord_guilds")
+    .select("event_subscriptions, lounge_roles_game, lounge_board_game, lounge_role_ids, lounge_board_week").eq("guild_id", guildId).is("removed_at", null).maybeSingle();
+  const m = data as { event_subscriptions: Record<string, boolean> | null; lounge_roles_game: string | null; lounge_board_game: string | null; lounge_role_ids: Record<string, string> | null; lounge_board_week: string | null } | null;
+  if (!m) return { lounge: EMPTY_COMP_LOUNGE, carried: false };
+  const lounge: CompLounge = {
+    rankUps: m.event_subscriptions?.lounge === true,
+    rolesGame: isMmrGame(m.lounge_roles_game) ? m.lounge_roles_game : null,
+    boardGame: isMmrGame(m.lounge_board_game) ? m.lounge_board_game : null,
+    roleIds: m.lounge_role_ids ?? {},
+    boardWeek: m.lounge_board_week,
+  };
+  return { lounge, carried: lounge.rankUps || !!lounge.rolesGame || !!lounge.boardGame };
 }
 
 export async function GET(request: Request) {
@@ -44,7 +67,11 @@ export async function GET(request: Request) {
     live,
     ready,
     limit: serverLimit(pro),
-    servers: servers.map((s) => ({ guildId: s.guildId, name: s.name, removedAt: s.removedAt, settings: s.settings })),
+    pro,
+    servers: await Promise.all(servers.map(async (s) => {
+      const { lounge, carried } = await effectiveLounge(s.guildId, s.settings);
+      return { guildId: s.guildId, name: s.name, removedAt: s.removedAt, settings: s.settings, lounge: { rankUps: lounge.rankUps, rolesGame: lounge.rolesGame, boardGame: lounge.boardGame, carried } };
+    })),
     channels,
   });
 }
@@ -52,7 +79,24 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   const user = await who();
   if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-  const body = (await request.json().catch(() => ({}))) as { guild?: string; settings?: Record<string, unknown> };
+  const body = (await request.json().catch(() => ({}))) as { guild?: string; settings?: Record<string, unknown>; lounge?: Record<string, unknown> };
+  if (body.guild && body.lounge) {
+    const g = await getAppGuild("comp", body.guild);
+    if (!g || g.ownerUserId !== user.id) return NextResponse.json({ ok: false, error: "not_yours" }, { status: 404 });
+    const game = (v: unknown) => (v === null || v === "" ? null : isMmrGame(v) ? v : undefined);
+    const { lounge } = await effectiveLounge(body.guild, g.settings);
+    const next: CompLounge = { ...lounge };
+    if (body.lounge.rankUps !== undefined) next.rankUps = body.lounge.rankUps === true;
+    for (const key of ["rolesGame", "boardGame"] as const) {
+      if (body.lounge[key] === undefined) continue;
+      const v = game(body.lounge[key]);
+      if (v === undefined) return NextResponse.json({ ok: false, error: "bad_game" }, { status: 400 });
+      if (v && !(await isProUser(user.id))) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
+      next[key] = v;
+    }
+    await updateAppGuildSettings(user.id, "comp", body.guild, { lounge: next });
+    return NextResponse.json({ ok: true, lounge: { rankUps: next.rankUps, rolesGame: next.rolesGame, boardGame: next.boardGame, carried: false } });
+  }
   if (!body.guild || !body.settings) return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
   // Only channel ids (or null) for now.
   const channel = body.settings.channel;

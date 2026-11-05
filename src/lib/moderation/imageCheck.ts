@@ -66,14 +66,17 @@ const GIF_SCHEMA = SCHEMA.extend({
  * The check for an uploaded GIF: `sheet` holds up to four of its frames in order (src/lib/gifs/process.ts). Same rules
  * as checkImage, plus a suggested description the uploader can change. Never throws; shares checkImage's daily cap.
  */
-export async function checkGifFrames(sheet: Buffer, args: { userId: string; capKey: string }): Promise<ImageCheck & { alt: string }> {
+/** `use`: where it's going, when it isn't a GIF upload (a moving picture in a community post). */
+export async function checkGifFrames(sheet: Buffer, args: { userId: string; capKey: string; use?: string }): Promise<ImageCheck & { alt: string }> {
   if (!(await rateLimit(`image-check:${args.capKey}`, { max: DAILY, windowMs: 24 * 60 * 60_000 })).ok) {
     return { verdict: "unsure", reason: "Too many uploads today to check them all.", ran: false, alt: "" };
   }
   try {
     const { value: res, tokens } = await withAiTokens(() => draftStructured({
       system: SYSTEM,
-      prompt: "These are up to four frames from an animated GIF, in order (left to right, then top to bottom). The uploader wants to use it in comments and messages, and may share it with everyone. Check it, and describe what it shows.",
+      prompt: args.use
+        ? `These are up to four frames from an animated picture, in order (left to right, then top to bottom). It's going to be used as a ${args.use}. Check it, and describe what it shows.`
+        : "These are up to four frames from an animated GIF, in order (left to right, then top to bottom). The uploader wants to use it in comments and messages, and may share it with everyone. Check it, and describe what it shows.",
       schema: GIF_SCHEMA,
       effort: "low",
       maxTokens: 400,

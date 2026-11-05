@@ -6,7 +6,7 @@
 
 import {
   IconChartLine, IconChevronsUp, IconDeviceGamepad2, IconFlag, IconFlag2, IconFlame, IconHistory, IconMapPin, IconMathAvg,
-  IconPercentage, IconQuote, IconShield, IconStar, IconTargetArrow, IconTrendingUp, IconTrophy, IconUser, IconWorld, type Icon,
+  IconPercentage, IconQuote, IconShield, IconStar, IconTargetArrow, IconTrendingUp, IconTrophy, IconUser, IconUsersGroup, IconWorld, type Icon,
 } from "@tabler/icons-react";
 import type { Shown } from "@/lib/mmr/pieces";
 
@@ -30,4 +30,5 @@ export const PIECE_ICONS: Record<Shown, Icon> = {
   recent: IconHistory,
   events: IconTrophy,
   avg: IconMathAvg,
+  partnerAvg: IconUsersGroup,
 };

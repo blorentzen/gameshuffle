@@ -68,6 +68,8 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/gs-pro",
   "/support",
   "/shop",
+  "/summer-series",     // a team series: sign in to predict, vote or pick in the draft
+  "/series/",
 ];
 
 export function safeRedirect(raw: string | null, fallback = "/account"): string {
