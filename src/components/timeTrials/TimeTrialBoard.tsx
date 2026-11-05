@@ -16,7 +16,7 @@
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Avatar, Button, FormField, Input, Modal, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from "@empac/cascadeds";
-import { IconBrandDiscord, IconCamera, IconCircleCheck, IconClock, IconFlag, IconTrash, IconVideo } from "@tabler/icons-react";
+import { IconBrandDiscord, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconTrash, IconVideo } from "@tabler/icons-react";
 import { IconAction, IconLinkAction } from "@/components/actions/IconAction";
 import { Select } from "@/components/ui/Select";
 import { TableScroll } from "@/components/ui/TableScroll";
@@ -26,6 +26,7 @@ import { formatTime, timeStatus, type TimeStatus } from "@/lib/timeTrials/rules"
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
 import { StatusChip, TtTimeWindow } from "./TtTimeWindow";
+import { videoProof } from "@/lib/timeTrials/rules";
 import { vehicleLabel, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 import type { TtBoard, TtBoardRow } from "@/lib/timeTrials/store";
 import type { TtClass, TtGame } from "@/lib/timeTrials/tracks";
@@ -253,6 +254,8 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
                         <span className="tt-board__proof">
                           {proofHref ? (
                             <IconLinkAction label={`${r.name}'s ${r.proof === "video" ? "video" : "screenshot"}`} icon={r.proof === "video" ? IconVideo : IconCamera} href={proofHref} />
+                          ) : r.sheetLink ? (
+                            <IconLinkAction label={`${r.name}'s proof`} icon={videoProof(r.sheetLink) ? IconVideo : IconExternalLink} href={r.sheetLink} />
                           ) : <span className="tt-board__none">{r.sheet ? "Legacy" : r.imported ? "Imported" : "None"}</span>}
                           {clipHref && <IconLinkAction label={`${r.name}'s clip`} icon={IconVideo} href={clipHref} />}
                         </span>

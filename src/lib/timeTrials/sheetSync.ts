@@ -16,7 +16,7 @@ import { round4Ready } from "./status";
 import { fasterThanRecord } from "./records";
 import { isCountryCode, noteCountry } from "./countries";
 import {
-  parseSheetCsv, sheetCountries, sheetCsvUrl, sheetTimes, TT_SHEETS,
+  parseSheetCsv, sheetCountries, sheetCsvUrl, sheetHtmlUrl, sheetLinks, sheetTimes, TT_SHEETS,
   type ParsedSheet, type SheetId, type SheetTime, type TtSheet,
 } from "./sheets";
 import type { TtClass } from "./tracks";
@@ -87,7 +87,7 @@ async function claimedBy(identityIds: string[]): Promise<Map<string, string>> {
 
 type Row = { track: string; identity_id: string; time_ms: number; link: string | null; time_id: string | null };
 
-async function saveRead(sheet: TtSheet, cc: TtClass, times: SheetTime[], ids: Map<string, string>, owners: Map<string, string>): Promise<Omit<SheetReadReport, "sheet" | "cc" | "error">> {
+async function saveRead(sheet: TtSheet, cc: TtClass, times: SheetTime[], ids: Map<string, string>, owners: Map<string, string>, linksRead: boolean): Promise<Omit<SheetReadReport, "sheet" | "cc" | "error">> {
   const db = createServiceClient();
   const { data: had, error } = await readAllPages<Row>((from, to) =>
     db.from("tt_sheet_rows").select("track, identity_id, time_ms, link, time_id").eq("sheet", sheet.id).eq("cc", cc).order("track").order("identity_id").range(from, to));
@@ -111,6 +111,8 @@ async function saveRead(sheet: TtSheet, cc: TtClass, times: SheetTime[], ids: Ma
     const identity = ids.get(t.key);
     if (!identity) continue;
     const prev = before.get(`${t.track}|${identity}`);
+    // The page that carries the links didn't answer: keep the link we had rather than dropping it.
+    if (!linksRead && prev && prev.time_ms === t.timeMs) t.link = prev.link ?? null;
     if (prev && prev.time_ms === t.timeMs) {
       if ((prev.link ?? null) !== t.link) {
         rowsOut.push({ sheet: sheet.id, cc, track: t.track, identity_id: identity, time_ms: t.timeMs, link: t.link, time_id: prev.time_id, seen_at: now });
@@ -191,9 +193,9 @@ export async function syncSheets(opts: { only?: SheetId[]; log?: (step: string) 
   const log = (step: string) => { opts.log?.(`${step} ${((Date.now() - t0) / 1000).toFixed(1)}s`); t0 = Date.now(); };
   const db = createServiceClient();
   const sheets = TT_SHEETS.filter((s) => !opts.only || opts.only.includes(s.id));
-  type Read = { sheet: TtSheet; cc: TtClass; parsed: ParsedSheet | null; times: SheetTime[]; error: string | null };
+  type Read = { sheet: TtSheet; cc: TtClass; parsed: ParsedSheet | null; times: SheetTime[]; linksRead?: boolean; error: string | null };
   const readTab = async (sheet: TtSheet, cc: TtClass): Promise<Read> => {
-    const got = await fetchText(sheetCsvUrl(sheet, cc));
+    const [got, page] = await Promise.all([fetchText(sheetCsvUrl(sheet, cc)), fetchText(sheetHtmlUrl(sheet, cc))]);
     const csv = got.text;
     if (!csv) return { sheet, cc, parsed: null, times: [], error: `The sheet didn't answer (${got.why}).` };
     const parsed = parseSheetCsv(csv);
@@ -202,8 +204,8 @@ export async function syncSheets(opts: { only?: SheetId[]; log?: (step: string) 
       parsed.unknownTracks.length ? `Tracks we don't know: ${parsed.unknownTracks.join(", ")}` : null,
       parsed.unknownSections.length ? `Sections we don't know: ${parsed.unknownSections.join(", ")}` : null,
     ].filter(Boolean).join(". ");
-    // Times only: legacy times never link out (Britton, 2026-11-05), so the sheets' own pages aren't read.
-    return { sheet, cc, parsed, times: sheetTimes(parsed), error: problems || null };
+    // A time's own proof (a clip or a post) when the page links one; never the sheet itself (Britton, 2026-11-05).
+    return { sheet, cc, parsed, times: sheetTimes(parsed, page.text ? sheetLinks(page.text) : new Map()), linksRead: !!page.text, error: problems || null };
   };
   const reads: Read[] = [];
   reads.push(...(await Promise.all(sheets.flatMap((sheet) => CLASSES.map((cc) => readTab(sheet, cc))))));
@@ -220,7 +222,7 @@ export async function syncSheets(opts: { only?: SheetId[]; log?: (step: string) 
     let res = { rows: 0, added: 0, corrected: 0, skipped: 0 };
     let error = r.error;
     if (r.parsed) {
-      try { res = await saveRead(r.sheet, r.cc, r.times, ids, owners); }
+      try { res = await saveRead(r.sheet, r.cc, r.times, ids, owners, r.linksRead !== false); }
       catch (e) { error = (e as Error).message; }
     }
     out.push({ sheet: r.sheet.id, cc: r.cc, ...res, error });

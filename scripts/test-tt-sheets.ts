@@ -1,6 +1,6 @@
 // Tests for the Top 10 sheet reader (src/lib/timeTrials/sheets.ts): npx tsx scripts/test-tt-sheets.ts
 // A small tab in the sheets' own layout: title, the world section, then country sections under a label row.
-import { parseCsv, parseSheetCsv, sheetCountries, sheetFor, sheetLinks, sheetNameKey, sheetTimes, sheetTrackId } from "../src/lib/timeTrials/sheets";
+import { isProofLink, parseCsv, parseSheetCsv, sheetCountries, sheetFor, sheetLinks, sheetNameKey, sheetTimes, sheetTrackId } from "../src/lib/timeTrials/sheets";
 
 let pass = 0, fail = 0;
 const eq = (got: unknown, want: unknown, what: string) => {
@@ -66,6 +66,14 @@ eq(countries.has("aslan"), false, "an unknown section gives no country");
 // Proof links on the published page come through Google's redirect.
 const html = '<td><a target="_blank" href="https://www.google.com/url?q=https://www.youtube.com/watch?v%3DNBP2PVG95PY&amp;sa=D&amp;usg=x">1:38.646</a></td><td><a href="https://example.com">Overall</a></td>';
 eq([...sheetLinks(html)], [["1:38.646", ["https://www.youtube.com/watch?v=NBP2PVG95PY"]]], "links are read from the page, by time");
+
+// Only real proof: a clip or a post, never a spreadsheet, document or drive.
+eq(isProofLink("https://x.com/byrxzec/status/2095030584099921953"), true, "an X post is proof");
+eq(isProofLink("https://youtu.be/NBP2PVG95PY"), true, "a YouTube clip is proof");
+eq(isProofLink("https://docs.google.com/spreadsheets/d/e/abc/pubhtml"), false, "a spreadsheet is never proof");
+eq(isProofLink("https://drive.google.com/file/d/abc"), false, "a drive file is never proof");
+eq(isProofLink("https://doc-04-1g-sheets.googleusercontent.com/pub/x"), false, "Google's file host is never proof");
+eq([...sheetLinks('<a href="https://www.google.com/url?q=https://docs.google.com/spreadsheets/d/e/x/pubhtml&amp;sa=D">1:40.000</a>')], [], "a time linking to a spreadsheet keeps no link");
 
 // Which sheet a board's times come from.
 eq(sheetFor(sheetTrackId("Mario Kart Stadium")!, "any").id, "base", "a base game track");

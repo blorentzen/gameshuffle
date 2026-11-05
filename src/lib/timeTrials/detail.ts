@@ -13,6 +13,7 @@ import { boardFor, playerBests, timeById, topTenIds, ttReady, type TtTimeRow } f
 import { categoryText, vehicleFor, type TtItems, type TtVehicle } from "./categories";
 import { countriesFor, round3Ready, round4Ready, trustedPlayers, underReview, vouchCounts } from "./status";
 import type { TtParts } from "./parts";
+import { isProofLink } from "./sheets";
 import { COMMUNITY_VOUCHES, lapsAddUp, timeStatus, type ProofKind, type TimeStatus } from "./rules";
 import { playerPagePath } from "./playerPath";
 import { trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
@@ -48,8 +49,10 @@ export interface TtTimeDetail {
   /** The viewer may vouch: signed in and not their own time (anyone signed in, picks 2026-11-04). */
   canVouch: boolean;
   boardPath: string;
-  /** A legacy time (round 4: brought over from the community's records). Shown only as "Legacy", never with a link out. */
+  /** A legacy time (round 4: brought over from the community's records), shown as "Legacy". */
   sheet: boolean;
+  /** Its proof when the record carried a clip or a post; never a spreadsheet. */
+  legacyProof: string | null;
   /** The vehicle parts the screenshot named (picks 2026-11-04). */
   parts: TtParts | null;
   /** Lap splits against the record on this board, or the fastest time there with laps (round 4, pick 7A). */
@@ -156,6 +159,7 @@ export async function timeDetail(id: string, viewer: string | null): Promise<TtT
     you, youVouched, canVouch: !!viewer && !you && !youVouched && (await round3Ready()),
     boardPath: `${path}${path.includes("?") ? "&" : "?"}time=${t.id}`,
     sheet: t.source === "sheet",
+    legacyProof: t.source === "sheet" && extra.sheet_link && isProofLink(extra.sheet_link) ? extra.sheet_link : null,
     parts: extra.body ? { body: extra.body, wheels: extra.wheels, glider: extra.glider } : null,
     splits: await splitsFor(t, board, extra.laps),
   };

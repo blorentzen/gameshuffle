@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Avatar, Button, Modal } from "@empac/cascadeds";
-import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconFlag, IconHistory, IconLink, IconShieldCheck, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
+import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconHistory, IconLink, IconShieldCheck, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
@@ -97,7 +97,11 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
                 <h3 id="tt-win-proof">Proof</h3>
                 <div className="tt-win__btns">
                   {time.proofUrl ? <a className="empac-button empac-button--secondary empac-button--small" href={time.proofUrl} target="_blank" rel="noopener noreferrer"><IconCamera size={16} aria-hidden="true" /> Open the picture</a>
-                    : time.sheet ? <span className="tt-muted">A legacy time, recorded before it came to GameShuffle</span>
+                    : time.sheet ? (
+                      time.legacyProof
+                        ? <a className="empac-button empac-button--secondary empac-button--small" href={time.legacyProof} target="_blank" rel="noopener noreferrer nofollow"><IconExternalLink size={16} aria-hidden="true" /> Open the proof</a>
+                        : <span className="tt-muted">A legacy time, recorded before it came to GameShuffle</span>
+                    )
                     : time.you ? <TtAddShot timeId={time.id} game={time.game} timeMs={time.timeMs} onDone={() => setTick((t) => t + 1)} />
                     : <span className="tt-muted">No screenshot (imported)</span>}
                   {time.videoUrl && <a className="empac-button empac-button--secondary empac-button--small" href={time.videoUrl} target="_blank" rel="noopener noreferrer"><IconVideo size={16} aria-hidden="true" /> Watch the clip</a>}

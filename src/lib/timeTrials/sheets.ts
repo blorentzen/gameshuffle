@@ -167,6 +167,13 @@ export function parseSheetCsv(csv: string): ParsedSheet {
 
 // ── Proof links (only on the published page; the CSV has none) ────────────────
 
+/** A link to a clip or a post that shows the run, never to a spreadsheet, document or drive (Britton, 2026-11-05). */
+export function isProofLink(href: string): boolean {
+  let host = "";
+  try { host = new URL(href).hostname.toLowerCase(); } catch { return false; }
+  return !/(^|\.)(docs|sheets|drive)\.google\.com$|(^|\.)googleusercontent\.com$|(^|\.)(dropbox|onedrive\.live|1drv)\.com$/.test(host);
+}
+
 const decode = (s: string) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 
 /** The links on a tab's published page, by the time they're on ("1:33.717" → its links). */
@@ -182,7 +189,7 @@ export function sheetLinks(html: string): Map<string, string[]> {
       const u = new URL(href);
       if (u.hostname.endsWith("google.com") && u.pathname === "/url") href = u.searchParams.get("q") ?? "";
     } catch { continue; }
-    if (!/^https:\/\//.test(href) || href.length > 500) continue;
+    if (!/^https:\/\//.test(href) || href.length > 500 || !isProofLink(href)) continue;
     const list = out.get(text) ?? [];
     if (!list.includes(href)) list.push(href);
     out.set(text, list);
