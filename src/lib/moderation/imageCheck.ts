@@ -57,3 +57,36 @@ export async function checkImage(img: Buffer, args: { use: string; userId: strin
     return { verdict: "unsure", reason: "The check couldn't run.", ran: false };
   }
 }
+
+const GIF_SCHEMA = SCHEMA.extend({
+  alt: z.string().describe("What the GIF shows, in one short plain line for screen readers (under 100 characters), no 'GIF of'"),
+});
+
+/**
+ * The check for an uploaded GIF: `sheet` holds up to four of its frames in order (src/lib/gifs/process.ts). Same rules
+ * as checkImage, plus a suggested description the uploader can change. Never throws; shares checkImage's daily cap.
+ */
+/** `use`: where it's going, when it isn't a GIF upload (a moving picture in a community post). */
+export async function checkGifFrames(sheet: Buffer, args: { userId: string; capKey: string; use?: string }): Promise<ImageCheck & { alt: string }> {
+  if (!(await rateLimit(`image-check:${args.capKey}`, { max: DAILY, windowMs: 24 * 60 * 60_000 })).ok) {
+    return { verdict: "unsure", reason: "Too many uploads today to check them all.", ran: false, alt: "" };
+  }
+  try {
+    const { value: res, tokens } = await withAiTokens(() => draftStructured({
+      system: SYSTEM,
+      prompt: args.use
+        ? `These are up to four frames from an animated picture, in order (left to right, then top to bottom). It's going to be used as a ${args.use}. Check it, and describe what it shows.`
+        : "These are up to four frames from an animated GIF, in order (left to right, then top to bottom). The uploader wants to use it in comments and messages, and may share it with everyone. Check it, and describe what it shows.",
+      schema: GIF_SCHEMA,
+      effort: "low",
+      maxTokens: 400,
+      image: { base64: sheet.toString("base64"), mediaType: "image/jpeg" },
+    }));
+    await recordAiUse(args.userId, "image_check", tokens).catch(() => undefined);
+    if (!res.ok) return { verdict: "unsure", reason: "The check couldn't run.", ran: false, alt: "" };
+    return { verdict: res.data.verdict, reason: res.data.reason.trim().slice(0, 160), ran: true, alt: res.data.alt.trim().slice(0, 160) };
+  } catch (err) {
+    console.error("[gif check] failed:", err);
+    return { verdict: "unsure", reason: "The check couldn't run.", ran: false, alt: "" };
+  }
+}

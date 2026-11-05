@@ -50,7 +50,7 @@ export const ROLL_PROGRESS: { v: RollProgress; label: string }[] = [{ v: "dots",
 
 /** The pieces that can be slides. Name, flag, game and division make up the "id" slide or the pinned
  *  head (and the game rides under the MMR); the last change is a chip beside the MMR. */
-export const ROLL_PIECES: MmrPiece[] = ["line", "mmr", "world", "country", "top", "peak", "progress", "tonight", "streak", "goal", "last10", "recent", "events", "avg"];
+export const ROLL_PIECES: MmrPiece[] = ["line", "mmr", "world", "country", "top", "peak", "progress", "tonight", "streak", "goal", "last10", "recent", "events", "avg", "partnerAvg"];
 
 /** How long a slide's motion takes, and how long the change holds on the MMR slide. */
 export const ROLL_MOVE_MS = 650;
@@ -162,6 +162,7 @@ export function slideText(s: RollSlide, v: MmrView, info: MmrInfo, goal: GoalPro
     case "recent": return t ? { label: "Recent events", value: "", sub: null } : null;
     case "events": return t ? { label: "This season", value: `${fmtMmr(v.season.events)} ${v.season.events === 1 ? "event" : "events"}`, sub: `${Math.round((v.season.wins / v.season.events) * 100)}% won` } : null;
     case "avg": return t ? { label: "Average score", value: t.value, sub: "per event this season" } : null;
+    case "partnerAvg": return t ? { label: "Partner average", value: t.value, sub: "teammates, this season" } : null;
     case "line": return t ? { label: "", value: t.value, sub: null } : null;
     default: return null;
   }

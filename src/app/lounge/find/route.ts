@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isMmrGame, type MmrGame } from "@/lib/mmr/rules";
+import { isMmrGame, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { loungeGames } from "@/lib/mmr/mkcentral";
 import { parseFriendCode, suggestionHref } from "@/lib/lounge/lookup";
 import { playersByFriendCode } from "@/lib/lounge/lookupServer";
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   const vs = (url.searchParams.get("vs") ?? "").trim().slice(0, 40);
   if (vs) {
     const to = new URL(`/lounge/compare/${encodeURIComponent(name)}/${encodeURIComponent(vs)}`, url);
-    if (isMmrGame(g) && g !== "mkworld12p") to.searchParams.set("game", g);
+    if (isMmrGame(g) && g !== DEFAULT_MMR_GAME) to.searchParams.set("game", g);
     return NextResponse.redirect(to, 303);
   }
   const fc = parseFriendCode(name);
@@ -26,9 +26,9 @@ export async function GET(request: Request) {
   let game: MmrGame | null = isMmrGame(g) ? g : null;
   if (!game && !fc) {
     const reg = await loungeGames(name).catch(() => null);
-    if (reg?.length && !reg.includes("mkworld12p")) game = reg[0];
+    if (reg?.length && !reg.includes(DEFAULT_MMR_GAME)) game = reg[0];
   }
   const to = new URL(`/lounge/${encodeURIComponent(name)}`, url);
-  if (game && game !== "mkworld12p") to.searchParams.set("game", game);
+  if (game && game !== DEFAULT_MMR_GAME) to.searchParams.set("game", game);
   return NextResponse.redirect(to, 303);
 }

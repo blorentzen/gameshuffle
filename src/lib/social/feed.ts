@@ -2,6 +2,10 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/social/notifications";
 import { resolveNameColor } from "@/data/arcade-items";
+import { attachmentViews, gifsReady } from "@/lib/gifs/store";
+import type { Attachment, AttachmentView } from "@/lib/gifs/rules";
+import { isR2Configured, publicUrl } from "@/lib/storage/r2";
+import { reactionLabel, stickerOfKey } from "@/lib/social/reactions";
 
 /**
  * Social feed (community platform v1) — posts, emoji reactions, threaded
@@ -98,7 +102,20 @@ export interface FeedComment {
   likes: number;
   likedByMe: boolean;
   isEdited?: boolean;
+  /** A GIF or sticker posted as the comment (GIF comments carry no text). */
+  attachment?: AttachmentView | null;
+  /** Emoji and sticker reactions (gifs-m2.sql); `reacted` is filled per viewer by markLiked. */
+  reactions?: FeedReaction[];
   replies?: FeedComment[];
+}
+
+let commentReactionsOk: boolean | null = null;
+/** Whether gs_comment_reactions exists yet (gifs-m2.sql). Remembered once it does. */
+async function commentReactionsReady(): Promise<boolean> {
+  if (commentReactionsOk) return true;
+  const { error } = await createServiceClient().from("gs_comment_reactions").select("comment_id").limit(1);
+  commentReactionsOk = !error;
+  return commentReactionsOk;
 }
 
 type UserRow = {
@@ -267,8 +284,10 @@ export async function createPost(args: {
   topics?: string[] | null;
 }): Promise<{ ok: true; id: string } | { ok: false; reason: "empty" | "rate_limited" }> {
   const body = args.body.trim().slice(0, POST_MAX);
+  // Only the author's own uploads from /api/social/posts/image, which checked them.
+  const own = isR2Configured() ? publicUrl(`post-images/${args.authorId}/`) : null;
   const imageUrls = (args.imageUrls ?? [])
-    .filter((u): u is string => typeof u === "string" && u.startsWith("http"))
+    .filter((u): u is string => typeof u === "string" && !!own && u.startsWith(own) && !u.includes(".."))
     .slice(0, 8);
   // A post needs either text or at least one image.
   if (!body && imageUrls.length === 0) return { ok: false, reason: "empty" };
@@ -684,7 +703,7 @@ export async function reactToPost(args: { postId: string; userId: string; emoji:
     await createNotification({
       userId: authorId,
       type: "post_reaction",
-      title: "reacted to your post",
+      title: stickerOfKey(args.emoji) ? `reacted ${reactionLabel(args.emoji)} to your post` : "reacted to your post",
       actorUserId: args.userId,
       link: `/community/post/${args.postId}`,
       data: { postId: args.postId },
@@ -751,28 +770,42 @@ export async function clearRsvp(postId: string, userId: string): Promise<void> {
 
 export async function listComments(postId: string): Promise<FeedComment[]> {
   const admin = createServiceClient();
+  // The attachment column arrives with the GIF tables (gifs-m1.sql); until then comments are words only.
+  const withGifs = await gifsReady();
   const { data: rows } = await admin
     .from("gs_post_comments")
-    .select("id, author_id, parent_comment_id, body, created_at, edited_at")
+    .select(withGifs ? "id, author_id, parent_comment_id, body, created_at, edited_at, attachment" : "id, author_id, parent_comment_id, body, created_at, edited_at")
     .eq("post_id", postId)
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
-  const comments = (rows ?? []) as Array<{
-    id: string; author_id: string; parent_comment_id: string | null; body: string; created_at: string; edited_at: string | null;
+  const comments = (rows ?? []) as unknown as Array<{
+    id: string; author_id: string; parent_comment_id: string | null; body: string; created_at: string; edited_at: string | null; attachment?: unknown;
   }>;
   if (!comments.length) return [];
+  const views = withGifs ? await attachmentViews(comments.map((c) => c.attachment ?? null)).catch(() => []) : [];
+  const attached = new Map(comments.map((c, i) => [c.id, views[i] ?? null]));
 
-  const authorIds = [...new Set(comments.map((c) => c.author_id))];
   const commentIds = comments.map((c) => c.id);
-  const [{ data: users }, { data: likes }] = await Promise.all([
-    admin.from("users").select(AUTHOR_COLS).in("id", authorIds),
+  const [{ data: likes }, { data: reacts }] = await Promise.all([
     admin.from("gs_comment_likes").select("comment_id, user_id").in("comment_id", commentIds),
+    (await commentReactionsReady())
+      ? admin.from("gs_comment_reactions").select("comment_id, user_id, reaction").in("comment_id", commentIds).order("created_at")
+      : Promise.resolve({ data: [] as Array<{ comment_id: string; user_id: string; reaction: string }> }),
   ]);
+  const reactRows = (reacts ?? []) as Array<{ comment_id: string; user_id: string; reaction: string }>;
+  const authorIds = [...new Set([...comments.map((c) => c.author_id), ...reactRows.map((r) => r.user_id)])];
+  const { data: users } = await admin.from("users").select(AUTHOR_COLS).in("id", authorIds);
   const authorMap = new Map<string, FeedAuthor>();
   for (const u of (users ?? []) as UserRow[]) authorMap.set(u.id, toAuthor(u));
   const likeCounts = new Map<string, number>();
   for (const l of (likes ?? []) as Array<{ comment_id: string; user_id: string }>) {
     likeCounts.set(l.comment_id, (likeCounts.get(l.comment_id) ?? 0) + 1);
+  }
+  const reactionsOf = new Map<string, Map<string, string[]>>();
+  for (const r of reactRows) {
+    let byKey = reactionsOf.get(r.comment_id);
+    if (!byKey) reactionsOf.set(r.comment_id, (byKey = new Map()));
+    byKey.set(r.reaction, [...(byKey.get(r.reaction) ?? []), r.user_id]);
   }
 
   const nodes = new Map<string, FeedComment>();
@@ -788,6 +821,12 @@ export async function listComments(postId: string): Promise<FeedComment[]> {
       likes: likeCounts.get(c.id) ?? 0,
       likedByMe: false, // filled per-viewer below
       isEdited: !!c.edited_at,
+      attachment: attached.get(c.id) ?? null,
+      reactions: [...(reactionsOf.get(c.id)?.entries() ?? [])].map(([emoji, ids]) => ({
+        emoji, count: ids.length, reacted: false,
+        users: ids.slice(0, 12).map((uid) => authorMap.get(uid)?.name ?? "Player"),
+        userIds: ids,
+      })) as FeedReaction[],
       replies: [],
     });
   }
@@ -803,7 +842,7 @@ export async function listComments(postId: string): Promise<FeedComment[]> {
   return roots;
 }
 
-/** Set `likedByMe` for a viewer across a comment tree (post-hoc, one query). */
+/** Set `likedByMe`, and which reactions are the viewer's, across a comment tree (post-hoc). */
 export async function markLiked(postId: string, viewerId: string, tree: FeedComment[]): Promise<FeedComment[]> {
   const admin = createServiceClient();
   const { data } = await admin
@@ -814,6 +853,12 @@ export async function markLiked(postId: string, viewerId: string, tree: FeedComm
   const walk = (nodes: FeedComment[]) => {
     for (const n of nodes) {
       n.likedByMe = liked.has(n.id);
+      for (const r of n.reactions ?? []) {
+        const ids = (r as FeedReaction & { userIds?: string[] }).userIds ?? [];
+        r.reacted = ids.includes(viewerId);
+        if (r.reacted && r.users) r.users = ["You", ...r.users.filter((_, i) => ids[i] !== viewerId)];
+        delete (r as FeedReaction & { userIds?: string[] }).userIds;
+      }
       if (n.replies?.length) walk(n.replies);
     }
   };
@@ -826,9 +871,12 @@ export async function addComment(args: {
   authorId: string;
   parentId?: string | null;
   body: string;
+  /** Checked by attachmentFor (a sticker, or a GIF that passed the check and is the author's or shared). */
+  attachment?: Attachment | null;
 }): Promise<{ ok: true; id: string } | { ok: false; reason: "empty" | "rate_limited" | "not_found" }> {
-  const body = args.body.trim().slice(0, COMMENT_MAX);
-  if (!body) return { ok: false, reason: "empty" };
+  // A GIF or sticker is the whole comment: any text typed alongside is dropped.
+  const body = args.attachment ? "" : args.body.trim().slice(0, COMMENT_MAX);
+  if (!body && !args.attachment) return { ok: false, reason: "empty" };
   if ((await recentCount("gs_post_comments", args.authorId)) >= COMMENTS_PER_MIN) {
     return { ok: false, reason: "rate_limited" };
   }
@@ -838,7 +886,7 @@ export async function addComment(args: {
 
   const { data, error } = await admin
     .from("gs_post_comments")
-    .insert({ post_id: args.postId, author_id: args.authorId, parent_comment_id: args.parentId ?? null, body })
+    .insert({ post_id: args.postId, author_id: args.authorId, parent_comment_id: args.parentId ?? null, body, ...(args.attachment ? { attachment: args.attachment } : {}) })
     .select("id")
     .single();
   if (error || !data) throw error ?? new Error("comment insert failed");
@@ -910,6 +958,33 @@ export async function likeComment(commentId: string, userId: string): Promise<vo
       data: { postId: author.post_id, commentId },
     });
   }
+}
+
+/** A reaction on a comment (one of the six emoji or a sticker key). The comment's author hears about the first one. */
+export async function reactToComment(commentId: string, userId: string, key: string): Promise<boolean> {
+  if (!(await commentReactionsReady())) return false;
+  const admin = createServiceClient();
+  const { data: c } = await admin.from("gs_post_comments").select("author_id, post_id").eq("id", commentId).is("deleted_at", null).maybeSingle();
+  const comment = c as { author_id: string; post_id: string } | null;
+  if (!comment) return false;
+  const { count: prior } = await admin.from("gs_comment_reactions").select("comment_id", { count: "exact", head: true }).eq("comment_id", commentId).eq("user_id", userId);
+  await admin.from("gs_comment_reactions").upsert({ comment_id: commentId, user_id: userId, reaction: key }, { onConflict: "comment_id,user_id,reaction" });
+  if ((prior ?? 0) === 0 && comment.author_id !== userId) {
+    await createNotification({
+      userId: comment.author_id,
+      type: "comment_like",
+      title: stickerOfKey(key) ? `reacted ${reactionLabel(key)} to your comment` : "reacted to your comment",
+      actorUserId: userId,
+      link: `/community/post/${comment.post_id}`,
+      data: { postId: comment.post_id, commentId },
+    });
+  }
+  return true;
+}
+
+export async function unreactComment(commentId: string, userId: string, key: string): Promise<void> {
+  if (!(await commentReactionsReady())) return;
+  await createServiceClient().from("gs_comment_reactions").delete().eq("comment_id", commentId).eq("user_id", userId).eq("reaction", key);
 }
 
 export async function unlikeComment(commentId: string, userId: string): Promise<void> {

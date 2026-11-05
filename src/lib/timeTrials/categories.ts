@@ -19,14 +19,16 @@ export const ITEMS: { id: TtItems; label: string; short: string }[] = [
   { id: "none", label: "No mushrooms", short: "No mushrooms" },
 ];
 
-export const VEHICLES: { id: TtVehicle; label: string; long: string; games: TtGame[] }[] = [
+/** `retired`: kept for times already saved with it, never offered (players' feedback 2026-11-04: Yoshi Bike folds into
+ *  Inside drift, where its times already counted; the World board is named for both karts that share it). */
+export const VEHICLES: { id: TtVehicle; label: string; long: string; games: TtGame[]; retired?: boolean }[] = [
   { id: "any", label: "Any", long: "Any vehicle", games: ["mk8dx", "mkworld"] },
   { id: "inside_drift", label: "Inside drift", long: "Inside drift bike", games: ["mk8dx"] },
-  { id: "yoshi_bike", label: "Yoshi Bike", long: "Yoshi Bike", games: ["mk8dx"] },
+  { id: "yoshi_bike", label: "Yoshi Bike", long: "Yoshi Bike", games: ["mk8dx"], retired: true },
   { id: "teddy", label: "Teddy Buggy", long: "Teddy Buggy", games: ["mk8dx"] },
   { id: "biddybuggy", label: "Biddybuggy", long: "Biddybuggy", games: ["mk8dx"] },
   { id: "scooty", label: "Mr. Scooty", long: "Mr. Scooty", games: ["mk8dx"] },
-  { id: "rob_hog", label: "R.O.B.-HOG", long: "R.O.B.-HOG", games: ["mkworld"] },
+  { id: "rob_hog", label: "Swoop, R.O.B.-HOG", long: "Swoop, R.O.B.-HOG", games: ["mkworld"] },
 ];
 
 export function isItems(v: unknown): v is TtItems {
@@ -37,24 +39,25 @@ export function isVehicle(v: unknown): v is TtVehicle {
 }
 /** Vehicle boards a game has. */
 export function vehiclesFor(game: TtGame): TtVehicle[] {
-  return VEHICLES.filter((v) => v.games.includes(game)).map((v) => v.id);
+  return VEHICLES.filter((v) => v.games.includes(game) && !v.retired).map((v) => v.id);
 }
 /** A game's vehicle choices (for pickers). */
 export function vehicleOptions(game: TtGame) {
-  return VEHICLES.filter((v) => v.games.includes(game));
+  return VEHICLES.filter((v) => v.games.includes(game) && !v.retired);
 }
-/** The vehicle a time keeps for its game ("any" when that game has no such board). */
+/** The vehicle a time keeps for its game ("any" when that game has no such board; Yoshi Bike is Inside drift now). */
 export function vehicleFor(game: TtGame, v: unknown): TtVehicle {
+  if (v === "yoshi_bike" && game === "mk8dx") return "inside_drift";
   return isVehicle(v) && vehiclesFor(game).includes(v) ? v : "any";
 }
 /** Whether a time set with `vehicle` counts on board `board` (the database's tt_on_board). */
 export function onBoard(board: TtVehicle, vehicle: TtVehicle): boolean {
   return board === "any" || board === vehicle || (board === "inside_drift" && vehicle === "yoshi_bike");
 }
-/** The boards a time counts on: the open board, its vehicle's, and Inside drift for a Yoshi Bike. */
+/** The boards a time counts on: the open board and its vehicle's (a Yoshi Bike time is on Inside drift). */
 export function boardsFor(game: TtGame, vehicle: TtVehicle): TtVehicle[] {
   const v = vehicleFor(game, vehicle);
-  return v === "any" ? ["any"] : v === "yoshi_bike" ? ["any", "yoshi_bike", "inside_drift"] : ["any", v];
+  return v === "any" ? ["any"] : ["any", v];
 }
 export function itemsLabel(items: TtItems): string {
   return ITEMS.find((i) => i.id === items)!.label;

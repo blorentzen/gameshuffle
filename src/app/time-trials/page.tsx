@@ -3,6 +3,7 @@ import { permanentRedirect } from "next/navigation";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { TimeTrialsHub, TT_FAQ } from "@/components/timeTrials/TimeTrialsHub";
 import { gameBySlug, gamePath, isClassFor, type TtClass } from "@/lib/timeTrials/tracks";
+import { isCountryCode } from "@/lib/timeTrials/countries";
 import "@/styles/time-trials.css";
 
 /**
@@ -12,7 +13,7 @@ import "@/styles/time-trials.css";
 
 export const dynamic = "force-dynamic";
 
-const DESCRIPTION = "The fastest time trial times on every Mario Kart World and Mario Kart 8 Deluxe track. Add yours from a screenshot or bring them from Quaxly.";
+const DESCRIPTION = "The fastest time trial times on every Mario Kart 8 Deluxe and Mario Kart World track. Add yours from a screenshot or bring them from Quaxly.";
 
 export const metadata: Metadata = {
   title: "Mario Kart time trial leaderboards",
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: { title: "Mario Kart time trial leaderboards", description: DESCRIPTION, url: "https://www.gameshuffle.co/time-trials", siteName: "GameShuffle", type: "website" },
 };
 
-export default async function TimeTrialsPage({ searchParams }: { searchParams: Promise<{ game?: string; cc?: string }> }) {
+export default async function TimeTrialsPage({ searchParams }: { searchParams: Promise<{ game?: string; cc?: string; country?: string }> }) {
   const sp = await searchParams;
   const asked = sp.game ? gameBySlug(sp.game) : null;
   if (asked) {
@@ -31,7 +32,7 @@ export default async function TimeTrialsPage({ searchParams }: { searchParams: P
   return (
     <>
       <MarketingJsonLd breadcrumb={{ label: "Time trials", path: "/time-trials" }} faq={TT_FAQ.map((f) => ({ q: f.q, a: f.a }))} />
-      <TimeTrialsHub game="mkworld" cc={150} gamePage={false} />
+      <TimeTrialsHub game="mk8dx" cc={150} gamePage={false} country={isCountryCode(sp.country) ? sp.country : null} />
     </>
   );
 }

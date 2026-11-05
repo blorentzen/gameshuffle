@@ -1,6 +1,8 @@
 /**
- * GameShuffle Shop emails, from docs/specs/shop/shop-copy.md (tracked versions
- * only: every order ships by USPS Ground Advantage since 2026-10-09). Sent as
+ * GameShuffle Shop emails. Written for card packs (docs/specs/shop/shop-copy.md),
+ * reworded for made-to-order merch on 2026-11-03 (Printful ships it, by
+ * whichever carrier Printful picks, so the tracking link comes from Printful;
+ * USPS's link is the fallback for an order marked shipped by hand). Sent as
  * "GameShuffle Shop" from noreply@, replies to the shop's support address.
  * Plain text, like the other transactional emails. Outside production they
  * only log (sendTransactionalEmail's guard).
@@ -37,7 +39,7 @@ function accountLines(account?: { member: boolean } | null): string[] {
 }
 
 function footer(): string {
-  return `Questions? Reply to this email. · Shipping, returns and card condition: ${getBaseUrl()}/shop/policies`;
+  return `Questions? Reply to this email. · Shipping and returns: ${getBaseUrl()}/shop/policies`;
 }
 
 function itemLines(items: ShopEmailItem[]): string[] {
@@ -58,7 +60,7 @@ export async function sendShopOrderReceived(args: {
     "",
     ...itemLines(args.items),
     "",
-    `We'll ship it within ${SHOP.shipping.ship_within_business_days} business days, by ${args.shipBy}, and send a tracking link when it's on the way.`,
+    `Everything is made when you order. It usually ships within ${SHOP.shipping.ship_within_business_days} business days (by ${args.shipBy}), and we'll send a tracking link when it's on the way.`,
     ...(args.afterCutoff ? ["This order will arrive after Christmas."] : []),
     "",
     `Shipping to: ${[args.name, args.city, args.state].filter(Boolean).join(", ")}`,
@@ -72,12 +74,10 @@ export async function sendShopOrderReceived(args: {
 }
 
 /** 3. Shipped (tracked). */
-export async function sendShopShipped(args: { to: string; orderCode: string; tracking: string; name: string | null; viewUrl?: string | null }) {
-  const est = SHOP.checkout.shipping_estimate_business_days;
+export async function sendShopShipped(args: { to: string; orderCode: string; tracking: string; name: string | null; viewUrl?: string | null; carrier?: string | null; trackingUrl?: string | null }) {
   const text = [
-    "Your packs are on the way by USPS Ground Advantage.",
-    `Track it: ${uspsTrackingUrl(args.tracking)}`,
-    `Most orders arrive in ${est.min} to ${est.max} business days.`,
+    args.carrier ? `Your order is on the way by ${args.carrier}.` : "Your order is on the way.",
+    `Track it: ${args.trackingUrl || uspsTrackingUrl(args.tracking)}`,
     "",
     ...viewLine(args.viewUrl),
     footer(),
@@ -125,17 +125,25 @@ export async function sendShopLookupCode(args: { to: string; orderCode: string; 
 export async function sendShopNewOrderAlert(args: {
   orderCode: string; items: ShopEmailItem[]; totalCents: number; shipMethodLabel: string;
   name: string | null; city: string | null; state: string | null; shortfall?: { sku: string; missing: number }[] | null;
+  /** Merch: where the order stands with Printful. */
+  printful?: { status: "draft" | "sent" | "test" | "failed"; error?: string | null } | null;
 }) {
   const items = args.items.map((i) => `${i.quantity} x ${i.name}`).join(", ");
+  const pf = args.printful;
+  const pfLine = !pf ? [] : pf.status === "draft" ? ["", "It's waiting in Printful as a draft. Press Send to Printful on the order in the admin."]
+    : pf.status === "sent" ? ["", "Sent to Printful automatically."]
+    : pf.status === "test" ? ["", "Test order: Printful priced it but nothing was created there."]
+    : ["", `Printful didn't take it: ${pf.error ?? "no reason given"}. Open the order in the admin and try again.`];
   const text = [
     `${items}, ${formatPrice(args.totalCents)}, ship to ${[args.name, args.city, args.state].filter(Boolean).join(", ")}.`,
     ...(args.shortfall?.length ? ["", `Stock ran short: ${args.shortfall.map((s) => `${s.sku} (${s.missing} missing)`).join(", ")}. Check the shelf before shipping.`] : []),
+    ...pfLine,
     "",
     `Open the admin: ${getBaseUrl()}/account/platform?tab=platform-shop-orders`,
   ].join("\n");
   return sendTransactionalEmail({
     to: SHOP.contact.alert_email,
-    subject: `New shop order ${args.orderCode}: ${args.shipMethodLabel}, ${args.state ?? "no state"}`,
+    subject: args.printful ? `New merch order ${args.orderCode}: ${args.state ?? "no state"}` : `New shop order ${args.orderCode}: ${args.shipMethodLabel}, ${args.state ?? "no state"}`,
     text,
     fromName: FROM_NAME,
   });
@@ -152,4 +160,15 @@ export async function sendShopCantShip(args: { to: string; orderCode: string; na
     footer(),
   ].join("\n");
   return sendTransactionalEmail({ to: args.to, toName: args.name ?? undefined, subject: `We couldn't ship order ${args.orderCode}`, text, fromName: FROM_NAME, replyTo: SHOP.contact.support_email });
+}
+
+/** Printful held, failed or canceled an order (to the shop's alert address). */
+export async function sendShopPrintfulProblem(args: { orderCode: string; what: string; reason: string | null }) {
+  const text = [
+    `Printful ${args.what} order ${args.orderCode}${args.reason ? `: ${args.reason}` : "."}`,
+    "",
+    `Open the order: ${getBaseUrl()}/account/platform?tab=platform-shop-orders`,
+    "Printful's dashboard: https://www.printful.com/dashboard/default/orders",
+  ].join("\n");
+  return sendTransactionalEmail({ to: SHOP.contact.alert_email, subject: `Printful ${args.what} ${args.orderCode}`, text, fromName: FROM_NAME });
 }

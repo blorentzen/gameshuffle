@@ -4,6 +4,8 @@
  * A server's Mario Kart lounge settings (GS Pro, competitive dashboard picks 2026-10-20):
  * `part="roles"` = division roles for members who confirmed their lounge name, kept in step
  * every 15 minutes; `part="board"` = a Monday board of those members. Saves on change.
+ * These are moving to GameShuffle Competitive (two-app picks): with Competitive in the server they're set there, and
+ * the card says so; while the move runs it points there, and once it's over GameShuffle stops doing them.
  */
 
 import { useEffect, useState } from "react";
@@ -16,10 +18,11 @@ const OPTIONS = [{ value: "", label: "Off" }, ...MMR_GAME_IDS.map((g) => ({ valu
 
 export function DiscordLoungeCard({ part, withGuild }: { part: "roles" | "board"; withGuild: (url: string) => string }) {
   const toast = useToast();
-  const [state, setState] = useState<{ ready: boolean; rolesGame: string | null; boardGame: string | null } | null>(null);
+  type Move = { state: "none" | "moving" | "moved"; lastDay: string; compHere: boolean };
+  const [state, setState] = useState<{ ready: boolean; rolesGame: string | null; boardGame: string | null; move: Move | null } | null>(null);
   useEffect(() => {
     let live = true;
-    fetch(withGuild("/api/discord/bot/lounge")).then((r) => r.json()).then((j) => { if (live && j.ok) setState({ ready: !!j.ready, rolesGame: j.rolesGame, boardGame: j.boardGame }); }).catch(() => {});
+    fetch(withGuild("/api/discord/bot/lounge")).then((r) => r.json()).then((j) => { if (live && j.ok) setState({ ready: !!j.ready, rolesGame: j.rolesGame, boardGame: j.boardGame, move: j.move ?? null }); }).catch(() => {});
     return () => { live = false; };
   }, [withGuild]);
   if (!state) return null;
@@ -39,7 +42,15 @@ export function DiscordLoungeCard({ part, withGuild }: { part: "roles" | "board"
           ? <>Members who confirmed their Mario Kart lounge name on <Link href="/lounge">GameShuffle</Link> get a role for their division, kept in step every 15 minutes. The bot makes the roles (Iron to Grandmaster) the first time, so it needs the Manage Roles permission, with its own role above them.</>
           : <>Every Monday, a board of this server&apos;s members who confirmed their Mario Kart lounge name on <Link href="/lounge">GameShuffle</Link>, posted where you route Mario Kart lounge (else your default channel).</>}
       </p>
-      {state.ready ? (
+      {state.move?.compHere ? (
+        <p className="dbot-muted">GameShuffle Competitive is in this server, so it does this here now. Set it under GameShuffle Competitive (switch apps at the top).</p>
+      ) : state.move?.state === "moved" ? (
+        <p className="dbot-muted">This moved to GameShuffle Competitive, our bot for competitive servers. <Link href="/discord/add?app=comp">Add it to this server</Link> to keep it going.</p>
+      ) : null}
+      {state.move?.state === "moving" && !state.move.compHere && (
+        <p className="dbot-muted">This is moving to GameShuffle Competitive, our bot for competitive servers. <Link href="/discord/add?app=comp">Add it to this server</Link>: GameShuffle keeps doing it here until {state.move.lastDay}, and your settings come along.</p>
+      )}
+      {state.move?.compHere || state.move?.state === "moved" ? null : state.ready ? (
         <div style={{ maxWidth: "28rem" }}>
           <Select floatingLabel={part === "roles" ? "Roles follow" : "Board covers"} aria-label={part === "roles" ? "Roles follow" : "Board covers"} value={value} onChange={(v) => void save(String(v))} options={OPTIONS} />
         </div>

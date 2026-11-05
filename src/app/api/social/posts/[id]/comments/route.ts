@@ -1,9 +1,10 @@
-/** Post comments. GET — threaded list (viewer-aware likes). POST { body, parentId? } — add. */
+/** Post comments. GET — threaded list (viewer-aware likes). POST { body, parentId?, attachment? } — add (a GIF or sticker is the whole comment). */
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { userCanUseCommunity } from "@/lib/community/guard";
 import { listComments, markLiked, addComment } from "@/lib/social/feed";
+import { attachmentFor } from "@/lib/gifs/store";
 
 export const runtime = "nodejs";
 
@@ -32,11 +33,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch {
     return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
-  const b = body as { body?: unknown; parentId?: unknown };
+  const b = body as { body?: unknown; parentId?: unknown; attachment?: unknown };
   const text = typeof b?.body === "string" ? b.body : "";
   const parentId = typeof b?.parentId === "string" ? b.parentId : null;
+  const attachment = b?.attachment ? await attachmentFor(user.id, b.attachment) : null;
+  if (b?.attachment && !attachment) return NextResponse.json({ error: "bad_attachment" }, { status: 400 });
 
-  const res = await addComment({ postId: id, authorId: user.id, parentId, body: text });
+  const res = await addComment({ postId: id, authorId: user.id, parentId, body: text, attachment });
   if (!res.ok) {
     const status = res.reason === "rate_limited" ? 429 : res.reason === "not_found" ? 404 : 400;
     return NextResponse.json({ error: res.reason }, { status });

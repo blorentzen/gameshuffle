@@ -8,16 +8,16 @@
 import { sendChatMessage } from "@/lib/twitch/client";
 import { cardFor, liveFor, pickLook } from "@/lib/mmr/store";
 import { LoungeUnavailable, divisionSteps, loungePlayer, type LoungePlayer } from "@/lib/mmr/mkcentral";
-import { MMR_GAMES, gameForSlug, isEvent, type MmrGame } from "@/lib/mmr/rules";
+import { MMR_GAMES, gameForSlug, isEvent, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
-import { compareLine, last10Line, loungePagePath, tonightLine } from "@/lib/lounge/lines";
+import { avgLine, compareLine, last10Line, loungePagePath, tonightLine } from "@/lib/lounge/lines";
 import { h2hLine, headToHead } from "@/lib/lounge/h2h";
 import { placeWord, signed } from "@/lib/mmr/rules";
 import type { ShuffleContext } from "./shuffle";
 
 // ── Handlers ─────────────────────────────────────────────────────────────
 
-type Kind = "last10" | "tonight" | "compare" | "lounge" | "h2h" | "odds";
+type Kind = "last10" | "tonight" | "compare" | "lounge" | "h2h" | "odds" | "avg";
 
 async function gameFor(ctx: ShuffleContext, preferred: MmrGame): Promise<MmrGame> {
   const session = await findTwitchSessionForUser(ctx.userId, ["active", "test"]).catch(() => null);
@@ -29,7 +29,7 @@ export async function handleLoungeCommand(ctx: ShuffleContext, kind: Kind, args:
   const names = args.trim().split(/\s+/).map((n) => n.replace(/^@/, "").slice(0, 40)).filter(Boolean);
   const card = await cardFor(ctx.userId);
   const hasCard = !!card && !!(card.loungeName || card.loungePlayerId);
-  const game = await gameFor(ctx, card ? pickLook(card, null).game : "mkworld12p");
+  const game = await gameFor(ctx, card ? pickLook(card, null).game : DEFAULT_MMR_GAME);
   const noCard = "🏁 No MMR card here yet, so add a lounge name after the command. Streamers: gameshuffle.co/mmr-card";
 
   try {
@@ -100,11 +100,12 @@ export async function handleLoungeCommand(ctx: ShuffleContext, kind: Kind, args:
       return;
     }
 
-    // last10 and tonight: a name, else the streamer.
+    // last10, avg and tonight: a name, else the streamer.
     if (names[0]) {
       const p = await byName(names[0]);
       if (!p) { await say(`🏁 No lounge player called ${names[0]} in ${MMR_GAMES[game].short}.`); return; }
       if (kind === "last10") await say(last10Line(p.name, p.changes));
+      else if (kind === "avg") await say(avgLine(p.name, p.changes));
       else {
         // Someone else's "tonight" is since midnight Pacific.
         const { gsDayStart, gsDay } = await import("@/lib/time/gsClock");
@@ -114,7 +115,7 @@ export async function handleLoungeCommand(ctx: ShuffleContext, kind: Kind, args:
     }
     const s = await streamer();
     if (!s) { await say(noCard); return; }
-    await say(kind === "last10" ? last10Line(s.name, s.changes) : tonightLine(s.name, s.changes, s.since, s.steps));
+    await say(kind === "last10" ? last10Line(s.name, s.changes) : kind === "avg" ? avgLine(s.name, s.changes) : tonightLine(s.name, s.changes, s.since, s.steps));
   } catch (err) {
     if (!(err instanceof LoungeUnavailable)) console.error(`[lounge] !${kind}:`, err);
     await say("🏁 The lounge isn't answering right now. Try again in a minute.");

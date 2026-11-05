@@ -3,7 +3,7 @@
  *
  * Closes any open poll whose `closes_at` has passed (the streamer's optional
  * auto-close timer), plus the other every-minute sweeps (Chat Brain windows, breaks, Fire Round, time trial panels,
- * GS Ranked tables that verify on their own and queue rooms). (The Daily Duel's days moved to
+ * GS Ranked tables that verify on their own and queue rooms, GS Pro gifts that end, team series drafts and predictions). (The Daily Duel's days moved to
  * /api/cron/duel-days.)
  * Runs every minute. Auth: Vercel Cron Bearer CRON_SECRET.
  */
@@ -17,6 +17,8 @@ import { sweepTtPanels } from "@/lib/discord/ttPanel";
 import { sweepAutoVerify } from "@/lib/ladders/staffStore";
 import { sweepQueues } from "@/lib/ladders/queueStore";
 import { showSweep } from "@/lib/discord/commands/rankedQueue";
+import { sweepProGifts } from "@/lib/billing/proGifts";
+import { sweepSeries } from "@/lib/series/store";
 
 export const runtime = "nodejs";
 
@@ -62,5 +64,15 @@ export async function GET(request: Request) {
     console.error("[cron/polls-sweep] ranked queue sweep failed:", err);
     return 0;
   });
-  return NextResponse.json({ ok: true, closed, brainWindows, breaks, fireRuns, ttPanels, rankedAuto, rankedQueue });
+  // GS Pro given by GameShuffle whose date has passed.
+  const gifts = await sweepProGifts().catch((err) => {
+    console.error("[cron/polls-sweep] pro gift sweep failed:", err);
+    return 0;
+  });
+  // Team series: draft turns whose clock ran out, predictions to lock or settle (the page's own reads normally do it).
+  const series = await sweepSeries().catch((err) => {
+    console.error("[cron/polls-sweep] series sweep failed:", err);
+    return 0;
+  });
+  return NextResponse.json({ ok: true, closed, brainWindows, breaks, fireRuns, ttPanels, rankedAuto, rankedQueue, gifts, series });
 }

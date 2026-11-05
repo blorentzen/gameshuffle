@@ -447,6 +447,9 @@ export async function syncSupportPro(userId: string): Promise<void> {
   if (!granted.length) return;
   await admin.from("support_subscriptions").update({ granted_pro: false, updated_at: now }).in("stripe_subscription_id", granted);
   if (ownPro || normalizeTier(u.subscription_tier) !== "pro") return;
+  // GS Pro given by GameShuffle until a date keeps it (src/lib/billing/proGifts.ts).
+  const { liveGift } = await import("@/lib/billing/proGifts");
+  if (await liveGift(userId).catch(() => null)) return;
   await admin.from("users").update({ subscription_tier: "free", subscription_status: "canceled", updated_at: now }).eq("id", userId);
   if (!isStaffRole(u.role)) {
     await disconnectTwitchIntegration(userId).catch((err) => console.error(`[support] Twitch disconnect after the level ended failed for ${userId}:`, err));

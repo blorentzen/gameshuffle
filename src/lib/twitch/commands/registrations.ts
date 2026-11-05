@@ -459,8 +459,9 @@ registerCommand({
 });
 
 // Lounge commands (free, competitive dashboard picks 2026-10-20): the streamer's card, or a lounge name after the command.
-const LOUNGE_COMMANDS: { name: "last10" | "tonight" | "compare" | "lounge" | "h2h" | "odds"; summary: string; usage: string; detail: string }[] = [
+const LOUNGE_COMMANDS: { name: "last10" | "tonight" | "compare" | "lounge" | "h2h" | "odds" | "avg"; summary: string; usage: string; detail: string }[] = [
   { name: "last10", summary: "The last ten lounge events: record, MMR, the best one, average score.", usage: "!last10 [lounge name]", detail: "The streamer's last ten events from their MMR card, or anyone's by lounge name, in the game on stream." },
+  { name: "avg", summary: "This season's lounge average score and partner average.", usage: "!avg [lounge name]", detail: "The streamer's from their MMR card, or anyone's by lounge name, in the game on stream. Partner average is the teammates' average score in team events." },
   { name: "tonight", summary: "Tonight's lounge run: events, record, MMR and any new division.", usage: "!tonight [lounge name]", detail: "Counts from when the stream went live (from midnight Pacific for a lounge name)." },
   { name: "compare", summary: "Two lounge players side by side.", usage: "!compare <name> [name]", detail: "One name compares with the streamer; two names compare each other. MMR, division, the gap and events played." },
   { name: "lounge", summary: "A link to a lounge player's GameShuffle stats page.", usage: "!lounge [lounge name]", detail: "The streamer's page from their MMR card, or anyone's by lounge name: season chart, nights, formats, partners and placements." },

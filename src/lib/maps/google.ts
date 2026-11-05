@@ -23,6 +23,7 @@ export interface GPlace {
   formattedAddress?: string | null;
   displayName?: string | null;
   location?: GLatLng | null;
+  addressComponents?: { longText?: string | null; shortText?: string | null; types?: string[] }[] | null;
   fetchFields: (opts: { fields: string[] }) => Promise<unknown>;
 }
 export interface GPlacePrediction {

@@ -37,8 +37,8 @@ const DRY = process.argv.includes("--dry");
 const appArg = process.argv.indexOf("--app");
 /** /tt's vehicle choices: every vehicle board (each time keeps the vehicle only when its game has that board). */
 const TT_VEHICLE_CHOICES = [
-  { name: "Any vehicle", value: "any" }, { name: "Inside drift bike", value: "inside_drift" }, { name: "Yoshi Bike", value: "yoshi_bike" },
-  { name: "Teddy Buggy", value: "teddy" }, { name: "Biddybuggy", value: "biddybuggy" }, { name: "Mr. Scooty", value: "scooty" }, { name: "R.O.B.-HOG (World)", value: "rob_hog" },
+  { name: "Any vehicle", value: "any" }, { name: "Inside drift bike", value: "inside_drift" },
+  { name: "Teddy Buggy", value: "teddy" }, { name: "Biddybuggy", value: "biddybuggy" }, { name: "Mr. Scooty", value: "scooty" }, { name: "Swoop, R.O.B.-HOG (World)", value: "rob_hog" },
 ];
 const COMP = appArg >= 0 && process.argv[appArg + 1] === "comp";
 const APPLICATION_ID = COMP ? process.env.NEXT_PUBLIC_DISCORD_COMP_APPLICATION_ID : DEV ? process.env.DEV_DISCORD_APPLICATION_ID : process.env.DISCORD_APPLICATION_ID;
@@ -267,8 +267,17 @@ const commands = [
           { name: "time", description: "Your time, like 1:52.384. Leave out to read it from the screenshot.", type: 3, required: false, max_length: 12 },
           { name: "class", description: "Speed class (150cc if left out).", type: 3, required: false, choices: [{ name: "150cc", value: "150" }, { name: "200cc", value: "200" }] },
           { name: "items", description: "Mushrooms or no mushrooms (mushrooms if left out).", type: 3, required: false, choices: [{ name: "Mushrooms", value: "shrooms" }, { name: "No mushrooms", value: "none" }] },
-          { name: "vehicle", description: "For a vehicle board (Mario Kart World: R.O.B.-HOG; Mario Kart 8 Deluxe: the rest).", type: 3, required: false, choices: TT_VEHICLE_CHOICES },
+          { name: "vehicle", description: "For a vehicle board (Mario Kart World: Swoop, R.O.B.-HOG; Mario Kart 8 Deluxe: the rest).", type: 3, required: false, choices: TT_VEHICLE_CHOICES },
           { name: "video", description: "A clip of the run's last 30 seconds, so a reviewer can verify it.", type: 3, required: false, max_length: 300 },
+        ],
+      },
+      {
+        name: "proof", description: "Add a screenshot to a time you saved without one, like a time from Quaxly.", type: 1,
+        options: [
+          { name: "track", description: "The track (start typing).", type: 3, required: true, autocomplete: true },
+          { name: "screenshot", description: "The result screen. I read the time from it, and it should show your saved time.", type: 11, required: true },
+          { name: "class", description: "Speed class (150cc if left out).", type: 3, required: false, choices: [{ name: "150cc", value: "150" }, { name: "200cc", value: "200" }] },
+          { name: "items", description: "Mushrooms or no mushrooms (mushrooms if left out).", type: 3, required: false, choices: [{ name: "Mushrooms", value: "shrooms" }, { name: "No mushrooms", value: "none" }] },
         ],
       },
       {
@@ -278,7 +287,14 @@ const commands = [
           { name: "class", description: "Speed class (150cc if left out).", type: 3, required: false, choices: [{ name: "150cc", value: "150" }, { name: "200cc", value: "200" }] },
           { name: "board", description: "Whose times (this server if it has some).", type: 3, required: false, choices: [{ name: "This server", value: "server" }, { name: "Everyone", value: "everyone" }] },
           { name: "items", description: "Mushrooms or no mushrooms (mushrooms if left out).", type: 3, required: false, choices: [{ name: "Mushrooms", value: "shrooms" }, { name: "No mushrooms", value: "none" }] },
-          { name: "vehicle", description: "A vehicle board (Mario Kart World: R.O.B.-HOG; Mario Kart 8 Deluxe: the rest).", type: 3, required: false, choices: TT_VEHICLE_CHOICES },
+          { name: "vehicle", description: "A vehicle board (Mario Kart World: Swoop, R.O.B.-HOG; Mario Kart 8 Deluxe: the rest).", type: 3, required: false, choices: TT_VEHICLE_CHOICES },
+          { name: "country", description: "Only players from one country (start typing).", type: 3, required: false, autocomplete: true },
+        ],
+      },
+      {
+        name: "country", description: "Set your country for the country boards and national records. Leave it out to see yours.", type: 1,
+        options: [
+          { name: "country", description: "Your country (start typing).", type: 3, required: false, autocomplete: true },
         ],
       },
       {
@@ -423,6 +439,35 @@ const WAR_COMMAND = {
     ] },
   ],
 };
+/** /cans (GameShuffle Competitive only, cans picks 2026-11-04): who can race a war, in everyone's own time zone. */
+const CANS_DAYS = [
+  { name: "Today", value: "today" }, { name: "Tomorrow", value: "tomorrow" }, { name: "Monday", value: "mon" }, { name: "Tuesday", value: "tue" },
+  { name: "Wednesday", value: "wed" }, { name: "Thursday", value: "thu" }, { name: "Friday", value: "fri" }, { name: "Saturday", value: "sat" }, { name: "Sunday", value: "sun" },
+];
+const CANS_COMMAND = {
+  name: "cans",
+  description: "Who can race a war: post a time, everyone answers, lock the lineup",
+  integration_types: [0],
+  contexts: [0],
+  options: [
+    { name: "post", description: "Post a war time for your team to answer", type: 1, options: [
+      { name: "time", description: "The time in your time zone, like 7pm or 19:30", type: 3, required: true, max_length: 10 },
+      { name: "day", description: "Which day (today if left out)", type: 3, required: false, choices: CANS_DAYS },
+      { name: "vs", description: "The other team's tag", type: 3, required: false, max_length: 12 },
+      { name: "size", description: "Players a side (6 if left out)", type: 4, required: false, min_value: 2, max_value: 12 },
+      { name: "team", description: "Your team's role (when the server has more than one team)", type: 8, required: false },
+    ] },
+    { name: "setup", description: "Set up a team's role: pinged for checks (people who manage the server)", type: 1, options: [
+      { name: "team", description: "The team's role", type: 8, required: true },
+      { name: "tag", description: "The team's tag, like KC", type: 3, required: false, max_length: 12 },
+      { name: "remove", description: "Stop using this role as a team", type: 5, required: false },
+    ] },
+    { name: "timezone", description: "Set the time zone the times you type are in", type: 1, options: [
+      { name: "zone", description: "Start typing a city or region", type: 3, required: true, autocomplete: true, max_length: 64 },
+    ] },
+    { name: "hours", description: "Mark the hours you can usually race (opens the War room)", type: 1 },
+  ],
+};
 /** /logo and /table (GameShuffle Competitive only, war tools step 2). */
 const LOGO_COMMAND = {
   name: "logo",
@@ -527,6 +572,7 @@ const compCommands = [
     })),
   ...commands.filter((c) => c.name === "Save to GameShuffle"),
   WAR_COMMAND,
+  CANS_COMMAND,
   LOGO_COMMAND,
   FLAG_COMMAND,
   TABLE_COMMAND,

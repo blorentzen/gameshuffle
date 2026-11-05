@@ -17,7 +17,7 @@
 
 import { BRAND_THEMES } from "@/lib/theme/brand";
 import { PROFILE_ACCENTS } from "@/lib/profile/accents";
-import { isMmrGame, splitDivision, type MmrGame } from "./rules";
+import { isMmrGame, splitDivision, type MmrGame, DEFAULT_MMR_GAME } from "./rules";
 import { DEFAULT_INFO, cleanInfo, freeInfo, proPiecesUsed, type MmrInfo } from "./pieces";
 import { DEFAULT_ROLLING, cleanRolling, freeRolling, proRollingUsed, type MmrRolling } from "./rolling";
 
@@ -87,7 +87,7 @@ export interface MmrLook {
 export const DEFAULT_LOOK: MmrLook = {
   id: "main",
   name: "My card",
-  game: "mkworld12p",
+  game: DEFAULT_MMR_GAME,
   ladder: null,
   layout: "deck",
   surface: "dark",

@@ -49,7 +49,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "tournaments",
     label: "Tournaments",
-    blurb: "Create tournaments, pick a format, and run multi-crew events.",
+    blurb: "Create tournaments, pick a format, run multi-crew events, and follow a team series.",
   },
   {
     id: "streaming",
@@ -283,6 +283,14 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     href: "/help/tournaments/multi-crew-tournaments",
     category: "tournaments",
     keywords: ["crew", "crews", "multi-crew", "community", "crew standings", "!crews", "team", "represent"],
+  },
+  {
+    id: "team-series",
+    title: "Team series and the GS Summer Series",
+    description: "How a team series works for players and viewers: the track draft, your card, the overlay and predictions.",
+    href: "/help/tournaments/team-series",
+    category: "tournaments",
+    keywords: ["summer series", "series", "team series", "track draft", "ban", "protect", "predictions", "teams of two", "pov", "champions"],
   },
 
   // Streaming & Overlay

@@ -1979,7 +1979,7 @@ a.ct__name:hover { text-decoration: underline; }
 .ct__text { margin-top: 2px; font-size: var(--font-size-14); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-primary); }
 .ct__meta { display: flex; align-items: center; gap: var(--spacing-12); padding-left: var(--spacing-12); }
 .ct__act {
-  background: none; border: none; padding: 0; cursor: pointer;
+  background: none; border: none; padding: 0; cursor: pointer; min-height: 24px; min-width: 24px; display: inline-flex; align-items: center; justify-content: center;
   font: inherit; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
 }
@@ -2393,3 +2393,11 @@ html:not(.dark) .profile-tabs .empac-tabs__tab--active:hover:not(.empac-tabs__ta
 .community-trivia__nights li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--spacing-4) var(--spacing-12); padding: var(--spacing-10, 1rem) var(--spacing-12); border: 1px solid var(--border-subtle); border-radius: var(--radius-10, 10px); }
 .community-trivia__night-title { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
 .community-trivia__night-meta { font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* The animated banner editor (BannerGifEditor) */
+.banner-kind { display: flex; flex-wrap: wrap; gap: var(--spacing-8); margin-bottom: var(--spacing-12); }
+.banner-gif__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.banner-gif__note, .banner-gif__hint { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.banner-gif__frame-wrap { display: grid; gap: var(--spacing-12); }
+.banner-gif__frame { width: 100%; aspect-ratio: 4 / 1; border-radius: 12px; background-size: cover; background-repeat: no-repeat; cursor: grab; touch-action: none; border: 1px solid var(--border-default); }
+.banner-gif__frame:active { cursor: grabbing; }

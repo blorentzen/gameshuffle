@@ -39,7 +39,8 @@ export const TT_GAMES: Record<TtGame, TtGameInfo> = {
   mkworld: { id: "mkworld", slug: "mario-kart-world", label: "Mario Kart World", short: "MK World", classes: [150] },
   mk8dx: { id: "mk8dx", slug: "mario-kart-8-deluxe", label: "Mario Kart 8 Deluxe", short: "MK8DX", classes: [150, 200] },
 };
-export const TT_GAME_ORDER: TtGame[] = ["mkworld", "mk8dx"];
+/** In the order they're shown: Mario Kart 8 Deluxe leads (Britton, 2026-11-04). */
+export const TT_GAME_ORDER: TtGame[] = ["mk8dx", "mkworld"];
 
 export function isTtGame(v: unknown): v is TtGame {
   return v === "mkworld" || v === "mk8dx";

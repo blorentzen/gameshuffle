@@ -19,6 +19,7 @@ import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab"
 import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
 import { PlatformComplianceTab } from "@/components/account/PlatformComplianceTab";
 import { PlatformTournamentsTab } from "@/components/account/PlatformTournamentsTab";
+import { PlatformSeriesTab } from "@/components/account/PlatformSeriesTab";
 import { PlatformEngagementTab } from "@/components/account/PlatformEngagementTab";
 import { PlatformTicketingTab } from "@/components/account/PlatformTicketingTab";
 import { PlatformEconomyTab } from "@/components/account/PlatformEconomyTab";
@@ -26,6 +27,7 @@ import { PlatformPricingTab } from "@/components/account/PlatformPricingTab";
 import { PlatformEconomySnapshotTab } from "@/components/account/PlatformEconomySnapshotTab";
 import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
 import { PlatformModerationTab } from "@/components/account/PlatformModerationTab";
+import { PlatformGifsTab } from "@/components/account/PlatformGifsTab";
 import { PlatformTimeTrialsTab } from "@/components/account/PlatformTimeTrialsTab";
 import { PlatformLaddersTab } from "@/components/account/PlatformLaddersTab";
 import { PlatformShopTab } from "@/components/account/PlatformShopTab";
@@ -36,6 +38,7 @@ import { PlatformChatBrainTab } from "@/components/account/PlatformChatBrainTab"
 import { PlatformTriviaTab } from "@/components/account/PlatformTriviaTab";
 import { PlatformBreakTab } from "@/components/account/PlatformBreakTab";
 import { PlatformShopOrdersTab, PlatformShopProductsTab, PlatformShopStatesTab } from "@/components/account/PlatformShopOrdersTab";
+import { PlatformShopMerchTab } from "@/components/account/PlatformShopMerchTab";
 import { PlatformSwitchesTab } from "@/components/account/PlatformSwitchesTab";
 import { TokenActivityPanel, TokenStreamersPanel } from "@/components/account/TokenEconomyPanels";
 import { PlatformOriginalsTab } from "@/components/account/PlatformOriginalsTab";
@@ -53,6 +56,7 @@ const SCREENS: ScreenMap = {
   "platform-ai": () => <PlatformAiTab />,
   "platform-switches": () => <PlatformSwitchesTab />,
   "platform-shop-orders": () => <PlatformShopOrdersTab />,
+  "platform-shop-merch": () => <PlatformShopMerchTab />,
   "platform-shop-products": () => <PlatformShopProductsTab />,
   "platform-shop-states": () => <PlatformShopStatesTab />,
   "platform-shop": () => <PlatformShopTab />,
@@ -70,7 +74,9 @@ const SCREENS: ScreenMap = {
   "platform-engagement": () => <PlatformEngagementTab />,
   "platform-tournaments": () => <PlatformTournamentsTab />,
   "platform-ticketing": () => <PlatformTicketingTab />,
+  "platform-series": () => <PlatformSeriesTab />,
   "platform-moderation": () => <PlatformModerationTab />,
+  "platform-gifs": () => <PlatformGifsTab />,
   "platform-time-trials": () => <PlatformTimeTrialsTab />,
   "platform-ladders": () => <PlatformLaddersTab />,
   "platform-staff": () => <PlatformStaffTab />,

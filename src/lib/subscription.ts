@@ -283,8 +283,9 @@ export function requiredTier(capability: Capability): SubscriptionTier {
 // Spec: specs/gs-circuit-pro-addendum.md
 // ---------------------------------------------------------------------------
 
-/** The billing sources that can grant Pro. `support_level` = a Backer or Champion support level (GS Pro included, 2026-10-19). */
-export type ProSource = "pro_subscription" | "pro_trial" | "circuit_256" | "pro_addon" | "support_level";
+/** The billing sources that can grant Pro. `support_level` = a Backer or Champion support level (GS Pro included, 2026-10-19).
+ *  `gift` = GS Pro given by GameShuffle until a date (pro_gifts: a team series' streamers and champions, 2026-11-02). */
+export type ProSource = "pro_subscription" | "pro_trial" | "circuit_256" | "pro_addon" | "support_level" | "gift";
 /** A Pro grant: a billing source, or an operational role grant. */
 export type ProGrant = ProSource | "staff" | "beta";
 
@@ -295,6 +296,7 @@ export const PRO_SOURCE_PRIORITY: readonly ProSource[] = [
   "pro_subscription",
   "support_level",
   "pro_trial",
+  "gift",
 ];
 
 /** Sources that represent a charge (trial is a source but not a charge). Used
@@ -336,6 +338,9 @@ export interface ProAccessState {
   /** subscription_tier 'pro' comes from a live Backer or Champion support level, not a GS Pro plan. */
   proFromSupport?: boolean;
   supportPeriodEnd?: string | Date | null;
+  /** subscription_tier 'pro' comes from GS Pro given by GameShuffle (a live pro_gifts row), not a plan. */
+  proFromGift?: boolean;
+  giftEnd?: string | Date | null;
   /** Period-end dates, when known, to populate `endsAt`. */
   proPeriodEnd?: string | Date | null;
   trialEnd?: string | Date | null;
@@ -367,6 +372,8 @@ function endsAtForSource(source: ProSource | null, state: ProAccessState): Date 
       return toDateOrNull(state.proPeriodEnd);
     case "support_level":
       return toDateOrNull(state.supportPeriodEnd);
+    case "gift":
+      return toDateOrNull(state.giftEnd);
     case "pro_trial":
       return toDateOrNull(state.trialEnd) ?? toDateOrNull(state.proPeriodEnd);
     default:
@@ -386,7 +393,7 @@ export function proAccessFromState(state: ProAccessState): ProAccess {
   const subActive = isActiveBillingStatus(state.subscriptionStatus);
   const subIsPro = normalizeTier(state.subscriptionTier ?? null) === "pro";
   if (subActive && subIsPro) {
-    active.push(state.proFromSupport ? "support_level" : state.subscriptionStatus === "trialing" ? "pro_trial" : "pro_subscription");
+    active.push(state.proFromSupport ? "support_level" : state.proFromGift ? "gift" : state.subscriptionStatus === "trialing" ? "pro_trial" : "pro_subscription");
   }
   if (isActiveBillingStatus(state.circuitStatus)) {
     if (state.circuitTier === "circuit_256") active.push("circuit_256");

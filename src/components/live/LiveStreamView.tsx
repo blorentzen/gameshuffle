@@ -53,6 +53,7 @@ import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
 import { LiveBingoCard } from "./LiveBingoCard";
 import { LiveBreakCard } from "./LiveBreakCard";
+import { LiveSeriesCard } from "@/components/series/LiveSeriesCard";
 import { LiveTriviaCard } from "./LiveTriviaCard";
 import { LiveChatBrainCard } from "./LiveChatBrainCard";
 import { LiveSiteHost } from "./LiveSiteHost";
@@ -217,6 +218,7 @@ export function LiveStreamView({
           <StreamerHeader streamer={streamer} />
           <LiveTournamentRace ownerUserId={streamer.userId} />
           {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
+          <LiveSeriesCard streamerSlug={streamer.slug} streamerName={streamerName} />
           <LiveSiteHost streamerSlug={streamer.slug}>
             <LiveBreakCard communityId={initialLeaderboard.communityId} />
             <LiveTriviaCard communityId={initialLeaderboard.communityId} />
@@ -698,6 +700,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard, initialTa
           </div>
         </div>
 
+        <LiveSeriesCard streamerSlug={streamer.slug} streamerName={streamer.displayName ?? streamer.twitchHandle ?? streamer.slug} />
         <LiveSiteHost streamerSlug={streamer.slug}>
           <LiveBreakCard communityId={initialLeaderboard.communityId} />
           <LiveTriviaCard communityId={initialLeaderboard.communityId} />

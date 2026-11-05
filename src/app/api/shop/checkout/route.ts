@@ -1,5 +1,5 @@
 /**
- * POST /api/shop/checkout { items: [{ sku, quantity }], source?, utm? }
+ * POST /api/shop/checkout { items: [{ sku, quantity, pick? }], source?, utm? }
  *   → { ok: true, url } (Stripe Checkout) or { ok: false, error, sku?, available? }
  *
  * The whole cart in one session. Stock is held first (shop_reserve, row
@@ -8,6 +8,16 @@
  * Quantities are fixed inside Stripe (no adjustable quantities or optional
  * items) because hosted Checkout can't change the shipping price after it
  * opens, and shipping depends on the subtotal: $4.99 under $25, free from $25.
+ *
+ * Merch (made to order, from Printful) has no Stripe Price per size and
+ * color: those lines are priced inline (price_data) with the sku on the
+ * product's metadata, Stripe Tax's clothing code for apparel, and Printful's
+ * picture. They take a large made-to-order stock, so holds never run short.
+ *
+ * Made-when-ordered merch carries the buyer's pick (personal.ts): checked
+ * against what that product offers, held per product like any other line, and
+ * sent to Stripe as its own line ("Player Tee · Player 2 · 4 hearts") with the
+ * pick on the product's metadata, which is how the order learns it.
  *
  * Guest checkout with customer_email and client_reference_id when signed in;
  * never the Pro stripe_customer_id (the US-only backstop refunds by customer).
@@ -23,14 +33,18 @@ import { getPlatformFlag } from "@/lib/platform/flags";
 import { isStaffRequest } from "@/lib/auth/raw";
 import { rateLimit } from "@/lib/ratelimit";
 import { getBaseUrl } from "@/lib/env";
-import { SHOP, SHOP_METADATA_KIND } from "@/lib/store/config";
+import { SHOP, SHOP_METADATA_KIND, SHOP_TAX_CODE } from "@/lib/store/config";
+import { MERCH_CATEGORY } from "@/lib/store/merch";
 import { listShopProducts, ShopNotReady } from "@/lib/store/products";
 import { shippingCents } from "@/lib/store/rules";
 import { shopCopy } from "@/lib/store/copy";
+import { isValidPick, pickLabel } from "@/lib/store/personal";
 
 export const runtime = "nodejs";
 
 const UTM_KEYS = ["source", "medium", "campaign", "content"] as const;
+/** Stripe Tax: "Clothing & Footwear", apparel for general use. */
+const CLOTHING_TAX_CODE = "txcd_30011000";
 const clean = (v: unknown, max = 60) => (typeof v === "string" && /^[\w./:-]{1,200}$/.test(v) ? v.slice(0, max) : null);
 const fail = (error: string, status = 400, extra: Record<string, unknown> = {}) => NextResponse.json({ ok: false, error, ...extra }, { status });
 
@@ -41,14 +55,19 @@ export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   if (!(await rateLimit(`shop-checkout:${ip}`, { max: 8, windowMs: 10 * 60_000 })).ok) return fail("rate_limited", 429);
 
-  const body = (await request.json().catch(() => null)) as { items?: { sku?: unknown; quantity?: unknown }[]; source?: unknown; utm?: Record<string, unknown> } | null;
-  const merged = new Map<string, number>();
+  const body = (await request.json().catch(() => null)) as { items?: { sku?: unknown; quantity?: unknown; pick?: unknown }[]; source?: unknown; utm?: Record<string, unknown> } | null;
+  // One entry per product and pick; a product's lines are held together.
+  const picked = new Map<string, { sku: string; pick: string | null; quantity: number }>();
   for (const i of Array.isArray(body?.items) ? body!.items.slice(0, 20) : []) {
     const sku = typeof i?.sku === "string" ? i.sku : "";
     const qty = Number(i?.quantity);
+    const pick = typeof i?.pick === "string" && /^[a-z0-9-]{1,24}$/.test(i.pick) ? i.pick : null;
     if (!/^[a-z0-9-]{2,40}$/.test(sku) || !Number.isInteger(qty) || qty < 1) continue;
-    merged.set(sku, (merged.get(sku) ?? 0) + qty);
+    const key = pick ? `${sku}|${pick}` : sku;
+    picked.set(key, { sku, pick, quantity: (picked.get(key)?.quantity ?? 0) + qty });
   }
+  const merged = new Map<string, number>();
+  for (const e of picked.values()) merged.set(e.sku, (merged.get(e.sku) ?? 0) + e.quantity);
   if (merged.size === 0) return fail("empty_cart");
 
   let products;
@@ -59,11 +78,24 @@ export async function POST(request: Request) {
     throw err;
   }
   const bySku = new Map(products.map((p) => [p.sku, p]));
-  const lines: { sku: string; quantity: number; price: string; unitCents: number; name: string }[] = [];
+  const lines: { sku: string; quantity: number; price: string | null; unitCents: number; name: string; image: string | null; listingId: string | null }[] = [];
   for (const [sku, qty] of merged) {
     const p = bySku.get(sku);
-    if (!p || !p.onSale || !p.stripePriceId) return fail("unavailable", 409, { sku, name: p?.name ?? null });
-    lines.push({ sku, quantity: Math.min(qty, p.maxPerOrder), price: p.stripePriceId, unitCents: p.priceCents, name: p.name });
+    const merch = p?.category === MERCH_CATEGORY;
+    if (!p || !p.onSale || (!p.stripePriceId && !merch)) return fail("unavailable", 409, { sku, name: p?.name ?? null });
+    lines.push({ sku, quantity: Math.min(qty, p.maxPerOrder), price: merch ? null : p.stripePriceId, unitCents: p.priceCents, name: p.name, image: p.imageUrl, listingId: p.listingId });
+  }
+  // Made when ordered: every line of such a product needs a pick it offers; nothing else takes one.
+  const stripeLines: { sku: string; pick: string | null; label: string | null; quantity: number }[] = [];
+  for (const e of picked.values()) {
+    const p = bySku.get(e.sku)!;
+    if (p.personal ? !e.pick || !isValidPick(p.personal.kind, p.personal.ink, e.pick) : !!e.pick) return fail("bad_pick", 400, { sku: e.sku, name: p.name });
+    stripeLines.push({ sku: e.sku, pick: e.pick, label: p.personal && e.pick ? pickLabel(p.personal.kind, e.pick) : null, quantity: e.quantity });
+  }
+  // The per-order limit applies to a product across its picks.
+  for (const l of lines) {
+    let left = l.quantity;
+    for (const s of stripeLines.filter((x) => x.sku === l.sku)) { s.quantity = Math.min(s.quantity, left); left -= s.quantity; }
   }
 
   // Session: 30 minutes is Stripe's floor, so add a minute for the round trip.
@@ -94,6 +126,15 @@ export async function POST(request: Request) {
     return fail("not_enough", 409, { sku: short.sku, name: short.name, available: r.granted?.[short.sku] ?? 0 });
   }
 
+  // Apparel takes Stripe Tax's clothing code; everything else is general goods.
+  const listingIds = [...new Set(lines.map((l) => l.listingId).filter((x): x is string => !!x))];
+  const itemTypes = new Map<string, string>();
+  if (listingIds.length) {
+    const { data: ls } = await svc.from("shop_listings").select("id, item_type").in("id", listingIds);
+    for (const l of ls ?? []) itemTypes.set(l.id as string, l.item_type as string);
+  }
+  const taxCode = (listingId: string | null) => (["Tees", "Hoodies", "Hats"].includes(itemTypes.get(listingId ?? "") ?? "") ? CLOTHING_TAX_CODE : SHOP_TAX_CODE);
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const subtotal = lines.reduce((n, l) => n + l.unitCents * l.quantity, 0);
@@ -108,7 +149,22 @@ export async function POST(request: Request) {
   try {
     const session = await getStripe().checkout.sessions.create({
       mode: "payment",
-      line_items: lines.map((l) => ({ price: l.price, quantity: l.quantity })),
+      line_items: stripeLines.filter((s) => s.quantity > 0).map((s) => {
+        const l = lines.find((x) => x.sku === s.sku)!;
+        return l.price
+          ? { price: l.price, quantity: s.quantity }
+          : {
+              quantity: s.quantity,
+              price_data: {
+                currency: SHOP.currency, unit_amount: l.unitCents, tax_behavior: "exclusive" as const,
+                product_data: {
+                  name: s.label ? `${l.name} · ${s.label}` : l.name, tax_code: taxCode(l.listingId),
+                  ...(l.image?.startsWith("https://") ? { images: [l.image] } : {}),
+                  metadata: { gs_kind: SHOP_METADATA_KIND, sku: l.sku, ...(s.pick ? { pick: s.pick } : {}) },
+                },
+              },
+            };
+      }),
       shipping_address_collection: { allowed_countries: SHOP.checkout.allowed_countries as ["US"] },
       // Phone for order lookup by text (Britton, 2026-10-09); Stripe makes it required.
       phone_number_collection: { enabled: true },

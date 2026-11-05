@@ -3,12 +3,12 @@
  * The handlers in src/lib/twitch/commands/lounge.ts send them; scripts/test-lounge-season.ts checks them.
  */
 
-import { fmtMmr, isEvent, placeWord, signed, type DivisionStep, type MmrChange, type MmrGame } from "@/lib/mmr/rules";
+import { fmtMmr, isEvent, placeWord, seasonNumbers, signed, type DivisionStep, type MmrChange, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import type { LoungePlayer } from "@/lib/mmr/mkcentral";
 import { formatOf } from "./season";
 
 /** A player's lounge page path ("/lounge/Sam", with ?game= past the default game). */
-export const loungePagePath = (name: string, game: MmrGame) => `/lounge/${encodeURIComponent(name)}${game === "mkworld12p" ? "" : `?game=${game}`}`;
+export const loungePagePath = (name: string, game: MmrGame) => `/lounge/${encodeURIComponent(name)}${game === DEFAULT_MMR_GAME ? "" : `?game=${game}`}`;
 
 /** The last ten events: record, net, the best one, average score. */
 export function last10Line(name: string, changes: MmrChange[]): string {
@@ -21,6 +21,15 @@ export function last10Line(name: string, changes: MmrChange[]): string {
   const bestPlace = best.place != null ? `${placeWord(best.place)}${formatOf(best) === "FFA" ? "" : ` (${formatOf(best)})`}, ` : "";
   const avg = scores.length ? ` Average score ${Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)}.` : "";
   return `🏁 ${name}'s last ${ten.length}: ${w}-${l}, ${signed(net)}. Best: ${bestPlace}${signed(best.delta)}.${avg}`;
+}
+
+/** `!avg`: this season's average score and partner average (picks 2026-11-04, 3A), worked out as MKCentral does. */
+export function avgLine(name: string, changes: MmrChange[]): string {
+  const s = seasonNumbers(changes);
+  if (!s.events) return `🏁 ${name} has no events yet this season.`;
+  const parts = [s.avgScore != null ? `average score ${s.avgScore.toFixed(1)}` : null, s.partnerAvg != null ? `partners ${s.partnerAvg.toFixed(1)}` : null].filter(Boolean);
+  if (!parts.length) return `🏁 ${name} has no scores yet this season.`;
+  return `🏁 ${name}: ${parts.join(", ")} this season (${fmtMmr(s.events)} ${s.events === 1 ? "event" : "events"}).`;
 }
 
 /** Tonight's run since `since`, and the event that moved them into a new division. */

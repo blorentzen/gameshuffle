@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/ratelimit";
-import { isMmrGame } from "@/lib/mmr/rules";
+import { isMmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { parseRoom } from "@/lib/lounge/room";
 import { lookUpRoom, saveRoom, savedRoom } from "@/lib/lounge/roomServer";
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   const limited = await rateLimit(`lounge-room:${user?.id ?? ip}`, { max: 8, windowMs: 60_000 });
   if (!limited.ok) return NextResponse.json({ error: "slow_down" }, { status: 429 });
   const body = (await request.json().catch(() => ({}))) as { text?: unknown; game?: unknown; teamSize?: unknown; me?: unknown };
-  const game = isMmrGame(body.game) ? body.game : "mkworld12p";
+  const game = isMmrGame(body.game) ? body.game : DEFAULT_MMR_GAME;
   const teamSize = TEAM_SIZES.has(Number(body.teamSize)) ? Number(body.teamSize) : 1;
   const teams = parseRoom(typeof body.text === "string" ? body.text.slice(0, 4000) : "", teamSize);
   if (teams.length < 2) return NextResponse.json({ error: "too_few" }, { status: 400 });

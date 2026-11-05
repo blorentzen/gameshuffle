@@ -27,6 +27,10 @@ const ADD_URL = `${SITE_URL}/discord/add?app=comp`;
 const addRow = { type: 1, components: [{ type: 2, style: 5, label: "Add GameShuffle Competitive", url: ADD_URL }] };
 
 /** "December 5", the last day the old command answers (the day before the end). */
+export function moveLastDay(): string {
+  return lastDay();
+}
+
 function lastDay(): string {
   const end = compMoveEnd();
   if (!end) return "";

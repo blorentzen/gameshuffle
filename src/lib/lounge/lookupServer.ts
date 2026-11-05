@@ -87,8 +87,8 @@ export async function suggestPlayers(query: string, games: MmrGame[] = MMR_GAME_
  *  in the games asked for. Empty when nobody has it. */
 export async function playersByFriendCode(fc: string, games: MmrGame[] = MMR_GAME_IDS): Promise<Suggestion[]> {
   const found = await cached(`fc:${fc}`, 10 * 60_000, async () => {
-    // MK World first, MK8DX for a player who only plays that.
-    for (const g of ["mkworld12p", "mk8dx"] as MmrGame[]) {
+    // MK8DX first, MK World for a player who only plays that.
+    for (const g of ["mk8dx", "mkworld12p"] as MmrGame[]) {
       const raw = (await getJson(`/player?fc=${encodeURIComponent(fc)}&game=${g}`)) as Record<string, unknown> | null;
       if (raw && typeof raw.name === "string" && typeof raw.id === "number") {
         return { id: raw.id, name: raw.name, country: typeof raw.countryCode === "string" ? raw.countryCode : null, mmr: typeof raw.mmr === "number" ? raw.mmr : null, game: g };

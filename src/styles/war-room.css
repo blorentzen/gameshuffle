@@ -207,3 +207,25 @@ html.dark body:has(.wr-app) { background: #05070b; }
 @media (max-height: 300px) {
   .wr-apptabs .empac-tabs__header { display: none; }
 }
+.wr-tt__vehicle { max-width: 32rem; }
+
+/* Cans tab (cans picks 2026-11-04): the team's week as a heat grid, your own hours as a tap grid. */
+.wr-cans__bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1.2rem; }
+.wr-cans__modes { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; }
+.wr-cans__scroll { overflow-x: auto; border: 1px solid var(--wr-line); border-radius: 1.2rem; background: var(--wr-panel); }
+.wr-cans__scroll:focus-visible { outline: 2px solid var(--wr-ice); outline-offset: 2px; }
+.wr-cans__grid { border-collapse: separate; border-spacing: .4rem; font-size: var(--font-size-12); color: var(--wr-muted); }
+.wr-cans__grid th { font-weight: 600; text-align: center; padding: 0 .2rem; white-space: nowrap; }
+.wr-cans__grid tbody th { text-align: left; color: var(--wr-soft); font-size: var(--font-size-14); padding-right: .6rem; position: sticky; left: 0; background: var(--wr-panel); }
+.wr-cans__grid td { padding: 0; }
+.wr-cans__cell { width: 3.6rem; height: 3.2rem; border-radius: .6rem; display: grid; place-items: center; font: 700 var(--font-size-14)/1 "Outfit", sans-serif; font-variant-numeric: tabular-nums; color: #fff;
+  background: color-mix(in srgb, #7f9bff calc(var(--n, 0) * 80%), var(--wr-tile)); }
+.wr-cans__cell--zero { background: var(--wr-tile); }
+.wr-cans__cell.is-best { box-shadow: inset 0 0 0 2px var(--wr-gold); }
+.wr-cans__cell--pick { border: 1px solid var(--wr-line); background: var(--wr-tile); cursor: pointer; padding: 0; }
+.wr-cans__cell--pick.is-on { background: #3f5cff; border-color: #7f9bff; }
+.wr-cans__cell--pick:focus-visible { outline: 2px solid var(--wr-ice); outline-offset: 1px; }
+.wr-cans__best { display: grid; gap: 1.2rem; }
+.wr-cans__post { display: flex; flex-wrap: wrap; align-items: end; gap: 1.2rem; }
+.wr-cans__post .wr-field { min-width: 16rem; }
+.wr-lineup { display: grid; gap: .4rem; padding: 1.2rem 1.4rem; border-radius: 1.2rem; background: var(--wr-panel); border: 1px solid var(--wr-us-line); }

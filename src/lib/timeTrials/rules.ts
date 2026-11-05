@@ -102,6 +102,31 @@ export function isVerified(v: VideoState): boolean {
   return v === "checked";
 }
 
+/** Vouches that give a time the Community verified mark (players' feedback, picks 2026-11-04, 19A: anyone signed in
+ *  vouches, never for their own time). A checked clip still gives Verified, and a top-ten time without one still
+ *  asks for a clip. */
+export const COMMUNITY_VOUCHES = 10;
+
+/** A time's label, wherever it shows. Under review first, then a checked clip, then ten vouches, then the clip's
+ *  state, then Trusted for a top-ten time; other times carry no label. */
+export type TimeStatus = "verified" | "sheet" | "community" | "trusted" | "review" | "waiting" | "rejected" | "unverified" | "none";
+
+/** `sheet`: a top-ten time from the community's Top 10 sheets, whose keepers check every time (round 4). */
+export function timeStatus(t: {
+  review: boolean; video: VideoState; videoUrl: string | null; top: boolean; trusted: boolean; you: boolean; vouches: number; sheet?: boolean;
+}): TimeStatus {
+  if (t.review) return "review";
+  if (t.video === "checked") return "verified";
+  // Like Verified, the sheet's mark only shows in the top ten; further down the proof column says where it came from.
+  if (t.sheet && t.top) return "sheet";
+  if (t.vouches >= COMMUNITY_VOUCHES) return "community";
+  if (!t.top) return "none";
+  if (t.video === "waiting" && t.videoUrl) return "waiting";
+  if (t.trusted) return "trusted";
+  if (t.video === "rejected" && t.you) return "rejected";
+  return "unverified";
+}
+
 // ── Laps (round 3 pick 2A) ──────────────────────────────────────────────────────────────────────
 
 /** A lap time in ms ("34.112", "0:34.112", "1:02.034"), or null outside 5 seconds to 5 minutes. */

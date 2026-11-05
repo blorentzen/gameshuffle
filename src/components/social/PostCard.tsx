@@ -8,7 +8,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Reactions, CommentInput, IconButton, Icon, Modal, Button, type Reaction } from "@empac/cascadeds";
+import { CommentInput, IconButton, Icon, Modal, Button } from "@empac/cascadeds";
+import { ReactionRow } from "@/components/social/ReactionRow";
+import type { ReactionCount } from "@/lib/social/reactions";
 import { createClient } from "@/lib/supabase/client";
 import { CommentTree } from "@/components/social/CommentTree";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
@@ -19,6 +21,8 @@ import { useToast } from "@/components/toast/ToastProvider";
 import type { FeedPost, FeedComment, RsvpStatus } from "@/lib/social/feed";
 import { IconTrophy, IconDeviceGamepad2, IconCalendarEvent, IconClock } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { GifButton } from "@/components/gifs/GifButton";
+import type { Attachment } from "@/lib/gifs/rules";
 
 function formatWhen(startAt: string | null | undefined): string {
   if (!startAt) return "Open · hosting now";
@@ -90,7 +94,7 @@ export function PostCard({
 }) {
   const router = useRouter();
   const requireAuth = () => router.push("/signup?redirect=/communities");
-  const [reactions, setReactions] = useState<Reaction[]>(post.reactions);
+  const [reactions, setReactions] = useState<ReactionCount[]>(post.reactions);
   const [showComments, setShowComments] = useState(defaultOpenComments);
   const [comments, setComments] = useState<FeedComment[] | null>(null);
   const [commentCount, setCommentCount] = useState(post.commentCount);
@@ -214,14 +218,42 @@ export function PostCard({
     void fetch(`/api/social/posts/${post.id}/react?emoji=${encodeURIComponent(emoji)}`, { method: "DELETE" });
   }
 
-  async function addComment(content: string, parentId?: string) {
+  async function addComment(content: string, parentId?: string, attachment?: Attachment) {
     const res = await fetch(`/api/social/posts/${post.id}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: content, parentId: parentId ?? null }),
+      body: JSON.stringify({ body: content, parentId: parentId ?? null, attachment: attachment ?? null }),
     });
     if (res.ok) await loadComments();
     else if (res.status === 429) toast.error("You're commenting too fast. Give it a sec.");
+    else if (attachment) toast.error("Couldn't post that GIF. Try another.");
+  }
+
+  /** Optimistic: a comment's reaction goes on or off right away, then the server is told. */
+  function applyCommentReact(commentId: string, key: string, add: boolean) {
+    const edit = (nodes: FeedComment[]): FeedComment[] => nodes.map((n) => {
+      if (n.id !== commentId) return n.replies?.length ? { ...n, replies: edit(n.replies) } : n;
+      const list = [...(n.reactions ?? [])];
+      const i = list.findIndex((r) => r.emoji === key);
+      if (add) {
+        if (i >= 0) list[i] = { ...list[i], count: list[i].count + 1, reacted: true, users: ["You", ...(list[i].users ?? [])] };
+        else list.push({ emoji: key, count: 1, reacted: true, users: ["You"] });
+      } else if (i >= 0) {
+        const left = list[i].count - 1;
+        if (left <= 0) list.splice(i, 1);
+        else list[i] = { ...list[i], count: left, reacted: false, users: (list[i].users ?? []).filter((u) => u !== "You") };
+      }
+      return { ...n, reactions: list };
+    });
+    setComments((cur) => (cur ? edit(cur) : cur));
+  }
+  function reactToComment(commentId: string, key: string) {
+    applyCommentReact(commentId, key, true);
+    void fetch(`/api/social/comments/${commentId}/react`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ emoji: key }) });
+  }
+  function unreactComment(commentId: string, key: string) {
+    applyCommentReact(commentId, key, false);
+    void fetch(`/api/social/comments/${commentId}/react?emoji=${encodeURIComponent(key)}`, { method: "DELETE" });
   }
 
   async function toggleLike(commentId: string) {
@@ -433,11 +465,10 @@ export function PostCard({
       )}
 
       <div className="post-card__actions">
-        <Reactions
+        <ReactionRow
           reactions={reactions}
           onReact={readOnly ? requireAuth : onReact}
-          onRemoveReaction={readOnly ? requireAuth : onRemoveReaction}
-          size="small"
+          onRemove={readOnly ? requireAuth : onRemoveReaction}
         />
         <button type="button" className="post-card__comment-toggle" onClick={readOnly ? requireAuth : toggleComments}>
           <Icon name="message-circle" size="16" />
@@ -459,17 +490,21 @@ export function PostCard({
                 onLike={(id) => void toggleLike(id)}
                 onReply={(id, content) => void addComment(content, id)}
                 onDelete={(id) => void removeComment(id)}
+                onReplyAttach={(id, attachment) => void addComment("", id, attachment)}
+                onReact={reactToComment}
+                onUnreact={unreactComment}
               />
             </div>
           )}
           {currentUserId && (
-            <div className="post-card__comment-box">
+            <div className="post-card__comment-box ct__compose">
               <CommentInput
                 currentUser={{ id: currentUserId, name: "You" }}
                 placeholder="Write a comment…"
                 autoFocus
                 onSubmit={(content) => void addComment(content)}
               />
+              <GifButton onPick={(p) => void addComment("", undefined, p.attachment)} />
             </div>
           )}
         </div>

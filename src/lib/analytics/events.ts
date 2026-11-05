@@ -55,6 +55,8 @@ export const EVENTS = {
   tcgStoreClicked: "TCG Store Clicked",
   /** A shop order was paid (server event; props: { placement, source }). Revenue rides along. */
   shopOrderPlaced: "Shop Order Placed",
+  /** Merch: Add to cart on a product page {item: Tees | Hoodies | …}. */
+  merchAddedToCart: "Merch Added To Cart",
 
   // Discord
   /** "Add to Discord" on /discord. {from: hero|steps|band} */
@@ -187,6 +189,10 @@ export const EVENTS = {
   warPageCopied: "War Page Link Copied",
   /** The MMR card's OBS link was copied (props: { layout }). */
   mmrCardLinkCopied: "MMR Card Link Copied",
+  /** The MMR card studio switched between the live card and a picture (props: { mode }). */
+  mmrModePicked: "MMR Mode Picked",
+  /** A picture of the MMR card saved from the studio (props: { size }). */
+  mmrPictureSaved: "MMR Picture Saved",
   /** Tonight's goal set on the MMR card, GS Pro (props: { game }). */
   mmrGoalSet: "MMR Goal Set",
   /** The weekly lounge report switched on or off in the MMR studio (props: { on }). */
@@ -240,6 +246,14 @@ export const EVENTS = {
   aiTournamentDrafted: "AI Tournament Drafted",
   /** An AI tool asked someone to sign up or upgrade first. {feature, reason: signin|pro|daily|allowance} */
   aiGateShown: "AI Gate Shown",
+  /** Team series (the GS Summer Series). Prediction placed {kind, from: live|series}. */
+  seriesPredicted: "Series Predicted",
+  /** A team locked in its ban and protect in the track draft. */
+  seriesDraftPicked: "Series Draft Picked",
+  /** A vote for the best play. */
+  seriesVoted: "Series Voted",
+  /** A player saved their own card (hours, kart build). */
+  seriesCardSaved: "Series Card Saved",
 } as const;
 
 export type AnalyticsEvent = (typeof EVENTS)[keyof typeof EVENTS];

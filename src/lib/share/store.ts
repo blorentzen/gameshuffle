@@ -34,10 +34,11 @@ import { supporterInfo } from "@/lib/support/store";
 import { SITE_URL } from "@/lib/seo";
 import { clockLabel, clockSeconds, isQuizClock, isQuizSet, setLabel, setPool } from "@/lib/pokemon/nameQuiz";
 import { LoungeUnavailable, divisionSteps, loungePlayer } from "@/lib/mmr/mkcentral";
-import { MMR_GAMES, isMmrGame } from "@/lib/mmr/rules";
+import { MMR_GAMES, isMmrGame, viewOf } from "@/lib/mmr/rules";
+import { ownPicture } from "@/lib/mmr/pictureData";
 import { nightFor } from "@/lib/lounge/night";
 import { loungePagePath } from "@/lib/lounge/lines";
-import { shareAlt, type DuelPart, type LoungePart, type NamesPart, type FirePart, type PuzzlePart, type ShareBackground, type ShareCell, type ShareData, type ShareKind, type ShareMade, type SharePart, type SharePlayer, type ShareRequest, type SupporterPart, type WeeklyPart } from "./types";
+import { MMR_SHARE_DAY, shareAlt, type DuelPart, type LoungePart, type MmrPart, type NamesPart, type FirePart, type PuzzlePart, type ShareBackground, type ShareCell, type ShareData, type ShareKind, type ShareMade, type SharePart, type SharePlayer, type ShareRequest, type SupporterPart, type WeeklyPart } from "./types";
 import { DUEL_SHOWN } from "@/lib/originals/dailies";
 
 type DbError = { code?: string; message?: string } | null;
@@ -259,9 +260,28 @@ async function loungePart(key: string, raw: ShareRequest["lounge"]): Promise<Lou
 }
 
 /** Makes (or refreshes) this player's card for a request and returns its link. */
+/**
+ * The signed-in player's MMR card (picks 2026-11-04, 6A): its words as it stands now; the picture on the link is
+ * drawn from the card each time (at most 10 minutes old). Accounts only. A look that hides MMR keeps it out of the words.
+ */
+async function mmrPart(key: string, raw: ShareRequest["mmr"]): Promise<MmrPart | ShareError> {
+  const p = parsePlayer(key);
+  if (p?.kind !== "u") return "no_result";
+  const lookId = typeof raw?.look === "string" && /^[\w-]{1,40}$/.test(raw.look) ? raw.look : null;
+  const input = await ownPicture(p.id, lookId);
+  if (!input) return "unavailable";
+  const v = viewOf(input.source);
+  const ladder = input.source.ladder ?? null;
+  return {
+    kind: "mmr", game: input.source.game, gameLabel: ladder ? ladder.name : MMR_GAMES[input.source.game].short,
+    name: v.name, division: v.division, mmr: input.look.info.hideMmr ? null : v.mmr, worldRank: v.worldRank, look: input.look.id,
+    page: ladder ? `/ranked/${ladder.slug}` : loungePagePath(v.name, input.source.game),
+  };
+}
+
 export async function makeShare(key: string, req: ShareRequest): Promise<ShareMade | ShareError> {
   const kind = req.kind;
-  if (!["shuffle", "dex", "fire", "weekly", "day", "supporter", "names", "lounge", "duel"].includes(kind)) return "bad_request";
+  if (!["shuffle", "dex", "fire", "weekly", "day", "supporter", "names", "lounge", "duel", "mmr"].includes(kind)) return "bad_request";
   let day = dayKey();
   const parts: SharePart[] = [];
   let ref = "";
@@ -303,6 +323,13 @@ export async function makeShare(key: string, req: ShareRequest): Promise<ShareMa
     // One card per lounge game and night; the card's day is the night it shows.
     ref = part.game;
     day = part.night;
+  } else if (kind === "mmr") {
+    const part = await mmrPart(key, req.mmr);
+    if (typeof part === "string") return part;
+    parts.push(part);
+    // One link per look, for good.
+    ref = part.look;
+    day = MMR_SHARE_DAY;
   } else if (kind === "weekly") {
     const part = await weeklyPart(key);
     if (!part) return "no_result";

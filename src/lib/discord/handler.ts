@@ -9,7 +9,7 @@ import { handleGsTag } from "./commands/tags";
 import { handleGsRemind } from "./commands/remind";
 import { handleGsProfile } from "./commands/profile";
 import { handleGsMmr, handleGsRoom } from "./commands/mmr";
-import { handleGsTt, handleTtButton, handleTtClipModal, ttAutocomplete, TT_CLIP_MODAL_PREFIX, TT_CLIP_PREFIX, TT_NO_PREFIX, TT_OK_PREFIX, TT_REPORT_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX } from "./commands/timeTrials";
+import { handleGsTt, handleTtButton, handleTtClipModal, ttAutocomplete, TT_CLIP_MODAL_PREFIX, TT_CLIP_PREFIX, TT_NO_PREFIX, TT_OK_PREFIX, TT_REPORT_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_VOUCH_PREFIX } from "./commands/timeTrials";
 import { handleTtPanelComponent, handleTtPanelModal, TT_PANEL_COMPONENTS, TT_PANEL_MODALS } from "./commands/ttPanelActions";
 import { handleTtSaveButton, handleTtSaveCommand, TT_IMPORT_PREFIX, TT_SAVE_COMMAND } from "./commands/ttImport";
 import {
@@ -45,6 +45,7 @@ import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 import type { DiscordAppId } from "./appIds";
 import { withMoveNote } from "./compMove";
 import { handleWarCommand, handleWarComponent, handleWarModal, warAutocomplete, WAR_MODAL_PREFIX, WAR_PREFIX } from "./commands/war";
+import { CANS_PREFIX, cansAutocomplete, handleCansCommand, handleCansComponent } from "./commands/cans";
 import { handleLogoCommand, handleLogoComponent, logoAutocomplete, LOGO_PREFIX } from "./commands/warLogos";
 import { handleFlagCommand, handleFlagComponent, flagAutocomplete, FLAG_PREFIX } from "./commands/warFlags";
 import { handleTableCommand, handleTableComponent, handleTableModal, TABLE_MODAL_PREFIX, TABLE_PREFIX } from "./commands/warTables";
@@ -67,6 +68,7 @@ function handleCompCommand(interaction: Record<string, unknown>, name: string): 
     case "mmr": return handleGsMmr(interaction);
     case "room": return handleGsRoom(interaction);
     case "war": return handleWarCommand(interaction);
+    case "cans": return handleCansCommand(interaction);
     case "logo": return handleLogoCommand(interaction);
     case "flag": return handleFlagCommand(interaction);
     case "table": return handleTableCommand(interaction);
@@ -143,12 +145,13 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
     if (customId.startsWith(TT_IMPORT_PREFIX)) return handleTtSaveButton(interaction, customId);
 
     // Time trials: confirm or cancel a read screenshot, undo, verify (server managers), report.
-    if ([TT_OK_PREFIX, TT_NO_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_REPORT_PREFIX, TT_CLIP_PREFIX].some((p) => customId.startsWith(p))) {
+    if ([TT_OK_PREFIX, TT_NO_PREFIX, TT_UNDO_PREFIX, TT_VERIFY_PREFIX, TT_VOUCH_PREFIX, TT_REPORT_PREFIX, TT_CLIP_PREFIX].some((p) => customId.startsWith(p))) {
       return handleTtButton(interaction, customId);
     }
 
     // Wars: the war card's buttons and menus (GameShuffle Competitive).
     if (customId.startsWith(WAR_PREFIX)) return handleWarComponent(interaction, customId);
+    if (customId.startsWith(CANS_PREFIX)) return handleCansComponent(interaction, customId);
     if (customId.startsWith(LOGO_PREFIX)) return handleLogoComponent(interaction, customId);
     if (customId.startsWith(FLAG_PREFIX)) return handleFlagComponent(interaction, customId);
     if (customId.startsWith(TABLE_PREFIX)) return handleTableComponent(interaction, customId);
@@ -233,6 +236,7 @@ export function handleInteraction(interaction: Record<string, unknown>, app: Dis
     const acName = (interaction.data as { name?: string }).name;
     if (acName === "gs-tt" || acName === "tt") return ttAutocomplete(interaction);
     if (acName === "war") return warAutocomplete(interaction);
+    if (acName === "cans") return cansAutocomplete(interaction);
     if (acName === "logo") return logoAutocomplete(interaction);
     if (acName === "flag") return flagAutocomplete(interaction);
     if (acName === "ranked" || acName === "ladder") return ladderAutocomplete(interaction);

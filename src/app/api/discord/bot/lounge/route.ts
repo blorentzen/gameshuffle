@@ -2,7 +2,9 @@
  * GET/PATCH /api/discord/bot/lounge?guild= : a server's Mario Kart lounge settings (GS Pro):
  * the game its division roles follow and the game its Monday board covers (null = off).
  * Rank-up posts are the free "Lounge rank-ups" switch on the routing card instead.
- * `ready: false` = the database doesn't have the lounge columns yet.
+ * `ready: false` = the database doesn't have the lounge columns yet. `move` = these moving to GameShuffle Competitive
+ * (two-app picks): `compHere` when Competitive is in this server (it does them here now), else the move's state and
+ * GameShuffle's last day for them.
  */
 
 import { NextResponse } from "next/server";
@@ -11,6 +13,13 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { isProUser } from "@/lib/subscription-server";
 import { pickGuild } from "@/lib/discord/guilds";
 import { isMmrGame } from "@/lib/mmr/rules";
+import { getAppGuild } from "@/lib/discord/appGuilds";
+import { compMoveState, moveLastDay } from "@/lib/discord/compMove";
+
+async function moveFor(guildId: string) {
+  const comp = await getAppGuild("comp", guildId).catch(() => null);
+  return { state: compMoveState(), lastDay: moveLastDay(), compHere: !!comp && !comp.removedAt };
+}
 
 async function owner(request: Request) {
   const supabase = await createClient();
@@ -25,9 +34,10 @@ export async function GET(request: Request) {
   const o = await owner(request);
   if ("error" in o) return o.error;
   const { data, error } = await createServiceClient().from("discord_guilds").select("lounge_roles_game, lounge_board_game").eq("guild_id", o.guild.guildId).maybeSingle();
-  if (error) return NextResponse.json({ ok: true, ready: false, rolesGame: null, boardGame: null });
+  const move = await moveFor(o.guild.guildId);
+  if (error) return NextResponse.json({ ok: true, ready: false, rolesGame: null, boardGame: null, move });
   const row = data as { lounge_roles_game: string | null; lounge_board_game: string | null } | null;
-  return NextResponse.json({ ok: true, ready: true, rolesGame: row?.lounge_roles_game ?? null, boardGame: row?.lounge_board_game ?? null });
+  return NextResponse.json({ ok: true, ready: true, rolesGame: row?.lounge_roles_game ?? null, boardGame: row?.lounge_board_game ?? null, move });
 }
 
 export async function PATCH(request: Request) {

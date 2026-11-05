@@ -25,7 +25,7 @@ import { gsDay } from "@/lib/time/gsClock";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
 import { getPublicFeaturedShopCards } from "@/lib/shop/featuredCards";
 import { shopVisibleToVisitors } from "@/lib/store/visibility";
-import { ShopBand } from "@/components/store/ShopEntry";
+import { MerchRow } from "@/components/store/ShopEntry";
 
 /** Free-tools wayfinder tiles. CDS (Tabler) icons, no emoji (they clash with
  *  the icon system and render per OS). CDS lacks dice/coin glyphs, so those use
@@ -257,8 +257,8 @@ export default async function HomePage() {
             intro="Real Pokémon singles from the GameShuffle TCG store, shipped fast and protected. Tap a card to grab it on TCGplayer."
           />
 
-          {/* The holiday drop (shop build G): only while visitors can see the shop. */}
-          {shopVisible && <ShopBand />}
+          {/* Merch (pick 13): only while visitors can see the shop. */}
+          {shopVisible && <MerchRow />}
 
           <nav className="home-popular" aria-labelledby="home-popular-title">
             <h2 id="home-popular-title" className="home-popular__title">Popular on GameShuffle</h2>

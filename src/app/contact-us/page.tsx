@@ -22,8 +22,9 @@ import { readReport, REPORT_TOPIC } from "@/lib/contact/report";
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 // The lounge topic shows when the form is opened on it (from the GS Ranked pages); GS Ranked isn't announced yet.
+// The series topic, likewise, from a team series page (the GS Summer Series, pick 12A).
 const topicOptions = (current: string) => Object.entries(CONTACT_TOPIC_LABELS)
-  .filter(([value]) => value !== LOUNGE_TOPIC || current === LOUNGE_TOPIC)
+  .filter(([value]) => (value !== LOUNGE_TOPIC || current === LOUNGE_TOPIC) && (value !== "series" || current === "series"))
   .map(([value, label]) => ({ value, label }));
 const URGENCY_OPTIONS = Object.entries(LOUNGE_URGENCY).map(([value, label]) => ({ value, label }));
 

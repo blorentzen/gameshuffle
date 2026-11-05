@@ -5,7 +5,7 @@ import "server-only";
  *   Under review (3A)  a report is open on it (flags the site opens itself don't count: they never show publicly)
  *   Trusted (7A)       its player has TRUSTED_AFTER checked clips, none turned down and no time removed after a report,
  *                      and nothing of theirs is under review; their top-ten times skip the clip
- *   vouches (9A)       players with a checked time who vouched for it
+ *   vouches            who vouched for it (anyone signed in since 2026-11-04; ten = Community verified)
  *   country (6A)       the player's country, for the country filter and national records
  * Each read is one query for the rows shown. Everything here needs time-trials-m4.sql (`round3Ready`); before it
  * runs the reads come back empty.
@@ -23,6 +23,15 @@ export async function round3Ready(): Promise<boolean> {
   const { error } = await createServiceClient().from("tt_vouches").select("time_id").limit(1);
   ready = { at: Date.now(), ok: !error };
   return ready.ok;
+}
+
+let ready4: { at: number; ok: boolean } | null = null;
+/** Whether time-trials-m5.sql has run: the account country, the Top 10 sheets and claims (kept for a minute either way). */
+export async function round4Ready(): Promise<boolean> {
+  if (ready4 && Date.now() - ready4.at < 60_000) return ready4.ok;
+  const { error } = await createServiceClient().from("tt_claims").select("id").limit(1);
+  ready4 = { at: Date.now(), ok: !error };
+  return ready4.ok;
 }
 
 /** Times with an open report (not a flag). */

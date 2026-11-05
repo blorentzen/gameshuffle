@@ -6,6 +6,7 @@ import "server-only";
  *   dupe      the same screenshot (by fingerprint) is the proof for another player's time, or for a different time
  *   misread   the saved time differs from what the screen showed
  *   laps      the laps don't add up to the time
+ *   vehicle   the vehicle board picked isn't the one the screenshot's vehicle belongs to (picks 2026-11-04)
  * Also a signed note of what Claude read (`signRead` / `readFrom`), so the read can't be made up by the page that
  * sends the time.
  */
@@ -16,6 +17,9 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { describePlayers } from "@/lib/daily/boards";
 import { formatLap, formatTime, lapsAddUp } from "./rules";
 import { round3Ready } from "./status";
+import { boardForBody, type TtParts } from "./parts";
+import { vehicleLabel, type TtVehicle } from "./categories";
+import type { TtGame } from "./tracks";
 
 /** A 64-bit difference hash of a picture (16 hex): survives re-encoding and resizing, not crops or edits. */
 export async function shotHash(bytes: Uint8Array | Buffer): Promise<string | null> {
@@ -47,7 +51,9 @@ export async function hashOfProof(url: string | null): Promise<string | null> {
 
 // ── What Claude read, signed ──────────────────────────────────────────────────────────────────
 
-export interface ReadNote { url: string; timeMs: number | null; laps: number[] | null }
+export interface ReadNote { url: string; timeMs: number | null; laps: number[] | null;
+  /** The parts the screen named (picks 2026-11-04). */
+  parts?: TtParts | null }
 
 const key = () => createHash("sha256").update(`tt-read:${process.env.SUPABASE_SERVICE_ROLE_KEY ?? "dev"}`).digest();
 const b64 = (s: string) => Buffer.from(s).toString("base64url");
@@ -68,7 +74,7 @@ export function readFrom(token: unknown, proofUrl: string | null): ReadNote | nu
   if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
   try {
     const n = JSON.parse(Buffer.from(body, "base64url").toString()) as ReadNote & { exp: number };
-    return n.exp > Date.now() && n.url === proofUrl ? { url: n.url, timeMs: n.timeMs ?? null, laps: n.laps ?? null } : null;
+    return n.exp > Date.now() && n.url === proofUrl ? { url: n.url, timeMs: n.timeMs ?? null, laps: n.laps ?? null, parts: n.parts ?? null } : null;
   } catch {
     return null;
   }
@@ -76,7 +82,7 @@ export function readFrom(token: unknown, proofUrl: string | null): ReadNote | nu
 
 // ── Flags ─────────────────────────────────────────────────────────────────────────────────────
 
-export type FlagKind = "dupe" | "misread" | "laps";
+export type FlagKind = "dupe" | "misread" | "laps" | "vehicle";
 
 async function flag(timeId: string, kind: FlagKind, reason: string): Promise<void> {
   await createServiceClient().from("tt_reports").upsert(
@@ -85,8 +91,17 @@ async function flag(timeId: string, kind: FlagKind, reason: string): Promise<voi
   );
 }
 
+/** A screenshot added to a time later that couldn't be read (players' feedback, picks 2026-11-04, 21A): an updater
+ *  checks it against the time. */
+export async function flagUnread(timeId: string, timeMs: number): Promise<void> {
+  if (!(await round3Ready())) return;
+  await flag(timeId, "misread", `A screenshot was added later and couldn't be read, so check it shows ${formatTime(timeMs)}.`);
+}
+
 /** The checks for a time that was just saved. */
-export async function checkProof(t: { id: string; player: string; timeMs: number; shotHash: string | null; readMs: number | null; laps: number[] | null }): Promise<FlagKind[]> {
+export async function checkProof(t: { id: string; player: string; timeMs: number; shotHash: string | null; readMs: number | null; laps: number[] | null;
+  /** The board picked, and the parts the screenshot named (for the vehicle check). */
+  game?: TtGame; vehicle?: TtVehicle; parts?: TtParts | null }): Promise<FlagKind[]> {
   if (!(await round3Ready())) return [];
   const found: FlagKind[] = [];
   if (t.shotHash) {
@@ -101,6 +116,14 @@ export async function checkProof(t: { id: string; player: string; timeMs: number
   if (t.readMs != null && t.readMs !== t.timeMs) {
     await flag(t.id, "misread", `The screen read ${formatTime(t.readMs)}; the time was saved as ${formatTime(t.timeMs)}.`);
     found.push("misread");
+  }
+  // A vehicle board picked that the screenshot's vehicle doesn't belong to. "Any vehicle" always fits.
+  if (t.game && t.parts && t.vehicle && t.vehicle !== "any") {
+    const shown = boardForBody(t.game, t.parts.body);
+    if (shown !== t.vehicle) {
+      await flag(t.id, "vehicle", `Saved on the ${vehicleLabel(t.vehicle)} board, but the screenshot shows the ${t.parts.body}${shown === "any" ? ", which has no board of its own" : ` (the ${vehicleLabel(shown)} board)`}.`);
+      found.push("vehicle");
+    }
   }
   if (t.laps?.length && !lapsAddUp(t.laps, t.timeMs)) {
     const sum = t.laps.reduce((a, b) => a + b, 0);

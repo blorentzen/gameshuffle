@@ -18,6 +18,7 @@ import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AvatarSection } from "@/components/account/AvatarSection";
 import { BannerUploader } from "@/components/account/BannerUploader";
 import { GamingCollection } from "@/components/account/profile/GamingCollection";
+import { LocationFields } from "@/components/account/profile/LocationFields";
 import { TopFriendsEditor } from "@/components/account/TopFriendsEditor";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
@@ -72,9 +73,7 @@ export function ProfileAboutScreen() {
             <AdminField label="Pronouns">
               {(id) => <Input id={id} fullWidth value={fields.pronouns} onChange={(e) => set({ pronouns: e.target.value })} placeholder="they/them" />}
             </AdminField>
-            <AdminField label="Region or location">
-              {(id) => <Input id={id} fullWidth value={fields.location} onChange={(e) => set({ location: e.target.value })} placeholder="Pacific NW, UK" />}
-            </AdminField>
+            <LocationFields location={fields.location} onLocation={(location) => set({ location })} />
           </div>
         </div>
       </AdminSection>

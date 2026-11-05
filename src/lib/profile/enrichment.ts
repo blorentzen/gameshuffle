@@ -3,6 +3,7 @@ import { dailiesView } from "@/lib/daily/dailies";
 import { DAILY_DEX_SHOWN, DUEL_SHOWN, type DailiesEntries } from "@/lib/originals/dailies";
 import { supporterInfo } from "@/lib/support/store";
 import { topTenFinishes } from "@/lib/weekly/store";
+import { seriesHonors } from "@/lib/series/store";
 import { brainAnswerCount } from "@/lib/chatbrain/store";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getBalance } from "@/lib/economy/tokens";
@@ -51,6 +52,8 @@ export interface ProfileEnrichment {
   dailies: DailiesEntries;
   /** Weeks finished in the Weekly Challenge top 10 (the profile badge). */
   weeklyTopTen: number;
+  /** GameShuffle team series they played in, and whether their team won (profile badges). */
+  seriesHonors: { title: string; path: string; champion: boolean }[];
   /** Chat Brain answers counted toward Founding Brain (account + linked chat identities). */
   brainAnswers: number;
   /** Finished trivia nights played as themselves (crew nights show on the crew's page). */
@@ -77,6 +80,7 @@ const EMPTY: ProfileEnrichment = {
   showcaseCards: [],
   dailies: {},
   weeklyTopTen: 0,
+  seriesHonors: [],
   brainAnswers: 0,
   triviaNights: 0,
   supporter: false,
@@ -112,6 +116,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       dailies,
       weeklyTopTen,
       support,
+      seriesHonorsList,
     ] = await Promise.all([
       admin.from("gs_identities").select("id").eq("gs_account_id", userId),
       admin
@@ -148,6 +153,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       dailiesView({ userId }, { dex: DAILY_DEX_SHOWN, duel: DUEL_SHOWN }).catch(() => ({}) as DailiesEntries),
       topTenFinishes(userId).catch(() => 0),
       supporterInfo(userId).catch(() => null),
+      seriesHonors(userId).catch(() => []),
     ]);
     const isStreamer = !!streamerRes.data;
     const isLive = !!(streamerRes.data as { is_live?: boolean } | null)?.is_live;
@@ -224,6 +230,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       isOnline,
       showcaseCards,
       weeklyTopTen,
+      seriesHonors: seriesHonorsList,
       brainAnswers,
       triviaNights,
       supporter: !!support?.supporter,

@@ -16,17 +16,17 @@
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Avatar, Button, FormField, Input, Modal, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea } from "@empac/cascadeds";
-import { IconBrandDiscord, IconCamera, IconCircleCheck, IconClock, IconFlag, IconTrash, IconVideo } from "@tabler/icons-react";
+import { IconBrandDiscord, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconTrash, IconVideo } from "@tabler/icons-react";
 import { IconAction, IconLinkAction } from "@/components/actions/IconAction";
 import { Select } from "@/components/ui/Select";
 import { TableScroll } from "@/components/ui/TableScroll";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
-import { formatTime } from "@/lib/timeTrials/rules";
+import { formatTime, timeStatus, type TimeStatus } from "@/lib/timeTrials/rules";
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
 import { StatusChip, TtTimeWindow } from "./TtTimeWindow";
-import type { TimeStatus } from "@/lib/timeTrials/detail";
+import { sheetFor, sheetPage } from "@/lib/timeTrials/sheets";
 import { vehicleLabel, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
 import type { TtBoard, TtBoardRow } from "@/lib/timeTrials/store";
 import type { TtClass, TtGame } from "@/lib/timeTrials/tracks";
@@ -59,19 +59,11 @@ export function VideoChip({ row }: { row: Pick<TtBoardRow, "video" | "videoUrl" 
   return <span className="tt-chip">Unverified</span>;
 }
 
-/** A row's label (round 3): Under review first, then the clip's state, Trusted for a top-ten time without a checked clip. */
-function rowStatus(r: TtBoardRow): TimeStatus {
-  if (r.review) return "review";
-  if (!r.top) return "none";
-  if (r.video === "checked") return "verified";
-  if (r.video === "waiting" && r.videoUrl) return "waiting";
-  if (r.trusted) return "trusted";
-  if (r.video === "rejected" && r.you) return "rejected";
-  return "unverified";
-}
+/** A row's label: the same rule as the time's window (timeStatus in rules.ts). */
+const rowStatus = (r: TtBoardRow): TimeStatus => timeStatus(r);
 
 /** Your own top-ten time still needs a clip (none yet, or one that didn't match), unless you're Trusted. */
-const wantsClip = (r: TtBoardRow) => r.you && r.top && !r.trusted && r.video !== "checked" && !(r.video === "waiting" && r.videoUrl);
+const wantsClip = (r: TtBoardRow) => r.you && r.top && !r.sheet && !r.trusted && r.video !== "checked" && !(r.video === "waiting" && r.videoUrl);
 type Reporting = { timeId: string; name: string; timeMs: number };
 
 export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signedIn, servers, countries = [], filters }: {
@@ -262,7 +254,9 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
                         <span className="tt-board__proof">
                           {proofHref ? (
                             <IconLinkAction label={`${r.name}'s ${r.proof === "video" ? "video" : "screenshot"}`} icon={r.proof === "video" ? IconVideo : IconCamera} href={proofHref} />
-                          ) : <span className="tt-board__none">{r.imported ? "Imported" : "None"}</span>}
+                          ) : r.sheetLink ? (
+                            <IconLinkAction label={`${r.name}'s proof, linked from the Top 10 sheet`} icon={IconExternalLink} href={r.sheetLink} />
+                          ) : <span className="tt-board__none">{r.sheet ? "Sheet" : r.imported ? "Imported" : "None"}</span>}
                           {clipHref && <IconLinkAction label={`${r.name}'s clip`} icon={IconVideo} href={clipHref} />}
                         </span>
                       </TableCell>
@@ -282,7 +276,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
           </Table>
         </TableScroll>
       )}
-      {rows.length > 0 && <p className="tt-board__note">Top-ten times show Verified once an updater checks a clip of the run&apos;s last 30 seconds. Players with ten checked clips are Trusted. Press a time for its details.</p>}
+      {rows.length > 0 && <p className="tt-board__note">Top-ten times show Verified once an updater checks a clip of the run&apos;s last 30 seconds. Players with ten checked clips are Trusted.{rows.some((r) => r.sheet) && <> Times marked Top 10 sheet come from the community&apos;s <a href={sheetPage(sheetFor(track, vehicle))} target="_blank" rel="noopener noreferrer">{sheetFor(track, vehicle).label} sheet</a>, read every day.</>} Press a time for its details.</p>}
 
       <TtTimeWindow timeId={openId} signedIn={signedIn} onClose={() => openTime(null)} onReport={(t) => { openTime(null); openReport(t); }} />
 

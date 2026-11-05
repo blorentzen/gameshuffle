@@ -8,6 +8,7 @@ import "server-only";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { pendingClaimCount } from "./claims";
 import { createNotification } from "@/lib/social/notifications";
 import { gsDay } from "@/lib/time/gsClock";
 import { round3Ready } from "./status";
@@ -90,8 +91,10 @@ export async function sendUpdaterDigests(opts: { force?: boolean } = {}): Promis
     const { data: claimed } = await claim.select("user_id");
     if (!claimed?.length) { skipped++; continue; }
     const c = await modeCounts(r);
-    const what = c.clips || c.tickets
-      ? `${c.clips} ${c.clips === 1 ? "clip" : "clips"} to check, ${c.tickets} ${c.tickets === 1 ? "report" : "reports"}.`
+    // The Top 10 sheets are Mario Kart 8 Deluxe with mushrooms: that mode's updaters also settle sheet claims (round 4).
+    const claims = r.game === "mk8dx" && r.items === "shrooms" ? await pendingClaimCount() : 0;
+    const what = c.clips || c.tickets || claims
+      ? `${c.clips} ${c.clips === 1 ? "clip" : "clips"} to check, ${c.tickets} ${c.tickets === 1 ? "report" : "reports"}${claims ? `, ${claims} Top 10 sheet ${claims === 1 ? "claim" : "claims"}` : ""}.`
       : "Nothing waiting. Thanks for keeping it tidy.";
     await createNotification({ userId: r.user_id, type: "system", title: `This week in ${modeLabel(r)}`, message: what, link: "/time-trials/review" }).catch(() => undefined);
     sent++;

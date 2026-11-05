@@ -23,16 +23,16 @@ import { PlayerRowBody } from "@/components/lounge/PlayerRow";
 import { LoungeCompare } from "@/components/lounge/LoungeCompare";
 import { parseRecent, rememberLookup, useRecentRaw } from "@/components/lounge/LoungeRecent";
 import { divisionLook } from "@/lib/mmr/look";
-import { MMR_GAMES, MMR_GAME_IDS, type MmrGame } from "@/lib/mmr/rules";
+import { MMR_GAMES, MMR_GAME_IDS, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { normName, parseFriendCode, suggestionHref, type Suggestion } from "@/lib/lounge/lookup";
 import { EVENTS, track } from "@/lib/analytics/events";
 
 type Scope = "all" | MmrGame;
 type Status = "idle" | "loading" | "done" | "error" | "slow";
 const SCOPES: { id: Scope; label: string }[] = [{ id: "all", label: "All games" }, ...MMR_GAME_IDS.map((g) => ({ id: g as Scope, label: MMR_GAMES[g].short }))];
-const recentHref = (name: string, game: MmrGame) => `/lounge/${encodeURIComponent(name)}${game === "mkworld12p" ? "" : `?game=${game}`}`;
+const recentHref = (name: string, game: MmrGame) => `/lounge/${encodeURIComponent(name)}${game === DEFAULT_MMR_GAME ? "" : `?game=${game}`}`;
 
-export function LoungeLookup({ tone = "dark", initial = "", compareGame = "mkworld12p" }: {
+export function LoungeLookup({ tone = "dark", initial = "", compareGame = DEFAULT_MMR_GAME }: {
   /** On the dark header band (/lounge) or on the page (a name nobody has). */
   tone?: "dark" | "light";
   initial?: string;
@@ -208,7 +208,7 @@ export function LoungeLookup({ tone = "dark", initial = "", compareGame = "mkwor
                         className="lounge-recent__chip"
                         icon={<span className="lounge-recent__emblem" aria-hidden="true"><MmrEmblem d={divisionLook(r.division ?? "Placement")} frame="tile" /></span>}
                       />
-                      {r.game !== "mkworld12p" && <span className="sr-only"> in {MMR_GAMES[r.game].short}</span>}
+                      {r.game !== DEFAULT_MMR_GAME && <span className="sr-only"> in {MMR_GAMES[r.game].short}</span>}
                     </Link>
                   </li>
                 ))}

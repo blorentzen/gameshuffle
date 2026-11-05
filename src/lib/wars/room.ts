@@ -21,6 +21,7 @@ import {
   addPenalty, addRace, endWar, getWar, latestWar, latestWarIn, liveWar, liveWarsIn, markRoom, pendingTrack, rememberChannel,
   replaceRace, setPendingTrack, setTrack, startWar, tapPlace, undoRace, warChannel, type War, type WarTeamRef,
 } from "./store";
+import { answersFor, cansReady, lineupNow } from "@/lib/cans/store";
 import { headlineFor, leads, playerRows, tapGrid, waitingOn, type RoomTrack, type WarRoomView } from "./roomView";
 import { playedTeams, searchRegistry } from "./teams";
 
@@ -93,7 +94,10 @@ export function roomView(war: War, viewerId: string): WarRoomView {
 }
 
 export interface RoomWarChoice { id: string; us: { tag: string; name: string | null; logo: string | null }; them: { tag: string; name: string | null; logo: string | null }; channel: string | null; played: number; racesTotal: number; diff: number }
-export interface RoomStart { channelId: string; channel: string | null; us: { tag: string; name: string | null; logo: string | null } | null; game: WarGame }
+/** A lineup locked with /cans for a war starting about now in this channel (cans picks 2026-11-04, 15A): the War room
+ *  opens with it. Names only. */
+export interface RoomLineup { vs: string | null; tag: string | null; at: string; players: string[]; subs: string[] }
+export interface RoomStart { channelId: string; channel: string | null; us: { tag: string; name: string | null; logo: string | null } | null; game: WarGame; lineup: RoomLineup | null }
 
 export type RoomState =
   | { kind: "war"; view: WarRoomView }
@@ -105,11 +109,17 @@ const recent = (w: War) => w.status === "live" || Date.now() - Date.parse(w.ende
 
 /** Where a war started from the room goes: this channel if it has had wars, else the server's last war channel, else here. */
 async function startTarget(guildId: string, channelId: string): Promise<RoomStart> {
-  const [here, last] = await Promise.all([warChannel(guildId, channelId), latestWarIn(guildId)]);
+  const [here, last, locked] = await Promise.all([warChannel(guildId, channelId), latestWarIn(guildId), cansReady().then((ok) => (ok ? lineupNow(guildId, channelId) : null)).catch(() => null)]);
   const target = here ? channelId : last?.channelId ?? channelId;
   const [ch, label] = await Promise.all([target === channelId ? Promise.resolve(here) : warChannel(guildId, target), channelLabel(guildId, target)]);
   const us = ch?.team ?? null;
-  return { channelId: target, channel: label.channel, us: us ? { tag: us.tag, name: us.name, logo: roomImg(us.logo) } : null, game: ch?.game ?? last?.game ?? "mkworld" };
+  let lineup: RoomLineup | null = null;
+  if (locked?.lineup) {
+    const names = new Map((await answersFor(locked.id)).map((r) => [r.userId, r.name]));
+    const name = (id: string) => names.get(id) ?? "A player";
+    lineup = { vs: locked.vs, tag: locked.teamTag, at: locked.startsAt, players: locked.lineup.players.map(name), subs: locked.lineup.subs.map(name) };
+  }
+  return { channelId: target, channel: label.channel, us: us ? { tag: us.tag, name: us.name, logo: roomImg(us.logo) } : null, game: ch?.game ?? last?.game ?? "mk8dx", lineup };
 }
 
 /** The war this launch shows (pick 2A). `hint` is the war the viewer's screen is on, kept while it's still in this server. */
@@ -198,7 +208,7 @@ export async function roomAction(session: ActivitySession, body: RoomAction): Pr
     if (!them) return fail("no_vs", "Who are you playing? Pick a team or type their tag.");
     if (!usTag) return fail("no_us", "Type your team's tag. The channel remembers it after this.");
     if (usTag.toLowerCase() === them.toLowerCase()) return fail("same", "Your team and theirs have the same tag.");
-    const game: WarGame = body.game === "mk8dx" ? "mk8dx" : "mkworld";
+    const game: WarGame = body.game === "mkworld" ? "mkworld" : "mk8dx";
     const { teamRef } = await import("@/lib/discord/commands/war");
     const remembered = (await warChannel(guildId, where.channelId))?.team ?? null;
     const [us, opp] = await Promise.all([teamRef(guildId, usTag, game, remembered), teamRef(guildId, them, game, null)]);

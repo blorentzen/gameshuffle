@@ -23,6 +23,7 @@ export const CONTACT_TOPIC_LABELS: Record<string, string> = {
   billing: "Billing or subscription",
   partnership: "Partnership or press",
   lounge: "Lounge help",
+  series: "Summer Series",
   other: "Other",
 };
 

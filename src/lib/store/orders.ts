@@ -12,6 +12,9 @@ import "server-only";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { PERSONAL, pickLabel } from "./personal";
+import { nameWithPicks, picksFor, recordPicks, type OrderPick } from "./orderPicks";
+
 import { shippingOf } from "@/lib/stripe/payload";
 import { SHOP, SHOP_METADATA_KIND, digitalListsFor, type ShipMethod } from "./config";
 import { missesChristmas, orderCode, shipByDay, shipMethodFor, shipWeightOz, type CartLine } from "./rules";
@@ -21,6 +24,8 @@ import { getBaseUrl } from "@/lib/env";
 import { orderLinkToken } from "./access";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
+import { isMerchSku } from "./merch";
+import { createPrintfulDraft } from "./printfulOrders";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -59,7 +64,8 @@ async function summaryFor(sessionId: string): Promise<ShopOrderSummary | null> {
   if (!o) return null;
   const { data: items } = await svc.from("shop_order_items").select("sku, quantity, unit_amount").eq("order_id", o.id).abortSignal(fresh());
   const { data: products } = await svc.from("shop_products").select("sku, name").in("sku", (items ?? []).map((i) => i.sku)).abortSignal(fresh());
-  const names = new Map((products ?? []).map((p) => [p.sku as string, p.name as string]));
+  const picks = await picksFor(o.id as string);
+  const names = new Map((products ?? []).map((p) => [p.sku as string, nameWithPicks(p.name as string, p.sku as string, picks)]));
   const shipBy = shipByDay(new Date(o.created_at as string));
   return {
     orderNumber: o.order_number as number,
@@ -99,21 +105,36 @@ export async function fulfilShopSession(sessionId: string): Promise<FulfilResult
   if (existing) return { ok: true, created: false, order: existing };
 
   const svc = createServiceClient();
-  const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 100, expand: ["data.price"] });
-  const { data: products } = await svc.from("shop_products").select("sku, name, contents, stripe_price_id");
+  // Merch lines are priced inline (price_data), so their sku rides on the product's metadata.
+  const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 100, expand: ["data.price.product"] });
+  const { data: products } = await svc.from("shop_products").select("sku, name, contents, stripe_price_id, kind, ship_weight_oz, printful_sync_product_id");
   const byPrice = new Map((products ?? []).map((p) => [p.stripe_price_id as string, p]));
   const bySku = new Map((products ?? []).map((p) => [p.sku as string, p]));
-  const items = lineItems.data
+  const lineItemsOf = lineItems.data
     .map((li) => {
       const price = li.price as Stripe.Price | null;
-      const sku = (price?.metadata?.sku as string | undefined) ?? (price ? (byPrice.get(price.id)?.sku as string | undefined) : undefined);
-      return sku && bySku.has(sku) ? { sku, quantity: li.quantity ?? 0, unit_amount: price?.unit_amount ?? Math.round((li.amount_subtotal ?? 0) / Math.max(1, li.quantity ?? 1)) } : null;
+      const product = price && typeof price.product === "object" && price.product && !("deleted" in price.product && price.product.deleted) ? (price.product as Stripe.Product) : null;
+      const sku = (price?.metadata?.sku as string | undefined) ?? (product?.metadata?.sku as string | undefined) ?? (price ? (byPrice.get(price.id)?.sku as string | undefined) : undefined);
+      const pick = typeof product?.metadata?.pick === "string" && /^[a-z0-9-]{1,24}$/.test(product.metadata.pick) ? product.metadata.pick : null;
+      return sku && bySku.has(sku) ? { sku, pick, quantity: li.quantity ?? 0, unit_amount: price?.unit_amount ?? Math.round((li.amount_subtotal ?? 0) / Math.max(1, li.quantity ?? 1)) } : null;
     })
-    .filter((x): x is { sku: string; quantity: number; unit_amount: number } => !!x && x.quantity > 0);
-  if (items.length === 0) return { ok: false, reason: "no_items" };
+    .filter((x): x is { sku: string; pick: string | null; quantity: number; unit_amount: number } => !!x && x.quantity > 0);
+  if (lineItemsOf.length === 0) return { ok: false, reason: "no_items" };
+  // One order row per product (picks of the same size and color share it); the picks go in shop_order_picks.
+  const itemBySku = new Map<string, { sku: string; quantity: number; unit_amount: number }>();
+  for (const li of lineItemsOf) {
+    const had = itemBySku.get(li.sku);
+    itemBySku.set(li.sku, { sku: li.sku, quantity: (had?.quantity ?? 0) + li.quantity, unit_amount: had?.unit_amount ?? li.unit_amount });
+  }
+  const items = [...itemBySku.values()];
+  const picks = lineItemsOf.filter((li) => li.pick).map((li) => {
+    const kind = PERSONAL.products[String(bySku.get(li.sku)?.printful_sync_product_id ?? "")]?.kind;
+    return { sku: li.sku, pick: li.pick!, label: (kind ? pickLabel(kind, li.pick!) : li.pick!).slice(0, 60), quantity: li.quantity };
+  });
 
   const lines: CartLine[] = items.map((i) => ({ sku: i.sku, quantity: i.quantity }));
-  const method = shipMethodFor(lines);
+  const catalog = new Map((products ?? []).map((p) => [p.sku as string, { kind: p.kind as "bundle" | "single", ship_weight_oz: Number(p.ship_weight_oz) }]));
+  const method = shipMethodFor(lines, { catalog });
   const ship = shippingOf(session);
   const created = new Date(session.created * 1000);
   const userId = session.client_reference_id && UUID.test(session.client_reference_id) ? session.client_reference_id : null;
@@ -130,7 +151,7 @@ export async function fulfilShopSession(sessionId: string): Promise<FulfilResult
     ship_state: ship?.state && /^[A-Z]{2}$/.test(ship.state) ? ship.state : null,
     ship_postal: ship?.postal ?? null,
     ship_method: method,
-    ship_weight_oz: shipWeightOz(lines, method),
+    ship_weight_oz: shipWeightOz(lines, method, { catalog }),
     amount_subtotal: session.amount_subtotal ?? 0,
     amount_tax: session.total_details?.amount_tax ?? 0,
     amount_total: session.amount_total ?? 0,
@@ -146,7 +167,15 @@ export async function fulfilShopSession(sessionId: string): Promise<FulfilResult
     const { data: res, error } = await svc.rpc("shop_fulfil", { p_order: order, p_items: items });
     if (error) throw new Error(`shop_fulfil: ${error.message}`);
     const r = res as { ok: boolean; created: boolean; order_id: string; order_number: number; shortfall?: { sku: string; missing: number }[] | null };
-    if (r.created) await sendOrderEmails(r.order_id, r.order_number, order, items, bySku, r.shortfall ?? null, created);
+    // Before the Printful draft, which attaches each pick's print file.
+    if (picks.length) await recordPicks(r.order_id, picks);
+    // Merch: the Printful draft first, so the alert can say where it stands.
+    let printful: { status: "draft" | "sent" | "test" | "failed"; error?: string | null } | null = null;
+    if (r.created && items.some((i) => isMerchSku(i.sku))) {
+      const step = await createPrintfulDraft(r.order_id).catch((e) => ({ ok: false as const, error: e instanceof Error ? e.message : String(e) }));
+      printful = !step.ok ? { status: "failed", error: step.error } : step.status === "test" ? { status: "test" } : step.status === "draft" ? { status: "draft" } : { status: "sent" };
+    }
+    if (r.created) await sendOrderEmails(r.order_id, r.order_number, order, items, bySku, r.shortfall ?? null, created, printful, picks);
     if (r.created && order.livemode) {
       // Which way into the shop sold it (build G's placement tags); live orders only, so test runs don't count.
       await trackServerEvent(EVENTS.shopOrderPlaced, {
@@ -164,14 +193,18 @@ export async function fulfilShopSession(sessionId: string): Promise<FulfilResult
   return summary ? { ok: true, created: true, order: summary } : { ok: false, reason: "not_found" };
 }
 
-async function sendOrderEmails(orderId: string, orderNumber: number, order: { email: string | null; user_id?: string | null; ship_name: string | null; ship_city: string | null; ship_state: string | null; amount_total: number; ship_method: ShipMethod; after_cutoff: boolean }, items: { sku: string; quantity: number; unit_amount: number }[], bySku: Map<string, Record<string, unknown>>, shortfall: { sku: string; missing: number }[] | null, orderedAt: Date) {
+async function sendOrderEmails(orderId: string, orderNumber: number, order: { email: string | null; user_id?: string | null; ship_name: string | null; ship_city: string | null; ship_state: string | null; amount_total: number; ship_method: ShipMethod; after_cutoff: boolean }, items: { sku: string; quantity: number; unit_amount: number }[], bySku: Map<string, Record<string, unknown>>, shortfall: { sku: string; missing: number }[] | null, orderedAt: Date, printful: { status: "draft" | "sent" | "test" | "failed"; error?: string | null } | null = null, picks: OrderPick[] = []) {
   const svc = createServiceClient();
   // Claim the send so a second delivery of the same event can't email twice.
   const { data: claimed } = await svc.from("shop_orders").update({ confirmation_sent_at: new Date().toISOString() }).eq("id", orderId).is("confirmation_sent_at", null).select("id");
   if (!claimed?.length) return;
-  const emailItems: ShopEmailItem[] = items.map((i) => {
+  // A picked product is one line per pick, named with what was picked.
+  const emailItems: ShopEmailItem[] = items.flatMap((i) => {
     const p = bySku.get(i.sku);
-    return { name: (p?.name as string) ?? i.sku, quantity: i.quantity, contents: (p?.contents as string[]) ?? [], unitAmount: i.unit_amount };
+    const name = (p?.name as string) ?? i.sku;
+    const mine = picks.filter((x) => x.sku === i.sku);
+    if (!mine.length) return [{ name, quantity: i.quantity, contents: (p?.contents as string[]) ?? [], unitAmount: i.unit_amount }];
+    return mine.map((x) => ({ name: `${name} · ${x.label}`, quantity: x.quantity, contents: [], unitAmount: i.unit_amount }));
   });
   const code = orderCode(orderNumber);
   const shipBy = shopDate(`${shipByDay(orderedAt)}T12:00:00-08:00`, { weekday: true });
@@ -183,7 +216,9 @@ async function sendOrderEmails(orderId: string, orderNumber: number, order: { em
     })
       .catch((e) => console.error("[shop] order email failed:", e));
   }
-  await sendShopNewOrderAlert({ orderCode: code, items: emailItems, totalCents: order.amount_total, shipMethodLabel: METHOD_LABEL[order.ship_method], name: order.ship_name, city: order.ship_city, state: order.ship_state, shortfall })
+  // Merch never runs short (made to order), so the stock line only ever speaks for card packs.
+  const packShortfall = shortfall?.filter((x) => !isMerchSku(x.sku)) ?? null;
+  await sendShopNewOrderAlert({ orderCode: code, items: emailItems, totalCents: order.amount_total, shipMethodLabel: METHOD_LABEL[order.ship_method], name: order.ship_name, city: order.ship_city, state: order.ship_state, shortfall: packShortfall?.length ? packShortfall : null, printful })
     .catch((e) => console.error("[shop] alert email failed:", e));
 }
 

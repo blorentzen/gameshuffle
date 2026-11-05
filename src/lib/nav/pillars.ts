@@ -25,8 +25,8 @@ import { ROAD_PUBLIC, N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PU
 
 export type PillarId = "play" | "compete" | "community" | "stream";
 
-/** Who a destination is for. `member` = any signed-in account. */
-export type NavAudience = "everyone" | "member" | "streamer" | "staff";
+/** Who a destination is for. `member` = any signed-in account. `shop` = everyone, once visitors can see the shop. */
+export type NavAudience = "everyone" | "member" | "streamer" | "staff" | "shop";
 
 export interface NavDestination {
   label: string;
@@ -69,9 +69,10 @@ export interface Pillar {
  */
 export function isVisible(
   d: NavDestination,
-  ctx: { signedIn: boolean; isStreamer: boolean; isStaff: boolean },
+  ctx: { signedIn: boolean; isStreamer: boolean; isStaff: boolean; shop?: boolean },
 ): boolean {
   switch (d.audience) {
+    case "shop": return !!ctx.shop;
     case "member": return ctx.signedIn;
     case "streamer": return ctx.isStreamer;
     case "staff": return ctx.isStaff;
@@ -162,7 +163,7 @@ export const PILLARS: Pillar[] = [
         heading: "Mario Kart",
         items: [
           { label: "Competitive Mario Kart", href: "/competitive-mario-kart", blurb: "Lounge stats, time trials, the MMR card and tournaments in one place.", footer: true },
-          { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart World and 8 Deluxe. Add yours from a screenshot.", footer: true },
+          { label: "Time trials", href: "/time-trials", blurb: "Every track's best times in Mario Kart 8 Deluxe and World. Add yours from a screenshot.", footer: true },
           { label: "Lounge stats", href: "/lounge", blurb: "Any lounge player's season, plus boards for the people you know.", footer: true },
           { label: "MMR card", href: "/mmr-card", blurb: "Your lounge MMR on stream, live, with a moment every event. Free.", footer: true },
           // GameShuffle Competitive's page, once the app exists here (picks 2026-10-31, 5A).
@@ -202,6 +203,8 @@ export const PILLARS: Pillar[] = [
           { label: "Game nights", href: "/game-nights", blurb: "Board, video and TCG nights near you or online." },
           { label: "Trivia nights", href: "/trivia", blurb: "Host a pub-style quiz: teams on their phones, questions on the TV. New." },
           { label: "GameShuffle for Discord", href: "/discord", blurb: "The Daily, the Weekly and Chat Brain with your server." },
+          // Pick 13: menus say Merch (the address stays /shop); hidden until visitors can see the shop.
+          { label: "Merch", href: "/shop", blurb: "Tees, hoodies, hats and phone cases, made when you order.", audience: "shop" },
         ],
       },
       {
@@ -251,7 +254,7 @@ export const pillar = (id: PillarId): Pillar => PILLARS.find((p) => p.id === id)
 /** Primary nav items for a pillar — `secondary` entries live on the pillar page. */
 export function primaryItems(
   p: Pillar,
-  ctx: { signedIn: boolean; isStreamer: boolean; isStaff: boolean },
+  ctx: { signedIn: boolean; isStreamer: boolean; isStaff: boolean; shop?: boolean },
 ): NavGroup[] {
   return p.groups
     .map((g) => ({ heading: g.heading, items: g.items.filter((i) => !i.secondary && isVisible(i, ctx)) }))

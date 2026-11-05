@@ -32,7 +32,7 @@ import "@/styles/competitive-hub.css";
 /**
  * Competitive Mario Kart (picks 2026-10-30, https://claude.ai/artifact/ELEvrGGCDpkkkYXVMmXBtf, all as
  * recommended): one page for time trials, lounge stats, the MMR card, tournaments and the Quaxly
- * import, for Mario Kart World and 8 Deluxe. One search finds lounge and time trial players; a
+ * import, for Mario Kart 8 Deluxe and World. One search finds lounge and time trial players; a
  * signed-in player gets their own strip on top; each tool shows a live preview. The scoring tool
  * this page used to sell is Live scoring now, linked under "With friends".
  */
@@ -41,7 +41,7 @@ export const dynamic = "force-dynamic";
 
 const PATH = "/competitive-mario-kart";
 const TITLE = "Competitive Mario Kart: lounge stats and time trials";
-const DESCRIPTION = "Lounge stats for any player, time trial boards for every Mario Kart World and 8 Deluxe track, your lounge MMR live on stream, and Mario Kart tournaments, on one page.";
+const DESCRIPTION = "Lounge stats for any player, time trial boards for every Mario Kart 8 Deluxe and World track, your lounge MMR live on stream, and Mario Kart tournaments, on one page.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
 };
 
 const FAQ = [
-  { q: "Where do the lounge numbers come from?", a: "From MKCentral's lounge, the community's ranked ladder for Mario Kart World and Mario Kart 8 Deluxe. GameShuffle reads the public numbers; your MMR moves there, not here." },
+  { q: "Where do the lounge numbers come from?", a: "From MKCentral's lounge, the community's ranked ladder for Mario Kart 8 Deluxe and Mario Kart World. GameShuffle reads the public numbers; your MMR moves there, not here." },
   { q: "Do time trial times need proof?", a: "Yes: a screenshot of the result for every new time. We read the track and time from it for you to check." },
   { q: "Which times need a clip?", a: "Only times in a board's top ten. A reviewer checks a clip of the run's last 30 seconds, and the time shows as Verified. Until then it shows as Unverified." },
   { q: "Can I bring my times over from Quaxly?", a: "Yes. Run /dx display time in Discord, then copy the reply or press Save to GameShuffle on it. You check every row before anything saves. Connect Discord first so the times land on your account." },
@@ -84,7 +84,7 @@ export default async function CompetitiveMarioKartPage() {
       <BrowseHero
         eyebrow="Mario Kart"
         title="Competitive Mario Kart"
-        sub="Lounge stats, time trial boards, your MMR on stream and tournaments, for Mario Kart World and Mario Kart 8 Deluxe."
+        sub="Lounge stats, time trial boards, your MMR on stream and tournaments, for Mario Kart 8 Deluxe and Mario Kart World."
         subShort="Lounge stats, time trials, your MMR on stream and tournaments."
         accent="blue"
         field="compete"
@@ -153,7 +153,7 @@ export default async function CompetitiveMarioKartPage() {
           <section className="cmk-tool cmk-tool--tt" aria-labelledby="cmk-tt">
             <div className="cmk-tool__head">
               <IconTile icon={IconStopwatch} tone="blue" />
-              <div><h2 id="cmk-tt">Time trials</h2><p>Every track&apos;s best times in Mario Kart World and 8 Deluxe. Add yours from a screenshot.</p></div>
+              <div><h2 id="cmk-tt">Time trials</h2><p>Every track&apos;s best times in Mario Kart 8 Deluxe and World. Add yours from a screenshot.</p></div>
             </div>
             <div className="cmk-peek">
               <h3 className="cmk-k">New this week</h3>

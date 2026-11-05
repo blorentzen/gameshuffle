@@ -27,13 +27,16 @@ export default async function PostPermalinkPage({ params }: { params: Promise<{ 
   if (!post) notFound();
 
   return (
-    <Container className="community-page">
-      <div className="feed" style={{ marginInline: "auto" }}>
-        <Link href="/community" className="community__link">← Back to community</Link>
-        <div style={{ marginTop: "var(--spacing-16)" }}>
-          <PermalinkPost post={post} currentUserId={user.id} />
+    <main>
+      <Container className="community-page">
+        <div className="feed" style={{ marginInline: "auto" }}>
+          <h1 className="sr-only">{post.postedAs?.name ?? post.author.name}&rsquo;s post</h1>
+          <Link href="/community" className="community__link">← Back to community</Link>
+          <div style={{ marginTop: "var(--spacing-16)" }}>
+            <PermalinkPost post={post} currentUserId={user.id} />
+          </div>
         </div>
-      </div>
-    </Container>
+      </Container>
+    </main>
   );
 }

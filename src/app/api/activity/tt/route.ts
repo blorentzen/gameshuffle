@@ -1,8 +1,8 @@
 /**
  * The War room's Time trials tab (src/lib/timeTrials/activity.ts).
- *   GET  ?game=&cc=&items=            → TtRoomView (every track's server record and the viewer's gap)
+ *   GET  ?game=&cc=&items=&scope=server|everyone&vehicle= → TtRoomView (every track's record and the viewer's gap)
  *   POST multipart { file, game? }    → reads a result screenshot (stored as proof; nothing saved as a time)
- *   POST { action: "add", game, track, cc, items, time, proofUrl, token } → saves the time
+ *   POST { action: "add", game, track, cc, items, vehicle, time, proofUrl, token } → saves the time
  * Signed in with GameShuffle Competitive's Activity session (Bearer, `app: "comp"`).
  */
 
@@ -13,6 +13,7 @@ import { ttReady } from "@/lib/timeTrials/store";
 import { ttRoomAdd, ttRoomRead, ttRoomView } from "@/lib/timeTrials/activity";
 import { MAX_SCREENSHOT_BYTES } from "@/lib/timeTrials/read";
 import { isClassFor, isTtGame, TT_GAMES } from "@/lib/timeTrials/tracks";
+import { vehicleFor } from "@/lib/timeTrials/categories";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,7 +35,8 @@ export async function GET(req: Request) {
   const ccRaw = Number(p.get("cc"));
   const cc = isClassFor(game, ccRaw) ? ccRaw : TT_GAMES[game].classes[0];
   const items = p.get("items") === "none" ? "none" : "shrooms";
-  return NextResponse.json(await ttRoomView(s, game, cc, items), { headers: NO_STORE });
+  const scope = p.get("scope") === "everyone" ? "everyone" : "server";
+  return NextResponse.json(await ttRoomView(s, game, cc, items, scope, vehicleFor(game, p.get("vehicle"))), { headers: NO_STORE });
 }
 
 export async function POST(req: Request) {
@@ -56,7 +58,7 @@ export async function POST(req: Request) {
   if (!(await rateLimit(`tt-room-add:${s.did}`, { max: 30, windowMs: 10 * 60_000 })).ok) return NextResponse.json({ error: "slow_down" }, { status: 429 });
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || body.action !== "add") return NextResponse.json({ error: "bad_request" }, { status: 400 });
-  const res = await ttRoomAdd(s, { game: body.game, track: body.track, cc: body.cc, items: body.items, time: body.time, proofUrl: body.proofUrl, token: body.token });
+  const res = await ttRoomAdd(s, { game: body.game, track: body.track, cc: body.cc, items: body.items, vehicle: body.vehicle, time: body.time, proofUrl: body.proofUrl, token: body.token });
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: res.error === "not_ready" ? 503 : 400, headers: NO_STORE });
   return NextResponse.json(res.saved, { headers: NO_STORE });
 }

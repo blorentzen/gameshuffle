@@ -13,18 +13,23 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, EmptyState, FormField, Input, Tabs } from "@empac/cascadeds";
-import { IconCamera, IconCircleCheck, IconThumbUp, IconVideo } from "@tabler/icons-react";
+import { IconCamera, IconCircleCheck, IconExternalLink, IconThumbUp, IconVideo } from "@tabler/icons-react";
 import { Select } from "@/components/ui/Select";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { QueueTicket, QueueVideo, Reviewer } from "@/lib/timeTrials/review";
 import type { CommunityAlias } from "@/lib/timeTrials/aliases";
+import type { QueueClaim } from "@/lib/timeTrials/claims";
+import type { SheetStatus } from "@/lib/timeTrials/sheetSync";
 import type { Mode, Updater } from "@/lib/timeTrials/updaters";
 import { TT_GAMES, TT_GAME_ORDER } from "@/lib/timeTrials/tracks";
 import { ITEMS, itemsLabel, type TtItems } from "@/lib/timeTrials/categories";
 import type { TtGame } from "@/lib/timeTrials/tracks";
 
-type Queue = { videos: QueueVideo[]; tickets: QueueTicket[]; reviewers: Reviewer[] | null; updaters: Updater[] | null; aliases: CommunityAlias[] | null; staff: boolean; modes: Mode[] | null };
+type Queue = { videos: QueueVideo[]; tickets: QueueTicket[]; reviewers: Reviewer[] | null; updaters: Updater[] | null; aliases: CommunityAlias[] | null; staff: boolean; modes: Mode[] | null;
+  /** Top 10 sheet claims (round 4), for staff, reviewers and the MK8DX mushrooms updaters; when each sheet was read (staff). */
+  claims: { pending: QueueClaim[]; approved: QueueClaim[] } | null; sheets: SheetStatus[] | null };
+const SHEET_LABEL: Record<string, string> = { base: "Base Game", bcp: "Booster Course Pass", inward: "Inward" };
 const modeText = (m: Mode) => `${TT_GAMES[m.game].short} · ${itemsLabel(m.items)}`;
 
 const when = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
@@ -57,7 +62,7 @@ export function TtReviewQueue() {
 
   async function post(body: Record<string, unknown>, done: string): Promise<boolean> {
     const j = (await fetch("/api/time-trials/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()).catch(() => ({}))) as { ok?: boolean; error?: string };
-    if (!j.ok) { toast.error(j.error === "no_user" ? "No account with that username." : j.error === "reason_needed" ? "Say why the clip doesn't match." : "That didn't save. Try again."); return false; }
+    if (!j.ok) { toast.error(j.error === "no_user" ? "No account with that username." : j.error === "reason_needed" ? (body.action === "claim" ? "Say why it isn't approved." : "Say why the clip doesn't match.") : j.error === "taken" ? "That name is already matched to an account." : "That didn't save. Try again."); return false; }
     toast.success(done);
     reload();
     return true;
@@ -109,6 +114,64 @@ export function TtReviewQueue() {
       ))}
     </ul>
   );
+
+  const claimItem = (c: QueueClaim, pending: boolean) => (
+    <li key={c.id} className="tt-queue__item">
+      <p className="tt-queue__head"><b>{c.userName}</b>{c.username ? <span className="tt-muted"> @{c.username}</span> : null} says they&apos;re <Link href={c.listedPage}>{c.listedName}</Link> · {c.times} {c.times === 1 ? "time" : "times"}</p>
+      {c.note && <p className="tt-note">&ldquo;{c.note}&rdquo;</p>}
+      <p className="tt-queue__links">
+        {c.link && <a href={c.link} target="_blank" rel="noopener noreferrer nofollow"><IconExternalLink size={16} aria-hidden="true" /> Their link</a>}
+        {c.username && <Link href={`/u/${c.username}`}>Their profile</Link>}
+        {c.others > 0 && <span className="tt-chip tt-chip--review">{c.others} more {c.others === 1 ? "claim" : "claims"} on this name</span>}
+        <span className="tt-muted">{pending ? "Asked" : "Approved"} {when.format(new Date(c.at))}</span>
+      </p>
+      {!pending ? (
+        <div className="tt-add__actions">
+          <Button variant="ghost" size="small" onClick={() => { void confirm({ title: `Undo ${c.userName}'s claim on ${c.listedName}?`, body: "The sheet's times go back to the listed player. Times they added themselves stay on their account.", confirmLabel: "Undo claim" }).then((ok) => { if (ok) void post({ action: "claim_undo", claimId: c.id }, "Claim undone"); }); }}>Undo</Button>
+        </div>
+      ) : rejecting === c.id ? (
+        <form className="tt-queue__reject" onSubmit={(e) => { e.preventDefault(); setBusy(c.id); void post({ action: "claim", claimId: c.id, approve: false, reason }, "Turned down").then((ok) => { setBusy(null); if (ok) { setRejecting(null); setReason(""); } }); }}>
+          <FormField label="Why not? (they see this)" htmlFor={`tt-claim-rej-${c.id}`}>
+            <Input id={`tt-claim-rej-${c.id}`} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} fullWidth />
+          </FormField>
+          <div className="tt-add__actions">
+            <Button type="submit" variant="danger" loading={busy === c.id} disabled={!reason.trim()}>Turn down</Button>
+            <Button type="button" variant="ghost" onClick={() => { setRejecting(null); setReason(""); }}>Cancel</Button>
+          </div>
+        </form>
+      ) : (
+        <div className="tt-add__actions">
+          <Button variant="primary" iconBefore={IconCircleCheck} loading={busy === c.id} onClick={() => { setBusy(c.id); void post({ action: "claim", claimId: c.id, approve: true }, `${c.listedName}'s times moved to ${c.userName}`).then(() => setBusy(null)); }}>It&apos;s them</Button>
+          <Button variant="secondary" onClick={() => { setRejecting(c.id); setReason(""); }}>Not them</Button>
+        </div>
+      )}
+    </li>
+  );
+  const claims = q.claims ? (
+    <div className="tt-reviewers">
+      <p className="tt-note">People saying a name on the Top 10 sheets is them. Check their link shows that name is theirs (an MKCentral page, a channel or post under it, or a clip of one of the runs). Approving moves the name&apos;s times to their account, and later sheet times go straight there.</p>
+      {q.claims.pending.length === 0 ? <EmptyState title="No claims waiting" description="When someone presses This is me on a Top 10 sheet name, it shows up here." /> : <ul className="tt-queue">{q.claims.pending.map((c) => claimItem(c, true))}</ul>}
+      {q.claims.approved.length > 0 && (
+        <>
+          <h2 className="tt-queue__sub">Approved lately</h2>
+          <ul className="tt-queue">{q.claims.approved.map((c) => claimItem(c, false))}</ul>
+        </>
+      )}
+      {q.sheets && q.sheets.length > 0 && (
+        <>
+          <h2 className="tt-queue__sub">Sheet reads</h2>
+          <ul className="tt-queue">
+            {q.sheets.map((r) => (
+              <li key={`${r.sheet}${r.cc}`} className="tt-queue__item tt-queue__item--row">
+                <span><b>{SHEET_LABEL[r.sheet] ?? r.sheet} · {r.cc}cc</b><span className="tt-muted"> · {r.rows} times, {r.added} new · read {when.format(new Date(r.readAt))}</span></span>
+                {r.error && <span className="tt-chip tt-chip--bad">{r.error}</span>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  ) : null;
 
   const reviewers = q.reviewers ? (
     <div className="tt-reviewers">
@@ -181,6 +244,7 @@ export function TtReviewQueue() {
       tabs={[
         { id: "clips", label: "Clips to check", badge: q.videos.length || undefined, content: clips },
         { id: "reports", label: "Reports", badge: q.tickets.length || undefined, content: reports },
+        ...(claims ? [{ id: "claims", label: "Sheet claims", badge: q.claims!.pending.length || undefined, content: claims }] : []),
         ...(reviewers ? [{ id: "reviewers", label: "Reviewers", content: reviewers }] : []),
         ...(updaters ? [{ id: "updaters", label: "Updaters", content: updaters }] : []),
         ...(shortNames ? [{ id: "short-names", label: "Short names", content: shortNames }] : []),

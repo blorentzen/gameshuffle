@@ -84,6 +84,8 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     lounge_room: { anchor: "top-right", scale: 0.9, enabled: false },
     // On once the streamer adds a war channel from its overlay page (src/lib/wars/streamPiece.ts).
     war: { anchor: "bottom-center", scale: 0.9, enabled: false },
+    // Team series standings: shows only for a player in a live series (src/lib/series/store.ts seriesPieceFor).
+    series: { anchor: "top-right", scale: 0.9 },
   },
   portrait: {
     dice: { anchor: "center", scale: 0.9 },
@@ -108,6 +110,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     mmr: { anchor: "bottom-center", scale: 0.7, enabled: false },
     lounge_room: { anchor: "top-center", scale: 0.8, enabled: false },
     war: { anchor: "top-center", scale: 0.9, enabled: false },
+    series: { anchor: "top-center", scale: 0.8 },
   },
   square: {},
 };

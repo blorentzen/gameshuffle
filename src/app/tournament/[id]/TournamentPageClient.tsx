@@ -1,5 +1,6 @@
 "use client";
 
+import { seriesPath } from "@/lib/series/view";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
@@ -749,7 +750,13 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
           </span>
         </>
       }
-      breadcrumb={[{ label: "Tournaments", href: "/tournament" }, { label: tournament.title }]}
+      breadcrumb={(() => {
+        // A team series night (the GS Summer Series) sits under its series page.
+        const ser = (tournament.settings as { series?: { slug?: string; title?: string } } | null)?.series;
+        return ser?.slug && ser.title
+          ? [{ label: ser.title, href: seriesPath(ser.slug) }, { label: tournament.title }]
+          : [{ label: "Tournaments", href: "/tournament" }, { label: tournament.title }];
+      })()}
       presentedBy={presentingCommunity ? { slug: presentingCommunity.slug, name: presentingCommunity.display_name || presentingCommunity.slug } : null}
       official={!!tournament.hosted_by_gs}
       organizer={{

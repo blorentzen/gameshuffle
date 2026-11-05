@@ -28,6 +28,7 @@ import { cleanGoal, goalActive, type MmrGoal } from "./goal";
 import type { MmrCardView, MmrLiveResult, MmrMilestone } from "./types";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { isCommandOff } from "@/lib/twitch/commands/toggles";
+import { ownOkGifUrl } from "@/lib/gifs/store";
 
 export interface MmrCard extends Omit<MmrCardView, "goal"> {
   userId: string;
@@ -159,6 +160,8 @@ export async function saveCard(userId: string, input: SaveInput): Promise<SaveRe
   if (input.looks !== undefined) {
     // A background picture must be one of our own uploads.
     let looks = input.looks.map((l, i) => cleanLook(l, `look-${i + 1}`)).map((l) => (l.picture && !keyFromPublicUrl(l.picture) ? { ...l, picture: null } : l));
+    // A GIF from the library: only the account's own, and only once it passed the check (it plays on a stream).
+    looks = await Promise.all(looks.map(async (l) => (l.picture && keyFromPublicUrl(l.picture)?.startsWith("gifs/") && !(await ownOkGifUrl(userId, l.picture)) ? { ...l, picture: null } : l)));
     // A line of your own goes on a public card: blocked words keep it off.
     looks = looks.map((l) => {
       if (!l.info.line || !isBlockedText(l.info.line)) return l;

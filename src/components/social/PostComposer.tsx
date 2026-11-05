@@ -121,6 +121,8 @@ export function PostComposer({
         const res = await fetch("/api/social/posts/image", { method: "POST", body: fd });
         const d = await res.json().catch(() => ({}));
         if (res.ok && d.url) setImages((cur) => (cur.length < 8 ? [...cur, d.url as string] : cur));
+        else if (d.error === "refused") toast.error(d.reason ? `That picture can't go in a post: ${d.reason}` : "That picture can't go in a post.");
+        else if (d.error === "check_unavailable") toast.error("We couldn't check that picture just now. Try again in a minute.");
         else toast.error(d.error === "too_large" ? "One image was too large (8MB max)." : "An image failed to upload.");
       } catch { toast.error("An image failed to upload."); }
     }

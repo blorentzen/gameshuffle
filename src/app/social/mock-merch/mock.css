@@ -1,0 +1,30 @@
+/* TEMPORARY mockup styles (2026-11-03). */
+.mm { max-width: 1120px; margin: 0 auto; padding: 96px 16px 64px; display: grid; gap: 40px; }
+.mm-shot { display: grid; gap: 20px; }
+.mm-head { display: grid; gap: 8px; }
+.mm-eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-ink, #3d35b8); }
+.mm-h { margin: 0; font: 800 var(--font-size-32)/1.15 "Gabarito", sans-serif; }
+.mm-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.mm-media { background: #eef0f6; display: grid; place-items: center; overflow: hidden; }
+.mm-svg { width: 78%; height: 88%; }
+.mm-sheet { display: grid; grid-template-columns: repeat(4, auto); gap: 6px; padding: 14px; background: #fff; border-radius: 14px; box-shadow: 0 6px 18px rgb(20 26 46 / 14%); }
+.mm-sheet .gs-sticker { --st-size: 46px; --st-glyph: 18px; --st-word: 8px; --st-radius: 12px; }
+.mm-sheet--big .gs-sticker { --st-size: 76px; --st-glyph: 30px; --st-word: 12px; --st-radius: 20px; }
+.mm-sheet--big { gap: 10px; padding: 20px; }
+.mm-sheet-wrap { justify-items: center; background: #eef0f6; border-radius: 16px; padding: 24px 12px; }
+.mm-mat { position: relative; width: 88%; aspect-ratio: 2 / 1; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #1a2a8f, #3d6cf0); box-shadow: 0 6px 18px rgb(20 26 46 / 20%); }
+.shop-card .mm-mat .mm-mat__logo, .mm-mat .mm-mat__logo { position: absolute; right: 8%; bottom: 10%; width: 36%; height: auto; }
+.mm-details > * { min-width: 0; }
+.mm-details { overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; background: var(--surface-default, #fff); border: 1px solid var(--border-default, #dfe2ec); border-radius: 16px; padding: 20px; }
+.mm-details__media { border-radius: 12px; aspect-ratio: 1; }
+.mm-details__body { display: grid; gap: 12px; align-content: start; }
+.mm-details__name { margin: 0; font: 800 var(--font-size-24)/1.2 "Gabarito", sans-serif; }
+.mm-opt { display: grid; gap: 8px; }
+.mm-opt__label { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.mm-opt__label a { margin-left: 8px; }
+.mm-swatches, .mm-sizes { display: flex; flex-wrap: wrap; gap: 8px; }
+.mm-swatch { width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--border-default, #dfe2ec); cursor: pointer; }
+.mm-swatch[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--surface-default, #fff), 0 0 0 5px var(--primary-500, #4f46e5); }
+.mm-facts { margin: 0; padding-left: 18px; display: grid; gap: 4px; color: var(--text-secondary); font-size: var(--font-size-14); }
+@media (max-width: 700px) { .mm-details { grid-template-columns: 1fr; } }
+@media (max-width: 500px) { .mm-sheet--big .gs-sticker { --st-size: 62px; --st-glyph: 24px; --st-word: 10px; --st-radius: 16px; } .mm-sheet--big { gap: 8px; padding: 14px; } }

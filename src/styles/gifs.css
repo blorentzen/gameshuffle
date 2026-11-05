@@ -1,0 +1,284 @@
+/* GIFs and GameShuffle reaction stickers (GIF round 2, 2026-10-31). */
+
+/* ── Stickers: a word on a tile, a glyph that moves for about five seconds ── */
+.gs-sticker {
+  --st-size: 104px;
+  --st-glyph: 44px;
+  --st-word: 15px;
+  --st-radius: 26px;
+  --st-pad: 5px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--st-size);
+  height: var(--st-size);
+  margin: 0;
+  vertical-align: middle;
+}
+.gs-sticker--lg { --st-size: 168px; --st-glyph: 72px; --st-word: 24px; --st-radius: 40px; --st-pad: 7px; }
+.gs-sticker--sm { --st-size: 64px; --st-glyph: 26px; --st-word: 12px; --st-radius: 17px; --st-pad: 3px; }
+.gs-sticker--xs { --st-size: 40px; --st-glyph: 24px; --st-radius: 11px; --st-pad: 2px; }
+.gs-sticker__die {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--st-radius);
+  background: #fff;
+  padding: var(--st-pad);
+  box-shadow: 0 6px 14px -9px rgb(10 14 40 / 0.6);
+}
+.gs-sticker__face {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  border-radius: calc(var(--st-radius) - var(--st-pad));
+  background: linear-gradient(135deg, var(--st-a), var(--st-b));
+  color: #fff;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  padding: 6px;
+  text-align: center;
+  overflow: hidden;
+}
+.gs-sticker--sm .gs-sticker__face { gap: 2px; padding: 4px; }
+.gs-sticker--xs .gs-sticker__face { gap: 0; padding: 2px; }
+.gs-sticker__glyph {
+  display: block;
+  width: var(--st-glyph);
+  height: var(--st-glyph);
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.gs-sticker__word {
+  font: 800 var(--st-word) / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  hyphens: manual;
+}
+.gs-sticker--long .gs-sticker__word { font-size: max(12px, calc(var(--st-word) * 0.8)); letter-spacing: 0; }
+/* At 64px a long word can't stay legible: the glyph carries it (the label always says the word). */
+.gs-sticker--sm.gs-sticker--long .gs-sticker__word { display: none; }
+
+/* The Deeper palette (sticker round 2: the same hues, deeper and less saturated). */
+.gs-sticker--tone-blue { --st-a: #1c3a9a; --st-b: #2f4fc0; }
+.gs-sticker--tone-violet { --st-a: #38268c; --st-b: #5a3db8; }
+.gs-sticker--tone-magenta { --st-a: #3d2580; --st-b: #7a3299; }
+.gs-sticker--tone-teal { --st-a: #0a443e; --st-b: #11695c; }
+.gs-sticker--tone-green { --st-a: #14542b; --st-b: #1f6e36; }
+.gs-sticker--tone-orange { --st-a: #7f3015; --st-b: #a65a18; }
+.gs-sticker--tone-red { --st-a: #7f1b13; --st-b: #a63a2b; }
+.gs-sticker--tone-shuffle { --st-a: #1d145c; --st-b: #3a2b8f; }
+.gs-sticker--tone-fire { --st-a: #972830; --st-b: #b9502a; }
+.gs-sticker--tone-duel { --st-a: #101836; --st-b: #7a5510; }
+
+/* Motions: each runs about five seconds, then rests. Only the glyph moves. */
+.gs-sticker--play .gs-sticker__glyph--bounce { animation: gs-st-bounce 0.55s cubic-bezier(0.3, 1.6, 0.6, 1) 9 alternate; }
+.gs-sticker--play .gs-sticker__glyph--pop { animation: gs-st-pop 1.6s ease-in-out 3; }
+.gs-sticker--play .gs-sticker__glyph--flicker { animation: gs-st-flicker 1.6s ease-in-out 3; }
+.gs-sticker--play .gs-sticker__glyph--nod { animation: gs-st-nod 1.6s ease-in-out 3; transform-origin: 50% 90%; }
+.gs-sticker--play .gs-sticker__glyph--stamp { animation: gs-st-stamp 1.6s cubic-bezier(0.2, 1.4, 0.4, 1) 3; }
+.gs-sticker--play .gs-sticker__glyph--tick { animation: gs-st-tick 1.6s steps(4) 3; }
+.gs-sticker--play .gs-sticker__glyph--shake { animation: gs-st-shake 1.6s ease-in-out 3; }
+.gs-sticker--play .gs-sticker__glyph--wobble { animation: gs-st-wobble 1.6s ease-in-out 3; }
+.gs-sticker--play .gs-sticker__glyph--roll { animation: gs-st-roll 1.6s cubic-bezier(0.4, 0, 0.2, 1) 3; }
+.gs-sticker--play .gs-sticker__glyph--blink { animation: gs-st-blink 1.6s steps(2) 3; }
+.gs-sticker--play .gs-sticker__glyph--squeeze { animation: gs-st-squeeze 1.6s ease-in-out 3; }
+.gs-sticker--play .gs-sticker__glyph--flash { animation: gs-st-flash 1.6s ease-out 3; }
+.gs-sticker--play .gs-sticker__glyph--spin { animation: gs-st-spin 1.6s cubic-bezier(0.5, 0, 0.3, 1) 3; }
+.gs-sticker--play .gs-sticker__glyph--clash { animation: gs-st-clash 1.6s ease-in-out 3; }
+.gs-sticker--play .gs-sticker__glyph--nudge { animation: gs-st-nudge 1.6s ease-in-out 3; }
+.gs-sticker--play .gs-sticker__glyph--swap { animation: gs-st-swap 1.6s ease-in-out 3; }
+.gs-sticker--play .gs-sticker__glyph--swing { animation: gs-st-swing 1.6s ease-in-out 3; transform-origin: 50% 0; }
+.gs-sticker--play .gs-sticker__glyph--launch { animation: gs-st-launch 1.6s cubic-bezier(0.5, 0, 0.3, 1) 3; }
+.gs-sticker--play .gs-sticker__glyph--pulse { animation: gs-st-pulse 1.6s ease-in-out 3; }
+.gs-sticker--play .gs-sticker__glyph--drip { animation: gs-st-drip 1.6s ease-in-out 3; }
+@media (prefers-reduced-motion: reduce) {
+  .gs-sticker__glyph { animation: none !important; }
+}
+
+@keyframes gs-st-bounce { from { transform: translateY(0); } to { transform: translateY(-16%); } }
+@keyframes gs-st-pop { 0%, 100% { transform: scale(1); } 20% { transform: scale(1.14) rotate(-3deg); } 40% { transform: scale(0.96) rotate(2deg); } 60% { transform: scale(1.04); } }
+@keyframes gs-st-flicker { 0%, 100% { transform: scale(1); filter: brightness(1); } 25% { transform: scale(1.06) skewX(-3deg); filter: brightness(1.15); } 50% { transform: scale(0.98) skewX(2deg); } 75% { transform: scale(1.05); filter: brightness(1.1); } }
+@keyframes gs-st-nod { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-10deg); } 50% { transform: rotate(4deg); } }
+@keyframes gs-st-stamp { 0% { transform: scale(1.5) rotate(-12deg); opacity: 0.4; } 30% { transform: scale(0.95) rotate(0); opacity: 1; } 45%, 100% { transform: scale(1); } }
+@keyframes gs-st-tick { from { transform: rotate(-8deg); } to { transform: rotate(8deg); } }
+@keyframes gs-st-shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50% { transform: translateX(-12%) rotate(-3deg); } 20%, 40% { transform: translateX(12%) rotate(3deg); } 60% { transform: translateX(0); } }
+@keyframes gs-st-wobble { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-8deg) scale(0.97); } 40% { transform: rotate(6deg); } 60% { transform: rotate(-3deg); } }
+@keyframes gs-st-roll { 0% { transform: rotate(0) translateX(-18%); } 60% { transform: rotate(360deg) translateX(0); } 100% { transform: rotate(360deg); } }
+@keyframes gs-st-blink { 50% { opacity: 0.35; } }
+@keyframes gs-st-squeeze { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.12, 0.9); } 55% { transform: scale(0.94, 1.06); } }
+@keyframes gs-st-flash { 0% { filter: brightness(2.2); transform: scale(1.06); } 25%, 100% { filter: brightness(1); transform: scale(1); } }
+@keyframes gs-st-spin { 0% { transform: rotate(0); } 60%, 100% { transform: rotate(-360deg); } }
+@keyframes gs-st-clash { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.12) rotate(-6deg); } 30% { transform: scale(1.12) rotate(6deg); } 45% { transform: scale(1); } }
+@keyframes gs-st-nudge { 0%, 100% { transform: translateX(0); } 30% { transform: translateX(16%); } 45% { transform: translateX(-4%); } 60% { transform: translateX(10%); } }
+@keyframes gs-st-swap { 0%, 100% { transform: scaleX(1); } 25% { transform: scaleX(-1); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(1); } }
+@keyframes gs-st-swing { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(10deg); } 50% { transform: rotate(-8deg); } 75% { transform: rotate(4deg); } }
+@keyframes gs-st-launch { 0% { transform: translate(0, 0); } 35% { transform: translate(12%, -22%) rotate(4deg); } 55% { transform: translate(0, 4%); } 100% { transform: translate(0, 0); } }
+@keyframes gs-st-pulse { 0%, 100% { transform: scale(1); } 30% { transform: scale(1.1); } 45% { transform: scale(0.98); } 60% { transform: scale(1.06); } }
+@keyframes gs-st-drip { 0% { transform: translateY(-14%); opacity: 0.5; } 40% { transform: translateY(4%); opacity: 1; } 55%, 100% { transform: translateY(0); } }
+
+/* ── A GIF: plays five seconds, then rests on its still frame with a play button (WCAG 2.2.2) ── */
+.gs-gif {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-secondary, #eef0f6);
+}
+.gs-gif__img { display: block; width: 100%; height: auto; }
+.gs-gif__tag {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  font: 700 12px / 1 var(--font-body);
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: rgb(0 0 0 / 0.62);
+  padding: 3px 5px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.gs-gif__play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border-radius: 50%;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.35);
+}
+.gs-gif--gone {
+  display: grid;
+  place-items: center;
+  min-height: 96px;
+  padding: var(--spacing-16);
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  border: 1px dashed var(--border-default);
+  background: transparent;
+}
+
+/* A sticker in a comment or message: tap to play it again. */
+.gs-sticker-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 28px;
+  line-height: 0;
+}
+.gs-sticker-btn:focus-visible { outline: 3px solid var(--border-focus, #2b52d6); outline-offset: 2px; }
+
+/* ── The picker: grids of stickers and GIFs (CascadeDS has no picture-pick grid: on its fix list) ── */
+.gif-picker { display: grid; gap: var(--spacing-16); align-content: start; min-height: 360px; }
+.gif-picker__group { display: grid; gap: var(--spacing-8); }
+.gif-picker__group-title { margin: 0; font-size: var(--font-size-14); font-weight: 700; color: var(--text-secondary); }
+.gif-picker__bar { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: center; }
+.gif-picker__bar--search > :first-child { flex: 1 1 220px; min-width: 0; }
+.gif-picker__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.gif-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: var(--spacing-8);
+}
+.gif-grid--stickers { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); justify-items: center; gap: var(--spacing-12); }
+.gif-grid__item {
+  position: relative;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--surface-secondary, #eef0f6);
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  aspect-ratio: 1;
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+.gif-grid--stickers .gif-grid__item { background: none; aspect-ratio: auto; width: auto; border-radius: 28px; }
+.gif-grid__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gif-grid__item:focus-visible { outline: 3px solid var(--border-focus, #2b52d6); outline-offset: 2px; }
+.gif-grid__item:disabled { cursor: default; }
+.gif-grid__item[aria-pressed="true"] { outline: 3px solid var(--bg-primary, #2b52d6); outline-offset: 2px; }
+.gif-grid__label {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  font: 600 12px / 1.2 var(--font-body);
+  color: #fff;
+  background: rgb(0 0 0 / 0.62);
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gif-grid__label--held { background: rgb(122 74 0 / 0.92); }
+
+/* The upload step and the edit window. */
+.gif-upload { display: grid; gap: var(--spacing-16); }
+.gif-upload__row { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: var(--spacing-16); align-items: start; }
+@media (max-width: 560px) { .gif-upload__row { grid-template-columns: minmax(0, 1fr); } }
+.gif-upload__fields { display: grid; gap: var(--spacing-12); min-width: 0; }
+.gif-upload__tags { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: center; }
+.gif-upload__drop {
+  display: grid;
+  place-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-24);
+  border: 2px dashed var(--border-default);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+.gif-upload__drop.is-over { border-color: var(--bg-primary, #2b52d6); background: color-mix(in srgb, var(--bg-primary, #2b52d6) 6%, transparent); }
+.gif-upload__status { display: inline-flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); font-weight: 600; }
+.gif-upload__status--ok { color: var(--success-ink, #106b3f); }
+.gif-upload__status--held { color: var(--warning-ink, #8a5a00); }
+
+/* A GIF or sticker inside a comment. On its own it sits on the page, not in a text bubble. */
+.ct__bubble--media { background: transparent; padding-inline: 0; padding-top: 0; }
+.ct__attach { margin-top: var(--spacing-4); max-width: 240px; }
+.ct__attach .gs-gif { max-width: 240px; }
+.ct__compose { display: flex; gap: var(--spacing-8); align-items: flex-start; }
+.ct__compose > :first-child { flex: 1 1 auto; min-width: 0; }
+
+/* My Stuff ▸ GIFs: one row per GIF (picture, description, sharing, actions). */
+.gif-mine { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: var(--spacing-24) var(--spacing-16); }
+.gif-mine__item { display: grid; gap: var(--spacing-8); align-content: start; min-width: 0; }
+.gif-mine__meta { display: grid; gap: var(--spacing-4); min-width: 0; }
+.gif-mine__alt { margin: 0; font-size: var(--font-size-14); font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }
+.gif-mine__line { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); overflow-wrap: anywhere; }
+.gif-mine__actions { display: flex; gap: var(--spacing-8); }
+
+/* Platform ▸ People ▸ GIFs: one row per GIF to look at. */
+.gif-staff { list-style: none; margin: 0; padding: 0; display: grid; }
+.gif-staff__row { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: var(--spacing-16); align-items: start; padding: var(--spacing-16) 0; border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.gif-staff__row:first-child { border-top: 0; padding-top: 0; }
+.gif-staff__info { display: grid; gap: var(--spacing-4); min-width: 0; }
+.gif-staff__why { margin: 0; font-weight: 700; font-size: var(--font-size-14); }
+.gif-staff__reports { margin: 0; padding-left: var(--spacing-20); font-size: var(--font-size-14); color: var(--text-secondary); }
+.gif-staff__line { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); overflow-wrap: anywhere; }
+.gif-staff__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+@media (max-width: 640px) { .gif-staff__row { grid-template-columns: minmax(0, 1fr); } }
+
+/* Phones: four tabs fit without scrolling, and three stickers a row (96px tiles, words never under 12px). */
+@media (max-width: 480px) {
+  .gif-picker-modal .empac-tabs__tab { padding-inline: var(--spacing-8); }
+  .gif-grid--stickers { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-8); }
+  .gif-grid--stickers .gs-sticker { --st-size: 96px; --st-glyph: 40px; --st-word: 14px; --st-radius: 24px; }
+}
+
+/* The picked GIF, looping before it's used (GifPreview) */
+.gif-preview { display: grid; gap: 14px; justify-items: center; }
+.gif-preview__stage { width: 100%; display: grid; place-items: center; background: var(--background-secondary, #f2f3f7); border-radius: 14px; padding: 12px; min-height: 200px; }
+.gif-preview__stage img { max-width: 100%; max-height: min(52vh, 420px); border-radius: 10px; object-fit: contain; }
+.gif-preview__meta { display: grid; gap: 4px; text-align: center; }
+.gif-preview__alt { margin: 0; font-size: var(--font-size-16); color: var(--text-primary); }
+.gif-preview__actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }

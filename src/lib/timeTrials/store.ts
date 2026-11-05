@@ -11,9 +11,10 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { describePlayers } from "@/lib/daily/boards";
 import { formatTime, rankRows, type ProofKind, type TtPlayer, type VideoState } from "./rules";
 import { boardsFor, categoryText, TOP_TEN, vehicleFor, type TtItems, type TtVehicle } from "./categories";
-import { countriesFor, round3Ready, trustedPlayers, underReview, vouchCounts } from "./status";
+import { countriesFor, round3Ready, round4Ready, trustedPlayers, underReview, vouchCounts } from "./status";
 import { countryPlayers } from "./countries";
-import { checkProof, hashOfProof } from "./proof";
+import type { TtParts } from "./parts";
+import { checkProof, flagUnread, hashOfProof } from "./proof";
 import { playerPagePath } from "./playerPath";
 import { isClassFor, trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
 import { createNotification } from "@/lib/social/notifications";
@@ -49,10 +50,13 @@ export interface TtBoardRow {
   review: boolean;
   /** The player has earned Trusted: a top-ten time without a checked clip says so (pick 7A). */
   trusted: boolean;
-  /** Players with a checked time who vouched for it (pick 9A). */
+  /** How many vouched for it: ten make it Community verified (COMMUNITY_VOUCHES). */
   vouches: number;
   /** The player's country, when known (pick 6A). */
   country: string | null;
+  /** From the community's Top 10 sheets (round 4), with the proof link the sheet gives, if any. */
+  sheet: boolean;
+  sheetLink: string | null;
 }
 
 export interface TtBoard {
@@ -93,6 +97,8 @@ export interface AddTimeInput {
   readMs?: number | null;
   readLaps?: number[] | null;
   shotHash?: string | null;
+  /** The parts the screenshot named (picks 2026-11-04): kept with the time, and checked against the board picked. */
+  parts?: TtParts | null;
 }
 
 export type AddTimeResult =
@@ -147,7 +153,11 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
   const m4 = await round3Ready();
   const shot = m4 ? input.shotHash ?? (input.proof === "screenshot" ? await hashOfProof(input.proofUrl) : null) : null;
   if (!timeId) {
-    const extra = m4 ? { laps: input.laps ?? null, read_ms: input.readMs ?? null, read_laps: input.readLaps ?? null, shot_hash: shot } : {};
+    const m5 = await round4Ready();
+    const extra = {
+      ...(m4 ? { laps: input.laps ?? null, read_ms: input.readMs ?? null, read_laps: input.readLaps ?? null, shot_hash: shot } : {}),
+      ...(m5 && input.parts ? { body: input.parts.body, wheels: input.parts.wheels, glider: input.parts.glider } : {}),
+    };
     const { data, error } = await db.from("tt_times").insert({
       ...extra,
       player: input.player,
@@ -168,7 +178,7 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
     if (error || !data) { console.error("[tt] add failed:", error?.message); return { ok: false, error: "failed" }; }
     timeId = (data as { id: string }).id;
     // Proof checks open tickets for the mode's updaters; they never take the time down.
-    if (m4) await checkProof({ id: timeId, player: input.player, timeMs: input.timeMs, shotHash: shot, readMs: input.readMs ?? null, laps: input.laps ?? null }).catch((e) => console.error("[tt] proof check failed:", e));
+    if (m4) await checkProof({ id: timeId, player: input.player, timeMs: input.timeMs, shotHash: shot, readMs: input.readMs ?? null, laps: input.laps ?? null, game: input.game, vehicle, parts: input.parts ?? null }).catch((e) => console.error("[tt] proof check failed:", e));
   }
   const best = previousMs == null || input.timeMs < previousMs || (again && previousMs === input.timeMs);
   const bestMs = previousMs == null ? input.timeMs : Math.min(previousMs, input.timeMs);
@@ -181,6 +191,39 @@ export async function addTime(input: AddTimeInput): Promise<AddTimeResult> {
   const top = best && (place.place <= TOP_TEN || (open?.place ?? Infinity) <= TOP_TEN);
   const trusted = top && (await trustedPlayers([input.player])).has(input.player);
   return { ok: true, timeId, best, previousMs: again ? null : previousMs, place: place.place, total: place.total, server, again, items, vehicle, needsVideo: top && !trusted, trusted };
+}
+
+/** Your saved time on a track that has no proof yet (your fastest one), for /tt proof. */
+export async function unprovenTime(player: string, game: TtGame, track: string, cc: TtClass, items: TtItems): Promise<{ id: string; timeMs: number } | null> {
+  const { data } = await createServiceClient().from("tt_times").select("id, time_ms").eq("player", player).eq("game", game).eq("track", track)
+    .eq("cc", cc).eq("items", items).eq("status", "ok").eq("proof_kind", "none").order("time_ms", { ascending: true }).limit(1).maybeSingle();
+  const r = data as { id: string; time_ms: number } | null;
+  return r ? { id: r.id, timeMs: r.time_ms } : null;
+}
+
+/**
+ * A screenshot added to your own time that has none yet, like a time brought over from Quaxly (players' feedback,
+ * picks 2026-11-04, 21A). `readMs` is what the screen showed (signed by the read route, or read in Discord): when it
+ * isn't the saved time, or nothing could be read, an updater gets a ticket (the proof checks). It's Screenshot
+ * proof, not Verified.
+ */
+export async function attachShot(input: { player: string; timeId: string; proofUrl: string; readMs: number | null }): Promise<{ ok: true; matched: boolean; timeMs: number } | { ok: false; error: "gone" | "has_proof" | "failed" }> {
+  const t = await timeById(input.timeId);
+  if (!t || t.status !== "ok" || t.player !== input.player) return { ok: false, error: "gone" };
+  if (t.proof !== "none") return { ok: false, error: "has_proof" };
+  const m4 = await round3Ready();
+  const shot = m4 ? await hashOfProof(input.proofUrl) : null;
+  const matched = input.readMs != null && input.readMs === t.timeMs;
+  const { data, error } = await createServiceClient().from("tt_times")
+    .update({ proof_kind: "screenshot", proof_url: input.proofUrl, read_by_ai: matched, ...(m4 ? { read_ms: input.readMs, shot_hash: shot } : {}) })
+    .eq("id", t.id).eq("player", input.player).eq("proof_kind", "none").select("id");
+  if (error) { console.error("[tt] attach shot failed:", error.message); return { ok: false, error: "failed" }; }
+  if (!data?.length) return { ok: false, error: "has_proof" };
+  if (m4) {
+    await checkProof({ id: t.id, player: t.player, timeMs: t.timeMs, shotHash: shot, readMs: input.readMs, laps: null }).catch((e) => console.error("[tt] proof check failed:", e));
+    if (input.readMs == null) await flagUnread(t.id, t.timeMs).catch(() => {});
+  }
+  return { ok: true, matched, timeMs: t.timeMs };
 }
 
 /** The players a Discord server has seen use /gs-tt. */
@@ -267,13 +310,15 @@ export async function boardFor(args: { game: TtGame; track: string; cc: TtClass;
   const mineRaw = args.viewer ? placed.find((r) => r.row.player === args.viewer) ?? null : null;
   const need = [...shown.map((r) => r.row), ...(mineRaw && !shown.includes(mineRaw) ? [mineRaw.row] : [])];
   const ids = need.map((r) => r.time_id);
-  const [names, verified, review, trusted, vouches, countries] = await Promise.all([
+  const sheetIds = need.filter((r) => r.source === "sheet").map((r) => r.time_id);
+  const [names, verified, review, trusted, vouches, countries, links] = await Promise.all([
     describePlayers(need.map((r) => r.player)),
     verificationsFor(ids),
     underReview(ids),
     trustedPlayers(need.map((r) => r.player)),
     vouchCounts(ids),
     countriesFor(need.map((r) => r.player)),
+    sheetLinksFor(sheetIds),
   ]);
   const toRow = (rank: number, r: (typeof raw)[number]): TtBoardRow => {
     const who = names.get(r.player);
@@ -301,6 +346,8 @@ export async function boardFor(args: { game: TtGame; track: string; cc: TtClass;
       trusted: trusted.has(r.player),
       vouches: vouches.get(r.time_id) ?? 0,
       country: countries.get(r.player) ?? null,
+      sheet: r.source === "sheet",
+      sheetLink: links.get(r.time_id) ?? null,
     };
   };
   return {
@@ -321,7 +368,7 @@ export async function topTenIds(game: TtGame, track: string, cc: TtClass, items:
   return new Set(rankRows(raw).filter((r) => r.rank <= TOP_TEN).map((r) => r.row.time_id));
 }
 
-/** The boards a time sits on: the open board, its vehicle board, and Inside drift for a Yoshi Bike. */
+/** The boards a time sits on: the open board and its vehicle board (an older Yoshi Bike time sits on Inside drift). */
 const boardsOf = (t: { game: TtGame; vehicle: TtVehicle }): TtVehicle[] => boardsFor(t.game, t.vehicle);
 
 /** Each of a time's boards' top tens, taken before the time comes off so `nudgeMovedUp` can tell who moved in. */
@@ -388,13 +435,30 @@ export async function playerBests(player: TtPlayer): Promise<TtBest[]> {
 
 export interface TtTrackSummary { track: string; cc: TtClass; recordMs: number; recordPlayer: string; players: number;
   /** Whether the record's video has been checked (an unchecked record is still waiting for its video). */
-  recordChecked: boolean }
+  recordChecked: boolean;
+  /** The record came from the Top 10 sheets (round 4). */
+  recordSheet?: boolean }
 
-/** Per track and class, for one items setting and board: the record and how many players have a time. */
-export async function trackSummary(game: TtGame, items: TtItems = "shrooms", vehicle: TtVehicle = "any"): Promise<TtTrackSummary[]> {
+/**
+ * Per track and class, for one items setting and board: the record and how many players have a time. With `players`
+ * (a country's, round 4 pick 3A), the records among them: that country's national records.
+ */
+export async function trackSummary(game: TtGame, items: TtItems = "shrooms", vehicle: TtVehicle = "any", players: string[] | null = null): Promise<TtTrackSummary[]> {
   if (!(await ttReady())) return [];
   const db = createServiceClient();
   const v = vehicleFor(game, vehicle);
+  if (await round4Ready()) {
+    if (players && !players.length) return [];
+    const { data, error } = await db.rpc("tt_track_summary3", { p_game: game, p_items: items, p_vehicle: v, p_players: players });
+    if (error) { console.error("[tt] summary failed:", error.message); return []; }
+    const rows = (data ?? []) as { track: string; cc: number; record_ms: number; record_player: string; record_time_id: string; players: number }[];
+    const { data: recs } = rows.length ? await db.from("tt_times").select("id, source, video_status").in("id", rows.map((r) => r.record_time_id)) : { data: [] };
+    const how = new Map(((recs ?? []) as { id: string; source: string; video_status: string | null }[]).map((r) => [r.id, r]));
+    return rows.map((r) => ({
+      track: r.track, cc: Number(r.cc) as TtClass, recordMs: r.record_ms, recordPlayer: r.record_player, players: r.players,
+      recordChecked: how.get(r.record_time_id)?.video_status === "checked", recordSheet: how.get(r.record_time_id)?.source === "sheet",
+    }));
+  }
   let checkedQ = db.from("tt_times").select("track, cc, player, time_ms").eq("game", game).eq("items", items).eq("status", "ok").eq("video_status", "checked");
   if (v !== "any") checkedQ = checkedQ.in("vehicle", v === "inside_drift" ? ["inside_drift", "yoshi_bike"] : [v]);
   const [{ data, error }, { data: checked }] = await Promise.all([
@@ -480,14 +544,30 @@ export async function claimDiscordTimes(userId: string, discordId: string | null
   return Number(moved ?? 0);
 }
 
-/** Players whose names match, for the hub's search: accounts and Discord players with at least one time. */
+/** Which of these times came from the Top 10 sheets. */
+export async function sheetTimeIds(timeIds: string[]): Promise<Set<string>> {
+  if (!timeIds.length || !(await round4Ready())) return new Set();
+  const { data } = await createServiceClient().from("tt_times").select("id").in("id", timeIds.slice(0, 500)).eq("source", "sheet");
+  return new Set(((data ?? []) as { id: string }[]).map((r) => r.id));
+}
+
+/** The proof links the Top 10 sheets give for these times (most give none). */
+async function sheetLinksFor(timeIds: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (!timeIds.length || !(await round4Ready())) return out;
+  const { data } = await createServiceClient().from("tt_times").select("id, sheet_link").in("id", timeIds).not("sheet_link", "is", null);
+  for (const r of (data ?? []) as { id: string; sheet_link: string }[]) out.set(r.id, r.sheet_link);
+  return out;
+}
+
+/** Players whose names match, for the hub's search: accounts, Discord players and Top 10 sheet listings with at least one time. */
 export async function findPlayers(q: string, limit = 8): Promise<{ player: string; name: string; avatar: string | null; profile: string | null; discord: boolean }[]> {
   const text = q.trim().replace(/[%_,()]/g, " ").trim();
   if (text.length < 2 || !(await ttReady())) return [];
   const db = createServiceClient();
   const [u, i] = await Promise.all([
     db.from("users").select("id").eq("is_public", true).or(`display_name.ilike.%${text}%,username.ilike.%${text}%`).limit(40),
-    db.from("gs_identities").select("id").eq("platform", "discord").is("gs_account_id", null).ilike("display_name", `%${text}%`).limit(40),
+    db.from("gs_identities").select("id").in("platform", ["discord", "sheet"]).is("gs_account_id", null).ilike("display_name", `%${text}%`).limit(40),
   ]);
   const keys = [
     ...((u.data ?? []) as { id: string }[]).map((r) => `u:${r.id}`),

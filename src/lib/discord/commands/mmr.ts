@@ -11,10 +11,10 @@ import { getDiscordUser, resolveDiscordUser } from "../user";
 import { actionRow, deferredResponse, ephemeralMessage, followUp, linkButton } from "../respond";
 import { SITE_URL } from "@/lib/seo";
 import { cardFor, liveFor } from "@/lib/mmr/store";
-import { LoungeUnavailable, divisionSteps, loungePlayer } from "@/lib/mmr/mkcentral";
+import { LoungeUnavailable, divisionSteps, loungePlayer, loungeGames } from "@/lib/mmr/mkcentral";
 import { divisionLook } from "@/lib/mmr/look";
 import { medalUrl } from "@/lib/mmr/medals";
-import { MMR_GAMES, fmtMmr, isMmrGame, placeWord, signed, sourceLabel, viewOf, type MmrGame, type MmrSource } from "@/lib/mmr/rules";
+import { MMR_GAMES, fmtMmr, isMmrGame, placeWord, signed, sourceLabel, viewOf, type MmrGame, type MmrSource, DEFAULT_MMR_GAME, MMR_GAME_IDS } from "@/lib/mmr/rules";
 import { headToHead } from "@/lib/lounge/h2h";
 import { parseRoom } from "@/lib/lounge/room";
 import { lookUpRoom } from "@/lib/lounge/roomServer";
@@ -30,11 +30,17 @@ function embedFor(src: MmrSource, tonight: boolean, noMmr = false) {
   // On a GameShuffle ladder: its rank out of its players, and placement until it's done.
   const division = v.ladder?.placement ? `Placement ${v.ladder.placement.done} of ${v.ladder.placement.of}` : v.division;
   const rank = v.worldRank ? [{ name: v.ladder ? "Rank" : "World rank", value: `#${v.worldRank.toLocaleString("en-US")}${v.ladder ? ` of ${v.ladder.total.toLocaleString("en-US")}` : ""}`, inline: true }] : [];
+  // Both averages, always (picks 2026-11-04, 3A): the player's own and their teammates' in team events.
+  const averages = [
+    ...(v.season.avgScore != null ? [{ name: "Average score", value: v.season.avgScore.toFixed(1), inline: true }] : []),
+    ...(v.season.partnerAvg != null ? [{ name: "Partner average", value: v.season.partnerAvg.toFixed(1), inline: true }] : []),
+  ];
   const fields = noMmr ? [
     { name: "Division", value: division, inline: true },
     { name: "Next division", value: v.next ? v.next.name : v.ladder?.placement ? "After placement" : "Top division", inline: true },
     ...rank,
     ...(tonight && v.tonight.events ? [{ name: "Tonight", value: `${v.tonight.w}-${v.tonight.l}`, inline: true }] : []),
+    ...averages,
     ...(squares ? [{ name: "Last 10", value: squares, inline: false }] : []),
   ] : [
     { name: "MMR", value: v.mmr == null ? "None yet" : fmtMmr(v.mmr), inline: true },
@@ -43,11 +49,41 @@ function embedFor(src: MmrSource, tonight: boolean, noMmr = false) {
     ...rank,
     ...(v.peak != null ? [{ name: "Season peak", value: fmtMmr(v.peak), inline: true }] : []),
     ...(tonight && v.tonight.events ? [{ name: "Tonight", value: `${signed(v.tonight.delta)} (${v.tonight.w}-${v.tonight.l})`, inline: true }] : []),
+    ...averages,
     ...(squares ? [{ name: "Last 10", value: squares, inline: false }] : []),
   ];
   // The division's medal (MKCentral's; the site's pages carry the credit, Discord posts don't: picks 2026-10-31, 4A).
   const medal = medalUrl(divisionLook(v.division).base);
   return { title: `${v.name} · ${sourceLabel(v)}`, color, fields, ...(medal ? { thumbnail: { url: medal } } : {}), footer: { text: "MMR card · gameshuffle.co/mmr-card" } };
+}
+
+/**
+ * The card as a picture with one short line of numbers under it (picks 2026-11-04, 9A, with both averages, 3A).
+ * The picture is the player's own look when a GameShuffle card shows them, else ours (/mmr-card/picture, kept 10
+ * minutes: the address changes every 10 minutes so Discord asks again). Lounge players only: a GS Ranked look
+ * keeps the numbers reply.
+ */
+function pictureEmbed(src: MmrSource, playerId: number, tonight: boolean, noMmr = false) {
+  const v = viewOf(src);
+  const color = parseInt(divisionLook(v.division).c2.slice(1), 16);
+  const squares = v.squares.map((s) => (s === "p" ? "🟨" : s === "w" ? "🟩" : "🟥")).join("");
+  const line = [
+    !noMmr && v.mmr != null ? `${fmtMmr(v.mmr)} MMR` : null,
+    v.division,
+    v.worldRank ? `#${v.worldRank.toLocaleString("en-US")} in the world` : null,
+    v.season.avgScore != null ? `average ${v.season.avgScore.toFixed(1)}` : null,
+    v.season.partnerAvg != null ? `partners ${v.season.partnerAvg.toFixed(1)}` : null,
+    tonight && v.tonight.events ? `tonight ${noMmr ? `${v.tonight.w}-${v.tonight.l}` : `${signed(v.tonight.delta)} (${v.tonight.w}-${v.tonight.l})`}` : null,
+  ].filter(Boolean).join(" · ");
+  const bucket = Math.floor(Date.now() / 600_000);
+  return {
+    title: `${v.name} · ${sourceLabel(v)}`,
+    url: `${SITE_URL}${loungePagePath(v.name, v.game)}`,
+    color,
+    description: squares ? `${line}\nLast 10: ${squares}` : line,
+    image: { url: `${SITE_URL}/mmr-card/picture/${v.game}/${playerId}?size=wide&t=${bucket}` },
+    footer: { text: "MMR card · gameshuffle.co/mmr-card" },
+  };
 }
 
 export async function handleGsMmr(interaction: Record<string, unknown>): Promise<Response> {
@@ -68,7 +104,7 @@ export async function handleGsMmr(interaction: Record<string, unknown>): Promise
       if (!card?.loungeName) return ephemeralMessage("Add both names (name and versus), or set up your MMR card first so yours is filled in.", [make]);
       name = card.loungeName;
     }
-    const game: MmrGame = isMmrGame(gameOpt) ? gameOpt : "mkworld12p";
+    const game: MmrGame = isMmrGame(gameOpt) ? gameOpt : DEFAULT_MMR_GAME;
     const who = name;
     after(async () => {
       try {
@@ -96,7 +132,10 @@ export async function handleGsMmr(interaction: Record<string, unknown>): Promise
     }
     after(async () => {
       const live = await liveFor(card);
-      if (live.ok) await followUp(appId, token, { embeds: [embedFor(live.source, true, live.look.info.hideMmr)], components: [make] });
+      if (live.ok) {
+        const embed = !live.look.ladder && card.loungePlayerId ? pictureEmbed(live.source, card.loungePlayerId, true, live.look.info.hideMmr) : embedFor(live.source, true, live.look.info.hideMmr);
+        await followUp(appId, token, { embeds: [embed], components: [make] });
+      }
       else await followUp(appId, token, {
         content: live.reason === "unavailable" ? "The lounge isn't answering right now. Try again in a minute."
           : live.reason === "not_on_ladder" ? "Your card is set to a GS Ranked lounge you're not on. Join it with /ranked join, or pick another at gameshuffle.co/mmr-card."
@@ -107,13 +146,19 @@ export async function handleGsMmr(interaction: Record<string, unknown>): Promise
     return deferredResponse();
   }
 
-  const game: MmrGame = isMmrGame(gameOpt) ? gameOpt : "mkworld12p";
+  const asked: MmrGame | null = isMmrGame(gameOpt) ? gameOpt : null;
   after(async () => {
     try {
+      // No game given: MK8DX, unless the player only plays other lounges (then their first one).
+      let game: MmrGame = asked ?? DEFAULT_MMR_GAME;
+      if (!asked) {
+        const registered = await loungeGames(name).catch(() => null);
+        if (registered?.length && !registered.includes(DEFAULT_MMR_GAME)) game = MMR_GAME_IDS.find((g) => registered.includes(g)) ?? DEFAULT_MMR_GAME;
+      }
       const [player, steps] = await Promise.all([loungePlayer({ name }, game), divisionSteps(game)]);
       if (!player) { await followUp(appId, token, { content: `No lounge player called ${name} in ${MMR_GAMES[game].short}.` }); return; }
       await followUp(appId, token, {
-        embeds: [embedFor({ name: player.name, country: player.country, game, mmr: player.mmr, maxMmr: player.maxMmr, division: player.division, worldRank: player.worldRank, steps, changes: player.changes, since: null, avatar: null }, false)],
+        embeds: [pictureEmbed({ name: player.name, country: player.country, game, mmr: player.mmr, maxMmr: player.maxMmr, division: player.division, worldRank: player.worldRank, steps, changes: player.changes, since: null, avatar: null }, player.playerId, false)],
         components: [make],
       });
     } catch (err) {
@@ -142,7 +187,7 @@ function h2hEmbed(aName: string, bName: string, h: ReturnType<typeof headToHead>
   ];
   return {
     title: `${aName} vs ${bName} · ${MMR_GAMES[game].short}`,
-    url: `${SITE_URL}/lounge/compare/${encodeURIComponent(aName)}/${encodeURIComponent(bName)}${game === "mkworld12p" ? "" : `?game=${game}`}`,
+    url: `${SITE_URL}/lounge/compare/${encodeURIComponent(aName)}/${encodeURIComponent(bName)}${game === DEFAULT_MMR_GAME ? "" : `?game=${game}`}`,
     description: h.events ? undefined : "They haven't played an event together this season.",
     color: 0x2b52d6,
     fields,
@@ -156,7 +201,7 @@ export async function handleGsRoom(interaction: Record<string, unknown>): Promis
   const text = String(opts.find((o) => o.name === "names")?.value ?? "").slice(0, 2000);
   const me = (opts.find((o) => o.name === "me")?.value ?? "").trim().slice(0, 40) || null;
   const gameOpt = opts.find((o) => o.name === "game")?.value;
-  const game: MmrGame = isMmrGame(gameOpt) ? gameOpt : "mkworld12p";
+  const game: MmrGame = isMmrGame(gameOpt) ? gameOpt : DEFAULT_MMR_GAME;
   const teamSize = [1, 2, 3, 4, 6].includes(Number(opts.find((o) => o.name === "format")?.value)) ? Number(opts.find((o) => o.name === "format")?.value) : 1;
   // Discord takes one line: teams are separated by slashes (Riley, Sam / Jo, Ana).
   const teams = parseRoom(teamSize > 1 ? text.split("/").join("\n") : text, teamSize);

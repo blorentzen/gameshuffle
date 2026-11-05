@@ -5,7 +5,7 @@
  * Server reads live in lookupServer.ts. Tests: npx tsx scripts/test-lounge-lookup.ts
  */
 
-import { MMR_GAMES, MMR_GAME_IDS, standing, type DivisionStep, type MmrGame } from "@/lib/mmr/rules";
+import { MMR_GAMES, MMR_GAME_IDS, standing, type DivisionStep, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v : null);
@@ -130,7 +130,7 @@ export function suggestionLine(s: Suggestion): string {
 
 /** Where a suggestion opens. */
 export const suggestionHref = (s: Pick<Suggestion, "name" | "primary">) =>
-  `/lounge/${encodeURIComponent(s.name)}${s.primary.game === "mkworld12p" ? "" : `?game=${s.primary.game}`}`;
+  `/lounge/${encodeURIComponent(s.name)}${s.primary.game === DEFAULT_MMR_GAME ? "" : `?game=${s.primary.game}`}`;
 
 // ── Did you mean ─────────────────────────────────────────────────────────
 

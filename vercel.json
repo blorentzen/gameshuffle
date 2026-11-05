@@ -69,6 +69,10 @@
       "schedule": "*/10 * * * *"
     },
     {
+      "path": "/api/cron/cans",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/mailerlite-sync",
       "schedule": "0 9 * * *"
     },
@@ -127,6 +131,10 @@
     {
       "path": "/api/cron/lounge-weekly",
       "schedule": "0 16,17 * * 1"
+    },
+    {
+      "path": "/api/cron/tt-sheets",
+      "schedule": "30 11 * * *"
     },
     {
       "path": "/api/cron/tt-updaters",

@@ -140,10 +140,15 @@ export async function getProAccess(
   const ownProLive = rows.some((r) => (r.product ?? "pro") === "pro" && ["trialing", "active", "past_due"].includes(r.status ?? ""));
   const { supportProGrant } = await import("@/lib/support/store");
   const grant = ownProLive ? null : await supportProGrant(userId).catch(() => null);
+  // GS Pro given by GameShuffle until a date (pro_gifts), when no plan or support level of their own gives it.
+  const { liveGift } = await import("@/lib/billing/proGifts");
+  const gift = ownProLive || grant ? null : await liveGift(userId).catch(() => null);
 
   return proAccessFromState({
     proFromSupport: !!grant,
     supportPeriodEnd: grant?.renewsAt ?? null,
+    proFromGift: !!gift,
+    giftEnd: gift?.until ?? null,
     subscriptionTier: user.subscriptionTier,
     subscriptionStatus: user.subscriptionStatus,
     role: user.role,

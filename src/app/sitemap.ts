@@ -18,8 +18,11 @@ import { RULES_PATH, RULE_PAGES } from "@/data/tcg-rules";
 import { OCCASIONS, TRIVIA_PATH, occasionUrl, topicUrl } from "@/data/trivia-seo";
 import { liveTopics } from "@/lib/trivia/topics";
 import { listPublicLeagues } from "@/lib/trivia/leagues";
+import { listMerchListings } from "@/lib/store/merchCatalog";
+import { getPlatformFlag } from "@/lib/platform/flags";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { loungePagePath } from "@/lib/lounge/lines";
+import { seriesPath } from "@/lib/series/view";
 import type { MmrGame } from "@/lib/mmr/rules";
 import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
@@ -683,6 +686,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch lounge players", err);
   }
 
+  // GameShuffle team series (the GS Summer Series) once their page is public.
+  let seriesRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const { data: rows } = await createServiceClient().from("gs_series").select("slug, updated_at").in("status", ["announced", "live", "finished"]);
+    seriesRoutes = ((rows ?? []) as { slug: string; updated_at: string }[]).map((r) => ({
+      url: `${baseUrl}${seriesPath(r.slug)}`, lastModified: new Date(r.updated_at), changeFrequency: "daily" as const, priority: 0.6,
+    }));
+  } catch (err) {
+    console.error("Sitemap: failed to fetch series", err);
+  }
+
   // Time trial boards with at least three players (thinner boards are noindex).
   let ttRoutes: MetadataRoute.Sitemap = [];
   try {
@@ -699,6 +713,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ttRoutes = [];
   }
 
+  // Merch: /shop and each live product, only once the shop is open (it's noindex before).
+  const shopRoutes: MetadataRoute.Sitemap = [];
+  if (await getPlatformFlag("shop_open", false).catch(() => false)) {
+    const listings = await listMerchListings().catch(() => []);
+    shopRoutes.push({ url: `${baseUrl}/shop`, changeFrequency: "weekly", priority: 0.6 });
+    shopRoutes.push(...listings.map((l) => ({ url: `${baseUrl}/shop/${l.slug}`, changeFrequency: "weekly" as const, priority: 0.5 })));
+  }
+
   // One entry per URL. The blocks above overlap (the pillar map also lists
   // /pokemon-tcg, which the deck block adds too), so keep the first position
   // and the higher priority whenever a URL turns up twice.
@@ -710,6 +732,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...ideaRoutes,
     ...triviaRoutes,
     ...loungeRoutes,
+    ...seriesRoutes,
+    ...shopRoutes,
   ]);
 }
 

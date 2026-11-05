@@ -12,6 +12,7 @@
 /* The share window: the card, then a button per place. */
 .share-window { display: grid; gap: var(--spacing-16); }
 .share-window__card { width: 100%; height: auto; aspect-ratio: 1200 / 630; border-radius: var(--radius-12, 12px); border: 1px solid var(--border-default); background: #16133a; }
+.share-window__card--square { aspect-ratio: 1; max-width: 42rem; justify-self: center; }
 .share-window__card--loading { display: grid; place-items: center; color: #fff; font-size: var(--font-size-14); }
 .share-window__places { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-8); }
 .share-window__places .empac-button { width: 100%; justify-content: center; }

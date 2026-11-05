@@ -44,6 +44,21 @@ const ERRORS: Record<string, string> = {
   too_many_items: "That's more units than are left to refund.", shipping_refunded: "Shipping was already refunded.",
   stripe_failed: "Stripe didn't take the refund. Nothing was refunded; try again.", refund_failed: "The refund didn't go through. Nothing was refunded.",
   no_payment: "This order has no payment to refund.",
+  test_order: "Test orders never go to Printful.", not_paid: "Only paid orders can go to Printful.",
+};
+/** Where a merch order stands with Printful, in a line. */
+const PRINTFUL_LINE: Record<string, string> = {
+  creating: "Making the Printful draft…",
+  draft: "Waiting in Printful as a draft. Nothing is charged until you send it.",
+  pending: "Sent to Printful. Waiting for Printful to accept it.",
+  inreview: "Printful is reviewing it.",
+  inprocess: "Printful is making it.",
+  onhold: "On hold at Printful. Open Printful to sort it out.",
+  partial: "Printful shipped part of it.",
+  fulfilled: "Printful shipped it.",
+  failed: "Printful didn't take it.",
+  canceled: "Canceled at Printful.",
+  test: "Test order: Printful priced it, and nothing was made there.",
 };
 const errorText = (code?: string) => ERRORS[code ?? ""] ?? "That didn't work.";
 const EVENT_STATUS: Record<string, "primary" | "success" | "warning" | "info" | "default"> = { placed: "primary", shipped: "success", refunded: "warning", canceled: "warning", restocked: "info", reshipped: "info" };
@@ -146,6 +161,7 @@ function OrdersPanel() {
 
 function OrderModal({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
   const toast = useToast();
+  const confirm = useConfirm();
   const [order, setOrder] = useState<AdminOrderDetail | null>(null);
   const [tracking, setTracking] = useState("");
   const [note, setNote] = useState("");
@@ -162,11 +178,17 @@ function OrderModal({ id, onClose, onChanged }: { id: string; onClose: () => voi
     setBusy(true);
     const d = await fetch(`/api/admin/shop/orders/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()).catch(() => null);
     setBusy(false);
-    if (!d?.ok) { toast.error(errorText(d?.error)); return false; }
+    if (!d?.ok) { toast.error(d?.error === "printful" && d?.message ? `Printful: ${d.message}` : errorText(d?.error)); return false; }
     setOrder(d.order);
     toast.success(done);
+    if (d.printfulCanceled === false && d.printfulReason) toast.error(`Printful didn't cancel it: ${d.printfulReason}. Cancel it in Printful.`);
     onChanged();
     return true;
+  };
+  const sendToPrintful = async () => {
+    if (!order) return;
+    if (!(await confirm({ title: `Send ${order.code} to Printful?`, body: "Printful charges for it now and starts making it.", confirmLabel: "Send to Printful" }))) return;
+    await act({ action: "printful_send" }, "Sent to Printful");
   };
 
   return (
@@ -186,7 +208,7 @@ function OrderModal({ id, onClose, onChanged }: { id: string; onClose: () => voi
                 {order.name}<br />{order.address.line1}{order.address.line2 ? <><br />{order.address.line2}</> : null}<br />{order.address.city}, {order.state} {order.address.postal}
               </address>
               <p className="admin-table__sub">{order.email}{order.phone ? ` · ${order.phone}` : ""}</p>
-              <p className="admin-table__sub">USPS Ground Advantage · {order.shipWeightOz} oz with packaging</p>
+              <p className="admin-table__sub">{order.merch ? `Printful ships it${order.carrier && order.status === "shipped" ? ` (${order.carrier})` : ""}` : `USPS Ground Advantage · ${order.shipWeightOz} oz with packaging`}</p>
             </section>
             <section>
               <h3 className="shop-admin__h">Items</h3>
@@ -208,7 +230,24 @@ function OrderModal({ id, onClose, onChanged }: { id: string; onClose: () => voi
             </section>
           </div>
 
-          {order.status === "paid" && (
+          {order.merch && (
+            <section className="shop-admin__action">
+              <h3 className="shop-admin__h">Printful</h3>
+              <p>{PRINTFUL_LINE[order.printful.status ?? ""] ?? (order.printful.status ? `Printful: ${order.printful.status}` : "Not in Printful yet.")}</p>
+              {order.printful.error && order.printful.status !== "test" && <Alert variant="warning">{order.printful.error}</Alert>}
+              <div className="shop-admin__row shop-admin__row--wrap">
+                {order.livemode && order.status === "paid" && (!order.printful.status || order.printful.status === "draft" || order.printful.status === "failed") && (
+                  <Button variant="primary" disabled={busy} onClick={() => void sendToPrintful()}>Send to Printful</Button>
+                )}
+                {order.livemode && order.status === "paid" && !order.printful.orderId && order.printful.status === "failed" && (
+                  <Button variant="secondary" disabled={busy} onClick={() => void act({ action: "printful_draft" }, "Draft made")}>Make the draft again</Button>
+                )}
+                {order.printful.orderId && <a href="https://www.printful.com/dashboard/default/orders" target="_blank" rel="noopener noreferrer">Open Printful (order {order.printful.orderId})</a>}
+              </div>
+              <p className="admin-table__sub">When Printful ships it, the order is marked shipped and the buyer gets the tracking email.</p>
+            </section>
+          )}
+          {order.status === "paid" && !order.merch && (
             <section className="shop-admin__action">
               <h3 className="shop-admin__h">Mark shipped</h3>
               <div className="shop-admin__row">
@@ -235,7 +274,7 @@ function OrderModal({ id, onClose, onChanged }: { id: string; onClose: () => voi
               {(order.status === "paid" || order.status === "shipped") && (
                 <Button variant="danger" size="small" disabled={busy} onClick={() => setRefunding(true)}>Refund</Button>
               )}
-              {(order.status === "refunded" || order.status === "canceled") && !order.restocked && order.refundReason !== "cant_ship_address" && (
+              {(order.status === "refunded" || order.status === "canceled") && !order.restocked && !order.merch && order.refundReason !== "cant_ship_address" && (
                 <Button variant="secondary" size="small" disabled={busy} onClick={() => void act({ action: "restock" }, "Back in stock")}>Put back in stock</Button>
               )}
               {order.email && <Button variant="ghost" size="small" disabled={busy} onClick={() => void act({ action: "resend" }, "Confirmation sent")}>Resend confirmation</Button>}

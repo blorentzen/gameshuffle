@@ -231,14 +231,14 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     status: "new",
     h1: "The Mario Kart Discord bot for competitive servers",
     heroSubhead:
-      "Time trials with server records, anyone's lounge MMR and what each place pays in a room, for Mario Kart World and Mario Kart 8 Deluxe. Free.",
+      "Time trials with server records, anyone's lounge MMR and what each place pays in a room, for Mario Kart 8 Deluxe and Mario Kart World. Free.",
     heroImage: "/images/discord/comp-hero.webp",
     heroImageAlt: "A checkered band in black and ice",
     toolHref: "/discord/add?app=comp",
     toolCtaLabel: "Add it to Discord, free",
     toolPlain: true,
     overview:
-      "GameShuffle Competitive is a Discord bot for Mario Kart war and lounge servers, from GameShuffle. A server posts a time trial panel with /tt panel, and members add times from their result screenshot: the bot reads the track and the time, and the member checks them before anything saves. A time that beats the server's record is posted in the panel's channel with Verify and Report. /mmr shows any lounge player's MMR, division and last ten events from MKCentral's lounge, and /room shows a room's average, your seed and what each place pays. Times count on GameShuffle's time trial boards, and a linked GameShuffle account keeps them on your profile. It covers Mario Kart World and Mario Kart 8 Deluxe and leaves the daily games to the main GameShuffle bot.",
+      "GameShuffle Competitive is a Discord bot for Mario Kart war and lounge servers, from GameShuffle. A server posts a time trial panel with /tt panel, and members add times from their result screenshot: the bot reads the track and the time, and the member checks them before anything saves. A time that beats the server's record is posted in the panel's channel with Verify and Report. /mmr shows any lounge player's MMR, division and last ten events from MKCentral's lounge, and /room shows a room's average, your seed and what each place pays. Times count on GameShuffle's time trial boards, and a linked GameShuffle account keeps them on your profile. It covers Mario Kart 8 Deluxe and Mario Kart World and leaves the daily games to the main GameShuffle bot.",
     featuresHeading: "What it does",
     features: [
       { icon: "layout-grid", title: "A time trial panel", description: "One pinned message with this month's numbers, the newest server records and buttons to add a time, see a top ten or your own times." },

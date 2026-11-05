@@ -21,6 +21,7 @@ import { SITE_URL } from "@/lib/seo";
 import type { RoomStart, RoomState, RoomWarChoice } from "@/lib/wars/room";
 import { WarScreen } from "./WarScreen";
 import { TtScreen } from "./TtScreen";
+import { CansScreen } from "./CansScreen";
 import { TeamMark } from "./bits";
 import { warSdk } from "./sdk";
 import "@/styles/war-room.css";
@@ -130,6 +131,7 @@ function Screens({ session }: { session: string }) {
       tabs={[
         { id: "war", label: "War room", content: <Room session={session} /> },
         { id: "tt", label: "Time trials", content: <TtScreen auth={auth} /> },
+        { id: "cans", label: "Cans", content: <CansScreen auth={auth} /> },
       ]}
     />
   );
@@ -207,10 +209,11 @@ function PickWar({ wars, onPick, onStart }: { wars: RoomWarChoice[]; onPick: (id
 type Team = { tag: string; name: string | null; logo: string | null; from?: string };
 
 function StartWar({ start, auth, act, onBack }: { start: RoomStart; auth: (init?: RequestInit) => RequestInit; act: (b: Record<string, unknown>) => Promise<boolean>; onBack?: () => void }) {
-  const [q, setQ] = useState("");
+  // A lineup locked with /cans for about now fills in the other team and ours.
+  const [q, setQ] = useState(start.lineup?.vs ?? "");
   const [teams, setTeams] = useState<Team[]>([]);
-  const [vs, setVs] = useState<Team | null>(null);
-  const [us, setUs] = useState(start.us?.tag ?? "");
+  const [vs, setVs] = useState<Team | null>(start.lineup?.vs ? { tag: start.lineup.vs, name: null, logo: null } : null);
+  const [us, setUs] = useState(start.us?.tag ?? start.lineup?.tag ?? "");
   const [game, setGame] = useState(start.game);
   const [busy, setBusy] = useState(false);
 
@@ -235,6 +238,12 @@ function StartWar({ start, auth, act, onBack }: { start: RoomStart; auth: (init?
   return (
     <section className="wr-panel" aria-labelledby="wr-start">
       <h1 id="wr-start" className="wr-h">Start a war</h1>
+      {start.lineup && (
+        <div className="wr-lineup">
+          <span className="wr-label">Lineup locked for {new Date(start.lineup.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}{start.lineup.vs ? ` vs ${start.lineup.vs}` : ""}</span>
+          <p className="wr-note">{start.lineup.players.join(", ")}{start.lineup.subs.length ? ` · sub ${start.lineup.subs.join(", ")}` : ""}</p>
+        </div>
+      )}
       <div className="wr-field">
         <label htmlFor="wr-vs">Who you&apos;re playing</label>
         <Input id="wr-vs" iconBefore={IconSearch} value={q} onChange={(e) => { setQ(e.target.value); setVs(null); }} placeholder="Search teams or type a tag" fullWidth autoComplete="off" />
@@ -259,8 +268,8 @@ function StartWar({ start, auth, act, onBack }: { start: RoomStart; auth: (init?
       <div className="wr-field" role="group" aria-labelledby="wr-game-l">
         <span id="wr-game-l" className="wr-label">Game</span>
         <div className="wr-row">
-          <Button variant={game === "mkworld" ? "primary" : "secondary"} aria-pressed={game === "mkworld"} onClick={() => setGame("mkworld")}>Mario Kart World</Button>
           <Button variant={game === "mk8dx" ? "primary" : "secondary"} aria-pressed={game === "mk8dx"} onClick={() => setGame("mk8dx")}>Mario Kart 8 Deluxe</Button>
+          <Button variant={game === "mkworld" ? "primary" : "secondary"} aria-pressed={game === "mkworld"} onClick={() => setGame("mkworld")}>Mario Kart World</Button>
         </div>
       </div>
       <p className="wr-help">The card goes in {start.channel ? `#${start.channel}` : "this channel"}, so everyone outside the call sees the score too.</p>

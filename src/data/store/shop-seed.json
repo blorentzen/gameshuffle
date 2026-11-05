@@ -207,8 +207,8 @@
     ],
     "shipping_rate_display_name": "Free shipping",
     "shipping_estimate_business_days": {
-      "min": 3,
-      "max": 7
+      "min": 4,
+      "max": 10
     },
     "automatic_tax": true,
     "allow_promotion_codes": true,
@@ -216,17 +216,18 @@
     "_blocked_states": "Stripe's US address form lists the Armed Forces codes and the territories as states; orders to them are refunded (50 states and DC only)."
   },
   "shipping": {
-    "_rule": "Every order ships tracked by USPS Ground Advantage (Britton, 2026-10-09): $4.99 under $25, free at $25 and up (subtotal before tax). stamped_mail false switches off the letter and flat methods below; set it true to bring them back (1 single = letter, 2 to flat_max_singles = flat).",
+    "_rule": "Merch (Britton's picks 2026-11-03): $4.99 shipping, free from $50 (subtotal before tax), US only; Printful makes and ships every order. The card packs' rule was $4.99 under $25, free from $25, shipped by Britton by USPS Ground Advantage. stamped_mail false switches off the letter and flat methods below; set it true to bring them back (1 single = letter, 2 to flat_max_singles = flat).",
     "stamped_mail": false,
     "rate": {
-      "free_threshold_cents": 2500,
+      "free_threshold_cents": 5000,
       "standard_cents": 499,
-      "standard_label": "USPS Ground Advantage",
+      "standard_label": "Standard shipping",
       "free_label": "Free shipping",
       "tax_code": "txcd_92010001"
     },
     "flat_max_singles": 4,
-    "ship_within_business_days": 2,
+    "ship_within_business_days": 5,
+    "_ship_within_business_days": "Merch is made to order: Printful usually ships within 2 to 5 business days (embroidery takes the longest). The card packs shipped within 2.",
     "timezone": "America/Los_Angeles",
     "packaging_oz": {
       "letter": 0.5,
@@ -256,7 +257,8 @@
     "_no_ship_days": "USPS holidays (and any day Britton won't ship) inside the shop window; the ship-by date skips them and weekends."
   },
   "holiday": {
-    "banner_start": "2026-12-01T00:00:00-08:00",
+    "_merch": "Off for merch (banner_start = banner_end): these cutoffs were for packs Britton shipped himself. Set them from Printful's holiday shipping dates, then move banner_start back to Dec 1.",
+    "banner_start": "2026-12-26T00:00:00-08:00",
     "cutoff_lower48": "2026-12-13T23:59:59-08:00",
     "cutoff_ak_hi": "2026-12-12T23:59:59-08:00",
     "banner_end": "2026-12-26T00:00:00-08:00",
@@ -273,7 +275,7 @@
   "utm": {
     "source": "gameshuffle",
     "medium": "site",
-    "campaign": "holiday-drop",
+    "campaign": "merch",
     "placements": [
       "nav",
       "home-band",

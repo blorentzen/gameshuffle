@@ -9,6 +9,9 @@ import "server-only";
 import sharp from "sharp";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
+import { boardForBody, partsFor, type TtParts } from "./parts";
+import type { TtVehicle } from "./categories";
+import { flagUrl } from "@/lib/lounge/flags";
 import { draftStructured } from "@/lib/ai/claude";
 import { withAiTokens } from "@/lib/ai/tokens";
 import { aiUsedToday, recordAiUse } from "@/lib/ai/usage";
@@ -48,6 +51,11 @@ export interface ScreenshotRead {
   laps: number[] | null;
   /** When the picture isn't a time trial result. */
   notResult: boolean;
+  /** The parts the screen names (the ghost data screen does), matched to our data, and the body's vehicle board. */
+  parts: TtParts | null;
+  board: TtVehicle | null;
+  /** The flag beside the player's name (their Switch country), as a two-letter code. */
+  flag: string | null;
 }
 
 export type ReadResult = { ok: true; read: ScreenshotRead; left: number } | { ok: false; error: "cap" | "not_configured" | "failed" };
@@ -66,6 +74,10 @@ const SCHEMA = z.object({
   speed: z.enum(["150cc", "200cc", "unknown"]),
   time: z.string().nullable(),
   laps: z.array(z.string()).describe("Each lap time in order, exactly as shown (for example 34.112 or 0:34.112); empty if the laps aren't shown or any digit can't be read"),
+  vehicle: z.string().nullable().describe("The vehicle body's name exactly as written on the screen, or null"),
+  wheels: z.string().nullable().describe("The wheels' name exactly as written, or null"),
+  glider: z.string().nullable().describe("The glider's name exactly as written, or null"),
+  flag: z.string().nullable().describe("The country of the flag beside the player's name, as a two-letter ISO code (us, jp, fr), or null"),
 });
 
 function prompt(game: TtGame | null): string {
@@ -80,6 +92,8 @@ Return:
 - speed: 150cc or 200cc if shown, else "unknown".
 - time: the total time for the 3 laps exactly as shown, as m:ss.mmm (for example 1:52.384), or null if you can't read every digit. Not a lap time.
 - laps: each lap's time in order, exactly as shown next to the total (most courses have 3 laps; a few show more sections). An empty list if the laps aren't on the screen or you can't read every digit of every lap.
+- vehicle, wheels, glider: the parts' names exactly as written on the screen (the ghost data screen lists them). Null for any part the screen doesn't write out; don't name a part from how the vehicle looks.
+- flag: the country of the flag shown beside the player's name, as a two-letter code, or null if there's no flag.
 
 ${lists}`;
 }
@@ -116,6 +130,8 @@ export async function readScreenshot(args: { jpeg: Buffer; game: TtGame | null; 
   const track = d.track ? matchTrack(d.track, game ?? undefined) : null;
   const cc = d.speed === "200cc" ? 200 : d.speed === "150cc" ? 150 : null;
   const finalGame = track?.game ?? game;
+  const parts = finalGame ? partsFor(finalGame, d) : null;
+  const flag = d.flag?.trim().toLowerCase() ?? null;
   return {
     ok: true,
     left: Math.max(0, left - 1),
@@ -127,6 +143,9 @@ export async function readScreenshot(args: { jpeg: Buffer; game: TtGame | null; 
       timeMs: d.time ? parseTime(d.time) : null,
       laps: lapsOf(d.laps),
       notResult: !d.isTimeTrialResult,
+      parts,
+      board: parts && finalGame ? boardForBody(finalGame, parts.body) : null,
+      flag: flag && /^[a-z]{2}$/.test(flag) && flagUrl(flag) ? flag : null,
     },
   };
 }

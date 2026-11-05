@@ -7,6 +7,7 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isOnSale, type ProductKind } from "./config";
+import { PERSONAL, type PersonalProduct } from "./personal";
 
 export class ShopNotReady extends Error {
   constructor() { super("The shop needs supabase/shop-m1.sql"); this.name = "ShopNotReady"; }
@@ -31,12 +32,19 @@ export interface ShopProduct {
   shipWeightOz: number;
   imageUrl: string | null;
   sortOrder: number;
+  /** Merch (merch-m1.sql): the shop product it belongs to, and its color and size or phone. Null for card packs. */
+  listingId: string | null;
+  color: string | null;
+  optionValue: string | null;
+  /** Made when ordered: the kind of pick and the ink its print files use (null for everything else). */
+  personal: PersonalProduct | null;
 }
 
 type Row = {
   sku: string; kind: ProductKind; category: string; name: string; blurb: string | null; description: string | null; contents: string[] | null;
   price_cents: number; stripe_price_id: string | null; active: boolean; inactive_after: string | null;
   stock_available: number; max_per_order: number; ship_weight_oz: number | string; image_url: string | null; sort_order: number;
+  listing_id?: string | null; color?: string | null; option_value?: string | null; printful_sync_product_id?: number | string | null;
 };
 
 /** Every product in shelf order; `onlyOnSale` drops inactive and ended ones. */
@@ -59,6 +67,8 @@ export async function listShopProducts(opts: { onlyOnSale?: boolean } = {}): Pro
         priceCents: r.price_cents, stripePriceId: r.stripe_price_id, onSale: isOnSale(r, now),
         stock: r.stock_available, held: a?.held ?? 0, available: a?.available ?? Math.max(0, r.stock_available),
         maxPerOrder: r.max_per_order, shipWeightOz: Number(r.ship_weight_oz), imageUrl: r.image_url, sortOrder: r.sort_order,
+        listingId: r.listing_id ?? null, color: r.color ?? null, optionValue: r.option_value ?? null,
+        personal: r.printful_sync_product_id ? PERSONAL.products[String(r.printful_sync_product_id)] ?? null : null,
       };
     })
     .filter((p) => !opts.onlyOnSale || p.onSale);

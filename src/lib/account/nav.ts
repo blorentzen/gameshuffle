@@ -95,6 +95,8 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "setups", label: "Saved configs", iconName: "bookmark" },
       // Your own Chance cards, missions and house rules (moved from Streaming ▸ Game defaults).
       { id: "decks", label: "Decks", iconName: "cards" },
+      // Your uploaded GIFs (the GIF button beside comments picks from them).
+      { id: "gifs", label: "GIFs", iconName: "photo" },
       // Your Pokémon cards and your TCG deck lists (not the game-night Decks above).
       { id: "my-cards", label: "My Collection", iconName: "stack-2", tabs: [
         { id: "my-cards", label: "Cards" },
@@ -169,7 +171,8 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-switches", label: "Switches", iconName: "settings", group: "Run the site" },
       { id: "platform-shop-orders", label: "Shop", iconName: "shopping-cart", group: "Shop", tabs: [
         { id: "platform-shop-orders", label: "Orders" },
-        { id: "platform-shop-products", label: "Products" },
+        { id: "platform-shop-merch", label: "Merch" },
+        { id: "platform-shop-products", label: "Card packs" },
         { id: "platform-shop-states", label: "States" },
         { id: "platform-shop", label: "Featured cards" },
       ] },
@@ -194,10 +197,12 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-tournaments", label: "Events", iconName: "award", group: "Community", tabs: [
         { id: "platform-tournaments", label: "Tournaments" },
         { id: "platform-ticketing", label: "Ticket sales" },
+        { id: "platform-series", label: "Series" },
       ] },
       { id: "platform-ladders", label: "GS Ranked", iconName: "award", group: "Community" },
       { id: "platform-moderation", label: "People", iconName: "users", group: "Community", tabs: [
         { id: "platform-moderation", label: "Moderation" },
+        { id: "platform-gifs", label: "GIFs" },
         { id: "platform-time-trials", label: "Time trials" },
         { id: "platform-staff", label: "Staff & roles" },
       ] },

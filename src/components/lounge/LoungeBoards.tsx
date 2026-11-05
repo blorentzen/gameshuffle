@@ -11,7 +11,7 @@
 import { useState, type ReactNode } from "react";
 import { Tabs } from "@empac/cascadeds";
 import { LabeledSubNav } from "@/components/ui/LabeledSubNav";
-import { MMR_GAMES, MMR_GAME_IDS, type MmrGame } from "@/lib/mmr/rules";
+import { MMR_GAMES, MMR_GAME_IDS, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { EVENTS, track } from "@/lib/analytics/events";
 
 export interface BoardTab { id: string; label: string; content: ReactNode }
@@ -27,7 +27,7 @@ export function LoungeBoards({ tabs, initial, game, scope }: {
   const [active, setActive] = useState(tabs.some((t) => t.id === initial) ? initial : first);
   const href = (g: MmrGame) => {
     const q = new URLSearchParams();
-    if (g !== "mkworld12p") q.set("game", g);
+    if (g !== DEFAULT_MMR_GAME) q.set("game", g);
     if (active !== first) q.set("board", active);
     if (active === "gs" && scope) q.set("scope", scope);
     const s = q.toString();

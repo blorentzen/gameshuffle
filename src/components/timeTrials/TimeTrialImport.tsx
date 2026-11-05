@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Alert, Button, Checkbox, Chip, FormField, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, Textarea } from "@empac/cascadeds";
+import { Accordion, Alert, Button, Checkbox, Chip, FormField, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Tabs, Textarea } from "@empac/cascadeds";
 import { IconBrandDiscord, IconCloudDownload, IconPhoto, IconSparkles, IconUsers, IconVideo } from "@tabler/icons-react";
 import { TtTypeIn } from "./TtTypeIn";
 import { TtPasteHelp } from "./TtPasteHelp";
@@ -22,7 +22,8 @@ import { track as trackEvent, EVENTS } from "@/lib/analytics/events";
 import { formatTime } from "@/lib/timeTrials/rules";
 import { bestPerTrack } from "@/lib/timeTrials/importText";
 import type { CheckRow } from "@/lib/timeTrials/importRows";
-import { gamePath, TT_GAMES, TT_GAME_ORDER, ttCups, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { gamePath, TT_GAMES, TT_GAME_ORDER, ttCups, ttTrack, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { TtAddShot } from "./TtAddShot";
 import type { TtItems } from "@/lib/timeTrials/categories";
 
 const ERRORS: Record<string, string> = {
@@ -71,7 +72,7 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
   /** Tracks picked for names the reader didn't know, by row: remembered on save (pick 2A). */
   const [picked, setPicked] = useState<Record<number, { alias: string; trackId: string }>>({});
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<{ saved: number; already: number; refused: number } | null>(null);
+  const [saved, setSaved] = useState<{ saved: number; already: number; refused: number; times: { id: string; track: string; cc: number; timeMs: number }[] } | null>(null);
   const groups = useMemo(() => ttCups(game).map((c) => ({ label: c.cup, options: c.tracks.map((t) => ({ value: t.id, label: t.name })) })), [game]);
   const classes = TT_GAMES[game].classes;
   const command = game === "mk8dx" ? "/dx display_time" : "/display_time";
@@ -156,9 +157,9 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ game, items: meta?.items ?? "shrooms", rows: toSave.map((r) => ({ track: r.trackId, cc: r.cc, time: r.timeMs, video: r.video ?? null })), learned: Object.values(picked) }),
       });
-      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; saved?: number; already?: number; refused?: number; error?: string };
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; saved?: number; already?: number; refused?: number; times?: { id: string; track: string; cc: number; timeMs: number }[]; error?: string };
       if (!res.ok || !j.ok) { setError(ERRORS[j.error ?? ""] ?? "Those times couldn't be saved. Try again."); return; }
-      setSaved({ saved: j.saved ?? 0, already: j.already ?? 0, refused: j.refused ?? 0 });
+      setSaved({ saved: j.saved ?? 0, already: j.already ?? 0, refused: j.refused ?? 0, times: j.times ?? [] });
       trackEvent(EVENTS.ttImported, { game, count: j.saved ?? 0, from: meta?.from ?? "paste" });
       setRows(null); setText(""); setMeta(null); setPicked({});
     } finally {
@@ -259,6 +260,29 @@ export function TimeTrialImport({ discordAppId, draftId }: { discordAppId: strin
           {saved.refused ? `${saved.refused} ${saved.refused === 1 ? "was" : "were"} faster than the world record and stayed out. ` : ""}
           <ArrowLink href={gamePath(game)}>See your times</ArrowLink>
         </Alert>
+      )}
+      {saved && saved.times.length > 0 && (
+        <Accordion
+          variant="flush"
+          className="tt-import__shots"
+          items={[{
+            id: "shots",
+            title: `Add screenshots (${saved.times.length})`,
+            content: (
+              <div className="tt-import__shotlist">
+                <p className="tt-note">Imported times have no proof yet. Add the result screenshot for any of them: we read the time off it, and if it shows something else an updater checks it.</p>
+                <ul>
+                  {saved.times.map((t) => (
+                    <li key={t.id}>
+                      <span>{ttTrack(game, t.track)?.name ?? t.track}{TT_GAMES[game].classes.length > 1 ? ` · ${t.cc}cc` : ""} · <b>{formatTime(t.timeMs)}</b></span>
+                      <TtAddShot timeId={t.id} game={game} timeMs={t.timeMs} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ),
+          }]}
+        />
       )}
 
       {rows && rows.length > 0 && (

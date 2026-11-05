@@ -41,6 +41,7 @@ import {
   IconCalendarEvent, IconSteeringWheel, IconShield, IconSword, IconHeart, IconTarget, IconFlame, IconCalendarWeek, IconAward, IconUsers, IconHeartHandshake, IconHome,
   IconPokeball, IconDroplet, IconLeaf, IconCoffee, IconServer,
   IconGhost, IconPumpkinScary, IconBat, IconSpider, IconCandy, IconMoonStars,
+  IconShirt, IconHanger, IconShoppingBag, IconDeviceMobile,
 } from "@tabler/icons-react";
 
 /**
@@ -117,6 +118,9 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
   /* The Daily Duel: gold on navy, a card duel against the trainer of the day. */
   duel: { feature: IconSwords, ramp: ["#0b1433", "#d99a1c"],
     glyphs: [IconSwords, IconCards, IconBolt, IconCrown, IconPokeball] },
+  /* Merch: a tee, a hanger, a bag and a phone (the shop sells cases too). */
+  merch: { feature: IconShirt, ramp: ["#1b2a6b", "#2766ec"],
+    glyphs: [IconShirt, IconHanger, IconShoppingBag, IconDeviceMobile, IconSparkles] },
   spooky: { feature: IconGhost, ramp: ["#2a1450", "#f08a1c"],
     glyphs: [IconGhost, IconPumpkinScary, IconBat, IconCandy, IconSpider, IconMoonStars] },
 };

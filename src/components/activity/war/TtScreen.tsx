@@ -2,7 +2,8 @@
 
 /**
  * The War room's Time trials tab (app screen pick 2A, https://claude.ai/artifact/5v2cNHwvZ4kh1E8EdzAzph): every
- * track's server record with your gap, then Add a time from a result screenshot dropped right here. Reads
+ * track's record with your gap, then Add a time from a result screenshot dropped right here. The boards switch like
+ * the website's: This server or Everyone (Everyone only outside a server), speed, mushrooms and vehicle. Reads
  * /api/activity/tt with the Activity session; a saved time joins the server's board, a fallen record is posted in the
  * panel channel and the panels refresh, as with /tt.
  */
@@ -12,13 +13,14 @@ import { Button, FormField, Input, Modal, Select } from "@empac/cascadeds";
 import { IconPhotoUp, IconPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { formatGap, formatTime, ordinal, parseTime } from "@/lib/timeTrials/rules";
-import type { TtRoomRead, TtRoomRow, TtRoomSaved, TtRoomView } from "@/lib/timeTrials/activityView";
+import type { TtRoomRead, TtRoomRow, TtRoomSaved, TtRoomScope, TtRoomView } from "@/lib/timeTrials/activityView";
+import type { TtVehicle } from "@/lib/timeTrials/categories";
 
 type Game = "mkworld" | "mk8dx";
 type Items = "shrooms" | "none";
 type Auth = (init?: RequestInit) => RequestInit;
 
-const GAMES: { id: Game; label: string }[] = [{ id: "mkworld", label: "Mario Kart World" }, { id: "mk8dx", label: "Mario Kart 8 Deluxe" }];
+const GAMES: { id: Game; label: string }[] = [{ id: "mk8dx", label: "Mario Kart 8 Deluxe" }, { id: "mkworld", label: "Mario Kart World" }];
 const READ_ERRORS: Record<string, string> = {
   cap: "That's all the screenshot reads for today. Type the time instead tomorrow, or use /tt add.",
   not_image: "That file isn't a picture we can open. Use a PNG, JPEG or WebP screenshot.",
@@ -44,33 +46,43 @@ function gapText(r: TtRoomRow): { text: string; tone: "rec" | "gap" | "none" } {
 }
 
 export function TtScreen({ auth }: { auth: Auth }) {
-  const [game, setGame] = useState<Game>("mkworld");
+  const [game, setGame] = useState<Game>("mk8dx");
   const [cc, setCc] = useState<number | null>(null);
   const [items, setItems] = useState<Items>("shrooms");
+  const [scope, setScope] = useState<TtRoomScope>("server");
+  const [vehicle, setVehicle] = useState<TtVehicle>("any");
   const [view, setView] = useState<TtRoomView | null>(null);
   const [failed, setFailed] = useState(false);
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
-    const q = new URLSearchParams({ game, items, ...(cc ? { cc: String(cc) } : {}) });
+    const q = new URLSearchParams({ game, items, scope, vehicle, ...(cc ? { cc: String(cc) } : {}) });
     const res = await fetch(`/api/activity/tt?${q}`, auth({ cache: "no-store" })).catch(() => null);
     if (!res?.ok) { setFailed(true); return; }
     setFailed(false);
     setView((await res.json()) as TtRoomView);
-  }, [auth, game, cc, items]);
+  }, [auth, game, cc, items, scope, vehicle]);
 
   useEffect(() => { const t = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(t); }, [load]);
 
-  const shown = view && view.game === game && view.items === items ? view : null;
+  // Outside a server the view answers Everyone whatever was asked.
+  const shown = view && view.game === game && view.items === items && view.vehicle === vehicle && (view.scope === scope || !view.canServer) ? view : null;
+  const canServer = view?.canServer ?? true;
   return (
     <section className="wr-tt" aria-labelledby="wr-tt-h">
       <h1 id="wr-tt-h" className="wr-sr">Time trials</h1>
       <div className="wr-tt__controls">
         <div className="wr-row" role="group" aria-label="Game">
           {GAMES.map((g) => (
-            <Button key={g.id} size="small" variant={game === g.id ? "primary" : "secondary"} aria-pressed={game === g.id} onClick={() => { setGame(g.id); setCc(null); }}>{g.label}</Button>
+            <Button key={g.id} size="small" variant={game === g.id ? "primary" : "secondary"} aria-pressed={game === g.id} onClick={() => { setGame(g.id); setCc(null); setVehicle("any"); }}>{g.label}</Button>
           ))}
         </div>
+        {canServer && (
+          <div className="wr-row" role="group" aria-label="Whose times">
+            <Button size="small" variant={scope === "server" ? "primary" : "secondary"} aria-pressed={scope === "server"} onClick={() => setScope("server")}>This server</Button>
+            <Button size="small" variant={scope === "everyone" ? "primary" : "secondary"} aria-pressed={scope === "everyone"} onClick={() => setScope("everyone")}>Everyone</Button>
+          </div>
+        )}
         <div className="wr-row" role="group" aria-label="Board">
           {(shown?.classes.length ?? 1) > 1 && shown!.classes.map((c) => (
             <Button key={c} size="small" variant={shown!.cc === c ? "primary" : "secondary"} aria-pressed={shown!.cc === c} onClick={() => setCc(c)}>{c}cc</Button>
@@ -78,6 +90,13 @@ export function TtScreen({ auth }: { auth: Auth }) {
           <Button size="small" variant={items === "shrooms" ? "primary" : "secondary"} aria-pressed={items === "shrooms"} onClick={() => setItems("shrooms")}>Mushrooms</Button>
           <Button size="small" variant={items === "none" ? "primary" : "secondary"} aria-pressed={items === "none"} onClick={() => setItems("none")}>No mushrooms</Button>
         </div>
+        {(view?.game === game ? view.vehicles.length : 0) > 1 && (
+          <div className="wr-tt__vehicle">
+            <FormField label="Vehicle" htmlFor="wr-tt-vehicle">
+              <Select id="wr-tt-vehicle" size="small" options={view!.vehicles.map((v) => ({ value: v.id, label: v.label }))} value={vehicle} onChange={(v) => setVehicle(String(v) as TtVehicle)} />
+            </FormField>
+          </div>
+        )}
       </div>
 
       {!shown ? (
@@ -86,7 +105,7 @@ export function TtScreen({ auth }: { auth: Auth }) {
         <>
           <div className="wr-tt__sum">
             <p className="wr-muted">
-              {shown.server ? `${shown.withRecord} of ${shown.rows.length} tracks have a record in ${shown.server}` : `${shown.withRecord} of ${shown.rows.length} tracks have a server record`}
+              {shown.scope === "everyone" ? `${shown.withRecord} of ${shown.rows.length} tracks have a record on GameShuffle` : shown.server ? `${shown.withRecord} of ${shown.rows.length} tracks have a record in ${shown.server}` : `${shown.withRecord} of ${shown.rows.length} tracks have a server record`}
               {shown.withMine ? ` · you have times on ${shown.withMine}` : ""}
             </p>
             <Button variant="primary" size="small" iconBefore={IconPlus} onClick={() => setAdding(true)}>Add a time</Button>
@@ -100,7 +119,7 @@ export function TtScreen({ auth }: { auth: Auth }) {
                   {r.image ? <img src={r.image} alt="" className="wr-tt__art" loading="lazy" /> : <span className="wr-tt__art wr-tt__art--blank" aria-hidden="true">{(r.code ?? r.name).slice(0, 3)}</span>}
                   <span className="wr-tt__track"><b>{r.code ?? r.name}</b>{r.code && <span>{r.name}</span>}</span>
                   <span className="wr-tt__rec">
-                    {r.record ? <><b>{formatTime(r.record.ms)}</b><span>{r.record.name}{!r.record.checked ? " · unverified" : ""}</span></> : <span className="wr-muted">No server record</span>}
+                    {r.record ? <><b>{formatTime(r.record.ms)}</b><span>{r.record.name}{!r.record.checked ? " · unverified" : ""}</span></> : <span className="wr-muted">{shown.scope === "everyone" ? "No record yet" : "No server record"}</span>}
                   </span>
                   <span className={`wr-tt__gap is-${gap.tone}`}>
                     {r.mine != null && !r.record?.mine && r.record && <span className="wr-tt__you">You {formatTime(r.mine)}</span>}
@@ -110,7 +129,7 @@ export function TtScreen({ auth }: { auth: Auth }) {
               );
             })}
           </ul>
-          {shown.boardUrl && <p className="wr-help"><a href={shown.boardUrl} target="_blank" rel="noopener noreferrer">This server&apos;s boards on GameShuffle<span className="wr-sr"> (opens in your browser)</span></a></p>}
+          <p className="wr-help"><a href={shown.boardUrl} target="_blank" rel="noopener noreferrer">{shown.scope === "server" ? <>This server&apos;s boards on GameShuffle</> : "These boards on GameShuffle"}<span className="wr-sr"> (opens in your browser)</span></a></p>
         </>
       )}
       {adding && shown && <AddTime view={shown} auth={auth} onClose={() => setAdding(false)} onSaved={() => void load()} />}
@@ -126,6 +145,7 @@ function AddTime({ view, auth, onClose, onSaved }: { view: TtRoomView; auth: Aut
   const [track, setTrack] = useState("");
   const [cc, setCc] = useState<number>(view.cc);
   const [items, setItems] = useState<Items>(view.items);
+  const [vehicle, setVehicle] = useState<TtVehicle>(view.vehicle);
   const [time, setTime] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<TtRoomSaved | null>(null);
@@ -157,7 +177,7 @@ function AddTime({ view, auth, onClose, onSaved }: { view: TtRoomView; auth: Aut
     if (!track) { setError(ADD_ERRORS.bad_track); return; }
     if (!ms) { setError(ADD_ERRORS.bad_time); return; }
     setSaving(true); setError(null);
-    const res = await fetch("/api/activity/tt", auth({ method: "POST", body: JSON.stringify({ action: "add", game: view.game, track, cc, items, time: ms, proofUrl: read.proofUrl, token: read.token }) })).catch(() => null);
+    const res = await fetch("/api/activity/tt", auth({ method: "POST", body: JSON.stringify({ action: "add", game: view.game, track, cc, items, vehicle, time: ms, proofUrl: read.proofUrl, token: read.token }) })).catch(() => null);
     const j = (await res?.json().catch(() => null)) as (TtRoomSaved & { error?: string }) | null;
     setSaving(false);
     if (!res?.ok || !j || j.error) { setError(ADD_ERRORS[j?.error ?? ""] ?? "That time couldn't be saved. Try again."); return; }
@@ -205,7 +225,7 @@ function AddTime({ view, auth, onClose, onSaved }: { view: TtRoomView; auth: Aut
             {/* eslint-disable-next-line @next/next/no-img-element -- through our own address, the only one Discord loads */}
             {read.preview && <img src={read.preview} alt="Your result screenshot" className="wr-add__shot" />}
             <FormField label="Track" htmlFor="wr-add-track">
-              <Select id="wr-add-track" options={trackOptions} value={track} onChange={(v) => setTrack(String(v))} placeholder="Pick the track" fullWidth />
+              <Select id="wr-add-track" options={trackOptions} value={track} onChange={(v) => setTrack(String(v))} placeholder="Pick the track" searchable fullWidth />
             </FormField>
             {view.classes.length > 1 && (
               <div className="wr-row" role="group" aria-label="Speed">
@@ -216,6 +236,11 @@ function AddTime({ view, auth, onClose, onSaved }: { view: TtRoomView; auth: Aut
               <Button size="small" variant={items === "shrooms" ? "primary" : "secondary"} aria-pressed={items === "shrooms"} onClick={() => setItems("shrooms")}>Mushrooms</Button>
               <Button size="small" variant={items === "none" ? "primary" : "secondary"} aria-pressed={items === "none"} onClick={() => setItems("none")}>No mushrooms</Button>
             </div>
+            {view.vehicles.length > 1 && (
+              <FormField label="Vehicle" htmlFor="wr-add-vehicle" helperText="For the vehicle boards; any other vehicle counts on the open board">
+                <Select id="wr-add-vehicle" options={view.vehicles.map((v) => ({ value: v.id, label: v.id === "any" ? "Something else" : v.label }))} value={vehicle} onChange={(v) => setVehicle(String(v) as TtVehicle)} fullWidth />
+              </FormField>
+            )}
             <FormField label="Time" htmlFor="wr-add-time" helperText="As the screen shows it, like 1:52.384">
               <Input id="wr-add-time" value={time} onChange={(e) => setTime(e.target.value)} inputMode="decimal" autoComplete="off" fullWidth />
             </FormField>

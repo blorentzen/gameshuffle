@@ -31,7 +31,7 @@ import { discordActor } from "@/lib/timeTrials/players";
 import { boardFor, noteGuildPlayer, playerBests, ttReady } from "@/lib/timeTrials/store";
 import { readScreenshot, storeScreenshot } from "@/lib/timeTrials/read";
 import { categoryText, isItems, vehicleFor, vehicleOptions, type TtItems, type TtVehicle } from "@/lib/timeTrials/categories";
-import { formatLap, formatTime, lapsAddUp, parseTime } from "@/lib/timeTrials/rules";
+import { COMMUNITY_VOUCHES, formatLap, formatTime, lapsAddUp, parseTime } from "@/lib/timeTrials/rules";
 import { isClassFor, ttCups, ttTrack, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame, type TtTrack } from "@/lib/timeTrials/tracks";
 import { trackCode, trackTitle } from "@/lib/timeTrials/codes";
 import { boardUrl, editOriginal, fetchAttachment, guildName, playerReply, LINK_URL, TT_NO_PREFIX, TT_OK_PREFIX, type Attachment } from "./timeTrials";
@@ -284,7 +284,7 @@ async function boardMessage(s: BoardState, viewer: string, guildId: string | nul
   const track = ttTrack(s.game, s.track)!;
   const scope = guildId ? s.scope : "everyone";
   const board = await boardFor({ game: s.game, track: s.track, cc: s.cc, items: s.items, vehicle: "any", scope, viewer: viewer as never, guildId, limit: 10 });
-  const lines = board.rows.map((r) => `${r.rank}. ${r.name} · **${formatTime(r.timeMs)}**${r.top ? (r.video === "checked" ? " · Verified" : " · Unverified") : ""}`);
+  const lines = board.rows.map((r) => `${r.rank}. ${r.name} · **${formatTime(r.timeMs)}**${r.video === "checked" ? " · Verified" : r.vouches >= COMMUNITY_VOUCHES ? " · Community verified" : r.top ? " · Unverified" : ""}`);
   if (board.mine && !shared) lines.push(`…\n${board.mine.rank}. You · **${formatTime(board.mine.timeMs)}**`);
   const embed = {
     title: `${trackTitle(track)} · ${categoryText(s.game, s.cc, s.items, "any", TT_GAMES[s.game].classes.length > 1)}`,

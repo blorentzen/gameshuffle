@@ -18,7 +18,7 @@ import { TableScroll } from "@/components/ui/TableScroll";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { divisionLook } from "@/lib/mmr/look";
-import { MMR_GAMES, isMmrGame, stepsFrom, type MmrGame } from "@/lib/mmr/rules";
+import { MMR_GAMES, isMmrGame, stepsFrom, type MmrGame, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { boardRows, climbers as gsClimbers, linksFor, type BoardScope } from "@/lib/lounge/store";
 import { climbers as weekClimbRows, divisionTable, type LeaderRow } from "@/lib/lounge/lookup";
 import { seasonSummary, tablesWaiting, weekClimbers, worldTop } from "@/lib/lounge/lookupServer";
@@ -55,7 +55,7 @@ const SCOPES: { id: BoardScope; label: string }[] = [
 ];
 const fmt = (n: number | null | undefined) => (n == null ? "?" : Math.round(n).toLocaleString("en-US"));
 const signed = (n: number) => (n > 0 ? `+${fmt(n)}` : n < 0 ? `−${fmt(Math.abs(n))}` : "0");
-const playerHref = (name: string, game: MmrGame) => `/lounge/${encodeURIComponent(name)}${game === "mkworld12p" ? "" : `?game=${game}`}`;
+const playerHref = (name: string, game: MmrGame) => `/lounge/${encodeURIComponent(name)}${game === DEFAULT_MMR_GAME ? "" : `?game=${game}`}`;
 const isScope = (v: unknown): v is BoardScope => SCOPES.some((s) => s.id === v);
 
 /** A player in a board: emblem, name (a link to their page), division and country under it. */
@@ -73,7 +73,7 @@ function PlayerCell({ r, game }: { r: Pick<LeaderRow, "name" | "division" | "cou
 
 export default async function LoungePage({ searchParams }: { searchParams: Promise<{ game?: string; board?: string; scope?: string }> }) {
   const sp = await searchParams;
-  const game: MmrGame = isMmrGame(sp.game) ? sp.game : "mkworld12p";
+  const game: MmrGame = isMmrGame(sp.game) ? sp.game : DEFAULT_MMR_GAME;
   // ?board= picks the tab; the old board names (everyone, friends, crew, country) open On GameShuffle with that scope.
   const board: BoardId = BOARDS.includes(sp.board as BoardId) ? (sp.board as BoardId) : isScope(sp.board) ? "gs" : "world";
   const scope: BoardScope = isScope(sp.scope) ? sp.scope : isScope(sp.board) ? sp.board : "everyone";
@@ -161,7 +161,7 @@ export default async function LoungePage({ searchParams }: { searchParams: Promi
 
   const gsHref = (s: BoardScope) => {
     const q = new URLSearchParams();
-    if (game !== "mkworld12p") q.set("game", game);
+    if (game !== DEFAULT_MMR_GAME) q.set("game", game);
     q.set("board", "gs");
     if (s !== "everyone") q.set("scope", s);
     return `/lounge?${q.toString()}#boards`;

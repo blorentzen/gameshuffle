@@ -11,7 +11,7 @@ import { sendChatMessage } from "@/lib/twitch/client";
 import { cardFor, liveFor, lookInUse } from "@/lib/mmr/store";
 import { LoungeUnavailable, divisionSteps, loungePlayer } from "@/lib/mmr/mkcentral";
 import { ladderPlayerByName } from "@/lib/mmr/ladderSource";
-import { MMR_GAMES, fmtMmr, placeWord, rankText, signed, sourceLabel, viewOf, type MmrGame, type MmrSource, type MmrView } from "@/lib/mmr/rules";
+import { MMR_GAMES, fmtMmr, placeWord, rankText, signed, sourceLabel, viewOf, type MmrGame, type MmrSource, type MmrView, DEFAULT_MMR_GAME } from "@/lib/mmr/rules";
 import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
 import { gameForSlug } from "@/lib/mmr/rules";
 import { goalChat, goalProgress } from "@/lib/mmr/goal";
@@ -59,7 +59,7 @@ export async function handleMmrCommand(ctx: ShuffleContext, args: string): Promi
       const src = await ladderPlayerByName(inUse.look.ladder, name).catch(() => null);
       if (src) { await say(mmrLine({ ...src, avatar: null }, { tonight: false })); return; }
     }
-    const prefer: MmrGame = inUse ? inUse.look.game : "mkworld12p";
+    const prefer: MmrGame = inUse ? inUse.look.game : DEFAULT_MMR_GAME;
     const game = gameForSlug(session?.randomizer_slug ?? null, prefer) ?? prefer;
     try {
       const [player, steps] = await Promise.all([loungePlayer({ name }, game), divisionSteps(game)]);

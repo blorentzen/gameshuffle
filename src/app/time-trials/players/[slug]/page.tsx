@@ -19,6 +19,10 @@ import { countryOf, fillFromLounge } from "@/lib/timeTrials/countries";
 import { countryCodes, flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
 import { TtCountryPicker } from "@/components/timeTrials/TtCountryPicker";
+import { TtClaimButton } from "@/components/timeTrials/TtClaimButton";
+import { StatusChip } from "@/components/timeTrials/TtTimeWindow";
+import { claimView, listedPlayer } from "@/lib/timeTrials/claims";
+import { sheetTimeIds } from "@/lib/timeTrials/store";
 import { playerPagePath, readPlayerSlug } from "@/lib/timeTrials/playerPath";
 import { isClassFor, trackPath, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 import "@/styles/time-trials.css";
@@ -78,10 +82,14 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
   const actor = await siteActor();
   const own = !!actor && actor.player === who.player;
   // Their country (round 3 pick 6A): filled in from a confirmed lounge name the first time they look, else picked here.
-  const [bests, country] = await Promise.all([
+  const [bests, country, listed] = await Promise.all([
     playerBests(who.player as TtPlayer),
     own ? fillFromLounge(who.player).then((c) => c ?? null) : countryOf(who.player).then((c) => c?.country ?? null),
+    listedPlayer(who.player),
   ]);
+  // A Top 10 sheet listing (round 4): "This is me", and the sheet's mark instead of Unverified.
+  const claim = listed ? await claimView(listed.identityId, actor?.userId ?? null) : null;
+  const fromSheet = await sheetTimeIds(bests.filter((b) => b.place <= TOP_TEN).map((b) => b.timeId));
   const games = TT_GAME_ORDER.filter((g) => bests.some((b) => b.game === g));
   const game: TtGame = TT_GAME_ORDER.includes(sp.game as TtGame) ? (sp.game as TtGame) : games[0] ?? "mk8dx";
   const info = TT_GAMES[game];
@@ -123,7 +131,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
       <BrowseHero
         eyebrow="Time trials"
         title={who.name}
-        sub={`${country ? `${countryName(country)}. ` : ""}${who.discord ? "Plays from Discord. Best times on every board, with their place." : "Best times on every board, with their place."}`}
+        sub={`${country ? `${countryName(country)}. ` : ""}${listed ? "Listed from the Top 10 sheets. Best times on every board, with their place." : who.discord ? "Plays from Discord. Best times on every board, with their place." : "Best times on every board, with their place."}`}
         accent="blue"
         field="compete"
         compact
@@ -138,9 +146,14 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
             <TtCountryPicker initial={country} codes={countryCodes()} />
           </section>
         )}
+        {listed && claim && !claim.taken && (
+          <section className="tt-sec tt-sec--flat tt-claim-sec" aria-label="Is this you?">
+            <TtClaimButton player={who.player} name={who.name} signedIn={!!actor} state={claim.mine} returnTo={base} />
+          </section>
+        )}
         <section className="tt-sec tt-sec--flat" aria-label="Totals">
           <dl className="tt-stats">
-            <div><dt>Tracks</dt><dd>{tracks} of {ttTracks(game).length}</dd><small>{categoryText(game, cc, items, vehicle, info.classes.length > 1)}</small></div>
+            <div><dt>Tracks</dt><dd>{tracks} of {ttTracks(game).length}</dd><dd className="tt-stats__sub">{categoryText(game, cc, items, vehicle, info.classes.length > 1)}</dd></div>
             <div><dt>Records</dt><dd>{records}</dd></div>
             <div><dt>Top tens</dt><dd>{topTens}</dd></div>
             <div><dt>Verified</dt><dd>{verified}</dd></div>
@@ -166,9 +179,9 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Track</TableHead>
-                      <TableHead>{other ? who.name : "Best"}</TableHead>
+                      <TableHead>{other ? <span className="tt-colname" title={who.name}>{who.name}</span> : "Best"}</TableHead>
                       <TableHead>Place</TableHead>
-                      {other && <TableHead>{other.name}</TableHead>}
+                      {other && <TableHead><span className="tt-colname" title={other.name}>{other.name}</span></TableHead>}
                       {other && <TableHead>Gap</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -179,7 +192,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
                       return (
                         <TableRow key={t.id}>
                           <TableCell><Link href={trackPath(t, cc, { items, vehicle })} className="tt-trackname">{trackCode(t) && <code className="tt-code">{trackCode(t)}</code>}{t.name}</Link></TableCell>
-                          <TableCell>{b ? <span className="tt-board__timecell"><span className="tt-board__time">{formatTime(b.timeMs)}</span>{b.place <= TOP_TEN && <VideoChip row={{ video: b.video, videoUrl: b.video === "waiting" ? "waiting" : null, you: false }} />}</span> : <span className="tt-muted">None</span>}</TableCell>
+                          <TableCell>{b ? <span className="tt-board__timecell"><span className="tt-board__time">{formatTime(b.timeMs)}</span>{b.place <= TOP_TEN && (fromSheet.has(b.timeId) && b.video !== "checked" ? <StatusChip status="sheet" /> : <VideoChip row={{ video: b.video, videoUrl: b.video === "waiting" ? "waiting" : null, you: false }} />)}</span> : <span className="tt-muted">None</span>}</TableCell>
                           <TableCell>{b ? `${ordinal(b.place)} of ${b.total}` : ""}</TableCell>
                           {other && <TableCell className="tt-board__time">{o ? formatTime(o.timeMs) : <span className="tt-muted">None</span>}</TableCell>}
                           {other && <TableCell>{b && o ? (b.timeMs === o.timeMs ? "Tied" : `${b.timeMs < o.timeMs ? "−" : "+"}${formatGap(Math.abs(b.timeMs - o.timeMs))}`) : ""}</TableCell>}

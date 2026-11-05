@@ -5,7 +5,10 @@
  */
 
 import type { TtClass, TtGame } from "./tracks";
-import type { TtItems } from "./categories";
+import type { TtItems, TtVehicle } from "./categories";
+
+/** Whose times a board shows: the server's players, or everyone on GameShuffle. */
+export type TtRoomScope = "server" | "everyone";
 
 export interface TtRoomRow {
   id: string;
@@ -14,7 +17,7 @@ export interface TtRoomRow {
   cup: string;
   /** Course picture through the Activity's own address, or null. */
   image: string | null;
-  /** The server's best on this board, or null when nobody in the server has a time. */
+  /** The board's best (the server's or everyone's, by the view's scope), or null when nobody has a time. */
   record: { ms: number; name: string; mine: boolean; checked: boolean } | null;
   /** The viewer's own best on this board, or null. */
   mine: number | null;
@@ -24,6 +27,12 @@ export interface TtRoomView {
   game: TtGame;
   cc: TtClass;
   items: TtItems;
+  /** Whose records the rows show; `canServer` is false outside a server (everyone only). */
+  scope: TtRoomScope;
+  canServer: boolean;
+  /** The vehicle board ("any" = the open board) and the boards this game has. */
+  vehicle: TtVehicle;
+  vehicles: { id: TtVehicle; label: string }[];
   /** The classes this game's boards have (World has one). */
   classes: TtClass[];
   /** The server's name when the Activity was opened in a server. */
@@ -32,8 +41,8 @@ export interface TtRoomView {
   /** Tracks with a server record, and tracks where the viewer has a time. */
   withRecord: number;
   withMine: number;
-  /** The server's board on GameShuffle, or null outside a server. */
-  boardUrl: string | null;
+  /** These boards on GameShuffle (the server's page for This server, the game's boards for Everyone). */
+  boardUrl: string;
   /** Screenshot reads left today. */
   readsLeft: number;
 }
