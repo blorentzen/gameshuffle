@@ -127,7 +127,7 @@ export function TtReviewQueue() {
       </p>
       {!pending ? (
         <div className="tt-add__actions">
-          <Button variant="ghost" size="small" onClick={() => { void confirm({ title: `Undo ${c.userName}'s claim on ${c.listedName}?`, body: "The sheet's times go back to the listed player. Times they added themselves stay on their account.", confirmLabel: "Undo claim" }).then((ok) => { if (ok) void post({ action: "claim_undo", claimId: c.id }, "Claim undone"); }); }}>Undo</Button>
+          <Button variant="ghost" size="small" onClick={() => { void confirm({ title: `Undo ${c.userName}'s claim on ${c.listedName}?`, body: "The legacy times go back to the listed player. Times they added themselves stay on their account.", confirmLabel: "Undo claim" }).then((ok) => { if (ok) void post({ action: "claim_undo", claimId: c.id }, "Claim undone"); }); }}>Undo</Button>
         </div>
       ) : rejecting === c.id ? (
         <form className="tt-queue__reject" onSubmit={(e) => { e.preventDefault(); setBusy(c.id); void post({ action: "claim", claimId: c.id, approve: false, reason }, "Turned down").then((ok) => { setBusy(null); if (ok) { setRejecting(null); setReason(""); } }); }}>
@@ -149,8 +149,8 @@ export function TtReviewQueue() {
   );
   const claims = q.claims ? (
     <div className="tt-reviewers">
-      <p className="tt-note">People saying a name on the Top 10 sheets is them. Check their link shows that name is theirs (an MKCentral page, a channel or post under it, or a clip of one of the runs). Approving moves the name&apos;s times to their account, and later sheet times go straight there.</p>
-      {q.claims.pending.length === 0 ? <EmptyState title="No claims waiting" description="When someone presses This is me on a Top 10 sheet name, it shows up here." /> : <ul className="tt-queue">{q.claims.pending.map((c) => claimItem(c, true))}</ul>}
+      <p className="tt-note">People saying a legacy player is them. Check their link shows that name is theirs (an MKCentral page, a channel or post under it, or a clip of one of the runs). Approving moves the name&apos;s times to their account, and later sheet times go straight there.</p>
+      {q.claims.pending.length === 0 ? <EmptyState title="No claims waiting" description="When someone presses This is me on a legacy player's page, it shows up here." /> : <ul className="tt-queue">{q.claims.pending.map((c) => claimItem(c, true))}</ul>}
       {q.claims.approved.length > 0 && (
         <>
           <h2 className="tt-queue__sub">Approved lately</h2>
@@ -159,7 +159,7 @@ export function TtReviewQueue() {
       )}
       {q.sheets && q.sheets.length > 0 && (
         <>
-          <h2 className="tt-queue__sub">Sheet reads</h2>
+          <h2 className="tt-queue__sub">Legacy imports</h2>
           <ul className="tt-queue">
             {q.sheets.map((r) => (
               <li key={`${r.sheet}${r.cc}`} className="tt-queue__item tt-queue__item--row">
@@ -244,7 +244,7 @@ export function TtReviewQueue() {
       tabs={[
         { id: "clips", label: "Clips to check", badge: q.videos.length || undefined, content: clips },
         { id: "reports", label: "Reports", badge: q.tickets.length || undefined, content: reports },
-        ...(claims ? [{ id: "claims", label: "Sheet claims", badge: q.claims!.pending.length || undefined, content: claims }] : []),
+        ...(claims ? [{ id: "claims", label: "Legacy claims", badge: q.claims!.pending.length || undefined, content: claims }] : []),
         ...(reviewers ? [{ id: "reviewers", label: "Reviewers", content: reviewers }] : []),
         ...(updaters ? [{ id: "updaters", label: "Updaters", content: updaters }] : []),
         ...(shortNames ? [{ id: "short-names", label: "Short names", content: shortNames }] : []),

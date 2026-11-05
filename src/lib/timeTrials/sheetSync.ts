@@ -14,8 +14,9 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { readAllPages } from "@/lib/supabase/pages";
 import { round4Ready } from "./status";
 import { fasterThanRecord } from "./records";
+import { isCountryCode, noteCountry } from "./countries";
 import {
-  parseSheetCsv, sheetCountries, sheetCsvUrl, sheetHtmlUrl, sheetLinks, sheetTimes, TT_SHEETS,
+  parseSheetCsv, sheetCountries, sheetCsvUrl, sheetTimes, TT_SHEETS,
   type ParsedSheet, type SheetId, type SheetTime, type TtSheet,
 } from "./sheets";
 import type { TtClass } from "./tracks";
@@ -24,16 +25,29 @@ const CLASSES: TtClass[] = [150, 200];
 const CHUNK = 500;
 
 export interface SheetReadReport { sheet: SheetId; cc: TtClass; rows: number; added: number; corrected: number; skipped: number; error: string | null }
-export interface SheetSyncReport { ok: boolean; reads: SheetReadReport[]; players: number; newPlayers: number; countries: number }
+export interface SheetSyncReport { ok: boolean; reads: SheetReadReport[]; players: number; newPlayers: number; countries: number;
+  /** Countries found on MKCentral by exact name for players the country tables leave out. */
+  fromMkc?: number }
 
-/** A published sheet page, tried twice. Google turns away many requests at once, so the read goes one tab at a time. */
-async function fetchText(url: string): Promise<string | null> {
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * A tab's published CSV. Google sometimes takes 20 to 30 seconds to make one (seen 2026-11-05, from Vercel and from
+ * here), so each request gets a long timeout and one more try, and the tabs are fetched side by side.
+ */
+async function fetchText(url: string): Promise<{ text: string | null; why: string }> {
+  let why = "no answer";
   for (let attempt = 0; attempt < 2; attempt++) {
-    const res = await fetch(url, { headers: { "user-agent": "GameShuffle time trials (gameshuffle.co)" }, signal: AbortSignal.timeout(20_000), cache: "no-store" }).catch(() => null);
-    if (res?.ok) return res.text();
-    if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
+    if (attempt) await wait(3000);
+    try {
+      const res = await fetch(url, { headers: { "user-agent": "GameShuffle time trials (gameshuffle.co)" }, signal: AbortSignal.timeout(75_000), cache: "no-store", redirect: "follow" });
+      if (res.ok) return { text: await res.text(), why: "" };
+      why = `HTTP ${res.status}`;
+    } catch (e) {
+      why = (e as Error).name === "TimeoutError" ? "timed out" : (e as Error).message.slice(0, 80) || "network error";
+    }
   }
-  return null;
+  return { text: null, why };
 }
 
 const chunks = <T,>(list: T[], n = CHUNK): T[][] => Array.from({ length: Math.ceil(list.length / n) }, (_, i) => list.slice(i * n, i * n + n));
@@ -179,19 +193,20 @@ export async function syncSheets(opts: { only?: SheetId[]; log?: (step: string) 
   const sheets = TT_SHEETS.filter((s) => !opts.only || opts.only.includes(s.id));
   type Read = { sheet: TtSheet; cc: TtClass; parsed: ParsedSheet | null; times: SheetTime[]; error: string | null };
   const readTab = async (sheet: TtSheet, cc: TtClass): Promise<Read> => {
-    const csv = await fetchText(sheetCsvUrl(sheet, cc));
-    const html = csv ? await fetchText(sheetHtmlUrl(sheet, cc)) : null;
-    if (!csv) return { sheet, cc, parsed: null, times: [], error: "The sheet didn't answer." };
+    const got = await fetchText(sheetCsvUrl(sheet, cc));
+    const csv = got.text;
+    if (!csv) return { sheet, cc, parsed: null, times: [], error: `The sheet didn't answer (${got.why}).` };
     const parsed = parseSheetCsv(csv);
     if (parsed.entries.length < 100) return { sheet, cc, parsed: null, times: [], error: `Only ${parsed.entries.length} places read: the layout may have changed.` };
     const problems = [
       parsed.unknownTracks.length ? `Tracks we don't know: ${parsed.unknownTracks.join(", ")}` : null,
       parsed.unknownSections.length ? `Sections we don't know: ${parsed.unknownSections.join(", ")}` : null,
     ].filter(Boolean).join(". ");
-    return { sheet, cc, parsed, times: sheetTimes(parsed, html ? sheetLinks(html) : new Map()), error: problems || null };
+    // Times only: legacy times never link out (Britton, 2026-11-05), so the sheets' own pages aren't read.
+    return { sheet, cc, parsed, times: sheetTimes(parsed), error: problems || null };
   };
   const reads: Read[] = [];
-  for (const sheet of sheets) for (const cc of CLASSES) reads.push(await readTab(sheet, cc));
+  reads.push(...(await Promise.all(sheets.flatMap((sheet) => CLASSES.map((cc) => readTab(sheet, cc))))));
   log("read the sheets");
 
   const names = new Map<string, string>();
@@ -216,7 +231,47 @@ export async function syncSheets(opts: { only?: SheetId[]; log?: (step: string) 
   const full = reads.every((r) => r.parsed) && !opts.only;
   const countries = full ? await saveCountries(sheetCountries(reads.map((r) => r.parsed!)), ids, owners) : 0;
   log("countries");
-  return { ok: out.every((r) => !r.error || r.rows > 0), reads: out, players: ids.size, newPlayers: made, countries };
+  // Players the country tables leave out: MKCentral's registry by exact name. Only after a full read, so the tables
+  // always come first (they agreed with MKCentral 93% of the time on 2026-11-05; Lounge names only 67%, so not Lounge).
+  const fromMkc = full ? await fillFromMkcNames(ids, owners) : 0;
+  log("mkcentral countries");
+  return { ok: out.every((r) => !r.error || r.rows > 0), reads: out, players: ids.size, newPlayers: made, countries, fromMkc };
+}
+
+const norm = (s: string) => s.normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase();
+
+/** The country MKCentral's registry has for exactly one visible player of this name, or null. */
+export async function mkcentralCountryByName(name: string): Promise<string | null> {
+  const res = await fetch(`https://mkcentral.com/api/registry/players?name=${encodeURIComponent(name.slice(0, 40))}`, {
+    headers: { accept: "application/json", "user-agent": "GameShuffle time trials (gameshuffle.co)" }, signal: AbortSignal.timeout(10_000), cache: "no-store",
+  }).catch(() => null);
+  if (!res?.ok) return null;
+  const j = (await res.json().catch(() => null)) as { player_list?: { name: string; country_code: string | null; is_hidden?: number; is_banned?: number }[] } | null;
+  const exact = (j?.player_list ?? []).filter((p) => norm(p.name) === norm(name) && !p.is_hidden && !p.is_banned);
+  const c = exact.length === 1 ? exact[0].country_code?.toLowerCase() ?? null : null;
+  return c && isCountryCode(c) ? c : null;
+}
+
+/** Listed players with no country: a few MKCentral lookups a run (random order, so each run reaches different names). */
+async function fillFromMkcNames(ids: Map<string, string>, owners: Map<string, string>, lookups = 60): Promise<number> {
+  const db = createServiceClient();
+  const listed = [...ids.entries()].filter(([, id]) => !owners.has(id)).map(([key, id]) => ({ key, id, player: `i:${id}` }));
+  const have = new Set<string>();
+  for (const part of chunks(listed.map((l) => l.player), 200)) {
+    const { data } = await db.from("tt_player_country").select("player").in("player", part);
+    for (const r of (data ?? []) as { player: string }[]) have.add(r.player);
+  }
+  const missing = listed.filter((l) => !have.has(l.player)).sort(() => Math.random() - 0.5).slice(0, lookups);
+  if (!missing.length) return 0;
+  const { data: named } = await db.from("gs_identities").select("id, display_name").in("id", missing.map((m) => m.id));
+  const nameOf = new Map(((named ?? []) as { id: string; display_name: string | null }[]).map((r) => [r.id, r.display_name ?? ""]));
+  let filled = 0;
+  for (const m of missing) {
+    const c = await mkcentralCountryByName(nameOf.get(m.id) || m.key);
+    if (c) { await noteCountry(m.player, c, "mkcentral"); filled++; }
+    await wait(150);
+  }
+  return filled;
 }
 
 export interface SheetStatus { sheet: SheetId; cc: TtClass; readAt: string; rows: number; added: number; error: string | null }

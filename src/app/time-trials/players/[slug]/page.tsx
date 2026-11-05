@@ -87,7 +87,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
     own ? fillFromLounge(who.player).then((c) => c ?? null) : countryOf(who.player).then((c) => c?.country ?? null),
     listedPlayer(who.player),
   ]);
-  // A Top 10 sheet listing (round 4): "This is me", and the sheet's mark instead of Unverified.
+  // A legacy player (round 4, from the Top 10 sheets): "This is me", and Legacy instead of Unverified.
   const claim = listed ? await claimView(listed.identityId, actor?.userId ?? null) : null;
   const fromSheet = await sheetTimeIds(bests.filter((b) => b.place <= TOP_TEN).map((b) => b.timeId));
   const games = TT_GAME_ORDER.filter((g) => bests.some((b) => b.game === g));
@@ -131,7 +131,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
       <BrowseHero
         eyebrow="Time trials"
         title={who.name}
-        sub={`${country ? `${countryName(country)}. ` : ""}${listed ? "Listed from the Top 10 sheets. Best times on every board, with their place." : who.discord ? "Plays from Discord. Best times on every board, with their place." : "Best times on every board, with their place."}`}
+        sub={`${country ? `${countryName(country)}. ` : ""}${listed ? "Legacy times, recorded before they came to GameShuffle. Best times on every board, with their place." : who.discord ? "Plays from Discord. Best times on every board, with their place." : "Best times on every board, with their place."}`}
         accent="blue"
         field="compete"
         compact

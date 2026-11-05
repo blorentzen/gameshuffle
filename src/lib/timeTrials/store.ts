@@ -54,9 +54,8 @@ export interface TtBoardRow {
   vouches: number;
   /** The player's country, when known (pick 6A). */
   country: string | null;
-  /** From the community's Top 10 sheets (round 4), with the proof link the sheet gives, if any. */
+  /** A legacy time (round 4, brought over from the community's records): shown as "Legacy", never with a link out. */
   sheet: boolean;
-  sheetLink: string | null;
 }
 
 export interface TtBoard {
@@ -310,15 +309,13 @@ export async function boardFor(args: { game: TtGame; track: string; cc: TtClass;
   const mineRaw = args.viewer ? placed.find((r) => r.row.player === args.viewer) ?? null : null;
   const need = [...shown.map((r) => r.row), ...(mineRaw && !shown.includes(mineRaw) ? [mineRaw.row] : [])];
   const ids = need.map((r) => r.time_id);
-  const sheetIds = need.filter((r) => r.source === "sheet").map((r) => r.time_id);
-  const [names, verified, review, trusted, vouches, countries, links] = await Promise.all([
+  const [names, verified, review, trusted, vouches, countries] = await Promise.all([
     describePlayers(need.map((r) => r.player)),
     verificationsFor(ids),
     underReview(ids),
     trustedPlayers(need.map((r) => r.player)),
     vouchCounts(ids),
     countriesFor(need.map((r) => r.player)),
-    sheetLinksFor(sheetIds),
   ]);
   const toRow = (rank: number, r: (typeof raw)[number]): TtBoardRow => {
     const who = names.get(r.player);
@@ -347,7 +344,6 @@ export async function boardFor(args: { game: TtGame; track: string; cc: TtClass;
       vouches: vouches.get(r.time_id) ?? 0,
       country: countries.get(r.player) ?? null,
       sheet: r.source === "sheet",
-      sheetLink: links.get(r.time_id) ?? null,
     };
   };
   return {
@@ -549,15 +545,6 @@ export async function sheetTimeIds(timeIds: string[]): Promise<Set<string>> {
   if (!timeIds.length || !(await round4Ready())) return new Set();
   const { data } = await createServiceClient().from("tt_times").select("id").in("id", timeIds.slice(0, 500)).eq("source", "sheet");
   return new Set(((data ?? []) as { id: string }[]).map((r) => r.id));
-}
-
-/** The proof links the Top 10 sheets give for these times (most give none). */
-async function sheetLinksFor(timeIds: string[]): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  if (!timeIds.length || !(await round4Ready())) return out;
-  const { data } = await createServiceClient().from("tt_times").select("id, sheet_link").in("id", timeIds).not("sheet_link", "is", null);
-  for (const r of (data ?? []) as { id: string; sheet_link: string }[]) out.set(r.id, r.sheet_link);
-  return out;
 }
 
 /** Players whose names match, for the hub's search: accounts, Discord players and Top 10 sheet listings with at least one time. */
