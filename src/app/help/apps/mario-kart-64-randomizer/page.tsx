@@ -20,6 +20,8 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>How to use the Mario Kart 64 randomizer</h1>
       <HelpToolLinks links={[{ href: "/randomizers/mario-kart-64", label: "Mario Kart 64 randomizer" }]} />
+      {/* Search sends some Mario Kart World players here (SEO pass, pick 4A). */}
+      <p>Playing Mario Kart World or Mario Kart 8 Deluxe? Use the <Link href="/randomizers/mario-kart-world">Mario Kart World randomizer</Link> or the <Link href="/randomizers/mario-kart-8-deluxe">Mario Kart 8 Deluxe randomizer</Link>.</p>
       <p>
         The <Link href="/randomizers/mario-kart-64">Mario Kart 64 randomizer</Link>{" "}picks a character for up to four players,
         a race list from all 16 tracks, battle courses for Battle mode and an item set. It follows the N64 game: there are no

@@ -31,12 +31,14 @@
 .tt-trow__name { flex: 1; min-width: 0; display: grid; gap: 2px; }
 .tt-trow__track { font-weight: 600; font-size: var(--font-size-16); overflow-wrap: anywhere; }
 .tt-trow__me { font-size: var(--font-size-14); font-weight: 600; color: var(--brand-ink, var(--primary-700)); font-variant-numeric: tabular-nums; }
-.tt-trow__rec { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--spacing-8); row-gap: 2px; }
+.tt-trow__rec { min-width: 0; display: grid; gap: 2px; }
+.tt-trow__time { display: flex; align-items: baseline; gap: var(--spacing-8); }
 .tt-trow__rec b { font-variant-numeric: tabular-nums; font-size: var(--font-size-16); }
-.tt-trow__rec span { font-size: var(--font-size-14); color: var(--text-secondary); }
+.tt-trow__status, .tt-trow__by { font-size: var(--font-size-14); color: var(--text-secondary); }
 .tt-trow__none { font-size: var(--font-size-14); color: var(--text-secondary); }
-/* Who holds the record: flag, the whole name (it wraps, never "…"; Britton 2026-11-05) and its label, which never splits. */
-.tt-trow__by { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--spacing-4); min-width: 0; }
+/* Who holds the record, on its own line: flag and the whole name (it wraps, never "…"; Britton 2026-11-05). */
+.tt-trow__by { display: flex; align-items: center; gap: var(--spacing-8); min-width: 0; }
+.tt-trow__by > .tt-flag { flex: none; }
 .tt-trow__who { min-width: 0; overflow-wrap: anywhere; }
 .tt-trow__status { flex: none; white-space: nowrap; }
 .tt-trow__status::before { content: "· "; }

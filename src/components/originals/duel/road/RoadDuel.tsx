@@ -227,14 +227,14 @@ export function RoadDuel({ region, person, teams, next }: {
     <>
       {teams.length > 1 && (
         <section className="road-teams" aria-labelledby="road-teams-title">
-          <h2 id="road-teams-title" className="road-section__title">{their} teams</h2>
+          {/* The team tables above name every Pokémon (SEO pass, pick 2A): the picker says only which team. */}
+          <h2 id="road-teams-title" className="road-section__title">Pick a team to duel</h2>
           <ul className="road-teams__list">
             {teams.map((t) => (
               <li key={t.id}>
                 <button type="button" className="road-team" aria-pressed={t.id === selected} onClick={() => pickTeam(t.id)}>
                   <span className="road-team__game">{t.gameLabel}</span>
                   <span className="road-team__meta">{t.tierLabel} · {t.species.length} Pokémon{stars[t.id] != null ? <> · <RoadStars n={stars[t.id]} size={14} /></> : null}</span>
-                  <span className="road-team__species">{t.species.join(", ")}</span>
                 </button>
               </li>
             ))}
@@ -246,7 +246,6 @@ export function RoadDuel({ region, person, teams, next }: {
         <div className="road-start__head">
           <p className="road-start__kicker">{team.tierLabel} · {team.gameLabel}</p>
           <h2 id="road-start-title" className="road-start__title">Duel {person.name}</h2>
-          {teams.length === 1 && <p className="road-start__species">{team.species.join(", ")}</p>}
         </div>
         {failed && <p className="duel-note">This duel couldn&apos;t load. Refresh the page to try again.</p>}
         {!failed && !home && <p className="duel-note" aria-live="polite">Loading the duel…</p>}

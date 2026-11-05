@@ -58,7 +58,7 @@ export default function TrainerRoadPage() {
       <BrowseHero
         eyebrow="Trainer Road"
         title="Pokémon Gym Leaders and Champions: every team, every region"
-        sub="Every Gym Leader, Elite Four member, Champion, rival and villain from the games, with their teams. Pick one and battle them with the Daily Duel's cards."
+        sub="Elite Four members, rivals and villains too. Pick one and battle them with the Daily Duel's cards."
         accent="duel"
         field="duel"
       />

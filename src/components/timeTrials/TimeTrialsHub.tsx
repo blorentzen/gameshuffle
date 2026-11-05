@@ -158,13 +158,16 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
                           </span>
                           {s ? (
                             <span className="tt-trow__rec">
-                              <b>{formatTime(s.recordMs)}</b>
-                              {/* Long names shorten with "…" (full name on hover) and the label never splits, so no card can widen or squeeze its track names. */}
+                              {/* Each piece on its own line (Britton, 2026-11-05): the time with its label, then the driver, so
+                                  nothing shares a line and wraps into it. */}
+                              <span className="tt-trow__time">
+                                <b>{formatTime(s.recordMs)}</b>
+                                {!s.recordChecked && <span className="tt-trow__status">{s.recordSheet ? "Legacy" : "Unverified"}</span>}
+                              </span>
                               <span className="tt-trow__by">
                                 {/* eslint-disable-next-line @next/next/no-img-element -- a small flag from public/ */}
                                 {hc && flagUrl(hc) && <img src={flagUrl(hc)!} alt={countryName(hc)} title={countryName(hc)} className="tt-flag tt-trow__flag" />}
-                                <span className="tt-trow__who" title={holders.get(s.recordPlayer)?.name ?? undefined}>{holders.get(s.recordPlayer)?.name ?? "A player"}</span>
-                                {!s.recordChecked && <span className="tt-trow__status">{s.recordSheet ? "Legacy" : "Unverified"}</span>}
+                                <span className="tt-trow__who">{holders.get(s.recordPlayer)?.name ?? "A player"}</span>
                               </span>
                             </span>
                           ) : <span className="tt-trow__none">{server ? "No times here yet" : country ? "No times from there yet" : "No times yet"}</span>}
