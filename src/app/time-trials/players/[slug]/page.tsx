@@ -135,7 +135,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
         accent="blue"
         field="compete"
         compact
-        aside={<Avatar size="xlarge" src={who.avatar ?? undefined} initials={who.name.slice(0, 1).toUpperCase()} alt="" />}
+        lead={<Avatar size="xlarge" src={who.avatar ?? undefined} initials={who.name.slice(0, 1).toUpperCase()} alt="" />}
         actions={bests.length > 0 ? <TtCompareButton base={base} query={keep.toString()} current={other ? sp.vs : undefined} /> : undefined}
       />
       <Container className="tt-body">
