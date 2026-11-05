@@ -244,13 +244,13 @@ const commands = [
       { name: "versus", description: "A second lounge name for a head-to-head (optional).", type: 3, required: false, max_length: 40 },
       {
         name: "game",
-        description: "Which lounge (Mario Kart World 12 players if left out).",
+        description: "Which lounge (Mario Kart 8 Deluxe if left out).",
         type: 3,
         required: false,
         choices: [
+          { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
           { name: "Mario Kart World, 12 players", value: "mkworld12p" },
           { name: "Mario Kart World, 24 players", value: "mkworld24p" },
-          { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
         ],
       },
     ],
@@ -301,7 +301,7 @@ const commands = [
         name: "player", description: "A player's best times. Leave the name out for yours.", type: 1,
         options: [
           { name: "name", description: "Their name on GameShuffle (optional).", type: 3, required: false, max_length: 40 },
-          { name: "game", description: "Just one game (both if left out).", type: 3, required: false, choices: [{ name: "Mario Kart World", value: "mkworld" }, { name: "Mario Kart 8 Deluxe", value: "mk8dx" }] },
+          { name: "game", description: "Just one game (both if left out).", type: 3, required: false, choices: [{ name: "Mario Kart 8 Deluxe", value: "mk8dx" }, { name: "Mario Kart World", value: "mkworld" }] },
         ],
       },
     ],
@@ -327,13 +327,13 @@ const commands = [
       },
       {
         name: "game",
-        description: "Which lounge (Mario Kart World 12 players if left out).",
+        description: "Which lounge (Mario Kart 8 Deluxe if left out).",
         type: 3,
         required: false,
         choices: [
+          { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
           { name: "Mario Kart World, 12 players", value: "mkworld12p" },
           { name: "Mario Kart World, 24 players", value: "mkworld24p" },
-          { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
         ],
       },
     ],
@@ -431,8 +431,8 @@ const WAR_COMMAND = {
   options: [
     { name: "vs", description: "The other team's tag", type: 3, required: true, autocomplete: true, max_length: 12 },
     { name: "us", description: "Your team's tag (the channel remembers it after the first war)", type: 3, required: false, autocomplete: true, max_length: 12 },
-    { name: "game", description: "Which game (the channel remembers it)", type: 3, required: false, choices: [
-      { name: "Mario Kart World", value: "mkworld" }, { name: "Mario Kart 8 Deluxe", value: "mk8dx" },
+    { name: "game", description: "Which game (Mario Kart 8 Deluxe at first; the channel remembers it)", type: 3, required: false, choices: [
+      { name: "Mario Kart 8 Deluxe", value: "mk8dx" }, { name: "Mario Kart World", value: "mkworld" },
     ] },
     { name: "entry", description: "How races go in (the channel remembers it)", type: 3, required: false, choices: [
       { name: "One person adds each race", value: "scorer" }, { name: "Everyone taps the place they finished", value: "taps" },

@@ -617,6 +617,14 @@
   overflow-wrap: break-word;
   min-width: 0;
 }
+/* A player's picture beside their name (BrowseHero `lead`). */
+.browse-hero__titlerow { display: flex; align-items: center; gap: var(--spacing-16); margin: var(--spacing-12) 0 var(--spacing-16); min-width: 0; }
+.browse-hero__titlerow .browse-hero__title { margin: 0; }
+.browse-hero__lead { flex: none; display: inline-flex; border-radius: 50%; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85); }
+@media (max-width: 40rem) {
+  .browse-hero__titlerow { gap: var(--spacing-12); }
+  .browse-hero__lead .empac-avatar { width: 5.6rem; height: 5.6rem; }
+}
 .browse-hero__sub {
   font-size: var(--font-size-18);
   line-height: 1.6;

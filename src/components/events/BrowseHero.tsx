@@ -58,14 +58,21 @@ export interface BrowseHeroProps {
   subShort?: ReactNode;
   /** A small line under the buttons (the homepage's "New here?" link). */
   note?: ReactNode;
+  /** A picture beside the title: a player's avatar on their page (2026-11-05), so it sits with their name. */
+  lead?: ReactNode;
 }
 
-export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, backdrop, primary, secondary, aside, actions, compact, subShort, note }: BrowseHeroProps) {
+export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, backdrop, primary, secondary, aside, actions, compact, subShort, note, lead }: BrowseHeroProps) {
   const shot = image ?? (photo ? lifestyle(photo) : null);
   const copy = (
     <div className="browse-hero__inner">
       <p className="marketing-eyebrow">{eyebrow}</p>
-      <h1 className="browse-hero__title">{title}</h1>
+      {lead ? (
+        <div className="browse-hero__titlerow">
+          <span className="browse-hero__lead">{lead}</span>
+          <h1 className="browse-hero__title">{title}</h1>
+        </div>
+      ) : <h1 className="browse-hero__title">{title}</h1>}
       <p className="browse-hero__sub">
         {compact && subShort ? <><span className="browse-hero__sub-full">{sub}</span><span className="browse-hero__sub-short">{subShort}</span></> : sub}
       </p>

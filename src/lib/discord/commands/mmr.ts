@@ -14,7 +14,7 @@ import { cardFor, liveFor } from "@/lib/mmr/store";
 import { LoungeUnavailable, divisionSteps, loungePlayer, loungeGames } from "@/lib/mmr/mkcentral";
 import { divisionLook } from "@/lib/mmr/look";
 import { medalUrl } from "@/lib/mmr/medals";
-import { MMR_GAMES, fmtMmr, isMmrGame, placeWord, signed, sourceLabel, viewOf, type MmrGame, type MmrSource, DEFAULT_MMR_GAME, MMR_GAME_IDS } from "@/lib/mmr/rules";
+import { MMR_GAMES, fmtMmr, isMmrGame, placeWord, signed, viewOf, type MmrGame, type MmrSource, DEFAULT_MMR_GAME, MMR_GAME_IDS } from "@/lib/mmr/rules";
 import { headToHead } from "@/lib/lounge/h2h";
 import { parseRoom } from "@/lib/lounge/room";
 import { lookUpRoom } from "@/lib/lounge/roomServer";
@@ -54,33 +54,35 @@ function embedFor(src: MmrSource, tonight: boolean, noMmr = false) {
   ];
   // The division's medal (MKCentral's; the site's pages carry the credit, Discord posts don't: picks 2026-10-31, 4A).
   const medal = medalUrl(divisionLook(v.division).base);
-  return { title: `${v.name} · ${sourceLabel(v)}`, color, fields, ...(medal ? { thumbnail: { url: medal } } : {}), footer: { text: "MMR card · gameshuffle.co/mmr-card" } };
+  return { title: `${v.name} · ${titleLabel(v)}`, color, fields, ...(medal ? { thumbnail: { url: medal } } : {}), footer: { text: "MMR card · gameshuffle.co/mmr-card" } };
 }
 
+/** The title's game: its full name ("Mario Kart 8 Deluxe"), or the GS Ranked lounge's name (MMR reply picks 2026-11-05, title A). */
+const titleLabel = (v: { game: MmrGame; ladder?: { name: string } | null }) => v.ladder?.name ?? MMR_GAMES[v.game].label;
+
 /**
- * The card as a picture with one short line of numbers under it (picks 2026-11-04, 9A, with both averages, 3A).
- * The picture is the player's own look when a GameShuffle card shows them, else ours (/mmr-card/picture, kept 10
- * minutes: the address changes every 10 minutes so Discord asks again). Lounge players only: a GS Ranked look
- * keeps the numbers reply.
+ * The card as a picture, with only what the card doesn't show above it as labeled columns (MMR reply picks
+ * 2026-11-05, layout A, https://claude.ai/artifact/RQop2mqmUeoNkMEGrPJhEW): world rank, average score, partner average,
+ * and Tonight once they've played tonight. The MMR, division, country rank, distance to the next division and the
+ * last ten are on the card, so they aren't repeated. The picture is the player's own look when a GameShuffle card
+ * shows them, else ours (/mmr-card/picture, kept 10 minutes: the address changes every 10 minutes so Discord asks
+ * again). Lounge players only: a GS Ranked look keeps the numbers reply.
  */
-function pictureEmbed(src: MmrSource, playerId: number, tonight: boolean, noMmr = false) {
+export function pictureEmbed(src: MmrSource, playerId: number, tonight: boolean, noMmr = false) {
   const v = viewOf(src);
   const color = parseInt(divisionLook(v.division).c2.slice(1), 16);
-  const squares = v.squares.map((s) => (s === "p" ? "🟨" : s === "w" ? "🟩" : "🟥")).join("");
-  const line = [
-    !noMmr && v.mmr != null ? `${fmtMmr(v.mmr)} MMR` : null,
-    v.division,
-    v.worldRank ? `#${v.worldRank.toLocaleString("en-US")} in the world` : null,
-    v.season.avgScore != null ? `average ${v.season.avgScore.toFixed(1)}` : null,
-    v.season.partnerAvg != null ? `partners ${v.season.partnerAvg.toFixed(1)}` : null,
-    tonight && v.tonight.events ? `tonight ${noMmr ? `${v.tonight.w}-${v.tonight.l}` : `${signed(v.tonight.delta)} (${v.tonight.w}-${v.tonight.l})`}` : null,
-  ].filter(Boolean).join(" · ");
+  const fields = [
+    ...(v.worldRank ? [{ name: "World rank", value: `#${v.worldRank.toLocaleString("en-US")}`, inline: true }] : []),
+    ...(v.season.avgScore != null ? [{ name: "Average score", value: v.season.avgScore.toFixed(1), inline: true }] : []),
+    ...(v.season.partnerAvg != null ? [{ name: "Partner average", value: v.season.partnerAvg.toFixed(1), inline: true }] : []),
+    ...(tonight && v.tonight.events ? [{ name: "Tonight", value: noMmr ? `${v.tonight.w}-${v.tonight.l}` : `${signed(v.tonight.delta)} (${v.tonight.w}-${v.tonight.l})`, inline: true }] : []),
+  ];
   const bucket = Math.floor(Date.now() / 600_000);
   return {
-    title: `${v.name} · ${sourceLabel(v)}`,
+    title: `${v.name} · ${titleLabel(v)}`,
     url: `${SITE_URL}${loungePagePath(v.name, v.game)}`,
     color,
-    description: squares ? `${line}\nLast 10: ${squares}` : line,
+    ...(fields.length ? { fields } : {}),
     image: { url: `${SITE_URL}/mmr-card/picture/${v.game}/${playerId}?size=wide&t=${bucket}` },
     footer: { text: "MMR card · gameshuffle.co/mmr-card" },
   };
