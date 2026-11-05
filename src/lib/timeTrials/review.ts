@@ -320,32 +320,6 @@ export async function reviewCounts(userId: string | null): Promise<ReviewCounts 
   return { clips: work.clips, reports: work.tickets, claims, legacy, total: work.clips + work.tickets + claims + legacy };
 }
 
-export interface Reviewer { userId: string; name: string; username: string | null; at: string }
-
-export async function listReviewers(): Promise<Reviewer[]> {
-  if (!(await ttReady())) return [];
-  const db = createServiceClient();
-  const { data } = await db.from("tt_reviewers").select("user_id, created_at").order("created_at");
-  const rows = (data ?? []) as { user_id: string; created_at: string }[];
-  if (!rows.length) return [];
-  const { data: users } = await db.from("users").select("id, display_name, username").in("id", rows.map((r) => r.user_id));
-  const byId = new Map(((users ?? []) as { id: string; display_name: string | null; username: string | null }[]).map((u) => [u.id, u]));
-  return rows.map((r) => ({ userId: r.user_id, name: byId.get(r.user_id)?.display_name || byId.get(r.user_id)?.username || "A player", username: byId.get(r.user_id)?.username ?? null, at: r.created_at }));
-}
-
-export async function addReviewer(username: string, by: string): Promise<{ ok: boolean; error?: string }> {
-  const db = createServiceClient();
-  const { data } = await db.from("users").select("id").eq("username", username.trim().toLowerCase().replace(/^@/, "")).maybeSingle();
-  const id = (data as { id: string } | null)?.id;
-  if (!id) return { ok: false, error: "no_user" };
-  await db.from("tt_reviewers").upsert({ user_id: id, added_by: by }, { onConflict: "user_id" });
-  return { ok: true };
-}
-
-export async function removeReviewer(userId: string): Promise<void> {
-  await createServiceClient().from("tt_reviewers").delete().eq("user_id", userId);
-}
-
 /** A report from a Discord button: a ticket with a plain reason (they can add more on the site). */
 export async function reportFromDiscord(timeId: string, discordId: string): Promise<boolean> {
   const res = await openTicket({ timeId, reporter: `d:${discordId}`, reason: "Reported from Discord", link: null });
