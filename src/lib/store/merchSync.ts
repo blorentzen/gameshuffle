@@ -18,6 +18,7 @@ import "server-only";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import {
   CURATED_FACTS, DEFAULT_HIDDEN_COLORS, MERCH_CATEGORY, MERCH_MAX_PER_ORDER, MERCH_STOCK,
   collectionFor, deliveryDays, factsFromDescription, groupKeyFor, itemFor, itemRank, listingNameFor, merchSku, seriesCollection, seriesOf,
@@ -362,7 +363,7 @@ export async function syncFromPrintful(opts: { full?: boolean; deadline?: number
     if (error) throw new Error(`merch rows: ${error.message}`);
   }
   const keep = new Set(rows.map((r) => r.sku));
-  const { data: old } = await svc.from("shop_products").select("sku").eq("category", MERCH_CATEGORY).eq("printful_available", true);
+  const { data: old } = await readAllPages<{ sku: string }>((from, to) => svc.from("shop_products").select("sku").eq("category", MERCH_CATEGORY).eq("printful_available", true).order("sku").range(from, to));
   const retire = (old ?? []).map((o) => o.sku as string).filter((s) => !keep.has(s));
   for (let i = 0; i < retire.length; i += 200) {
     await svc.from("shop_products").update({ active: false, printful_available: false, updated_at: now }).in("sku", retire.slice(i, i + 200));

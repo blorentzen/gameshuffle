@@ -6,6 +6,7 @@ import "server-only";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { isOnSale, type ProductKind } from "./config";
 import { PERSONAL, type PersonalProduct } from "./personal";
 
@@ -50,9 +51,10 @@ type Row = {
 /** Every product in shelf order; `onlyOnSale` drops inactive and ended ones. */
 export async function listShopProducts(opts: { onlyOnSale?: boolean } = {}): Promise<ShopProduct[]> {
   const svc = createServiceClient();
+  // Merch alone is thousands of rows (a size and color each), past the 1,000 a request returns: page both reads.
   const [{ data, error }, avail] = await Promise.all([
-    svc.from("shop_products").select("*").order("sort_order"),
-    svc.rpc("shop_availability"),
+    readAllPages<Row & { archived_at?: string | null }>((from, to) => svc.from("shop_products").select("*").order("sort_order").order("sku").range(from, to)),
+    readAllPages<{ sku: string; held: number; available: number }>((from, to) => svc.rpc("shop_availability").order("sku").range(from, to)),
   ]);
   if (notReady(error) || notReady(avail.error)) throw new ShopNotReady();
   if (error) throw new Error(`shop products: ${error.message}`);

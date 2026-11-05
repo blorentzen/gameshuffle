@@ -18,6 +18,7 @@ import "server-only";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/client";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { readAllPages } from "@/lib/supabase/pages";
 import { getPlatformFlag } from "@/lib/platform/flags";
 import { SHOP, SHOP_METADATA_KIND, SHOP_TAX_CODE, isOnSale, stripeLookupKey, stripeProductId, type ProductKind } from "./config";
 
@@ -96,7 +97,7 @@ export async function listAdminProducts(): Promise<AdminProduct[]> {
   const [{ data: rows, error }, { data: avail }, { data: sold }] = await Promise.all([
     // Card packs only: merch rows come from Printful and live on Shop ▸ Merch.
     svc.from("shop_products").select("*").neq("category", "merch").order("sort_order"),
-    svc.rpc("shop_availability"),
+    readAllPages<{ sku: string; held: number; available: number }>((from, to) => svc.rpc("shop_availability").order("sku").range(from, to)),
     svc.from("shop_order_items").select("sku, quantity, shop_orders!inner(status)").in("shop_orders.status", ["paid", "shipped"]),
   ]);
   if (error) throw new Error(`shop products: ${error.message}`);

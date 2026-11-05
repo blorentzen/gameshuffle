@@ -107,7 +107,22 @@ export async function fulfilShopSession(sessionId: string): Promise<FulfilResult
   const svc = createServiceClient();
   // Merch lines are priced inline (price_data), so their sku rides on the product's metadata.
   const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 100, expand: ["data.price.product"] });
-  const { data: products } = await svc.from("shop_products").select("sku, name, contents, stripe_price_id, kind, ship_weight_oz, printful_sync_product_id");
+  // Only this order's products (reading every row stopped at 1,000, and merch alone has thousands).
+  const wantSkus = new Set<string>();
+  const wantPrices = new Set<string>();
+  for (const li of lineItems.data) {
+    const price = li.price as Stripe.Price | null;
+    const product = price && typeof price.product === "object" && price.product && !("deleted" in price.product && price.product.deleted) ? (price.product as Stripe.Product) : null;
+    const sku = (price?.metadata?.sku as string | undefined) ?? (product?.metadata?.sku as string | undefined);
+    if (sku) wantSkus.add(sku);
+    if (price?.id) wantPrices.add(price.id);
+  }
+  const COLS = "sku, name, contents, stripe_price_id, kind, ship_weight_oz, printful_sync_product_id";
+  const [bySkuRead, byPriceRead] = await Promise.all([
+    wantSkus.size ? svc.from("shop_products").select(COLS).in("sku", [...wantSkus]) : Promise.resolve({ data: [] }),
+    wantPrices.size ? svc.from("shop_products").select(COLS).in("stripe_price_id", [...wantPrices]) : Promise.resolve({ data: [] }),
+  ]);
+  const products = [...((bySkuRead.data ?? []) as Record<string, unknown>[]), ...((byPriceRead.data ?? []) as Record<string, unknown>[])];
   const byPrice = new Map((products ?? []).map((p) => [p.stripe_price_id as string, p]));
   const bySku = new Map((products ?? []).map((p) => [p.sku as string, p]));
   const lineItemsOf = lineItems.data
