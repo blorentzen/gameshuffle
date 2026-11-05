@@ -65,6 +65,13 @@ export function TtReviewQueue() {
   }, [reloadKey]);
   const reload = () => setReloadKey((k) => k + 1);
 
+  // On a phone the tab it opens on can sit past the edge of the scrolling tab bar: bring it into view once loaded.
+  const loaded = !!q;
+  useEffect(() => {
+    if (!loaded) return;
+    document.querySelector(".tt-queue-tabs .empac-tabs__tab--active")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [loaded]);
+
   async function post(body: Record<string, unknown>, done: string): Promise<boolean> {
     const j = (await fetch("/api/time-trials/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()).catch(() => ({}))) as { ok?: boolean; error?: string };
     if (!j.ok) { toast.error(j.error === "no_user" ? "No account with that username." : j.error === "reason_needed" ? (body.action === "claim" ? "Say why it isn't approved." : body.action === "legacy_reject" ? "Say why the proof doesn't show it." : "Say why the clip doesn't match.") : j.error === "taken" ? "That name is already matched to an account." : "That didn't save. Try again."); return false; }
@@ -279,11 +286,18 @@ export function TtReviewQueue() {
     </div>
   )) : null;
 
+  // Opens on the first tab with something waiting (Britton, 2026-11-05: click in and see a queue).
+  const waiting = [
+    ["clips", q.videos.length], ["reports", q.tickets.length], ["claims", q.claims?.pending.length ?? 0], ["legacy", q.legacy?.total ?? 0],
+  ] as const;
+  const first = waiting.find(([, n]) => n > 0)?.[0] ?? "clips";
   return (
     <>
     {q.modes && <p className="tt-note">You check {q.modes.map(modeText).join(" and ")}.</p>}
     <Tabs
+      className="tt-queue-tabs"
       variant="underline"
+      defaultActiveTab={first}
       tabs={[
         { id: "clips", label: "Clips to check", badge: q.videos.length || undefined, content: clips },
         { id: "reports", label: "Reports", badge: q.tickets.length || undefined, content: reports },

@@ -36,6 +36,8 @@ function buildMenuSections(args: {
   isStaff: boolean;
   /** GS Ranked lounges the account plays in (asked when the menu opens). */
   hasLounges: boolean;
+  /** What waits in the time trial review queue for a reviewer or updater (asked when the menu opens); null for anyone else. */
+  reviews: number | null;
 }): MenuSectionProps[] {
   const go = (path: string) => () => {
     args.setOpen(false);
@@ -48,6 +50,7 @@ function buildMenuSections(args: {
   const activity = [
     ...(args.hasStreamerIntegration ? [{ label: "Stream hub", onClick: go("/hub") }] : []),
     ...(args.hasLounges ? [{ label: "Your lounges", onClick: go("/ranked") }] : []),
+    ...(args.reviews !== null ? [{ label: args.reviews ? `Time trial reviews (${args.reviews})` : "Time trial reviews", onClick: go("/time-trials/review") }] : []),
   ];
   if (activity.length) sections.push({ label: "Activity", items: activity });
 
@@ -108,6 +111,7 @@ export function UserMenu() {
   const [profile, setProfile] = useState<ProfileSnapshot | null>(null);
   const [hasStreamerIntegration, setHasStreamerIntegration] = useState(false);
   const [lounges, setLounges] = useState<number | null>(null);
+  const [reviews, setReviews] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -175,6 +179,14 @@ export function UserMenu() {
         setHasStreamerIntegration(!!data);
       });
   };
+
+  // Time trial reviews: asked each time the menu opens (the count changes as reviewers work), only for signed-in accounts.
+  useEffect(() => {
+    if (!open || !user) return;
+    let alive = true;
+    fetch("/api/time-trials/review?counts=1", { cache: "no-store" }).then((r) => r.json()).then((j: { counts?: { total: number } | null }) => { if (alive) setReviews(j.counts ? j.counts.total : null); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, [open, user]);
 
   // GS Ranked lounges: asked the first time the menu opens, so no page load pays for it.
   useEffect(() => {
@@ -245,6 +257,7 @@ export function UserMenu() {
               hasStreamerIntegration,
               isStaff: isStaffRole(profile?.role ?? null),
               hasLounges: !!lounges,
+              reviews,
             })}
           />
         </div>

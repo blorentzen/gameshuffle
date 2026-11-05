@@ -18,7 +18,7 @@ export default async function TtReviewPage() {
   if (!(await reviewScope(actor.userId))) notFound();
   return (
     <main className="tt-page">
-      <BrowseHero eyebrow="Time trials" title="Reviews" sub="Check clips so times show as Verified, and decide reported times." accent="blue" field="compete" compact />
+      <BrowseHero eyebrow="Time trials" title="Reviews" sub="Check clips and legacy proof so times show as Verified, settle legacy claims, and decide reported times." accent="blue" field="compete" compact />
       <Container className="tt-body">
         <TtReviewQueue />
       </Container>

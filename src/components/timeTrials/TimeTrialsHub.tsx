@@ -21,6 +21,8 @@ import { headers } from "next/headers";
 import { siteActor } from "@/lib/timeTrials/players";
 import { playerBests, trackSummary } from "@/lib/timeTrials/store";
 import { serverSummary } from "@/lib/timeTrials/server";
+import { reviewCounts } from "@/lib/timeTrials/review";
+import { IconClipboardCheck } from "@tabler/icons-react";
 import { formatTime, ordinal } from "@/lib/timeTrials/rules";
 import { gamePath, serverPath, trackPath, ttCups, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
 
@@ -52,10 +54,12 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
   country?: string | null }) {
   const info = TT_GAMES[game];
   const actor = await siteActor();
-  const [summary, mine, countries] = await Promise.all([
+  const [summary, mine, countries, reviews] = await Promise.all([
     server ? serverSummary(server.guildId, game, items, vehicle) : country ? countryPlayers(country).then((ps) => trackSummary(game, items, vehicle, ps)) : trackSummary(game, items, vehicle),
     actor ? playerBests(actor.player) : Promise.resolve([]),
     server ? Promise.resolve([]) : countriesInUse(),
+    // Reviewers and updaters get a way into their queue from here (Britton, 2026-11-05).
+    actor?.userId && !server ? reviewCounts(actor.userId) : Promise.resolve(null),
   ]);
   // Asked once (round 4 pick 1A): someone with times and no country.
   const ask = !server && actor && mine.length > 0 && (await shouldAskCountry(actor.player, "site"));
@@ -98,7 +102,14 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
         accent="blue"
         field="compete"
         compact
-        actions={<AddTimeButton game={game} items={items} vehicle={vehicle} signedIn={!!actor} returnTo={here} />}
+        actions={<>
+          <AddTimeButton game={game} items={items} vehicle={vehicle} signedIn={!!actor} returnTo={here} />
+          {reviews && (
+            <Link href="/time-trials/review" className="empac-button empac-button--secondary empac-button--medium tt-review-link">
+              <IconClipboardCheck size={18} aria-hidden="true" /> Reviews{reviews.total ? <span className="tt-review-link__n">{reviews.total} waiting</span> : null}
+            </Link>
+          )}
+        </>}
       />
       <Container className="tt-body">
         {!server && <section className="tt-find" aria-label="Find a player">

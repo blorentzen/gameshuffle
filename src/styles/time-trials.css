@@ -2,6 +2,8 @@
    Sizes use the CDS tokens (the root font size is 10px). */
 
 .tt-body { display: grid; gap: var(--spacing-24); padding-block: var(--spacing-24) var(--spacing-48); }
+/* Grid children shrink to the column, so a wide row (the review queue's tab bar) scrolls inside instead of widening the page. */
+.tt-body > * { min-width: 0; }
 .tt-sec { display: grid; gap: var(--spacing-12); align-content: start; min-width: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
 .tt-sec--flat { padding-top: 0; border-top: 0; }
 .tt-sec h2 { margin: 0; font-size: var(--font-size-20); }
@@ -343,3 +345,7 @@
 .tt-queue__sub { margin: var(--spacing-24) 0 var(--spacing-8); font-size: var(--font-size-16); font-weight: 600; }
 .tt-add__parts { margin: var(--spacing-4) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .tt-win__combo { margin: 0; font-size: var(--font-size-16); }
+
+/* The way into the review queue for reviewers and updaters, beside Add a time (Britton, 2026-11-05). */
+.tt-review-link { display: inline-flex; align-items: center; gap: var(--spacing-8); text-decoration: none; }
+.tt-review-link__n { font-weight: 600; padding: 0 var(--spacing-8); border-radius: 999px; background: var(--bg-primary); color: var(--text-on-primary); font-size: var(--font-size-14); line-height: 2.2rem; }

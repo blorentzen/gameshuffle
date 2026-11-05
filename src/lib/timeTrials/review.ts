@@ -19,7 +19,7 @@ import { formatTime, videoProof } from "./rules";
 import { trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
 import { categoryText, type TtItems, type TtVehicle } from "./categories";
 import { legacyProofFor, nudgeMovedUp, timeById, toTimeRow, TIME_COLS, topTensAround, ttReady, type TtTimeRow } from "./store";
-import { inScope, reviewScope, type Mode } from "./updaters";
+import { inScope, modeCounts, reviewScope, type Mode } from "./updaters";
 import { round4Ready, vouchCounts } from "./status";
 import { isProofLink } from "./sheets";
 
@@ -293,6 +293,31 @@ export async function legacyProofQueue(scope: "all" | Mode[]): Promise<{ items: 
       return { id: r.id, label: timeLabel(t), name: names.get(r.player)?.name ?? "A player", link: r.sheet_link!, place, board: `${path}${path.includes("?") ? "&" : "?"}time=${r.id}` };
     }),
   };
+}
+
+// ── What's waiting (a way in from the account menu and the time trials page; Britton 2026-11-05) ────────────
+
+export interface ReviewCounts { clips: number; reports: number; claims: number; legacy: number; total: number }
+
+/** What waits for this person in the review queue, or null when they don't review anything. Head counts only. */
+export async function reviewCounts(userId: string | null): Promise<ReviewCounts | null> {
+  if (!userId || !(await ttReady())) return null;
+  const scope = await reviewScope(userId);
+  if (!scope) return null;
+  const db = createServiceClient();
+  const sheets = inScope(scope, { game: "mk8dx", items: "shrooms" }) && (await round4Ready());
+  const [work, claims, legacy] = await Promise.all([
+    scope === "all"
+      ? Promise.all([
+        db.from("tt_times").select("id", { count: "exact", head: true }).eq("status", "ok").eq("video_status", "waiting").not("video_url", "is", null),
+        db.from("tt_reports").select("id", { count: "exact", head: true }).in("state", OPEN),
+      ]).then(([c, r]) => ({ clips: c.count ?? 0, tickets: r.count ?? 0 }))
+      : Promise.all(scope.map(modeCounts)).then((all) => all.reduce((a, m) => ({ clips: a.clips + m.clips, tickets: a.tickets + m.tickets }), { clips: 0, tickets: 0 })),
+    // Claims are settled by whoever checks the sheets' mode (MK8DX mushrooms), reviewers and staff.
+    sheets ? db.from("tt_claims").select("id", { count: "exact", head: true }).eq("status", "pending").then((r) => r.count ?? 0) : Promise.resolve(0),
+    sheets ? db.from("tt_times").select("id", { count: "exact", head: true }).eq("source", "sheet").eq("status", "ok").eq("video_status", "none").not("sheet_link", "is", null).then((r) => r.count ?? 0) : Promise.resolve(0),
+  ]);
+  return { clips: work.clips, reports: work.tickets, claims, legacy, total: work.clips + work.tickets + claims + legacy };
 }
 
 export interface Reviewer { userId: string; name: string; username: string | null; at: string }
