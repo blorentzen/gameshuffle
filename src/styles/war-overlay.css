@@ -122,3 +122,16 @@ html.war-obs-route, html.war-obs-route body { background: transparent !important
 
 .war-piece__frame { container-type: inline-size; box-sizing: border-box; }
 .war-piece__frame--bug { padding-top: 64px; }
+
+/* Older OBS (Chromium 103): no container units and no color-mix(). ContainerUnitsFallback measures the frame into --cq
+   (the war page's frame is the window's width until then). A rule that mixes colors with var() goes empty there rather
+   than falling back, so the panels, lines and the current row get plain versions (same selectors, later in the file). */
+@supports not (width: 1cqw) {
+  .wo { --u: calc(var(--cq, 1vw) * 100 / var(--wo-w, 1000)); }
+}
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .wo--teams:not(.wo--glass) .wo__panel, .wo--light.wo--teams .wo__panel, .wo--brand:not(.wo--glass) .wo__panel { background: var(--wo-bg); }
+  .wo--strip .wo__panel { border-bottom: calc(var(--u) * 3) solid var(--wo-a); }
+  .wo__lr { border-bottom: 1px solid var(--wo-track); }
+  .wo__lr.is-now { background: rgb(242 193 78 / .16); }
+}

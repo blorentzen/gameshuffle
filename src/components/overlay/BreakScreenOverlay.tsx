@@ -213,7 +213,7 @@ function Option({ o, correct, count, total, reveal, compact = false }: { o: Brea
   // A word key ("over") is what chat types and the label already says it; a compact row has no room for keys.
   const showKey = o.key.length <= 2 && !compact;
   return (
-    <li className={`gs-break__opt${reveal ? (correct ? " is-right" : " is-wrong") : ""}${showKey ? "" : " is-wordkey"}`}>
+    <li className={`gs-break__opt${o.img ? " has-art" : ""}${reveal ? (correct ? " is-right" : " is-wrong") : ""}${showKey ? "" : " is-wordkey"}`}>
       {showKey && <span className="gs-break__key">{o.key}</span>}
       {o.img && (
         // eslint-disable-next-line @next/next/no-img-element -- overlay art from our own CDN
