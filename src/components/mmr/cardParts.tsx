@@ -226,7 +226,7 @@ export function FxLayers({ fx }: { fx: MomentFx }) {
       <span className="mmr-fx-sparks" aria-hidden="true">
         {Array.from({ length: 12 }, (_, i) => {
           const a = (i / 12) * Math.PI * 2;
-          return <i key={i} style={{ "--mmr-dx": `${Math.round(Math.cos(a) * 38)}cqw`, "--mmr-dy": `${Math.round(Math.sin(a) * 24)}cqw` } as CSSProperties}>{i % 2 ? <IconSparklesFilled /> : <IconStarFilled />}</i>;
+          return <i key={i} style={{ "--mmr-dx": `calc(${Math.round(Math.cos(a) * 38)} * var(--mmr-u))`, "--mmr-dy": `calc(${Math.round(Math.sin(a) * 24)} * var(--mmr-u))` } as CSSProperties}>{i % 2 ? <IconSparklesFilled /> : <IconStarFilled />}</i>;
         })}
       </span>
     </>

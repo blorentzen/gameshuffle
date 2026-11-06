@@ -18,7 +18,8 @@ const GLYPHS: Record<RollGlyph, typeof IconShield> = { shield: IconShield, sword
 export function RollSlotArt({ slot, className, glyphSize = 40, compact = false }: { slot: RollSlot; className?: string; glyphSize?: number; compact?: boolean }) {
   const tinted = slot.kind !== "art" && slot.color;
   const style: CSSProperties | undefined = tinted
-    ? { background: `radial-gradient(120% 90% at 50% 20%, color-mix(in srgb, ${slot.color} 70%, #fff), ${slot.color})` }
+    // The color on its own too: older OBS (Chromium 103) drops the gradient, since it has no color-mix().
+    ? { backgroundColor: slot.color, backgroundImage: `radial-gradient(120% 90% at 50% 20%, color-mix(in srgb, ${slot.color} 70%, #fff), ${slot.color})` }
     : undefined;
   const Glyph = slot.glyph ? GLYPHS[slot.glyph] : null;
   return (
