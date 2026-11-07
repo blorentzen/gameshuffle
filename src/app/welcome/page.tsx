@@ -22,6 +22,8 @@ import { personaPreview } from "@/lib/preview/server";
 import { InterestWelcome } from "@/components/interests/InterestPicker";
 import { BroughtByCard } from "@/components/social/BroughtByCard";
 import { bandFor } from "@/lib/home/happening";
+import { HappeningBand } from "@/components/home/HappeningBand";
+import { FRONT_ORDER, frontWorldRows } from "@/components/home/FrontWorlds";
 import { createClient } from "@/lib/supabase/server";
 import "@/styles/welcome.css";
 
@@ -170,7 +172,9 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
   const { data: { user } } = viewer ? await (await createClient()).auth.getUser() : { data: { user: null } };
   const interests = user ? await interestState(user.id, { provider: (user.app_metadata?.provider as string | undefined) ?? null }).catch(() => null) : null;
   // The sign-up question previews what's happening in the worlds ticked (room air + discovery picks, 6A).
-  const band = interests && interests.interests === null ? await bandFor(null).catch(() => []) : [];
+  const band = await bandFor(null).catch(() => []);
+  // Someone picking their interests below (a new account) doesn't need the chooser as well.
+  const choosing = !!interests && interests.interests === null;
   const steps = viewer?.isNew && user
     ? await firstStepsFor(user.id, interests?.interests ?? interests?.suggested ?? []).catch(() => null)
     : null;
@@ -184,27 +188,24 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         accent="blue"
         field="mixed"
         actions={<p className="welcome-hero__free"><IconCheck size={18} stroke={2.25} aria-hidden="true" /> {viewer ? "Free, with no ads." : "Free, no ads, no account needed to start."}</p>}
-        // Someone answering "What brings you here?" below doesn't need the same question as doors up here.
-        aside={interests && interests.interests === null ? undefined :
-          <nav className="welcome-doors" aria-labelledby="welcome-doors-title">
-            <h2 id="welcome-doors-title" className="welcome-doors__title">What brings you here?</h2>
-            <ul className="welcome-doors__grid">
-              {PATHS.map((p) => (
-                <li key={p.id}>
-                  <a href={`#${p.id}`} className={`welcome-door ${tagged(EVENTS.welcomeDoorClicked, { door: p.id })}`}>
-                    <span className={`welcome-tile welcome-tile--${p.tone}`} aria-hidden="true"><p.icon size={20} stroke={2} /></span>
-                    <span>{p.door}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        }
       />
       <Container className="welcome__body">
         {/* Whose link brought a new account here, with Follow (bring-along picks 2026-11-05). */}
         {viewer?.isNew && <BroughtByCard />}
-        {interests && interests.interests === null && <InterestWelcome suggested={interests.suggested} band={band} />}
+        {choosing && <InterestWelcome suggested={interests!.suggested} band={band} />}
+        {/* The front page's chooser, the same five worlds (front page picks 2026-11-07, 7A). */}
+        {!choosing && band.length > 0 && (
+          <HappeningBand
+            worlds={band}
+            tone="light"
+            signedIn={false}
+            heading="What are you here for?"
+            sub="Pick one. It stays picked in this browser."
+            order={FRONT_ORDER}
+            remember="gs-front-world"
+            extra={frontWorldRows()}
+          />
+        )}
 
         {steps && (
           <section className="welcome-steps" aria-labelledby="welcome-steps-title">

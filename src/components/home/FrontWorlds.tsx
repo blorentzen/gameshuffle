@@ -15,6 +15,7 @@ import { IconTile, type TileTone } from "@/components/ui/IconTile";
 import { TCG_SHOP_URL } from "@/data/shop";
 import { DAILY_DEX_PUBLIC, ROAD_PUBLIC } from "@/lib/games-visibility";
 import type { PillarId } from "@/lib/nav/pillars";
+import { gsDay } from "@/lib/time/gsClock";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import "@/styles/front.css";
 
@@ -38,7 +39,18 @@ function Rows({ world, rows }: { world: PillarId; rows: Row[] }) {
   );
 }
 
-export function frontWorldRows(seasonal: { label: string; href: string } | null): Partial<Record<PillarId, ReactNode>> {
+/** The chooser's worlds, Play first (front page picks 2026-11-07, 3A); the Welcome page uses the same (7A). */
+export const FRONT_ORDER: PillarId[] = ["play", "pokemon", "compete", "host", "stream"];
+
+/** The holiday party page while its season runs (Pacific days). */
+function seasonalNow(): { label: string; href: string } | null {
+  const md = gsDay().slice(5);
+  return md >= "10-01" && md <= "10-31" ? { label: "Halloween party games", href: "/game-nights/halloween-party-games" }
+    : md >= "11-15" && md <= "12-31" ? { label: "Christmas party games", href: "/game-nights/christmas-party-games" } : null;
+}
+
+export function frontWorldRows(): Partial<Record<PillarId, ReactNode>> {
+  const seasonal = seasonalNow();
   const rows: Record<PillarId, Row[]> = {
     play: [
       { title: "Today's daily games", line: "Guess the character, the Pokémon, rapid trivia and a card duel. New ones at midnight.", href: "/daily", icon: IconCalendarEvent, tone: "violet" },

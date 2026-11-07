@@ -16,10 +16,14 @@ const DEMOS = { kart: KartDemo, smash: SmashDemo, party: PartyDemo, daily: Daily
 export type WelcomeDemoId = keyof typeof DEMOS;
 
 const query = "(prefers-reduced-motion: reduce)";
+const noop = () => () => {};
 const subscribe = (cb: () => void) => { const m = window.matchMedia(query); m.addEventListener("change", cb); return () => m.removeEventListener("change", cb); };
 
 export function WelcomeDemo({ id, label }: { id: WelcomeDemoId; label: string }) {
   const reduced = useSyncExternalStore(subscribe, () => window.matchMedia(query).matches, () => true);
+  // The demos roll their picks when they're made (a poll's votes, a wheel's slice), so they're drawn only in the
+  // browser: drawn on the server too, the two disagreed and the page failed to hydrate.
+  const mounted = useSyncExternalStore(noop, () => true, () => false);
   const ref = useRef<HTMLDivElement>(null);
   const [round, setRound] = useState(0);
   useEffect(() => {
@@ -36,7 +40,7 @@ export function WelcomeDemo({ id, label }: { id: WelcomeDemoId; label: string })
   return (
     <div className="welcome-demo" ref={ref}>
       <div className="hero-show__demo welcome-demo__stage" aria-hidden="true">
-        <Demo key={playing ? `play-${round}` : "rest"} play={playing} />
+        {mounted && <Demo key={playing ? `play-${round}` : "rest"} play={playing} />}
       </div>
       {!reduced && (
         <Button variant="ghost" size="small" iconBefore={IconRotate} onClick={() => setRound((r) => r + 1)} aria-label={`Play the ${label} example again`} className="welcome-demo__again">

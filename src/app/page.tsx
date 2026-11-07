@@ -11,10 +11,8 @@ import { PlansBand } from "@/components/home/PlansBand";
 import { paidPlansHere, supportHere } from "@/lib/billing/availability";
 import { homeViewer } from "@/lib/home/viewer";
 import { HappeningBand } from "@/components/home/HappeningBand";
-import { frontWorldRows } from "@/components/home/FrontWorlds";
+import { FRONT_ORDER, frontWorldRows } from "@/components/home/FrontWorlds";
 import { bandFor } from "@/lib/home/happening";
-import type { PillarId } from "@/lib/nav/pillars";
-import { gsDay } from "@/lib/time/gsClock";
 import { shopVisibleToVisitors } from "@/lib/store/visibility";
 import { MerchRow } from "@/components/store/ShopEntry";
 
@@ -56,9 +54,6 @@ const SITE_JSON_LD = {
   ],
 };
 
-/** The front page's worlds in the chooser, Play first (front page picks 2026-11-07, 3A). */
-const FRONT_ORDER: PillarId[] = ["play", "pokemon", "compete", "host", "stream"];
-
 /**
  * Pages people search for, linked from the homepage so search engines find
  * them (Britton's pick, 2026-10-19). Short plain names; the line under says
@@ -96,9 +91,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // Signed in, your room lives at /home (journeys picks 2026-11-06, 6A); members see this front page with ?front=1.
   if (viewer && !(await searchParams).front) redirect("/home");
   const visitorBand = await bandFor(null).catch(() => []);
-  const md = gsDay().slice(5);
-  const seasonal = md >= "10-01" && md <= "10-31" ? { label: "Halloween party games", href: "/game-nights/halloween-party-games" }
-    : md >= "11-15" && md <= "12-31" ? { label: "Christmas party games", href: "/game-nights/christmas-party-games" } : null;
   return (
     <>
       <script
@@ -131,7 +123,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                 sub="Pick one. It stays picked in this browser."
                 order={FRONT_ORDER}
                 remember="gs-front-world"
-                extra={frontWorldRows(seasonal)}
+                extra={frontWorldRows()}
               />
             )}
             {!viewer && (
