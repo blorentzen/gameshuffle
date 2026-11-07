@@ -5,9 +5,9 @@
 .band__tabs, .band__tabs .empac-tabs__header, .band__tabs .empac-tabs__content { min-width: 0; max-width: 100%; }
 .band__title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-fluid-h2, 3rem); font-weight: 800; }
 
-/* The worlds as pills (CDS Tabs, pills), with room on the right for the pause button. */
+/* The worlds as pills (CDS Tabs, pills). */
 .band__tabs.empac-tabs { gap: 0; }
-.band__tabs .empac-tabs__header { display: flex; flex-wrap: wrap; gap: var(--spacing-8); border: 0; padding: 0 5.2rem 0 0; overflow: visible; }
+.band__tabs .empac-tabs__header { display: flex; flex-wrap: wrap; gap: var(--spacing-8); border: 0; padding: 0; overflow: visible; }
 .band__tabs .empac-tabs__tab {
   display: inline-flex; align-items: center; gap: var(--spacing-8); min-height: 40px; padding: var(--spacing-8) var(--spacing-16);
   border-radius: 999px; font-size: var(--font-size-15, 1.5rem); font-weight: 600; white-space: nowrap;
@@ -15,8 +15,9 @@
 .band__tabs .empac-tabs__tab-icon { display: inline-flex; }
 .band__tabs .empac-tabs__tab-badge { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #fde68a; color: #5b3a00; }
 .band__tabs .empac-tabs__content { padding-top: var(--spacing-20); }
-.band__pause { position: absolute; top: 0; right: 0; z-index: 2; }
+/* The pill is drawn inside the tab row (behind the tabs), so it scrolls and clips with them. */
 .band__tabs .empac-tabs__header { position: relative; z-index: 1; }
+.band__tabs .empac-tabs__tab { position: relative; z-index: 1; }
 .band__pill { position: absolute; top: 0; left: 0; z-index: 0; border-radius: 999px; pointer-events: none; transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .band--dark .band__pill { background: #fff; }
 .band--light .band__pill { background: var(--brand-ink, var(--primary-600)); }
@@ -27,8 +28,6 @@
 .band--dark .band__tabs .empac-tabs__tab--active,
 .band--dark .band__tabs .empac-tabs__tab--active:hover { background: transparent; border-color: transparent; color: #161a2e; }
 .band--dark .band__tabs .empac-tabs__tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-.band--dark .band__pause.empac-icon-button { color: #fff; background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.28); }
-.band--dark .band__pause.empac-icon-button:hover { background: rgba(255, 255, 255, 0.2); }
 
 .band--light .band__tabs .empac-tabs__tab { border: 1px solid var(--border-default); background: var(--background-primary, #fff); color: var(--text-primary); }
 .band--light .band__tabs .empac-tabs__tab--active,
@@ -44,10 +43,8 @@
 @media (max-width: 760px) {
   .band__row { grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: 84%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
   .band__row > li { scroll-snap-align: start; }
-  /* The row scrolls and stops short of the pause button, so no tab slides under it. */
-  .band__tabs .empac-tabs__header { flex-wrap: nowrap; overflow-x: auto; padding: 0 0 2px; margin-right: 5.2rem; scrollbar-width: none; }
-  /* With a heading (the front page), the pause button sits beside the heading, so the pills keep the full width. */
-  .band:has(> .band__title) .band__tabs .empac-tabs__header { margin-right: 0; }
+  /* The tabs scroll sideways in one row; the pill scrolls with them. */
+  .band__tabs .empac-tabs__header { flex-wrap: nowrap; overflow-x: auto; padding: 0 0 2px; scrollbar-width: none; }
   .band__tabs .empac-tabs__header::-webkit-scrollbar { display: none; }
 }
 .band__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-16); font-size: var(--font-size-15, 1.5rem); }
@@ -125,13 +122,8 @@ button.hap { width: 100%; margin: 0; padding: 0; border: 0; font: inherit; text-
 /* A band card's picture carried into the event page it opens (3A). */
 ::view-transition-group(.event-art) { animation-duration: 0.42s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
 
-/* The 6 seconds before the next world. */
-.band__timer { position: absolute; left: 0; bottom: -10px; height: 3px; width: 0; border-radius: 3px; background: currentColor; opacity: 0.5; animation: band-step var(--step, 6s) linear forwards; }
-.band--dark .band__timer { color: #fff; }
-.band--light .band__timer { color: var(--brand-ink, #2766ec); }
-@keyframes band-step { to { width: 100%; } }
 @media (prefers-reduced-motion: reduce) {
-  .band__timer { display: none; } .hap__img, .band__pill { transition: none; } .hap__live::before { animation: none; }
+  .hap__img, .band__pill { transition: none; } .hap__live::before { animation: none; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
 @media (forced-colors: active) { .hap { border: 1px solid CanvasText; } }

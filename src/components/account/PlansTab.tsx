@@ -362,7 +362,7 @@ export function PlansTab() {
   );
 }
 
-const mutedNote: React.CSSProperties = { color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 };
+const mutedNote: React.CSSProperties = { color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-12)", marginBottom: 0 };
 
 /** Support GameShuffle in Plans & billing: where you stand, and the way to Account ▸ Support. */
 function SupportPlanCard() {

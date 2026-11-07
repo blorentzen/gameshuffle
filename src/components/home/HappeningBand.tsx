@@ -7,7 +7,8 @@
  *
  * Motion with intention (1A, 2A, 5A): when the band moves to another world its cards are dealt in one after another
  * while the white pill glides to the tab; live things carry a breathing dot; nothing moves with reduced motion.
- * It moves on every 6 seconds (a bar fills); hover, focus or a touch holds it; the pause button stops it.
+ * It changes world only when you pick one (it used to roll on by itself every 6 seconds; Britton, 2026-11-07: no auto
+ * scrolling). The pill lives inside the tab row, so a swiped row carries it along instead of it chasing the tabs.
  *
  * Alive, not overwhelming (Britton's note): signed in, it asks for fresh things every 3 minutes while it's on screen.
  * Something new in one of your worlds gets a dot on its tab and "Just now" on its card, at most one a check, and a
@@ -20,11 +21,12 @@
 
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, ViewTransition, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Avatar, Badge, Button, IconButton, Tabs } from "@empac/cascadeds";
+import { Avatar, Badge, Button, Tabs } from "@empac/cascadeds";
 import {
   IconArrowsShuffle, IconBroadcast, IconCards, IconChartBar, IconCheck, IconClock, IconDeviceTv, IconDice5, IconFlag, IconFlame,
-  IconPlayerPause, IconPlayerPlay, IconPlus, IconPokeball, IconQuestionMark, IconRoute, IconSitemap, IconSofa, IconSwords, IconUsersGroup, IconX, type Icon,
+  IconPlus, IconPokeball, IconQuestionMark, IconRoute, IconSitemap, IconSofa, IconSwords, IconUsersGroup, IconX, type Icon,
 } from "@tabler/icons-react";
 import { TrainerArt } from "@/components/originals/duel/TrainerArt";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -49,7 +51,6 @@ const SKIP_KEY = "gs-band-skip";
 const listeners = new Set<() => void>();
 const readSkip = () => { try { return localStorage.getItem(SKIP_KEY) ?? ""; } catch { return ""; } };
 const writeSkip = (ids: string[]) => { try { localStorage.setItem(SKIP_KEY, ids.join(",")); } catch { /* private mode */ } listeners.forEach((l) => l()); };
-const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** The shared name an event's picture carries into its page (the page wraps its header picture in the same name). */
 export const eventArtName = (id: string) => (id.startsWith("t:") ? `event-art-t-${id.slice(2)}` : id.startsWith("n:") ? `event-art-n-${id.slice(2)}` : null);
@@ -133,11 +134,8 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
   const worlds = shown.filter((w) => w.mine || !skipped.has(w.id));
   const [active, setActive] = useState<string>(worlds[0]?.id ?? "");
   const [dealt, setDealt] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [held, setHeld] = useState(false);
   const [followed, setFollowed] = useState<Record<string, Interest[]>>({});
   const current = worlds.some((w) => w.id === active) ? active : worlds[0]?.id ?? "";
-  const moving = !paused && !held && worlds.length > 1;
   const activeRef = useRef(current);
   useEffect(() => { activeRef.current = current; }, [current]);
 
@@ -151,16 +149,8 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
     // Its "new" dot clears once you've moved on from it again (you saw it).
     window.setTimeout(() => setFresh((f) => { if (!f[id]) return f; const rest = { ...f }; delete rest[id]; return rest; }), STEP_MS);
   };
-  const goRef = useRef(go);
-  useEffect(() => { goRef.current = go; });
 
   const ids = worlds.map((w) => w.id).join(",");
-  useEffect(() => {
-    if (!moving || reducedMotion()) return;
-    const list = ids.split(",");
-    const t = window.setTimeout(() => goRef.current(list[(list.indexOf(current) + 1) % list.length] ?? current), STEP_MS);
-    return () => window.clearTimeout(t);
-  }, [moving, current, ids]);
 
   // Every 3 minutes while on screen: anything new in your worlds (at most one marked a check).
   useEffect(() => {
@@ -185,23 +175,22 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn]);
 
-  // The white pill under the active tab glides between tabs.
+  // The white pill under the active tab glides between tabs. It sits inside the tab row (CDS positions the row), so
+  // it scrolls and clips with the tabs.
   const [pill, setPill] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [row, setRow] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
-    const el = root.current;
-    if (!el) return;
+    const header = root.current?.querySelector<HTMLElement>(".empac-tabs__header") ?? null;
+    if (!header) return;
     const place = () => {
-      const tab = el.querySelector<HTMLElement>(".empac-tabs__tab--active");
-      if (!tab) return;
-      const a = el.getBoundingClientRect(), b = tab.getBoundingClientRect();
-      setPill({ x: b.left - a.left, y: b.top - a.top, w: b.width, h: b.height });
+      setRow(header);
+      const tab = header.querySelector<HTMLElement>(".empac-tabs__tab--active");
+      if (tab) setPill({ x: tab.offsetLeft, y: tab.offsetTop, w: tab.offsetWidth, h: tab.offsetHeight });
     };
     place();
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(place) : null;
-    ro?.observe(el);
-    const header = el.querySelector(".empac-tabs__header");
-    header?.addEventListener("scroll", place, { passive: true });
-    return () => { ro?.disconnect(); header?.removeEventListener("scroll", place); };
+    ro?.observe(header);
+    return () => ro?.disconnect();
   }, [current, ids]);
 
   if (!worlds.length) return null;
@@ -265,21 +254,10 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
       className={`band band--${tone}`}
       aria-label={heading ? undefined : "What's happening on GameShuffle"}
       aria-labelledby={heading ? "band-title" : undefined}
-      onMouseEnter={() => setHeld(true)}
-      onMouseLeave={() => setHeld(false)}
-      onFocus={() => setHeld(true)}
-      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHeld(false); }}
-      onTouchStart={() => setHeld(true)}
     >
       {heading && <h2 id="band-title" className="band__title">{heading}</h2>}
-      {pill && <span className="band__pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />}
-      {worlds.length > 1 && (
-        <IconButton variant="tertiary" size="small" className="band__pause" aria-label={paused ? "Keep rolling through the worlds" : "Stop rolling through the worlds"} aria-pressed={paused} onClick={() => setPaused((p) => !p)}>
-          {paused ? <IconPlayerPlay size={18} aria-hidden="true" /> : <IconPlayerPause size={18} aria-hidden="true" />}
-        </IconButton>
-      )}
       <Tabs tabs={tabs} activeTab={current} onChange={go} variant="pills" className="band__tabs" />
-      {moving && <span key={current} className="band__timer" style={{ "--step": `${STEP_MS}ms` } as CSSProperties} aria-hidden="true" />}
+      {row && pill && createPortal(<span className="band__pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />, row)}
     </section>
   );
 }

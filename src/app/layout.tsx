@@ -41,7 +41,6 @@ import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
 import { ImpersonationControlMount } from "@/components/staff/ImpersonationControlMount";
 import { ImpersonationProviderMount } from "@/components/staff/ImpersonationProviderMount";
 import { RouteThemeSync } from "@/components/theme/RouteThemeSync";
-import { ActiveTabInView } from "@/components/layout/ActiveTabInView";
 import { AuthHashErrorCatcher } from "@/components/auth/AuthHashErrorCatcher";
 import { LeadSourceTracker } from "@/components/analytics/LeadSourceTracker";
 import { isAppRoute } from "@/lib/theme/app-routes";
@@ -210,7 +209,6 @@ export default async function RootLayout({
             above only covers the initial load; this covers route
             transitions. Mirrors the same isAppRoute() decision tree. */}
         <RouteThemeSync />
-        <ActiveTabInView />
         {/* Sends a sign-in error that Supabase dropped on another page (after the #) to /login to be explained. */}
         <AuthHashErrorCatcher />
         {/* Staff impersonation banner — server-rendered, only emits for staff

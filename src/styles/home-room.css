@@ -416,7 +416,6 @@ a.room-art__text:focus-visible { outline: none; }
 @keyframes room-stamp { 0% { opacity: 0; transform: scale(1.6) rotate(-14deg); } 70% { opacity: 1; transform: scale(0.94) rotate(-6deg); } 100% { opacity: 1; transform: scale(1) rotate(-8deg); } }
 .room-day:has(.room-day__stamp) .room-day__streak { margin-right: 6.4rem; }
 .room-tile--bare .room-links { margin-top: 0; }
-.room-invite__link { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── "On my profile" (bring-along 6A): a small toggle on tiles that show on your public profile. ── */
 .room-eye { display: inline-flex; }
@@ -479,7 +478,7 @@ a.room-art__text:focus-visible { outline: none; }
 .room-game--add::before { display: none; }
 .room-game--add:hover { transform: none; box-shadow: none; color: var(--text-primary); }
 /* The room's foot: the five worlds, flat under a line. */
-.room-explore { margin-top: var(--spacing-48, 4.8rem); padding-top: var(--spacing-32); border-top: 1px solid var(--border-subtle); }
+.room-explore { margin-top: var(--spacing-48, 4.8rem); padding-block: var(--spacing-32) var(--spacing-64, 6.4rem); border-top: 1px solid var(--border-subtle); }
 .room-explore__row { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-16) var(--spacing-24); grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .room-explore__world { display: flex; align-items: center; gap: var(--spacing-12); text-decoration: none; color: var(--text-primary); min-width: 0; }
 .room-explore__world b { display: block; font-family: var(--font-display); font-size: var(--font-size-16); font-weight: 800; }

@@ -46,9 +46,12 @@
 }
 .bgn-games__composerow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-8);
 }
+/* The length menu shrinks first; on a narrow phone the Add button wraps instead of running off the screen. */
+.bgn-games__composerow > .empac-select, .bgn-games__composerow > div:has(.empac-select) { flex: 1 0 auto; }
 /* Push the Add button to the right, artwork + length stay left. */
 .bgn-games__composerow > :last-child {
   margin-left: auto;
@@ -1506,15 +1509,16 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   bottom: var(--spacing-12);
   padding: 2px var(--spacing-8);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(12, 14, 28, 0.78);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
   color: #fff;
   font-size: var(--font-size-14);
   font-weight: 700;
+  line-height: 1.5;
 }
 /* Free is the common case, so it reads quieter than a dollar amount without
-   disappearing. */
+   disappearing: the same dark chip (bright box art showed through a lighter one), lighter type. */
 .bgn-card__hero-price--free {
-  background: rgba(0, 0, 0, 0.42);
   font-weight: var(--font-weight-semibold);
 }
 .bgn-card__hero-match {

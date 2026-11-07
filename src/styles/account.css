@@ -3243,7 +3243,7 @@ html.dark .gs-platform-icon {
 }
 .plan-highlights__detail {
   display: block;
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   line-height: 1.5;
   color: var(--text-secondary);
 }
@@ -3303,7 +3303,7 @@ html.dark .gs-platform-icon {
 }
 .circuit-ladder__preview {
   margin: 0;
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   color: var(--text-tertiary);
   max-width: 34rem;
 }
@@ -3358,7 +3358,7 @@ html.dark .gs-platform-icon {
   color: var(--text-primary);
 }
 .circuit-tier__badge {
-  font-size: var(--font-size-10);
+  font-size: var(--font-size-12);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -3401,14 +3401,14 @@ html.dark .gs-platform-icon {
 }
 .circuit-tier__specs dd {
   margin: 0;
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   font-weight: 700;
   text-align: right;
   color: var(--text-primary);
 }
 .circuit-tier__detail {
   margin: 0 0 var(--spacing-12);
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   line-height: 1.5;
   color: var(--text-secondary);
 }
@@ -3419,7 +3419,7 @@ html.dark .gs-platform-icon {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
 .circuit-tier__features li::before {
@@ -3451,7 +3451,7 @@ html.dark .gs-platform-icon {
 }
 .circuit-events-row__body {
   margin: 0;
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   line-height: 1.5;
   color: var(--text-secondary);
   max-width: 44rem;
@@ -3753,6 +3753,8 @@ html.dark .gs-platform-icon {
 /* Every h2.account-tab__heading in an older tab is that tab's own title,
    which the screen header already shows (Engagement's sits in a flex row). */
 .admin-screen--wrap h2.account-tab__heading:not(.account-tab__heading--section) { display: none; }
+/* A screen whose content is its own cards (Plans & billing): no card around them, so there's no box in a box. */
+.account-card.admin-screen--plain { background: transparent; box-shadow: none; padding: 0; border-radius: 0; }
 .admin-screen--wrap > .account-tab { display: flex; flex-direction: column; gap: var(--spacing-20); }
 /* Streaming ▸ Get started (free accounts) */
 .streaming-hero { display: flex; flex-direction: column; gap: var(--spacing-12); padding: var(--spacing-24); border-radius: var(--radius-12, 12px); color: #fff; background: radial-gradient(120% 140% at 0% 0%, #4b5cf5 0%, #2f3fae 38%, #151a4a 100%); }

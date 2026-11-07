@@ -299,7 +299,7 @@ export function SettingsPrivacyScreen() {
 
 export function PlansScreen() {
   return (
-    <AdminScreen title="Plans & billing" intro="Your plan, what each plan includes, and billing.">
+    <AdminScreen title="Plans & billing" intro="Your plan, what each plan includes, and billing." className="admin-screen--plain">
       <PlansTab />
     </AdminScreen>
   );
