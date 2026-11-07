@@ -34,7 +34,14 @@ import { RollSlotArt } from "@/components/twitch/RollSlotArt";
 import type { ChatRoll, RollSlot } from "@/lib/twitch/chatRoll";
 import "@/styles/rolls.css";
 
-export function RollCard({ roll, compact = false, head }: { roll: ChatRoll; compact?: boolean; head?: React.ReactNode }) {
+/** Where each part's reel is (RollReelCard): spinning or just landed, and a count that changes with every frame so
+ *  the picture remounts and drops in. */
+export type ReelPhase = "idle" | "spinning" | "landed";
+export interface ReelState { phase: ReelPhase[]; tick: number[] }
+
+const reelClass = (reel: ReelState | undefined, i: number) => (reel && reel.phase[i] !== "idle" ? ` roll-reel--${reel.phase[i]}` : "");
+
+export function RollCard({ roll, compact = false, head, reel }: { roll: ChatRoll; compact?: boolean; head?: React.ReactNode; reel?: ReelState }) {
   const [lead, ...rest] = roll.slots;
   if (!lead) return null;
   const wide = roll.kind === "setup" && lead.kind === "art" && !!lead.img;
@@ -42,7 +49,7 @@ export function RollCard({ roll, compact = false, head }: { roll: ChatRoll; comp
     <div className={`roll-card${compact ? " roll-card--compact" : ""}${wide ? " roll-card--wide" : ""}`}>
       {head}
       <div className="roll-card__body">
-        <RollSlotArt slot={lead} className="roll-card__lead" glyphSize={compact ? 36 : 56} />
+        <RollSlotArt key={reel?.tick[0]} slot={lead} className={`roll-card__lead${reelClass(reel, 0)}`} glyphSize={compact ? 36 : 56} />
         <div className="roll-card__info">
           {roll.title && <span className="roll-card__title">{roll.title}</span>}
           <span className="roll-card__label">{lead.label}</span>
@@ -53,9 +60,9 @@ export function RollCard({ roll, compact = false, head }: { roll: ChatRoll; comp
           ) : (
             rest.length > 0 && (
               <ul className="roll-card__parts">
-                {rest.map((p) => (
-                  <li key={`${p.label}-${p.name}`}>
-                    <PartArt slot={p} />
+                {rest.map((p, i) => (
+                  <li key={reel ? `${p.label}-${i}` : `${p.label}-${p.name}`} className={reelClass(reel, i + 1).trim() || undefined}>
+                    <PartArt key={reel?.tick[i + 1]} slot={p} />
                     <span><span className="roll-card__label">{p.label}</span><b>{p.name}</b>{p.detail ? <span className="roll-card__detail"> · {p.detail}</span> : null}</span>
                   </li>
                 ))}

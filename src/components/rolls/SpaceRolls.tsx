@@ -12,10 +12,10 @@ import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ArrowLink } from "@/components/ui/ArrowLink";
-import { RollCard } from "@/components/rolls/RollCard";
+import { RollReelCard } from "@/components/rolls/RollReelCard";
 import { GhostRoll } from "@/components/ui/Ghost";
 import { PostCard } from "@/components/social/PostCard";
-import type { ChatRoll } from "@/lib/twitch/chatRoll";
+import type { ChatRoll, RollSlot } from "@/lib/twitch/chatRoll";
 import type { FeedPost } from "@/lib/social/feed";
 
 export function SpaceRolls({ space, gameName, rollLabel, full, initialPosts, currentUserId, only }: {
@@ -31,7 +31,7 @@ export function SpaceRolls({ space, gameName, rollLabel, full, initialPosts, cur
   only?: "roll";
 }) {
   const toast = useToast();
-  const [got, setGot] = useState<{ roll: ChatRoll; sig: string } | null>(null);
+  const [got, setGot] = useState<{ roll: ChatRoll; sig: string; reel?: RollSlot[][] } | null>(null);
   const [busy, setBusy] = useState(false);
   const [shared, setShared] = useState(false);
   const [posts, setPosts] = useState(initialPosts);
@@ -41,7 +41,7 @@ export function SpaceRolls({ space, gameName, rollLabel, full, initialPosts, cur
     try {
       const r = await fetch(`/api/games/${space}/roll`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "roll" }) });
       const d = await r.json().catch(() => ({}));
-      if (r.ok && d.roll) { setGot({ roll: d.roll, sig: d.sig }); setShared(false); }
+      if (r.ok && d.roll) { setGot({ roll: d.roll, sig: d.sig, reel: Array.isArray(d.reel) ? d.reel : undefined }); setShared(false); }
       else toast.error(r.status === 429 ? "That's a lot of rolls. Give it a minute." : "The randomizer didn't answer. Try again.");
     } catch { toast.error("The randomizer didn't answer. Try again."); }
     setBusy(false);
@@ -70,7 +70,7 @@ export function SpaceRolls({ space, gameName, rollLabel, full, initialPosts, cur
         <h2 id={headingId}>Roll for me</h2>
         {only && shared && <ArrowLink plain href="?tab=rolls" className="room-tile__more">Shared rolls</ArrowLink>}
       </div>
-      {got ? <RollCard roll={got.roll} /> : <p className="room-tile__note">{only ? `One tap and the ${gameName} randomizer picks for you.` : `One tap and the ${gameName} randomizer picks for you. Share what you get and see what everyone else rolled.`}</p>}
+      {got ? <RollReelCard roll={got.roll} reel={got.reel} /> : <p className="room-tile__note">{only ? `One tap and the ${gameName} randomizer picks for you.` : `One tap and the ${gameName} randomizer picks for you. Share what you get and see what everyone else rolled.`}</p>}
       <div className="space-actions" aria-live="polite">
         {got && (currentUserId ? (
           <Button variant="primary" onClick={() => void share()} disabled={busy || shared}>{shared ? "Shared" : "Share it here"}</Button>

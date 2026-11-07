@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { getImagePath } from "@/lib/images";
+import { REEL_LAND_MS, reelTimes } from "@/lib/randomizers/reel";
 
 /**
  * A player card that grows in place (PlayerCard's SeatCard) puts its picture's
@@ -93,18 +94,14 @@ export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color
     }
 
     // Decelerating reel: fast at the start, easing to a stop, then land.
-    const STEPS = 16;
+    const { frames, land } = reelTimes();
     setPhase("spinning");
-    let elapsed = 0;
-    for (let i = 0; i < STEPS; i++) {
-      const frac = i / STEPS;
-      const delay = 22 + Math.pow(frac, 2.3) * 135; // ease-out spacing
-      elapsed += delay;
+    for (const at of frames) {
       const id = window.setTimeout(() => {
         const p = pool[Math.floor(Math.random() * pool.length)];
         setDisplay({ img: p.img, name: p.name, color: p.color });
         setFrame((f) => f + 1);
-      }, elapsed);
+      }, at);
       timers.current.push(id);
     }
     // Land on the real result with a pop.
@@ -112,9 +109,9 @@ export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color
       setDisplay({ img: imageSrc, name, color });
       setPhase("landed");
       setFrame((f) => f + 1);
-      const clearId = window.setTimeout(() => setPhase("idle"), 420);
+      const clearId = window.setTimeout(() => setPhase("idle"), REEL_LAND_MS);
       timers.current.push(clearId);
-    }, elapsed + 70);
+    }, land);
     timers.current.push(landId);
   }, [imageSrc, name, pool, animate, color]);
 

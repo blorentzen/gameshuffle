@@ -10,7 +10,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getChatGame } from "@/lib/twitch/chatGames";
 import { CHAT_SETUPS } from "@/lib/twitch/chatSetups";
-import type { ChatRoll } from "@/lib/twitch/chatRoll";
+import type { ChatRoll, RollSlot } from "@/lib/twitch/chatRoll";
 import type { GameSpace } from "@/lib/games/spaces";
 
 /** The randomizer a space rolls from: its main game's chat roll, if that game has one. */
@@ -42,16 +42,31 @@ export function rollSigned(roll: ChatRoll, sig: string): boolean {
  *  board, turns, rules and Bonus Stars, with your character second (other spaces pass, 2026-11-06). */
 const SETUP_FIRST = new Set(["mario-party"]);
 
-/** One roll for the space's main game, signed. Null when the game has no randomizer. */
-export function rollForSpace(s: GameSpace): { roll: ChatRoll; sig: string } | null {
+function makeRoll(s: GameSpace): ChatRoll | null {
   const game = spaceRoller(s);
   if (!game || game.streamerOnly) return null;
   const pick = game.roll({ owned: null, arg: "", taken: [] });
   const setup = SETUP_FIRST.has(s.id) ? CHAT_SETUPS[s.primary]?.roll({ arg: "", players: 4 }) : null;
-  const roll: ChatRoll = setup && setup.slots.length && pick.slots.length
+  return setup && setup.slots.length && pick.slots.length
     ? { ...setup, slots: [setup.slots[0], ...pick.slots, ...setup.slots.slice(1)], text: `${setup.text} · ${pick.slots.map((x) => x.name).join(", ")}` }
     : pick;
-  return { roll, sig: signRoll(roll) };
+}
+
+/** One roll for the space's main game, signed, with what its reel spins through first: for each part, up to 8 other
+ *  picks of the same kind from more rolls of the same randomizer (never the result). Null when the game has no
+ *  randomizer. */
+export function rollForSpace(s: GameSpace): { roll: ChatRoll; sig: string; reel: RollSlot[][] } | null {
+  const roll = makeRoll(s);
+  if (!roll) return null;
+  const pools = new Map<string, Map<string, RollSlot>>(roll.slots.map((x) => [x.label, new Map()]));
+  for (let i = 0; i < 14; i++) {
+    for (const x of makeRoll(s)?.slots ?? []) {
+      const pool = pools.get(x.label);
+      if (pool && pool.size < 8) pool.set(x.name, x);
+    }
+  }
+  const reel = roll.slots.map((t) => [...(pools.get(t.label)?.values() ?? [])].filter((x) => x.name !== t.name));
+  return { roll, sig: signRoll(roll), reel };
 }
 
 /** A roll as it may be stored on a post: the parts as given, trimmed to sane sizes. */
