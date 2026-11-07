@@ -399,8 +399,9 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
     // swaps text nodes React still updates every few seconds, which broke the studio (Sentry GAMESHUFFLE-6M).
     <div className={cls} data-layout={profile ? "profile" : recap ? "panel" : look.layout} style={vars} translate="no">
       <FontLink look={look} />
-      <span className="mmr-sr">{recap ? `${view.name} tonight: ${recap.events} events, ${recap.wins}-${recap.losses}, ${signed(recap.net)}. Now ${recap.mmr != null ? fmtMmr(recap.mmr) : "no MMR"}, ${recap.division}.` : summary}</span>
-      <div className="mmr-moment" ref={momentRef} aria-hidden="true">
+      {!profile && <span className="mmr-sr">{recap ? `${view.name} tonight: ${recap.events} events, ${recap.wins}-${recap.losses}, ${signed(recap.net)}. Now ${recap.mmr != null ? fmtMmr(recap.mmr) : "no MMR"}, ${recap.division}.` : summary}</span>}
+      {/* The profile's Rank block is read as it stands (it holds links); every other layout is spoken as the summary. */}
+      <div className="mmr-moment" ref={momentRef} aria-hidden={profile ? undefined : "true"}>
         {body}
         <BrandTab brand={look.brand} />
       </div>
