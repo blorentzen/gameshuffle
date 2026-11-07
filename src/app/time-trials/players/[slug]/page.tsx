@@ -135,7 +135,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
       <BrowseHero
         eyebrow="Time trials"
         title={who.name}
-        sub={`${country ? `${countryName(country)}. ` : ""}${listed ? "Legacy times, recorded before they came to GameShuffle. Best times on every board, with their place." : who.discord ? "Plays from Discord. Best times on every board, with their place." : "Best times on every board, with their place."}`}
+        sub={`${country ? `${countryName(country)}. ` : ""}${listed ? "Times brought over from the community's records. Best times on every board, with their place." : who.discord ? "Plays from Discord. Best times on every board, with their place." : "Best times on every board, with their place."}`}
         accent="blue"
         field="compete"
         compact

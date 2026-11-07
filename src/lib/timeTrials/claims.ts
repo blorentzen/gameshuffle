@@ -146,7 +146,7 @@ export async function decideClaim(id: string, by: string, approve: boolean, reas
   const name = (idRow as { display_name: string | null } | null)?.display_name || "that name";
   if (!approve) {
     await db.from("tt_claims").update({ status: "denied", reason: why, decided_by: by, decided_at: now }).eq("id", id).eq("status", "pending");
-    await tell(c.user_id, "Your legacy times claim wasn't approved", `${name}: ${why}`, playerPagePath(`i:${c.identity_id}`, null));
+    await tell(c.user_id, "Your claim wasn't approved", `${name}: ${why}`, playerPagePath(`i:${c.identity_id}`, null));
     return { ok: true };
   }
   // Claim it first (one approved per name), then move the times.
@@ -160,8 +160,8 @@ export async function decideClaim(id: string, by: string, approve: boolean, reas
   // Anyone else claiming the same name hears it went to someone else.
   const { data: others } = await db.from("tt_claims").update({ status: "denied", reason: "This name was matched to another account.", decided_by: by, decided_at: now })
     .eq("identity_id", c.identity_id).eq("status", "pending").select("user_id");
-  for (const o of (others ?? []) as { user_id: string }[]) await tell(o.user_id, "Your legacy times claim wasn't approved", `${name} was matched to another account. If that's wrong, write to support@gameshuffle.co.`, "/time-trials");
-  await tell(c.user_id, "Your legacy times are on your account", `${name}'s legacy times are on your account now, and new ones will come straight to you.`, "/time-trials/players/me");
+  for (const o of (others ?? []) as { user_id: string }[]) await tell(o.user_id, "Your claim wasn't approved", `${name} was matched to another account. If that's wrong, write to support@gameshuffle.co.`, "/time-trials");
+  await tell(c.user_id, "Your times are on your account", `${name}'s times are on your account now, and new ones will come straight to you.`, "/time-trials/players/me");
   return { ok: true };
 }
 
@@ -175,6 +175,6 @@ export async function undoClaim(id: string, by: string): Promise<{ ok: boolean; 
   if (error) return { ok: false, error: "failed" };
   await db.from("tt_claims").update({ status: "undone", decided_by: by, decided_at: new Date().toISOString() }).eq("id", id);
   // The sheet rows point at the times, which keep their ids; nothing else to move.
-  await tell(c.user_id, "Legacy times were taken off your account", "Staff moved those legacy times back to their listed player. Write to support@gameshuffle.co if you have questions.", "/time-trials/players/me");
+  await tell(c.user_id, "Times were taken off your account", "Staff moved those times back to their listed player. Write to support@gameshuffle.co if you have questions.", "/time-trials/players/me");
   return { ok: true };
 }

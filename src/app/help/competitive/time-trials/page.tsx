@@ -89,7 +89,6 @@ export default function Page() {
         <li><strong>Clip in review:</strong> you added a clip and it&apos;s waiting for a reviewer.</li>
         <li><strong>Verified:</strong> a reviewer or updater checked the clip and it shows the run.</li>
         <li><strong>Clip didn&apos;t match:</strong> only you see this, with the reviewer&apos;s reason. Add another clip.</li>
-        <li><strong>Legacy:</strong> a time set before it came to GameShuffle (see below).</li>
         <li><strong>Community verified:</strong> ten players vouched for it.</li>
         <li><strong>Under review:</strong> someone reported it and a reviewer hasn&apos;t decided yet.</li>
         <li><strong>Trusted:</strong> the player has ten checked clips, none turned down, no time removed after a report and nothing under review. Their top-ten times don&apos;t need a clip.</li>
@@ -136,15 +135,15 @@ export default function Page() {
         If the screenshot shows a different time, an updater checks it.
       </p>
 
-      <h2>Legacy times</h2>
+      <h2>Older times and your name</h2>
       <p>
-        Legacy times were set before players came to GameShuffle, brought over from the community&apos;s
-        existing Mario Kart 8 Deluxe records so the boards start complete. If a legacy name is you, open
+        Some times were set before players came to GameShuffle, brought over from the community&apos;s
+        existing Mario Kart 8 Deluxe records so the boards start complete. If one of those names is you, open
         its player page and press <strong>This is me</strong>. Add a link that shows the name is yours
         (your MKCentral page, a channel or post under that name, or a clip of one of the runs) and an
         optional note. An updater checks it, and you get a notification either way. Once approved, the
-        times move to your account and any new ones for that name come straight to you. A legacy time
-        shows as Verified once its clip is checked.
+        times move to your account and any new ones for that name come straight to you. One of these times
+        shows as Verified once its picture or clip is checked.
       </p>
 
       <h2>Reporting a time</h2>
@@ -172,7 +171,7 @@ export default function Page() {
       </ul>
 
       <p>
-        Reviewers and updaters check the clips, reports and legacy claims. How that works is in{" "}
+        Reviewers and updaters check the clips, reports and name claims. How that works is in{" "}
         <Link href="/help/competitive/reviewing-times">Reviewing time trials</Link>.
       </p>
     </HelpArticle>

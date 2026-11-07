@@ -322,6 +322,9 @@
 .tt-win__check { padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
 .tt-win__verify { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--spacing-8); }
 .tt-win__verify > :first-child { flex: 1 1 24rem; min-width: 0; }
+/* A clip link or a picture (2026-11-07): the picture button (or the added picture) on its own line under the link. */
+.tt-win__picture { flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); font-size: var(--font-size-14); }
+.tt-win__picture a { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); font-weight: 600; }
 .tt-win__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
 .tt-win__actions a { display: inline-flex; align-items: center; gap: var(--spacing-4); text-decoration: none; }
 

@@ -7,10 +7,10 @@
  * 2026-11-04): the player's clip, a legacy time's clip or post, or a clip they paste.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Avatar, Button, FormField, Input, Modal } from "@empac/cascadeds";
-import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconHistory, IconLink, IconShieldCheck, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
+import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconLink, IconShieldCheck, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
@@ -21,7 +21,9 @@ import { TtAddShot } from "./TtAddShot";
 export function StatusChip({ status }: { status: TimeStatus }) {
   switch (status) {
     case "verified": return <span className="tt-chip tt-chip--ok"><IconCircleCheck size={14} aria-hidden="true" /> Verified</span>;
-    case "sheet": return <span className="tt-chip tt-chip--sheet"><IconHistory size={14} aria-hidden="true" /> Legacy</span>;
+    // Times brought over from the community's records carry no chip ("Legacy" stopped meaning anything, Britton
+    // 2026-11-07); the proof column says what they have.
+    case "sheet": return null;
     case "community": return <span className="tt-chip tt-chip--community"><IconUsersGroup size={14} aria-hidden="true" /> Community verified</span>;
     case "trusted": return <span className="tt-chip tt-chip--trust"><IconShieldCheck size={14} aria-hidden="true" /> Trusted</span>;
     case "review": return <span className="tt-chip tt-chip--review">Under review</span>;
@@ -40,7 +42,8 @@ const VOUCH_ERRORS: Record<string, string> = {
 
 const VERIFY_ERRORS: Record<string, string> = {
   bad_video: "Paste a clip link from YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram.",
-  no_proof: "Paste the clip that shows this run first.",
+  no_proof: "Paste a clip or add a picture that shows this run first.",
+  bad_picture: "That picture didn't upload. Add it again.",
   not_reviewer: "You don't check this game and items.",
   gone: "That time isn't on the board any more.",
 };
@@ -54,6 +57,10 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
   const [reviewer, setReviewer] = useState<{ canVerify: boolean; clip: string | null } | null>(null);
   const [clipLink, setClipLink] = useState("");
   const [verifying, setVerifying] = useState(false);
+  // A picture the reviewer adds as proof (Britton, 2026-11-07: proof is a clip or a picture).
+  const [picture, setPicture] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const pictureRef = useRef<HTMLInputElement>(null);
   const [missing, setMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -90,13 +97,29 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
     if (!time) return;
     setVerifying(true);
     try {
-      const res = await fetch("/api/time-trials/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "verify", timeId: time.id, link: clipLink.trim() || null }) });
+      const res = await fetch("/api/time-trials/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "verify", timeId: time.id, link: clipLink.trim() || null, picture }) });
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!j.ok) { toast.error(VERIFY_ERRORS[j.error ?? ""] ?? "That didn't save. Try again."); return; }
       toast.success("Verified");
       setTick((t) => t + 1);
     } finally {
       setVerifying(false);
+    }
+  }
+
+  async function addPicture(file: File) {
+    if (!time) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("game", time.game);
+      const res = await fetch("/api/time-trials/read", { method: "POST", body: form });
+      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; proofUrl?: string; error?: string };
+      if (!res.ok || !j.ok || !j.proofUrl) { toast.error(j.error === "bad_type" ? "Use a PNG, JPEG or WebP picture." : j.error === "too_big" ? "That picture is over 8 MB." : "That picture didn't upload. Try again."); return; }
+      setPicture(j.proofUrl);
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -125,7 +148,7 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
                     : time.sheet ? (
                       time.legacyProof
                         ? <a className="empac-button empac-button--secondary empac-button--small" href={time.legacyProof} target="_blank" rel="noopener noreferrer nofollow"><IconExternalLink size={16} aria-hidden="true" /> Open the proof</a>
-                        : <span className="tt-muted">A legacy time, recorded before it came to GameShuffle</span>
+                        : <span className="tt-muted">No picture or clip yet</span>
                     )
                     : time.you ? <TtAddShot timeId={time.id} game={time.game} timeMs={time.timeMs} onDone={() => setTick((t) => t + 1)} />
                     : <span className="tt-muted">No screenshot (imported)</span>}
@@ -197,15 +220,21 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
             <section className="tt-win__sec tt-win__check" aria-labelledby="tt-win-check">
               <h3 id="tt-win-check">Verify this time</h3>
               <p className="tt-note">
-                {reviewer.clip ? <>Check <a href={reviewer.clip} target="_blank" rel="noopener noreferrer nofollow">their clip</a> shows this run, or paste another.</>
-                  : time.legacyProof ? "Check the legacy proof above shows this run, or paste a clip that does."
-                  : "Paste a clip that shows this run (YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram)."}
+                {reviewer.clip ? <>Check <a href={reviewer.clip} target="_blank" rel="noopener noreferrer nofollow">their clip</a> shows this run, or add another clip or a picture.</>
+                  : time.legacyProof || time.proofUrl ? "Check the proof above shows this run, or add a clip or a picture that does."
+                  : "Add a clip (YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram) or a picture that shows this run."}
               </p>
               <form className="tt-win__verify" onSubmit={(e) => { e.preventDefault(); void verify(); }}>
-                <FormField label={reviewer.clip || time.legacyProof ? "Another clip (optional)" : "Clip link"} htmlFor="tt-win-clip">
+                <FormField label={reviewer.clip || time.legacyProof || time.proofUrl ? "Another clip (optional)" : "Clip link"} htmlFor="tt-win-clip">
                   <Input id="tt-win-clip" type="url" inputMode="url" value={clipLink} onChange={(e) => setClipLink(e.target.value)} placeholder="https://" autoComplete="off" fullWidth />
                 </FormField>
-                <Button type="submit" variant="primary" size="small" iconBefore={IconCircleCheck} loading={verifying} disabled={!reviewer.clip && !time.legacyProof && !clipLink.trim()}>Verify</Button>
+                <div className="tt-win__picture">
+                  {picture
+                    ? <><a href={picture} target="_blank" rel="noopener noreferrer"><IconCamera size={16} aria-hidden="true" /> Picture added</a><Button type="button" variant="ghost" size="small" onClick={() => setPicture(null)}>Remove</Button></>
+                    : <Button type="button" variant="secondary" size="small" iconBefore={IconCamera} loading={uploading} onClick={() => pictureRef.current?.click()}>Or add a picture</Button>}
+                  <input ref={pictureRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) void addPicture(f); e.target.value = ""; }} />
+                </div>
+                <Button type="submit" variant="primary" size="small" iconBefore={IconCircleCheck} loading={verifying} disabled={!reviewer.clip && !time.legacyProof && !time.proofUrl && !clipLink.trim() && !picture}>Verify</Button>
               </form>
             </section>
           )}

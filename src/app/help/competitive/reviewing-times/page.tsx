@@ -20,19 +20,19 @@ export default function Page() {
       <h1>Reviewing time trials</h1>
       <p>
         Community reviewers and updaters keep the <Link href="/time-trials">time trial</Link>{" "}boards honest.
-        They check clips of top-ten runs, settle reported times and match legacy names to accounts. This
+        They check clips of top-ten runs, settle reported times and match listed names to accounts. This
         page is for them. Players can read <Link href="/help/competitive/time-trials">Time trials</Link>{" "}for
         how adding and proving times works.
       </p>
 
       <h2>The two roles</h2>
       <ul>
-        <li><strong>Reviewer:</strong> checks clips, reports, legacy claims and legacy proof in every game.</li>
+        <li><strong>Reviewer:</strong> checks clips, reports, name claims and imported proof in every game.</li>
         <li><strong>Updater:</strong> checks clips and reports for one game and items, such as Mario Kart 8 Deluxe with no mushrooms. Someone can look after more than one. Every Monday at 9am Pacific, each updater gets a notification with what waits in their list.</li>
       </ul>
       <p>
-        Legacy times are Mario Kart 8 Deluxe times with mushrooms, so the updaters for that game and items
-        also settle legacy claims and check legacy proof. Staff and admins see everything. Someone can be a
+        The imported times are Mario Kart 8 Deluxe times with mushrooms, so the updaters for that game and items
+        also settle name claims and check imported proof. Staff and admins see everything. Someone can be a
         reviewer and an updater at once.
       </p>
 
@@ -76,9 +76,9 @@ export default function Page() {
         anyone who moves up into a top ten because of it is asked for a clip.
       </p>
 
-      <h2>Legacy claims</h2>
+      <h2>Name claims</h2>
       <p>
-        When someone presses This is me on a legacy player&apos;s page, the claim shows here: who asked,
+        When someone presses This is me on a listed player&apos;s page, the claim shows here: who asked,
         the name they claimed, how many times it has, their link and note, and any other claims on the same
         name. Check that the link shows the name is theirs, such as an MKCentral page, a channel or post
         under that name, or a clip of one of the runs.
@@ -89,24 +89,24 @@ export default function Page() {
       </ul>
       <p>Staff can undo an approved claim, which sends the times back to the listed player.</p>
 
-      <h2>Legacy proof</h2>
+      <h2>Imported proof</h2>
       <p>
-        Legacy times whose record came with a clip or a post, each board&apos;s record first, 100 at a time.
+        Imported times whose record came with a clip or a post, each board&apos;s record first, 100 at a time.
         Press <strong>Open the proof</strong>{" "}to watch it, or <strong>On the board</strong>{" "}to see the time in
         place.
       </p>
       <ul>
         <li><strong>It shows this run:</strong> the time shows as Verified.</li>
-        <li><strong>It doesn&apos;t:</strong> write why, then press Turn down. The time leaves the list and stays a Legacy time. If the name already belongs to an account, its owner gets a notification with your reason.</li>
+        <li><strong>It doesn&apos;t:</strong> write why, then press Turn down. The time leaves the list and stays unverified. If the name already belongs to an account, its owner gets a notification with your reason.</li>
       </ul>
 
       <h2>Verifying from a time&apos;s window</h2>
       <p>
         Press any time on a board to open its window. If you check that game and items, it has a{" "}
-        <strong>Verify this time</strong>{" "}section. Check the player&apos;s clip or the legacy proof, or paste
+        <strong>Verify this time</strong>{" "}section. Check the player&apos;s clip or the imported proof, or paste
         a clip link that shows the run (YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or
         Instagram), then press <strong>Verify</strong>. A clip you paste is saved with the time. A time with
-        no clip or legacy proof can&apos;t be verified until you paste one. The owner gets a notification.
+        no clip or imported proof can&apos;t be verified until you paste one. The owner gets a notification.
       </p>
 
       <h2>Team</h2>
@@ -130,7 +130,7 @@ export default function Page() {
       <p>
         In the window, tick <strong>Reviewer</strong>{" "}or <strong>Updater</strong>. For an updater, tick at
         least one game and items: Mario Kart 8 Deluxe or Mario Kart World, each with mushrooms or no
-        mushrooms. Mario Kart 8 Deluxe with mushrooms is marked &ldquo;Also settles legacy claims&rdquo;. Press{" "}
+        mushrooms. Mario Kart 8 Deluxe with mushrooms is marked &ldquo;Also settles name claims&rdquo;. Press{" "}
         <strong>Save</strong>.
       </p>
       <p>

@@ -11,7 +11,7 @@
  *   POST { action: "alias_block", game, alias, track } → staff and admins: a learned short name stops reading for everyone
  *   POST { action: "claim", claimId, approve, reason? } → MK8DX mushrooms updaters, reviewers and staff: a Top 10 sheet claim (round 4)
  *   POST { action: "claim_undo", claimId }             → staff and admins: an approved claim goes back to the listed player
- *   POST { action: "verify", timeId, link? }           → a reviewer verifies a time from its proof (a pasted clip, the player's
+ *   POST { action: "verify", timeId, link?, picture? } → a reviewer verifies a time from its proof (a pasted clip, the player's
  *                                                        clip, or a legacy time's clip or post); also from the time's window
  *   POST { action: "legacy_reject", timeId, note }     → a legacy time's clip or post doesn't show the run (leaves the list)
  */
@@ -68,9 +68,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const me = await who();
   if (!me?.reviewer) return NextResponse.json({ ok: false, error: "not_reviewer" }, { status: 403 });
-  const b = (await req.json().catch(() => ({}))) as { action?: unknown; timeId?: unknown; ok?: unknown; note?: unknown; ticketId?: unknown; outcome?: unknown; userId?: unknown; reviewer?: unknown; modes?: unknown; game?: unknown; alias?: unknown; track?: unknown; claimId?: unknown; approve?: unknown; reason?: unknown; link?: unknown };
+  const b = (await req.json().catch(() => ({}))) as { action?: unknown; timeId?: unknown; ok?: unknown; note?: unknown; ticketId?: unknown; outcome?: unknown; userId?: unknown; reviewer?: unknown; modes?: unknown; game?: unknown; alias?: unknown; track?: unknown; claimId?: unknown; approve?: unknown; reason?: unknown; link?: unknown; picture?: unknown };
   const note = typeof b.note === "string" ? b.note : "";
-  if (b.action === "verify" && typeof b.timeId === "string") return NextResponse.json(await verifyByReviewer(b.timeId, me.userId, typeof b.link === "string" ? b.link : null));
+  if (b.action === "verify" && typeof b.timeId === "string") return NextResponse.json(await verifyByReviewer(b.timeId, me.userId, typeof b.link === "string" ? b.link : null, typeof b.picture === "string" ? b.picture : null));
   if (b.action === "legacy_reject" && typeof b.timeId === "string") return NextResponse.json(await rejectLegacyProof(b.timeId, me.userId, note));
   if (b.action === "video" && typeof b.timeId === "string") return NextResponse.json(await decideVideo(b.timeId, me.userId, b.ok === true, note));
   if (b.action === "decide" && typeof b.ticketId === "string" && (b.outcome === "kept" || b.outcome === "removed")) return NextResponse.json(await decideTicket(b.ticketId, me.userId, b.outcome, note));

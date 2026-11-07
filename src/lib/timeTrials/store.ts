@@ -55,7 +55,7 @@ export interface TtBoardRow {
   vouches: number;
   /** The player's country, when known (pick 6A). */
   country: string | null;
-  /** A legacy time (round 4, brought over from the community's records): shown as "Legacy". */
+  /** A legacy time (round 4, brought over from the community's records): no chip since "Legacy" was retired (2026-11-07). */
   sheet: boolean;
   /** Its proof, when the record carried a clip or a post (never a spreadsheet). */
   sheetLink: string | null;

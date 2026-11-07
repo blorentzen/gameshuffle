@@ -257,7 +257,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
                             <IconLinkAction label={`${r.name}'s ${r.proof === "video" ? "video" : "screenshot"}`} icon={r.proof === "video" ? IconVideo : IconCamera} href={proofHref} />
                           ) : r.sheetLink ? (
                             <IconLinkAction label={`${r.name}'s proof`} icon={videoProof(r.sheetLink) ? IconVideo : IconExternalLink} href={r.sheetLink} />
-                          ) : <span className="tt-board__none">{r.sheet && status !== "sheet" ? "Legacy" : r.imported ? "Imported" : "None"}</span>}
+                          ) : <span className="tt-board__none">{r.imported ? "Imported" : "None"}</span>}
                           {clipHref && <IconLinkAction label={`${r.name}'s clip`} icon={IconVideo} href={clipHref} />}
                         </span>
                       </TableCell>
@@ -277,7 +277,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
           </Table>
         </TableScroll>
       )}
-      {rows.length > 0 && <p className="tt-board__note">Top-ten times show Verified once an updater checks a clip of the run&apos;s last 30 seconds. Players with ten checked clips are Trusted.{rows.some((r) => r.sheet) && <> Legacy times were recorded before they came to GameShuffle.</>} Press a time for its details.</p>}
+      {rows.length > 0 && <p className="tt-board__note">Top-ten times show Verified once an updater checks a clip of the run&apos;s last 30 seconds. Players with ten checked clips are Trusted. Press a time for its details.</p>}
 
       <TtTimeWindow timeId={openId} signedIn={signedIn} onClose={() => openTime(null)} onReport={(t) => { openTime(null); openReport(t); }} />
 

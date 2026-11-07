@@ -99,7 +99,7 @@ export function TtAccessWindow({ userId, name, onClose, onSaved }: {
           <div className="tt-access__body">
             <Checkbox
               label="Reviewer"
-              helperText={data.granter === "staff" ? "Checks everything: clips, reports, legacy claims and proof, every game." : "Checks everything. Only staff can make reviewers."}
+              helperText={data.granter === "staff" ? "Checks everything: clips, reports, name claims and imported proof, every game." : "Checks everything. Only staff can make reviewers."}
               checked={reviewer}
               disabled={data.granter !== "staff"}
               onChange={(e) => setReviewer(e.target.checked)}
@@ -117,7 +117,7 @@ export function TtAccessWindow({ userId, name, onClose, onSaved }: {
                   <Checkbox
                     key={key(m)}
                     label={modeName(m)}
-                    helperText={m.game === "mk8dx" && m.items === "shrooms" ? "Also settles legacy claims" : undefined}
+                    helperText={m.game === "mk8dx" && m.items === "shrooms" ? "Also settles name claims" : undefined}
                     checked={modes.has(key(m))}
                     onChange={(e) => toggle(m, e.target.checked)}
                   />

@@ -134,7 +134,7 @@ export function TtReviewQueue() {
       </p>
       {!pending ? (
         <div className="tt-add__actions">
-          <Button variant="ghost" size="small" onClick={() => { void confirm({ title: `Undo ${c.userName}'s claim on ${c.listedName}?`, body: "The legacy times go back to the listed player. Times they added themselves stay on their account.", confirmLabel: "Undo claim" }).then((ok) => { if (ok) void post({ action: "claim_undo", claimId: c.id }, "Claim undone"); }); }}>Undo</Button>
+          <Button variant="ghost" size="small" onClick={() => { void confirm({ title: `Undo ${c.userName}'s claim on ${c.listedName}?`, body: "The times go back to the listed player. Times they added themselves stay on their account.", confirmLabel: "Undo claim" }).then((ok) => { if (ok) void post({ action: "claim_undo", claimId: c.id }, "Claim undone"); }); }}>Undo</Button>
         </div>
       ) : rejecting === c.id ? (
         <form className="tt-queue__reject" onSubmit={(e) => { e.preventDefault(); setBusy(c.id); void post({ action: "claim", claimId: c.id, approve: false, reason }, "Turned down").then((ok) => { setBusy(null); if (ok) { setRejecting(null); setReason(""); } }); }}>
@@ -156,8 +156,8 @@ export function TtReviewQueue() {
   );
   const claims = q.claims ? (
     <div className="tt-reviewers">
-      <p className="tt-note">People saying a legacy player is them. Check their link shows that name is theirs (an MKCentral page, a channel or post under it, or a clip of one of the runs). Approving moves the name&apos;s times to their account, and later legacy times for that name go straight there.</p>
-      {q.claims.pending.length === 0 ? <EmptyState title="No claims waiting" description="When someone presses This is me on a legacy player's page, it shows up here." /> : <ul className="tt-queue">{q.claims.pending.map((c) => claimItem(c, true))}</ul>}
+      <p className="tt-note">People saying a listed player is them. Check their link shows that name is theirs (an MKCentral page, a channel or post under it, or a clip of one of the runs). Approving moves the name&apos;s times to their account, and later times for that name go straight there.</p>
+      {q.claims.pending.length === 0 ? <EmptyState title="No claims waiting" description="When someone presses This is me on a listed player's page, it shows up here." /> : <ul className="tt-queue">{q.claims.pending.map((c) => claimItem(c, true))}</ul>}
       {q.claims.approved.length > 0 && (
         <>
           <h2 className="tt-queue__sub">Approved lately</h2>
@@ -166,7 +166,7 @@ export function TtReviewQueue() {
       )}
       {q.sheets && q.sheets.length > 0 && (
         <>
-          <h2 className="tt-queue__sub">Legacy imports</h2>
+          <h2 className="tt-queue__sub">Imported names</h2>
           <ul className="tt-queue">
             {q.sheets.map((r) => (
               <li key={`${r.sheet}${r.cc}`} className="tt-queue__item tt-queue__item--row">
@@ -182,8 +182,8 @@ export function TtReviewQueue() {
 
   const legacy = q.legacy ? (
     <div className="tt-reviewers">
-      <p className="tt-note">Legacy times whose record carried a clip or a post, each board&apos;s record first. Open the proof and check it shows this run: verifying makes it show as Verified. Turning one down takes it off this list; it stays a Legacy time.</p>
-      {q.legacy.items.length === 0 ? <EmptyState title="Nothing to check" description="Legacy times that came with a clip or a post show up here until someone checks them." /> : (
+      <p className="tt-note">Imported times whose record carried a clip or a post, each board&apos;s record first. Open the proof and check it shows this run: verifying makes it show as Verified. Turning one down takes it off this list; it stays unverified.</p>
+      {q.legacy.items.length === 0 ? <EmptyState title="Nothing to check" description="Imported times that came with a clip or a post show up here until someone checks them." /> : (
         <>
           {q.legacy.total > q.legacy.items.length && <p className="tt-muted">Showing the first {q.legacy.items.length} of {q.legacy.total}.</p>}
           <ul className="tt-queue">
@@ -249,8 +249,8 @@ export function TtReviewQueue() {
       tabs={[
         { id: "clips", label: "Clips to check", badge: q.videos.length || undefined, content: clips },
         { id: "reports", label: "Reports", badge: q.tickets.length || undefined, content: reports },
-        ...(claims ? [{ id: "claims", label: "Legacy claims", badge: q.claims!.pending.length || undefined, content: claims }] : []),
-        ...(legacy ? [{ id: "legacy", label: "Legacy proof", badge: q.legacy!.total || undefined, content: legacy }] : []),
+        ...(claims ? [{ id: "claims", label: "Name claims", badge: q.claims!.pending.length || undefined, content: claims }] : []),
+        ...(legacy ? [{ id: "legacy", label: "Imported proof", badge: q.legacy!.total || undefined, content: legacy }] : []),
         ...(team ? [{ id: "team", label: "Team", content: team }] : []),
         ...(shortNames ? [{ id: "short-names", label: "Short names", content: shortNames }] : []),
       ]}

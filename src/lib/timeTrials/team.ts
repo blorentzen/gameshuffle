@@ -202,10 +202,10 @@ const listOf = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, 
 
 /** What someone with this access checks, in one sentence. */
 export function accessLine(p: Pick<TeamPerson, "reviewer" | "modes">): string {
-  if (p.reviewer) return "You check clips, reports, legacy claims and legacy proof in every game.";
+  if (p.reviewer) return "You check clips, reports, name claims and imported proof in every game.";
   if (!p.modes.length) return "You no longer check time trial clips or reports.";
   const claims = p.modes.some((m) => m.game === "mk8dx" && m.items === "shrooms");
-  return `You check clips and reports for ${listOf(p.modes.map(modeLabel))}${claims ? ", and settle legacy claims" : ""}. Every Monday you get that week's list.`;
+  return `You check clips and reports for ${listOf(p.modes.map(modeLabel))}${claims ? ", and settle name claims" : ""}. Every Monday you get that week's list.`;
 }
 
 /** The notification and the email (4A): what changed, what they check now, and the way to the queue. */
@@ -237,7 +237,7 @@ async function tellThem(before: TeamPerson, after: TeamPerson, by: string): Prom
       "How it works:",
       "- Clips: open each clip. If it shows the run, press Clip checks out and the time shows as Verified. If not, press Doesn't match and say why; the player sees your reason.",
       "- Reports: open the ticket, ask the player for proof if you need it, then keep or remove the time with a reason everyone sees.",
-      ...(after.reviewer || after.modes.some((m) => m.game === "mk8dx" && m.items === "shrooms") ? ["- Legacy claims: check that the person's link shows the listed name is theirs, then approve or turn it down."] : []),
+      ...(after.reviewer || after.modes.some((m) => m.game === "mk8dx" && m.items === "shrooms") ? ["- Name claims: check that the person's link shows the listed name is theirs, then approve or turn it down."] : []),
       "",
       `The queue: ${SITE_URL}/time-trials/review`,
       "You can also reach it from Reviews on the time trials page or Time trial reviews in your account menu.",

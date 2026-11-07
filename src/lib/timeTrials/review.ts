@@ -12,6 +12,7 @@ import "server-only";
  */
 
 import { createServiceClient } from "@/lib/supabase/admin";
+import { keyFromPublicUrl } from "@/lib/storage/r2";
 import { describePlayers } from "@/lib/daily/boards";
 import { createNotification } from "@/lib/social/notifications";
 import { readAllPages } from "@/lib/supabase/pages";
@@ -197,14 +198,14 @@ export async function decideVideo(timeId: string, reviewerUserId: string, ok: bo
 
 // ── Verifying a time yourself (picks 2026-11-04: people started claiming legacy places) ─────────────────────
 
-export type VerifyError = "not_reviewer" | "gone" | "bad_video" | "no_proof";
+export type VerifyError = "not_reviewer" | "gone" | "bad_video" | "bad_picture" | "no_proof";
 
 /**
  * A reviewer (or the updater for its game and items) marks a time Verified from its proof: a clip they paste, the
  * player's clip waiting in the queue, or the clip or post a legacy time came with. A pasted clip is kept with the
  * time, so "Watch the clip" shows it. A time with no proof anywhere can't be verified: paste the clip that shows it.
  */
-export async function verifyByReviewer(timeId: string, reviewerUserId: string, pasted: string | null): Promise<{ ok: true } | { ok: false; error: VerifyError }> {
+export async function verifyByReviewer(timeId: string, reviewerUserId: string, pasted: string | null, picture: string | null = null): Promise<{ ok: true } | { ok: false; error: VerifyError }> {
   const scope = await reviewScope(reviewerUserId);
   if (!scope) return { ok: false, error: "not_reviewer" };
   const t = await timeById(timeId);
@@ -216,10 +217,18 @@ export async function verifyByReviewer(timeId: string, reviewerUserId: string, p
     clip = videoProof(pasted);
     if (!clip) return { ok: false, error: "bad_video" };
   }
+  // Proof is a clip or a picture (Britton, 2026-11-07): a picture the reviewer adds (uploaded through
+  // /api/time-trials/read under their own folder), or the screenshot the time already has.
+  const shot = picture && keyFromPublicUrl(picture)?.startsWith(`time-trials/${reviewerUserId}/`) ? picture : null;
+  if (picture && !shot) return { ok: false, error: "bad_picture" };
   const legacy = t.source === "sheet" ? (await legacyProofFor([t.id])).get(t.id) ?? null : null;
-  if (!clip && !t.videoUrl && !legacy) return { ok: false, error: "no_proof" };
+  if (!clip && !shot && !t.videoUrl && !t.proofUrl && !legacy) return { ok: false, error: "no_proof" };
   const { data } = await createServiceClient().from("tt_times")
-    .update({ video_status: "checked", video_checked_by: reviewerUserId, video_checked_at: new Date().toISOString(), video_note: null, ...(clip ? { video_url: clip } : {}) })
+    .update({
+      video_status: "checked", video_checked_by: reviewerUserId, video_checked_at: new Date().toISOString(), video_note: null,
+      ...(clip ? { video_url: clip } : {}),
+      ...(shot && !t.proofUrl ? { proof_kind: "screenshot", proof_url: shot } : {}),
+    })
     .eq("id", timeId).eq("status", "ok").select("id");
   if (!data?.length) return { ok: false, error: "gone" };
   await tell(t.userId, "Your time is verified", `${timeLabel(t)} is now Verified.`, "/time-trials/players/me");
@@ -238,7 +247,7 @@ export async function rejectLegacyProof(timeId: string, reviewerUserId: string, 
   if (!why) return { ok: false, error: "reason_needed" };
   await createServiceClient().from("tt_times").update({ video_status: "rejected", video_checked_by: reviewerUserId, video_checked_at: new Date().toISOString(), video_note: why })
     .eq("id", timeId).eq("video_status", "none");
-  await tell(t.userId, "Your legacy time's proof didn't show the run", `${timeLabel(t)}: ${why}. It stays a Legacy time; add a clip of the run to have it verified.`, "/time-trials/players/me");
+  await tell(t.userId, "Your time's proof didn't show the run", `${timeLabel(t)}: ${why}. Add a picture or a clip of the run to have it verified.`, "/time-trials/players/me");
   return { ok: true };
 }
 

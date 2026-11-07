@@ -49,7 +49,7 @@ export interface TtTimeDetail {
   /** The viewer may vouch: signed in and not their own time (anyone signed in, picks 2026-11-04). */
   canVouch: boolean;
   boardPath: string;
-  /** A legacy time (round 4: brought over from the community's records), shown as "Legacy". */
+  /** A legacy time (round 4: brought over from the community's records), no chip since "Legacy" was retired (2026-11-07). */
   sheet: boolean;
   /** Its proof when the record carried a clip or a post; never a spreadsheet. */
   legacyProof: string | null;
@@ -136,7 +136,7 @@ export async function timeDetail(id: string, viewer: string | null): Promise<TtT
   const n = vouches.get(t.id) ?? 0;
   const status: TimeStatus = timeStatus({ review: review.has(t.id), video: t.video, videoUrl: t.videoUrl, top: isTop, trusted: isTrusted, you, vouches: n, sheet: t.source === "sheet" });
   const history: { at: string | null; text: string }[] = [
-    { at: t.createdAt, text: t.source === "sheet" ? "Brought over as a legacy time" : t.source === "import" ? "Added from an import" : t.proof === "screenshot" ? (t.source === "discord" ? "Added in Discord with a screenshot" : "Added with a screenshot") : "Added" },
+    { at: t.createdAt, text: t.source === "sheet" ? "Brought over from the community's records" : t.source === "import" ? "Added from an import" : t.proof === "screenshot" ? (t.source === "discord" ? "Added in Discord with a screenshot" : "Added with a screenshot") : "Added" },
   ];
   if (t.videoUrl && t.video === "checked") history.push({ at: extra.video_checked_at, text: "Clip checked by an updater" });
   else if (t.video === "checked") history.push({ at: extra.video_checked_at, text: t.source === "sheet" ? "Proof checked by an updater" : "Checked by an updater" });
