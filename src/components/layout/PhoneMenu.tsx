@@ -44,8 +44,8 @@ export function PhoneMenu({ you, worlds, extra }: { you: { heading: string; item
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
   const show = () => { setMounted(true); requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true))); };
   const toggle = useRef<HTMLButtonElement>(null);
-  // Focus goes back to the menu button, as it would from any dialog.
-  const close = () => { setOpen(false); window.setTimeout(() => { setMounted(false); toggle.current?.focus(); }, 320); };
+  // Focus goes back to the menu button, as it would from any dialog, without scrolling the page to it.
+  const close = () => { setOpen(false); window.setTimeout(() => { setMounted(false); toggle.current?.focus({ preventScroll: true }); }, 320); };
   const mine = worlds.filter((w) => w.mine).map((w) => w.id);
 
   return (

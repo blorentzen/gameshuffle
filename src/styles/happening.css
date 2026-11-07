@@ -15,23 +15,18 @@
 .band__tabs .empac-tabs__tab-icon { display: inline-flex; }
 .band__tabs .empac-tabs__tab-badge { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #fde68a; color: #5b3a00; }
 .band__tabs .empac-tabs__content { padding-top: var(--spacing-20); }
-/* The pill is drawn inside the tab row (behind the tabs), so it scrolls and clips with them. */
-.band__tabs .empac-tabs__header { position: relative; z-index: 1; }
-.band__tabs .empac-tabs__tab { position: relative; z-index: 1; }
-.band__pill { position: absolute; top: 0; left: 0; z-index: 0; border-radius: 999px; pointer-events: none; transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.band--dark .band__pill { background: #fff; }
-.band--light .band__pill { background: var(--brand-ink, var(--primary-600)); }
+/* The tab you pick fills in place and the last one empties, together (no pill sliding between them). */
+.band__tabs .empac-tabs__tab { transition: background-color 0.24s ease, border-color 0.24s ease, color 0.24s ease; }
 
 .band--dark .band__tabs .empac-tabs__tab { border: 1px solid rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.08); color: #fff; }
 .band--dark .band__tabs .empac-tabs__tab:hover:not(.empac-tabs__tab--active) { background: rgba(255, 255, 255, 0.18); color: #fff; }
-/* The active tab's white is the pill behind it (.band__pill), which glides from tab to tab. */
 .band--dark .band__tabs .empac-tabs__tab--active,
-.band--dark .band__tabs .empac-tabs__tab--active:hover { background: transparent; border-color: transparent; color: #161a2e; }
+.band--dark .band__tabs .empac-tabs__tab--active:hover { background: #fff; border-color: #fff; color: #161a2e; }
 .band--dark .band__tabs .empac-tabs__tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 .band--light .band__tabs .empac-tabs__tab { border: 1px solid var(--border-default); background: var(--background-primary, #fff); color: var(--text-primary); }
 .band--light .band__tabs .empac-tabs__tab--active,
-.band--light .band__tabs .empac-tabs__tab--active:hover { background: transparent; border-color: transparent; color: #fff; }
+.band--light .band__tabs .empac-tabs__tab--active:hover { background: var(--brand-ink, var(--primary-600)); border-color: var(--brand-ink, var(--primary-600)); color: #fff; }
 
 /* A world's things: three across (the first wider), two, or one. */
 .band__slide { display: grid; gap: var(--spacing-16); }
@@ -123,7 +118,7 @@ button.hap { width: 100%; margin: 0; padding: 0; border: 0; font: inherit; text-
 ::view-transition-group(.event-art) { animation-duration: 0.42s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
 
 @media (prefers-reduced-motion: reduce) {
-  .hap__img, .band__pill { transition: none; } .hap__live::before { animation: none; }
+  .hap__img, .band__tabs .empac-tabs__tab { transition: none; } .hap__live::before { animation: none; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
 @media (forced-colors: active) { .hap { border: 1px solid CanvasText; } }

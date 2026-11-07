@@ -6,9 +6,10 @@
  * thing, things for you to do; "Start something" when it's quiet).
  *
  * Motion with intention (1A, 2A, 5A): when the band moves to another world its cards are dealt in one after another
- * while the white pill glides to the tab; live things carry a breathing dot; nothing moves with reduced motion.
- * It changes world only when you pick one (it used to roll on by itself every 6 seconds; Britton, 2026-11-07: no auto
- * scrolling). The pill lives inside the tab row, so a swiped row carries it along instead of it chasing the tabs.
+ * while the tab you picked fills (and the last one empties); live things carry a breathing dot; nothing moves with
+ * reduced motion. It changes world only when you pick one (it used to roll on by itself every 6 seconds; Britton,
+ * 2026-11-07: no auto scrolling). Each tab fills in place: a white pill that slid between tabs looked broken, since the
+ * tabs' text changed color before the pill arrived (Britton, 2026-11-07: fill/unfill instead of jumping between).
  *
  * Alive, not overwhelming (Britton's note): signed in, it asks for fresh things every 3 minutes while it's on screen.
  * Something new in one of your worlds gets a dot on its tab and "Just now" on its card, at most one a check, and a
@@ -20,8 +21,7 @@
  */
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, ViewTransition, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState, useSyncExternalStore, ViewTransition, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Badge, Button, Tabs } from "@empac/cascadeds";
 import {
@@ -150,8 +150,6 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
     window.setTimeout(() => setFresh((f) => { if (!f[id]) return f; const rest = { ...f }; delete rest[id]; return rest; }), STEP_MS);
   };
 
-  const ids = worlds.map((w) => w.id).join(",");
-
   // Every 3 minutes while on screen: anything new in your worlds (at most one marked a check).
   useEffect(() => {
     if (!signedIn) return;
@@ -174,24 +172,6 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
     // Once per page: `initial` is the first paint's band.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn]);
-
-  // The white pill under the active tab glides between tabs. It sits inside the tab row (CDS positions the row), so
-  // it scrolls and clips with the tabs.
-  const [pill, setPill] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const [row, setRow] = useState<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    const header = root.current?.querySelector<HTMLElement>(".empac-tabs__header") ?? null;
-    if (!header) return;
-    const place = () => {
-      setRow(header);
-      const tab = header.querySelector<HTMLElement>(".empac-tabs__tab--active");
-      if (tab) setPill({ x: tab.offsetLeft, y: tab.offsetTop, w: tab.offsetWidth, h: tab.offsetHeight });
-    };
-    place();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(place) : null;
-    ro?.observe(header);
-    return () => ro?.disconnect();
-  }, [current, ids]);
 
   if (!worlds.length) return null;
 
@@ -257,7 +237,6 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
     >
       {heading && <h2 id="band-title" className="band__title">{heading}</h2>}
       <Tabs tabs={tabs} activeTab={current} onChange={go} variant="pills" className="band__tabs" />
-      {row && pill && createPortal(<span className="band__pill" aria-hidden="true" style={{ transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h }} />, row)}
     </section>
   );
 }

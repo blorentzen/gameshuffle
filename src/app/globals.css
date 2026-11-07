@@ -3474,3 +3474,7 @@ html.dark .empac-tabs--pills:not(.band__tabs) .empac-tabs__tab--active:hover:not
 
 /* Footer on phones: the folded sections' last row had its own line right above the bottom bar's line. */
 .site-footer .empac-accordion__item:last-child { border-bottom: 0; }
+
+/* Pills and tabs draw their own pressed and selected states; the phone browser's grey-blue tap rectangle flashed over
+   the rounded pill and read as a glitch (Britton, 2026-11-07). */
+.empac-tabs__tab, .empac-subnav__item, .empac-chip, .empac-accordion__trigger, .gs-phone-toggle { -webkit-tap-highlight-color: transparent; }
