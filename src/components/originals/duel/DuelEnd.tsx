@@ -7,7 +7,9 @@
  * them to My Cards, or find them in our shop) and the support line. A practice duel says Practice and leaves the board, points and streak out.
  */
 
+import { DailiesAfter } from "@/components/originals/DailiesAfter";
 import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Dropdown } from "@empac/cascadeds";
 import { IconCards, IconChevronDown, IconRefresh, IconShoppingBag, IconTrophy } from "@tabler/icons-react";
 import { DailiesNextButton, DailiesShare, DailiesYours, withLink } from "@/components/originals/Dailies";
@@ -20,6 +22,7 @@ import { EVENTS, tagged, track } from "@/lib/analytics/events";
 import { ordinal } from "@/lib/daily/boardRules";
 import { formatTime } from "@/lib/originals/dailies";
 import { TCG_SHOP_URL } from "@/data/shop";
+import { TCG_MY_CARDS_HREF } from "@/data/tcg-hub";
 import type { DuelCardView, DuelRunView } from "@/lib/originals/duel/view";
 import { SCORE, levelMax } from "@/lib/originals/duel/rules";
 import type { DuelLevel } from "@/lib/originals/duel/types";
@@ -110,6 +113,7 @@ export function DuelEnd({ run, place, players, signedIn, board, onPractice, hard
       </section>
 
       {official && <div className="duel-streak"><DailiesYours current="duel" only /></div>}
+      {official && <DailiesAfter current="duel" />}
 
       {official && board}
 
@@ -171,6 +175,9 @@ export function DuelScoreCard({ score, won, level, askedNote = "You asked the pr
 /** Today's six and the trainer's own card: add them to My Cards (an account), or find them in our TCGplayer store. */
 function DuelCards({ cards, trainer, signedIn }: { cards: DuelCardView[]; trainer: { id: string; card: string } | null; signedIn: boolean }) {
   const toast = useToast();
+  const router = useRouter();
+  // Where the cards went, with the way there (My Stuff ▸ My Collection ▸ Cards).
+  const openMyCards = { label: "Open My Cards", onClick: () => router.push(TCG_MY_CARDS_HREF) };
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const ids = [...cards.map((c) => c.id), ...(trainer ? [trainer.id] : [])];
   const add = async () => {
@@ -190,10 +197,10 @@ function DuelCards({ cards, trainer, signedIn }: { cards: DuelCardView[]; traine
       toast.error(`My Cards holds ${full} different cards on a free account. GS Pro has no limit.`);
     } else if (added === ids.length) {
       setState("done");
-      toast.success(`Added ${added} cards to My Cards`);
+      toast.success(`Added ${added} cards to My Cards, in Account ▸ Pokémon.`, { action: openMyCards });
     } else {
       setState(added ? "done" : "idle");
-      toast.error(added ? `Added ${added} of ${ids.length}. Try again for the rest.` : "Couldn't add the cards. Try again.");
+      toast.error(added ? `Added ${added} of ${ids.length} to My Cards. Try again for the rest.` : "Couldn't add the cards. Try again.", added ? { action: openMyCards } : undefined);
     }
   };
   return (

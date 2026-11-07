@@ -529,7 +529,8 @@ export default async function LoungePlayerPage({ params, searchParams }: Params)
     { id: "overview", label: "Overview", content: overview },
     { id: "events", label: "Events", content: events },
     { id: "teammates", label: "Teammates", content: teammates },
-    { id: "play", label: "How they play", badge: "GS Pro", content: howTheyPlay },
+    // No GS Pro badge on the tab: Against the room is free; the GS Pro sections inside say so themselves.
+    { id: "play", label: "How they play", content: howTheyPlay },
     { id: "career", label: "Career", content: <CareerTab name={cur.name} game={game} /> },
     ...(times ? [{ id: "times", label: "Time trials", content: times }] : []),
   ];

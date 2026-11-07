@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * "Streamer Discord Bot" card — separate from the OAuth Connections
+ * "GameShuffle bot" card (was "Streamer Discord Bot") — separate from the OAuth Connections
  * surface above it because installing the bot into a Discord server is
  * a different concept from linking your Discord identity to your GS
  * account.
@@ -112,7 +112,7 @@ const pingOn = (flags: EventFlags | null, key: EventKey) =>
 
 /** Plain-language versions of the install callback's failure codes. */
 const INSTALL_ERRORS: Record<string, string> = {
-  server_limit: "You're at your server limit: the bot runs in 1 server on a free account and up to 5 with GS Pro. Forget a server on the Discord Bot tab to make room.",
+  server_limit: "You're at your server limit: the bot runs in 1 server on a free account and up to 5 with GS Pro. Remove a server here to make room.",
   server_already_linked: "That server is already connected to another GameShuffle account. Whoever connected it can remove the bot from their Discord settings on GameShuffle, then you can add it here.",
   access_denied: "Install cancelled. Nothing changed.",
 };
@@ -125,6 +125,7 @@ export function DiscordBotRoutingCard() {
   const [guildId, setGuildId] = useState<string | null>(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("guild") : null));
   const [servers, setServers] = useState<ServerSummary[]>([]);
   const [serverLimit, setServerLimit] = useState(1);
+  const [isPro, setIsPro] = useState(true);
   const withGuild = useCallback(
     (url: string) => (guildId ? `${url}${url.includes("?") ? "&" : "?"}guild=${encodeURIComponent(guildId)}` : url),
     [guildId],
@@ -156,6 +157,7 @@ export function DiscordBotRoutingCard() {
       setRouting(body.routing);
       setServers((body.servers as ServerSummary[]) ?? []);
       setServerLimit((body.limit as number) ?? 1);
+      setIsPro(body.isPro !== false);
     } catch {
       setError("Network error loading Discord routing.");
     }
@@ -355,7 +357,7 @@ export function DiscordBotRoutingCard() {
   if (loading) {
     return (
       <div className="account-card">
-        <h2>Streamer Discord Bot</h2>
+        <h2>GameShuffle bot</h2>
         <p
           style={{
             color: "var(--text-tertiary)",
@@ -374,7 +376,7 @@ export function DiscordBotRoutingCard() {
 
   return (
     <div className="account-card">
-      <h2>Streamer Discord Bot</h2>
+      <h2>GameShuffle bot</h2>
       <p
         style={{
           marginBottom: "var(--spacing-12)",
@@ -382,9 +384,9 @@ export function DiscordBotRoutingCard() {
           color: "var(--text-secondary)",
         }}
       >
-        Install the GameShuffle bot in your Discord server to get
-        announcements when you go live, when picks/bans rounds open, and
-        more.
+        {isPro
+          ? "Add the GameShuffle bot to your server for the dailies, your events, go-live alerts, roles and more, then pick the channel it posts in."
+          : "Install the GameShuffle bot in your Discord server for /gs-randomize, /gs-daily and the other free commands, and pick the channel it posts in."}
       </p>
 
       {error && (
@@ -581,6 +583,8 @@ export function DiscordBotRoutingCard() {
             )}
           </label>
 
+          {/* Stream events need the Twitch setup and QOTD needs GS Pro, so a free account sees only the server and its channel. */}
+          {isPro && (
           <div
             style={{
               display: "flex",
@@ -720,6 +724,7 @@ export function DiscordBotRoutingCard() {
               );
             })}
           </div>
+          )}
 
           <label className="account-card__label" style={{ display: "block" }}>
             Notify role (optional)

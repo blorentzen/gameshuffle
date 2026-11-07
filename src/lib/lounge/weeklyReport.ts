@@ -15,6 +15,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { isProUser } from "@/lib/subscription-server";
 import { createNotification } from "@/lib/social/notifications";
 import { sendLoungeWeeklyEmail } from "@/lib/email/lounge";
+import { emailAllowed } from "@/lib/social/notifyChannels";
 import { getBaseUrl } from "@/lib/env";
 import { GS_TIME_ZONE, gsAddDays, gsWeekStart, zonedInstant } from "@/lib/time/gsClock";
 import { LoungeUnavailable, divisionSteps, loungePlayer } from "@/lib/mmr/mkcentral";
@@ -164,7 +165,7 @@ export async function sendWeeklyReports(opts: { weekOf?: string; dry?: boolean; 
     }).catch((e) => console.error("[lounge-weekly] notify:", e));
     out.sent++;
     const email = (dir as { email: string | null } | null)?.email ?? null;
-    if (email) {
+    if (email && await emailAllowed(userId, "lounge_weekly")) {
       const res = await sendLoungeWeeklyEmail({ to: email, toName: name, report, baseUrl: base }).catch(() => ({ ok: false as const, error: "threw" }));
       if (res.ok) out.emails++;
       else console.error("[lounge-weekly] email:", res.error);

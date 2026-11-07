@@ -12,7 +12,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MmrLook } from "@/lib/mmr/look";
 import { DEMO_EVENTS, demoSource, isEvent, milestoneTier, viewOf, withEvent, type MmrGame, type MmrSource, type MmrView } from "@/lib/mmr/rules";
-import type { MmrLiveResult } from "@/lib/mmr/types";
+import type { MmrLiveData, MmrLiveResult } from "@/lib/mmr/types";
+import { MMR_SEEN_COOKIE, setHomeCookie, writeMmrSeen } from "@/lib/home/visit";
 import { nightRecap } from "@/lib/lounge/recap";
 import { crossesGoal } from "@/lib/mmr/goal";
 import { MmrCard, type MmrPlay } from "./MmrCard";
@@ -107,6 +108,37 @@ export function MmrLive({ token, initial, fit = "obs", look: lookOverride, lookI
     return <MmrCard view={view} look={look} fit={fit} recap={data.ok ? nightRecap(data.source) : null} goal={data.ok ? data.goal ?? null : null} chat={data.ok && !!data.chat} />;
   }
   return <MmrCard view={view} look={look} play={play} fit={fit} pending={data.ok ? data.pending ?? null : null} goal={data.ok ? data.goal ?? null : null} chat={data.ok && !!data.chat} />;
+}
+
+/**
+ * The signed-in home's card (home look picks 2026-11-05, 4A and 7A): drawn as it stood at your last visit, then it rolls
+ * to now as one moment (the card's own pop and roll), and remembers the newest change it showed in the home's
+ * `gs-home-mmr` cookie. No polling: it's your card as of this page load. Reduced motion shows it as it is now.
+ */
+export function MmrSince({ initial, since, who, look }: { initial: MmrLiveData; since: number | null; who: string; look: MmrLook }) {
+  const src = initial.source;
+  const newest = src.changes[0]?.id ?? 0;
+  const from = since != null && since !== newest && src.changes.some((c) => c.id === since) ? since : null;
+  const [view, setView] = useState<MmrView>(() => (from != null ? viewOf(src, from) : viewOf(src)));
+  const [play, setPlay] = useState<MmrPlay | null>(null);
+  useEffect(() => {
+    setHomeCookie(MMR_SEEN_COOKIE, writeMmrSeen(who, newest));
+    if (from == null) return;
+    const after = viewOf(src);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const t = window.setTimeout(() => setView(after), 0);
+      return () => clearTimeout(t);
+    }
+    const before = viewOf(src, from);
+    const rankup = divIndex(src, after.division) > divIndex(src, before.division) && before.division !== "Placement" ? after.division : null;
+    // After the tiles have risen in.
+    const t1 = window.setTimeout(() => setPlay({ id: 1, delta: (after.mmr ?? 0) - (before.mmr ?? 0), rankup }), 900);
+    const t2 = window.setTimeout(() => setView(after), 900 + 650);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // Once, on the first paint's data.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return <MmrCard view={view} look={look} play={play} fit="frame" goal={initial.goal ?? null} pending={initial.pending ?? null} />;
 }
 
 /** The made-up night on a loop (a win, a loss, a win, a climb into Platinum, a third straight win and a new peak). */

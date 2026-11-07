@@ -9,7 +9,6 @@ import {
   followUp,
   linkButton,
   actionRow,
-  button,
   COLORS,
 } from "../respond";
 
@@ -58,7 +57,7 @@ async function handleResultAsync(
 
   if (!cmdUser.linked) {
     await followUp(applicationId, interactionToken, {
-      content: "🔗 **Link your GameShuffle account** to use this command.\nGo to **gameshuffle.co/account** → Connections → Link Discord.",
+      content: "🔗 **Link your GameShuffle account** to use this command.\nOpen **gameshuffle.co/account?tab=security** (Settings › Sign-in & security) and connect Discord.",
     });
     return;
   }

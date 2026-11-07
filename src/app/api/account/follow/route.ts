@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
   if (!target) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const res = await follow(viewerId, target);
   if (!res.ok) return NextResponse.json({ error: res.reason ?? "failed" }, { status: 400 });
-  return NextResponse.json({ ok: true });
+  // The new state, so a follow back can say "Friends" straight away.
+  const state = await getFollowState(viewerId, target).catch(() => null);
+  return NextResponse.json({ ok: true, ...(state ?? {}) });
 }
 
 export async function DELETE(req: NextRequest) {

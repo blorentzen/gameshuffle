@@ -1,0 +1,19 @@
+/* A ranked list, the same everywhere (src/components/boards/RankList.tsx). */
+.rank-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.rank-row { display: flex; align-items: center; gap: var(--spacing-12); min-height: 56px; padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle); font-size: var(--font-size-15, 1.5rem); }
+.rank-row:first-child { border-top: 0; }
+.rank-row--you { margin-inline: calc(-1 * var(--spacing-12)); padding-inline: var(--spacing-12); border-radius: 1rem; border-top-color: transparent; background: color-mix(in srgb, var(--brand-ink, var(--primary-600)) 9%, transparent); }
+.rank-row--you + .rank-row { border-top-color: transparent; }
+.rank-row__place { width: 2.4rem; flex: none; text-align: center; font-family: var(--font-display); font-weight: 800; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.rank-row__pic { display: inline-flex; flex: none; }
+.rank-row__pic img { display: block; }
+.rank-row__pic .rank-row__course { width: 6.4rem; height: auto; border-radius: 0.6rem; }
+.rank-row__pic .rank-row__medal { width: 3.6rem; height: 3.6rem; object-fit: contain; }
+.rank-row__text { display: grid; gap: var(--spacing-2, 0.2rem); flex: 1; min-width: 0; }
+.rank-row__name { color: var(--text-primary); font-weight: 700; text-decoration: none; overflow-wrap: anywhere; }
+a.rank-row__name:hover { text-decoration: underline; }
+.rank-row__line { color: var(--text-secondary); font-size: var(--font-size-14); }
+.rank-row__value { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rank-row__tag { flex: none; }
+.rank-tag { display: inline-flex; padding: 3px var(--spacing-8); border-radius: 6px; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: #fde68a; color: #5b3a00; }
+.rank-up { color: var(--success-700, #15803d); font-weight: 800; font-variant-numeric: tabular-nums; }

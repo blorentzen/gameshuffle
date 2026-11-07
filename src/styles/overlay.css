@@ -1248,7 +1248,7 @@ html.gs-overlay-route body {
 .gs-break__opts.is-3 { grid-template-columns: 1fr; }
 .gs-break__opts.is-3.is-compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .gs-break__opt { position: relative; overflow: hidden; display: grid; grid-template-columns: 26px auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 10px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14); min-height: 52px; }
-.gs-break__opt:not(:has(.gs-break__art)) { grid-template-columns: 26px minmax(0, 1fr) auto; }
+.gs-break__opt:not(.has-art) { grid-template-columns: 26px minmax(0, 1fr) auto; }
 .gs-break__opt.is-wordkey { grid-template-columns: minmax(0, 1fr) auto; }
 .gs-break__key { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: #fff; color: #10133a; font-weight: 900; font-size: 14px; z-index: 1; }
 .gs-break__art { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: rgba(255, 255, 255, 0.1); z-index: 1; }
@@ -1342,7 +1342,7 @@ html.gs-overlay-route body {
 .gs-break__score b { color: #fff; font-size: 18px; font-variant-numeric: tabular-nums; }
 .gs-break__opts.is-3.is-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .gs-break__opts.is-3.is-row .gs-break__opt { grid-template-columns: 26px minmax(0, 1fr); }
-.gs-break__opts.is-3.is-row .gs-break__opt:has(.gs-break__art) { grid-template-columns: 26px auto minmax(0, 1fr); }
+.gs-break__opts.is-3.is-row .gs-break__opt.has-art { grid-template-columns: 26px auto minmax(0, 1fr); }
 .gs-break__bingo { display: flex; align-items: center; gap: 18px; }
 .gs-break__bingo p { margin: 0; font-size: 16px; color: #c4c9ff; }
 .gs-break__bingo p b { color: #fff; }
@@ -1424,3 +1424,22 @@ html.gs-overlay-route body {
 .gs-break__c4cols { list-style: none; margin: 0; padding: 0 8px; display: grid; grid-template-columns: repeat(7, 28px); gap: 5px; text-align: center; font-size: 14px; font-weight: 800; color: #c4c9ff; }
 .gs-break__c4cols li.is-picked { color: #ffd34d; }
 .gs-break__c4cols small { display: block; font-size: 11px; font-weight: 600; }
+
+/* Older OBS (Chromium 103) has no color-mix(). A rule that mixes colors with var() goes empty there instead of falling
+   back to an earlier one, so borders, fills and the bingo banner get plain versions here (headings that mixed a tint
+   just stay white). Same selectors, later in the file. */
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .gs-overlay__card, .gs-wheel__result { border: 2px solid var(--brand-primary); }
+  .gs-overlay-picks-bans { border: 1px solid var(--brand-primary); }
+  .gs-overlay-events { border: 1px solid var(--brand-accent, var(--brand-primary)); border-left-width: 4px; }
+  .gs-overlay-oracle { border: 2px solid var(--oracle-accent); }
+  .gs-overlay-namepick { border: 2px solid var(--brand-primary, #2f6fd6); }
+  .gs-overlay-timer { border: 2px solid var(--timer-accent, #2f6fd6); }
+  .gs-overlay-bingo { border: 2px solid var(--bingo-accent, #7c3aed); }
+  .gs-overlay-bingo__cell.is-marked { border-color: var(--bingo-mark, var(--bingo-accent, #7c3aed)); }
+  .gs-overlay-bingo__banner { background: var(--bingo-accent, #7c3aed); }
+  .gs-overlay-tierlist { border: 2px solid var(--tier-accent, #2f6fd6); }
+  .gs-overlay-partycard { border: 2px solid var(--party-accent); }
+  .gs-overlay-partycard__worth { background: rgba(255, 255, 255, .18); }
+  .gs-brain__fill { background: var(--brand-primary, #2766ec); opacity: .55; }
+}

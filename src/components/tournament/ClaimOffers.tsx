@@ -38,7 +38,7 @@ export function ClaimOffers({ verified }: { verified: boolean }) {
     return (
       <Alert variant="success" title={done === 1 ? "1 entry linked" : `${done} entries linked`}>
         <p className="claim-flow__p">They&apos;re on your account now, with their original dates and results.</p>
-        <Link href="/account/stuff?tab=tournaments" style={{ textDecoration: "none" }}><Button variant="primary" size="small">See my tournaments</Button></Link>
+        <Link href="/account/events?tab=tournaments" style={{ textDecoration: "none" }}><Button variant="primary" size="small">See my tournaments</Button></Link>
       </Alert>
     );
   }

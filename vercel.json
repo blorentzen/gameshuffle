@@ -85,6 +85,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/space-challenges",
+      "schedule": "0 17 * * *"
+    },
+    {
       "path": "/api/cron/duel-days",
       "schedule": "*/10 * * * *"
     },

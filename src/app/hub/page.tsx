@@ -1,21 +1,15 @@
 /**
- * /hub: the Stream hub home (rebuilt 2026-10-10, audit + mockups
- * https://claude.ai/artifact/4npmxxzygb6MWZemkxtQ54).
- *
- * What a streamer opens the hub for, in order: the stream that's live now
- * (one big card with the control room button), then what's coming up
- * (scheduled streams and drafts as short rows), this month in numbers, and
- * past streams as a list they can search. Test streams stay out of the
- * past list unless asked for. A setup problem (no Twitch, the bot can't
- * post, missing EventSub) shows once at the top with a link to fix it.
- *
- * URL params: q (search past streams by name), test=1 (include test
- * streams in the past list), limit (past streams shown, default 25).
+ * /hub: the Studio's Home (journeys picks 2026-11-06, 10A and 11A, https://claude.ai/artifact/DqZuBnVSJFAuDSDY4Ssb11):
+ * setup progress until it's done, the stream that's live, what's coming up, this month, then your tools as picture
+ * cards. Past streams moved to the Streams tab (/hub/streams). Rebuilt from the Stream hub home (2026-10-10, audit +
+ * mockups https://claude.ai/artifact/4npmxxzygb6MWZemkxtQ54). A setup problem the steps don't cover (missing EventSub)
+ * shows once at the top with a link to fix it.
  */
 
 import type { Metadata } from "next";
+import "@/styles/studio.css";
 import Link from "next/link";
-import { Alert, Button, EmptyState, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
+import { Alert, Button, EmptyState } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { requireHubAccess } from "@/lib/capabilities/hub-access";
@@ -23,14 +17,16 @@ import { getGameName } from "@/data/game-registry";
 import { GameCover } from "@/components/games/GameCover";
 import { NewSessionButton } from "@/components/hub/NewSessionButton";
 import { PlatformBadge } from "@/components/hub/PlatformBadge";
-import { TokenAllowanceBadge } from "@/components/hub/TokenAllowanceBadge";
+import { StudioHeader } from "@/components/studio/StudioHeader";
+import { SetupProgress, StudioTools } from "@/components/studio/StudioHome";
+import { streamSetup } from "@/lib/streaming/setup";
 import { formatDuration } from "@/lib/time/relative";
 import { formatEventShort } from "@/lib/time/format";
 import { gsMonthStart } from "@/lib/time/gsClock";
 import type { SessionStatus } from "@/lib/sessions/types";
 
 export const metadata: Metadata = {
-  title: "Stream hub",
+  title: "Studio",
   robots: { index: false, follow: false },
 };
 
@@ -107,7 +103,6 @@ export default async function HubHomePage({ searchParams }: { searchParams: Prom
   if (q) pastQuery = pastQuery.ilike("name", `%${q.replace(/[\\%_]/g, "\\$&")}%`);
   const { data: pastRows } = await pastQuery;
   const pastAll = (pastRows ?? []) as SessionRow[];
-  const hasMore = pastAll.length > limit;
   const past = pastAll.slice(0, limit);
 
   // Who played: viewers (not the streamer) per session, for the live card and the past list.
@@ -163,25 +158,18 @@ export default async function HubHomePage({ searchParams }: { searchParams: Prom
         : null;
 
   const nothingYet = live.length === 0 && comingUp.length === 0 && past.length === 0 && !q && !showTest;
+  const setup = await streamSetup(user.id).catch(() => null);
 
   return (
-    <div className="hub-page hub-home">
-      <header className="hub-home__head">
-        <div className="hub-home__title">
-          <h1 className="hub-page__title">Stream hub</h1>
-          <TokenAllowanceBadge ownerUserId={user.id} />
-        </div>
-        <div className="hub-page__header-actions">
-          <Link href="/account/streaming"><Button variant="secondary">Stream settings</Button></Link>
-          <NewSessionButton />
-        </div>
-      </header>
+    <div className="hub-page hub-home studio-page">
+      <StudioHeader userId={user.id} liveSlug={liveSlug} />
+      {setup && setup.some((x) => !x.done) && <SetupProgress steps={setup} />}
 
-      {setupProblem && (
+      {setupProblem && !(setup && setup.some((x) => !x.done)) && (
         <Alert variant="warning" title={setupProblem.title}>
           <span className="hub-home__alert-body">
             {setupProblem.body}{" "}
-            <Link href="/account/streaming?tab=integrations">{setupProblem.action}</Link>
+            <Link href="/hub/setup/twitch">{setupProblem.action}</Link>
           </span>
         </Alert>
       )}
@@ -216,7 +204,6 @@ export default async function HubHomePage({ searchParams }: { searchParams: Prom
                   </p>
                 </div>
                 <div className="hub-live__actions">
-                  {liveSlug && <Link href={`/live/${encodeURIComponent(liveSlug)}`} target="_blank" rel="noopener noreferrer"><Button variant="secondary">Live page ↗</Button></Link>}
                   <Link href={`/hub/sessions/${r.slug}`}><Button variant="primary">Open control room</Button></Link>
                 </div>
               </section>
@@ -225,7 +212,10 @@ export default async function HubHomePage({ searchParams }: { searchParams: Prom
 
           <div className="hub-home__row">
             <section className="hub-panel" aria-labelledby="hub-coming">
+              <div className="hub-panel__head">
               <h2 id="hub-coming" className="hub-panel__title">Coming up <span className="hub-page__group-count">{comingUp.length}</span></h2>
+              <Link className="hub-panel__link" href="/hub/streams">All streams</Link>
+            </div>
               {comingUp.length === 0 ? (
                 <p className="hub-panel__empty">Nothing planned. Schedule a stream and GameShuffle opens it and announces it for you.</p>
               ) : (
@@ -263,62 +253,7 @@ export default async function HubHomePage({ searchParams }: { searchParams: Prom
             </section>
           </div>
 
-          <section className="hub-panel" aria-labelledby="hub-past">
-            <div className="hub-panel__head">
-              <h2 id="hub-past" className="hub-panel__title">Past streams</h2>
-              <Link className="hub-panel__link" href={showTest ? `/hub${q ? `?q=${encodeURIComponent(q)}` : ""}` : `/hub?test=1${q ? `&q=${encodeURIComponent(q)}` : ""}`}>
-                {showTest ? "Hide test streams" : "Show test streams"}
-              </Link>
-            </div>
-            <form method="get" action="/hub" className="hub-panel__search" role="search">
-              {showTest && <input type="hidden" name="test" value="1" />}
-              <Input type="search" name="q" defaultValue={q} placeholder="Search past streams" aria-label="Search past streams" fullWidth />
-              <Button type="submit" variant="secondary">Search</Button>
-            </form>
-            {past.length === 0 ? (
-              <p className="hub-panel__empty">{q ? `No past streams match "${q}".` : "Streams you finish show up here, with what happened on each."}</p>
-            ) : (
-              <div className="hub-table" role="region" aria-label="Past streams table" tabIndex={0}>
-                <Table hoverable>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Stream</TableHead>
-                      <TableHead>Game</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Length</TableHead>
-                      <TableHead align="right">Viewers who played</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {past.map((r) => {
-                      const game = gameOf(r);
-                      const dur = seconds(r.activated_at, r.ended_at);
-                      return (
-                        <TableRow key={r.id}>
-                          <TableCell>
-                            <Link href={`/hub/sessions/${r.slug}`} className="hub-table__name">{r.name}</Link>
-                            {isTest(r) && <span className="hub-rows__tag">Test</span>}
-                            {r.status === "cancelled" && <span className="hub-rows__tag">Cancelled</span>}
-                          </TableCell>
-                          <TableCell>{game ? getGameName(game) : "-"}</TableCell>
-                          <TableCell>{formatEventShort(r.ended_at ?? r.created_at, tz).split(" · ")[0]}</TableCell>
-                          <TableCell>{dur ? formatDuration(dur) : "-"}</TableCell>
-                          <TableCell align="right">{players.get(r.id) ?? 0}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-            {hasMore && (
-              <div className="hub-page__load-more">
-                <Link href={`/hub?limit=${limit + PAGE_SIZE}${showTest ? "&test=1" : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`} scroll={false}>
-                  <Button variant="secondary">Show more</Button>
-                </Link>
-              </div>
-            )}
-          </section>
+          <StudioTools />
         </>
       )}
     </div>

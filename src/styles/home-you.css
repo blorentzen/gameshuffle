@@ -1,0 +1,96 @@
+/* The signed-in homepage's top (personalization picks 2026-11-05): src/components/home/HomeForYou.tsx. */
+
+/* In the greeting band (BrowseHero, dark). */
+.home-you__showing { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.home-you__showing strong { font-weight: var(--font-weight-semibold); }
+.home-you__showing .home-you__change.empac-button { color: #fff; text-decoration: underline; padding-inline: var(--spacing-8); }
+.home-you__nav { display: grid; gap: var(--spacing-12); margin-top: var(--spacing-8); }
+.home-you__worlds { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.home-you__world {
+  display: inline-flex; align-items: center; gap: var(--spacing-8);
+  min-height: 40px; padding: var(--spacing-8) var(--spacing-16);
+  border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.08);
+  color: #fff; font-size: var(--font-size-15, 1.5rem); font-weight: var(--font-weight-semibold); text-decoration: none;
+}
+.home-you__world:hover { background: rgba(255, 255, 255, 0.18); }
+.home-you__world:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.home-you__pickup { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-16); margin: 0; color: rgba(255, 255, 255, 0.82); font-size: var(--font-size-15, 1.5rem); }
+.home-you__pickup span { font-weight: var(--font-weight-semibold); }
+.home-you__pickup a { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.home-you__modal-note { margin: 0 0 var(--spacing-16); color: var(--text-secondary); }
+
+/* Below it: the bands, You might like, the plan line. */
+.home-you { display: grid; gap: var(--spacing-24); padding-top: var(--spacing-32); }
+.home-you__empty { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.home-you__bands { display: grid; gap: var(--spacing-20); grid-template-columns: repeat(auto-fit, minmax(min(100%, 34rem), 1fr)); align-items: start; }
+.home-you__band {
+  display: grid; gap: var(--spacing-16); padding: var(--spacing-20);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-12, 12px); background: var(--background-primary, #fff);
+}
+.home-you__band-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8) var(--spacing-12); }
+.home-you__band-head h2 { margin: 0; font-size: var(--font-size-20); }
+.home-you__band-more { margin-left: auto; font-size: var(--font-size-14); }
+.home-you__stats { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-24); margin: 0; padding-bottom: var(--spacing-16); border-bottom: 1px solid var(--border-subtle); }
+.home-you__stats div { display: grid; gap: var(--spacing-2, 0.2rem); }
+.home-you__stats dt { order: 2; font-size: var(--font-size-14); color: var(--text-secondary); }
+.home-you__stats dd { order: 1; margin: 0; font-size: var(--font-size-20); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+.home-you__rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.home-you__row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) 0; }
+.home-you__row + .home-you__row { border-top: 1px solid var(--border-subtle); }
+.home-you__row-text { display: grid; gap: var(--spacing-2, 0.2rem); min-width: 0; }
+.home-you__row-title { color: var(--text-primary); font-weight: var(--font-weight-semibold); font-size: var(--font-size-16); text-decoration: none; }
+.home-you__row-title:hover { text-decoration: underline; }
+/* The whole row's title is the link; the action word repeats it for the eye only. */
+.home-you__row-title::after { content: ""; position: absolute; inset: 0; }
+.home-you__row { position: relative; }
+.home-you__row-text > span { color: var(--text-secondary); font-size: var(--font-size-14); }
+.home-you__row-action {
+  position: relative; z-index: 1; padding: var(--spacing-6, 0.6rem) var(--spacing-12); border-radius: var(--radius-8, 8px);
+  border: 1px solid var(--border-default); color: var(--text-primary); font-size: var(--font-size-14); font-weight: var(--font-weight-semibold);
+  text-decoration: none; white-space: nowrap; pointer-events: none;
+}
+.home-you__row:hover .home-you__row-action { border-color: var(--brand-ink, var(--primary-600)); color: var(--brand-ink, var(--primary-600)); }
+
+.home-you__like h2 { margin: 0 0 var(--spacing-12); font-size: var(--font-size-18); }
+.home-you__like ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); }
+.home-you__like li { position: relative; display: flex; align-items: flex-start; gap: var(--spacing-8); padding: var(--spacing-16); border: 1px solid var(--border-subtle); border-radius: var(--radius-12, 12px); background: var(--background-primary, #fff); }
+.home-you__like li > a { display: grid; gap: var(--spacing-4); flex: 1; min-width: 0; color: var(--text-primary); text-decoration: none; }
+.home-you__like li > a span { color: var(--text-secondary); font-size: var(--font-size-14); }
+.home-you__like li > a:hover strong { text-decoration: underline; }
+.home-you__dismiss {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px; margin: -6px -6px 0 0;
+  border: 0; border-radius: var(--radius-8, 8px); background: transparent; color: var(--text-secondary); cursor: pointer;
+}
+.home-you__dismiss:hover { background: var(--background-secondary, rgba(0, 0, 0, 0.05)); color: var(--text-primary); }
+.home-you__dismiss:focus-visible { outline: 2px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; }
+
+.home-you__plan { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); margin: 0; padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); font-size: var(--font-size-16); }
+.home-you__plan--support svg { color: var(--magenta-600, #c2185b); }
+.home-you__plan--pro svg, .home-you__plan--circuit svg { color: var(--brand-ink, var(--primary-600)); }
+.home-you__plan > span { flex: 1 1 24rem; min-width: 0; }
+
+.home-you__else { margin: var(--spacing-16) 0 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle); font-size: var(--font-size-14); font-weight: var(--font-weight-bold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+
+/* The visitor homepage's world tour (VisitorTour). */
+.visitor-tour { display: grid; gap: var(--spacing-32); padding-top: var(--spacing-32); }
+.visitor-pick { display: grid; gap: var(--spacing-12); }
+.visitor-pick h2, .visitor-account h2 { margin: 0; font-size: var(--font-size-24); }
+.visitor-pick__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.visitor-pick__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.visitor-worlds { display: grid; gap: var(--spacing-16); grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); align-items: stretch; }
+.visitor-door {
+  display: flex; flex-direction: column; gap: var(--spacing-12); padding: var(--spacing-20);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-12, 12px); background: var(--background-primary, #fff);
+}
+.visitor-door h3 { margin: 0; font-size: var(--font-size-20); }
+.visitor-door ul { margin: 0; padding: 0; display: grid; gap: var(--spacing-6, 0.6rem); font-size: var(--font-size-15, 1.5rem); flex: 1; }
+.visitor-door--big { border-color: var(--brand-ink, var(--primary-600)); box-shadow: inset 0 0 0 1px var(--brand-ink, var(--primary-600)); }
+.visitor-account { display: grid; gap: var(--spacing-16); padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle); }
+.visitor-account__cols { display: grid; gap: var(--spacing-24); grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); }
+.visitor-account h3 { margin: 0 0 var(--spacing-8); font-size: var(--font-size-18); }
+.visitor-account ul { margin: 0; padding: 0; display: grid; gap: var(--spacing-8); font-size: var(--font-size-16); }
+.visitor-numbers { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-32); color: var(--text-secondary); font-size: var(--font-size-16); font-variant-numeric: tabular-nums; }
+
+/* The visitor homepage's "What's happening" band (HappeningBand, light). */
+.visitor-band { display: grid; gap: var(--spacing-16); padding-top: var(--spacing-40, 4rem); }
+.visitor-band__note { margin: var(--spacing-8) 0 0; color: var(--text-secondary); font-size: var(--font-size-16); }

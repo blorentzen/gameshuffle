@@ -27,6 +27,7 @@ import { NotificationsTab } from "@/components/account/NotificationsTab";
 import { BlockedUsersManager } from "@/components/account/BlockedUsersManager";
 import { PlansTab } from "@/components/account/PlansTab";
 import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/format";
+import { InterestSettingsLoader } from "@/components/interests/InterestPicker";
 
 /** CDS Select hides its label for "", so a word stands in for an empty choice. */
 const AUTO = "auto";
@@ -77,7 +78,12 @@ export function SettingsGeneralScreen() {
         </div>
       </AdminSection>
 
-      <AdminSection title="Display" intro="Light or dark for GameShuffle's own screens. How your public pages look is on Theming.">
+      <AdminSection title="What you're here for" intro="Decides what GameShuffle shows you first. Change it whenever your games and plans change.">
+        <InterestSettingsLoader />
+        <p className="interest-settings__note">The games you play are on <Link href="/account?tab=games">Profile ▸ Games</Link>.</p>
+      </AdminSection>
+
+      <AdminSection title="Display" intro="Light or dark for GameShuffle's own screens. How your public pages look is on Profile ▸ Theme.">
         <ThemeToggle bare />
       </AdminSection>
 
@@ -201,7 +207,7 @@ export function SettingsSecurityScreen() {
 
 export function SettingsNotificationsScreen() {
   return (
-    <AdminScreen title="Notifications" intro="What reaches you on GameShuffle, by text and by email. Changes save as you go.">
+    <AdminScreen title="Notifications" intro="Each kind of news can reach you on GameShuffle, by email and on Discord. Changes save as you go.">
       <NotificationsTab bare />
     </AdminScreen>
   );

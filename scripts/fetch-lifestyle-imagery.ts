@@ -263,9 +263,8 @@ async function pull(source: string, slot: string, id: string) {
   if (!src.includes(anchor)) die("manifest anchor not found; did the file change shape?");
   // Replace an existing entry for this slot rather than stacking duplicates.
   const existing = new RegExp(`\\n  "${slot}": \\{[\\s\\S]*?\\n  \\},`);
-  src = existing.test(src)
-    ? src.replace(existing, "\n" + entry)
-    : src.replace(`${anchor};`, `${anchor}\n${entry}\n};`).replace(`${anchor}}`, `${anchor}\n${entry}\n}`);
+  // A new slot goes in right after the opening brace (the map may already hold others).
+  src = existing.test(src) ? src.replace(existing, "\n" + entry) : src.replace(anchor, `${anchor}\n${entry}`);
   writeFileSync(MANIFEST, src);
 
   console.log(`\n  ${slot} <- ${source} ${id} by ${credit.photographer}`);

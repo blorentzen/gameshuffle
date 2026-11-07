@@ -9,6 +9,8 @@
 
 import { realStaffRole } from "@/lib/capabilities/realStaffRole";
 import { getStaffImpersonationState } from "@/lib/capabilities/staff-impersonation";
+import { personaPreview } from "@/lib/preview/server";
+import { DEV_PERSONA_ACCOUNTS, devAccountsOn } from "@/lib/preview/devAccounts";
 import { ImpersonationControl, type ImpersonationOption } from "./ImpersonationControl";
 
 export async function ImpersonationControlMount() {
@@ -16,10 +18,12 @@ export async function ImpersonationControlMount() {
   if (!role) return null;
 
   const state = await getStaffImpersonationState();
+  const persona = await personaPreview();
   let currentOption: ImpersonationOption = "default";
   if (state.viewingAsUnauth) currentOption = "unauth";
+  else if (persona) currentOption = "persona";
   else if (state.viewingAsTier === "pro") currentOption = "pro";
   else if (state.viewingAsTier === "free") currentOption = "free";
 
-  return <ImpersonationControl currentOption={currentOption} />;
+  return <ImpersonationControl currentOption={currentOption} persona={persona} devAccounts={devAccountsOn() ? DEV_PERSONA_ACCOUNTS : null} />;
 }

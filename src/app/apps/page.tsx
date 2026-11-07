@@ -107,6 +107,15 @@ export default function AppsPage() {
               linkTitle
             />
             )}
+            <AppCard
+              title="Random Pokémon Generator"
+              description="Roll 1, 3 or 6 different Pokémon from all 1,025, by generation and type, with a link that rebuilds the same roll."
+              media={<EventHeaderArt category="video" seed="apps-pokemon" ramp={["#5a1414", "#e5484d"]} motion="hover" />}
+              href="/randomizers/pokemon"
+              ctaLabel="Roll Pokémon"
+              isNew
+              linkTitle
+            />
             {STADIUM_PUBLIC && (
             <AppCard
               title="Pokémon Stadium Randomizer"

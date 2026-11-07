@@ -66,12 +66,14 @@ const sectionsFor = (shop: boolean) => [
       // meet while logged out; secondary ones would unbalance the columns,
       // unless an item asks for a footer spot (`footer: true`). Merch shows
       // once visitors can see the shop.
-      .filter((i) => (!i.secondary || i.footer) && (!i.audience || i.audience === "everyone" || (i.audience === "shop" && shop)))
+      .filter((i) => (!i.secondary || i.footer) && !i.noFooter && (!i.audience || i.audience === "everyone" || (i.audience === "shop" && shop)))
       .map((i) => ({ label: i.label, href: i.href })),
   })),
   ...FOOTER_EXTRA.filter((g) => g.heading !== "Legal").map((g) => ({
     title: g.heading,
-    links: g.items.map((i) => ({ label: i.label, href: i.href })),
+    links: g.items
+      .filter((i) => !i.audience || i.audience === "everyone" || (i.audience === "shop" && shop))
+      .map((i) => ({ label: i.label, href: i.href })),
   })),
 ];
 
@@ -120,7 +122,7 @@ const folded = (sections: typeof SECTIONS) => (
 const FOLDED_SECTIONS = folded(SECTIONS);
 const FOLDED_SECTIONS_WITH_SHOP = folded(SECTIONS_WITH_SHOP);
 
-/** `shop`: visitors can see the shop, so Merch joins the Community column. */
+/** `shop`: visitors can see the shop, so Merch joins the Community column (src/lib/nav/pillars.ts COMMUNITY_LINKS). */
 export function SiteFooter({ shop = false }: { shop?: boolean }) {
   const year = new Date().getFullYear();
 
@@ -146,7 +148,7 @@ export function SiteFooter({ shop = false }: { shop?: boolean }) {
           />
         </span>
       }
-      description="Game-night companion tools for Mario Kart and beyond: randomizers, competitive scoring, tournaments, and a token-powered platform layer for streamers."
+      description="Free games and tools for players, game nights, competitive Mario Kart, Pokémon fans and streamers: daily games, randomizers, tournaments and stream tools."
       sections={shop ? SECTIONS_WITH_SHOP : SECTIONS}
       socialLinks={SOCIAL_LINKS}
       contactInfo={{ email: "support@gameshuffle.co" }}

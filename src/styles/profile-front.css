@@ -1,0 +1,245 @@
+/* The profile as the room's front window (src/app/u/[username]/page.tsx, bring-along picks 5A to 8A, 2026-11-05).
+   Same look as the room (home-room.css): a dark header in the player's banner and colors, then roomy white tiles.
+   The old class names stay on the pieces (.profile-hero, .profile-hero__name, .pcard…) so GS Pro custom CSS keeps
+   finding them; the rules here are one class more specific than the old ones, so custom CSS (scoped .u-custom …)
+   still wins where it targets the same thing. */
+
+/* ── The cover (context + rooms picks 2026-11-05, 8A): only a picture. Their banner, else their main game's art, else
+   their colors on the navy; never stock. The nav floats over its top, so the top carries a shade. ── */
+.pf-cover {
+  position: relative; isolation: isolate; overflow: hidden;
+  aspect-ratio: 4 / 1; min-height: 16rem; max-height: 34rem; width: 100%;
+  background:
+    radial-gradient(90% 130% at 0% 0%, color-mix(in srgb, var(--profile-accent, var(--brand-primary, #2766ec)) 55%, transparent) 0%, transparent 72%),
+    radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%);
+}
+.pf-cover__art { position: absolute; inset: 0; z-index: -2; }
+.pf-cover__art .profile-banner, .pf-cover__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background-size: cover; background-position: center 35%; }
+.pf-cover::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(11, 13, 20, 0.6) 0%, rgba(11, 13, 20, 0) 46%); }
+.pf-cover .owner-bar--overlay { top: calc(64px + var(--spacing-12)); }
+
+/* ── Who they are, on the page (6A): the face on the cover's edge, the buttons beside it, then the name, status, bio,
+   what they're playing, the counts and the badges they've earned. A white band, like the apps people know. ── */
+.profile-hero.pf-id {
+  display: block; position: relative; z-index: 1; margin: 0; padding: 0 0 var(--spacing-32);
+  border: 0; border-bottom: 1px solid var(--border-subtle); border-radius: 0; box-shadow: none;
+  background: var(--background-elevated, #fff); color: var(--text-primary); text-align: left;
+}
+/* The face and the buttons share the first row; everything else follows in the page's order, across the width. */
+.pf-id__inner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-12) var(--spacing-16); justify-items: start; }
+.pf-id__inner > * { grid-column: 1 / -1; min-width: 0; }
+.pf-id__inner > .pf-id__face { grid-column: 1; grid-row: 1; margin-top: -7.3rem; }
+.pf-id__inner > .pf-id__actions { grid-column: 2; grid-row: 1; justify-self: end; align-self: end; }
+.pf-id .profile-hero__avatar { padding: 5px; background: var(--background-primary, #fff); box-shadow: 0 0 0 3px var(--profile-accent, transparent), 0 10px 26px rgba(20, 26, 58, 0.18); }
+.pf-id .profile-hero__avatar img,
+.pf-id .profile-hero__avatar > svg,
+.pf-id .profile-hero__avatar > span:first-child { border-radius: 50%; }
+.pf-id .profile-hero__avatar--supporter { box-shadow: 0 0 0 3px #e2457a, 0 10px 26px rgba(20, 26, 58, 0.18); }
+.pf-id .profile-online-dot { bottom: 10px; right: 10px; width: 20px; height: 20px; }
+.pf-id .profile-hero__actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--spacing-8); padding-bottom: var(--spacing-8); }
+.pf-id__who { display: grid; gap: var(--spacing-4); margin-top: var(--spacing-4); }
+.pf-id .profile-hero__name { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: var(--font-size-32, 3.2rem); line-height: 1.1; overflow-wrap: anywhere; }
+.pf-id .profile-hero__handle { font-size: var(--font-size-16); }
+.pf-id .profile-hero__status {
+  display: inline-flex; align-items: center; gap: var(--spacing-8); max-width: 100%; margin: 0;
+  padding: var(--spacing-6, 0.6rem) var(--spacing-14, 1.4rem); border-radius: 999px;
+  border: 1px solid var(--border-default); background: var(--background-secondary, #f4f5fa); font-size: var(--font-size-15, 1.5rem); line-height: 1.35;
+}
+.pf-id .profile-hero__status svg { flex: none; color: var(--text-secondary); }
+.pf-id .profile-hero__bio { margin: 0; max-width: 64ch; color: var(--text-primary); font-size: var(--font-size-16); line-height: 1.55; }
+.pf-id .profile-hero__nowline { margin: 0; font-size: var(--font-size-15, 1.5rem); }
+.pf-id .profile-hero__nowline strong { color: var(--text-primary); }
+.pf-id .profile-badges { margin: 0; gap: var(--spacing-8); }
+.pf-id .profile-badge { font-size: var(--font-size-13, 1.3rem); padding: var(--spacing-4) var(--spacing-10, 1rem); }
+/* Follow, like X's: a dark pill at a readable size, whatever their accent (CascadeDS's small one is 12px). */
+.pf-id .empac-follow-btn { height: 36px; padding: 0 var(--spacing-16); font-size: var(--font-size-14); font-weight: 700; }
+.pf-id .empac-follow-btn--default { background: var(--text-primary, #161a2e); color: var(--background-primary, #fff); border-color: var(--text-primary, #161a2e); }
+.pf-id .empac-follow-btn--default:hover:not(:disabled) { opacity: 0.88; }
+.pf-friends {
+  display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); padding: var(--spacing-4) var(--spacing-10, 1rem);
+  border-radius: 999px; background: #d1fae5; color: #065f46; font-size: var(--font-size-14); font-weight: 700;
+}
+.pf-counts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-4) var(--spacing-16); margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.pf-count { min-height: 24px; padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.pf-count b { color: var(--text-primary); font-weight: 800; font-variant-numeric: tabular-nums; }
+button.pf-count:hover { text-decoration: underline; text-underline-offset: 3px; }
+button.pf-count:focus-visible { outline: 2px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; border-radius: 4px; }
+.pf-count--still { cursor: default; }
+@media (max-width: 680px) {
+  .profile-hero.pf-id { text-align: left; justify-items: stretch; }
+  .pf-id .profile-hero__name { justify-content: flex-start; }
+}
+@media (max-width: 640px) {
+  .profile-hero.pf-id { padding-bottom: var(--spacing-24); }
+  /* Phones: the buttons go under the name, starting at its left edge. */
+  .pf-id__inner > .pf-id__face { margin-top: -4.8rem; }
+  .pf-id__inner > .pf-id__actions { grid-column: 1 / -1; grid-row: auto; justify-self: start; }
+  .pf-id .profile-hero__actions { justify-content: flex-start; padding-bottom: 0; }
+  .pf-id .profile-hero__avatar img,
+  .pf-id .profile-hero__avatar > svg,
+  .pf-id .profile-hero__avatar > span:first-child { width: 84px !important; height: 84px !important; }
+  .pf-id .profile-online-dot { bottom: 6px; right: 6px; width: 16px; height: 16px; }
+  .pf-id .profile-hero__name { font-size: var(--font-size-28, 2.8rem); }
+}
+
+/* ── The columns (6A): who they are in 4 (the room's people rail's twin), what they do in 8. On a phone, what they do
+   comes first after the name (Highlights, playing with them), then who they are, then the tabs. ── */
+.pf-cols { display: grid; gap: var(--spacing-48, 4.8rem); grid-template-columns: minmax(0, 1fr); align-items: start; }
+.pf-col { display: grid; gap: var(--spacing-48, 4.8rem); min-width: 0; align-content: start; }
+.pf-col--narrow { gap: var(--spacing-32); }
+@media (min-width: 1024px) {
+  .pf-cols { grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: auto 1fr; column-gap: var(--spacing-32); }
+  .pf-cols > .pf-col--top { grid-column: 5 / span 8; grid-row: 1; }
+  .pf-cols > .pf-col--narrow { grid-column: 1 / span 4; grid-row: 1 / span 2; }
+  .pf-cols > .pf-col--main { grid-column: 5 / span 8; grid-row: 2; }
+  /* Nothing on top: the tabs start level with the narrow column. */
+  .pf-cols:not(:has(> .pf-col--top)) > .pf-col--main { grid-row: 1 / span 2; }
+  /* No narrow column: what they do takes the page. */
+  .pf-cols:not(:has(> .pf-col--narrow)) > .pf-col { grid-column: 1 / -1; }
+}
+@media (max-width: 899px) { .pf-col--narrow { gap: var(--spacing-24); } }
+
+/* The narrow column's blocks: the room's white tiles. */
+.pf-block { min-width: 0; display: flex; flex-direction: column; }
+
+/* Plays: their box art, three across, names under (14px, never cut). */
+.pf-plays__grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-16) var(--spacing-12); }
+.pf-plays__grid li { display: grid; gap: var(--spacing-6, 0.6rem); align-content: start; min-width: 0; }
+.pf-plays__cover { width: 100%; height: auto; aspect-ratio: 3 / 4; border-radius: 0.8rem; object-fit: cover; box-shadow: 0 4px 12px rgba(20, 26, 58, 0.14); }
+.pf-plays__name { font-size: var(--font-size-14); line-height: 1.3; color: var(--text-primary); overflow-wrap: anywhere; }
+
+/* About: links, then where to find them, gamertags and board games, each under a thin line. */
+.pf-about__part { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
+.pf-about > .pcard__title + .pf-about__part { padding-top: 0; border-top: 0; }
+.pf-about__label { margin: 0; font-size: var(--font-size-14); font-weight: 700; color: var(--text-secondary); }
+.pf-about .profile-links, .pf-about .profile-socials, .pf-about .gamertag-list, .pf-about .bg-profile { margin: 0; }
+
+/* ── Highlights (7A): rings in gold, the thing's own picture or our glyph in its color inside. ── */
+/* White tiles like the narrow column's, so the two columns' first headings sit on one line (picture cards may sit
+   on a white card). */
+.pf-hl, .pf-join, .pf-plays2 {
+  display: grid; gap: var(--spacing-20); min-width: 0; padding: var(--spacing-28, 2.8rem); border-radius: 1.6rem;
+  border: 1px solid var(--border-subtle); background: var(--background-elevated, #fff);
+  box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08);
+}
+.pf-hl .pf-section-title, .pf-join .pf-section-title, .pf-plays2 .pf-section-title { font-size: var(--font-size-20); color: var(--text-primary); text-shadow: none; }
+@media (max-width: 899px) { .pf-hl, .pf-join, .pf-plays2 { padding: var(--spacing-20); } }
+.pf-hl__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); }
+.pf-hl__head > :not(h2) { margin-left: auto; }
+/* The owner's button doesn't push the heading down: it stays on the same line as the column beside it. */
+.pf-hl__head > .empac-button { margin-block: -0.8rem; }
+.pf-hl__list { list-style: none; margin: 0; padding: var(--spacing-4) 0; display: flex; gap: var(--spacing-24); overflow-x: auto; scrollbar-width: thin; }
+.pf-hl__list > li { flex: none; }
+.pf-hl__item { display: grid; justify-items: center; gap: var(--spacing-8); width: 11.2rem; text-align: center; color: var(--text-primary); text-decoration: none; }
+.pf-hl__item:hover .pf-hl__label { text-decoration: underline; text-underline-offset: 3px; }
+.pf-hl__item:focus-visible { outline: none; }
+.pf-hl__item:focus-visible .pf-hl__ring { outline: 3px solid var(--brand-ink, var(--primary-600)); outline-offset: 3px; }
+.pf-hl__ring { display: grid; width: 8.8rem; height: 8.8rem; padding: 3px; border-radius: 50%; background: linear-gradient(135deg, #fde68a, #b8892b); }
+.pf-hl__face { display: grid; place-items: center; overflow: hidden; border-radius: 50%; border: 3px solid var(--background-primary, #fff); background: #12162e; color: #fff; }
+.pf-hl__face--medal { background: #fff; }
+.pf-hl__face--gold { background: linear-gradient(140deg, #b8892b, #7a5a12); }
+.pf-hl__face--shuffle { background: linear-gradient(140deg, #6d28d9, #4c1d95); }
+.pf-hl__face--dex { background: linear-gradient(140deg, #c2410c, #7c2d12); }
+.pf-hl__face--fire { background: linear-gradient(140deg, #b91c1c, #7f1d1d); }
+.pf-hl__face--duel { background: linear-gradient(140deg, #1e2a5a, #0f1430); color: #fde68a; }
+.pf-hl__face--teal { background: linear-gradient(140deg, #0f766e, #134e4a); }
+.pf-hl__img { width: 100%; height: 100%; }
+/* A course picture is the game's tile with its name along the bottom: the circle takes the picture's middle. */
+.pf-hl__img--cover { object-fit: cover; object-position: 50% 30%; transform: scale(1.35); }
+.pf-hl__img--medal { object-fit: contain; padding: 10%; }
+.pf-hl__label { font-size: var(--font-size-14); font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.pf-hl__none, .pf-hl__credit { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+
+/* Playing with them: the room's picture cards. */
+.pf-join .band__row--1 { grid-template-columns: minmax(0, 1fr); }
+.pf-join .hap { min-height: 22rem; }
+
+/* ── The body: the columns, then Block and Report. 48px between sections, 32px between tiles. ── */
+.profile-front .profile-shell.pf-body { max-width: none; }
+.pf-body { display: grid; gap: var(--spacing-48, 4.8rem); padding-top: var(--spacing-48, 4.8rem); }
+/* Posts keep a reading width inside the wider page. */
+.profile-front .profile-activity { max-width: 80rem; }
+.pf-body > .profile-tabs, .pf-body > .profile-report { margin: 0; }
+.pf-one { display: grid; gap: var(--spacing-16); }
+.pf-section-title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 800; line-height: 1.2; }
+
+.pf-tiles { display: grid; gap: var(--spacing-32); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-flow: row dense; align-items: stretch; }
+.pf-cell { grid-column: span var(--span, 12); min-width: 0; display: flex; flex-direction: column; }
+.profile-front .pf-cell > .pcard,
+.profile-front .pf-block > .pcard {
+  flex: 1; display: flex; flex-direction: column; gap: var(--spacing-20); min-width: 0;
+  padding: var(--spacing-28, 2.8rem); border-radius: 1.6rem;
+  border: 1px solid var(--border-subtle); background: var(--background-elevated, #fff);
+  box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08);
+}
+/* A tile whose content is already a card (the trainer card) has no card around it. */
+.profile-front .pf-cell > .pcard.pf-bare { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.profile-front .pcard__title {
+  margin: 0; font-family: var(--font-display); font-size: var(--font-size-20); font-weight: 800;
+  line-height: 1.2; letter-spacing: 0; text-transform: none; color: var(--text-primary);
+}
+.profile-front .pcard__title a { color: inherit; }
+@media (max-width: 899px) {
+  .pf-tiles { gap: var(--spacing-24); }
+  .pf-cell { grid-column: 1 / -1; }
+  .profile-front .pf-cell > .pcard, .profile-front .pf-block > .pcard { padding: var(--spacing-20); }
+}
+
+/* No box in a box: one column per daily they play (three or four across on a wide screen), each with its game's
+   color down the side and room around it. */
+.profile-front #dailies .dailies-cards { margin: 0; }
+.profile-front #dailies .dailies-cards__grid { grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); gap: var(--spacing-32); }
+.profile-front #dailies .dailies-card { gap: var(--spacing-12); padding: var(--spacing-4) 0 var(--spacing-4) var(--spacing-20); border: 0; border-left: 4px solid var(--dailies-ink); border-radius: 0; background: none; }
+.profile-front #dailies .dailies-card__stats { gap: var(--spacing-8) var(--spacing-20); }
+@media (max-width: 899px) {
+  .profile-front #dailies .dailies-cards__grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-24); }
+}
+.pf-aside { margin: 0; padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); font-size: var(--font-size-15, 1.5rem); }
+.pf-aside a { font-weight: 600; }
+
+/* Block and Report on the page's own tint: the default grey falls just under 4.5:1 on a tinted page (skinned pages
+   have their own rule in profile.css). */
+.profile-front:not(.gs-skinned) .profile-report .report-profile-trigger { color: var(--text-secondary); }
+/* Game names under the covers are reading text: 14px, not the shelf's old 13, and never cut off. */
+.profile-front .game-shelf__name { font-size: var(--font-size-14); display: block; -webkit-line-clamp: none; overflow: visible; overflow-wrap: anywhere; }
+.profile-front .game-shelf__item { align-content: start; }
+/* Headings sitting straight on a custom background take the color worked out from it (--skin-on), like the old hero. */
+.gs-skinned .pf-section-title,
+.gs-skinned .profile-activity .profile-section-heading { color: var(--skin-on, var(--text-primary)); text-shadow: var(--skin-shadow, none); }
+
+/* ── Plays (game spaces picks 6A, step 4): one record per game, rows split by thin lines in Highlights' white tile.
+   The cover, the game's name, their facts as pills (each opens its details), their space once it's open; the lounge
+   card is the side column's Rank block (src/components/rank/RankBlock.tsx). ── */
+.pf-rec-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.pf-rec { display: grid; grid-template-columns: 6.4rem minmax(0, 1fr); gap: var(--spacing-16); align-items: start; padding: var(--spacing-20) 0; }
+.pf-rec:first-child { padding-top: 0; }
+.pf-rec:last-child { padding-bottom: 0; }
+.pf-rec + .pf-rec { border-top: 1px solid var(--border-subtle); }
+.pf-rec__cover { display: flex; justify-content: center; }
+.pf-rec__art { width: 6.4rem; height: auto; aspect-ratio: 3 / 4; border-radius: 0.8rem; object-fit: cover; box-shadow: 0 4px 12px rgba(20, 26, 58, 0.14); }
+.pf-rec__body { display: grid; gap: var(--spacing-12); min-width: 0; align-content: start; }
+.pf-rec__name { margin: 0; font-family: var(--font-display); font-size: var(--font-size-18); font-weight: 700; line-height: 1.25; color: var(--text-primary); }
+.pf-rec__facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.pf-rec__facts li {
+  display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); min-height: 3.2rem; padding: var(--spacing-4) var(--spacing-12);
+  border-radius: 999px; background: var(--background-secondary, #f4f5fa); color: var(--text-primary); font-size: var(--font-size-14); font-weight: 600;
+}
+.pf-rec__facts a { color: inherit; text-decoration: none; }
+.pf-rec__facts a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.pf-rec__medal { width: 2.4rem; height: 2.4rem; object-fit: contain; margin-left: calc(-1 * var(--spacing-4)); }
+.pf-rec__space { font-size: var(--font-size-14); }
+.pf-rec__credit { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.pf-also { display: grid; gap: var(--spacing-12); padding-top: var(--spacing-20); border-top: 1px solid var(--border-subtle); }
+.pf-also__title { margin: 0; font-size: var(--font-size-14); font-weight: 700; color: var(--text-secondary); }
+.pf-plays2 .pf-plays__grid { grid-template-columns: repeat(auto-fill, minmax(8.4rem, 1fr)); }
+
+/* Phones (round two picks 1A, 2A): a profile's sections are full-width bands 8px apart, like the home and the spaces
+   (home-room.css), not rounded cards in the page's margin. */
+@media (max-width: 767px) {
+  .pf-cols, .pf-col, .pf-col--narrow, .pf-tiles { gap: var(--spacing-8); }
+  .profile-front .pf-cell > .pcard, .profile-front .pf-block > .pcard, .pf-hl, .pf-join, .pf-plays2 {
+    margin-inline: calc(-1 * var(--gs-phone-gutter, 1.6rem));
+    padding: var(--spacing-24) var(--gs-phone-gutter, 1.6rem);
+    border-radius: 0; border-inline: 0; box-shadow: none;
+  }
+}

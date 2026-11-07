@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { ModerationNotice } from "@/components/account/ModerationNotice";
 import { AccountSidebar } from "@/components/account/AccountSidebar";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { previewPro } from "@/lib/preview/server";
+import { accountInterests } from "@/lib/interests/store";
+import type { Interest } from "@/lib/interests/rules";
 
 /**
  * Shared shell for the /account section pages (Account · Streamer · Platform
@@ -28,6 +31,7 @@ export default async function AccountLayout({
 
   let role: string | null = null;
   let isPro = false;
+  let interests: Interest[] = [];
   if (user) {
     const { data } = await supabase
       .from("users")
@@ -42,6 +46,10 @@ export default async function AccountLayout({
       circuitTier: (data?.circuit_tier as string | null) ?? null,
       circuitStatus: (data?.circuit_status as string | null) ?? null,
     }) === "pro";
+    // A staff persona preview (src/lib/preview) shows the sidebar on the preview's plan.
+    isPro = await previewPro(isPro);
+    // The sidebar lists the sections for these first (menus and account picks 2026-11-05, 3A).
+    interests = await accountInterests(user.id).catch(() => []);
   }
 
   return (
@@ -49,7 +57,7 @@ export default async function AccountLayout({
       <Container>
         <ModerationNotice />
         <div className="account-layout">
-          <AccountSidebar role={role} isPro={isPro} />
+          <AccountSidebar role={role} isPro={isPro} interests={interests} />
           <div className="account-content">{children}</div>
         </div>
       </Container>

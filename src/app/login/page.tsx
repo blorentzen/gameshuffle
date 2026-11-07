@@ -247,7 +247,8 @@ function LoginForm() {
 
               <p className="auth-page__switch">
                 Don&apos;t have an account?{" "}
-                <a href="/signup">Sign up</a>
+                {/* Keeps the way back, so the sign-up page also says why they're here. */}
+                <a href={searchParams.get("redirect") ? `/signup?redirect=${encodeURIComponent(redirect)}` : "/signup"}>Sign up</a>
               </p>
             </form>
           )}

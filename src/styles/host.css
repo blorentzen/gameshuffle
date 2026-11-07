@@ -1,0 +1,53 @@
+/* The Host home (/host and its tabs, journeys picks 2026-11-06, 5A to 8A). Builds on the Studio's and the hub's classes. */
+.host-rows__cover { width: 4rem; display: grid; place-items: center; }
+.host-cover { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 4px; display: block; }
+.host-live__cover .host-cover { border-radius: var(--radius-8, 8px); box-shadow: 0 6px 16px rgba(0, 0, 0, .35); }
+.host-page .hub-rows__meta { font-size: var(--font-size-14); }
+/* What needs you: the same panel, with an orange edge. */
+.host-needs { border-color: color-mix(in srgb, #d97706 55%, var(--border-default)); box-shadow: inset 4px 0 0 #d97706; }
+.host-needs__icon { color: #b45309; }
+.host-needs__line { font-size: var(--font-size-14); color: var(--text-secondary); }
+.host-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Leagues and seasons. */
+.host-seasons { display: grid; gap: var(--spacing-12); }
+.host-seasons__grid { display: grid; gap: var(--spacing-16); grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr)); }
+.host-season { display: grid; gap: var(--spacing-12); align-content: start; padding: var(--spacing-16) var(--spacing-20); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-elevated); color: var(--text-primary); text-decoration: none; }
+.host-season:hover { border-color: var(--brand-ink, #2f5bea); }
+.host-season:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: 2px; }
+.host-season__head { display: flex; align-items: center; gap: var(--spacing-12); min-width: 0; }
+.host-season__words { display: grid; min-width: 0; }
+.host-season__head b { font-size: var(--font-size-16); overflow-wrap: anywhere; }
+.host-season__head small { font-size: var(--font-size-14); color: var(--text-secondary); }
+.host-season__top { list-style: none; margin: 0; padding: 0; display: grid; counter-reset: top; }
+.host-season__top li { counter-increment: top; display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) auto; gap: var(--spacing-8); align-items: center; padding: var(--spacing-8) 0; border-top: 1px solid var(--border-default); font-size: var(--font-size-14); }
+.host-season__top li::before { content: counter(top); font-weight: 800; color: var(--text-secondary); }
+.host-season__top li:first-child::before { color: #b7791f; }
+.host-season__top span { overflow-wrap: anywhere; }
+.host-season__top b { font-variant-numeric: tabular-nums; }
+.host-season__none { font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Start something. */
+.host-start { display: grid; gap: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.host-start__grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-16); grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.host-start__card { height: 100%; display: grid; grid-template-rows: auto 1fr auto; gap: var(--spacing-12); padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--background-elevated); color: var(--text-primary); text-decoration: none; }
+.host-start__card:hover { border-color: var(--brand-ink, #2f5bea); }
+.host-start__card:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: 2px; }
+.host-start__words { display: grid; gap: var(--spacing-4); }
+.host-start__card b { font-size: var(--font-size-16); }
+.host-start__card small { font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.4; }
+/* Events: groups sit flat under a line. */
+.host-group { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.host-kinds + .host-group { border-top: 0; padding-top: 0; }
+.host-group__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.host-links { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-24); margin: 0; }
+@media (max-width: 899px) { .host-start__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 479px) { .host-start__grid { grid-template-columns: minmax(0, 1fr); } }
+/* The kind pills scroll inside their row on a phone, like the tabs. */
+.host-kinds { max-width: 100%; min-width: 0; }
+.host-kinds .empac-subnav__wrapper { overflow-x: auto; scrollbar-width: none; }
+.host-kinds .empac-subnav__container { width: max-content; min-width: 100%; }
+.host-kinds .empac-subnav__item { white-space: nowrap; }
+/* Phones: a row's button drops under its words, so the words keep the width. */
+@media (max-width: 559px) {
+  .host-page .hub-rows__row { grid-template-columns: auto minmax(0, 1fr); }
+  .host-page .hub-rows__row > a:last-child { grid-column: 2; justify-self: start; }
+}

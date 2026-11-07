@@ -10,7 +10,7 @@ export function InviteButton({
   targetId,
   targetName,
   link,
-  label = "Invite followers",
+  label = "Invite people you follow",
 }: {
   kind: "session" | "tournament";
   targetId: string;

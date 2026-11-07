@@ -9,7 +9,6 @@ import { RoadSection } from "@/components/originals/duel/road/RoadTiles";
 import { RoadStarsProvider } from "@/components/originals/duel/road/RoadTileStars";
 import { RoadPathBox } from "@/components/originals/duel/road/RoadPath";
 import { ROAD_REGIONS, roadPath } from "@/lib/originals/duel/road";
-import Link from "next/link";
 import { regionGyms, regionHeading, regionView } from "@/lib/originals/duel/roadPages";
 import { roadShown } from "@/lib/games-visibility";
 import { ReportProblem } from "@/components/ui/ReportProblem";
@@ -49,7 +48,8 @@ export default async function RegionPage({ params }: { params: Promise<{ region:
   if (!v) notFound();
   const heading = regionHeading(v.region, v.sections);
   const gyms = regionGyms(region);
-  // SEO pass 2026-11-05: "kanto gym leaders" wants the leaders in order, so they're a plain list and an ItemList.
+  // SEO pass 2026-11-05: "kanto gym leaders" wants the leaders in order: an ItemList, and each Gym Leader's tile
+  // (already in badge order) names their type and badge, so the page says it once.
   const gymList = gyms.length ? {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -58,6 +58,7 @@ export default async function RegionPage({ params }: { params: Promise<{ region:
     numberOfItems: gyms.length,
     itemListElement: gyms.map((g, i) => ({ "@type": "ListItem", position: i + 1, name: `${g.name}, ${g.type} type, ${g.badge}`, url: `https://www.gameshuffle.co${g.href}` })),
   } : null;
+  const gymBadges = new Map(gyms.map((g) => [g.href, { type: g.type, badge: g.badge }]));
   const crumbs = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -81,19 +82,9 @@ export default async function RegionPage({ params }: { params: Promise<{ region:
       />
       <Container className="road-region-page">
         <LabeledSubNav label="Regions" variant="pills" className="road-regionnav" items={ROAD_REGIONS.map((r) => ({ label: r.name, href: roadPath(r.slug), active: r.slug === region }))} />
-        {gyms.length > 0 && (
-          <section className="road-gymlist" aria-labelledby="road-gymlist-title">
-            <h2 id="road-gymlist-title" className="road-section__title">{v.region.name} Gym Leaders in badge order</h2>
-            <ol className="road-gymlist__list">
-              {gyms.map((g) => (
-                <li key={g.href}><Link href={g.href}>{g.name}</Link><span> · {g.type} type · {g.badge}</span></li>
-              ))}
-            </ol>
-          </section>
-        )}
         <RoadPathBox region={region} signUpHref={`/signup?redirect=${encodeURIComponent(roadPath(region))}`} />
         <RoadStarsProvider>
-          {v.sections.map((s) => <RoadSection key={s.tier} section={s} />)}
+          {v.sections.map((s) => <RoadSection key={s.tier} section={s} badges={s.tier === "gym" ? gymBadges : undefined} />)}
         </RoadStarsProvider>
         <DailyDuelModule from="trainer-road-region" />
         <ReportProblem about={`${v.region.name} on Trainer Road`} page={`/pokemon-trainers/${v.region.slug}`} />

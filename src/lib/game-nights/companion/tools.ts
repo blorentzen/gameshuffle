@@ -28,6 +28,8 @@ export interface CompanionTool {
   about: string;
   /** Step-by-step: how the game is played and/or how to use the tool. */
   howToPlay: string[];
+  /** Left off the public tools grid (a prototype in playtesting); its page still works by link. */
+  unlisted?: boolean;
 }
 
 export const COMPANION_TOOLS: CompanionTool[] = [
@@ -176,7 +178,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
   {
     id: "chaos-cup",
     name: "Chaos Cup",
-    description: "A Mario Kart cup where every race gets a modifier your chat can vote on.",
+    description: "A Mario Kart cup with a twist before every race: an item rule, a race setting or a handicap for the leader.",
     href: "/game-nights/tools/chaos-cup",
     icon: IconTornado,
     tagline: "A GameShuffle Original: every race gets a twist, and chat can pick it.",
@@ -193,6 +195,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
   {
     id: "shuffle-dice",
     name: "Shuffle Dice (prototype)",
+    unlisted: true,
     description: "Our push-your-luck dice game: keep Stars and Coins, bank before the third Bomb.",
     href: "/game-nights/tools/shuffle-dice",
     icon: IconDice6,

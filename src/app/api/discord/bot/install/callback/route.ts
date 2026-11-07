@@ -10,7 +10,7 @@
  *   3. Add the server to the account (discord_guilds via addGuild): a
  *      server another account has is refused, and so is a new server past
  *      the plan's limit. Reinstalling into a connected server refreshes it.
- *   4. Redirect back to Account → Integrations with a success flash.
+ *   4. Redirect back to Account ▸ Discord ▸ Servers with a success flash.
  *
  * The streamer still needs to pick a channel (and optional ping role)
  * after install — that happens via separate API calls from the
@@ -35,9 +35,15 @@ function appBaseUrl(): string {
   return getBaseUrl();
 }
 
-function failureRedirect(reason: string, comp = false): NextResponse {
-  const url = new URL(`${appBaseUrl()}/account/streaming`);
-  url.searchParams.set("tab", comp ? "discord-bot" : "discord");
+/**
+ * Where the install comes back to: Account ▸ Discord ▸ Servers. Every account has it, it holds the app switch for the
+ * Competitive app (`?app=comp`), and both apps' server lists read the success and error flash there.
+ */
+const RETURN_TAB = "discord";
+
+async function failureRedirect(reason: string, comp = false): Promise<NextResponse> {
+  const url = new URL(`${appBaseUrl()}/account/discord`);
+  url.searchParams.set("tab", RETURN_TAB);
   if (comp) url.searchParams.set("app", "comp");
   url.searchParams.set("discord_install_error", reason);
   return NextResponse.redirect(url);
@@ -143,8 +149,8 @@ export async function GET(request: Request) {
     : await addGuild(user.id, tokenPayload.guild.id, tokenPayload.guild.name);
   if (!added.ok) return failureRedirect(added.error, comp);
 
-  const success = new URL(`${appBaseUrl()}/account/streaming`);
-  success.searchParams.set("tab", comp ? "discord-bot" : "discord");
+  const success = new URL(`${appBaseUrl()}/account/discord`);
+  success.searchParams.set("tab", RETURN_TAB);
   if (comp) success.searchParams.set("app", "comp");
   success.searchParams.set("discord_installed", added.added ? "1" : "again");
   success.searchParams.set("guild", added.guild.guildId);

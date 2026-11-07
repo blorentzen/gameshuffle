@@ -56,7 +56,15 @@ export function NightForm({
   );
   const [startsAt, setStartsAt] = useState("");
   const [capacity, setCapacity] = useState(initial?.capacity != null ? String(initial.capacity) : "");
-  const [visibility, setVisibility] = useState(initial?.visibility ?? "public");
+  // A brand-new night starts Unlisted while it's in person (or the place is still to come), so a home address isn't
+  // listed by accident; an online one starts Public. Once the host picks, their pick stands. Edits and templates
+  // keep the visibility they have.
+  const [visibility, setVisibility] = useState(initial?.visibility ?? "unlisted");
+  const [visibilityPicked, setVisibilityPicked] = useState(!!initial);
+  const chooseLocType = (v: "in_person" | "online" | "tba") => {
+    setLocType(v);
+    if (!visibilityPicked) setVisibility(v === "online" ? "public" : "unlisted");
+  };
   const [genres, setGenres] = useState<string[]>(initial?.genres ?? []);
   const [level, setLevel] = useState(initial?.level ?? "");
   const [kind, setKind] = useState<NightKind>(initial?.kind ?? "board");
@@ -342,7 +350,7 @@ export function NightForm({
                 size="small"
                 clickable
                 selected={locType === o.v}
-                onClick={() => setLocType(o.v)}
+                onClick={() => chooseLocType(o.v)}
               />
             ))}
           </div>
@@ -358,6 +366,10 @@ export function NightForm({
               onPick={(p) => { setPlace(p.address); setCoords(p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : null); }}
               placeholder="Venue or address"
             />
+            <p className="bgn-field__note">
+              A public night is listed with this address for anyone to see. For a night at someone&apos;s home, keep it
+              Unlisted: only people you send the link to can see it.
+            </p>
           </div>
           )}
           <div className="bgn-field">
@@ -374,7 +386,7 @@ export function NightForm({
             <label className="account-card__label">Visibility</label>
             <Select
               value={visibility}
-              onChange={(v) => setVisibility((typeof v === "string" ? v : v[0] ?? "public") as "public" | "unlisted")}
+              onChange={(v) => { setVisibilityPicked(true); setVisibility((typeof v === "string" ? v : v[0] ?? "public") as "public" | "unlisted"); }}
               options={[
                 { value: "public", label: "Public: listed for anyone to find" },
                 { value: "unlisted", label: "Unlisted: only people with the link" },

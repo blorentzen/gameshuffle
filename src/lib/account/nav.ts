@@ -1,11 +1,13 @@
 /**
  * Account navigation model — the single source of truth for how the /account
- * settings surface is split into section PAGES (Account · Streamer · Platform
- * Admin) and which tabs live under each. Shared by the sidebar, the section
+ * settings surface is split into section PAGES (You · the interest sections ·
+ * Platform Admin) and which tabs live under each. Shared by the sidebar, the section
  * pages, and the legacy `?tab=` redirect logic. Client-safe (no server deps).
  *
  * Each section is its own route; within a section, tabs switch via `?tab=`.
  */
+
+import type { Interest } from "@/lib/interests/rules";
 
 export interface AccountNavItem {
   /** Tab id (switches via `?tab=`). Omitted for a pure link-out (`href`). */
@@ -41,28 +43,39 @@ export interface AccountNavSection {
   iconName: string;
   /** Only rendered for staff/admin. */
   staffOnly?: boolean;
+  /** "you" = the account's own pages, always listed; "interest" = listed under Your interests for these interests,
+   *  under More for everyone else (menus and account picks 2026-11-05, 3A/4A). */
+  kind: "you" | "interest" | "staff";
+  interests?: Interest[];
+  /** What's in it, in a few words (Your home's links). */
+  line?: string;
   items: AccountNavItem[];
 }
 
+/**
+ * The account area (menus and account picks 2026-11-05, https://claude.ai/artifact/FVgHcSgixdcLaGZisgsd97, 3A-5A):
+ * one sidebar grouped You, then the sections for your interests, then More. Every page that existed before is still
+ * here, regrouped: My Stuff's tabs moved to the section they belong to (/account/stuff forwards each one), Theming
+ * folded into Profile, and Discord left Streaming for a section of its own. Old `?tab=` ids are unchanged.
+ */
 export const ACCOUNT_SECTIONS: AccountNavSection[] = [
   {
-    label: "Account",
+    label: "You",
     route: "/account",
-    defaultTab: "profile",
+    defaultTab: "home",
     iconName: "user",
-    // Four views (2026-10-09 consolidation). Old tab ids (profile, theme,
-    // notifications, security, plans) open inside their new view.
+    kind: "you",
     items: [
+      { id: "home", label: "Your home", iconName: "home" },
       { id: "profile", label: "Profile", iconName: "user", tabs: [
         { id: "profile", label: "About you" },
         { id: "games", label: "Games" },
         { id: "gamertags", label: "Gamertags & socials" },
         { id: "friends", label: "Friends" },
-      ] },
-      { id: "theme", label: "Theming", iconName: "palette", tabs: [
         { id: "theme", label: "Theme" },
         { id: "profile-page", label: "Profile page" },
         { id: "walkup", label: "Walk-up song" },
+        { id: "gifs", label: "GIFs" },
       ] },
       { id: "settings", label: "Settings", iconName: "settings", tabs: [
         { id: "settings", label: "General" },
@@ -71,63 +84,80 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "privacy", label: "Privacy" },
       ] },
       { id: "plans", label: "Plans & billing", iconName: "credit-card" },
+      { id: "tickets", label: "Purchases", iconName: "receipt", tabs: [
+        { id: "tickets", label: "Tickets" },
+        { id: "orders", label: "Shop orders" },
+      ] },
       { id: "support", label: "Support GameShuffle", iconName: "heart" },
       { id: "invite", label: "Invite friends", iconName: "user-plus" },
     ],
   },
   {
-    label: "My Stuff",
-    route: "/account/stuff",
+    label: "Competitive",
+    route: "/account/competitive",
+    defaultTab: "competitive",
+    iconName: "flag",
+    kind: "interest",
+    interests: ["competitive"],
+    line: "Your times, lounge names and MMR card",
+    items: [
+      { id: "competitive", label: "Competitive Mario Kart", iconName: "flag" },
+    ],
+  },
+  {
+    label: "Pokémon",
+    route: "/account/pokemon",
+    defaultTab: "my-cards",
+    iconName: "pokeball",
+    kind: "interest",
+    interests: ["pokemon"],
+    line: "My Cards and your deck lists",
+    items: [
+      { id: "my-cards", label: "My Cards", iconName: "stack-2" },
+      { id: "tcg-decks", label: "Deck lists", iconName: "cards" },
+    ],
+  },
+  {
+    label: "Your events",
+    route: "/account/events",
     defaultTab: "tournaments",
-    iconName: "folder",
-    // My Games and Board Games moved to Account ▸ Profile ▸ Games (aliases
-    // below keep their old links working).
+    iconName: "calendar",
+    kind: "interest",
+    interests: ["home", "events"],
+    line: "Tournaments, game nights, trivia and communities",
     items: [
       { id: "tournaments", label: "Events", iconName: "calendar", tabs: [
         { id: "tournaments", label: "Tournaments" },
         { id: "game-nights", label: "Game nights" },
-      ] },
-      { id: "tickets", label: "Purchases", iconName: "receipt", tabs: [
-        { id: "tickets", label: "Tickets" },
-        { id: "orders", label: "Shop orders" },
+        { id: "trivia", label: "Trivia" },
+        // Ticket sales payouts: a tab (not its own item) so it can stay hidden until paid entry is on.
         { id: "payouts", label: "Payouts" },
       ] },
-      { id: "setups", label: "Saved configs", iconName: "bookmark" },
+      { id: "communities", label: "Communities", iconName: "users" },
+      { id: "setups", label: "Saved setups", iconName: "bookmark" },
       // Your own Chance cards, missions and house rules (moved from Streaming ▸ Game defaults).
-      { id: "decks", label: "Decks", iconName: "cards" },
-      // Your uploaded GIFs (the GIF button beside comments picks from them).
-      { id: "gifs", label: "GIFs", iconName: "photo" },
-      // Your Pokémon cards and your TCG deck lists (not the game-night Decks above).
-      { id: "my-cards", label: "My Collection", iconName: "stack-2", tabs: [
-        { id: "my-cards", label: "Cards" },
-        { id: "tcg-decks", label: "Deck lists" },
-      ] },
+      { id: "decks", label: "Game night decks", iconName: "cards" },
     ],
   },
   {
     // Stream Setup + Community & Chat, merged 2026-10-09 (mockups
     // https://claude.ai/artifact/K23oSsSY9FJvFBKfVTfX6S). /account/streamer and
-    // /account/community forward here; every old tab id is kept. Free accounts
-    // see Get started and the Discord bot (one server works on Free).
+    // /account/community forward here; every old tab id is kept. The Discord
+    // screens moved to /account/discord (2026-11-05). Free accounts see Get started.
     label: "Streaming",
     route: "/account/streaming",
     defaultTab: "integrations",
     iconName: "video",
+    kind: "interest",
+    interests: ["stream"],
+    line: "Setup, overlay, chat and live games",
     items: [
       { id: "get-started", label: "Get started", iconName: "star", freeOnly: true },
       { id: "integrations", label: "Setup", iconName: "link", proOnly: true, tabs: [
         { id: "integrations", label: "Twitch" },
-        { id: "discord", label: "Discord" },
         { id: "youtube", label: "YouTube & Kick" },
         { id: "schedule", label: "Schedule" },
         { id: "mods", label: "Mods" },
-      ] },
-      { id: "discord-bot", label: "Discord bot", iconName: "brand-discord", tabs: [
-        { id: "discord-bot", label: "Channels & posts" },
-        { id: "discord-roles", label: "Roles" },
-        { id: "discord-automod", label: "AutoMod & logs" },
-        { id: "discord-qotd", label: "Question of the Day" },
-        { id: "discord-tags", label: "Server replies" },
       ] },
       { id: "overlay-layout", label: "Overlay", iconName: "layout-dashboard", proOnly: true, tabs: [
         { id: "overlay-layout", label: "Layout" },
@@ -154,11 +184,32 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     ],
   },
   {
+    // Both Discord apps in one place (2026-11-05): GameShuffle's bot and, where it exists, the Mario Kart bot.
+    label: "Discord",
+    route: "/account/discord",
+    defaultTab: "discord",
+    iconName: "brand-discord",
+    kind: "interest",
+    interests: ["stream", "events", "competitive"],
+    line: "Your servers, channels, roles and replies",
+    items: [
+      { id: "discord", label: "Servers", iconName: "brand-discord" },
+      { id: "discord-bot", label: "Posts & roles", iconName: "message-circle", tabs: [
+        { id: "discord-bot", label: "Channels & posts" },
+        { id: "discord-roles", label: "Roles" },
+        { id: "discord-automod", label: "AutoMod & logs" },
+        { id: "discord-qotd", label: "Question of the Day" },
+        { id: "discord-tags", label: "Server replies" },
+      ] },
+    ],
+  },
+  {
     label: "Platform Admin",
     route: "/account/platform",
     defaultTab: "platform-health",
     iconName: "server",
     staffOnly: true,
+    kind: "staff",
     items: [
       // Ten views in five groups (2026-10-09). Each tab id is unchanged, so
       // links like ?tab=platform-shop-orders still open the right screen.

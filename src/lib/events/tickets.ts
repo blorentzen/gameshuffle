@@ -148,7 +148,7 @@ export async function startConnectOnboarding(userId: string, email: string | nul
   const base = getBaseUrl();
   // Stripe sends the organizer back here, so it has to be the page they left
   // (their event's manage tab), not a generic account route.
-  const safe = returnTo && /^\/[A-Za-z0-9\-._~/?=&%#]*$/.test(returnTo) ? returnTo : "/account/stuff?tab=payouts";
+  const safe = returnTo && /^\/[A-Za-z0-9\-._~/?=&%#]*$/.test(returnTo) ? returnTo : "/account/events?tab=payouts";
   const join = safe.includes("?") ? "&" : "?";
   const link = await stripe.accountLinks.create({
     account: account.stripeAccountId,

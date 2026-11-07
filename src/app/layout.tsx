@@ -47,6 +47,7 @@ import { isAppRoute } from "@/lib/theme/app-routes";
 import { isActivityPath } from "@/lib/activity/hosts";
 import { shopVisibleToVisitors } from "@/lib/store/visibility";
 import { SITE_URL } from "@/lib/seo";
+import { personaPreview } from "@/lib/preview/server";
 
 /** Cookie name for the user's manual theme preference. Read at SSR
  *  so the `<html data-theme>` attribute is correct on first paint —
@@ -128,6 +129,8 @@ export default async function RootLayout({
   const pathname = headerStore.get("x-pathname") ?? "/";
   // The nav's Shop link shows only while visitors can see the shop (cached flags).
   const shopVisible = isActivityPath(pathname) ? false : await shopVisibleToVisitors();
+  // A staff persona preview orders the phone menu by its interests (src/lib/preview; null for everyone else).
+  const previewInterests = (await personaPreview())?.interests ?? null;
 
   // The Discord Activity runs in Discord's frame: the site's light brand look
   // (like the marketing pages), and none of the site chrome, sign-in,
@@ -221,7 +224,7 @@ export default async function RootLayout({
                 <Suspense fallback={null}>
                   <WelcomeToast />
                 </Suspense>
-                <ConditionalChrome shop={shopVisible}>{children}</ConditionalChrome>
+                <ConditionalChrome shop={shopVisible} previewInterests={previewInterests}>{children}</ConditionalChrome>
               </ConfirmProvider>
             </ToastProvider>
           </AuthProvider>

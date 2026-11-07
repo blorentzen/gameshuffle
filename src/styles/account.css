@@ -1626,17 +1626,18 @@ html.dark .gs-platform-icon {
 }
 .comms-icon__badge {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  min-width: 16px;
-  height: 16px;
+  top: 0;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
   padding: 0 4px;
   border-radius: 999px;
   background: #e10600;
   color: #ffffff;
-  font-size: var(--font-size-10);
+  /* A count is a label: 12px, the floor for labels. */
+  font-size: var(--font-size-12);
   font-weight: 700;
-  line-height: 16px;
+  line-height: 18px;
   text-align: center;
 }
 
@@ -4243,11 +4244,25 @@ textarea.admin-chaos-json { font-family: var(--font-family-mono, ui-monospace, S
    The admin redesign (96bec07b) dropped these rules by accident while their
    screens still use them: Notifications, the Discord server picker, Shop
    orders and refunds, and Switches. */
-/* Account › Notifications */
+/* Settings › Notifications: one row per kind of news, On site / Email / Discord chips side by side (journeys 8A). */
+.notif-prefs { display: flex; flex-direction: column; gap: var(--spacing-24); min-width: 0; }
+.admin-screen > .notif-prefs { padding-top: var(--spacing-28); border-top: 1px solid var(--border-subtle, var(--border-default)); }
 .notif-prefs__title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); }
-.notif-prefs__sub { margin: var(--spacing-4) 0 var(--spacing-16); font-size: var(--font-size-14); color: var(--text-secondary); }
-.notif-prefs__list { display: grid; gap: var(--spacing-16); }
-.notif-prefs__list .empac-switch { min-width: 0; }
+.notif-prefs__sub { margin: calc(var(--spacing-16) * -1) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.notif-prefs__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.notif-prefs__section { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.notif-rows { list-style: none; margin: 0; padding: 0; }
+.notif-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-12) var(--spacing-24); padding: var(--spacing-12) 0; border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.notif-row:first-child { border-top: 0; }
+.notif-row__words { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; }
+.notif-row__words b { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.notif-row__words small { font-size: var(--font-size-14); line-height: 1.45; color: var(--text-secondary); }
+.notif-row__ways { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); }
+.notif-row__ways .empac-chip { min-height: 3.2rem; }
+@media (max-width: 719px) {
+  .notif-row { grid-template-columns: minmax(0, 1fr); }
+  .notif-row__ways { justify-content: flex-start; }
+}
 /* Discord Bot tab: which server the settings are for (up to 5 with GS Pro). */
 .dbot-servers { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12); margin-bottom: var(--spacing-12); }
 .dbot-servers > :first-child { flex: 1 1 26rem; min-width: 0; max-width: 42rem; }

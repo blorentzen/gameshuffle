@@ -11,11 +11,12 @@ import { Button, EmptyState, Input, Modal, Textarea } from "@empac/cascadeds";
 import { IconMessageCircle } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { TAG_CONTENT_MAX, TAG_NAME_MAX, TAG_NAME_RULE } from "@/lib/discord/tagRules";
 
 interface Tag { name: string; content: string; updated_at: string }
 
 const ERRORS: Record<string, string> = {
-  bad_name: "Names are up to 32 lowercase letters, numbers, spaces, dashes or underscores.",
+  bad_name: TAG_NAME_RULE,
   empty: "Write the reply.",
   pro_required: "Server replies are part of GS Pro.",
 };
@@ -89,8 +90,8 @@ function TagForm({ tag, onClose }: { tag: Tag | null; onClose: (changed: boolean
       </div>
     }>
       <div className="discord-tags__form">
-        <Input floatingLabel="Name members type, like rules" value={name} maxLength={32} onChange={(e) => setName(e.target.value.toLowerCase())} fullWidth />
-        <Textarea floatingLabel="What the bot posts" value={content} rows={6} maxLength={2000} onChange={(e) => setContent(e.target.value)} />
+        <Input floatingLabel="Name members type, like rules" value={name} maxLength={TAG_NAME_MAX} onChange={(e) => setName(e.target.value.toLowerCase())} fullWidth />
+        <Textarea floatingLabel="What the bot posts" value={content} rows={6} maxLength={TAG_CONTENT_MAX} onChange={(e) => setContent(e.target.value)} />
         <p className="discord-tags__hint">{content.length} of 2,000 characters. Members post it with <code>/gs-tag show name:{name.trim() || "rules"}</code>.</p>
       </div>
     </Modal>

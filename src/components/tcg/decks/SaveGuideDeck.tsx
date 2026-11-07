@@ -31,7 +31,7 @@ export function SaveGuideDeck({ slug, size = "large" }: { slug: string; size?: "
   }
   if (saved) {
     return (
-      <Link href="/account/stuff?tab=tcg-decks" className="deck-save">
+      <Link href="/account/pokemon?tab=tcg-decks" className="deck-save">
         <Button variant="secondary" size={size} iconBefore={IconCheck}>Saved: see my decks</Button>
       </Link>
     );
@@ -44,7 +44,7 @@ export function SaveGuideDeck({ slug, size = "large" }: { slug: string; size?: "
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { toast.toast({ variant: "warning", message: body.message ?? "That didn't save. Try again." }); return; }
       setSaved(body.deck.id);
-      toast.toast({ variant: "success", message: "Saved to My Collection ▸ Deck lists." });
+      toast.toast({ variant: "success", message: "Saved to Account ▸ Pokémon ▸ Deck lists." });
     } catch {
       toast.toast({ variant: "warning", message: "That didn't save. Check your connection." });
     } finally { setBusy(false); }

@@ -126,7 +126,8 @@ function tournamentToEvent(t: TRow): BrowseEvent {
     tags: [
       t.hosted_by_gs ? "Official" : null,
       t.format ? FORMAT_LABEL[t.format] ?? t.format : null,
-      t.mode?.toUpperCase() ?? null,
+      // Swiss is 1v1 and time trials are solo: no team mode tag.
+      t.format === "swiss" || t.format === "time_trial" ? null : t.mode?.toUpperCase() ?? null,
       s.requireVerified ? "Verified only" : null,
     ].filter((x): x is string => !!x),
     phase: t.status === "cancelled" ? "cancelled"

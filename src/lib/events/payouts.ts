@@ -30,13 +30,13 @@ export async function notifyPayout(stripeAccountId: string, payout: Stripe.Payou
             type: "payout_failed",
             title: `Payout of ${amount} failed`,
             message: payout.failure_message ?? "Stripe couldn't send it to your bank. Check your payout details.",
-            link: "/account/stuff?tab=payouts",
+            link: "/account/events?tab=payouts",
           }
         : {
             type: "payout_paid",
             title: `${amount} is on its way to your bank`,
             message: payout.arrival_date ? `Expected ${new Date(payout.arrival_date * 1000).toLocaleDateString()}.` : null,
-            link: "/account/stuff?tab=payouts",
+            link: "/account/events?tab=payouts",
           },
     },
   );

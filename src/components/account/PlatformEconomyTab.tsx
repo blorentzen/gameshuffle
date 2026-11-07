@@ -14,7 +14,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, Modal } from "@empac/cascadeds";
-import { IconBroadcast, IconCoins, IconConfetti, IconHandStop, IconPencil, IconRoute, IconSparkles, IconTrophy, IconUserPlus } from "@tabler/icons-react";
+import { IconBroadcast, IconCalendarEvent, IconCoins, IconConfetti, IconHandStop, IconPencil, IconRoute, IconSparkles, IconTrophy, IconUserPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminField, AdminHeader, AdminSection } from "@/components/account/admin/AdminKit";
@@ -25,7 +25,7 @@ interface ConfigRow {
   updated_at: string;
 }
 
-type LeverCategory = "onboarding" | "earns" | "dailies" | "road" | "chaos" | "streamer" | "lifecycle";
+type LeverCategory = "onboarding" | "earns" | "dailies" | "road" | "spaces" | "chaos" | "streamer" | "lifecycle";
 
 interface LeverMeta {
   key: string;
@@ -91,6 +91,18 @@ const LEVERS: LeverMeta[] = [
     helper: "Most letters a player can buy for one daily (two always stay hidden, so short names allow fewer). Up to 5." },
   { key: "daily_help_guesses", label: "Help: extra guesses a day", unit: "count", category: "dailies",
     helper: "Most extra guesses a player can buy for one daily. Up to 5." },
+  // ── Game spaces (GameShuffle pays; no streamer allowance) ────
+  { key: "space_day_tokens", label: "Check-in on the day's challenge", unit: "tokens", category: "spaces", helper: "Tokens for checking in on a space's thing of the day (Combo, Fighter or Party of the day). Once a day per space. 0 turns it off." },
+  { key: "space_streak_tokens", label: "Streak bonus", unit: "tokens", category: "spaces", helper: "Extra tokens each time a player's daily check-ins in one space reach a run of the length below (7, 14, 21...)." },
+  { key: "space_streak_every", label: "Streak length", unit: "count", category: "spaces", helper: "Days in a row for each streak bonus (at least 2)." },
+  { key: "space_week_tokens", label: "Weekly challenge finished", unit: "tokens", category: "spaces", helper: "Tokens for finishing a space's weekly (the Gauntlet, the party challenge, the run of the week). Once a week per space." },
+  { key: "space_tt_entry_tokens", label: "Time trial of the day: a time", unit: "tokens", category: "spaces", helper: "Tokens for posting a time on the day's time trial, with its screenshot. Once a day per space." },
+  { key: "space_tt_day_first_tokens", label: "Time trial of the day: 1st", unit: "tokens", category: "spaces", helper: "Paid when the day closes to the fastest verified time." },
+  { key: "space_tt_day_second_tokens", label: "Time trial of the day: 2nd", unit: "tokens", category: "spaces", helper: "Paid when the day closes to the second fastest verified time." },
+  { key: "space_tt_day_third_tokens", label: "Time trial of the day: 3rd", unit: "tokens", category: "spaces", helper: "Paid when the day closes to the third fastest verified time." },
+  { key: "space_cup_first_tokens", label: "Combo Cup: 1st", unit: "tokens", category: "spaces", helper: "Paid when the week closes to the lowest verified total across the cup's four tracks." },
+  { key: "space_cup_second_tokens", label: "Combo Cup: 2nd", unit: "tokens", category: "spaces", helper: "Paid when the week closes to the second lowest verified total." },
+  { key: "space_cup_third_tokens", label: "Combo Cup: 3rd", unit: "tokens", category: "spaces", helper: "Paid when the week closes to the third lowest verified total." },
   // ── Trainer Road (GameShuffle pays; no streamer allowance) ────
   { key: "road_badge_tokens", label: "Badge", unit: "tokens", category: "road", helper: "Tokens for each badge on a region's path (Alola's grand trials too). Paid once per badge. 0 turns it off." },
   { key: "road_league_tokens", label: "League won", unit: "tokens", category: "road", helper: "Tokens for winning a region's League back to back (Galar's Champion Cup)." },
@@ -152,6 +164,7 @@ const CATEGORIES: { id: LeverCategory; title: string; intro: string; icon: typeo
   { id: "onboarding", title: "Welcome and recovery", intro: "What viewers start with, and what keeps an empty wallet from staying empty.", icon: IconUserPlus },
   { id: "earns", title: "Earning", intro: "How viewers earn tokens by playing and chatting, and the daily limit.", icon: IconSparkles },
   { id: "dailies", title: "Daily leaderboards", intro: "What the Daily Shuffle and Daily Dex pay: tokens for every game, and prizes when a week or month ends. GameShuffle pays these, not streamers.", icon: IconTrophy },
+  { id: "spaces", title: "Game spaces", intro: "What the game spaces' challenges pay: check-ins on the thing of the day, streaks, weeklies, and the Mario Kart time trial challenges' places. GameShuffle pays these, not streamers.", icon: IconCalendarEvent },
   { id: "road", title: "Trainer Road", intro: "Tokens and XP on the road: badges, Leagues and regions pay tokens once each; wins and milestones give XP for the trainer level. GameShuffle pays these, not streamers.", icon: IconRoute },
   { id: "chaos", title: "Chaos prices", intro: "The range streamers can charge when chat spends tokens on a chaos event.", icon: IconConfetti },
   { id: "streamer", title: "Streamer payouts", intro: "Tokens streamers hand out, which come from their monthly allowance.", icon: IconCoins },

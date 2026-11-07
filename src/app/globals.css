@@ -856,11 +856,7 @@ ul {
     margin-left: 0;
     color: #fff;
   }
-  /* Hero routes: the toggle becomes the right half of the actions pill. */
-  .gs-nav-shell--hero .empac-navbar__actions {
-    border-radius: 1.2rem 0 0 1.2rem;
-    border-right: none;
-  }
+  /* The phone menu button (PhoneMenu) sits inside the actions pill now, so the pill keeps its own rounded shape. */
   .gs-nav-shell--hero .empac-navbar__mobile-toggle {
     height: 48px;
     box-sizing: border-box;
@@ -988,7 +984,8 @@ ul {
    standalone rounded pill. Scoped to <=768 so the desktop auth buttons, which
    live in actions, are untouched. */
 @media (max-width: 768px) {
-  .gs-nav-shell .empac-navbar__actions:not(:has(.navbar-comms)) {
+  /* Signed out the pill holds only the menu button (PhoneMenu); keep it. */
+  .gs-nav-shell .empac-navbar__actions:not(:has(.navbar-comms)):not(:has(.gs-phone-toggle)) {
     display: none;
   }
   /* Actions carried the margin-left:auto that pushed the cluster right; with it
@@ -2311,6 +2308,11 @@ ul {
   color: var(--bg-primary, var(--primary-600)); font: inherit; font-size: var(--font-size-14);
 }
 
+/* The post's game (game spaces step 3): a picker, or "Posting in <game>" inside a space. */
+.composer-game { margin: var(--spacing-12) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.composer-game b { color: var(--text-primary); font-weight: 600; }
+.composer-game--pick { max-width: 32rem; }
+
 /* Social composer — image modal drop zone + grid. */
 .composer-image-modal { display: flex; flex-direction: column; gap: var(--spacing-16); }
 .composer-image-modal__max { margin: 0; font-size: var(--font-size-14); color: var(--text-tertiary); text-align: center; }
@@ -3393,3 +3395,60 @@ ul.list-check > li::after {
 }
 html.dark ul.list-check > li::before { background: #15291f; }
 html.dark ul.list-check > li::after { background: #7fd9a3; }
+
+
+/* ============================================================
+   Phone menu (menus and account picks 2026-11-05, 2A): our button in the nav's actions opens a CDS Drawer with the
+   worlds folded (src/components/layout/PhoneMenu.tsx). Shown at 1024px and narrower, like the old CDS menu.
+   ============================================================ */
+.gs-phone-toggle { display: none; }
+@media (max-width: 1024px) {
+  .gs-phone-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-left: 0.2rem;
+    border: 0;
+    border-radius: var(--radius-8, 8px);
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+  }
+  .gs-phone-toggle:hover { background: rgba(255, 255, 255, 0.12); }
+  .gs-phone-toggle:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+}
+.phone-menu__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+  padding-bottom: calc(var(--spacing-24) + env(safe-area-inset-bottom, 0px));
+}
+.phone-menu__heading {
+  margin: 0 0 var(--spacing-4);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.phone-menu__links { list-style: none; margin: 0; padding: 0; display: grid; }
+.phone-menu__link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2, 0.2rem);
+  min-height: 44px;
+  justify-content: center;
+  padding: var(--spacing-8) 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+.phone-menu__link[aria-current="page"] { color: var(--brand-ink, var(--primary-600)); }
+.phone-menu__link span { font-size: var(--font-size-14); font-weight: var(--font-weight-regular); color: var(--text-secondary); }
+.phone-menu__link--upgrade { color: var(--brand-ink, var(--primary-600)); }
+.phone-menu__world { display: grid; gap: var(--spacing-16); }
+.phone-menu__extra { padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
+.phone-menu__worlds { border-top: 1px solid var(--border-subtle); }

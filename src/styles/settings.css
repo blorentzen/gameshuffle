@@ -1,0 +1,34 @@
+/* Settings (src/app/settings, journeys picks 2026-11-06, 8A): the list beside the open page; a phone shows one. */
+.settings-page { padding-block: var(--spacing-32) var(--spacing-64, 6.4rem); }
+.settings-layout { display: grid; grid-template-columns: 30rem minmax(0, 1fr); gap: var(--spacing-40, 4rem); align-items: start; }
+.settings-layout__pane { min-width: 0; }
+.settings-nav { display: grid; gap: var(--spacing-20); position: sticky; top: calc(var(--gs-nav-offset, 64px) + var(--spacing-16)); transition: var(--gs-nav-slide); }
+.settings-nav__title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-32); font-weight: 800; line-height: 1.15; color: var(--text-primary); }
+.settings-nav__search input { font-size: var(--font-size-16); }
+.settings-nav__none { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.settings-nav__group { display: grid; gap: var(--spacing-4); }
+.settings-nav__label { margin: 0 0 var(--spacing-4); padding-inline: var(--spacing-12); font-size: var(--font-size-12); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
+.settings-nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.settings-nav__item { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) var(--spacing-12); border-radius: 1.2rem; text-decoration: none; color: var(--text-primary); min-width: 0; }
+.settings-nav__item:hover { background: var(--background-secondary); }
+.settings-nav__item.is-on { background: color-mix(in srgb, var(--brand-ink, #2f5bea) 12%, transparent); box-shadow: inset 3px 0 0 var(--brand-ink, #2f5bea); }
+.settings-nav__item:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: 2px; }
+.settings-nav__text { display: grid; min-width: 0; flex: 1; }
+.settings-nav__text b { font-size: var(--font-size-14); font-weight: 700; }
+.settings-nav__text small { font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.35; }
+.settings-nav__go { flex: none; color: var(--text-secondary); }
+.settings-pane { display: grid; gap: var(--spacing-20); min-width: 0; }
+.settings-pane__back { display: none; }
+.settings-pane__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Phones: the list is /settings, an item is its own page with a way back. */
+@media (max-width: 899px) {
+  .settings-layout { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-24); }
+  .settings-nav { position: static; }
+  .settings-layout:has(.settings-pane--index) .settings-layout__pane { display: none; }
+  .settings-layout:not(:has(.settings-pane--index)) .settings-nav { display: none; }
+  .settings-pane__back { display: inline-flex; align-items: center; gap: var(--spacing-4); justify-self: start; min-height: 4rem; font-weight: 700; font-size: var(--font-size-14); color: var(--brand-ink, #2f5bea); text-decoration: none; }
+  .settings-nav__item { padding: var(--spacing-12); background: var(--background-primary, #fff); border-radius: 0; }
+  .settings-nav ul { gap: 0; border-radius: 1.6rem; overflow: hidden; box-shadow: 0 1px 2px rgba(20, 26, 58, .06), 0 6px 18px rgba(20, 26, 58, .06); }
+  .settings-nav li + li .settings-nav__item { border-top: 1px solid var(--border-subtle); }
+  .settings-nav__item.is-on { box-shadow: none; background: var(--background-primary, #fff); }
+}

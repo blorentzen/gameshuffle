@@ -128,19 +128,9 @@ const commands = [
   },
   {
     name: "gs-result",
-    description: "Post your most recent GameShuffle session result",
-    options: [
-      {
-        name: "type",
-        description: "lounge or tournament",
-        type: 3, // STRING
-        required: false,
-        choices: [
-          { name: "Lounge", value: "lounge" },
-          { name: "Tournament", value: "tournament" },
-        ],
-      },
-    ],
+    // The "type: tournament" choice was dropped 2026-11-05: the handler only reads live scoring sessions, so it always
+    // answered "No recent results found". Add it back once tournament results are wired in.
+    description: "Post your most recent live scoring result",
   },
   // ---------------------------------------------------------------
   // Cross-surface fun commands — pure handler / pool-pick. Same
@@ -351,7 +341,7 @@ const commands = [
         description: "Post a tag's content.",
         type: 1, // SUB_COMMAND
         options: [
-          { name: "name", description: "Tag name.", type: 3, required: true, max_length: 80 },
+          { name: "name", description: "Tag name.", type: 3, required: true, max_length: 32 },
         ],
       },
       {
@@ -364,7 +354,7 @@ const commands = [
         description: "Create or update a tag (managers).",
         type: 1, // SUB_COMMAND
         options: [
-          { name: "name", description: "Tag name.", type: 3, required: true, max_length: 80 },
+          { name: "name", description: "Tag name.", type: 3, required: true, max_length: 32 },
           { name: "content", description: "What the tag says.", type: 3, required: true, max_length: 1900 },
         ],
       },
@@ -373,7 +363,7 @@ const commands = [
         description: "Delete a tag (managers).",
         type: 1, // SUB_COMMAND
         options: [
-          { name: "name", description: "Tag name.", type: 3, required: true, max_length: 80 },
+          { name: "name", description: "Tag name.", type: 3, required: true, max_length: 32 },
         ],
       },
     ],

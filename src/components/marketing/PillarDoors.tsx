@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { IconBroadcast, IconDice5, IconTrophy, IconUsers } from "@tabler/icons-react";
+import { IconBroadcast, IconDice5, IconPokeball, IconTrophy, IconUsers } from "@tabler/icons-react";
 import { PILLARS, type PillarId } from "@/lib/nav/pillars";
 import { IconTile, type TileTone } from "@/components/ui/IconTile";
 
@@ -28,13 +28,14 @@ import { IconTile, type TileTone } from "@/components/ui/IconTile";
  */
 const ICON: Record<PillarId, typeof IconDice5> = {
   play: IconDice5,
+  pokemon: IconPokeball,
   compete: IconTrophy,
-  community: IconUsers,
+  host: IconUsers,
   stream: IconBroadcast,
 };
 
 /** Each door's tile color (the shared IconTile set). */
-const TONE: Record<PillarId, TileTone> = { play: "blue", compete: "orange", community: "green", stream: "magenta" };
+const TONE: Record<PillarId, TileTone> = { play: "blue", pokemon: "red", compete: "orange", host: "green", stream: "magenta" };
 
 export function PillarDoors() {
   return (

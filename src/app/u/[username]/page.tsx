@@ -1,20 +1,19 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { CameFrom } from "@/components/social/CameFrom";
 import { ownerHasPro } from "@/lib/profile/proLooks";
 import { ownerHasLooks } from "@/lib/support/looks";
 import { FOUNDING_BRAIN_ANSWERS } from "@/lib/chatbrain/rules";
-import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { OwnerBar } from "@/components/owner/OwnerBar";
 import { ProfileCustomizeEditor } from "@/components/owner/ProfileCustomizeEditor";
-import { Container, StatCard } from "@empac/cascadeds";
+import { Container } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
 import { LivePresenceDot } from "@/components/social/LivePresenceDot";
 import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
 import type { Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, socialHref, type Socials } from "@/data/socials-types";
 import { PlatformIcon } from "@/components/PlatformIcon";
-import { gameArt } from "@/data/favorite-games";
 import { GameCover } from "@/components/games/GameCover";
 import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { getGameArtwork } from "@/lib/games/artwork";
@@ -65,7 +64,16 @@ import { roadProgressView } from "@/lib/originals/duel/roadProgress";
 import { roadShown } from "@/lib/games-visibility";
 import "@/styles/road-card.css";
 import "@/styles/time-trials.css";
-import { dailiesShown } from "@/lib/originals/dailies";
+import { dailiesShown, DAILIES } from "@/lib/originals/dailies";
+import { playRecords } from "@/lib/profile/playRecords";
+import { PlayRecords } from "@/components/profile/PlayRecords";
+import { RankBlock, type RankLine } from "@/components/rank/RankBlock";
+import { profileRows } from "@/lib/mmr/profileCard";
+import { spaceFor, spaceOpen } from "@/lib/games/spaces";
+import { gsDay } from "@/lib/time/gsClock";
+import { medalSrc } from "@/lib/mmr/medals";
+import { divisionLook } from "@/lib/mmr/look";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveProfileSkin, skinBackground, skinBackgroundLayout, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
 import { resolveProfileLinks, resolveProfileSpotlight, spotlightEmbedUrl } from "@/lib/profile/links";
 import { resolveProfileStatus, resolveNowPlaying } from "@/lib/profile/status";
@@ -81,6 +89,14 @@ import { IconDeviceGamepad2, IconHeart, IconMessageCircle, IconMusic, IconPin } 
 import { SupporterBadge } from "@/components/support/SupporterBadge";
 import { getBannerGif } from "@/lib/gifs/banner";
 import { ProfileGifBanner } from "@/components/profile/ProfileGifBanner";
+import { HappeningCard } from "@/components/home/HappeningBand";
+import { joinRow } from "@/lib/profile/frontWindow";
+import { highlightCandidates, shownHighlights } from "@/lib/profile/highlights";
+import { ProfileHighlights } from "@/components/profile/ProfileHighlights";
+import { catalogGame } from "@/data/game-catalog";
+import { wideArt } from "@/lib/home/art";
+import "@/styles/happening.css";
+import "@/styles/profile-front.css";
 
 export async function generateMetadata({
   params,
@@ -151,6 +167,27 @@ function TournamentRow({ t }: { t: TournamentLite }) {
   );
 }
 
+/**
+ * The overview's tiles in the wide column (6A), on its own 12 columns: a wide tile (a list or card that wants room,
+ * or the dailies with three or more games) takes the row; the others go two to a row, taking the next one that isn't
+ * wide as a partner so rows stay even; one left over takes the row. One column stacks everything.
+ */
+const WIDE_TILES = new Set<ProfileSectionKey>(["timeTrials", "road"]);
+function wideSpans(keys: ProfileSectionKey[], oneColumn: boolean, full: Set<ProfileSectionKey>): [ProfileSectionKey, number][] {
+  const out: [ProfileSectionKey, number][] = [];
+  const wide = (k: ProfileSectionKey) => oneColumn || WIDE_TILES.has(k) || full.has(k);
+  const q = [...keys];
+  while (q.length) {
+    const k = q.shift()!;
+    if (wide(k)) { out.push([k, 12]); continue; }
+    const ni = q.findIndex((x) => !wide(x));
+    if (ni < 0) { out.push([k, 12]); continue; }
+    const [n] = q.splice(ni, 1);
+    out.push([k, 6], [n, 6]);
+  }
+  return out;
+}
+
 export default async function PublicProfilePage({
   params,
   searchParams,
@@ -199,7 +236,7 @@ export default async function PublicProfilePage({
     return (
       <main className="profile-page">
         <Container>
-          <div className="profile-shell" style={{ padding: "var(--spacing-64) 0", textAlign: "center" }}>
+          <div className="profile-shell" style={{ padding: "calc(64px + var(--spacing-64)) 0 var(--spacing-64)", textAlign: "center" }}>
             <h1 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)" }}>
               This profile is unavailable
             </h1>
@@ -286,7 +323,6 @@ export default async function PublicProfilePage({
   const statusCols = (statusRow ?? {}) as { profile_status?: string | null; profile_now_playing?: string | null };
   const profileStatus = statusCols.profile_status == null ? tagline : resolveProfileStatus(statusCols.profile_status);
   const nowPlaying = statusCols.profile_now_playing == null ? (featuredGame ? resolveNowPlaying(featuredGame) : null) : resolveNowPlaying(statusCols.profile_now_playing);
-  const nowPlayingArt = nowPlaying ? gameArt(nowPlaying) : null;
   const walkupAnthem = await getUserAnthem(profile.id as string).catch(() => null);
   const walkupTitle =
     walkupAnthem?.enabled && walkupAnthem.trackId
@@ -369,14 +405,13 @@ export default async function PublicProfilePage({
 
   const tournamentTotal = enrichment.organized.length + enrichment.joined.length;
   const stats: { num: string; label: string }[] = [];
+  const count = (n: number, one: string, many: string) => stats.push({ num: formatCompact(n), label: n === 1 ? one : many });
   // Token balance is intentionally NOT shown on the public profile — a wallet is
   // private to its owner (managed in the account), never public-facing.
-  if (enrichment.communities.length)
-    stats.push({ num: formatCompact(enrichment.communities.length), label: "Communities" });
-  if (enrichment.configCount)
-    stats.push({ num: formatCompact(enrichment.configCount), label: "Configs" });
-  if (tournamentTotal) stats.push({ num: formatCompact(tournamentTotal), label: "Tournaments" });
-  if (enrichment.triviaNights) stats.push({ num: formatCompact(enrichment.triviaNights), label: "Trivia nights" });
+  if (enrichment.communities.length) count(enrichment.communities.length, "community", "communities");
+  if (enrichment.configCount) count(enrichment.configCount, "saved setup", "saved setups");
+  if (tournamentTotal) count(tournamentTotal, "tournament", "tournaments");
+  if (enrichment.triviaNights) count(enrichment.triviaNights, "trivia night", "trivia nights");
 
   // Identity badges: Staff / GS Pro + a streamer "Watch live" link.
   const role = (profile.role as string | null) ?? null;
@@ -433,19 +468,10 @@ export default async function PublicProfilePage({
     ? new Date(profile.created_at as string).toLocaleDateString(undefined, { year: "numeric", month: "long" })
     : null;
 
-  // ── Sidebar widgets (Overview) ──────────────────────────────────────────
-  const statsWidget = (
-    <div className="profile-statgrid">
-      <FollowStats userId={profile.id as string} followers={followCounts.followers} following={followCounts.following} />
-      {stats.map((s) => (
-        <StatCard key={s.label} stat={s.num} label={s.label} />
-      ))}
-    </div>
-  );
 
   const featuredWidget = nowPlaying && (
     <div className="pcard profile-featured">
-      <h3 className="pcard__title">Featured game</h3>
+      <h2 className="pcard__title">Featured game</h2>
       <div className="profile-featured__body">
         <GameCover name={nowPlaying} className="profile-featured__art" />
         <span className="profile-featured__name">{nowPlaying}</span>
@@ -455,7 +481,7 @@ export default async function PublicProfilePage({
 
   const featuredCardWidget = featuredCard && (
     <div className="pcard profile-featured">
-      <h3 className="pcard__title">Favorite TCG card</h3>
+      <h2 className="pcard__title">Favorite TCG card</h2>
       <div className="profile-featured-card">
         <CardImage images={featuredCard.images} name={featuredCard.name} size="medium" />
         <span className="profile-featured-card__name">{featuredCard.name}</span>
@@ -465,7 +491,7 @@ export default async function PublicProfilePage({
 
   const favGamesWidget = favoriteGames.length > 0 && (
     <div className="pcard">
-      <h3 className="pcard__title">Favorite games</h3>
+      <h2 className="pcard__title">Favorite games</h2>
       <ol className="game-shelf">
         {favoriteGames.map((g) => (
           <li key={g} className="game-shelf__item" title={g}>
@@ -477,19 +503,27 @@ export default async function PublicProfilePage({
     </div>
   );
 
-  // The dailies: a streak card per game they've played (Britton's pick, 2026-10-16).
+  // The dailies: a streak card per game they've played (Britton's pick, 2026-10-16), one column each (Britton,
+  // 2026-11-05: three or four across, by what they play, with room to breathe). Four is the most: with all four
+  // dailies and the Weekly, the Weekly becomes a line under them.
   const dl = enrichment.dailies;
-  const dailiesWidget = (dl.shuffle?.stats?.played || dl.dex?.stats?.played || dl.fire?.stats?.played || dl.weekly?.weeks?.played) ? (
-    <div className="pcard">
-      <h3 className="pcard__title">Dailies</h3>
-      <DailiesCards entries={dl} shown={dailiesShown()} heading={null} />
+  const dailyPlayed = dailiesShown().filter((id) => (id === "weekly" ? !!dl.weekly?.weeks?.played : !!dl[id]?.stats?.played));
+  const dailyCols = dailyPlayed.length > 4 ? dailyPlayed.filter((id) => id !== "weekly") : dailyPlayed;
+  const weeklyAside = dailyPlayed.length > 4 && dl.weekly?.weeks
+    ? `Weekly Challenge: ${dl.weekly.weeks.played} ${dl.weekly.weeks.played === 1 ? "week" : "weeks"}${dl.weekly.weeks.topTen ? `, top 10 ${dl.weekly.weeks.topTen === 1 ? "once" : `${dl.weekly.weeks.topTen} times`}` : ""}`
+    : null;
+  const dailiesWidget = dailyPlayed.length ? (
+    <div className="pcard" id="dailies" style={{ "--cols": dailyCols.length } as React.CSSProperties}>
+      <h2 className="pcard__title">Dailies</h2>
+      <DailiesCards entries={dl} shown={dailyCols} heading={null} />
+      {weeklyAside && <p className="pf-aside"><Link href="/weekly">{weeklyAside}</Link></p>}
     </div>
   ) : null;
 
   // The MMR card's sticker, in the owner's own look (picks 2026-10-20), when they've set one up and show it.
   const mmrWidget = mmr ? (
-    <div className="pcard profile-mmr">
-      <h3 className="pcard__title">Lounge MMR</h3>
+    <div className="pcard profile-mmr" id="mmr">
+      <h2 className="pcard__title">Lounge MMR</h2>
       <div className="mmr-frame"><MmrCard view={mmr.view} look={mmr.look} /></div>
       <MedalCredit className="profile-mmr__credit" />
     </div>
@@ -499,7 +533,7 @@ export default async function PublicProfilePage({
   const ttRecords = ttBests.filter((b) => b.place === 1).length;
   const timeTrialsWidget = ttBests.length ? (
     <div className="pcard profile-tt" id="time-trials">
-      <h3 className="pcard__title"><Link href="/time-trials">Time trials</Link></h3>
+      <h2 className="pcard__title"><Link href="/time-trials">Time trials</Link></h2>
       <p className="profile-tt__sum">{ttBests.length} {ttBests.length === 1 ? "track" : "tracks"}{ttRecords ? `, ${ttRecords} ${ttRecords === 1 ? "record" : "records"}` : ""}</p>
       <ul className="profile-tt__list">
         {ttBests.slice(0, 6).map((b) => {
@@ -520,15 +554,15 @@ export default async function PublicProfilePage({
 
   // Trainer Road's trainer card (phase 2 picks, 2026-10-23), once they've earned anything on the road.
   const roadWidget = road ? (
-    <div className="pcard profile-road">
-      <h3 className="pcard__title"><Link href="/pokemon-trainers">Trainer Road</Link></h3>
+    <div className="pcard pf-bare profile-road">
+      <h2 className="pcard__title"><Link href="/pokemon-trainers">Trainer Road</Link></h2>
       <RoadTrainerCard p={road} regions={false} />
     </div>
   ) : null;
 
   const topFriendsWidget = topFriends.length > 0 && (
     <div className="pcard">
-      <h3 className="pcard__title">Top Friends</h3>
+      <h2 className="pcard__title">Top Friends</h2>
       <div className="friend-grid friend-grid--compact">
         {topFriends.map((f) => <FriendTile key={f.id} friend={f} />)}
       </div>
@@ -537,7 +571,7 @@ export default async function PublicProfilePage({
 
   const crewsWidget = userCrews.length > 0 && (
     <div className="pcard">
-      <h3 className="pcard__title">Represents</h3>
+      <h2 className="pcard__title">Represents</h2>
       <ul className="urep">
         {userCrews.map((c) => (
           <li key={`${c.communityId}-${c.game}`} className="urep__row">
@@ -552,7 +586,7 @@ export default async function PublicProfilePage({
 
   const communitiesWidget = enrichment.communities.length > 0 && (
     <div className="pcard">
-      <h3 className="pcard__title">Communities</h3>
+      <h2 className="pcard__title">Communities</h2>
       <div className="profile-socials">
         {enrichment.communities.map((c) => (
           <a key={c.slug} href={`/live/${c.slug}`} className="profile-social-link">{c.name}</a>
@@ -575,7 +609,9 @@ export default async function PublicProfilePage({
   // section layout (validated through resolveProfileLayout). Stats leads; the
   // rest flow in a grid whose column count the owner chooses.
   const widgetByKey: Record<ProfileSectionKey, React.ReactNode> = {
-    stats: statsWidget,
+    // The counts sit in the header as one line of words (no stat boxes): followers and following always, the rest
+    // while the owner shows "Stats".
+    stats: null,
     featured: featuredWidget,
     featuredCard: featuredCardWidget,
     crews: crewsWidget,
@@ -589,18 +625,34 @@ export default async function PublicProfilePage({
   };
   const vis = visibleSections(profileLayout);
   const showStats = vis.includes("stats");
-  const gridKeys = vis.filter((k) => k !== "stats");
-  const hasWidgets = gridKeys.some((k) => Boolean(widgetByKey[k]));
-  const overviewContent = (
-    <div className="profile-overview2" style={{ marginBottom: "var(--spacing-24)" }}>
-      {showStats && statsWidget}
-      {hasWidgets && (
-        <div className="profile-widgets" style={profileLayout.columns === 1 ? { gridTemplateColumns: "1fr" } : undefined}>
-          {gridKeys.map((k) => (widgetByKey[k] ? <Fragment key={k}>{widgetByKey[k]}</Fragment> : null))}
-        </div>
-      )}
-    </div>
-  );
+  // Two columns (context + rooms picks 2026-11-05, 6A): who they are in a narrow one (the games they play, friends,
+  // crews, communities, where to find them), what they do in a wide one (Highlights, playing with them, then tabs).
+  // Each column keeps the owner's own order; stats sit in the counts line under the name.
+  // Rank (Britton, 2026-11-06): their MMR card and standing sit in this column too, only when they have a card.
+  const NARROW = new Set<ProfileSectionKey>(["featured", "favGames", "topFriends", "mmr", "crews", "communities"]);
+  // The games they play are the records at the top now (step 4), not a cover grid here.
+  const narrowKeys = vis.filter((k) => NARROW.has(k) && k !== "featured" && k !== "favGames");
+  const narrowBy: Record<string, React.ReactNode> = { topFriends: topFriendsWidget, crews: crewsWidget, communities: communitiesWidget, mmr: null };
+  // The player card (game spaces picks 6A, step 4): the dailies, the MMR card, time trials and the trainer card are facts
+  // in the records now, not a tile each. The overview keeps what isn't about one game.
+  const RECORDED = new Set<ProfileSectionKey>(["dailies", "mmr", "timeTrials", "road"]);
+  const tileKeys = vis.filter((k) => k !== "stats" && !NARROW.has(k) && !RECORDED.has(k) && Boolean(widgetByKey[k]));
+  const tileSpans = wideSpans(tileKeys, profileLayout.columns === 1, new Set<ProfileSectionKey>(dailyCols.length >= 3 ? ["dailies"] : []));
+  const joinCards = await joinRow({
+    userId: profile.id as string, name: displayName, username: profile.username as string,
+    dailies: enrichment.dailies, organized: enrichment.organized, joined: enrichment.joined,
+    streamer: enrichment.isStreamer, live: enrichment.isLive, banner: bannerUrl ?? bannerGif?.still ?? null,
+  }).catch(() => []);
+
+  // Highlights (7A): rings they pin, the automatic ones until they do.
+  const dlStreaks = enrichment.dailies;
+  const highlightOptions = highlightCandidates({
+    records: ttBests.filter((b) => b.place === 1 && b.vehicle === "any").map((b) => ({ game: b.game, track: b.track, cc: b.cc })),
+    streaks: { shuffle: dlStreaks.shuffle?.stats?.streak ?? 0, dex: dlStreaks.dex?.stats?.streak ?? 0, fire: dlStreaks.fire?.stats?.streak ?? 0, duel: dlStreaks.duel?.stats?.streak ?? 0 },
+    division: mmr && vis.includes("mmr") ? { name: mmr.view.division, game: mmr.view.game } : null,
+    road: road ? { regionsCleared: road.regionsCleared, badges: road.badges, champion: road.champion, firstRegion: road.regions.find((r) => r.cleared)?.name ?? null } : null,
+  });
+  const highlights = shownHighlights(highlightOptions, profileLayout.highlights);
 
   const activityPanel = (
     <div className="profile-activity">
@@ -659,70 +711,35 @@ export default async function PublicProfilePage({
     </div>
   );
 
-  const aboutPanel = (
-    <div className="account-card">
-      {spotlightUrl && (
-        <div className="profile-spotlight">
-          <h2 className="profile-section-heading">Spotlight</h2>
-          <div className="profile-spotlight__frame">
-            <iframe
-              src={spotlightUrl}
-              title="Spotlight"
-              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
-          </div>
+  // Where to find them (narrow column): links, socials, gamertags and board game tastes.
+  const hasAbout = Boolean(hasBoardGames || socialLinks.length || hasGamertags || profileLinks.length);
+  const aboutWidget = hasAbout && (
+    <div className="pcard pf-about">
+      <h2 className="pcard__title">About</h2>
+      {profileLinks.length > 0 && (
+        <div className="profile-links">
+          {profileLinks.map((l, i) => (
+            <a key={i} href={l.url} target="_blank" rel="noopener noreferrer nofollow" className="profile-link-btn">{l.label}</a>
+          ))}
         </div>
-      )}
-      {streamSchedule && (
-        <div style={{ marginBottom: "2rem" }}>
-          <h2 className="profile-section-heading">Stream schedule</h2>
-          <StreamScheduleCard schedule={streamSchedule} />
-        </div>
-      )}
-      {overviewContent}
-      {/* Bio is NOT repeated here. It already leads the hero, above the tabs,
-          so a second copy under an "About" heading is the same sentence twice
-          on one page — and the one in the hero is the one people actually
-          read. Gamertags, board-game prefs and the rest stay: those only
-          appear here. */}
-      {hasBoardGames && (
-        <>
-          <h2 className="profile-section-heading">Board games</h2>
-          <div className="bg-profile" style={{ marginBottom: "2rem" }}>
-            {(boardGameLevel || boardGameLengths.length > 0) && (
-              <div className="bg-profile__meta">
-                {boardGameLevel && <span className="bg-badge bg-badge--level">{boardGameLevel}</span>}
-                {boardGameLengths.map((l) => <span key={l} className="bg-badge">{l}</span>)}
-              </div>
-            )}
-            {boardGameGenres.length > 0 && (
-              <div className="bg-profile__genres">
-                {boardGameGenres.map((g) => <span key={g} className="bg-tag">{g}</span>)}
-              </div>
-            )}
-          </div>
-        </>
       )}
       {socialLinks.length > 0 && (
-        <>
-          <h2 className="profile-section-heading">Find me on</h2>
-          <div className="profile-socials" style={{ marginBottom: "2rem" }}>
+        <div className="pf-about__part">
+          <h3 className="pf-about__label">Find me on</h3>
+          <div className="profile-socials">
             {socialLinks.map((p) => (
               <a key={p.key} href={socialHref(p.key, socials[p.key as keyof Socials] as string)} target="_blank" rel="noreferrer me" className="profile-social-link">
-                <PlatformIcon platform={p.key} size={16} dim={false} />
+                <PlatformIcon platform={p.key} size={16} dim={false} decorative />
                 {p.label}
               </a>
             ))}
           </div>
-        </>
+        </div>
       )}
       {hasGamertags && (
-        <>
-          <h2 className="profile-section-heading">Gamertags</h2>
-          <div className="gamertag-list" style={{ marginBottom: "2rem" }}>
+        <div className="pf-about__part">
+          <h3 className="pf-about__label">Gamertags</h3>
+          <div className="gamertag-list">
             {GAMERTAG_PLATFORMS.map((platform) => {
               const value = gamertags[platform.key as keyof Gamertags];
               if (!value) return null;
@@ -737,120 +754,225 @@ export default async function PublicProfilePage({
               );
             })}
           </div>
-        </>
+        </div>
       )}
-      <h2 className="profile-section-heading">Details</h2>
-      <div className="about-details">
-        {pronouns && <div className="about-details__row"><span>Pronouns</span><span>{pronouns}</span></div>}
-        {location && <div className="about-details__row"><span>Location</span><span>{location}</span></div>}
-        {memberSince && <div className="about-details__row"><span>Member since</span><span>{memberSince}</span></div>}
-      </div>
+      {hasBoardGames && (
+        <div className="pf-about__part">
+          <h3 className="pf-about__label">Board games</h3>
+          <div className="bg-profile">
+            {(boardGameLevel || boardGameLengths.length > 0) && (
+              <div className="bg-profile__meta">
+                {boardGameLevel && <span className="bg-badge bg-badge--level">{boardGameLevel}</span>}
+                {boardGameLengths.map((l) => <span key={l} className="bg-badge">{l}</span>)}
+              </div>
+            )}
+            {boardGameGenres.length > 0 && (
+              <div className="bg-profile__genres">
+                {boardGameGenres.map((g) => <span key={g} className="bg-tag">{g}</span>)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 
   const hasActivity = Boolean(pinnedPost) || authorPosts.length > 0 || (configs && configs.length > 0);
 
-  // Activity leads (default tab); Overview widgets are consolidated into About.
+  // The overview: their tiles in their order (two to a row, a wide one across), then a spotlight and a stream schedule.
+  const overview = (tileKeys.length > 0 || spotlightUrl || streamSchedule) ? (
+    <div className="pf-tiles">
+      {tileSpans.map(([k, span]) => (
+        <div key={k} className="pf-cell" data-span={span} style={{ "--span": span } as React.CSSProperties}>
+          {widgetByKey[k]}
+        </div>
+      ))}
+      {spotlightUrl && (
+        <div className="pf-cell" style={{ "--span": 12 } as React.CSSProperties}>
+          <div className="pcard profile-spotlight">
+            <h2 className="pcard__title">Spotlight</h2>
+            <div className="profile-spotlight__frame">
+              <iframe src={spotlightUrl} title="Spotlight" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin" />
+            </div>
+          </div>
+        </div>
+      )}
+      {streamSchedule && (
+        <div className="pf-cell" style={{ "--span": 12 } as React.CSSProperties}>
+          <div className="pcard">
+            <h2 className="pcard__title">Stream schedule</h2>
+            <StreamScheduleCard schedule={streamSchedule} />
+          </div>
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  // Tabs as the apps people know name them (6A): Overview, Posts, Events, Results; ids stay so old links still open.
   const tabs: ProfileTab[] = [];
-  if (hasActivity) tabs.push({ id: "activity", label: "Activity", content: activityPanel });
-  tabs.push({ id: "about", label: "About", content: aboutPanel });
-  if (enrichment.showcaseCards.length > 0) tabs.push({ id: "cards", label: "Cards", content: cardsPanel });
-  if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
+  if (overview) tabs.push({ id: "overview", label: "Overview", content: overview });
+  if (hasActivity) tabs.push({ id: "activity", label: "Posts", content: activityPanel });
+  if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Events", content: tournamentsPanel });
   if (seasonData && (season !== thisSeason || seasonData.points > 0 || rivals.length > 0 || seasonData.rosters.some((r) => r.won.length))) {
-    tabs.push({ id: "season", label: "Season", content: (
+    tabs.push({ id: "season", label: "Results", content: (
       <>
         <SeasonPicker value={season} months={recentSeasonKeys()} allowPast={seasonHistory} ownerUpsell={viewer?.id === profile.id} extra={{ tab: "season" }} />
         <SeasonPanel seasonKey={season} season={seasonData} rivals={rivals} />
       </>
     ) });
   }
+  if (enrichment.showcaseCards.length > 0) tabs.push({ id: "cards", label: "Cards", content: cardsPanel });
+
+  const isOwner = !!viewer && viewer.id === profile.id;
+  // The cover (8A): their banner, else the main game's art (what they're playing, then their games), else their colors;
+  // never stock. Only a picture: the person sits on the page under it.
+  const coverGame = bannerGif || bannerUrl ? null : [nowPlaying, ...favoriteGames].map((n) => (n ? catalogGame(n)?.slug : null)).find((slug) => !!wideArt(slug)) ?? null;
+  const coverArt = coverGame ? wideArt(coverGame) : null;
+  // MKCentral's medals are credited once on the page: under Plays when a record shows one, else under Highlights.
+  const medalShown = highlights.some((h) => h.medal);
+  const avatarUser = {
+    id: profile.id as string,
+    avatar_source: (profile.avatar_source as AvatarSource | null) ?? "dicebear",
+    avatar_seed: (profile.avatar_seed as string | null) ?? null,
+    avatar_options: (profile.avatar_options as Record<string, string> | null) ?? null,
+    discord_avatar: profile.discord_avatar as string | null,
+    twitch_avatar: profile.twitch_avatar as string | null,
+  };
+
+  // Plays: one record per game (step 4), from what the owner shows. A record links its game's space once it's open,
+  // or for staff before then.
+  const viewerStaff = viewer ? isStaffRole(((await createServiceClient().from("users").select("role").eq("id", viewer.id).maybeSingle()).data as { role: string | null } | null)?.role ?? null) : false;
+  const today = gsDay();
+  const bestByTrack = new Map<string, { game: string; place: number }>();
+  for (const b of ttBests) {
+    const k = `${b.game}:${b.track}`;
+    const was = bestByTrack.get(k);
+    if (!was || b.place < was.place) bestByTrack.set(k, { game: b.game, place: b.place });
+  }
+  const { records, also } = playRecords({
+    username: profile.username as string,
+    displayName,
+    nowPlaying: vis.includes("featured") ? nowPlaying : null,
+    favorites: vis.includes("favGames") ? favoriteGames : [],
+    lounge: mmr && vis.includes("mmr") ? { name: mmr.view.name, game: mmr.view.game, mmr: mmr.view.mmr, division: mmr.view.division, medal: medalSrc(divisionLook(mmr.view.division).base) } : null,
+    times: vis.includes("timeTrials") ? [...bestByTrack.values()] : [],
+    crews: vis.includes("crews") ? userCrews.map((c) => ({ name: c.communityName, slug: c.communitySlug, game: c.game })) : [],
+    road: road && vis.includes("road") ? { badges: road.badges, regionsCleared: road.regionsCleared, champion: road.champion } : null,
+    dailies: vis.includes("dailies") ? dailyPlayed.filter((id) => id !== "weekly").map((id) => ({ name: DAILIES[id].short.replace(/^Daily /, ""), href: DAILIES[id].href, streak: dl[id]?.stats?.streak ?? 0, played: dl[id]?.stats?.played ?? 0 })) : [],
+    weekly: vis.includes("dailies") ? dl.weekly?.weeks ?? null : null,
+    spaceOpen: (key) => { const sp = spaceFor(key); return !!sp && (spaceOpen(sp, today) || viewerStaff); },
+  });
+  // Rank: the MMR card in their look, then what the card doesn't say. Only when they have a card to show.
+  if (mmr && vis.includes("mmr")) {
+    const v = mmr.view;
+    const loungeSpace = spaceFor(v.game);
+    // What's under the number is the owner's choice, from the studio's "On your profile" tab (picks 4A).
+    const show = mmr.look.profile;
+    const lines: RankLine[] = profileRows(v, show, seasonData && season === thisSeason ? { label: seasonData.rank.label, points: seasonData.points, href: "?tab=season" } : null);
+    narrowBy.mmr = (
+      <RankBlock
+        id="pf-rank"
+        mmr={{ view: v, look: mmr.look, last10: show.last10 }}
+        lines={lines}
+        links={[
+          { href: `/lounge/${encodeURIComponent(v.name)}?game=${v.game}`, label: "Lounge page" },
+          ...(loungeSpace && (spaceOpen(loungeSpace, today) || viewerStaff) ? [{ href: `/games/${loungeSpace.id}?tab=lounge`, label: `${displayName} in ${loungeSpace.name}` }] : []),
+        ]}
+      />
+    );
+  }
+  const narrow = narrowKeys.filter((k) => Boolean(narrowBy[k]));
+  const recordMedal = records.some((r) => r.facts.some((f) => f.medal));
+  const hasTop = highlights.length > 0 || (isOwner && highlightOptions.length > 0) || joinCards.length > 0 || records.length > 0 || also.length > 0;
 
   return (
-    <main className={`profile-page${customBg ? " profile-page--custom-bg gs-skinned" : ""}`} style={pageStyle}>
-      {/* Same bar as /live, /c and the event surfaces, so "this page is mine,
-          here is where I change it" reads identically everywhere. It rides ON
-          the banner rather than in a strip above it: a row of its own is empty
-          page that exists only to hold the bar, and up here it sits on the
-          artwork it edits. The banner is aria-hidden, so the bar is a sibling
-          inside the band rather than a child of it. */}
-      <div className="profile-banner-band">
-        {bannerGif ? (
-          <ProfileGifBanner url={bannerGif.url} still={bannerGif.still} x={bannerGif.x} y={bannerGif.y} animate={ownerPro} />
-        ) : (
-          <div
-            className="profile-banner"
-            aria-hidden="true"
-            style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
-          />
-        )}
-        {viewer && viewer.id === profile.id && (
-          <OwnerBar
-            note="Your profile"
-            customize={<ProfileCustomizeEditor />}
-            manageHref="/account?tab=profile-page"
-            manageLabel="Edit details"
-            className="owner-bar--overlay"
-          />
-        )}
-      </div>
+    <main className={`profile-page profile-front${customBg ? " profile-page--custom-bg gs-skinned" : ""}`} style={pageStyle}>
+      {/* A visitor who signs up after this page is offered to follow this player (bring-along picks). */}
+      <CameFrom userId={profile.id as string} />
       {customCss && (
         // Sanitized (scoped/allowlisted/url-restricted) CSS only — safe to inline.
         <style dangerouslySetInnerHTML={{ __html: customCss }} />
       )}
-      <Container>
-        <div className={`profile-shell${customCss ? ` ${CUSTOM_CSS_SCOPE}` : ""}`}>
-          <header className="profile-hero">
-            <span className={`profile-hero__avatar${enrichment.supporter ? " profile-hero__avatar--supporter" : ""}`}>
-              <UserAvatar
-                user={{
-                  id: profile.id as string,
-                  avatar_source: (profile.avatar_source as AvatarSource | null) ?? "dicebear",
-                  avatar_seed: (profile.avatar_seed as string | null) ?? null,
-                  avatar_options: (profile.avatar_options as Record<string, string> | null) ?? null,
-                  discord_avatar: profile.discord_avatar as string | null,
-                  twitch_avatar: profile.twitch_avatar as string | null,
-                }}
-                size={112}
-                alt={displayName}
-              />
-              <LivePresenceDot userId={profile.id as string} fallback={enrichment.isOnline} className="profile-online-dot" />
-              {enrichment.supporter && <span className="profile-hero__heart" aria-hidden="true"><IconHeart size={14} stroke={2.5} /></span>}
-            </span>
-            <div className="profile-hero__meta">
-              <h1 className="profile-hero__name">
-                <span style={{ color: resolveNameColor(profile.equipped_name_color as string | null) ?? undefined }}>
-                  {displayName}
-                </span>
-                {profile.email_verified && <VerifiedBadge />}
-                {cosmeticBadges.map((b) => (
-                  <span key={b.id} title={b.name} role="img" aria-label={b.name} className="profile-hero__cosmetic">{b.icon ? <ArcadeBadgeIcon name={b.icon} size={20} /> : null}</span>
-                ))}
-              </h1>
-              <span className="profile-hero__handle">@{profile.username}</span>
-              {(pronouns || location) && (
-                <span className="profile-hero__sub">{[pronouns, location].filter(Boolean).join(" · ")}</span>
-              )}
-              {profileStatus && <p className="profile-hero__status"><IconMessageCircle size={15} stroke={1.9} aria-hidden /> {profileStatus}</p>}
+      {/* The custom CSS scope covers the header and the body, as it covered the old hero card and its tabs. */}
+      <div className={customCss ? CUSTOM_CSS_SCOPE : undefined}>
+        {/* Profiles, familiar but fresh (context + rooms picks 2026-11-05, 6A and 8A): a cover that's only a picture,
+            the face on its edge, the name, bio, counts and badges on the page, then two columns. */}
+        <header className={`pf-cover${bannerGif || bannerUrl ? " pf-cover--banner" : coverArt ? " pf-cover--game" : " pf-cover--colors"}`}>
+          <div className="pf-cover__art" aria-hidden="true">
+            {bannerGif ? (
+              <ProfileGifBanner url={bannerGif.url} still={bannerGif.still} x={bannerGif.x} y={bannerGif.y} animate={ownerPro} />
+            ) : bannerUrl ? (
+              <div className="profile-banner" style={{ backgroundImage: `url(${bannerUrl})` }} />
+            ) : coverArt ? (
+              // eslint-disable-next-line @next/next/no-img-element -- the game's key art (ours or our CDN)
+              <img className="pf-cover__img" src={coverArt} alt="" />
+            ) : null}
+          </div>
+          {isOwner && (
+            <OwnerBar
+              note="Your profile"
+              customize={<ProfileCustomizeEditor />}
+              manageHref="/settings/profile?tab=page"
+              manageLabel="Edit details"
+              className="owner-bar--overlay"
+            />
+          )}
+        </header>
+
+        <section className="pf-id profile-hero" aria-labelledby="pf-name">
+          <Container>
+            <div className="pf-id__inner">
+              <span className={`profile-hero__avatar pf-id__face${enrichment.supporter ? " profile-hero__avatar--supporter" : ""}`}>
+                <UserAvatar user={avatarUser} size={136} alt={displayName} />
+                <LivePresenceDot userId={profile.id as string} fallback={enrichment.isOnline} className="profile-online-dot" />
+                {enrichment.supporter && <span className="profile-hero__heart" aria-hidden="true"><IconHeart size={14} stroke={2.5} /></span>}
+              </span>
+              <div className="profile-hero__meta pf-id__who">
+                <h1 id="pf-name" className="profile-hero__name">
+                  <span style={{ color: resolveNameColor(profile.equipped_name_color as string | null) ?? undefined }}>
+                    {displayName}
+                  </span>
+                  {profile.email_verified && <VerifiedBadge />}
+                  {cosmeticBadges.map((b) => (
+                    <span key={b.id} title={b.name} role="img" aria-label={b.name} className="profile-hero__cosmetic">{b.icon ? <ArcadeBadgeIcon name={b.icon} size={20} /> : null}</span>
+                  ))}
+                </h1>
+                <span className="profile-hero__handle">{[`@${profile.username}`, pronouns, location].filter(Boolean).join(" · ")}</span>
+              </div>
+              {/* After the name in the page (read in that order); beside the face on wide screens. */}
+              <div className="profile-hero__actions pf-id__actions">
+                {/* Edit is on the owner bar above; these are for people who are NOT you. */}
+                {!isOwner && (
+                  <>
+                    <ProfileFollow
+                      targetUserId={profile.id as string}
+                      initialFollowing={followState.isFollowing}
+                      initialMutual={followState.isMutual}
+                      friendsLabel
+                    />
+                    <MessageButton targetUserId={profile.id as string} />
+                  </>
+                )}
+                <ShareProfileButton username={profile.username as string} displayName={displayName} />
+              </div>
+              {profileStatus && <p className="profile-hero__status"><IconMessageCircle size={16} stroke={1.9} aria-hidden /> {profileStatus}</p>}
+              {bio && <p className="profile-hero__bio">{bio}</p>}
               {(nowPlaying || walkupTitle) && (
                 <div className="profile-hero__nowline">
-                  {nowPlaying && (
-                    <span className="profile-nowplaying">
-                      {nowPlayingArt && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={nowPlayingArt} alt="" className="profile-nowplaying__art" />
-                      )}
-                      <span><IconDeviceGamepad2 size={15} stroke={1.9} aria-hidden /> Playing <strong>{nowPlaying}</strong></span>
-                    </span>
-                  )}
-                  {walkupTitle && <span className="profile-walkup"><IconMusic size={14} stroke={1.9} aria-hidden /> {walkupTitle}</span>}
+                  {nowPlaying && <span className="profile-nowplaying"><IconDeviceGamepad2 size={16} stroke={1.9} aria-hidden /> Playing <strong>{nowPlaying}</strong></span>}
+                  {walkupTitle && <span className="profile-walkup"><IconMusic size={16} stroke={1.9} aria-hidden /> {walkupTitle}</span>}
                 </div>
               )}
-              {bio && <p className="profile-hero__bio">{bio}</p>}
+              <p className="pf-counts">
+                <FollowStats userId={profile.id as string} followers={followCounts.followers} following={followCounts.following} line />
+                {showStats && stats.map((st) => <span key={st.label} className="pf-count pf-count--still"><b>{st.num}</b> {st.label}</span>)}
+                {memberSince && <span className="pf-count pf-count--still">Joined {memberSince}</span>}
+              </p>
               {badges.length > 0 && (
                 <div className="profile-badges">
                   {badges.map((b) =>
                     // Your own Supporter badge shares your supporter card.
-                    b.key === "supporter" && viewer?.id === profile.id ? (
+                    b.key === "supporter" && isOwner ? (
                       <SupporterBadge key={b.key} label={b.label} />
                     ) : b.href ? (
                       <a key={b.key} href={b.href} className={`profile-badge profile-badge--${b.key}`}>{b.label}</a>
@@ -860,39 +982,53 @@ export default async function PublicProfilePage({
                   )}
                 </div>
               )}
-              {profileLinks.length > 0 && (
-                <div className="profile-links">
-                  {profileLinks.map((l, i) => (
-                    <a key={i} href={l.url} target="_blank" rel="noopener noreferrer nofollow" className="profile-link-btn">{l.label}</a>
-                  ))}
+            </div>
+          </Container>
+        </section>
+
+        <Container>
+          <div className="profile-shell pf-body">
+            <div className="pf-cols">
+              {/* What they do, first in the page (so phones and keyboards reach it right after the name). */}
+              {hasTop && <div className="pf-col pf-col--top">
+                <ProfileHighlights items={highlights} options={highlightOptions} pinned={profileLayout.highlights} owner={isOwner} creditMedal={medalShown && !recordMedal} />
+                <PlayRecords records={records} also={also} creditMedal={recordMedal} />
+                {joinCards.length > 0 && (
+                  <section className="pf-join" aria-labelledby="pf-join-title">
+                    <h2 id="pf-join-title" className="pf-section-title">Play with {displayName}</h2>
+                    <ul className={`band__row band__row--${joinCards.length}`}>
+                      {joinCards.map((h, i) => <li key={h.id}><HappeningCard h={h} from="profile" k={i} /></li>)}
+                    </ul>
+                  </section>
+                )}
+              </div>}
+              {/* Who they are: the narrow column, the room's people rail's twin. */}
+              {(narrow.length > 0 || aboutWidget) && (
+                <div className="pf-col pf-col--narrow">
+                  {narrow.map((k) => <div key={k} className="pf-block">{narrowBy[k]}</div>)}
+                  {aboutWidget && <div className="pf-block">{aboutWidget}</div>}
                 </div>
               )}
+              <div className="pf-col pf-col--main">
+                {/* One section needs no tab bar: its name is its heading. */}
+                {tabs.length > 1 ? (
+                  <ProfileTabs tabs={tabs} />
+                ) : tabs.length === 1 ? (
+                  <section className="pf-one" aria-labelledby="pf-one-title">
+                    <h2 id="pf-one-title" className="pf-section-title">{tabs[0].label}</h2>
+                    {tabs[0].content}
+                  </section>
+                ) : null}
+              </div>
             </div>
-            <div className="profile-hero__actions">
-              {/* Edit moved to the owner bar above; the hero actions are for
-                  people who are NOT you. */}
-              {viewer && viewer.id === profile.id ? null : (
-                <>
-                  <ProfileFollow
-                    targetUserId={profile.id as string}
-                    initialFollowing={followState.isFollowing}
-                    initialMutual={followState.isMutual}
-                  />
-                  <MessageButton targetUserId={profile.id as string} />
-                </>
-              )}
-              <ShareProfileButton username={profile.username as string} displayName={displayName} />
+
+            <div className="profile-report">
+              <BlockProfileButton targetUserId={profile.id as string} />
+              <ReportProfileButton targetUserId={profile.id as string} />
             </div>
-          </header>
-
-          <ProfileTabs tabs={tabs} />
-
-          <div className="profile-report">
-            <BlockProfileButton targetUserId={profile.id as string} />
-            <ReportProfileButton targetUserId={profile.id as string} />
           </div>
-        </div>
-      </Container>
+        </Container>
+      </div>
     </main>
   );
 }

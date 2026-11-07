@@ -2705,3 +2705,24 @@ html.dark .home-section__eyebrow--orange { --home-eyebrow: #f0a070; }
 .lounge-art__note { font-size: var(--font-size-14); color: var(--text-secondary); }
 /* /discord: GameShuffle Competitive's button (shown once that app exists). */
 .dpage-comp__cta { display: flex; justify-content: center; }
+
+/* Merch shelf (a game space's Now tab; merch pass 2026-11-06): heading and Shop merch on one line, then a carousel of
+   pieces on soft picture tiles, ending on a Shop all merch tile like the card store's. */
+/* One column that can't grow past its box: a grid's default column takes the carousel's whole track width. */
+.merch-shelf { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-16); min-width: 0; }
+.merch-shelf__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--spacing-12) var(--spacing-24); flex-wrap: wrap; }
+.merch-shelf__words { display: grid; gap: var(--spacing-4); min-width: 0; }
+.merch-shelf__title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-20); font-weight: 800; line-height: var(--line-height-tight); }
+.merch-shelf__line { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.merch-shelf__all { font-size: var(--font-size-16); }
+.merch-shelf__item, .merch-shelf__browse { display: flex; flex-direction: column; gap: var(--spacing-4); height: 100%; color: var(--text-primary); text-decoration: none; }
+.merch-shelf__pic { display: block; aspect-ratio: 1; border-radius: var(--radius-16, 16px); background: var(--surface-default, #fff); border: 1px solid var(--border-subtle, var(--border-default)); overflow: hidden; margin-bottom: var(--spacing-8); transition: transform .2s ease, box-shadow .2s ease; }
+.merch-shelf__pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.merch-shelf__item:hover .merch-shelf__pic, .merch-shelf__item:focus-visible .merch-shelf__pic { transform: translateY(-3px); box-shadow: var(--shadow-elevated, 0 6px 20px rgba(0, 0, 0, .12)); }
+.merch-shelf__item:hover .merch-shelf__name, .merch-shelf__item:focus-visible .merch-shelf__name { text-decoration: underline; }
+.merch-shelf__name { font-size: var(--font-size-16); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); text-wrap: balance; }
+.merch-shelf__meta { font-size: var(--font-size-14); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.merch-shelf__browse { aspect-ratio: 1; align-items: center; justify-content: center; text-align: center; gap: var(--spacing-8); padding: var(--spacing-16); border: 2px dashed var(--brand-ink, var(--border-default)); border-radius: var(--radius-16, 16px); background: var(--background-secondary); color: var(--brand-ink, var(--text-primary)); height: auto; }
+.merch-shelf__browse .merch-shelf__name { color: var(--text-primary); }
+.merch-shelf__browse:hover, .merch-shelf__browse:focus-visible { border-style: solid; }
+@media (prefers-reduced-motion: reduce) { .merch-shelf__pic { transition: none; } .merch-shelf__item:hover .merch-shelf__pic { transform: none; } }

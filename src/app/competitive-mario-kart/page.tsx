@@ -54,7 +54,7 @@ const FAQ = [
   { q: "Where do the lounge numbers come from?", a: "From MKCentral's lounge, the community's ranked ladder for Mario Kart 8 Deluxe and Mario Kart World. GameShuffle reads the public numbers; your MMR moves there, not here." },
   { q: "Do time trial times need proof?", a: "Yes: a screenshot of the result for every new time. We read the track and time from it for you to check." },
   { q: "Which times need a clip?", a: "Only times in a board's top ten. A reviewer checks a clip of the run's last 30 seconds, and the time shows as Verified. Until then it shows as Unverified." },
-  { q: "Can I bring my times over from Quaxly?", a: "Yes. Run /dx display time in Discord, then copy the reply or press Save to GameShuffle on it. You check every row before anything saves. Connect Discord first so the times land on your account." },
+  { q: "Can I bring my times over from Quaxly?", a: "Yes. Run /dx display_time in Discord, then copy the reply or press Save to GameShuffle on it. You check every row before anything saves. Connect Discord first so the times land on your account." },
   { q: "Is it free?", a: "Lounge stats, time trials, the MMR card and live scoring are free with a free account. GS Pro adds things for streamers, like the room odds on your overlay and more MMR card looks." },
 ];
 
@@ -276,7 +276,7 @@ export default async function CompetitiveMarioKartPage() {
             {actor && !actor.discordLinked && <TtConnectDiscord returnTo={PATH} compact text="Connect Discord first so your Quaxly times land on this account." />}
           </div>
           <ol className="cmk-steps">
-            <li><span className="cmk-steps__n">1</span><span><b>Show your times in Discord</b>Run <code>/dx display time</code> in any server with Quaxly.</span></li>
+            <li><span className="cmk-steps__n">1</span><span><b>Show your times in Discord</b>Run <code>/dx display_time</code> in any server with Quaxly.</span></li>
             <li><span className="cmk-steps__n">2</span><span><b>Copy the reply, or press Save to GameShuffle</b>The button is on Quaxly&apos;s reply once GameShuffle Competitive is in the server or on your account.</span></li>
             <li><span className="cmk-steps__n">3</span><span><b>Check and save</b>We match every track and show what&apos;s new before anything saves.</span></li>
           </ol>

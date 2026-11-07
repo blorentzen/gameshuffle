@@ -1,0 +1,157 @@
+/* "What's happening on GameShuffle" (src/components/home/HappeningBand.tsx). */
+
+.band { position: relative; display: grid; gap: var(--spacing-16); min-width: 0; }
+.band__title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-fluid-h2, 3rem); font-weight: 800; }
+
+/* The worlds as pills (CDS Tabs, pills), with room on the right for the pause button. */
+.band__tabs.empac-tabs { gap: 0; }
+.band__tabs .empac-tabs__header { display: flex; flex-wrap: wrap; gap: var(--spacing-8); border: 0; padding: 0 5.2rem 0 0; overflow: visible; }
+.band__tabs .empac-tabs__tab {
+  display: inline-flex; align-items: center; gap: var(--spacing-8); min-height: 40px; padding: var(--spacing-8) var(--spacing-16);
+  border-radius: 999px; font-size: var(--font-size-15, 1.5rem); font-weight: 600; white-space: nowrap;
+}
+.band__tabs .empac-tabs__tab-icon { display: inline-flex; }
+.band__tabs .empac-tabs__tab-badge { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #fde68a; color: #5b3a00; }
+.band__tabs .empac-tabs__content { padding-top: var(--spacing-20); }
+.band__pause { position: absolute; top: 0; right: 0; z-index: 2; }
+.band__tabs .empac-tabs__header { position: relative; z-index: 1; }
+.band__pill { position: absolute; top: 0; left: 0; z-index: 0; border-radius: 999px; pointer-events: none; transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), width 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.band--dark .band__pill { background: #fff; }
+.band--light .band__pill { background: var(--brand-ink, var(--primary-600)); }
+
+.band--dark .band__tabs .empac-tabs__tab { border: 1px solid rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.08); color: #fff; }
+.band--dark .band__tabs .empac-tabs__tab:hover:not(.empac-tabs__tab--active) { background: rgba(255, 255, 255, 0.18); color: #fff; }
+/* The active tab's white is the pill behind it (.band__pill), which glides from tab to tab. */
+.band--dark .band__tabs .empac-tabs__tab--active,
+.band--dark .band__tabs .empac-tabs__tab--active:hover { background: transparent; border-color: transparent; color: #161a2e; }
+.band--dark .band__tabs .empac-tabs__tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.band--dark .band__pause.empac-icon-button { color: #fff; background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.28); }
+.band--dark .band__pause.empac-icon-button:hover { background: rgba(255, 255, 255, 0.2); }
+
+.band--light .band__tabs .empac-tabs__tab { border: 1px solid var(--border-default); background: var(--background-primary, #fff); color: var(--text-primary); }
+.band--light .band__tabs .empac-tabs__tab--active,
+.band--light .band__tabs .empac-tabs__tab--active:hover { background: transparent; border-color: transparent; color: #fff; }
+
+/* A world's things: three across (the first wider), two, or one. */
+.band__slide { display: grid; gap: var(--spacing-16); }
+.band__row { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-16); }
+.band__row--3 { grid-template-columns: 1.35fr 1fr 1fr; }
+.band__row--2 { grid-template-columns: 1fr 1fr; }
+.band__row--1 { grid-template-columns: minmax(0, 52rem); }
+.band__row > li { min-width: 0; display: flex; }
+@media (max-width: 760px) {
+  .band__row { grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: 84%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+  .band__row > li { scroll-snap-align: start; }
+  .band__tabs .empac-tabs__header { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+}
+.band__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-16); font-size: var(--font-size-15, 1.5rem); }
+.band__all { margin-left: auto; font-weight: 600; text-underline-offset: 3px; }
+.band--dark .band__foot { color: rgba(255, 255, 255, 0.86); }
+.band--dark .band__all { color: #fff; text-decoration: underline; }
+.band--dark .band__chip.empac-button--secondary { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.4); }
+.band--dark .band__chip.empac-button--ghost { color: #fff; }
+.band--light .band__foot { color: var(--text-secondary); }
+
+/* One thing happening: its picture fills the card, words at the foot. */
+.hap {
+  position: relative; isolation: isolate; overflow: hidden; flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
+  min-height: 21rem; border-radius: 1.6rem; color: #fff; text-decoration: none; background: #12162e;
+  box-shadow: 0 10px 26px rgba(10, 12, 30, 0.22);
+}
+.hap::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10, 12, 30, 0) 28%, rgba(10, 12, 30, 0.78) 64%, rgba(10, 12, 30, 0.95) 100%); }
+.hap:hover { color: #fff; }
+.hap:hover .hap__title { text-decoration: underline; }
+.hap:focus-visible { outline: 3px solid var(--brand-ink, #2766ec); outline-offset: 3px; }
+.hap:hover .hap__title, .hap:focus-visible .hap__title { text-decoration: underline; }
+.band--dark .hap:focus-visible { outline-color: #fff; }
+.hap__img { position: absolute !important; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+.hap__img--light { background: #fff; }
+/* A one-tap start is a button that looks like the links. */
+button.hap { width: 100%; margin: 0; padding: 0; border: 0; font: inherit; text-align: left; cursor: pointer; }
+/* A Pokémon card's art window filling the card: TypeCard's crop (the art window on a normal card, the band between
+   name bar and attack text on a full-art one), worked out in container units so it fits any card size. */
+.hap__card { display: block; overflow: hidden; container-type: size; background: #12162e; }
+.hap__card img {
+  --ax: 0.11; --ay: 0.13; --aw: 0.78; --ah: 0.305; --aspect: 0.716;
+  --iw: max(calc(100cqw / var(--aw)), calc(100cqh * var(--aspect) / var(--ah)));
+  position: absolute; max-width: none; width: var(--iw); height: auto;
+  left: calc((100cqw - var(--aw) * var(--iw)) / 2 - var(--ax) * var(--iw));
+  top: calc((100cqh - var(--ah) * var(--iw) / var(--aspect)) / 2 - var(--ay) * var(--iw) / var(--aspect));
+  transition: transform 0.4s ease;
+}
+/* Full art: the picture between the rule text under the name (Tera and ex cards print one there) and the ability. */
+.hap__card--full img { --ax: 0; --ay: 0.19; --aw: 1; --ah: 0.34; }
+.hap:hover .hap__card img { transform: scale(1.03); }
+.hap__credit { font-size: var(--font-size-14); color: rgba(255, 255, 255, 0.78); }
+.hap:hover img.hap__img { transform: scale(1.03); }
+.hap__glyph { position: absolute; top: var(--spacing-16); left: var(--spacing-16); display: grid; place-items: center; width: 4.4rem; height: 4.4rem; border-radius: 1.2rem; background: rgba(255, 255, 255, 0.18); color: #fff; }
+/* Which slot a card fills when it isn't something happening: New, For you, Start (6A, 7A). */
+.hap__slot { position: absolute !important; top: var(--spacing-12); right: var(--spacing-12); padding: 3px var(--spacing-8); border-radius: 6px; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.hap__slot--new { background: #fde68a; color: #5b3a00; }
+.hap__slot--do { background: #dbe4ff; color: #1e3a8a; }
+.hap__slot--start { background: #fce7f3; color: #831843; }
+.hap--tone::after { background: linear-gradient(180deg, rgba(10, 12, 30, 0) 40%, rgba(10, 12, 30, 0.35) 100%); }
+.hap--shuffle { background: linear-gradient(140deg, #6d28d9, #4c1d95); }
+.hap--dex { background: linear-gradient(140deg, #c2410c, #7c2d12); }
+.hap--fire { background: linear-gradient(140deg, #b91c1c, #7f1d1d); }
+.hap--duel { background: linear-gradient(140deg, #1e2a5a, #0f1430); box-shadow: inset 0 0 0 1px #b8892b, 0 10px 26px rgba(10, 12, 30, 0.22); }
+.hap--teal { background: linear-gradient(140deg, #0f766e, #134e4a); }
+.hap--magenta { background: linear-gradient(140deg, #be185d, #831843); }
+.hap__txt { display: grid; gap: var(--spacing-4); padding: var(--spacing-16) var(--spacing-20) var(--spacing-20); }
+.hap__kick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #fde68a; }
+.hap__live { position: relative; padding: 2px var(--spacing-6, 0.6rem) 2px 1.8rem; border-radius: 5px; background: #dc2626; color: #fff; letter-spacing: 0.06em; }
+/* The one thing that keeps moving: a breathing dot on live things only (5A). */
+.hap__live::before { content: ""; position: absolute; left: 0.6rem; top: 50%; width: 0.7rem; height: 0.7rem; margin-top: -0.35rem; border-radius: 50%; background: #fff; animation: live-breathe 1.8s ease-in-out infinite; }
+@keyframes live-breathe { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
+.hap__title { font-family: var(--font-display); font-size: var(--font-size-20); font-weight: 800; line-height: 1.2; }
+.hap__line { font-size: var(--font-size-15, 1.5rem); color: rgba(255, 255, 255, 0.92); }
+
+/* A new world's cards are dealt in, one after another (2A); the first paint doesn't deal. */
+@media (prefers-reduced-motion: no-preference) {
+  .band__row--deal .hap { animation: band-deal 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--k, 0) * 70ms); }
+}
+@keyframes band-deal { from { opacity: 0; transform: translateY(2.2rem) rotate(-2.5deg) scale(0.95); } }
+
+/* "More of this" took: said in the band's foot (4A). */
+.band__took { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-weight: 600; }
+.band__undo { padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 24px; }
+
+/* A band card's picture carried into the event page it opens (3A). */
+::view-transition-group(.event-art) { animation-duration: 0.42s; animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* The 6 seconds before the next world. */
+.band__timer { position: absolute; left: 0; bottom: -10px; height: 3px; width: 0; border-radius: 3px; background: currentColor; opacity: 0.5; animation: band-step var(--step, 6s) linear forwards; }
+.band--dark .band__timer { color: #fff; }
+.band--light .band__timer { color: var(--brand-ink, #2766ec); }
+@keyframes band-step { to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) {
+  .band__timer { display: none; } .hap__img, .band__pill { transition: none; } .hap__live::before { animation: none; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+@media (forced-colors: active) { .hap { border: 1px solid CanvasText; } }
+
+/* The sign-up step's preview of the worlds picked. */
+.band-preview { display: grid; gap: var(--spacing-12); padding: var(--spacing-20); border-radius: 1.6rem; color: #fff; background: radial-gradient(120% 120% at 12% 0%, #2a3a8f 0%, #141a3a 55%, #0d1129 100%); }
+.band-preview p { margin: 0; color: rgba(255, 255, 255, 0.88); font-size: var(--font-size-15, 1.5rem); }
+.band-preview .band__row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.band-preview .hap { min-height: 16rem; }
+.band-preview .hap__title { font-size: var(--font-size-17, 1.7rem); }
+
+/* Small art beside the words, on the card's own color (context picks 2A): a course picture (cover) or a racer and
+   kart (contain), never stretched across the card. Its left edge lines up with the words under it. */
+.hap--inset::after { background: linear-gradient(180deg, rgba(10, 12, 30, 0) 40%, rgba(10, 12, 30, 0.35) 100%); }
+.hap__inset {
+  display: grid; grid-auto-flow: column; gap: var(--spacing-4); align-items: end; justify-self: start;
+  margin: var(--spacing-20) auto auto var(--spacing-20); padding: var(--spacing-8); border-radius: 1.2rem; background: rgba(255, 255, 255, 0.14);
+}
+.hap__inset img { display: block; border-radius: 0.8rem; transition: transform 0.4s ease; }
+/* A course picture is the game's own tile (its name printed on it): shown whole at its own size, never cropped. */
+.hap__inset--cover { padding: 0; background: none; }
+.hap__inset--cover img { width: 16rem; max-width: 100%; height: auto; border-radius: 0.8rem; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28); }
+.hap__inset--contain img { width: 8rem; height: 8rem; object-fit: contain; }
+.hap:hover .hap__inset img { transform: scale(1.03); }
+
+/* Friends' faces over a night's picture (context picks 1A). */
+.hap__faces { position: absolute !important; top: var(--spacing-20); left: var(--spacing-20); display: flex; }
+.hap__faces .empac-avatar { box-shadow: 0 0 0 2px #fff; }
+.hap__faces .empac-avatar + .empac-avatar { margin-left: -1rem; }

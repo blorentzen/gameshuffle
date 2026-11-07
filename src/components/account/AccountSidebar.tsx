@@ -2,34 +2,32 @@
 
 /**
  * AccountSidebar — sticky left-rail nav shared across the /account section
- * PAGES (Account · Streamer · Platform Admin). Lives in `src/app/account/
- * layout.tsx` so it persists across section navigations.
+ * pages. Lives in `src/app/account/layout.tsx` so it persists across section
+ * navigations.
  *
- * Only the CURRENT section is expanded (its tabs listed); the other sections
- * collapse to single link-outs that jump to that section (landing on its
- * default tab). So Account shows the account tabs + "Streamer"/"Platform
- * Admin" link-outs; Streamer shows the streamer tabs + "Account"/"Platform
- * Admin" link-outs; etc.
+ * Grouped You, your interests, More (menus and account picks 2026-11-05,
+ * https://claude.ai/artifact/FVgHcSgixdcLaGZisgsd97, 3A):
+ *   - You: the account's own pages (Your home, Profile, Settings, Plans, Purchases…), always listed.
+ *   - The section you're on, its views listed (when it isn't You).
+ *   - Your interests: the other sections for the account's interests, one link each.
+ *   - More: every other section, one link each, so nothing is out of reach.
+ *   - Platform Admin (staff only): its grouped views while you're on it, else one link.
  *
- * Each item navigates to its section's route + `?tab=` (see
- * `src/lib/account/nav.ts`). The active item is derived from the current
- * pathname + `?tab` — no local "active tab" state. The Platform Admin section
- * only renders for staff/admin (driven by the `role` the server layout
- * resolves; never expose admin surfaces to non-staff sessions).
+ * Each item navigates to its section's route + `?tab=` (see `src/lib/account/nav.ts`). The active item comes from the
+ * pathname + `?tab`. The Platform Admin section only renders for staff/admin (the `role` the server layout resolves).
  *
- * Adding a tab: add it to the right section in `src/lib/account/nav.ts`, then
- * add its `?tab=` render block in that section's page.
+ * Adding a tab: add it to the right section in `src/lib/account/nav.ts`, then add its screen to that section's page.
  *
- * Sticky / responsive (off-canvas drawer) styling lives in `.account-sidebar`
- * / `.account-layout` in account.css.
+ * Sticky / responsive (off-canvas drawer) styling lives in `.account-sidebar` / `.account-layout` in account.css.
  */
 
 import { useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Icon, Menu } from "@empac/cascadeds";
-import { IconCards } from "@tabler/icons-react";
+import { IconCards, IconPokeball } from "@tabler/icons-react";
 import { isStaffRole } from "@/lib/subscription";
 import { ACCOUNT_SECTIONS, ACCOUNT_TAB_ALIAS, itemTabIds } from "@/lib/account/nav";
+import type { Interest } from "@/lib/interests/rules";
 
 // CDS has no Discord glyph, so brand-discord renders the logo inline with
 // fill:currentColor, matching the other Tabler icons + adapting to theme.
@@ -46,15 +44,16 @@ function TabIcon({ name }: { name: string }) {
   }
   // Not in the CDS icon set yet (raise upstream): Tabler's, same size and stroke.
   if (name === "cards") return <IconCards size={20} stroke={2} aria-hidden="true" />;
+  if (name === "pokeball") return <IconPokeball size={20} stroke={2} aria-hidden="true" />;
   return <Icon name={name} size="20" />;
 }
 
 /** Pages below a section's route that belong to one of its tabs (lit in the sidebar while you're on them). */
 const NESTED_TABS: { prefix: string; tab: string }[] = [
-  { prefix: "/account/streaming/logos/", tab: "discord-bot" },
+  { prefix: "/account/discord/logos/", tab: "discord" },
 ];
 
-export function AccountSidebar({ role, isPro = false }: { role: string | null; isPro?: boolean }) {
+export function AccountSidebar({ role, isPro = false, interests = [] }: { role: string | null; isPro?: boolean; interests?: Interest[] }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -64,7 +63,8 @@ export function AccountSidebar({ role, isPro = false }: { role: string | null; i
   const sections = ACCOUNT_SECTIONS.filter(
     (s) => !s.staffOnly || isStaffRole(role),
   ).map((s) => ({ ...s, items: s.items.filter((i) => (isPro ? !i.freeOnly : !i.proOnly)) }));
-  const landingTab = (s: (typeof sections)[number]) =>
+  type Section = (typeof sections)[number];
+  const landingTab = (s: Section) =>
     s.items.some((i) => itemTabIds(i).includes(s.defaultTab)) ? s.defaultTab : (s.items[0]?.id ?? s.defaultTab);
 
   // Which section are we on (by route), and which tab is active within it.
@@ -77,7 +77,7 @@ export function AccountSidebar({ role, isPro = false }: { role: string | null; i
   const rawTab = searchParams.get("tab") ?? nested?.tab ?? current.defaultTab;
   const activeTab = ACCOUNT_TAB_ALIAS[rawTab] ?? rawTab;
 
-  // A view (Platform Admin) is active for any of its tabs.
+  // A view is active for any of its tabs.
   const activeItem = current.items.find((i) => itemTabIds(i).includes(activeTab))
     ?? current.items.find((i) => itemTabIds(i).includes(landingTab(current)));
   const activeSub = activeItem?.tabs?.find((t) => t.id === activeTab);
@@ -90,39 +90,43 @@ export function AccountSidebar({ role, isPro = false }: { role: string | null; i
     setOpen(false); // close the drawer after navigating (mobile)
   };
 
-  // The current section, fully expanded (its tabs). Items with an `href` are
-  // link-outs (e.g. My Cards → the TCG Hub) rather than in-section tabs.
-  // Items with a `group` (Platform Admin) render as one labelled Menu section
-  // per group, in the order the groups first appear.
-  const toMenuItem = (item: (typeof current.items)[number]) => ({
+  // A section's views as menu items. Items with an `href` are link-outs rather than in-section tabs.
+  const viewsOf = (section: Section) => section.items.map((item) => ({
     label: item.label,
     icon: <TabIcon name={item.iconName} />,
-    active: item === activeItem,
-    onClick: () =>
-      go(item.href ?? `${current.route}?tab=${item.id}`),
+    active: section === current && item === activeItem,
+    onClick: () => go(item.href ?? `${section.route}?tab=${item.id}`),
+  }));
+  // A whole section as one link (its landing view); lit when it's the one-view section you're on.
+  const linkTo = (section: Section) => ({
+    label: section.label,
+    icon: <TabIcon name={section.iconName} />,
+    active: section === current,
+    onClick: () => go(`${section.route}?tab=${landingTab(section)}`),
   });
-  const groups = [...new Set(current.items.map((i) => i.group).filter((g): g is string => !!g))];
-  const currentSections = groups.length
-    ? groups.map((g) => ({ label: g, items: current.items.filter((i) => i.group === g).map(toMenuItem) }))
-    : [{ label: current.label, items: current.items.map(toMenuItem) }];
 
-  // The other sections, collapsed to single link-outs (jump to their default
-  // tab). Skipped entirely if there are none (e.g. a non-staff session with
-  // only Account + Streamer, sitting on one of them).
-  const otherSections = sections.filter((s) => s.route !== current.route);
-  const switcherSection = {
-    label: "Switch section",
-    items: otherSections.map((section) => ({
-      label: section.label,
-      icon: <TabIcon name={section.iconName} />,
-      active: false,
-      onClick: () => go(`${section.route}?tab=${landingTab(section)}`),
-    })),
-  };
+  const you = sections.find((s) => s.kind === "you");
+  const staff = sections.find((s) => s.kind === "staff");
+  const interestSections = sections.filter((s) => s.kind === "interest");
+  const mine = interestSections.filter((s) => s.interests?.some((i) => interests.includes(i)));
+  const others = interestSections.filter((s) => !mine.includes(s));
 
-  const menuSections = otherSections.length
-    ? [...currentSections, switcherSection]
-    : currentSections;
+  const menuSections: { label: string; items: ReturnType<typeof linkTo>[] }[] = [];
+  if (you) menuSections.push({ label: you.label, items: viewsOf(you) });
+  // The section you're on lists its views, when it has more than one (a one-view section just lights up below).
+  const expanded = current.kind === "interest" && current.items.length > 1;
+  if (expanded) menuSections.push({ label: current.label, items: viewsOf(current) });
+  if (current.kind === "staff") {
+    // Platform Admin: one labelled group per `group`, in the order they first appear.
+    const groups = [...new Set(current.items.map((i) => i.group).filter((g): g is string => !!g))];
+    const views = viewsOf(current);
+    for (const g of groups) menuSections.push({ label: g, items: views.filter((_, i) => current.items[i].group === g) });
+  }
+  const mineRest = mine.filter((s) => !(expanded && s === current));
+  if (mineRest.length) menuSections.push({ label: "Your interests", items: mineRest.map(linkTo) });
+  const othersRest = others.filter((s) => !(expanded && s === current));
+  if (othersRest.length) menuSections.push({ label: "More", items: othersRest.map(linkTo) });
+  if (staff && current !== staff) menuSections.push({ label: "Staff", items: [linkTo(staff)] });
 
   return (
     <>

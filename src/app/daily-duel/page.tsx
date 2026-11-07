@@ -9,7 +9,6 @@ import { RoadModule } from "@/components/originals/duel/road/RoadModule";
 import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
-import { NewHereLine } from "@/components/welcome/NewHereLine";
 import { DUEL_PUBLIC, ROAD_PUBLIC, roadShown } from "@/lib/games-visibility";
 import { ReportProblem } from "@/components/ui/ReportProblem";
 import "@/styles/daily-duel.css";
@@ -72,7 +71,6 @@ export default function DailyDuelPage() {
           <DailiesBar current="duel" />
           <DailyDuel />
         </DailiesProvider>
-        <NewHereLine from="daily-duel" />
         {roadShown() && <RoadModule />}
         <section className="duel-flat duel-about" aria-labelledby="duel-faq-title">
           <h2 id="duel-faq-title" className="duel-flat__title">About the Daily Duel</h2>

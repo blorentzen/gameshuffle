@@ -142,7 +142,7 @@ export function SetupsTab() {
   };
 
   if (loading) {
-    return <AdminScreen title="Saved configs"><LoadingLines label="Loading your saved configs" /></AdminScreen>;
+    return <AdminScreen title="Saved setups"><LoadingLines label="Loading your saved setups" /></AdminScreen>;
   }
 
   // Track lists, player presets and rulesets aren't listed: nothing on the
@@ -159,7 +159,7 @@ export function SetupsTab() {
 
   return (
     <AdminScreen
-      title="Saved configs"
+      title="Saved setups"
       intro="Builds, item sets, game night setups and rules you saved from the randomizers, plus TCG Companion games you can pick back up."
     >
       {configs.length === 0 ? (

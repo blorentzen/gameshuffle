@@ -49,7 +49,7 @@ export function DeckListPicker({ format, value, onChange, legend = "Pick your de
     <fieldset className="deckpick">
       <legend className="deckpick__legend">{legend}</legend>
       {decks.length === 0 ? (
-        <EmptyState icon={<IconCards size={28} stroke={1.6} />} title="No saved deck lists yet" description="Paste one from Pokémon TCG Live or Limitless. It saves to My Stuff ▸ Deck lists too." />
+        <EmptyState icon={<IconCards size={28} stroke={1.6} />} title="No saved deck lists yet" description="Paste one from Pokémon TCG Live or Limitless. It saves to Account ▸ Pokémon ▸ Deck lists too." />
       ) : (
         <div className="deckpick__list">
           {decks.map((d) => (

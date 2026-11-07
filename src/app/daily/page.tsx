@@ -4,7 +4,6 @@ import { BrowseHero } from "@/components/events/BrowseHero";
 import { DailiesBar, DailiesProvider } from "@/components/originals/Dailies";
 import { DiscordPlug } from "@/components/discord/DiscordPlug";
 import { DailyShuffle } from "@/components/originals/DailyShuffle";
-import { NewHereLine } from "@/components/welcome/NewHereLine";
 
 export const metadata: Metadata = {
   openGraph: { siteName: "GameShuffle", type: "website", url: "https://www.gameshuffle.co/daily" },
@@ -31,7 +30,6 @@ export default function DailyPage() {
           <DailiesBar current="shuffle" />
           <DailyShuffle />
         </DailiesProvider>
-        <NewHereLine from="daily-shuffle" />
         <DiscordPlug from="daily" />
       </Container>
     </main>

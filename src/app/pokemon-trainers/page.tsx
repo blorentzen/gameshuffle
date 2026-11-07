@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
@@ -7,11 +6,9 @@ import { DailyDuelModule } from "@/components/originals/duel/DuelChallenger";
 import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
-import { TrainerArt } from "@/components/originals/duel/TrainerArt";
 import { RoadHubPath } from "@/components/originals/duel/road/RoadPath";
 import { RoadStarsProvider } from "@/components/originals/duel/road/RoadTileStars";
-import { ROAD_REGIONS, roadPath } from "@/lib/originals/duel/road";
-import { regionView } from "@/lib/originals/duel/roadPages";
+import { RoadRegions } from "@/components/originals/duel/road/RoadRegions";
 import { roadShown } from "@/lib/games-visibility";
 import { ReportProblem } from "@/components/ui/ReportProblem";
 import { shareMeta } from "@/lib/og/meta";
@@ -47,11 +44,8 @@ const FAQ = [
 ];
 
 /** "Gym Leaders, Elite Four and Champions". */
-const listOf = (parts: string[]) => (parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : parts[0] ?? "");
-
 export default function TrainerRoadPage() {
   if (!roadShown()) notFound();
-  const regions = ROAD_REGIONS.map((r) => regionView(r.slug)!).filter(Boolean);
   return (
     <main>
       <MarketingJsonLd appName="Trainer Road" appDescription="Duel every Pokémon Gym Leader, Elite Four member and Champion from the games with Pokémon cards." appUrl="/pokemon-trainers" breadcrumb={{ label: "Trainer Road", path: "/pokemon-trainers" }} faq={FAQ} />
@@ -67,26 +61,7 @@ export default function TrainerRoadPage() {
         <RoadStarsProvider>
           <section aria-labelledby="road-regions-title" className="road-hub__regions">
             <h2 id="road-regions-title" className="road-section__title">Pick a region</h2>
-            <ul className="road-regions">
-              {regions.map(({ region, sections, people }) => {
-                const gym = sections.find((s) => s.tier === "gym");
-                const teams = people.reduce((n, p) => n + p.teams.length, 0);
-                return (
-                  <li key={region.slug}>
-                    <Link href={roadPath(region.slug)} className="road-region">
-                      <span className="road-region__name">{region.name}</span>
-                      <span className="road-region__line">{listOf(sections.filter((s) => s.tier === "gym" || s.tier === "elite" || s.tier === "champion").map((s) => s.label))}</span>
-                      <span className="road-region__faces" aria-hidden="true">
-                        {(gym?.tiles ?? []).slice(0, 8).map((t) => (
-                          <span key={t.slug} className="road-region__face">{t.picture ? <TrainerArt picture={t.picture} shape="round" /> : t.name.charAt(0)}</span>
-                        ))}
-                      </span>
-                      <span className="road-region__count">{people.length} trainers · {teams} teams</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+            <RoadRegions />
           </section>
         </RoadStarsProvider>
         <DailyDuelModule from="trainer-road" />

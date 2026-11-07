@@ -19,8 +19,18 @@ import { Select } from "@/components/ui/Select";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
+import { gameKey } from "@/lib/games/key";
+import { GAME_SPACES } from "@/lib/games/spaces";
 import type { FeedPost } from "@/lib/social/feed";
 import { IconTrophy, IconDeviceGamepad2, IconCalendarEvent } from "@tabler/icons-react";
+
+/** The post's own game (game spaces step 3): the games with spaces first, then every game we know. */
+const SPACE_GAME_NAMES = GAME_SPACES.map((sp) => FAVORITE_GAME_CATALOG.find((g) => gameKey(g.name) === sp.primary)?.name).filter((n): n is string => !!n);
+const POST_GAME_OPTIONS = [
+  { value: "", label: "No game" },
+  ...SPACE_GAME_NAMES.map((n) => ({ value: n, label: n })),
+  ...FAVORITE_GAME_CATALOG.filter((g) => !SPACE_GAME_NAMES.includes(g.name)).map((g) => ({ value: g.name, label: g.name })),
+];
 
 const OTHER_GAME = "__other__";
 const GAME_OPTIONS = [
@@ -39,11 +49,14 @@ export function PostComposer({
   communityId,
   communityName,
   isOwner = false,
+  game: fixedGame,
   onPosted,
 }: {
   communityId?: string;
   communityName?: string;
   isOwner?: boolean;
+  /** Posting inside a game space: the post is about this game (no picker). */
+  game?: { key: string; name: string };
   /** Called after a successful post. Receives the hydrated post when the server
    *  returns it, so the parent can optimistically drop it to the top of the feed. */
   onPosted: (post?: FeedPost) => void;
@@ -58,6 +71,7 @@ export function PostComposer({
   const [images, setImages] = useState<string[]>([]);
   const [event, setEvent] = useState<EventAttach | null>(null);
   const [asCommunity, setAsCommunity] = useState(false);
+  const [postGame, setPostGame] = useState("");
   const [posting, setPosting] = useState(false);
 
   // Modals
@@ -136,7 +150,7 @@ export function PostComposer({
   }
 
   function reset() {
-    setValue(""); setTopics([]); setImages([]); setEvent(null); setAsCommunity(false);
+    setValue(""); setTopics([]); setImages([]); setEvent(null); setAsCommunity(false); setPostGame("");
     setEvGame(""); setEvGameOther(""); setEvWhen(""); setEvCap("");
   }
 
@@ -146,6 +160,8 @@ export function PostComposer({
     setPosting(true);
     const payload: Record<string, unknown> = { body, communityId: communityId ?? undefined, imageUrls: images, topics };
     if (isOwner && asCommunity) payload.asCommunity = true;
+    const game = fixedGame?.key ?? postGame;
+    if (game) payload.game = game;
     if (event?.mode === "new") {
       payload.kind = "game_night";
       payload.meta = { game: event.game || null, startAt: event.when ? new Date(event.when).toISOString() : null, capacity: event.capacity ? Number(event.capacity) : null };
@@ -210,6 +226,14 @@ export function PostComposer({
             {event.mode === "share" ? `Announcing: ${event.title}` : `Event${event.game ? `: ${event.game}` : ""}`}
           </span>
           <button type="button" onClick={() => setEvent(null)} aria-label="Remove event" className="composer-tool"><Icon name="x" size="16" /></button>
+        </div>
+      )}
+
+      {fixedGame ? (
+        <p className="composer-game">Posting in <b>{fixedGame.name}</b></p>
+      ) : (
+        <div className="composer-game composer-game--pick">
+          <Select floatingLabel="Game" size="small" searchable value={postGame} onChange={(v) => setPostGame(typeof v === "string" ? v : "")} options={POST_GAME_OPTIONS} />
         </div>
       )}
 

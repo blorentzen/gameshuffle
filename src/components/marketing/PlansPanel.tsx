@@ -60,8 +60,8 @@ export async function PlansPanel({ title, intro, rows, copy = {}, cta = {}, from
     if (row === "account") {
       return <AuthAwareCTA variant="secondary" size="small" overrides={{
         anon: { label: "Make a free account", href: "/signup" },
-        free: { label: "Open My Stuff", href: "/account/stuff?tab=setups" },
-        pro: { label: "Open My Stuff", href: "/account/stuff?tab=setups" },
+        free: { label: "Open saved setups", href: "/account/events?tab=setups" },
+        pro: { label: "Open saved setups", href: "/account/events?tab=setups" },
       }} />;
     }
     if (row === "pro") {

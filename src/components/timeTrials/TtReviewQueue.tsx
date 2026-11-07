@@ -83,7 +83,7 @@ export function TtReviewQueue() {
       {q.videos.map((v) => (
         <li key={v.time.id} className="tt-queue__item">
           <p className="tt-queue__head"><b>{v.name}</b> · {v.label}</p>
-          {v.vouches > 0 && <p className="tt-queue__links"><span className="tt-chip tt-chip--trust"><IconThumbUp size={14} aria-hidden="true" /> {v.vouches} {v.vouches === 1 ? "vouch" : "vouches"}</span><span className="tt-muted">from players with checked times</span></p>}
+          {v.vouches > 0 && <p className="tt-queue__links"><span className="tt-chip tt-chip--trust"><IconThumbUp size={14} aria-hidden="true" /> {v.vouches} {v.vouches === 1 ? "vouch" : "vouches"}</span><span className="tt-muted">from other players</span></p>}
           <p className="tt-queue__links">
             {v.time.proofUrl && <a href={v.time.proofUrl} target="_blank" rel="noopener noreferrer nofollow"><IconCamera size={16} aria-hidden="true" /> Screenshot</a>}
             {v.time.videoUrl && <a href={v.time.videoUrl} target="_blank" rel="noopener noreferrer nofollow"><IconVideo size={16} aria-hidden="true" /> Clip</a>}
@@ -156,7 +156,7 @@ export function TtReviewQueue() {
   );
   const claims = q.claims ? (
     <div className="tt-reviewers">
-      <p className="tt-note">People saying a legacy player is them. Check their link shows that name is theirs (an MKCentral page, a channel or post under it, or a clip of one of the runs). Approving moves the name&apos;s times to their account, and later sheet times go straight there.</p>
+      <p className="tt-note">People saying a legacy player is them. Check their link shows that name is theirs (an MKCentral page, a channel or post under it, or a clip of one of the runs). Approving moves the name&apos;s times to their account, and later legacy times for that name go straight there.</p>
       {q.claims.pending.length === 0 ? <EmptyState title="No claims waiting" description="When someone presses This is me on a legacy player's page, it shows up here." /> : <ul className="tt-queue">{q.claims.pending.map((c) => claimItem(c, true))}</ul>}
       {q.claims.approved.length > 0 && (
         <>
@@ -196,7 +196,7 @@ export function TtReviewQueue() {
                 </p>
                 {rejecting === l.id ? (
                   <form className="tt-queue__reject" onSubmit={(e) => { e.preventDefault(); setBusy(l.id); void post({ action: "legacy_reject", timeId: l.id, note: reason }, "Taken off the list").then((ok) => { setBusy(null); if (ok) { setRejecting(null); setReason(""); } }); }}>
-                    <FormField label="Why doesn't it show this run? (the player sees this once they've claimed the name)" htmlFor={`tt-leg-rej-${l.id}`}>
+                    <FormField label="Why doesn't it show this run? (the player sees this if the time is on their account)" htmlFor={`tt-leg-rej-${l.id}`}>
                       <Input id={`tt-leg-rej-${l.id}`} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} fullWidth />
                     </FormField>
                     <div className="tt-add__actions">

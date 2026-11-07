@@ -32,7 +32,14 @@ export type LifestyleSlot =
   /** Homepage Community door. */
   | "door-community"
   /** Homepage Stream door. */
-  | "door-stream";
+  | "door-stream"
+  /** The picks after the dailies and on the room (dailies + explore picks 2026-11-05): a photo where a pick has no game art. */
+  | "pick-trivia"
+  | "pick-most-likely"
+  | "pick-odd-one-out"
+  | "pick-time-trial"
+  | "pick-stream"
+  | "pick-bracket";
 
 export interface LifestylePhoto {
   /** Path under public/. */
@@ -66,6 +73,78 @@ export interface LifestylePhoto {
  * is fine.
  */
 export const LIFESTYLE: Partial<Record<LifestyleSlot, LifestylePhoto>> = {
+  "pick-trivia": {
+    src: "/images/lifestyle/pick-trivia.19928efa.jpg",
+    width: 1880,
+    height: 1253,
+    alt: "",
+    credit: {
+      source: "pexels",
+      photographer: "Digicells International",
+      url: "https://www.pexels.com/photo/lively-gathering-of-friends-in-islamabad-cafe-29200727/",
+      licence: "Pexels Licence",
+    },
+  },
+  "pick-most-likely": {
+    src: "/images/lifestyle/pick-most-likely.3a6db28a.jpg",
+    width: 1880,
+    height: 1253,
+    alt: "",
+    credit: {
+      source: "pexels",
+      photographer: "Anna Shvets",
+      url: "https://www.pexels.com/photo/friends-in-pink-clothes-5325597/",
+      licence: "Pexels Licence",
+    },
+  },
+  "pick-odd-one-out": {
+    src: "/images/lifestyle/pick-odd-one-out.8a9c29c6.jpg",
+    width: 1880,
+    height: 1253,
+    alt: "",
+    credit: {
+      source: "pexels",
+      photographer: "Kevin Malik",
+      url: "https://www.pexels.com/photo/smiling-guys-playing-retro-video-games-on-party-8763240/",
+      licence: "Pexels Licence",
+    },
+  },
+  "pick-time-trial": {
+    src: "/images/lifestyle/pick-time-trial.94f5c6c6.jpg",
+    width: 1880,
+    height: 1253,
+    alt: "",
+    credit: {
+      source: "pexels",
+      photographer: "Patrick",
+      url: "https://www.pexels.com/photo/controllers-for-nintendo-switch-17091544/",
+      licence: "Pexels Licence",
+    },
+  },
+  "pick-stream": {
+    src: "/images/lifestyle/pick-stream.f3ae064d.jpg",
+    width: 1880,
+    height: 1253,
+    alt: "",
+    credit: {
+      source: "pexels",
+      photographer: "RDNE Stock project",
+      url: "https://www.pexels.com/photo/close-up-view-of-a-woman-wearing-white-headphones-7915355/",
+      licence: "Pexels Licence",
+    },
+  },
+  "pick-bracket": {
+    src: "/images/lifestyle/pick-bracket.26764904.jpg",
+    width: 1880,
+    height: 1253,
+    alt: "",
+    credit: {
+      source: "pexels",
+      photographer: "RDNE Stock project",
+      url: "https://www.pexels.com/photo/men-watching-their-friends-play-a-video-game-7915392/",
+      licence: "Pexels Licence",
+    },
+  },
   "hero-game-nights": {
     src: "/images/lifestyle/hero-game-nights.96d98118.jpg",
     width: 2400,

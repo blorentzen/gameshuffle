@@ -525,7 +525,7 @@ export default async function SessionDetailPage({
             </>
           )}
           {phase !== "recap" && liveSlug && (
-            <InviteButton kind="session" targetId={session.id} targetName={session.name} link={`/live/${liveSlug}`} label="Invite followers" />
+            <InviteButton kind="session" targetId={session.id} targetName={session.name} link={`/live/${liveSlug}`} label="Invite people you follow" />
           )}
           {phase === "recap" && session.status === "ended" && (
             <>

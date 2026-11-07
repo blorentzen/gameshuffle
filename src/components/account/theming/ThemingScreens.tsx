@@ -110,7 +110,7 @@ export function ThemingProfilePageScreen() {
                 />
               )}
             </AdminField>
-            <AdminField label="Favorite TCG card" helper={extras.myCards.length ? undefined : <>Showcase a card in <Link href="/account/stuff?tab=my-cards">My Collection</Link> first.</>}>
+            <AdminField label="Favorite TCG card" helper={extras.myCards.length ? undefined : <>Add a card to <Link href="/account/pokemon?tab=my-cards">My Cards</Link> first.</>}>
               {(id, d) => (
                 <Select
                   id={id}

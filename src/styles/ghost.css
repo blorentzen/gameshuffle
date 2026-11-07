@@ -1,0 +1,71 @@
+/* Ghost frames (src/components/ui/Ghost.tsx): the shape an empty board, list or row of cards will fill. Dashed and
+   faded, never animated. The notice is the ghost's own first row or card (one layer, nothing floats over it). */
+/* Tinted from the text color, so the ghost shows on any surface (the room tiles share the secondary background). */
+.ghost {
+  --g-fill: rgba(22, 26, 46, .05); --g-line: rgba(22, 26, 46, .22); --g-ink: var(--text-tertiary, #8a90a6);
+  --g-fill: color-mix(in srgb, var(--text-primary, #161a2e) 6%, transparent); --g-line: color-mix(in srgb, var(--text-primary, #161a2e) 24%, transparent);
+}
+.ghost--dark { --g-fill: rgba(255, 255, 255, .08); --g-line: rgba(255, 255, 255, .28); --g-ink: rgba(255, 255, 255, .5); }
+.ghost [aria-hidden="true"] { pointer-events: none; user-select: none; }
+.ghost-bar { display: block; height: 12px; border-radius: 6px; background: var(--g-fill); box-shadow: inset 0 0 0 1px var(--g-line); }
+.ghost-bar--thin { height: 9px; opacity: .8; }
+.ghost-face { display: inline-block; flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--g-fill); border: 1.5px dashed var(--g-line); box-sizing: border-box; }
+
+/* The notice: plain words and the first step, in the ghost's own row or card. */
+.ghost-notice { display: grid; gap: var(--spacing-8); justify-items: start; min-width: 0; }
+.ghost-notice > p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.45; }
+.ghost-notice > p b { color: var(--text-primary); }
+.ghost-notice .space-actions { margin: 0; }
+
+/* Rows */
+.ghost-rows { display: grid; }
+.ghost-row { display: grid; grid-template-columns: 2.4rem 32px minmax(0, 1fr) 7.2rem; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-8); border-top: 1px dashed var(--g-line); }
+.ghost-row:first-child { border-top: 0; }
+.ghost-row--notice { grid-template-columns: 2.4rem 32px minmax(0, 1fr); align-items: start; }
+.ghost-row--notice > .ghost-place, .ghost-row--notice > .ghost-face { margin-top: 2px; }
+.ghost-row--notice .ghost-place { line-height: 32px; }
+.ghost-row:not(.ghost-row--notice):nth-child(2) { opacity: .7; }
+.ghost-row:not(.ghost-row--notice):nth-child(3) { opacity: .45; }
+.ghost-row:not(.ghost-row--notice):nth-child(n+4) { opacity: .3; }
+.ghost-rows--lines .ghost-row, .ghost-rows--lines .ghost-row--notice { grid-template-columns: 32px minmax(0, 1fr); }
+/* No places: a face, the words, and the value when there is one. */
+.ghost-rows--noplace .ghost-row { grid-template-columns: 32px minmax(0, 1fr) auto; }
+.ghost-rows--noplace .ghost-row--notice { grid-template-columns: 32px minmax(0, 1fr); }
+.ghost-rows--noplace .ghost-value { width: 7.2rem; }
+.ghost-place { font-weight: 800; color: var(--g-ink); text-align: center; font-variant-numeric: tabular-nums; }
+.ghost-words { display: grid; gap: var(--spacing-8); min-width: 0; }
+.ghost-value { display: block; height: 14px; border-radius: 6px; background: var(--g-fill); box-shadow: inset 0 0 0 1px var(--g-line); }
+
+/* Cards */
+.ghost-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-16); }
+.ghost-card { display: grid; align-content: end; gap: var(--spacing-8); min-height: 16rem; padding: var(--spacing-16); border-radius: var(--radius-16, 16px); border: 1.5px dashed var(--g-line); background: var(--g-fill); box-sizing: border-box; }
+.ghost-card--notice { align-content: center; background: transparent; }
+.ghost-card--slot { height: 100%; min-height: 0; }
+.ghost-card:not(.ghost-card--notice):nth-child(2) { opacity: .7; }
+.ghost-card:not(.ghost-card--notice):nth-child(3) { opacity: .45; }
+
+/* A roll */
+.ghost-roll { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: var(--spacing-20); max-width: 64rem; }
+.ghost-roll__art { aspect-ratio: 1; border-radius: 1.4rem; border: 1.5px dashed var(--g-line); background: var(--g-fill); }
+.ghost-roll__parts { display: grid; gap: var(--spacing-12); align-content: start; padding-top: var(--spacing-4); }
+.ghost-roll__part { display: grid; grid-template-columns: 4.4rem minmax(0, 1fr); gap: var(--spacing-12); align-items: center; }
+.ghost-roll__part:nth-child(2) { opacity: .7; }
+.ghost-roll__part:nth-child(3) { opacity: .5; }
+.ghost-roll__part:nth-child(4) { opacity: .35; }
+.ghost-roll__thumb { width: 4.4rem; height: 4.4rem; border-radius: 1rem; border: 1.5px dashed var(--g-line); background: var(--g-fill); box-sizing: border-box; }
+
+/* Faces */
+.ghost-faces { display: inline-flex; vertical-align: middle; }
+.ghost-faces .ghost-face { width: 28px; height: 28px; margin-left: -8px; }
+.ghost-faces .ghost-face:first-child { margin-left: 0; }
+
+@media (max-width: 767px) {
+  .ghost-cards { grid-template-columns: minmax(0, 1fr); }
+  .ghost-card:not(.ghost-card--notice) { display: none; }
+  .ghost-card--notice { min-height: 0; }
+  /* Phones: one faded row under a board's notice is enough to show the shape. */
+  .ghost-rows > .ghost-row:not(.ghost-row--notice):nth-child(n+3) { display: none; }
+  .ghost-roll { grid-template-columns: 9rem minmax(0, 1fr); }
+  .ghost-row { grid-template-columns: 2rem 32px minmax(0, 1fr) 5.6rem; }
+  .ghost-row--notice { grid-template-columns: 2rem 32px minmax(0, 1fr); }
+}

@@ -8,7 +8,7 @@
 import { SHOP } from "./config";
 
 /** Where a shop link sits. Email and Discord build their own links with their own medium. */
-export type ShopPlacement = "nav" | "home-band" | "tcg" | "game-nights" | "checklist";
+export type ShopPlacement = "nav" | "home-band" | "tcg" | "game-nights" | "checklist" | "space";
 
 export function shopHref(placement: ShopPlacement): string {
   const u = SHOP.utm;

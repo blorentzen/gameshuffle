@@ -11,6 +11,8 @@ import { TtMovedToast } from "./TtMovedToast";
 import { TtCategoryNav } from "./TtCategoryNav";
 import { TtFilterSelect } from "./TtFilterSelect";
 import { TtCountryAsk } from "./TtCountryAsk";
+import { TtEventsRow } from "./TtEventsRow";
+import { listTtEvents } from "@/lib/tournaments/tt/store";
 import { countriesFor } from "@/lib/timeTrials/status";
 import { countriesInUse, countryPlayers, shouldAskCountry } from "@/lib/timeTrials/countries";
 import { flagUrl } from "@/lib/lounge/flags";
@@ -39,7 +41,7 @@ export const TT_FAQ = [
   { q: "How do I add a time?", a: "Press Add a time and pick the track, or attach a screenshot of the result and we read the track and time for you to check. In Discord, use /tt add with GameShuffle Competitive in the server." },
   { q: "Can I bring my times from Quaxly or a spreadsheet?", a: "Yes. In Quaxly, run /dx display_time (or /display_time for Mario Kart World) with yourself as the player, then press and hold the reply, tap Apps and pick Save to GameShuffle. Or add screenshots of it, or paste it, on the import page. Shrooms lists go on the mushroom boards and No-items lists on the no-mushroom boards. You check every row before it saves." },
   { q: "Which boards are there?", a: "Every track has boards with mushrooms and with no mushrooms, at each speed class. Mario Kart 8 Deluxe also has Inside drift, Teddy Buggy, Biddybuggy and Mr. Scooty boards, and Mario Kart World a Swoop, R.O.B.-HOG board. They show only times set with that vehicle; those times count on the open board too." },
-  { q: "Which times need a clip?", a: "Only times in a board's top ten. Add a clip of the run's last 30 seconds (YouTube, Twitch, Streamable or Medal); until a reviewer checks it the time shows as Unverified, then as Verified. If your time moves up into the top ten later, we let you know. Times below tenth don't need one." },
+  { q: "Which times need a clip?", a: "Only times in a board's top ten. Add a clip of the run's last 30 seconds (YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram); until a reviewer checks it the time shows as Unverified, then as Verified. If your time moves up into the top ten later, we let you know. Times below tenth don't need one." },
   { q: "Do I need to connect Discord?", a: "Only if you also add times in Discord. Connecting puts the times you add with /tt on your account with the rest, and puts you on your servers' boards." },
   { q: "Do I need proof?", a: "Yes: a screenshot of the result for every new time, on the site and in Discord. We read the track and time from it for you. Times brought over from Quaxly are marked Imported." },
   { q: "What does Community verified mean?", a: "Ten players vouched for the time. Anyone signed in can vouch from a time's window on the board, or with Vouch on the bot's record posts in Discord, but never for their own time. A time in a board's top ten still needs a checked clip to show as Verified." },
@@ -54,12 +56,14 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
   country?: string | null }) {
   const info = TT_GAMES[game];
   const actor = await siteActor();
-  const [summary, mine, countries, reviews] = await Promise.all([
+  const [summary, mine, countries, reviews, events] = await Promise.all([
     server ? serverSummary(server.guildId, game, items, vehicle) : country ? countryPlayers(country).then((ps) => trackSummary(game, items, vehicle, ps)) : trackSummary(game, items, vehicle),
     actor ? playerBests(actor.player) : Promise.resolve([]),
     server ? Promise.resolve([]) : countriesInUse(),
     // Reviewers and updaters get a way into their queue from here (Britton, 2026-11-05).
     actor?.userId && !server ? reviewCounts(actor.userId) : Promise.resolve(null),
+    // Time trial events taking players or running (events pick 12A), not on a Discord server's page.
+    server ? Promise.resolve([]) : listTtEvents(gamePage ? game : null),
   ]);
   // Asked once (round 4 pick 1A): someone with times and no country.
   const ask = !server && actor && mine.length > 0 && (await shouldAskCountry(actor.player, "site"));
@@ -122,6 +126,7 @@ export async function TimeTrialsHub({ game, cc, items = "shrooms", vehicle = "an
             </p>
           )}
         </section>}
+        {!server && <TtEventsRow events={events} game={gamePage ? game : null} />}
         {ask && <TtCountryAsk suggest={ip} />}
         {actor && !actor.discordLinked && <TtConnectDiscord returnTo={here} />}
 

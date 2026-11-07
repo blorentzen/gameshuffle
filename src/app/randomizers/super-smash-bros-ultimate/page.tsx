@@ -29,7 +29,7 @@ export default function SmashRandomizerPage() {
           </Suspense>
         </Container>
         </div>
-        <RandomizerNudge gameName={ULTIMATE.label} saves="your Smash setups" />
+        <RandomizerNudge game="super-smash-bros-ultimate" gameName={ULTIMATE.label} saves="your Smash setups" />
         <RandomizerLanding landing={landing} />
       </main>
     </>

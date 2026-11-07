@@ -163,7 +163,7 @@ function ServerRow({ s, pro, onChanged }: { s: Server; pro: boolean; onChanged: 
         <div className="discord-apps__panel">
           <strong>Team logos</strong>
           <p className="discord-apps__help">For war cards, tables and the overlay. Add many at once here, or one at a time with /logo add.</p>
-          <div><ArrowLink href={`/account/streaming/logos/${s.guildId}`}>Manage team logos</ArrowLink></div>
+          <div><ArrowLink href={`/account/discord/logos/${s.guildId}`}>Manage team logos</ArrowLink></div>
         </div>
       )}
     </li>

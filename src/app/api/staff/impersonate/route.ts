@@ -4,7 +4,7 @@
  * Toggles staff tier impersonation cookies. Per
  * gs-staff-tier-impersonation-spec.md §3.4 and addendum §16.6.
  *
- * Body: { option: 'default' | 'pro' | 'free' | 'unauth' }
+ * Body: { option: 'default' | 'pro' | 'free' | 'unauth' } or { option: 'persona', interests, plan, sample }
  *
  * Setting cookies on a non-staff session is rejected with 403. The auth
  * resolution here intentionally bypasses the impersonation layer (we need
@@ -19,13 +19,17 @@ import {
   VIEW_AS_TIER_COOKIE,
   VIEW_AS_UNAUTH_COOKIE,
 } from "@/lib/capabilities/staff-impersonation";
+import { PERSONA_COOKIE, encodePersona, type PreviewPlan } from "@/lib/preview/persona";
+import { cleanInterests } from "@/lib/interests/rules";
 
 export const runtime = "nodejs";
 
-type ImpersonationOption = "default" | "pro" | "free" | "unauth";
+// "persona" (menus and account picks 2026-11-05): { interests, plan: free|pro|supporter, sample } previews another
+// person's GameShuffle; the plan also sets the tier cookie so capability checks follow it (a Supporter is Free).
+type ImpersonationOption = "default" | "pro" | "free" | "unauth" | "persona";
 
 function isOption(v: unknown): v is ImpersonationOption {
-  return v === "default" || v === "pro" || v === "free" || v === "unauth";
+  return v === "default" || v === "pro" || v === "free" || v === "unauth" || v === "persona";
 }
 
 export async function POST(request: Request) {
@@ -72,7 +76,18 @@ export async function POST(request: Request) {
     path: "/",
   };
 
+  // Every option but "persona" ends a persona preview.
+  if (option !== "persona") response.cookies.delete({ name: PERSONA_COOKIE, path: "/" });
+
   switch (option) {
+    case "persona": {
+      const plan: PreviewPlan = body.plan === "pro" || body.plan === "supporter" ? body.plan : "free";
+      const value = encodePersona({ interests: cleanInterests(body.interests), plan, sample: body.sample !== false });
+      response.cookies.set({ name: PERSONA_COOKIE, value, ...cookieAttrs });
+      response.cookies.set({ name: VIEW_AS_TIER_COOKIE, value: plan === "pro" ? "pro" : "free", ...cookieAttrs });
+      response.cookies.delete({ name: VIEW_AS_UNAUTH_COOKIE, path: "/" });
+      break;
+    }
     case "default":
       response.cookies.delete({ name: VIEW_AS_TIER_COOKIE, path: "/" });
       response.cookies.delete({ name: VIEW_AS_UNAUTH_COOKIE, path: "/" });

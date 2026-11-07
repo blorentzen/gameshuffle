@@ -43,7 +43,7 @@ const FAQ = [
   { q: "Where do the numbers come from?", a: "MKCentral's lounge, the same ratings the lounge's own site shows. The card reads your season by your lounge name and keeps following you if you change it." },
   { q: "How quickly does it update?", a: "It checks every 30 seconds. MMR only moves when an event's table is verified, usually a minute or two after the last race, and that's when the moment plays." },
   { q: "Which games does it cover?", a: "Mario Kart World (12 and 24 players) and Mario Kart 8 Deluxe. Pick the game per look; MK8DX's numbered divisions show as Platinum 1, Platinum 2 and so on." },
-  { q: "Do I need Twitch or GS Pro?", a: "No. The card is a browser source, so it works in OBS, Streamlabs or anything that takes a web page, and it's free with an account. GS Pro adds looks: brand themes, two colors of your own, your picture, more fonts, foil and more saved looks, plus !mmr in your Twitch chat." },
+  { q: "Do I need Twitch or GS Pro?", a: "No. The card is a browser source, so it works in OBS, Streamlabs or anything that takes a web page, and it's free with an account. GS Pro or the Supporter level adds looks: brand themes, two colors of your own, your picture, more fonts, foil and more saved looks. GS Pro also adds !mmr in your Twitch chat." },
   { q: "Can I post my card without streaming?", a: "Yes. Pick Picture at the top of the studio for a still card in your look: square, wide or story size, to share, save or link. A shared link always shows your latest numbers. It comes with a free account." },
   { q: "What counts as tonight's run?", a: "Everything since you went live on Twitch when it's connected, or since midnight Pacific when it isn't." },
 ];
@@ -95,6 +95,8 @@ export default async function MmrCardPage({ searchParams }: { searchParams: Prom
     );
   }
 
+  // GS Ranked lounges show on the card only once the ladders are open (comp_ladders).
+  const laddersPublic = await laddersOpen();
   return (
     <main className="mmr-page">
       <MarketingJsonLd appName="MMR card" appDescription={DESCRIPTION} appUrl="/mmr-card" appCategory="UtilitiesApplication" breadcrumb={{ label: "MMR card", path: "/mmr-card", parent: { label: "Compete", path: "/competitive-mario-kart" } }} faq={FAQ} />
@@ -125,8 +127,8 @@ export default async function MmrCardPage({ searchParams }: { searchParams: Prom
             <li><b>Tonight&rsquo;s run</b>: &ldquo;+158 tonight, 4-1&rdquo;, so a viewer arriving late sees how it&rsquo;s going.</li>
             <li><b>Your last ten events</b> as squares, gold where an event set a new season peak.</li>
             <li><b>Moments</b>: the change pops and the number rolls, a flame after three wins in a row, a gold tag for a new peak, a banner for a new division, and a laurel the first time you reach the world top 1,000, 250, 100 or 10. Each one has its own switch.</li>
-            <li><b>Your pick of what&rsquo;s on it</b>: country rank, top %, your win streak, recent events, events and win %, average score and more, each with a switch, or start from a preset like Just the number. When more are on than a layout fits, the extras take turns.</li>
-            <li><b>GS Ranked lounges too</b>: if your 200cc or Knockout Tour lounge is ranked on GameShuffle, your card can show that rating instead, with your place on it, like &ldquo;#12 of 64&rdquo;.</li>
+            <li><b>Your pick of what&rsquo;s on it</b>: country rank, top %, your win streak, recent events, events and win %, average score and more, each with a switch, or start from a preset like Just the number. Each layout has room for a set number of them, and Rolling shows every one in turn.</li>
+            {laddersPublic && <li><b>GS Ranked lounges too</b>: if your 200cc or Knockout Tour lounge is ranked on GameShuffle, your card can show that rating instead, with your place on it, like &ldquo;#12 of 64&rdquo;.</li>}
             <li><b>Rolling</b>: one piece at a time as a lower-third bar, a box or a tall card for vertical streams, sliding, flipping, fading, dealt like cards or as a ticker. A change jumps straight to your MMR.</li>
           </ul>
         </section>
@@ -142,15 +144,15 @@ export default async function MmrCardPage({ searchParams }: { searchParams: Prom
         </section>
 
         <section aria-labelledby="mmr-split" className="mmr-page__flat">
-          <h2 id="mmr-split">Free and GS Pro</h2>
+          <h2 id="mmr-split">Free and paid looks</h2>
           <div className="mmr-page__split">
             <div>
               <h3>Free</h3>
-              <p>Every piece and moment with its own switch, four presets, MMR or world rank as the big number, all five layouts (Rolling with every shape and motion), tonight&rsquo;s run and last 10 under the number, the number on the left or centered, every emblem frame, your country as a flag or a code, dark, light or see-through, division colors, GameShuffle blue or any color of your own, a border in a color of its own, glow and glyph backgrounds, Rubik Italic or GameShuffle&rsquo;s font, one saved look, <b>/gs-mmr</b> in Discord, and the sticker on your profile. Free cards carry a small Built by GameShuffle line.</p>
+              <p>Every piece and moment with its own switch, four presets, MMR or world rank as the big number, all five layouts (Rolling with every shape and motion), tonight&rsquo;s run and last 10 under the number, the number on the left or centered, every emblem frame, your country as a flag or a code, dark, light or see-through, division colors, GameShuffle blue or any color of your own, a border in a color of its own, glow and glyph backgrounds, Rubik Italic or GameShuffle&rsquo;s font, one saved look, <b>/mmr</b> in Discord (with GameShuffle Competitive), and the sticker on your profile. Free cards carry a small Built by GameShuffle line.</p>
             </div>
             <div>
-              <h3>GS Pro</h3>
-              <p>Brand themes and two colors of your own, stripes and dots, your own picture or GIF behind the card, a dozen more fonts or any Google Font, a two-color border, foil, your picture as the emblem, hiding the GameShuffle line, up to ten saved looks that switch with your Twitch game, your own order of the pieces, a line of your own on the card, like Road to Master, and a time per slide on Rolling. Plus <b>!mmr</b> in your Twitch chat with GameShuffle&rsquo;s bot, tonight&rsquo;s goal on your card (&ldquo;184 to 15,500&rdquo;) and a report of your lounge week every Monday.</p>
+              <h3>GS Pro or Supporter</h3>
+              <p>Brand themes and two colors of your own, stripes and dots, your own picture or GIF behind the card, a dozen more fonts or any Google Font, a two-color border, foil, your picture as the emblem, hiding the GameShuffle line, up to ten saved looks that switch with your Twitch game, your own order of the pieces, a line of your own on the card, like Road to Master, and a time per slide on Rolling. GS Pro also adds <b>!mmr</b> in your Twitch chat with GameShuffle&rsquo;s bot, tonight&rsquo;s goal on your card (&ldquo;184 to 15,500&rdquo;) and a report of your lounge week every Monday.</p>
             </div>
           </div>
         </section>

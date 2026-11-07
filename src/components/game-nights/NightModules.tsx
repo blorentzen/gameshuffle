@@ -97,7 +97,7 @@ export function NightModules({ nightId, initial, liveCode }: { nightId: string; 
 
           <p className="party-options__label">Cards and missions</p>
           <p className="party-muted">Dealt from the GameShuffle deck, plus your own cards if you&apos;ve written some in{" "}
-            <Link href="/account/stuff?tab=decks">My Stuff ▸ Decks</Link> (GS Pro).</p>
+            <Link href="/account/events?tab=decks">Your events ▸ Game night decks</Link> (GS Pro).</p>
           <div className="party-row">
             <Select floatingLabel="House rules" value={String(mod.cards.rules)} onChange={(v) => setCards({ rules: Number(v) })} options={counts(3, (n) => `${n} rule${n === 1 ? "" : "s"}`)} />
             <Select floatingLabel="Chance cards" value={String(mod.cards.chance)} onChange={(v) => setCards({ chance: Number(v) })} options={counts(4, (n) => `${n} to deal`)} />

@@ -1,5 +1,6 @@
 "use client";
 
+import { DailiesAfter } from "@/components/originals/DailiesAfter";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Accordion, Alert, Badge, Button, Switch, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -378,6 +379,7 @@ export function DailyDex() {
             <DailiesNextButton current="dex" onPick={activity?.pickDaily} />
           </div>
           <DailiesYours current="dex" only />
+          <DailiesAfter current="dex" />
           {!activity && answerDex > 0 && <DexCardOfDay dex={answerDex} signedIn={!!account?.signedIn} credits={false} onCard={setCardShown} />}
           <DailiesInvite current="dex" nudge={false} />
           {account && !account.signedIn && (
@@ -392,7 +394,7 @@ export function DailyDex() {
       {!preview && (
         <DailyBoard game="dex" main={main} guestId={boards.guestId} refresh={boards.refresh} onViews={onViews} needWeek
           join={over && account && !account.signedIn && !activity && boards.guest && !guestOnBoard && hints.length > 0
-            ? <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} />
+            ? <DailyBoardJoin onJoin={boards.join} onJoined={() => bump()} tokens={0} back="/daily-dex" />
             : null} />
       )}
 

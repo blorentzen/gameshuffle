@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { IconCalendarEvent, IconMapPin, IconWorld } from "@tabler/icons-react";
-import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useState, ViewTransition, type CSSProperties, type ReactNode } from "react";
 import { Breadcrumb, Button, CarouselItem, Container, Dropdown, Tabs } from "@empac/cascadeds";
 import { LabeledCarousel } from "@/components/ui/LabeledCarousel";
 import type { MoreEvent } from "@/lib/events/moreTypes";
@@ -331,8 +331,11 @@ export function EventShell(p: EventShellProps) {
           the bar and pushed the event's own title further down. */}
       <div className="event-shell__heroband">
         {p.hero.imageUrl || p.hero.fallbackImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.hero.imageUrl || p.hero.fallbackImageUrl || ""} alt="" className="event-shell__hero event-shell__hero--img" />
+          // The same name as the home band's card for this event, so its picture grows into this header (room picks 3A).
+          <ViewTransition name={`event-art-${p.type === "tournament" ? "t" : "n"}-${p.id}`} share="event-art">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.hero.imageUrl || p.hero.fallbackImageUrl || ""} alt="" className="event-shell__hero event-shell__hero--img" />
+          </ViewTransition>
         ) : (
           // No cover: generated art rather than a gradient and an emoji. The
           // tournament default used to be one AI-generated trophy photo shared by

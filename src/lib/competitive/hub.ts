@@ -29,13 +29,15 @@ export interface HubRecord { track: string; image: string | null; what: string; 
  * This week's times (not imports): the ones that hold their open board's record first, then the newest
  * others with their place, so the card is never half empty on a quiet week.
  */
-export async function recordsThisWeek(limit = 3): Promise<HubRecord[]> {
+export async function recordsThisWeek(limit = 3, games?: TtGame[]): Promise<HubRecord[]> {
   try {
     const since = new Date(Date.now() - WEEK_MS).toISOString();
-    const { data } = await createServiceClient().from("tt_times")
+    let q = createServiceClient().from("tt_times")
       .select("game, track, cc, items, player, time_ms, created_at")
-      .eq("status", "ok").neq("source", "import").gte("created_at", since)
-      .order("created_at", { ascending: false }).limit(300);
+      .eq("status", "ok").neq("source", "import").gte("created_at", since);
+    // One game's space shows only its own (game spaces, 2026-11-06).
+    if (games?.length) q = q.in("game", games);
+    const { data } = await q.order("created_at", { ascending: false }).limit(300);
     const recent = (data ?? []) as { game: TtGame; track: string; cc: number; items: TtItems; player: string; time_ms: number; created_at: string }[];
     if (!recent.length) return [];
     const boards = new Map<string, Awaited<ReturnType<typeof trackSummary>>>();
@@ -85,8 +87,8 @@ export async function recordsThisWeek(limit = 3): Promise<HubRecord[]> {
 export interface HubClimber { name: string; game: MmrGame; mmr: number | null; division: string | null; climbed: number; href: string }
 
 /** The lounge's biggest climbers this week across the three games (null when MKCentral doesn't answer). */
-export async function climbersThisWeek(limit = 3): Promise<HubClimber[] | null> {
-  const boards = await Promise.all(MMR_GAME_IDS.map((g) => weekClimbers(g).then((b) => ({ g, b })).catch(() => null)));
+export async function climbersThisWeek(limit = 3, games: readonly MmrGame[] = MMR_GAME_IDS): Promise<HubClimber[] | null> {
+  const boards = await Promise.all(games.map((g) => weekClimbers(g).then((b) => ({ g, b })).catch(() => null)));
   if (boards.every((x) => !x)) return null;
   const rows = boards.flatMap((x) => (x ? x.b.rows.map((r) => ({ ...r, game: x.g })) : []))
     .filter((r) => r.weekChange != null && r.weekChange < 0);

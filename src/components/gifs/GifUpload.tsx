@@ -50,7 +50,7 @@ export function GifUpload({ onUploaded, onUse }: { onUploaded?: (gif: MyGif) => 
       return;
     }
     if (j?.error === "refused") return setError(`We can't take that GIF: ${j.reason || "it breaks our rules for what's shown on GameShuffle"}.`);
-    if (j?.error === "full") return setError(`You have ${j.limit ?? 25} GIFs, the most you can keep. Delete one in My Stuff ▸ GIFs to make room.`);
+    if (j?.error === "full") return setError(`You have ${j.limit ?? 25} GIFs, the most you can keep. Delete one in Profile ▸ GIFs to make room.`);
     setError(ERRORS[j?.error ?? ""] ?? "Couldn't upload that. Try again.");
   };
 

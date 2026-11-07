@@ -260,7 +260,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
       { q: "Is the bot free?", a: "Yes. Every command and the time trial panel are free. A free GameShuffle account runs the bot in one server; GS Pro runs it in up to five." },
       { q: "How does it read my screenshot?", a: "It reads the track and the time from the result screen, then shows you what it read. You can change the track or type the time before it saves, and a typed time always wins." },
       { q: "Where does the MMR come from?", a: "From MKCentral's lounge, the same numbers its site shows. The bot looks players up when you ask and doesn't post anything on its own." },
-      { q: "Do I need a GameShuffle account?", a: "No. You can add times and use /mmr and /room with only Discord. Link a GameShuffle account to keep your times on your profile and manage the bot's servers on the website." },
+      { q: "Do I need a GameShuffle account?", a: "To add the bot to a server, yes: a free account, and permission to manage that server. To use it, no: members add times and use /mmr and /room with only Discord. Link a GameShuffle account to keep your times on your profile." },
       { q: "How is it different from the main GameShuffle bot?", a: "The main bot has the daily games, polls and streamer posts. This one only has the competitive tools, so it sits next to your other bots in a war or lounge server without adding to them." },
     ],
     schemaName: "GameShuffle Competitive",

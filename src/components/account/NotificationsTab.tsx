@@ -1,26 +1,39 @@
 "use client";
 
 /**
- * Account › Notifications: every way GameShuffle reaches you, in one place.
- *   On GameShuffle  the bell and the Comms Center, muted by group
- *                   (notificationGroups.ts); account and moderation notices
- *                   always come through
- *   Text messages   phone, verification and per-category consent (PhoneSmsCard)
- *   Email           news by category; account, billing and security emails
- *                   always send
- * Each switch saves on change and says so with a toast.
+ * Settings ▸ Notifications (journeys picks 2026-11-06, 8A): one row per kind of news, with the three ways it can
+ * reach you side by side, On site (the bell and the Comms Center), Email and Discord (a message from the GameShuffle
+ * bot), as CDS Chips that toggle. Rows sit in three short sections; account and safety notices always come through on
+ * site. Texts keep their own card (per-category consent, PhoneSmsCard), and GameShuffle's own emails follow as rows
+ * with only an Email chip. Each change saves at once and says so with a toast.
  */
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Alert, Switch } from "@empac/cascadeds";
+import { Alert, Chip } from "@empac/cascadeds";
+import { IconBell, IconBrandDiscord, IconMail } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { PhoneSmsCard } from "@/components/account/PhoneSmsCard";
-import { NOTIFICATION_GROUPS } from "@/lib/social/notificationGroups";
+import { NOTIFICATION_GROUPS, NOTIFICATION_SECTIONS, type NotifChannel } from "@/lib/social/notificationGroups";
 import { ALL_EMAIL_CATEGORIES, EMAIL_CATEGORY_DESCRIPTIONS, EMAIL_CATEGORY_LABELS, type EmailCategory } from "@/lib/email/subscription-categories";
 
-interface Prefs { muted: string[]; email: Record<EmailCategory, boolean> | null; emailAddress: string | null }
+type Channels = Record<string, Record<NotifChannel, boolean>>;
+
+interface Prefs {
+  channels: Channels;
+  email: Record<EmailCategory, boolean> | null;
+  emailAddress: string | null;
+  discordLinked: boolean;
+  discordBlocked: string | null;
+}
+
+const WAYS: { kind: NotifChannel; label: string; how: string; icon: typeof IconBell }[] = [
+  { kind: "site", label: "On site", how: "on GameShuffle", icon: IconBell },
+  { kind: "email", label: "Email", how: "by email", icon: IconMail },
+  { kind: "discord", label: "Discord", how: "on Discord", icon: IconBrandDiscord },
+];
 
 export function NotificationsTab({ bare = false }: { bare?: boolean } = {}) {
   const toast = useToast();
@@ -35,82 +48,127 @@ export function NotificationsTab({ bare = false }: { bare?: boolean } = {}) {
       .catch(() => setFailed(true));
   }, []);
 
-  const patch = async (key: string, body: unknown): Promise<boolean> => {
+  const patch = async (key: string, body: unknown): Promise<Record<string, unknown> | null> => {
     setSaving(key);
     const r = await fetch("/api/account/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
     setSaving(null);
-    if (!r?.ok) { toast.error("Couldn't save that. Try again."); return false; }
+    const j = r ? await r.json().catch(() => null) : null;
+    if (!r?.ok || !j?.ok) { toast.error("Couldn't save that. Try again."); return null; }
     toast.success("Saved");
-    return true;
+    return j as Record<string, unknown>;
   };
 
-  const toggleGroup = async (id: string, on: boolean) => {
+  const toggle = async (group: string, kind: NotifChannel) => {
     if (!prefs) return;
-    const muted = on ? prefs.muted.filter((m) => m !== id) : [...prefs.muted, id];
-    if (await patch(`g:${id}`, { muted })) setPrefs({ ...prefs, muted });
+    const on = !prefs.channels[group]?.[kind];
+    const j = await patch(`${group}:${kind}`, { channel: { group, kind, on } });
+    if (j?.channels) setPrefs({ ...prefs, channels: j.channels as Channels, discordBlocked: kind === "discord" && on ? null : prefs.discordBlocked });
   };
 
-  const toggleEmail = async (category: EmailCategory, on: boolean) => {
+  const toggleNews = async (category: EmailCategory) => {
     if (!prefs?.email) return;
-    if (await patch(`e:${category}`, { email: { category, on } })) setPrefs({ ...prefs, email: { ...prefs.email, [category]: on } });
+    const on = !prefs.email[category];
+    if (await patch(`news:${category}`, { email: { category, on } })) setPrefs({ ...prefs, email: { ...prefs.email, [category]: on } });
   };
+
+  const unavailable = (kind: NotifChannel): boolean =>
+    !prefs || (kind === "discord" && !prefs.discordLinked) || (kind === "email" && !prefs.emailAddress);
 
   return (
     <>
-      {bare ? (
-        failed && <Alert variant="error">Couldn&apos;t load your notification settings. Refresh to try again.</Alert>
-      ) : (
+      {!bare && (
         <div className="account-card">
           <h2 className="account-tab__heading">Notifications</h2>
-          <p className="account-tab__intro">Choose what reaches you on GameShuffle, by text and by email. Changes save as you go.</p>
-          {failed && <Alert variant="error">Couldn&apos;t load your notification settings. Refresh to try again.</Alert>}
+          <p className="account-tab__intro">Each kind of news can reach you on GameShuffle, by email and on Discord. Changes save as you go.</p>
         </div>
       )}
+      {failed && <Alert variant="error">Couldn&apos;t load your notification settings. Refresh to try again.</Alert>}
 
-      <div className="account-card notif-prefs">
-        <h3 className="notif-prefs__title">On GameShuffle</h3>
-        <p className="notif-prefs__sub">What shows on the bell and in your <Link href="/comms">Comms Center</Link>. Account and safety notices always come through.</p>
-        {!prefs ? <LoadingLines lines={4} label="Loading notification settings" /> : (
-          <div className="notif-prefs__list">
-            {NOTIFICATION_GROUPS.map((g) => (
-              <Switch
-                key={g.id}
-                checked={!prefs.muted.includes(g.id)}
-                disabled={saving === `g:${g.id}`}
-                onChange={(e) => void toggleGroup(g.id, e.target.checked)}
-                label={g.label}
-                helperText={g.helper}
-              />
+      <section className="notif-prefs" aria-label="What reaches you, and how">
+        {!prefs ? <LoadingLines lines={6} label="Loading notification settings" /> : (
+          <>
+            {prefs.discordBlocked ? (
+              <Alert variant="warning">
+                Discord didn&apos;t let the GameShuffle bot message you. It can only message people who share a server with it and allow
+                messages from server members. Fix that in Discord, then turn a Discord chip off and on again.
+              </Alert>
+            ) : !prefs.discordLinked ? (
+              <p className="notif-prefs__note">
+                Discord messages come from the GameShuffle bot. <ArrowLink href="/settings/security">Link Discord first</ArrowLink>
+              </p>
+            ) : null}
+
+            {NOTIFICATION_SECTIONS.map((sec) => (
+              <div key={sec.id} className="notif-prefs__section">
+                <h2 className="notif-prefs__title">{sec.label}</h2>
+                <ul className="notif-rows">
+                  {NOTIFICATION_GROUPS.filter((g) => g.section === sec.id).map((g) => (
+                    <li key={g.id} className="notif-row">
+                      <span className="notif-row__words"><b>{g.label}</b><small>{g.helper}</small></span>
+                      <span className="notif-row__ways" role="group" aria-label={`How ${g.label.toLowerCase()} reach you`}>
+                        {WAYS.map((w) => {
+                          const on = !!prefs.channels[g.id]?.[w.kind];
+                          const off = unavailable(w.kind);
+                          return (
+                            <Chip
+                              key={w.kind}
+                              clickable
+                              selected={on && !off}
+                              disabled={off || saving === `${g.id}:${w.kind}`}
+                              onClick={() => void toggle(g.id, w.kind)}
+                              variant={on && !off ? "primary" : "outline"}
+                              icon={<w.icon size={16} stroke={1.8} aria-hidden="true" />}
+                              label={w.label}
+                              aria-label={`${g.label} ${w.how}`}
+                            />
+                          );
+                        })}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </div>
+            <p className="notif-prefs__note">Account and safety notices always come through on site. Everything here also shows in your <Link href="/comms">Comms Center</Link> while On site is on.</p>
+          </>
         )}
-      </div>
+      </section>
 
       <PhoneSmsCard />
 
-      <div className="account-card notif-prefs">
-        <h3 className="notif-prefs__title">Email</h3>
+      <section className="notif-prefs" aria-labelledby="notif-news">
+        <h2 id="notif-news" className="notif-prefs__title">From GameShuffle</h2>
         <p className="notif-prefs__sub">
           {prefs?.emailAddress ? <>Sent to {prefs.emailAddress}. </> : null}
           Emails about your account, billing and security always send.
         </p>
         {!prefs ? <LoadingLines lines={3} label="Loading email settings" /> : !prefs.email ? (
-          <p className="notif-prefs__sub">Add an email address to your account to choose emails.</p>
+          <p className="notif-prefs__sub">Add an email address to your account to choose these.</p>
         ) : (
-          <div className="notif-prefs__list">
-            {ALL_EMAIL_CATEGORIES.map((c) => (
-              <Switch
-                key={c}
-                checked={!!prefs.email?.[c]}
-                disabled={saving === `e:${c}`}
-                onChange={(e) => void toggleEmail(c, e.target.checked)}
-                label={EMAIL_CATEGORY_LABELS[c]}
-                helperText={EMAIL_CATEGORY_DESCRIPTIONS[c]}
-              />
-            ))}
-          </div>
+          <ul className="notif-rows">
+            {ALL_EMAIL_CATEGORIES.map((c) => {
+              const on = !!prefs.email?.[c];
+              return (
+                <li key={c} className="notif-row">
+                  <span className="notif-row__words"><b>{EMAIL_CATEGORY_LABELS[c]}</b><small>{EMAIL_CATEGORY_DESCRIPTIONS[c]}</small></span>
+                  <span className="notif-row__ways">
+                    <Chip
+                      clickable
+                      selected={on}
+                      disabled={saving === `news:${c}`}
+                      onClick={() => void toggleNews(c)}
+                      variant={on ? "primary" : "outline"}
+                      icon={<IconMail size={16} stroke={1.8} aria-hidden="true" />}
+                      label="Email"
+                      aria-label={`${EMAIL_CATEGORY_LABELS[c]} by email`}
+                    />
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         )}
-      </div>
+      </section>
     </>
   );
 }

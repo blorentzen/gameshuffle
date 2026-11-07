@@ -20,6 +20,7 @@ import { PROFILE_ACCENTS } from "@/lib/profile/accents";
 import { isMmrGame, splitDivision, type MmrGame, DEFAULT_MMR_GAME } from "./rules";
 import { DEFAULT_INFO, cleanInfo, freeInfo, proPiecesUsed, type MmrInfo } from "./pieces";
 import { DEFAULT_ROLLING, cleanRolling, freeRolling, proRollingUsed, type MmrRolling } from "./rolling";
+import { DEFAULT_PROFILE_SHOW, cleanProfileShow, type MmrProfileShow } from "./profileCard";
 
 export type MmrLayout = "deck" | "panel" | "strip" | "sticker" | "rolling";
 export type MmrSurface = "dark" | "light" | "glass";
@@ -82,6 +83,8 @@ export interface MmrLook {
   info: MmrInfo;
   /** The Rolling layout's shape, name and emblem, motion, time per slide and progress mark (rolling.ts). */
   rolling: MmrRolling;
+  /** What the profile version of the card shows under the number (profileCard.ts; free). */
+  profile: MmrProfileShow;
 }
 
 export const DEFAULT_LOOK: MmrLook = {
@@ -110,6 +113,7 @@ export const DEFAULT_LOOK: MmrLook = {
   number: "roll",
   info: DEFAULT_INFO,
   rolling: DEFAULT_ROLLING,
+  profile: DEFAULT_PROFILE_SHOW,
 };
 
 export const MAX_LOOKS = { free: 1, pro: 10 } as const;
@@ -226,6 +230,7 @@ export function cleanLook(raw: unknown, fallbackId = "main"): MmrLook {
     // A look saved before the pieces had switches has `show` instead: it keeps exactly what its layout showed.
     info: cleanInfo(r.info, r.show, layout),
     rolling: cleanRolling(r.rolling),
+    profile: cleanProfileShow(r.profile),
   };
 }
 

@@ -303,7 +303,7 @@ export function DailyDuel() {
       guestId={boards.guestId ?? storedGuestId()}
       refresh={boardRefresh + boards.refresh}
       onViews={onViews}
-      join={guestOff && officialOver ? <DailyBoardJoin onJoin={joinBoard} onJoined={() => setBoardRefresh((n) => n + 1)} tokens={0} /> : undefined}
+      join={guestOff && officialOver ? <DailyBoardJoin onJoin={joinBoard} onJoined={() => setBoardRefresh((n) => n + 1)} tokens={0} back="/daily-duel" /> : undefined}
     />
   );
 

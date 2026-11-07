@@ -3,8 +3,9 @@
 /** Confirm (or check again) the signed-in account's lounge names by its Discord account. */
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@empac/cascadeds";
+import { Alert, Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 
@@ -12,12 +13,15 @@ export function LoungeConfirm({ again = false }: { again?: boolean }) {
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  // No Discord linked: say where to link it, with the link, beside the button (a toast vanished before anyone could act on it).
+  const [needDiscord, setNeedDiscord] = useState(false);
   const go = async () => {
     setBusy(true);
+    setNeedDiscord(false);
     try {
       const res = await fetch("/api/lounge/confirm", { method: "POST" });
       const j = (await res.json().catch(() => ({}))) as { links?: unknown[]; error?: string };
-      if (j.error === "no_discord") toast.warning("Link your Discord account first, in Settings ▸ Sign-in & security.");
+      if (j.error === "no_discord") setNeedDiscord(true);
       else if (j.error === "slow_down") toast.warning("Give it a minute before checking again.");
       else if (j.error === "unavailable") toast.warning("MKCentral didn't answer for every game. Try again in a minute.");
       else if (!res.ok) toast.error("Couldn't check right now. Try again in a minute.");
@@ -26,5 +30,15 @@ export function LoungeConfirm({ again = false }: { again?: boolean }) {
       router.refresh();
     } finally { setBusy(false); }
   };
-  return <Button variant={again ? "secondary" : "primary"} size={again ? "small" : "medium"} loading={busy} onClick={go}>{again ? "Check again" : "Confirm with Discord"}</Button>;
+  return (
+    <>
+      <Button variant={again ? "secondary" : "primary"} size={again ? "small" : "medium"} loading={busy} onClick={go}>{again ? "Check again" : "Confirm with Discord"}</Button>
+      {needDiscord && (
+        <Alert variant="warning" className="lounge-confirm__alert" onClose={() => setNeedDiscord(false)}>
+          Confirming uses your Discord account, and this account doesn&apos;t have one linked yet.{" "}
+          <Link href="/account?tab=security">Link Discord in Settings ▸ Sign-in &amp; security</Link>, then come back here.
+        </Alert>
+      )}
+    </>
+  );
 }

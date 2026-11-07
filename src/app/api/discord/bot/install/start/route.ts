@@ -74,7 +74,8 @@ export async function GET(request: Request) {
     // Not signed in → bounce to login with a return-to so the user
     // lands back on Account → Integrations after auth.
     const loginUrl = new URL(`${appBaseUrl()}/login`);
-    loginUrl.searchParams.set("redirect", "/account/streaming?tab=discord");
+    // Back through /discord/add after signing in, which starts the install itself (any plan).
+    loginUrl.searchParams.set("redirect", "/discord/add");
     return NextResponse.redirect(loginUrl);
   }
 
@@ -85,8 +86,9 @@ export async function GET(request: Request) {
   // At the plan's server limit (per app): say so here rather than after Discord's consent screen.
   const [servers, isPro] = await Promise.all([comp ? listAppGuilds(user.id, "comp") : listGuilds(user.id), isProUser(user.id)]);
   if (servers.filter((g) => !g.removedAt).length >= serverLimit(isPro)) {
-    const url = new URL(`${appBaseUrl()}/account/streaming`);
-    url.searchParams.set("tab", comp ? "discord-bot" : "discord");
+    // Account ▸ Discord ▸ Servers: every account has it, and both apps' server lists show the error there.
+    const url = new URL(`${appBaseUrl()}/account/discord`);
+    url.searchParams.set("tab", "discord");
     if (comp) url.searchParams.set("app", "comp");
     url.searchParams.set("discord_install_error", "server_limit");
     return NextResponse.redirect(url);

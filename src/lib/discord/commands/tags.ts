@@ -13,6 +13,7 @@
 import { createServiceClient } from "@/lib/supabase/admin";
 import { callerFrom, canManageGuild, guildOwner } from "../guildOwner";
 import { channelMessage, ephemeralMessage } from "../respond";
+import { TAG_CONTENT_MAX, TAG_NAME, TAG_NAME_RULE, tidyTagName } from "../tagRules";
 
 interface SubOption {
   name: string;
@@ -63,7 +64,7 @@ export async function handleGsTag(interaction: Record<string, unknown>): Promise
   if (!canManageGuild(interaction)) {
     return ephemeralMessage("Only members who can manage the server can edit tags.");
   }
-  const tag = opt("name").toLowerCase();
+  const tag = tidyTagName(opt("name"));
   if (!tag) return ephemeralMessage("Give a tag name.");
 
   if (subName === "delete") {
@@ -71,7 +72,8 @@ export async function handleGsTag(interaction: Record<string, unknown>): Promise
     return ephemeralMessage(`🗑️ Deleted tag \`${tag}\`.`);
   }
 
-  const content = opt("content");
+  if (!TAG_NAME.test(tag)) return ephemeralMessage(TAG_NAME_RULE);
+  const content = opt("content").slice(0, TAG_CONTENT_MAX);
   if (!content) return ephemeralMessage("Give the tag content.");
   const caller = callerFrom(interaction);
   const { error } = await admin.from("discord_tags").upsert(

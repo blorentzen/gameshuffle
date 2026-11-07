@@ -14,8 +14,15 @@ import { BackingPair } from "@/components/support/BackingPair";
 import { CounterTool } from "@/components/tcg/rules/CounterTool";
 import { WelcomeDemo, type WelcomeDemoId } from "@/components/welcome/WelcomeDemo";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { randomizerCatalog } from "@/data/randomizer-catalog";
 import { welcomeNumbers } from "@/lib/welcome/numbers";
 import { welcomeViewer } from "@/lib/welcome/viewer";
+import { firstStepsFor, interestState } from "@/lib/interests/store";
+import { personaPreview } from "@/lib/preview/server";
+import { InterestWelcome } from "@/components/interests/InterestPicker";
+import { BroughtByCard } from "@/components/social/BroughtByCard";
+import { bandFor } from "@/lib/home/happening";
+import { createClient } from "@/lib/supabase/server";
 import "@/styles/welcome.css";
 
 /**
@@ -30,7 +37,10 @@ import "@/styles/welcome.css";
 export const dynamic = "force-dynamic";
 
 const TITLE = "What is GameShuffle? Free game night tools, daily puzzles and more";
-const DESCRIPTION = "GameShuffle is a free site for game nights: randomizers for 17 games, daily puzzles, tournaments, trivia nights, party games and tools for streamers.";
+/** The same count as /randomizers, so the two pages never disagree. */
+const RANDOMIZER_COUNT = randomizerCatalog().reduce((n, g) => n + g.entries.length, 0);
+
+const DESCRIPTION = `GameShuffle is a free site for game nights: ${RANDOMIZER_COUNT} randomizers, daily puzzles, tournaments, trivia nights, party games and tools for streamers.`;
 
 export const metadata: Metadata = {
   title: { absolute: TITLE },
@@ -58,23 +68,23 @@ interface Path {
 const PATHS: Path[] = [
   {
     id: "today", door: "A quick game today", icon: IconCalendar, tone: "daily",
-    eyebrow: "A quick game today", title: "Three free daily puzzles",
-    line: "A new puzzle every day at midnight Pacific, the same for everyone. A couple of minutes each, with streaks and a daily leaderboard.",
+    eyebrow: "A quick game today", title: "Four free daily games",
+    line: "Each one is new every day at midnight Pacific, the same for everyone. A few minutes each, with streaks and a daily leaderboard.",
     demo: "daily", demoLabel: "Daily Shuffle",
     things: [
-      { icon: IconDeviceGamepad2, text: "The Daily Shuffle: guess today's Nintendo character" },
-      { icon: IconPokeball, text: "The Daily Dex: guess today's Pokémon" },
+      { icon: IconDeviceGamepad2, text: "The Daily Shuffle and the Daily Dex: guess today's Nintendo character or Pokémon" },
       { icon: IconBolt, text: "Fire Round: 60 seconds of trivia" },
+      { icon: IconPokeball, text: "The Daily Duel: knock out today's trainer with six cards" },
     ],
     cta: { label: "Play today's Daily", href: "/daily" },
   },
   {
     id: "home", door: "Game night at home", icon: IconDeviceTv, tone: "home",
     eyebrow: "Game night at home", title: "Let the shuffle decide",
-    line: "Who drives what, which board, which fighter: randomizers for 17 games, plus party games that run on everyone's phones and the TV.",
+    line: `Who drives what, which board, which fighter: ${RANDOMIZER_COUNT} randomizers, plus party games that run on everyone's phones and the TV.`,
     demo: "kart", demoLabel: "Mario Kart randomizer",
     things: [
-      { icon: IconSteeringWheel, text: "Mario Kart, Mario Party, Smash and 14 more randomizers" },
+      { icon: IconSteeringWheel, text: `${RANDOMIZER_COUNT} randomizers: Mario Kart, Mario Party, Smash, Pokémon and more` },
       { icon: IconDeviceTv, text: "Live party nights on phones and the TV" },
       { icon: IconPuzzle, text: "Trivia nights, bingo, the wheel and more free tools" },
     ],
@@ -145,8 +155,9 @@ function Demo({ path }: { path: Path }): ReactNode {
 export default async function WelcomePage({ searchParams }: { searchParams: Promise<{ new?: string; preview?: string }> }) {
   const sp = await searchParams;
   const [found, numbers] = await Promise.all([welcomeViewer().catch(() => null), welcomeNumbers().catch(() => null)]);
-  // Dev only: ?preview=new shows any signed-in account the first steps.
-  const viewer = found && process.env.NODE_ENV === "development" && sp.preview === "new" ? { ...found, isNew: true } : found;
+  // Dev only: ?preview=new shows any signed-in account the first steps. A staff persona preview shows them too.
+  const previewing = !!(await personaPreview());
+  const viewer = found && (previewing || (process.env.NODE_ENV === "development" && sp.preview === "new")) ? { ...found, isNew: true } : found;
   // Sign-up sends everyone here; an older account that signed in from the sign-up page goes on as before.
   if (sp.new === "1" && viewer && !viewer.isNew) redirect("/account");
   const stats = [
@@ -154,11 +165,15 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
     numbers?.tournamentsRunning ? `${numbers.tournamentsRunning} ${numbers.tournamentsRunning === 1 ? "tournament" : "tournaments"} running now` : null,
     numbers?.nightsThisWeek ? `${numbers.nightsThisWeek} game nights this week` : null,
   ].filter((s): s is string => !!s);
-  const steps = viewer?.isNew ? [
-    { done: viewer.steps.games, label: "Pick the games you play", href: "/account?tab=games" },
-    { done: viewer.steps.profile, label: "Add a picture and your gamertags", href: "/account?tab=profile" },
-    { done: viewer.steps.daily, label: "Play today's Daily to start a streak", href: "/daily" },
-  ] : null;
+  // What brings them here (personalization picks 2026-11-05): asked of anyone signed in who hasn't picked, preselected
+  // from what they've done; the first steps follow the picks (or, until then, what their activity suggests).
+  const { data: { user } } = viewer ? await (await createClient()).auth.getUser() : { data: { user: null } };
+  const interests = user ? await interestState(user.id, { provider: (user.app_metadata?.provider as string | undefined) ?? null }).catch(() => null) : null;
+  // The sign-up question previews what's happening in the worlds ticked (room air + discovery picks, 6A).
+  const band = interests && interests.interests === null ? await bandFor(null).catch(() => []) : [];
+  const steps = viewer?.isNew && user
+    ? await firstStepsFor(user.id, interests?.interests ?? interests?.suggested ?? []).catch(() => null)
+    : null;
 
   return (
     <main className="welcome">
@@ -169,7 +184,8 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         accent="blue"
         field="mixed"
         actions={<p className="welcome-hero__free"><IconCheck size={18} stroke={2.25} aria-hidden="true" /> {viewer ? "Free, with no ads." : "Free, no ads, no account needed to start."}</p>}
-        aside={
+        // Someone answering "What brings you here?" below doesn't need the same question as doors up here.
+        aside={interests && interests.interests === null ? undefined :
           <nav className="welcome-doors" aria-labelledby="welcome-doors-title">
             <h2 id="welcome-doors-title" className="welcome-doors__title">What brings you here?</h2>
             <ul className="welcome-doors__grid">
@@ -186,12 +202,16 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         }
       />
       <Container className="welcome__body">
+        {/* Whose link brought a new account here, with Follow (bring-along picks 2026-11-05). */}
+        {viewer?.isNew && <BroughtByCard />}
+        {interests && interests.interests === null && <InterestWelcome suggested={interests.suggested} band={band} />}
+
         {steps && (
           <section className="welcome-steps" aria-labelledby="welcome-steps-title">
-            <h2 id="welcome-steps-title">Three first steps</h2>
+            <h2 id="welcome-steps-title">Your first steps</h2>
             <ol className="welcome-steps__list">
               {steps.map((s, i) => (
-                <li key={s.label} className={s.done ? "is-done" : undefined}>
+                <li key={s.id} className={s.done ? "is-done" : undefined}>
                   <span className="welcome-steps__num" aria-hidden="true">{s.done ? <IconCheck size={14} stroke={3} /> : i + 1}</span>
                   <Link href={s.href}>{s.label}</Link>
                   {s.done && <span className="sr-only"> (done)</span>}

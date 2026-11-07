@@ -21,5 +21,5 @@ export function LivePresenceDot({
 }) {
   const online = useUserPresence(userId, fallback);
   if (!online) return null;
-  return <span className={className} title={label} aria-label={label} />;
+  return <span className={className} title={label} role="img" aria-label={label} />;
 }

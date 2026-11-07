@@ -43,6 +43,7 @@ import {
 } from "@/lib/mmr/look";
 import { LAYOUT_SPOTS, pieceDef, trimToRoom, type MmrPiece } from "@/lib/mmr/pieces";
 import { applyStart, type MmrStartId } from "@/lib/mmr/starts";
+import { PROFILE_SHOW_CHOICES, profileLook, profileRows } from "@/lib/mmr/profileCard";
 import { MMR_GAMES, MMR_GAME_IDS, demoSource, fmtMmr, sourceKey, viewOf, type MmrGame, type MmrSource } from "@/lib/mmr/rules";
 import { cleanGoal, goalProgress, goalText, GOAL_MAX } from "@/lib/mmr/goal";
 import { nightFor } from "@/lib/lounge/night";
@@ -155,6 +156,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
   const [mode, setMode] = useMakeMode();
   const [picSize, setPicSize] = useState<PictureSize>("square");
   const picture = mode === "picture";
+  const onProfileTab = tab === "profile" && !picture && !guest;
   const [lineWarn, setLineWarn] = useState(false);
   // The preview's shape, for the OBS size (pieces and recent events change a card's height).
   const previewRef = useRef<HTMLDivElement>(null);
@@ -754,6 +756,15 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
               <MmrPictureMaker lookId={look.id} version={card?.updatedAt ?? null} name={found.source.name} size={picSize} onSize={setPicSize} />
             )
           ) : (<>
+          {onProfileTab ? (
+            <div className="mmr-studio__stage mmr-studio__stage--profile">
+              <div className="mmr-studio__profile" role="region" aria-label="Preview of your card on your profile">
+                <MmrCard view={preview.view} look={profileLook(previewLook)}
+                  profile={{ title: "Rank", titleId: "mmr-prof-preview", rows: profileRows(preview.view, look.profile, null), links: [], last10: look.profile.last10 }} />
+              </div>
+              <p className="mmr-studio__note">{showOnProfile ? "How it looks in the side column of your profile, next to your top friends." : "Your card is off your profile. Switch it on to show it there."}</p>
+            </div>
+          ) : (<>
           <div className="mmr-studio__stage">
             <div className="mmr-frame" tabIndex={0} role="region" aria-label="Preview of your MMR card" ref={previewRef}>
               <MmrCard view={preview.view} look={previewLook} play={preview.play} goal={activeGoal} chat={chat} />
@@ -775,6 +786,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
           </div>
           {!found && <p className="mmr-studio__note">{look.ladder ? "The preview plays a made-up night until your ladder answers." : "The preview plays a made-up night until your lounge name is found."}</p>}
           </>)}
+          </>)}
           {!looksOk && (usedPro.length > 0 || then === "pro" || then === "supporter" || then === "backer") && (
             <KeepLooksPanel used={usedPro} guest={guest} autoPlan={guest ? null : then} beforeLeave={keepDraft} />
           )}
@@ -790,6 +802,23 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
               { id: "look", label: "Look", content: <div className="mmr-studio__pane">{lookChoices}</div> },
               { id: "info", label: "What's on the card", content: <div className="mmr-studio__pane"><MmrWhatsOn look={look} pro={pro} chat={chat} lineWarn={lineWarn} goalSlot={goalSlot} onInfo={(info) => setLook({ info })} onLook={setLook} /></div> },
               ...(picture ? [] : [{ id: "moments", label: "Moments", content: <div className="mmr-studio__pane"><MmrMoments look={look} pro={pro} onLook={setLook} /></div> }]),
+              ...(picture || guest ? [] : [{ id: "profile", label: "Profile", content: (
+                <div className="mmr-studio__pane">
+                  <div className="mmr-studio__item">
+                    <Switch label="Show my card on my GameShuffle profile" checked={showOnProfile} onChange={(e) => setShowOnProfile(e.target.checked)} />
+                    <p className="mmr-studio__note">Your number and division in this look, with what you pick below.</p>
+                  </div>
+                  <div className="mmr-studio__item" role="group" aria-labelledby="mmr-prof-under">
+                    <h3 id="mmr-prof-under" className="mmr-studio__sub">Under the number</h3>
+                    <div className="mmr-studio__checks">
+                      {PROFILE_SHOW_CHOICES.map((c) => (
+                        <Switch key={c.id} label={c.label} helperText={c.note} disabled={!showOnProfile} checked={look.profile[c.id]}
+                          onChange={(e) => setLook({ profile: { ...look.profile, [c.id]: e.target.checked } })} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) }]),
             ]}
           />
         </div>
@@ -860,10 +889,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
                 </div>
               </div>
             )}
-            <div className="mmr-studio__item">
-              <Switch label="Show my card on my GameShuffle profile" checked={showOnProfile} onChange={(e) => setShowOnProfile(e.target.checked)} />
-              {status === "error" && <span className="mmr-studio__note mmr-studio__note--warn">Couldn&rsquo;t save the last change. It tries again on your next one.</span>}
-            </div>
+            {status === "error" && <p className="mmr-studio__note mmr-studio__note--warn">Couldn&rsquo;t save the last change. It tries again on your next one.</p>}
           </section>
         </div>
       )}

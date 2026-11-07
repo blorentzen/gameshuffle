@@ -50,9 +50,12 @@ export default function SignupPage() {
    * read, not a cascading render.
    */
   const [ctx, setCtx] = useState<AuthContext>(() => authContextFor(null, "signup"));
+  // "Already have an account? Log in" keeps the way back too (read after mount, like ctx).
+  const [loginHref, setLoginHref] = useState("/login");
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCtx(authContextFor(new URLSearchParams(window.location.search).get("redirect"), "signup"));
+    setLoginHref(`/login${postAuthRedirectSuffix()}`);
   }, []);
 
   const { trackEvent } = useAnalytics();
@@ -342,7 +345,7 @@ export default function SignupPage() {
 
               <p className="auth-page__switch">
                 Already have an account?{" "}
-                <a href="/login">Log in</a>
+                <a href={loginHref}>Log in</a>
               </p>
             </form>
           )}

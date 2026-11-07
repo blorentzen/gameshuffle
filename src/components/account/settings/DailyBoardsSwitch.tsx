@@ -42,7 +42,7 @@ export function DailyBoardsSwitch() {
         disabled={busy}
         onChange={(e) => void save({ hidden: !e.target.checked })}
         label="Show me on the Daily leaderboards"
-        helperText="Your name and points on the Daily Shuffle and Daily Dex boards. Off, your games still count for your streak and earn tokens."
+        helperText="Your name and points on the Daily Shuffle, Daily Dex, Fire Round and Daily Duel boards. Off, your games still count for your streak and earn tokens."
       />
       {state.video != null && !state.hidden && (
         <Switch

@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@empac/cascadeds";
 import { CardImage } from "@/components/tcg/CardImage";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
@@ -20,6 +21,7 @@ import { ArrowLink } from "@/components/ui/ArrowLink";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, tagged, track } from "@/lib/analytics/events";
 import { TCG_SHOP_URL } from "@/data/shop";
+import { TCG_MY_CARDS_HREF } from "@/data/tcg-hub";
 import type { TcgCardImages } from "@/lib/scrydex/types";
 
 interface ShowcaseCard { id: string; name: string; set: string | null; number: string | null; rarity: string | null; images: TcgCardImages | null }
@@ -31,6 +33,7 @@ interface ShowcaseCard { id: string; name: string; set: string | null; number: s
  */
 export function DexCardOfDay({ dex, signedIn, credits = true, onCard }: { dex: number; signedIn: boolean; credits?: boolean; onCard?: (has: boolean) => void }) {
   const toast = useToast();
+  const router = useRouter();
   const [card, setCard] = useState<ShowcaseCard | null>(null);
   const [added, setAdded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -55,7 +58,8 @@ export function DexCardOfDay({ dex, signedIn, credits = true, onCard }: { dex: n
     if (d?.ok) {
       setAdded(true);
       track(EVENTS.cardCollected, { from: "daily-dex" });
-      toast.success("Added to My Cards");
+      // Say where it went, with the way there (My Stuff ▸ My Collection ▸ Cards).
+      toast.success("Added to My Cards, in Account ▸ Pokémon.", { action: { label: "Open My Cards", onClick: () => router.push(TCG_MY_CARDS_HREF) } });
     } else if (d?.code === "collection_full") {
       toast.error(`My Cards holds ${d.limit ?? 250} different cards on a free account. GS Pro has no limit.`);
     } else {

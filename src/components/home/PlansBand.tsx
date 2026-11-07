@@ -66,7 +66,7 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere, 
           <p className="home-plan__price">{circuitPrice}</p>
           <p className="home-plan__text">Fields of 64 or 256, championship seasons, co-organizers, your branding, text reminders and live randomized rounds.</p>
           {circuit
-            ? <Link href="/account/stuff?tab=tournaments"><Button variant="secondary">Manage your events</Button></Link>
+            ? <Link href="/account/events?tab=tournaments"><Button variant="secondary">Manage your events</Button></Link>
             : <Link href="/gs-circuit" className={tagged(EVENTS.homeSectionClicked, { to: "circuit" })}><Button variant="secondary">See GS Circuit</Button></Link>}
         </div>
       </div>

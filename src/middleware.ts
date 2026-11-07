@@ -4,7 +4,7 @@ import { PASSWORD_LATER_COOKIE } from "@/lib/auth/passwordNudge";
 import { ACTIVITY_PATH, isActivityHost, isActivityPath } from "@/lib/activity/hosts";
 import { hasPasswordFrom } from "@/lib/auth/passwordRules";
 
-const PROTECTED_ROUTES = ["/account", "/twitch", "/messages", "/comms"];
+const PROTECTED_ROUTES = ["/account", "/settings", "/host", "/twitch", "/messages", "/comms"];
 /** A protected section and everything under it, by whole path segment: "/twitch" covers
  *  "/twitch/commands" but not the public "/twitch-chat-games" guide. */
 const underProtected = (path: string) => PROTECTED_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));
@@ -125,7 +125,9 @@ export async function middleware(request: NextRequest) {
 
   if (isProtected && !user) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    // The query too, so a deep link (My Stuff ▸ My Cards is /account/stuff?tab=my-cards) comes back to its tab
+    // and the login page can say why they're here (auth-context.ts).
+    loginUrl.searchParams.set("redirect", request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 

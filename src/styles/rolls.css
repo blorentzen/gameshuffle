@@ -1,0 +1,55 @@
+/* A roll (src/components/rolls/RollCard.tsx): the first part as the picture, the rest as rows that wrap. */
+.roll-card { display: grid; gap: var(--spacing-12); min-width: 0; }
+.roll-card__body { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: var(--spacing-20); align-items: start; }
+.roll-card__lead { width: 14rem; aspect-ratio: 1; border-radius: 1.4rem; background: var(--background-secondary, #f2f4fa); padding: var(--spacing-8); }
+.roll-card__lead.roll-art--art { background: radial-gradient(90% 90% at 50% 30%, #ffffff, #e9edf7); }
+.roll-card__info { display: grid; gap: var(--spacing-4); min-width: 0; align-content: start; }
+.roll-card__title { font-size: var(--font-size-14); font-weight: 700; color: var(--text-secondary); }
+.roll-card__label { display: block; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
+.roll-card__name { font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 800; line-height: 1.15; color: var(--text-primary); overflow-wrap: anywhere; }
+.roll-card__detail { font-size: var(--font-size-14); color: var(--text-secondary); }
+.roll-card__parts { list-style: none; margin: var(--spacing-12) 0 0; padding: 0; display: grid; }
+.roll-card__parts li { display: grid; grid-template-columns: 4.8rem minmax(0, 1fr); gap: var(--spacing-12); align-items: center; padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle); }
+.roll-card__parts li b { display: block; font-size: var(--font-size-16); color: var(--text-primary); overflow-wrap: anywhere; }
+.roll-card__thumb { width: 4.8rem; height: 4.8rem; border-radius: 1rem; background: var(--background-secondary, #f2f4fa); padding: var(--spacing-4); }
+@media (max-width: 599px) {
+  .roll-card__body { grid-template-columns: 10rem minmax(0, 1fr); gap: var(--spacing-16); }
+  .roll-card__lead { width: 10rem; }
+  .roll-card__name { font-size: var(--font-size-20); }
+}
+/* The carousel card: a smaller picture and the other parts as one line of words. */
+.roll-card--compact .roll-card__body { grid-template-columns: 8.8rem minmax(0, 1fr); gap: var(--spacing-16); }
+.roll-card--compact .roll-card__lead { width: 8.8rem; }
+.roll-card--compact .roll-card__name { font-size: var(--font-size-18); }
+.roll-card__line { margin: var(--spacing-4) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); overflow-wrap: anywhere; }
+
+/* In a post: the roll under the post's words. */
+.post-card__roll { margin: var(--spacing-12) 0; }
+
+/* Rolling now (src/components/rolls/RollingNow.tsx): each roll a card you can open, who rolled it on top. */
+.rolling-now { min-width: 0; }
+.rolling-item {
+  display: grid; gap: var(--spacing-12); height: 100%; padding: var(--spacing-20); border-radius: 1.4rem;
+  background: var(--background-secondary, #f4f5fa); color: inherit; text-decoration: none;
+}
+.rolling-item:hover .roll-card__name, .rolling-item:focus-visible .roll-card__name { text-decoration: underline; text-underline-offset: 3px; }
+.rolling-item__who { display: flex; align-items: center; gap: var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.35; }
+.rolling-item__who b { color: var(--text-primary); }
+.rolling-item__who > :first-child { flex: none; border-radius: 50%; overflow: hidden; }
+.rolling-item__when { display: block; }
+.rolling-item__blank { display: grid; place-items: center; width: 3.6rem; height: 3.6rem; border-radius: 50%; background: var(--background-elevated, #fff); font-weight: 700; color: var(--text-secondary); }
+.rolling-item__foot { font-size: var(--font-size-14); color: var(--text-secondary); }
+.rolling-item .roll-card__lead.roll-art--art { background: radial-gradient(90% 90% at 50% 30%, #ffffff, #e2e7f3); }
+
+/* The Rolls tab's Roll for me. */
+.space-roll__full { font-size: var(--font-size-14); }
+/* A roll keeps a reading width on wide screens: its part rows don't run across the whole page. */
+.space-roll .roll-card, .post-card__roll .roll-card { max-width: 64rem; }
+
+/* A setup roll: the board or stage picture wide across the top (those pictures are landscape), the parts under it. */
+.roll-card--wide .roll-card__body { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-16); }
+.roll-card--wide .roll-card__lead { width: 100%; max-width: 48rem; aspect-ratio: 16 / 9; padding: 0; overflow: hidden; }
+.roll-card--wide .roll-card__lead img { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; }
+.roll-card--wide.roll-card--compact .roll-card__lead { max-width: none; aspect-ratio: 2 / 1; }
+/* A part that's only words: an icon for what it is, on the part's own color. */
+.roll-card__icon { display: grid; place-items: center; color: #fff; background: var(--part, #4b5576); padding: 0; }

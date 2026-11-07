@@ -37,6 +37,14 @@ export const EVENTS = {
 
   /** A homepage section's card or button (Run the night, Pokémon, the plans band). {to} */
   homeSectionClicked: "Home Section Clicked",
+  /** A Your games card on /home opened its game space ({ to: space id }). */
+  homeGameClicked: "Home Game Clicked",
+  /** The phone app bar ({ tab: home | games | create | inbox | you }; create's choices as { tab: "create", to }). */
+  appBarUsed: "App Bar Used",
+  /** The game band under a search page's tool ({ to: open | join | pro | circuit, space, from }). */
+  gameBandClicked: "Game Band Clicked",
+  /** The game space sign-up sheet sent someone to sign up ({ from: space-sheet-join | space-sheet-checkin, provider }). */
+  signupStarted: "Signup Started",
 
   // Support GameShuffle (/support)
   /** A quiet "help keep it free" link or the footer link. {from} */

@@ -27,17 +27,20 @@ export function PlatformIcon({
   platform,
   size = 16,
   dim = true,
+  decorative = false,
 }: {
   platform: string;
   size?: number;
   dim?: boolean;
+  /** The platform's name is written beside it: the picture adds nothing for screen readers. */
+  decorative?: boolean;
 }) {
   const src = PLATFORM_ICONS[platform];
   if (src) {
     return (
       <img
         src={src}
-        alt={platform}
+        alt={decorative ? "" : platform}
         className="gs-platform-icon"
         style={{ width: size, height: size, flexShrink: 0, opacity: dim ? 0.6 : 1 }}
       />

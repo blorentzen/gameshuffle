@@ -21,9 +21,12 @@ export default async function CreateNightPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login?redirect=/game-nights/create");
-
   const { template: templateId } = await searchParams;
+  // Signed out: make an account (the sign-up page links to log in), then straight back here, template and all.
+  if (!user) {
+    const back = templateId ? `/game-nights/create?template=${encodeURIComponent(templateId)}` : "/game-nights/create";
+    redirect(`/signup?redirect=${encodeURIComponent(back)}`);
+  }
   const templates = await listTemplates().catch(() => []);
 
   // Prefill from a template (date left blank for the new night).
@@ -35,7 +38,7 @@ export default async function CreateNightPage({
       initial = {
         id: "", host_id: "", title: d.title ?? "", description: d.description ?? null,
         place: d.place ?? null, lat: null, lng: null, starts_at: null, timezone: null,
-        capacity: d.capacity ?? null, visibility: d.visibility ?? "public",
+        capacity: d.capacity ?? null, visibility: d.visibility ?? "unlisted",
         genres: d.genres ?? null, level: (d.level ?? null) as NightLevel | null,
         games: d.games ?? [], status: "scheduled", created_at: "", updated_at: "",
       };

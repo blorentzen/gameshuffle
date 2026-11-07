@@ -3,6 +3,7 @@ import "server-only";
 import { createNotification } from "@/lib/social/notifications";
 import type { GsNotificationType } from "@/lib/social/notificationTypes";
 import { sendSms } from "@/lib/sms/send";
+import { emailAllowed } from "@/lib/social/notifyChannels";
 import { smsConfigured } from "@/lib/sms/client";
 import type { SmsCategory } from "@/lib/sms/consent";
 
@@ -48,7 +49,8 @@ export async function deliver(r: Recipient, d: Delivery): Promise<DeliveryResult
   if (d.inApp && r.userId) {
     await createNotification({ userId: r.userId, ...d.inApp }).then(() => { out.inApp = true; }).catch(() => {});
   }
-  if (d.email && r.email) {
+  // An account's Email column for this kind of news decides (Settings ▸ Notifications); guests have only email.
+  if (d.email && r.email && (!r.userId || !d.inApp || await emailAllowed(r.userId, d.inApp.type).catch(() => true))) {
     await d.email(r).then((res) => { out.email = !!res.ok; }).catch(() => {});
   }
   if (d.sms && r.userId) {

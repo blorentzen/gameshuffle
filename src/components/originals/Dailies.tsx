@@ -242,7 +242,8 @@ export function DailiesNextButton({ current, onPick }: { current: DailiesId; onP
   const { shown, entries } = useDailies(current);
   const next = nextUp(entries, shown, current);
   if (!next) {
-    if (shown.length < 2) return null;
+    // On the site, DailiesAfter says it (with what's next); the Discord Activity (onPick) keeps the line.
+    if (shown.length < 2 || !onPick) return null;
     return <p className="party-muted dailies-next__done">That&apos;s every daily for today. New puzzles at midnight Pacific.</p>;
   }
   const g = DAILIES[next];

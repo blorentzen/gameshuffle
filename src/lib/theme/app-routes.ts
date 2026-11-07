@@ -15,6 +15,8 @@
  *  matching `/account-something`. */
 export const APP_ROUTE_PREFIXES = [
   "/account",
+  "/settings",
+  "/host",
   "/hub",
   "/twitch",
   "/staff",

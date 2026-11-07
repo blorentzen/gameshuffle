@@ -56,7 +56,7 @@ const LIVE_NOW = withArt(RANDOMIZE_GAMES.map((g) => ({ slug: g.slug, name: g.tit
 const ON_OUR_LIST = withArt(GAME_CATALOG.filter((g) => g.status === "candidate").map((g) => ({ slug: g.slug, name: g.name })));
 
 const GAMES: { icon: IconName; title: string; line: string; href: string }[] = [
-  { icon: "calendar", title: "The Daily", line: "Guess today's character in six. A new puzzle every midnight Pacific.", href: "/daily" },
+  { icon: "calendar", title: "The Daily", line: "Guess today's character in five guesses, plus a last chance. A new puzzle every midnight Pacific.", href: "/daily" },
   { icon: "award", title: "The Weekly", line: "Answer one question and guess the crowd's top three.", href: "/weekly" },
   { icon: "lightbulb", title: "Chat Brain", line: "Quick survey questions that become boards you can play.", href: "/chat-brain" },
 ];

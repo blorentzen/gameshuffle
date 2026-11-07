@@ -3,7 +3,7 @@
  *
  * Closes any open poll whose `closes_at` has passed (the streamer's optional
  * auto-close timer), plus the other every-minute sweeps (Chat Brain windows, breaks, Fire Round, time trial panels,
- * GS Ranked tables that verify on their own and queue rooms, GS Pro gifts that end, team series drafts and predictions). (The Daily Duel's days moved to
+ * GS Ranked tables that verify on their own and queue rooms, GS Pro gifts that end, team series drafts and predictions, time trial events' hour-left reminders). (The Daily Duel's days moved to
  * /api/cron/duel-days.)
  * Runs every minute. Auth: Vercel Cron Bearer CRON_SECRET.
  */
@@ -19,6 +19,7 @@ import { sweepQueues } from "@/lib/ladders/queueStore";
 import { showSweep } from "@/lib/discord/commands/rankedQueue";
 import { sweepProGifts } from "@/lib/billing/proGifts";
 import { sweepSeries } from "@/lib/series/store";
+import { sweepTtEvents } from "@/lib/tournaments/tt/store";
 
 export const runtime = "nodejs";
 
@@ -74,5 +75,10 @@ export async function GET(request: Request) {
     console.error("[cron/polls-sweep] series sweep failed:", err);
     return 0;
   });
-  return NextResponse.json({ ok: true, closed, brainWindows, breaks, fireRuns, ttPanels, rankedAuto, rankedQueue, gifts, series });
+  // Time trial events: an hour before a window closes, a reminder to players still missing a track.
+  const ttEvents = await sweepTtEvents().catch((err) => {
+    console.error("[cron/polls-sweep] time trial event sweep failed:", err);
+    return 0;
+  });
+  return NextResponse.json({ ok: true, closed, brainWindows, breaks, fireRuns, ttPanels, rankedAuto, rankedQueue, gifts, series, ttEvents });
 }

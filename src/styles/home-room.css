@@ -1,0 +1,501 @@
+/* "Your room": the signed-in homepage's top (src/components/home/HomeRoom.tsx, home look picks 2026-11-05). */
+
+/* ── The header: your banner and picture, in your colors (the brand navy when you have none). ── */
+.room-head {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: #fff;
+  /* Your accent (or brand theme) as a glow on the navy, mixed dark enough that white text stays AA on it. */
+  background:
+    radial-gradient(90% 130% at 0% 0%, color-mix(in srgb, var(--profile-accent, var(--brand-primary, #2766ec)) 40%, transparent) 0%, transparent 72%),
+    radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%);
+  padding-bottom: 4.8rem;
+}
+.room-head__banner { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
+.room-head--banner::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(11, 13, 20, 0.62) 0%, rgba(11, 13, 20, 0.84) 66%, rgba(11, 13, 20, 0.95) 100%);
+}
+.room-head__inner { display: grid; gap: var(--spacing-24); padding-top: calc(64px + var(--spacing-32)); }
+.room-head__who { display: flex; align-items: center; gap: var(--spacing-20); min-width: 0; }
+.room-head__avatar {
+  flex: none; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35); background: #fff; overflow: hidden;
+}
+.room-head__text { display: grid; gap: var(--spacing-4); min-width: 0; }
+.room-head__text h1 {
+  margin: 0; color: #fff; font-family: var(--font-display); font-weight: 800;
+  font-size: var(--font-size-40, 4rem); line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere;
+}
+.room-head__showing { color: rgba(255, 255, 255, 0.88); font-size: var(--font-size-16); }
+/* Your status line, the same pill your profile's header wears (bring-along 8A). */
+.room-head__status {
+  display: inline-flex; align-items: center; gap: var(--spacing-8); justify-self: start; max-width: 100%;
+  margin: var(--spacing-4) 0; padding: var(--spacing-6, 0.6rem) var(--spacing-14, 1.4rem);
+  border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.26); background: rgba(255, 255, 255, 0.12);
+  color: #fff; font-size: var(--font-size-16); line-height: 1.35;
+}
+.room-head__status svg { flex: none; }
+@media (max-width: 640px) {
+  .room-head { padding-bottom: 3.2rem; }
+  .room-head__inner { padding-top: calc(64px + var(--spacing-16)); gap: var(--spacing-12); }
+  .room-head__who { gap: var(--spacing-12); }
+  .room-head__avatar { width: 56px !important; height: 56px !important; }
+  .room-head__text h1 { font-size: var(--font-size-26, 2.6rem); }
+}
+
+/* ── The room: overlaps the header's foot, then the tiles. ── */
+/* More air (picks 2026-11-05): 32px between cards, 28px inside them, nothing over the header's edge. */
+.room { position: relative; z-index: 2; display: grid; gap: var(--spacing-48, 4.8rem); padding-top: var(--spacing-40, 4rem); }
+.room-grid { display: grid; gap: var(--spacing-32); grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: stretch; }
+.room-tile {
+  grid-column: span var(--span, 12);
+  position: relative; min-width: 0;
+  display: flex; flex-direction: column; gap: var(--spacing-20);
+  padding: var(--spacing-28, 2.8rem);
+  border-radius: 1.6rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--background-primary, #fff);
+  box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08);
+}
+@media (max-width: 899px) {
+  .room-grid { gap: var(--spacing-24); }
+  .room-tile { padding: var(--spacing-20); }
+  .room-tile { grid-column: 1 / -1; }
+}
+/* ── The room's two zones (context + rooms picks 2026-11-05, 4A): your things in 8 columns, your people in a rail of
+   4 that stays put. Today leads your things; the tiles fill the rest on their own 12 columns. One column under 1200px,
+   your people right after Today (the order in the page, so focus follows what you see). ── */
+.room-zones { display: grid; gap: var(--spacing-32); grid-template-columns: minmax(0, 1fr); align-items: start; }
+.room-zone { display: grid; gap: var(--spacing-32); min-width: 0; align-content: start; }
+.room-zone--today, .room-rail { grid-template-columns: minmax(0, 1fr); }
+.room-rail { display: grid; gap: var(--spacing-32); min-width: 0; align-content: start; }
+.room-rail__block { gap: var(--spacing-16); padding: var(--spacing-24); }
+/* Blocks in a zone or the rail are .room-tiles, which span the tile grid's 12 columns: here they take the zone's own. */
+.room-zone--today > *, .room-rail > * { grid-column: auto; }
+/* The crew block's first part sits right under its heading: no line above it. */
+.room-rail__crew > .room-invite { padding-top: 0; border-top: 0; }
+@media (min-width: 768px) and (max-width: 1199px) {
+  /* Tablets and small laptops: your people and today's board side by side (one height), your crew across. */
+  .room-rail { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  .room-rail[data-blocks="1"] > *, .room-rail[data-blocks="3"] > .room-rail__crew { grid-column: 1 / -1; }
+}
+@media (min-width: 1200px) {
+  .room-zones { grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: auto 1fr; }
+  .room-zone--today { grid-column: 1 / span 8; grid-row: 1; }
+  .room-zone--main { grid-column: 1 / span 8; grid-row: 2; }
+  .room-rail {
+    grid-column: 9 / span 4; grid-row: 1 / span 2; align-self: start;
+    position: sticky; top: calc(var(--gs-nav-offset, 64px) + var(--spacing-16));
+    transition: var(--gs-nav-slide);
+  }
+  /* Taller than the window: it scrolls with the page until its foot shows, then stays (StickyRail sets the top). */
+  .room-rail[data-tall] { top: var(--rail-top, 16px); transition: none; }
+}
+@media (max-width: 899px) {
+  .room-zones, .room-zone, .room-rail { gap: var(--spacing-24); }
+  .room-rail__block { padding: var(--spacing-20); }
+}
+
+.room-tile__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8) var(--spacing-12); }
+.room-tile__head h2 { margin: 0; font-size: var(--font-size-20); font-family: var(--font-display); font-weight: 800; }
+.room-tile__more { margin-left: auto; font-size: var(--font-size-14); }
+.room-tile__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-15, 1.5rem); }
+.room-kicker { margin: 0; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); }
+.room-btn {
+  display: inline-flex; align-items: center; justify-self: start; align-self: flex-start;
+  min-height: 36px; padding: var(--spacing-6, 0.6rem) var(--spacing-14, 1.4rem);
+  border-radius: var(--radius-8, 8px); background: var(--brand-ink, var(--primary-600)); color: #fff;
+  font-size: var(--font-size-14); font-weight: 700; text-decoration: none; white-space: nowrap;
+}
+.room-btn--ghost { background: transparent; color: var(--brand-ink, var(--primary-600)); border: 1px solid var(--border-default); }
+.room-btn--light { background: #fff; color: #161a2e; }
+.room-btn--light:hover { background: #eef1ff; }
+.room-links { list-style: none; margin: 0; margin-top: auto; padding: var(--spacing-12) 0 0; border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-20); font-size: var(--font-size-15, 1.5rem); }
+.room-links a { font-weight: 600; }
+.room-link-word { font-weight: 700; color: var(--brand-ink, var(--primary-600)); }
+
+/* Big numbers at a glance. */
+.room-nums { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-32); margin: 0; }
+.room-nums div { display: grid; gap: var(--spacing-2, 0.2rem); }
+.room-nums dt { order: 2; font-size: var(--font-size-14); color: var(--text-secondary); }
+.room-nums dd { order: 1; margin: 0; font-family: var(--font-display); font-size: var(--font-size-32, 3.2rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* ── Since you were here: one line, over the header's foot. ── */
+.room-since {
+  display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-14, 1.4rem) var(--spacing-16);
+  border-radius: 1.4rem; border: 1px solid var(--border-subtle); background: var(--background-primary, #fff);
+  box-shadow: 0 10px 28px rgba(20, 26, 58, 0.1); position: relative;
+}
+.room-since__text { display: grid; gap: var(--spacing-2, 0.2rem); flex: 1; min-width: 0; }
+.room-since__title { color: var(--text-primary); font-weight: 700; font-size: var(--font-size-16); text-decoration: none; }
+.room-since__title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.room-since__title:hover { text-decoration: underline; }
+.room-since__text > span { color: var(--text-secondary); font-size: var(--font-size-14); }
+.room-since__title:focus-visible { outline: none; }
+.room-since:has(.room-since__title:focus-visible) { outline: 2px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; }
+
+/* ── A spot with no card of its own: the thing in it is the surface (Today's carousel, the MMR card). ── */
+.room-tile--bare { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+
+/* ── Today: one daily per slide, in its own colors (share image colors), filling the spot. ── */
+.room-streak--hot svg { color: #fdba74; }
+/* The carousel fills its spot's height (the row's tallest card), its arrows and dots below. */
+.room-tile--today { display: flex; }
+.room-today__carousel { min-width: 0; flex: 1; display: flex; }
+.room-today__carousel .empac-carousel { flex: 1; display: flex; flex-direction: column; }
+.room-today__carousel .empac-carousel__viewport { flex: 1; display: flex; }
+.room-today__carousel .empac-carousel__track { flex: 1; }
+.room-today__carousel .empac-carousel__slide { display: flex; }
+/* Two slides from tablets up (CDS sizes slides inline once it knows the width; the server draws two): on phones one
+   fills the width from the first paint, so nothing jumps when the page wakes up. */
+@media (max-width: 767px) { .room-today__carousel .empac-carousel__slide { flex: 0 0 100% !important; } }
+.room-today__carousel .empac-carousel__slide > .room-day { flex: 1; }
+.room-day {
+  position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; gap: var(--spacing-16);
+  min-height: 32rem; padding: var(--spacing-24); border-radius: 1.6rem; color: #fff; text-decoration: none;
+}
+.room-day:hover { color: #fff; }
+.room-day:hover .room-day__name { text-decoration: underline; }
+.room-day:focus-visible { outline: 3px solid var(--brand-ink, var(--primary-600)); outline-offset: 3px; }
+.room-day--shuffle { background: linear-gradient(140deg, #6d28d9, #4c1d95); }
+.room-day--dex { background: linear-gradient(140deg, #c2410c, #7c2d12); }
+.room-day--fire { background: linear-gradient(140deg, #b91c1c, #7f1d1d); }
+.room-day--duel { background: linear-gradient(140deg, #1e2a5a, #0f1430); box-shadow: inset 0 0 0 1px #b8892b; }
+.room-day--weekly { background: linear-gradient(140deg, #0f766e, #134e4a); }
+.room-day__glyph { position: absolute; right: -1.2rem; bottom: -1.6rem; z-index: -1; opacity: 0.18; }
+.room-day__art { position: absolute !important; inset: 0 0 0 40%; z-index: -2; }
+.room-day--art::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #121a40 38%, rgba(18, 26, 64, 0.6) 62%, rgba(18, 26, 64, 0.1) 100%); }
+.room-day__top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--spacing-8); }
+.room-day__kick { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255, 255, 255, 0.88); }
+.room-day__streak { display: inline-flex; align-items: center; gap: var(--spacing-4); font-size: var(--font-size-14); font-weight: 700; }
+.room-day__body { display: grid; align-content: end; gap: var(--spacing-10, 1rem); max-width: 34rem; }
+.room-day__name { font-family: var(--font-display); font-size: var(--font-size-32, 3.2rem); font-weight: 800; line-height: 1.05; }
+.room-day--duel .room-day__name { color: #fcd34d; }
+.room-day__line { font-size: var(--font-size-16); color: rgba(255, 255, 255, 0.94); }
+.room-day__act {
+  justify-self: start; display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); min-height: 40px; padding: var(--spacing-8) var(--spacing-16);
+  border-radius: var(--radius-8, 8px); background: #fff; color: #161a2e; font-size: var(--font-size-15, 1.5rem); font-weight: 700;
+}
+.room-squares { display: flex; flex-wrap: wrap; gap: 5px; }
+.room-sq { display: block; width: 1.8rem; height: 1.8rem; border-radius: 4px; }
+.room-sq--miss { background: rgba(10, 12, 30, 0.5); }
+.room-sq--win { background: #22c55e; }
+.room-sq--save { background: #facc15; }
+.room-sq--open { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.45); }
+.room-today__carousel .empac-carousel__controls, .room-today__carousel .empac-carousel__nav { margin-top: var(--spacing-12); }
+
+/* ── Plain rows inside a card (Tonight): an icon tile and words, lines between, no boxes. ── */
+.room-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.room-list li { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--spacing-16); padding: var(--spacing-14, 1.4rem) 0; }
+.room-list li + li { border-top: 1px solid var(--border-subtle); }
+.room-list__text { display: grid; gap: var(--spacing-2, 0.2rem); min-width: 0; }
+.room-list__title { color: var(--text-primary); font-weight: 700; font-size: var(--font-size-16); text-decoration: none; }
+.room-list__title::after { content: ""; position: absolute; inset: 0; }
+.room-list__title:hover { text-decoration: underline; }
+.room-list__text > span { color: var(--text-secondary); font-size: var(--font-size-14); }
+.room-list li:has(.room-list__title:focus-visible) { outline: 2px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; border-radius: 8px; }
+.room-list__title:focus-visible { outline: none; }
+
+/* ── Dark tiles (the MMR card's). ── */
+.room-tile--dark { background: #141a3a; border-color: #232a55; color: #e8ebff; }
+.room-tile--dark .room-tile__head h2 { color: #fff; }
+.room-tile--dark .room-tile__more,
+.room-tile--dark .room-links a { color: #c7d2ff; }
+.room-tile--dark .room-links { border-top-color: rgba(255, 255, 255, 0.14); }
+.room-tile--dark .room-nums dt { color: #c7cdf0; }
+.room-tile--dark .room-nums dd { color: #fff; }
+.room-compete__card { min-width: 0; }
+.room-compete__card .mmr-frame { margin: 0; }
+/* The card's shadow would be cut square by the frame's sideways scroll; on wide screens nothing needs to scroll. */
+@media (min-width: 900px) { .room-compete__card .mmr-frame { overflow: visible; } }
+/* The carousel's viewport clips too: no shadow on the slides, and the viewport's own padding off. */
+.room-today__carousel .empac-carousel__viewport { padding: 0; margin: 0; }
+.room-compete__wait { display: grid; place-items: center; min-height: 18rem; border-radius: 1.2rem; background: rgba(255, 255, 255, 0.06); color: #c7cdf0; font-size: var(--font-size-14); }
+.room-compete__none { margin: 0; color: #c7cdf0; font-size: var(--font-size-15, 1.5rem); }
+
+/* ── Art tiles: the picture fills the tile, words at its foot (road, stream). ── */
+.room-tile--art { padding: 0; overflow: hidden; min-height: 25rem; justify-content: flex-end; color: #fff; border-color: transparent; background: #12162e; }
+.room-art { position: absolute !important; inset: 0; width: 100%; height: 100%; }
+.room-art--img { object-fit: cover; }
+.room-art--box { background: var(--box) center / cover; filter: blur(18px) saturate(1.2); transform: scale(1.2); }
+.room-art--plain { background: radial-gradient(120% 120% at 100% 0%, rgba(20, 184, 166, 0.45), transparent 60%), #0f1430; }
+.room-tile--art::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(10, 12, 30, 0) 25%, rgba(10, 12, 30, 0.72) 60%, rgba(10, 12, 30, 0.94) 100%);
+}
+.room-art__text { position: relative; z-index: 1; display: grid; gap: var(--spacing-4); padding: var(--spacing-20); color: #fff; text-decoration: none; }
+a.room-art__text::before { content: ""; position: absolute; inset: -100vh 0 0 0; }
+a.room-art__text:focus-visible { outline: none; }
+.room-tile--art:has(a.room-art__text:focus-visible) { outline: 3px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; }
+.room-art__title { font-family: var(--font-display); font-size: var(--font-size-22, 2.2rem); font-weight: 800; line-height: 1.15; }
+.room-art__text > span { font-size: var(--font-size-15, 1.5rem); color: rgba(255, 255, 255, 0.92); }
+.room-art__meta { display: inline-flex; align-items: center; gap: var(--spacing-4); font-size: var(--font-size-14) !important; }
+.room-art__meta svg { color: #fcd34d; }
+.room-art__meta .roll-num__reels { vertical-align: -0.12em; }
+.room-art__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-16); margin-top: var(--spacing-8); }
+.room-art__setup { color: #fff; font-size: var(--font-size-14); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.room-kicker--gold { color: #fde68a; }
+.room-kicker--light { color: rgba(255, 255, 255, 0.85); display: inline-flex; align-items: center; gap: var(--spacing-8); }
+.room-badges { display: flex; gap: 5px; margin: var(--spacing-4) 0; }
+.room-badges i { display: block; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: rgba(255, 255, 255, 0.25); }
+.room-badges i.on { background: linear-gradient(135deg, #fde68a, #d97706); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.6); }
+.room-road--blocked::after { background: linear-gradient(180deg, rgba(60, 8, 16, 0) 20%, rgba(60, 8, 16, 0.75) 58%, rgba(40, 6, 12, 0.95) 100%); }
+.room-live { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); padding: 2px var(--spacing-8); border-radius: 6px; background: #dc2626; color: #fff; letter-spacing: 0.08em; }
+.room-live::before { content: ""; width: 0.8rem; height: 0.8rem; border-radius: 50%; background: #fff; }
+.room-tile--stream { min-height: 28rem; }
+
+/* ── Your games as box art. ── */
+.room-shelf { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-10, 1rem); grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.4rem), 1fr)); }
+.room-shelf a, .room-shelf li > span { display: grid; gap: var(--spacing-6, 0.6rem); text-decoration: none; }
+.room-shelf__cover { width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 1rem; box-shadow: 0 8px 18px rgba(20, 26, 58, 0.22); transition: transform 0.15s ease; }
+.room-shelf a:hover .room-shelf__cover { transform: translateY(-3px) rotate(-1deg); }
+.room-shelf__act { text-align: center; font-size: var(--font-size-14); font-weight: 700; color: var(--brand-ink, var(--primary-600)); }
+.room-shelf__add { color: var(--brand-ink, var(--primary-600)); }
+.room-shelf__slot { display: grid; place-items: center; aspect-ratio: 3 / 4; border-radius: 1rem; border: 2px dashed var(--border-default); color: var(--text-secondary); }
+.room-shelf__add:hover .room-shelf__slot { border-color: var(--brand-ink, var(--primary-600)); color: var(--brand-ink, var(--primary-600)); }
+.room-tile[data-span="12"] .room-shelf, .room-tile[data-span="7"] .room-shelf { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+
+/* ── Tickets: your next event, the game's art as the stub. ── */
+.room-tile--flush { padding: 0; overflow: hidden; }
+.room-ticket { display: grid; grid-template-rows: minmax(13rem, 1fr) auto; height: 100%; color: inherit; text-decoration: none; }
+.room-ticket__art { position: relative; overflow: hidden; background: #1c1e5f; }
+.room-ticket__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.room-ticket__glyph { display: grid; place-items: center; height: 100%; color: #fff; background: linear-gradient(140deg, #5b3fd6, #20206a); }
+.room-ticket__box { position: relative; display: grid; place-items: center; height: 100%; overflow: hidden; }
+.room-ticket__box::before { content: ""; position: absolute; inset: -20%; background: var(--box, #1c1e5f) center / cover; filter: blur(16px) brightness(0.7); }
+.room-ticket__cover { position: relative; height: min(82%, 22rem); width: auto; aspect-ratio: 3 / 4; border-radius: 0.6rem; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.room-ticket__when { position: absolute; left: var(--spacing-12); top: var(--spacing-12); padding: var(--spacing-4) var(--spacing-8); border-radius: 8px; background: #fff; color: #161a2e; font-size: var(--font-size-14); font-weight: 700; }
+.room-ticket--live .room-ticket__when { background: #dc2626; color: #fff; }
+.room-ticket__body {
+  position: relative; display: grid; align-content: start; gap: var(--spacing-6, 0.6rem); padding: var(--spacing-16) var(--spacing-20) var(--spacing-20);
+  border-top: 2px dashed var(--border-default);
+}
+/* The ticket's notches. */
+.room-ticket__body::before, .room-ticket__body::after {
+  content: ""; position: absolute; top: -1rem; width: 2rem; height: 2rem; border-radius: 50%; background: var(--background-secondary, #f4f5fa);
+}
+.room-ticket__body::before { left: -1rem; }
+.room-ticket__body::after { right: -1rem; }
+.room-ticket__body b { font-size: var(--font-size-18); font-family: var(--font-display); font-weight: 800; line-height: 1.2; }
+.room-ticket__line { color: var(--text-secondary); font-size: var(--font-size-14); }
+.room-ticket__body .room-btn { margin-top: var(--spacing-4); }
+.room-ticket:hover b { text-decoration: underline; }
+.room-ticket:focus-visible { outline: 3px solid var(--brand-ink, var(--primary-600)); outline-offset: -3px; }
+.room-tile[data-span="12"] .room-ticket { grid-template-rows: none; grid-template-columns: minmax(0, 28rem) minmax(0, 1fr); }
+.room-tile[data-span="12"] .room-ticket__body { border-top: 0; border-left: 2px dashed var(--border-default); padding: var(--spacing-20) var(--spacing-24); }
+.room-tile[data-span="12"] .room-ticket__body::before, .room-tile[data-span="12"] .room-ticket__body::after { display: none; }
+@media (max-width: 899px) {
+  .room-tile[data-span="12"] .room-ticket { grid-template-columns: none; grid-template-rows: 13rem auto; }
+  .room-tile[data-span="12"] .room-ticket__body { border-left: 0; border-top: 2px dashed var(--border-default); }
+}
+/* The events tile's short tickets: stub beside the words. */
+.room-tickets { list-style: none; margin: 0; padding: 0; display: grid; }
+.room-tickets li { padding: var(--spacing-14, 1.4rem) 0; }
+.room-tickets li + li { border-top: 1px solid var(--border-subtle); }
+.room-tickets li:first-child { padding-top: 0; }
+.room-ticket--compact { grid-template-rows: none; grid-template-columns: 9.6rem minmax(0, 1fr); gap: var(--spacing-16); align-items: center; }
+.room-ticket--compact .room-ticket__art { height: 7.2rem; align-self: center; border-radius: 1rem; }
+.room-ticket--compact .room-ticket__when { display: none; }
+.room-ticket--compact .room-ticket__body { border-top: 0; padding: 0; align-content: center; }
+.room-ticket--compact .room-ticket__body::before, .room-ticket--compact .room-ticket__body::after { display: none; }
+.room-ticket--compact .room-ticket__body b { font-size: var(--font-size-16); }
+
+/* ── My Cards: the last three you added, fanned. ── */
+.room-cards { display: flex; align-items: center; gap: var(--spacing-20); }
+.room-fan { position: relative; flex: none; width: 12.8rem; height: 10.4rem; }
+.room-fan img { position: absolute; left: calc(var(--k) * 2.4rem); top: 0.4rem; width: 6.4rem; height: auto; border-radius: 0.5rem; box-shadow: 0 6px 14px rgba(20, 26, 58, 0.28); transform: rotate(calc((var(--k) - 1) * 8deg)); transform-origin: 50% 100%; }
+
+/* ── Tonight: party games as colored tiles. ── */
+.room-tonight { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-10, 1rem); grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; flex: 1; }
+.room-pick {
+  display: grid; align-content: end; gap: var(--spacing-2, 0.2rem); height: 100%; min-height: 10.4rem; padding: var(--spacing-12);
+  border-radius: 1.4rem; color: #fff; text-decoration: none;
+}
+.room-pick svg { margin-bottom: auto; opacity: 0.95; }
+.room-pick b { font-size: var(--font-size-15, 1.5rem); font-weight: 800; }
+.room-pick span { font-size: var(--font-size-14); color: rgba(255, 255, 255, 0.92); }
+.room-pick:hover { color: #fff; filter: brightness(1.08); }
+.room-pick:focus-visible { outline: 3px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; }
+.room-pick--magenta { background: linear-gradient(140deg, #be185d, #831843); }
+.room-pick--violet { background: linear-gradient(140deg, #6d28d9, #4c1d95); }
+.room-pick--orange { background: linear-gradient(140deg, #c2410c, #7c2d12); }
+.room-pick--teal { background: linear-gradient(140deg, #0f766e, #134e4a); }
+.room-pick--red { background: linear-gradient(140deg, #b91c1c, #7f1d1d); }
+
+/* ── You might like, with pictures: the room's last cell, no box of its own (each suggestion is a card). ── */
+.room-like {
+  grid-column: span var(--span, 12); min-width: 0; padding: var(--spacing-28, 2.8rem);
+  border-radius: 1.6rem; border: 1px solid var(--border-subtle); background: var(--background-primary, #fff);
+  box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08);
+}
+.room-like h2 { margin: 0 0 var(--spacing-8) !important; font-size: var(--font-size-20) !important; font-family: var(--font-display); font-weight: 800; }
+.room-like ul { grid-template-columns: minmax(0, 1fr) !important; gap: 0 !important; }
+.room-like li { border: 0 !important; border-radius: 0 !important; background: transparent !important; padding: var(--spacing-14, 1.4rem) 0 !important; box-shadow: none !important; }
+.room-like li + li { border-top: 1px solid var(--border-subtle) !important; }
+.room-like[data-span="12"] ul { column-gap: var(--spacing-32) !important; }
+.room-like[data-span="12"] li + li { border-top: 0 !important; }
+.room-like[data-span="12"] ul { grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)) !important; }
+@media (max-width: 899px) { .room-like { grid-column: 1 / -1; } }
+.home-you__like li > a { display: grid; grid-template-columns: 7.6rem minmax(0, 1fr); align-items: center; gap: var(--spacing-12); }
+.home-like__text { display: grid; gap: var(--spacing-4); min-width: 0; }
+.home-like__text span { color: var(--text-secondary); font-size: var(--font-size-14); }
+.home-like__img { width: 7.6rem; height: 5.8rem; border-radius: 1rem; object-fit: cover; display: block; }
+.home-like__img--light { background: #fff; box-shadow: inset 0 0 0 1px var(--border-subtle); }
+.home-like__box { display: grid; place-items: center; width: 7.6rem; height: 5.8rem; border-radius: 1rem; background: var(--background-secondary, #f4f5fa); }
+.home-like__box img, .home-like__box .game-cover { height: 5.2rem; width: auto; aspect-ratio: 3 / 4; border-radius: 0.4rem; }
+.home-like__glyph { display: grid; place-items: center; width: 7.6rem; height: 5.8rem; border-radius: 1rem; background: var(--background-secondary, #f4f5fa); }
+
+/* ── Motion (7A): tiles rise once a day, numbers roll from your last visit, the streak flame flickers. ── */
+.roll-num__reels { display: inline-flex; height: 1.15em; line-height: 1.15em; vertical-align: -0.2em; overflow: hidden; font-variant-numeric: tabular-nums; }
+.roll-num__char, .roll-num__strip > span { display: block; height: 1.15em; }
+.roll-num__reel { display: inline-block; height: 1.15em; overflow: hidden; }
+.roll-num__strip { display: block; transform: translateY(calc(var(--t) * -1.15em)); }
+@media (prefers-reduced-motion: no-preference) {
+  .room[data-rise] .room-tile,
+  .room[data-rise] .room-like,
+  .room[data-rise] .room-since { animation: room-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 70ms); }
+  .room[data-rise] .room-since { --i: 0; }
+  .roll-num__strip { animation: roll-reel 1s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(0.5s + var(--d, 0ms)); }
+  .room-streak--hot svg { animation: room-flame 1.8s ease-in-out infinite; transform-origin: 50% 90%; }
+}
+@keyframes room-rise { from { opacity: 0; transform: translateY(1.6rem); } }
+@keyframes roll-reel { from { transform: translateY(calc(var(--f) * -1.15em)); } }
+@keyframes room-flame { 0%, 100% { transform: scale(1) rotate(0); } 30% { transform: scale(1.12) rotate(-4deg); } 60% { transform: scale(0.96) rotate(3deg); } }
+
+@media (forced-colors: active) {
+  .room-daily, .room-pick, .room-tile--art .room-art__text { border: 1px solid CanvasText; }
+}
+
+/* ── Round 3 (motion + balance, bring-along; picks 2026-11-05) ── */
+
+/* "Since you were here": one sweep on a new visit (5A). */
+.room-since { overflow: hidden; }
+.room-since--sweep::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-100%);
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--brand-ink, #2766ec) 14%, transparent) 50%, transparent 70%);
+}
+@media (prefers-reduced-motion: no-preference) { .room-since--sweep::before { animation: room-sweep 1.1s 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; } }
+@keyframes room-sweep { to { transform: translateX(100%); } }
+
+/* Live: the one thing that keeps moving (a breathing dot). */
+@media (prefers-reduced-motion: no-preference) { .room-live::before { animation: live-breathe 1.8s ease-in-out infinite; } }
+@keyframes live-breathe { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
+
+/* A plan, where it would improve this tile (11A). */
+.room-prochip {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); padding: var(--spacing-6, 0.6rem) var(--spacing-12);
+  border-radius: 999px; background: color-mix(in srgb, var(--brand-ink, #2766ec) 10%, var(--background-primary, #fff)); color: var(--brand-ink, var(--primary-700));
+  font-size: var(--font-size-14); font-weight: 700; text-decoration: none;
+}
+.room-prochip:hover { text-decoration: underline; }
+
+/* The header's thanks (supporters) and the way to your front window. */
+.room-head__extras { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-16); margin-top: var(--spacing-4); }
+.room-head__heart { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); padding: 3px var(--spacing-10, 1rem); border-radius: 999px; background: #ffe4e6; color: #9f1239; font-size: var(--font-size-14); font-weight: 700; text-decoration: none; }
+.room-head__window { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); color: #fff; font-size: var(--font-size-15, 1.5rem); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Your people: faces, what they're up to, one way in; then playing together, then your invite link. */
+.room-together { display: grid; gap: var(--spacing-10, 1rem); padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
+.room-together__acts { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.room-invite { display: grid; gap: var(--spacing-10, 1rem); padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
+.room-invite__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
+.room-invite__link { flex: 1 1 18rem; min-width: 0; padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-8, 8px); background: var(--background-secondary, #f4f5fa); color: var(--text-primary); font-size: var(--font-size-14); overflow-wrap: anywhere; }
+.room-invite__joined { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.room-invite__faces { display: inline-flex; }
+.room-invite__faces > * { margin-left: -6px; border-radius: 50%; box-shadow: 0 0 0 2px var(--background-primary, #fff); }
+.room-invite__faces > :first-child { margin-left: 0; }
+
+/* A finished daily is stamped; the first time you see it, the stamp lands (4A). */
+.room-day__stamp { position: absolute; right: var(--spacing-20); top: var(--spacing-20); display: grid; place-items: center; width: 5.6rem; height: 5.6rem; border-radius: 50%; background: #fff; color: #4c1d95; transform: rotate(-8deg); box-shadow: 0 6px 16px rgba(10, 12, 30, 0.25); }
+.room-day--dex .room-day__stamp { color: #7c2d12; } .room-day--fire .room-day__stamp { color: #7f1d1d; } .room-day--duel .room-day__stamp { color: #0f1430; }
+@media (prefers-reduced-motion: no-preference) { .room-day__stamp--pop { animation: room-stamp 0.45s 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; } }
+@keyframes room-stamp { 0% { opacity: 0; transform: scale(1.6) rotate(-14deg); } 70% { opacity: 1; transform: scale(0.94) rotate(-6deg); } 100% { opacity: 1; transform: scale(1) rotate(-8deg); } }
+.room-day:has(.room-day__stamp) .room-day__streak { margin-right: 6.4rem; }
+.room-tile--bare .room-links { margin-top: 0; }
+.room-invite__link { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── "On my profile" (bring-along 6A): a small toggle on tiles that show on your public profile. ── */
+.room-eye { display: inline-flex; }
+.room-eye .empac-chip { min-height: 28px; cursor: pointer; }
+.room-eye--below { align-self: flex-start; margin-top: var(--spacing-4); }
+/* Under Today's slides: in the carousel's control row, at its left edge (the arrows and dots stay centered). */
+@media (min-width: 600px) {
+  .room-today { position: relative; }
+  .room-today > .room-eye--below { position: absolute; left: 0; bottom: 4px; margin: 0; }
+}
+.room-eye--corner { position: absolute; top: var(--spacing-16); right: var(--spacing-16); z-index: 2; }
+.room-eye--corner .empac-chip { background: rgba(255, 255, 255, 0.92); }
+.room-eye--corner .empac-chip[aria-pressed="true"] { background: #fff; }
+
+/* ── Phones (round two picks 1A and 2A, 2026-11-06): no rounded card inside the page's margin with more cards inside
+   it. Each section is a white band from edge to edge, 8px from the next, so what's in it gets the screen's width.
+   Wide screens keep the cards. The home and every game space use these tiles; profile-front.css does the same for
+   profiles. ── */
+@media (max-width: 767px) {
+  .room-zones, .room-zone, .room-rail { gap: var(--spacing-8); }
+  .room-tile, .room-rail__block {
+    margin-inline: calc(-1 * var(--gs-phone-gutter, 1.6rem));
+    padding: var(--spacing-24) var(--gs-phone-gutter, 1.6rem);
+    border-radius: 0; border-inline: 0; box-shadow: none;
+  }
+  /* globals.css caps a section holding a phone carousel at 100%, which would stop a band short of the edge. */
+  .room-tile:has(> .responsive-carousel) { max-width: none; }
+}
+
+/* ─── Your games and Explore (/home, journeys picks 2026-11-06, 7A) ─────────── */
+.room-games, .room-explore { display: grid; gap: var(--spacing-16); min-width: 0; }
+.room-games__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8) var(--spacing-12); }
+.room-games__head h2 { margin: 0; font-size: var(--font-size-20); font-family: var(--font-display); font-weight: 800; }
+.room-games__row { display: grid; gap: var(--spacing-20); grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr)); }
+/* A card per space: its color along the top, the box art, the pick of the day, what's new. */
+.room-game {
+  position: relative; overflow: hidden; display: grid; grid-template-columns: 6.4rem minmax(0, 1fr); gap: var(--spacing-14, 1.4rem);
+  align-items: start; padding: var(--spacing-16); border-radius: 1.6rem; text-decoration: none; color: var(--text-primary);
+  border: 1px solid var(--border-subtle); background: var(--background-primary, #fff);
+  box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.room-game::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--acc, var(--brand-ink)); }
+.room-game:hover { transform: translateY(-2px); box-shadow: 0 2px 4px rgba(20, 26, 58, 0.08), 0 14px 32px rgba(20, 26, 58, 0.12); }
+.room-game:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: 2px; }
+.room-game__box { display: block; width: 6.4rem; height: 8.6rem; object-fit: cover; border-radius: 1rem; background: var(--background-secondary); box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
+.room-game__text { display: grid; gap: var(--spacing-6, 0.6rem); min-width: 0; }
+.room-game__name { font-family: var(--font-display); font-size: var(--font-size-16); font-weight: 800; line-height: 1.25; }
+.room-game__pick { font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.35; }
+.room-game__pick b { color: var(--text-primary); font-weight: 700; }
+.room-game__news { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.35; }
+.room-game__news.is-fresh { color: var(--text-primary); font-weight: 700; }
+.room-game__news i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--acc, var(--brand-ink)); }
+.room-game--add {
+  grid-template-columns: none; place-content: center; justify-items: center; gap: var(--spacing-8); text-align: center;
+  font-weight: 700; font-size: var(--font-size-14); color: var(--text-secondary); box-shadow: none; min-height: 11.8rem;
+  border: 1.5px dashed color-mix(in srgb, var(--text-primary, #161a2e) 24%, transparent);
+  background: color-mix(in srgb, var(--text-primary, #161a2e) 4%, transparent);
+}
+.room-game--add::before { display: none; }
+.room-game--add:hover { transform: none; box-shadow: none; color: var(--text-primary); }
+/* The room's foot: the five worlds, flat under a line. */
+.room-explore { margin-top: var(--spacing-48, 4.8rem); padding-top: var(--spacing-32); border-top: 1px solid var(--border-subtle); }
+.room-explore__row { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-16) var(--spacing-24); grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.room-explore__world { display: flex; align-items: center; gap: var(--spacing-12); text-decoration: none; color: var(--text-primary); min-width: 0; }
+.room-explore__world b { display: block; font-family: var(--font-display); font-size: var(--font-size-16); font-weight: 800; }
+.room-explore__world small { display: block; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.35; }
+.room-explore__world:hover b { text-decoration: underline; }
+@media (max-width: 1099px) { .room-explore__row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 767px) {
+  .room-explore__row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .room-games .responsive-carousel { margin-inline: 0; }
+}
+@media (max-width: 479px) { .room-explore__row { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .room-game, .room-game:hover { transition: none; transform: none; } }
+
+/* /games: the index of game spaces (the app bar's Games). */
+.games-index { padding-block: var(--spacing-40, 4rem) var(--spacing-64, 6.4rem); }
+.games-index > .empac-container { display: grid; gap: var(--spacing-40, 4rem); }
+.games-index__head h1 { margin: 0; font-family: var(--font-display); font-size: var(--font-size-32); font-weight: 800; }
+.games-index__head p, .games-index__note { margin: var(--spacing-8) 0 0; color: var(--text-secondary); font-size: var(--font-size-16); max-width: 60ch; }
+.games-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.games-card > .room-game { flex: 1; }
+.games-index__more { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-24); margin: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle); }

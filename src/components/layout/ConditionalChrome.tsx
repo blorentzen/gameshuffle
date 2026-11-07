@@ -14,10 +14,13 @@ import { usePathname } from "next/navigation";
 import { SiteNavbar } from "./SiteNavbar";
 import { SiteFooter } from "./SiteFooter";
 import { CookieConsent } from "./CookieConsent";
+import { AppBar } from "./AppBar";
 import { PolicyUpdateBanner } from "./PolicyUpdateBanner";
 import { MessengerProvider } from "@/components/social/MessengerProvider";
 import { Messenger } from "@/components/social/Messenger";
 import { PresenceProvider } from "@/components/social/PresenceProvider";
+import type { Interest } from "@/lib/interests/rules";
+import { RecentPlaces } from "./RecentPlaces";
 
 const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/overlay(\/|$)/,
@@ -26,6 +29,7 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/stream-timer\/overlay(\/|$)/,
   /^\/game-nights\/[^/]+\/display(\/|$)/,
   /^\/tournament\/[^/]+\/display(\/|$)/,
+  /^\/tournament\/[^/]+\/station(\/|$)/, // a time trial station's runner page (in person)
   /^\/party\/[^/]+\/tv(\/|$)/,
   /^\/trivia\/tv\/[^/]+/,
   /^\/social(\/|$)/, // hidden 9:16 stages filmed for social videos
@@ -33,7 +37,7 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/war\/[^/]+/, // a channel's war overlay (GameShuffle Competitive)
 ];
 
-export function ConditionalChrome({ children, shop = false }: { children: React.ReactNode; shop?: boolean }) {
+export function ConditionalChrome({ children, shop = false, previewInterests = null }: { children: React.ReactNode; shop?: boolean; previewInterests?: Interest[] | null }) {
   const pathname = usePathname() || "";
   const hideChrome = CHROME_FREE_PATTERNS.some((p) => p.test(pathname));
 
@@ -43,10 +47,13 @@ export function ConditionalChrome({ children, shop = false }: { children: React.
     <PresenceProvider>
       <MessengerProvider>
         <PolicyUpdateBanner />
-        <SiteNavbar shop={shop} />
+        <SiteNavbar shop={shop} previewInterests={previewInterests} />
+        <RecentPlaces />
         {children}
         <SiteFooter shop={shop} />
         <CookieConsent />
+        {/* Members on phones: Home, Games, Create, Inbox, You (journeys picks 2026-11-06). */}
+        <AppBar />
         {/* Bottom-right Messenger — inside the chrome branch so it's absent on
             OBS/overlay routes (excluded at the layout level, per Spec 2 §2.3). */}
         <Messenger />

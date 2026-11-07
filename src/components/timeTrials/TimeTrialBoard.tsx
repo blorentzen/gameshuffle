@@ -149,7 +149,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
     try {
       const res = await fetch(`/api/time-trials/${videoFor.timeId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "video", url: videoUrl }) });
       const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (!j.ok) { setError(j.error === "bad_video" ? "Use a YouTube, Twitch, Streamable or Medal link." : "That clip couldn't be added. Try again."); return; }
+      if (!j.ok) { setError(j.error === "bad_video" ? "Use a link from YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram." : "That clip couldn't be added. Try again."); return; }
       setVideoFor(null); setVideoUrl("");
       toast.success("Clip added. A reviewer will check it.");
       void load(scopeId);
@@ -301,7 +301,7 @@ export function TimeTrialBoard({ initial, game, track, cc, items, vehicle, signe
         {videoFor && (
           <form className="tt-form" onSubmit={(e) => { e.preventDefault(); void sendVideo(); }}>
             <p className="tt-note">A clip of the last 30 seconds of your {formatTime(videoFor.timeMs)} run. Top-ten times need one: a reviewer checks it and your time shows as Verified.</p>
-            <FormField label="Video link" htmlFor="tt-video-url" helperText="YouTube, Twitch, Streamable or Medal">
+            <FormField label="Video link" htmlFor="tt-video-url" helperText="YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram">
               <Input id="tt-video-url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} inputMode="url" autoComplete="off" fullWidth />
             </FormField>
             {error && <p className="tt-form__error" role="alert">{error}</p>}

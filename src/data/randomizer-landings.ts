@@ -260,7 +260,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "refresh", title: "No repeats (Smashdown)", description: "Nobody plays the same fighter twice in a night until you reset it." },
       { icon: "layout-grid", title: "Squad Strike squads", description: "Three or five fighters per player." },
       { icon: "checks", title: "Only the DLC you own", description: "Tick the fighter packs you have and rolls leave the rest out. A free account remembers it." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, and share its link from My Stuff." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, and share its link from your saved setups." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -289,7 +289,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "map", title: "Modes and stages", description: "Turf War or the Anarchy modes on any of the 25 stages, one battle or a set." },
       { icon: "refresh", title: "No repeats tonight", description: "Nobody gets the same kit twice in a night until you reset it." },
       { icon: "layout-grid", title: "Alpha and Bravo", description: "Split the lobby into two teams for a Private Battle." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, and share its link from My Stuff." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, and share its link from your saved setups." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -318,7 +318,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "map", title: "Air Ride and Top Ride courses", description: "All 18 Air Ride courses or the 9 Top Ride courses." },
       { icon: "award", title: "City Trial Stadiums", description: "Battle, race, gliding, collecting or boss Stadiums." },
       { icon: "checks", title: "New save mode", description: "Only the riders, machines and courses open at the start." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, and share its link from My Stuff." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, and share its link from your saved setups." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -577,6 +577,7 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "super-smash-bros-ultimate", label: "Smash Ultimate Randomizer", href: "/randomizers/super-smash-bros-ultimate" },
   { slug: "splatoon-3", label: "Splatoon 3 Randomizer", href: "/randomizers/splatoon-3" },
   { slug: "kirby-air-riders", label: "Kirby Air Riders Randomizer", href: "/randomizers/kirby-air-riders" },
+  { slug: "pokemon", label: "Random Pokémon Generator", href: "/randomizers/pokemon" },
   { slug: "pokemon-stadium", label: "Pokémon Stadium Randomizer", href: "/randomizers/pokemon-stadium" },
   { slug: "goldeneye-007", label: "GoldenEye 007 Randomizer", href: "/randomizers/goldeneye-007" },
   { slug: "pokemon-firered-leafgreen", label: "Fire Red & Leaf Green Run Challenge", href: "/randomizers/pokemon-firered-leafgreen" },

@@ -54,12 +54,15 @@ export interface ProfileLayout {
   order: ProfileSectionKey[];
   hidden: ProfileSectionKey[];
   columns: 1 | 2;
+  /** Pinned Highlights (src/lib/profile/highlights.ts), up to five ids; null = the automatic ones. */
+  highlights: string[] | null;
 }
 
 export const DEFAULT_PROFILE_LAYOUT: ProfileLayout = {
   order: [...PROFILE_SECTIONS],
   hidden: [],
   columns: 2,
+  highlights: null,
 };
 
 const KNOWN = new Set<string>(PROFILE_SECTIONS);
@@ -74,7 +77,7 @@ const isKey = (v: unknown): v is ProfileSectionKey => typeof v === "string" && K
  * Anything unexpected falls back to the default. Never throws.
  */
 export function resolveProfileLayout(raw: unknown): ProfileLayout {
-  if (!raw || typeof raw !== "object") return { ...DEFAULT_PROFILE_LAYOUT, order: [...DEFAULT_PROFILE_LAYOUT.order] };
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_PROFILE_LAYOUT, order: [...DEFAULT_PROFILE_LAYOUT.order], hidden: [] };
   const obj = raw as Record<string, unknown>;
 
   const seen = new Set<ProfileSectionKey>();
@@ -92,11 +95,24 @@ export function resolveProfileLayout(raw: unknown): ProfileLayout {
   }
 
   const columns: 1 | 2 = obj.columns === 1 ? 1 : 2;
-  return { order, hidden, columns };
+  return { order, hidden, columns, highlights: cleanHighlightIds(obj.highlights) };
 }
 
 /** The visible sections in display order (order minus hidden). */
 export function visibleSections(layout: ProfileLayout): ProfileSectionKey[] {
   const hide = new Set(layout.hidden);
   return layout.order.filter((k) => !hide.has(k));
+}
+
+/** Pinned Highlights are kept to five (src/lib/profile/highlights.ts). */
+export const MAX_HIGHLIGHTS = 5;
+const HIGHLIGHT_ID = /^[a-z0-9][a-z0-9:_-]{0,79}$/i;
+
+/** Stored or sent pins: null (the automatic ones), or up to five ids of a known shape. Kept here so the layout gate
+ *  stays light for the editor's bundle. */
+export function cleanHighlightIds(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out: string[] = [];
+  for (const v of raw) if (typeof v === "string" && HIGHLIGHT_ID.test(v) && !out.includes(v)) out.push(v);
+  return out.slice(0, MAX_HIGHLIGHTS);
 }

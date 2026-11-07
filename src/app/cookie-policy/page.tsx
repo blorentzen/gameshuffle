@@ -91,6 +91,13 @@ const SECTIONS: LegalSection[] = [
               <TableCell>No (preference only)</TableCell>
             </TableRow>
             <TableRow>
+              <TableCell><code>gs-home</code>, <code>gs-home-mmr</code></TableCell>
+              <TableCell>Your homepage when signed in: when you last visited and a few of your numbers then (your best daily streak, Trainer Road stars, lounge MMR), so it can say what changed and roll your numbers from where they were</TableCell>
+              <TableCell>First-party cookie</TableCell>
+              <TableCell>120 days</TableCell>
+              <TableCell>No (preference only)</TableCell>
+            </TableRow>
+            <TableRow>
               <TableCell><code>__stripe_mid</code>, <code>__stripe_sid</code></TableCell>
               <TableCell>Stripe fraud prevention during checkout</TableCell>
               <TableCell>Third-party (set by Stripe)</TableCell>

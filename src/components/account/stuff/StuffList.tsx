@@ -88,7 +88,9 @@ export function StuffGroup<T>({ title, intro, items, page = 0, row }: {
   page?: number;
   row: (item: T) => ReactNode;
 }) {
-  const [shown, setShown] = useState(page || items.length);
+  const [paged, setShown] = useState(page);
+  // Without a page size every row shows, however late the items arrive (the count isn't frozen at the first render).
+  const shown = page ? paged : items.length;
   if (items.length === 0) return null;
   const more = Math.min(page, items.length - shown);
   return (

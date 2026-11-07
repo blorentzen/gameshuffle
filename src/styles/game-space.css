@@ -1,0 +1,184 @@
+/* A game space (src/app/games/[space]/page.tsx, game spaces + phone picks 2026-11-05). Same family as the profile:
+   a cover that's only the game's art, then the space on a white band, then tabs that stay at the top. Now uses the
+   room's zones (home-room.css). */
+
+.space-page { background: var(--background-secondary, #f6f7fb); padding-bottom: var(--spacing-64, 6.4rem); overflow-x: clip; }
+
+/* The cover: the game's art, the nav floating over its top (a shade there). */
+.space-cover {
+  position: relative; isolation: isolate; overflow: hidden; aspect-ratio: 4 / 1; min-height: 16rem; max-height: 34rem; width: 100%;
+  background: radial-gradient(90% 130% at 0% 0%, color-mix(in srgb, var(--space-accent, #2766ec) 55%, transparent) 0%, transparent 72%),
+    radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%);
+}
+.space-cover__img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
+.space-cover::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(11, 13, 20, 0.6) 0%, rgba(11, 13, 20, 0) 46%); }
+
+/* The space on the page: box art on the cover's edge, the name and its numbers, Join. */
+.space-id { position: relative; z-index: 1; background: var(--background-elevated, #fff); padding-bottom: var(--spacing-16); }
+.space-id__inner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: var(--spacing-12) var(--spacing-20); }
+.space-id__box { width: 12rem; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 1.2rem; margin-top: -6.4rem; border: 4px solid var(--background-elevated, #fff); box-shadow: 0 10px 26px rgba(20, 26, 58, 0.22); background: #fff; }
+.space-id__who { display: grid; gap: var(--spacing-4); min-width: 0; padding-top: var(--spacing-16); }
+.space-id__who h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: var(--font-size-32, 3.2rem); line-height: 1.1; overflow-wrap: anywhere; }
+.space-id__counts { display: flex; flex-wrap: wrap; gap: var(--spacing-4) var(--spacing-16); margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.space-id__counts b { color: var(--text-primary); font-weight: 800; font-variant-numeric: tabular-nums; }
+.space-id__acts { display: flex; flex-wrap: wrap; gap: var(--spacing-8); justify-content: flex-end; }
+.space-id__roll { align-self: center; }
+.space-join--on.empac-button { background: #e8f7ee; color: #106b3f; border-color: #b7e4c7; }
+.space-preview { margin: var(--spacing-16) 0 0; padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-8, 8px); background: #fff4e0; color: #7a4100; font-size: var(--font-size-14); font-weight: 600; }
+@media (max-width: 640px) {
+  .space-id__inner { grid-template-columns: auto minmax(0, 1fr); }
+  .space-id__box { width: 8rem; margin-top: -4rem; }
+  .space-id__who { padding-top: var(--spacing-8); }
+  .space-id__who h1 { font-size: var(--font-size-24); }
+  .space-id__acts { grid-column: 1 / -1; justify-content: stretch; }
+  .space-id__acts > * { flex: 1; justify-content: center; }
+}
+
+/* The slim title bar the header folds into on a phone (SpaceTitleBar). */
+.space-bar { display: none; }
+@media (max-width: 767px) {
+  .space-bar {
+    position: sticky; top: var(--gs-nav-offset, 64px); z-index: 21; display: flex; align-items: center; gap: var(--spacing-10, 1rem);
+    height: 0; overflow: hidden; padding: 0 var(--spacing-16); background: var(--background-elevated, #fff); transition: height 0.2s ease, var(--gs-nav-slide);
+  }
+  .space-bar--on { height: 52px; border-bottom: 1px solid var(--border-subtle); }
+  .space-bar__box { width: 2.6rem; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 0.4rem; }
+  .space-bar__name { flex: 1; min-width: 0; font-family: var(--font-display); font-weight: 800; font-size: var(--font-size-17, 1.7rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (prefers-reduced-motion: reduce) { .space-bar { transition: none; } }
+
+/* The tabs: underline, staying at the top as you scroll (under the title bar on phones). */
+.space-body { padding-top: 0; }
+.space-tabs-wrap { display: contents; }
+.space-tabs.empac-tabs { gap: var(--spacing-32); }
+/* The labels line up with the content's left edge: no side padding on a tab, a gap between them, so the underline
+   sits under its words only (like X and Twitch). */
+.space-tabs > .empac-tabs__header {
+  position: sticky; top: var(--gs-nav-offset, 64px); z-index: 20; gap: var(--spacing-24);
+  transition: var(--gs-nav-slide); overflow-x: auto; scrollbar-width: none;
+  /* Part of the white header, edge to edge, with one line under it (the white and the line run past the content's
+     edges as painted overflow, so the page never scrolls sideways). */
+  border-bottom: 0; background: var(--background-elevated, #fff);
+  border-image: linear-gradient(to top, var(--border-subtle) 1px, var(--background-elevated, #fff) 1px) fill 0 / 0 / 0 100vmax;
+}
+.space-tabs > .empac-tabs__header::-webkit-scrollbar { display: none; }
+.space-tabs > .empac-tabs__header .empac-tabs__tab { min-height: 48px; padding-inline: 0; font-size: var(--font-size-15, 1.5rem); font-weight: 700; white-space: nowrap; }
+.space-tabs > .empac-tabs__header .empac-tabs__tab--active { color: var(--text-primary); }
+@media (max-width: 767px) {
+  .space-tabs > .empac-tabs__header { top: calc(var(--gs-nav-offset, 64px) + var(--space-bar-h, 0px)); }
+}
+.space-tabs > .empac-tabs__content > .empac-tabs__panel { padding-top: 0; }
+
+/* Your things in this game, as chips (phone picks 4A). */
+.space-you { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.space-chip {
+  display: inline-flex; align-items: center; gap: var(--spacing-8); min-height: 44px; padding: var(--spacing-4) var(--spacing-14, 1.4rem) var(--spacing-4) var(--spacing-6, 0.6rem);
+  border-radius: 999px; border: 1px solid var(--border-subtle); background: var(--background-elevated, #fff); color: var(--text-primary); text-decoration: none; font-size: var(--font-size-14);
+  box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06);
+}
+.space-chip:hover { border-color: var(--border-default); }
+.space-chip b { font-size: var(--font-size-15, 1.5rem); font-variant-numeric: tabular-nums; }
+.space-chip span { color: var(--text-secondary); }
+.space-chip__medal { width: 3.2rem; height: 3.2rem; object-fit: contain; }
+.space-chip__course { width: 4.6rem; height: auto; border-radius: 0.6rem; }
+.space-chip__racer { width: 3.2rem; height: 3.2rem; object-fit: contain; border-radius: 50%; background: linear-gradient(140deg, #6d28d9, #4c1d95); }
+.space-you__none { margin: 0; color: var(--text-secondary); font-size: var(--font-size-15, 1.5rem); }
+
+/* Picture cards in a grid, one height per row. */
+.space-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-24); grid-template-columns: minmax(0, 1fr); }
+/* Three across like the home's Next for you, so a short list keeps its cards' size instead of stretching or leaving a gap at the end. */
+@media (min-width: 600px) { .space-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .space-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-32) var(--spacing-24); } }
+.space-cards > li, .space-cards > .space-cards__item { display: flex; min-width: 0; }
+.space-cards__item > * { flex: 1; min-width: 0; }
+.space-cards .hap { min-height: 22rem; }
+.space-stack { display: grid; gap: var(--spacing-24); }
+.space-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.space-count { margin-left: auto; color: var(--text-secondary); font-size: var(--font-size-14); }
+.space-more { margin-left: 0; }
+.space-two { display: grid; gap: var(--spacing-32); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 899px) { .space-two { grid-template-columns: minmax(0, 1fr); gap: var(--spacing-24); } }
+.space-col { display: grid; gap: var(--spacing-8); align-content: start; min-width: 0; }
+.space-tools { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-10, 1rem); font-size: var(--font-size-15, 1.5rem); }
+.space-crest { display: grid; place-items: center; width: 3.6rem; height: 3.6rem; border-radius: 1rem; background: linear-gradient(140deg, var(--space-accent, #2766ec), #1c1e5f); color: #fff; font-family: var(--font-display); font-weight: 800; font-size: var(--font-size-14); }
+.space-panel { gap: var(--spacing-16); }
+.space-panel__body { display: grid; gap: var(--spacing-16); }
+.space-subtabs.empac-tabs { gap: var(--spacing-16); }
+.space-subtabs .empac-tabs__tab { border-radius: 999px; min-height: 40px; }
+.space-subtabs .empac-tabs__panel { padding-top: 0; }
+/* On a phone the tools are a short wrapping row, so the boards aren't pushed far down. */
+@media (max-width: 767px) { .space-tools { display: flex; flex-wrap: wrap; gap: var(--spacing-10, 1rem) var(--spacing-20); } }
+
+/* Step 5's tabs (src/components/games/SpaceGamePanels.tsx). Two tiles side by side on wide screens (Pokémon's Dailies),
+   a player's face on a daily board, a stack of tiles 32px apart. */
+.space-two--tiles { gap: var(--spacing-32); align-items: start; }
+.space-two--tiles > .room-tile { grid-column: auto; }
+.space-face { width: 3.2rem; height: 3.2rem; border-radius: 50%; object-fit: cover; flex: none; }
+.space-face--blank { display: inline-grid; place-items: center; background: var(--background-secondary, #eef0f6); color: var(--text-secondary); font-weight: 700; font-size: var(--font-size-14); }
+.space-stack > .room-tile { grid-column: auto; }
+/* A section that sits on the page (its things are cards already): the tile's heading row without the tile. */
+.space-flat { display: grid; gap: var(--spacing-20); min-width: 0; }
+
+/* Phones: posts anywhere in a space (the Posts tab, shared rolls) and the composer are bands too, like a feed in an app. */
+@media (max-width: 767px) {
+  .space-body .feed__list { gap: var(--spacing-8); }
+  .space-body .feed__composer, .space-body .post-card {
+    margin-inline: calc(-1 * var(--gs-phone-gutter, 1.6rem)); border-radius: 0; border-inline: 0; box-shadow: none;
+  }
+}
+
+/* The shop in a space (round two picks 8A), sized like the space's own headings. The merch shelf is its own row under
+   both columns of Now (merch pass, 2026-11-06), flat on the page with a thin line above it. */
+.space-body .tcg-section__head h2 { font-family: var(--font-display); font-size: var(--font-size-20); font-weight: 800; }
+.space-now { display: grid; gap: var(--spacing-40); grid-template-columns: minmax(0, 1fr); }
+.space-now > .space-shelf { padding-top: var(--spacing-32); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+@media (max-width: 767px) { .space-now { gap: var(--spacing-24); } .space-now > .space-shelf { padding-top: var(--spacing-24); } }
+.space-body .tcg-section { margin: 0; }
+
+/* Pokémon's Now: today's dailies, a row each (icon tile, what it is and how many played, the way in), split by lines. */
+.space-dailies { list-style: none; margin: 0; padding: 0; display: grid; }
+.space-dailies > li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-12) var(--spacing-16); padding: var(--spacing-16) 0; }
+.space-dailies > li + li { border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.space-dailies > li:first-child { padding-top: 0; }
+.space-dailies > li:last-child { padding-bottom: 0; }
+.space-dailies__words { display: grid; gap: var(--spacing-4); min-width: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.space-dailies__words b { color: var(--text-primary); font-size: var(--font-size-16); }
+.space-dailies__count { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
+@media (max-width: 599px) {
+  .space-dailies > li { grid-template-columns: auto minmax(0, 1fr); }
+  .space-dailies > li > .room-btn { grid-column: 2; justify-self: start; }
+}
+
+/* An empty tile says what goes there and offers the first step, instead of a bare "nothing yet". */
+.space-empty { display: grid; gap: var(--spacing-12); }
+.space-empty .room-tile__note { max-width: 60ch; }
+
+/* Tablets: the rail's blocks pair up; an odd one out spans the row. */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .space-zones .room-rail[data-blocks="3"] > :last-child { grid-column: 1 / -1; }
+}
+.space-roll--rail .space-roll__full { font-size: var(--font-size-14); }
+
+/* Visitors: what a free account keeps here (VisitorKeeps), dashed like the ghost frames, then Join free. */
+.space-keeps { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--spacing-16); align-items: center; }
+.space-keeps__slots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-12); }
+.space-keeps__slots li {
+  display: flex; align-items: center; gap: var(--spacing-10, 1rem); padding: var(--spacing-12) var(--spacing-14, 1.4rem); border-radius: 1.4rem;
+  border: 1.5px dashed color-mix(in srgb, var(--text-primary, #161a2e) 24%, transparent);
+  background: color-mix(in srgb, var(--text-primary, #161a2e) 4%, transparent);
+  font-size: var(--font-size-14); font-weight: 700; color: var(--text-secondary); min-width: 0;
+}
+.space-keeps__slots li svg { flex: none; opacity: .75; }
+.space-keeps__slots small { display: block; font-weight: 500; font-size: var(--font-size-14); color: var(--text-secondary); }
+.space-keeps__go { display: grid; gap: var(--spacing-8); justify-items: start; max-width: 18rem; }
+.space-keeps__go p { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+@media (max-width: 899px) {
+  .space-keeps { grid-template-columns: minmax(0, 1fr); }
+  .space-keeps__go { max-width: none; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+}
+@media (max-width: 559px) {
+  .space-keeps__slots li { flex-direction: column; align-items: flex-start; padding: var(--spacing-10, 1rem); }
+}
+
+/* Posts tab, signed out: one line and Write a post (opens the sign-up sheet, journeys 4A). */
+.space-posts__in { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-12); padding-bottom: var(--spacing-16); border-bottom: 1px solid var(--border-subtle, var(--border-default)); font-size: var(--font-size-16); color: var(--text-secondary); }

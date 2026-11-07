@@ -31,16 +31,23 @@ import {
 
 const COUNTRY_CHOICES: { v: MmrCountry; label: string }[] = [{ v: "flag", label: "Flag" }, { v: "code", label: "Code" }, { v: "both", label: "Both" }];
 const UNDER_ON: Record<MmrUnder, MmrPiece[]> = { none: [], tonight: ["tonight"], last10: ["last10"], both: ["tonight", "last10"] };
+import { looksName, useLooks } from "@/components/billing/LooksOnly";
 import {
   ROLL_MOTIONS, ROLL_PROGRESS, ROLL_SECS, ROLL_SHAPES, rollSlides, type MmrRolling, type RollSecs, type RollSlide,
 } from "@/lib/mmr/rolling";
 
-const Tag = ({ kind }: { kind: "new" | "pro" }) => (
-  <span className={`mmr-studio__tag mmr-studio__tag--${kind}`}>{kind === "new" ? "New" : "GS Pro"}</span>
-);
+/**
+ * "pro" = GS Pro only (tonight's goal). "looks" = a paid look, which GS Pro or Supporter looks unlock (your own order,
+ * a line of your own, a time per slide), named the way the rest of the studio names it.
+ */
+function Tag({ kind }: { kind: "new" | "pro" | "looks" }) {
+  const unlock = looksName(useLooks());
+  return <span className={`mmr-studio__tag mmr-studio__tag--${kind === "looks" ? "pro" : kind}`}>{kind === "new" ? "New" : kind === "pro" ? "GS Pro" : unlock}</span>;
+}
 
+/** The line is a paid look; the other GS Pro pieces (tonight's goal) need GS Pro itself. */
 function PieceLabel({ p }: { p: PieceDef }) {
-  return <span className="mmr-info__label">{p.label}{p.isNew && <Tag kind="new" />}{p.pro && <Tag kind="pro" />}</span>;
+  return <span className="mmr-info__label">{p.label}{p.isNew && <Tag kind="new" />}{p.pro && <Tag kind={p.id === "line" ? "looks" : "pro"} />}</span>;
 }
 
 export function MmrWhatsOn({ look, onInfo, onLook, pro, chat = false, lineWarn, goalSlot }: {
@@ -200,7 +207,7 @@ export function MmrWhatsOn({ look, onInfo, onLook, pro, chat = false, lineWarn, 
           ...groups,
           {
             id: "order",
-            title: <span className="mmr-fold__title"><span className="mmr-info__label">Your own order<Tag kind="pro" /></span>{info.order && <span className="mmr-fold__count">On</span>}</span>,
+            title: <span className="mmr-fold__title"><span className="mmr-info__label">Your own order<Tag kind="looks" /></span>{info.order && <span className="mmr-fold__count">On</span>}</span>,
             content: (
               <div className="mmr-info__list">
                 <p className="mmr-studio__note">Drag the pieces that are on into your order, or use the arrows. Details fill a layout&apos;s spots from the top; pieces marked with a spot of their own stay where the layout puts them.</p>
@@ -299,7 +306,7 @@ export function MmrRollingControls({ look, onRolling }: { look: MmrLook; onRolli
           defaultOpenIds={r.perSlide ? ["times"] : []}
           items={[{
             id: "times",
-            title: <span className="mmr-info__label">A time per slide<Tag kind="pro" /></span>,
+            title: <span className="mmr-info__label">A time per slide<Tag kind="looks" /></span>,
             content: (
               <div className="mmr-rolling-ctl__times">
                 {slides.map((s) => (

@@ -58,6 +58,40 @@ const GENERIC: Record<AuthMode, AuthContext> = {
   },
 };
 
+/** What an account adds to any of the daily games (the leaderboards, tokens and streaks are the same for each). */
+const DAILY_POINTS = [
+  "Streaks that follow you to any device",
+  "Your place on the daily, weekly and monthly leaderboards",
+  "Tokens for the points you score",
+  "Your streaks on your profile",
+];
+
+/** Deck lists, from a deck guide's "Save to my decks" or My Stuff ▸ My Collection ▸ Deck lists. */
+const DECK_LIST_INTENT: Intent = {
+  action: "save your deck lists",
+  lede: "Free. Keep up to three deck lists, checked for Standard.",
+  loginLede: "Sign in and we'll take you straight back.",
+  points: [
+    "Paste a list from Pokémon TCG Live, or save one from a deck guide",
+    "Checked for 60 cards, four of a name and Standard",
+    "See which cards you own from My Cards",
+    "Copy it for Pokémon TCG Live, or play it in the TCG Companion",
+  ],
+};
+
+/** My Cards, Account ▸ Pokémon's card collection. */
+const MY_CARDS_INTENT: Intent = {
+  action: "keep your card collection",
+  lede: "Free. Track the Pokémon cards you own in one place.",
+  loginLede: "Sign in to open My Cards.",
+  points: [
+    "Track the Pokémon cards you own",
+    "Add the cards from the Daily Dex and the Daily Duel",
+    "See which cards a deck list still needs",
+    "Up to 250 different cards free; GS Pro has no limit",
+  ],
+};
+
 /**
  * Longest-prefix wins, so `/tournament/create` beats `/tournament`. Order here
  * is not significant; the match is by specificity.
@@ -71,7 +105,7 @@ const BY_PREFIX: { prefix: string; intent: Intent }[] = [
     prefix: "/tournament/create",
     intent: {
       action: "run a tournament",
-      lede: "Free to host. Brackets, points or the Heat to Mains ladder.",
+      lede: "Free to host. Brackets, Swiss, points or the Heat to Mains ladder.",
       points: [
         "Brackets, points races and championship seasons",
         "Randomized rounds nobody can argue with",
@@ -120,7 +154,7 @@ const BY_PREFIX: { prefix: string; intent: Intent }[] = [
       points: [
         "Publish a night people can find and RSVP to",
         "Track who is coming and how many spots are left",
-        "Sell tickets if you want to cover the table",
+        "Keep it unlisted and share it by link, for nights at home",
         "Run it on the night with the game-night tools",
       ],
     },
@@ -180,6 +214,93 @@ const BY_PREFIX: { prefix: string; intent: Intent }[] = [
       ],
     },
   },
+  {
+    // GameShuffle Competitive's "Add to Discord" (/discord/add?app=comp): longer than /discord/add, so it wins.
+    prefix: "/discord/add?app=comp",
+    intent: {
+      action: "add GameShuffle Competitive to Discord",
+      lede: "Free for one server. Sign up with Discord in one tap, then pick your server.",
+      loginLede: "Sign in, then pick the server to add GameShuffle Competitive to.",
+      points: [
+        "A time trial panel with server records",
+        "Lounge MMR with /mmr and room reads with /room",
+        "Times your members add count on GameShuffle's boards",
+        "Manage the bot's servers on the website",
+      ],
+    },
+  },
+  {
+    prefix: "/lounge",
+    intent: {
+      action: "confirm your lounge name",
+      lede: "Free. Confirm your lounge name with your Discord account, no codes.",
+      loginLede: "Sign in and we'll take you straight back to the lounge.",
+      points: [
+        "Confirm your lounge name with your Discord account",
+        "Your place on the GameShuffle boards, with friends and crews",
+        "A live MMR card for your stream",
+        "Your MMR card on your profile",
+      ],
+    },
+  },
+  {
+    prefix: "/time-trials",
+    intent: {
+      action: "add your times",
+      lede: "Free. Add a time with its result screenshot and it goes on the boards.",
+      loginLede: "Sign in and we'll take you straight back to the boards.",
+      points: [
+        "Your times on the boards, by track and class",
+        "Verified times once a reviewer checks your clip",
+        "Your own player page with every best",
+        "/tt in Discord with GameShuffle Competitive",
+      ],
+    },
+  },
+  {
+    prefix: "/time-trials/review",
+    intent: { action: "review times", lede: "Sign in to open the review queue.", points: [] },
+  },
+  {
+    prefix: "/time-trials/tickets",
+    intent: { action: "open this report", lede: "Sign in to see the report and its replies.", points: [] },
+  },
+  {
+    prefix: "/daily",
+    intent: { action: "keep your Daily Shuffle streak", lede: "Free, and it takes about a minute.", loginLede: "Sign in and we'll take you straight back to today's puzzle.", points: DAILY_POINTS },
+  },
+  {
+    prefix: "/daily-dex",
+    intent: { action: "keep your Daily Dex streak", lede: "Free, and it takes about a minute.", loginLede: "Sign in and we'll take you straight back to today's Pokémon.", points: DAILY_POINTS },
+  },
+  {
+    prefix: "/daily-trivia",
+    intent: { action: "keep your Fire Round streak", lede: "Free, and it takes about a minute.", loginLede: "Sign in and we'll take you straight back to Fire Round.", points: DAILY_POINTS },
+  },
+  {
+    prefix: "/daily-duel",
+    intent: { action: "keep your Daily Duel streak", lede: "Free, and it takes about a minute.", loginLede: "Sign in and we'll take you straight back to today's duel.", points: DAILY_POINTS },
+  },
+  {
+    prefix: "/pokemon-trainers",
+    intent: {
+      action: "keep your stars on Trainer Road",
+      lede: "Free. Anyone can duel; stars, your best and your road need an account.",
+      loginLede: "Sign in and we'll take you straight back to Trainer Road.",
+      points: [
+        "Stars for every trainer you beat",
+        "Your best score on each trainer's board",
+        "Your road: badges, Leagues and regions cleared",
+        "A trainer card on your profile",
+      ],
+    },
+  },
+  { prefix: "/pokemon-tcg/decks", intent: DECK_LIST_INTENT },
+  // Account ▸ Pokémon (My Cards is its first tab), and the old My Stuff addresses that still forward there.
+  { prefix: "/account/pokemon?tab=tcg-decks", intent: DECK_LIST_INTENT },
+  { prefix: "/account/pokemon", intent: MY_CARDS_INTENT },
+  { prefix: "/account/stuff?tab=tcg-decks", intent: DECK_LIST_INTENT },
+  { prefix: "/account/stuff?tab=my-cards", intent: MY_CARDS_INTENT },
   {
     prefix: "/hub",
     intent: {

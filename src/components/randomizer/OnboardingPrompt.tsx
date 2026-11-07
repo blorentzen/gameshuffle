@@ -43,6 +43,13 @@ interface OnboardingPromptProps {
 
 const STORAGE_KEY = "gs_onboarding_dismissed";
 
+/**
+ * The first-visit window stays closed (journeys picks 2026-11-06, 1A): someone who searched for a randomizer gets the
+ * tool first, and the intro card already holds the same choices. A signed-in player's saved player count still fills
+ * in on its own.
+ */
+const SHOW_WINDOW = false;
+
 const MK_RACES = { forTab: "races", label: "How many races?", options: [4, 6, 8, 12, 16, 24, 32, 48] };
 
 export function OnboardingPrompt({
@@ -117,11 +124,11 @@ export function OnboardingPrompt({
               auto: true,
             });
           } else {
-            setVisible(true);
+            if (SHOW_WINDOW) setVisible(true);
           }
         });
     } else {
-      setVisible(true);
+      if (SHOW_WINDOW) setVisible(true);
     }
   }, [authLoading, user, gameSlug, onComplete]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -17,6 +17,7 @@ import { supportAvailability } from "@/lib/billing/availability";
 import { claimSupportGifts, monthProgress, supporterInfo, supportSettings } from "@/lib/support/store";
 import { getProAccess } from "@/lib/subscription-server";
 import { hasLooks, supporterLooksOn } from "@/lib/support/looks";
+import { personaPreview } from "@/lib/preview/server";
 
 export const runtime = "nodejs";
 
@@ -39,6 +40,19 @@ export async function GET(req: Request) {
     admin.from("users").select("display_name, username").eq("id", user.id).maybeSingle().then((r) => r.data as { display_name: string | null; username: string | null } | null, () => null),
     hasLooks(user.id).catch(() => false),
   ]);
+  // A staff persona preview (src/lib/preview) answers as that plan: a Supporter since this month, or neither.
+  const preview = await personaPreview();
+  if (preview) {
+    const supporter = preview.plan === "supporter";
+    return NextResponse.json({
+      available, signedIn: true, supporter, since: supporter ? new Date().toISOString() : null,
+      name: row?.display_name || row?.username || null,
+      pro: preview.plan === "pro", proElsewhere: preview.plan === "pro",
+      level: supporter ? "supporter" : null, founding: null,
+      monthly: supporter ? { amountCents: 300, status: "active", cancelAtPeriodEnd: false, renewsAt: null, level: "supporter" } : null,
+      progress, supportersThisMonth, looks: preview.plan !== "free", supporterLooks,
+    }, { headers: NO_STORE });
+  }
   return NextResponse.json({
     available, signedIn: true,
     supporter: !!info?.supporter, since: info?.since ?? null,

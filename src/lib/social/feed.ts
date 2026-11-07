@@ -6,6 +6,11 @@ import { attachmentViews, gifsReady } from "@/lib/gifs/store";
 import type { Attachment, AttachmentView } from "@/lib/gifs/rules";
 import { isR2Configured, publicUrl } from "@/lib/storage/r2";
 import { reactionLabel, stickerOfKey } from "@/lib/social/reactions";
+import { gameEntry, gameKey } from "@/lib/games/key";
+import { cleanRoll } from "@/lib/rolls/spaceRoll";
+import type { ChatRoll } from "@/lib/twitch/chatRoll";
+import { spaceFor, spaceOpen, spacePath } from "@/lib/games/spaces";
+import { gsDay } from "@/lib/time/gsClock";
 
 /**
  * Social feed (community platform v1) — posts, emoji reactions, threaded
@@ -52,6 +57,8 @@ export interface FeedReaction {
  *  - game_night: game / startAt / capacity
  *  - share: entityType / entityId / title / subtitle / url */
 export interface PostMeta {
+  /** A roll post (kind "roll"): the roll as the randomizer gave it (game spaces round two, 7A). */
+  roll?: ChatRoll | null;
   game?: string | null;
   startAt?: string | null; // ISO; null = "now / open"
   capacity?: number | null;
@@ -88,6 +95,17 @@ export interface FeedPost {
   commentCount: number;
   rsvp: RsvpSummary | null; // present for game_night posts
   isOwn: boolean;
+  /** The game the post is about, or null. `href` opens its game space once that space is open to everyone. */
+  game: FeedPostGame | null;
+}
+
+export interface FeedPostGame { key: string; name: string; href: string | null }
+
+function postGame(key: string | null | undefined): FeedPostGame | null {
+  if (!key) return null;
+  const entry = gameEntry(key);
+  const space = spaceFor(key);
+  return { key, name: entry?.name ?? space?.name ?? key, href: space && spaceOpen(space, gsDay()) ? spacePath(space) : null };
 }
 
 /** CDS-shaped comment node (matches CDS `CommentData`) for direct rendering. */
@@ -134,6 +152,21 @@ const AUTHOR_COLS =
   "id, display_name, username, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, equipped_name_color";
 
 const POST_COLS = "id, author_id, body, kind, meta, created_at, edited_at, community_id, as_community, image_url, image_urls";
+
+/**
+ * Posts belong to games (game spaces step 3, supabase/posts-game-m1.sql): `gs_posts.game` is a game key. Until the
+ * column exists posts are read and written without it (no game shows, the space's Posts tab stays empty).
+ */
+let gameColumn: boolean | null = null;
+export async function postGameReady(): Promise<boolean> {
+  if (gameColumn) return true;
+  const { error } = await createServiceClient().from("gs_posts").select("game").limit(1);
+  gameColumn = !error;
+  return gameColumn;
+}
+async function postCols(): Promise<string> {
+  return (await postGameReady()) ? `${POST_COLS}, game` : POST_COLS;
+}
 const ATTENDEE_FACES = 5;
 
 type PostRow = {
@@ -148,6 +181,7 @@ type PostRow = {
   as_community: boolean | null;
   image_url: string | null;
   image_urls: string[] | null;
+  game?: string | null;
 };
 
 function sanitizeMeta(meta: unknown): PostMeta {
@@ -282,6 +316,8 @@ export async function createPost(args: {
   imageUrls?: string[] | null;
   /** Topic tags added via the composer's bubbled Topics field (no '#' needed). */
   topics?: string[] | null;
+  /** The game it's about, named any way (a game key, catalog name, competitive code); kept as its game key. */
+  game?: string | null;
 }): Promise<{ ok: true; id: string } | { ok: false; reason: "empty" | "rate_limited" }> {
   const body = args.body.trim().slice(0, POST_MAX);
   // Only the author's own uploads from /api/social/posts/image, which checked them.
@@ -289,18 +325,24 @@ export async function createPost(args: {
   const imageUrls = (args.imageUrls ?? [])
     .filter((u): u is string => typeof u === "string" && !!own && u.startsWith(own) && !u.includes(".."))
     .slice(0, 8);
-  // A post needs either text or at least one image.
-  if (!body && imageUrls.length === 0) return { ok: false, reason: "empty" };
+  // A post needs text or a picture; a roll post carries its roll instead.
+  if (!body && imageUrls.length === 0 && args.kind !== "roll") return { ok: false, reason: "empty" };
   if ((await recentCount("gs_posts", args.authorId)) >= POSTS_PER_MIN) {
     return { ok: false, reason: "rate_limited" };
   }
-  const kind = args.kind === "game_night" ? "game_night" : args.kind === "share" ? "share" : "text";
-  const meta = kind === "game_night" ? sanitizeMeta(args.meta) : kind === "share" ? sanitizeShareMeta(args.meta) : null;
+  const kind = args.kind === "game_night" ? "game_night" : args.kind === "share" ? "share" : args.kind === "roll" ? "roll" : "text";
+  const roll = kind === "roll" ? cleanRoll((args.meta as { roll?: unknown } | null)?.roll) : null;
+  if (kind === "roll" && !roll) return { ok: false, reason: "empty" };
+  const meta = kind === "game_night" ? sanitizeMeta(args.meta) : kind === "share" ? sanitizeShareMeta(args.meta) : kind === "roll" ? { roll } : null;
   const asCommunity = !!args.asCommunity && !!args.communityId;
+  // A game night names its game in the event; the post is about that game unless one was picked.
+  const game = gameKey(args.game) ?? (kind === "game_night" ? gameKey(meta?.game) : null);
   const admin = createServiceClient();
+  const row: Record<string, unknown> = { author_id: args.authorId, body, kind, meta, community_id: args.communityId ?? null, as_community: asCommunity, image_url: imageUrls[0] ?? null, image_urls: imageUrls };
+  if (game && (await postGameReady())) row.game = game;
   const { data, error } = await admin
     .from("gs_posts")
-    .insert({ author_id: args.authorId, body, kind, meta, community_id: args.communityId ?? null, as_community: asCommunity, image_url: imageUrls[0] ?? null, image_urls: imageUrls })
+    .insert(row)
     .select("id")
     .single();
   if (error || !data) throw error ?? new Error("post insert failed");
@@ -427,6 +469,7 @@ async function hydratePosts(rows: PostRow[], viewerId: string): Promise<FeedPost
       createdAt: r.created_at,
       editedAt: r.edited_at,
       imageUrls: (r.image_urls && r.image_urls.length > 0) ? r.image_urls : (r.image_url ? [r.image_url] : []),
+      game: postGame(r.game),
       author: authorMap.get(r.author_id) ?? fallbackAuthor(r.author_id),
       postedAs: r.as_community && r.community_id && communityById.has(r.community_id)
         ? { communityId: r.community_id, ...communityById.get(r.community_id)! }
@@ -491,7 +534,7 @@ export async function listFeed(opts: {
 
   let q = admin
     .from("gs_posts")
-    .select(POST_COLS)
+    .select(await postCols())
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limit * 2); // over-fetch for block filtering
@@ -500,7 +543,7 @@ export async function listFeed(opts: {
   if (opts.before) q = q.lt("created_at", opts.before);
 
   const { data } = await q;
-  let rows = (data ?? []) as PostRow[];
+  let rows = (data ?? []) as unknown as PostRow[];
 
   const blocked = await blockedIds(opts.viewerId);
   rows = rows.filter((r) => !blocked.has(r.author_id)).slice(0, limit);
@@ -533,12 +576,12 @@ export async function listFeedByTag(opts: {
 
   const { data } = await admin
     .from("gs_posts")
-    .select(POST_COLS)
+    .select(await postCols())
     .in("id", postIds)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limit * 2);
-  let rows = (data ?? []) as PostRow[];
+  let rows = (data ?? []) as unknown as PostRow[];
   if (opts.viewerId) {
     const blocked = await blockedIds(opts.viewerId);
     rows = rows.filter((r) => !blocked.has(r.author_id));
@@ -585,7 +628,7 @@ export async function listCommunityFeed(opts: {
 
   let q = admin
     .from("gs_posts")
-    .select(POST_COLS)
+    .select(await postCols())
     .is("deleted_at", null)
     .eq("community_id", opts.communityId)
     .order("created_at", { ascending: false })
@@ -593,7 +636,7 @@ export async function listCommunityFeed(opts: {
   if (opts.before) q = q.lt("created_at", opts.before);
 
   const { data } = await q;
-  let rows = (data ?? []) as PostRow[];
+  let rows = (data ?? []) as unknown as PostRow[];
 
   if (opts.viewerId) {
     const blocked = await blockedIds(opts.viewerId);
@@ -626,16 +669,16 @@ export async function listHomeFeed(opts: { viewerId: string; limit?: number }): 
 
   const [communityPosts, followPosts] = await Promise.all([
     communityIds.length
-      ? admin.from("gs_posts").select(POST_COLS).is("deleted_at", null).in("community_id", communityIds)
+      ? admin.from("gs_posts").select(await postCols()).is("deleted_at", null).in("community_id", communityIds)
           .order("created_at", { ascending: false }).limit(limit * 2)
-      : Promise.resolve({ data: [] as PostRow[] }),
-    admin.from("gs_posts").select(POST_COLS).is("deleted_at", null).is("community_id", null).in("author_id", authorIds)
+      : Promise.resolve({ data: [] as unknown as PostRow[] }),
+    admin.from("gs_posts").select(await postCols()).is("deleted_at", null).is("community_id", null).in("author_id", authorIds)
       .order("created_at", { ascending: false }).limit(limit * 2),
   ]);
 
   // Merge, dedupe by id, newest first.
   const byId = new Map<string, PostRow>();
-  for (const r of [...((communityPosts.data ?? []) as PostRow[]), ...((followPosts.data ?? []) as PostRow[])]) {
+  for (const r of [...((communityPosts.data ?? []) as unknown as PostRow[]), ...((followPosts.data ?? []) as unknown as PostRow[])]) {
     byId.set(r.id, r);
   }
   let rows = [...byId.values()].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
@@ -650,7 +693,7 @@ export async function getPost(postId: string, viewerId: string): Promise<FeedPos
   const admin = createServiceClient();
   const { data } = await admin
     .from("gs_posts")
-    .select(POST_COLS)
+    .select(await postCols())
     .eq("id", postId)
     .is("deleted_at", null)
     .maybeSingle();
@@ -663,12 +706,80 @@ export async function getPostsByAuthor(authorId: string, viewerId: string, limit
   const admin = createServiceClient();
   const { data } = await admin
     .from("gs_posts")
-    .select(POST_COLS)
+    .select(await postCols())
     .eq("author_id", authorId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
   return hydratePosts((data ?? []) as never, viewerId);
+}
+
+/**
+ * A game space's posts: posts about any of its games, newest first (game spaces step 3). Anyone can read them; a
+ * signed-in viewer never sees people they've blocked or who blocked them.
+ */
+export async function listGameFeed(opts: { games: string[]; viewerId: string | null; before?: string | null; limit?: number; kind?: string; since?: string }): Promise<FeedPost[]> {
+  if (!opts.games.length || !(await postGameReady())) return [];
+  const limit = opts.limit ?? 20;
+  let q = createServiceClient()
+    .from("gs_posts")
+    .select(await postCols())
+    .is("deleted_at", null)
+    .in("game", opts.games)
+    .order("created_at", { ascending: false })
+    .limit(limit * 2);
+  if (opts.before) q = q.lt("created_at", opts.before);
+  if (opts.kind) q = q.eq("kind", opts.kind);
+  if (opts.since) q = q.gte("created_at", opts.since);
+  const { data } = await q;
+  let rows = (data ?? []) as unknown as PostRow[];
+  if (opts.viewerId) {
+    const blocked = await blockedIds(opts.viewerId);
+    rows = rows.filter((r) => !blocked.has(r.author_id));
+  }
+  return hydratePosts(rows.slice(0, limit), opts.viewerId ?? "");
+}
+
+/** One line of a post from someone you follow, for the home's rail. */
+export interface PeoplePost { id: string; author: FeedAuthor; game: FeedPostGame; text: string; createdAt: string; href: string }
+
+/** What a post says in one line: its words, else what it shares or what's attached. */
+export function postLine(p: FeedPost): string {
+  const words = p.body.replace(/\s+/g, " ").trim();
+  if (p.kind === "roll" && p.meta?.roll) {
+    const parts = p.meta.roll.slots.slice(0, 4).map((x) => x.name).join(", ");
+    return words ? `${words} (rolled ${parts})` : `Rolled ${parts}`;
+  }
+  if (words) return words.length > 120 ? `${words.slice(0, 117).trimEnd()}...` : words;
+  if (p.kind === "share" && p.meta?.title) return p.meta.title;
+  if (p.kind === "game_night") return "Hosting a game night";
+  return p.imageUrls.length > 1 ? "Shared pictures" : "Shared a picture";
+}
+
+/**
+ * "From your people" (game spaces picks 8A): the newest few posts about a game from people you follow, from the
+ * last two weeks. A few lines on the home's rail, never an endless feed; each names its game and opens the post.
+ */
+export async function fromYourPeople(viewerId: string, limit = 3): Promise<PeoplePost[]> {
+  if (!(await postGameReady())) return [];
+  const admin = createServiceClient();
+  const { data: f } = await admin.from("follows").select("followee_user_id").eq("follower_user_id", viewerId);
+  const following = ((f ?? []) as Array<{ followee_user_id: string }>).map((r) => r.followee_user_id).filter((id) => id !== viewerId);
+  if (!following.length) return [];
+  const since = new Date(Date.now() - 14 * 86_400_000).toISOString();
+  const { data } = await admin
+    .from("gs_posts")
+    .select(await postCols())
+    .is("deleted_at", null)
+    .not("game", "is", null)
+    .in("author_id", following.slice(0, 500))
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(limit * 3);
+  const blocked = await blockedIds(viewerId);
+  const rows = ((data ?? []) as unknown as PostRow[]).filter((r) => !blocked.has(r.author_id)).slice(0, limit);
+  const posts = await hydratePosts(rows, viewerId);
+  return posts.flatMap((p) => (p.game ? [{ id: p.id, author: p.author, game: p.game, text: postLine(p), createdAt: p.createdAt, href: `/community/post/${p.id}` }] : []));
 }
 
 export async function deletePost(postId: string, userId: string, isStaff: boolean): Promise<boolean> {

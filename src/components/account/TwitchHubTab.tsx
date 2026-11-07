@@ -493,12 +493,6 @@ export function TwitchHubTab() {
         </div>
       )}
 
-      <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
-        Your streams themselves (going live, rolls, picks and bans) run from the{" "}
-        <a href="/hub" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>
-          Stream hub
-        </a>.
-      </p>
 
       {/* Scope-coverage reauth banner — surfaces when we've added new
           OAuth scopes since the streamer last connected. Renders above

@@ -8,6 +8,7 @@ import { ArrowLink } from "@/components/ui/ArrowLink";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { HeroShowcase } from "@/components/home/HeroShowcase";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppCard } from "@/components/AppCard";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
@@ -18,6 +19,10 @@ import { HomeHost } from "@/components/home/HomeHost";
 import { PlansBand } from "@/components/home/PlansBand";
 import { paidPlansHere, supportHere } from "@/lib/billing/availability";
 import { homeViewer } from "@/lib/home/viewer";
+import { VisitorTour } from "@/components/home/VisitorTour";
+import { HappeningBand } from "@/components/home/HappeningBand";
+import { bandFor } from "@/lib/home/happening";
+import { welcomeNumbers } from "@/lib/welcome/numbers";
 import { DAILY_DEX_PUBLIC, FIRE_ROUND_PUBLIC, ROAD_PUBLIC } from "@/lib/games-visibility";
 import { DUEL_SHOWN } from "@/lib/originals/dailies";
 import { duelChallenger } from "@/lib/originals/duel/store";
@@ -117,7 +122,7 @@ const POPULAR_PAGES: { label: string; sub: string; href: string }[] = [
  * your way in. Each section heading has one short colored eyebrow that never
  * repeats the heading's words (design round 3, 2026-10-20).
  */
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ front?: string }> }) {
   // Pokémon: one panel (Britton's pick, 2026-10-19), then the store's cards.
   const pokemonRows: PanelRow[] = [
     {
@@ -148,6 +153,18 @@ export default async function HomePage() {
     getPublicFeaturedShopCards(), shopVisibleToVisitors(), homeViewer().catch(() => null), paidPlansHere().catch(() => true), supportHere().catch(() => true),
     DUEL_SHOWN ? duelChallenger(gsDay()).catch(() => null) : Promise.resolve(null),
   ]);
+  // Signed in, your room lives at /home (journeys picks 2026-11-06, 6A); members see this front page with ?front=1.
+  if (viewer && !(await searchParams).front) redirect("/home");
+  // The world tour (picks 2026-11-05, 5A), with today's numbers once they're worth saying.
+  const [numbers, visitorBand] = await Promise.all([welcomeNumbers().catch(() => null), bandFor(null).catch(() => [])]);
+  const numberLines = [
+    numbers?.playedToday ? `${numbers.playedToday.toLocaleString("en-US")} people played today's dailies` : null,
+    numbers?.tournamentsRunning ? `${numbers.tournamentsRunning} ${numbers.tournamentsRunning === 1 ? "tournament" : "tournaments"} running now` : null,
+    numbers?.nightsThisWeek ? `${numbers.nightsThisWeek} game nights this week` : null,
+  ].filter((x): x is string => !!x);
+  const md = gsDay().slice(5);
+  const seasonal = md >= "10-01" && md <= "10-31" ? { label: "Halloween party games", href: "/game-nights/halloween-party-games" }
+    : md >= "11-15" && md <= "12-31" ? { label: "Christmas party games", href: "/game-nights/christmas-party-games" } : null;
   return (
     <>
       <script
@@ -156,19 +173,26 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_JSON_LD) }}
       />
       <BrowseHero
-        eyebrow="Free for everyone"
-        title={"Shuffle up your game\u00a0night."}
-        sub="Randomizers, daily puzzles, tournaments and trivia nights for any game night, from family on the couch to friends across Discord."
+        title={"Play, host, compete and stream. Free."}
+        sub="Daily games, randomizers for 18 games, party games on everyone's phones, Mario Kart time trials and lounge stats, Pokémon duels and a card game companion, and chat games for your stream."
         accent="blue"
         field="mixed"
-        primary={{ href: "/daily", label: "Play today's Daily" }}
-        secondary={{ href: "#apps", label: "Find a randomizer" }}
+        primary={{ href: "/daily", label: "Play today's games" }}
+        secondary={{ href: "/signup", label: "Make a free account" }}
         aside={<HeroShowcase />}
         note={!viewer ? <>New here? <Link href="/welcome" className={tagged(EVENTS.welcomeLineClicked, { from: "home" })}>See what GameShuffle does</Link></> : undefined}
       />
 
       <main>
         <Container>
+          {/* What's happening across GameShuffle, busiest first (room air + discovery picks, 7A). */}
+          {visitorBand.length > 0 && (
+            <div className="visitor-band">
+              <HappeningBand worlds={visitorBand} tone="light" signedIn={false} heading="What's happening on GameShuffle" />
+              <p className="visitor-band__note">A free account makes this follow what you play. <Link href="/signup">Make a free account</Link></p>
+            </div>
+          )}
+          <VisitorTour numbers={numberLines} seasonal={seasonal} supportOpen={supportOpen} />
           {/* The daily habit first: the people who come back are the ones who host, stream and support. */}
           <section className="home-section" aria-labelledby="home-today-title">
             <div className="home-section__head">

@@ -15,6 +15,7 @@
  * round reports itself to the dailies' today bar like the puzzles do.
  */
 
+import { DailiesAfter } from "@/components/originals/DailiesAfter";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Chip } from "@empac/cascadeds";
@@ -196,7 +197,7 @@ export function FireRound() {
       guestId={boards.guestId ?? storedGuestId()}
       refresh={boardRefresh + boards.refresh}
       onViews={onViews}
-      join={guestOff && home.today ? <DailyBoardJoin onJoin={joinBoard} onJoined={() => setBoardRefresh((n) => n + 1)} tokens={0} /> : undefined}
+      join={guestOff && home.today ? <DailyBoardJoin onJoin={joinBoard} onJoined={() => setBoardRefresh((n) => n + 1)} tokens={0} back="/daily-trivia" /> : undefined}
     />
   );
 
@@ -353,7 +354,7 @@ function FireResults({ run, board, place, players, signedIn, shareFor, onAgain, 
       <section className="fire-flat" aria-labelledby="fire-next-title">
         <h2 id="fire-next-title" className="fire-flat__title">Next up</h2>
         {daily ? (
-          <div className="fire-next"><DailiesNextButton current="fire" /></div>
+          <><div className="fire-next"><DailiesNextButton current="fire" /></div><DailiesAfter current="fire" /></>
         ) : (
           <p className="fire-next">Try another category, or <Link href="/trivia">host a trivia night</Link> for your group.</p>
         )}

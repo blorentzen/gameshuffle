@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { StreamingTabs } from "@/components/account/streaming/StreamingTabs";
+import { previewPro } from "@/lib/preview/server";
+import { streamSetup } from "@/lib/streaming/setup";
+import { STREAMING_TAB_TO_STUDIO } from "@/lib/studio/tools";
 
 /**
  * Streaming section page (/account/streaming): Stream Setup and Community &
@@ -9,7 +12,7 @@ import { StreamingTabs } from "@/components/account/streaming/StreamingTabs";
  * started and the Discord bot) and the profile timezone the schedule uses.
  * The shared shell and sidebar live in src/app/account/layout.tsx.
  */
-export default async function StreamingPage() {
+export default async function StreamingPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/account/streaming");
@@ -26,5 +29,21 @@ export default async function StreamingPage() {
     circuitStatus: (data?.circuit_status as string | null) ?? null,
   }) === "pro";
 
-  return <StreamingTabs isPro={isPro} profileTimezone={(data?.timezone as string | null) ?? null} />;
+  // A staff persona preview (src/lib/preview) shows the plan it previews.
+  const pro = await previewPro(isPro);
+  // GS Pro streamers run everything from the Studio now (journeys picks 2026-11-06, 10A): each old tab has a page
+  // there, other parameters kept (OAuth returns). Free accounts keep Get started here.
+  if (pro) {
+    const sp = await searchParams;
+    const tab = typeof sp.tab === "string" ? sp.tab : "";
+    const to = !tab || tab === "get-started" ? "/hub" : STREAMING_TAB_TO_STUDIO[tab];
+    if (to) {
+      const rest = new URLSearchParams();
+      for (const [k, v] of Object.entries(sp)) if (k !== "tab" && typeof v === "string") rest.set(k, v);
+      redirect(rest.size ? `${to}?${rest.toString()}` : to);
+    }
+  }
+  // GS Pro: the setup checklist stays on top until every step is done (menus and account picks 2026-11-05, 4A).
+  const setup = pro ? await streamSetup(user.id).catch(() => null) : null;
+  return <StreamingTabs isPro={pro} setup={setup} profileTimezone={(data?.timezone as string | null) ?? null} />;
 }

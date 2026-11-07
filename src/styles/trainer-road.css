@@ -35,6 +35,7 @@
 .road-tile__name { font-family: var(--font-display, inherit); font-size: var(--font-size-18); font-weight: 800; line-height: 1.2; }
 .road-tile__title { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.35; }
 .road-tile__team { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.4; }
+.road-tile__badge { display: grid; color: var(--duel-ink, #8a5d00); font-size: var(--font-size-14); font-weight: 600; line-height: 1.35; }
 .road-tile__games { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #8a5d00; }
 
 .road-stars { display: inline-flex; gap: 1px; vertical-align: -2px; }
@@ -204,8 +205,3 @@
 .road-teamtables__title { margin: 0 0 var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
 .road-teamtables__n { width: 1%; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
 
-/* A region's Gym Leaders in badge order (SEO pass 2026-11-05): a flat numbered list, two or four across when there's room. */
-.road-gymlist { display: grid; gap: var(--spacing-12); min-width: 0; }
-.road-gymlist__list { margin: 0; padding-left: var(--spacing-24); display: grid; gap: var(--spacing-8) var(--spacing-24); grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr)); font-size: var(--font-size-16); }
-.road-gymlist__list a { font-weight: 600; color: var(--duel-ink, #8a5d00); }
-.road-gymlist__list span { color: var(--text-secondary); }

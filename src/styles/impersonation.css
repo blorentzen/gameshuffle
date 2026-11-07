@@ -18,34 +18,17 @@
   background: var(--surface-warning);
   color: var(--warning-ink);
   border-bottom: 1px solid var(--warning-300);
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.02em;
   min-height: 40px;
+  flex-wrap: wrap;
+  text-align: center;
 }
 
-.staff-impersonation-banner__label strong {
-  text-transform: uppercase;
-}
-
-.staff-impersonation-banner__exit {
-  background: none;
-  border: none;
-  padding: var(--spacing-2) var(--spacing-6);
-  border-radius: var(--radius-4);
+/* The strip's button is a CDS ghost Button; it keeps the strip's ink. */
+.staff-impersonation-banner .staff-impersonation-banner__exit {
   color: var(--warning-ink);
   text-decoration: underline;
-  cursor: pointer;
-  font: inherit;
-}
-
-.staff-impersonation-banner__exit:hover {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-.staff-impersonation-banner__exit:disabled {
-  cursor: progress;
-  opacity: 0.7;
 }
 
 .staff-impersonation-banner__hint {
@@ -85,77 +68,98 @@
   background: var(--gray-800);
 }
 
-.staff-impersonation-control__menu {
-  position: absolute;
-  bottom: calc(100% + var(--spacing-8));
-  right: 0;
-  min-width: 240px;
-  background: var(--background-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-8);
-  padding: var(--spacing-8);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-4);
+/* View as (persona picks 2026-11-05): a CDS Popover opened from the badge. */
+.view-as-popover.empac-popover {
+  max-width: min(380px, calc(100vw - var(--spacing-16)));
+  width: 380px;
+  max-height: min(80vh, 720px);
+  overflow-y: auto;
 }
 
-.staff-impersonation-control__title {
+.view-as {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16);
+  font-size: var(--font-size-14);
+}
+
+.view-as__title {
   margin: 0;
-  padding: var(--spacing-4) var(--spacing-8);
+  font-family: var(--font-family-heading, inherit);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.view-as__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.view-as__label {
+  margin: 0;
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-bold);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-.staff-impersonation-control__option {
-  background: none;
-  border: none;
-  text-align: left;
-  padding: var(--spacing-8) var(--spacing-12);
-  border-radius: var(--radius-6);
-  cursor: pointer;
+.view-as__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+
+.view-as__note {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.view-as__accounts {
+  padding-top: var(--spacing-12);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.view-as__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-2);
+  gap: var(--spacing-8);
+}
+
+.view-as__account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+
+.view-as__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   color: var(--text-primary);
-  font: inherit;
 }
 
-.staff-impersonation-control__option:hover {
-  background: var(--background-secondary);
+.view-as__who span {
+  color: var(--text-secondary);
 }
 
-.staff-impersonation-control__option--active {
-  background: var(--surface-selected);
-  color: var(--primary-ink-700);
-}
-
-.staff-impersonation-control__option-label {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-14);
-}
-
-.staff-impersonation-control__option-hint {
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-}
-
-.staff-impersonation-control__option:disabled {
-  cursor: progress;
-  opacity: 0.6;
+.view-as__link {
+  padding-top: var(--spacing-12);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--brand-ink, var(--primary-600));
 }
 
 @media (max-width: 480px) {
   .staff-impersonation-control {
     right: var(--spacing-8);
     bottom: var(--spacing-8);
-  }
-  .staff-impersonation-control__menu {
-    width: calc(100vw - var(--spacing-16));
-    max-width: 320px;
   }
 }
 

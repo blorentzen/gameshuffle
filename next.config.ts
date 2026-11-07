@@ -79,6 +79,9 @@ const ACTIVITY_HOSTS = process.env.NODE_ENV === "development"
   : "activity(?:-dev)?\\.gameshuffle\\.co";
 
 const nextConfig: NextConfig = {
+  // React's view transitions (room picks 2026-11-05, 3A): a band card's picture grows into the event page it opens.
+  // Only elements wrapped in <ViewTransition> animate; a browser without the API just navigates.
+  experimental: { viewTransition: true },
   // Testing the Discord Activity locally: Discord's proxy (<app id>.discordsays.com)
   // reaches the dev server through a cloudflared tunnel. Development only.
   allowedDevOrigins: ["*.trycloudflare.com", "*.discordsays.com"],

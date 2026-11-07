@@ -1,5 +1,6 @@
 "use client";
 
+import { DailiesAfter } from "@/components/originals/DailiesAfter";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Accordion, Alert, Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -389,6 +390,7 @@ export function DailyShuffle() {
             <DailiesNextButton current="shuffle" onPick={activity?.pickDaily} />
           </div>
           <DailiesYours current="shuffle" only />
+          <DailiesAfter current="shuffle" />
           <DailiesInvite current="shuffle" nudge={false} />
           {account && !account.signedIn && (
             <p className="party-muted daily-result__signin">

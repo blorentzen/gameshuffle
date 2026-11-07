@@ -1,0 +1,26 @@
+/* The game space sign-up sheet (src/components/games/JoinSheet.tsx). */
+.join-sheet__body { display: grid; gap: var(--spacing-16); }
+.join-sheet__body > p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; }
+.join-sheet__ctx { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12); border-radius: 1.4rem; background: var(--background-secondary); }
+.join-sheet__ctx img { width: 4.4rem; height: 4.4rem; object-fit: contain; flex: none; }
+.join-sheet__ctx b { display: block; font-family: var(--font-display); font-size: var(--font-size-16); font-weight: 800; color: var(--text-primary); }
+.join-sheet__ctx small { display: block; font-size: var(--font-size-14); color: var(--text-secondary); }
+.join-sheet__ways { display: grid; gap: var(--spacing-8); }
+.join-sheet__oauth { min-height: 4.8rem; gap: var(--spacing-8); }
+.join-sheet__oauth img { filter: brightness(0) invert(1); margin-right: var(--spacing-8); flex: none; }
+.join-sheet__oauth--discord { --bg-primary: #5865f2; background: #5865f2 !important; border-color: #5865f2 !important; }
+.join-sheet__oauth--twitch { --bg-primary: #9146ff; background: #9146ff !important; border-color: #9146ff !important; }
+.join-sheet__oauth--facebook { --bg-primary: #1877f2; background: #1877f2 !important; border-color: #1877f2 !important; }
+.join-sheet__email {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-8); min-height: 4.8rem; border-radius: 1rem;
+  font-weight: 700; font-size: var(--font-size-16); color: var(--text-primary); text-decoration: none; box-shadow: inset 0 0 0 1px var(--border-default);
+}
+.join-sheet__email:hover { background: var(--background-secondary); }
+.join-sheet__email:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: 2px; }
+.join-sheet__problem { color: var(--text-error, #b42318) !important; font-size: var(--font-size-14) !important; }
+.join-sheet__fine { text-align: center; font-size: var(--font-size-14) !important; }
+.join-sheet__fine a { color: var(--brand-ink, #2f5bea); font-weight: 700; }
+@media (max-width: 767px) {
+  .empac-modal-overlay:has(.join-sheet) { align-items: flex-end; padding: 0; }
+  .empac-modal.join-sheet { width: 100%; max-width: none; margin: 0; border-radius: 2rem 2rem 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); max-height: 92vh; overflow-y: auto; }
+}

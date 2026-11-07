@@ -250,7 +250,7 @@ export function PublicDeckLists({ tournamentId, signedIn }: { tournamentId: stri
     const res = await fetch("/api/tcg/decks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: `${entry.deck.name} (${entry.player})`.slice(0, 60), text: exportDeckText(entry.deck.lines) }) }).catch(() => null);
     const j = (await res?.json().catch(() => null)) as { deck?: unknown; message?: string } | null;
     setSaving(null);
-    if (j?.deck) toast.toast({ variant: "success", message: "Saved to My Stuff ▸ Deck lists." });
+    if (j?.deck) toast.toast({ variant: "success", message: "Saved to Account ▸ Pokémon ▸ Deck lists." });
     else toast.toast({ variant: "error", title: "Couldn't save it", message: j?.message ?? "Try again." });
   };
   const ord = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;

@@ -159,6 +159,12 @@
 .profile-tt__list b { font-variant-numeric: tabular-nums; text-align: right; }
 .profile-tt__meta { color: var(--text-secondary); font-size: var(--font-size-14); }
 .profile-tt__list li > .profile-tt__meta:last-child { text-align: right; }
+/* Across the profile's wide column: one line a track, the game, time and place in columns that line up. */
+@media (min-width: 900px) {
+  .pf-cell[data-span="12"] .profile-tt__list li { grid-template-columns: minmax(0, 1fr) 12rem 10rem 9rem; align-items: center; min-height: 40px; }
+  .pf-cell[data-span="12"] .profile-tt__list li > * { text-align: left; }
+  .pf-cell[data-span="12"] .profile-tt__list li > b, .pf-cell[data-span="12"] .profile-tt__list li > .profile-tt__meta:last-child { text-align: right; }
+}
 
 /* Connect Discord (1A, 2A): one flat line, the tile beside the words and the button after them. */
 .tt-connect { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
@@ -368,3 +374,18 @@
 /* The way into the review queue for reviewers and updaters, beside Add a time (Britton, 2026-11-05). */
 .tt-review-link { display: inline-flex; align-items: center; gap: var(--spacing-8); text-decoration: none; }
 .tt-review-link__n { font-weight: 600; padding: 0 var(--spacing-8); border-radius: 999px; background: var(--bg-primary); color: var(--text-on-primary); font-size: var(--font-size-14); line-height: 2.2rem; }
+
+/* A game space's time trial challenge: the fixed game, speed, items and combo in one line instead of pickers. */
+.tt-add__fixed { margin: 0; padding: var(--spacing-12) var(--spacing-16); border-radius: var(--radius-12, 12px); background: var(--background-secondary); color: var(--text-primary); font-weight: 600; font-size: var(--font-size-14); }
+
+/* Time trial events row (events pick 12A) */
+.tt-events { display: flex; flex-direction: column; gap: var(--spacing-12); padding-top: var(--spacing-24); border-top: 1px solid var(--border-default); }
+.tt-events__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-12); }
+.tt-events__title { margin: 0; font-size: var(--font-size-20); font-weight: 700; color: var(--text-primary); }
+.tt-events__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 32rem), 1fr)); gap: var(--spacing-12); }
+.tt-events__item { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); color: var(--text-primary); text-decoration: none; min-width: 0; height: 100%; }
+.tt-events__item:hover { border-color: var(--border-strong); }
+.tt-events__words { display: flex; flex-direction: column; gap: var(--spacing-4); min-width: 0; flex: 1; }
+.tt-events__words b { font-size: var(--font-size-16); }
+.tt-events__words small { font-size: var(--font-size-14); color: var(--text-secondary); }
+.tt-events__none { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }

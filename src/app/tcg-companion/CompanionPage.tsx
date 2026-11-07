@@ -250,7 +250,7 @@ function Header({ viewer }: { viewer: CompanionViewer }) {
               free, collecting is Pro; the collection page owns that gate. */}
           {viewer.kind === "auth" && (
             <Link
-              href="/account/stuff?tab=my-cards"
+              href="/account/pokemon?tab=my-cards"
               className="companion-page__cards-link"
             >
               <Button

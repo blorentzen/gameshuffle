@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   if (Number.isFinite(limit)) {
     const { count } = await admin.from("saved_configs").select("id", { count: "exact", head: true }).eq("user_id", user.id);
     if ((count ?? 0) >= limit) {
-      return NextResponse.json({ error: `Free accounts can save up to ${limit} setups. Delete one in My Stuff, or keep every setup with GS Pro.`, limit: true }, { status: 403 });
+      return NextResponse.json({ error: `Free accounts can save up to ${limit} setups. Delete one in Your events ▸ Saved setups, or keep every setup with GS Pro.`, limit: true }, { status: 403 });
     }
   }
 

@@ -23,6 +23,7 @@ import { IconTrophy, IconDeviceGamepad2, IconCalendarEvent, IconClock } from "@t
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { GifButton } from "@/components/gifs/GifButton";
 import type { Attachment } from "@/lib/gifs/rules";
+import { RollCard } from "@/components/rolls/RollCard";
 
 function formatWhen(startAt: string | null | undefined): string {
   if (!startAt) return "Open · hosting now";
@@ -84,16 +85,22 @@ export function PostCard({
   onDeleted,
   defaultOpenComments = false,
   readOnly = false,
+  hideGame = false,
+  onNeedAccount,
 }: {
   post: FeedPost;
   currentUserId: string;
   onDeleted: (id: string) => void;
   defaultOpenComments?: boolean;
+  /** Inside the game's own space, where naming it again says nothing. */
+  hideGame?: boolean;
   /** Signed-out preview: interactions nudge to signup instead of hitting auth APIs. */
   readOnly?: boolean;
+  /** Signed out in a game space: open the sign-up sheet instead (with the reaction to send once they're back). */
+  onNeedAccount?: (what: { postId: string; emoji?: string }) => void;
 }) {
   const router = useRouter();
-  const requireAuth = () => router.push("/signup?redirect=/communities");
+  const requireAuth = (emoji?: string) => (onNeedAccount ? onNeedAccount({ postId: post.id, emoji: typeof emoji === "string" ? emoji : undefined }) : router.push("/signup?redirect=/communities"));
   const [reactions, setReactions] = useState<ReactionCount[]>(post.reactions);
   const [showComments, setShowComments] = useState(defaultOpenComments);
   const [comments, setComments] = useState<FeedComment[] | null>(null);
@@ -331,6 +338,9 @@ export function PostCard({
               a.username && <span className="post-card__handle">@{a.username}</span>
             )}
             <span className="post-card__time">· {relativeTime(post.createdAt)}</span>
+            {post.game && !hideGame && (
+              <span className="post-card__game">· {post.game.href ? <Link href={post.game.href}>{post.game.name}</Link> : post.game.name}</span>
+            )}
           </span>
         </span>
         {!readOnly && (
@@ -423,6 +433,7 @@ export function PostCard({
       )}
 
       {post.body && <div className="post-card__body">{renderBody(post.body)}</div>}
+      {post.kind === "roll" && post.meta?.roll && <div className="post-card__roll"><RollCard roll={post.meta.roll} /></div>}
 
       {post.imageUrls.length > 0 && (
         <div
@@ -467,10 +478,10 @@ export function PostCard({
       <div className="post-card__actions">
         <ReactionRow
           reactions={reactions}
-          onReact={readOnly ? requireAuth : onReact}
-          onRemove={readOnly ? requireAuth : onRemoveReaction}
+          onReact={readOnly ? (emoji: string) => requireAuth(emoji) : onReact}
+          onRemove={readOnly ? () => requireAuth() : onRemoveReaction}
         />
-        <button type="button" className="post-card__comment-toggle" onClick={readOnly ? requireAuth : toggleComments}>
+        <button type="button" className="post-card__comment-toggle" onClick={readOnly ? () => requireAuth() : toggleComments}>
           <Icon name="message-circle" size="16" />
           {commentCount > 0 ? `${commentCount} comment${commentCount === 1 ? "" : "s"}` : "Comment"}
         </button>

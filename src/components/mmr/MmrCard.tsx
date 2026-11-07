@@ -22,6 +22,8 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { IconChartLine, IconChevronsUp, IconClock, IconFlag, IconLaurelWreathFilled, IconStar, IconStarFilled } from "@tabler/icons-react";
 import { divisionLook, type MmrLook } from "@/lib/mmr/look";
 import { fmtMmr, milestoneTier, placeWord, signed, sourceLabel, type MmrView } from "@/lib/mmr/rules";
@@ -115,11 +117,25 @@ export interface MmrCardProps {
   fit?: "frame" | "obs";
   /** GameShuffle's bot answers !mmr in the streamer's chat: the panel's "Type !mmr in chat" line may show. */
   chat?: boolean;
+  /**
+   * The profile version (round two picks 3A, 2026-11-06): the card is the Rank block itself, the width of the column
+   * it's in, in the player's look, with a title, the numbers the card doesn't show and links drawn inside it.
+   */
+  profile?: MmrProfileParts | null;
+}
+
+export interface MmrProfileParts {
+  title: string;
+  titleId: string;
+  rows: { label: string; value: string; href?: string | null }[];
+  links: { href: string; label: string }[];
+  /** The last ten events as squares. */
+  last10?: boolean;
 }
 
 /** The card in its look's layout: the Rolling layout has its own component (MmrRolling.tsx). */
 export function MmrCard(props: MmrCardProps) {
-  return props.look.layout === "rolling" && !props.recap ? <MmrRolling {...props} /> : <FixedCard {...props} />;
+  return props.look.layout === "rolling" && !props.recap && !props.profile ? <MmrRolling {...props} /> : <FixedCard {...props} />;
 }
 
 /** Whether the strip's progress text fits beside the division on one line. When it doesn't, it's left
@@ -146,7 +162,7 @@ function useStripRoom(active: boolean, deps: unknown[]) {
   return { lineRef, progRef, fits };
 }
 
-function FixedCard({ view, look, play, className, fit = "frame", recap, pending, goal, chat = false }: MmrCardProps) {
+function FixedCard({ view, look, play, className, fit = "frame", recap, pending, goal, chat = false, profile }: MmrCardProps) {
   const div = divisionLook(view.division);
   const info = look.info;
   // MMR kept off the card: the change doesn't pop or roll, and no goal or new-peak moments.
@@ -205,7 +221,37 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
   const recentRows = recentOn ? Math.min(info.recent, view.recent.length) : 0;
 
   let body: React.ReactNode;
-  if (recap) {
+  if (profile) {
+    body = (
+      <div className="mmr-prof mmr-skin">
+        {fxLayers}
+        <div className="mmr-c">
+          <div className="mmr-prof__top">
+            <h2 id={profile.titleId} className="mmr-prof__title">{profile.title}</h2>
+            {info.on.game && <span className="mmr-eyebrow">{from}</span>}
+          </div>
+          <div className="mmr-prof__main">
+            {emblem}
+            <div className="mmr-prof__who">
+              <div className="mmr-prof__num">{big}{info.on.delta && <Delta last={view.last} place={false} noMmr={noMmr} />}</div>
+              <span className="mmr-prof__name">{view.name}{flag}{divOn ? <> · <b>{view.division}</b></> : null}</span>
+            </div>
+          </div>
+          {profile.rows.length > 0 && (
+            <dl className="mmr-prof__rows">
+              {profile.rows.map((r) => (
+                <div key={r.label}><dt>{r.label}</dt><dd>{r.href ? <Link href={r.href}>{r.value}</Link> : r.value}</dd></div>
+              ))}
+            </dl>
+          )}
+          {profile.last10 && view.squares.length > 0 && <div className="mmr-prof__l10"><span>Last 10</span><Squares marks={view.squares} /></div>}
+          {profile.links.length > 0 && (
+            <ul className="mmr-prof__links">{profile.links.map((l) => <li key={l.href}><ArrowLink href={l.href}>{l.label}</ArrowLink></li>)}</ul>
+          )}
+        </div>
+      </div>
+    );
+  } else if (recap) {
     const best = recap.best ? `${recap.best.place ? placeWord(recap.best.place) : "Win"}${recap.best.format === "FFA" ? "" : ` (${recap.best.format})`}, ${signed(recap.best.delta)}` : "None yet";
     body = (
       <div className="mmr-panel mmr-skin mmr-recap">
@@ -351,7 +397,7 @@ function FixedCard({ view, look, play, className, fit = "frame", recap, pending,
   return (
     // translate="no": the card is a stream overlay and keeps its own words; a browser translating the page
     // swaps text nodes React still updates every few seconds, which broke the studio (Sentry GAMESHUFFLE-6M).
-    <div className={cls} data-layout={recap ? "panel" : look.layout} style={vars} translate="no">
+    <div className={cls} data-layout={profile ? "profile" : recap ? "panel" : look.layout} style={vars} translate="no">
       <FontLink look={look} />
       <span className="mmr-sr">{recap ? `${view.name} tonight: ${recap.events} events, ${recap.wins}-${recap.losses}, ${signed(recap.net)}. Now ${recap.mmr != null ? fmtMmr(recap.mmr) : "no MMR"}, ${recap.division}.` : summary}</span>
       <div className="mmr-moment" ref={momentRef} aria-hidden="true">

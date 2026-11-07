@@ -53,6 +53,8 @@
 .lounge-mine__item b { display: block; font-size: var(--font-size-16); }
 .lounge-mine__item span { display: block; font-size: var(--font-size-14); color: var(--text-secondary); }
 .lounge-mine__note { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); max-width: 68ch; }
+/* Confirm with Discord on an account without Discord: where to link it, under the button. */
+.lounge-confirm__alert { margin-top: var(--spacing-12); max-width: 68ch; text-align: left; }
 
 /* Boards: game pills over the tabs; the On GameShuffle tab's board beside its climbers. */
 .lounge-boards { display: grid; gap: var(--spacing-16); min-width: 0; }

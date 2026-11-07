@@ -40,7 +40,7 @@ export function DeckChoice() {
   if (choices.length === 0) {
     return (
       <p className="companion-deckchoice__none">
-        Have a deck list? <Link href="/account/stuff?tab=tcg-decks">Save it in My Collection</Link> and its Pokémon come first when you place a card.
+        Have a deck list? <Link href="/account/pokemon?tab=tcg-decks">Save it in your deck lists</Link> and its Pokémon come first when you place a card.
       </p>
     );
   }

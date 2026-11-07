@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button, Container, Icon, type IconName } from "@empac/cascadeds";
-import { NewBanner } from "@/components/NewBanner";
 import { LoungeStarter } from "@/components/competitive/LoungeStarter";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
@@ -92,8 +91,6 @@ export default async function CompetitiveGamePage({ params }: { params: Promise<
 
       <Container>
         <div className="cmp-hub">
-          <NewBanner />
-
           <LoungeStarter config={config} games={games.map((g) => ({ slug: g.gameSlug, name: g.displayName }))} />
 
           <section className="cmp-section">

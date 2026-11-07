@@ -138,7 +138,7 @@ export function DailyScoreChips({ score, guest, today, week }: { score: ScoreRes
 }
 
 /** For a signed-out player who finished: go on the board with a name. */
-export function DailyBoardJoin({ onJoin, onJoined, tokens }: { onJoin: (name: string, token: string | null) => Promise<string | null>; onJoined: () => void; tokens: number }) {
+export function DailyBoardJoin({ onJoin, onJoined, tokens, back = "/daily" }: { onJoin: (name: string, token: string | null) => Promise<string | null>; onJoined: () => void; tokens: number; /** The game's page, where sign-up comes back to. */ back?: string }) {
   const [name, setName] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -155,7 +155,7 @@ export function DailyBoardJoin({ onJoin, onJoined, tokens }: { onJoin: (name: st
   return (
     <form className="daily-join" onSubmit={(e) => void submit(e)}>
       <h3 className="daily-join__title">Put me on the board</h3>
-      <p className="daily-join__text">{tokens > 0 ? `This game earned ${tokens} tokens. They` : "Tokens you earn"} wait 30 days for a <OriginalsLink href="/signup?redirect=/daily">free account</OriginalsLink>.</p>
+      <p className="daily-join__text">{tokens > 0 ? `This game earned ${tokens} tokens. They` : "Tokens you earn"} wait 30 days for a <OriginalsLink href={`/signup?redirect=${encodeURIComponent(back)}`}>free account</OriginalsLink>.</p>
       <div className="daily-join__row">
         <Input value={name} onChange={(e) => { setName(e.target.value); setError(null); }} placeholder="A name for the board" aria-label="A name for the board" maxLength={24} />
         <Button type="submit" variant="primary" disabled={busy || tidyName(name).length < 2}>Add me</Button>
@@ -352,11 +352,11 @@ export function DailyBoard({ game, main, guestId, refresh, onViews, needWeek = f
       {current && (
         <p className="daily-board__foot">
           {current.total.toLocaleString("en-US")} {current.total === 1 ? "player" : "players"} · {game === "fire"
-            ? "ties share a place · your first round each day earns up to 10 points, 1 for every 200 you score"
+            ? "ties go to the higher score · your first round each day earns up to 10 points, 1 for every 200 you score"
             : game === "duel" && scored
-            ? `a point for every 100 of your score, up to 10 (12 for a Hard win) · ${period === "day" ? "ties go to the higher score, then the faster time" : "ties share a place"}`
+            ? `a point for every 100 of your score, up to 10 (12 for a Hard win) · ${period === "day" ? "ties go to the higher score, then the faster time" : "ties go to the higher total score"}`
             : game === "duel"
-            ? `10 points for a win at par or better, then 8, 6, 4, 2 by turns over par · ${period === "day" ? "ties go to more cards left, then the faster win" : "ties share a place"}`
+            ? `10 points for a win at par or better, then 8, 6, 4, 2 by turns over par · ${period === "day" ? "ties go to more cards left, then the faster win" : "ties go to more cards left in all"}`
             : `10 points for guess 1, then 8, 6, 4, 2, and 1 for a last chance · ${period === "day" ? "ties go to the faster solve" : "ties share a place"}`}
           {current.settles ? ` · prizes land ${settleText(current.settles)}` : ""}
         </p>

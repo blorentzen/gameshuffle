@@ -1,4 +1,5 @@
 "use client";
+import { CameFrom } from "@/components/social/CameFrom";
 
 /**
  * Top-level client surface for /live/[streamer-slug]. Wraps the
@@ -290,6 +291,8 @@ export function LiveStreamView({
 
   return (
     <main style={brandStyle}>
+    {/* A visitor who signs up after this page is offered to follow the streamer (bring-along picks). */}
+    <CameFrom userId={streamer.userId} />
     <RealtimeLiveView
       sessionId={sessionState.sessionId}
       initialSession={sessionState.initialSession}

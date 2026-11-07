@@ -4,16 +4,14 @@
  * The Streaming section (/account/streaming): Stream Setup and Community &
  * Chat merged on 2026-10-09 (mockups https://claude.ai/artifact/K23oSsSY9FJvFBKfVTfX6S).
  *
- *   Setup       Twitch · Discord · YouTube & Kick · Schedule · Mods
- *   Discord bot Channels & posts · Roles · AutoMod & logs · Question of the Day
+ *   Setup       Twitch · YouTube & Kick · Schedule · Mods (Discord moved to Account ▸ Discord, 2026-11-05)
  *   Overlay     Layout · Tool looks · Wheels · Chat feed
  *   Chat        Commands · Built-in · Modules · Game defaults
  *   Live games  Polls · Bingo · Chat Draft · Chat Brain
  *   Viewers     Engagement · Walk-up songs
  *
- * Free accounts get Get started and the Discord bot's first tab (one server
- * works on Free); every other screen is left out of the map, so its tab and
- * sidebar item don't show. Views and tab ids live in src/lib/account/nav.ts.
+ * Free accounts get Get started; every other screen is left out of the map, so
+ * its tab and sidebar item don't show. Views and tab ids live in src/lib/account/nav.ts.
  */
 
 import Link from "next/link";
@@ -27,14 +25,10 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
 import { ProTerms } from "@/components/billing/ProTerms";
 import { TwitchHubTab } from "@/components/account/TwitchHubTab";
-import { DiscordBotRoutingCard } from "@/components/account/DiscordBotRoutingCard";
 import { YouTubeConnectCard } from "@/components/account/YouTubeConnectCard";
 import { IntegrationCard } from "@/components/account/IntegrationCard";
 import { StreamScheduleEditor } from "@/components/account/StreamScheduleEditor";
 import { ModsTab } from "@/components/account/ModsTab";
-import { DiscordBotTab } from "@/components/account/DiscordBotTab";
-import { DiscordAppSwitch } from "@/components/account/discord/DiscordAppSwitch";
-import { DiscordTags } from "@/components/account/discord/DiscordTags";
 import { OverlayLayoutTab } from "@/components/account/OverlayLayoutTab";
 import { StreamToolsTab } from "@/components/account/StreamToolsTab";
 import { WheelsTab } from "@/components/account/WheelsTab";
@@ -49,6 +43,8 @@ import { ChatBrainStreamTab } from "@/components/account/ChatBrainStreamTab";
 import { BreakModeTab } from "@/components/account/BreakModeTab";
 import { EngagementTab } from "@/components/account/EngagementTab";
 import { ChannelAnthemSettings } from "@/components/account/ChannelAnthemSettings";
+import type { SetupStep } from "@/lib/streaming/setup";
+import "@/styles/account-home.css";
 
 /** A screen around an older tab component (its own title repeat is hidden in CSS). */
 function Wrap({ title, intro, children }: { title: string; intro?: string; children: React.ReactNode }) {
@@ -66,18 +62,10 @@ function KickCard() {
   );
 }
 
-const DISCORD_INTRO = {
-  posts: "Which channel each kind of post goes to, and announcements you write yourself. Settings are per server.",
-  roles: "Roles members pick for themselves, roles new members get, and a role for your GS Pro members.",
-  moderation: "Block words with Discord's own AutoMod, and log edits, deletes, joins and role changes to a channel.",
-  qotd: "A daily question for your server, posted at the hour you pick.",
-  tags: "Short replies members post with /gs-tag: rules, links, how to join. Every server you run the bot in shares them.",
-};
 
-function proScreens(profileTimezone: string | null): ScreenMap {
+export function proScreens(profileTimezone: string | null): ScreenMap {
   return {
     integrations: () => <Wrap title="Twitch" intro="Your channel's connection, the bot in your chat, and channel points."><TwitchHubTab /></Wrap>,
-    discord: () => <Wrap title="Discord" intro="Add the GameShuffle bot to your server and pick where its posts go."><DiscordAppSwitch><DiscordBotRoutingCard /></DiscordAppSwitch></Wrap>,
     youtube: () => <YouTubeKickScreen />,
     schedule: () => (
       <AdminScreen title="Schedule" intro="Your regular stream times. They show as a countdown and a weekly grid on your profile, community page and live page.">
@@ -85,11 +73,6 @@ function proScreens(profileTimezone: string | null): ScreenMap {
       </AdminScreen>
     ),
     mods: () => <Wrap title="Mods"><ModsTab bare /></Wrap>,
-    "discord-bot": () => <Wrap title="Channels & posts" intro={DISCORD_INTRO.posts}><DiscordAppSwitch><DiscordBotTab part="posts" /></DiscordAppSwitch></Wrap>,
-    "discord-roles": () => <Wrap title="Roles" intro={DISCORD_INTRO.roles}><DiscordBotTab part="roles" /></Wrap>,
-    "discord-automod": () => <Wrap title="AutoMod & logs" intro={DISCORD_INTRO.moderation}><DiscordBotTab part="moderation" /></Wrap>,
-    "discord-qotd": () => <Wrap title="Question of the Day" intro={DISCORD_INTRO.qotd}><DiscordBotTab part="qotd" /></Wrap>,
-    "discord-tags": () => <Wrap title="Server replies" intro={DISCORD_INTRO.tags}><DiscordTags /></Wrap>,
     "overlay-layout": () => (
       <Wrap title="Layout" intro="Drag each piece where you want it on your OBS overlay, shown at real size with sample data. Each shape (16:9, 9:16) saves on its own; press Save when it looks right.">
         <OverlayLayoutTab bare />
@@ -142,7 +125,7 @@ const UNLOCKS = [
 ];
 
 /** What a free account sees: what streaming with GameShuffle does, then the trial. */
-function GetStartedScreen() {
+export function GetStartedScreen() {
   const { user } = useAuth();
   const toast = useToast();
   const who = useTrialEligibility();
@@ -175,7 +158,7 @@ function GetStartedScreen() {
         <ul className="streaming-unlocks">
           {UNLOCKS.map((u) => <li key={u}><IconCheck size={16} aria-hidden />{u}</li>)}
         </ul>
-        <p className="admin-field__help">The Discord bot already works on one server with a free account: see Discord bot in the menu.</p>
+        <p className="admin-field__help">The Discord bot already works on one server with a free account: see <Link href="/account/discord">Discord</Link>.</p>
       </AdminSection>
     </AdminScreen>
   );
@@ -183,9 +166,33 @@ function GetStartedScreen() {
 
 const FREE_SCREENS: ScreenMap = {
   "get-started": () => <GetStartedScreen />,
-  "discord-bot": () => <Wrap title="Discord bot" intro="The GameShuffle bot posts to one channel in one server on a free account."><DiscordAppSwitch><DiscordBotTab part="posts" /></DiscordAppSwitch></Wrap>,
 };
 
-export function StreamingTabs({ isPro, profileTimezone }: { isPro: boolean; profileTimezone: string | null }) {
-  return <SectionTabs route="/account/streaming" screens={isPro ? proScreens(profileTimezone) : FREE_SCREENS} />;
+/** GS Pro's setup checklist, on top of every Streaming screen until each step is done. */
+function SetupChecklist({ steps }: { steps: SetupStep[] }) {
+  const done = steps.filter((s) => s.done).length;
+  if (done === steps.length) return null;
+  return (
+    <section className="stream-setup" aria-labelledby="stream-setup-title">
+      <h2 id="stream-setup-title">Finish setting up <span>{done} of {steps.length}</span></h2>
+      <ol className="stream-setup__list">
+        {steps.map((s, i) => (
+          <li key={s.id} className={s.done ? "is-done" : undefined}>
+            <span className="stream-setup__num" aria-hidden="true">{s.done ? <IconCheck size={14} stroke={3} /> : i + 1}</span>
+            {s.done ? <span>{s.label}</span> : <Link href={s.href}>{s.label}</Link>}
+            {s.done && <span className="sr-only"> (done)</span>}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+export function StreamingTabs({ isPro, setup = null, profileTimezone }: { isPro: boolean; setup?: SetupStep[] | null; profileTimezone: string | null }) {
+  return (
+    <>
+      {isPro && setup && <SetupChecklist steps={setup} />}
+      <SectionTabs route="/account/streaming" screens={isPro ? proScreens(profileTimezone) : FREE_SCREENS} />
+    </>
+  );
 }

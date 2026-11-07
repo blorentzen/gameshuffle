@@ -311,7 +311,8 @@
 
 /* ── Attribution line ───────────────────────────────────────────────────── */
 .tcg-attribution {
-  font-size: var(--font-size-12);
+  /* A sentence people read, so the 14px floor (text size rule), not a 12px label. */
+  font-size: var(--font-size-14);
   color: var(--text-tertiary);
   line-height: var(--line-height-relaxed);
   margin: 0;

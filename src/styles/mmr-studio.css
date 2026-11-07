@@ -204,3 +204,9 @@
 .mmr-picture__frame--story img { max-width: 32rem; }
 .mmr-picture__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-12); }
 .mmr-studio__pic-wait { display: grid; gap: var(--spacing-12); }
+
+/* On your profile (round two picks 4A): the preview is the profile card at the side column's width. */
+.mmr-studio__stage--profile { display: grid; justify-items: center; gap: var(--spacing-12); padding: var(--spacing-24) var(--spacing-16); }
+.mmr-studio__profile { width: min(100%, 38rem); }
+.mmr-studio__stage--profile .mmr-studio__note { color: rgba(255, 255, 255, .86); text-align: center; margin: 0; }
+.mmr-studio__item .mmr-studio__sub { margin: 0; }

@@ -42,7 +42,7 @@ export function AccentField({
     <span className="tool-color tool-color--accent">
       <Switch label={`${label}: match my theme`} checked={brand} onChange={(e) => onChange(e.target.checked ? "brand" : "#2f6fd6")} />
       {brand ? (
-        <span className="tool-color__brand" title="Your brand theme color (Account ▸ Theming)" aria-hidden />
+        <span className="tool-color__brand" title="Your brand theme color (Profile ▸ Theme)" aria-hidden />
       ) : (
         <ColorPicker variant="popover" allowCustom size="small" value={value} onChange={onChange} aria-label={label} />
       )}

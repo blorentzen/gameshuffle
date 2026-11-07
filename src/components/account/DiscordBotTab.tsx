@@ -78,7 +78,11 @@ const serverInitials = (name: string | null) =>
  *  each its own tab. Omitted = everything (older callers). */
 export type DiscordBotPart = "posts" | "roles" | "moderation" | "qotd";
 
-export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
+/**
+ * `setupHere`: the bot's install, default channel and Remove sit above this on the same screen (free accounts, whose
+ * Streaming section has no Setup view), so nothing here sends them to Setup ▸ Discord.
+ */
+export function DiscordBotTab({ part, setupHere = false }: { part?: DiscordBotPart; setupHere?: boolean } = {}) {
   const show = (p: DiscordBotPart) => !part || part === p;
   const router = useRouter();
   const toast = useToast();
@@ -630,7 +634,7 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
               </span>
               {!current?.removed && current?.active !== false && (
                 <span className="dbot-server__meta">
-                  {defaultChannelId ? <>Default channel <strong>#{channelName(defaultChannelId)}</strong></> : <>No default channel yet: pick one on <Link href={`/account/streaming?tab=discord${current?.guildId ? `&guild=${current.guildId}` : ""}`}>Setup ▸ Discord</Link></>}
+                  {defaultChannelId ? <>Default channel <strong>#{channelName(defaultChannelId)}</strong></> : setupHere ? <>No default channel yet: pick one above</> : <>No default channel yet: pick one on <Link href={`/account/discord?tab=discord${current?.guildId ? `&guild=${current.guildId}` : ""}`}>Servers</Link></>}
                 </span>
               )}
             </div>
@@ -664,14 +668,14 @@ export function DiscordBotTab({ part }: { part?: DiscordBotPart } = {}) {
             </p>
           ) : null}
         </div>
-      ) : (
+      ) : setupHere ? null : (
         <EmptyState
           variant="bordered"
           title="Connect the bot first"
-          description="Add the GameShuffle bot to your Discord server on Setup ▸ Discord, then everything here works for that server."
+          description="Add the GameShuffle bot to your Discord server on Servers, then everything here works for that server."
           action={
             <div className="dbot-empty-actions">
-              <Button variant="primary" size="small" onClick={() => router.push("/account/streaming?tab=discord")}>Connect Discord</Button>
+              <Button variant="primary" size="small" onClick={() => router.push("/account/discord?tab=discord")}>Connect Discord</Button>
               <Button variant="ghost" size="small" onClick={() => router.push("/discord")}>See what it does</Button>
             </div>
           }

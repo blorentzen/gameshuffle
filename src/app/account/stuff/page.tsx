@@ -1,54 +1,19 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import {
-  effectiveTier,
-  hasCapability,
-  normalizeTier,
-} from "@/lib/subscription";
-import { StuffTabs } from "@/components/account/StuffTabs";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { getPlatformFlag } from "@/lib/platform/flags";
-import { accountOrders } from "@/lib/store/lookup";
-import { isStaffRole } from "@/lib/subscription";
-
-/** Payouts shows once paid entry is on, or for an organizer who already has a payout account. */
-async function showPayoutsFor(userId: string): Promise<boolean> {
-  if (await getPlatformFlag("paid_tickets_enabled")) return true;
-  const { count, error } = await createServiceClient().from("gs_connect_accounts").select("user_id", { count: "exact", head: true }).eq("user_id", userId);
-  return !error && (count ?? 0) > 0;
-}
+import { hrefForTab } from "@/lib/account/nav";
 
 /**
- * "My Stuff" section page: Events, Purchases, Saved configs and My Collection. Middleware already protects
- * `/account/*` for auth; we resolve `companion.collection` (currently a free
- * capability) so the My Cards tab shows the right add/upgrade state. The
- * shared shell + sidebar live in `src/app/account/layout.tsx`.
+ * Moved (menus and account picks 2026-11-05): My Stuff's tabs now live in the section they belong to (Your events,
+ * Pokémon, You ▸ Purchases, Profile ▸ GIFs). Forwards each `?tab=` there with every other query param.
  */
-export default async function MyStuffPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?redirect=/account/stuff");
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("subscription_tier, role, circuit_tier, circuit_status, timezone")
-    .eq("id", user.id)
-    .maybeSingle();
-  const capUser = {
-    tier: normalizeTier(profile?.subscription_tier as string | null),
-    role: (profile?.role as string | null) ?? null,
-    circuitTier: (profile?.circuit_tier as string | null) ?? null,
-    circuitStatus: (profile?.circuit_status as string | null) ?? null,
-  };
-  const canCollect = hasCapability(capUser, "companion.collection");
-  // Real GS Pro: no My Cards cap (free accounts hold MY_CARDS_FREE_LIMIT different cards).
-  const isPro = effectiveTier(capUser) === "pro";
-
-  // Shop orders: hidden while the shop is (2026-10-10), except for staff and anyone with an order.
-  const showShopOrders = (await getPlatformFlag("shop_open", false)) || isStaffRole(capUser.role)
-    || (await accountOrders(user.id, user.email_confirmed_at ? user.email ?? null : null).catch(() => [])).length > 0;
-
-  return <StuffTabs isPro={canCollect} unlimitedCards={isPro} showPayouts={await showPayoutsFor(user.id)} showShopOrders={showShopOrders} timeZone={(profile?.timezone as string | null) ?? null} />;
+export default async function MovedMyStuff({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
+  const tab = typeof sp.tab === "string" && sp.tab ? sp.tab : "tournaments";
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (k === "tab") continue;
+    if (Array.isArray(v)) v.forEach((x) => qs.append(k, x));
+    else if (v != null) qs.set(k, v);
+  }
+  const rest = qs.toString();
+  redirect(`${hrefForTab(tab)}${rest ? `&${rest}` : ""}`);
 }

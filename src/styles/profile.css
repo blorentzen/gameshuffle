@@ -1892,10 +1892,13 @@ html.dark .profile-badge--brain { background: rgba(39, 102, 236, 0.18); color: #
 }
 .post-card__meta {
   display: flex;
-  gap: var(--spacing-6);
+  flex-wrap: wrap;
+  gap: 0 var(--spacing-6);
   font-size: var(--font-size-12);
   color: var(--text-secondary);
 }
+/* The game the post is about (game spaces step 3); a link once its space is open. */
+.post-card__game a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .post-card__menu {
   flex-shrink: 0;
 }

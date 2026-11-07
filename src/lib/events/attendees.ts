@@ -261,7 +261,7 @@ export async function messageAttendees(args: { type: EventType; eventId: string;
   let sent = 0;
   const userIds = targets.map((t) => t.userId).filter((x): x is string => !!x);
   await Promise.all(userIds.map((uid) =>
-    createNotification({ userId: uid, type: args.type === "tournament" ? "tournament_update" : "game_night_rsvp", title: `${meta.title}: ${subject}`, message: body.slice(0, 500), actorUserId: args.senderId, link, data: { eventType: args.type, eventId: args.eventId, kind: "organizer_message" } })
+    createNotification({ userId: uid, type: args.type === "tournament" ? "tournament_update" : "game_night_rsvp", title: `${meta.title}: ${subject}`, message: body.slice(0, 500), actorUserId: args.senderId, link, data: { eventType: args.type, eventId: args.eventId, kind: "organizer_message" }, skipEmail: true })
       .then(() => { sent++; })
       .catch(() => {}),
   ));
@@ -269,8 +269,11 @@ export async function messageAttendees(args: { type: EventType; eventId: string;
   // Email: account holders' auth emails + guest claim emails. Non-prod logs instead of sending.
   const svc = createServiceClient();
   const emails = new Map<string, string>();
-  if (userIds.length) {
-    const { data } = await svc.from("user_directory").select("id, email, display_name").in("id", userIds);
+  // Accounts get it by email only while Email is on for tournaments or game nights (Settings ▸ Notifications).
+  const { emailAllowedAmong } = await import("@/lib/social/notifyChannels");
+  const mailable = [...await emailAllowedAmong(userIds, args.type === "tournament" ? "tournament_update" : "game_night_rsvp")];
+  if (mailable.length) {
+    const { data } = await svc.from("user_directory").select("id, email, display_name").in("id", mailable);
     for (const r of (data ?? []) as { id: string; email: string | null; display_name: string | null }[]) if (r.email) emails.set(r.email, r.display_name ?? "");
   }
   for (const t of targets) if (!t.userId && t.email) emails.set(t.email, t.displayName);

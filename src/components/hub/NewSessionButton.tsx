@@ -19,15 +19,17 @@ interface Props {
   /** Pre-flips the test toggle on when the button is rendered in the
    *  Test streams view. */
   defaultTest?: boolean;
+  /** The hub header keeps one primary button (New stream); the test stream button sits beside it as secondary. */
+  variant?: "primary" | "secondary";
 }
 
-export function NewSessionButton({ defaultTest = false }: Props) {
+export function NewSessionButton({ defaultTest = false, variant = "primary" }: Props) {
   const [isOpen, setOpen] = useState(false);
 
   return (
     <>
-      <Button variant="primary" onClick={() => setOpen(true)}>
-        {defaultTest ? "New test stream" : "New stream"}
+      <Button variant={variant} onClick={() => setOpen(true)}>
+        {defaultTest ? "Test stream" : "New stream"}
       </Button>
       {/* Keying on isOpen ensures form state resets each time the modal
           re-opens (no leftover name/description from a prior open). */}

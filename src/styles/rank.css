@@ -1,0 +1,15 @@
+/* Rank (src/components/rank/RankBlock.tsx): the MMR card, then a few numbers as label and value lines split by thin
+   lines, then links. One surface: the card sits in it, the lines and links flat under it. */
+.rank-block { display: grid; gap: var(--spacing-16); min-width: 0; }
+/* Full width, never shrink-to-fit: the card sizes itself from its container, so a centring parent collapses it to
+   nothing. The frame (a grid) centres it instead. */
+.rank-block__card { display: block; min-width: 0; }
+.rank-block__card .mmr-frame { justify-items: center; }
+.rank-block__lines { margin: 0; display: grid; }
+.rank-block__line { display: flex; justify-content: space-between; align-items: baseline; gap: var(--spacing-12); padding: var(--spacing-10, 1rem) 0; border-top: 1px solid var(--border-subtle); }
+.rank-block__line:first-child { border-top: 0; padding-top: 0; }
+.rank-block__line dt { color: var(--text-secondary); font-size: var(--font-size-14); }
+.rank-block__line dd { margin: 0; color: var(--text-primary); font-size: var(--font-size-16); font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.rank-block__line dd a { color: inherit; text-decoration: none; }
+.rank-block__line dd a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.rank-block__links { list-style: none; margin: 0; padding: var(--spacing-12) 0 0; display: grid; gap: var(--spacing-8); border-top: 1px solid var(--border-subtle); font-size: var(--font-size-14); }

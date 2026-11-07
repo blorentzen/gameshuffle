@@ -1,7 +1,8 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import type { GsNotificationType } from "@/lib/social/notificationTypes";
-import { groupOf } from "@/lib/social/notificationGroups";
+import { groupOf, readNotifPrefs } from "@/lib/social/notificationGroups";
+import { fanOut } from "@/lib/social/notifyChannels";
 
 export interface NotifActor {
   name: string;
@@ -29,18 +30,21 @@ export async function createNotification(args: {
   actorUserId?: string | null;
   link?: string | null;
   data?: Record<string, unknown> | null;
+  /** The caller emails this person itself (organizer messages), so the Email column adds no second email. */
+  skipEmail?: boolean;
 }): Promise<void> {
   // Never notify yourself.
   if (!args.userId || args.userId === args.actorUserId) return;
   const admin = createServiceClient();
-  // Respect the recipient's muted groups (account › Notifications). Account and
-  // moderation notices have no group, so they always go through. A read error
-  // (or the column not there yet) means nothing is muted.
+  // Settings ▸ Notifications: each group reaches someone On site, by Email and on Discord, each on its own switch.
+  // Account and moderation notices have no group, so they always go through on site. A read error (or the column
+  // not there yet) means the defaults.
   const group = groupOf(args.type);
   if (group) {
     const { data } = await admin.from("users").select("notification_prefs").eq("id", args.userId).maybeSingle();
-    const muted = (data as { notification_prefs?: { muted?: unknown } } | null)?.notification_prefs?.muted;
-    if (Array.isArray(muted) && muted.includes(group)) return;
+    const prefs = readNotifPrefs((data as { notification_prefs?: unknown } | null)?.notification_prefs);
+    fanOut({ userId: args.userId, type: args.type, title: args.title, message: args.message, link: args.link, skipEmail: args.skipEmail }, prefs);
+    if (prefs.muted.includes(group)) return;
   }
   await admin.from("notifications").insert({
     user_id: args.userId,

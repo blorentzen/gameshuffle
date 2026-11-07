@@ -23,8 +23,8 @@ interface ProfileSnapshot {
 }
 
 /**
- * Build the categorized menu sections per CDS Menu — Activity / Settings /
- * Help / (signout). The Activity section only renders when the user has
+ * Build the categorized menu sections per CDS Menu — Activity / Your account /
+ * Community / Help / (signout). The Activity section only renders when the user has
  * a Twitch streamer integration, so non-streamers see a focused
  * account-only menu.
  */
@@ -48,40 +48,40 @@ function buildMenuSections(args: {
   // Comms Center is reached via the navbar bell + messages icons, so it's not
   // duplicated here. Activity = Stream Hub (streamers only).
   const activity = [
-    ...(args.hasStreamerIntegration ? [{ label: "Stream hub", onClick: go("/hub") }] : []),
+    ...(args.hasStreamerIntegration ? [{ label: "Studio", onClick: go("/hub") }] : []),
     ...(args.hasLounges ? [{ label: "Your lounges", onClick: go("/ranked") }] : []),
     ...(args.reviews !== null ? [{ label: args.reviews ? `Time trial reviews (${args.reviews})` : "Time trial reviews", onClick: go("/time-trials/review") }] : []),
   ];
   if (activity.length) sections.push({ label: "Activity", items: activity });
 
-  // My Stuff: quick access to a player's own content, straight from the nav
-  // model so the menu always matches the section's views.
-  const stuff = ACCOUNT_SECTIONS.find((s) => s.route === "/account/stuff");
-  if (stuff) {
-    sections.push({
-      label: stuff.label,
-      items: stuff.items.filter((i) => i.id).map((i) => ({ label: i.label, onClick: go(`${stuff.route}?tab=${i.id}`) })),
-    });
-  }
-
-  // Settings mirror the account section pages — derived from ACCOUNT_SECTIONS
-  // (the single source of truth) so new sections/renames flow through here
-  // automatically. My Stuff has its own detailed section above; Platform Admin
-  // is staff-only.
+  // Your account: its home, then every section (menus and account picks 2026-11-05), from the nav model so the menu
+  // always matches the sidebar. Platform Admin is staff-only.
+  // Your home (/home) and Settings first (journeys picks 2026-11-06), then the sections that still live in Account.
   sections.push({
-    label: "Settings",
-    items: ACCOUNT_SECTIONS.filter(
-      (s) => s.route !== "/account/stuff" && (!s.staffOnly || args.isStaff),
-    ).map((s) => ({
-      label: s.label,
-      onClick: go(`${s.route}?tab=${s.defaultTab}`),
-    })),
+    label: "Your account",
+    items: [
+      { label: "Home", onClick: go("/home") },
+      { label: "Settings", onClick: go("/settings") },
+      ...ACCOUNT_SECTIONS.filter((s) => s.kind !== "you" && (!s.staffOnly || args.isStaff)).map((s) => ({
+        label: s.label,
+        onClick: go(`${s.route}?tab=${s.defaultTab}`),
+      })),
+    ],
+  });
+
+  // Community left the site menus (2026-11-05) for here and the footer.
+  sections.push({
+    label: "Community",
+    items: [
+      { label: "Communities", onClick: go("/communities") },
+      { label: "Find players", onClick: go("/players") },
+    ],
   });
 
   // Support GameShuffle (heart) and Help, apart so the two can't be mixed up (picks 2026-10-19).
   sections.push({
     items: [
-      { label: "Support GameShuffle", icon: <IconHeart size={16} stroke={2} aria-hidden="true" />, onClick: go("/account?tab=support") },
+      { label: "Support GameShuffle", icon: <IconHeart size={16} stroke={2} aria-hidden="true" />, onClick: go("/settings/support") },
       { label: "Help", onClick: go("/help") },
     ],
   });

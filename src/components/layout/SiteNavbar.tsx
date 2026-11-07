@@ -8,7 +8,9 @@ import { UserMenu } from "@/components/auth/UserMenu";
 import { CommsIcons } from "@/components/social/CommsIcons";
 import { NavSupport } from "@/components/layout/NavSupport";
 import { NavMenu, type NavItem, type NavSection } from "@/components/layout/NavMenu";
-import { PILLARS, primaryItems, type Pillar } from "@/lib/nav/pillars";
+import { COMMUNITY_LINKS, PILLARS, isVisible, pillarsFor, primaryItems, type Pillar } from "@/lib/nav/pillars";
+import { PhoneMenu } from "@/components/layout/PhoneMenu";
+import { cleanInterests, type Interest } from "@/lib/interests/rules";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -23,11 +25,10 @@ import { createClient } from "@/lib/supabase/client";
  * The pills + float + scroll behavior are CSS on the CDS parts, not a fork of
  * the component.
  *
- * IA: two intent dropdowns — **Play** (public player surfaces) and **Stream**.
- * Stream is public (a conversion path for prospective streamers): it leads with
- * the GS Pro pitch + Streamer Beta for everyone, and *appends* the account-gated
- * workspace (Hub / Twitch) only once you actually have a streamer integration —
- * so prospects get the sell and streamers get their tools. See the Nav IA proposal.
+ * IA (menus and account picks 2026-11-05): five worlds from src/lib/nav/pillars.ts (Play, Pokémon, Compete, Host,
+ * Stream), the same order for everyone on desktop, plus Merch once visitors can see the shop. On phones (1024px and
+ * narrower) the menu button opens PhoneMenu: your stuff, then the worlds with your interests first and open.
+ * Stream's account tools appear once you stream.
  */
 /** Routes that render a full-bleed hero at the very top — the nav floats over
  *  these as frosted pills (dark translucent, so white text reads over light
@@ -35,6 +36,7 @@ import { createClient } from "@/lib/supabase/client";
  *  forward-facing marketing + app/tool landing pages, for one consistent nav. */
 const HERO_ROUTES = new Set([
   "/",
+  "/home",
   "/welcome",
   "/mmr-card",
   "/ranked",
@@ -70,6 +72,7 @@ const HERO_ROUTES = new Set([
   "/randomizers/kirby-air-riders",
   "/randomizers/splatoon-3",
   "/randomizers/super-smash-bros-ultimate",
+  "/randomizers/pokemon",
   "/randomizers/pokemon-stadium",
   "/randomizers/goldeneye-007",
   "/randomizers/pokemon-firered-leafgreen",
@@ -113,6 +116,10 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   { prefix: "/lounge/", notIds: new Set(["find", "compare"]) },
   // A war's page (/wars/<slug>).
   { prefix: "/wars/", notIds: new Set() },
+  // A player's profile (/u/<name>): the room's front window opens on its dark header.
+  { prefix: "/u/", notIds: new Set() },
+  // A game space (/games/<id>): it opens on the game's art.
+  { prefix: "/games/", notIds: new Set() },
 ];
 
 function isHeroPath(pathname: string): boolean {
@@ -136,8 +143,9 @@ function isHeroPath(pathname: string): boolean {
   return false;
 }
 
-/** `shop`: visitors can see the shop (open or Coming soon), so the nav links to it. */
-export function SiteNavbar({ shop = false }: { shop?: boolean }) {
+/** `shop`: visitors can see the shop (open or Coming soon), so the nav links to it. `previewInterests`: a staff persona
+ *  preview's interests (src/lib/preview), which win over the account's own. */
+export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: boolean; previewInterests?: Interest[] | null }) {
   const { user } = useAuth();
   const pathname = usePathname();
   // Event detail pages open on a hero image. They were rendering the 64px nav
@@ -161,12 +169,15 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
   // disappear once they have. Fetched alongside the streamer check rather than
   // in a second effect — the nav should cost one round trip, not two.
   const [isPaid, setIsPaid] = useState(false);
+  // The account's interests put its worlds first in the phone menu (fetched with the paid check, one round trip).
+  const [ownInterests, setOwnInterests] = useState<Interest[]>([]);
+  const interests = previewInterests ?? ownInterests;
   useEffect(() => {
     let cancelled = false;
     if (!user) {
       // Defer so the reset lands in a callback, not the effect body.
       const id = requestAnimationFrame(() => {
-        if (!cancelled) { setIsStreamer(false); setIsPaid(false); }
+        if (!cancelled) { setIsStreamer(false); setIsPaid(false); setOwnInterests([]); }
       });
       return () => {
         cancelled = true;
@@ -177,10 +188,13 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
     void Promise.all([
       supabase.from("twitch_connections").select("id").eq("user_id", user.id).maybeSingle(),
       supabase.from("users").select("subscription_tier, role, circuit_status").eq("id", user.id).maybeSingle(),
-    ]).then(([tw, u]) => {
+      // Interests stay private to the server (the browser role can't read the column).
+      fetch("/api/account/interests?nav=1", { cache: "no-store" }).then((r) => r.json()).catch(() => null) as Promise<{ interests?: string[] } | null>,
+    ]).then(([tw, u, nav]) => {
       if (cancelled) return;
       setIsStreamer(!!tw.data);
       const row = u.data as { subscription_tier?: string | null; role?: string | null; circuit_status?: string | null } | null;
+      setOwnInterests(cleanInterests(nav?.interests ?? []));
       // Staff read as paid too — showing them an upgrade prompt is noise.
       const paidPro = effectiveTier({ tier: normalizeTier(row?.subscription_tier), role: row?.role ?? null }) !== "free";
       const paidCircuit = !!row?.circuit_status && ["active", "trialing", "past_due"].includes(row.circuit_status);
@@ -256,35 +270,23 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
     return sections;
   };
 
-  // Auth links are appended so they show in the CDS mobile menu (CDS renders
-  // the mobile menu from `links`); on desktop we render our own dropdowns in the
-  // logo slot and hide CDS's desktop links group via CSS. Signed-out users
-  // always get both Log In + Sign up so they're reachable from the hamburger.
-  const authLinks = user
-    ? [{ label: "Account", href: "/account" }]
-    : [
-        { label: "Log In", href: "/login" },
-        { label: "Sign up", href: "/signup" },
-        { label: "New here? Start here", href: "/welcome" },
-      ];
-
-  // Mobile hamburger: CDS renders a FLAT link list with no group support, so we
-  // interleave non-navigating header rows (sentinel href, styled + made inert in
-  // CSS) to give the flat list real sections. See [href="#nav-hdr"] in globals.css.
-  const hdr = (label: string): NavItem => ({ label, href: "#nav-hdr" });
-  const links: NavItem[] = [
-    // Account first so it's immediately reachable (not buried under ~20 items),
-    // and Sign up stays high for conversion.
-    hdr("Account"),
-    ...authLinks,
-    ...PILLARS.flatMap((p) => [
-      hdr(p.label),
-      ...primaryItems(p, navCtx).flatMap((g) => g.items.map((i) => ({ label: i.label, href: i.href }))),
-    ]),
+  // The phone menu (PhoneMenu): your stuff first, then the worlds (your interests first and open), then the rest.
+  const ownLinks: NavItem[] = [
+    { label: "Your home", href: "/account" },
+    ...(interests.includes("competitive") ? [{ label: "Competitive", href: "/account/competitive" }] : []),
+    ...(interests.includes("pokemon") ? [{ label: "My Cards", href: "/account/pokemon?tab=my-cards" }] : []),
+    ...(interests.includes("home") || interests.includes("events") ? [{ label: "Your events", href: "/account/events" }] : []),
+    ...(interests.includes("stream") ? [{ label: "Studio", href: "/hub" }] : []),
+    { label: "Messages", href: "/comms?tab=messages" },
+  ];
+  const you = user
+    ? { heading: "Your stuff", items: ownLinks }
+    : { heading: "Account", items: [{ label: "Log in", href: "/login" }, { label: "Sign up", href: "/signup" }, { label: "New here? Start here", href: "/welcome" }] };
+  const worlds = pillarsFor(interests).map(({ pillar, mine }) => ({ id: pillar.id, label: pillar.label, sections: pillarSections(pillar), mine: !!user && mine }));
+  const extra: NavSection[] = [
     // Support first, then GS Pro (support first plan, 2026-10-19; the bar's heart hides on phones).
-    hdr("Support and GS Pro"),
-    { label: "Support GameShuffle", href: "/support" },
-    ...(!isPaid ? [{ label: "GS Pro", href: "/gs-pro" }] : []),
+    { heading: "Support and GS Pro", items: [{ label: "Support GameShuffle", href: "/support" }, ...(!isPaid ? [{ label: "GS Pro", href: "/gs-pro" }] : [])] },
+    { heading: "Community", items: COMMUNITY_LINKS.filter((i) => isVisible(i, navCtx)).map((i) => ({ label: i.label, href: i.href })) },
   ];
 
   const floating = isHeroPage && !scrolled;
@@ -304,7 +306,7 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
         <Navbar
           logo={
             <span className="gs-nav__primary">
-              <Link href="/" className="gs-nav__brand" aria-label="GameShuffle home">
+              <Link href={user ? "/home" : "/"} className="gs-nav__brand" aria-label="GameShuffle home">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/images/fg/logos/gameshuffle-wht.svg"
@@ -318,10 +320,12 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
                 {PILLARS.map((p) => (
                   <NavMenu key={p.id} label={p.label} sections={pillarSections(p)} pathname={pathname} />
                 ))}
+                {/* Merch (pick 13: the address stays /shop), once visitors can see the shop. */}
+                {shop && <Link href="/shop" className={pathname.startsWith("/shop") ? "is-active" : undefined}>Merch</Link>}
               </span>
             </span>
           }
-          links={links}
+          links={[]}
           actions={
             <>
               {/* Comms (bell + chat) are signed-in only — rendering the wrapper
@@ -340,6 +344,7 @@ export function SiteNavbar({ shop = false }: { shop?: boolean }) {
               <span className="navbar-usermenu">
                 <UserMenu />
               </span>
+              <PhoneMenu you={you} worlds={worlds} extra={extra} />
             </>
           }
         />

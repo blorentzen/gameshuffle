@@ -1,0 +1,17 @@
+/* "Kai brought you here" (src/components/social/BroughtByCard.tsx): one dark card on the welcome page. */
+.brought {
+  display: grid; gap: var(--spacing-16); padding: var(--spacing-28, 2.8rem); border-radius: 1.6rem; color: #fff;
+  background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--brand-primary, #2766ec) 40%, transparent) 0%, transparent 65%), radial-gradient(125% 140% at 50% -20%, #1c1e5f 0%, #0b0d14 64%);
+}
+.brought__who { display: flex; align-items: center; gap: var(--spacing-16); }
+.brought__face { border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.92); }
+.brought__text { display: grid; gap: var(--spacing-4); min-width: 0; }
+.brought__kick { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #fde68a; }
+.brought h2 { margin: 0; color: #fff; font-family: var(--font-display); font-size: var(--font-size-28, 2.8rem); font-weight: 800; }
+.brought p { margin: 0; color: rgba(255, 255, 255, 0.9); font-size: var(--font-size-16); max-width: 64ch; }
+.brought__games { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--spacing-8); }
+.brought__games img, .brought__games .game-cover { width: 5.6rem; height: auto; aspect-ratio: 3 / 4; border-radius: 0.8rem; object-fit: cover; }
+.brought__acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-16); }
+.brought__done { display: inline-flex; align-items: center; gap: var(--spacing-8); min-height: 40px; padding: var(--spacing-8) var(--spacing-16); border-radius: var(--radius-8, 8px); background: #0f766e; color: #fff; font-weight: 700; }
+.brought__profile { color: #fff; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.brought .brought__later.empac-button { color: rgba(255, 255, 255, 0.85); }

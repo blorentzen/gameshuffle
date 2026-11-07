@@ -8,7 +8,6 @@ import { FaqList } from "@/components/marketing/FaqList";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { CHOICE_POINTS, TYPED_POINTS } from "@/lib/originals/fireRound";
 import { TRIVIA_PATH, topicUrl } from "@/data/trivia-seo";
-import { NewHereLine } from "@/components/welcome/NewHereLine";
 import "@/styles/fire-round.css";
 
 /**
@@ -73,7 +72,6 @@ export default function DailyTriviaPage() {
           <DailiesBar current="fire" />
           <FireRound />
         </DailiesProvider>
-        <NewHereLine from="daily-fire" />
 
         {/* How to play is the Start card's three steps; the FAQ holds the details (writing pass, 2026-10-20). */}
         <section className="fire-flat fire-about" aria-labelledby="fire-faq-title">

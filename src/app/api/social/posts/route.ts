@@ -1,4 +1,4 @@
-/** Social feed posts. GET ?scope=for_you|following&before=<iso> — feed. POST — create. */
+/** Social feed posts. GET ?scope=for_you|following&before=<iso> — feed; ?space=<game space id> — that space's posts. POST — create (optional `game`). */
 
 import { NextResponse, after, type NextRequest } from "next/server";
 import { getBaseUrl } from "@/lib/env";
@@ -7,7 +7,8 @@ import { userCanUseCommunity } from "@/lib/community/guard";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { postAnnouncementToCategory } from "@/lib/adapters/discord";
-import { listFeed, listCommunityFeed, createPost, getPost } from "@/lib/social/feed";
+import { listFeed, listCommunityFeed, listGameFeed, createPost, getPost } from "@/lib/social/feed";
+import { spaceById } from "@/lib/games/spaces";
 import { isMember, getCommunityById } from "@/lib/communities/membership";
 
 export const runtime = "nodejs";
@@ -19,6 +20,11 @@ export async function GET(req: NextRequest) {
   if (!(await userCanUseCommunity(user.id))) return NextResponse.json({ error: "unavailable" }, { status: 403 });
 
   const sp = req.nextUrl.searchParams;
+  const space = spaceById(sp.get("space"));
+  if (space) {
+    const posts = await listGameFeed({ games: space.games, viewerId: user.id, before: sp.get("before") });
+    return NextResponse.json({ ok: true, posts });
+  }
   const communityId = sp.get("communityId");
   if (communityId) {
     const posts = await listCommunityFeed({ communityId, viewerId: user.id, before: sp.get("before") });
@@ -52,6 +58,7 @@ export async function POST(req: NextRequest) {
   const rawTopics = (b as { topics?: unknown })?.topics;
   const topics = Array.isArray(rawTopics) ? rawTopics.filter((t): t is string => typeof t === "string") : [];
   let asCommunity = b?.asCommunity === true;
+  const game = typeof (b as { game?: unknown })?.game === "string" ? ((b as { game: string }).game).slice(0, 120) : null;
 
   // Posting to a community requires membership.
   if (communityId && !(await isMember(user.id, communityId))) {
@@ -70,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   let res: Awaited<ReturnType<typeof createPost>>;
   try {
-    res = await createPost({ authorId: user.id, body: text, kind, meta, communityId, asCommunity, imageUrls, topics });
+    res = await createPost({ authorId: user.id, body: text, kind, meta, communityId, asCommunity, imageUrls, topics, game });
   } catch (err) {
     console.error("[social/posts] createPost threw:", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

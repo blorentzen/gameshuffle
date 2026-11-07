@@ -347,8 +347,8 @@ async function maintainLowAlert(
       message:
         unusedAfter <= 0
           ? "You've used every question. Add more (or allow repeats) so QOTD keeps posting."
-          : `Only ${unusedAfter} unused question${unusedAfter === 1 ? "" : "s"} left. Add a few more in your Discord Bot settings.`,
-      link: "/account?tab=discord-bot",
+          : `Only ${unusedAfter} unused question${unusedAfter === 1 ? "" : "s"} left. Add a few more in Account ▸ Discord ▸ Question of the Day.`,
+      link: "/account/discord?tab=discord-qotd",
     });
     await admin
       .from("users")

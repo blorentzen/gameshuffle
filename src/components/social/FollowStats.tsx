@@ -65,10 +65,13 @@ export function FollowStats({
   userId,
   followers,
   following,
+  line = false,
 }: {
   userId: string;
   followers: number;
   following: number;
+  /** The front window's header: the counts as words in a line, not tiles. */
+  line?: boolean;
 }) {
   const [open, setOpen] = useState<null | "followers" | "following">(null);
   const [users, setUsers] = useState<Connection[]>([]);
@@ -102,12 +105,25 @@ export function FollowStats({
 
   return (
     <>
-      <button type="button" className="profile-statcard-btn" onClick={() => openList("followers")}>
-        <StatCard stat={formatCompact(followers)} label="Followers" />
-      </button>
-      <button type="button" className="profile-statcard-btn" onClick={() => openList("following")}>
-        <StatCard stat={formatCompact(following)} label="Following" />
-      </button>
+      {line ? (
+        <>
+          <button type="button" className="pf-count" onClick={() => openList("followers")}>
+            <b>{formatCompact(followers)}</b> {followers === 1 ? "follower" : "followers"}
+          </button>
+          <button type="button" className="pf-count" onClick={() => openList("following")}>
+            <b>{formatCompact(following)}</b> following
+          </button>
+        </>
+      ) : (
+        <>
+          <button type="button" className="profile-statcard-btn" onClick={() => openList("followers")}>
+            <StatCard stat={formatCompact(followers)} label="Followers" />
+          </button>
+          <button type="button" className="profile-statcard-btn" onClick={() => openList("following")}>
+            <StatCard stat={formatCompact(following)} label="Following" />
+          </button>
+        </>
+      )}
 
       {open && (
         <Modal

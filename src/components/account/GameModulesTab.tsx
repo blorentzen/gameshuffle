@@ -137,7 +137,7 @@ export function GameModulesTab() {
 
       <p className="account-tab__intro">
         Looking for your Chance cards, missions and house rules? They moved to{" "}
-        <Link href="/account/stuff?tab=decks">My Stuff ▸ Decks</Link>.
+        <Link href="/account/events?tab=decks">Your events ▸ Game night decks</Link>.
       </p>
 
       {editingGame && (

@@ -29,7 +29,7 @@ export const TCG_COMPANION_HREF = "/tcg-companion";
 export const TCG_COMPANION_MARKETING_HREF = "/pokemon-tcg-companion";
 /** "My Cards" collection — private surface, lives in the account My Stuff
  *  section (the hub just links to it). */
-export const TCG_MY_CARDS_HREF = "/account/stuff?tab=my-cards";
+export const TCG_MY_CARDS_HREF = "/account/pokemon?tab=my-cards";
 
 export interface FeaturedCard {
   name: string;

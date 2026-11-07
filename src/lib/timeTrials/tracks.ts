@@ -21,7 +21,7 @@
 import { MK8DX_TRACKS } from "@/lib/randomizers/race/tracks/mk8dx";
 import { MKWORLD_TRACKS } from "@/lib/randomizers/race/tracks/mkworld";
 import mk8dx from "@/data/mk8dx-data.json";
-import { categoryQuery, type TtItems, type TtVehicle } from "./categories";
+import { categoryQuery, vehicleFor, type TtItems, type TtVehicle } from "./categories";
 
 export type TtGame = "mkworld" | "mk8dx";
 export type TtClass = 150 | 200;
@@ -127,16 +127,16 @@ export function ttCups(game: TtGame): { cup: string; tracks: TtTrack[] }[] {
 
 export function trackPath(t: Pick<TtTrack, "game" | "id">, cc?: TtClass, cat?: { items?: TtItems; vehicle?: TtVehicle }): string {
   const slug = ttTrack(t.game, t.id)?.slug ?? t.id;
-  return `/time-trials/${TT_GAMES[t.game].slug}/${slug}${categoryQuery({ cc, defaultCc: TT_GAMES[t.game].classes[0], items: cat?.items, vehicle: t.game === "mk8dx" ? cat?.vehicle : undefined })}`;
+  return `/time-trials/${TT_GAMES[t.game].slug}/${slug}${categoryQuery({ cc, defaultCc: TT_GAMES[t.game].classes[0], items: cat?.items, vehicle: cat?.vehicle ? vehicleFor(t.game, cat.vehicle) : undefined })}`;
 }
 /** A game's page: /time-trials/mario-kart-world (the time trials page opened on that game). */
 export function gamePath(game: TtGame, cc?: TtClass, cat?: { items?: TtItems; vehicle?: TtVehicle }): string {
-  return `/time-trials/${TT_GAMES[game].slug}${categoryQuery({ cc, defaultCc: TT_GAMES[game].classes[0], items: cat?.items, vehicle: game === "mk8dx" ? cat?.vehicle : undefined })}`;
+  return `/time-trials/${TT_GAMES[game].slug}${categoryQuery({ cc, defaultCc: TT_GAMES[game].classes[0], items: cat?.items, vehicle: cat?.vehicle ? vehicleFor(game, cat.vehicle) : undefined })}`;
 }
 
 /** A Discord server's board: /time-trials/servers/<server id>?game=mario-kart-world (the time trial panel's Server board). */
 export function serverPath(guildId: string, game: TtGame, cc?: TtClass, cat?: { items?: TtItems; vehicle?: TtVehicle }): string {
-  const q = categoryQuery({ cc, defaultCc: TT_GAMES[game].classes[0], items: cat?.items, vehicle: game === "mk8dx" ? cat?.vehicle : undefined });
+  const q = categoryQuery({ cc, defaultCc: TT_GAMES[game].classes[0], items: cat?.items, vehicle: cat?.vehicle ? vehicleFor(game, cat.vehicle) : undefined });
   return `/time-trials/servers/${guildId}?game=${TT_GAMES[game].slug}${q ? `&${q.slice(1)}` : ""}`;
 }
 

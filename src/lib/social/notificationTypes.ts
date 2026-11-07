@@ -22,6 +22,12 @@ interface NotificationTypeDef {
 
 export const NOTIFICATION_TYPES = {
   follow: { cds: "info", invite: false },
+  // Someone made an account from one of your links (bring-along picks 2026-11-05): links to them, with Follow back there.
+  joined_from_link: { cds: "success", invite: false },
+  // A friend wants you on today's daily, or sent their result to beat (dailies picks 2026-11-05, 3A); and a friend
+  // started a night and saved you a seat (6A). Both link to the thing, with one button.
+  daily_nudge: { cds: "info", invite: false },
+  night_invite: { cds: "info", invite: false },
   message: { cds: "comment", invite: false },
   session_invite: { cds: "info", invite: true },
   tournament_invite: { cds: "info", invite: true },

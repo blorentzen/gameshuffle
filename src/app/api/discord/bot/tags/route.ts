@@ -8,10 +8,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isProUser } from "@/lib/subscription-server";
+import { TAG_CONTENT_MAX, TAG_NAME, tidyTagName } from "@/lib/discord/tagRules";
 
 export const runtime = "nodejs";
 
-const NAME = /^[a-z0-9][a-z0-9 _-]{0,31}$/;
+
 
 async function who() {
   const supabase = await createClient();
@@ -31,9 +32,9 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "signin" }, { status: 401 });
   if (!(await isProUser(user.id))) return NextResponse.json({ error: "pro_required" }, { status: 403 });
   const body = (await request.json().catch(() => ({}))) as { name?: unknown; content?: unknown; was?: unknown };
-  const name = String(body.name ?? "").trim().toLowerCase();
-  const content = String(body.content ?? "").trim().slice(0, 2000);
-  if (!NAME.test(name)) return NextResponse.json({ error: "bad_name" }, { status: 400 });
+  const name = tidyTagName(body.name);
+  const content = String(body.content ?? "").trim().slice(0, TAG_CONTENT_MAX);
+  if (!TAG_NAME.test(name)) return NextResponse.json({ error: "bad_name" }, { status: 400 });
   if (!content) return NextResponse.json({ error: "empty" }, { status: 400 });
   const db = createServiceClient();
   const { error } = await db.from("discord_tags").upsert({ owner_user_id: user.id, name, content, updated_at: new Date().toISOString() }, { onConflict: "owner_user_id,name" });

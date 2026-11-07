@@ -29,13 +29,13 @@ function listLines(lists?: { title: string; url: string }[] | null): string[] {
 
 /** Where to see this order in a GameShuffle account (Britton, 2026-10-09): the account's My Stuff, or a free signup with this email. NEW copy. */
 export function shopAccountUrl(member: boolean): string {
-  return member ? `${getBaseUrl()}/account/stuff?tab=orders` : `${getBaseUrl()}/signup?redirect=${encodeURIComponent("/account/stuff?tab=orders")}`;
+  return member ? `${getBaseUrl()}/account?tab=orders` : `${getBaseUrl()}/signup?redirect=${encodeURIComponent("/account?tab=orders")}`;
 }
 function accountLines(account?: { member: boolean } | null): string[] {
   if (!account) return [];
   return account.member
-    ? [`This order is also in your GameShuffle account, under My Stuff: ${shopAccountUrl(true)}`, ""]
-    : ["Track every order in one place: make a free GameShuffle account with this email address and your orders show up under My Stuff.", shopAccountUrl(false), ""];
+    ? [`This order is also in your GameShuffle account, under Purchases: ${shopAccountUrl(true)}`, ""]
+    : ["Track every order in one place: make a free GameShuffle account with this email address and your orders show up under Purchases.", shopAccountUrl(false), ""];
 }
 
 function footer(): string {

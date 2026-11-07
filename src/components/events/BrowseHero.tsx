@@ -18,7 +18,8 @@ import { lifestyle, type LifestyleSlot } from "@/data/lifestyle-imagery";
  * recognisably siblings rather than recognisably the same page.
  */
 export interface BrowseHeroProps {
-  eyebrow: string;
+  /** Optional: the signed-in homepage's greeting has none (an eyebrow only where it adds something). */
+  eyebrow?: string;
   title: string;
   sub: ReactNode;
   /** Warm gold for the tabletop half, cyan for the competitive half. */
@@ -66,7 +67,7 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, b
   const shot = image ?? (photo ? lifestyle(photo) : null);
   const copy = (
     <div className="browse-hero__inner">
-      <p className="marketing-eyebrow">{eyebrow}</p>
+      {eyebrow && <p className="marketing-eyebrow">{eyebrow}</p>}
       {lead ? (
         <div className="browse-hero__titlerow">
           <span className="browse-hero__lead">{lead}</span>

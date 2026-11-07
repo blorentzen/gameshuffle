@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * Account section (/account): Profile · Theming · Settings · Plans & billing · Support GameShuffle · Invite friends,
- * each a view with tabs (src/lib/account/nav.ts). The screens live in
- * src/components/account/{profile,theming,settings}/; ProfileStore loads the
- * profile once and autosaves it for all of them. Old `?tab=` ids still work,
- * and tabs that belong to another section are sent there by SectionTabs.
+ * The You section (/account): Your home · Profile (with the theming tabs and GIFs) · Settings · Plans & billing ·
+ * Purchases · Support GameShuffle · Invite friends, each a view with tabs (src/lib/account/nav.ts). The screens live in
+ * src/components/account/{home,profile,theming,settings}/; ProfileStore loads the profile once and autosaves it for
+ * all of them. Old `?tab=` ids still work, and tabs that belong to another section are sent there by SectionTabs.
+ * The page (src/app/account/page.tsx) works out the server-side bits: Shop orders and the profile timezone.
  */
 
 import { Suspense } from "react";
@@ -18,8 +18,14 @@ import { PlansScreen, SettingsGeneralScreen, SettingsNotificationsScreen, Settin
 import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
 import { InviteFriendsScreen } from "@/components/account/invite/InviteFriendsScreen";
 import { SupportScreen } from "@/components/account/support/SupportScreen";
+import { AccountHomeScreen } from "@/components/account/home/AccountHomeScreen";
+import { GifsTab } from "@/components/account/stuff/GifsTab";
+import { TicketsTab } from "@/components/account/TicketsTab";
+import { ShopOrdersTab } from "@/components/account/ShopOrdersTab";
 
 const SCREENS: ScreenMap = {
+  home: () => <AccountHomeScreen />,
+  gifs: () => <GifsTab />,
   profile: () => <ProfileAboutScreen />,
   games: () => <ProfileGamesScreen />,
   gamertags: () => <ProfileHandlesScreen />,
@@ -36,13 +42,19 @@ const SCREENS: ScreenMap = {
   invite: () => <InviteFriendsScreen />,
 };
 
-export default function AccountPage() {
+export function AccountTabs({ showShopOrders, timeZone }: { showShopOrders: boolean; timeZone: string | null }) {
+  const screens: ScreenMap = {
+    ...SCREENS,
+    tickets: () => <TicketsTab timeZone={timeZone} />,
+    // Shop orders: hidden while the shop is, except for staff and anyone with an order.
+    ...(showShopOrders ? { orders: () => <ShopOrdersTab /> } : {}),
+  };
   return (
     <ProfileStoreProvider>
       <Suspense>
         <TrialBanner />
       </Suspense>
-      <SectionTabs route="/account" screens={SCREENS} />
+      <SectionTabs route="/account" screens={screens} />
     </ProfileStoreProvider>
   );
 }

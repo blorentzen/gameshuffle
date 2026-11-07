@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { cache } from "react";
+import { CameFrom } from "@/components/social/CameFrom";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button } from "@empac/cascadeds";
@@ -208,6 +209,9 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   const pageUrl = `${getBaseUrl()}/game-nights/${night.id}`;
 
   return (
+    <>
+    {/* A visitor who signs up after this page is offered to follow the host (bring-along picks). */}
+    <CameFrom userId={night.host_id} />
     <EventShell
       type="game-night"
       id={night.id}
@@ -444,5 +448,6 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
         },
       ]}
     />
+    </>
   );
 }

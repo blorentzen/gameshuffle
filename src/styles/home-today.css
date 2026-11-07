@@ -1,0 +1,152 @@
+/* Today on the signed-in home, alive (src/components/home/TodayCarousel.tsx, dailies + explore picks 2026-11-05).
+   Each daily keeps its own colors and its glyph field (the same motif its page header and share image wear). */
+
+.room-today { display: grid; gap: var(--spacing-24); min-width: 0; flex: 1; align-content: start; }
+.room-tile--today { flex-direction: column; }
+
+/* The slide: its glyph field behind, the big glyph in the corner, words on top. */
+.room-day__field.evart { z-index: -1; }
+.room-day--art .room-day__field { display: none; }
+.room-day__big { font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.room-day__place { font-size: var(--font-size-16); font-weight: 700; color: #fff; }
+.room-day__acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); position: relative; z-index: 1; }
+/* The whole slide opens its daily (the main button's link covers it); the second button sits above that. */
+.room-day__act::after { content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; }
+.room-day:not(.room-day--link) .room-day__acts { position: static; }
+.room-day__act { position: static; }
+.room-day__act { text-decoration: none; }
+.room-day__act:hover { background: #eef1ff; color: #161a2e; text-decoration: none; }
+.room-day:has(.room-day__act:hover) .room-day__name { text-decoration: underline; }
+.room-day__act:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.room-day__alt {
+  position: relative; z-index: 2; display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); min-height: 40px;
+  padding: var(--spacing-8) var(--spacing-14, 1.4rem); border-radius: var(--radius-8, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.12); color: #fff;
+  font: inherit; font-size: var(--font-size-15, 1.5rem); font-weight: 700; cursor: pointer;
+}
+.room-day__alt:hover { background: rgba(255, 255, 255, 0.22); }
+.room-day__alt:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+.room-day--link:hover .room-day__name { text-decoration: underline; }
+.room-day--link:focus-visible { outline: 3px solid var(--brand-ink, var(--primary-600)); outline-offset: 3px; }
+
+/* The day's best, crowned. */
+.room-day__crown {
+  justify-self: start; display: inline-flex; align-items: center; gap: var(--spacing-8); max-width: 100%;
+  padding: var(--spacing-4) var(--spacing-12) var(--spacing-4) var(--spacing-8); border-radius: 999px;
+  border: 1px solid rgba(253, 230, 138, 0.5); background: rgba(253, 230, 138, 0.16); color: #fde68a;
+  font-size: var(--font-size-15, 1.5rem); font-weight: 700;
+}
+.room-day__crown > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.room-day__ppl { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
+.room-day__ppl li { display: flex; align-items: center; gap: var(--spacing-10, 1rem); font-size: var(--font-size-15, 1.5rem); }
+.room-day__ppl b { margin-left: auto; font-variant-numeric: tabular-nums; }
+.room-day__who { min-width: 0; overflow-wrap: anywhere; }
+.room-squares--small { gap: 3px; }
+.room-squares--small .room-sq { width: 1.2rem; height: 1.2rem; border-radius: 3px; }
+/* On a white board the squares need their own misses. */
+.ptoday .room-sq--miss { background: #cfd4e4; }
+.ptoday .room-sq--save { background: #eab308; }
+
+/* "Today's board" in the people rail: the dailies as pills, rows by time (the block is a .room-tile). */
+.ptoday { min-width: 0; }
+.ptoday__tabs.empac-tabs { gap: var(--spacing-12); }
+.ptoday__tabs .empac-tabs__header { flex-wrap: wrap; border: 0; gap: var(--spacing-6, 0.6rem); }
+.ptoday__tabs .empac-tabs__tab { border-radius: 999px; min-height: 36px; }
+.ptoday__tabs .empac-tabs__panel { padding-top: 0; }
+.ptoday__list { display: grid; gap: var(--spacing-8); }
+.ptoday__rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.ptoday__row { display: flex; align-items: center; gap: var(--spacing-12); min-height: 52px; padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle); font-size: var(--font-size-15, 1.5rem); }
+.ptoday__rows > .ptoday__row:first-child { border-top: 0; }
+.ptoday__rows--waiting { border-top: 1px solid var(--border-subtle); }
+.ptoday__row--you { margin-inline: calc(-1 * var(--spacing-12)); padding-inline: var(--spacing-12); border-radius: 1rem; border-top-color: transparent; background: color-mix(in srgb, var(--brand-ink, var(--primary-600)) 9%, transparent); }
+.ptoday__row--you + .ptoday__row { border-top-color: transparent; }
+.ptoday__place { width: 2rem; flex: none; font-family: var(--font-display); font-weight: 800; color: var(--text-secondary); text-align: center; }
+.ptoday__name { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-8); font-weight: 600; overflow-wrap: anywhere; }
+.ptoday__name a { color: var(--text-primary); }
+.ptoday__not { font-weight: 400; color: var(--text-secondary); }
+.ptoday__value { display: inline-flex; align-items: center; gap: var(--spacing-4); font-weight: 800; font-variant-numeric: tabular-nums; }
+.ptoday__value--crown { color: #8a5c05; }
+.ptoday__just { padding: 1px var(--spacing-8); border-radius: 999px; background: #dcfce7; color: #14532d; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.ptoday__sent { display: inline-flex; align-items: center; gap: var(--spacing-4); color: var(--success-700, #15803d); font-weight: 700; font-size: var(--font-size-14); }
+.ptoday__empty { margin: 0; color: var(--text-secondary); font-size: var(--font-size-15, 1.5rem); }
+@media (prefers-reduced-motion: no-preference) {
+  .ptoday__row--fresh { animation: ptoday-arrive 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+}
+@keyframes ptoday-arrive { from { opacity: 0; transform: translateY(0.8rem); } }
+
+/* ── All done (context picks 3A): a quiet strip for the moment, then "Next for you" as a row of its own. ── */
+/* The strip: the heading and when new dailies come on one line, your results under it in each daily's color. */
+.room-strip {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "head foot" "stamps stamps";
+  align-items: center; gap: var(--spacing-16) var(--spacing-24); padding: var(--spacing-20) var(--spacing-24);
+}
+.room-strip__head { grid-area: head; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-12); min-width: 0; }
+.room-strip__head h2 { margin: 0; font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 800; line-height: 1.15; }
+.room-strip__streak { display: inline-flex; align-items: center; gap: var(--spacing-4); color: #b45309; font-size: var(--font-size-15, 1.5rem); font-weight: 700; }
+.room-strip__stamps { grid-area: stamps; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.room-strip__foot { grid-area: foot; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--spacing-8) var(--spacing-16); }
+.room-strip__next { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); color: var(--text-secondary); font-size: var(--font-size-15, 1.5rem); white-space: nowrap; }
+.room-stamp { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); padding: var(--spacing-6, 0.6rem) var(--spacing-12); border-radius: 1rem; color: #fff; font-size: var(--font-size-14); font-weight: 700; }
+.room-stamp--shuffle { background: #6d28d9; }
+.room-stamp--dex { background: #c2410c; }
+.room-stamp--fire { background: #b91c1c; }
+.room-stamp--duel { background: #1e2a5a; box-shadow: inset 0 0 0 1px #b8892b; }
+@media (prefers-reduced-motion: no-preference) {
+  .room-stamp--pop { animation: room-stamp-pop 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+}
+@keyframes room-stamp-pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+@media (max-width: 640px) {
+  .room-strip { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "stamps" "foot"; padding: var(--spacing-20); }
+  .room-strip__foot { justify-content: flex-start; }
+}
+
+/* Next for you: three picture cards of one height, 32px apart, nothing behind them (a swipe row on phones). */
+.room-next { display: grid; gap: var(--spacing-16); min-width: 0; }
+.room-next__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-12); }
+.room-next__head h2 { margin: 0; font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 800; line-height: 1.15; }
+.room-next__head span { color: var(--text-secondary); font-size: var(--font-size-15, 1.5rem); }
+.room-next__row { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-32); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.room-next__row--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.room-next__row--1 { grid-template-columns: minmax(0, 52rem); }
+.room-next__row > li { min-width: 0; display: flex; }
+.room-next__row .hap { min-height: 28rem; }
+@media (max-width: 760px) {
+  .room-next__row { grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: 84%; gap: var(--spacing-16); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+  .room-next__row > li { scroll-snap-align: start; }
+  .room-next__row .hap { min-height: 24rem; }
+}
+
+/* The night window: the code on the navy with its glyph field, then sending it. */
+.qs__wait { margin: 0; color: var(--text-secondary); }
+.qs__body { display: grid; gap: var(--spacing-20); }
+.qs__code { position: relative; isolation: isolate; overflow: hidden; display: grid; gap: var(--spacing-6, 0.6rem); padding: var(--spacing-20) var(--spacing-24); border-radius: 1.4rem; color: #fff; background: radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%); }
+.qs__code > .evart { z-index: -1; }
+.qs__label { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #fde68a; }
+.qs__value { font-family: var(--font-display); font-size: var(--font-size-40, 4rem); font-weight: 800; letter-spacing: 0.14em; line-height: 1; }
+.qs__note { color: rgba(255, 255, 255, 0.88); font-size: var(--font-size-15, 1.5rem); }
+.qs__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-12); }
+.qs__friends { display: grid; gap: var(--spacing-8); padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
+.qs__friends h3 { margin: 0; font-size: var(--font-size-16); font-weight: 700; }
+.qs__friends ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.qs__friends li { display: flex; align-items: center; gap: var(--spacing-12); min-height: 48px; border-top: 1px solid var(--border-subtle); }
+.qs__friends li:first-child { border-top: 0; }
+.qs__name { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.qs__saved { display: inline-flex; align-items: center; gap: var(--spacing-4); color: var(--success-700, #15803d); font-weight: 700; font-size: var(--font-size-14); }
+
+/* After the last daily, on its end screen: who you beat, then what's next (flat on the page, under a line). */
+.dailies-after { display: grid; gap: var(--spacing-16); padding-top: var(--spacing-24); margin-top: var(--spacing-8); border-top: 1px solid var(--border-subtle); text-align: left; }
+.dailies-after__beat { display: flex; align-items: center; gap: var(--spacing-10, 1rem); margin: 0; color: var(--text-primary); font-weight: 700; font-size: var(--font-size-16); }
+.dailies-after__beat svg { flex: none; color: #b8892b; }
+.dailies-after__title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 800; line-height: 1.2; }
+.dailies-after__picks.band__row--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dailies-after__picks .hap { min-height: 18rem; }
+.dailies-after__next { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); margin: 0; color: var(--text-secondary); font-size: var(--font-size-15, 1.5rem); }
+@media (max-width: 760px) {
+  .dailies-after__picks.band__row--3 { grid-template-columns: none; }
+}
+
+/* Picks are shorter than the band's cards, so their words cover more of the picture: a deeper shade under them. */
+.dailies-after__picks .hap--img::after, .room-next__row .hap--img::after,
+.dailies-after__picks .hap--card::after, .room-next__row .hap--card::after {
+  background: linear-gradient(180deg, rgba(10, 12, 30, 0.1) 0%, rgba(10, 12, 30, 0.72) 48%, rgba(10, 12, 30, 0.96) 100%);
+}

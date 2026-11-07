@@ -5,7 +5,7 @@ import { IconBolt, IconListNumbers, IconPokeball, IconRoute } from "@tabler/icon
 import { PokemonGenerator } from "@/components/pokemon/PokemonGenerator";
 import { NewBanner } from "@/components/NewBanner";
 import { PlansPanel } from "@/components/marketing/PlansPanel";
-import { NewHereLine } from "@/components/welcome/NewHereLine";
+import { GameBand } from "@/components/games/GameBand";
 import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RowLink, RowPanel, type PanelRow } from "@/components/marketing/RowPanel";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
@@ -55,18 +55,19 @@ export default async function PokemonGeneratorPage() {
       </Container>
       {/* Its own wording (the shared nudge would promise saved rolls): real paid paths for Pokémon fans. */}
       <Container>
-        <NewHereLine from="randomizer" />
-        <PlansPanel
-          id="take-it-further"
-          title="Take Pokémon further"
-          rows={["account", "pro", "circuit"]}
-          from="randomizer-pokemon"
-          copy={{
-            account: { name: "Keep your streak and your cards", body: "A free account keeps your Daily Dex streak, your Pokémon TCG deck lists and the cards you collect." },
-            pro: { name: "Let chat draft your team", body: "With GS Pro, chat drafts your Pokémon team pick by pick with !draft start pokemon, and every pick shows on your OBS overlay." },
-            circuit: { name: "Run a Pokémon TCG tournament", body: "Swiss rounds by the Play! Pokémon rules, deck lists checked for you, and a top cut. GS Circuit adds fields of 64 or 256." },
-          }}
-        />
+        <GameBand game="pokemon-tcg" from="pokemon-generator" streamReady={false} fallback={
+          <PlansPanel
+            id="take-it-further"
+            title="Take Pokémon further"
+            rows={["account", "pro", "circuit"]}
+            from="randomizer-pokemon"
+            copy={{
+              account: { name: "Keep your streak and your cards", body: "A free account keeps your Daily Dex streak, your Pokémon TCG deck lists and the cards you collect." },
+              pro: { name: "Let chat draft your team", body: "With GS Pro, chat drafts your Pokémon team pick by pick with !draft start pokemon, and every pick shows on your OBS overlay." },
+              circuit: { name: "Run a Pokémon TCG tournament", body: "Swiss rounds by the Play! Pokémon rules, deck lists checked for you, and a top cut. GS Circuit adds fields of 64 or 256." },
+            }}
+          />
+        } />
       </Container>
       <RandomizerLanding landing={landing} />
     </main>

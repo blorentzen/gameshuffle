@@ -82,8 +82,8 @@ export function OrderLookup({ initialOrder, linkExpired, signedIn }: { initialOr
       )}
       <p className="shop-lookup__note">
         {signedIn
-          ? <>Orders placed with your account are in <Link href="/account/stuff?tab=orders">My Stuff</Link>.</>
-          : <>Have a GameShuffle account? <Link href={`/login?redirect=${encodeURIComponent("/account/stuff?tab=orders")}`}>Sign in</Link> to see orders placed with it.</>}
+          ? <>Orders placed with your account are in <Link href="/account?tab=orders">Account ▸ Purchases</Link>.</>
+          : <>Have a GameShuffle account? <Link href={`/login?redirect=${encodeURIComponent("/account?tab=orders")}`}>Sign in</Link> to see orders placed with it.</>}
       </p>
     </div>
   );

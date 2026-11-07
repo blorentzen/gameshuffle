@@ -160,7 +160,7 @@ export function CreateSessionForm({
               <strong>Discord</strong>{" "}
               <span className="hub-form__platform-disabled">
                 Nothing to add here: once the GameShuffle bot is in your
-                server (Streaming ▸ Setup ▸ Discord), your go-live and recap
+                server (Account ▸ Discord ▸ Servers), your go-live and recap
                 posts go out on their own.
               </span>
             </span>

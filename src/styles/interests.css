@@ -1,0 +1,19 @@
+/* What brings someone here (personalization picks 2026-11-05): six pressable CDS Cards, on the welcome page after
+   sign-up and in Settings ▸ General. The icon tile sits above the name, like the site's other tile cards. */
+/* Six tiles: three across on wider screens, two on phones, so a row is never left with one. */
+.interest-tiles { display: grid; gap: var(--spacing-12); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 760px) { .interest-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.interest-tile { display: grid; gap: var(--spacing-4); align-content: start; min-height: 100%; text-align: left; }
+.interest-tile .icon-tile { margin-bottom: var(--spacing-8); }
+.interest-tile__name { font-size: var(--font-size-16); font-weight: 600; color: var(--text-primary); }
+.interest-tile__line { font-size: var(--font-size-14); color: var(--text-secondary); }
+.interest-tile__why { font-size: var(--font-size-14); color: var(--text-brand, var(--primary-600)); font-weight: 600; }
+
+.interest-welcome { display: grid; gap: var(--spacing-16); padding-block: var(--spacing-24); border-bottom: 1px solid var(--border-default); }
+.interest-welcome h2 { margin: 0; font-size: var(--font-size-24); }
+.interest-welcome__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); max-width: 60ch; }
+.interest-welcome__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-12); }
+
+.interest-settings { display: grid; gap: var(--spacing-12); }
+.interest-settings__head { display: flex; justify-content: flex-end; align-items: center; gap: var(--spacing-12); }
+.interest-settings__note { margin: var(--spacing-12) 0 0; font-size: var(--font-size-14); color: var(--text-secondary); }

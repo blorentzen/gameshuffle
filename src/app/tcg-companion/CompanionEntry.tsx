@@ -54,7 +54,7 @@ export function CompanionEntry({ onEnterAsGuest }: Props) {
             account (the destination redirects to login for guests). */}
         <p className="companion-entry__cards">
           Track what you own?{" "}
-          <Link href="/account/stuff?tab=my-cards">Go to My Cards</Link>
+          <Link href="/account/pokemon?tab=my-cards">Go to My Cards</Link>
         </p>
 
         <p className="companion-entry__shop">

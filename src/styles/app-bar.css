@@ -1,0 +1,42 @@
+/* The phone app bar (src/components/layout/AppBar.tsx): members, below 768px only. */
+.app-bar { display: none; }
+@media (max-width: 767px) {
+  .app-bar {
+    display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1040;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--background-primary, #fff) 94%, transparent);
+    backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    border-top: 1px solid var(--border-subtle);
+    box-shadow: 0 -6px 24px rgba(20, 26, 58, 0.08);
+  }
+  .app-bar ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .app-bar__tab {
+    display: grid; justify-items: center; gap: 2px; min-height: 48px; padding: 4px 2px; width: 100%;
+    color: var(--text-secondary); text-decoration: none; background: none; border: 0; font: inherit; cursor: pointer; border-radius: 12px;
+  }
+  .app-bar__tab[aria-current="page"] { color: var(--brand-ink, #2f5bea); }
+  .app-bar__tab:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: -3px; }
+  .app-bar__icon { position: relative; display: grid; place-items: center; width: 28px; height: 28px; }
+  .app-bar__plus { width: 36px; height: 28px; border-radius: 10px; background: var(--bg-primary, #2f5bea); color: #fff; }
+  .app-bar__label { font-size: var(--font-size-12); font-weight: 700; line-height: 1.2; }
+  .app-bar__badge {
+    position: absolute; top: -4px; right: -10px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px;
+    background: #d92c43; color: #fff; font-size: var(--font-size-12); font-weight: 800; line-height: 18px; text-align: center;
+    box-shadow: 0 0 0 2px var(--background-primary, #fff);
+  }
+  /* Room for the bar: the page's foot, the cookie choices and the docked messages move up; the top bell and messages
+     icons step aside (Inbox has them). */
+  body:has(.app-bar) { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  body:has(.app-bar) .cookie-banner { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  body:has(.app-bar) .navbar-comms { display: none; }
+  body:has(.app-bar) .empac-chat-panel { display: none; }
+  /* Create: the CDS Modal as a sheet from the bottom. */
+  .empac-modal-overlay:has(.app-create) { align-items: flex-end; padding: 0; }
+  .empac-modal.app-create { width: 100%; max-width: none; margin: 0; border-radius: 2rem 2rem 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+}
+.app-create__list { list-style: none; margin: 0; padding: 0; display: grid; }
+.app-create__item { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-12) 0; text-decoration: none; color: var(--text-primary); border-top: 1px solid var(--border-subtle); }
+.app-create__list li:first-child .app-create__item { border-top: 0; }
+.app-create__item b { display: block; font-size: var(--font-size-16); font-weight: 700; }
+.app-create__item small { display: block; font-size: var(--font-size-14); color: var(--text-secondary); }
+@media (prefers-reduced-motion: reduce) { .app-bar { backdrop-filter: none; -webkit-backdrop-filter: none; } }

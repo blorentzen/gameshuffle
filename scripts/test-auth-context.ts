@@ -27,6 +27,15 @@ check("game night create beats the prefix", "/game-nights/create", "host a game 
 check("companion", "/tcg-companion/collection", "collection");
 check("hub", "/hub/sessions/new", "run your stream");
 check("community", "/c/friday-kart-club", "join the community");
+check("competitive app beats the main bot", "/discord/add?app=comp", "GameShuffle Competitive");
+check("main bot", "/discord/add", "add GameShuffle to Discord");
+check("time trials", "/time-trials/mk8dx/rr", "add your times");
+check("lounge", "/lounge", "lounge name");
+check("each daily its own", "/daily-dex", "Daily Dex");
+check("the Shuffle", "/daily", "Daily Shuffle");
+check("Trainer Road", "/pokemon-trainers/kanto/brock?team=x", "Trainer Road");
+check("deck guide", "/pokemon-tcg/decks/dragapult", "deck lists");
+check("My Cards (middleware keeps the tab)", "/account/stuff?tab=my-cards", "card collection");
 
 console.log("\nFalls back to generic:");
 check("no redirect", null, GENERIC);

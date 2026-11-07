@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getTournamentRecipients } from "@/lib/tournaments/recipients";
 import { createNotification } from "@/lib/social/notifications";
+import { emailAllowed } from "@/lib/social/notifyChannels";
 import { sendTournamentRescheduledEmail, sendTournamentCancelledEmail } from "@/lib/email/tournament";
 import { formatEventTime } from "@/lib/time/format";
 import { getTournamentRole } from "@/lib/tournaments/access-server";
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
         notified++;
       }
-      if (r.email) {
+      if (r.email && await emailAllowed(r.userId, "tournament_update")) {
         await sendTournamentRescheduledEmail({
           to: r.email, toName: r.displayName ?? undefined,
           tournamentTitle: t.title, startIso, tournamentUrl: url, viewerTz: r.timezone,
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         });
         notified++;
       }
-      if (r.email) {
+      if (r.email && await emailAllowed(r.userId, "tournament_update")) {
         await sendTournamentCancelledEmail({
           to: r.email, toName: r.displayName ?? undefined,
           tournamentTitle: t.title, tournamentUrl: url,

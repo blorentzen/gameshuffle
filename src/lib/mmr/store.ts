@@ -14,10 +14,9 @@ import { hasLooks } from "@/lib/support/looks";
 import { gsDay, gsDayStart } from "@/lib/time/gsClock";
 import { keyFromPublicUrl } from "@/lib/storage/r2";
 import { DEFAULT_LOOK, MAX_LOOKS, cleanLook, freeLook, proUsed, type MmrLook } from "./look";
-import { PIECE_IDS } from "./pieces";
+import { profileLook } from "./profileCard";
 
 /** What the profile badge can show: the sticker as it has always looked on a profile. */
-const PROFILE_PIECES = ["name", "division", "delta", "goal"];
 import { isBlockedText } from "@/lib/text/filter";
 import { accountAvatar, type AccountRow } from "@/lib/discord/faces";
 import { LoungeUnavailable, countryCountAbove, loungePlayer, loungeStats, unverifiedTables } from "./mkcentral";
@@ -432,13 +431,9 @@ export async function profileMmr(userId: string): Promise<{ view: MmrView; look:
   if (!card || !card.showOnProfile) return null;
   const live = await liveFor(card, { country: false });
   if (!live.ok) return null;
-  // On GameShuffle's own page the "Built by GameShuffle" line would say what the page already does.
-  // The profile badge is the sticker as it has always looked on a profile: name, division, the last
-  // change and tonight's goal, without details that take turns (a still badge on a page, not an OBS
-  // source). With world rank as the big number, MMR is its one detail.
-  const keep = new Set<string>(PROFILE_PIECES);
-  const on = Object.fromEntries(PIECE_IDS.map((id) => [id, keep.has(id)])) as MmrLook["info"]["on"];
-  return { view: viewOf(live.source), look: { ...live.look, layout: "sticker", brand: "off", info: { ...live.look.info, on } } };
+  // On GameShuffle's own page the "Built by GameShuffle" line would say what the page already does, and the profile
+  // version draws its own pieces (profileLook); the rows under the number are the look's `profile` switches.
+  return { view: viewOf(live.source), look: profileLook(live.look) };
 }
 
 /** The card's link token for the overlay piece, or null when there's no card. */
