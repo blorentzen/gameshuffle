@@ -3482,3 +3482,9 @@ html.dark .empac-tabs--pills:not(.band__tabs) .empac-tabs__tab--active:hover:not
 /* Pills and tabs draw their own pressed and selected states; the phone browser's grey-blue tap rectangle flashed over
    the rounded pill and read as a glitch (Britton, 2026-11-07). */
 .empac-tabs__tab, .empac-subnav__item, .empac-chip, .empac-accordion__trigger, .gs-phone-toggle { -webkit-tap-highlight-color: transparent; }
+
+/* Modals fit the screen you can see, with room above and below (Britton, 2026-11-07: a tall one ran from edge to
+   edge). CDS caps them at 100vh, which on phones includes the space behind the browser's bars; dvh doesn't. The body
+   scrolls inside. Raise with CascadeDS. */
+html .empac-modal { max-height: calc(100dvh - 4.8rem); }
+@media (max-width: 640px) { html .empac-modal { max-height: calc(100dvh - 4rem); } }

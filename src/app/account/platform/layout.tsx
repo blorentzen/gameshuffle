@@ -8,18 +8,14 @@ import { accountInterests } from "@/lib/interests/store";
 import type { Interest } from "@/lib/interests/rules";
 
 /**
- * Shared shell for the /account section pages (Account · Streamer · Platform
- * Admin). Owns the CDS Container, the ModerationNotice, and the two-column
- * layout + sticky sidebar — so the sidebar persists as you move between
- * section routes. Each section page renders its tab content into `{children}`
- * (the right column).
+ * Platform admin's shell (staff and admins): the account sidebar with its ten views beside the open one. The other
+ * /account pages (Studio, Discord servers, Competitive Mario Kart, Pokémon…) sit in the (settings) group and wear the
+ * Settings navigation instead (Britton, 2026-11-07).
  *
- * Resolves the operational `role` server-side so the sidebar can decide
- * whether to surface the Platform Admin group; the platform page also gates
- * on role, so this is presentation only. Middleware already protects
- * `/account/*` for auth.
+ * Resolves the operational `role` server-side so the sidebar can decide what to show; the platform page also gates
+ * on role, so this is presentation only. Middleware already protects `/account/*` for auth.
  */
-export default async function AccountLayout({
+export default async function PlatformLayout({
   children,
 }: {
   children: React.ReactNode;

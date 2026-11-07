@@ -38,7 +38,8 @@ export function SettingsNav() {
           <p className="settings-nav__label" aria-hidden="true">{g.label}</p>
           <ul aria-label={g.label}>
             {g.items.map((i) => {
-              const on = !i.href && i.id === current;
+              // A tool or game item opens its own page (/account/streaming…): it's lit while you're on it.
+              const on = i.href ? pathname.startsWith(i.href) : i.id === current;
               return (
                 <li key={i.id}>
                   <Link href={i.href ?? `/settings/${i.id}`} className={`settings-nav__item${on ? " is-on" : ""}`} aria-current={on ? "page" : undefined}>

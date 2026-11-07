@@ -22,7 +22,7 @@
 .join-sheet__fine a { color: var(--brand-ink, #2f5bea); font-weight: 700; }
 @media (max-width: 767px) {
   .empac-modal-overlay:has(.join-sheet) { align-items: flex-end; padding: 0; }
-  .empac-modal.join-sheet { width: 100%; max-width: none; margin: 0; border-radius: 2rem 2rem 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); max-height: 92vh; overflow-y: auto; }
+  .empac-modal.join-sheet { width: 100%; max-width: none; margin: 0; border-radius: 2rem 2rem 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); max-height: 92dvh; overflow-y: auto; }
 }
 
 /* "Join free" wears the link-button look it's given (.room-btn, .game-band__btn); a button needs the browser's own
