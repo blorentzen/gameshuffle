@@ -22,8 +22,8 @@ export default function Page() {
       <h2>Connect Twitch</h2>
       <ol>
         <li>Sign in to GameShuffle</li>
-        <li>Go to <strong>Account</strong> → <strong>Stream Setup</strong> → <strong>Integrations</strong></li>
-        <li>Click <strong>Connect Twitch</strong></li>
+        <li>Go to <strong>Streaming</strong> → <strong>Setup</strong> → <strong>Twitch</strong> (GS Pro). If Twitch isn&apos;t linked to your account yet, link it first on <strong>Account</strong> → <strong>Settings</strong> → <strong>Sign-in &amp; security</strong></li>
+        <li>Click <strong>Authorize streamer integration</strong></li>
         <li>You&apos;ll be redirected to Twitch&apos;s authorization page</li>
         <li>Review the permissions we&apos;re requesting</li>
         <li>Click <strong>Authorize</strong></li>
@@ -35,7 +35,7 @@ export default function Page() {
       <ul>
         <li>Read your channel information (display name, follower count for context)</li>
         <li>Read chat messages (for <code>!gs-</code> bot commands during sessions)</li>
-        <li>Manage channel point rewards (to create the &ldquo;Reroll the Streamer&rsquo;s Combo&rdquo; reward)</li>
+        <li>Manage channel point rewards (to create the &ldquo;Reroll the Streamer&rsquo;s Pick&rdquo; reward)</li>
         <li>Subscribe to stream events (so we know when you go live)</li>
       </ul>
       <p>We never request permissions to modify your channel, change settings, or post on your behalf without your explicit action.</p>
@@ -43,8 +43,8 @@ export default function Page() {
       <h2>Disconnecting Twitch</h2>
       <p>If you want to disconnect Twitch:</p>
       <ol>
-        <li>Go to <strong>Account</strong> → <strong>Stream Setup</strong> → <strong>Integrations</strong></li>
-        <li>Click <strong>Disconnect</strong> next to Twitch</li>
+        <li>Go to <strong>Streaming</strong> → <strong>Setup</strong> → <strong>Twitch</strong></li>
+        <li>Click <strong>Disconnect</strong> under Connection Status</li>
       </ol>
       <p>When you disconnect, we:</p>
       <ul>

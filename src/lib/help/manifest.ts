@@ -12,6 +12,7 @@ export type HelpCategoryId =
   | "getting-started"
   | "apps"
   | "tournaments"
+  | "competitive"
   | "streaming"
   | "community"
   | "pro"
@@ -52,6 +53,11 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     blurb: "Create tournaments, pick a format, run multi-crew events, and follow a team series.",
   },
   {
+    id: "competitive",
+    label: "Competitive Mario Kart",
+    blurb: "Time trials and reviewing times, lounge stats, the MMR card, wars, and the GameShuffle Competitive Discord app.",
+  },
+  {
     id: "streaming",
     label: "Streaming & Overlay",
     blurb: "Set up your OBS overlay and drive your stream from chat.",
@@ -64,7 +70,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "pro",
     label: "GameShuffle Pro",
-    blurb: "What Pro unlocks, the free trial, and managing your subscription.",
+    blurb: "What Pro unlocks, the free trial, managing your subscription, and supporting GameShuffle.",
   },
   {
     id: "troubleshooting",
@@ -133,10 +139,10 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "pokemon-randomizers",
     title: "How to use the Pokémon randomizers",
-    description: "Pokémon Stadium rental teams for every cup, and the Fire Red & Leaf Green run challenge: catches, level caps, twists and shareable runs.",
+    description: "The random Pokémon generator, Pokémon Stadium rental teams for every cup, and the Fire Red & Leaf Green run challenge: catches, level caps, twists and shareable runs.",
     href: "/help/apps/pokemon-randomizers",
     category: "apps",
-    keywords: ["pokemon", "pokémon", "stadium", "stadium 2", "rental", "cup", "prime cup", "free battle", "fire red", "leaf green", "frlg", "run challenge", "nuzlocke", "level cap"],
+    keywords: ["pokemon", "pokémon", "random pokemon generator", "generator", "stadium", "stadium 2", "rental", "cup", "prime cup", "free battle", "fire red", "leaf green", "frlg", "run challenge", "nuzlocke", "level cap"],
   },
   {
     id: "goldeneye-randomizer",
@@ -258,6 +264,54 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     category: "apps",
     keywords: ["weekly", "weekly challenge", "survey", "chat brain", "guesses", "tier war", "tier list", "leaderboard", "badge", "mission", "agenda"],
   },
+  {
+    id: "daily-dex",
+    title: "The Daily Dex",
+    description: "Guess today's Pokémon from all 1,025 in five guesses and a last chance, and keep your streak.",
+    href: "/help/apps/daily-dex",
+    category: "apps",
+    keywords: ["daily dex", "pokemon", "guess", "pokedex", "generation", "streak", "last chance", "letters", "card of the day"],
+  },
+  {
+    id: "fire-round",
+    title: "Fire Round",
+    description: "The daily trivia quiz: one counted round a day against the clock, plus rounds by category any time.",
+    href: "/help/apps/fire-round",
+    category: "apps",
+    keywords: ["fire round", "daily trivia", "trivia quiz", "heat", "multiple choice", "categories", "daily"],
+  },
+  {
+    id: "daily-duel",
+    title: "The Daily Duel and Trainer Road",
+    description: "Duel the trainer of the day with Pokémon cards, then battle any trainer any time on Trainer Road.",
+    href: "/help/apps/daily-duel",
+    category: "apps",
+    keywords: ["daily duel", "trainer road", "pokemon", "trainer", "gym leader", "energy", "par", "easy", "hard", "stars", "professor", "tools"],
+  },
+  {
+    id: "daily-leaderboards",
+    title: "Daily leaderboards and sharing",
+    description: "How the dailies' day, week and month boards score, token prizes, playing as a guest, and sharing your result.",
+    href: "/help/apps/daily-leaderboards",
+    category: "apps",
+    keywords: ["leaderboard", "daily", "points", "tokens", "guest", "share", "streak", "invite link", "referral"],
+  },
+  {
+    id: "tcg-deck-lists",
+    title: "Pokémon TCG deck lists",
+    description: "Save your deck lists, check they're legal, see which cards you own, and play them in the companion.",
+    href: "/help/apps/tcg-deck-lists",
+    category: "apps",
+    keywords: ["deck list", "pokemon tcg", "tcg live", "legal", "standard", "my collection", "paste deck", "companion"],
+  },
+  {
+    id: "trivia-leagues",
+    title: "Trivia leagues and crews",
+    description: "Run a weekly trivia league, enter as your crew, and follow the standings.",
+    href: "/help/apps/trivia-leagues",
+    category: "apps",
+    keywords: ["trivia league", "crew", "standings", "weekly trivia", "team", "season", "bar trivia"],
+  },
 
   // Tournaments
   {
@@ -291,6 +345,81 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     href: "/help/tournaments/team-series",
     category: "tournaments",
     keywords: ["summer series", "series", "team series", "track draft", "ban", "protect", "predictions", "teams of two", "pov", "champions"],
+  },
+
+  {
+    id: "swiss-and-deck-lists",
+    title: "Swiss tournaments and deck lists",
+    description: "Run a Swiss event: pairings, reporting results, the top cut, and Pokémon TCG deck lists.",
+    href: "/help/tournaments/swiss-and-deck-lists",
+    category: "tournaments",
+    keywords: ["swiss", "pairings", "top cut", "standings", "tiebreakers", "deck lists", "pokemon tcg", "play pokemon", "bye", "drop"],
+  },
+  {
+    id: "time-trial-tournaments",
+    title: "Time trial tournaments",
+    description: "Run a Mario Kart time trial event, or decide Swiss and bracket matches by time: clips, verifiers, stations at a venue, and the overlay.",
+    href: "/help/tournaments/time-trial-tournaments",
+    category: "tournaments",
+    keywords: ["time trial", "time trials", "leaderboard", "groups", "cut", "run-off", "clips", "verifiers", "stations", "runner", "in person", "overlay", "mario kart"],
+  },
+  {
+    id: "bracket-tools",
+    title: "Free bracket tools",
+    description: "Make a bracket, round robin or Swiss pairings with no account, share the link, print it, or run it live.",
+    href: "/help/tournaments/bracket-tools",
+    category: "tournaments",
+    keywords: ["bracket generator", "bracket maker", "round robin", "swiss pairings", "single elimination", "double elimination", "print", "no account"],
+  },
+
+  // Competitive Mario Kart
+  {
+    id: "time-trials",
+    title: "Time trials",
+    description: "Add your best times on every Mario Kart 8 Deluxe and Mario Kart World track, get them verified, and climb the boards.",
+    href: "/help/competitive/time-trials",
+    category: "competitive",
+    keywords: ["time trials", "tt", "best times", "screenshot", "verified", "unverified", "legacy", "clip", "vouch", "country", "import", "quaxly", "report", "boards", "200cc", "no mushrooms"],
+  },
+  {
+    id: "reviewing-times",
+    title: "Reviewing time trials",
+    description: "What reviewers and updaters check, how to verify clips and settle reports, and how review access is given.",
+    href: "/help/competitive/reviewing-times",
+    category: "competitive",
+    keywords: ["reviewer", "updater", "review queue", "verify", "clip checks out", "legacy proof", "legacy claims", "reports", "team tab", "review access"],
+  },
+  {
+    id: "competitive-discord-app",
+    title: "The GameShuffle Competitive Discord app",
+    description: "Add the Competitive app for /tt, /mmr, /room, /result, /war and the other competitive Mario Kart commands.",
+    href: "/help/competitive/competitive-discord-app",
+    category: "competitive",
+    keywords: ["discord", "competitive app", "/tt", "/mmr", "/room", "/result", "/war", "/table", "/cans", "save to gameshuffle", "moved", "slash commands"],
+  },
+  {
+    id: "lounge-stats",
+    title: "Lounge stats",
+    description: "Look up any Mario Kart lounge player, confirm your own lounge name, and read your season.",
+    href: "/help/competitive/lounge-stats",
+    category: "competitive",
+    keywords: ["lounge", "mkcentral", "mmr", "season", "division", "confirm", "partners", "compare", "head to head", "nights", "tiers"],
+  },
+  {
+    id: "mmr-card",
+    title: "The MMR card",
+    description: "Show your lounge MMR on stream, live, in the look you pick.",
+    href: "/help/competitive/mmr-card",
+    category: "competitive",
+    keywords: ["mmr card", "obs", "overlay", "lounge", "division", "rolling", "goal", "recap", "!mmr", "layouts"],
+  },
+  {
+    id: "wars",
+    title: "Wars and the War room",
+    description: "Score a clan war in Discord or on the web, play it in the War room, and show it on stream.",
+    href: "/help/competitive/wars",
+    category: "competitive",
+    keywords: ["war", "clan war", "mogi", "/war", "war room", "scores", "war overlay", "/table", "/cans", "6v6"],
   },
 
   // Streaming & Overlay
@@ -382,6 +511,14 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     category: "streaming",
     keywords: ["tokens", "economy", "arcade tokens", "prediction markets", "!bet", "!give", "awards", "bounties", "leaderboard", "currency"],
   },
+  {
+    id: "stream-hub",
+    title: "The stream hub",
+    description: "Plan a stream, run it from the control room, and read the recap afterward.",
+    href: "/help/streaming/stream-hub",
+    category: "streaming",
+    keywords: ["hub", "stream hub", "control room", "recap", "plan", "new stream", "live", "rolls", "running now"],
+  },
 
   // Community
   {
@@ -416,6 +553,14 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     category: "community",
     keywords: ["discord", "bot", "servers", "multiple servers", "main server", "activity", "/gs-daily", "app launcher", "qotd", "automod", "announcements", "roles", "routing", "/gs-randomize", "/gs-poll", "slash commands"],
   },
+  {
+    id: "discord-alerts-and-reminders",
+    title: "Go-live alerts, server replies and reminders",
+    description: "Post go-live alerts for creators you pick, set up server replies with /gs-tag, and schedule reminders.",
+    href: "/help/community/discord-alerts-and-reminders",
+    category: "community",
+    keywords: ["go-live alerts", "live alerts", "discord", "/gs-tag", "/gs-remind", "reminders", "server replies", "twitch"],
+  },
 
   // Pro
   {
@@ -449,6 +594,14 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     href: "/help/pro/cancelling",
     category: "pro",
     keywords: ["cancel subscription", "refund", "end subscription", "downgrade"],
+  },
+  {
+    id: "supporting-gameshuffle",
+    title: "Supporting GameShuffle",
+    description: "Support GameShuffle once or monthly, what each support level includes, and the thank-yous supporters get.",
+    href: "/help/pro/supporting-gameshuffle",
+    category: "pro",
+    keywords: ["support", "supporter", "backer", "champion", "monthly", "donate", "chip in", "credits", "badge"],
   },
 
   // Troubleshooting

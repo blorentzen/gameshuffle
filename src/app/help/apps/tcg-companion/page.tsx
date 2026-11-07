@@ -49,8 +49,8 @@ export default function Page() {
       <h2>My Cards (your collection)</h2>
       <p>
         <strong>My Cards</strong>{" "}is a searchable card collection you can browse and build. It&apos;s
-        free, but it needs a signed-in account (no guests). Find it at <strong>Account</strong>{" "}&rsaquo;
-        <strong> My Stuff</strong> &rsaquo; <strong>My Cards</strong>, or from the My Cards link in the
+        free for up to 250 different cards (GS Pro has no limit), and it needs a signed-in account (no guests). Find it at <strong>Account</strong>{" "}&rsaquo;
+        <strong> Pokémon</strong> &rsaquo; <strong>My Cards</strong>, or from the My Cards link in the
         Companion&apos;s header and entry screen.
       </p>
 

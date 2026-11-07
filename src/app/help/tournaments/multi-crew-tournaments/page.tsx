@@ -77,7 +77,7 @@ export default function Page() {
         <li>
           <strong>Your OBS overlay:</strong> a Crew Standings scoreboard that updates on stream as
           results come in. Position or hide it in
-          <strong> Account &rsaquo; Overlay Layout &rsaquo; Apps &rsaquo; Crew Standings</strong>,
+          <strong> Streaming &rsaquo; Overlay &rsaquo; Layout</strong> (pick <strong>Crew Standings</strong>{" "}under Apps),
           separately for 16:9 and 9:16.
         </li>
         <li>

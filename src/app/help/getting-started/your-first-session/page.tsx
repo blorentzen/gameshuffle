@@ -29,14 +29,14 @@ export default function Page() {
       <p>Sign in if you want to save your setups and results, but it&apos;s optional for casual play.</p>
 
       <h2>Host a session from the Hub</h2>
-      <p>A session is the live, multiplayer version built for streamers. It ties your randomizers, picks and bans, and viewer economy together across Twitch and Discord. You run it from the <strong>Hub</strong>.</p>
+      <p>A session is the live, multiplayer version for streamers. It ties your randomizers, picks and bans, and viewer economy together across Twitch and Discord. You run it from the <strong>Hub</strong>.</p>
       <ol>
         <li>Sign in and open the <a href="/hub">Hub</a>.</li>
         <li>Connect at least one platform first (see <a href="/help/getting-started/connecting-twitch">Connecting Twitch</a> or <a href="/help/getting-started/connecting-discord">Connecting Discord</a>).</li>
-        <li>Click <strong>New session</strong>, give it a name, and choose the platforms to fan out to.</li>
+        <li>Click <strong>New stream</strong>, give it a name, and pick the games for this stream.</li>
         <li>Configure the modules you want (randomizer, picks and bans, prediction markets), then open the session.</li>
       </ol>
-      <p>You can also start a quick test session from <strong>Account</strong> &rsaquo; <strong>Stream Setup</strong> &rsaquo; <strong>Integrations</strong> &rsaquo; <strong>Twitch Hub</strong> to check your setup without going live. When you stream a supported game, a session can open automatically too.</p>
+      <p>To check the bot without going live, press <strong>Send test chat message</strong> on <strong>Streaming</strong> &rsaquo; <strong>Setup</strong> &rsaquo; <strong>Twitch</strong>. When you stream a supported game, a session can open automatically too.</p>
 
       <h2>How viewers join</h2>
       <p>On Twitch, viewers use chat commands:</p>
@@ -59,11 +59,11 @@ export default function Page() {
       <p>Your mods can use the last two commands as well.</p>
 
       <h2>After the session</h2>
-      <p>Sessions close shortly after your stream ends, or you can end a test session manually from the Twitch Hub. A recap of the session stays available, and it shows on your <code>/live</code> page for viewers who missed it.</p>
+      <p>Sessions close shortly after your stream ends, or you can end one yourself with <strong>End stream</strong> on its page in the Hub. A recap of the session stays available, and it shows on your <code>/live</code> page for viewers who missed it.</p>
 
       <h2>Tips for a smooth first run</h2>
       <ul>
-        <li><strong>Test first.</strong> Start a test session before going live to confirm the bot, overlay, and channel-point reward all work.</li>
+        <li><strong>Test first.</strong> Before going live, send a test chat message and fire an overlay tool to confirm the bot and overlay work.</li>
         <li><strong>Have a backup.</strong> If chat isn&apos;t responding, you can still shuffle manually from the Hub.</li>
         <li><strong>Tell your viewers what to expect,</strong> especially first-timers, so they know which commands to use.</li>
       </ul>

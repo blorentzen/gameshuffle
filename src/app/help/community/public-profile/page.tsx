@@ -59,12 +59,12 @@ export default function Page() {
       </p>
       <ul>
         <li>
-          <strong>Light / dark mode</strong>{" "}(Account &rsaquo; Profile, the Theme toggle): controls
+          <strong>Light / dark mode</strong>{" "}(Account &rsaquo; Settings, under Display): controls
           how the GameShuffle app looks <em>for you</em>. Choose &ldquo;Match my system theme&rdquo;
           or force dark mode. It only affects the signed-in app, marketing pages stay light.
         </li>
         <li>
-          <strong>Brand theme</strong> (Account &rsaquo; <strong>Theming</strong>): a color
+          <strong>Brand theme</strong> (Account &rsaquo; Profile &rsaquo; <strong>Theme</strong>): a color
           preset that re-skins your <em>customer-facing</em> surfaces, your OBS overlay,
           <code> /live</code> page, public profile, and community page, in your colors. It does not
           change your account dashboard.

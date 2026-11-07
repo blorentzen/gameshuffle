@@ -78,7 +78,7 @@ export default function Page() {
         <li>Each viewer plays on their own and scores like a team. Confidence and final wager rounds count as plain rounds for viewers.</li>
         <li>Add the <strong>Trivia</strong> piece in Overlay Layout to show the question, the countdown, the answer and the leaders on stream. Teams in the room can still join with the code and play alongside your chat.</li>
         <li>Chat hears the answer and the leaders at each reveal, and the winner when the night ends.</li>
-        <li>Your Discord server can play too: route the <strong>Trivia on stream</strong> category to a channel (Streaming &gt; Discord bot) and each question posts there with answer buttons.</li>
+        <li>Your Discord server can play too: route the <strong>Trivia on stream</strong> category to a channel (Account &rsaquo; Discord &rsaquo; Channels &amp; posts) and each question posts there with answer buttons.</li>
       </ul>
 
       <h2>Still need help?</h2>

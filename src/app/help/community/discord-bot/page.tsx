@@ -20,18 +20,18 @@ export default function Page() {
       <p>
         The GameShuffle Discord bot brings your game nights into your server: announcements, self-serve
         roles, moderation, a daily question, and randomizer slash commands. Configure it under
-        <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong>{" "}&rsaquo;
-        <strong> Discord Bot</strong>.
+        <strong> Account</strong> &rsaquo; <strong>Discord</strong>.
       </p>
 
       <h2>Getting the bot in your server</h2>
       <ol>
         <li>
-          Press <strong>Add to Discord</strong> on <a href="/discord">gameshuffle.co/discord</a>, or go to
-          <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong> &rsaquo; <strong> Integrations</strong>, and add the
-          bot to a server where you have Manage Server. You&apos;ll be asked to sign in or make a free account first.
+          Press <strong>Add to Discord</strong> on <a href="/discord">gameshuffle.co/discord</a>, or
+          {" "}<strong>Install in your Discord</strong> on <strong>Account</strong> &rsaquo; <strong>Discord</strong>{" "}&rsaquo;
+          {" "}<strong>Servers</strong>, and add the bot to a server where you have Manage Server. You&apos;ll be asked to
+          sign in or make a free account first.
         </li>
-        <li>Open the <strong>Discord Bot</strong> tab to configure it.</li>
+        <li>Open <strong>Account</strong> &rsaquo; <strong>Discord</strong> to configure it.</li>
       </ol>
       <p>
         A server can be connected to one GameShuffle account at a time. If someone else already connected it, they need to
@@ -40,8 +40,8 @@ export default function Page() {
 
       <h2>More than one server</h2>
       <p>
-        A free account runs the bot in one server; GS Pro runs it in up to five. Add another with <strong>Add another server</strong>
-        on the Discord Bot tab, then pick a server at the top of the tab: channels, roles, AutoMod, logging and the Question of the
+        A free account runs the bot in one server; GS Pro runs it in up to five. Add another with <strong>Add another server</strong>{" "}
+        in <strong>Account</strong> &rsaquo; <strong>Discord</strong>, then pick a server at the top of the screen: channels, roles, AutoMod, logging and the Question of the
         Day hour are set per server. Tags, your question list and polls are shared across them.
       </p>
       <ul>
@@ -70,8 +70,11 @@ export default function Page() {
         <li><code>/gs-brain</code>: answer a Chat Brain survey question with one tap and a one-line form. Anyone gets a question just for them; members with Manage Server post one for the whole channel. Route the <strong>Chat Brain</strong> category to get a new question every day. <strong>Free for everyone.</strong></li>
         <li><code>/gs-weekly</code>: play the <a href="/help/apps/weekly-challenge">Weekly Challenge</a> without leaving Discord. Plays count on the GameShuffle account you sign in to with Discord. Members with Manage Server post the card for the whole channel. <strong>Free for everyone.</strong></li>
         <li><code>/gs-poll</code>: open or close a <a href="/help/streaming/polls">live poll</a> for your community, with button voting. <strong>GameShuffle Pro, Manage Server permission.</strong></li>
+        <li><code>/gs-flip</code>, <code>/gs-roll</code> and <code>/gs-8ball</code>: flip a coin, roll dice (<code>/gs-roll 20</code> for a d20, <code>/gs-roll 2d6</code> for two six-siders) or ask the magic 8-ball. <strong>Free for everyone.</strong></li>
+        <li><code>/gs-profile</code>: share your GameShuffle profile in the channel. Needs Discord linked to a public GameShuffle profile. <strong>Free for everyone.</strong></li>
+        <li><code>/gs-tag</code> and <code>/gs-remind</code>: your server&apos;s saved replies, and reminders that ping you in the channel. See <a href="/help/community/discord-alerts-and-reminders">Go-live alerts, server replies and reminders</a>. <strong>GameShuffle Pro.</strong></li>
       </ul>
-      <p>Time trials, lounge MMR, room reads and lounge results (<code>/tt</code>, <code>/mmr</code>, <code>/room</code>, <code>/result</code>) are on our second bot, <a href="/discord#dpage-comp">GameShuffle Competitive</a>.</p>
+      <p>Competitive Mario Kart commands are on our second bot, <a href="/help/competitive/competitive-discord-app">GameShuffle Competitive</a>: <code>/tt</code>, <code>/mmr</code>, <code>/room</code>, <code>/result</code>, <code>/war</code>, <code>/table</code>, <code>/cans</code>, <code>/logo</code>, <code>/flag</code> and the <strong>Save to GameShuffle</strong> message command.</p>
       <p>Slash commands can take a few minutes to appear after the bot joins.</p>
       <p>
         <strong>Trivia on stream:</strong> route the <strong>Trivia on stream</strong> category to a channel and, when you play a{" "}
@@ -108,7 +111,7 @@ export default function Page() {
 
       <h2>Troubleshooting</h2>
       <ul>
-        <li><strong>Bot not responding:</strong> confirm it&apos;s still in the server and Discord is connected under Integrations. See <a href="/help/troubleshooting/integration-issues">Integration Issues</a>.</li>
+        <li><strong>Bot not responding:</strong> confirm it&apos;s still in the server and the server shows on <strong>Account</strong> &rsaquo; <strong>Discord</strong>. See <a href="/help/troubleshooting/integration-issues">Integration Issues</a>.</li>
         <li><strong>Slash commands missing:</strong> wait a few minutes after adding the bot; if they still don&apos;t show, remove and re-add it.</li>
         <li><strong>&ldquo;Missing Permissions&rdquo;:</strong> the bot needs permission to post and manage roles in the channels you&apos;ve pointed it at.</li>
       </ul>

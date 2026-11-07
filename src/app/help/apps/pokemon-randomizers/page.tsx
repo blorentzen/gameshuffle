@@ -19,11 +19,22 @@ export default function Page() {
   return (
     <HelpArticle href={HREF}>
       <h1>How to use the Pokémon randomizers</h1>
-      <HelpToolLinks links={[{ href: "/randomizers/pokemon-stadium", label: "Pokémon Stadium randomizer" }, { href: "/randomizers/pokemon-firered-leafgreen", label: "Fire Red and Leaf Green run challenge" }]} />
+      <HelpToolLinks links={[{ href: "/randomizers/pokemon", label: "Random Pokémon generator" }, { href: "/randomizers/pokemon-stadium", label: "Pokémon Stadium randomizer" }, { href: "/randomizers/pokemon-firered-leafgreen", label: "Fire Red and Leaf Green run challenge" }]} />
       <p>
-        Two ways to play: rental teams for <Link href="/randomizers/pokemon-stadium">Pokémon Stadium</Link>, and a
+        Three ways to play: a <Link href="/randomizers/pokemon">random Pokémon generator</Link>, rental teams for{" "}
+        <Link href="/randomizers/pokemon-stadium">Pokémon Stadium</Link>, and a
         <Link href="/randomizers/pokemon-firered-leafgreen"> Fire Red &amp; Leaf Green run challenge</Link> that tells you
-        what to catch and how to fight on the way through Kanto. Both are new, so some art is still on the way.
+        what to catch and how to fight on the way through Kanto. All three are new, so some art is still on the way.
+      </p>
+
+      <h2>The random Pokémon generator</h2>
+      <ol>
+        <li>Pick <strong>1</strong>, <strong>3</strong> or <strong>6 Pokémon</strong>. To narrow the mix, choose a <strong>Generation</strong>{" "}and a <strong>Type</strong>; every Pokémon from all 1,025 is in it otherwise.</li>
+        <li>Press <strong>Roll</strong>. The Pokémon in a roll are always different, and each card&apos;s own button swaps just that one.</li>
+        <li>In <strong>Change options</strong>: <strong>Fully evolved only</strong>, <strong>No Legendaries or Mythicals</strong>{" "}and <strong>No repeated types</strong>, so no two Pokémon in a roll share a type.</li>
+      </ol>
+      <p>
+        <strong>Copy link</strong>{" "}gives anyone you send it to the same Pokémon and options.
       </p>
 
       <h2>Pokémon Stadium rental teams</h2>

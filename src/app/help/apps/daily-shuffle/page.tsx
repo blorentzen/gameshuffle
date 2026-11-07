@@ -31,6 +31,13 @@ export default function Page() {
         can arrive during your day rather than at your midnight.
       </p>
 
+      <h2>Starting the clock</h2>
+      <p>
+        The first hint and the guess box wait behind <strong>Start today&apos;s puzzle</strong>. Pressing it starts your time,
+        and the end screen shows how long you took and whether it&apos;s your fastest. On the day&apos;s leaderboard, players
+        level on points are ranked by their time.
+      </p>
+
       <h2>How the hints work</h2>
       <p>
         A hint shows before your first guess, a nod to today&apos;s character that a fan might catch straight away. Each miss
@@ -50,7 +57,7 @@ export default function Page() {
       </p>
 
       <h2>Sharing and streaks</h2>
-      <p>When you&apos;re done, <strong>Copy my result</strong> gives you a spoiler-free grid to share; a last-chance save ends with a ring buoy. Your streak counts every day you solve, last-chance saves included. Signed in, your results are saved to your account, so your streak follows you to any device and shows on your profile. Signed out, your streak and stats stay in the browser you play on.</p>
+      <p>When you&apos;re done, <strong>Share</strong> sends a picture card of your result with a spoiler-free grid and a link; a last-chance save ends with a ring buoy. The <Link href="/help/apps/daily-leaderboards">daily leaderboards article</Link>{" "}covers sharing in full. Your streak counts every day you solve, last-chance saves included. Signed in, your results are saved to your account, so your streak follows you to any device and shows on your profile. Signed out, your streak and stats stay in the browser you play on.</p>
 
       <h2>Play in Discord</h2>
       <p>

@@ -36,7 +36,7 @@ export default function Page() {
       <h2>The Pro overlay wheel</h2>
       <p>
         On stream, the wheel becomes a shared toy your chat drives. Build wheels in
-        <strong> Account</strong> &rsaquo; <strong>Stream Setup</strong>{" "}&rsaquo;
+        <strong> Streaming</strong> &rsaquo; <strong>Overlay</strong>{" "}&rsaquo;
         <strong> Wheels</strong>: name a wheel, add entries, and choose its theme and fill style. The
         look is snapshotted onto each spin, so the overlay always matches what you designed.
       </p>
@@ -71,7 +71,7 @@ export default function Page() {
       <h3>Placing it on your overlay</h3>
       <p>
         The wheel is a positionable piece under <strong>Apps</strong> in the
-        <a href="/help/streaming/obs-overlay"> Overlay Layout</a>{" "}editor. By default it&apos;s
+        <a href="/help/streaming/obs-overlay"> Layout</a>{" "}editor (<strong>Streaming</strong> &rsaquo; <strong>Overlay</strong> &rsaquo; <strong>Layout</strong>). By default it&apos;s
         centered; move or resize it per format, or hide it when you&apos;re not using it.
       </p>
 
@@ -79,7 +79,7 @@ export default function Page() {
       <ul>
         <li><strong>Keep the overlay loaded</strong> so <code>!spin</code> can announce the winner in chat.</li>
         <li><strong>Match the theme to your brand</strong> so the wheel fits the rest of your overlay.</li>
-        <li><strong>Use viewer contributions for prompts</strong> (games, challenges, dares) so the wheel becomes a chat activity, not only a picker.</li>
+        <li><strong>Use viewer contributions for prompts</strong> (games, challenges, dares) so chat helps fill the wheel.</li>
       </ul>
 
       <h2>Still need help?</h2>

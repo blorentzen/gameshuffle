@@ -93,7 +93,7 @@ export default function Page() {
         create a free account first.
       </p>
       <p>
-        Find it later in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Saved configs</strong>. The <strong>Open in Randomizer</strong> button loads it back, and <strong>Copy share link</strong> gives you
+        Find it later in <strong>Account</strong> &rsaquo; <strong>Your events</strong> &rsaquo; <strong>Saved setups</strong>. The <strong>Open in Randomizer</strong> button loads it back, and <strong>Copy share link</strong> gives you
         a link to send to the lobby.
       </p>
 

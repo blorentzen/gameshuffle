@@ -54,7 +54,7 @@ export default function Page() {
       <p><strong>Picks, bans, and modules.</strong> Participant-driven drafts and engagement modules your viewers vote and play through in real time.</p>
       <p><strong>AI tools.</strong> Make wheels, bingo prompts, tier lists and party game packs from a theme, and write up recaps of your nights and streams, with 60 AI drafts every 30 days. See <a href="/help/apps/ai-tools">AI tools</a>.</p>
       <p><strong>Brand theming.</strong> A brand theme that reskins your overlay, <code>/live</code> page, and public profile in your colors.</p>
-      <p><strong>The essentials too.</strong> The &ldquo;Reroll the Streamer&rsquo;s Combo&rdquo; channel-point reward, the public lobby viewer, and Discord lounge results with <code>/result</code> on GameShuffle Competitive.</p>
+      <p><strong>The essentials too.</strong> The &ldquo;Reroll the Streamer&rsquo;s Pick&rdquo; channel-point reward, the public lobby viewer, and Discord lounge results with <code>/result</code> on GameShuffle Competitive.</p>
 
       <h2>Free vs Pro</h2>
       <table>
@@ -66,7 +66,7 @@ export default function Page() {
           <tr><td>AI setup, Night Planner &amp; tournament helper (3 a day free)</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Free stream &amp; party tools (wheel, dice, bingo, and more)</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Tournaments &amp; championships</td><td><Yes /></td><td><Yes /></td></tr>
-          <tr><td>Competitive lounge scoring</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>Live scoring</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>TCG Companion + collection</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Profiles &amp; social</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Discord <code>/gs-randomize</code></td><td><Yes /></td><td><Yes /></td></tr>

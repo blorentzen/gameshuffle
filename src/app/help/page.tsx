@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Button, Card } from "@empac/cascadeds";
 import { HelpSearch } from "@/components/help/HelpSearch";
 import { HELP_CATEGORIES, articlesInCategory, type HelpCategoryId } from "@/lib/help/manifest";
-import { IconBroadcast, IconChartLine, IconDice5, IconLifebuoy, IconRocket, IconSparkles, IconTrophy, IconUserCircle, IconUsersGroup, type Icon } from "@tabler/icons-react";
+import { IconBroadcast, IconChartLine, IconDice5, IconLifebuoy, IconRocket, IconSparkles, IconStopwatch, IconTrophy, IconUserCircle, IconUsersGroup, type Icon } from "@tabler/icons-react";
 import { IconTile, type TileTone } from "@/components/ui/IconTile";
 
 /** Each category card's tile (the shared IconTile, above the title). */
@@ -11,6 +11,7 @@ const CATEGORY_TILES: Record<HelpCategoryId, { icon: Icon; tone: TileTone }> = {
   "getting-started": { icon: IconRocket, tone: "teal" },
   apps: { icon: IconDice5, tone: "blue" },
   tournaments: { icon: IconTrophy, tone: "orange" },
+  competitive: { icon: IconStopwatch, tone: "teal" },
   streaming: { icon: IconBroadcast, tone: "violet" },
   community: { icon: IconUsersGroup, tone: "green" },
   pro: { icon: IconSparkles, tone: "magenta" },

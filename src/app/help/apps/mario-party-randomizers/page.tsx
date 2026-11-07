@@ -66,7 +66,7 @@ export default function Page() {
       <h2>Saving a setup</h2>
       <p>
         Signed in, <strong>Save this setup</strong> keeps the board, rules, players, characters and set list together. Find it
-        later in <strong>Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Saved configs</strong>.
+        later in <strong>Account</strong> &rsaquo; <strong>Your events</strong> &rsaquo; <strong>Saved setups</strong>.
       </p>
 
       <h2>Playing the whole night</h2>

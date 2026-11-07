@@ -26,9 +26,10 @@ export default function Page() {
 
       <h2>Starting a night</h2>
       <ul>
-        <li>From a <strong>game night</strong> you&apos;re hosting: add the Mario Party module and start it. People who RSVP&apos;d are already seated.</li>
+        <li>From a <strong>game night</strong> you&apos;re hosting: on its manage page, add the Mario Party module and press <strong>Start the live night</strong>. People who RSVP&apos;d going are already seated.</li>
         <li>From the <Link href="/game-nights/tools/night-planner">Night Planner</Link>: tell it who&apos;s coming and how long you have, and start the lineup it suggests.</li>
-        <li>From a <strong>randomizer</strong> or a <strong>game night tool</strong> such as <Link href="/game-nights/tools/the-gauntlet">The Gauntlet</Link>, <Link href="/game-nights/tools/chaos-cup">Chaos Cup</Link>, <Link href="/game-nights/tools/odd-one-out">Odd One Out</Link> or <Link href="/game-nights/tools/most-likely-to">Most Likely To</Link>: use the &ldquo;play on everyone&apos;s phones&rdquo; button.</li>
+        <li>From <Link href="/game-nights/tools/the-gauntlet">The Gauntlet</Link>{" "}or <Link href="/game-nights/tools/chaos-cup">Chaos Cup</Link>: pick the events or races and press <strong>Start the Gauntlet</strong>{" "}or <strong>Start the Chaos Cup</strong>.</li>
+        <li>From <Link href="/game-nights/tools/odd-one-out">Odd One Out</Link>{" "}or <Link href="/game-nights/tools/most-likely-to">Most Likely To</Link>: press <strong>Play on everyone&apos;s phones</strong>.</li>
       </ul>
       <p>Hosting needs a free account. Players can join as guests; with an account their points count toward seasons and their profile.</p>
 

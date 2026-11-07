@@ -27,7 +27,7 @@ export default function Page() {
       <h2>Before you start</h2>
       <p>
         You need a verified GameShuffle account to create a tournament (verify your email from
-        <strong> Account &rsaquo; Security</strong>). Players joining can be signed-in accounts or
+        <strong> Account &rsaquo; Settings &rsaquo; General</strong>). Players joining can be signed-in accounts or
         guests you add yourself, so your viewers don&apos;t all need accounts to take part.
       </p>
 
@@ -46,7 +46,7 @@ export default function Page() {
 
       <h2>Set up the event</h2>
       <ol>
-        <li><strong>Game</strong>: Mario Kart 8 Deluxe, Mario Kart World, Mario Party Jamboree, Mario Party Superstars, or <strong>Other game</strong> with any name. Mario Kart adds track and build settings; every game gets the brackets, points and Heat &rarr; Mains formats.</li>
+        <li><strong>Game</strong>: one search covers every game GameShuffle knows; for anything else, type the name and pick <strong>Use</strong>. Under the search, <strong>Most popular games</strong> shows the games GameShuffle has tools for (Mario Kart, Mario Party, Smash and more) as cards to tap. Mario Kart adds track and build settings. Brackets, points and Swiss work for every game; Heat &rarr; Mains is left out for Mario Party, Smash, Street Fighter 6, Tekken 8, Overwatch, Marvel Rivals and Splatoon 3.</li>
         <li>
           <strong>Not sure how to run it?</strong> <strong>Draft it with AI</strong> asks roughly how many players and how
           long you have, then suggests a format and drafts the description, rules and an announcement. Use any part with its
@@ -86,14 +86,15 @@ export default function Page() {
       </ul>
 
       <h2>Sign-ups</h2>
-      <p>Choose how players get in:</p>
+      <p>Two choices decide how players get in:</p>
       <ul>
-        <li><strong>Open</strong>: anyone with the link joins instantly.</li>
-        <li><strong>Approval required</strong>: players request, and you accept them from the manage page.</li>
+        <li><strong>Accept people</strong>: <strong>Automatically</strong>{" "}lets anyone who joins straight in; <strong>By hand</strong>{" "}means players ask and you accept them on the manage page.</li>
+        <li><strong>Who can enter</strong>: <strong>Anyone</strong>{" "}lets people enter by name without signing up; <strong>Accounts only</strong>{" "}means every entrant has a GameShuffle account, so you see their history before you seed and their results follow them.</li>
       </ul>
       <p>
-        Set a <strong>max participants</strong> cap if you want to limit the field. You can raise it
-        later from Settings. Use <strong> Invite</strong> on the manage page to notify your followers.
+        Set <strong>Max players</strong>{" "}if you want to limit the field. You can change
+        it later on the manage page; raising it offers the new spots to anyone
+        waiting, in line order. Use <strong>Invite</strong>{" "}on the manage page to invite people you follow.
       </p>
 
       <h2>Sharing it</h2>
@@ -123,7 +124,7 @@ export default function Page() {
       <ul>
         <li><strong>Archive</strong> (on the manage page) takes a tournament off browse, your profile and every list. The page still works for anyone with the link, with an &ldquo;Archived&rdquo; note, and you can unarchive it any time. Cancelled tournaments leave the lists the same way.</li>
         <li>If an open tournament&apos;s date passes by two days and it never started, it leaves browse on its own and you get one notification to finish or cancel it. On a free account it also stops counting as your one active tournament.</li>
-        <li>In <strong>My Stuff</strong> &rsaquo; <strong>Tournaments</strong>, archived and cancelled tournaments sit in a collapsed <strong>Archived</strong> section at the bottom, under Draft, Registration, In Progress and Complete.</li>
+        <li>In <strong>Account</strong> &rsaquo; <strong>Your events</strong> &rsaquo; <strong>Tournaments</strong>, your tournaments are grouped as Running now, Championship seasons, Still marked as running, Coming up, Didn&apos;t start and Finished, and archived and cancelled ones sit in a collapsed <strong>Archived</strong> section at the bottom.</li>
       </ul>
 
       <h2>Bring a co-organizer (Circuit)</h2>

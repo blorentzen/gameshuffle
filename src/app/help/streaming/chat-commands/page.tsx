@@ -36,6 +36,7 @@ export default function Page() {
           <tr><td><code>!gs live</code> · <code>!live</code></td><td>Anyone</td><td>Link to the streamer&apos;s live GameShuffle page.</td></tr>
           <tr><td><code>!gs profile</code> · <code>!profile</code></td><td>Anyone</td><td>Share your GameShuffle profile in chat.</td></tr>
           <tr><td><code>!lurk</code></td><td>Anyone</td><td>Signal you&apos;re lurking; the bot welcomes you back on return.</td></tr>
+          <tr><td><code>!gs mod</code></td><td>Mods + host</td><td>Get the link to join the streamer&apos;s GameShuffle mods (you sign in with Twitch).</td></tr>
         </tbody>
       </table>
 
@@ -120,6 +121,59 @@ export default function Page() {
           <tr><td><code>!gs-decide &lt;question&gt;</code></td><td>Anyone</td><td>Let the overlay settle a yes/no.</td></tr>
           <tr><td><code>!gs-truth</code> · <code>!gs-dare</code></td><td>Anyone</td><td>Pull a Truth or Dare prompt onto the overlay.</td></tr>
           <tr><td><code>!enter</code></td><td>Anyone</td><td>Enter the streamer&apos;s raffle/giveaway.</td></tr>
+          <tr><td><code>!8ball &lt;question&gt;</code></td><td>Anyone</td><td>Ask the magic 8-ball; the answer comes in chat.</td></tr>
+          <tr><td><code>!roll [min-max]</code></td><td>Anyone</td><td>Roll a random number (1 to 100 unless you give a range).</td></tr>
+          <tr><td><code>!choose a | b | c</code></td><td>Anyone</td><td>Pick one of the options at random.</td></tr>
+          <tr><td><code>!engagement</code></td><td>Anyone</td><td>Check your engagement score for this stream.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Polls and live games</h2>
+      <p>
+        Each has its own guide: <a href="/help/streaming/polls">polls</a>,{" "}
+        <a href="/help/streaming/stream-bingo">Stream Bingo</a>,{" "}
+        <a href="/help/streaming/chat-draft">Chat Draft</a>,{" "}
+        <a href="/help/streaming/chat-brain">Chat Brain</a> and{" "}
+        <a href="/help/streaming/who-said-it">Who Said It?</a>.
+      </p>
+      <table>
+        <thead><tr><th>Command</th><th>Who</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>!poll &lt;question&gt; | option 1 | option 2</code> · <code>!poll close</code></td><td>Mods + host</td><td>Open a poll with 2 to 8 options, or close it and announce the winner.</td></tr>
+          <tr><td><code>!vote &lt;number&gt;</code></td><td>Anyone</td><td>Vote in the open poll, Chat Draft pick or Who Said It? round. Vote again to change it.</td></tr>
+          <tr><td><code>!bingo start [pattern] [tokens] [prize]</code></td><td>Mods + host</td><td>Open a Stream Bingo game. Patterns: line, corners, x, frame, blackout, series, or one you made, by name.</td></tr>
+          <tr><td><code>!bingo call</code> · <code>!bingo auto &lt;seconds&gt;</code> · <code>!bingo doors</code> · <code>!bingo end</code></td><td>Mods + host</td><td>Call a number, call on a timer, close sign-ups now, or end the game.</td></tr>
+          <tr><td><code>!bingocard</code></td><td>Anyone</td><td>Where to get a Stream Bingo card.</td></tr>
+          <tr><td><code>!draft start &lt;kind&gt;</code> · <code>!draft next</code> · <code>!draft end</code></td><td>Mods + host</td><td>Start a chat draft (pokemon, champions, kart, mkw, tracks, mkwtracks, stage, stages, smash or squad), skip to the next pick, or end it.</td></tr>
+          <tr><td><code>!draft</code></td><td>Anyone</td><td>Show the draft&apos;s picks so far.</td></tr>
+          <tr><td><code>!draft teams</code> · <code>!draft captains @a @b</code></td><td>Mods + host</td><td>Open sign-ups for a team draft, then name 2 to 4 captains.</td></tr>
+          <tr><td><code>!draft in</code> · <code>!draft out</code></td><td>Anyone</td><td>Join or leave a team draft&apos;s sign-ups. Captains pick with <code>!pick &lt;name&gt;</code>.</td></tr>
+          <tr><td><code>!a &lt;answer&gt;</code> · <code>!cb &lt;answer&gt;</code></td><td>Anyone</td><td>Answer the open Chat Brain question.</td></tr>
+          <tr><td><code>!cb ask [seconds] [category or your own question]</code></td><td>Mods + host</td><td>Open a Chat Brain survey for chat.</td></tr>
+          <tr><td><code>!cb start [boards] [seconds]</code> · <code>!cb next</code> · <code>!cb lock</code> · <code>!cb end</code></td><td>Mods + host</td><td>Run a Chat Brain game on published boards (add <code>speed</code> for a speed round).</td></tr>
+          <tr><td><code>!whosaid</code> · <code>!whosaid reveal</code></td><td>Mods + host</td><td>Post a quote with the speaker hidden for chat to vote on, then reveal who said it.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Break mode (mods &amp; host)</h2>
+      <p>See <a href="/help/streaming/break-mode">Break mode</a> for the games chat plays while you&apos;re away.</p>
+      <table>
+        <thead><tr><th>Command</th><th>Who</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>!gs brb [minutes]</code></td><td>Mods + host</td><td>Start break mode: GameShuffle runs games for chat until you&apos;re back. Add minutes to show when you&apos;ll be back.</td></tr>
+          <tr><td><code>!gs back [now]</code></td><td>Mods + host</td><td>End break mode once the round in play finishes, or straight away with <code>now</code>.</td></tr>
+          <tr><td><code>!gs pull</code></td><td>Mods + host</td><td>Skip a break question that&apos;s wrong; it stays off every channel until staff review it.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Party nights</h2>
+      <p>Available while the streamer runs a Mario Party night.</p>
+      <table>
+        <thead><tr><th>Command</th><th>Who</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>!party</code> · <code>!party join</code></td><td>Anyone</td><td>Get the party night&apos;s join link, or take an open seat.</td></tr>
+          <tr><td><code>!chance [help|crutch] [@name]</code> · <code>!chance vote</code></td><td>Mods + host</td><td>Deal a Chance card to someone seated or at random, or let chat vote who gets it.</td></tr>
+          <tr><td><code>!mission [@name]</code> · <code>!mission done @name</code></td><td>Mods + host</td><td>Deal a mission, or confirm someone finished theirs.</td></tr>
         </tbody>
       </table>
 
@@ -146,6 +200,25 @@ export default function Page() {
         </tbody>
       </table>
 
+      <h2>Mario Kart lounge</h2>
+      <p>
+        Without a name, these read the streamer&apos;s <a href="/help/competitive/mmr-card">MMR card</a>; add a lounge
+        name to look up anyone else.
+      </p>
+      <table>
+        <thead><tr><th>Command</th><th>Who</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>!mmr [lounge name]</code></td><td>Anyone</td><td>MMR, division, how far to the next one, world rank and tonight&apos;s run.</td></tr>
+          <tr><td><code>!last10 [lounge name]</code></td><td>Anyone</td><td>The last ten events: record, MMR change, the best event and average score.</td></tr>
+          <tr><td><code>!avg [lounge name]</code></td><td>Anyone</td><td>This season&apos;s average score, and partners&apos; average in team events.</td></tr>
+          <tr><td><code>!tonight [lounge name]</code></td><td>Anyone</td><td>Tonight&apos;s events, record, MMR change and any new division.</td></tr>
+          <tr><td><code>!compare &lt;name&gt; [name]</code></td><td>Anyone</td><td>Two players side by side: MMR, division, the gap and events played. One name compares with the streamer.</td></tr>
+          <tr><td><code>!h2h &lt;name&gt; [name]</code></td><td>Anyone</td><td>Every event two players shared this season: who finished ahead and their record as teammates. One name compares with the streamer.</td></tr>
+          <tr><td><code>!lounge [lounge name]</code></td><td>Anyone</td><td>A link to the player&apos;s lounge stats page.</td></tr>
+          <tr><td><code>!odds</code></td><td>Anyone</td><td>The room the streamer checked tonight: seed, what each place pays, the break-even place and the favorite.</td></tr>
+        </tbody>
+      </table>
+
       <h2>Tournaments &amp; crews</h2>
       <table>
         <thead><tr><th>Command</th><th>Who</th><th>What it does</th></tr></thead>
@@ -165,6 +238,9 @@ export default function Page() {
           <tr><td><code>!gs award @user &lt;amount&gt;</code></td><td>Host</td><td>Give a discretionary award to a viewer.</td></tr>
           <tr><td><code>!gs bounty &lt;amount&gt; &lt;description&gt;</code></td><td>Host</td><td>Open an outcome-pegged bounty.</td></tr>
           <tr><td><code>!gs bounty award @user</code> · <code>!gs bounty cancel</code></td><td>Host</td><td>Pay out or release the open bounty.</td></tr>
+          <tr><td><code>!chaos</code></td><td>Anyone</td><td>Set off a chaos event for the game on stream. Costs tokens.</td></tr>
+          <tr><td><code>!random</code></td><td>Anyone</td><td>Fire a free wild event: a token change, a story moment or a modifier.</td></tr>
+          <tr><td><code>!opt-in</code> · <code>!opt-out</code> · <code>!consent</code></td><td>Anyone</td><td>Join or leave events that can take your tokens, or check where you stand.</td></tr>
         </tbody>
       </table>
 
@@ -186,6 +262,13 @@ export default function Page() {
           <tr><td><code>!commands add|edit|delete|list &lt;trigger&gt; [response]</code></td><td>Host</td><td>Create and manage your own chat commands.</td></tr>
         </tbody>
       </table>
+      <p>
+        Channels also have ready-made replies like <code>!socials</code>, <code>!rules</code>, <code>!discord</code> and
+        {" "}<code>!quote</code>, which each streamer can turn off, reword or replace. To see what works on one channel, open
+        its commands page at <code>gameshuffle.co/c/&lt;channel&gt;/commands</code>, or type <code>!commands</code> in its
+        chat. Streamers manage theirs in <strong>Streaming</strong> &rsaquo; <strong>Chat</strong>{" "}&rsaquo;
+        {" "}<strong>Commands</strong>.
+      </p>
 
       <h2>Notes</h2>
       <ul>
