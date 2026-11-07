@@ -122,7 +122,7 @@ function TileBox({ tile, i, className, children, label, labelId }: { tile: Tile;
 async function MmrCardBit({ userId, who, sample }: { userId: string; who: string; sample: boolean }) {
   if (sample) {
     const look: MmrLook = { ...DEFAULT_LOOK, game: "mk8dx", brand: "off" };
-    return <div className="mmr-frame" tabIndex={0} role="region" aria-label="Sample MMR card"><MmrCard view={viewOf(demoSource("mk8dx", "Sample player"))} look={look} fit="frame" /></div>;
+    return <div className="mmr-frame" role="region" aria-label="Sample MMR card"><MmrCard view={viewOf(demoSource("mk8dx", "Sample player"))} look={look} fit="frame" /></div>;
   }
   const card = await cardFor(userId).catch(() => null);
   const live = card ? await liveFor(card, { country: false }).catch(() => null) : null;
@@ -130,8 +130,8 @@ async function MmrCardBit({ userId, who, sample }: { userId: string; who: string
   // On our own page the "Built by GameShuffle" line says what the page already does; a rolling bar is a stream's.
   const look: MmrLook = { ...live.look, brand: "off", layout: live.look.layout === "rolling" ? "deck" : live.look.layout };
   const since = await mmrSeenFor(who);
-  // Keeps the card's own width on a phone and scrolls sideways (never shrinks its text), so the frame takes focus.
-  return <div className="mmr-frame" tabIndex={0} role="region" aria-label="Your card as it shows on stream"><MmrSince initial={live} since={since} who={who} look={look} /></div>;
+  // The card scales to the space it has, so the whole card is always in view.
+  return <div className="mmr-frame" role="region" aria-label="Your card as it shows on stream"><MmrSince initial={live} since={since} who={who} look={look} /></div>;
 }
 
 function CompeteTile({ tile, i, userId, who, mmrFrom, eye }: { tile: TileOf<"compete">; i: number; userId: string; who: string; mmrFrom: number | null; eye: ReactNode }) {

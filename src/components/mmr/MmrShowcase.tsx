@@ -23,7 +23,7 @@ export function MmrShowcase() {
         <figure key={look.id} className="mmr-showcase__item">
           <figcaption>{label}</figcaption>
           <div className="mmr-stage">
-            <div className="mmr-frame" tabIndex={0} role="region" aria-label={`${label} example`}>
+            <div className="mmr-frame" role="region" aria-label={`${label} example`}>
               <MmrDemo look={look} gap={look.layout === "rolling" ? 20_000 : undefined} />
             </div>
           </div>

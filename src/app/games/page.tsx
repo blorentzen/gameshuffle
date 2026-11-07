@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 function Card({ g, action }: { g: GameCard; action?: React.ReactNode }) {
   return (
-    <div className="games-card">
+    <div className="gamespace-card">
       <Link href={g.href} className="room-game" style={{ "--acc": g.accent } as React.CSSProperties}>
         {/* eslint-disable-next-line @next/next/no-img-element -- our box art */}
         {g.box ? <img className="room-game__box" src={g.box} alt="" /> : <span className="room-game__box" aria-hidden="true" />}

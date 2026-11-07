@@ -17,7 +17,8 @@
 .settings-nav__text b { font-size: var(--font-size-14); font-weight: 700; }
 .settings-nav__text small { font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.35; }
 .settings-nav__go { flex: none; color: var(--text-secondary); }
-.settings-pane { display: grid; gap: var(--spacing-20); min-width: 0; }
+/* One column that never grows past the screen (a wide tab bar scrolls inside it instead). */
+.settings-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-20); min-width: 0; }
 .settings-pane__back { display: none; }
 .settings-pane__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 /* Phones: the list is /settings, an item is its own page with a way back. */

@@ -746,7 +746,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
           {picture ? (
             guest ? (
               <div className="mmr-studio__pic-wait">
-                <div className="mmr-frame" tabIndex={0} role="region" aria-label="Preview of your MMR card"><MmrCard view={preview.view} look={previewLook} goal={activeGoal} chat={chat} /></div>
+                <div className="mmr-frame" role="region" aria-label="Preview of your MMR card"><MmrCard view={preview.view} look={previewLook} goal={activeGoal} chat={chat} /></div>
                 <p className="mmr-studio__note">Pictures come with a free account: make one and your card comes with you.</p>
                 <div><Button variant="primary" onClick={() => { keepDraft(); window.location.assign(`/signup?redirect=${encodeURIComponent("/mmr-card?then=free&make=picture")}`); }}>Make a free account</Button></div>
               </div>
@@ -766,7 +766,7 @@ export function MmrStudio({ initial, pro, looksOk: looksAtLoad = pro, chat = fal
             </div>
           ) : (<>
           <div className="mmr-studio__stage">
-            <div className="mmr-frame" tabIndex={0} role="region" aria-label="Preview of your MMR card" ref={previewRef}>
+            <div className="mmr-frame" role="region" aria-label="Preview of your MMR card" ref={previewRef}>
               <MmrCard view={preview.view} look={previewLook} play={preview.play} goal={activeGoal} chat={chat} />
             </div>
           </div>

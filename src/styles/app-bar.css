@@ -4,8 +4,8 @@
   .app-bar {
     display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1040;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
-    background: color-mix(in srgb, var(--background-primary, #fff) 94%, transparent);
-    backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    /* Solid, so nothing scrolls visibly behind the labels (the blur never reached the browser). */
+    background: var(--background-primary, #fff);
     border-top: 1px solid var(--border-subtle);
     box-shadow: 0 -6px 24px rgba(20, 26, 58, 0.08);
   }
@@ -30,6 +30,10 @@
   body:has(.app-bar) .cookie-banner { bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
   body:has(.app-bar) .navbar-comms { display: none; }
   body:has(.app-bar) .empac-chat-panel { display: none; }
+  /* Staff's floating control sits above the bar, not on its You tab. */
+  body:has(.app-bar) .staff-impersonation-control { bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+  /* The inbox fills the screen above the bar, so its own list never runs behind it. */
+  body:has(.app-bar) .comms-page { height: calc(100dvh - 50px - 64px - env(safe-area-inset-bottom, 0px)); }
   /* Create: the CDS Modal as a sheet from the bottom. */
   .empac-modal-overlay:has(.app-create) { align-items: flex-end; padding: 0; }
   .empac-modal.app-create { width: 100%; max-width: none; margin: 0; border-radius: 2rem 2rem 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -39,4 +43,3 @@
 .app-create__list li:first-child .app-create__item { border-top: 0; }
 .app-create__item b { display: block; font-size: var(--font-size-16); font-weight: 700; }
 .app-create__item small { display: block; font-size: var(--font-size-14); color: var(--text-secondary); }
-@media (prefers-reduced-motion: reduce) { .app-bar { backdrop-filter: none; -webkit-backdrop-filter: none; } }

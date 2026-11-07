@@ -46,8 +46,19 @@
 .host-kinds .empac-subnav__wrapper { overflow-x: auto; scrollbar-width: none; }
 .host-kinds .empac-subnav__container { width: max-content; min-width: 100%; }
 .host-kinds .empac-subnav__item { white-space: nowrap; }
-/* Phones: a row's button drops under its words, so the words keep the width. */
-@media (max-width: 559px) {
+.host-more { margin: calc(-1 * var(--spacing-8)) 0 0; font-size: var(--font-size-15, 1.5rem); }
+/* The kind pills sit close to what they filter. */
+.host-kinds .empac-subnav { padding-block: 0; }
+.host-kinds .empac-subnav__wrapper { padding-block: var(--spacing-4); }
+/* Phones: a running event is a short card (picture, words and its button beside them), and a row keeps its button
+   on its own line only on the narrowest screens. */
+@media (max-width: 720px) {
+  .host-page .hub-live { grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-12) var(--spacing-16); padding: var(--spacing-16); }
+  .host-page .hub-live__name { font-size: var(--font-size-18); }
+  .host-page .hub-live__actions { grid-column: 2; }
+  .host-page .host-live__cover { width: 4.8rem; align-self: start; }
+}
+@media (max-width: 359px) {
   .host-page .hub-rows__row { grid-template-columns: auto minmax(0, 1fr); }
   .host-page .hub-rows__row > a:last-child { grid-column: 2; justify-self: start; }
 }

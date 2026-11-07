@@ -389,3 +389,5 @@
 .tt-events__words b { font-size: var(--font-size-16); }
 .tt-events__words small { font-size: var(--font-size-14); color: var(--text-secondary); }
 .tt-events__none { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+/* Phones: the whole card is the link, so the words get the width the "Open" cue took. */
+@media (max-width: 480px) { .tt-events__cue { display: none; } }

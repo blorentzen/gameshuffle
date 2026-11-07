@@ -38,7 +38,7 @@ export function TtEventsRow({ events, game }: { events: TtEventListItem[]; game:
                     {" · "}{game ? "" : `${TT_GAMES[e.game].label}, `}{e.board}{" · "}{e.players} {e.players === 1 ? "player" : "players"}
                   </small>
                 </span>
-                <ArrowCue>Open</ArrowCue>
+                <ArrowCue className="tt-events__cue">Open</ArrowCue>
               </Link>
             </li>
           ))}

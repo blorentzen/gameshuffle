@@ -1351,11 +1351,11 @@ export default function ManageTournamentPage() {
             <div style={{ minWidth: 0 }}>
               <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, marginBottom: "0.5rem" }}>
                 Manage: {tournament.title}
-                {!isOwner && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--primary-ink-600)", background: "var(--primary-100)", padding: "0.15rem 0.5rem", borderRadius: "0.4rem", marginLeft: "0.6rem", verticalAlign: "middle" }}>Co-organizer</span>}
+                {!isOwner && <span style={{ display: "inline-block", whiteSpace: "nowrap", fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--text-primary)", background: "var(--surface-selected, rgba(127,127,127,.16))", padding: "2px 8px", borderRadius: "999px", marginLeft: "var(--spacing-8)", verticalAlign: "middle" }}>Co-organizer</span>}
               </h1>
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "var(--font-size-12)", color: savedFlash ? "var(--success-700, #17A710)" : "var(--text-tertiary)", transition: "color 0.2s" }}>
-                  {savedFlash ? "✓ Saved" : "· Auto-saves"}
+                  {savedFlash ? "Saved" : "Changes save on their own"}
                 </span>
               </div>
             </div>

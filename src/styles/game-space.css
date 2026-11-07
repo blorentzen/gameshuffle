@@ -92,7 +92,8 @@
 .space-cards > li, .space-cards > .space-cards__item { display: flex; min-width: 0; }
 .space-cards__item > * { flex: 1; min-width: 0; }
 .space-cards .hap { min-height: 22rem; }
-.space-stack { display: grid; gap: var(--spacing-24); }
+/* One column that never grows past the screen (the Cards tab's deck grid was 941px wide on a phone). */
+.space-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-24); }
 .space-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
 .space-count { margin-left: auto; color: var(--text-secondary); font-size: var(--font-size-14); }
 .space-more { margin-left: 0; }

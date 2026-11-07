@@ -13,7 +13,7 @@
  * you make by looking, and the manage card already previews the result.
  */
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Drawer } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
@@ -23,6 +23,8 @@ import { BRAND_THEMES, getBrandTheme, brandCssVars, DEFAULT_BRAND_THEME_ID } fro
 /** Every var brandCssVars can emit, so switching back to Default clears the
  *  ones the previous theme set instead of leaving them on the element. */
 const BRAND_VARS = ["--brand-primary", "--brand-accent", "--brand-gradient", "--brand-on", "--brand-fill", "--brand-ink"];
+
+const noopSubscribe = () => () => {};
 
 export function EventCustomizeEditor({
   table,
@@ -37,6 +39,7 @@ export function EventCustomizeEditor({
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const [theme, setTheme] = useState(initialTheme || DEFAULT_BRAND_THEME_ID);
   const [saving, setSaving] = useState(false);
   const dirty = useRef(false);
@@ -76,7 +79,8 @@ export function EventCustomizeEditor({
   return (
     <>
       <Button variant="secondary" size="small" onClick={() => setOpen(true)}>Customize</Button>
-      <Drawer
+      {/* CDS Drawer renders differently on the server: mounted after hydration (see CLAUDE.md, Toasts). */}
+      {hydrated && <Drawer
         open={open}
         onClose={cancel}
         position="right"
@@ -112,7 +116,7 @@ export function EventCustomizeEditor({
         <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-12)" }}>
           Header images and the rest of the event&rsquo;s setup are on the manage page.
         </p>
-      </Drawer>
+      </Drawer>}
     </>
   );
 }

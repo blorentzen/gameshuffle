@@ -2,7 +2,10 @@
    Sections sit flat under a thin line; tables keep their frame (containers and gaps rule). */
 
 .lounge-body { display: grid; gap: var(--spacing-24); padding-block: var(--spacing-24) var(--spacing-64); }
-.lounge-games { justify-self: start; }
+/* The game pills wrap on a small phone instead of widening the page (MK8DX, MK World 12P, MK World 24P). */
+.lounge-games { justify-self: start; max-width: 100%; min-width: 0; }
+.lounge-games .empac-subnav__wrapper, .lounge-games .empac-subnav__container { max-width: 100%; min-width: 0; }
+.lounge-games .empac-subnav__container { flex-wrap: wrap; row-gap: var(--spacing-8); }
 .lounge-sub { display: inline-flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-12); align-items: center; }
 .lounge-confirmed { display: inline-flex; align-items: center; gap: var(--spacing-4); padding: var(--spacing-4) var(--spacing-8); border-radius: 999px; background: color-mix(in srgb, #2bd17e 22%, transparent); color: #a8f5cb; font-size: var(--font-size-14); font-weight: 700; }
 .lounge-confirmed a { color: inherit; }
@@ -139,6 +142,11 @@
 /* Tabs. Every layer gets min-width 0, or the tab bar's and tables' widths push the page sideways on phones. */
 .lounge-body > *, .lounge-boards, .lounge-tabs, .lounge-tabs .empac-tabs, .lounge-tabs .empac-tabs__content, .lounge-tabs .empac-tabs__panel { min-width: 0; }
 .lounge-tabs .empac-tabs { gap: var(--spacing-24); }
+/* The tabs scroll inside their row on a phone (the selected one is scrolled into view), never past the page. */
+.lounge-tabs, .lounge-tabs .empac-tabs { max-width: 100%; }
+.lounge-tabs .empac-tabs__header { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.lounge-tabs .empac-tabs__header::-webkit-scrollbar { display: none; }
+.lounge-tabs .empac-tabs__tab { white-space: nowrap; flex: none; }
 .lounge-tabs .empac-tabs__tab-badge { background: #efe9ff; color: #4a2ab8; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; }
 .lounge-tabs .empac-tabs__tab--active .empac-tabs__tab-badge { background: #e4dbff; color: #3b1f9e; }
 .lounge-panel { display: grid; gap: var(--spacing-24); min-width: 0; }

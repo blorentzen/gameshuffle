@@ -673,9 +673,8 @@ ul {
   display: flex;
   gap: 1.2rem;
   padding: 0.8rem;
-  background: rgba(11, 14, 24, 0.93);
-  -webkit-backdrop-filter: blur(44px) saturate(185%);
-  backdrop-filter: blur(44px) saturate(185%);
+  /* Solid: a blur can't work here (the navbar's own backdrop filter is an ancestor), so the page showed through. */
+  background: rgb(11, 14, 24);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--gs-radius-md, 1.2rem);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
@@ -3452,3 +3451,17 @@ html.dark ul.list-check > li::after { background: #7fd9a3; }
 .phone-menu__world { display: grid; gap: var(--spacing-16); }
 .phone-menu__extra { padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
 .phone-menu__worlds { border-top: 1px solid var(--border-subtle); }
+
+/* CDS pill Tabs color the selected pill with primitive tokens (--primary-100/700) that don't flip in dark mode, so it
+   showed as a pale light-blue pill on dark pages (Support's Once/Monthly). Raise with CascadeDS. The home band's
+   pills have their own gliding pill and stay as they are. */
+html.dark .empac-tabs--pills:not(.band__tabs) .empac-tabs__tab--active { background: rgba(120, 150, 255, 0.2); color: var(--brand-ink, #a9c1ff); }
+html.dark .empac-tabs--pills:not(.band__tabs) .empac-tabs__tab--active:hover:not(.empac-tabs__tab--disabled) { background: rgba(120, 150, 255, 0.28); }
+
+/* A closed CDS Drawer waits translated just off the right edge of its fixed container. On phones that off-screen
+   panel widened the page (an owner's profile was 367px wide on a 360 screen and the browser zoomed out). Clipping the
+   container keeps it out of the page's width; an open drawer sits inside it. Raise with CascadeDS. */
+.empac-drawer-container { overflow: hidden; }
+
+/* Footer on phones: the folded sections' last row had its own line right above the bottom bar's line. */
+.site-footer .empac-accordion__item:last-child { border-bottom: 0; }

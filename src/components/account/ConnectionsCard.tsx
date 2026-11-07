@@ -261,7 +261,7 @@ export function ConnectionsCard() {
               flexWrap: "wrap",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flex: "1 1 16rem", minWidth: 0 }}>
               <img
                 src={PROVIDER_ICONS[c.provider]}
                 alt=""
@@ -269,7 +269,7 @@ export function ConnectionsCard() {
                 style={{ width: 28, height: 28, flexShrink: 0 }}
               />
               <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-6)" }}>
+                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: "var(--spacing-6)", rowGap: "var(--spacing-2)" }}>
                   <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-16)" }}>{PROVIDER_LABELS[c.provider]}</span>
                   {c.isLinked ? (
                     <Badge variant="success" size="small">Linked</Badge>
@@ -278,7 +278,7 @@ export function ConnectionsCard() {
                   )}
                 </div>
                 {c.isLinked && (
-                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0", lineHeight: "var(--line-height-snug)" }}>
+                  <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0", lineHeight: "var(--line-height-snug)" }}>
                     {c.externalDisplayName || c.externalUsername || "(no display name)"} · {rolesSummary(c)}
                   </p>
                 )}

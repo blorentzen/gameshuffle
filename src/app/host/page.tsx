@@ -8,6 +8,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowLink } from "@/components/ui/ArrowLink";
 import { redirect } from "next/navigation";
 import { hostHome } from "@/lib/host/home";
 import { hostViewer } from "@/lib/host/server";
@@ -16,6 +17,8 @@ import { HostEventRow, HostHeader, NeedsYouList, RunningCard, SeasonCard, StartS
 export const metadata: Metadata = { title: "Host", robots: { index: false, follow: false } };
 
 const COMING = 6;
+
+const RUNNING_CARDS = 3;
 
 export default async function HostHomePage() {
   const { userId, tz } = await hostViewer("/host");
@@ -31,7 +34,11 @@ export default async function HostHomePage() {
     <div className="hub-page studio-page host-page">
       <HostHeader />
       {home.needs.length > 0 && <NeedsYouList needs={home.needs} />}
-      {running.map((e) => <RunningCard key={`${e.kind}-${e.id}`} e={e} tz={tz} />)}
+      {/* The first three running events as cards; the rest are one line away on Events. */}
+      {running.slice(0, RUNNING_CARDS).map((e) => <RunningCard key={`${e.kind}-${e.id}`} e={e} tz={tz} />)}
+      {running.length > RUNNING_CARDS && (
+        <p className="host-more"><ArrowLink href="/host/events">{running.length - RUNNING_CARDS} more running now</ArrowLink></p>
+      )}
 
       <div className="hub-home__row">
         <section className="hub-panel" aria-labelledby="host-coming">

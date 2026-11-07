@@ -90,7 +90,7 @@ export function JoinFreeButton({ space, name, className, children }: { space: st
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className={className} onClick={() => setOpen(true)} aria-haspopup="dialog">{children ?? "Join free"}</button>
+      <button type="button" className={`join-free-btn${className ? ` ${className}` : ""}`} onClick={() => setOpen(true)} aria-haspopup="dialog">{children ?? "Join free"}</button>
       <JoinSheet
         open={open} onClose={() => setOpen(false)} space={space} action="join"
         heading={`Join the ${name} space`}

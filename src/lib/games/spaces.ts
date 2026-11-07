@@ -4,9 +4,9 @@
  * own slice. The home is your slice of your games' spaces; a profile is someone's slice. A space lives at
  * /games/<id>, out of search (noindex; the tools that earn search keep their own pages, menus and titles).
  *
- * Spaces open one at a time, each a launch moment (Britton: announce when a new space opens). `opens` is the
- * Pacific day it opens to everyone; until then only staff see it. Mario Kart 8 Deluxe goes first, then Mario Kart
- * World, Pokémon, Mario Party and Smash (5A). Client-safe and pure.
+ * `opens` is the Pacific day a space opens to everyone; until then only staff see it. The plan was one at a time
+ * (5A); Britton opened all five on 2026-11-07 ("let's open up all the spaces we can"). A new space starts at null
+ * and gets its day when it's ready. Client-safe and pure.
  */
 
 import { gameKey, familyKeys, type GameKey } from "./key";
@@ -75,7 +75,7 @@ export const GAME_SPACES: GameSpace[] = [
     ],
     main: { label: "Roll a build", href: "/randomizers/mario-kart-8-deluxe" },
     merch: /kart|race|drift|lap|blue shell|podium/i,
-    opens: null,
+    opens: "2026-11-07",
   },
   {
     id: "mario-kart-world", name: "Mario Kart World", short: "MK World", games: ["mario-kart-world"], primary: "mario-kart-world",
@@ -90,7 +90,7 @@ export const GAME_SPACES: GameSpace[] = [
     ],
     main: { label: "Roll a build", href: "/randomizers/mario-kart-world" },
     merch: /kart|race|drift|lap|blue shell|podium/i,
-    opens: null,
+    opens: "2026-11-07",
   },
   {
     id: "pokemon", name: "Pokémon", short: "Pokémon", games: POKEMON_GAMES, primary: "pokemon-tcg",
@@ -105,7 +105,7 @@ export const GAME_SPACES: GameSpace[] = [
       { label: "Deck guides", href: "/pokemon-tcg/decks" },
     ],
     main: { label: "Play today's Dex", href: "/daily-dex" },
-    opens: null,
+    opens: "2026-11-07",
   },
   {
     id: "mario-party", name: "Mario Party", short: "Mario Party", games: MARIO_PARTY_GAMES, primary: "super-mario-party-jamboree",
@@ -119,7 +119,7 @@ export const GAME_SPACES: GameSpace[] = [
     ],
     main: { label: "Roll a party", href: "/randomizers/super-mario-party-jamboree" },
     merch: /party|dice|star|board/i,
-    opens: null,
+    opens: "2026-11-07",
   },
   {
     id: "smash", name: "Super Smash Bros. Ultimate", short: "Smash", games: ["super-smash-bros-ultimate"], primary: "super-smash-bros-ultimate",
@@ -132,7 +132,7 @@ export const GAME_SPACES: GameSpace[] = [
     ],
     main: { label: "Roll a fighter", href: "/randomizers/super-smash-bros-ultimate" },
     merch: /smash|main|stock|fighter/i,
-    opens: null,
+    opens: "2026-11-07",
   },
 ];
 

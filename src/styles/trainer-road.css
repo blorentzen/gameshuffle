@@ -9,6 +9,8 @@
 .road-section__title { margin: 0; font-family: var(--font-display, inherit); font-size: var(--font-size-24); font-weight: 800; line-height: 1.2; color: var(--text-primary); text-wrap: balance; }
 .road-flat { display: grid; gap: var(--spacing-16); padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle, rgba(20, 22, 31, 0.12)); }
 .road-credits { display: grid; gap: var(--spacing-8); color: var(--text-secondary); font-size: var(--font-size-14); }
+/* The attribution is one paragraph: as a grid its link's trailing "." became a row of its own. */
+p.road-credits { display: block; }
 .road-credits__pic { margin: 0; }
 
 /* Regions on the front page: a card each, with the Gym Leaders' faces in a row. */

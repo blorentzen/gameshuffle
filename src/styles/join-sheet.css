@@ -24,3 +24,7 @@
   .empac-modal-overlay:has(.join-sheet) { align-items: flex-end; padding: 0; }
   .empac-modal.join-sheet { width: 100%; max-width: none; margin: 0; border-radius: 2rem 2rem 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); max-height: 92vh; overflow-y: auto; }
 }
+
+/* "Join free" wears the link-button look it's given (.room-btn, .game-band__btn); a button needs the browser's own
+   border and font taken off first, or it shows a bevelled outline. */
+.join-free-btn { border: 0; font-family: inherit; line-height: 1.2; cursor: pointer; }

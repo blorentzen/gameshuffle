@@ -73,7 +73,8 @@ function Body({ item, timeZone, showShopOrders, username, index = false }: { ite
     <div className={`settings-pane${index ? " settings-pane--index" : ""}`}>
       {/* Phones: the list is its own page, so each item leads back to it. */}
       <Link href="/settings" className="settings-pane__back"><IconChevronLeft size={18} aria-hidden="true" />Settings</Link>
-      {item !== "plans" && <TrialBanner />}
+      {/* The trial offer once, where Settings opens, not above every setting (and never above Support or Plans). */}
+      {(index || item === "general") && <TrialBanner />}
       {item === "profile" && username && (
         <p className="settings-pane__note">Your picture, banner and colors can also be changed on <ArrowLink href={`/u/${username}`}>your profile</ArrowLink>, where you see them as you go.</p>
       )}

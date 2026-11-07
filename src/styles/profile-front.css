@@ -17,6 +17,8 @@
 .pf-cover__art .profile-banner, .pf-cover__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background-size: cover; background-position: center 35%; }
 .pf-cover::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(11, 13, 20, 0.6) 0%, rgba(11, 13, 20, 0) 46%); }
 .pf-cover .owner-bar--overlay { top: calc(64px + var(--spacing-12)); }
+/* With the owner's bar on it, a phone's cover is taller, so the picture rising into it never meets the bar. */
+@media (max-width: 640px) { .pf-cover:has(.owner-bar--overlay) { min-height: 20rem; } }
 
 /* ── Who they are, on the page (6A): the face on the cover's edge, the buttons beside it, then the name, status, bio,
    what they're playing, the counts and the badges they've earned. A white band, like the apps people know. ── */
@@ -237,9 +239,17 @@ button.pf-count:focus-visible { outline: 2px solid var(--brand-ink, var(--primar
    (home-room.css), not rounded cards in the page's margin. */
 @media (max-width: 767px) {
   .pf-cols, .pf-col, .pf-col--narrow, .pf-tiles { gap: var(--spacing-8); }
+  /* The same 8px between the header and the first band (it was 48px, an empty stripe). */
+  .pf-body { gap: var(--spacing-8); padding-top: var(--spacing-8); }
   .profile-front .pf-cell > .pcard, .profile-front .pf-block > .pcard, .pf-hl, .pf-join, .pf-plays2 {
     margin-inline: calc(-1 * var(--gs-phone-gutter, 1.6rem));
     padding: var(--spacing-24) var(--gs-phone-gutter, 1.6rem);
     border-radius: 0; border-inline: 0; box-shadow: none;
   }
 }
+
+/* The tab row (Overview, Posts, Events, Cards) scrolls inside its column on a phone instead of widening the page. */
+.pf-col, .profile-tabs, .profile-tabs .empac-tabs, .profile-tabs .empac-tabs__content { min-width: 0; max-width: 100%; }
+.profile-tabs .empac-tabs__header { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.profile-tabs .empac-tabs__header::-webkit-scrollbar { display: none; }
+.profile-tabs .empac-tabs__tab { flex: none; white-space: nowrap; }

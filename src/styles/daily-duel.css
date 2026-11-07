@@ -155,8 +155,9 @@ html.dark .duel-page, [data-theme="dark"] .duel-page { --duel-ink: #f5c84c; }
 .duel-teamcard { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; align-content: start; gap: 4px; min-width: 0; }
 .duel-teamcard > .duel-thumb { width: 100%; }
 .duel-teamcard__facts { display: grid; justify-items: center; gap: 3px; color: #c9cff0; font-size: var(--font-size-12); font-weight: 600; text-align: center; }
-.duel-teamcard__weak { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 3px; }
-.duel-team__lead { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.duel-teamcard__weak { display: inline-flex; flex-wrap: nowrap; white-space: nowrap; justify-content: center; align-items: center; gap: 3px; }
+/* Fits under its card on a phone (six cards across): no wider than the card. */
+.duel-team__lead { display: inline-block; max-width: 100%; padding: 1px 5px; border-radius: 999px; background: #f5c84c; color: #1a1300; font-size: var(--font-size-12); font-weight: 800; letter-spacing: 0; text-transform: uppercase; overflow-wrap: anywhere; }
 @media (max-width: 30rem) { .duel-teamcards { gap: 5px; } }
 /* The professor (start card): the solo bonus and Ask the professor, or the plans once asked. */
 .duel-prof { display: grid; justify-items: start; gap: 10px; }

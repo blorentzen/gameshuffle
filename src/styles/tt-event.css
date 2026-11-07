@@ -89,7 +89,7 @@
 .tt-run__hint { margin: 0; font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); max-width: 70ch; }
 .tt-run__section { display: flex; flex-direction: column; gap: var(--spacing-12); padding-top: var(--spacing-20); border-top: 1px solid var(--border-default); }
 .tt-run__heading { margin: 0; display: flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-16); font-weight: 700; color: var(--text-primary); }
-.tt-run__count { display: inline-grid; place-items: center; min-width: 2.4rem; height: 2.4rem; padding: 0 var(--spacing-6); border-radius: 999px; background: var(--surface-selected); color: var(--text-primary); font-size: var(--font-size-12); font-weight: 700; }
+.tt-run__count { display: inline-grid; place-items: center; min-width: 2.4rem; height: 2.4rem; padding: 0 var(--spacing-6); border-radius: 999px; background: var(--brand-ink, #2f5bea); color: #fff; font-size: var(--font-size-12); font-weight: 700; }
 .tt-run__row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--spacing-12); }
 .tt-run__row--wrap > * { min-width: 0; }
 .tt-run__runoff { display: flex; flex-direction: column; gap: var(--spacing-8); }

@@ -25,6 +25,26 @@ import { SpaceJoin } from "@/components/games/SpaceJoin";
 import "@/styles/game-band.css";
 
 
+/**
+ * The band sits under every randomizer (most of the site's search traffic), so its space-wide reads (players, the pick
+ * of the day, what's new) are kept a minute per server instance. Whether you've joined stays live.
+ */
+const BAND_TTL_MS = 60_000;
+type BandData = { counts: { members: number; online: number }; pick: Awaited<ReturnType<typeof pickLine>>; news: Awaited<ReturnType<typeof newsFor>> };
+const bandCache = new Map<string, { at: number; value: BandData }>();
+async function bandData(s: GameSpace): Promise<BandData> {
+  const hit = bandCache.get(s.id);
+  if (hit && Date.now() - hit.at < BAND_TTL_MS) return hit.value;
+  const [counts, pick, news] = await Promise.all([
+    spaceCounts(s).catch(() => ({ members: 0, online: 0 })),
+    pickLine(s).catch(() => null),
+    newsFor(s, null).catch(() => null),
+  ]);
+  const value = { counts, pick, news };
+  bandCache.set(s.id, { at: Date.now(), value });
+  return value;
+}
+
 async function viewer(): Promise<{ userId: string | null; staff: boolean }> {
   const { data: { user } } = await (await createClient()).auth.getUser();
   if (!user) return { userId: null, staff: false };
@@ -46,10 +66,8 @@ export async function GameBand({ game, from, fallback, streamReady = true, tourn
   if (!s) return <>{fallback}</>;
   const who = await viewer().catch(() => ({ userId: null, staff: false }));
   if (!spaceOpen(s, gsDay()) && !who.staff) return <>{fallback}</>;
-  const [counts, pick, news, joined] = await Promise.all([
-    spaceCounts(s).catch(() => ({ members: 0, online: 0 })),
-    pickLine(s).catch(() => null),
-    newsFor(s, null).catch(() => null),
+  const [{ counts, pick, news }, joined] = await Promise.all([
+    bandData(s),
     who.userId ? spaceJoined(s, who.userId).catch(() => false) : Promise.resolve(false),
   ]);
   const href = spacePath(s);

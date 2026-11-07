@@ -14,16 +14,19 @@
  * split the bar exists to express: looks here, everything else there.
  */
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Drawer } from "@empac/cascadeds";
 import { ProfileSkinEditor } from "@/components/account/ProfileSkinEditor";
 import { previewSkin } from "@/lib/profile/skinPreview";
 import type { ProfileSkin } from "@/lib/profile/skin";
 
+const noopSubscribe = () => () => {};
+
 export function ProfileCustomizeEditor() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
   // The skin editor autosaves, so by the time the drawer closes the server
   // already has every change. Closing therefore refreshes rather than
   // restoring: there is no unsaved state to throw away.
@@ -53,7 +56,8 @@ export function ProfileCustomizeEditor() {
   return (
     <>
       <Button variant="secondary" size="small" onClick={() => setOpen(true)}>Customize</Button>
-      <Drawer
+      {/* CDS Drawer renders differently on the server: mounted after hydration (see CLAUDE.md, Toasts). */}
+      {hydrated && <Drawer
         open={open}
         onClose={() => setOpen(false)}
         position="right"
@@ -64,7 +68,7 @@ export function ProfileCustomizeEditor() {
         showOverlay={false}
       >
         <ProfileSkinEditor bare onChange={preview} />
-      </Drawer>
+      </Drawer>}
     </>
   );
 }

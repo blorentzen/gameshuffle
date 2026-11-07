@@ -117,8 +117,12 @@ function preload(srcs: string[]) {
 type DemoProps = { play: boolean };
 
 const KART_AT = [650, 900, 1150, 1400];
+/**
+ * A demo drawn at rest (the server's render, and the welcome page before it scrolls into view) picks the first of
+ * each pool, so the page hydrates cleanly; one mounted to play rolls at random (the welcome page remounts it to play).
+ */
 function KartDemo({ play }: DemoProps) {
-  const [combo] = useState(() => KART_POOLS.map((s) => pick(s.pool)));
+  const [combo] = useState(() => KART_POOLS.map((s) => (play ? pick(s.pool) : s.pool[0])));
   const beat = useBeats(play, KART_AT);
   return (
     <div className="hero-demo hero-demo--kart">
@@ -137,7 +141,7 @@ function KartDemo({ play }: DemoProps) {
 
 const SMASH_AT = [650, 1000];
 function SmashDemo({ play }: DemoProps) {
-  const [pair] = useState(() => shuffle(FIGHTERS).slice(0, 2));
+  const [pair] = useState(() => (play ? shuffle(FIGHTERS) : FIGHTERS).slice(0, 2));
   const beat = useBeats(play, SMASH_AT);
   return (
     <div className="hero-demo hero-demo--smash">

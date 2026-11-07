@@ -417,7 +417,7 @@ export function DiscordBotRoutingCard() {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: "1 1 18rem", minWidth: 0 }}>
             <div
               style={{
                 fontWeight: "var(--font-weight-semibold)",
@@ -428,7 +428,7 @@ export function DiscordBotRoutingCard() {
             </div>
             <p
               style={{
-                fontSize: "var(--font-size-12)",
+                fontSize: "var(--font-size-14)",
                 color: "var(--text-secondary)",
                 margin: "var(--spacing-4) 0 0",
                 lineHeight: "var(--line-height-snug)",

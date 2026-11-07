@@ -29,12 +29,15 @@ export function SetupProgress({ steps }: { steps: SetupStep[] }) {
   );
 }
 
+/** A tool's card: its picture on top when it has one, else a compact card with the icon beside the words. */
 export function ToolCard({ t }: { t: StudioTool }) {
   return (
-    <Link href={`/hub/tools/${t.id}`} className="studio-tool">
-      <span className="studio-tool__pic" style={t.pic ? { backgroundImage: `url(${t.pic})` } : undefined}>
-        <IconTile icon={t.icon} tone={t.tone} className="studio-tool__tile" />
-      </span>
+    <Link href={`/hub/tools/${t.id}`} className={`studio-tool${t.pic ? "" : " studio-tool--plain"}`}>
+      {t.pic ? (
+        <span className="studio-tool__pic" style={{ backgroundImage: `url(${t.pic})` }}>
+          <IconTile icon={t.icon} tone={t.tone} className="studio-tool__tile" />
+        </span>
+      ) : <IconTile icon={t.icon} tone={t.tone} className="studio-tool__icon" />}
       <span className="studio-tool__body">
         <b>{t.label}</b>
         <span>{t.line}</span>

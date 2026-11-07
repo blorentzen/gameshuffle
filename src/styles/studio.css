@@ -28,7 +28,11 @@
 .studio-tool { display: grid; grid-template-rows: auto 1fr; border-radius: 1.8rem; overflow: hidden; text-decoration: none; color: var(--text-primary); border: 1px solid var(--border-subtle); background: var(--background-primary, #fff); box-shadow: 0 1px 2px rgba(20, 26, 58, .06), 0 10px 28px rgba(20, 26, 58, .08); transition: transform .18s ease; }
 .studio-tool:hover { transform: translateY(-2px); }
 .studio-tool:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: 2px; }
-.studio-tool__pic { position: relative; aspect-ratio: 16 / 7; background: #10142a center / contain no-repeat; }
+/* A screenshot of the tool fills its picture (top first), no bars at the sides. */
+.studio-tool__pic { position: relative; aspect-ratio: 16 / 7; background: #10142a center top / cover no-repeat; }
+/* No picture: the icon tile beside the words, no empty picture area. */
+.studio-tool--plain { grid-template-rows: none; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: var(--spacing-14, 1.4rem); padding: var(--spacing-16); }
+.studio-tool--plain .studio-tool__body { padding: 0; }
 .studio-tool__tile { position: absolute; left: var(--spacing-16); bottom: -2rem; box-shadow: 0 0 0 4px var(--background-primary, #fff); }
 .studio-tool__body { display: grid; gap: var(--spacing-4); align-content: start; padding: var(--spacing-28, 2.8rem) var(--spacing-16) var(--spacing-16); }
 .studio-tool__body b { font-family: var(--font-display); font-size: var(--font-size-16); font-weight: 800; }

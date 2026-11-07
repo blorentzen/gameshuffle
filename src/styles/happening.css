@@ -1,6 +1,8 @@
 /* "What's happening on GameShuffle" (src/components/home/HappeningBand.tsx). */
 
-.band { position: relative; display: grid; gap: var(--spacing-16); min-width: 0; }
+/* One column that never grows past the page: the tabs scroll sideways on phones instead of widening the band. */
+.band { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-16); min-width: 0; }
+.band__tabs, .band__tabs .empac-tabs__header, .band__tabs .empac-tabs__content { min-width: 0; max-width: 100%; }
 .band__title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-fluid-h2, 3rem); font-weight: 800; }
 
 /* The worlds as pills (CDS Tabs, pills), with room on the right for the pause button. */
@@ -42,7 +44,11 @@
 @media (max-width: 760px) {
   .band__row { grid-template-columns: none !important; grid-auto-flow: column; grid-auto-columns: 84%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
   .band__row > li { scroll-snap-align: start; }
-  .band__tabs .empac-tabs__header { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+  /* The row scrolls and stops short of the pause button, so no tab slides under it. */
+  .band__tabs .empac-tabs__header { flex-wrap: nowrap; overflow-x: auto; padding: 0 0 2px; margin-right: 5.2rem; scrollbar-width: none; }
+  /* With a heading (the front page), the pause button sits beside the heading, so the pills keep the full width. */
+  .band:has(> .band__title) .band__tabs .empac-tabs__header { margin-right: 0; }
+  .band__tabs .empac-tabs__header::-webkit-scrollbar { display: none; }
 }
 .band__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-16); font-size: var(--font-size-15, 1.5rem); }
 .band__all { margin-left: auto; font-weight: 600; text-underline-offset: 3px; }

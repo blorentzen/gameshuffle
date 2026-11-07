@@ -257,8 +257,9 @@ export default async function PublicProfilePage({
   const gamertagVisibility =
     (profile.gamertag_visibility as string | null) ?? "session_participants";
   const gamertags = (profile.gamertags as Gamertags) || {};
+  // Only the platforms the page lists (an old key with a value used to show the heading with nothing under it).
   const hasGamertags =
-    gamertagVisibility === "public" && Object.values(gamertags).some((v) => v);
+    gamertagVisibility === "public" && GAMERTAG_PLATFORMS.some((p) => gamertags[p.key as keyof Gamertags]);
 
   // Identity fields (Phase 3) — guarded so a not-yet-applied migration
   // degrades to "no identity" rather than erroring the whole profile.

@@ -211,7 +211,7 @@ export default async function CompetitiveMarioKartPage() {
               <div><h2 id="cmk-mmr">MMR card</h2><p>Your lounge MMR on stream, with a moment each time an event is verified. Free with an account.</p></div>
             </div>
             <div className="mmr-stage cmk-mmr">
-              <div className="mmr-frame" tabIndex={0} role="region" aria-label="MMR card example, playing a made-up night">
+              <div className="mmr-frame" role="region" aria-label="MMR card example, playing a made-up night">
                 <MmrDemo look={DEFAULT_LOOK} />
               </div>
             </div>

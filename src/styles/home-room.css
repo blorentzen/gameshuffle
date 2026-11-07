@@ -105,7 +105,7 @@
 .room-kicker { margin: 0; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); }
 .room-btn {
   display: inline-flex; align-items: center; justify-self: start; align-self: flex-start;
-  min-height: 36px; padding: var(--spacing-6, 0.6rem) var(--spacing-14, 1.4rem);
+  min-height: 40px; padding: var(--spacing-6, 0.6rem) var(--spacing-14, 1.4rem);
   border-radius: var(--radius-8, 8px); background: var(--brand-ink, var(--primary-600)); color: #fff;
   font-size: var(--font-size-14); font-weight: 700; text-decoration: none; white-space: nowrap;
 }
@@ -338,14 +338,16 @@ a.room-art__text:focus-visible { outline: none; }
 .room-like[data-span="12"] li + li { border-top: 0 !important; }
 .room-like[data-span="12"] ul { grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)) !important; }
 @media (max-width: 899px) { .room-like { grid-column: 1 / -1; } }
-.home-you__like li > a { display: grid; grid-template-columns: 7.6rem minmax(0, 1fr); align-items: center; gap: var(--spacing-12); }
+.home-you__like li > a { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--spacing-12); }
+.home-you__like li > a strong { color: var(--text-primary); }
 .home-like__text { display: grid; gap: var(--spacing-4); min-width: 0; }
 .home-like__text span { color: var(--text-secondary); font-size: var(--font-size-14); }
 .home-like__img { width: 7.6rem; height: 5.8rem; border-radius: 1rem; object-fit: cover; display: block; }
 .home-like__img--light { background: #fff; box-shadow: inset 0 0 0 1px var(--border-subtle); }
 .home-like__box { display: grid; place-items: center; width: 7.6rem; height: 5.8rem; border-radius: 1rem; background: var(--background-secondary, #f4f5fa); }
 .home-like__box img, .home-like__box .game-cover { height: 5.2rem; width: auto; aspect-ratio: 3 / 4; border-radius: 0.4rem; }
-.home-like__glyph { display: grid; place-items: center; width: 7.6rem; height: 5.8rem; border-radius: 1rem; background: var(--background-secondary, #f4f5fa); }
+/* The icon tile is its own shape: no grey box behind it (no box in a box). */
+.home-like__glyph { display: grid; place-items: center; }
 
 /* ── Motion (7A): tiles rise once a day, numbers roll from your last visit, the streak flame flickers. ── */
 .roll-num__reels { display: inline-flex; height: 1.15em; line-height: 1.15em; vertical-align: -0.2em; overflow: hidden; font-variant-numeric: tabular-nums; }
@@ -426,8 +428,8 @@ a.room-art__text:focus-visible { outline: none; }
   .room-today > .room-eye--below { position: absolute; left: 0; bottom: 4px; margin: 0; }
 }
 .room-eye--corner { position: absolute; top: var(--spacing-16); right: var(--spacing-16); z-index: 2; }
-.room-eye--corner .empac-chip { background: rgba(255, 255, 255, 0.92); }
-.room-eye--corner .empac-chip[aria-pressed="true"] { background: #fff; }
+/* Off: a white chip so it reads on any picture. On: CDS's own green chip (white text), never a white background. */
+.room-eye--corner .empac-chip:not([aria-pressed="true"]) { background: rgba(255, 255, 255, 0.92); }
 
 /* ── Phones (round two picks 1A and 2A, 2026-11-06): no rounded card inside the page's margin with more cards inside
    it. Each section is a white band from edge to edge, 8px from the next, so what's in it gets the screen's width.
@@ -435,7 +437,7 @@ a.room-art__text:focus-visible { outline: none; }
    profiles. ── */
 @media (max-width: 767px) {
   .room-zones, .room-zone, .room-rail { gap: var(--spacing-8); }
-  .room-tile, .room-rail__block {
+  .room-tile, .room-rail__block, .room-like {
     margin-inline: calc(-1 * var(--gs-phone-gutter, 1.6rem));
     padding: var(--spacing-24) var(--gs-phone-gutter, 1.6rem);
     border-radius: 0; border-inline: 0; box-shadow: none;
@@ -496,6 +498,7 @@ a.room-art__text:focus-visible { outline: none; }
 .games-index > .empac-container { display: grid; gap: var(--spacing-40, 4rem); }
 .games-index__head h1 { margin: 0; font-family: var(--font-display); font-size: var(--font-size-32); font-weight: 800; }
 .games-index__head p, .games-index__note { margin: var(--spacing-8) 0 0; color: var(--text-secondary); font-size: var(--font-size-16); max-width: 60ch; }
-.games-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
-.games-card > .room-game { flex: 1; }
+/* Named apart from marketing.css's .games-card (the front page's game tiles), which drew a second box around these. */
+.gamespace-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
+.gamespace-card > .room-game { flex: 1; }
 .games-index__more { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-24); margin: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle); }
