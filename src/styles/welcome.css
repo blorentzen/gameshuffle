@@ -56,7 +56,8 @@
   text-decoration: none;
   transition: background 0.15s ease, translate 0.15s ease;
 }
-.welcome-door:hover { background: rgba(255, 255, 255, 0.18); translate: 0 -1px; }
+@media (hover: hover) { .welcome-door:hover { background: rgba(255, 255, 255, 0.18); translate: 0 -1px; } }
+.welcome-door:active { background: rgba(255, 255, 255, 0.18); }
 .welcome-door:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 @media (max-width: 420px) {
   .welcome-doors { padding: var(--spacing-16); }

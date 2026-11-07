@@ -1,6 +1,6 @@
 /**
- * Homepage: Go further (Britton's picks, 2026-10-16; Support joined 2026-10-19,
- * VDh1QfETVjNTjjzeiKqLNg). One dark band, three rows shown to everyone: Support GameShuffle for
+ * The front page's Go further (Britton's picks, 2026-10-16; Support joined 2026-10-19, VDh1QfETVjNTjjzeiKqLNg; three
+ * light rows since the front page picks 2026-11-07, 5A, the dark band was 1,286px on a phone). Three rows shown to everyone: Support GameShuffle for
  * anyone who enjoys it (first since the support first plan, same day), GS Pro for streamers and
  * GS Circuit for organizers. Members see their way
  * in instead of the pitch ("Open your hub", "Manage your events"), supporters a thank-you and
@@ -8,11 +8,8 @@
  * outside the US GS Pro and Support say US only for now (their buttons lead to the waitlist).
  */
 
-import Link from "next/link";
-import { Button } from "@empac/cascadeds";
 import { IconBroadcast, IconHeart, IconTrophy } from "@tabler/icons-react";
-import { DarkBand } from "@/components/marketing/DarkBand";
-import { IconTile } from "@/components/ui/IconTile";
+import { RowPanel } from "@/components/marketing/RowPanel";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { circuitLaunch } from "@/lib/tournaments/circuit";
 import { circuitLaunchState } from "@/lib/tournaments/circuit-resolve";
@@ -37,39 +34,17 @@ export async function PlansBand({ pro, circuit, trialUsed, supporter, paidHere, 
   const circuitPrice = launch.phase === "preview" ? "Free while in preview" : launch.phase === "announced" ? `Free until ${launch.dateLabel}` : "From $12 a month";
   const monthly = pricing?.plans.pro?.monthly ?? 9;
   const proPrice = pro ? "You have GS Pro" : !paidHere ? (supportHere ? "Included with Backer support, $9 a month" : "In the US for now") : trialUsed ? `${usd(monthly)} a month` : `${usd(monthly)} a month · 14 days free`;
+  const support = supporter ? "Thank you for supporting us." : !supportHere ? "In the US for now." : "Keeps the free games free. From $3; GS Pro included from $9 a month.";
+  const proLine = pro ? "You have GS Pro. Your hub has your overlay and chat games." : `Your chat plays along on your overlay, and a Discord bot. ${proPrice}.`;
+  const circuitLine = circuit ? "Your events, seasons and settings." : `Bigger fields, seasons, co-organizers and your branding. ${circuitPrice}.`;
   return (
-    <DarkBand premium curved className="home-plans">
-      <h2 className="home-plans__title">Go further</h2>
-      <p className="home-plans__lede">Everything above is free. Support it to keep it that way, or add tools for streams and bigger events.</p>
-      <div className="home-plans__grid">
-        <div className="home-plan home-plan--support">
-          <IconTile icon={IconHeart} className="home-plan__icon--support" />
-          <h3 className="home-plan__name">Support GameShuffle <span>for everyone</span></h3>
-          <p className="home-plan__price">{supporter ? "Thank you for supporting us" : !supportHere ? "In the US for now" : "From $3 · GS Pro included from $9"}</p>
-          <p className="home-plan__text">No ads, built independently. Support keeps the free games free and new ones coming. You get the Supporter badge, and GS Pro when you back at $9 a month.</p>
-          <Link href="/support" className={tagged(EVENTS.supportClicked, { from: "home" })}>
-            <Button variant="primary">{supporter ? "Give again" : "Support GameShuffle"}</Button>
-          </Link>
-        </div>
-        <div className="home-plan">
-          <IconTile icon={IconBroadcast} tone="magenta" />
-          <h3 className="home-plan__name">GS Pro <span>for streamers</span></h3>
-          <p className="home-plan__price">{proPrice}</p>
-          <p className="home-plan__text">Your chat plays along: rolls, polls, bingo, trivia and predictions on your overlay, the Discord bot, break mode and your own themes.</p>
-          {pro
-            ? <Link href="/hub"><Button variant="secondary">Open your hub</Button></Link>
-            : <Link href="/gs-pro" className={tagged(EVENTS.upgradeClicked, { from: "home-plans" })}><Button variant="secondary">{!paidHere ? "See GS Pro" : trialUsed ? "Get GS Pro" : "Try GS Pro free"}</Button></Link>}
-        </div>
-        <div className="home-plan">
-          <IconTile icon={IconTrophy} tone="teal" />
-          <h3 className="home-plan__name">GS Circuit <span>for organizers</span></h3>
-          <p className="home-plan__price">{circuitPrice}</p>
-          <p className="home-plan__text">Fields of 64 or 256, championship seasons, co-organizers, your branding, text reminders and live randomized rounds.</p>
-          {circuit
-            ? <Link href="/account/events?tab=tournaments"><Button variant="secondary">Manage your events</Button></Link>
-            : <Link href="/gs-circuit" className={tagged(EVENTS.homeSectionClicked, { to: "circuit" })}><Button variant="secondary">See GS Circuit</Button></Link>}
-        </div>
-      </div>
-    </DarkBand>
+    <section className="front-plans" aria-labelledby="front-plans-title">
+      <h2 id="front-plans-title" className="front-plans__title">Go further</h2>
+      <RowPanel className="row-panel--surface" rows={[
+        { key: "support", Icon: IconHeart, tone: "magenta", title: supporter ? "Thanks for your support" : "Support GameShuffle", titleHref: "/support", titleClassName: tagged(EVENTS.supportClicked, { from: "home" }), text: support },
+        { key: "pro", Icon: IconBroadcast, tone: "violet", title: pro ? "Open your hub" : "GS Pro, for streamers", titleHref: pro ? "/hub" : "/gs-pro", titleClassName: pro ? undefined : tagged(EVENTS.upgradeClicked, { from: "home-plans" }), text: proLine },
+        { key: "circuit", Icon: IconTrophy, tone: "teal", title: circuit ? "Manage your events" : "GS Circuit, for organizers", titleHref: circuit ? "/account/events?tab=tournaments" : "/gs-circuit", titleClassName: circuit ? undefined : tagged(EVENTS.homeSectionClicked, { to: "circuit" }), text: circuitLine },
+      ]} />
+    </section>
   );
 }

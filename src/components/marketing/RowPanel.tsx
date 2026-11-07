@@ -25,6 +25,8 @@ export interface PanelRow {
   title: string;
   /** Links the name; leave out when the action already goes there. */
   titleHref?: string;
+  /** A class for the title link (an analytics tag). */
+  titleClassName?: string;
   text: ReactNode;
   /** The row's button or link, under the text (the bottom of the column on wide screens). */
   action?: ReactNode;
@@ -44,7 +46,7 @@ export function RowPanel({ rows, className, across = true }: {
           <IconTile icon={r.Icon} tone={r.tone ?? "blue"} className="row-panel__tile" />
           <div className="row-panel__copy">
             {r.eyebrow && <span className="row-panel__eyebrow">{r.eyebrow}</span>}
-            <h3 className="row-panel__name">{r.titleHref ? <Link href={r.titleHref}>{r.title}</Link> : r.title}</h3>
+            <h3 className="row-panel__name">{r.titleHref ? <Link href={r.titleHref} className={r.titleClassName}>{r.title}</Link> : r.title}</h3>
             <p className="row-panel__body">{r.text}</p>
             {r.action && <div className="row-panel__go">{r.action}</div>}
           </div>

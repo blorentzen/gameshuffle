@@ -146,9 +146,13 @@
 a {
   color: var(--link);
 }
-/* Arrow links keep their own colour on hover (the underline and the arrow are the hover). */
-a:where(:not(.arrow-link)):hover {
-  color: var(--link-hover);
+/* Arrow links keep their own colour on hover (the underline and the arrow are the hover). Zero specificity, so any
+   link that sets its own colour (a white tile on a dark band) keeps it; and only where there's a real pointer, since
+   phones keep a tapped link "hovered" and it stayed blue (Britton, 2026-11-07). */
+@media (hover: hover) {
+  :where(a:not(.arrow-link):hover) {
+    color: var(--link-hover);
+  }
 }
 
 /* Brand ink flips lighter on dark surfaces so it stays readable. */

@@ -1,0 +1,40 @@
+/* The front page for visitors (src/app/page.tsx; front page picks 2026-11-07, all A). One chooser, then the account
+   line, Go further, the popular pages and the ideas line: each part flat on the page, a thin line between them, 40px
+   apart (no box in a box). Headings: the chooser's h2 is the page's main heading after the hero; the others are 24px. */
+
+.front { padding-block: var(--spacing-40, 4rem) var(--spacing-24); }
+.front__stack { display: grid; gap: var(--spacing-40, 4rem); min-width: 0; }
+.front__stack > * + * { padding-top: var(--spacing-40, 4rem); border-top: 1px solid var(--border-subtle); }
+.front__stack > .home-popular { margin: 0; }
+.front__stack > .home-ideas { margin: 0; padding-top: 0; border-top: 0; }
+
+/* The header's demo card is for wide screens; on a phone the header is the title, one line and two buttons. */
+@media (max-width: 767px) { .browse-hero__aside:has(.hero-demo) { display: none; } }
+
+/* The chooser's line under its heading. */
+.band__sub { margin: calc(-1 * var(--spacing-8)) 0 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+
+/* A world's four tool rows, under its live cards: a tile, the name as the link, one line. Two columns from tablets. */
+.front-rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.front-rows li { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--spacing-16); padding: var(--spacing-14, 1.4rem) 0; }
+.front-rows li + li { border-top: 1px solid var(--border-subtle); }
+.front-rows__text { display: grid; gap: var(--spacing-2, 0.2rem); min-width: 0; }
+.front-rows__title { color: var(--text-primary); font-size: var(--font-size-16); font-weight: 700; text-decoration: none; }
+.front-rows__title::after { content: ""; position: absolute; inset: 0; }
+.front-rows__text > span { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.4; }
+.front-rows li:has(.front-rows__title:focus-visible) { outline: 2px solid var(--brand-ink, var(--primary-600)); outline-offset: 2px; border-radius: 8px; }
+.front-rows__title:focus-visible { outline: none; }
+@media (hover: hover) { .front-rows li:hover .front-rows__title { text-decoration: underline; text-underline-offset: 3px; } }
+@media (min-width: 768px) {
+  .front-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--spacing-32); }
+  .front-rows li + li { border-top: 0; }
+  .front-rows li:nth-child(n + 3) { border-top: 1px solid var(--border-subtle); }
+}
+
+/* A free account, one line. */
+.front-account { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-24); }
+.front-account p { flex: 1 1 28rem; margin: 0; font-size: var(--font-size-16); color: var(--text-primary); }
+
+/* Go further: Support, GS Pro, GS Circuit as three rows (side by side from 900px, the shared RowPanel). */
+.front-plans { display: grid; gap: var(--spacing-16); }
+.front-plans__title { margin: 0; font-family: var(--font-display); font-size: var(--font-size-24); font-weight: 800; line-height: 1.2; }

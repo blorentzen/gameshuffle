@@ -21,7 +21,7 @@
  */
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore, ViewTransition, type CSSProperties } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, ViewTransition, type CSSProperties, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Badge, Button, Tabs } from "@empac/cascadeds";
 import {
@@ -50,6 +50,8 @@ const CHECK_MS = 3 * 60_000;
 const SKIP_KEY = "gs-band-skip";
 const listeners = new Set<() => void>();
 const readSkip = () => { try { return localStorage.getItem(SKIP_KEY) ?? ""; } catch { return ""; } };
+const noopSubscribe = () => () => {};
+const readStored = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
 const writeSkip = (ids: string[]) => { try { localStorage.setItem(SKIP_KEY, ids.join(",")); } catch { /* private mode */ } listeners.forEach((l) => l()); };
 
 /** The shared name an event's picture carries into its page (the page wraps its header picture in the same name). */
@@ -114,13 +116,21 @@ export function HappeningCard({ h, from, fresh = false, k = 0, onPress, track: t
     : <Link href={h.href} className={className} style={{ "--k": k } as CSSProperties} onClick={count}>{body}</Link>;
 }
 
-export function HappeningBand({ worlds: initial, tone, signedIn, interests = [], heading }: {
+export function HappeningBand({ worlds: initial, tone, signedIn, interests = [], heading, sub, order, remember, extra }: {
   worlds: HappeningWorld[];
   tone: "dark" | "light";
   signedIn: boolean;
   interests?: Interest[];
   /** An h2 for the band (visitors); the signed-in header names it with an aria-label. */
   heading?: string;
+  /** A line under the heading. */
+  sub?: string;
+  /** A fixed order for the worlds (the front page: Play, Pokémon, Compete, Host, Stream); else the band's own. */
+  order?: PillarId[];
+  /** Remember the picked world in this browser under this key, and open on it next time (nothing is sent). */
+  remember?: string;
+  /** More for each world under its cards: the front page's four tool rows (front page picks 2026-11-07, 2A). */
+  extra?: Partial<Record<PillarId, ReactNode>>;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -131,8 +141,12 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
   const [shown, setShown] = useState(initial);
   const [incoming, setIncoming] = useState<HappeningWorld[] | null>(null);
   const [fresh, setFresh] = useState<Record<string, string>>({});
-  const worlds = shown.filter((w) => w.mine || !skipped.has(w.id));
-  const [active, setActive] = useState<string>(worlds[0]?.id ?? "");
+  const visible = shown.filter((w) => w.mine || !skipped.has(w.id));
+  const worlds = order ? [...visible].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)) : visible;
+  // The remembered world (read after the first paint, so the server and the first render agree on the first world).
+  const stored = useSyncExternalStore(noopSubscribe, () => (remember ? readStored(remember) : null), () => null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const active = picked ?? (stored && worlds.some((w) => w.id === stored) ? stored : worlds[0]?.id ?? "");
   const [dealt, setDealt] = useState(0);
   const [followed, setFollowed] = useState<Record<string, Interest[]>>({});
   const current = worlds.some((w) => w.id === active) ? active : worlds[0]?.id ?? "";
@@ -144,7 +158,8 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
     if (id === current) return;
     const next = incoming?.find((w) => w.id === id);
     if (next) setShown((list) => list.map((w) => (w.id === id ? next : w)));
-    setActive(id);
+    setPicked(id);
+    if (remember) { try { localStorage.setItem(remember, id); } catch { /* private mode */ } }
     setDealt((n) => n + 1);
     // Its "new" dot clears once you've moved on from it again (you saw it).
     window.setTimeout(() => setFresh((f) => { if (!f[id]) return f; const rest = { ...f }; delete rest[id]; return rest; }), STEP_MS);
@@ -211,6 +226,7 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
           <ul className={`band__row band__row--${Math.min(w.items.length, 3)}${dealt ? " band__row--deal" : ""}`} key={`${w.id}-${dealt}`}>
             {w.items.map((h, k) => <li key={h.id}><HappeningCard h={h} from={signedIn ? "home" : "visitor"} fresh={fresh[w.id] === h.id} k={k} /></li>)}
           </ul>
+          {extra?.[w.id]}
           <div className="band__foot">
             {signedIn && !w.mine && (followed[w.id]
               ? <span className="band__took" role="status"><IconCheck size={18} stroke={2.5} aria-hidden="true" />{w.label} is on your home now. <button type="button" className="band__undo" onClick={() => void undoFollow(w.id)}>Undo</button></span>
@@ -236,6 +252,7 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
       aria-labelledby={heading ? "band-title" : undefined}
     >
       {heading && <h2 id="band-title" className="band__title">{heading}</h2>}
+      {sub && <p className="band__sub">{sub}</p>}
       <Tabs tabs={tabs} activeTab={current} onChange={go} variant="pills" className="band__tabs" />
     </section>
   );
