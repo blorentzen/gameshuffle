@@ -159,7 +159,7 @@ export function DiscordBotRoutingCard() {
       setServerLimit((body.limit as number) ?? 1);
       setIsPro(body.isPro !== false);
     } catch {
-      setError("Network error loading Discord routing.");
+      setError("Couldn't reach GameShuffle. Check your connection and try again.");
     }
   }, [withGuild]);
 
@@ -172,12 +172,13 @@ export function DiscordBotRoutingCard() {
           setChannels([]);
           return;
         }
-        setError(body.error ?? "Couldn't load Discord channels.");
+        // Discord's own reply ("401: Unauthorized") means nothing to a streamer; say what to do instead.
+        setError("Discord didn't let us read this server's channels. If the bot was removed, add it again; otherwise try again in a minute.");
         return;
       }
       setChannels(body.channels);
     } catch {
-      setError("Network error loading Discord channels.");
+      setError("Couldn't reach GameShuffle. Check your connection and try again.");
     }
   }, [withGuild]);
 
@@ -190,12 +191,12 @@ export function DiscordBotRoutingCard() {
           setRoles([]);
           return;
         }
-        setError(body.error ?? "Couldn't load Discord roles.");
+        setError("Discord didn't let us read this server's roles. If the bot was removed, add it again; otherwise try again in a minute.");
         return;
       }
       setRoles(body.roles);
     } catch {
-      setError("Network error loading Discord roles.");
+      setError("Couldn't reach GameShuffle. Check your connection and try again.");
     }
   }, [withGuild]);
 
