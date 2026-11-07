@@ -9,6 +9,8 @@ import { recipientsFor } from "@/lib/events/reminders";
 import { currentBracketMatch, matchRoundLabel, type Bracket } from "./bracket";
 import { currentHeatMainsRace, type HeatMains } from "./heatMains";
 import { currentLobby, lobbyLabel, type GroupBracket } from "./groups";
+import { isTtBracket } from "./tt/bracketTt";
+import { notifyOpenMatches } from "./tt/bracketStore";
 
 /**
  * "You're up" (organizer toolkit C).
@@ -54,14 +56,20 @@ export async function notifyYoureUp(tournamentId: string): Promise<YoureUpResult
   const svc = createServiceClient();
   const { data: row } = await svc
     .from("tournaments")
-    .select("id, title, status, organizer_id, bracket, heat_mains, group_bracket")
+    .select("id, title, status, format, settings, organizer_id, bracket, heat_mains, group_bracket")
     .eq("id", tournamentId)
     .maybeSingle();
   if (!row) return { race: null, notified: 0, skipped: "not_found" };
   const t = row as {
-    id: string; title: string; status: string; organizer_id: string;
+    id: string; title: string; status: string; format: string | null; settings: unknown; organizer_id: string;
     bracket: Bracket | null; heat_mains: HeatMains | null; group_bracket: GroupBracket | null;
   };
+  // Decided by time trial: every open match runs at once online, so each one's players hear it's open.
+  if (isTtBracket(t)) {
+    if (t.status !== "in_progress") return { race: null, notified: 0, skipped: "not_in_progress" };
+    const n = await notifyOpenMatches(t.id);
+    return { race: n ? `${n} open match${n === 1 ? "" : "es"}` : null, notified: n * 2 };
+  }
   // A bracket is often generated before the event starts; nobody is "up" then.
   if (t.status !== "in_progress") return { race: null, notified: 0, skipped: "not_in_progress" };
 

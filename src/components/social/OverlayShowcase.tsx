@@ -33,6 +33,7 @@ import type { StreamDraftView } from "@/lib/drafts/store";
 import type { BreakView } from "@/lib/break/types";
 import type { LiveEvents } from "@/lib/economy/events/live";
 import "@/styles/overlay.css";
+import { TtOverlay } from "@/components/tournament/tt/TtOverlay";
 import "@/styles/overlay-showcase.css";
 
 export type ShowcasePiece =
@@ -47,7 +48,8 @@ export type ShowcasePiece =
   | "wheel"
   | "battle"
   | "chaos"
-  | "picks_bans";
+  | "picks_bans"
+  | "time_trial";
 
 /** How often the sample clock restarts; every countdown below starts further out than this. */
 const CYCLE_MS = 20_000;
@@ -471,6 +473,8 @@ function Piece({ piece, t, battle }: { piece: ShowcasePiece; t: number; battle: 
       return <EventsBanner events={chaosSample(t)} />;
     case "picks_bans":
       return <PicksBansBanner picksBans={PICKS_BANS} />;
+    case "time_trial":
+      return <TtOverlay sample style={at("time_trial")} />;
   }
 }
 

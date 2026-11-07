@@ -18,6 +18,7 @@ import { IconFlagCheck, IconHourglass, IconTrophy, IconUserCheck } from "@tabler
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { GameCover } from "@/components/games/GameCover";
 import { SwissBoard } from "@/components/tournament/swiss/SwissBoard";
+import { TtBoard } from "@/components/tournament/tt/TtBoard";
 import { getGameName } from "@/data/game-registry";
 import { boxArt, findGame } from "@/data/game-catalog";
 
@@ -170,6 +171,8 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
 
         {/* Swiss: the round, its clock and every table (or the top cut). */}
         {tournament.format === "swiss" && <SwissBoard tournamentId={tournament.id} />}
+        {/* Time trial: who's up at each station (in person), the latest times, and the groups. */}
+        {tournament.format === "time_trial" && <TtBoard tournamentId={tournament.id} />}
 
         {/* Now racing — bracket + heat/mains (the current match/heat/main). */}
         {nowLabel && (

@@ -15,7 +15,7 @@
 
 /* ── Shared ── */
 .swiss-muted { color: var(--text-tertiary); }
-.swiss-help { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); line-height: 1.45; color: var(--text-tertiary); max-width: 70ch; }
+.swiss-help { margin: var(--spacing-8) 0 0; font-size: var(--font-size-14); line-height: 1.5; color: var(--text-secondary); max-width: 70ch; }
 .swiss-eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-tertiary); }
 .swiss-card-title { font-size: var(--font-size-16); font-weight: 700; margin: 0 0 var(--spacing-12); }
 .swiss-player { white-space: nowrap; }

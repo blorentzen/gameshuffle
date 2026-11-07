@@ -7,46 +7,43 @@
  * the same as the create form's format row (CDS has no segmented switch yet).
  */
 
-import { Button } from "@empac/cascadeds";
+import { ChoiceRow } from "@/components/tournament/ChoiceRow";
 import { DECK_FORMATS, type DeckFormat } from "@/lib/tcg/deckList";
 import { AFTER_CHOICES, WHEN_CHOICES, type DeckListAfter, type DeckListSettings, type DeckListWhen } from "@/lib/tournaments/deckLists";
-import { SWISS_MIN_PLAYERS, describeStructure, structureFor, type BestOf, type SwissSettings, type TopCut } from "@/lib/tournaments/swiss";
+import { SWISS_MAX_ROUNDS, SWISS_MIN_PLAYERS, describeStructure, structureFor, type BestOf, type SwissSettings, type TopCut } from "@/lib/tournaments/swiss";
+import { TtEventSettingsFields } from "@/components/tournament/tt/TtEventSettingsFields";
+import type { TtEventSettings } from "@/lib/tournaments/tt/event";
 
-function ChoiceRow<T extends string | number | null>({ label, value, choices, onPick, disabled }: {
-  label: string; value: T; choices: { value: T; label: string }[]; onPick: (v: T) => void; disabled?: boolean;
-}) {
-  return (
-    <div className="swiss-fields__row" role="group" aria-label={label}>
-      <span className="swiss-fields__label">{label}</span>
-      <div className="swiss-fields__choices">
-        {choices.map((c) => (
-          <Button key={String(c.value)} size="small" variant={c.value === value ? "primary" : "secondary"} aria-pressed={c.value === value} disabled={disabled} onClick={() => onPick(c.value)}>
-            {c.label}
-          </Button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-export function SwissSettingsFields({ value, onChange, players, disabled }: {
+export function SwissSettingsFields({ value, onChange, players, disabled, timeTrial }: {
   value: SwissSettings;
   onChange: (next: SwissSettings) => void;
   /** Confirmed players so far (the structure line uses 16 as an example until four have joined). */
   players: number;
   disabled?: boolean;
+  /** Mario Kart once time trial events are switched on: matches can be decided by time on the event's tracks. */
+  timeTrial?: { settings: TtEventSettings; onChange: (next: TtEventSettings) => void } | null;
 }) {
   const example = players < SWISS_MIN_PLAYERS;
   const count = example ? 16 : players;
   const auto = structureFor({ ...value, rounds: "auto", topCut: "auto" }, count);
   return (
     <div className="swiss-fields">
+      {(timeTrial || value.timeTrial) && (
+        <ChoiceRow<"report" | "tt">
+          label="Decide matches by"
+          value={value.timeTrial ? "tt" : "report"}
+          disabled={disabled || !timeTrial}
+          onPick={(v) => onChange({ ...value, timeTrial: v === "tt" ? true : undefined })}
+          choices={[{ value: "report", label: "Players report" }, { value: "tt", label: "Time trial" }]}
+        />
+      )}
       <ChoiceRow<"auto" | number>
         label="Rounds"
         value={value.rounds}
         disabled={disabled}
         onPick={(rounds) => onChange({ ...value, rounds })}
-        choices={[{ value: "auto", label: `By player count (${auto.rounds})` }, ...[3, 4, 5, 6, 7, 8].map((n) => ({ value: n, label: String(n) }))]}
+        choices={[{ value: "auto", label: `By player count (${auto.rounds})` }, ...Array.from({ length: SWISS_MAX_ROUNDS - 2 }, (_, i) => i + 3).map((n) => ({ value: n, label: String(n) }))]}
       />
       <ChoiceRow<"auto" | TopCut>
         label="Top cut"
@@ -69,6 +66,12 @@ export function SwissSettingsFields({ value, onChange, players, disabled }: {
         onPick={(roundMinutes) => onChange({ ...value, roundMinutes })}
         choices={[{ value: 25, label: "25 min" }, { value: 50, label: "50 min" }, { value: null, label: "None" }]}
       />
+      {value.timeTrial && timeTrial && (
+        <>
+          <p className="tt-fields__help">Both players race the match&apos;s tracks and add their times with a screenshot. Best of 1 is one track; best of 3 is three, first to two. Each round takes the next tracks on your list.</p>
+          <TtEventSettingsFields value={timeTrial.settings} onChange={timeTrial.onChange} players={players} disabled={disabled} part="board" />
+        </>
+      )}
       <p className="swiss-fields__summary">
         <strong>With {count} players:</strong> {describeStructure(value, count)}
         {example && <span className="swiss-fields__muted"> (example until people join)</span>}

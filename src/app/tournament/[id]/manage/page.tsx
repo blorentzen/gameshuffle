@@ -47,6 +47,14 @@ import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { biggerFieldLine } from "@/lib/tournaments/circuit";
 import { SwissRunPanel } from "@/components/tournament/swiss/SwissRunPanel";
+import { TtRunPanel } from "@/components/tournament/tt/TtRunPanel";
+import { TtBracketFields } from "@/components/tournament/tt/TtBracketFields";
+import { TtBracketRunPanel } from "@/components/tournament/tt/TtBracketPanel";
+import { isTtBracket, ttBestOfOf } from "@/lib/tournaments/tt/bracketTt";
+import { isTtSwiss } from "@/lib/tournaments/tt/swissTt";
+import { TtEventSettingsFields } from "@/components/tournament/tt/TtEventSettingsFields";
+import { isTtState, isVenue, ttSettingsOf } from "@/lib/tournaments/tt/event";
+import { gameBySlug } from "@/lib/timeTrials/tracks";
 import { SwissSettingsFields, DeckListSettingsFields } from "@/components/tournament/swiss/SwissSettingsFields";
 import { OrganizerDeckLists } from "@/components/tournament/decks/TournamentDeckLists";
 import { isSwissState, swissSettingsOf } from "@/lib/tournaments/swiss";
@@ -93,6 +101,7 @@ interface Tournament {
   group_bracket?: GroupBracket | null;
   flights?: FlightsState | null;
   swiss?: unknown;
+  tt?: unknown;
   header_image_url?: string | null;
   brand_theme?: string | null;
   championship_id?: string | null;
@@ -170,9 +179,12 @@ export default function ManageTournamentPage() {
   const [finalizing, setFinalizing] = useState(false);
   // Swiss and tournament deck lists, once supabase/swiss-m1.sql has run.
   const [swissReady, setSwissReady] = useState(false);
+  // Time trial events (Mario Kart), once supabase/tt-events-m1.sql has run.
+  const [ttReady, setTtReady] = useState(false);
   useEffect(() => {
-    fetch("/api/tournaments/swiss-ready").then((r) => (r.ok ? r.json() : null)).then((d) => setSwissReady(!!d?.ready)).catch(() => {});
+    fetch("/api/tournaments/swiss-ready").then((r) => (r.ok ? r.json() : null)).then((d) => { setSwissReady(!!d?.ready); setTtReady(!!d?.tt); }).catch(() => {});
   }, []);
+
   const [headerEditSrc, setHeaderEditSrc] = useState<string | null>(null);
   const headerFileRef = useRef<HTMLInputElement | null>(null);
   // Big-screen display customization (settings.display) — subtitle edited locally,
@@ -581,7 +593,7 @@ export default function ManageTournamentPage() {
     setScheduleBusy(false);
     if (j.ok) {
       toast.success("Draft deleted.");
-      router.push("/account/stuff?tab=tournaments");
+      router.push("/account/events?tab=tournaments");
     } else toast.error(j.error || "Please try again.", { title: "Couldn't delete" });
   };
 
@@ -811,7 +823,7 @@ export default function ManageTournamentPage() {
   // Points scoring (FFA/points, and legacy rows with no format) — the only path
   // that records per-race placements/points. Elim + Heat→Mains resolve results
   // from their own boards, so their scoring tables stay hidden.
-  const isPoints = !isElim && tournament.format !== "heat_mains" && tournament.format !== "swiss";
+  const isPoints = !isElim && tournament.format !== "heat_mains" && tournament.format !== "swiss" && tournament.format !== "time_trial";
   // Running (or finished): the Run tab opens first and Mario Party / Smash tools move there.
   const isRunning = tournament.status === "in_progress" || tournament.status === "complete";
   const nameOf = (id: string | null) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD");
@@ -829,13 +841,21 @@ export default function ManageTournamentPage() {
     } // "checkin" keeps joined_at order
     const ids = ordered.map((p) => p.id);
     if (!canGenerateBracket) return;
-    const bracket = isDoubleElim ? generateDoubleElim(ids) : generateSingleElim(ids);
+    // Stamped so a bracket decided by time trial only counts times added after it was made, and versioned so the
+    // server settling matches and a hand-picked winner here never overwrite each other.
+    const bracket = { ...(isDoubleElim ? generateDoubleElim(ids) : generateSingleElim(ids)), generatedAt: new Date().toISOString(), v: 0 };
     await updateTournament({ bracket });
   };
 
   const reportMatchWinner = async (matchId: string, winnerId: string) => {
     if (!tournament.bracket) return;
-    await updateTournament({ bracket: reportWinner(tournament.bracket, matchId, winnerId) });
+    const b = tournament.bracket;
+    await updateTournament({ bracket: { ...reportWinner(b, matchId, winnerId), ...(b.v != null ? { v: b.v + 1 } : {}) } });
+  };
+  // A bracket decided by time trial moves on the server as times come in: read it again when the run panel sees that.
+  const reloadBracket = async () => {
+    const { data } = await supabase.from("tournaments").select("bracket, status").eq("id", tournamentId).single();
+    if (data) setTournament((prev) => (prev ? { ...prev, bracket: (data as { bracket: Bracket | null }).bracket } : prev));
   };
 
   // Snapshot bracket placements into tournament_results (feeds the public
@@ -1018,6 +1038,7 @@ export default function ManageTournamentPage() {
     { value: "double_elim", label: "Double Elim" },
     { value: "heat_mains", label: "Heat → Mains" },
     ...(swissReady || tournament.format === "swiss" ? [{ value: "swiss", label: "Swiss" }] : []),
+    ...((ttReady && gameBySlug(tournament.game_slug ?? "")) || tournament.format === "time_trial" ? [{ value: "time_trial", label: "Time trial" }] : []),
   ];
   const SETUP_MODES: { value: string; label: string }[] = [
     { value: "ffa", label: "FFA" },
@@ -1027,13 +1048,21 @@ export default function ManageTournamentPage() {
     { value: "6v6", label: "6v6" },
   ];
   const swissStarted = isSwissState(tournament.swiss) && tournament.swiss.list.length > 0;
-  const hasRunState = !!(tournament.bracket || tournament.heat_mains || tournament.group_bracket || tournament.flights) || swissStarted;
+  const ttGame = gameBySlug(tournament.game_slug ?? "")?.id ?? null;
+  const ttStarted = isTtState(tournament.tt) && tournament.tt.rounds.length > 0;
+  // A 1v1 bracket decided by time trial (settings.timeTrial): fixed once the tournament runs.
+  const ttBracket = isTtBracket(tournament);
+  const ttBracketLocked = tournament.status === "in_progress" || tournament.status === "complete";
+  const hasRunState = !!(tournament.bracket || tournament.heat_mains || tournament.group_bracket || tournament.flights) || swissStarted || ttStarted;
   const setupLocked = tournament.status === "complete" || tournament.status === "cancelled";
   // Changing format tears down any generated run state so it can be re-seeded.
   const changeFormat = async (fmt: string) => {
     if (fmt === tournament.format) return;
     if (swissStarted && !(await confirm({ title: "Change the format?", body: "The Swiss rounds played so far are cleared.", confirmLabel: "Change format" }))) return;
-    await updateTournament({ format: fmt, bracket: null, heat_mains: null, group_bracket: null, flights: null, ...(swissReady ? { swiss: null } : {}) });
+    if (ttStarted && !(await confirm({ title: "Change the format?", body: "The time trial's rounds are cleared. Times already added stay in the database but stop counting.", confirmLabel: "Change format" }))) return;
+    // A time trial starts from its defaults (the game's first cup) the first time it's picked.
+    const ttDefaults = fmt === "time_trial" && ttGame && !(tournament.settings as { tt?: unknown } | null)?.tt ? { settings: { ...tournament.settings, tt: ttSettingsOf(null, ttGame) } } : {};
+    await updateTournament({ format: fmt, bracket: null, heat_mains: null, group_bracket: null, flights: null, ...(swissReady ? { swiss: null } : {}), ...(ttReady ? { tt: null } : {}), ...ttDefaults } as Partial<Tournament>);
   };
   const changeMode = async (m: string) => {
     if (m !== tournament.mode) await updateTournament({ mode: m });
@@ -1175,7 +1204,7 @@ export default function ManageTournamentPage() {
     ...(isOwner && tournament.status !== "cancelled" && tournament.status !== "complete" && tournament.status !== "draft" ? [{ label: "Cancel tournament", danger: true, onClick: () => void cancelTournament() }] : []),
     ...(isOwner && tournament.status === "draft" && participants.length === 0 ? [{ label: "Delete draft", danger: true, onClick: () => void deleteDraft() }] : []),
   ];
-  const runHasContent = tournament.format === "swiss" || isRunning
+  const runHasContent = tournament.format === "swiss" || tournament.format === "time_trial" || isRunning
     || (tournament.status !== "draft" && (isBracketFormat || isGroupFormat || isHeatMains || useFlights));
   const tabList: { id: ManageTab; label: string; badge?: number }[] = [
     ...(runHasContent ? [{ id: "run" as const, label: "Run" }] : []),
@@ -1350,7 +1379,8 @@ export default function ManageTournamentPage() {
               <span className="manage-status__when">{tournament.date_time ? formatEventTime(tournament.date_time, viewerTz) : "No date yet"} · {locationLabel}</span>
             </div>
             <div className="manage-status__actions">
-              {nextStatus && (
+              {/* A time trial starts and finishes from its Run tab (opening the window, posting the results). */}
+              {nextStatus && !(tournament.format === "time_trial" && nextStatus !== "open") && (
                 <Button variant="primary" size="small" onClick={() => updateTournament({ status: nextStatus })}>
                   Move to {STATUS_LABELS[nextStatus]}
                 </Button>
@@ -1796,13 +1826,26 @@ export default function ManageTournamentPage() {
                   ))}
                 </div>
               </div>
+              {tournament.format === "time_trial" && ttGame && (
+                <div style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid var(--border-subtle)" }}>
+                  <TtEventSettingsFields
+                    value={ttSettingsOf((tournament.settings as { tt?: unknown } | null)?.tt, ttGame)}
+                    onChange={(next) => void updateTournament({ settings: { ...tournament.settings, tt: next } })}
+                    players={eligibleForBracket.length}
+                    disabled={ttStarted}
+                    inPerson={isVenue(tournament.settings)}
+                  />
+                  {ttStarted && <p className="swiss-help">The board, tracks and shape were fixed when it opened.</p>}
+                </div>
+              )}
               {tournament.format === "swiss" && (
                 <div style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid var(--border-subtle)" }}>
                   <SwissSettingsFields
                     value={swissSettingsOf(tournament.settings, isDeckListGame(tournament.game_slug))}
-                    onChange={(next) => void updateTournament({ settings: { ...tournament.settings, swiss: next } })}
+                    onChange={(next) => void updateTournament({ settings: { ...tournament.settings, swiss: next, ...(next.timeTrial && ttGame && !(tournament.settings as { tt?: unknown } | null)?.tt ? { tt: ttSettingsOf(null, ttGame) } : {}) } })}
                     players={eligibleForBracket.length}
                     disabled={swissStarted}
+                    timeTrial={ttReady && ttGame ? { settings: ttSettingsOf((tournament.settings as { tt?: unknown } | null)?.tt, ttGame), onChange: (next) => void updateTournament({ settings: { ...tournament.settings, tt: next } }) } : null}
                   />
                   {swissStarted && <p className="swiss-help">Rounds and the top cut were fixed when round 1 was paired.</p>}
                 </div>
@@ -1817,8 +1860,8 @@ export default function ManageTournamentPage() {
                   />
                 </div>
               )}
-              {/* Swiss is 1v1: no team mode. */}
-              {tournament.format !== "swiss" && (
+              {/* Swiss and brackets decided by time trial are 1v1, and time trials are solo: no team mode. */}
+              {tournament.format !== "swiss" && tournament.format !== "time_trial" && !ttBracket && (
               <div style={{ marginBottom: isGroupFormat ? "1rem" : 0 }}>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Team mode</label>
                 <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
@@ -1898,7 +1941,25 @@ export default function ManageTournamentPage() {
 
               {isElim && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)", paddingTop: "var(--spacing-16)", borderTop: "1px solid var(--border-subtle)" }}>
-                  <div>
+                  {((ttReady && ttGame) || ttBracket) && ttGame && (
+                    <TtBracketFields
+                      on={ttBracket}
+                      bestOf={ttBestOfOf(tournament.settings)}
+                      settings={ttSettingsOf((tournament.settings as { tt?: unknown } | null)?.tt, ttGame)}
+                      onOn={(on) => void updateTournament({
+                        settings: on
+                          ? { ...tournament.settings, timeTrial: true, lobbySize: 2, advance: 1, ...(!(tournament.settings as { tt?: unknown } | null)?.tt ? { tt: ttSettingsOf(null, ttGame) } : {}) }
+                          : { ...tournament.settings, timeTrial: undefined },
+                        ...(on ? { group_bracket: null } : {}),
+                      })}
+                      onBestOf={(b) => void updateTournament({ settings: { ...tournament.settings, ttBestOf: b } })}
+                      onSettings={(next) => void updateTournament({ settings: { ...tournament.settings, tt: next } })}
+                      players={eligibleForBracket.length}
+                      disabled={ttBracketLocked}
+                    />
+                  )}
+                  {ttBracket && ttBracketLocked && <p className="swiss-help">How matches are decided, the board and the tracks were fixed when the tournament started.</p>}
+                  {!ttBracket && <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Players per lobby</label>
                     <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
                       {[2, 3, 4, 6, 8].map((n) => (
@@ -1916,7 +1977,7 @@ export default function ManageTournamentPage() {
                     <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6, 6px)" }}>
                       {elimLobbySize <= 2 ? "2 = classic 1v1 bracket." : `Lobbies of ${elimLobbySize}; ${isDoubleElim ? "everyone else gets a second chance in a lower bracket." : "everyone else is knocked out."}`}
                     </p>
-                  </div>
+                  </div>}
                   {elimLobbySize > 2 && (
                     <div>
                       <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>How many move on from each lobby</label>
@@ -1963,8 +2024,9 @@ export default function ManageTournamentPage() {
                   )}
                 </div>
               )}
-            {/* Swiss pairs round 1 at random and seeds its top cut from the standings, so it has no draw. */}
-            {tournament.format !== "swiss" && (
+            {/* Swiss pairs round 1 at random and seeds its top cut from the standings, and a time trial seeds by board
+                times, so neither has a draw. */}
+            {tournament.format !== "swiss" && tournament.format !== "time_trial" && (
               <SeedingPanel
                 tournamentId={tournamentId}
                 entrants={participants.map((p) => ({ id: p.id, display_name: p.display_name, user_id: p.user_id, status: p.status }))}
@@ -2002,7 +2064,7 @@ export default function ManageTournamentPage() {
           {/* MK-specific config (race / tracks / build restrictions). Only for
               games that carry rich data; other games run bracket/points/heat→mains
               on named participants without a track/build layer. */}
-          {gd && (
+          {gd && tournament.format !== "time_trial" && !ttBracket && !(tournament.format === "swiss" && isTtSwiss(tournament.settings)) && (
           <>
           {/* Races and tracks: race settings, the tracks, and randomized rounds in one card. */}
           <div className="comp-card manage-card">
@@ -2672,6 +2734,14 @@ export default function ManageTournamentPage() {
 
           {tab === "run" && (
             <>
+          {/* Time trial: the window, the cut and run-offs, times to check, verifiers. */}
+          {tournament.format === "time_trial" && (
+            <div className="comp-card manage-card">
+              <h2 className="manage-card__title">Time trial</h2>
+              <TtRunPanel tournamentId={tournamentId} status={tournament.status} inPerson={isVenue(tournament.settings)} onStatus={(status) => setTournament((prev) => (prev ? { ...prev, status } : prev))} />
+            </div>
+          )}
+
           {/* Swiss: the round console (pairings, results, clock, drops, top cut, finish). */}
           {tournament.format === "swiss" && (
             <div className="comp-card manage-card">
@@ -2713,6 +2783,8 @@ export default function ManageTournamentPage() {
             // Only while the tournament is actually running — not during
             // registration (draft/open) or after it's done.
             if (tournament.status !== "in_progress") return null;
+            // A bracket decided by time trial runs every open match at once, so there's no one race to call.
+            if (ttBracket) return null;
             const races = listRaces(tournament);
             if (!races.length) return null;
             const curIdx = raceIndex(races, tournament.settings?.currentRaceKey ?? null);
@@ -2763,6 +2835,11 @@ export default function ManageTournamentPage() {
           })()}
 
           {/* Bracket — single elimination (Phase 3) */}
+          {ttBracket && tournament.status !== "draft" && (
+            <div style={{ marginBottom: "2rem" }}>
+              <TtBracketRunPanel tournamentId={tournamentId} onChanged={reloadBracket} />
+            </div>
+          )}
           {isBracketFormat && tournament.status !== "draft" && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -2796,8 +2873,8 @@ export default function ManageTournamentPage() {
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
-                    Click the winner of each match to advance them.
+                  <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    {ttBracket ? "Times decide each match. Click a player only to settle a match that's still level." : "Click the winner of each match to advance them."}
                   </p>
                   <BracketView bracket={tournament.bracket!} nameOf={nameOf} onReport={reportMatchWinner} />
                 </div>

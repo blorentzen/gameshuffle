@@ -29,6 +29,10 @@ export interface Bracket {
   rounds: number; // winners-bracket rounds
   lbRounds?: number; // losers-bracket rounds (double elim)
   matches: BracketMatch[];
+  /** When the organizer made it: times for a bracket decided by time trial count from here. */
+  generatedAt?: string;
+  /** Bumped on every save of a bracket decided by time trial, so the server and the manage page never overwrite each other. */
+  v?: number;
 }
 
 /** Standard bracket seed order for a power-of-2 size (1-based seed positions). */

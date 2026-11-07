@@ -17,8 +17,15 @@ import { listAttendees } from "@/lib/events/attendees";
 import { deliver } from "@/lib/events/notify";
 import { recipientsFor } from "@/lib/events/reminders";
 import type { Bracket } from "./bracket";
+import { addTime } from "@/lib/timeTrials/store";
+import { gameBySlug, type TtGame } from "@/lib/timeTrials/tracks";
+import type { TtParts } from "@/lib/timeTrials/parts";
+import { ttSettingsOf, type TtCheckItem, type TtEventSettings, type TtProof } from "./tt/event";
+import { matchProofStates, type MatchProofState } from "./tt/matchProof";
+import { isTtSwiss, matchScore, reportsFromTimes, slotFor, swissHolds, tracksForSlot, ttRoundFor, type TtSwissTime } from "./tt/swissTt";
+import { matchResult } from "./tt/rules";
 import {
-  SWISS_MIN_PLAYERS, cutBracket, cutMatchStatus, cutSeeds, currentMatchFor, describeStructure, finalPlacements,
+  SWISS_MIN_PLAYERS, cutBracket, cutMatchResult, cutMatchStatus, cutSeeds, currentMatchFor, describeStructure, finalPlacements,
   gamesToWin, isSwissState, lockRound, newSwissState, nextStep, pairNextRound, recordText, roundKey,
   secondsLeft, swissPhase, swissSettingsOf, swissStandings, tableStatus, validScore, cutKey,
   type NextStep, type SwissPhase, type SwissReport, type SwissState, type TableState,
@@ -40,11 +47,13 @@ export interface SwissTournament {
 }
 interface Participant { id: string; user_id: string | null; display_name: string | null; status: string; joined_at: string | null }
 
-export interface SwissCtx { t: SwissTournament; people: Participant[]; reports: SwissReport[]; state: SwissState | null }
+/** A Swiss event decided by time trial: its board and tracks, and every time added. */
+export interface SwissTt { game: TtGame; settings: TtEventSettings; times: TtSwissTime[] }
+export interface SwissCtx { t: SwissTournament; people: Participant[]; reports: SwissReport[]; state: SwissState | null; tt: SwissTt | null }
 
 export type SwissError =
   | "missing" | "not_found" | "not_swiss" | "not_open" | "too_few" | "busy" | "not_now" | "bad_score"
-  | "not_in_match" | "set_by_organizer" | "locked" | "not_playing" | "already_dropped" | "cant_change";
+  | "not_in_match" | "set_by_organizer" | "locked" | "not_playing" | "already_dropped" | "cant_change" | "undrop_late";
 
 export const SWISS_ERRORS: Record<SwissError, string> = {
   missing: "Swiss needs a database update first.",
@@ -58,6 +67,7 @@ export const SWISS_ERRORS: Record<SwissError, string> = {
   not_in_match: "That isn't your match.",
   set_by_organizer: "The organizer already entered this result.",
   locked: "That round is locked: results can be changed until the round after next is paired.",
+  undrop_late: "A dropped player can only come back before the next round is paired.",
   not_playing: "You're not playing in this tournament.",
   already_dropped: "You've already dropped.",
   cant_change: "That match's winner has already played the next match.",
@@ -77,9 +87,20 @@ export async function loadSwiss(id: string): Promise<SwissCtx | "missing" | null
     db.from("tournament_swiss_reports").select("match_key, participant_id, mine, theirs").eq("tournament_id", id),
   ]);
   if (rep.error && rep.error.code && MISSING_TABLE.has(rep.error.code)) return "missing";
-  const reports = ((rep.data ?? []) as { match_key: string; participant_id: string; mine: number; theirs: number }[])
+  let reports: SwissReport[] = ((rep.data ?? []) as { match_key: string; participant_id: string; mine: number; theirs: number }[])
     .map((r) => ({ matchKey: r.match_key, participantId: r.participant_id, mine: r.mine, theirs: r.theirs }));
-  return { t, people: (ppl ?? []) as Participant[], reports, state: isSwissState(t.swiss) ? t.swiss : null };
+  const state = isSwissState(t.swiss) ? t.swiss : null;
+  // Decided by time trial: the times are the reports (players don't report).
+  let tt: SwissTt | null = null;
+  const game = gameBySlug(t.game_slug ?? "")?.id ?? null;
+  if (isTtSwiss(t.settings) && game) {
+    const { data: rows } = await db.from("tt_event_times").select("id, participant_id, round, track, time_ms, proof_status, video_url").eq("tournament_id", id).limit(20000);
+    const times = ((rows ?? []) as { id: string; participant_id: string; round: number; track: string; time_ms: number; proof_status: TtProof; video_url: string | null }[])
+      .map((r) => ({ participantId: r.participant_id, round: r.round, track: r.track, ms: r.time_ms, counts: r.proof_status !== "rejected", id: r.id, proof: r.proof_status, video: r.video_url }));
+    tt = { game, settings: ttSettingsOf((t.settings as { tt?: unknown } | null)?.tt, game), times };
+    reports = state ? reportsFromTimes(state, tt.settings.tracks, times, undefined, tt.settings.matchClips) : [];
+  }
+  return { t, people: (ppl ?? []) as Participant[], reports, state, tt };
 }
 
 const cardGame = (t: SwissTournament) => t.game_slug === "pokemon-tcg";
@@ -136,11 +157,42 @@ export type OrganizerAction =
   | { action: "result"; key: string; table?: number; matchId?: string; a?: number; b?: number; clear?: boolean }
   | { action: "timer"; op: "start" | "pause" | "resume" | "add" | "restart" }
   | { action: "drop"; participantId: string }
-  | { action: "undrop"; participantId: string };
+  | { action: "undrop"; participantId: string }
+  /** Decided by time trial: settle the round's (or the top cut's) open matches on the times there (a missing time loses its track). */
+  | { action: "tt_close" };
 
 export async function organizerAct(id: string, input: OrganizerAction) {
   const now = new Date().toISOString();
   switch (input.action) {
+    case "tt_close":
+      return mutate(id, (ctx) => {
+        const state = ctx.state;
+        if (!state || state.finishedAt || !ctx.tt) return { error: "not_now" };
+        const tracksList = ctx.tt.settings.tracks;
+        const runs = (round: number) => ctx.tt!.times.filter((t) => t.round === round).map((t) => ({ player: t.participantId, track: t.track, ms: t.ms, counts: t.counts }));
+        const need = state.bestOf === 1 ? 1 : 2;
+        const score = (wa: number, wb: number): [number, number] => (wa === wb ? (state.bestOf === 1 ? [0, 0] : [1, 1]) : wa > wb ? [need, Math.min(wb, need - 1)] : [Math.min(wa, need - 1), need]);
+        if (state.cut) {
+          const bracket = cutBracket(state, ctx.reports)!;
+          const results = { ...state.cut.results };
+          for (const m of bracket.matches.filter((x) => x.a && x.b && !x.winner && !results[x.id])) {
+            const key = `c:${m.id}`;
+            const r = matchResult(m.a!, m.b!, tracksForSlot(tracksList, state.bestOf, slotFor(state, key, m.round)), runs(ttRoundFor(key, m.round)), true);
+            if (r.winner) { const [a, b] = score(r.a, r.b); results[m.id] = { a, b, by: "organizer" }; }
+          }
+          return { state: { ...state, cut: { ...state.cut, results } }, after: (s) => notifyRound(ctx.t, s, ctx.reports) };
+        }
+        const last = state.list[state.list.length - 1];
+        if (!last) return { error: "not_now" };
+        const results = { ...last.results };
+        for (const t of last.tables) {
+          if (!t.b || results[String(t.t)] || tableStatus(state, last, t, ctx.reports).result) continue;
+          const r = matchResult(t.a, t.b, tracksForSlot(tracksList, state.bestOf, last.n), runs(last.n), true);
+          const [a, b] = score(r.a, r.b);
+          results[String(t.t)] = { a, b, by: "organizer" };
+        }
+        return { state: { ...state, list: [...state.list.slice(0, -1), { ...last, results }] } };
+      });
     case "start":
       return mutate(id, (ctx) => {
         if (ctx.state?.list.length) return { error: "not_now" };
@@ -281,7 +333,7 @@ export async function organizerAct(id: string, input: OrganizerAction) {
         const state = ctx.state;
         if (!state || !(input.participantId in state.drops)) return { error: "not_now" };
         // Only before another round is paired: their record has no gaps then.
-        if (state.drops[input.participantId] !== state.list.length || state.cut) return { error: "locked" };
+        if (state.drops[input.participantId] !== state.list.length || state.cut) return { error: "undrop_late" };
         const drops = { ...state.drops };
         delete drops[input.participantId];
         await svc().from("tournament_participants").update({ status: "confirmed" }).eq("id", input.participantId).eq("tournament_id", id);
@@ -330,6 +382,9 @@ async function myParticipant(ctx: SwissCtx, userId: string) {
 }
 
 export async function playerReport(id: string, userId: string, input: { key: string; mine: number; theirs: number }): Promise<{ ok: true } | { ok: false; error: SwissError }> {
+  const pre = await loadSwiss(id);
+  // Decided by time trial: the times decide, nobody reports.
+  if (pre && pre !== "missing" && pre.tt) return { ok: false, error: "not_now" };
   const ctx = await loadSwiss(id);
   if (ctx === "missing") return { ok: false, error: "missing" };
   if (!ctx || !ctx.state) return { ok: false, error: ctx ? "not_now" : "not_found" };
@@ -370,6 +425,114 @@ export async function playerDrop(id: string, userId: string) {
 }
 
 // ─── What people see ─────────────────────────────────────────────────────────
+
+/**
+ * A time for your current match in a Swiss event decided by time trial: one of the match's tracks, while it isn't
+ * settled. It also goes on the public boards like any time (with its screenshot).
+ */
+/** The match a player is racing now in a Swiss event decided by time trial: its tracks, its times round, and whether it's settled. */
+export function swissTtMatchFor(ctx: SwissCtx, participantId: string): { opponent: string; tracks: string[]; round: number; settled: boolean; held: boolean } | null {
+  if (!ctx.state || !ctx.tt) return null;
+  const m = currentMatchFor(ctx.state, ctx.reports, participantId);
+  if (!m || !m.opponent) return null;
+  const bracket = m.cut ? cutBracket(ctx.state, ctx.reports) : null;
+  const cutRound = m.cut ? bracket!.matches.find((x) => x.id === m.key.slice(2))?.round ?? 0 : null;
+  const settled = m.cut ? !!cutMatchResult(ctx.state, ctx.reports, m.key.slice(2), m.side === "a" ? participantId : m.opponent, m.side === "a" ? m.opponent : participantId)
+    : !!tableStatus(ctx.state, ctx.state.list[ctx.state.list.length - 1], ctx.state.list[ctx.state.list.length - 1].tables.find((t) => t.a === participantId || t.b === participantId)!, ctx.reports).result;
+  const tracks = tracksForSlot(ctx.tt.settings.tracks, ctx.state.bestOf, slotFor(ctx.state, m.key, cutRound));
+  const round = ttRoundFor(m.key, cutRound);
+  return { opponent: m.opponent, tracks, round, settled, held: !settled && swissTtHeld(ctx, participantId, m.opponent, tracks, round) };
+}
+
+/** A match the times have decided that waits for its clips to be checked. */
+function swissTtHeld(ctx: SwissCtx, a: string, b: string, tracks: string[], round: number, times: TtSwissTime[] = ctx.tt?.times ?? []): boolean {
+  const rule = ctx.tt?.settings.matchClips ?? 0;
+  if (rule === 0) return false;
+  const sc = matchScore(a, b, tracks, times, round);
+  return sc.done && !!sc.winner && swissHolds(a, b, tracks, round, times, rule).length > 0;
+}
+
+export async function swissTtAdd(id: string, userId: string, input: {
+  track: string; ms: number; screenshot: string; laps: number[] | null; read: { timeMs: number | null; laps: number[] | null; parts: TtParts | null } | null;
+  /** A time already on the boards (added in Discord): the event points at it instead of adding a second one. */
+  boardTimeId?: string | null;
+}): Promise<{ ok: true; timeId: string; won: number; lost: number; settled: boolean; held: boolean; needsClip: boolean } | { ok: false; error: SwissError | "bad_track" | "closed" | "held" }> {
+  const ctx = await loadSwiss(id);
+  if (ctx === "missing") return { ok: false, error: "missing" };
+  if (!ctx || !ctx.state || !ctx.tt) return { ok: false, error: "not_found" };
+  const me = ctx.people.find((p) => p.user_id === userId && SEATED.has(p.status) && !(p.id in ctx.state!.drops));
+  if (!me) return { ok: false, error: "not_playing" };
+  const mt = swissTtMatchFor(ctx, me.id);
+  if (!mt) return { ok: false, error: "not_in_match" };
+  if (mt.settled) return { ok: false, error: "closed" };
+  if (mt.held) return { ok: false, error: "held" };
+  const { tracks, round } = mt;
+  if (!tracks.includes(input.track)) return { ok: false, error: "bad_track" };
+  if (!(input.ms >= 30_000 && input.ms <= 600_000)) return { ok: false, error: "bad_score" };
+  const s = ctx.tt.settings;
+  let boardId = input.boardTimeId ?? null;
+  if (!boardId) {
+    const added = await addTime({
+      player: `u:${userId}`, userId, identityId: null, game: ctx.tt.game, track: input.track, cc: s.cc, items: s.items, vehicle: s.vehicle,
+      timeMs: input.ms, proof: "screenshot", proofUrl: input.screenshot, readByAi: input.read?.timeMs === input.ms, source: "site",
+      laps: input.laps, readMs: input.read?.timeMs ?? null, readLaps: input.read?.laps ?? null, parts: input.read?.parts ?? null,
+    });
+    boardId = added.ok ? added.timeId : null;
+  }
+  const { data, error } = await svc().from("tt_event_times").insert({
+    tournament_id: id, participant_id: me.id, round, track: input.track, time_ms: input.ms, laps: input.laps, read_ms: input.read?.timeMs ?? null,
+    screenshot_url: input.screenshot, source: "player", added_by: userId, board_time_id: boardId,
+  }).select("id").single();
+  if (error || !data) return { ok: false, error: "busy" };
+  const timeId = (data as { id: string }).id;
+  const times: TtSwissTime[] = [...ctx.tt.times, { participantId: me.id, round, track: input.track, ms: input.ms, counts: true, id: timeId, proof: "none", video: null }];
+  const sc = matchScore(me.id, mt.opponent, tracks, times, round);
+  const held = swissTtHeld(ctx, me.id, mt.opponent, tracks, round, times);
+  const needsClip = swissHolds(me.id, mt.opponent, tracks, round, times, s.matchClips).some((h) => h.id === timeId && h.needsClip);
+  return { ok: true, timeId, won: sc.a, lost: sc.b, settled: sc.done && !!sc.winner && !held, held, needsClip };
+}
+
+/** Open matches' times waiting on a check (Swiss decided by time trial), the ones holding a decided match first. */
+export async function swissTtChecks(ctx: SwissCtx): Promise<{ checks: TtCheckItem[]; holding: number }> {
+  const state = ctx.state, tt = ctx.tt;
+  if (!state || !tt || tt.settings.matchClips === 0) return { checks: [], holding: 0 };
+  const name = (id: string | null) => (id ? ctx.people.find((p) => p.id === id)?.display_name || "Player" : "Player");
+  const reported = (key: string, pid: string) => ctx.reports.some((r) => r.matchKey === key && r.participantId === pid);
+  const open: { a: string; b: string; tracks: string[]; round: number; label: string }[] = [];
+  if (state.cut) {
+    const bracket = cutBracket(state, ctx.reports)!;
+    for (const m of bracket.matches) {
+      if (!m.a || !m.b || m.winner || state.cut.results[m.id] || reported(cutKey(m.id), m.a)) continue;
+      const key = cutKey(m.id);
+      const stage = m.round === bracket.rounds - 1 ? "the final" : m.round === bracket.rounds - 2 ? "semifinals" : "quarterfinals";
+      open.push({ a: m.a, b: m.b, tracks: tracksForSlot(tt.settings.tracks, state.bestOf, slotFor(state, key, m.round)), round: ttRoundFor(key, m.round), label: `Top ${state.cut.seeds.length}, ${stage}: ${name(m.a)} vs ${name(m.b)}` });
+    }
+  } else {
+    const r = state.list[state.list.length - 1];
+    if (r) for (const t of r.tables) {
+      if (!t.b || r.results[String(t.t)] || reported(roundKey(r.n), t.a)) continue;
+      open.push({ a: t.a, b: t.b, tracks: tracksForSlot(tt.settings.tracks, state.bestOf, r.n), round: r.n, label: `Round ${r.n}, table ${t.t}: ${name(t.a)} vs ${name(t.b)}` });
+    }
+  }
+  const items: { hold: ReturnType<typeof swissHolds>[number]; label: string; round: number; held: boolean }[] = [];
+  for (const m of open) {
+    const held = swissTtHeld(ctx, m.a, m.b, m.tracks, m.round);
+    for (const hold of swissHolds(m.a, m.b, m.tracks, m.round, tt.times, tt.settings.matchClips)) items.push({ hold, label: m.label, round: m.round, held });
+  }
+  if (!items.length) return { checks: [], holding: 0 };
+  const { data } = await svc().from("tt_event_times").select("id, screenshot_url, video_url, created_at, source").in("id", items.map((x) => x.hold.id));
+  const rows = new Map(((data ?? []) as { id: string; screenshot_url: string | null; video_url: string | null; created_at: string; source: "player" | "runner" | "staff" }[]).map((x) => [x.id, x]));
+  const checks: TtCheckItem[] = items.flatMap(({ hold: h, label, round, held }) => {
+    const row = rows.get(h.id);
+    return row ? [{
+      id: h.id, name: name(h.participantId), track: h.track, round, ms: h.ms, place: h.place, proof: h.proof,
+      screenshot: row.screenshot_url, video: row.video_url, needsClip: h.needsClip, at: row.created_at, source: row.source, label, held,
+    }] : [];
+  });
+  const rank = (c: TtCheckItem) => (c.held ? 0 : 2) + (c.proof === "waiting" ? 0 : 1);
+  checks.sort((x, y) => rank(x) - rank(y) || x.at.localeCompare(y.at));
+  return { checks, holding: checks.filter((c) => c.held).length };
+}
 
 export interface ViewPlayer { id: string; name: string; record: string; points: number; /** Has an account (a guest can't report). */ account: boolean }
 export interface ViewTable {
@@ -414,12 +577,23 @@ export interface SwissView {
       theyReported: boolean;
       state: TableState;
       setByOrganizer: boolean;
+      /** Decided by time trial: the match's tracks with both players' best times (and where your clips stand). */
+      tt: {
+        tracks: { id: string; mine: number | null; theirs: number | null; mineProof: { timeId: string; state: MatchProofState } | null }[];
+        won: number; lost: number;
+        /** Decided, waiting for its clips to be checked. */
+        held: boolean;
+      } | null;
     } | null;
   } | null;
   canManage: boolean;
+  /** A verifier (or organizer): the page shows the times to check when the organizer asks for clips. */
+  canCheck: boolean;
+  /** Decided by time trial: the board and tracks everyone races. */
+  timeTrial: TtEventSettings | null;
 }
 
-export function buildView(ctx: SwissCtx, opts: { userId: string | null; canManage: boolean }): SwissView | null {
+export function buildView(ctx: SwissCtx, opts: { userId: string | null; canManage: boolean; canCheck?: boolean }): SwissView | null {
   const state = ctx.state;
   const s = swissSettingsOf(ctx.t.settings, cardGame(ctx.t));
   const field = activeIds(ctx, state);
@@ -431,7 +605,7 @@ export function buildView(ctx: SwissCtx, opts: { userId: string | null; canManag
       // Until four have joined, an example with 16 (the settings say the same).
       structure: field.length < SWISS_MIN_PLAYERS ? `With 16 players (an example until people join): ${describeStructure(s, 16)}` : `With ${field.length} players: ${describeStructure(s, field.length)}`,
       players: field.length, clock: null, round: null, history: [], standings: [], cut: null, next: "pair",
-      counts: { tables: 0, done: 0, waiting: 0, disagree: 0 }, you: null, canManage: opts.canManage,
+      counts: { tables: 0, done: 0, waiting: 0, disagree: 0 }, you: null, canManage: opts.canManage, canCheck: opts.canManage || !!opts.canCheck, timeTrial: ctx.tt?.settings ?? null,
     };
   }
   const reports = ctx.reports;
@@ -493,9 +667,25 @@ export function buildView(ctx: SwissCtx, opts: { userId: string | null; canManag
         if (ts.result) result = m.side === "a" ? { mine: ts.result.a, theirs: ts.result.b } : { mine: ts.result.b, theirs: ts.result.a };
         setByOrganizer = !!last.results[String(table.t)];
       }
+      let tt: NonNullable<NonNullable<SwissView["you"]>["match"]>["tt"] = null;
+      if (ctx.tt && m.opponent) {
+        const cutRound = m.cut ? bracket?.matches.find((x) => x.id === m.key.slice(2))?.round ?? 0 : null;
+        const tracks = tracksForSlot(ctx.tt.settings.tracks, state.bestOf, slotFor(state, m.key, cutRound));
+        const round = ttRoundFor(m.key, cutRound);
+        const best = (pid: string, track: string) => {
+          const ms = ctx.tt!.times.filter((t) => t.round === round && t.participantId === pid && t.track === track && t.counts).map((t) => t.ms);
+          return ms.length ? Math.min(...ms) : null;
+        };
+        const sc = matchScore(me.id, m.opponent, tracks, ctx.tt.times, round);
+        const proof = matchProofStates(me.id, m.opponent, tracks, round, ctx.tt.times.filter((x) => x.id).map((x) => ({ id: x.id!, participantId: x.participantId, round: x.round, track: x.track, ms: x.ms, proof: x.proof ?? "none", video: x.video ?? null })), ctx.tt.settings.matchClips);
+        tt = {
+          tracks: tracks.map((id) => ({ id, mine: best(me.id, id), theirs: best(m.opponent!, id), mineProof: proof.get(id)?.get(me.id) ?? null })),
+          won: sc.a, lost: sc.b, held: !result && swissTtHeld(ctx, me.id, m.opponent, tracks, round),
+        };
+      }
       match = {
         key: m.key, label: m.label, table: m.table, cut: m.cut, opponent: m.opponent ? vp(m.opponent) : null,
-        result, myReport: myRep ? [myRep.mine, myRep.theirs] : null, theyReported: !!theirRep, state: st, setByOrganizer,
+        result, myReport: myRep ? [myRep.mine, myRep.theirs] : null, theyReported: !!theirRep, state: st, setByOrganizer, tt,
       };
     }
     you = { participantId: me.id, record: row ? recordText(row) : "0-0", points: row?.points ?? 0, rank: row?.rank ?? null, dropped: me.id in state.drops || me.status === "dropped", match };
@@ -522,7 +712,7 @@ export function buildView(ctx: SwissCtx, opts: { userId: string | null; canManag
     next: nextStep(state, reports),
     counts,
     you,
-    canManage: opts.canManage,
+    canManage: opts.canManage, canCheck: opts.canManage || !!opts.canCheck, timeTrial: ctx.tt?.settings ?? null,
   };
 }
 

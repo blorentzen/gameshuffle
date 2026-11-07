@@ -18,6 +18,7 @@ export const TOURNAMENT_FORMATS = [
   { value: "round_robin", label: "Round robin" },
   { value: "heat_mains", label: "Heat → Mains" },
   { value: "swiss", label: "Swiss" },
+  { value: "time_trial", label: "Time trial" },
 ] as const;
 
 export const FORMAT_LABEL: Record<string, string> = Object.fromEntries(

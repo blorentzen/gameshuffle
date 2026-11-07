@@ -18,6 +18,7 @@
 import { MmrOverlay } from "@/components/mmr/MmrOverlay";
 import { WarPiece } from "@/components/wars/WarOverlay";
 import { SeriesOverlay } from "@/components/series/SeriesOverlay";
+import { TtOverlay } from "@/components/tournament/tt/TtOverlay";
 import { LoungeRoomOverlay } from "@/components/lounge/LoungeRoomOverlay";
 import type { RoomOverlayData } from "@/lib/lounge/roomServer";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
@@ -132,6 +133,8 @@ interface ApiResponse {
   loungeRoom?: RoomOverlayData | null;
   warPiece?: { token: string; lookId: string | null } | null;
   seriesPiece?: { slug: string; teamId: string } | null;
+  /** The running time trial tournament the streamer plays in or runs (the piece reads its own small view). */
+  ttPiece?: { id: string; participantId: string | null } | null;
 }
 
 /** Render a generic tool overlay event by type. Add a case per tool. */
@@ -273,6 +276,7 @@ export function OverlayClient({
   const [loungeRoom, setLoungeRoom] = useState<RoomOverlayData | null>(null);
   const [warPiece, setWarPiece] = useState<{ token: string; lookId: string | null } | null>(null);
   const [seriesPiece, setSeriesPiece] = useState<{ slug: string; teamId: string } | null>(null);
+  const [ttPiece, setTtPiece] = useState<{ id: string; participantId: string | null } | null>(null);
   const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
   const [format, setFormat] = useState<OverlayFormat>("landscape");
   const [layouts, setLayouts] = useState<Partial<Record<OverlayFormat, LayoutProfile>>>({});
@@ -443,6 +447,7 @@ export function OverlayClient({
         setLoungeRoom(data.loungeRoom ?? null);
         setWarPiece(data.warPiece ?? null);
         setSeriesPiece(data.seriesPiece ?? null);
+        setTtPiece(data.ttPiece ?? null);
         if (data.layouts) setLayouts(data.layouts);
         if (processToolEvents(data.overlayEvents, false) > 0) activity = true;
         if (activity) lastActivityRef.current = Date.now();
@@ -494,6 +499,7 @@ export function OverlayClient({
         setLoungeRoom(data.loungeRoom ?? null);
         setWarPiece(data.warPiece ?? null);
         setSeriesPiece(data.seriesPiece ?? null);
+        setTtPiece(data.ttPiece ?? null);
       if (data.layouts) setLayouts(data.layouts);
       processToolEvents(data.overlayEvents, true);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
@@ -592,6 +598,9 @@ export function OverlayClient({
       )}
       {seriesPiece && isPlacementEnabled(format, "series", layouts[format]) && (
         <SeriesOverlay piece={seriesPiece} style={placementStyle(format, "series", layouts[format])} />
+      )}
+      {ttPiece && isPlacementEnabled(format, "time_trial", layouts[format]) && (
+        <TtOverlay piece={ttPiece} style={placementStyle(format, "time_trial", layouts[format])} />
       )}
       {viewers?.live && isPlacementEnabled(format, "viewers", layouts[format]) && (
         <ViewerCountOverlay viewers={viewers} style={placementStyle(format, "viewers", layouts[format])} />

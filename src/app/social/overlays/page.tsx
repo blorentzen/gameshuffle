@@ -36,6 +36,7 @@ const PIECES: { id: ShowcasePiece; label: string }[] = [
   { id: "battle", label: "Viewer battle: Smash Ultimate" },
   { id: "chaos", label: "Event banner: active modifier and open challenge" },
   { id: "picks_bans", label: "Picks & bans open banner" },
+  { id: "time_trial", label: "Time trial: a live hour on Rainbow Road" },
 ];
 
 /** A viewer battle the way !gs-battle stores it: one fighter per player, the player's name as the detail line. */

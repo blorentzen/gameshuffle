@@ -19,6 +19,7 @@ import { clockText, cutRoundLabel } from "@/lib/tournaments/swiss";
 import type { ViewCutMatch, ViewTable } from "@/lib/tournaments/swissStore";
 import { useClock, useSwiss } from "./useSwiss";
 import { CutMatches, ResultModal, StandingsTable, TablesTable } from "./SwissParts";
+import { TtMatchChecks } from "@/components/tournament/tt/TtMatchChecks";
 
 type Open = { kind: "table"; t: ViewTable } | { kind: "cut"; m: ViewCutMatch } | null;
 
@@ -32,10 +33,12 @@ export function SwissRunPanel({ tournamentId, status, decksRequired, onStatus }:
 }) {
   const toast = useToast();
   const confirm = useConfirm();
-  const { view, missing, busy, act } = useSwiss(tournamentId);
+  const { view, missing, busy, act, reload } = useSwiss(tournamentId);
   const [open, setOpen] = useState<Open>(null);
   const [dropOpen, setDropOpen] = useState(false);
   const [dropId, setDropId] = useState("");
+  const [backOpen, setBackOpen] = useState(false);
+  const [backId, setBackId] = useState("");
   const left = useClock(view?.clock ?? null);
 
   if (missing) return <Alert variant="info" title="Swiss needs a database update">Once it&apos;s applied, you can pair round 1 here.</Alert>;
@@ -85,6 +88,7 @@ export function SwissRunPanel({ tournamentId, status, decksRequired, onStatus }:
   const champion = view.cut ? view.cut.matches.find((m) => m.round === view.cut!.bracket.rounds - 1)?.winner ?? null : view.phase === "done" ? view.standings[0]?.id ?? null : null;
   const canRepair = view.phase === "swiss" && !!view.round && view.round.tables.every((t) => !t.b || (t.state === "waiting" && !t.reportA && !t.reportB && !t.result));
   const dropChoices = view.standings.filter((r) => !r.dropped).map((r) => ({ value: r.id, label: `${r.name} (${r.record})` }));
+  const backChoices = view.standings.filter((r) => r.dropped).map((r) => ({ value: r.id, label: `${r.name} (${r.record})` }));
 
   return (
     <div className="swiss-run">
@@ -139,11 +143,19 @@ export function SwissRunPanel({ tournamentId, status, decksRequired, onStatus }:
         <div className="swiss-run__actions">
           <div className="swiss-run__secondary">
             <Button variant="ghost" size="small" onClick={() => { setDropId(""); setDropOpen(true); }} disabled={!!busy}>Drop a player</Button>
+            {backChoices.length > 0 && <Button variant="ghost" size="small" onClick={() => { setBackId(""); setBackOpen(true); }} disabled={!!busy}>Bring a player back</Button>}
             {canRepair && <Button variant="ghost" size="small" onClick={async () => { if (await confirm({ title: `Re-pair round ${view.round!.n}?`, body: "Nobody has reported yet. Everyone gets new tables and a new alert.", confirmLabel: "Re-pair" })) void run({ action: "repair" }, "Round re-paired."); }} disabled={!!busy}>Re-pair this round</Button>}
           </div>
+          {view.timeTrial && view.next === "wait" && (
+            <Button variant="secondary" loading={busy === "tt_close"} disabled={!!busy}
+              onClick={async () => { if (await confirm({ title: "Settle the open matches?", body: view.phase === "cut" ? "Open top cut matches are settled on the times added so far: a missing time loses its track. A level match waits for you to enter it." : "Open matches are settled on the times added so far: a missing time loses its track, and a level match is a tie.", confirmLabel: "Settle them" })) void run({ action: "tt_close" }, "Settled on the times."); }}>
+              Settle on the times so far
+            </Button>
+          )}
           <Button variant="primary" onClick={() => void step()} loading={busy === "pair" || busy === "cut" || busy === "finish"} disabled={!!busy || !view.next || view.next === "wait"}>{mainLabel}</Button>
         </div>
       )}
+      {view.timeTrial && view.phase !== "done" && <TtMatchChecks tournamentId={tournamentId} onChange={() => void reload()} />}
       <p className="swiss-help">Pairings: same record first, no rematches, and the bye goes to the lowest record that hasn&apos;t had one. A result can be changed until the round after next is paired.</p>
 
       <Accordion
@@ -205,6 +217,20 @@ export function SwissRunPanel({ tournamentId, status, decksRequired, onStatus }:
         <div className="swiss-drop">
           <Select floatingLabel="Player" fullWidth value={dropId} onChange={(v) => setDropId(String(v))} options={[{ value: "", label: "Choose a player" }, ...dropChoices]} />
           <p className="swiss-help">They aren&apos;t paired again and keep their record. An unfinished match this round counts as a loss for them.</p>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={backOpen}
+        onClose={() => setBackOpen(false)}
+        title="Bring a player back"
+        size="small"
+        primaryAction={{ label: "Bring them back", onClick: async () => { if (backId && (await run({ action: "undrop", participantId: backId }, "They're back in."))) setBackOpen(false); } }}
+        secondaryAction={{ label: "Cancel", onClick: () => setBackOpen(false) }}
+      >
+        <div className="swiss-drop">
+          <Select floatingLabel="Player" fullWidth value={backId} onChange={(v) => setBackId(String(v))} options={[{ value: "", label: "Choose a player" }, ...backChoices]} />
+          <p className="swiss-help">They&apos;re paired again from the next round, with the record they had. This works until the next round is paired.</p>
         </div>
       </Modal>
     </div>

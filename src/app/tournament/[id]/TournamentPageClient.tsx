@@ -55,6 +55,10 @@ import { IconFlagCheck, IconTrophy } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { GameCover } from "@/components/games/GameCover";
 import { SwissPublicPanel } from "@/components/tournament/swiss/SwissPublicPanel";
+import { TtEventPanel } from "@/components/tournament/tt/TtEventPanel";
+import { TtBracketPanel } from "@/components/tournament/tt/TtBracketPanel";
+import { isTtBracket } from "@/lib/tournaments/tt/bracketTt";
+import { isTtSwiss } from "@/lib/tournaments/tt/swissTt";
 import { DeckListPicker } from "@/components/tournament/decks/DeckListPicker";
 import { MyDeckListCard, PublicDeckLists } from "@/components/tournament/decks/TournamentDeckLists";
 import { deckListSettingsOf, deckListsOn, deckNeededToJoin } from "@/lib/tournaments/deckLists";
@@ -742,7 +746,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
           {tournament.hosted_by_gs && <Badge variant="info" size="small">Official</Badge>}
           <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status.replace("_", " ")}</span>
           {/* Swiss is 1v1, so its badge names the format instead of a team mode. */}
-          <span className="lounge-mode-badge">{tournament.format === "swiss" ? "Swiss" : tournament.mode.toUpperCase()}</span>
+          <span className="lounge-mode-badge">{tournament.format === "swiss" ? "Swiss" : tournament.format === "time_trial" || isTtBracket(tournament) ? "Time trial" : tournament.mode.toUpperCase()}</span>
           {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
           <span className="event-game-badge">
             <span className="event-game-badge__cover"><GameCover slug={tournament.game_slug} name={gameLabel} /></span>
@@ -822,6 +826,11 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
           )}
 
           {/* Swiss: your match, the round's tables, standings and the top cut. */}
+          {/* Time trial: your times or group first, then the round and the field. */}
+          {tournament.format === "time_trial" && tournament.status !== "draft" && <TtEventPanel tournamentId={tournamentId} />}
+          {/* A bracket decided by time trial: your match and the matches in play (the bracket drawing follows). */}
+          {isTtBracket(tournament) && tournament.status !== "draft" && <TtBracketPanel tournamentId={tournamentId} />}
+
           {tournament.format === "swiss" && tournament.status !== "draft" && (
             <SwissPublicPanel tournamentId={tournamentId} showDeckLink={decksOn && !!myParticipation} />
           )}
@@ -1126,7 +1135,7 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
             const reg = tournament.acceptance_mode === "auto" ? "Open · join instantly" : "Approval required";
             const items: { label: string; value: string }[] = [
               ...(fmt ? [{ label: "Format", value: fmt }] : []),
-              ...(tournament.format === "swiss" ? [] : [{ label: "Team mode", value: tournament.mode.toUpperCase() }]),
+              ...(tournament.format === "swiss" || tournament.format === "time_trial" || isTtBracket(tournament) ? [] : [{ label: "Team mode", value: tournament.mode.toUpperCase() }]),
               ...(structure ? [{ label: "Structure", value: structure }] : []),
               { label: "Registration", value: reg },
               { label: "Spots", value: spots },
@@ -1145,8 +1154,8 @@ export function TournamentPageClient({ initial, baseUrl, circuitCap = null }: { 
             );
           })()}
 
-          {/* Race Settings */}
-          {tournament.settings && (
+          {/* Race Settings (a time trial's board and tracks are in its own panel) */}
+          {tournament.settings && tournament.format !== "time_trial" && !isTtBracket(tournament) && !(tournament.format === "swiss" && isTtSwiss(tournament.settings)) && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1.4rem" }}>Race Settings</h2>
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginBottom: "1.75rem" }}>

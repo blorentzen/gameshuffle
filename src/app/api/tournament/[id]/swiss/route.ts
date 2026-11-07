@@ -9,20 +9,23 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canManageEvent } from "@/lib/events/attendees";
 import { rateLimit } from "@/lib/ratelimit";
+import { canCheckEvent } from "@/lib/tournaments/tt/store";
 import { SWISS_ERRORS, buildView, loadSwiss, organizerAct, playerDrop, playerReport, visibleTo, type OrganizerAction, type SwissError } from "@/lib/tournaments/swissStore";
 
 export const runtime = "nodejs";
 
-const ORGANIZER = new Set(["start", "pair", "cut", "finish", "repair", "result", "timer", "drop_player", "undrop"]);
+const ORGANIZER = new Set(["start", "pair", "cut", "finish", "repair", "result", "timer", "drop_player", "undrop", "tt_close"]);
 
 async function viewer(id: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const canManage = user ? await canManageEvent("tournament", id, user.id) : false;
-  return { userId: user?.id ?? null, canManage };
+  // A verifier sees the times to check when the organizer asks for clips (time trial matches).
+  const canCheck = user && !canManage ? await canCheckEvent(id, user.id) : false;
+  return { userId: user?.id ?? null, canManage, canCheck };
 }
 
-async function view(id: string, who: { userId: string | null; canManage: boolean }) {
+async function view(id: string, who: { userId: string | null; canManage: boolean; canCheck?: boolean }) {
   const ctx = await loadSwiss(id);
   if (ctx === "missing") return NextResponse.json({ ok: false, error: "missing", message: SWISS_ERRORS.missing }, { status: 503 });
   if (!ctx || !visibleTo(ctx, who.canManage)) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });

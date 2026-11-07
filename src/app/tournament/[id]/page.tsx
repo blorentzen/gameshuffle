@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/admin";
 import { tournamentPlayerCap } from "@/lib/tournaments/circuit-resolve";
+import { CameFrom } from "@/components/social/CameFrom";
 import { createClient } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/env";
 import { listTiers } from "@/lib/events/tickets";
@@ -71,5 +72,11 @@ export default async function TournamentPage({ params }: { params: Promise<{ id:
   const circuitCap = initial
     ? await tournamentPlayerCap(createServiceClient(), { id: initial.tournament.id, organizer_id: initial.tournament.organizer_id, game_slug: initial.tournament.game_slug, created_at: initial.tournament.created_at }).catch(() => Number.POSITIVE_INFINITY)
     : Number.POSITIVE_INFINITY;
-  return <TournamentPageClient initial={initial} baseUrl={getBaseUrl()} circuitCap={Number.isFinite(circuitCap) ? circuitCap : null} />;
+  return (
+    <>
+      {/* A visitor who signs up after this page is offered to follow the organizer (bring-along picks). */}
+      <CameFrom userId={initial?.tournament.organizer_id} />
+      <TournamentPageClient initial={initial} baseUrl={getBaseUrl()} circuitCap={Number.isFinite(circuitCap) ? circuitCap : null} />
+    </>
+  );
 }

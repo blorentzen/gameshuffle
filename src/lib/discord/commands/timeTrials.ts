@@ -35,6 +35,7 @@ import { COMP_COLOR, panelFor, postToPanelChannel, refreshPanels } from "../ttPa
 import { handleTtPanelCommand } from "./ttPanelActions";
 import { countryOf, isCountryCode, noteAsked, pickCountry, shouldAskCountry } from "@/lib/timeTrials/countries";
 import { countryCodes } from "@/lib/lounge/flags";
+import { countInEvent, eventsForBoardTimeAll } from "@/lib/tournaments/tt/countIn";
 import { countryName } from "@/lib/lounge/countries";
 
 /** A country's flag as emoji (Discord draws these on every platform). */
@@ -69,6 +70,8 @@ export const TT_VOUCH_PREFIX = "ttw:";
 /** "Add clip" on a top-ten time, and the form it opens (round 2). */
 export const TT_CLIP_PREFIX = "ttclip:";
 export const TT_CLIP_MODAL_PREFIX = "ttclipm:";
+/** "Count it in <event>": a /tt add time also counts in a time trial event the player is running (events pick 10A). */
+export const TT_EVENT_PREFIX = "tteva:";
 
 const COLOR = 0x2b52d6;
 /** Where "Link to GameShuffle" goes, and the line beside it (picks 2026-10-29, 3A). */
@@ -227,17 +230,25 @@ async function saveAndAnswer(args: {
   const askClip = res.needsVideo && !args.clip;
   const clipLine = askClip ? "That's a top-ten time. It shows as Unverified until a reviewer checks a clip of the run's last 30 seconds: press Add clip."
     : args.clip ? "Your clip is in the review queue. The time shows as Verified once it's checked." : null;
+  // A time trial event the player is in, open on this track and board: the bot asks whether to count it there too.
+  const events = actor.userId && args.proof === "screenshot" && !res.again
+    ? (await eventsForBoardTimeAll(actor.userId, { game: track.game, track: track.id, cc, items: args.items, vehicle: res.vehicle }).catch(() => [])).slice(0, 3)
+    : [];
+  const eventLine = events.length ? `You're in ${events.length === 1 ? events[0].title : `${events.length} time trial events`} on this track. Count this run there too?` : null;
   // Asked once in Discord (round 4 pick 1A): a player with no country.
   const askCountry = await shouldAskCountry(actor.player, "discord");
   const countryLine = askCountry ? `Add your country with ${ttCmd(appId)} country, so your times count on your country's records.` : null;
   await editOriginal(appId, token, {
-    content: [...resultLines(track, cc, timeMs, res, args.items, args.vehicle), ...(clipLine ? [clipLine] : []), ...(countryLine ? [countryLine] : []), ...(unlinked ? [LINK_LINE] : [])].join("\n"),
-    components: [row(
-      ...(askClip ? [btn("Add clip", `${TT_CLIP_PREFIX}${res.timeId}`, 1)] : []),
-      btn("Undo", `${TT_UNDO_PREFIX}${res.timeId}`, 2),
-      link("Track board", boardUrl(track, cc, args.items, args.vehicle)),
-      ...(unlinked ? [link("Link to GameShuffle", LINK_URL)] : []),
-    )],
+    content: [...resultLines(track, cc, timeMs, res, args.items, args.vehicle), ...(eventLine ? [eventLine] : []), ...(clipLine ? [clipLine] : []), ...(countryLine ? [countryLine] : []), ...(unlinked ? [LINK_LINE] : [])].join("\n"),
+    components: [
+      ...(events.length ? [row(...events.map((e) => btn(`Count it in ${e.title}`.slice(0, 80), `${TT_EVENT_PREFIX}${res.timeId}:${e.id}`, 1)))] : []),
+      row(
+        ...(askClip ? [btn("Add clip", `${TT_CLIP_PREFIX}${res.timeId}`, 1)] : []),
+        btn("Undo", `${TT_UNDO_PREFIX}${res.timeId}`, 2),
+        link("Track board", boardUrl(track, cc, args.items, args.vehicle)),
+        ...(unlinked ? [link("Link to GameShuffle", LINK_URL)] : []),
+      ),
+    ],
   });
   if (askCountry) await noteAsked(actor.player, "discord");
   const recordPosted = guildId && prior ? await postServerRecord({ guildId, actor, track, cc, items: args.items, vehicle: args.vehicle, timeMs, prior, res }) : false;
@@ -295,7 +306,7 @@ export async function handleGsTt(interaction: Record<string, unknown>): Promise<
     if (timeText && !timeMs) return reply({ content: `Couldn't read "${timeText.slice(0, 20)}" as a time. Type it like 1:52.384.` }, true);
     const videoText = String(optValue(opts, "video") ?? "").trim();
     const video = videoText ? videoProof(videoText) : null;
-    if (videoText && !video) return reply({ content: "That video link isn't one we take. Use a YouTube, Twitch, Streamable or Medal link." }, true);
+    if (videoText && !video) return reply({ content: "That video link isn't one we take. Use a link from YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram." }, true);
     const attachmentId = optValue(opts, "screenshot");
     const resolved = (interaction.data as { resolved?: { attachments?: Record<string, Attachment> } } | undefined)?.resolved;
     const attachment = attachmentId ? resolved?.attachments?.[String(attachmentId)] ?? null : null;
@@ -555,7 +566,7 @@ export async function handleTtClipModal(interaction: Record<string, unknown>, cu
   const rows = ((interaction.data as { components?: { components?: { custom_id?: string; value?: string }[] }[] } | undefined)?.components ?? []);
   const raw = rows.flatMap((r) => r.components ?? []).find((c) => c.custom_id === "url")?.value ?? "";
   const url = videoProof(raw);
-  if (!url) return reply({ content: "That link isn't one we take. Use a YouTube, Twitch, Streamable or Medal link." }, true);
+  if (!url) return reply({ content: "That link isn't one we take. Use a link from YouTube, Twitch, Streamable, Medal, X, Bluesky, TikTok or Instagram." }, true);
   const actor = await discordActor(user);
   const ok = await setVideo(actor.player, timeId, url);
   return reply({ content: ok ? "Clip added. A reviewer will check it, and the time shows as Verified once it's done." : "That clip couldn't be added to this time." }, true);
@@ -596,13 +607,32 @@ export async function handleTtButton(interaction: Record<string, unknown>, custo
     return Response.json({ type: 6 });
   }
 
+  if (customId.startsWith(TT_EVENT_PREFIX)) {
+    const [timeId, eventId] = customId.slice(TT_EVENT_PREFIX.length).split(":");
+    after(async () => {
+      const actor = await discordActor(user);
+      if (!actor.userId) { await editOriginal(appId, token, { content: "Link your GameShuffle account first: events count times for accounts." }); return; }
+      const r = await countInEvent(eventId, actor.userId, timeId);
+      if (!r.ok) { await editOriginal(appId, token, { content: r.message }); return; }
+      const t = ttTrack(r.game, r.track);
+      const where = r.kind === "match"
+        ? `Counted in ${r.title}. ${r.settled ? (r.won > r.lost ? `You won the match, ${r.won} to ${r.lost} in tracks.` : `You lost the match, ${r.won} to ${r.lost} in tracks.`) : r.held ? `${r.won > r.lost ? "You won" : "You lost"} ${r.won} to ${r.lost} in tracks. It counts once the clips are checked.` : r.won > r.lost ? `You lead ${r.won} to ${r.lost} in tracks.` : r.won < r.lost ? `You trail ${r.won} to ${r.lost} in tracks.` : `Level at ${r.won} to ${r.lost} in tracks.`}`
+        : r.runoff ? `Counted as your run-off time in ${r.title}.` : `Counted in ${r.title}: ${ordinal(r.place)} of ${r.total} on ${t ? trackTitle(t) : "this track"} so far.`;
+      const clipAsk = !r.needsClip ? "" : r.kind === "event"
+        ? " The organizer asks for a clip of this run's last 30 seconds before the results are final: add it on the event page."
+        : " The organizer asks for a clip of this run's last 30 seconds before your match counts: add it on the tournament page.";
+      await editOriginal(appId, token, { content: where + clipAsk, components: [row(link("Open the event", `${SITE_URL}/tournament/${eventId}`))] });
+    });
+    return Response.json({ type: 5, data: { flags: 64 } });
+  }
+
   const timeId = customId.slice(customId.indexOf(":") + 1);
 
   if (customId.startsWith(TT_CLIP_PREFIX)) {
     return Response.json({ type: 9, data: {
       custom_id: `${TT_CLIP_MODAL_PREFIX}${timeId}`,
       title: "Add your clip",
-      components: [{ type: 1, components: [{ type: 4, custom_id: "url", label: "Clip of the run's last 30 seconds", style: 1, placeholder: "YouTube, Twitch, Streamable or Medal link", required: true, max_length: 300 }] }],
+      components: [{ type: 1, components: [{ type: 4, custom_id: "url", label: "Clip of the run's last 30 seconds", style: 1, placeholder: "YouTube, Twitch, Medal, X, TikTok or Instagram link", required: true, max_length: 300 }] }],
     } });
   }
 

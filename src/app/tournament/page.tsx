@@ -23,10 +23,10 @@ export default async function TournamentBrowsePage() {
       <BrowseHero
         eyebrow="Compete"
         title="Run the bracket. Crown a winner."
-        sub={<>One-off tournaments and full championship seasons: brackets, points, or the Heat &rarr; Mains ladder. Bring Mario Kart, or name your own game and write the rules. Randomized rounds nobody can argue with, live scoring, and a season table that keeps itself.</>}
+        sub={<>One-off tournaments and full championship seasons: brackets, Swiss, points or the Heat &rarr; Mains ladder, for any game. Pick one we know, or name your own and write the rules. Randomized rounds nobody can argue with, live scoring, and a season table that keeps itself.</>}
         accent="cyan"
         field="compete"
-        primary={canCreate ? { href: "/tournament/create", label: "Create a tournament" } : { href: "/signup", label: "Create a tournament" }}
+        primary={user ? { href: "/tournament/create", label: "Create a tournament" } : { href: "/signup?redirect=/tournament/create", label: "Create a tournament" }}
         secondary={{ href: "/tournament/sandbox", label: "Try the demo" }}
       />
 

@@ -15,17 +15,25 @@ import { BracketView } from "@/components/tournament/BracketView";
 import { clockText, cutRoundLabel, scoreChoices } from "@/lib/tournaments/swiss";
 import type { SwissView } from "@/lib/tournaments/swissStore";
 import { useClock, useSwiss } from "./useSwiss";
+import { useState } from "react";
+import { IconPlus } from "@tabler/icons-react";
+import { AddTimeWindow, ClipWindow, MatchTracks, boardLine } from "@/components/tournament/tt/TtParts";
+import { TtMatchChecks } from "@/components/tournament/tt/TtMatchChecks";
 import { CutMatches, StandingsTable, TablesTable } from "./SwissParts";
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
 
-function MatchCard({ view, you, act, busy, onDeck }: {
+function MatchCard({ view, you, act, busy, onDeck, tournamentId, reload }: {
   view: SwissView;
   you: NonNullable<SwissView["you"]>;
   act: (b: Record<string, unknown>) => Promise<string | null>;
   busy: string | null;
   onDeck?: () => void;
+  tournamentId: string;
+  reload: () => void;
 }) {
+  const [adding, setAdding] = useState<string | null | false>(false);
+  const [clipFor, setClipFor] = useState<{ id: string; track: string; ms: number } | null>(null);
   const toast = useToast();
   const confirm = useConfirm();
   const left = useClock(view.clock);
@@ -60,6 +68,8 @@ function MatchCard({ view, you, act, busy, onDeck }: {
   const choices = scoreChoices(view.bestOf, m.cut);
   const statusLine = m.state === "bye" ? "A bye counts as a win. Sit back until the next round."
     : m.result ? (m.result.mine > m.result.theirs ? `You won ${m.result.mine}-${m.result.theirs}.` : m.result.mine < m.result.theirs ? `You lost ${m.result.mine}-${m.result.theirs}.` : `A tie, ${m.result.mine}-${m.result.theirs}.`) + (m.setByOrganizer ? " Entered by the organizer." : "")
+    : m.tt?.held ? `${m.tt.won > m.tt.lost ? "You won" : "You lost"} ${m.tt.won} to ${m.tt.lost} in tracks. It counts once the clips are checked.`
+    : m.tt ? (m.tt.won > m.tt.lost ? `You lead ${m.tt.won} to ${m.tt.lost} in tracks.` : m.tt.won < m.tt.lost ? `You trail ${m.tt.won} to ${m.tt.lost} in tracks.` : m.tt.won ? `Level at ${m.tt.won} to ${m.tt.lost}.` : `Race ${m.tt.tracks.length === 1 ? "the track" : "the tracks"} and add your time${m.tt.tracks.length === 1 ? "" : "s"}. The faster time takes each track.`)
     : m.state === "disagree" ? "You two reported different results. The organizer will settle it."
     : m.opponent && !m.opponent.account ? `${m.opponent.name} joined without an account, so the organizer enters this result${m.myReport ? ". Yours is sent." : "."}`
     : m.myReport ? `Waiting for ${m.opponent?.name ?? "your opponent"} to confirm.`
@@ -81,7 +91,18 @@ function MatchCard({ view, you, act, busy, onDeck }: {
       {view.clock && left !== null && !m.result && (
         <p className="swiss-you__clock"><span className="swiss-clock__time">{clockText(left)}</span> <span className="swiss-muted">{view.clock.running ? "left" : "paused"} · best of {view.bestOf}</span></p>
       )}
-      {m.opponent && !m.result && !m.setByOrganizer && (
+      {m.tt && view.timeTrial && m.opponent && (
+        <div className="swiss-tt">
+          <p className="swiss-muted">{boardLine(view.timeTrial)}</p>
+          <MatchTracks game={view.timeTrial.game} opponent={m.opponent.name} locked={!!m.result || m.tt.held} onAdd={(t) => setAdding(t)} onClip={setClipFor}
+            rows={m.tt.tracks.map((t) => ({ id: t.id, mine: t.mine, theirs: t.theirs, proof: t.mineProof }))} />
+          {!m.result && !m.tt.held && <Button variant="primary" iconBefore={IconPlus} onClick={() => setAdding(null)}>Add my time</Button>}
+          <AddTimeWindow open={adding !== false} onClose={() => setAdding(false)} tournamentId={tournamentId} settings={view.timeTrial} tracks={m.tt.tracks.map((t) => t.id)}
+            runoff={false} start={adding || null} match onAdded={() => reload()} />
+          <ClipWindow tournamentId={tournamentId} item={clipFor} game={view.timeTrial.game} match onClose={() => setClipFor(null)} onDone={() => reload()} />
+        </div>
+      )}
+      {m.opponent && !m.result && !m.setByOrganizer && !m.tt && (
         <div className="swiss-you__report" role="group" aria-label="Report the result">
           <p className="swiss-you__ask">Report the result</p>
           <div className="swiss-you__choices">
@@ -106,7 +127,7 @@ function MatchCard({ view, you, act, busy, onDeck }: {
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
 
 export function SwissPublicPanel({ tournamentId, showDeckLink }: { tournamentId: string; showDeckLink?: boolean }) {
-  const { view, busy, act } = useSwiss(tournamentId);
+  const { view, busy, act, reload } = useSwiss(tournamentId);
   if (!view) return <div className="comp-card"><LoadingLines label="Loading Swiss" /></div>;
   if (view.phase === "setup") {
     return (
@@ -121,7 +142,7 @@ export function SwissPublicPanel({ tournamentId, showDeckLink }: { tournamentId:
   const champion = view.cut ? view.cut.matches.find((m) => m.round === view.cut!.bracket.rounds - 1)?.winner ?? null : view.phase === "done" ? view.standings[0]?.id ?? null : null;
   return (
     <>
-      {view.you && <MatchCard view={view} you={view.you} act={act} busy={busy} onDeck={showDeckLink ? () => document.getElementById("deck-list")?.scrollIntoView({ behavior: "smooth" }) : undefined} />}
+      {view.you && <MatchCard view={view} you={view.you} act={act} busy={busy} tournamentId={tournamentId} reload={() => void reload()} onDeck={showDeckLink ? () => document.getElementById("deck-list")?.scrollIntoView({ behavior: "smooth" }) : undefined} />}
 
       {champion && <div className="comp-card"><p className="swiss-champion"><IconTrophy size={18} stroke={1.9} aria-hidden /> {nameOf(champion)} won the tournament</p></div>}
 
@@ -140,8 +161,14 @@ export function SwissPublicPanel({ tournamentId, showDeckLink }: { tournamentId:
         </div>
       )}
 
+      {view.timeTrial && view.canCheck && !view.canManage && view.phase !== "done" && (
+        <div className="comp-card tt-ev">
+          <TtMatchChecks tournamentId={tournamentId} onChange={() => void reload()} />
+        </div>
+      )}
+
       <div className="comp-card" id="swiss-standings">
-        <h2 className="swiss-card-title">{view.phase === "done" ? "Final standings" : view.phase === "cut" ? "Swiss standings" : `Standings after round ${(view.round?.n ?? 1) - (view.counts.done < view.counts.tables ? 1 : 0)}`}</h2>
+        <h2 className="swiss-card-title">{view.phase === "done" ? "Final standings" : view.phase === "cut" ? "Swiss standings" : ((view.round?.n ?? 1) - (view.counts.done < view.counts.tables ? 1 : 0) > 0 ? `Standings after round ${(view.round?.n ?? 1) - (view.counts.done < view.counts.tables ? 1 : 0)}` : "Standings")}</h2>
         <StandingsTable rows={view.standings} topCut={view.topCut} final={view.phase === "done"} highlight={view.you?.participantId ?? null} />
       </div>
 

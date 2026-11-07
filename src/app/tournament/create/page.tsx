@@ -31,6 +31,11 @@ import { GAME_CATALOG, catalogGame } from "@/data/game-catalog";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { SwissSettingsFields, DeckListSettingsFields } from "@/components/tournament/swiss/SwissSettingsFields";
 import { defaultSwissSettings, type SwissSettings } from "@/lib/tournaments/swiss";
+import { TtEventSettingsFields } from "@/components/tournament/tt/TtEventSettingsFields";
+import { TtBracketFields } from "@/components/tournament/tt/TtBracketFields";
+import type { TtBestOf } from "@/lib/tournaments/tt/bracketTt";
+import { defaultTtSettings, type TtEventSettings } from "@/lib/tournaments/tt/event";
+import { gameBySlug } from "@/lib/timeTrials/tracks";
 import { DEFAULT_DECK_LISTS, isDeckListGame, type DeckListSettings } from "@/lib/tournaments/deckLists";
 import { HANDOFF_KEY, readHandoff, type Handoff } from "@/lib/brackets/tool";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -87,6 +92,7 @@ const FORMATS = [
   { value: "double_elim", label: "Double Elim", available: true },
   { value: "heat_mains", label: "Heat → Mains ★", available: true },
   { value: "swiss", label: "Swiss", available: false },
+  { value: "time_trial", label: "Time trial", available: false },
 ];
 
 export default function CreateTournamentPage() {
@@ -157,12 +163,28 @@ export default function CreateTournamentPage() {
   const isElim = format === "single_elim" || format === "double_elim";
   // Swiss (and tournament deck lists for Pokémon TCG) once the database has them.
   const [swissReady, setSwissReady] = useState(false);
-  const [swissSettings, setSwissSettings] = useState<SwissSettings>(() => defaultSwissSettings(true));
+  // The 50-minute round clock is for card games (Pokémon TCG); other games start without one. Until the organizer
+  // changes the clock themselves, picking a game sets it to that game's default.
+  const [swissSettings, setSwissSettings] = useState<SwissSettings>(() => defaultSwissSettings(false));
+  const [swissClockSet, setSwissClockSet] = useState(false);
+  const changeSwiss = (next: SwissSettings) => {
+    if (next.roundMinutes !== swissSettings.roundMinutes) setSwissClockSet(true);
+    setSwissSettings(next);
+  };
+  const [ttReady, setTtReady] = useState(false);
   const [deckLists, setDeckLists] = useState<DeckListSettings>({ ...DEFAULT_DECK_LISTS, when: "join" });
   useEffect(() => {
-    fetch("/api/tournaments/swiss-ready").then((r) => (r.ok ? r.json() : null)).then((d) => setSwissReady(!!d?.ready)).catch(() => {});
+    fetch("/api/tournaments/swiss-ready").then((r) => (r.ok ? r.json() : null)).then((d) => { setSwissReady(!!d?.ready); setTtReady(!!d?.tt); }).catch(() => {});
   }, []);
-  const formats = FORMATS.map((f) => (f.value === "swiss" ? { ...f, available: swissReady } : f));
+  // Time trial events (Mario Kart 8 Deluxe and World) once the database has them; settings follow the game picked.
+  const [ttPicked, setTtPicked] = useState<TtEventSettings | null>(null);
+  const ttGame = gameBySlug(gameSlug)?.id ?? null;
+  const ttSettings = ttGame ? (ttPicked?.game === ttGame ? ttPicked : defaultTtSettings(ttGame)) : null;
+  // Single or double elimination decided by time trial (1v1 matches on the event's tracks).
+  const [elimTt, setElimTt] = useState(false);
+  const [elimBestOf, setElimBestOf] = useState<TtBestOf>(1);
+  const elimTtOn = isElim && elimTt && ttReady && !!ttSettings;
+  const formats = FORMATS.map((f) => (f.value === "swiss" ? { ...f, available: swissReady } : f.value === "time_trial" ? { ...f, available: ttReady && !!ttGame } : f));
   // From the free bracket tools ("Run it live", ?from=bracket): the format and
   // name come along, and the players are added as guests once the event exists.
   const toast = useToast();
@@ -183,6 +205,12 @@ export default function CreateTournamentPage() {
     }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
+  // "Run one" on the time trials pages: ?format=time_trial starts on Time trial once we know it's switched on.
+  useEffect(() => {
+    if (!ttReady || new URLSearchParams(window.location.search).get("format") !== "time_trial") return;
+    /* eslint-disable-next-line react-hooks/set-state-in-effect -- read once from the address */
+    setFormat("time_trial");
+  }, [ttReady]);
   const dropHandoff = () => {
     setHandoff(null);
     try { localStorage.removeItem(HANDOFF_KEY); } catch { /* storage blocked */ }
@@ -237,10 +265,15 @@ export default function CreateTournamentPage() {
       <main style={{ paddingTop: "3rem" }}>
         <Container>
           <div className="comp-card" style={{ textAlign: "center", padding: "3rem" }}>
-            <h2>Log in to create a tournament</h2>
-            <a href="/login" style={{ marginTop: "1rem", display: "inline-block" }}>
-              <Button variant="primary">Log In</Button>
-            </a>
+            <h2>Create a tournament</h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-16)", margin: "var(--spacing-12) 0 var(--spacing-24)" }}>
+              Hosting is free with an account. Make one or log in, and you&apos;ll come straight back here.
+            </p>
+            {/* Both keep the way back (?redirect=), and sign-up says what an organizer's account gets (auth-context.ts). */}
+            <div style={{ display: "flex", gap: "var(--spacing-12)", justifyContent: "center", flexWrap: "wrap" }}>
+              <Link href="/signup?redirect=/tournament/create"><Button variant="primary">Create free account</Button></Link>
+              <Link href="/login?redirect=/tournament/create"><Button variant="secondary">Log in</Button></Link>
+            </div>
           </div>
         </Container>
       </main>
@@ -277,6 +310,8 @@ export default function CreateTournamentPage() {
   const noHeat = isParty || isSmash || NO_HEAT_GAMES.has(gameSlug);
   const selectGame = (slug: string) => {
     setGameSlug(slug);
+    if (format === "time_trial" && !gameBySlug(slug)) setFormat("ffa_points");
+    if (!swissClockSet) setSwissSettings((s) => ({ ...s, roundMinutes: defaultSwissSettings(isDeckListGame(slug)).roundMinutes }));
     if (isPartyGame(slug) || isSmashGame(slug)) {
       setGkLobby(isSmashGame(slug) ? 2 : PARTY_TABLE_SIZE);
       setGkAdvance(isSmashGame(slug) ? 1 : PARTY_TABLE_ADVANCE);
@@ -350,8 +385,9 @@ export default function CreateTournamentPage() {
             : gameSlug === "mario-kart-world"
               ? { raceCount: 12, items: "normal", game_label: gameLabel }
               : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard", game_label: gameLabel }),
-          ...(isElim ? { lobbySize: gkLobby, advance: gkAdvance } : {}),
+          ...(isElim ? (elimTtOn ? { lobbySize: 2, advance: 1, timeTrial: true, ttBestOf: elimBestOf } : { lobbySize: gkLobby, advance: gkAdvance }) : {}),
           ...(format === "swiss" ? { swiss: swissSettings } : {}),
+          ...((format === "time_trial" || (format === "swiss" && swissSettings.timeTrial) || elimTtOn) && ttSettings ? { tt: ttSettings } : {}),
           ...(isDeckListGame(resolvedSlug) && swissReady ? { deckLists } : {}),
           locationType,
           location: locationType === "in_person" ? (locationText.trim() || null) : null,
@@ -406,6 +442,7 @@ export default function CreateTournamentPage() {
     if (!title.trim()) { setError(`${runMode === "championship" ? "Championship" : "Tournament"} name is required.`); return; }
     if (isReservedName(title) && !(runMode === "single" && hostedByGs)) { setError(RESERVED_TITLE_MESSAGE); return; }
     if (isOtherGame && !customGame.trim()) { setError("Enter the name of the game."); return; }
+    if (runMode === "single" && (format === "time_trial" || (format === "swiss" && swissSettings.timeTrial) || elimTtOn) && !ttSettings?.tracks.length) { setError("Pick the tracks for the time trial."); return; }
     setSaving(true);
     setError(null);
     if (runMode === "championship") await handleCreateChampionship();
@@ -540,7 +577,9 @@ export default function CreateTournamentPage() {
                       ))}
                     </div>
                     <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
-                      {format === "swiss"
+                      {format === "time_trial"
+                        ? "Time trial: everyone races the same tracks on the same board, and the best time on each track counts. Run one leaderboard, or groups with a cut and a final."
+                        : format === "swiss"
                         ? "Swiss: everyone plays every round against someone on the same record, with no rematches. The best records go on to a top cut bracket."
                         : format === "heat_mains"
                         ? "Heat → Mains: race heats into A/B mains, win to lock the A Main, top finishers transfer up. Want points across a season? Pick Championship series above."
@@ -552,9 +591,15 @@ export default function CreateTournamentPage() {
                             ? "Points: four-player free-for-alls in flights, scoring 10, 6, 3 and 1, plus mission bonus points. Every flight plays the same rolled stage each round."
                             : swissReady ? "FFA/Points: every race scores, and the most points wins." : "FFA/Points and Round Robin run now. Swiss is on the way."}
                     </p>
+                    {format === "time_trial" && ttSettings && (
+                      <div style={{ marginTop: "0.85rem" }}>
+                        <TtEventSettingsFields value={ttSettings} onChange={setTtPicked} players={Number(maxParticipants) || 0} inPerson={locationType === "in_person"} />
+                      </div>
+                    )}
                     {format === "swiss" && (
                       <div style={{ marginTop: "0.85rem" }}>
-                        <SwissSettingsFields value={swissSettings} onChange={setSwissSettings} players={Number(maxParticipants) || 0} />
+                        <SwissSettingsFields value={swissSettings} onChange={changeSwiss} players={Number(maxParticipants) || 0}
+                          timeTrial={ttReady && ttSettings ? { settings: ttSettings, onChange: setTtPicked } : null} />
                       </div>
                     )}
                     {isDeckListGame(resolvedSlug) && swissReady && (
@@ -565,7 +610,10 @@ export default function CreateTournamentPage() {
                     )}
                     {isElim && (
                       <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                        <div>
+                        {ttReady && ttSettings && (
+                          <TtBracketFields on={elimTtOn} bestOf={elimBestOf} settings={ttSettings} onOn={setElimTt} onBestOf={setElimBestOf} onSettings={setTtPicked} players={Number(maxParticipants) || 0} />
+                        )}
+                        {!elimTtOn && <div>
                           <label className="account-card__label" style={{ display: "block", marginBottom: "0.35rem" }}>Players per lobby</label>
                           <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
                             {[2, 3, 4, 6, 8].map((n) => (
@@ -579,8 +627,8 @@ export default function CreateTournamentPage() {
                                 style={{ width: 72, height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", background: "var(--surface-default)", color: "var(--text-primary)" }} />
                             )}
                           </div>
-                        </div>
-                        {gkLobby > 2 && (
+                        </div>}
+                        {!elimTtOn && gkLobby > 2 && (
                           <div>
                             <label className="account-card__label" style={{ display: "block", marginBottom: "0.35rem" }}>How many move on from each lobby</label>
                             <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
@@ -590,12 +638,12 @@ export default function CreateTournamentPage() {
                             </div>
                           </div>
                         )}
-                        <div style={{ padding: "0.65rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)", background: "var(--surface-raised, var(--surface-default))", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+                        {!elimTtOn && <div style={{ padding: "0.65rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)", background: "var(--surface-raised, var(--surface-default))", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                           {gkLobby <= 2
                             ? `Classic 1v1 ${format === "double_elim" ? "double" : "single"}-elimination bracket.${isSmash ? " Best-of-3 sets (finals best of 5) with stage striking; change the rules once it's created." : ""}`
                             : describeStructure({ lobbySize: gkLobby, advance: gkAdvance, bracketing: gkBracketing }, maxParticipants ? Number(maxParticipants) : 16)}
                           {gkLobby > 2 && !maxParticipants && <span style={{ color: "var(--text-tertiary)" }}> (example with 16 players)</span>}
-                        </div>
+                        </div>}
                         {billingEnabled && (circuitPlan.plan === "grace" || circuitPlan.plan === "free") && (
                           <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", margin: 0 }}>
                             <IconSparkles size={14} stroke={1.9} aria-hidden />{" "}

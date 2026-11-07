@@ -34,6 +34,8 @@ export interface SwissSettings {
   bestOf: BestOf;
   /** Minutes per round; null = no clock. */
   roundMinutes: number | null;
+  /** Matches decided by time trial (Mario Kart): best of 1 is one track, best of 3 three (tt/swissTt.ts). */
+  timeTrial?: boolean;
 }
 
 export const ROUND_MINUTE_CHOICES = [25, 50] as const;
@@ -51,7 +53,7 @@ export function swissSettingsOf(settings: unknown, cardGame = false): SwissSetti
   const topCut = raw.topCut === 0 || raw.topCut === 4 || raw.topCut === 8 ? raw.topCut : "auto";
   const bestOf = raw.bestOf === 1 || raw.bestOf === 3 ? raw.bestOf : d.bestOf;
   const roundMinutes = raw.roundMinutes === null ? null : typeof raw.roundMinutes === "number" && raw.roundMinutes > 0 && raw.roundMinutes <= 180 ? Math.round(raw.roundMinutes) : d.roundMinutes;
-  return { rounds, topCut, bestOf, roundMinutes };
+  return { rounds, topCut, bestOf, roundMinutes, ...(raw.timeTrial === true ? { timeTrial: true } : {}) };
 }
 
 /** Play! Pokémon TCG Single Day structure (handbook Sept 1, 2026, Variant #3). */

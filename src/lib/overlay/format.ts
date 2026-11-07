@@ -86,6 +86,9 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     war: { anchor: "bottom-center", scale: 0.9, enabled: false },
     // Team series standings: shows only for a player in a live series (src/lib/series/store.ts seriesPieceFor).
     series: { anchor: "top-right", scale: 0.9 },
+    // Time trial standings: shows only while the streamer is in a running time trial (tt/overlayServer.ts).
+    // Left side: Mario Kart's time trial shows its timer and laps top right.
+    time_trial: { anchor: "mid-left", scale: 0.9 },
   },
   portrait: {
     dice: { anchor: "center", scale: 0.9 },
@@ -111,6 +114,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     lounge_room: { anchor: "top-center", scale: 0.8, enabled: false },
     war: { anchor: "top-center", scale: 0.9, enabled: false },
     series: { anchor: "top-center", scale: 0.8 },
+    time_trial: { anchor: "top-center", scale: 0.8 },
   },
   square: {},
 };
