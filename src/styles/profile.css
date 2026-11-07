@@ -987,6 +987,9 @@ a.friend-tile:hover .friend-tile__name {
   background: transparent;
   border: 1px solid var(--border-default);
 }
+/* A team series you played in (the GS Summer Series), or won. */
+.profile-badge--series { background: #e3f7f2; color: #0f6b5f; border: 1px solid #a7e3d6; }
+html.dark .profile-badge--series { background: rgba(20, 184, 166, 0.16); color: #7fe0cf; border-color: rgba(20, 184, 166, 0.4); }
 /* Supports GameShuffle (/support): a warm pink, like the supporters wall's heart. */
 .profile-badge--supporter {
   background: #fdeef4;

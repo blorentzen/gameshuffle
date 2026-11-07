@@ -38,6 +38,8 @@ function buildMenuSections(args: {
   hasLounges: boolean;
   /** What waits in the time trial review queue for a reviewer or updater (asked when the menu opens); null for anyone else. */
   reviews: number | null;
+  /** Your handle, for your front window (your public profile). */
+  username: string | null;
 }): MenuSectionProps[] {
   const go = (path: string) => () => {
     args.setOpen(false);
@@ -61,6 +63,8 @@ function buildMenuSections(args: {
     label: "Your account",
     items: [
       { label: "Home", onClick: go("/home") },
+      // The home's header used to link here (home cleanup picks 2026-11-07, 1A); on phones the app bar's You opens it.
+      ...(args.username ? [{ label: "Your front window", onClick: go(`/u/${args.username}`) }] : []),
       { label: "Settings", onClick: go("/settings") },
       ...ACCOUNT_SECTIONS.filter((s) => s.kind !== "you" && (!s.staffOnly || args.isStaff)).map((s) => ({
         label: s.label,
@@ -258,6 +262,7 @@ export function UserMenu() {
               isStaff: isStaffRole(profile?.role ?? null),
               hasLounges: !!lounges,
               reviews,
+              username: profile?.username ?? null,
             })}
           />
         </div>

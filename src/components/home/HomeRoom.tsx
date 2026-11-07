@@ -11,8 +11,8 @@ import Link from "next/link";
 import { Suspense, type CSSProperties, type ReactNode } from "react";
 import { Badge, Container } from "@empac/cascadeds";
 import {
-  IconCalendarEvent, IconChartBar, IconClock, IconConfetti, IconDeviceTv, IconFlame,
-  IconEye, IconHeartFilled, IconMessageCircle, IconPlus, IconQuestionMark, IconRoute, IconSparkles, IconStarFilled, IconThumbUp, IconTournament, IconUsersGroup, type Icon,
+  IconCalendarEvent, IconCards, IconChartBar, IconClock, IconConfetti, IconDeviceGamepad2, IconDeviceTv, IconFlame,
+  IconMessageCircle, IconPlus, IconQuestionMark, IconRoute, IconStarFilled, IconThumbUp, IconTournament, IconUserPlus, IconUsersGroup, type Icon,
 } from "@tabler/icons-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { IconTile } from "@/components/ui/IconTile";
@@ -23,13 +23,10 @@ import { MmrCard } from "@/components/mmr/MmrCard";
 import { MmrSince } from "@/components/mmr/MmrLive";
 import { RollNum } from "./RollNum";
 import { TodayBoard, TodayLive, TodayLiveProvider } from "./TodayCarousel";
-import { QuickStartButtons } from "./QuickStart";
 import { StickyRail } from "./StickyRail";
 import { PeopleList } from "@/components/people/PersonRow";
 import { PostLines } from "@/components/social/PostLines";
 import { HappeningBand } from "./HappeningBand";
-import { ProfileEye } from "./ProfileEye";
-import type { ProfileSectionKey } from "@/lib/profile/layout";
 import { HomeVisit, InviteLink, MightLike, PlanRow, ShowingLine, WorldsAndPickUp } from "./HomeForYou";
 import { gsDay } from "@/lib/time/gsClock";
 import { boxArt, findGame } from "@/data/game-catalog";
@@ -37,9 +34,8 @@ import { wideArt } from "@/lib/home/art";
 import { cardFor, liveFor } from "@/lib/mmr/store";
 import { DEFAULT_LOOK, type MmrLook } from "@/lib/mmr/look";
 import { demoSource, viewOf } from "@/lib/mmr/rules";
-import { mmrSeenFor, type Room, type RoomHead, type SinceLine, type Ticket, type Tile } from "@/lib/home/forYou";
+import { mmrSeenFor, type Room, type RoomHead, type SetupStep, type SinceLine, type Ticket, type Tile } from "@/lib/home/forYou";
 import type { GameCard } from "@/lib/home/yourGames";
-import { PILLARS } from "@/lib/nav/pillars";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -66,13 +62,8 @@ export function RoomHeader({ head, showing, interests, band }: { head: RoomHead;
           <div className="room-head__text">
             <h1>Welcome back, {head.name}</h1>
             {head.status && <p className="room-head__status"><IconMessageCircle size={16} stroke={1.9} aria-hidden="true" />{head.status}</p>}
+            {/* What you follow sits behind this one link (home cleanup picks 2026-11-07, 1A); your front window is in the You menu. */}
             <div className="room-head__showing"><ShowingLine showing={showing} interests={interests} /></div>
-            {(head.supporter || head.username) && (
-              <div className="room-head__extras">
-                {head.supporter && <Link href="/account?tab=support" className="room-head__heart"><IconHeartFilled size={14} aria-hidden="true" />Supporter since {head.supporter.since}</Link>}
-                {head.username && <Link href={`/u/${head.username}`} className="room-head__window"><IconEye size={16} aria-hidden="true" />See my front window</Link>}
-              </div>
-            )}
           </div>
         </div>
         {band.length > 0 && <HappeningBand worlds={band} tone="dark" signedIn interests={interests} />}
@@ -134,7 +125,7 @@ async function MmrCardBit({ userId, who, sample }: { userId: string; who: string
   return <div className="mmr-frame" role="region" aria-label="Your card as it shows on stream"><MmrSince initial={live} since={since} who={who} look={look} /></div>;
 }
 
-function CompeteTile({ tile, i, userId, who, mmrFrom, eye }: { tile: TileOf<"compete">; i: number; userId: string; who: string; mmrFrom: number | null; eye: ReactNode }) {
+function CompeteTile({ tile, i, userId, who, mmrFrom }: { tile: TileOf<"compete">; i: number; userId: string; who: string; mmrFrom: number | null }) {
   const l = tile.lounge;
   if (!tile.card && !l) {
     // Nothing to show yet: the game's art and the one step that fills the tile.
@@ -159,8 +150,8 @@ function CompeteTile({ tile, i, userId, who, mmrFrom, eye }: { tile: TileOf<"com
       <div className="room-tile__head">
         <h2 id="room-compete">{tile.card ? "Your MMR card" : "Your lounge"}</h2>
         {tile.sample && <Badge variant="warning" size="small">Sample</Badge>}
-        {eye}
-        {tile.card && <ArrowLink href="/mmr-card" className="room-tile__more">Open the studio</ArrowLink>}
+        {tile.card ? <ArrowLink href="/mmr-card" className="room-tile__more">Open the studio</ArrowLink>
+          : l && <ArrowLink href={l.href} className="room-tile__more">Your lounge page</ArrowLink>}
       </div>
       {tile.card ? (
         <div className="room-compete__card">
@@ -175,17 +166,11 @@ function CompeteTile({ tile, i, userId, who, mmrFrom, eye }: { tile: TileOf<"com
           <div><dt>Times on the boards</dt><dd>{tile.times.toLocaleString("en-US")}</dd></div>
         </dl>
       )}
-      {tile.card && !tile.pro && !tile.sample && <ProChip href="/gs-pro?from=home-mmr">With GS Pro: tonight&apos;s goal on your card</ProChip>}
-      <ul className="room-links">
-        {l ? <li><Link href={l.href}>{l.name}: your lounge page</Link></li> : <li><Link href="/lounge">Confirm your lounge name</Link></li>}
-        {!tile.card && <li><Link href="/mmr-card">Make your MMR card</Link></li>}
-        <li>{tile.times ? <Link href="/account/competitive">{tile.times.toLocaleString("en-US")} {tile.times === 1 ? "time" : "times"} on the boards</Link> : <Link href="/time-trials/import">Add a time</Link>}</li>
-      </ul>
     </TileBox>
   );
 }
 
-function RoadTile({ tile, i, eye }: { tile: TileOf<"road">; i: number; eye: ReactNode }) {
+function RoadTile({ tile, i }: { tile: TileOf<"road">; i: number }) {
   const e = tile.encounter;
   const n = tile.next;
   const picture = e?.picture ?? n?.picture ?? null;
@@ -193,7 +178,6 @@ function RoadTile({ tile, i, eye }: { tile: TileOf<"road">; i: number; eye: Reac
   return (
     <TileBox tile={tile} i={i} className={`room-tile--art${e ? " room-road--blocked" : ""}`} labelId="room-road">
       {picture && <TrainerArt picture={picture} shape="banner" className="room-art" />}
-      {eye}
       <Link href={href} className="room-art__text">
         <h2 id="room-road" className="room-kicker room-kicker--gold">{e ? "Blocking your road" : "Next on your road"}</h2>
         <b className="room-art__title">{e ? e.name : n ? n.name : "Trainer Road"}</b>
@@ -233,6 +217,7 @@ function CardsTile({ tile, i, userId }: { tile: TileOf<"cards">; i: number; user
       <div className="room-tile__head">
         <h2 id="room-cards">My Cards</h2>
         {tile.sample && <Badge variant="warning" size="small">Sample</Badge>}
+        <ArrowLink href="/account/pokemon?tab=my-cards" className="room-tile__more">Open My Cards</ArrowLink>
       </div>
       <div className="room-cards">
         {!tile.sample && tile.cards > 0 && <Suspense fallback={null}><CardsFan userId={userId} /></Suspense>}
@@ -241,42 +226,33 @@ function CardsTile({ tile, i, userId }: { tile: TileOf<"cards">; i: number; user
           <div><dt>{tile.decks === 1 ? "Deck list" : "Deck lists"}</dt><dd>{tile.decks}</dd></div>
         </dl>
       </div>
-      {!tile.pro && tile.cards >= 200 && <ProChip href="/gs-pro?from=home-cards">With GS Pro: keep more than 250 cards</ProChip>}
-      <ul className="room-links">
-        <li><Link href="/account/pokemon?tab=my-cards">{tile.cards ? "Open My Cards" : "Add your cards"}</Link></li>
-        <li><Link href="/account/pokemon?tab=tcg-decks">{tile.decks ? "Your deck lists" : "Paste a deck list"}</Link></li>
-      </ul>
     </TileBox>
   );
 }
 
-function ShelfTile({ tile, i, eye }: { tile: TileOf<"shelf">; i: number; eye: ReactNode }) {
+function ShelfTile({ tile, i }: { tile: TileOf<"shelf">; i: number }) {
   return (
     <TileBox tile={tile} i={i} labelId="room-shelf">
       <div className="room-tile__head">
         <h2 id="room-shelf">Your games</h2>
-        {tile.games.length > 0 && eye}
-        <ArrowLink href="/account?tab=games" className="room-tile__more">{tile.games.length ? "Change" : "Pick them"}</ArrowLink>
+        <ArrowLink href="/account?tab=games" className="room-tile__more">Change</ArrowLink>
       </div>
-      {tile.games.length ? (
-        <ul className="room-shelf">
-          {tile.games.map((g) => {
-            const inner = (
-              <>
-                <GameCover name={g.name} className="room-shelf__cover" />
-                <span className="sr-only">{g.name}</span>
-                {g.action && <span className="room-shelf__act" aria-hidden="true">{g.action}</span>}
-              </>
-            );
-            return <li key={g.name}>{g.href ? <Link href={g.href} aria-label={`${g.action} ${g.name}`}>{inner}</Link> : <span>{inner}</span>}</li>;
-          })}
-          {tile.games.length < 6 && (
-            <li><Link href="/account?tab=games" className="room-shelf__add"><span className="room-shelf__slot"><IconPlus size={26} stroke={1.8} aria-hidden="true" /></span><span className="room-shelf__act">Add a game</span></Link></li>
-          )}
-        </ul>
-      ) : (
-        <p className="room-tile__note">Pick the games you play and they sit here as a shelf: tap one to roll it.</p>
-      )}
+      {/* With no games yet it's a row of the "Get set up" card instead (4A). */}
+      <ul className="room-shelf">
+        {tile.games.map((g) => {
+          const inner = (
+            <>
+              <GameCover name={g.name} className="room-shelf__cover" />
+              <span className="sr-only">{g.name}</span>
+              {g.action && <span className="room-shelf__act" aria-hidden="true">{g.action}</span>}
+            </>
+          );
+          return <li key={g.name}>{g.href ? <Link href={g.href} aria-label={`${g.action} ${g.name}`}>{inner}</Link> : <span>{inner}</span>}</li>;
+        })}
+        {tile.games.length < 6 && (
+          <li><Link href="/account?tab=games" className="room-shelf__add"><span className="room-shelf__slot"><IconPlus size={26} stroke={1.8} aria-hidden="true" /></span><span className="room-shelf__act">Add a game</span></Link></li>
+        )}
+      </ul>
     </TileBox>
   );
 }
@@ -349,10 +325,6 @@ function EventsTile({ tile, i }: { tile: TileOf<"events">; i: number }) {
           {tile.tickets.map((t) => <li key={t.href}><TicketCard t={t} compact /></li>)}
         </ul>
       ) : <p className="room-tile__note">Nothing on yet.</p>}
-      <ul className="room-links">
-        <li><Link href="/tournament/create">Run a tournament</Link></li>
-        <li><Link href="/trivia/leagues/new">Start a trivia league</Link></li>
-      </ul>
     </TileBox>
   );
 }
@@ -405,11 +377,6 @@ function TonightTile({ tile, i }: { tile: TileOf<"tonight">; i: number }) {
   );
 }
 
-/** A plan, where it would improve the tile it sits on (motion + balance 11A). */
-function ProChip({ href, children }: { href: string; children: ReactNode }) {
-  return <Link href={href} className="room-prochip"><IconSparkles size={15} aria-hidden="true" />{children}</Link>;
-}
-
 // ─── the people rail ─────────────────────────────────────────────────────────
 
 /**
@@ -446,18 +413,45 @@ function RailPosts({ posts }: { posts: Room["posts"] }) {
   );
 }
 
-/** Bring your crew: your invite link (who's joined from it), and a night with friends in one tap. */
-function RailCrew({ invite }: { invite: NonNullable<Room["people"]>["data"]["invite"] | null }) {
+/** Bring your crew: your invite link and who's joined from it. */
+function RailCrew({ invite }: { invite: NonNullable<NonNullable<Room["people"]>["data"]["invite"]> }) {
   return (
     <section className="room-tile room-rail__block room-rail__crew" aria-labelledby="room-crew">
       <div className="room-tile__head">
         <h2 id="room-crew">Bring your crew</h2>
       </div>
-      {invite && <InviteLink link={invite.link} joined={invite.joined} bare />}
-      <div className="room-together">
-        <span className="room-kicker">Start a night together</span>
-        <QuickStartButtons from="home-people" />
+      <InviteLink link={invite.link} joined={invite.joined} bare />
+    </section>
+  );
+}
+
+const SETUP: Record<SetupStep, { title: string; line: string; href: string; icon: Icon; tone: "teal" | "violet" | "red" }> = {
+  people: { title: "Follow players", line: "See what they're up to and join in", href: "/players", icon: IconUserPlus, tone: "teal" },
+  games: { title: "Pick your games", line: "They sit here, one tap to roll", href: "/account?tab=games", icon: IconDeviceGamepad2, tone: "violet" },
+  cards: { title: "Add your Pokémon cards", line: "Your collection and deck lists", href: "/account/pokemon?tab=my-cards", icon: IconCards, tone: "red" },
+};
+
+/** Get set up (home cleanup picks 2026-11-07, 4A): one row per thing with nothing in it yet, in place of empty tiles. */
+function RailSetup({ steps }: { steps: SetupStep[] }) {
+  return (
+    <section className="room-tile room-rail__block" aria-labelledby="room-setup">
+      <div className="room-tile__head">
+        <h2 id="room-setup">Get set up</h2>
       </div>
+      <ul className="room-list">
+        {steps.map((k) => {
+          const s = SETUP[k];
+          return (
+            <li key={k}>
+              <IconTile icon={s.icon} tone={s.tone} />
+              <span className="room-list__text">
+                <Link href={s.href} className="room-list__title">{s.title}</Link>
+                <span>{s.line}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }
@@ -467,17 +461,17 @@ function RailCrew({ invite }: { invite: NonNullable<Room["people"]>["data"]["inv
 /**
  * Below the header (context + rooms picks 2026-11-05, https://claude.ai/artifact/APK5x7mRj9Ldvt7a8J7g4T, all A): since,
  * then the room in two zones on the 12-column grid. Your things take 8 (Today, then your tiles two to a row, a wide one
- * across); your people take a rail of 4 that stays put as you scroll (your people, today's board, bring your crew).
+ * across); your people take a rail of 4 that stays put as you scroll (your people, today's board, bring your crew, and
+ * "Get set up" for anything still empty).
  * Under 1200px it's one column with the people after Today. Then the plan line.
  */
 export function RoomBody({ room, userId }: { room: Room; userId: string }) {
-  // "On my profile" (bring-along 6A): each tile that has a part on the public profile says whether it shows there.
-  const eye = (keys: ProfileSectionKey[], what: string, className?: string) => room.profile && !room.previewing
-    ? <ProfileEye keys={keys} on={keys.some((k) => !room.profile!.hidden.includes(k))} what={what} className={className} />
-    : null;
   const t = room.today;
   const board = !!t.live && t.live.following > 0;
-  const blocks = (room.posts.length ? 1 : 0) + (room.people ? 1 : 0) + (board ? 1 : 0) + 1;
+  // Your people's block only once you follow someone; until then it's a row of "Get set up".
+  const people = room.people && !room.setup.includes("people") ? room.people : null;
+  const invite = room.people?.data.invite ?? null;
+  const blocks = (room.posts.length ? 1 : 0) + (people ? 1 : 0) + (board ? 1 : 0) + (invite ? 1 : 0) + (room.setup.length ? 1 : 0);
   return (
     <div className="room" data-rise={room.rise ? "" : undefined}>
       <HomeVisit value={room.visit} />
@@ -488,24 +482,24 @@ export function RoomBody({ room, userId }: { room: Room; userId: string }) {
           <div className={`room-zone room-zone--today${t.done ? " room-zone--done" : ""}`}>
             <TodayLive
               games={t.games} weekly={t.weekly} streak={t.streak} streakFrom={t.streakFrom}
-              picks={t.picks} race={t.race} resetAt={t.resetAt}
-              eye={eye(["dailies"], "Your daily streaks", t.done ? undefined : "room-eye--below")}
+              picks={t.picks} resetAt={t.resetAt}
             />
           </div>
           <StickyRail blocks={blocks}>
             {room.posts.length > 0 && <RailPosts posts={room.posts} />}
-            {room.people && <RailPeople people={room.people} />}
+            {people && <RailPeople people={people} />}
             <TodayBoard games={t.games.map((g) => g.id)} />
-            <RailCrew invite={room.people?.data.invite ?? null} />
+            {invite && <RailCrew invite={invite} />}
+            {room.setup.length > 0 && <RailSetup steps={room.setup} />}
           </StickyRail>
           {room.tiles.length > 0 && (
             <div className="room-zone room-zone--main room-grid">
               {room.tiles.map((tile, i) => {
                 switch (tile.kind) {
-                  case "compete": return <CompeteTile key={tile.kind} tile={tile} i={i} userId={userId} who={room.visitKey} mmrFrom={room.mmrFrom} eye={eye(["mmr", "timeTrials"], "Your MMR card and times")} />;
-                  case "road": return <RoadTile key={tile.kind} tile={tile} i={i} eye={eye(["road"], "Your trainer card", "room-eye--corner")} />;
+                  case "compete": return <CompeteTile key={tile.kind} tile={tile} i={i} userId={userId} who={room.visitKey} mmrFrom={room.mmrFrom} />;
+                  case "road": return <RoadTile key={tile.kind} tile={tile} i={i} />;
                   case "cards": return <CardsTile key={tile.kind} tile={tile} i={i} userId={userId} />;
-                  case "shelf": return <ShelfTile key={tile.kind} tile={tile} i={i} eye={eye(["favGames"], "Your games")} />;
+                  case "shelf": return <ShelfTile key={tile.kind} tile={tile} i={i} />;
                   case "ticket": return <TicketTile key={tile.kind} tile={tile} i={i} />;
                   case "events": return <EventsTile key={tile.kind} tile={tile} i={i} />;
                   case "stream": return <StreamTile key={tile.kind} tile={tile} i={i} />;
@@ -555,45 +549,6 @@ function YourGames({ games }: { games: GameCard[] }) {
           </Link>,
         ]}
       </ResponsiveCarousel>
-    </section>
-  );
-}
-
-// ─── explore ─────────────────────────────────────────────────────────────────
-
-const EXPLORE: { id: string; line: string; tone: "violet" | "red" | "blue" | "teal" | "magenta"; icon: Icon }[] = [
-  { id: "play", line: "Dailies, randomizers, party games", tone: "violet", icon: IconSparkles },
-  { id: "pokemon", line: "Dex, Duel, Trainer Road", tone: "red", icon: IconRoute },
-  { id: "compete", line: "Lounge, time trials, tournaments", tone: "blue", icon: IconTournament },
-  { id: "host", line: "Game nights and trivia", tone: "teal", icon: IconUsersGroup },
-  { id: "stream", line: "Chat games and your overlay", tone: "magenta", icon: IconDeviceTv },
-];
-
-/**
- * The foot of /home (journeys 7A): the five worlds in one row, where the visitor homepage used to follow the room, and
- * a way back to that front page.
- */
-export function ExploreRow() {
-  return (
-    <section className="room-explore" aria-labelledby="room-explore-title">
-      <div className="room-games__head">
-        <h2 id="room-explore-title">Explore GameShuffle</h2>
-        <ArrowLink href="/?front=1" className="room-tile__more">The front page</ArrowLink>
-      </div>
-      <ul className="room-explore__row">
-        {EXPLORE.map((w) => {
-          const p = PILLARS.find((x) => x.id === w.id);
-          if (!p) return null;
-          return (
-            <li key={w.id}>
-              <Link href={p.href} className={`room-explore__world ${tagged(EVENTS.homeSectionClicked, { to: `explore-${w.id}` })}`}>
-                <IconTile icon={w.icon} tone={w.tone} />
-                <span><b>{p.label}</b><small>{w.line}</small></span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
     </section>
   );
 }

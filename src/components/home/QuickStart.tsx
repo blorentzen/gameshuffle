@@ -121,18 +121,3 @@ export function useQuickStart(from: string): { start: (game: QuickGame) => void;
 
   return { start: (g) => void start(g), window: window_ };
 }
-
-/** The three one-tap starts as buttons (the room's "Your people" card). */
-export function QuickStartButtons({ from }: { from: string }) {
-  const { start, window: startWindow } = useQuickStart(from);
-  return (
-    <>
-      <div className="room-together__acts">
-        <Button variant="primary" size="small" onClick={() => start("mario-party")}>Mario Party night</Button>
-        <Button variant="secondary" size="small" onClick={() => start("mario-kart")}>Mario Kart night</Button>
-        <Button variant="secondary" size="small" onClick={() => start("trivia")}>Trivia night</Button>
-      </div>
-      {startWindow}
-    </>
-  );
-}

@@ -4,9 +4,9 @@
  * Today on the signed-in home (dailies + explore picks 2026-11-05, all A; context + rooms picks the same day, 3A and
  * 4A, https://claude.ai/artifact/APK5x7mRj9Ldvt7a8J7g4T).
  *
- * Each daily is a slide in its own colors over its glyph field, in one of three states: nobody's played yet (be first,
- * or race a friend with your invite link), others have (how many, the fastest with a crown), or you've played (your
- * place today, who leads, and a friend who hasn't played yet to challenge). Two show side by side from tablets up.
+ * Each daily is a small tile in its own colors over its glyph field, all in view at once with the Weekly across the
+ * foot (home cleanup picks 2026-11-07, 6A: no carousel). One line says where the day stands: nobody's played yet, how
+ * many have, or your place today. Tap a tile to play. Two to a row on phones, one row from tablets up.
  * "Today's board" (your people on each daily by time, the fastest crowned, Nudge for friends who haven't played) sits
  * in the people rail (`TodayBoard`). Once every daily is done the spot becomes a quiet strip (your results in each
  * daily's color, when new ones come) and "Next for you" becomes a row of its own: three picture cards by what you
@@ -17,10 +17,9 @@
  */
 
 import Link from "next/link";
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { Avatar, Button, CarouselItem, Tabs } from "@empac/cascadeds";
-import { IconArrowsShuffle, IconBell, IconCheck, IconClock, IconCrown, IconFlame, IconPokeball, IconSend, IconSwords, type Icon } from "@tabler/icons-react";
-import { LabeledCarousel } from "@/components/ui/LabeledCarousel";
+import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Avatar, Button, Tabs } from "@empac/cascadeds";
+import { IconArrowsShuffle, IconBell, IconCheck, IconClock, IconCrown, IconFlame, IconPokeball, IconSwords, type Icon } from "@tabler/icons-react";
 import { TrainerArt } from "@/components/originals/duel/TrainerArt";
 import { IconField } from "@/components/events/EventHeaderArt";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -124,26 +123,19 @@ export function TodayLiveProvider({ initial, day, children }: { initial: Live | 
 
 // ─── Today: the slides, or the done strip and Next for you ───────────────────
 
-export function TodayLive({ games, weekly, streak, streakFrom, picks, race, resetAt, eye }: {
+export function TodayLive({ games, weekly, streak, streakFrom, picks, resetAt }: {
   games: TodayGame[];
   weekly: { line: string; action: string } | null;
   streak: number;
   streakFrom: number | null;
   /** The three picks once every daily is done. */
   picks: Pick[];
-  /** Your invite link to each daily (Race a friend). */
-  race: Partial<Record<PulseGame, string>>;
   /** Midnight Pacific, when new dailies come. */
   resetAt: string;
-  /** "On my profile" for the daily streaks: under the slides, or in the done strip's head. */
-  eye?: ReactNode;
 }) {
-  const toast = useToast();
   const ctx = useToday();
   const live = ctx?.live ?? null;
   const day = ctx?.day ?? "";
-  const nudged = ctx?.nudged ?? new Set<string>();
-  const nudge = (g: PulseGame, to: string, name: string) => ctx?.nudge(g, to, name);
   const { start, window: startWindow } = useQuickStart("home-today");
 
   // Stamps: a finished daily pops the first time this browser sees it today.
@@ -158,90 +150,46 @@ export function TodayLive({ games, weekly, streak, streakFrom, picks, race, rese
     return () => window.clearTimeout(t);
   }, [games, day]);
 
-  async function raceFriend(game: PulseGame) {
-    const link = race[game];
-    if (!link) return;
-    const text = `Race me on today's ${SHORT[game]} on GameShuffle. Same puzzle for both of us.`;
-    track(EVENTS.homeSectionClicked, { to: `race-${game}`, from: "home-today" });
-    try { if (navigator.share) { await navigator.share({ text, url: link }); return; } } catch { return; }
-    try { await navigator.clipboard.writeText(`${text}\n${link}`); toast.success("Link copied. Send it to a friend."); }
-    catch { toast.error(`Couldn't copy. Your link is ${link}`); }
-  }
-
   const allDone = games.length > 0 && games.every((g) => g.done);
   const ordered = [...games.filter((g) => !g.done), ...games.filter((g) => g.done)];
   const best = games.reduce<TodayGame | null>((b, g) => (g.streak > (b?.streak ?? 0) ? g : b), null);
   const left = games.filter((g) => !g.done).length;
 
-  const slide = (g: TodayGame, k: number) => {
+  // A small tile per daily (home cleanup picks 2026-11-07, 6A): its colors, its name and one line; the tile is the link.
+  const tile = (g: TodayGame, k: number) => {
     const pulse = live?.pulse[g.id];
-    // Your people's rows live on the board below; the slide shows them only when there's no board (you follow nobody).
-    const mine = live && live.following === 0 ? live.people[g.id].filter((r) => !r.you).slice(0, 2) : [];
-    const waiting = live?.waiting[g.id].find((w) => !nudged.has(w.userId));
     const place = live?.you[g.id];
     const state = g.done ? "done" : pulse && pulse.total > 0 ? "open" : "fresh";
-    const primary = g.done ? "See your result" : state === "fresh" ? "Be first" : g.action === "Play" ? "Your turn" : g.action;
+    const line = g.done
+      ? (place ? `${ordinal(place.place)} of ${place.total.toLocaleString("en-US")} today` : g.line)
+      : state === "open" && pulse ? `${pulse.total.toLocaleString("en-US")} played` : "Nobody's played yet";
+    // On phones the dailies go two to a row; an odd one out takes the row.
+    const odd = games.length % 2 === 1 && k === games.length - 1;
     return (
-      <div className={`room-day room-day--${g.id} room-day--${state}${g.picture ? " room-day--art" : ""}`}>
-        {g.picture ? <TrainerArt picture={g.picture} shape="banner" className="room-day__art" /> : <IconField category={FIELD[g.id]} seed={`${g.id}-${day}`} opacity={0.09} className="room-day__field" />}
-        <span className="room-day__top">
-          <span className="room-day__kick">{k === 0 ? (left ? `Today · ${left} to play` : "Today · all played") : "Today"}</span>
-          {g.streak >= 2 && (
-            <span className={`room-day__streak${g.streak >= 3 ? " room-streak--hot" : ""}`}>
-              <IconFlame size={18} stroke={2} aria-hidden="true" />
-              <span>{best?.id === g.id ? <RollNum value={streak} from={streakFrom} /> : g.streak}-day streak</span>
-            </span>
-          )}
-        </span>
-        <span className="room-day__body">
-          <b className="room-day__name">{g.name}</b>
-          {state === "fresh" && (
-            <>
-              <span className="room-day__big">Nobody&apos;s played yet</span>
-              <span className="room-day__line">Solve it first and you lead the day.</span>
-            </>
-          )}
-          {state === "open" && pulse && (
-            <>
-              <span className="room-day__big"><RollNum value={pulse.total} from={null} /> played</span>
-              {pulse.top && <TopChip game={g.id} top={pulse.top} />}
-              {mine.length > 0 && (
-                <ul className="room-day__ppl" aria-label="Your people on it">
-                  {mine.map((r) => (
-                    <li key={r.userId}>{face(r.name, r.avatar)}<span className="room-day__who">{r.name}</span>{r.squares && <Squares marks={r.squares} small />}<b>{r.value}</b></li>
-                  ))}
-                </ul>
-              )}
-              {!mine.length && !pulse.top && <span className="room-day__line">{g.line}</span>}
-            </>
-          )}
-          {state === "done" && (
-            <>
-              {g.squares && <Squares marks={g.squares} />}
-              <span className="room-day__line">{g.line}</span>
-              {place && <span className="room-day__place">{ordinal(place.place)} of {place.total.toLocaleString("en-US")} today</span>}
-              {pulse?.top && <TopChip game={g.id} top={pulse.top} />}
-            </>
-          )}
-        </span>
-        <span className="room-day__acts">
-          <Link href={g.href} className="room-day__act">{primary}<span className="sr-only">: {g.name}</span></Link>
-          {state === "fresh" && race[g.id] && (
-            <button type="button" className="room-day__alt" onClick={() => void raceFriend(g.id)}><IconSend size={16} stroke={2} aria-hidden="true" />Race a friend</button>
-          )}
-          {state === "done" && waiting && (
-            <button type="button" className="room-day__alt" onClick={() => void nudge(g.id, waiting.userId, waiting.name)}><IconSend size={16} stroke={2} aria-hidden="true" />Challenge {waiting.name}</button>
-          )}
-        </span>
-        {g.done && <span className={`room-day__stamp${popping.has(g.id) ? " room-day__stamp--pop" : ""}`} aria-hidden="true"><IconCheck size={28} stroke={3} /></span>}
-      </div>
+      <li key={g.id} className={odd ? "room-today__odd" : undefined}>
+        <Link href={g.href} className={`room-day room-day--tile room-day--${g.id} room-day--${state}${g.picture ? " room-day--art" : ""}`}>
+          {g.picture ? <TrainerArt picture={g.picture} shape="banner" className="room-day__art" /> : <IconField category={FIELD[g.id]} seed={`${g.id}-${day}`} opacity={0.09} className="room-day__field" />}
+          <span className="room-day__kick">{k === 0 && left ? `Today · ${left} to play` : "Today"}</span>
+          <span className="room-day__body">
+            <b className="room-day__name">{g.name}</b>
+            <span className="room-day__big">{line}</span>
+            {g.streak >= 2 && (
+              <span className={`room-day__streak${g.streak >= 3 ? " room-streak--hot" : ""}`}>
+                <IconFlame size={16} stroke={2} aria-hidden="true" />
+                <span>{best?.id === g.id ? <RollNum value={streak} from={streakFrom} /> : g.streak}-day streak</span>
+              </span>
+            )}
+          </span>
+          {g.done && <span className={`room-day__stamp${popping.has(g.id) ? " room-day__stamp--pop" : ""}`} aria-hidden="true"><IconCheck size={20} stroke={3} /></span>}
+        </Link>
+      </li>
     );
   };
 
   if (allDone) {
     return (
       <>
-        <DoneStrip games={games} streak={streak} resetAt={resetAt} popping={popping} eye={eye} />
+        <DoneStrip games={games} streak={streak} resetAt={resetAt} popping={popping} />
         {picks.length > 0 && <NextForYou picks={picks} onStart={start} />}
         {startWindow}
       </>
@@ -249,23 +197,19 @@ export function TodayLive({ games, weekly, streak, streakFrom, picks, race, rese
   }
   return (
     <div className="room-today">
-      <LabeledCarousel label="Today's daily games" wrapperClassName="room-today__carousel" slidesToShow={{ mobile: 1, tablet: 2, desktop: 2 }} gap={16} showArrows showDots arrowPosition="bottom" loop>
-        {ordered.map((g, k) => <CarouselItem key={g.id}>{slide(g, k)}</CarouselItem>)}
-        {weekly ? [
-          <CarouselItem key="weekly">
-            <Link href="/weekly" className="room-day room-day--weekly room-day--link">
+      <ul className="room-today__tiles" aria-label="Today's daily games" style={{ "--n": games.length } as CSSProperties}>
+        {ordered.map(tile)}
+        {weekly && (
+          <li className="room-today__week">
+            <Link href="/weekly" className="room-day room-day--tile room-day--row room-day--weekly">
               <IconField category="weekly" seed={`weekly-${day}`} opacity={0.09} className="room-day__field" />
-              <span className="room-day__top"><span className="room-day__kick">This week</span></span>
-              <span className="room-day__body">
-                <b className="room-day__name">Weekly Challenge</b>
-                <span className="room-day__line">{weekly.line.replace(/^Weekly Challenge · /, "")}</span>
-              </span>
-              <span className="room-day__acts"><span className="room-day__act">{weekly.action}</span></span>
+              <span className="room-day__kick">This week</span>
+              <b className="room-day__name">Weekly Challenge</b>
+              <span className="room-day__line">{weekly.line.replace(/^Weekly Challenge · /, "")}</span>
             </Link>
-          </CarouselItem>,
-        ] : []}
-      </LabeledCarousel>
-      {eye}
+          </li>
+        )}
+      </ul>
       {startWindow}
     </div>
   );
@@ -274,18 +218,6 @@ export function TodayLive({ games, weekly, streak, streakFrom, picks, race, rese
 function ordinal(n: number): string {
   const s = ["th", "st", "nd", "rd"], v = n % 100;
   return `${n.toLocaleString("en-US")}${s[(v - 20) % 10] || s[v] || s[0]}`;
-}
-
-/** The day's best on a slide: the fastest, the top score or the leader, with a crown. */
-function TopChip({ game, top }: { game: PulseGame; top: NonNullable<Live["pulse"][PulseGame]["top"]> }) {
-  const what = game === "fire" ? "Top score" : game === "duel" ? "Leading" : "Fastest";
-  return (
-    <span className="room-day__crown">
-      <IconCrown size={16} stroke={2} aria-hidden="true" />
-      {face(top.you ? "You" : top.name, top.avatar)}
-      <span>{what} {top.value}, {top.you ? "you" : top.name}</span>
-    </span>
-  );
 }
 
 /**
@@ -365,7 +297,7 @@ function stampText(g: TodayGame): string {
 }
 
 /** All done (context picks 3A): one quiet strip, your results in each daily's color and when new ones come. */
-function DoneStrip({ games, streak, resetAt, popping, eye }: { games: TodayGame[]; streak: number; resetAt: string; popping: Set<string>; eye?: ReactNode }) {
+function DoneStrip({ games, streak, resetAt, popping }: { games: TodayGame[]; streak: number; resetAt: string; popping: Set<string> }) {
   const [left, setLeft] = useState(() => untilText(resetAt));
   useEffect(() => {
     const t = window.setInterval(() => setLeft(untilText(resetAt)), 60_000);
@@ -391,7 +323,6 @@ function DoneStrip({ games, streak, resetAt, popping, eye }: { games: TodayGame[
       </ul>
       <span className="room-strip__foot">
         <span className="room-strip__next"><IconClock size={16} stroke={2} aria-hidden="true" />New dailies in {left}</span>
-        {eye}
       </span>
     </section>
   );

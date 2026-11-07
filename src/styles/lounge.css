@@ -5,7 +5,14 @@
 /* The game pills wrap on a small phone instead of widening the page (MK8DX, MK World 12P, MK World 24P). */
 .lounge-games { justify-self: start; max-width: 100%; min-width: 0; }
 .lounge-games .empac-subnav__wrapper, .lounge-games .empac-subnav__container { max-width: 100%; min-width: 0; }
-.lounge-games .empac-subnav__container { flex-wrap: wrap; row-gap: var(--spacing-8); }
+/* The same segmented switch as the time trial boards' game picker; on a narrow phone the row scrolls sideways
+   rather than wrapping a pill onto a line of its own. */
+.lounge-games .empac-subnav, .lounge-games .empac-subnav__wrapper { width: auto; background: transparent; padding: 0; overflow-x: auto; scrollbar-width: none; }
+.lounge-games .empac-subnav__wrapper::-webkit-scrollbar { display: none; }
+.lounge-games .empac-subnav__container { display: inline-flex; flex-wrap: nowrap; gap: 2px; padding: 4px; margin: 0; border-radius: var(--radius-full, 999px); background: color-mix(in srgb, var(--text-primary) 7%, transparent); }
+.lounge-games .empac-subnav__item { flex: none; white-space: nowrap; padding: var(--spacing-8) var(--spacing-14, 1.4rem); color: var(--text-secondary); font-weight: 600; }
+.lounge-games .empac-subnav__item:hover { color: var(--text-primary); background: transparent; }
+.lounge-games .empac-subnav__item--active, .lounge-games .empac-subnav__item--active:hover { background: var(--background-primary, #fff); color: var(--text-primary); box-shadow: 0 1px 3px rgba(20, 24, 60, .16); }
 .lounge-sub { display: inline-flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-12); align-items: center; }
 .lounge-confirmed { display: inline-flex; align-items: center; gap: var(--spacing-4); padding: var(--spacing-4) var(--spacing-8); border-radius: 999px; background: color-mix(in srgb, #2bd17e 22%, transparent); color: #a8f5cb; font-size: var(--font-size-14); font-weight: 700; }
 .lounge-confirmed a { color: inherit; }

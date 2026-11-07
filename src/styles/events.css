@@ -440,10 +440,10 @@
 .event-shell__hero--art .evart__feature {
   right: auto;
   left: 50%;
-  /* A Tabler glyph fills about 75% of its box, so 88% of the band renders
-     roughly 66% of it — an emblem the band contains, rather than one the band
-     is only just holding. */
-  height: 88%;
+  /* Centred in the band below the floating nav (64px), not behind it: on phones the emblem's top ran under the nav.
+     A Tabler glyph fills about 75% of its box, so 88% of that space renders roughly 66% of it. */
+  top: calc(50% + 32px);
+  height: calc((100% - 64px) * 0.88);
   transform: translate(-50%, -50%);
 }
 @keyframes evart-float-centre {

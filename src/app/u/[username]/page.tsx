@@ -446,7 +446,7 @@ export default async function PublicProfilePage({
 
   // GameShuffle team series (the GS Summer Series): champions, and everyone who played.
   for (const h of enrichment.seriesHonors ?? []) {
-    badges.push({ key: `series-${h.path}`, label: h.champion ? `${h.title} champion` : h.title, href: h.path });
+    badges.push({ key: `series:${h.path}`, label: h.champion ? `${h.title} champion` : h.title, href: h.path });
   }
 
   // Weekly Challenge: a top-10 week (the count shows once there's more than one).
@@ -976,9 +976,9 @@ export default async function PublicProfilePage({
                     b.key === "supporter" && isOwner ? (
                       <SupporterBadge key={b.key} label={b.label} />
                     ) : b.href ? (
-                      <a key={b.key} href={b.href} className={`profile-badge profile-badge--${b.key}`}>{b.label}</a>
+                      <a key={b.key} href={b.href} className={`profile-badge profile-badge--${b.key.split(":")[0]}`}>{b.label}</a>
                     ) : (
-                      <span key={b.key} className={`profile-badge profile-badge--${b.key}`}>{b.label}</span>
+                      <span key={b.key} className={`profile-badge profile-badge--${b.key.split(":")[0]}`}>{b.label}</span>
                     ),
                   )}
                 </div>

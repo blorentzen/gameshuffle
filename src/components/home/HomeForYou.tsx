@@ -36,15 +36,17 @@ const WORLD: Record<PillarId, { icon: Icon; tone: TileTone }> = {
 
 // ─── in the greeting band ────────────────────────────────────────────────────
 
-/** "Showing: Competitive Mario Kart · Change": the interest tiles in a window; the page follows once it closes. */
+/**
+ * One link under your name (home cleanup picks 2026-11-07, 1A): "Change what you see" opens the interest tiles in a
+ * window (what you follow is there); the page follows once it closes.
+ */
 export function ShowingLine({ showing, interests }: { showing: string | null; interests: Interest[] }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const close = () => { setOpen(false); router.refresh(); };
   return (
     <span className="home-you__showing">
-      {showing ? <>Showing: <strong>{showing}</strong></> : "Pick what you're here for and your home follows it."}
-      <Button variant="ghost" size="small" className="home-you__change" onClick={() => setOpen(true)}>{showing ? "Change" : "Pick"}</Button>
+      <Button variant="ghost" size="small" className="home-you__change" onClick={() => setOpen(true)}>{showing ? "Change what you see" : "Pick what you're here for"}</Button>
       <Modal isOpen={open} onClose={close} title="What you're here for" size="large" primaryAction={{ label: "Done", onClick: close }}>
         <p className="home-you__modal-note">Pick any. Your home, your menus and your account follow it.</p>
         <InterestSettings initial={interests} />

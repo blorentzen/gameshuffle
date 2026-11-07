@@ -120,6 +120,8 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   { prefix: "/u/", notIds: new Set() },
   // A game space (/games/<id>): it opens on the game's art.
   { prefix: "/games/", notIds: new Set() },
+  // A community (/c/<slug>): it opens on its banner band (the solid nav sat on top of it, a bar of blue over the art).
+  { prefix: "/c/", notIds: new Set() },
 ];
 
 function isHeroPath(pathname: string): boolean {

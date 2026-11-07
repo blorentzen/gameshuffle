@@ -13,7 +13,6 @@ import { yourGames, type GameCard } from "./yourGames";
  * account has nothing in shows a sample, marked as one.
  */
 
-import { resolveProfileLayout, type ProfileSectionKey } from "@/lib/profile/layout";
 import { resolveProfileStatus } from "@/lib/profile/status";
 import { cookies } from "next/headers";
 import type { CSSProperties } from "react";
@@ -38,14 +37,11 @@ import { gsAddDays, gsDay, gsDayStart, gsHour, safeTimeZone, GS_TIME_ZONE } from
 import { todayLive, type TodayLive } from "@/lib/home/dailyPulse";
 import { pickContext } from "./pickContext";
 import { nextPicks, type Pick } from "@/lib/home/nextPicks";
-import { codeFor } from "@/lib/referrals/store";
-import { referralLink } from "@/lib/originals/referral";
 import { MMR_SEEN_COOKIE, VISIT_COOKIE, nextVisit, readMmrSeen, readVisit, writeVisit, type Visit } from "./visit";
 import { wideArt } from "./art";
 import type { NextEvent } from "./viewer";
 import { bandFor, type HappeningWorld } from "./happening";
 import { peopleTile, type PeopleTile } from "./people";
-import { supporterInfo } from "@/lib/support/store";
 import { VISIT_GAP_MS } from "./visit";
 import { fromYourPeople, type PeoplePost } from "@/lib/social/feed";
 
@@ -97,12 +93,12 @@ export type Tile =
       live: TodayLive | null;
       /** Every daily done: the spot becomes "Done for today" with these three picks, and takes a row of its own. */
       done: boolean; picks: Pick[];
-      /** Your invite link to each daily (Race a friend), and when new dailies come (midnight Pacific). */
-      race: Partial<Record<DailyGameId, string>>; resetAt: string;
+      /** When new dailies come (midnight Pacific). */
+      resetAt: string;
     }
-  | { kind: "compete"; span: TileSpan; card: boolean; lounge: LoungeBit | null; times: number; sample: boolean; pro: boolean }
+  | { kind: "compete"; span: TileSpan; card: boolean; lounge: LoungeBit | null; times: number; sample: boolean }
   | { kind: "road"; span: TileSpan; next: RoadNextView | null; encounter: RoadEncounterView | null; badges: number; gyms: number; level: number; stars: number; starsFrom: number | null }
-  | { kind: "cards"; span: TileSpan; cards: number; decks: number; sample: boolean; pro: boolean }
+  | { kind: "cards"; span: TileSpan; cards: number; decks: number; sample: boolean }
   /** Your people, playing together, and your invite link (motion + balance 9A, 10A; bring-along 2A, 4A). */
   | { kind: "people"; span: TileSpan; data: PeopleTile; sample: boolean }
   | { kind: "shelf"; span: TileSpan; games: ShelfGame[] }
@@ -130,18 +126,20 @@ export interface RoomHead {
   avatar: { id: string; avatar_source: string | null; avatar_seed: string | null; avatar_options: Record<string, unknown> | null; twitch_avatar: string | null; discord_avatar: string | null };
   /** Your brand theme and accent (getOwnerThemeVars), spread on the header. */
   theme: CSSProperties;
-  /** Your public profile (the room's front window), when you have one. */
-  username: string | null;
-  /** Supporters see their thanks, never the ask (motion + balance 12A). */
-  supporter: { since: string } | null;
   /** Their status line, the same one their profile's header shows (bring-along 8A). */
   status: string | null;
 }
 
+/** A row of the "Get set up" card: follow someone, pick your games, add your Pokémon cards. */
+export type SetupStep = "people" | "games" | "cards";
+
 export interface Room {
   head: RoomHead;
-  /** Which sections their public profile hides, for the tiles' "On my profile" switches; null with no public profile. */
-  profile: { hidden: ProfileSectionKey[] } | null;
+  /**
+   * Things with nothing in them yet (home cleanup picks 2026-11-07, 4A): each is a row in one "Get set up" card instead
+   * of an empty tile. A row leaves once it's done; the card leaves with the last one.
+   */
+  setup: SetupStep[];
   interests: Interest[];
   /** "Competitive Mario Kart and Pokémon", or null when they haven't any. */
   showing: string | null;
@@ -248,10 +246,9 @@ function todayGame(id: DailyGameId, e: DailiesEntry | undefined, duel: DuelChall
 }
 
 async function todayTile(userId: string, duel: DuelChallengerView | null, visit: Visit | null, mine: { interests: Interest[]; favorites: string[] }): Promise<Extract<Tile, { kind: "today" }>> {
-  const [entries, live, code] = await Promise.all([
+  const [entries, live] = await Promise.all([
     dailiesView({ userId }).catch(() => ({} as Awaited<ReturnType<typeof dailiesView>>)),
     todayLive(userId).catch((e) => { console.error("[home] today live failed:", e); return null; }),
-    codeFor(userId).catch(() => null),
   ]);
   const shown = dailiesShown(undefined, { fire: FIRE_ROUND_PUBLIC, duel: DUEL_SHOWN }).filter((id) => id !== "weekly" && (id !== "dex" || DAILY_DEX_PUBLIC)) as DailyGameId[];
   const games = shown.map((id) => todayGame(id, entries[id], duel));
@@ -265,11 +262,10 @@ async function todayTile(userId: string, duel: DuelChallengerView | null, visit:
   // What's yours goes on the picks' pictures (context picks 1A): your card, best track, saved build, friends' faces.
   const ctx = done ? await pickContext(userId, live?.friends ?? []).catch(() => undefined) : undefined;
   const picks = done ? await nextPicks({ interests: mine.interests, favorites: mine.favorites, signedIn: true, ctx }).catch(() => []) : [];
-  const race = code ? Object.fromEntries(shown.map((id) => [id, referralLink(DAILIES[id].href, code)])) : {};
   const day = gsDay();
   return {
     kind: "today", span: 5, games, weekly: { line: `Weekly Challenge · ${w.status}`, action: w.action }, streak, streakFrom: visit ? visit.streak : null,
-    live, done, picks, race, resetAt: new Date(gsDayStart(gsAddDays(day, 1))).toISOString(),
+    live, done, picks, resetAt: new Date(gsDayStart(gsAddDays(day, 1))).toISOString(),
   };
 }
 
@@ -283,7 +279,7 @@ async function competeTile(db: Db, userId: string, sample: boolean): Promise<Ext
   const main = lounge.find((l) => l.game === "mk8dx") ?? lounge[0];
   const fake = !main && !card && sample;
   const lead = main ? { name: main.name, game: main.game, mmr: main.mmr, worldRank: main.world_rank, href: `/lounge/${encodeURIComponent(main.name)}?game=${main.game}` } : null;
-  return { kind: "compete", span: 7, card: card || fake, lounge: lead, times: times || (fake ? 12 : 0), sample: fake, pro: false };
+  return { kind: "compete", span: 7, card: card || fake, lounge: lead, times: times || (fake ? 12 : 0), sample: fake };
 }
 
 async function roadTile(userId: string, visit: Visit | null): Promise<Extract<Tile, { kind: "road" }> | null> {
@@ -303,7 +299,7 @@ async function cardsTile(db: Db, userId: string, sample: boolean): Promise<Extra
     db.from("tcg_decks").select("id", { count: "exact", head: true }).eq("user_id", userId).then((r) => r.count ?? 0),
   ]);
   const fake = !cards && !decks && sample;
-  return { kind: "cards", span: 4, cards: fake ? 212 : cards, decks: fake ? 2 : decks, sample: fake, pro: false };
+  return { kind: "cards", span: 4, cards: fake ? 212 : cards, decks: fake ? 2 : decks, sample: fake };
 }
 
 function shelfTile(favorites: string[]): Extract<Tile, { kind: "shelf" }> {
@@ -595,8 +591,6 @@ export async function homeRoom(userId: string, plan: { pro: boolean; supporter: 
   const games = sample ? [] : await yourGames(favorites, role, visit?.since ?? null).catch(() => [] as GameCard[]);
   const inSpace = new Set<TileKind>(games.length ? ["shelf"] : []);
   if (games.some((g) => g.id === "pokemon")) { inSpace.add("road"); inSpace.add("cards"); }
-  if (compete) compete.pro = pro;
-  if (cards) cards.pro = pro;
   const [people, posts] = await Promise.all([
     peopleTile(userId, today.games.map((g) => ({ id: g.id, done: g.done, name: g.name })), tz).catch(() => null),
     sample ? Promise.resolve([] as PeoplePost[]) : fromYourPeople(userId, 3).catch(() => [] as PeoplePost[]),
@@ -622,6 +616,13 @@ export async function homeRoom(userId: string, plan: { pro: boolean; supporter: 
   const onEvents = events?.tickets.some((t) => next && t.href.startsWith(next.href));
   if (next && !onEvents) tiles.push({ kind: "ticket", span: 4, ticket: ticketFromNext(next), sample: false });
   if (!order.length) tiles.push(tonightTile());
+  // Empty tiles become rows of one "Get set up" card (4A). Sample tiles (a staff preview) stay as they are.
+  const setup: SetupStep[] = [];
+  if (people && !samplePeople && !people.people.length) setup.push("people");
+  const emptyShelf = tiles.findIndex((t) => t.kind === "shelf" && !t.games.length);
+  if (emptyShelf >= 0) { tiles.splice(emptyShelf, 1); setup.push("games"); }
+  const emptyCards = tiles.findIndex((t) => t.kind === "cards" && !t.sample && !t.cards && !t.decks);
+  if (emptyCards >= 0) { tiles.splice(emptyCards, 1); setup.push("cards"); }
 
   // Next to their interests, not tried yet; six candidates so dismissing a few still leaves three.
   const near = SUGGESTIONS.filter((s) => s.for.some((i) => interests.includes(i)) && (!s.when || s.when()));
@@ -641,16 +642,11 @@ export async function homeRoom(userId: string, plan: { pro: boolean; supporter: 
   ]);
   const day = gsDay();
   const now = Date.now();
-  // Supporters see their thanks: since when (a staff preview of a supporter shows a sample month).
-  const info = supporter && !preview ? await supporterInfo(userId).catch(() => null) : null;
-  const sinceIso = info?.since ?? (supporter && preview ? new Date().toISOString() : null);
-  const supporterBit = supporter && sinceIso ? { since: new Date(sinceIso).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: tz }) } : null;
   const newVisit = nextVisit(visit, now, { who, rose: day, mmr: mmr ?? visit?.mmr ?? 0, streak: today.streak, stars: road?.stars ?? 0 });
-  // The front window (bring-along 6A, 8A): their status line and what the profile hides. Separate guarded read, so
-  // a profile column that isn't there yet leaves the room as it was.
-  const publicProfile = row.is_public !== false && !!row.username;
-  const extra = await db.from("users").select("profile_status, profile_tagline, profile_layout").eq("id", userId).maybeSingle()
-    .then((r) => (r.error ? null : (r.data as { profile_status: string | null; profile_tagline: string | null; profile_layout: unknown } | null)));
+  // Their status line, the one their profile's header shows (bring-along 8A). Separate guarded read, so a profile
+  // column that isn't there yet leaves the room as it was.
+  const extra = await db.from("users").select("profile_status, profile_tagline").eq("id", userId).maybeSingle()
+    .then((r) => (r.error ? null : (r.data as { profile_status: string | null; profile_tagline: string | null } | null)));
   const status = extra ? (extra.profile_status == null ? (extra.profile_tagline || "").trim() || null : resolveProfileStatus(extra.profile_status)) : null;
 
   return {
@@ -662,11 +658,9 @@ export async function homeRoom(userId: string, plan: { pro: boolean; supporter: 
         avatar_options: (row.avatar_options as Record<string, unknown> | null) ?? null, twitch_avatar: (row.twitch_avatar as string | null) ?? null, discord_avatar: (row.discord_avatar as string | null) ?? null,
       },
       theme,
-      username: publicProfile ? (row.username as string) : null,
-      supporter: supporterBit,
       status,
     },
-    profile: publicProfile && extra ? { hidden: resolveProfileLayout(extra.profile_layout).hidden } : null,
+    setup,
     interests,
     showing: interests.length ? interestList(interests) : null,
     since,

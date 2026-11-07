@@ -47,7 +47,7 @@
 
 /* ── The room: overlaps the header's foot, then the tiles. ── */
 /* More air (picks 2026-11-05): 32px between cards, 28px inside them, nothing over the header's edge. */
-.room { position: relative; z-index: 2; display: grid; gap: var(--spacing-48, 4.8rem); padding-top: var(--spacing-40, 4rem); }
+.room { position: relative; z-index: 2; display: grid; gap: var(--spacing-48, 4.8rem); padding-block: var(--spacing-40, 4rem) var(--spacing-64, 6.4rem); }
 .room-grid { display: grid; gap: var(--spacing-32); grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: stretch; }
 .room-tile {
   grid-column: span var(--span, 12);
@@ -112,8 +112,6 @@
 .room-btn--ghost { background: transparent; color: var(--brand-ink, var(--primary-600)); border: 1px solid var(--border-default); }
 .room-btn--light { background: #fff; color: #161a2e; }
 .room-btn--light:hover { background: #eef1ff; }
-.room-links { list-style: none; margin: 0; margin-top: auto; padding: var(--spacing-12) 0 0; border-top: 1px solid var(--border-subtle); display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-20); font-size: var(--font-size-15, 1.5rem); }
-.room-links a { font-weight: 600; }
 .room-link-word { font-weight: 700; color: var(--brand-ink, var(--primary-600)); }
 
 /* Big numbers at a glance. */
@@ -139,23 +137,23 @@
 /* ── A spot with no card of its own: the thing in it is the surface (Today's carousel, the MMR card). ── */
 .room-tile--bare { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 
-/* ── Today: one daily per slide, in its own colors (share image colors), filling the spot. ── */
+/* ── Today (home cleanup picks 2026-11-07, 6A): every daily in view as a small tile in its own colors (the share
+   image colors), the Weekly across the foot. Two to a row on phones (an odd one out takes the row), one row from
+   tablets up. The tile is the link. ── */
 .room-streak--hot svg { color: #fdba74; }
-/* The carousel fills its spot's height (the row's tallest card), its arrows and dots below. */
-.room-tile--today { display: flex; }
-.room-today__carousel { min-width: 0; flex: 1; display: flex; }
-.room-today__carousel .empac-carousel { flex: 1; display: flex; flex-direction: column; }
-.room-today__carousel .empac-carousel__viewport { flex: 1; display: flex; }
-.room-today__carousel .empac-carousel__track { flex: 1; }
-.room-today__carousel .empac-carousel__slide { display: flex; }
-/* Two slides from tablets up (CDS sizes slides inline once it knows the width; the server draws two): on phones one
-   fills the width from the first paint, so nothing jumps when the page wakes up. */
-@media (max-width: 767px) { .room-today__carousel .empac-carousel__slide { flex: 0 0 100% !important; } }
-.room-today__carousel .empac-carousel__slide > .room-day { flex: 1; }
-.room-day {
-  position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; gap: var(--spacing-16);
-  min-height: 32rem; padding: var(--spacing-24); border-radius: 1.6rem; color: #fff; text-decoration: none;
+.room-today__tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-10, 1rem); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.room-today__tiles > li { display: flex; min-width: 0; }
+.room-today__tiles > li > .room-day { flex: 1; }
+.room-today__odd, .room-today__week { grid-column: 1 / -1; }
+@media (min-width: 768px) {
+  .room-today__tiles { gap: var(--spacing-16); grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); }
+  .room-today__odd { grid-column: auto; }
 }
+.room-day {
+  position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-rows: auto 1fr; gap: var(--spacing-8);
+  min-height: 12.8rem; padding: var(--spacing-14, 1.4rem); border-radius: 1.4rem; color: #fff; text-decoration: none;
+}
+@media (min-width: 768px) { .room-day { min-height: 15rem; padding: var(--spacing-18, 1.8rem); } }
 .room-day:hover { color: #fff; }
 .room-day:hover .room-day__name { text-decoration: underline; }
 .room-day:focus-visible { outline: 3px solid var(--brand-ink, var(--primary-600)); outline-offset: 3px; }
@@ -164,27 +162,26 @@
 .room-day--fire { background: linear-gradient(140deg, #b91c1c, #7f1d1d); }
 .room-day--duel { background: linear-gradient(140deg, #1e2a5a, #0f1430); box-shadow: inset 0 0 0 1px #b8892b; }
 .room-day--weekly { background: linear-gradient(140deg, #0f766e, #134e4a); }
-.room-day__glyph { position: absolute; right: -1.2rem; bottom: -1.6rem; z-index: -1; opacity: 0.18; }
 .room-day__art { position: absolute !important; inset: 0 0 0 40%; z-index: -2; }
 .room-day--art::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, #121a40 38%, rgba(18, 26, 64, 0.6) 62%, rgba(18, 26, 64, 0.1) 100%); }
-.room-day__top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--spacing-8); }
 .room-day__kick { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255, 255, 255, 0.88); }
-.room-day__streak { display: inline-flex; align-items: center; gap: var(--spacing-4); font-size: var(--font-size-14); font-weight: 700; }
-.room-day__body { display: grid; align-content: end; gap: var(--spacing-10, 1rem); max-width: 34rem; }
-.room-day__name { font-family: var(--font-display); font-size: var(--font-size-32, 3.2rem); font-weight: 800; line-height: 1.05; }
+.room-day__body { display: grid; align-content: end; gap: var(--spacing-4); }
+.room-day__name { font-family: var(--font-display); font-size: var(--font-size-22, 2.2rem); font-weight: 800; line-height: 1.1; }
+@media (min-width: 768px) { .room-day__name { font-size: var(--font-size-24); } }
 .room-day--duel .room-day__name { color: #fcd34d; }
-.room-day__line { font-size: var(--font-size-16); color: rgba(255, 255, 255, 0.94); }
-.room-day__act {
-  justify-self: start; display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); min-height: 40px; padding: var(--spacing-8) var(--spacing-16);
-  border-radius: var(--radius-8, 8px); background: #fff; color: #161a2e; font-size: var(--font-size-15, 1.5rem); font-weight: 700;
-}
+.room-day__big { font-size: var(--font-size-15, 1.5rem); font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.room-day__streak { display: inline-flex; align-items: center; gap: var(--spacing-4); font-size: var(--font-size-14); font-weight: 700; }
+/* The Weekly: one row across the foot. */
+.room-day--row { min-height: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-4) var(--spacing-16); padding-block: var(--spacing-16); }
+.room-day--row .room-day__name { font-size: var(--font-size-20); }
+.room-day__line { font-size: var(--font-size-15, 1.5rem); color: rgba(255, 255, 255, 0.94); }
+@media (max-width: 479px) { .room-day--row .room-day__line { flex-basis: 100%; } }
 .room-squares { display: flex; flex-wrap: wrap; gap: 5px; }
 .room-sq { display: block; width: 1.8rem; height: 1.8rem; border-radius: 4px; }
 .room-sq--miss { background: rgba(10, 12, 30, 0.5); }
 .room-sq--win { background: #22c55e; }
 .room-sq--save { background: #facc15; }
 .room-sq--open { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.45); }
-.room-today__carousel .empac-carousel__controls, .room-today__carousel .empac-carousel__nav { margin-top: var(--spacing-12); }
 
 /* ── Plain rows inside a card (Tonight): an icon tile and words, lines between, no boxes. ── */
 .room-list { list-style: none; margin: 0; padding: 0; display: grid; }
@@ -201,17 +198,13 @@
 /* ── Dark tiles (the MMR card's). ── */
 .room-tile--dark { background: #141a3a; border-color: #232a55; color: #e8ebff; }
 .room-tile--dark .room-tile__head h2 { color: #fff; }
-.room-tile--dark .room-tile__more,
-.room-tile--dark .room-links a { color: #c7d2ff; }
-.room-tile--dark .room-links { border-top-color: rgba(255, 255, 255, 0.14); }
+.room-tile--dark .room-tile__more { color: #c7d2ff; }
 .room-tile--dark .room-nums dt { color: #c7cdf0; }
 .room-tile--dark .room-nums dd { color: #fff; }
 .room-compete__card { min-width: 0; }
 .room-compete__card .mmr-frame { margin: 0; }
 /* The card's shadow would be cut square by the frame's sideways scroll; on wide screens nothing needs to scroll. */
 @media (min-width: 900px) { .room-compete__card .mmr-frame { overflow: visible; } }
-/* The carousel's viewport clips too: no shadow on the slides, and the viewport's own padding off. */
-.room-today__carousel .empac-carousel__viewport { padding: 0; margin: 0; }
 .room-compete__wait { display: grid; place-items: center; min-height: 18rem; border-radius: 1.2rem; background: rgba(255, 255, 255, 0.06); color: #c7cdf0; font-size: var(--font-size-14); }
 .room-compete__none { margin: 0; color: #c7cdf0; font-size: var(--font-size-15, 1.5rem); }
 
@@ -385,22 +378,7 @@ a.room-art__text:focus-visible { outline: none; }
 @media (prefers-reduced-motion: no-preference) { .room-live::before { animation: live-breathe 1.8s ease-in-out infinite; } }
 @keyframes live-breathe { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
 
-/* A plan, where it would improve this tile (11A). */
-.room-prochip {
-  align-self: flex-start; display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); padding: var(--spacing-6, 0.6rem) var(--spacing-12);
-  border-radius: 999px; background: color-mix(in srgb, var(--brand-ink, #2766ec) 10%, var(--background-primary, #fff)); color: var(--brand-ink, var(--primary-700));
-  font-size: var(--font-size-14); font-weight: 700; text-decoration: none;
-}
-.room-prochip:hover { text-decoration: underline; }
-
-/* The header's thanks (supporters) and the way to your front window. */
-.room-head__extras { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-16); margin-top: var(--spacing-4); }
-.room-head__heart { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); padding: 3px var(--spacing-10, 1rem); border-radius: 999px; background: #ffe4e6; color: #9f1239; font-size: var(--font-size-14); font-weight: 700; text-decoration: none; }
-.room-head__window { display: inline-flex; align-items: center; gap: var(--spacing-6, 0.6rem); color: #fff; font-size: var(--font-size-15, 1.5rem); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
-
-/* Your people: faces, what they're up to, one way in; then playing together, then your invite link. */
-.room-together { display: grid; gap: var(--spacing-10, 1rem); padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
-.room-together__acts { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+/* Bring your crew: your invite link, and who has joined from it. */
 .room-invite { display: grid; gap: var(--spacing-10, 1rem); padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
 .room-invite__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
 .room-invite__link { flex: 1 1 18rem; min-width: 0; padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-8, 8px); background: var(--background-secondary, #f4f5fa); color: var(--text-primary); font-size: var(--font-size-14); overflow-wrap: anywhere; }
@@ -410,25 +388,10 @@ a.room-art__text:focus-visible { outline: none; }
 .room-invite__faces > :first-child { margin-left: 0; }
 
 /* A finished daily is stamped; the first time you see it, the stamp lands (4A). */
-.room-day__stamp { position: absolute; right: var(--spacing-20); top: var(--spacing-20); display: grid; place-items: center; width: 5.6rem; height: 5.6rem; border-radius: 50%; background: #fff; color: #4c1d95; transform: rotate(-8deg); box-shadow: 0 6px 16px rgba(10, 12, 30, 0.25); }
+.room-day__stamp { position: absolute; right: var(--spacing-12); top: var(--spacing-12); display: grid; place-items: center; width: 3.6rem; height: 3.6rem; border-radius: 50%; background: #fff; color: #4c1d95; transform: rotate(-8deg); box-shadow: 0 4px 12px rgba(10, 12, 30, 0.25); }
 .room-day--dex .room-day__stamp { color: #7c2d12; } .room-day--fire .room-day__stamp { color: #7f1d1d; } .room-day--duel .room-day__stamp { color: #0f1430; }
 @media (prefers-reduced-motion: no-preference) { .room-day__stamp--pop { animation: room-stamp 0.45s 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; } }
 @keyframes room-stamp { 0% { opacity: 0; transform: scale(1.6) rotate(-14deg); } 70% { opacity: 1; transform: scale(0.94) rotate(-6deg); } 100% { opacity: 1; transform: scale(1) rotate(-8deg); } }
-.room-day:has(.room-day__stamp) .room-day__streak { margin-right: 6.4rem; }
-.room-tile--bare .room-links { margin-top: 0; }
-
-/* ── "On my profile" (bring-along 6A): a small toggle on tiles that show on your public profile. ── */
-.room-eye { display: inline-flex; }
-.room-eye .empac-chip { min-height: 28px; cursor: pointer; }
-.room-eye--below { align-self: flex-start; margin-top: var(--spacing-4); }
-/* Under Today's slides: in the carousel's control row, at its left edge (the arrows and dots stay centered). */
-@media (min-width: 600px) {
-  .room-today { position: relative; }
-  .room-today > .room-eye--below { position: absolute; left: 0; bottom: 4px; margin: 0; }
-}
-.room-eye--corner { position: absolute; top: var(--spacing-16); right: var(--spacing-16); z-index: 2; }
-/* Off: a white chip so it reads on any picture. On: CDS's own green chip (white text), never a white background. */
-.room-eye--corner .empac-chip:not([aria-pressed="true"]) { background: rgba(255, 255, 255, 0.92); }
 
 /* ── Phones (round two picks 1A and 2A, 2026-11-06): no rounded card inside the page's margin with more cards inside
    it. Each section is a white band from edge to edge, 8px from the next, so what's in it gets the screen's width.
@@ -445,8 +408,8 @@ a.room-art__text:focus-visible { outline: none; }
   .room-tile:has(> .responsive-carousel) { max-width: none; }
 }
 
-/* ─── Your games and Explore (/home, journeys picks 2026-11-06, 7A) ─────────── */
-.room-games, .room-explore { display: grid; gap: var(--spacing-16); min-width: 0; }
+/* ─── Your games (/home, journeys picks 2026-11-06, 7A) ──────────────────────── */
+.room-games { display: grid; gap: var(--spacing-16); min-width: 0; }
 .room-games__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8) var(--spacing-12); }
 .room-games__head h2 { margin: 0; font-size: var(--font-size-20); font-family: var(--font-display); font-weight: 800; }
 .room-games__row { display: grid; gap: var(--spacing-20); grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr)); }
@@ -477,19 +440,7 @@ a.room-art__text:focus-visible { outline: none; }
 }
 .room-game--add::before { display: none; }
 .room-game--add:hover { transform: none; box-shadow: none; color: var(--text-primary); }
-/* The room's foot: the five worlds, flat under a line. */
-.room-explore { margin-top: var(--spacing-48, 4.8rem); padding-block: var(--spacing-32) var(--spacing-64, 6.4rem); border-top: 1px solid var(--border-subtle); }
-.room-explore__row { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-16) var(--spacing-24); grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.room-explore__world { display: flex; align-items: center; gap: var(--spacing-12); text-decoration: none; color: var(--text-primary); min-width: 0; }
-.room-explore__world b { display: block; font-family: var(--font-display); font-size: var(--font-size-16); font-weight: 800; }
-.room-explore__world small { display: block; font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.35; }
-.room-explore__world:hover b { text-decoration: underline; }
-@media (max-width: 1099px) { .room-explore__row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 767px) {
-  .room-explore__row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .room-games .responsive-carousel { margin-inline: 0; }
-}
-@media (max-width: 479px) { .room-explore__row { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 767px) { .room-games .responsive-carousel { margin-inline: 0; } }
 @media (prefers-reduced-motion: reduce) { .room-game, .room-game:hover { transition: none; transform: none; } }
 
 /* /games: the index of game spaces (the app bar's Games). */
@@ -500,4 +451,12 @@ a.room-art__text:focus-visible { outline: none; }
 /* Named apart from marketing.css's .games-card (the front page's game tiles), which drew a second box around these. */
 .gamespace-card { display: flex; flex-direction: column; gap: var(--spacing-8); min-width: 0; }
 .gamespace-card > .room-game { flex: 1; }
+/* With a Join button the card is the box and the button sits inside it, at its foot (it sat under the card, apart). */
+.gamespace-card:has(> :not(.room-game)) {
+  gap: 0; overflow: hidden; border-radius: 1.6rem; border: 1px solid var(--border-subtle); background: var(--background-primary, #fff);
+  box-shadow: 0 1px 2px rgba(20, 26, 58, 0.06), 0 10px 28px rgba(20, 26, 58, 0.08); padding-bottom: var(--spacing-16);
+}
+.gamespace-card:has(> :not(.room-game)) > .room-game { border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.gamespace-card:has(> :not(.room-game)) > .room-game:hover { transform: none; box-shadow: none; }
+.gamespace-card > :not(.room-game) { margin-inline: var(--spacing-16); }
 .games-index__more { display: flex; flex-wrap: wrap; gap: var(--spacing-12) var(--spacing-24); margin: 0; padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle); }

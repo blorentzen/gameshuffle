@@ -7,7 +7,11 @@
 .host-needs { border-color: color-mix(in srgb, #d97706 55%, var(--border-default)); box-shadow: inset 4px 0 0 #d97706; }
 .host-needs__icon { color: #b45309; }
 .host-needs__line { font-size: var(--font-size-14); color: var(--text-secondary); }
-.host-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.host-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+/* The panel is the box; the two numbers sit flat in it with a line between (no box in a box). */
+.host-stats .hub-stats__item { border: 0; border-radius: 0; padding: var(--spacing-4) 0; }
+.host-stats .hub-stats__item + .hub-stats__item { border-left: 1px solid var(--border-subtle); padding-left: var(--spacing-16); }
+.host-stats .hub-stats__label { font-size: var(--font-size-14); }
 /* Leagues and seasons. */
 .host-seasons { display: grid; gap: var(--spacing-12); }
 .host-seasons__grid { display: grid; gap: var(--spacing-16); grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr)); }
