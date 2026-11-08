@@ -41,11 +41,28 @@ export function PhoneMenu({ you, worlds, extra }: { you: { heading: string; item
   // differently on the server, so it mounts only while the menu is in use: in, then open a frame later so it slides;
   // closed, then gone once it has slid away.
   const [mounted, setMounted] = useState(false);
+  // The first moments after mounting: the open sections fill in off-screen without unfolding (globals.css), so the
+  // menu slides in already laid out instead of growing while it moves.
+  const [settling, setSettling] = useState(false);
   const hydrated = useSyncExternalStore(noop, () => true, () => false);
-  const show = () => { setMounted(true); requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true))); };
+  const timer = useRef<number | undefined>(undefined);
+  const show = () => {
+    // Opening again while it's still sliding shut cancels the pending unmount, which used to take the reopened menu away.
+    window.clearTimeout(timer.current);
+    setMounted(true);
+    setSettling(true);
+    // Three frames off-screen: mount, the open sections render their links, then measure; then slide in.
+    requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true))));
+    timer.current = window.setTimeout(() => setSettling(false), 450);
+  };
   const toggle = useRef<HTMLButtonElement>(null);
   // Focus goes back to the menu button, as it would from any dialog, without scrolling the page to it.
-  const close = () => { setOpen(false); window.setTimeout(() => { setMounted(false); toggle.current?.focus({ preventScroll: true }); }, 320); };
+  const close = () => {
+    window.clearTimeout(timer.current);
+    setSettling(false);
+    setOpen(false);
+    timer.current = window.setTimeout(() => { setMounted(false); toggle.current?.focus({ preventScroll: true }); }, 320);
+  };
   const mine = worlds.filter((w) => w.mine).map((w) => w.id);
 
   return (
@@ -54,7 +71,7 @@ export function PhoneMenu({ you, worlds, extra }: { you: { heading: string; item
         <IconMenu2 size={24} stroke={2} aria-hidden="true" />
       </button>
       {hydrated && mounted && (
-        <Drawer open={open} onClose={close} position="right" title="Menu" className="phone-menu">
+        <Drawer open={open} onClose={close} position="right" title="Menu" className={`phone-menu${settling ? " phone-menu--settling" : ""}`}>
           <nav aria-label="Site" className="phone-menu__body">
             <section className="phone-menu__you" aria-label={you.heading}>
               <p className="phone-menu__heading">{you.heading}</p>
