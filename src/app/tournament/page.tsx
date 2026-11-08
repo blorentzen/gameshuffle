@@ -41,6 +41,8 @@ export default async function TournamentBrowsePage() {
               heading: "Tournaments",
               createHref: canCreate ? "/tournament/create" : null,
               createLabel: "Create tournament",
+              // The header already has Create a tournament, so the list doesn't repeat it (as on /game-nights).
+              createInHead: false,
               searchPlaceholder: "Tournaments, games, organizers",
               emptyText: "No tournaments match. Try another tab, or widen the filters.",
               // Status tabs replace When here: Registration is upcoming and

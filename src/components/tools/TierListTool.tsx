@@ -107,6 +107,7 @@ function SortableItem({ item, selected, onSelect }: { item: Item; selected: bool
 function TierZone({
   tier,
   items,
+  emptyText,
   selectedId,
   onSelect,
   onPlace,
@@ -116,6 +117,8 @@ function TierZone({
 }: {
   tier: Tier | null; // null = the unranked pool
   items: Item[];
+  /** The unranked pool's line: nothing added yet, or everything's in a tier. */
+  emptyText?: string;
   selectedId: string | null;
   onSelect: (id: string) => void;
   /** Tap on the row while an item is picked up: send it here. */
@@ -162,7 +165,7 @@ function TierZone({
           {items.map((it) => (
             <SortableItem key={it.id} item={it} selected={it.id === selectedId} onSelect={() => onSelect(it.id)} />
           ))}
-          {!tier && items.length === 0 && <span className="tier-row__empty">Everything&apos;s ranked. Add more below.</span>}
+          {!tier && items.length === 0 && emptyText && <span className="tier-row__empty">{emptyText}</span>}
         </div>
       </SortableContext>
       {tier && (
@@ -446,7 +449,10 @@ export function TierListTool({
             />
           </div>
           <p className="tier-pool__label">Not ranked yet <span>({byTier(UNRANKED).length})</span></p>
-          <TierZone tier={null} items={byTier(UNRANKED)} {...zoneProps} onPlace={() => place(UNRANKED)} />
+          <TierZone
+            tier={null} items={byTier(UNRANKED)} {...zoneProps} onPlace={() => place(UNRANKED)}
+            emptyText={items.length === 0 ? "Add items above, or start from a template below." : "Everything's ranked. Add more above."}
+          />
         </div>
 
         <DragOverlay>

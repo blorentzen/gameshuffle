@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Create Account",
+  title: { default: "Create Account", template: "%s | GameShuffle" },
   description: "Join GameShuffle for free. Save your randomizer setups, create tournaments, and unlock competitive tools for Mario Kart and more.",
   openGraph: {
     siteName: "GameShuffle",

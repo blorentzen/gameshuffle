@@ -3001,6 +3001,17 @@ html:not(.dark) .post-topic-chip { color: color-mix(in srgb, var(--bg-primary, v
   background-clip: content-box;
 }
 
+/* ── CDS bug: an Alert's close button is a 20px target, and chart legends set
+   their labels at 12px (10px on phones), though a legend can be a phrase ("Time trial screenshots read with AI").
+   Close buttons get 24px; legend labels 14px.
+   Upstream fix belongs in CascadeDS; local override until then. ── */
+.empac-alert__close { min-width: 2.4rem; min-height: 2.4rem; }
+/* CDS bug: a notification's time is the tertiary ink at 12px, and read ones fade to 80%, which fails contrast (Comms,
+   the bell). Secondary ink passes. */
+.empac-notification__timestamp { color: var(--text-secondary); }
+/* CDS sets 10px with !important below 480px, so this needs the extra class to win. */
+.empac-chart .recharts-legend-wrapper .recharts-legend-item-text { font-size: var(--font-size-14) !important; }
+
 /* ── CDS bug: below 480px CDS shrinks Table text to 12px (headers to 10px) and
    Badges to 10px / 12px. Text never shrinks to fit a phone (a cramped table
    scrolls sideways instead), so phones keep the desktop sizes.
@@ -3072,6 +3083,9 @@ html.dark .empac-tabs--pills:not(.band__tabs) .empac-tabs__tab--active .empac-ta
 :where(section, div):has(> .responsive-carousel) { min-width: 0; max-width: 100%; }
 .responsive-carousel .empac-carousel__slide { display: flex; }
 .responsive-carousel .empac-carousel__slide > * { width: 100%; }
+/* The carousel clips at its edges, so a card's soft shadow showed as a pale box past its right and bottom edges, and a
+   hover lift lost its top. Cards here keep their border instead (2026-11-08). */
+.responsive-carousel .empac-carousel__slide > *, .responsive-carousel .empac-carousel__slide > *:hover { box-shadow: none; transform: none; }
 .home-all-link { display: inline-block; margin-top: var(--spacing-20, 20px); }
 .randomizer-index__group { margin: 0 0 var(--spacing-48, 48px); }
 /* Same size as the homepage's section headings (fluid H2). */

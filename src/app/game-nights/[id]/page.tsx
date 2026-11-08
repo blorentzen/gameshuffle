@@ -27,7 +27,6 @@ import { TicketPurchase } from "@/components/events/TicketPurchase";
 import { getFollowCounts, getFollowState } from "@/lib/social/follows";
 import { listMoreFromOrganizer } from "@/lib/events/more";
 import { getBaseUrl } from "@/lib/env";
-import { boardGameLengthLabel as lengthLabel } from "@/data/board-games";
 import { gameArtFallback } from "@/data/game-night-visuals";
 import { partyModuleOf } from "@/lib/game-nights/modules";
 import { liveNightForEvent } from "@/lib/game-nights/module-server";
@@ -194,16 +193,15 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
     getFollowCounts(night.host_id),
     listMoreFromOrganizer(night.host_id, { type: "game-night", id: night.id }),
   ]);
-  const lengths = [...new Set(night.games.map((g) => g.length).filter(Boolean))] as string[];
   // Only facts this page states nowhere else. Level and kind are badges by the
-  // title; the game count is the "Games on the table" section right below. The
+  // title; the game count and each game's length are the "Games on the table"
+  // section right below (Game length here repeated them, 2026-11-08). The
   // attendance count lives here and NOT in the RSVP panel, which shows only the
   // states that change what the button means (spots left / full).
   const goodToKnow = [
     ...(night.capacity != null
       ? [{ label: "Spots", value: `${going.length} / ${night.capacity} going` }]
       : [{ label: "Going", value: `${going.length} ${going.length === 1 ? "person" : "people"}` }]),
-    ...(lengths.length > 0 ? [{ label: "Game length", value: lengths.map((l) => lengthLabel(l)).join(" · ") }] : []),
     { label: "Visibility", value: night.visibility === "public" ? "Public" : "Unlisted (link only)" },
   ];
   const pageUrl = `${getBaseUrl()}/game-nights/${night.id}`;

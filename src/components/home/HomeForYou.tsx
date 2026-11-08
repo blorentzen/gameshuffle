@@ -163,8 +163,10 @@ export function InviteLink({ link, joined, bare = false }: {
       {!bare && <span className="room-kicker">Bring your crew</span>}
       <div className="room-invite__row">
         <code className="room-invite__link">{link.replace(/^https:\/\/www\./, "")}</code>
-        <Button variant="secondary" size="small" iconBefore={IconCopy} onClick={() => void copy()}>Copy</Button>
-        <Button variant="primary" size="small" iconBefore={IconShare} onClick={() => void share()}>Share</Button>
+        <span className="room-invite__acts">
+          <Button variant="secondary" size="small" iconBefore={IconCopy} onClick={() => void copy()}>Copy</Button>
+          <Button variant="primary" size="small" iconBefore={IconShare} onClick={() => void share()}>Share</Button>
+        </span>
       </div>
       <p className="room-invite__joined">
         {joined.length > 0 && (

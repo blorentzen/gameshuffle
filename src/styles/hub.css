@@ -2686,6 +2686,11 @@ button.picks-bans__result-chip {
 .hub-plan__steps li.is-done .hub-plan__n { background: var(--success-100, #e2f5ea); color: var(--success-700, #1c7a45); }
 .hub-recap { display: flex; flex-direction: column; gap: var(--spacing-16); }
 .hub-stats--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* Numbers inside a panel sit flat, split by lines, not boxes inside the panel's box (Studio's This month, 2026-11-08;
+   Host's host-stats is the same look). */
+.hub-stats--flat { gap: 0; }
+.hub-stats--flat .hub-stats__item { border: 0; border-radius: 0; padding: var(--spacing-4) 0; }
+.hub-stats--flat .hub-stats__item + .hub-stats__item { border-left: 1px solid var(--border-subtle); padding-left: var(--spacing-16); }
 @media (max-width: 720px) { .hub-stats--four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .hub-games__commands { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .mod-view { padding: var(--spacing-32) 0 var(--spacing-48); }

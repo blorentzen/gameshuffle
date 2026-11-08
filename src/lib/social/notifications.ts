@@ -36,6 +36,8 @@ export async function createNotification(args: {
   // Never notify yourself.
   if (!args.userId || args.userId === args.actorUserId) return;
   const admin = createServiceClient();
+  // "commented on your post": the person goes in front, on site and in the email and Discord copies (2026-11-08).
+  if (args.actorUserId && needsName(args.title)) args = { ...args, title: `${await actorName(args.actorUserId)} ${args.title}` };
   // Settings ▸ Notifications: each group reaches someone On site, by Email and on Discord, each on its own switch.
   // Account and moderation notices have no group, so they always go through on site. A read error (or the column
   // not there yet) means the defaults.
@@ -55,6 +57,17 @@ export async function createNotification(args: {
     link: args.link ?? null,
     data: args.data ?? null,
   });
+}
+
+/** A title written as an action ("commented on your post", "mentioned you in a comment") needs the person's name. */
+function needsName(title: string): boolean {
+  return /^[a-z]/.test(title);
+}
+
+async function actorName(userId: string): Promise<string> {
+  const { data } = await createServiceClient().from("users").select("display_name, username").eq("id", userId).maybeSingle();
+  const r = data as { display_name: string | null; username: string | null } | null;
+  return r?.display_name || r?.username || "Someone";
 }
 
 export async function unreadCount(userId: string): Promise<number> {
@@ -114,7 +127,8 @@ export async function listNotifications(userId: string, limit = 30): Promise<App
     return {
       id: r.id,
       type: r.type,
-      title: r.title,
+      // Alerts saved before names went into the title (2026-11-08) get theirs here.
+      title: a && needsName(r.title) ? `${a.display_name || a.username || "Someone"} ${r.title}` : r.title,
       message: r.message,
       link: r.link,
       read: r.read,

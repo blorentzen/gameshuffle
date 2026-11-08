@@ -267,7 +267,7 @@ function SetupPanel({ page, setup, set, parsed, min, format, onMake }: {
             <>
               <Tabs
                 variant="pills"
-                size="small"
+                size="medium"
                 fullWidth
                 activeTab={setup.kind}
                 onChange={(id) => set({ kind: id as ElimKind })}

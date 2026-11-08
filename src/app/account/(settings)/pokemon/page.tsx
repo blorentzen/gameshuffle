@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { PokemonTabs } from "@/components/account/pokemon/PokemonTabs";
 import { accountPageData } from "@/lib/account/pageData";
 import { youTabFor } from "@/lib/games/youForward";
+
+export const metadata: Metadata = { title: "Pokémon" };
 
 /**
  * Account ▸ Pokémon (menus and account picks 2026-11-05): see PokemonTabs. Once the Pokémon space is open to the

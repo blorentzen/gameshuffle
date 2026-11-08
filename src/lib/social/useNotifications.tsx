@@ -28,6 +28,12 @@ interface ApiNotif {
 const CheckIcon = () => <IconCheck size={16} stroke={2} aria-hidden />;
 const XIcon = () => <IconX size={16} stroke={2} aria-hidden />;
 
+/** "Avery A." → "AA", "Marco" → "MA". */
+function initialsOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return (words.length > 1 ? words[0][0] + words[1][0] : name.trim().slice(0, 2)).toUpperCase();
+}
+
 type RespondFn = (notifId: string, invitationId: string, action: "accept" | "decline") => void;
 
 function toData(n: ApiNotif, onRespond: RespondFn): NotificationData {
@@ -39,7 +45,7 @@ function toData(n: ApiNotif, onRespond: RespondFn): NotificationData {
     timestamp: n.createdAt,
     read: n.read,
     user: n.actor
-      ? { name: n.actor.name, avatar: n.actor.avatar ?? undefined, initials: n.actor.name.slice(0, 2).toUpperCase() }
+      ? { name: n.actor.name, avatar: n.actor.avatar ?? undefined, initials: initialsOf(n.actor.name) }
       : undefined,
     href: n.link ?? undefined,
   };

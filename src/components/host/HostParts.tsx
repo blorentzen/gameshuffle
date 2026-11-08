@@ -44,7 +44,8 @@ function Cover({ game, cover, kind }: { game: string | null; cover: string | nul
 }
 
 export function HostEventRow({ e, tz, action = "Manage" }: { e: HostEvent; tz: string | null; action?: string }) {
-  const when = e.at ? formatEventShort(e.at, tz) : e.stage === "draft" ? "No date yet" : "";
+  // A draft whose date has gone by isn't coming up on that date: it says so, and Continue picks a new one (2026-11-08).
+  const when = e.datePassed ? "Date passed" : e.at ? formatEventShort(e.at, tz) : e.stage === "draft" ? "No date yet" : "";
   return (
     <li className="hub-rows__row">
       <span className="hub-rows__cover host-rows__cover"><Cover game={e.game} cover={e.cover} kind={e.kind} /></span>

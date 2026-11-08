@@ -24,7 +24,8 @@
 .studio-setup__go:focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
 /* Tools as picture cards. */
 .studio-tools { display: grid; gap: var(--spacing-16); }
-.studio-tools__grid { display: grid; gap: var(--spacing-20); grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr)); }
+/* Three across at most: six tools are two full rows (five across left Wheels alone, 2026-11-08). */
+.studio-tools__grid { display: grid; gap: var(--spacing-20); grid-template-columns: repeat(auto-fill, minmax(max(24rem, calc((100% - 2 * var(--spacing-20)) / 3)), 1fr)); }
 .studio-tool { display: grid; grid-template-rows: auto 1fr; border-radius: 1.8rem; overflow: hidden; text-decoration: none; color: var(--text-primary); border: 1px solid var(--border-subtle); background: var(--background-primary, #fff); box-shadow: 0 1px 2px rgba(20, 26, 58, .06), 0 10px 28px rgba(20, 26, 58, .08); transition: transform .18s ease; }
 .studio-tool:hover { transform: translateY(-2px); }
 .studio-tool:focus-visible { outline: 3px solid var(--brand-ink, #2f5bea); outline-offset: 2px; }

@@ -125,7 +125,7 @@ export function MerchProducts({ listings, post, onEdit, onReordered }: {
         const dragging = reordering === g.id && !filtering;
         const row = (l: AdminListing, handle?: ReactNode) => (
           <div className={`merch-products__row${picked.has(l.id) ? " is-picked" : ""}${handle ? " merch-products__row--drag" : ""}`}>
-            {handle ?? <Checkbox checked={picked.has(l.id)} onChange={(e) => toggle([l.id], e.target.checked)} aria-label={`Select ${l.name}`} />}
+            {handle ?? <Checkbox size="large" checked={picked.has(l.id)} onChange={(e) => toggle([l.id], e.target.checked)} aria-label={`Select ${l.name}`} />}
             {(() => {
               // The first shown color with a picture, else any; none yet (a new product) gets the empty square, never src="".
               const pic = l.colors.find((c) => !c.hidden && c.image)?.image || l.colors.find((c) => c.image)?.image;
@@ -147,7 +147,7 @@ export function MerchProducts({ listings, post, onEdit, onReordered }: {
         return (
           <section key={g.id} className="merch-products__group" aria-labelledby={`merch-g-${g.id}`}>
             <div className="merch-products__ghead">
-              <Checkbox checked={all} indeterminate={some} onChange={(e) => toggle(ids, e.target.checked)} aria-label={`Select every product shown in ${g.name}`} />
+              <Checkbox size="large" checked={all} indeterminate={some} onChange={(e) => toggle(ids, e.target.checked)} aria-label={`Select every product shown in ${g.name}`} />
               <button type="button" className="merch-products__fold" aria-expanded={open} disabled={filtering} onClick={() => toggleOpen(g.id)} id={`merch-g-${g.id}`}>
                 {open ? <IconChevronDown size={18} aria-hidden="true" /> : <IconChevronRight size={18} aria-hidden="true" />}
                 <span className="merch-products__gname">{g.name}</span>

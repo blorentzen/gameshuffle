@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { IconChevronLeft } from "@tabler/icons-react";
@@ -11,6 +12,12 @@ import "@/styles/settings.css";
  * pages that only forward): Settings' navigation, the list beside the page on a laptop and the page alone with a way
  * back on a phone (Britton, 2026-11-07: they still had the old account sidebar). Platform admin has its own layout.
  */
+/** Each page names itself the way Settings' own pages do ("Discord servers · Settings | GameShuffle"). */
+export const metadata: Metadata = {
+  title: { default: "Settings", template: "%s · Settings | GameShuffle" },
+  robots: { index: false, follow: false },
+};
+
 export default async function AccountSettingsLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="settings-page">

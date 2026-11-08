@@ -197,7 +197,7 @@ export function GamingCollection({ favorites, onFavoritesChange }: { favorites: 
 
       <div className="gcol__filters" role="group" aria-label="Show">
         {([["all", `All (${all.length})`], ["video", "Video games"], ["board", "Board games"], ["starred", "★ On your profile"]] as [Filter, string][]).map(([id, label]) => (
-          <Chip key={id} size="small" clickable selected={filter === id} variant={filter === id ? "primary" : "default"} label={label} onClick={() => setFilter(id)} />
+          <Chip key={id} size="medium" clickable selected={filter === id} variant={filter === id ? "primary" : "default"} label={label} onClick={() => setFilter(id)} />
         ))}
       </div>
 

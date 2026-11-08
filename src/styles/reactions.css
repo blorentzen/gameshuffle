@@ -9,8 +9,12 @@
 .rx-more { padding-inline: 10px; font-weight: 600; font-size: var(--font-size-12); }
 .rx-add { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 999px; border: 1px dashed var(--border-strong, #b8bdd0); background: transparent; color: var(--text-secondary); cursor: pointer; }
 .rx-add--sm { width: 28px; height: 28px; }
-.rx-add:hover:not(:disabled), .rx-add[aria-expanded="true"] { border-style: solid; color: var(--text-primary); background: var(--background-secondary, rgb(0 0 0 / 4%)); }
-.rx-add:disabled { opacity: .5; cursor: not-allowed; }
+/* The add button is plain content inside CDS Popover's trigger, which is the real button (open state, focus, disabled). */
+.rx-add:hover, .empac-popover-trigger[aria-expanded="true"] .rx-add { border-style: solid; color: var(--text-primary); background: var(--background-secondary, rgb(0 0 0 / 4%)); }
+.empac-popover-trigger:has(> .rx-add) { border-radius: 999px; }
+.empac-popover-trigger[aria-disabled="true"] .rx-add:hover { border-style: dashed; background: transparent; color: var(--text-secondary); }
+/* The trigger sets line-height 0, which flattens a text trigger ("React" under a comment). */
+.empac-popover-trigger > .ct__act { line-height: var(--line-height-normal, 1.5); }
 .rx-row--all { padding-block: 4px; gap: 8px; }
 
 /* The picker */

@@ -2477,9 +2477,9 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .brain-admin__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8, 8px); }
 .brain-admin__row { display: flex; flex-wrap: wrap; gap: var(--spacing-12, 12px); justify-content: space-between; align-items: flex-start; border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); padding: var(--spacing-12, 12px); }
 .brain-admin__main { display: grid; gap: var(--spacing-4, 4px); flex: 1 1 28rem; min-width: 0; font-size: var(--font-size-14); }
-.brain-admin__meta { font-size: var(--font-size-12); color: var(--text-secondary); }
+.brain-admin__meta { font-size: var(--font-size-14); color: var(--text-secondary); }
 .brain-admin__actions { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
-.brain-admin__progress { display: grid; gap: var(--spacing-4, 4px); font-size: var(--font-size-12); color: var(--text-secondary); max-width: 28rem; }
+.brain-admin__progress { display: grid; gap: var(--spacing-4, 4px); font-size: var(--font-size-14); color: var(--text-secondary); max-width: 28rem; }
 /* Platform ▸ Chat Brain ▸ Review */
 .brain-review { display: grid; gap: var(--spacing-12, 12px); }
 .brain-review__pick { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }

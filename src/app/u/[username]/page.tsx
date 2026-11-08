@@ -564,7 +564,8 @@ export default async function PublicProfilePage({
   const topFriendsWidget = topFriends.length > 0 && (
     <div className="pcard">
       <h2 className="pcard__title">Top Friends</h2>
-      <div className="friend-grid friend-grid--compact">
+      {/* A column count the friends fill: 6 is two rows of three, 8 two rows of four (five across left one alone). */}
+      <div className="friend-grid friend-grid--compact" style={{ "--friend-cols": friendCols(topFriends.length) } as React.CSSProperties}>
         {topFriends.map((f) => <FriendTile key={f.id} friend={f} />)}
       </div>
     </div>
@@ -1032,4 +1033,11 @@ export default async function PublicProfilePage({
       </div>
     </main>
   );
+}
+
+/** Top Friends' columns: full rows where the count allows (up to 12 friends). */
+function friendCols(n: number): number {
+  if (n <= 4) return Math.max(n, 1);
+  if (n % 4 === 0) return 4;
+  return 3;
 }

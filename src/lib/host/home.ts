@@ -29,6 +29,8 @@ export interface HostEvent {
   cover: string | null;
   /** "12 of 32 signed up", "6 going", "Week 3". */
   line: string | null;
+  /** A draft whose date has gone by (it says so instead of the date). */
+  datePassed?: boolean;
 }
 
 export interface NeedsYou { key: string; kind: HostKind; title: string; line: string; action: { label: string; href: string }; game: string | null; cover: string | null }
@@ -164,7 +166,7 @@ export async function hostHome(userId: string): Promise<HostHome> {
   return {
     hasRun: tours.size + nights.length + trivia.length + seasons.length > 0,
     needs,
-    events,
+    events: events.map((e) => (e.stage === "draft" && e.at && Date.parse(e.at) < now ? { ...e, datePassed: true } : e)),
     month: { events: inMonth.length, players: people.size },
     seasons: seasons.filter((x) => !x.done).slice(0, 4),
   };

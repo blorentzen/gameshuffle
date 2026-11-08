@@ -472,7 +472,7 @@ export function DiscordBotRoutingCard() {
                 options={servers.map((g) => ({ value: g.guildId, label: `${g.name ?? "Server"}${g.isMain ? " (main)" : ""}${g.removed ? " (bot removed)" : !g.active ? " (paused)" : ""}` }))} />
             ) : <span />}
             <div className="dbot-servers__actions">
-              <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
+              <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                 {servers.filter((g) => !g.removed).length} of {serverLimit} server{serverLimit === 1 ? "" : "s"}
               </span>
               {servers.filter((g) => !g.removed).length < serverLimit && (
@@ -567,7 +567,7 @@ export function DiscordBotRoutingCard() {
             <p
               style={{
                 marginTop: "var(--spacing-6)",
-                fontSize: "var(--font-size-12)",
+                fontSize: "var(--font-size-14)",
                 color: "var(--text-tertiary)",
                 lineHeight: "var(--line-height-snug)",
               }}
@@ -610,7 +610,7 @@ export function DiscordBotRoutingCard() {
               <p
                 style={{
                   margin: "var(--spacing-4) 0 0",
-                  fontSize: "var(--font-size-12)",
+                  fontSize: "var(--font-size-14)",
                   color: "var(--text-tertiary)",
                   lineHeight: "var(--line-height-snug)",
                 }}
@@ -654,7 +654,7 @@ export function DiscordBotRoutingCard() {
                       </div>
                       <div
                         style={{
-                          fontSize: "var(--font-size-12)",
+                          fontSize: "var(--font-size-14)",
                           color: "var(--text-tertiary)",
                           lineHeight: "var(--line-height-snug)",
                         }}
@@ -662,7 +662,7 @@ export function DiscordBotRoutingCard() {
                         {hint}
                       </div>
                       {key === "lounge" && loungeMove && (loungeMove.compHere || loungeMove.state !== "none") && (
-                        <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", marginTop: "var(--spacing-4)" }}>
+                        <div style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginTop: "var(--spacing-4)" }}>
                           {loungeMove.compHere
                             ? "GameShuffle Competitive posts these in this server now (set them there)."
                             : loungeMove.state === "moved"
@@ -683,7 +683,7 @@ export function DiscordBotRoutingCard() {
                           display: "flex",
                           alignItems: "center",
                           gap: "var(--spacing-6)",
-                          fontSize: "var(--font-size-12)",
+                          fontSize: "var(--font-size-14)",
                           color: "var(--text-secondary)",
                           cursor: "pointer",
                         }}
@@ -700,7 +700,7 @@ export function DiscordBotRoutingCard() {
                           display: "flex",
                           alignItems: "center",
                           gap: "var(--spacing-6)",
-                          fontSize: "var(--font-size-12)",
+                          fontSize: "var(--font-size-14)",
                           color: subscribed
                             ? "var(--text-secondary)"
                             : "var(--text-disabled)",
@@ -747,7 +747,7 @@ export function DiscordBotRoutingCard() {
             <p
               style={{
                 marginTop: "var(--spacing-6)",
-                fontSize: "var(--font-size-12)",
+                fontSize: "var(--font-size-14)",
                 color: "var(--text-tertiary)",
                 lineHeight: "var(--line-height-snug)",
               }}

@@ -1,9 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { youTabFor } from "@/lib/games/youForward";
 import { CompetitiveTabs } from "@/components/account/competitive/CompetitiveTabs";
 import { accountPageData } from "@/lib/account/pageData";
 import { competitiveSummary } from "@/lib/account/competitive";
 import "@/styles/account-home.css";
+
+export const metadata: Metadata = { title: "Competitive Mario Kart" };
 
 /** Account ▸ Competitive (menus and account picks 2026-11-05): see CompetitiveTabs. */
 export const dynamic = "force-dynamic";

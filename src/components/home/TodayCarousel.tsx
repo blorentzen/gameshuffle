@@ -262,7 +262,7 @@ export function TodayBoard({ games }: { games: PulseGame[] }) {
             <ul className="ptoday__rows ptoday__rows--waiting" aria-label="Not played yet">
               {waiting.map((w) => (
                 <li key={w.userId} className="ptoday__row">
-                  <span className="ptoday__place" aria-hidden="true">·</span>
+                  <span className="ptoday__place" aria-hidden="true" />
                   {face(w.name, w.avatar, "small")}
                   <span className="ptoday__name">{w.name}<span className="ptoday__not">not yet</span></span>
                   {nudged.has(w.userId)

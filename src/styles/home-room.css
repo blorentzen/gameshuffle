@@ -381,7 +381,11 @@ a.room-art__text:focus-visible { outline: none; }
 /* Bring your crew: your invite link, and who has joined from it. */
 .room-invite { display: grid; gap: var(--spacing-10, 1rem); padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
 .room-invite__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
-.room-invite__link { flex: 1 1 18rem; min-width: 0; padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-8, 8px); background: var(--background-secondary, #f4f5fa); color: var(--text-primary); font-size: var(--font-size-14); overflow-wrap: anywhere; }
+/* Copy and Share wrap together, never one beside the link and one below it. */
+.room-invite__acts { display: inline-flex; gap: var(--spacing-8); }
+/* The link keeps one line (it broke mid-word beside the buttons in the rail, 2026-11-08); the buttons wrap below when
+   there isn't room. */
+.room-invite__link { flex: 1 1 auto; min-width: min(100%, 27rem); padding: var(--spacing-8) var(--spacing-12); border-radius: var(--radius-8, 8px); background: var(--background-secondary, #f4f5fa); color: var(--text-primary); font-size: var(--font-size-14); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .room-invite__joined { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
 .room-invite__faces { display: inline-flex; }
 .room-invite__faces > * { margin-left: -6px; border-radius: 50%; box-shadow: 0 0 0 2px var(--background-primary, #fff); }

@@ -136,12 +136,15 @@ export function ReactionRow({ reactions, onReact, onRemove, size = "post", disab
         position="bottom"
         className="rx-pop"
         disabled={disabled}
+        // CDS Popover's wrapper is the button (focus, keys, aria-expanded, disabled), so the trigger is plain content:
+        // a <button> here nested one button in another, two tab stops for one control (axe nested-interactive).
         trigger={addText ? (
-          <button type="button" className={addClassName} aria-expanded={open} disabled={disabled}>{addText}</button>
+          <span className={addClassName}>{addText}</span>
         ) : (
-          <button type="button" className={`rx-add${size === "comment" ? " rx-add--sm" : ""}`} aria-label="React" aria-expanded={open} disabled={disabled}>
+          <span className={`rx-add${size === "comment" ? " rx-add--sm" : ""}`}>
             <IconMoodSmile size={size === "comment" ? 15 : 16} stroke={1.8} aria-hidden="true" />
-          </button>
+            <span className="sr-only">React</span>
+          </span>
         )}
         content={<Picker mine={mine} onPick={(key) => { setOpen(false); toggle(key); }} />}
       />

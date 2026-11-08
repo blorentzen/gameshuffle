@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { EventsTabs } from "@/components/account/events/EventsTabs";
 import { accountPageData, showPayoutsFor } from "@/lib/account/pageData";
 import { hasHosted } from "@/lib/host/home";
+
+export const metadata: Metadata = { title: "Events you run" };
 
 /** Where each Your events tab lives on the Host pages (journeys picks 2026-11-06, 7A). */
 const TO_HOST: Record<string, string> = {

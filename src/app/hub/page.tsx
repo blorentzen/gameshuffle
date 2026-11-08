@@ -245,7 +245,7 @@ export default async function HubHomePage({ searchParams }: { searchParams: Prom
 
             <section className="hub-panel" aria-labelledby="hub-month">
               <h2 id="hub-month" className="hub-panel__title">This month</h2>
-              <div className="hub-stats">
+              <div className="hub-stats hub-stats--flat">
                 <div className="hub-stats__item"><span className="hub-stats__label">Streams</span><span className="hub-stats__value">{monthIds.length}</span></div>
                 <div className="hub-stats__item"><span className="hub-stats__label">Viewers who played</span><span className="hub-stats__value">{monthPlayers}</span></div>
                 <div className="hub-stats__item"><span className="hub-stats__label">Rolls</span><span className="hub-stats__value">{monthRolls}</span></div>
