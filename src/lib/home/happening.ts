@@ -317,7 +317,7 @@ function newOnGs(day: string, shopOpen: boolean): Happening[] {
   const now = Date.parse(`${day}T12:00:00Z`);
   return NEW_ON_GS.filter((n) => (!n.when || n.when()) && (!n.merch || shopOpen) && now >= Date.parse(`${n.since}T00:00:00Z`)
     && now - Date.parse(`${n.since}T12:00:00Z`) <= (n.merch ? 14 : 30) * DAY_MS)
-    .map((n) => ({ id: `new:${n.id}`, world: n.world, kicker: n.merch ? "New merch" : "New", title: n.title, line: n.line, href: n.href, art: n.art, weight: 1, slot: "new" as const }));
+    .map((n) => ({ id: `new:${n.id}`, world: n.world, kicker: n.merch ? "Merch" : "New", title: n.title, line: n.line, href: n.href, art: n.art, weight: 1, slot: "new" as const }));
 }
 
 // ─── all of it ───────────────────────────────────────────────────────────────

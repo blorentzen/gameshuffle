@@ -136,13 +136,9 @@ button.bt-row:focus-visible { outline: 2px solid var(--primary-600); outline-off
 /* ── Landing copy under the tool ── */
 .bt-copy { display: flex; flex-direction: column; gap: var(--spacing-32); width: 100%; max-width: 76rem; }
 .bt-copy section { display: flex; flex-direction: column; gap: var(--spacing-12); }
-.bt-copy h2 { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-bold); }
+.bt-how { display: flex; flex-direction: column; gap: var(--spacing-16); width: 100%; }
+.bt-copy h2, .bt-how h2 { margin: 0; font-size: var(--font-size-24); font-weight: var(--font-weight-bold); }
 .bt-copy p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: var(--line-height-relaxed, 1.6); max-width: 68ch; }
-.bt-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-16); }
-@media (min-width: 900px) { .bt-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.bt-steps li { display: grid; gap: var(--spacing-4); }
-.bt-steps strong { font-size: var(--font-size-16); }
-.bt-steps span { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.5; }
 .bt-related { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-20); }
 .bt-related a { color: var(--brand-ink, var(--text-primary)); font-weight: 600; }
 

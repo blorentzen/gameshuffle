@@ -86,6 +86,8 @@ export function HappeningCard({ h, from, fresh = false, k = 0, onPress, track: t
         </span>
       ) : null;
   const slot = h.slot && h.slot !== "happening" ? h.slot : null;
+  // The line over the title never repeats the corner badge ("New" twice on a new thing).
+  const kick = fresh ? "Just now" : slot && h.kicker.toLowerCase() === SLOT_LABEL[slot].toLowerCase() ? "" : h.kicker;
   const tone = art.kind === "tone" || art.kind === "inset" ? ` hap--${art.tone}` : "";
   const className = `hap hap--${art.kind}${tone}${slot ? ` hap--${slot}` : ""}${onPress ? " hap--press" : ""}`;
   const count = () => track(EVENTS.homeSectionClicked, { to: `${trackAs}-${trackAs === "band" ? `${h.world}-${slot ?? "happening"}` : h.id.replace(/^next:/, "")}`, from });
@@ -98,13 +100,15 @@ export function HappeningCard({ h, from, fresh = false, k = 0, onPress, track: t
           {h.faces.map((f) => <Avatar key={f.name} size="small" src={f.avatar ?? undefined} initials={f.name.slice(0, 1).toUpperCase()} alt="" />)}
         </span>
       )}
-      {slot && <span className={`hap__slot hap__slot--${slot}`}>{h.kicker === "New merch" ? "Merch" : SLOT_LABEL[slot]}</span>}
+      {slot && <span className={`hap__slot hap__slot--${slot}`}>{SLOT_LABEL[slot]}</span>}
       <span className="hap__txt">
-        <span className="hap__kick">
-          {h.live && <span className="hap__live">Live</span>}
-          {fresh ? "Just now" : h.kicker}
-          {h.sample && <Badge variant="warning" size="small">Sample</Badge>}
-        </span>
+        {(h.live || h.sample || kick) && (
+          <span className="hap__kick">
+            {h.live && <span className="hap__live">Live</span>}
+            {kick}
+            {h.sample && <Badge variant="warning" size="small">Sample</Badge>}
+          </span>
+        )}
         <b className="hap__title">{h.title}</b>
         <span className="hap__line">{h.line}</span>
         {art.kind === "card" && <span className="hap__credit">Card art: {art.credit}</span>}

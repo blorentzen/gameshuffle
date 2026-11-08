@@ -1488,7 +1488,9 @@ html.dark .gs-portrait-bg {
 /* Discord's small corner window has no room for it. */
 @media (max-height: 300px) { .daily-parade { display: none; } }
 /* How to play inside the Start card: three short lines, side by side when there's room. */
-.daily-steps { list-style: none; margin: 0; padding: var(--spacing-16, 16px) 0 0; border-top: 1px solid var(--border-default); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: var(--spacing-12, 12px) var(--spacing-20, 20px); text-align: start; }
+.daily-steps { list-style: none; margin: 0; padding: var(--spacing-16, 16px) 0 0; border-top: 1px solid var(--border-default); display: grid; gap: var(--spacing-12, 12px) var(--spacing-20, 20px); text-align: start;
+  /* Three across once each gets 20rem, else one column: never two plus one left alone (every daily has three steps). */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max((100% - 2 * var(--spacing-20, 20px)) / 3, (64rem - 100%) * 999)), 1fr)); }
 .daily-step { display: flex; align-items: flex-start; gap: var(--spacing-10, 10px); min-width: 0; }
 /* A list marker inside the Start card's steps, so it stays small; colors from the shared tile tokens. */
 .daily-step__icon { width: 28px; height: 28px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--tile-blue); }

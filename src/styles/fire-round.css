@@ -13,7 +13,9 @@
   align-items: stretch;
   text-align: start;
   gap: var(--spacing-32);
-  max-width: 72rem;
+  /* 72rem of content like the other dailies: the container's 24px sides sit outside it, so the today bar doesn't
+     change width between dailies. */
+  max-width: calc(72rem + 2 * var(--spacing-24));
   margin-inline: auto;
 }
 html.dark .fire-page, [data-theme="dark"] .fire-page { --fire-ink: #ff9a7a; }
@@ -61,6 +63,8 @@ html.dark .fire-page, [data-theme="dark"] .fire-page { --fire-ink: #ff9a7a; }
 .fire-flat__title { margin: 0; font-size: var(--font-size-20); line-height: 1.2; }
 .fire-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
 .fire-chips + .fire-label { margin-top: var(--spacing-8); }
+.fire-category { width: 100%; max-width: 36rem; margin-top: var(--spacing-8); }
+.fire-category + .fire-label { margin-top: var(--spacing-8); }
 .fire-bests { list-style: none; margin: 0; padding: 0; display: grid; }
 .fire-bests li { display: flex; justify-content: space-between; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle, var(--border-default)); font-size: var(--font-size-14); }
 .fire-bests li:first-child { border-top: 0; }

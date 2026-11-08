@@ -30,10 +30,10 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import { ordinal } from "@/lib/daily/boardRules";
 import type { BoardView } from "@/lib/daily/boardTypes";
 import { reportDaily, type DailiesEntry } from "@/lib/originals/dailies";
-import { CHOICE_POINTS, LENGTH_ORDER, LENGTHS, MIXED, TYPED_POINTS, fireShareText, type FireLength } from "@/lib/originals/fireRound";
+import { CHOICE_POINTS, LENGTH_ORDER, LENGTHS, MIXED, TYPED_POINTS, fireCategory, fireShareText, type FireLength } from "@/lib/originals/fireRound";
+import { Select } from "@/components/ui/Select";
 import type { FireHome, FireOutcome, FireRunView } from "@/lib/fireRound/store";
 import { FirePlay, type FireMove } from "./FirePlay";
-import { FireGlyph } from "./fireIcons";
 import { SupportMoment } from "@/components/support/SupportMoment";
 import { ChallengeVersus } from "@/components/share/ShareChallenge";
 
@@ -240,6 +240,20 @@ export function FireRound() {
   );
 }
 
+/** The categories that have questions, grouped for the Select: Mixed, this season's holiday, topics, then games. */
+function categoryGroups(cats: Home["categories"]) {
+  const groupOf = (id: string) => {
+    const c = fireCategory(id);
+    if (c.id === MIXED) return "Everything";
+    if (c.season) return "This season";
+    return c.games || GAME_TOPICS.has(c.id) ? "Games" : "Topics";
+  };
+  return ["Everything", "This season", "Topics", "Games"]
+    .map((label) => ({ label, options: cats.filter((c) => groupOf(c.id) === label).map((c) => ({ value: c.id, label: c.label })) }))
+    .filter((g) => g.options.length > 0);
+}
+const GAME_TOPICS = new Set(["video-games", "characters", "overwatch"]);
+
 function FireStart({ home, category, length, onCategory, onLength, onStart, board }: {
   home: Home; category: string; length: FireLength;
   onCategory: (id: string) => void; onLength: (l: FireLength) => void; onStart: (mode: "daily" | "free") => void; board: React.ReactNode;
@@ -277,11 +291,9 @@ function FireStart({ home, category, length, onCategory, onLength, onStart, boar
       <section className="fire-flat" aria-labelledby="fire-free-title">
         <h2 id="fire-free-title" className="fire-flat__title">More rounds, any time</h2>
         <p className="fire-small">Pick a category and a length. Questions you&apos;ve had in the last 30 days come last.</p>
-        <p className="fire-label" id="fire-cat-label">Pick a category</p>
-        <div className="fire-chips" role="group" aria-labelledby="fire-cat-label">
-          {home.categories.map((c) => (
-            <Chip key={c.id} label={c.label} icon={<FireGlyph name={c.icon} size={14} />} clickable selected={category === c.id} aria-pressed={category === c.id} onClick={() => onCategory(c.id)} />
-          ))}
+        {/* 20-odd categories read as a wall of chips (Britton, 2026-11-08): one grouped Select instead. */}
+        <div className="fire-category">
+          <Select floatingLabel="Category" fullWidth value={category} onChange={(v) => onCategory(String(v))} groups={categoryGroups(home.categories)} />
         </div>
         <p className="fire-label" id="fire-len-label">How long</p>
         <div className="fire-chips" role="group" aria-labelledby="fire-len-label">

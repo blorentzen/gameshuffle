@@ -46,7 +46,7 @@ export default function WheelSpinnerPage() {
         </section>
 
         {/* How it works */}
-        <section style={{ margin: "var(--spacing-48) 0 0" }}>
+        <section style={{ width: "100%", margin: "var(--spacing-48) 0 0" }}>
           <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-16)", lineHeight: "var(--line-height-tight)" }}>
             How to use the wheel spinner
           </h2>

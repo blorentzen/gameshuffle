@@ -46,15 +46,23 @@ export function BracketToolPage({ page }: { page: ToolPage }) {
       <FreeToolShell icon={ICONS[page]} name={c.name} lede={c.lede}>
         <BracketTool page={page} />
 
+        {/* The steps take the page's width (the wheel's look); the notes below keep a reading width. */}
+        <section className="bt-how" aria-labelledby="bt-how">
+          <h2 id="bt-how">How it works</h2>
+          <ol className="app-steps">
+            {c.steps.map((s, i) => (
+              <li key={s.name} className="app-steps__item">
+                <span className="app-steps__num" aria-hidden="true">{i + 1}</span>
+                <div>
+                  <h3 className="app-steps__title">{s.name}</h3>
+                  <p className="app-steps__body">{s.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
         <div className="bt-copy">
-          <section aria-labelledby="bt-how">
-            <h2 id="bt-how">How it works</h2>
-            <ol className="bt-steps">
-              {c.steps.map((s) => (
-                <li key={s.name}><strong>{s.name}</strong><span>{s.text}</span></li>
-              ))}
-            </ol>
-          </section>
           {c.notes.map((n) => (
             <section key={n.title}>
               <h2>{n.title}</h2>
