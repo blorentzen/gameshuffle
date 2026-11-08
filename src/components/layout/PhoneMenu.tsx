@@ -78,7 +78,8 @@ export function PhoneMenu({ you, worlds, extra }: { you: { heading: string; item
               <Links items={you.items} onGo={close} />
             </section>
             <Accordion
-              // The account's interests arrive after the first paint; a new key lets their worlds open when they do.
+              // The account's interests arrive after the first paint; a new key lets their worlds open when they do. Their
+              // worlds come first and open, which says they're yours; a "Yours" line under each repeated it (2026-11-07).
               key={mine.join(".") || "none"}
               variant="flush"
               allowMultiple
@@ -87,7 +88,6 @@ export function PhoneMenu({ you, worlds, extra }: { you: { heading: string; item
               items={worlds.map((w) => ({
                 id: w.id,
                 title: w.label,
-                description: w.mine ? "Yours" : undefined,
                 content: (
                   <div className="phone-menu__world">
                     {w.sections.map((s, i) => (

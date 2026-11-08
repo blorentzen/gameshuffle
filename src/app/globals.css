@@ -3466,6 +3466,10 @@ html.dark ul.list-check > li::after { background: #7fd9a3; }
 .phone-menu__world { display: grid; gap: var(--spacing-16); }
 .phone-menu__extra { padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
 .phone-menu__worlds { border-top: 1px solid var(--border-subtle); }
+/* The worlds' names and links line up with Your stuff above and the sections below: CDS's flush accordion still pads
+   its triggers and content 20px, which gave the menu two left edges (2026-11-07). */
+.phone-menu__worlds .empac-accordion__trigger,
+.phone-menu__worlds .empac-accordion__content-inner { padding-left: 0; padding-right: 0; }
 
 /* CDS pill Tabs color the selected pill with primitive tokens (--primary-100/700) that don't flip in dark mode, so it
    showed as a pale light-blue pill on dark pages (Support's Once/Monthly). Raise with CascadeDS. The home band's
