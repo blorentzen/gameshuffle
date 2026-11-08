@@ -9,7 +9,7 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import { describePlayers } from "@/lib/daily/boards";
-import { formatTime, rankRows, type ProofKind, type TtPlayer, type VideoState } from "./rules";
+import { formatTime, lapsAddUp, MAX_MS, MIN_MS, rankRows, type ProofKind, type TtPlayer, type VideoState } from "./rules";
 import { boardsFor, categoryText, TOP_TEN, vehicleFor, type TtItems, type TtVehicle } from "./categories";
 import { countriesFor, round3Ready, round4Ready, trustedPlayers, underReview, vouchCounts } from "./status";
 import { countryPlayers } from "./countries";
@@ -511,6 +511,54 @@ export async function setVideo(player: TtPlayer, timeId: string, url: string): P
     .update({ video_url: url, video_status: "waiting", video_note: null, video_checked_by: null, video_checked_at: null })
     .eq("id", timeId).eq("player", player).eq("status", "ok").neq("video_status", "checked").select("id");
   return !!(data && data.length);
+}
+
+export type FixTimeError = "not_ready" | "gone" | "not_yours" | "verified" | "imported" | "bad_class" | "bad_time" | "faster_than_record" | "bad_laps" | "unchanged";
+
+/**
+ * The player corrects their own time, laps or category until it's verified (picks 2026-11-08). The same checks as a
+ * new time; the clip goes back to a reviewer (or waits for one), vouches and server verifications for the old numbers
+ * are dropped, and the change is kept on the time (`changes`, time-trials-m7.sql). Times brought over from the
+ * community's records or an import can't be changed here.
+ */
+export async function fixTime(player: TtPlayer, timeId: string, input: { timeMs: number; cc: TtClass; items: TtItems; vehicle: TtVehicle; laps: number[] | null }):
+  Promise<{ ok: true; changed: string } | { ok: false; error: FixTimeError }> {
+  if (!(await ttReady())) return { ok: false, error: "not_ready" };
+  const db = createServiceClient();
+  // `changes` comes with time-trials-m7.sql: without it, fixing is off.
+  const { data, error: readError } = await db.from("tt_times").select(`${TIME_COLS}, laps, changes`).eq("id", timeId).maybeSingle();
+  if (readError) return { ok: false, error: "not_ready" };
+  if (!data) return { ok: false, error: "gone" };
+  const raw = data as TimeRaw & { laps: number[] | null; changes: unknown[] | null };
+  const t = toTimeRow(raw);
+  if (t.status !== "ok") return { ok: false, error: "gone" };
+  if (t.player !== player) return { ok: false, error: "not_yours" };
+  if (t.video === "checked") return { ok: false, error: "verified" };
+  if (t.source !== "site" && t.source !== "discord") return { ok: false, error: "imported" };
+  if (!isClassFor(t.game, input.cc)) return { ok: false, error: "bad_class" };
+  if (!Number.isFinite(input.timeMs) || input.timeMs < MIN_MS || input.timeMs > MAX_MS) return { ok: false, error: "bad_time" };
+  if (fasterThanRecord(t.game, t.track, input.cc, input.timeMs)) return { ok: false, error: "faster_than_record" };
+  if (input.laps && !lapsAddUp(input.laps, input.timeMs)) return { ok: false, error: "bad_laps" };
+  const vehicle = vehicleFor(t.game, input.vehicle);
+  const from = { timeMs: t.timeMs, cc: t.cc, items: t.items, vehicle: t.vehicle, laps: raw.laps ?? null };
+  const to = { timeMs: input.timeMs, cc: input.cc, items: input.items, vehicle, laps: input.laps };
+  const parts: string[] = [];
+  if (from.timeMs !== to.timeMs) parts.push(`the time from ${formatTime(from.timeMs)} to ${formatTime(to.timeMs)}`);
+  if (from.cc !== to.cc || from.items !== to.items || from.vehicle !== to.vehicle) parts.push(`the category to ${categoryText(t.game, to.cc, to.items, to.vehicle, TT_GAMES[t.game].classes.length > 1)}`);
+  if (JSON.stringify(from.laps ?? null) !== JSON.stringify(to.laps ?? null)) parts.push(to.laps ? "the laps" : "the laps (cleared)");
+  if (!parts.length) return { ok: false, error: "unchanged" };
+  const changes = [...(Array.isArray(raw.changes) ? raw.changes : []), { at: new Date().toISOString(), by: "owner", from, to }].slice(-20);
+  const { error } = await db.from("tt_times").update({
+    time_ms: to.timeMs, cc: to.cc, items: to.items, vehicle: to.vehicle, laps: to.laps, changes,
+    // Whatever was checked or vouched for was the old numbers.
+    video_status: t.videoUrl ? "waiting" : "none", video_note: null, video_checked_by: null, video_checked_at: null,
+  }).eq("id", t.id).eq("player", player).neq("video_status", "checked");
+  if (error) { console.error("[tt] fix failed:", error.message); return { ok: false, error: "not_ready" }; }
+  await Promise.all([
+    db.from("tt_vouches").delete().eq("time_id", t.id),
+    db.from("tt_verifications").delete().eq("time_id", t.id),
+  ]);
+  return { ok: true, changed: parts.join(", ") };
 }
 
 /** A Discord server's mods vouch for a time. */

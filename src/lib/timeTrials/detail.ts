@@ -17,6 +17,8 @@ import { isProofLink } from "./sheets";
 import { COMMUNITY_VOUCHES, lapsAddUp, timeStatus, type ProofKind, type TimeStatus } from "./rules";
 import { playerPagePath } from "./playerPath";
 import { trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./tracks";
+import { askView, asksReady, type AskView } from "./asks";
+import { formatTime } from "./rules";
 
 export type { TimeStatus };
 
@@ -57,9 +59,15 @@ export interface TtTimeDetail {
   parts: TtParts | null;
   /** Lap splits against the record on this board, or the fastest time there with laps (round 4, pick 7A). */
   splits: { name: string; page: string; timeMs: number; laps: number[]; record: boolean } | null;
+  /** The open ask on it, for its player and reviewers (picks 2026-11-08). */
+  ask: AskView | null;
+  /** Its player can fix the time, laps or category: theirs, not verified, added on the site or in Discord. */
+  canFix: boolean;
+  /** The speeds its game has (the fix window's choices). */
+  classes: TtClass[];
 }
 
-type Extra = { laps: number[] | null; video_checked_at: string | null; sheet: string | null; sheet_link: string | null; body: string | null; wheels: string | null; glider: string | null };
+type Extra = { laps: number[] | null; video_checked_at: string | null; sheet: string | null; sheet_link: string | null; body: string | null; wheels: string | null; glider: string | null; changes: Change[] };
 
 async function extraFor(id: string): Promise<Extra> {
   const cols = (await round4Ready()) ? "laps, video_checked_at, sheet, sheet_link, body, wheels, glider" : (await round3Ready()) ? "laps, video_checked_at" : "video_checked_at";
@@ -68,7 +76,9 @@ async function extraFor(id: string): Promise<Extra> {
   // The parts columns came later in time-trials-m5.sql than the rest of it: read without them where they're missing.
   if (first.error && cols.includes("body")) data = (await createServiceClient().from("tt_times").select("laps, video_checked_at, sheet, sheet_link").eq("id", id).maybeSingle()).data;
   const r = (data ?? {}) as Partial<Extra>;
-  return { laps: r.laps ?? null, video_checked_at: r.video_checked_at ?? null, sheet: r.sheet ?? null, sheet_link: r.sheet_link ?? null, body: r.body ?? null, wheels: r.wheels ?? null, glider: r.glider ?? null };
+  // The player's own fixes (time-trials-m7.sql), read on their own so the rest works before it runs.
+  const changes = (await asksReady()) ? ((await createServiceClient().from("tt_times").select("changes").eq("id", id).maybeSingle()).data as { changes?: Change[] } | null)?.changes ?? [] : [];
+  return { laps: r.laps ?? null, video_checked_at: r.video_checked_at ?? null, sheet: r.sheet ?? null, sheet_link: r.sheet_link ?? null, body: r.body ?? null, wheels: r.wheels ?? null, glider: r.glider ?? null, changes: Array.isArray(changes) ? changes : [] };
 }
 
 /**
@@ -105,7 +115,12 @@ async function bestLapOn(t: TtTimeRow): Promise<number | null> {
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" }) : null);
 
-export async function timeDetail(id: string, viewer: string | null): Promise<TtTimeDetail | null> {
+type Change = { at: string; from: { timeMs: number }; to: { timeMs: number } };
+function changeText(c: Change): string {
+  return c.from.timeMs !== c.to.timeMs ? `Changed from ${formatTime(c.from.timeMs)} to ${formatTime(c.to.timeMs)}` : "Category or laps changed";
+}
+
+export async function timeDetail(id: string, viewer: string | null, viewerReviews = false): Promise<TtTimeDetail | null> {
   if (!(await ttReady())) return null;
   const t = await timeById(id);
   if (!t || t.status !== "ok") return null;
@@ -141,10 +156,16 @@ export async function timeDetail(id: string, viewer: string | null): Promise<TtT
   if (t.videoUrl && t.video === "checked") history.push({ at: extra.video_checked_at, text: "Clip checked by an updater" });
   else if (t.video === "checked") history.push({ at: extra.video_checked_at, text: t.source === "sheet" ? "Proof checked by an updater" : "Checked by an updater" });
   else if (t.videoUrl && t.video === "waiting") history.push({ at: null, text: "Clip added, waiting for an updater" });
-  else if (t.video === "rejected" && you) history.push({ at: extra.video_checked_at, text: t.source === "sheet" && !t.videoUrl ? "Proof link turned down" : "Clip turned down" });
+  // An ask's own line (below) says it; an older send-back without a thread reads the same way.
+  else if (t.video === "rejected" && you && !(await asksReady())) history.push({ at: extra.video_checked_at, text: t.source === "sheet" && !t.videoUrl ? "A reviewer asked for other proof" : "A reviewer asked for a new clip" });
   const firstReport = ((openReports.data ?? []) as { created_at: string }[])[0];
   if (firstReport && review.has(t.id)) history.push({ at: firstReport.created_at, text: "Under review" });
   if (n) history.push({ at: null, text: `Vouched for by ${n} ${n === 1 ? "player" : "players"}${n >= COMMUNITY_VOUCHES ? ": Community verified" : ""}` });
+  // An ask and the player's fixes, for the player and reviewers only (an ask never shows on the board).
+  const ask = you || viewerReviews ? await askView(t) : null;
+  if (ask) history.push({ at: ask.askedAt, text: "A reviewer asked for an update" });
+  else if (t.video === "rejected" && you && (await asksReady())) history.push({ at: extra.video_checked_at, text: "A reviewer asked for a new clip" });
+  if (you || viewerReviews) for (const c of extra.changes) history.push({ at: c.at, text: changeText(c) });
   const youVouched = !!(mine as { data: unknown }).data;
   const bi = extra.laps && bestLap != null ? extra.laps.indexOf(bestLap) : -1;
   const path = trackPath(track, t.cc, { items: t.items, vehicle: t.vehicle });
@@ -163,6 +184,9 @@ export async function timeDetail(id: string, viewer: string | null): Promise<TtT
     legacyProof: t.source === "sheet" && extra.sheet_link && isProofLink(extra.sheet_link) ? extra.sheet_link : null,
     parts: extra.body ? { body: extra.body, wheels: extra.wheels, glider: extra.glider } : null,
     splits: await splitsFor(t, board, extra.laps),
+    ask,
+    canFix: you && t.video !== "checked" && (t.source === "site" || t.source === "discord") && (await asksReady()),
+    classes: TT_GAMES[t.game].classes,
   };
 }
 

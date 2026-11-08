@@ -81,6 +81,12 @@ export default function Page() {
         board or on the bot&apos;s reply in Discord. If your time moves up into a top ten later, you get a
         notification asking for one.
       </p>
+      <p>
+        Your own time trials page lists everything waiting on you at the top, under <strong>Needs your attention</strong>:
+        times a reviewer asked you to update, top-ten times still missing a clip, and reports to answer. Typed a
+        time wrong? Open it and press <strong>Fix the time</strong>{" "}to change the time, laps or category. You can until
+        it&apos;s verified; a reviewer checks it again, and vouches for the old time are cleared.
+      </p>
 
       <h2>What the labels mean</h2>
       <p>Most labels show only on times in a board&apos;s top ten. Under review and Community verified can show on any time.</p>
@@ -88,7 +94,7 @@ export default function Page() {
         <li><strong>Unverified:</strong> no one has checked a clip of the run yet.</li>
         <li><strong>Clip in review:</strong> you added a clip and it&apos;s waiting for a reviewer.</li>
         <li><strong>Verified:</strong> a reviewer or updater checked the clip and it shows the run.</li>
-        <li><strong>Clip didn&apos;t match:</strong> only you see this, with the reviewer&apos;s reason. Add another clip.</li>
+        <li><strong>Update asked:</strong> only you (and reviewers) see this. A reviewer asked you to update the time: open it to see what they asked, then send a new clip, add a picture, fix the time or reply. It goes back to them when you do.</li>
         <li><strong>Community verified:</strong> ten players vouched for it.</li>
         <li><strong>Under review:</strong> someone reported it and a reviewer hasn&apos;t decided yet.</li>
         <li><strong>Trusted:</strong> the player has ten checked clips, none turned down, no time removed after a report and nothing under review. Their top-ten times don&apos;t need a clip.</li>

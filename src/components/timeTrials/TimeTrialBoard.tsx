@@ -55,7 +55,7 @@ const REPORT_ERRORS: Record<string, string> = {
 export function VideoChip({ row }: { row: Pick<TtBoardRow, "video" | "videoUrl" | "you"> }) {
   if (row.video === "checked") return <span className="tt-chip tt-chip--ok"><IconCircleCheck size={14} aria-hidden="true" /> Verified</span>;
   if (row.video === "waiting" && row.videoUrl) return <span className="tt-chip tt-chip--wait"><IconClock size={14} aria-hidden="true" /> Clip in review</span>;
-  if (row.video === "rejected" && row.you) return <span className="tt-chip tt-chip--bad">Clip didn&apos;t match</span>;
+  if (row.video === "rejected" && row.you) return <span className="tt-chip tt-chip--ask"><IconClock size={14} aria-hidden="true" /> Update asked</span>;
   return <span className="tt-chip">Unverified</span>;
 }
 

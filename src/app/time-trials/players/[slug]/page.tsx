@@ -26,7 +26,11 @@ import { StatusChip } from "@/components/timeTrials/TtTimeWindow";
 import { claimView, listedPlayer } from "@/lib/timeTrials/claims";
 import { sheetTimeIds } from "@/lib/timeTrials/store";
 import { playerPagePath, readPlayerSlug } from "@/lib/timeTrials/playerPath";
-import { isClassFor, trackPath, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { isClassFor, trackPath, ttTrack, ttTracks, TT_GAMES, TT_GAME_ORDER, type TtClass, type TtGame } from "@/lib/timeTrials/tracks";
+import { attentionFor, timePath, type AttentionItem } from "@/lib/timeTrials/asks";
+import { trustedPlayers } from "@/lib/timeTrials/status";
+import { IconTile } from "@/components/ui/IconTile";
+import { IconClock, IconFlag, IconSend, IconVideo } from "@tabler/icons-react";
 import "@/styles/time-trials.css";
 
 /**
@@ -94,6 +98,13 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
   // A legacy player (round 4, from the Top 10 sheets): "This is me", and Legacy instead of Unverified.
   const claim = listed ? await claimView(listed.identityId, actor?.userId ?? null) : null;
   const fromSheet = await sheetTimeIds(bests.filter((b) => b.place <= TOP_TEN).map((b) => b.timeId));
+  // Needs your attention (picks 2026-11-08): asks and reports on your times, and top-ten times still missing a clip.
+  const asked: AttentionItem[] = own ? await attentionFor(who.player) : [];
+  const askedIds = new Set(asked.map((a) => a.timeId));
+  const clipNeeds = own && !(await trustedPlayers([who.player])).has(who.player)
+    ? [...new Map(bests.filter((b) => b.place <= TOP_TEN && !fromSheet.has(b.timeId) && (b.video === "none" || b.video === "rejected") && !askedIds.has(b.timeId)).map((b) => [b.timeId, b])).values()]
+    : [];
+  const waitingOnYou = asked.filter((a) => a.kind !== "answered").length + clipNeeds.length;
   const games = TT_GAME_ORDER.filter((g) => bests.some((b) => b.game === g));
   const game: TtGame = TT_GAME_ORDER.includes(sp.game as TtGame) ? (sp.game as TtGame) : games[0] ?? "mk8dx";
   const info = TT_GAMES[game];
@@ -146,6 +157,37 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
         </> : undefined}
       />
       <Container className="tt-body">
+        {own && (asked.length > 0 || clipNeeds.length > 0) && (
+          <section className="tt-sec tt-sec--flat tt-attn" aria-labelledby="tt-attn-h">
+            <h2 id="tt-attn-h">Needs your attention{waitingOnYou > 0 && <span className="tt-attn__count">{waitingOnYou}</span>}</h2>
+            <ul>
+              {asked.map((a) => (
+                <li key={`${a.kind}-${a.timeId}`}>
+                  <IconTile icon={a.kind === "report" ? IconFlag : a.kind === "answered" ? IconSend : IconClock} tone={a.kind === "report" ? "red" : a.kind === "answered" ? "blue" : "orange"} />
+                  <span className="tt-attn__text">
+                    <b>{a.label}</b>
+                    <span>{a.kind === "ask" ? <>Update asked: &ldquo;{a.note}&rdquo;</> : a.kind === "answered" ? "You answered. A reviewer will look again." : <>Someone reported this time{a.note ? <>: &ldquo;{a.note}&rdquo;</> : null}. Answer with proof, and a reviewer decides.</>}</span>
+                  </span>
+                  <span className="tt-attn__act">
+                    <Link href={a.href} className={`empac-button empac-button--${a.kind === "ask" ? "primary" : "secondary"} empac-button--small`}>{a.kind === "ask" ? "Update it" : a.kind === "answered" ? "See it" : "Answer"}</Link>
+                  </span>
+                </li>
+              ))}
+              {clipNeeds.map((b) => (
+                <li key={`clip-${b.timeId}`}>
+                  <IconTile icon={IconVideo} tone="blue" />
+                  <span className="tt-attn__text">
+                    <b>{ttTrack(b.game, b.track)?.name ?? "A track"} · {formatTime(b.timeMs)} · {ordinal(b.place)}</b>
+                    <span>{b.video === "rejected" ? "A reviewer asked for a new clip of this run." : "Top-ten times need a clip of the last 30 seconds to show as Verified."}</span>
+                  </span>
+                  <span className="tt-attn__act">
+                    <Link href={timePath({ id: b.timeId, game: b.game, track: b.track, cc: b.cc, items: b.items, vehicle: b.vehicle })} className="empac-button empac-button--secondary empac-button--small">Add clip</Link>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {own && (
           <section className="tt-sec tt-sec--flat tt-country" aria-label="Your country">
             {/* eslint-disable-next-line @next/next/no-img-element -- a small flag from public/ */}

@@ -2,7 +2,9 @@
 
 /**
  * The reviewers' queue (round 2, 5A/6A): clips to check, oldest first, and open report tickets. A clip
- * that checks out flips the time to Verified; one that doesn't asks for a reason the player sees.
+ * that checks out flips the time to Verified; one that doesn't is an ask for an update (picks 2026-11-08): a quick ask
+ * or the reviewer's own words, which the player gets as a notification and a thread on the time. Their answer brings
+ * the time back to the top, marked Updated.
  * Round 3: clips players vouched for come first (with the count), the site's proof checks show as tickets, updaters
  * see only their game and items. The Team tab (picks 2026-11-05, TtTeamTab) gives reviewer and updater access; staff
  * and admins give anything, reviewers make updaters. Staff also manage the short names players taught the import reader
@@ -14,8 +16,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, EmptyState, FormField, Input, Tabs } from "@empac/cascadeds";
-import { IconCamera, IconCircleCheck, IconExternalLink, IconThumbUp, IconTrophy, IconVideo } from "@tabler/icons-react";
+import { Button, Chip, EmptyState, FormField, Input, Tabs } from "@empac/cascadeds";
+import { IconCamera, IconCircleCheck, IconExternalLink, IconMessage, IconRefresh, IconSend, IconThumbUp, IconTrophy, IconVideo } from "@tabler/icons-react";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { QueueLegacy, QueueTicket, QueueVideo } from "@/lib/timeTrials/review";
@@ -35,6 +37,15 @@ type Queue = { videos: QueueVideo[]; tickets: QueueTicket[]; team: TeamData | nu
   legacy: { items: QueueLegacy[]; total: number } | null };
 const SHEET_LABEL: Record<string, string> = { base: "Base Game", bcp: "Booster Course Pass", inward: "Inward" };
 const modeText = (m: Mode) => `${TT_GAMES[m.game].short} · ${itemsLabel(m.items)}`;
+
+/** The asks reviewers make most (tap one to fill the message, then change it if needed). */
+const QUICK_ASKS = [
+  { label: "Show the timer at the finish", text: "The clip stops before the finish line. Send one that shows the timer as you cross it." },
+  { label: "Show the whole last lap", text: "The clip needs to show your whole last lap, through the finish." },
+  { label: "Clip shows another track", text: "The clip shows a different track. Send the clip of this run." },
+  { label: "Time on screen doesn't match", text: "The time on screen doesn't match this time. Fix the time, or send the clip of this run." },
+  { label: "Clip won't play", text: "The clip won't play for us. Send a link that opens for anyone." },
+];
 
 const when = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
 const STATE: Record<QueueTicket["state"], string> = { open: "New", waiting_review: "Owner answered", waiting_owner: "Waiting on the owner", kept: "Kept", removed: "Removed" };
@@ -69,7 +80,7 @@ export function TtReviewQueue() {
 
   async function post(body: Record<string, unknown>, done: string): Promise<boolean> {
     const j = (await fetch("/api/time-trials/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()).catch(() => ({}))) as { ok?: boolean; error?: string };
-    if (!j.ok) { toast.error(j.error === "reason_needed" ? (body.action === "claim" ? "Say why it isn't approved." : body.action === "legacy_reject" ? "Say why the proof doesn't show it." : "Say why the clip doesn't match.") : j.error === "taken" ? "That name is already matched to an account." : "That didn't save. Try again."); return false; }
+    if (!j.ok) { toast.error(j.error === "reason_needed" ? (body.action === "claim" ? "Say why it isn't approved." : body.action === "legacy_reject" ? "Say why the proof doesn't show it." : "Say what they should update.") : j.error === "taken" ? "That name is already matched to an account." : "That didn't save. Try again."); return false; }
     toast.success(done);
     reload();
     return true;
@@ -80,9 +91,13 @@ export function TtReviewQueue() {
 
   const clips = q.videos.length === 0 ? <EmptyState title="No clips to check" description="Clips players add for their times show up here." /> : (
     <ul className="tt-queue">
-      {q.videos.map((v) => (
+      {q.videos.map((v) => { const who = v.name === "A player" ? "the player" : v.name; return (
         <li key={v.time.id} className="tt-queue__item">
-          <p className="tt-queue__head"><b>{v.name}</b> · {v.label}</p>
+          <p className="tt-queue__head">{v.ask?.state === "waiting_review" && <><span className="tt-chip tt-chip--updated"><IconRefresh size={14} aria-hidden="true" /> Updated</span>{" "}</>}<b>{v.name}</b> · {v.label}</p>
+          {v.ask?.state === "waiting_review" && (
+            <p className="tt-queue__asked">You asked: &ldquo;{v.ask.note}&rdquo;{v.ask.reply && <> {v.name}: &ldquo;{v.ask.reply}&rdquo;{v.ask.replyLink && <>{" "}<a href={v.ask.replyLink} target="_blank" rel="noopener noreferrer nofollow">Their link</a></>}</>}</p>
+          )}
+          {v.ask?.state === "waiting_owner" && <p className="tt-note">Asked for an update: &ldquo;{v.ask.note}&rdquo; Waiting on {who}.</p>}
           {v.vouches > 0 && <p className="tt-queue__links"><span className="tt-chip tt-chip--trust"><IconThumbUp size={14} aria-hidden="true" /> {v.vouches} {v.vouches === 1 ? "vouch" : "vouches"}</span><span className="tt-muted">from other players</span></p>}
           <p className="tt-queue__links">
             {v.time.proofUrl && <a href={v.time.proofUrl} target="_blank" rel="noopener noreferrer nofollow"><IconCamera size={16} aria-hidden="true" /> Screenshot</a>}
@@ -90,23 +105,28 @@ export function TtReviewQueue() {
             <span className="tt-muted">Added {when.format(new Date(v.time.createdAt))}</span>
           </p>
           {rejecting === v.time.id ? (
-            <form className="tt-queue__reject" onSubmit={(e) => { e.preventDefault(); setBusy(v.time.id); void post({ action: "video", timeId: v.time.id, ok: false, note: reason }, "Sent back to the player").then((ok) => { setBusy(null); if (ok) { setRejecting(null); setReason(""); } }); }}>
-              <FormField label="Why doesn't it match? (the player sees this)" htmlFor={`tt-rej-${v.time.id}`}>
+            <form className="tt-queue__ask" onSubmit={(e) => { e.preventDefault(); setBusy(v.time.id); void post({ action: "video", timeId: v.time.id, ok: false, note: reason }, `Asked ${who} for an update`).then((ok) => { setBusy(null); if (ok) { setRejecting(null); setReason(""); } }); }}>
+              <p className="tt-queue__ask-label" id={`tt-ask-quick-${v.time.id}`}>What should {who} update?</p>
+              <div className="tt-queue__chips" role="group" aria-labelledby={`tt-ask-quick-${v.time.id}`}>
+                {QUICK_ASKS.map((a) => <Chip key={a.label} label={a.label} clickable selected={reason === a.text} aria-pressed={reason === a.text} onClick={() => setReason(a.text)} />)}
+              </div>
+              <FormField label="Your message (they see this)" htmlFor={`tt-rej-${v.time.id}`}>
                 <Input id={`tt-rej-${v.time.id}`} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} fullWidth />
               </FormField>
+              <p className="tt-note">The time stays on the board, unverified, while {who} updates it.</p>
               <div className="tt-add__actions">
-                <Button type="submit" variant="danger" loading={busy === v.time.id} disabled={!reason.trim()}>Send back</Button>
+                <Button type="submit" variant="primary" iconBefore={IconSend} loading={busy === v.time.id} disabled={!reason.trim()}>Send the ask</Button>
                 <Button type="button" variant="ghost" onClick={() => { setRejecting(null); setReason(""); }}>Cancel</Button>
               </div>
             </form>
           ) : (
             <div className="tt-add__actions">
-              <Button variant="primary" iconBefore={IconCircleCheck} loading={busy === v.time.id} onClick={() => { setBusy(v.time.id); void post({ action: "video", timeId: v.time.id, ok: true }, "Verified").then(() => setBusy(null)); }}>Clip checks out</Button>
-              <Button variant="secondary" onClick={() => { setRejecting(v.time.id); setReason(""); }}>Doesn&apos;t match</Button>
+              <Button variant="primary" iconBefore={IconCircleCheck} loading={busy === v.time.id} onClick={() => { setBusy(v.time.id); void post({ action: "video", timeId: v.time.id, ok: true }, "Verified").then(() => setBusy(null)); }}>{v.time.video === "waiting" ? "Clip checks out" : "It checks out"}</Button>
+              <Button variant="secondary" iconBefore={IconMessage} onClick={() => { setRejecting(v.time.id); setReason(""); }}>Ask for an update</Button>
             </div>
           )}
         </li>
-      ))}
+      ); })}
     </ul>
   );
 

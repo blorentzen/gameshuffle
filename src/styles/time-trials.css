@@ -256,6 +256,13 @@
 .tt-queue__links { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-16); font-size: var(--font-size-14); }
 .tt-queue__links a { display: inline-flex; align-items: center; gap: var(--spacing-4); }
 .tt-queue__reject { display: grid; gap: var(--spacing-8); max-width: 56rem; }
+/* Asking for an update (picks 2026-11-08): quick asks as chips, the message, then the buttons. */
+.tt-queue__ask { display: grid; gap: var(--spacing-12); max-width: 64rem; }
+.tt-queue__ask-label { margin: 0; font-size: var(--font-size-14); font-weight: 600; }
+.tt-queue__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.tt-queue__asked { margin: 0; padding-left: var(--spacing-12); border-left: 3px solid var(--border-default); font-size: var(--font-size-15, 1.5rem); color: var(--text-primary); overflow-wrap: anywhere; }
+.tt-chip--updated { background: #e5efff; color: #1d4a92; border-color: transparent; }
+.tt-chip--ask { background: #fff1d6; color: #5c3600; border-color: transparent; }
 .tt-reviewers { display: grid; gap: var(--spacing-16); padding-top: var(--spacing-12); }
 /* Grid items keep to the column on phones (the board's table scrolls inside its own scroller). */
 .tt-filters, .tt-board, .tt-ticket { min-width: 0; max-width: 100%; }
@@ -399,3 +406,39 @@
 .tt-events__none { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 /* Phones: the whole card is the link, so the words get the width the "Open" cue took. */
 @media (max-width: 480px) { .tt-events__cue { display: none; } }
+
+/* A reviewer's ask in a time's window (TtAskPanel, picks 2026-11-08): flat at the top, a line under it. */
+.tt-askp { display: grid; gap: var(--spacing-12); padding-bottom: var(--spacing-20); margin-bottom: var(--spacing-4); border-bottom: 1px solid var(--border-subtle); }
+.tt-askp h3 { margin: 0; font-size: var(--font-size-16); }
+.tt-askp__thread { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); }
+.tt-askp__thread li { display: grid; gap: var(--spacing-2, 0.2rem); font-size: var(--font-size-15, 1.5rem); line-height: 1.45; overflow-wrap: anywhere; }
+.tt-askp__who { font-size: var(--font-size-14); color: var(--text-secondary); }
+.tt-askp__who b { color: var(--text-primary); }
+.tt-askp__btns { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.tt-askp__clip { display: grid; gap: var(--spacing-12); }
+.tt-askp__reply { display: flex; align-items: flex-end; gap: var(--spacing-8); }
+.tt-askp__reply .empac-form-field { flex: 1; min-width: 0; }
+
+/* Fixing your own time (TtFixTime): inline in the window. */
+.tt-fix { display: grid; gap: var(--spacing-12); padding-bottom: var(--spacing-20); border-bottom: 1px solid var(--border-subtle); }
+.tt-fix__title { margin: 0; font-size: var(--font-size-16); }
+.tt-fix__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--spacing-12); }
+.tt-fix__laps { margin: 0; padding: 0; border: 0; display: grid; gap: var(--spacing-8); justify-items: start; }
+.tt-fix__laps legend { padding: 0; margin-bottom: var(--spacing-4); font-size: var(--font-size-14); font-weight: 600; }
+.tt-fix__lapgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--spacing-8); width: 100%; }
+
+/* Needs your attention (your own time trials page, picks 2026-11-08). */
+.tt-attn { display: grid; gap: var(--spacing-12); }
+.tt-attn h2 { margin: 0; font-size: var(--font-size-20); display: flex; align-items: center; gap: var(--spacing-8); }
+.tt-attn__count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: #fff1d6; color: #5c3600; font-size: var(--font-size-14); font-weight: 700; }
+.tt-attn ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.tt-attn li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: var(--spacing-4) var(--spacing-12); padding: var(--spacing-14, 1.4rem) 0; border-top: 1px solid var(--border-subtle); align-items: start; }
+.tt-attn li:first-child { border-top: 0; padding-top: var(--spacing-4); }
+.tt-attn__text { display: grid; gap: var(--spacing-2, 0.2rem); min-width: 0; }
+.tt-attn__text b { font-size: var(--font-size-16); }
+.tt-attn__text span { font-size: var(--font-size-14); color: var(--text-secondary); line-height: 1.45; overflow-wrap: anywhere; }
+.tt-attn__act { grid-column: 2; margin-top: var(--spacing-6, 0.6rem); }
+/* Inside the ask panel, the panel's own line closes the form. */
+.tt-askp .tt-fix { padding-bottom: 0; border-bottom: 0; }
+/* CDS sets form helpers at 12px; this one is a sentence people read (14px floor). */
+.tt-country .empac-form-field__helper { font-size: var(--font-size-14); }

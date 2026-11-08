@@ -21,8 +21,9 @@ import { trackPath, ttTrack, TT_GAMES, type TtClass, type TtGame } from "./track
 import { categoryText, type TtItems, type TtVehicle } from "./categories";
 import { legacyProofFor, nudgeMovedUp, timeById, toTimeRow, TIME_COLS, topTensAround, ttReady, type TtTimeRow } from "./store";
 import { inScope, modeCounts, reviewScope, type Mode } from "./updaters";
-import { round4Ready, vouchCounts } from "./status";
+import { round3Ready, round4Ready, vouchCounts } from "./status";
 import { isProofLink } from "./sheets";
+import { answeredAskTimes, askForUpdate, asksFor, settleAsk, timePath, type QueueAsk } from "./asks";
 
 export type TicketState = "open" | "waiting_owner" | "waiting_review" | "kept" | "removed";
 export type TicketRole = "reporter" | "owner" | "reviewer";
@@ -96,8 +97,8 @@ export async function ticketView(id: string, viewer: { player: string | null; us
   if (!role) return null;
   const { data: msgs } = await db.from("tt_report_messages").select("id, author, role, body, link, created_at").eq("report_id", id).order("created_at").limit(200);
   const list = (msgs ?? []) as { id: string; author: string; role: TicketRole; body: string; link: string | null; created_at: string }[];
-  const names = await describePlayers([...new Set([t.player, r.reporter, ...list.map((m) => m.author)].filter((k) => !k.startsWith("d:") && !k.startsWith("staff") && !k.startsWith("flag:")))]);
-  const nameOf = (k: string, mrole: TicketRole) => (mrole === "reviewer" ? "Reviewer" : k.startsWith("flag:") ? "Proof check" : k.startsWith("d:") ? "A Discord player" : names.get(k)?.name ?? "A player");
+  const names = await describePlayers([...new Set([t.player, r.reporter, ...list.map((m) => m.author)].filter((k) => !k.startsWith("d:") && !k.startsWith("staff") && !k.startsWith("flag:") && k !== "ask"))]);
+  const nameOf = (k: string, mrole: TicketRole) => (mrole === "reviewer" || k === "ask" ? "Reviewer" : k.startsWith("flag:") ? "Proof check" : k.startsWith("d:") ? "A Discord player" : names.get(k)?.name ?? "A player");
   return {
     id: r.id, state: r.state, reason: r.reason, evidenceUrl: r.evidence_url, decisionNote: r.decision_note, at: r.created_at,
     time: t, label: timeLabel(t), ownerName: names.get(t.player)?.name ?? "A player", reporterName: nameOf(r.reporter, "reporter"),
@@ -151,25 +152,39 @@ export async function decideTicket(id: string, reviewerUserId: string, outcome: 
   return { ok: true };
 }
 
-export interface QueueVideo { time: TtTimeRow; label: string; name: string; vouches: number }
+export interface QueueVideo {
+  time: TtTimeRow; label: string; name: string; vouches: number;
+  /** An open ask on it (picks 2026-11-08): what was asked and the player's latest answer; "waiting_review" = Updated. */
+  ask: QueueAsk | null;
+}
 export interface QueueTicket { id: string; state: TicketState; reason: string | null; at: string; label: string; ownerName: string; reporterName: string; flag: boolean }
 
 /** The review queue for a scope: clips to check (most vouched-for first, then oldest) and open tickets. */
 export async function reviewQueue(scope: "all" | Mode[] = "all"): Promise<{ videos: QueueVideo[]; tickets: QueueTicket[] }> {
   if (!(await ttReady())) return { videos: [], tickets: [] };
   const db = createServiceClient();
-  const [{ data: vids }, { data: reps }] = await Promise.all([
+  // Asks live in the clips queue, not with the reports (kind came with time-trials-m4.sql).
+  let reports = db.from("tt_reports").select(REPORT_COLS).in("state", OPEN);
+  if (await round3Ready()) reports = reports.neq("kind", "ask");
+  const answered = await answeredAskTimes();
+  const [{ data: vids }, { data: reps }, { data: answeredRows }] = await Promise.all([
     db.from("tt_times").select(TIME_COLS).eq("status", "ok").eq("video_status", "waiting").not("video_url", "is", null).order("created_at").limit(300),
-    db.from("tt_reports").select(REPORT_COLS).in("state", OPEN).order("created_at").limit(300),
+    reports.order("created_at").limit(300),
+    // A player who answered an ask without a new clip (a reply, a picture, a fixed time) is back in line too.
+    answered.length ? db.from("tt_times").select(TIME_COLS).eq("status", "ok").neq("video_status", "checked").in("id", answered) : Promise.resolve({ data: [] }),
   ]);
-  const times = ((vids ?? []) as Parameters<typeof toTimeRow>[0][]).map(toTimeRow).filter((t) => inScope(scope, t));
+  const seen = new Set<string>();
+  const times = [...((vids ?? []) as Parameters<typeof toTimeRow>[0][]), ...((answeredRows ?? []) as Parameters<typeof toTimeRow>[0][])]
+    .map(toTimeRow).filter((t) => inScope(scope, t) && !seen.has(t.id) && seen.add(t.id));
+  const asks = await asksFor(times.map((t) => t.id));
   const reportsAll = (reps ?? []) as ReportRaw[];
   const reportTimesAll = await Promise.all(reportsAll.map((r) => timeById(r.time_id)));
   const keep = reportsAll.map((r, i) => ({ r, t: reportTimesAll[i] })).filter((x) => x.t && inScope(scope, x.t));
   const vouches = await vouchCounts(times.map((t) => t.id));
   const names = await describePlayers([...new Set([...times.map((t) => t.player), ...keep.map((x) => x.t!.player), ...keep.map((x) => x.r.reporter).filter((k) => !k.startsWith("d:") && !k.startsWith("flag:"))])]);
-  const videos = times.map((t) => ({ time: t, label: timeLabel(t), name: names.get(t.player)?.name ?? "A player", vouches: vouches.get(t.id) ?? 0 }))
-    .sort((a, b) => b.vouches - a.vouches || a.time.createdAt.localeCompare(b.time.createdAt))
+  const videos = times.map((t) => ({ time: t, label: timeLabel(t), name: names.get(t.player)?.name ?? "A player", vouches: vouches.get(t.id) ?? 0, ask: asks.get(t.id) ?? null }))
+    // Updated after an ask first (the player is waiting on us), then the most vouched-for, then the oldest.
+    .sort((a, b) => Number(b.ask?.state === "waiting_review") - Number(a.ask?.state === "waiting_review") || b.vouches - a.vouches || a.time.createdAt.localeCompare(b.time.createdAt))
     .slice(0, 100);
   return {
     videos,
@@ -181,7 +196,7 @@ export async function reviewQueue(scope: "all" | Mode[] = "all"): Promise<{ vide
   };
 }
 
-/** A reviewer flips a time to Verified, or says the clip doesn't match (with a reason the player sees). */
+/** A reviewer flips a time to Verified, or asks the player to update it (the ask is what they see; picks 2026-11-08). */
 export async function decideVideo(timeId: string, reviewerUserId: string, ok: boolean, note: string): Promise<{ ok: boolean; error?: string }> {
   const scope = await reviewScope(reviewerUserId);
   if (!scope) return { ok: false, error: "not_reviewer" };
@@ -189,10 +204,14 @@ export async function decideVideo(timeId: string, reviewerUserId: string, ok: bo
   if (!t || t.status !== "ok") return { ok: false, error: "gone" };
   if (!inScope(scope, t)) return { ok: false, error: "not_reviewer" };
   const why = note.trim().slice(0, 300) || null;
-  if (!ok && !why) return { ok: false, error: "reason_needed" };
-  await createServiceClient().from("tt_times").update({ video_status: ok ? "checked" : "rejected", video_checked_by: reviewerUserId, video_checked_at: new Date().toISOString(), video_note: why }).eq("id", timeId);
-  const track = ttTrack(t.game, t.track);
-  await tell(t.userId, ok ? "Your time is verified" : "Your clip didn't match your time", ok ? `${timeLabel(t)} is now Verified.` : `${timeLabel(t)}: ${why}. You can add another clip.`, track ? `/time-trials/players/me` : "/time-trials");
+  if (!ok) {
+    if (!why) return { ok: false, error: "reason_needed" };
+    await askForUpdate(t, reviewerUserId, why);
+    return { ok: true };
+  }
+  await createServiceClient().from("tt_times").update({ video_status: "checked", video_checked_by: reviewerUserId, video_checked_at: new Date().toISOString(), video_note: null }).eq("id", timeId);
+  await settleAsk(timeId, reviewerUserId);
+  await tell(t.userId, "Your time is verified", `${timeLabel(t)} is now Verified.`, timePath(t));
   return { ok: true };
 }
 
@@ -231,7 +250,8 @@ export async function verifyByReviewer(timeId: string, reviewerUserId: string, p
     })
     .eq("id", timeId).eq("status", "ok").select("id");
   if (!data?.length) return { ok: false, error: "gone" };
-  await tell(t.userId, "Your time is verified", `${timeLabel(t)} is now Verified.`, "/time-trials/players/me");
+  await settleAsk(timeId, reviewerUserId);
+  await tell(t.userId, "Your time is verified", `${timeLabel(t)} is now Verified.`, timePath(t));
   return { ok: true };
 }
 

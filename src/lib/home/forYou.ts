@@ -44,6 +44,7 @@ import { bandFor, type HappeningWorld } from "./happening";
 import { peopleTile, type PeopleTile } from "./people";
 import { VISIT_GAP_MS } from "./visit";
 import { fromYourPeople, type PeoplePost } from "@/lib/social/feed";
+import { askWaitingOn } from "@/lib/timeTrials/asks";
 
 // ─── what the page draws ─────────────────────────────────────────────────────
 
@@ -464,6 +465,9 @@ async function sinceLine(opts: {
     const hours = Math.max(1, Math.round((next.at - Date.now()) / 3_600_000));
     return { icon: "event", title: `${next.title} starts in ${hours === 1 ? "an hour" : `${hours} hours`}`, line: next.when, href: next.href, action: "Open", sample: false };
   }
+  // A reviewer asked you to update a time (picks 2026-11-08): waiting on you, so it comes before news.
+  const asked = await askWaitingOn(userId).catch(() => null);
+  if (asked) return { icon: "times", title: "A reviewer asked you to update a time", line: asked.label, href: asked.href, action: "Update it", sample: false };
   if (visit && interests.includes("competitive")) {
     const beaten = await timeBeaten(db, userId, visit.since).catch(() => null);
     if (beaten) return beaten;

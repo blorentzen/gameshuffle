@@ -10,13 +10,15 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Avatar, Button, FormField, Input, Modal } from "@empac/cascadeds";
-import { IconArrowsLeftRight, IconCamera, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconLink, IconShieldCheck, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
+import { IconArrowsLeftRight, IconCamera, IconPencil, IconCircleCheck, IconClock, IconExternalLink, IconFlag, IconLink, IconShieldCheck, IconThumbUp, IconTrophy, IconUsersGroup, IconVideo } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { flagUrl } from "@/lib/lounge/flags";
 import { countryName } from "@/lib/lounge/countries";
 import { COMMUNITY_VOUCHES, formatGap, formatLap, formatTime, ordinal } from "@/lib/timeTrials/rules";
 import type { TimeStatus, TtTimeDetail } from "@/lib/timeTrials/detail";
 import { TtAddShot } from "./TtAddShot";
+import { TtAskPanel, TtClipForm } from "./TtAskPanel";
+import { TtFixTime } from "./TtFixTime";
 
 export function StatusChip({ status }: { status: TimeStatus }) {
   switch (status) {
@@ -28,7 +30,7 @@ export function StatusChip({ status }: { status: TimeStatus }) {
     case "trusted": return <span className="tt-chip tt-chip--trust"><IconShieldCheck size={14} aria-hidden="true" /> Trusted</span>;
     case "review": return <span className="tt-chip tt-chip--review">Under review</span>;
     case "waiting": return <span className="tt-chip tt-chip--wait"><IconClock size={14} aria-hidden="true" /> Clip in review</span>;
-    case "rejected": return <span className="tt-chip tt-chip--bad">Clip didn&apos;t match</span>;
+    case "rejected": return <span className="tt-chip tt-chip--ask"><IconClock size={14} aria-hidden="true" /> Update asked</span>;
     case "unverified": return <span className="tt-chip">Unverified</span>;
     default: return null;
   }
@@ -66,12 +68,16 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
   const [copied, setCopied] = useState(false);
   // Bumped after a screenshot is added, to read the time again.
   const [tick, setTick] = useState(0);
+  // The player fixing their own time without an ask (with one, the ask panel has the button).
+  const [fixing, setFixing] = useState(false);
+  // The player adding the clip a top-ten time needs, from the window (Needs your attention links here).
+  const [clipping, setClipping] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
     if (!timeId) return;
     let live = true;
-    setTime(null); setMissing(false); setCopied(false); setReviewer(null); setClipLink("");
+    setTime(null); setMissing(false); setCopied(false); setReviewer(null); setClipLink(""); setFixing(false); setClipping(false);
     fetch(`/api/time-trials/${timeId}`).then((r) => r.json()).then((j: { ok?: boolean; time?: TtTimeDetail; reviewer?: { canVerify: boolean; clip: string | null } | null }) => {
       if (!live) return;
       if (j.ok && j.time) { setTime(j.time); setReviewer(j.reviewer ?? null); } else setMissing(true);
@@ -129,6 +135,8 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
   }
 
   const flag = time?.player.country ? flagUrl(time.player.country) : null;
+  // Your own top-ten time that still needs a clip (none yet, or one a reviewer asked you to replace before asks had a thread).
+  const wantsClip = !!time && time.you && time.top && !time.sheet && !time.ask && (time.status === "unverified" || time.status === "rejected");
   const vsSlug = time?.player.page.split("/").pop();
   return (
     <Modal isOpen={!!timeId} onClose={onClose} title={time ? formatTime(time.timeMs) : "Time"} size="medium">
@@ -139,6 +147,10 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
           <p className="tt-win__what">
             {time.trackName} · {time.category}{time.place ? ` · ${ordinal(time.place)} of ${time.total}` : ""}
           </p>
+          {/* A reviewer's ask (picks 2026-11-08): first, since it's what this window was opened for. */}
+          {time.ask && <TtAskPanel time={time} onChanged={() => setTick((t) => t + 1)} />}
+          {fixing && !time.ask && <TtFixTime time={time} onCancel={() => setFixing(false)} onDone={() => { setFixing(false); setTick((t) => t + 1); }} />}
+          {clipping && !time.ask && <TtClipForm timeId={time.id} onCancel={() => setClipping(false)} onDone={() => { setClipping(false); setTick((t) => t + 1); }} />}
           <div className="tt-win__grid">
             <div className="tt-win__col">
               <section className="tt-win__sec" aria-labelledby="tt-win-proof">
@@ -240,6 +252,8 @@ export function TtTimeWindow({ timeId, signedIn, onClose, onReport }: {
           )}
           <div className="tt-win__actions">
             <Link href={time.player.page} className="empac-button empac-button--secondary empac-button--small">{time.you ? "Your times" : `${time.player.name}'s times`}</Link>
+            {wantsClip && !clipping && <Button variant="primary" size="small" iconBefore={IconVideo} onClick={() => setClipping(true)}>Add a clip</Button>}
+            {time.canFix && !time.ask && !fixing && <Button variant="secondary" size="small" iconBefore={IconPencil} onClick={() => setFixing(true)}>Fix the time</Button>}
             {signedIn && !time.you && vsSlug && <Link href={`/time-trials/players/me?vs=${encodeURIComponent(vsSlug)}`} className="empac-button empac-button--secondary empac-button--small"><IconArrowsLeftRight size={16} aria-hidden="true" /> Compare with mine</Link>}
             {time.canVouch && <Button variant="secondary" size="small" iconBefore={IconThumbUp} loading={busy} onClick={() => void vouch(true)}>Vouch for this time</Button>}
             {time.youVouched && <Button variant="ghost" size="small" loading={busy} onClick={() => void vouch(false)}>Take back your vouch</Button>}

@@ -52,7 +52,8 @@ export async function trustedPlayers(players: string[]): Promise<Set<string>> {
   const db = createServiceClient();
   const [{ data: clips }, { data: reports }] = await Promise.all([
     db.from("tt_times").select("player, video_status").in("player", uniq).in("video_status", ["checked", "rejected"]).limit(5000),
-    db.from("tt_reports").select("state, tt_times!inner(player)").in("tt_times.player", uniq).in("state", [...OPEN, "removed"]).limit(2000),
+    // An ask (a reviewer asking for an update) isn't a report against the player, so it doesn't count here.
+    db.from("tt_reports").select("state, tt_times!inner(player)").in("tt_times.player", uniq).in("state", [...OPEN, "removed"]).neq("kind", "ask").limit(2000),
   ]);
   const checked = new Map<string, number>();
   const out_ = new Set<string>();

@@ -55,8 +55,14 @@ export default function Page() {
       </p>
       <ul>
         <li><strong>Clip checks out:</strong> the time shows as Verified, and the player gets a notification.</li>
-        <li><strong>Doesn&apos;t match:</strong> write why, then press Send back. The player sees your reason and can add another clip.</li>
+        <li><strong>Ask for an update:</strong> tap a quick ask (like Show the timer at the finish) or write your own, then press Send the ask. The player gets a notification (a message from the competitive bot if they play from Discord without an account) and your message on the time. The time stays on the board, unverified, and only the player and reviewers see the ask.</li>
       </ul>
+      <p>
+        When the player answers (a new clip, a picture, a fixed time or a reply), the time comes back to the top
+        of this list marked <strong>Updated</strong>, with what you asked and what they said. If they haven&apos;t
+        answered after a week, they get one reminder. An ask never removes a time: a time that shouldn&apos;t be
+        on the board goes through a report.
+      </p>
 
       <h2>Reports</h2>
       <p>

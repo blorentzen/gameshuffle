@@ -4,7 +4,7 @@
  *   GET ?counts=1                                      → what's waiting for the signed-in reviewer (null for anyone else)
  *   GET ?access=<userId>                               → one person's access, for the Review access window (team givers)
  *   GET ?people=<text>                                 → accounts by name, @username or Discord name (team givers)
- *   POST { action: "video", timeId, ok, note? }        → Verified, or "doesn't match" with a reason
+ *   POST { action: "video", timeId, ok, note? }        → Verified, or an ask for an update (note = the ask; picks 2026-11-08)
  *   POST { action: "decide", ticketId, outcome, note } → keep or remove a reported time
  *   POST { action: "access", userId, reviewer, modes } → give or take away access (picks 2026-11-05): staff and admins any,
  *                                                        reviewers updater modes only; the person is told

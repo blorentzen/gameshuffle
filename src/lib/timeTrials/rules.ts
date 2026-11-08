@@ -94,7 +94,7 @@ export function parseTtPlayer(key: string): { kind: "u" | "i"; id: string } | nu
 /**
  * Where a time's video stands (round 2, Britton 2026-10-29): every time shows in its place, Unverified
  * until a reviewer checks a clip of the run's last 30 seconds and flips it to Verified. none = no clip
- * yet, waiting = a clip in the review queue, checked = Verified, rejected = the clip didn't match.
+ * yet, waiting = a clip in the review queue, checked = Verified, rejected = a reviewer asked for an update ("Update asked").
  */
 export type VideoState = "none" | "waiting" | "checked" | "rejected";
 
@@ -120,10 +120,11 @@ export function timeStatus(t: {
   // Like Verified, the sheet's mark only shows in the top ten; further down the proof column says where it came from.
   if (t.sheet && t.top) return "sheet";
   if (t.vouches >= COMMUNITY_VOUCHES) return "community";
+  // A reviewer's ask (picks 2026-11-08) shows to its player on any time, even one that has slipped out of the top ten.
+  if (t.video === "rejected" && t.you) return "rejected";
   if (!t.top) return "none";
   if (t.video === "waiting" && t.videoUrl) return "waiting";
   if (t.trusted) return "trusted";
-  if (t.video === "rejected" && t.you) return "rejected";
   return "unverified";
 }
 
