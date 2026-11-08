@@ -17,6 +17,8 @@ export default function robots(): MetadataRoute.Robots {
   const disallow = [
     "/account",
     "/account/",
+    "/admin",
+    "/admin/",
     "/stream",
     "/stream/",
     "/stream-card",

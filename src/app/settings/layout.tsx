@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Container } from "@empac/cascadeds";
 import { ModerationNotice } from "@/components/account/ModerationNotice";
 import { SettingsNav } from "@/components/settings/SettingsNav";
+import { isStaffRequest } from "@/lib/auth/raw";
 import "@/styles/settings.css";
 
 /**
@@ -13,13 +14,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="settings-page">
       <Container>
         <ModerationNotice />
         <div className="settings-layout">
-          <SettingsNav />
+          <SettingsNav staff={await isStaffRequest()} />
           <div className="settings-layout__pane">{children}</div>
         </div>
       </Container>

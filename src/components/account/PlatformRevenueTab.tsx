@@ -62,7 +62,7 @@ export function PlatformRevenueTab() {
         <StatCard label="Cancelling" value={n(data.cancelling)} source="Set to end when their period runs out" icon={<IconCalendarDue size={20} />} />
       </AdminStats>
 
-      <AdminSection title="By plan" intro={<>Prices come from <Link href="/account/platform?tab=platform-pricing">Pricing</Link>. Circuit plans only sell once Circuit billing is switched on.</>}>
+      <AdminSection title="By plan" intro={<>Prices come from <Link href="/admin/pricing">Pricing</Link>. Circuit plans only sell once Circuit billing is switched on.</>}>
         <AdminTable label="Subscriptions by plan">
           <Table variant="striped" dense>
             <TableHeader>

@@ -20,6 +20,7 @@ import { CategoryIcon } from "@/components/chatbrain/brainIcons";
 import type { OriginalsOverview } from "@/lib/originals/overview";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 import { AdminHeader, AdminPanel, AdminSection, AdminStats, AdminTable } from "@/components/account/admin/AdminKit";
+import { adminHrefFor } from "@/lib/admin/items";
 
 const SOURCE_LABELS: Record<string, string> = {
   site: "Chat Brain page", daily: "Daily end screen", weekly: "Weekly", home: "Homepage", night: "Live nights",
@@ -43,7 +44,7 @@ export function PlatformOriginalsTab() {
     } finally { setBusy(false); }
   }, []);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
-  const go = (tab: string) => router.push(`/account/platform?tab=${tab}`, { scroll: false });
+  const go = (tab: string) => router.push(adminHrefFor(tab), { scroll: false });
 
   const header = (
     <AdminHeader

@@ -16,6 +16,7 @@
 export const APP_ROUTE_PREFIXES = [
   "/account",
   "/settings",
+  "/admin",
   "/host",
   "/hub",
   "/twitch",

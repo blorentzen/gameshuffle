@@ -57,7 +57,7 @@ function buildMenuSections(args: {
   if (activity.length) sections.push({ label: "Activity", items: activity });
 
   // Your account: its home, then every section (menus and account picks 2026-11-05), from the nav model so the menu
-  // always matches the sidebar. Platform Admin is staff-only.
+  // always matches Settings. Admin is staff-only.
   // Your home (/home) and Settings first (journeys picks 2026-11-06), then the sections that still live in Account.
   sections.push({
     label: "Your account",
@@ -66,10 +66,12 @@ function buildMenuSections(args: {
       // The home's header used to link here (home cleanup picks 2026-11-07, 1A); on phones the app bar's You opens it.
       ...(args.username ? [{ label: "Your front window", onClick: go(`/u/${args.username}`) }] : []),
       { label: "Settings", onClick: go("/settings") },
-      ...ACCOUNT_SECTIONS.filter((s) => s.kind !== "you" && (!s.staffOnly || args.isStaff)).map((s) => ({
+      ...ACCOUNT_SECTIONS.filter((s) => s.kind !== "you").map((s) => ({
         label: s.label,
         onClick: go(`${s.route}?tab=${s.defaultTab}`),
       })),
+      // Platform admin is /admin now (picks 2026-11-08), staff only.
+      ...(args.isStaff ? [{ label: "Admin", onClick: go("/admin") }] : []),
     ],
   });
 

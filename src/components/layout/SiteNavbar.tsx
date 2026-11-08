@@ -11,7 +11,7 @@ import { NavMenu, type NavItem, type NavSection } from "@/components/layout/NavM
 import { COMMUNITY_LINKS, PILLARS, isVisible, pillarsFor, primaryItems, type Pillar } from "@/lib/nav/pillars";
 import { PhoneMenu } from "@/components/layout/PhoneMenu";
 import { cleanInterests, type Interest } from "@/lib/interests/rules";
-import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { effectiveTier, isStaffRole, normalizeTier } from "@/lib/subscription";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -171,6 +171,7 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
   // disappear once they have. Fetched alongside the streamer check rather than
   // in a second effect — the nav should cost one round trip, not two.
   const [isPaid, setIsPaid] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
   // The account's interests put its worlds first in the phone menu (fetched with the paid check, one round trip).
   const [ownInterests, setOwnInterests] = useState<Interest[]>([]);
   const interests = previewInterests ?? ownInterests;
@@ -179,7 +180,7 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
     if (!user) {
       // Defer so the reset lands in a callback, not the effect body.
       const id = requestAnimationFrame(() => {
-        if (!cancelled) { setIsStreamer(false); setIsPaid(false); setOwnInterests([]); }
+        if (!cancelled) { setIsStreamer(false); setIsPaid(false); setIsStaff(false); setOwnInterests([]); }
       });
       return () => {
         cancelled = true;
@@ -201,6 +202,7 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
       const paidPro = effectiveTier({ tier: normalizeTier(row?.subscription_tier), role: row?.role ?? null }) !== "free";
       const paidCircuit = !!row?.circuit_status && ["active", "trialing", "past_due"].includes(row.circuit_status);
       setIsPaid(paidPro || paidCircuit);
+      setIsStaff(isStaffRole(row?.role ?? null));
     });
     return () => {
       cancelled = true;
@@ -283,6 +285,8 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
     ...(interests.includes("stream") ? [{ label: "Studio", href: "/hub" }] : []),
     { label: "Messages", href: "/comms?tab=messages" },
     { label: "Settings", href: "/settings" },
+    // Staff reach Platform admin here too (picks 2026-11-08: the phone menu had no way in).
+    ...(isStaff ? [{ label: "Admin", href: "/admin" }] : []),
   ];
   const you = user
     ? { heading: "Your stuff", items: ownLinks }

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   const { data: staff } = await createServiceClient().from("users").select("id").in("role", ["staff", "admin"]);
   await Promise.all(((staff ?? []) as { id: string }[]).map((u) => createNotification({
-    userId: u.id, type: "system", title, message: summary.slice(0, 500), link: "/account/platform?tab=platform-health",
+    userId: u.id, type: "system", title, message: summary.slice(0, 500), link: "/admin/overview",
   }).catch(() => undefined)));
 
   return NextResponse.json({ ok: true, flagged: flagged.length, checks });

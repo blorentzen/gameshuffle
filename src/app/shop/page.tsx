@@ -104,7 +104,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             </Alert>
           )}
           {staff && notReady && <Alert variant="warning" title="Not set up yet">Run supabase/merch-m1.sql, then press Sync from Printful in Platform ▸ Shop ▸ Merch.{devPreview ? " Dev server: showing every Printful product straight from Printful." : ""}</Alert>}
-          {staff && !notReady && listings.length === 0 && <Alert variant="info" title="No products yet">Press Sync from Printful in <Link href="/account/platform?tab=platform-shop-merch">Platform ▸ Shop ▸ Merch</Link>, then put products live.</Alert>}
+          {staff && !notReady && listings.length === 0 && <Alert variant="info" title="No products yet">Press Sync from Printful in <Link href="/admin/shop?tab=merch">Platform ▸ Shop ▸ Merch</Link>, then put products live.</Alert>}
           {checkout === "canceled" && !soon && <Alert variant="info">{copy.errors.canceled}</Alert>}
           {soon && <ShopUpdates signedIn={signedIn} ready={notify} />}
           {holiday !== "none" && (

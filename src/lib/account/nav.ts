@@ -1,8 +1,9 @@
 /**
  * Account navigation model — the single source of truth for how the /account
- * settings surface is split into section PAGES (You · the interest sections ·
- * Platform Admin) and which tabs live under each. Shared by the sidebar, the section
- * pages, and the legacy `?tab=` redirect logic. Client-safe (no server deps).
+ * settings surface is split into section PAGES (You · the interest sections)
+ * and which tabs live under each. Shared by the section pages, the account menu
+ * and the legacy `?tab=` redirect logic. Client-safe (no server deps). Platform
+ * admin has its own list, `src/lib/admin/items.ts` (/admin, 2026-11-08).
  *
  * Each section is its own route; within a section, tabs switch via `?tab=`.
  */
@@ -18,8 +19,6 @@ export interface AccountNavItem {
   /** When set, the item is a link-out to this absolute path rather than a
    *  `?tab=` within the section. */
   href?: string;
-  /** Sidebar group heading this item sits under (Platform Admin). */
-  group?: string;
   /** A view with tabs across its top. `id` is the tab it opens on; every tab
    *  keeps its own `?tab=` address, so old links work. */
   tabs?: AccountSubTab[];
@@ -41,11 +40,9 @@ export interface AccountNavSection {
   defaultTab: string;
   /** Tabler icon (kebab-case) for the section's collapsed link-out. */
   iconName: string;
-  /** Only rendered for staff/admin. */
-  staffOnly?: boolean;
   /** "you" = the account's own pages, always listed; "interest" = listed under Your interests for these interests,
    *  under More for everyone else (menus and account picks 2026-11-05, 3A/4A). */
-  kind: "you" | "interest" | "staff";
+  kind: "you" | "interest";
   interests?: Interest[];
   /** What's in it, in a few words (Your home's links). */
   line?: string;
@@ -200,71 +197,6 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
         { id: "discord-automod", label: "AutoMod & logs" },
         { id: "discord-qotd", label: "Question of the Day" },
         { id: "discord-tags", label: "Server replies" },
-      ] },
-    ],
-  },
-  {
-    label: "Platform Admin",
-    route: "/account/platform",
-    defaultTab: "platform-health",
-    iconName: "server",
-    staffOnly: true,
-    kind: "staff",
-    items: [
-      // Ten views in five groups (2026-10-09). Each tab id is unchanged, so
-      // links like ?tab=platform-shop-orders still open the right screen.
-      { id: "platform-health", label: "Overview", iconName: "activity", group: "Run the site", tabs: [
-        { id: "platform-health", label: "Health" },
-        { id: "platform-growth", label: "Growth" },
-        { id: "platform-revenue", label: "Revenue" },
-        { id: "platform-ai", label: "AI usage" },
-      ] },
-      { id: "platform-switches", label: "Switches", iconName: "settings", group: "Run the site" },
-      { id: "platform-shop-orders", label: "Shop", iconName: "shopping-cart", group: "Shop", tabs: [
-        { id: "platform-shop-orders", label: "Orders" },
-        { id: "platform-shop-merch", label: "Merch" },
-        { id: "platform-shop-products", label: "Card packs" },
-        { id: "platform-shop-states", label: "States" },
-        { id: "platform-shop", label: "Featured cards" },
-      ] },
-      { id: "platform-originals", label: "Originals", iconName: "sparkles", group: "Content", tabs: [
-        { id: "platform-originals", label: "Overview" },
-        { id: "platform-chat-brain", label: "Chat Brain" },
-        { id: "platform-weekly", label: "Weekly Challenge" },
-        { id: "platform-trivia", label: "Trivia" },
-        { id: "platform-break", label: "Break mode" },
-      ] },
-      { id: "platform-guides", label: "Library", iconName: "bookmark", group: "Content", tabs: [
-        { id: "platform-guides", label: "Guides" },
-        { id: "platform-decks", label: "Card decks" },
-        { id: "platform-games", label: "Game catalog" },
-      ] },
-      { id: "platform-default-commands", label: "Chat bot", iconName: "message-circle", group: "Community", tabs: [
-        { id: "platform-default-commands", label: "Commands" },
-        { id: "platform-variables", label: "Variables" },
-        { id: "platform-events", label: "Chaos events" },
-        { id: "platform-engagement", label: "Engagement" },
-      ] },
-      { id: "platform-tournaments", label: "Events", iconName: "award", group: "Community", tabs: [
-        { id: "platform-tournaments", label: "Tournaments" },
-        { id: "platform-ticketing", label: "Ticket sales" },
-        { id: "platform-series", label: "Series" },
-      ] },
-      { id: "platform-ladders", label: "GS Ranked", iconName: "award", group: "Community" },
-      { id: "platform-moderation", label: "People", iconName: "users", group: "Community", tabs: [
-        { id: "platform-moderation", label: "Moderation" },
-        { id: "platform-gifs", label: "GIFs" },
-        { id: "platform-time-trials", label: "Time trials" },
-        { id: "platform-staff", label: "Staff & roles" },
-      ] },
-      { id: "platform-pricing", label: "Pricing", iconName: "credit-card", group: "Money" },
-      { id: "platform-support", label: "Support", iconName: "heart", group: "Money" },
-      { id: "platform-snapshot", label: "Token economy", iconName: "currency-dollar", group: "Money", tabs: [
-        { id: "platform-snapshot", label: "Overview" },
-        { id: "platform-token-streamers", label: "Streamers" },
-        { id: "platform-token-history", label: "History" },
-        { id: "platform-economy", label: "Levers" },
-        { id: "platform-compliance", label: "Rules" },
       ] },
     ],
   },

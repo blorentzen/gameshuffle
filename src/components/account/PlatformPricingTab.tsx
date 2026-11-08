@@ -440,7 +440,7 @@ export function PlatformPricingTab() {
       </AdminSection>
 
       {AI_KEYS.some((k) => levers.has(k)) && (
-        <AdminSection title="AI allowances" icon={<IconSparkles size={20} />} intro={<>How many AI generations each plan gets. Usage and the same two limits are on <Link href="/account/platform?tab=platform-ai">AI usage</Link>.</>}>
+        <AdminSection title="AI allowances" icon={<IconSparkles size={20} />} intro={<>How many AI generations each plan gets. Usage and the same two limits are on <Link href="/admin/overview?tab=ai">AI usage</Link>.</>}>
           {settingRows(AI_KEYS)}
         </AdminSection>
       )}

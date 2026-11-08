@@ -162,7 +162,7 @@ export function PlatformHealthTab() {
             <span className="admin-pointer__text">
               Tokens in the last hour: <strong>{fmt(data.throughput.tokenEventsLastHour)}</strong> {data.throughput.tokenEventsLastHour === 1 ? "event" : "events"}, <strong>{fmt(data.throughput.tokenVolumeLastHour)}</strong> moved.
             </span>
-            <Link href="/account/platform?tab=platform-snapshot">Open Token economy</Link>
+            <Link href="/admin/tokens">Open Token economy</Link>
           </p>
 
           <AdminSection title="Checks">

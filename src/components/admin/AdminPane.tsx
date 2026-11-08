@@ -1,15 +1,17 @@
 "use client";
 
 /**
- * PlatformTabs — client tab switcher for the Platform Admin section page
- * (`src/app/account/platform/page.tsx`). The page server-gates on staff/admin
- * before rendering this, so these tabs never reach a non-staff session.
- *
- * The views, their tabs and the default live in `src/lib/account/nav.ts`;
- * SectionTabs draws the tab bar. Add a new screen to nav.ts and to SCREENS.
+ * One admin view's body (admin like Settings, picks 2026-11-08): its screens as CDS Tabs (`?tab=`), or its one
+ * screen, with a way back to the list on phones. The screens are the ones Platform admin always had, keyed by their
+ * old ids (`src/lib/admin/items.ts`); add a new screen there and here.
  */
 
-import { SectionTabs, type ScreenMap } from "@/components/account/SectionTabs";
+import { Suspense, type ReactNode } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Tabs } from "@empac/cascadeds";
+import { IconChevronLeft } from "@tabler/icons-react";
+import { adminHref, adminItem } from "@/lib/admin/items";
 import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
 import { PlatformGrowthTab } from "@/components/account/PlatformGrowthTab";
 import { PlatformRevenueTab } from "@/components/account/PlatformRevenueTab";
@@ -45,11 +47,7 @@ import { PlatformOriginalsTab } from "@/components/account/PlatformOriginalsTab"
 import { PlatformAiTab } from "@/components/account/PlatformAiTab";
 import { PlatformGamesTab } from "@/components/account/PlatformGamesTab";
 
-export function PlatformTabs() {
-  return <SectionTabs route="/account/platform" screens={SCREENS} />;
-}
-
-const SCREENS: ScreenMap = {
+const SCREENS: Record<string, () => ReactNode> = {
   "platform-health": () => <PlatformHealthTab />,
   "platform-growth": () => <PlatformGrowthTab />,
   "platform-revenue": () => <PlatformRevenueTab />,
@@ -88,3 +86,38 @@ const SCREENS: ScreenMap = {
   "platform-economy": () => <PlatformEconomyTab />,
   "platform-compliance": () => <PlatformComplianceTab />,
 };
+
+export function AdminPane(props: { item: string; index?: boolean }) {
+  return (
+    <Suspense>
+      <Body {...props} />
+    </Suspense>
+  );
+}
+
+function Body({ item: id, index = false }: { item: string; index?: boolean }) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const item = adminItem(id);
+  if (!item) return null;
+  const tabs = item.tabs ?? [];
+  const active = tabs.find((t) => t.id === params.get("tab")) ?? tabs[0] ?? null;
+  const screen = SCREENS[active?.key ?? item.key ?? ""]?.() ?? null;
+
+  return (
+    <div className={`settings-pane${index ? " settings-pane--index" : ""}`}>
+      {/* Phones: the list is its own page, so each view leads back to it. */}
+      <Link href="/admin" className="settings-pane__back"><IconChevronLeft size={18} aria-hidden="true" />Admin</Link>
+      {tabs.length > 1 && active ? (
+        <div className="platform-view">
+          <Tabs
+            variant="underline"
+            activeTab={active.id}
+            onChange={(t) => router.replace(adminHref(item, tabs.find((x) => x.id === t)), { scroll: false })}
+            tabs={tabs.map((t) => ({ id: t.id, label: t.label, content: t.id === active.id ? <div className="platform-view__body">{screen}</div> : null }))}
+          />
+        </div>
+      ) : screen}
+    </div>
+  );
+}

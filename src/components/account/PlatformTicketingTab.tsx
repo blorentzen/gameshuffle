@@ -86,7 +86,7 @@ export function PlatformTicketingTab() {
         <Alert variant="info" title="Paid event entry is switched off">
           Organizers can&apos;t sell paid tickets or set up payouts right now. Events that already sold tickets keep
           their orders. It stays off until the tax and organizer agreement questions are answered; then an admin turns on Paid event tickets on
-          the <Link href="/account/platform?tab=platform-switches">Switches</Link> screen.
+          the <Link href="/admin/switches">Switches</Link> screen.
         </Alert>
       )}
 

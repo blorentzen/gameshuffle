@@ -161,7 +161,7 @@ npm run lint    # ESLint
 /account/streaming                       → Streaming (Setup, Discord bot, Overlay, Chat, Live games, Viewers;
                                             free accounts: Get started + Discord bot)
 /account/streamer, /account/community    → Redirect to /account/streaming, keeping ?tab= (tab ids unchanged)
-/account/platform                        → Platform Admin (staff/admin only — Platform-* tabs)
+/account/platform                        → Forwards ?tab=platform-… to its /admin address (adminHrefFor)
 /account/privacy/data-request            → Signed-in DSAR form (Settings ▸ Privacy links here; /account/privacy itself is not a page)
 /account/streaming/logos/[guild]         → A Competitive server's team logos, many at once (the account that added the bot, and staff)
    ↑ Sidebar sections + tab catalog are the single source of truth in
@@ -176,6 +176,7 @@ npm run lint    # ESLint
 /mod/join/[streamer]                     → Self-serve mod join (public, light): sign in with Twitch, we check the mod list
 /mod/[streamer]                          → Mod view of a streamer's stream (Standard: lobby + kick, activity, decks; Full: the stream's controls too)
 /staff                                   → Staff/admin landing
+/admin, /admin/[view]                    → Platform admin (staff/admin only): Settings' list beside the open view (?tab= picks a screen)
 /staff/economy                           → Internal economy tooling
 /staff/scenarios                         → Test fixtures across tier states for QA
 /tcg-companion                           → TCG Companion app (Pokémon Mode)
@@ -428,9 +429,10 @@ get theme support and consistent middleware treatment.
 - **Bootstrap an admin** via `supabase/bootstrap-admin-britton.sql` (idempotent, audits to `gs_role_audit_log` if the table exists)
 
 ### Account (Multi-Section, Sidebar Navigation)
-- **The IA is four sections, each its own route** (Account, My Stuff, Streaming,
-  Platform), driven by `src/lib/account/nav.ts` (single source of truth) +
-  `AccountSidebar.tsx`. Tabs switch via `?tab=`; a tab hitting the wrong section's
+- **The IA is sections, each its own route** (Account, My Stuff, Streaming…),
+  driven by `src/lib/account/nav.ts` (single source of truth); they wear Settings'
+  list (2026-11-07), and Platform admin moved to `/admin` (2026-11-08; the old
+  `AccountSidebar` is gone). Tabs switch via `?tab=`; a tab hitting the wrong section's
   route auto-redirects (`sectionForTab`/`hrefForTab`, other query params kept).
   Nav items can be `proOnly` / `freeOnly`; `src/app/account/layout.tsx` works out
   Pro (`effectiveTier`) and the sidebar hides the rest.
@@ -460,7 +462,7 @@ get theme support and consistent middleware treatment.
 - **Free accounts** see only **Get started** (what streaming with GS Pro does, the trial buttons, three steps with their Twitch link status) and **Discord bot** (Channels & posts with the locked Pro list; one server works on Free). Every other tab falls back to Get started.
 - Older tab components are wrapped in `AdminScreen` with `admin-screen--wrap`, which hides their own `h2.account-tab__heading` title (`--section` keeps a section heading).
 
-**Platform admin (staff/admin only), reorganized 2026-10-09** (plan https://claude.ai/artifact/GXdp7FE3ui95uGZUf2Robx): ten views in five sidebar groups, each view a set of tabs (CDS Tabs, URL-synced). Every tab keeps its `?tab=platform-*` id, so old links still open the right screen; `nav.ts` items carry `group` and `tabs`, and `itemTabIds` / `viewForTab` / `sectionForTab` look inside views. `PlatformTabs.tsx` maps tab id → screen (`SCREENS`); add a new screen there and to `nav.ts`.
+**Platform admin (staff/admin only), reorganized 2026-10-09** (plan https://claude.ai/artifact/GXdp7FE3ui95uGZUf2Robx): ten views in five groups, each view a set of tabs (CDS Tabs, URL-synced). **Since 2026-11-08 it lives at `/admin` and wears Settings' look** (Britton's picks, all as recommended): `src/app/admin/` (layout checks the role, sends anyone else to /settings), the list `AdminNav` on the shared `ListNav` (`src/components/settings/ListNav.tsx`, also Settings' list: title, search, icon tiles with a line; on phones the list is the index page and each view opens with "‹ Admin"), the body `AdminPane` (screens keyed by their old `platform-*` ids). The catalog is `src/lib/admin/items.ts` (`ADMIN_GROUPS`: view id, line, tone, keywords, tabs with their own line and keywords so search opens a screen directly; `adminHref`, `adminHrefFor(oldId)`); `/account/platform?tab=platform-…` forwards there. Staff reach it from the avatar menu, the phone menu and a Staff row at the end of the Settings list; admin's list ends with Settings. Add a new screen to `items.ts` and `AdminPane`'s `SCREENS`.
 - **Run the site:** Overview (Health · Growth · Revenue · AI usage; **Revenue** (2026-10-10, `PlatformRevenueTab`, `/api/admin/revenue`, `src/lib/billing/revenue.ts`): monthly revenue from paying subscriptions in the `subscriptions` mirror at their plan's price (annual / 12, via `planFromStripePrice`, else tier + period length), trials and what they'd add, cancellations coming up, by plan, accounts → Twitch → tried GS Pro → paying, latest changes; before tax and Stripe fees) · **Switches** (`PlatformSwitchesTab`: every `gs_platform_flags` switch the code reads, from the registry `src/lib/platform/switches.ts`, shown even before it has a row; plain names, On/Off meaning, last changed by; admins flip after a confirmation, staff see; `/api/admin/platform-flags` PUT is admin-only and registry keys only. **Add new flags to the registry.**)
 - **Shop:** Shop (Orders · Products · Featured cards = the TCGplayer cards, formerly "Shop")
 - **Content:** Originals (Overview · Chat Brain · Weekly Challenge · Trivia) · Library (Guides · Card decks · Game catalog)

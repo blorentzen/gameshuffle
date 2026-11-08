@@ -168,7 +168,7 @@ export function PlatformAiTab() {
 
       <AdminSection
         title="Limits"
-        intro={<>GS Pro counts every AI tool against one rolling 30-day allowance. Free accounts get a daily allowance (reset at midnight Pacific) on AI setup, the night planner and the tournament helper; packs and recaps stay GS Pro. Staff aren&apos;t limited, and signed-out visitors are asked to make a free account first. Also listed on <Link href="/account/platform?tab=platform-pricing">Pricing</Link>, where each change is logged.</>}
+        intro={<>GS Pro counts every AI tool against one rolling 30-day allowance. Free accounts get a daily allowance (reset at midnight Pacific) on AI setup, the night planner and the tournament helper; packs and recaps stay GS Pro. Staff aren&apos;t limited, and signed-out visitors are asked to make a free account first. Also listed on <Link href="/admin/pricing">Pricing</Link>, where each change is logged.</>}
       >
         <form className="ai-admin__limits" onSubmit={(e) => { e.preventDefault(); if (validLimits && limitsChanged) void saveLimits(); }}>
           <Input type="number" min={0} max={10000} floatingLabel="GS Pro, per 30 days" value={pro} onChange={(e) => setPro(e.target.value)} />

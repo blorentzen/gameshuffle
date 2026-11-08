@@ -139,7 +139,7 @@ export async function sendShopNewOrderAlert(args: {
     ...(args.shortfall?.length ? ["", `Stock ran short: ${args.shortfall.map((s) => `${s.sku} (${s.missing} missing)`).join(", ")}. Check the shelf before shipping.`] : []),
     ...pfLine,
     "",
-    `Open the admin: ${getBaseUrl()}/account/platform?tab=platform-shop-orders`,
+    `Open the admin: ${getBaseUrl()}/admin/shop`,
   ].join("\n");
   return sendTransactionalEmail({
     to: SHOP.contact.alert_email,
@@ -167,7 +167,7 @@ export async function sendShopPrintfulProblem(args: { orderCode: string; what: s
   const text = [
     `Printful ${args.what} order ${args.orderCode}${args.reason ? `: ${args.reason}` : "."}`,
     "",
-    `Open the order: ${getBaseUrl()}/account/platform?tab=platform-shop-orders`,
+    `Open the order: ${getBaseUrl()}/admin/shop`,
     "Printful's dashboard: https://www.printful.com/dashboard/default/orders",
   ].join("\n");
   return sendTransactionalEmail({ to: SHOP.contact.alert_email, subject: `Printful ${args.what} ${args.orderCode}`, text, fromName: FROM_NAME });

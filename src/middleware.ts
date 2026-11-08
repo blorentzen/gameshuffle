@@ -4,7 +4,7 @@ import { PASSWORD_LATER_COOKIE } from "@/lib/auth/passwordNudge";
 import { ACTIVITY_PATH, isActivityHost, isActivityPath } from "@/lib/activity/hosts";
 import { hasPasswordFrom } from "@/lib/auth/passwordRules";
 
-const PROTECTED_ROUTES = ["/account", "/settings", "/host", "/twitch", "/messages", "/comms"];
+const PROTECTED_ROUTES = ["/account", "/settings", "/admin", "/host", "/twitch", "/messages", "/comms"];
 /** A protected section and everything under it, by whole path segment: "/twitch" covers
  *  "/twitch/commands" but not the public "/twitch-chat-games" guide. */
 const underProtected = (path: string) => PROTECTED_ROUTES.some((r) => path === r || path.startsWith(`${r}/`));

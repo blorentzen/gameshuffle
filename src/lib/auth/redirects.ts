@@ -51,6 +51,7 @@ export const ALLOWED_REDIRECT_PREFIXES = [
   "/lounge",
   "/ranked",           // a lounge's staff page (sign in with Discord, the bot checks your roles)
   "/time-trials",
+  "/admin",            // Platform admin (staff), 2026-11-08
   "/settings",         // Settings (journeys picks 2026-11-06): its pages send you to sign in and back
   "/home",             // your room
   "/host",             // the Host home and its tabs
