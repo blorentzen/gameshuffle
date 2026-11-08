@@ -274,12 +274,15 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
 
   // The phone menu (PhoneMenu): your stuff first, then the worlds (your interests first and open), then the rest.
   const ownLinks: NavItem[] = [
-    { label: "Your home", href: "/account" },
+    // Your home is the signed-in home; /account opens Settings, which has its own row (Britton, 2026-11-07: "Your
+    // home" landing on Settings read wrong). Same as the account menu on wide screens: Home, then Settings.
+    { label: "Your home", href: "/home" },
     ...(interests.includes("competitive") ? [{ label: "Competitive", href: "/account/competitive" }] : []),
     ...(interests.includes("pokemon") ? [{ label: "My Cards", href: "/account/pokemon?tab=my-cards" }] : []),
     ...(interests.includes("home") || interests.includes("events") ? [{ label: "Your events", href: "/account/events" }] : []),
     ...(interests.includes("stream") ? [{ label: "Studio", href: "/hub" }] : []),
     { label: "Messages", href: "/comms?tab=messages" },
+    { label: "Settings", href: "/settings" },
   ];
   const you = user
     ? { heading: "Your stuff", items: ownLinks }
