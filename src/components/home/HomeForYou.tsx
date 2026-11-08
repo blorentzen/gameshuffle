@@ -10,13 +10,15 @@
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Modal } from "@empac/cascadeds";
+import { Button, Input, Modal } from "@empac/cascadeds";
 import { UserAvatar, type UserAvatarUser } from "@/components/UserAvatar";
 import { useToast } from "@/components/toast/ToastProvider";
 import {
   IconBroadcast, IconCards, IconClock, IconCoffee, IconCopy, IconShare, IconDice5, IconFlag, IconFlame, IconHeart, IconMessageCircle, IconPokeball,
-  IconQuestionMark, IconSitemap, IconSofa, IconSparkles, IconTrophy, IconX, type Icon,
+  IconAdjustmentsHorizontal, IconPencil, IconQuestionMark, IconSitemap, IconSofa, IconSparkles, IconTrophy, IconX, type Icon,
 } from "@tabler/icons-react";
+import { IconAction } from "@/components/actions/IconAction";
+import { STATUS_MAX } from "@/lib/profile/status";
 import { IconTile, type TileTone } from "@/components/ui/IconTile";
 import { GameCover } from "@/components/games/GameCover";
 import { VISIT_COOKIE, setHomeCookie } from "@/lib/home/visit";
@@ -40,18 +42,67 @@ const WORLD: Record<PillarId, { icon: Icon; tone: TileTone }> = {
  * One link under your name (home cleanup picks 2026-11-07, 1A): "Change what you see" opens the interest tiles in a
  * window (what you follow is there); the page follows once it closes.
  */
-export function ShowingLine({ showing, interests }: { showing: string | null; interests: Interest[] }) {
+export function ShowingLine({ showing, interests, icon = false }: { showing: string | null; interests: Interest[]; icon?: boolean }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const close = () => { setOpen(false); router.refresh(); };
   return (
     <span className="home-you__showing">
-      <Button variant="ghost" size="small" className="home-you__change" onClick={() => setOpen(true)}>{showing ? "Change what you see" : "Pick what you're here for"}</Button>
+      {/* With picks made, it's a settings button at the end of the worlds, next to what it changes (header picks
+          2026-11-08, A); before any picks, the words stay so the first choice is easy to find. */}
+      {icon
+        ? <IconAction className="home-you__tune" label="Change what you see" icon={IconAdjustmentsHorizontal} variant="secondary" onClick={() => setOpen(true)} />
+        : <Button variant="ghost" size="small" className="home-you__change" onClick={() => setOpen(true)}>{showing ? "Change what you see" : "Pick what you're here for"}</Button>}
       <Modal isOpen={open} onClose={close} title="What you're here for" size="large" primaryAction={{ label: "Done", onClick: close }}>
         <p className="home-you__modal-note">Pick any. Your home, your menus and your account follow it.</p>
         <InterestSettings initial={interests} />
       </Modal>
     </span>
+  );
+}
+
+/**
+ * Your status, edited where it shows (header picks 2026-11-08): the bubble is a button; tapping it turns it into a
+ * field with Save and Cancel. Saving it empty clears it. Without a status, a quiet "Set a status" bubble.
+ */
+export function StatusBubble({ status: initial }: { status: string | null }) {
+  const [status, setStatus] = useState(initial ?? "");
+  const [draft, setDraft] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const toast = useToast();
+  const save = async () => {
+    if (draft === null || saving) return;
+    setSaving(true);
+    const res = await fetch("/api/account/profile-status", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: draft }) }).catch(() => null);
+    const body = res?.ok ? (await res.json().catch(() => null)) as { status?: string | null } | null : null;
+    setSaving(false);
+    if (!body) { toast.error("Couldn't save your status. Try again in a moment."); return; }
+    setStatus(body.status ?? "");
+    setDraft(null);
+    toast.success(body.status ? "Status saved" : "Status cleared");
+  };
+  if (draft === null) {
+    return (
+      <button type="button" className={`room-head__status${status ? "" : " room-head__status--empty"}`} onClick={() => setDraft(status)}
+        aria-label={status ? `Your status: ${status}. Edit it` : "Set a status"}>
+        <IconMessageCircle size={16} stroke={1.9} aria-hidden="true" />
+        <span className="room-head__status-text">{status || "Set a status"}</span>
+        <IconPencil size={16} stroke={1.9} aria-hidden="true" className="room-head__status-pen" />
+      </button>
+    );
+  }
+  return (
+    <form className="room-head__status-edit" onSubmit={(e) => { e.preventDefault(); void save(); }}
+      onKeyDown={(e) => { if (e.key === "Escape") setDraft(null); }}>
+      <label htmlFor="home-status" className="room-head__status-label">Your status</label>
+      <Input id="home-status" value={draft} maxLength={STATUS_MAX} autoFocus fullWidth placeholder="What are you up to?"
+        onChange={(e) => setDraft(e.target.value.slice(0, STATUS_MAX))} />
+      <div className="room-head__status-row">
+        <Button type="submit" variant="primary" size="small" disabled={saving}>Save</Button>
+        <Button type="button" variant="ghost" size="small" className="room-head__status-cancel" onClick={() => setDraft(null)}>Cancel</Button>
+        <span className="room-head__status-count" aria-live="polite">{draft.length} of {STATUS_MAX}</span>
+      </div>
+    </form>
   );
 }
 

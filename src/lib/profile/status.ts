@@ -5,7 +5,7 @@
  * no URLs, no markup, no keys — nothing to inject. Normalize on read and write.
  */
 
-const STATUS_MAX = 120;
+export const STATUS_MAX = 120;
 const GAME_MAX = 60;
 
 function cleanText(v: unknown, max: number): string | null {

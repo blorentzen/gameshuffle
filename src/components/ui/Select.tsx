@@ -17,6 +17,24 @@ import { Select as CdsSelect } from "@empac/cascadeds";
 type Props = ComponentPropsWithoutRef<typeof CdsSelect>;
 type Option = NonNullable<Props["options"]>[number];
 
+/**
+ * A searchable CDS Select focuses its search box the moment it opens, without preventScroll. On phones that raised
+ * the keyboard and scrolled the page while the fixed dropdown chased it (the post box's Game list glided up and
+ * down, 2026-11-08). Here, once per page: on touch screens the list opens without focusing the box (tap it to type);
+ * elsewhere it still takes focus, without moving the page. A CDS gap to raise upstream (focus option + preventScroll).
+ */
+if (typeof window !== "undefined" && !(window as { __gsSelectFocus?: boolean }).__gsSelectFocus) {
+  (window as { __gsSelectFocus?: boolean }).__gsSelectFocus = true;
+  const focus = HTMLElement.prototype.focus;
+  HTMLElement.prototype.focus = function (this: HTMLElement, options?: FocusOptions) {
+    if (this.classList?.contains("empac-select__search-input")) {
+      if (window.matchMedia("(pointer: coarse)").matches) return;
+      return focus.call(this, { ...options, preventScroll: true });
+    }
+    return focus.call(this, options);
+  };
+}
+
 const EMPTY = "__empty__";
 const swap = (o: Option): Option => (o.value === "" ? { ...o, value: EMPTY } : o);
 

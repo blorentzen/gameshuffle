@@ -1,6 +1,6 @@
 /**
  * GET /api/account/profile-status → { status, nowPlaying }
- * PUT /api/account/profile-status  body: { status?, nowPlaying? } → clean + save
+ * PUT /api/account/profile-status  body: { status?, nowPlaying? } → clean + save the fields sent
  *
  * Stored on `users.profile_status` + `users.profile_now_playing`. Authenticated.
  * Plain text only, normalized through the resolvers on read + write.
@@ -42,8 +42,13 @@ export async function PUT(req: NextRequest) {
   const nowPlaying = resolveNowPlaying(body?.nowPlaying);
 
   const admin = createServiceClient();
-  // "" = cleared on purpose (NULL would bring back the old tagline / featured game).
-  const { error } = await admin.from("users").update({ profile_status: status ?? "", profile_now_playing: nowPlaying ?? "" }).eq("id", user.id);
+  // "" = cleared on purpose (NULL would bring back the old tagline / featured game). Only the fields sent change: the
+  // home header's status bubble sends just the status and must leave the game alone.
+  const update: Record<string, string> = {};
+  if (body && "status" in body) update.profile_status = status ?? "";
+  if (body && "nowPlaying" in body) update.profile_now_playing = nowPlaying ?? "";
+  if (!Object.keys(update).length) return NextResponse.json({ error: "nothing_to_save" }, { status: 400 });
+  const { error } = await admin.from("users").update(update).eq("id", user.id);
   if (error) return NextResponse.json({ error: "migration_pending" }, { status: 503 });
   return NextResponse.json({ ok: true, status, nowPlaying });
 }

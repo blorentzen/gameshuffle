@@ -14,7 +14,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Chip, Select } from "@empac/cascadeds";
+import { Button, Chip } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { IconUsersGroup } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useOriginalsHost } from "@/components/originals/OriginalsHost";

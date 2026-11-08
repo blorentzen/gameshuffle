@@ -3458,7 +3458,7 @@ html.dark ul.list-check > li::after { background: #7fd9a3; }
   padding-bottom: calc(var(--spacing-24) + env(safe-area-inset-bottom, 0px));
 }
 .phone-menu__heading {
-  margin: 0 0 var(--spacing-4);
+  margin: 0 0 var(--spacing-2, 0.2rem);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.08em;
@@ -3475,13 +3475,18 @@ html.dark ul.list-check > li::after { background: #7fd9a3; }
   padding: var(--spacing-8) 0;
   color: var(--text-primary);
   font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
+  /* Regular weight, so the world's name above (20px bold) and the group labels read as headings over them (menu
+     picks 2026-11-08, B). The page you're on and the upgrade link keep the weight. */
+  font-weight: var(--font-weight-regular, 400);
   text-decoration: none;
 }
-.phone-menu__link[aria-current="page"] { color: var(--brand-ink, var(--primary-600)); }
+.phone-menu__link[aria-current="page"] { color: var(--brand-ink, var(--primary-600)); font-weight: var(--font-weight-semibold); }
 .phone-menu__link span { font-size: var(--font-size-14); font-weight: var(--font-weight-regular); color: var(--text-secondary); }
-.phone-menu__link--upgrade { color: var(--brand-ink, var(--primary-600)); }
+.phone-menu__link--upgrade { color: var(--brand-ink, var(--primary-600)); font-weight: var(--font-weight-semibold); }
 .phone-menu__world { display: grid; gap: var(--spacing-16); }
+/* Each group after the first starts under a thin line. */
+.phone-menu__world > div + div { padding-top: var(--spacing-20); border-top: 1px solid var(--border-subtle); }
+.phone-menu__worlds .empac-accordion__trigger-title { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); }
 .phone-menu__extra { padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle); }
 .phone-menu__worlds { border-top: 1px solid var(--border-subtle); }
 /* The worlds' names and links line up with Your stuff above and the sections below: CDS's flush accordion still pads

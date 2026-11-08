@@ -9,7 +9,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, FormField, Input, Modal, Select } from "@empac/cascadeds";
+import { Button, FormField, Input, Modal } from "@empac/cascadeds";
+import { Select } from "@/components/ui/Select";
 import { IconPhotoUp, IconPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { formatGap, formatTime, ordinal, parseTime } from "@/lib/timeTrials/rules";

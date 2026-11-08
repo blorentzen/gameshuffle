@@ -18,7 +18,8 @@
   background: linear-gradient(180deg, rgba(11, 13, 20, 0.62) 0%, rgba(11, 13, 20, 0.84) 66%, rgba(11, 13, 20, 0.95) 100%);
 }
 .room-head__inner { display: grid; gap: var(--spacing-24); padding-top: calc(64px + var(--spacing-32)); }
-.room-head__who { display: flex; align-items: center; gap: var(--spacing-20); min-width: 0; }
+/* The picture lines up with the top of your name (header picks 2026-11-08), not the middle of everything beside it. */
+.room-head__who { display: flex; align-items: flex-start; gap: var(--spacing-20); min-width: 0; }
 .room-head__avatar {
   flex: none; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.92);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35); background: #fff; overflow: hidden;
@@ -37,6 +38,18 @@
   color: #fff; font-size: var(--font-size-16); line-height: 1.35;
 }
 .room-head__status svg { flex: none; }
+/* The bubble is a button: tap it to edit your status in place. */
+button.room-head__status { font: inherit; font-size: var(--font-size-16); text-align: start; cursor: pointer; min-height: 44px; transition: background-color 0.2s ease; }
+button.room-head__status:hover { background: rgba(255, 255, 255, 0.2); }
+button.room-head__status:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.room-head__status-text { min-width: 0; overflow-wrap: anywhere; }
+.room-head__status-pen { opacity: 0.8; margin-left: var(--spacing-4); }
+.room-head__status--empty { border-style: dashed; background: transparent; color: rgba(255, 255, 255, 0.88); }
+.room-head__status-edit { display: grid; gap: var(--spacing-8); margin: var(--spacing-4) 0; max-width: 56rem; }
+.room-head__status-label { color: rgba(255, 255, 255, 0.88); font-size: var(--font-size-14); font-weight: 600; }
+.room-head__status-row { display: flex; align-items: center; gap: var(--spacing-12); }
+.room-head__status-edit .room-head__status-cancel { color: #fff; }
+.room-head__status-count { margin-left: auto; color: rgba(255, 255, 255, 0.75); font-size: var(--font-size-14); font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
   .room-head { padding-bottom: 3.2rem; }
   .room-head__inner { padding-top: calc(64px + var(--spacing-16)); gap: var(--spacing-12); }

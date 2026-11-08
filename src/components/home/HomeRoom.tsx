@@ -12,7 +12,7 @@ import { Suspense, type CSSProperties, type ReactNode } from "react";
 import { Badge, Container } from "@empac/cascadeds";
 import {
   IconCalendarEvent, IconCards, IconChartBar, IconClock, IconConfetti, IconDeviceGamepad2, IconDeviceTv, IconFlame,
-  IconMessageCircle, IconPlus, IconQuestionMark, IconRoute, IconStarFilled, IconThumbUp, IconTournament, IconUserPlus, IconUsersGroup, type Icon,
+  IconPlus, IconQuestionMark, IconRoute, IconStarFilled, IconThumbUp, IconTournament, IconUserPlus, IconUsersGroup, type Icon,
 } from "@tabler/icons-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { IconTile } from "@/components/ui/IconTile";
@@ -27,7 +27,7 @@ import { StickyRail } from "./StickyRail";
 import { PeopleList } from "@/components/people/PersonRow";
 import { PostLines } from "@/components/social/PostLines";
 import { HappeningBand } from "./HappeningBand";
-import { HomeVisit, InviteLink, MightLike, PlanRow, ShowingLine, WorldsAndPickUp } from "./HomeForYou";
+import { HomeVisit, InviteLink, MightLike, PlanRow, ShowingLine, StatusBubble, WorldsAndPickUp } from "./HomeForYou";
 import { gsDay } from "@/lib/time/gsClock";
 import { boxArt, findGame } from "@/data/game-catalog";
 import { wideArt } from "@/lib/home/art";
@@ -61,12 +61,14 @@ export function RoomHeader({ head, showing, interests, band }: { head: RoomHead;
           <UserAvatar user={head.avatar} size={84} className="room-head__avatar" />
           <div className="room-head__text">
             <h1>Welcome back, {head.name}</h1>
-            {head.status && <p className="room-head__status"><IconMessageCircle size={16} stroke={1.9} aria-hidden="true" />{head.status}</p>}
-            {/* What you follow sits behind this one link (home cleanup picks 2026-11-07, 1A); your front window is in the You menu. */}
-            <div className="room-head__showing"><ShowingLine showing={showing} interests={interests} /></div>
+            <StatusBubble status={head.status ?? null} />
+            {/* What you follow: a settings button at the end of the worlds once you've picked (header picks 2026-11-08, A);
+                before that, or with no worlds row, the words under your name. Your front window is in the You menu. */}
+            {(!showing || band.length === 0) && <div className="room-head__showing"><ShowingLine showing={showing} interests={interests} /></div>}
           </div>
         </div>
-        {band.length > 0 && <HappeningBand worlds={band} tone="dark" signedIn interests={interests} />}
+        {band.length > 0 && <HappeningBand worlds={band} tone="dark" signedIn interests={interests}
+          tabsEnd={showing ? <ShowingLine showing={showing} interests={interests} icon /> : undefined} />}
         <WorldsAndPickUp worlds={band.length === 0} />
       </div>
       </Container>

@@ -11,13 +11,15 @@ type TablerIcon = ComponentType<{ size?: number | string; stroke?: number }>;
  * is also the accessible name, so make it specific: "Delete the Snacks
  * question", not "Delete". Built on CDS IconButton + Tooltip.
  */
-export function IconAction({ label, icon: Icon, variant = "tertiary", onClick, disabled }: {
+export function IconAction({ label, icon: Icon, variant = "tertiary", onClick, disabled, className }: {
   label: string;
   icon: TablerIcon;
   /** tertiary for edit-like actions, danger for delete/remove, primary for the card's main refresh. */
   variant?: "primary" | "secondary" | "tertiary" | "danger";
   onClick: () => void;
   disabled?: boolean;
+  /** A hook on the wrapper for a place that restyles the button (the home band's settings button). */
+  className?: string;
 }) {
   const wrap = useRef<HTMLSpanElement>(null);
   // CDS gap: Tooltip's trigger span is focusable even around a button, which
@@ -27,7 +29,7 @@ export function IconAction({ label, icon: Icon, variant = "tertiary", onClick, d
     wrap.current?.querySelector(".empac-tooltip-trigger")?.setAttribute("tabindex", "-1");
   }, []);
   return (
-    <span ref={wrap} className="icon-action">
+    <span ref={wrap} className={`icon-action${className ? ` ${className}` : ""}`}>
       <Tooltip content={label} position="top">
         <IconButton variant={variant} size="small" aria-label={label} onClick={onClick} disabled={disabled}>
           <Icon size={18} stroke={2} />

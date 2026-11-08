@@ -120,7 +120,7 @@ export function HappeningCard({ h, from, fresh = false, k = 0, onPress, track: t
     : <Link href={h.href} className={className} style={{ "--k": k } as CSSProperties} onClick={count}>{body}</Link>;
 }
 
-export function HappeningBand({ worlds: initial, tone, signedIn, interests = [], heading, sub, order, remember, extra }: {
+export function HappeningBand({ worlds: initial, tone, signedIn, interests = [], heading, sub, order, remember, extra, tabsEnd }: {
   worlds: HappeningWorld[];
   tone: "dark" | "light";
   signedIn: boolean;
@@ -135,6 +135,8 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
   remember?: string;
   /** More for each world under its cards: the front page's four tool rows (front page picks 2026-11-07, 2A). */
   extra?: Partial<Record<PillarId, ReactNode>>;
+  /** Pinned at the end of the worlds row, outside its scroll (the home header's "Change what you see" button). */
+  tabsEnd?: ReactNode;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -257,7 +259,10 @@ export function HappeningBand({ worlds: initial, tone, signedIn, interests = [],
     >
       {heading && <h2 id="band-title" className="band__title">{heading}</h2>}
       {sub && <p className="band__sub">{sub}</p>}
-      <Tabs tabs={tabs} activeTab={current} onChange={go} variant="pills" className="band__tabs" />
+      <div className={`band__tabwrap${tabsEnd ? " band__tabwrap--end" : ""}`}>
+        <Tabs tabs={tabs} activeTab={current} onChange={go} variant="pills" className="band__tabs" />
+        {tabsEnd && <div className="band__end">{tabsEnd}</div>}
+      </div>
     </section>
   );
 }

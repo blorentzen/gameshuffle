@@ -15,6 +15,11 @@
 .band__tabs .empac-tabs__tab-icon { display: inline-flex; }
 .band__tabs .empac-tabs__tab-badge { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; background: #fde68a; color: #5b3a00; }
 .band__tabs .empac-tabs__content { padding-top: var(--spacing-20); }
+/* Something pinned at the end of the worlds row (the home header's settings button): the row stops short of it, so
+   pills scroll under nothing, and it sits level with the pills. */
+.band__tabwrap { position: relative; min-width: 0; }
+.band__tabwrap--end .band__tabs .empac-tabs__header { margin-right: 52px; }
+.band__end { position: absolute; top: 0; right: 0; height: 42px; display: flex; align-items: center; }
 /* The tab you pick fills in place and the last one empties, together (no pill sliding between them). */
 .band__tabs .empac-tabs__tab { transition: background-color 0.24s ease, border-color 0.24s ease, color 0.24s ease; }
 

@@ -98,3 +98,9 @@
 /* The visitor homepage's "What's happening" band (HappeningBand, light). */
 .visitor-band { display: grid; gap: var(--spacing-16); padding-top: var(--spacing-40, 4rem); }
 .visitor-band__note { margin: var(--spacing-8) 0 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+
+/* "Change what you see" as a settings button at the end of the worlds row (header picks 2026-11-08, A): the pills'
+   size and outline, so it reads as part of the row. */
+.home-you__tune .empac-icon-button { width: 42px; height: 42px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.08); color: #fff; }
+.home-you__tune .empac-icon-button:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.home-you__tune .empac-icon-button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
