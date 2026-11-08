@@ -144,7 +144,6 @@
   .tt-board__table th:nth-child(2) { width: 15rem; min-width: 15rem; }
   /* The initial-letter picture gives the name its room on a phone; the flag stays beside the name. */
   .tt-board__who > .empac-avatar { display: none; }
-  .tt-cup__table td:first-child { white-space: nowrap; }
   .tt-find .tt-mine { padding-bottom: 0; }
 }
 
@@ -231,7 +230,13 @@
 .tt-stats small, .tt-stats dd.tt-stats__sub { font-family: inherit; font-size: var(--font-size-14); font-weight: 400; color: var(--text-secondary); }
 /* Track codes before names (MKS, rMMM): the short names comp players use. */
 .tt-code { display: inline-block; margin-right: var(--spacing-8); padding: 0 var(--spacing-6, 6px); border-radius: var(--radius-4, 4px); background: var(--background-secondary); color: var(--text-primary); font-family: var(--font-mono, ui-monospace, Menlo, monospace); font-size: var(--font-size-14); font-weight: 700; line-height: 1.6; text-decoration: none; }
-.tt-trackname { white-space: nowrap; }
+/* A track's code and name: on a narrow screen the name wraps beside its code, so Best and Place keep one line each
+   (they were squeezed into "1st of / 71", 2026-11-07). The name carries the underline, so the code chip doesn't. */
+.tt-trackname { display: inline-flex; align-items: center; gap: var(--spacing-8); text-decoration: none; }
+.tt-trackname .tt-code { margin-right: 0; flex: none; min-width: calc(4ch + 2 * var(--spacing-6, 6px)); text-align: center; }
+/* Every code is the same width (up to four letters), so the names start in one column. */
+.tt-trackname__name { text-decoration: underline; }
+.tt-cup__table th:not(:first-child), .tt-cup__table td:not(:first-child) { white-space: nowrap; }
 .tt-compare__row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--spacing-8); }
 .tt-ticket { display: grid; gap: var(--spacing-16); max-width: 72rem; }
 .tt-ticket__state { margin: 0; }

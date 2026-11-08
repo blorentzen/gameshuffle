@@ -198,7 +198,7 @@ export default async function TtPlayerPage({ params, searchParams }: Props) {
                       const o = theirs?.get(t.id);
                       return (
                         <TableRow key={t.id}>
-                          <TableCell><Link href={trackPath(t, cc, { items, vehicle })} className="tt-trackname">{trackCode(t) && <code className="tt-code">{trackCode(t)}</code>}{t.name}</Link></TableCell>
+                          <TableCell><Link href={trackPath(t, cc, { items, vehicle })} className="tt-trackname">{trackCode(t) && <code className="tt-code">{trackCode(t)}</code>}<span className="tt-trackname__name">{t.name}</span></Link></TableCell>
                           <TableCell>{b ? <span className="tt-board__timecell"><span className="tt-board__time">{formatTime(b.timeMs)}</span>{b.place <= TOP_TEN && (fromSheet.has(b.timeId) && b.video !== "checked" ? <StatusChip status="sheet" /> : <VideoChip row={{ video: b.video, videoUrl: b.video === "waiting" ? "waiting" : null, you: false }} />)}</span> : <span className="tt-muted">None</span>}</TableCell>
                           <TableCell>{b ? `${ordinal(b.place)} of ${b.total}` : ""}</TableCell>
                           {other && <TableCell className="tt-board__time">{o ? formatTime(o.timeMs) : <span className="tt-muted">None</span>}</TableCell>}

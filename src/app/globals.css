@@ -741,7 +741,9 @@ ul {
      transform (see the top-based hide above). */
   -webkit-backdrop-filter: blur(18px) saturate(150%);
   backdrop-filter: blur(18px) saturate(150%);
-  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.32);
+  /* Tight enough to lift the pill off the art without falling on what sits under it (a 38px blur reached 50px down and
+     greyed the owner bar on profiles, 2026-11-07). */
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.26);
   transition: background-color 0.3s ease;
 }
 /* The actions box hugs its icon buttons (which have their own padding). */
@@ -869,7 +871,7 @@ ul {
     border-radius: 0 1.2rem 1.2rem 0;
     -webkit-backdrop-filter: blur(18px) saturate(150%);
     backdrop-filter: blur(18px) saturate(150%);
-    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.32);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.26);
     transition: background-color 0.3s ease;
   }
   /* Match the actions pill's per-state fill so the two halves read as one. */

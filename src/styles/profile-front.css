@@ -32,11 +32,15 @@
 .pf-id__inner > * { grid-column: 1 / -1; min-width: 0; }
 .pf-id__inner > .pf-id__face { grid-column: 1; grid-row: 1; margin-top: -7.3rem; }
 .pf-id__inner > .pf-id__actions { grid-column: 2; grid-row: 1; justify-self: end; align-self: end; }
-.pf-id .profile-hero__avatar { padding: 5px; background: var(--background-primary, #fff); box-shadow: 0 0 0 3px var(--profile-accent, transparent), 0 10px 26px rgba(20, 26, 58, 0.18); }
+/* A tight shadow only (Britton, 2026-11-07): the old 26px one spread a grey smudge across the white band beside it. */
+.pf-id .profile-hero__avatar { padding: 5px; background: var(--background-primary, #fff); box-shadow: 0 0 0 3px var(--profile-accent, transparent), 0 3px 10px rgba(20, 26, 58, 0.14); }
 .pf-id .profile-hero__avatar img,
 .pf-id .profile-hero__avatar > svg,
 .pf-id .profile-hero__avatar > span:first-child { border-radius: 50%; }
-.pf-id .profile-hero__avatar--supporter { box-shadow: 0 0 0 3px #e2457a, 0 10px 26px rgba(20, 26, 58, 0.18); }
+.pf-id .profile-hero__avatar--supporter { box-shadow: 0 0 0 3px #e2457a, 0 3px 10px rgba(20, 26, 58, 0.14); }
+/* The name sits on the white band, never on a custom background, so the custom background's text shadow (profile.css,
+   for the old hero on the picture) only smudged it and the Verified badge beside it. */
+.profile-page--custom-bg .pf-id .profile-hero__name, .profile-page--custom-bg .pf-id .profile-hero__tagline { text-shadow: none; }
 .pf-id .profile-online-dot { bottom: 10px; right: 10px; width: 20px; height: 20px; }
 .pf-id .profile-hero__actions { flex-direction: row; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--spacing-8); padding-bottom: var(--spacing-8); }
 .pf-id__who { display: grid; gap: var(--spacing-4); margin-top: var(--spacing-4); }
