@@ -211,6 +211,13 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
 
   useEffect(() => {
     lastY.current = 0;
+    // Where the phone app bar shows (members, under 768px), getting around lives at the foot of the screen, so the top
+    // nav scrolls away and only comes back near the top: a page's own sticky bar (a game space's tabs) takes the top
+    // instead of stacking under the nav (Britton, 2026-11-08). Visitors without the bar keep it on scroll up.
+    const appBarShowing = () => {
+      const bar = document.querySelector(".app-bar");
+      return !!bar && getComputedStyle(bar).display !== "none";
+    };
     const onScroll = () => {
       const y = window.scrollY;
       // On hero pages the "solid" state kicks in after most of the hero;
@@ -222,7 +229,7 @@ export function SiteNavbar({ shop = false, previewInterests = null }: { shop?: b
         setArmed(false);
       } else if (y > lastY.current + 4) {
         setHidden(true);
-      } else if (y < lastY.current - 4) {
+      } else if (y < lastY.current - 4 && !appBarShowing()) {
         setHidden(false);
         setArmed(true);
       }

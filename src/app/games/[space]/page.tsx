@@ -331,7 +331,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
               ) : (
                 <GhostRows count={3} places={false} lines notice={<>
                   <p>Nobody has posted in {s.short} yet. <b>Clips, wins, questions, a game night you&apos;re planning:</b> it all goes here.</p>
-                  <div className="space-actions"><Link href="?tab=posts" className="room-btn room-btn--ghost">Write the first post</Link></div>
+                  <div className="space-actions"><Link href="?tab=posts" scroll={false} className="room-btn room-btn--ghost">Write the first post</Link></div>
                 </>} />
               )}
             </section>
@@ -473,7 +473,7 @@ export default async function GameSpacePage({ params, searchParams }: { params: 
             </div>
             <div className="space-id__acts">
               <SpaceJoin space={s.id} name={s.name} joined={joined} signedIn={signedIn} />
-              <Link href={roller ? "?tab=rolls" : s.main.href} className="room-btn room-btn--ghost space-id__roll">{s.main.label}</Link>
+              <Link href={roller ? "?tab=rolls" : s.main.href} scroll={false} className="room-btn room-btn--ghost space-id__roll">{s.main.label}</Link>
             </div>
           </div>
           {!open && <p className="space-preview">Staff preview: only staff can see this space until its opening day is set.</p>}
